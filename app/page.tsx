@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { PortfolioGrid } from '@/components/home/portfolio-grid';
+import { HomeShell } from '@/components/home/home-shell';
 
 const workItems = [
   { name: 'Blanchette', category: 'Identity' },
@@ -91,39 +91,7 @@ export default function HomePage() {
         </button>
       </header>
 
-      <div className="flex h-screen pt-16">
-        <div className="fixed left-0 top-16 flex h-[calc(100vh-4rem)] w-1/2 flex-col justify-center bg-background px-6">
-          <h1 className="text-[clamp(4rem,15vw,10rem)] font-bold leading-none tracking-tight">
-            Hello
-          </h1>
-          <p className="mt-6 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            We are a Sydney-based design studio specialising in branding and
-            wayfinding.
-          </p>
-        </div>
-
-        <div className="ml-auto h-[calc(100vh-4rem)] w-1/2 overflow-y-auto">
-          <PortfolioGrid />
-
-          <div className="bg-[#F0EDE8] px-6 py-16">
-            <h2 className="mb-12 text-6xl font-bold">Work</h2>
-            <div className="space-y-4">
-              {workItems.map((item, index) => (
-                <Link
-                  key={index}
-                  href="#"
-                  className="block transition-opacity hover:opacity-70"
-                >
-                  <div className="text-sm font-medium">{item.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {item.category}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <HomeShell workItems={workItems} />
     </div>
   );
 }

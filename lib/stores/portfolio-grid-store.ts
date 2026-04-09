@@ -84,6 +84,36 @@ function cloneLayout(layout: Layout): Layout {
   return layout.map((item) => ({ ...item }));
 }
 
+/** Compare grid positions only (i, x, y, w, h); ignores static flags etc. */
+export function layoutPositionsEqual(a: Layout, b: Layout): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  const sortById = (layout: Layout) =>
+    [...layout].sort((left, right) => left.i.localeCompare(right.i));
+
+  const sortedA = sortById(a);
+  const sortedB = sortById(b);
+
+  for (let index = 0; index < sortedA.length; index += 1) {
+    const itemA = sortedA[index];
+    const itemB = sortedB[index];
+    if (
+      !itemB ||
+      itemA.i !== itemB.i ||
+      itemA.x !== itemB.x ||
+      itemA.y !== itemB.y ||
+      itemA.w !== itemB.w ||
+      itemA.h !== itemB.h
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function collides(first: LayoutItem, second: LayoutItem) {
   if (first.i === second.i) {
     return false;

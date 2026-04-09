@@ -122,6 +122,15 @@
   }
 }
 
+/* Keep background scroll/interaction even when Vaul/Radix applies scroll lock. */
+html body[data-scroll-locked] {
+  overflow: auto !important;
+  pointer-events: auto !important;
+  overscroll-behavior: auto !important;
+  position: static !important;
+  margin-right: 0 !important;
+}
+
 .emoji-picker-container .epr-body::-webkit-scrollbar {
   width: 8px;
 }

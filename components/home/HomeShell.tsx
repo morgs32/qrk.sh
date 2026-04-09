@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Plus, X } from 'lucide-react';
 import { PortfolioGrid } from '@/components/home/PortfolioGrid';
 import { homepageTiles } from './tiles';
 import { Button } from '@/components/ui/button';
-import { Drawer, DrawerClose, DrawerContent } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { sizeToDimensions, usePortfolioGridStore } from '@/lib/stores/portfolio-grid-store';
 
@@ -24,6 +23,54 @@ export function HomeShell({ workItems }: HomeShellProps) {
   const [query, setQuery] = useState('');
   const setDraggingTypeId = usePortfolioGridStore((state) => state.setDraggingTypeId);
   type HomepageTile = (typeof homepageTiles)[number];
+  const isDrawerOpenRef = useRef(isDrawerOpen);
+
+  useEffect(() => {
+    isDrawerOpenRef.current = isDrawerOpen;
+  }, [isDrawerOpen]);
+
+  useEffect(() => {
+    if (!isDrawerOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsDrawerOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isDrawerOpen]);
+
+  useEffect(() => {
+    const allowBackgroundScroll = (event: Event) => {
+      if (!isDrawerOpenRef.current) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      if (!target) {
+        return;
+      }
+
+      // If the event originated in the right-hand scroll column, prevent downstream
+      // scroll-lock handlers (e.g. Radix RemoveScroll) from seeing it.
+      const rightColumn = document.querySelector<HTMLElement>('.ml-auto.overflow-y-auto');
+      if (rightColumn && rightColumn.contains(target)) {
+        event.stopImmediatePropagation();
+      }
+    };
+
+    window.addEventListener('wheel', allowBackgroundScroll, { capture: true });
+    window.addEventListener('touchmove', allowBackgroundScroll, { capture: true });
+
+    return () => {
+      window.removeEventListener('wheel', allowBackgroundScroll, { capture: true } as never);
+      window.removeEventListener('touchmove', allowBackgroundScroll, { capture: true } as never);
+    };
+  }, []);
 
   const filteredCollections = (() => {
     const q = query.trim().toLowerCase();
@@ -123,21 +170,11 @@ export function HomeShell({ workItems }: HomeShellProps) {
         </div>
       </div>
 
-      <Drawer
-        direction="left"
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        modal={false}
-        dismissible={false}
-        noBodyStyles
-        disablePreventScroll
-      >
-        <DrawerContent
+      {isDrawerOpen ? (
+        <div
+          role="dialog"
           aria-label="Workspace drawer"
-          data-vaul-no-drag
-          data-vaul="no-drag"
-          overlayClassName="hidden"
-          className="top-16 bottom-0 left-0 z-40 h-[calc(100vh-4rem)] w-full border-r border-border bg-background/95 p-6 shadow-2xl backdrop-blur-sm md:w-1/2"
+          className="fixed top-16 bottom-0 left-0 z-40 h-[calc(100vh-4rem)] w-full border-r border-border bg-background/95 p-6 shadow-2xl backdrop-blur-sm md:w-1/2"
         >
           <div className="flex h-full w-full flex-col gap-4">
             <div className="flex items-start justify-between gap-4">
@@ -148,11 +185,15 @@ export function HomeShell({ workItems }: HomeShellProps) {
                 </div>
               </div>
 
-              <DrawerClose asChild>
-                <Button type="button" variant="ghost" size="icon" aria-label="Close drawer">
-                  <X className="size-4" />
-                </Button>
-              </DrawerClose>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Close drawer"
+                onClick={() => setIsDrawerOpen(false)}
+              >
+                <X className="size-4" />
+              </Button>
             </div>
 
             <div className="flex items-center gap-3">
@@ -184,14 +225,14 @@ export function HomeShell({ workItems }: HomeShellProps) {
                   {filteredCollections.map((collection) => (
                     <div key={collection.collectionId} className="space-y-2">
                       <div className="text-sm font-semibold">{collection.label}</div>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-wrap gap-3">
                         {collection.tiles.map((tile) => {
                           const dims = sizeToDimensions(tile.size);
 
                           return (
                             <div
                               key={tile.typeId}
-                              className="group cursor-grab select-none rounded-md px-2 py-3 hover:bg-muted/40 active:cursor-grabbing"
+                              className="group cursor-grab select-none rounded-md p-2 hover:bg-muted/40 active:cursor-grabbing"
                               draggable
                               onDragStart={(event) => {
                                 event.dataTransfer.setData(
@@ -208,21 +249,18 @@ export function HomeShell({ workItems }: HomeShellProps) {
                               role="button"
                               tabIndex={0}
                             >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <div className="mt-1">
-                                    <span className="inline-flex rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                                      {dims.w}×{dims.h}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                <div className="shrink-0">
-                                  <div className="size-20 overflow-hidden">
+                              <div className="flex w-24 flex-col items-start">
+                                <div className="w-full overflow-hidden">
+                                  <div className="aspect-square w-full overflow-hidden">
                                     <div className="h-full w-full scale-[0.72] origin-center transition-transform group-hover:scale-[0.76]">
                                       <tile.Component />
                                     </div>
                                   </div>
+                                </div>
+                                <div className="mt-2">
+                                  <span className="inline-flex rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                    {dims.w}×{dims.h}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -235,8 +273,8 @@ export function HomeShell({ workItems }: HomeShellProps) {
               )}
             </div>
           </div>
-        </DrawerContent>
-      </Drawer>
+        </div>
+      ) : null}
     </>
   );
 }

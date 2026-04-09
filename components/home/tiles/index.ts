@@ -5,20 +5,20 @@ import type {
 } from '@/lib/stores/portfolio-grid-store';
 import type { HomepageTileCollection, HomepageTileDefinition } from './types';
 
-import { blackCircleCollection } from './collections/black-circle';
-import { blackMCollection } from './collections/black-m-logo';
-import { blueGridCollection } from './collections/blue-grid';
-import { creamBenchCollection } from './collections/cream-bench';
-import { creamSquareCollection } from './collections/cream-square';
-import { greenArchCollection } from './collections/green-arch';
-import { greenCrossCollection } from './collections/green-cross';
-import { greenEmptyCollection } from './collections/green-empty';
-import { greenGCollection } from './collections/green-g-logo';
-import { orangeBlocksCollection } from './collections/orange-block';
-import { orangeFlagCollection } from './collections/orange-flag';
-import { pinkAsteriskCollection } from './collections/pink-asterisk';
-import { pinkDotsCollection } from './collections/pink-dots';
-import { purpleLinesCollection } from './collections/purple-lines';
+import { blackCircleCollection } from './collections/BlackCircle';
+import { blackMCollection } from './collections/BlackMLogo';
+import { blueGridCollection } from './collections/BlueGrid';
+import { creamBenchCollection } from './collections/CreamBench';
+import { creamSquareCollection } from './collections/CreamSquare';
+import { greenArchCollection } from './collections/GreenArch';
+import { greenCrossCollection } from './collections/GreenCross';
+import { greenEmptyCollection } from './collections/GreenEmpty';
+import { greenGCollection } from './collections/GreenGLogo';
+import { orangeBlocksCollection } from './collections/OrangeBlocks';
+import { orangeFlagCollection } from './collections/OrangeFlag';
+import { pinkAsteriskCollection } from './collections/PinkAsterisk';
+import { pinkDotsCollection } from './collections/PinkDots';
+import { purpleLinesCollection } from './collections/PurpleLines';
 
 const homepageTileCollections: readonly HomepageTileCollection[] = [
   orangeFlagCollection,

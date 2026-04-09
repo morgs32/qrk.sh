@@ -9,11 +9,12 @@ import {
   type EventCallback,
   type Layout
 } from 'react-grid-layout';
-import { homepageGridConfig, homepageTiles } from '@/components/home/tiles';
+import { homepageGridConfig, homepageTiles } from '@/components/home/Tiles';
 import {
   GRID_BREAKPOINTS,
   GRID_COLUMNS,
   layoutPositionsEqual,
+  sizeToDimensions,
   toCanonicalLayout,
   toRenderableLayout,
   usePortfolioGridStore
@@ -30,8 +31,8 @@ const GRID_DRAG_BOUNDED =
  * Breakpoints and Zustand-backed layouts are enough here; migrating to
  * `ResponsiveGridLayout` would mostly duplicate that wiring.
  */
-const tileDefinitions = homepageTiles.map(({ id, size, Component }) => ({
-  id,
+const tileDefinitions = homepageTiles.map(({ typeId, size, Component }) => ({
+  typeId,
   size,
   Component
 }));
@@ -62,7 +63,7 @@ export function PortfolioGrid() {
     null
   );
   const initialized = usePortfolioGridStore((state) => state.initialized);
-  const tiles = usePortfolioGridStore((state) => state.tiles);
+  const instances = usePortfolioGridStore((state) => state.instances);
   const layouts = usePortfolioGridStore((state) => state.layouts);
   const hiddenByBreakpoint = usePortfolioGridStore(
     (state) => state.hiddenByBreakpoint
@@ -77,11 +78,13 @@ export function PortfolioGrid() {
   const setBreakpointLayout = usePortfolioGridStore(
     (state) => state.setBreakpointLayout
   );
+  const addInstanceAt = usePortfolioGridStore((state) => state.addInstanceAt);
+  const draggingTypeId = usePortfolioGridStore((state) => state.draggingTypeId);
 
   useEffect(() => {
     if (!initialized) {
       initializeGrid(
-        tileDefinitions.map(({ id, size }) => ({ id, size })),
+        tileDefinitions.map(({ typeId, size }) => ({ typeId, size })),
         homepageGridConfig
       );
     }
@@ -97,8 +100,10 @@ export function PortfolioGrid() {
 
   const visibleIds = useMemo(() => {
     const hiddenSet = new Set(hiddenByBreakpoint[breakpoint]);
-    return tiles.filter((tile) => !hiddenSet.has(tile.id)).map((tile) => tile.id);
-  }, [breakpoint, hiddenByBreakpoint, tiles]);
+    return instances
+      .filter((tile) => !hiddenSet.has(tile.instanceId))
+      .map((tile) => tile.instanceId);
+  }, [breakpoint, hiddenByBreakpoint, instances]);
 
   const renderLayout = useMemo(() => {
     return toRenderableLayout(
@@ -108,23 +113,16 @@ export function PortfolioGrid() {
     );
   }, [alignmentByBreakpoint, breakpoint, layouts]);
 
-  const orderedTiles = useMemo(() => {
-    const layoutPositions = new Map(renderLayout.map((item) => [item.i, item]));
-    const visibleIdSet = new Set(visibleIds);
+  const tileComponentByTypeId = useMemo(() => {
+    return new Map(tileDefinitions.map((entry) => [entry.typeId, entry.Component]));
+  }, []);
 
-    return tileDefinitions
-      .filter((tile) => visibleIdSet.has(tile.id))
-      .sort((first, second) => {
-        const firstItem = layoutPositions.get(first.id);
-        const secondItem = layoutPositions.get(second.id);
-
-        if (!firstItem || !secondItem) {
-          return 0;
-        }
-
-        return firstItem.y - secondItem.y || firstItem.x - secondItem.x;
-      });
-  }, [renderLayout, visibleIds]);
+  const orderedInstances = useMemo(() => {
+    const instanceById = new Map(instances.map((entry) => [entry.instanceId, entry]));
+    return renderLayout
+      .map((item) => instanceById.get(item.i))
+      .filter((value): value is NonNullable<typeof value> => Boolean(value));
+  }, [instances, renderLayout]);
 
   const computedRowHeight =
     width > 0 ? width / GRID_COLUMNS[breakpoint] : 0;
@@ -161,12 +159,37 @@ export function PortfolioGrid() {
     [breakpoint, layouts, setBreakpointLayout]
   );
 
+  const dimensionsByTypeId = useMemo(() => {
+    return new Map(
+      tileDefinitions.map((entry) => [entry.typeId, sizeToDimensions(entry.size)])
+    );
+  }, []);
+
+  const handleDrop = useCallback(
+    (_layout: Layout, item: { x: number; y: number } | undefined, e: Event) => {
+      const dragEvent = e as DragEvent;
+      const typeId =
+        dragEvent.dataTransfer?.getData('application/x-qrk-tile-type') ||
+        dragEvent.dataTransfer?.getData('text/plain') ||
+        dragEvent.dataTransfer?.getData('text') ||
+        draggingTypeId ||
+        '';
+
+      if (!typeId || !item) {
+        return;
+      }
+
+      addInstanceAt(breakpoint, typeId, { x: item.x, y: item.y });
+    },
+    [addInstanceAt, breakpoint]
+  );
+
   return (
     <div ref={containerRef} className="w-full" data-testid="portfolio-grid-root">
       {!mounted || !initialized || computedRowHeight === 0 ? (
         <div className="grid grid-cols-2">
-          {tileDefinitions.map(({ id, Component }) => (
-            <div key={id} className="aspect-square">
+          {tileDefinitions.map(({ typeId, Component }) => (
+            <div key={typeId} className="aspect-square">
               <Component />
             </div>
           ))}
@@ -198,19 +221,47 @@ export function PortfolioGrid() {
             onDragStart={handleDragStart}
             onDragStop={handleDragStop}
             onLayoutChange={handleLayoutChange}
+            onDrop={handleDrop}
+            droppingItem={{ i: '__dropping__', x: 0, y: 0, w: 2, h: 2 }}
+            dropConfig={{
+              enabled: true,
+              defaultItem: { w: 2, h: 2 },
+              onDragOver: (e) => {
+                const typeId =
+                  e.dataTransfer?.getData('application/x-qrk-tile-type') ||
+                  e.dataTransfer?.getData('text/plain') ||
+                  e.dataTransfer?.getData('text') ||
+                  '';
+                const dims = dimensionsByTypeId.get(typeId);
+                if (!dims) {
+                  return;
+                }
+
+                return { w: dims.w, h: dims.h };
+              }
+            }}
           >
-            {orderedTiles.map(({ id, Component }) => (
-              <div
-                key={id}
-                data-tile-id={id}
-                className="cursor-grab touch-none active:cursor-grabbing"
-              >
-                <Component />
-              </div>
-            ))}
+            {orderedInstances.map((instance) => {
+              const Component = tileComponentByTypeId.get(instance.typeId);
+              if (!Component) {
+                return null;
+              }
+
+              return (
+                <div
+                  key={instance.instanceId}
+                  data-tile-instance-id={instance.instanceId}
+                  data-tile-type-id={instance.typeId}
+                  className="cursor-grab touch-none active:cursor-grabbing"
+                >
+                  <Component />
+                </div>
+              );
+            })}
           </GridLayout>
         </div>
       )}
     </div>
   );
 }
+

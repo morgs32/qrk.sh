@@ -21,7 +21,7 @@ export const GRID_COLUMNS: Record<GridBreakpoint, number> = {
 };
 
 export type GridAlignment = 'left' | 'right';
-export type TileSize = '1x1' | '2x2' | '4x4' | '2x1' | '4x2';
+export type TileSize = '1x1' | '2x2' | '4x4' | '2x1' | '4x1' | '4x2';
 
 export type PortfolioGridTileType = {
   typeId: string;
@@ -149,6 +149,8 @@ export function sizeToDimensions(size: TileSize) {
       return { w: 2, h: 1 };
     case '2x2':
       return { w: 2, h: 2 };
+    case '4x1':
+      return { w: 4, h: 1 };
     case '4x2':
       return { w: 4, h: 2 };
     case '4x4':
@@ -311,7 +313,9 @@ function appendItemToBottom(
 }
 
 function seedInstances(tileTypes: PortfolioGridTileType[]): PortfolioGridTileInstance[] {
-  return tileTypes.map((tileType, index) => ({
+  const seededTileTypes = tileTypes.filter((tileType) => !tileType.typeId.includes('--'));
+
+  return seededTileTypes.map((tileType, index) => ({
     instanceId: `${tileType.typeId}--${index}`,
     typeId: tileType.typeId,
     size: tileType.size

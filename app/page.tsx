@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { HomeShell } from '@/components/home/home-shell';
+import { HomeShell } from '@/components/home/HomeShell';
 
 const workItems = [
   { name: 'Blanchette', category: 'Identity' },

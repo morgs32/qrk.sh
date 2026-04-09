@@ -23,8 +23,14 @@ export const GRID_COLUMNS: Record<GridBreakpoint, number> = {
 export type GridAlignment = 'left' | 'right';
 export type TileSize = '1x1' | '2x2' | '4x4' | '2x1' | '4x2';
 
-export type PortfolioGridTile = {
-  id: string;
+export type PortfolioGridTileType = {
+  typeId: string;
+  size: TileSize;
+};
+
+export type PortfolioGridTileInstance = {
+  instanceId: string;
+  typeId: string;
   size: TileSize;
 };
 
@@ -39,18 +45,21 @@ export type PortfolioGridConfig = {
 
 type PortfolioGridState = {
   activeBreakpoint: GridBreakpoint;
-  tiles: PortfolioGridTile[];
+  tileTypes: PortfolioGridTileType[];
+  instances: PortfolioGridTileInstance[];
   layouts: GridLayouts;
   hiddenByBreakpoint: HiddenByBreakpoint;
   alignmentByBreakpoint: AlignmentByBreakpoint;
+  draggingTypeId: string | null;
   initialHiddenByBreakpoint: HiddenByBreakpoint;
   initialAlignmentByBreakpoint: AlignmentByBreakpoint;
   initialized: boolean;
   initializeGrid: (
-    tiles: PortfolioGridTile[],
+    tileTypes: PortfolioGridTileType[],
     config?: PortfolioGridConfig
   ) => void;
   setActiveBreakpoint: (breakpoint: GridBreakpoint) => void;
+  setDraggingTypeId: (typeId: string | null) => void;
   setBreakpointLayout: (breakpoint: GridBreakpoint, layout: Layout) => void;
   setBreakpointAlignment: (
     breakpoint: GridBreakpoint,
@@ -58,6 +67,11 @@ type PortfolioGridState = {
   ) => void;
   hideItem: (breakpoint: GridBreakpoint, id: string) => void;
   showItem: (breakpoint: GridBreakpoint, id: string) => void;
+  addInstanceAt: (
+    breakpoint: GridBreakpoint,
+    typeId: string,
+    position: { x: number; y: number }
+  ) => string | null;
   resetBreakpoint: (breakpoint: GridBreakpoint) => void;
   resetAll: () => void;
 };
@@ -153,12 +167,12 @@ function compactLayout(layout: Layout, breakpoint: GridBreakpoint): Layout {
   );
 }
 
-function getVisibleTiles(
-  tiles: PortfolioGridTile[],
+function getVisibleInstances(
+  instances: PortfolioGridTileInstance[],
   hiddenIds: string[]
-): PortfolioGridTile[] {
+): PortfolioGridTileInstance[] {
   const hiddenSet = new Set(hiddenIds);
-  return tiles.filter((tile) => !hiddenSet.has(tile.id));
+  return instances.filter((tile) => !hiddenSet.has(tile.instanceId));
 }
 
 function filterLayout(layout: Layout, tileIds: string[]): Layout {
@@ -238,13 +252,13 @@ function canPlaceItem(
 }
 
 export function buildInitialLayout(
-  tiles: PortfolioGridTile[],
+  instances: PortfolioGridTileInstance[],
   breakpoint: GridBreakpoint
 ): Layout {
   const cols = GRID_COLUMNS[breakpoint];
   const layout: LayoutItem[] = [];
 
-  tiles.forEach((tile) => {
+  instances.forEach((tile) => {
     const { w, h } = sizeToDimensions(tile.size);
     let y = 0;
     let placed = false;
@@ -252,7 +266,7 @@ export function buildInitialLayout(
     while (!placed) {
       for (let x = 0; x <= cols - w; x += 1) {
         const candidate: LayoutItem = {
-          i: tile.id,
+          i: tile.instanceId,
           x,
           y,
           w,
@@ -275,7 +289,7 @@ export function buildInitialLayout(
 
 function appendItemToBottom(
   layout: Layout,
-  tile: PortfolioGridTile,
+  tile: PortfolioGridTileInstance,
   breakpoint: GridBreakpoint
 ): Layout {
   const { w, h } = sizeToDimensions(tile.size);
@@ -285,7 +299,7 @@ function appendItemToBottom(
     [
       ...cloneLayout(layout),
       {
-        i: tile.id,
+        i: tile.instanceId,
         x: 0,
         y: nextY,
         w,
@@ -294,6 +308,14 @@ function appendItemToBottom(
     ],
     breakpoint
   );
+}
+
+function seedInstances(tileTypes: PortfolioGridTileType[]): PortfolioGridTileInstance[] {
+  return tileTypes.map((tileType, index) => ({
+    instanceId: `${tileType.typeId}--${index}`,
+    typeId: tileType.typeId,
+    size: tileType.size
+  }));
 }
 
 function mergeHiddenByBreakpoint(
@@ -319,26 +341,29 @@ function mergeAlignmentByBreakpoint(
 
 function deriveBreakpointLayout(
   breakpoint: GridBreakpoint,
-  tiles: PortfolioGridTile[],
+  instances: PortfolioGridTileInstance[],
   layouts: GridLayouts,
   hiddenByBreakpoint: HiddenByBreakpoint
 ): Layout {
-  const visibleTiles = getVisibleTiles(tiles, hiddenByBreakpoint[breakpoint]);
-  if (visibleTiles.length === 0) {
+  const visibleInstances = getVisibleInstances(
+    instances,
+    hiddenByBreakpoint[breakpoint]
+  );
+  if (visibleInstances.length === 0) {
     return [];
   }
 
-  const visibleTileIds = visibleTiles.map((tile) => tile.id);
+  const visibleInstanceIds = visibleInstances.map((tile) => tile.instanceId);
   const breakpointIndex = GRID_BREAKPOINT_ORDER.indexOf(breakpoint);
 
   for (let index = breakpointIndex - 1; index >= 0; index -= 1) {
     const sourceBreakpoint = GRID_BREAKPOINT_ORDER[index];
-    const sourceLayout = filterLayout(layouts[sourceBreakpoint], visibleTileIds);
+    const sourceLayout = filterLayout(layouts[sourceBreakpoint], visibleInstanceIds);
 
     if (sourceLayout.length > 0) {
-      return visibleTiles.reduce(
+      return visibleInstances.reduce(
         (nextLayout, tile) =>
-          nextLayout.some((item) => item.i === tile.id)
+          nextLayout.some((item) => item.i === tile.instanceId)
             ? nextLayout
             : appendItemToBottom(nextLayout, tile, breakpoint),
         toCanonicalLayout(sourceLayout, breakpoint)
@@ -346,19 +371,19 @@ function deriveBreakpointLayout(
     }
   }
 
-  return buildInitialLayout(visibleTiles, breakpoint);
+  return buildInitialLayout(visibleInstances, breakpoint);
 }
 
 function buildInitialState(
-  tiles: PortfolioGridTile[],
+  instances: PortfolioGridTileInstance[],
   config?: PortfolioGridConfig
 ) {
   const hiddenByBreakpoint = mergeHiddenByBreakpoint(config?.hiddenByBreakpoint);
   const alignmentByBreakpoint = mergeAlignmentByBreakpoint(
     config?.alignmentByBreakpoint
   );
-  const lgTiles = getVisibleTiles(tiles, hiddenByBreakpoint.lg);
-  const lgLayout = buildInitialLayout(lgTiles, 'lg');
+  const lgInstances = getVisibleInstances(instances, hiddenByBreakpoint.lg);
+  const lgLayout = buildInitialLayout(lgInstances, 'lg');
   const seedLayouts: GridLayouts = {
     lg: lgLayout,
     md: [],
@@ -368,8 +393,8 @@ function buildInitialState(
   return {
     layouts: {
       lg: lgLayout,
-      md: deriveBreakpointLayout('md', tiles, seedLayouts, hiddenByBreakpoint),
-      sm: deriveBreakpointLayout('sm', tiles, seedLayouts, hiddenByBreakpoint)
+      md: deriveBreakpointLayout('md', instances, seedLayouts, hiddenByBreakpoint),
+      sm: deriveBreakpointLayout('sm', instances, seedLayouts, hiddenByBreakpoint)
     },
     hiddenByBreakpoint,
     alignmentByBreakpoint
@@ -378,22 +403,26 @@ function buildInitialState(
 
 export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
   activeBreakpoint: 'lg',
-  tiles: [],
+  tileTypes: [],
+  instances: [],
   layouts: emptyLayouts(),
   hiddenByBreakpoint: defaultHiddenByBreakpoint(),
   alignmentByBreakpoint: defaultAlignmentByBreakpoint(),
+  draggingTypeId: null,
   initialHiddenByBreakpoint: defaultHiddenByBreakpoint(),
   initialAlignmentByBreakpoint: defaultAlignmentByBreakpoint(),
   initialized: false,
-  initializeGrid: (tiles, config) => {
+  initializeGrid: (tileTypes, config) => {
     if (get().initialized) {
       return;
     }
 
-    const initialState = buildInitialState(tiles, config);
+    const instances = seedInstances(tileTypes);
+    const initialState = buildInitialState(instances, config);
 
     set({
-      tiles,
+      tileTypes,
+      instances,
       layouts: initialState.layouts,
       hiddenByBreakpoint: initialState.hiddenByBreakpoint,
       alignmentByBreakpoint: initialState.alignmentByBreakpoint,
@@ -405,17 +434,23 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
   setActiveBreakpoint: (breakpoint) => {
     set({ activeBreakpoint: breakpoint });
   },
+  setDraggingTypeId: (typeId) => {
+    set({ draggingTypeId: typeId });
+  },
   setBreakpointLayout: (breakpoint, layout) => {
     const state = get();
-    const visibleTiles = getVisibleTiles(
-      state.tiles,
+    const visibleInstances = getVisibleInstances(
+      state.instances,
       state.hiddenByBreakpoint[breakpoint]
     );
-    const visibleTileIds = visibleTiles.map((tile) => tile.id);
-    let nextLayout = toCanonicalLayout(filterLayout(layout, visibleTileIds), breakpoint);
+    const visibleInstanceIds = visibleInstances.map((tile) => tile.instanceId);
+    let nextLayout = toCanonicalLayout(
+      filterLayout(layout, visibleInstanceIds),
+      breakpoint
+    );
 
-    visibleTiles.forEach((tile) => {
-      if (!nextLayout.some((item) => item.i === tile.id)) {
+    visibleInstances.forEach((tile) => {
+      if (!nextLayout.some((item) => item.i === tile.instanceId)) {
         nextLayout = appendItemToBottom(nextLayout, tile, breakpoint);
       }
     });
@@ -457,8 +492,8 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
   },
   showItem: (breakpoint, id) => {
     const state = get();
-    const tile = state.tiles.find((entry) => entry.id === id);
-    if (!tile) {
+    const instance = state.instances.find((entry) => entry.instanceId === id);
+    if (!instance) {
       return;
     }
 
@@ -467,7 +502,7 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
     );
     const nextLayout = state.layouts[breakpoint].some((item) => item.i === id)
       ? state.layouts[breakpoint]
-      : appendItemToBottom(state.layouts[breakpoint], tile, breakpoint);
+      : appendItemToBottom(state.layouts[breakpoint], instance, breakpoint);
 
     set({
       hiddenByBreakpoint: {
@@ -480,19 +515,72 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
       }
     });
   },
+  addInstanceAt: (breakpoint, typeId, position) => {
+    const state = get();
+    const tileType = state.tileTypes.find((entry) => entry.typeId === typeId);
+    if (!tileType) {
+      return null;
+    }
+
+    const instanceId =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${typeId}--${Date.now()}--${Math.random().toString(16).slice(2)}`;
+    const { w, h } = sizeToDimensions(tileType.size);
+
+    const nextInstances: PortfolioGridTileInstance[] = [
+      ...state.instances,
+      {
+        instanceId,
+        typeId,
+        size: tileType.size
+      }
+    ];
+
+    const nextHidden = state.hiddenByBreakpoint[breakpoint].filter(
+      (hiddenId) => hiddenId !== instanceId
+    );
+
+    const candidate: LayoutItem = {
+      i: instanceId,
+      x: Math.max(0, position.x),
+      y: Math.max(0, position.y),
+      w,
+      h
+    };
+
+    const nextLayout = toCanonicalLayout(
+      [...cloneLayout(state.layouts[breakpoint]), candidate],
+      breakpoint
+    );
+
+    set({
+      instances: nextInstances,
+      hiddenByBreakpoint: {
+        ...state.hiddenByBreakpoint,
+        [breakpoint]: nextHidden
+      },
+      layouts: {
+        ...state.layouts,
+        [breakpoint]: nextLayout
+      }
+    });
+
+    return instanceId;
+  },
   resetBreakpoint: (breakpoint) => {
     const state = get();
     const nextLayouts = { ...state.layouts };
 
     if (breakpoint === 'lg') {
       nextLayouts.lg = buildInitialLayout(
-        getVisibleTiles(state.tiles, state.hiddenByBreakpoint.lg),
+        getVisibleInstances(state.instances, state.hiddenByBreakpoint.lg),
         'lg'
       );
     } else {
       nextLayouts[breakpoint] = deriveBreakpointLayout(
         breakpoint,
-        state.tiles,
+        state.instances,
         nextLayouts,
         state.hiddenByBreakpoint
       );
@@ -504,7 +592,7 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
   },
   resetAll: () => {
     const state = get();
-    const initialState = buildInitialState(state.tiles, {
+    const initialState = buildInitialState(state.instances, {
       hiddenByBreakpoint: state.initialHiddenByBreakpoint,
       alignmentByBreakpoint: state.initialAlignmentByBreakpoint
     });

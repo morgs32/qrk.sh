@@ -208,26 +208,27 @@ export function GreenCrossTile() {
 }
 
 type HomepageTileDefinition = {
-  id: string;
+  typeId: string;
+  label: string;
   size: TileSize;
   Component: ComponentType;
 };
 
 export const homepageTiles: HomepageTileDefinition[] = [
-  { id: 'orange-flag', size: '2x2', Component: OrangeFlagTile },
-  { id: 'black-circle', size: '2x2', Component: BlackCircleTile },
-  { id: 'green-arch', size: '2x2', Component: GreenArchTile },
-  { id: 'blue-grid', size: '2x2', Component: BlueGridTile },
-  { id: 'cream-bench', size: '2x2', Component: CreamBenchTile },
-  { id: 'green-g-logo', size: '2x2', Component: GreenGLogoTile },
-  { id: 'cream-square', size: '2x2', Component: CreamSquareTile },
-  { id: 'pink-dots', size: '2x2', Component: PinkDotsTile },
-  { id: 'black-m-logo', size: '2x2', Component: BlackMLogoTile },
-  { id: 'orange-block', size: '2x2', Component: OrangeBlockTile },
-  { id: 'purple-lines', size: '2x2', Component: PurpleLinesTile },
-  { id: 'pink-asterisk', size: '2x2', Component: PinkAsteriskTile },
-  { id: 'green-empty', size: '2x2', Component: GreenEmptyTile },
-  { id: 'green-cross', size: '2x2', Component: GreenCrossTile }
+  { typeId: 'orange-flag', label: 'Orange flag', size: '2x2', Component: OrangeFlagTile },
+  { typeId: 'black-circle', label: 'Black circle', size: '2x2', Component: BlackCircleTile },
+  { typeId: 'green-arch', label: 'Green arch', size: '2x2', Component: GreenArchTile },
+  { typeId: 'blue-grid', label: 'Blue grid', size: '2x2', Component: BlueGridTile },
+  { typeId: 'cream-bench', label: 'Cream bench', size: '2x2', Component: CreamBenchTile },
+  { typeId: 'green-g-logo', label: 'Green G', size: '2x2', Component: GreenGLogoTile },
+  { typeId: 'cream-square', label: 'Cream square', size: '2x2', Component: CreamSquareTile },
+  { typeId: 'pink-dots', label: 'Pink dots', size: '2x2', Component: PinkDotsTile },
+  { typeId: 'black-m-logo', label: 'Black M', size: '2x2', Component: BlackMLogoTile },
+  { typeId: 'orange-block', label: 'Orange blocks', size: '2x2', Component: OrangeBlockTile },
+  { typeId: 'purple-lines', label: 'Purple lines', size: '2x2', Component: PurpleLinesTile },
+  { typeId: 'pink-asterisk', label: 'Pink asterisk', size: '2x2', Component: PinkAsteriskTile },
+  { typeId: 'green-empty', label: 'Green empty', size: '2x2', Component: GreenEmptyTile },
+  { typeId: 'green-cross', label: 'Green cross', size: '2x2', Component: GreenCrossTile }
 ];
 
 export const homepageGridConfig: {

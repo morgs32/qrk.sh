@@ -9,7 +9,7 @@ import {
   type EventCallback,
   type Layout
 } from 'react-grid-layout';
-import { homepageGridConfig, homepageTiles } from '@/components/home/Tiles';
+import { homepageGridConfig, homepageTiles } from './tiles';
 import {
   GRID_BREAKPOINTS,
   GRID_COLUMNS,

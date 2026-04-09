@@ -66,9 +66,12 @@ function DrawerContent({
   overlayClassName,
   ...props
 }: DrawerContentProps) {
+  const shouldRenderOverlay =
+    overlayClassName ? !overlayClassName.includes("hidden") : true
+
   return (
     <DrawerPortal data-slot="drawer-portal">
-      <DrawerOverlay className={overlayClassName} />
+      {shouldRenderOverlay ? <DrawerOverlay className={overlayClassName} /> : null}
       <DrawerPrimitive.Content
         data-slot="drawer-content"
         className={cn(

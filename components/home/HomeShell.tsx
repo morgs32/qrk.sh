@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Plus, X } from 'lucide-react';
 import { PortfolioGrid } from '@/components/home/PortfolioGrid';
-import { homepageTiles } from '@/components/home/Tiles';
+import { homepageTiles } from './tiles';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerClose, DrawerContent } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
@@ -23,17 +23,55 @@ export function HomeShell({ workItems }: HomeShellProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [query, setQuery] = useState('');
   const setDraggingTypeId = usePortfolioGridStore((state) => state.setDraggingTypeId);
+  type HomepageTile = (typeof homepageTiles)[number];
 
-  const filteredTiles = homepageTiles.filter((tile) => {
+  const filteredCollections = (() => {
     const q = query.trim().toLowerCase();
+    const collections = new Map<
+      string,
+      { collectionId: string; label: string; tiles: HomepageTile[] }
+    >();
+
+    homepageTiles.forEach((tile) => {
+      const entry =
+        collections.get(tile.collectionId) ??
+        {
+          collectionId: tile.collectionId,
+          label: tile.collectionLabel,
+          tiles: []
+        };
+
+      entry.tiles.push(tile);
+      collections.set(tile.collectionId, entry);
+    });
+
+    const ordered = Array.from(collections.values()).map((collection) => ({
+      ...collection,
+      tiles: [...collection.tiles].sort((a, b) => {
+        const order = (size: string) => (size === '1x1' ? 0 : size === '2x2' ? 1 : 2);
+        return order(a.size) - order(b.size);
+      })
+    }));
+
     if (!q) {
-      return true;
+      return ordered;
     }
 
-    return (
-      tile.label.toLowerCase().includes(q) || tile.typeId.toLowerCase().includes(q)
-    );
-  });
+    return ordered
+      .map((collection) => {
+        const matchesCollection =
+          collection.label.toLowerCase().includes(q) ||
+          collection.collectionId.toLowerCase().includes(q);
+        const matchingTiles = collection.tiles.filter(
+          (tile) => tile.typeId.toLowerCase().includes(q)
+        );
+
+        return matchesCollection
+          ? collection
+          : { ...collection, tiles: matchingTiles };
+      })
+      .filter((collection) => collection.tiles.length > 0);
+  })();
 
   return (
     <>
@@ -89,9 +127,15 @@ export function HomeShell({ workItems }: HomeShellProps) {
         direction="left"
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
+        modal={false}
+        dismissible={false}
+        noBodyStyles
+        disablePreventScroll
       >
         <DrawerContent
           aria-label="Workspace drawer"
+          data-vaul-no-drag
+          data-vaul="no-drag"
           overlayClassName="hidden"
           className="top-16 bottom-0 left-0 z-40 h-[calc(100vh-4rem)] w-full border-r border-border bg-background/95 p-6 shadow-2xl backdrop-blur-sm md:w-1/2"
         >
@@ -131,52 +175,62 @@ export function HomeShell({ workItems }: HomeShellProps) {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-              {filteredTiles.length === 0 ? (
+              {filteredCollections.length === 0 ? (
                 <div className="rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
                   No tiles match “{query.trim()}”.
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {filteredTiles.map((tile) => {
-                    const dims = sizeToDimensions(tile.size);
+                <div className="flex flex-col gap-6">
+                  {filteredCollections.map((collection) => (
+                    <div key={collection.collectionId} className="space-y-2">
+                      <div className="text-sm font-semibold">{collection.label}</div>
+                      <div className="flex flex-col gap-2">
+                        {collection.tiles.map((tile) => {
+                          const dims = sizeToDimensions(tile.size);
 
-                    return (
-                      <div
-                        key={tile.typeId}
-                        className="group relative cursor-grab select-none overflow-hidden rounded-lg border border-border bg-background shadow-sm active:cursor-grabbing"
-                        draggable
-                        onDragStart={(event) => {
-                          event.dataTransfer.setData(
-                            'application/x-qrk-tile-type',
-                            tile.typeId
+                          return (
+                            <div
+                              key={tile.typeId}
+                              className="group cursor-grab select-none rounded-md px-2 py-3 hover:bg-muted/40 active:cursor-grabbing"
+                              draggable
+                              onDragStart={(event) => {
+                                event.dataTransfer.setData(
+                                  'application/x-qrk-tile-type',
+                                  tile.typeId
+                                );
+                                event.dataTransfer.setData('text/plain', tile.typeId);
+                                event.dataTransfer.setData('text', tile.typeId);
+                                event.dataTransfer.effectAllowed = 'copy';
+                                setDraggingTypeId(tile.typeId);
+                              }}
+                              onDragEnd={() => setDraggingTypeId(null)}
+                              aria-label={`Drag ${collection.label} ${dims.w}×${dims.h}`}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                  <div className="mt-1">
+                                    <span className="inline-flex rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                      {dims.w}×{dims.h}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="shrink-0">
+                                  <div className="size-20 overflow-hidden">
+                                    <div className="h-full w-full scale-[0.72] origin-center transition-transform group-hover:scale-[0.76]">
+                                      <tile.Component />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                           );
-                          event.dataTransfer.setData('text/plain', tile.typeId);
-                          event.dataTransfer.setData('text', tile.typeId);
-                          event.dataTransfer.effectAllowed = 'copy';
-                          setDraggingTypeId(tile.typeId);
-                        }}
-                        onDragEnd={() => setDraggingTypeId(null)}
-                        aria-label={`Drag ${tile.label}`}
-                        role="button"
-                        tabIndex={0}
-                      >
-                        <div className="aspect-square w-full overflow-hidden">
-                          <div className="h-full w-full scale-[0.72] origin-center transition-transform group-hover:scale-[0.76]">
-                            <tile.Component />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2 border-t border-border px-2 py-1.5">
-                          <div className="truncate text-xs font-medium">
-                            {tile.label}
-                          </div>
-                          <div className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                            {dims.w}×{dims.h}
-                          </div>
-                        </div>
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "react-grid-layout/css/styles.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -196,4 +197,9 @@
 
 .emoji-picker-container .epr-category-nav button:hover {
   opacity: 0.8;
+}
+
+.portfolio-grid .react-grid-placeholder {
+  background: transparent;
+  opacity: 0;
 }

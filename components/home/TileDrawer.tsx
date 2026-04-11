@@ -33,8 +33,8 @@ type DrawerTilePreviewProps = {
 
 function DrawerTilePreview({ tile, fullWidth, fullHeight }: DrawerTilePreviewProps) {
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div className="origin-center scale-75">
+    <div className="group flex w-full flex-col items-center gap-3">
+      <div className="origin-center scale-75 transition-transform duration-200 ease-out group-hover:scale-100 group-focus-within:scale-100 motion-reduce:transition-none motion-reduce:group-hover:scale-75 motion-reduce:group-focus-within:scale-75">
         <div
           data-drawer-tile-slot
           data-drawer-tile-type={tile.typeId}
@@ -167,25 +167,22 @@ export function TileDrawer({ open, onClose }: TileDrawerProps) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-6 px-6 pb-8 pt-4">
+        <div aria-label="Tile carousel" className="flex flex-col gap-6 px-6 pb-8 pt-4">
           {filteredCollections.length === 0 ? (
             <div className="rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
               No tiles match “{query.trim()}”.
             </div>
           ) : (
             filteredCollections.map((collection) => (
-              <div
-                key={collection.collectionId}
-                className="min-w-0 space-y-2 border-b border-border/60 pb-6"
-              >
+              <div key={collection.collectionId} className="min-w-0 space-y-2 pb-6">
                 <div className="text-sm font-semibold">{collection.label}</div>
-                <div className="relative min-h-0 min-w-0 -mx-6 py-1">
+                <div className="relative min-h-0 min-w-0 -mx-6 border-b border-border/60 py-1 pb-4">
                   <Carousel opts={{ align: 'start' }} className="w-full">
                     <CarouselContent className="items-stretch">
                       {collection.tiles.map((tile) => (
                         <CarouselItem
                           key={tile.typeId}
-                          className="flex flex-col items-center justify-center"
+                          className="relative z-0 flex flex-col items-center justify-center hover:z-[5]"
                         >
                           <DrawerTilePreview
                             tile={tile}

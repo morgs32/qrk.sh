@@ -16,6 +16,7 @@ import {
   sizeToDimensions,
   useGridStore
 } from '@/lib/stores/grid-store';
+import { DrawerTilePreview } from './DrawerTilePreview';
 
 /** Fallback when the grid has not measured yet (`gridCellHeightPx` is null). */
 export const DRAWER_PREVIEW_UNIT_PX = 96;
@@ -25,42 +26,10 @@ type DrawerHomepageTile = HomepageTile & {
   dims: { w: number; h: number };
 };
 
-type DrawerTilePreviewProps = {
-  tile: DrawerHomepageTile;
-  fullWidth: number;
-  fullHeight: number;
-};
-
-function DrawerTilePreview({ tile, fullWidth, fullHeight }: DrawerTilePreviewProps) {
-  return (
-    <div className="group flex w-full flex-col items-center gap-3">
-      <div className="origin-center scale-75 transition-transform duration-200 ease-out group-hover:scale-100 group-focus-within:scale-100 motion-reduce:transition-none motion-reduce:group-hover:scale-75 motion-reduce:group-focus-within:scale-75">
-        <div
-          data-drawer-tile-slot
-          data-drawer-tile-type={tile.typeId}
-          tabIndex={0}
-          className="shrink-0 overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 focus-visible:ring-2 focus-visible:ring-ring"
-          style={{ width: fullWidth, height: fullHeight }}
-          aria-label={`${tile.collectionLabel} ${tile.dims.w}×${tile.dims.h}`}
-        >
-          <div className="h-full w-full">
-            <tile.Component />
-          </div>
-        </div>
-      </div>
-      <span className="inline-flex rounded bg-muted px-2 py-1 text-xs font-semibold text-foreground">
-        {tile.dims.w}×{tile.dims.h}
-      </span>
-    </div>
-  );
-}
-
-type TileDrawerProps = {
+export function TileDrawer({ open, onClose }: {
   open: boolean;
   onClose: () => void;
-};
-
-export function TileDrawer({ open, onClose }: TileDrawerProps) {
+}) {
   const [query, setQuery] = useState('');
   const gridCellHeightPx = useGridStore((state) => state.gridCellHeightPx);
   const cellUnitPx =
@@ -125,8 +94,8 @@ export function TileDrawer({ open, onClose }: TileDrawerProps) {
       aria-label="Workspace drawer"
       className="fixed top-16 bottom-0 left-0 z-40 flex h-[calc(100vh-4rem)] w-full min-h-0 flex-col border-r border-border bg-background/95 shadow-2xl backdrop-blur-sm md:w-1/2"
     >
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-        <div className="sticky top-0 z-10 flex flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
               <div className="text-sm font-semibold">Tiles</div>
@@ -167,44 +136,48 @@ export function TileDrawer({ open, onClose }: TileDrawerProps) {
           </div>
         </div>
 
-        <div aria-label="Tile carousel" className="flex flex-col gap-6 px-6 pb-8 pt-4">
-          {filteredCollections.length === 0 ? (
-            <div className="rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
-              No tiles match “{query.trim()}”.
-            </div>
-          ) : (
-            filteredCollections.map((collection) => (
-              <div key={collection.collectionId} className="min-w-0 space-y-2 pb-6">
-                <div className="text-sm font-semibold">{collection.label}</div>
-                <div className="relative min-h-0 min-w-0 -mx-6 border-b border-border/60 py-1 pb-4">
-                  <Carousel opts={{ align: 'start' }} className="w-full">
-                    <CarouselContent className="items-stretch">
-                      {collection.tiles.map((tile) => (
-                        <CarouselItem
-                          key={tile.typeId}
-                          className="relative z-0 flex flex-col items-center justify-center hover:z-[5]"
-                        >
-                          <DrawerTilePreview
-                            tile={tile}
-                            fullWidth={tile.dims.w * cellUnitPx}
-                            fullHeight={tile.dims.h * cellUnitPx}
-                          />
-                        </CarouselItem>
-                      ))}
-                    </CarouselContent>
-                    <CarouselPrevious
-                      type="button"
-                      className="top-1/2 left-1 z-10 size-8 -translate-y-1/2"
-                    />
-                    <CarouselNext
-                      type="button"
-                      className="top-1/2 right-1 z-10 size-8 -translate-y-1/2"
-                    />
-                  </Carousel>
-                </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div aria-label="Tile carousel" className="flex flex-col gap-6 px-6 pb-8 pt-4">
+            {filteredCollections.length === 0 ? (
+              <div className="rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
+                No tiles match “{query.trim()}”.
               </div>
-            ))
-          )}
+            ) : (
+              filteredCollections.map((collection) => (
+                <div key={collection.collectionId} className="min-w-0 pb-6">
+                  <div className="sticky top-0 z-[11] -mx-6 border-b border-border/60 bg-background/95 px-6 py-2.5 backdrop-blur-sm">
+                    <div className="text-sm font-semibold">{collection.label}</div>
+                  </div>
+                  <div className="relative min-h-0 min-w-0 -mx-6 border-b border-border/60 py-1 pb-4 pt-2">
+                    <Carousel opts={{ align: 'start' }} className="w-full">
+                      <CarouselContent className="items-stretch">
+                        {collection.tiles.map((tile) => (
+                          <CarouselItem
+                            key={tile.typeId}
+                            className="relative z-0 flex flex-col items-center justify-center hover:z-[5]"
+                          >
+                            <DrawerTilePreview
+                              tile={tile}
+                              fullWidth={tile.dims.w * cellUnitPx}
+                              fullHeight={tile.dims.h * cellUnitPx}
+                            />
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious
+                        type="button"
+                        className="top-1/2 left-1 z-10 size-8 -translate-y-1/2"
+                      />
+                      <CarouselNext
+                        type="button"
+                        className="top-1/2 right-1 z-10 size-8 -translate-y-1/2"
+                      />
+                    </Carousel>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ test.describe('Drawer background interaction', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'load' });
 
-    const rightColumn = page.locator('.ml-auto.h-\\[calc\\(100vh-4rem\\)\\].overflow-y-auto');
+    const rightColumn = page.locator('[data-home-right-scroll]');
     await expect(rightColumn).toBeVisible({ timeout: 90_000 });
 
     // Ensure it is scrollable by scrolling once.

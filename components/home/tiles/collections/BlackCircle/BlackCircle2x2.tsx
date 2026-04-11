@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { BlackCircleGraphic } from './BlackCircleGraphic';
+import { TileFrame } from "../../TileFrame";
+import { BlackCircleGraphic } from "./BlackCircleGraphic";
 
 export function BlackCircle2x2() {
   return (

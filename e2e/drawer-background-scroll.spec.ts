@@ -1,11 +1,11 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from "@playwright/test";
 
-test.describe('Drawer background interaction', () => {
-  test('grid column can still scroll while drawer is open', async ({ page }) => {
+test.describe("Drawer background interaction", () => {
+  test("grid column can still scroll while drawer is open", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto('/', { waitUntil: 'load' });
+    await page.goto("/", { waitUntil: "load" });
 
-    const rightColumn = page.locator('[data-home-right-scroll]');
+    const rightColumn = page.locator("[data-home-right-scroll]");
     await expect(rightColumn).toBeVisible({ timeout: 90_000 });
 
     // Ensure it is scrollable by scrolling once.
@@ -21,8 +21,8 @@ test.describe('Drawer background interaction', () => {
     });
     expect(maxScrollTop).toBeGreaterThan(afterFirstWheel + 50);
 
-    await page.getByLabel('Open drawer').click();
-    await expect(page.getByLabel('Workspace drawer')).toBeVisible();
+    await page.getByLabel("Open drawer").click();
+    await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
     const beforeDrawerWheel = await rightColumn.evaluate((el) => (el as HTMLElement).scrollTop);
     const maxScrollTopAfterDrawer = await rightColumn.evaluate((el) => {
@@ -36,4 +36,3 @@ test.describe('Drawer background interaction', () => {
     expect(afterDrawerWheel).toBeGreaterThan(beforeDrawerWheel);
   });
 });
-

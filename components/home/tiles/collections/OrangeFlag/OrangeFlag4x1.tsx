@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { OrangeFlagGraphic } from './OrangeFlagGraphic';
+import { TileFrame } from "../../TileFrame";
+import { OrangeFlagGraphic } from "./OrangeFlagGraphic";
 
 export function OrangeFlag4x1() {
   return (

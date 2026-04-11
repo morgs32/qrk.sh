@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { BlackMLogoGraphic } from './BlackMLogoGraphic';
+import { TileFrame } from "../../TileFrame";
+import { BlackMLogoGraphic } from "./BlackMLogoGraphic";
 
 export function BlackMLogo4x1() {
   return (

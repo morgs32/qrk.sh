@@ -1,16 +1,11 @@
-import { homepageTileCollections } from './homepageTileCollections';
-import type { ICollectionTile, ICollectionTileDef } from './types';
-import { tileDefsEqual } from './types';
+import { homepageTileCollections } from "./homepageTileCollections";
+import type { ICollectionTile, ICollectionTileDef } from "./types";
+import { tileDefsEqual } from "./types";
 
-export type {
-  ICollectionTile,
-  ICollectionTileDef,
-  ITile,
-  ITileVariantDef
-} from './types';
-export { catalogKey, tileDefsEqual } from './types';
-export { makeTile } from './makeTile';
-export { makeTileCollection } from './makeTileCollection';
+export type { ICollectionTile, ICollectionTileDef, ITile, ITileVariantDef } from "./types";
+export { catalogKey, tileDefsEqual } from "./types";
+export { makeTile } from "./makeTile";
+export { makeTileCollection } from "./makeTileCollection";
 
 export const homepageTiles: ICollectionTile[] = homepageTileCollections.flat();
 

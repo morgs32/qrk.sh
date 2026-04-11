@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { GreenArchGraphic } from './GreenArchGraphic';
+import { TileFrame } from "../../TileFrame";
+import { GreenArchGraphic } from "./GreenArchGraphic";
 
 export function GreenArch1x1() {
   return (

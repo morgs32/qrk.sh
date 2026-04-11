@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { GreenCrossGraphic } from './GreenCrossGraphic';
+import { TileFrame } from "../../TileFrame";
+import { GreenCrossGraphic } from "./GreenCrossGraphic";
 
 export function GreenCross2x2() {
   return (

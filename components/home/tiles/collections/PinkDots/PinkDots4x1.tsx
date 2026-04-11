@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { PinkDotsGraphic } from './PinkDotsGraphic';
+import { TileFrame } from "../../TileFrame";
+import { PinkDotsGraphic } from "./PinkDotsGraphic";
 
 export function PinkDots4x1() {
   return (

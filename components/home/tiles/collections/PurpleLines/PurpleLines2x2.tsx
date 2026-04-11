@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { PurpleLinesGraphic } from './PurpleLinesGraphic';
+import { TileFrame } from "../../TileFrame";
+import { PurpleLinesGraphic } from "./PurpleLinesGraphic";
 
 export function PurpleLines2x2() {
   return (

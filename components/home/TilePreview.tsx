@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useCallback, type DragEvent } from 'react';
-import { useGridStore } from '@/components/home/useGridStore';
-import { catalogKey, type ICollectionTile } from './tiles';
+import { useCallback, type DragEvent } from "react";
+import { useGridStore } from "@/components/home/useGridStore";
+import { catalogKey, type ICollectionTile } from "./tiles";
 
-const TILE_DRAG_MIME = 'application/x-qrk-tile-def';
+const TILE_DRAG_MIME = "application/x-qrk-tile-def";
 
 function serializeTileDef(tile: ICollectionTile) {
   return JSON.stringify(tile.def);
@@ -13,25 +13,23 @@ function serializeTileDef(tile: ICollectionTile) {
 export function TilePreview({
   tile,
   fullWidth,
-  fullHeight
+  fullHeight,
 }: {
   tile: ICollectionTile;
   fullWidth: number;
   fullHeight: number;
 }) {
-  const setExternalDraggingTileDef = useGridStore(
-    (state) => state.setExternalDraggingTileDef
-  );
+  const setExternalDraggingTileDef = useGridStore((state) => state.setExternalDraggingTileDef);
 
   const handleDragStart = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
       const payload = serializeTileDef(tile);
-      event.dataTransfer.effectAllowed = 'copy';
+      event.dataTransfer.effectAllowed = "copy";
       event.dataTransfer.setData(TILE_DRAG_MIME, payload);
-      event.dataTransfer.setData('text/plain', catalogKey(tile.def));
+      event.dataTransfer.setData("text/plain", catalogKey(tile.def));
       setExternalDraggingTileDef(tile.def);
     },
-    [setExternalDraggingTileDef, tile]
+    [setExternalDraggingTileDef, tile],
   );
 
   const handleDragEnd = useCallback(() => {

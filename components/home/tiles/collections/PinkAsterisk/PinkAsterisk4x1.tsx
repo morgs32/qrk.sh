@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { PinkAsteriskGraphic } from './PinkAsteriskGraphic';
+import { TileFrame } from "../../TileFrame";
+import { PinkAsteriskGraphic } from "./PinkAsteriskGraphic";
 
 export function PinkAsterisk4x1() {
   return (

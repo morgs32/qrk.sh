@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useActionState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Loader2 } from 'lucide-react';
-import Link from 'next/link';
-import { deleteSubdomainAction } from '@/app/actions';
-import { rootDomain, protocol } from '@/lib/utils';
+import { useActionState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Trash2, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { deleteSubdomainAction } from "@/app/actions";
+import { rootDomain, protocol } from "@/lib/utils";
 
 type Tenant = {
   subdomain: string;
@@ -40,7 +40,7 @@ function DashboardHeader() {
 function TenantGrid({
   tenants,
   action,
-  isPending
+  isPending,
 }: {
   tenants: Tenant[];
   action: (formData: FormData) => void;
@@ -64,11 +64,7 @@ function TenantGrid({
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl">{tenant.subdomain}</CardTitle>
               <form action={action}>
-                <input
-                  type="hidden"
-                  name="subdomain"
-                  value={tenant.subdomain}
-                />
+                <input type="hidden" name="subdomain" value={tenant.subdomain} />
                 <Button
                   variant="ghost"
                   size="icon"
@@ -112,7 +108,7 @@ function TenantGrid({
 export function AdminDashboard({ tenants }: { tenants: Tenant[] }) {
   const [state, action, isPending] = useActionState<DeleteState, FormData>(
     deleteSubdomainAction,
-    {}
+    {},
   );
 
   return (

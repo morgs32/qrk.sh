@@ -1,5 +1,5 @@
-import type { ComponentType } from 'react';
-import type { ITile } from './types';
+import type { ComponentType } from "react";
+import type { ITile } from "./types";
 
 export function makeTile(props: {
   w: number;
@@ -11,8 +11,8 @@ export function makeTile(props: {
     def: {
       w: props.w,
       h: props.h,
-      ...(props.label !== undefined ? { label: props.label } : {})
+      ...(props.label !== undefined ? { label: props.label } : {}),
     },
-    component: props.component
+    component: props.component,
   };
 }

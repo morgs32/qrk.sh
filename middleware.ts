@@ -1,13 +1,13 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { rootDomain } from '@/lib/utils';
+import { type NextRequest, NextResponse } from "next/server";
+import { rootDomain } from "@/lib/utils";
 
 function extractSubdomain(request: NextRequest): string | null {
   const url = request.url;
-  const host = request.headers.get('host') || '';
-  const hostname = host.split(':')[0];
+  const host = request.headers.get("host") || "";
+  const hostname = host.split(":")[0];
 
   // Local development environment
-  if (url.includes('localhost') || url.includes('127.0.0.1')) {
+  if (url.includes("localhost") || url.includes("127.0.0.1")) {
     // Try to extract subdomain from the full URL
     const fullUrlMatch = url.match(/http:\/\/([^.]+)\.localhost/);
     if (fullUrlMatch && fullUrlMatch[1]) {
@@ -15,19 +15,19 @@ function extractSubdomain(request: NextRequest): string | null {
     }
 
     // Fallback to host header approach
-    if (hostname.includes('.localhost')) {
-      return hostname.split('.')[0];
+    if (hostname.includes(".localhost")) {
+      return hostname.split(".")[0];
     }
 
     return null;
   }
 
   // Production environment
-  const rootDomainFormatted = rootDomain.split(':')[0];
+  const rootDomainFormatted = rootDomain.split(":")[0];
 
   // Handle preview deployment URLs (tenant---branch-name.vercel.app)
-  if (hostname.includes('---') && hostname.endsWith('.vercel.app')) {
-    const parts = hostname.split('---');
+  if (hostname.includes("---") && hostname.endsWith(".vercel.app")) {
+    const parts = hostname.split("---");
     return parts.length > 0 ? parts[0] : null;
   }
 
@@ -37,7 +37,7 @@ function extractSubdomain(request: NextRequest): string | null {
     hostname !== `www.${rootDomainFormatted}` &&
     hostname.endsWith(`.${rootDomainFormatted}`);
 
-  return isSubdomain ? hostname.replace(`.${rootDomainFormatted}`, '') : null;
+  return isSubdomain ? hostname.replace(`.${rootDomainFormatted}`, "") : null;
 }
 
 export async function middleware(request: NextRequest) {
@@ -46,12 +46,12 @@ export async function middleware(request: NextRequest) {
 
   if (subdomain) {
     // Block access to admin page from subdomains
-    if (pathname.startsWith('/admin')) {
-      return NextResponse.redirect(new URL('/', request.url));
+    if (pathname.startsWith("/admin")) {
+      return NextResponse.redirect(new URL("/", request.url));
     }
 
     // For the root path on a subdomain, rewrite to the subdomain page
-    if (pathname === '/') {
+    if (pathname === "/") {
       return NextResponse.rewrite(new URL(`/subdomain/${subdomain}`, request.url));
     }
   }
@@ -68,6 +68,6 @@ export const config = {
      * 2. /_next (Next.js internals)
      * 3. all root files inside /public (e.g. /favicon.ico)
      */
-    '/((?!api|_next|[\\w-]+\\.\\w+).*)'
-  ]
+    "/((?!api|_next|[\\w-]+\\.\\w+).*)",
+  ],
 };

@@ -1,4 +1,4 @@
-import type { ICollectionTile, ITile } from './types';
+import type { ICollectionTile, ITile } from "./types";
 
 export function makeTileCollection(props: {
   collectionId: string;
@@ -12,8 +12,8 @@ export function makeTileCollection(props: {
       h: tile.def.h,
       label: tile.def.label ?? collectionLabel,
       collectionId,
-      collectionLabel
+      collectionLabel,
     },
-    component: tile.component
+    component: tile.component,
   }));
 }

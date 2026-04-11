@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   GridLayout,
   getBreakpointFromWidth,
@@ -8,27 +8,26 @@ import {
   verticalCompactor,
   type EventCallback,
   type Layout,
-  type LayoutItem
-} from 'react-grid-layout';
-import { BottomToolbar } from '@/components/home/BottomToolbar';
-import { gridSeed } from '@/components/home/gridState';
-import { catalogKey, findCollectionTile, homepageTiles } from './tiles';
-import { TextTilePresentation } from '@/components/home/tiles/collections/TextTile/TextTilePresentation';
+  type LayoutItem,
+} from "react-grid-layout";
+import { BottomToolbar } from "@/components/home/BottomToolbar";
+import { gridSeed } from "@/components/home/gridState";
+import { catalogKey, findCollectionTile, homepageTiles } from "./tiles";
+import { TextTilePresentation } from "@/components/home/tiles/collections/TextTile/TextTilePresentation";
 import {
   GRID_BREAKPOINTS,
   GRID_COLUMNS,
   layoutPositionsEqual,
   toCanonicalLayout,
   toRenderableLayout,
-  useGridStore
-} from '@/components/home/useGridStore';
+  useGridStore,
+} from "@/components/home/useGridStore";
 
 /**
  * Set `NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED=true` when running a second dev
  * server (e.g. port 3001) to A/B `dragConfig.bounded` vs grid math issues.
  */
-const GRID_DRAG_BOUNDED =
-  process.env.NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED !== 'true';
+const GRID_DRAG_BOUNDED = process.env.NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED !== "true";
 
 type DragGridMetrics = {
   width: number;
@@ -62,25 +61,15 @@ export function Grid({ onAddClick }: GridProps) {
 
     return () => cancelAnimationFrame(frame);
   }, [mounted, measureWidth, width]);
-  const [dragGridMetrics, setDragGridMetrics] = useState<DragGridMetrics | null>(
-    null
-  );
+  const [dragGridMetrics, setDragGridMetrics] = useState<DragGridMetrics | null>(null);
   const initialized = useGridStore((state) => state.initialized);
   const instances = useGridStore((state) => state.instances);
   const layouts = useGridStore((state) => state.layouts);
-  const alignmentByBreakpoint = useGridStore(
-    (state) => state.alignmentByBreakpoint
-  );
+  const alignmentByBreakpoint = useGridStore((state) => state.alignmentByBreakpoint);
   const initializeGrid = useGridStore((state) => state.initializeGrid);
-  const setActiveBreakpoint = useGridStore(
-    (state) => state.setActiveBreakpoint
-  );
-  const externalDraggingTileDef = useGridStore(
-    (state) => state.externalDraggingTileDef
-  );
-  const setBreakpointLayout = useGridStore(
-    (state) => state.setBreakpointLayout
-  );
+  const setActiveBreakpoint = useGridStore((state) => state.setActiveBreakpoint);
+  const externalDraggingTileDef = useGridStore((state) => state.externalDraggingTileDef);
+  const setBreakpointLayout = useGridStore((state) => state.setBreakpointLayout);
   const setGridCellHeightPx = useGridStore((state) => state.setGridCellHeightPx);
 
   useEffect(() => {
@@ -89,9 +78,7 @@ export function Grid({ onAddClick }: GridProps) {
     }
   }, [initializeGrid, initialized]);
 
-  const breakpoint = mounted
-    ? getBreakpointFromWidth(GRID_BREAKPOINTS, width)
-    : 'lg';
+  const breakpoint = mounted ? getBreakpointFromWidth(GRID_BREAKPOINTS, width) : "lg";
 
   useEffect(() => {
     setActiveBreakpoint(breakpoint);
@@ -108,11 +95,7 @@ export function Grid({ onAddClick }: GridProps) {
   }, [breakpoint, mounted, setGridCellHeightPx, width]);
 
   const renderLayout = useMemo(() => {
-    return toRenderableLayout(
-      layouts[breakpoint],
-      breakpoint,
-      alignmentByBreakpoint[breakpoint]
-    );
+    return toRenderableLayout(layouts[breakpoint], breakpoint, alignmentByBreakpoint[breakpoint]);
   }, [alignmentByBreakpoint, breakpoint, layouts]);
 
   const renderLayoutRef = useRef(renderLayout);
@@ -129,19 +112,24 @@ export function Grid({ onAddClick }: GridProps) {
     };
   }, []);
 
-  const externalDraggingDims = externalDraggingTileDef
-    ? { w: externalDraggingTileDef.w, h: externalDraggingTileDef.h }
-    : null;
+  const externalDragW = externalDraggingTileDef?.w;
+  const externalDragH = externalDraggingTileDef?.h;
+  const externalDraggingDims = useMemo(() => {
+    if (externalDragW === undefined || externalDragH === undefined) {
+      return null;
+    }
+    return { w: externalDragW, h: externalDragH };
+  }, [externalDragW, externalDragH]);
 
   const externalDroppingItem = useMemo<LayoutItem>(
     () => ({
-      i: '__external-drop__',
+      i: "__external-drop__",
       x: 0,
       y: 0,
       w: externalDraggingDims?.w ?? 1,
-      h: externalDraggingDims?.h ?? 1
+      h: externalDraggingDims?.h ?? 1,
     }),
-    [externalDraggingDims]
+    [externalDraggingDims],
   );
 
   const orderedInstances = useMemo(() => {
@@ -151,8 +139,7 @@ export function Grid({ onAddClick }: GridProps) {
       .filter((value): value is NonNullable<typeof value> => Boolean(value));
   }, [instances, renderLayout]);
 
-  const computedRowHeight =
-    width > 0 ? width / GRID_COLUMNS[breakpoint] : 0;
+  const computedRowHeight = width > 0 ? width / GRID_COLUMNS[breakpoint] : 0;
   const layoutWidth = dragGridMetrics?.width ?? width;
   const layoutRowHeight = dragGridMetrics?.rowHeight ?? computedRowHeight;
   const layoutCols = dragGridMetrics?.cols ?? GRID_COLUMNS[breakpoint];
@@ -166,7 +153,7 @@ export function Grid({ onAddClick }: GridProps) {
     setDragGridMetrics({
       width,
       rowHeight: width / cols,
-      cols
+      cols,
     });
   }, [breakpoint, width]);
 
@@ -196,7 +183,7 @@ export function Grid({ onAddClick }: GridProps) {
           return;
         }
 
-        if (layout.some((item) => item.i === '__external-drop__')) {
+        if (layout.some((item) => item.i === "__external-drop__")) {
           return;
         }
 
@@ -216,7 +203,7 @@ export function Grid({ onAddClick }: GridProps) {
         setBreakpointLayout(bp, canonical);
       }, 48);
     },
-    [breakpoint, setBreakpointLayout]
+    [breakpoint, setBreakpointLayout],
   );
 
   const handleExternalDropDragOver = useCallback(
@@ -231,16 +218,12 @@ export function Grid({ onAddClick }: GridProps) {
         w: externalDraggingDims.w,
         h: externalDraggingDims.h,
         dragOffsetX:
-          typeof bridgeEvent.qrkDragOffsetX === 'number'
-            ? bridgeEvent.qrkDragOffsetX
-            : 0,
+          typeof bridgeEvent.qrkDragOffsetX === "number" ? bridgeEvent.qrkDragOffsetX : 0,
         dragOffsetY:
-          typeof bridgeEvent.qrkDragOffsetY === 'number'
-            ? bridgeEvent.qrkDragOffsetY
-            : 0
+          typeof bridgeEvent.qrkDragOffsetY === "number" ? bridgeEvent.qrkDragOffsetY : 0,
       };
     },
-    [externalDraggingDims]
+    [externalDraggingDims],
   );
 
   const handleExternalDrop = useCallback((_layout: Layout, item: LayoutItem | undefined) => {
@@ -287,25 +270,25 @@ export function Grid({ onAddClick }: GridProps) {
                   rowHeight: layoutRowHeight,
                   margin: [0, 0],
                   containerPadding: [0, 0],
-                  maxRows: Number.POSITIVE_INFINITY
+                  maxRows: Number.POSITIVE_INFINITY,
                 }}
                 dragConfig={{
                   enabled: true,
                   bounded: GRID_DRAG_BOUNDED,
-                  threshold: 3
+                  threshold: 3,
                 }}
                 dropConfig={{
                   enabled: true,
                   defaultItem: {
                     w: externalDroppingItem.w,
-                    h: externalDroppingItem.h
+                    h: externalDroppingItem.h,
                   },
-                  onDragOver: handleExternalDropDragOver
+                  onDragOver: handleExternalDropDragOver,
                 }}
                 droppingItem={externalDroppingItem}
                 resizeConfig={{
                   enabled: false,
-                  handles: []
+                  handles: [],
                 }}
                 onDragStart={handleDragStart}
                 onDragStop={handleDragStop}

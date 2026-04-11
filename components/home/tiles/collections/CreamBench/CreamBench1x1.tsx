@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { CreamBenchGraphic } from './CreamBenchGraphic';
+import { TileFrame } from "../../TileFrame";
+import { CreamBenchGraphic } from "./CreamBenchGraphic";
 
 export function CreamBench1x1() {
   return (

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import type { EmblaCarouselType } from 'embla-carousel';
 import { X } from 'lucide-react';
 import { catalogKey, homepageTiles } from './tiles';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,17 @@ import { TilePreview } from './TilePreview';
 
 /** Fallback when the grid has not measured yet (`gridCellHeightPx` is null). */
 export const DRAWER_PREVIEW_UNIT_PX = 96;
+
+function watchDragIgnoreDrawerTileSlot(
+  _emblaApi: EmblaCarouselType,
+  event: MouseEvent | TouchEvent
+): boolean {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return true;
+  }
+  return target.closest('[data-drawer-tile-slot]') === null;
+}
 
 export function TileDrawer({ open, onClose }: {
   open: boolean;
@@ -138,7 +150,10 @@ export function TileDrawer({ open, onClose }: {
                     <div className="text-sm font-semibold">{collection.label}</div>
                   </div>
                   <div className="relative min-h-0 min-w-0 border-b border-border/60 py-1 pb-4 pt-2">
-                    <Carousel opts={{ align: 'start' }} className="w-full">
+                    <Carousel
+                      opts={{ align: 'start', watchDrag: watchDragIgnoreDrawerTileSlot }}
+                      className="w-full"
+                    >
                       <CarouselContent className="items-stretch">
                         {collection.tiles.map((tile) => (
                           <CarouselItem

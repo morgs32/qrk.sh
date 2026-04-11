@@ -37,6 +37,10 @@ export type PortfolioGridTileInstance = {
 export type GridLayouts = Record<GridBreakpoint, Layout>;
 export type HiddenByBreakpoint = Record<GridBreakpoint, string[]>;
 export type AlignmentByBreakpoint = Record<GridBreakpoint, GridAlignment>;
+export type ExternalDropPosition = {
+  typeId: string;
+  position: { x: number; y: number };
+};
 
 export type PortfolioGridConfig = {
   alignmentByBreakpoint?: Partial<AlignmentByBreakpoint>;
@@ -50,7 +54,8 @@ type PortfolioGridState = {
   layouts: GridLayouts;
   hiddenByBreakpoint: HiddenByBreakpoint;
   alignmentByBreakpoint: AlignmentByBreakpoint;
-  draggingTypeId: string | null;
+  externalDraggingTypeId: string | null;
+  externalDropPosition: ExternalDropPosition | null;
   /** Pixel size of one grid row/column (`width / cols`), for drawer preview at drop scale. */
   gridCellHeightPx: number | null;
   initialHiddenByBreakpoint: HiddenByBreakpoint;
@@ -61,7 +66,8 @@ type PortfolioGridState = {
     config?: PortfolioGridConfig
   ) => void;
   setActiveBreakpoint: (breakpoint: GridBreakpoint) => void;
-  setDraggingTypeId: (typeId: string | null) => void;
+  setExternalDraggingTypeId: (typeId: string | null) => void;
+  setExternalDropPosition: (drop: ExternalDropPosition | null) => void;
   setGridCellHeightPx: (px: number | null) => void;
   setBreakpointLayout: (breakpoint: GridBreakpoint, layout: Layout) => void;
   setBreakpointAlignment: (
@@ -415,7 +421,8 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
   layouts: emptyLayouts(),
   hiddenByBreakpoint: defaultHiddenByBreakpoint(),
   alignmentByBreakpoint: defaultAlignmentByBreakpoint(),
-  draggingTypeId: null,
+  externalDraggingTypeId: null,
+  externalDropPosition: null,
   gridCellHeightPx: null,
   initialHiddenByBreakpoint: defaultHiddenByBreakpoint(),
   initialAlignmentByBreakpoint: defaultAlignmentByBreakpoint(),
@@ -442,8 +449,11 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
   setActiveBreakpoint: (breakpoint) => {
     set({ activeBreakpoint: breakpoint });
   },
-  setDraggingTypeId: (typeId) => {
-    set({ draggingTypeId: typeId });
+  setExternalDraggingTypeId: (typeId) => {
+    set({ externalDraggingTypeId: typeId });
+  },
+  setExternalDropPosition: (drop) => {
+    set({ externalDropPosition: drop });
   },
   setGridCellHeightPx: (px) => {
     set({ gridCellHeightPx: px });

@@ -58,6 +58,13 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
     const ordered = Array.from(collections.values()).map((collection) => ({
       ...collection,
       tiles: [...collection.tiles].sort((a, b) => {
+        const popularName = a.def.popular;
+        const popularRank = (tile: (typeof collection.tiles)[number]) =>
+          tile.def.name === popularName ? 0 : 1;
+        const byPopular = popularRank(a) - popularRank(b);
+        if (byPopular !== 0) {
+          return byPopular;
+        }
         const rank = (w: number, h: number) =>
           w === 1 && h === 1 ? 0 : w === 2 && h === 2 ? 1 : 2;
         return rank(a.def.w, a.def.h) - rank(b.def.w, b.def.h);

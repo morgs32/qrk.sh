@@ -64,12 +64,63 @@ test.describe("Home grid drag", () => {
     await expect(tile).toBeVisible();
   });
 
-  test.skip("dragging a drawer tile onto the grid creates a new instance and grows the overlay", async () => {
-    // Pending native HTML5 DnD from drawer; @dnd-kit bridge removed.
+  test("dragging a drawer tile onto the grid creates a new instance and grows the overlay", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/", { waitUntil: "load" });
+
+    const grid = page.locator(".home-grid");
+    await expect(grid).toBeVisible({ timeout: 90_000 });
+
+    const typeId = "orange-flag--1x1";
+    const newTiles = grid.locator(`[data-tile-type-id="${typeId}"]`);
+    await expect(newTiles).toHaveCount(0);
+
+    await page.getByLabel("Open drawer").click();
+    await expect(page.getByLabel("Workspace drawer")).toBeVisible();
+
+    const slot = page.locator(`[data-drawer-tile-slot][data-drawer-tile-type="${typeId}"]`).first();
+    await expect(slot).toBeVisible();
+
+    const gridBox = await grid.boundingBox();
+    expect(gridBox).not.toBeNull();
+    await slot.dragTo(grid, {
+      targetPosition: {
+        x: Math.min(120, gridBox!.width / 2),
+        y: Math.min(80, gridBox!.height / 2),
+      },
+    });
+    await page.waitForTimeout(400);
+
+    await expect(newTiles).toHaveCount(1);
   });
 
-  test.skip("releasing a drawer tile outside the grid springs back without adding an instance", async () => {
-    // Pending native HTML5 DnD from drawer; @dnd-kit bridge removed.
+  test("releasing a drawer tile outside the grid springs back without adding an instance", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/", { waitUntil: "load" });
+
+    const grid = page.locator(".home-grid");
+    await expect(grid).toBeVisible({ timeout: 90_000 });
+
+    const typeId = "orange-flag--1x1";
+    const tiles = grid.locator(`[data-tile-type-id="${typeId}"]`);
+    await expect(tiles).toHaveCount(0);
+
+    await page.getByLabel("Open drawer").click();
+    await expect(page.getByLabel("Workspace drawer")).toBeVisible();
+
+    const slot = page.locator(`[data-drawer-tile-slot][data-drawer-tile-type="${typeId}"]`).first();
+    await expect(slot).toBeVisible();
+
+    await slot.dragTo(page.getByLabel("Search tiles"), {
+      targetPosition: { x: 4, y: 12 },
+    });
+    await page.waitForTimeout(400);
+
+    await expect(tiles).toHaveCount(0);
   });
 
   test("standalone Work section is removed; work appears as grid text tiles with links", async ({
@@ -105,8 +156,36 @@ test.describe("Home grid drag", () => {
     await expect(page.locator('[data-drawer-tile-type="text-tile--1x1"]')).toHaveCount(0);
   });
 
-  test.skip("dragging a Text tile from the drawer onto the grid adds a sample instance", async () => {
-    // Pending native HTML5 DnD from drawer; @dnd-kit bridge removed.
+  test("dragging a Text tile from the drawer onto the grid adds a sample instance", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/", { waitUntil: "load" });
+
+    const grid = page.locator(".home-grid");
+    await expect(grid).toBeVisible({ timeout: 90_000 });
+
+    const typeId = "text-tile";
+    const text2x2Tiles = grid.locator(`[data-tile-type-id="${typeId}"]`);
+    await expect(text2x2Tiles).toHaveCount(0);
+
+    await page.getByLabel("Open drawer").click();
+    await expect(page.getByLabel("Workspace drawer")).toBeVisible();
+    await page.getByLabel("Search tiles").fill("Text tile");
+    await expect(page.getByText("Text tile").first()).toBeVisible();
+
+    const slot = page.locator(`[data-drawer-tile-slot][data-drawer-tile-type="${typeId}"]`).first();
+    await expect(slot).toBeVisible();
+
+    const gridBox = await grid.boundingBox();
+    expect(gridBox).not.toBeNull();
+    await slot.dragTo(grid, {
+      targetPosition: {
+        x: Math.min(160, gridBox!.width / 2),
+        y: Math.min(100, gridBox!.height / 2),
+      },
+    });
+    await page.waitForTimeout(400);
+
+    await expect(text2x2Tiles).toHaveCount(1);
   });
 
   test("seeded work text tiles can be reordered within the grid", async ({ page }) => {

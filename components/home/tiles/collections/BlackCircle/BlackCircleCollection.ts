@@ -7,9 +7,10 @@ import { BlackCircle4x1 } from "./BlackCircle4x1";
 export const blackCircleCollection = makeTileCollection({
   collectionId: "black-circle",
   collectionLabel: "Black circle",
+  popular: "1x1",
   tiles: [
-    makeTile({ w: 1, h: 1, component: BlackCircle1x1 }),
-    makeTile({ w: 2, h: 2, component: BlackCircle2x2 }),
-    makeTile({ w: 4, h: 1, component: BlackCircle4x1 }),
+    makeTile({ name: "1x1", w: 1, h: 1, component: BlackCircle1x1 }),
+    makeTile({ name: "2x2", w: 2, h: 2, component: BlackCircle2x2 }),
+    makeTile({ name: "4x1", w: 4, h: 1, component: BlackCircle4x1 }),
   ],
 });

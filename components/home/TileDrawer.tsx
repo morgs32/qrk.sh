@@ -14,21 +14,28 @@ import { TilePreview } from "./TilePreview";
 /** Fallback when the grid has not measured yet (`gridCellHeightPx` is null). */
 export const DRAWER_PREVIEW_UNIT_PX = 96;
 
-function watchDragIgnoreDrawerTileSlot(
+/** When true, Embla should not handle drag / focus for this interaction (drawer tile DnD, nav, etc.). */
+function drawerCarouselInteractionShouldSkipEmbla(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  return Boolean(
+    target.closest("[data-drawer-tile-slot]") || target.closest("[data-drawer-carousel-nav]"),
+  );
+}
+
+function watchDragIgnoreDrawerChrome(
   _emblaApi: EmblaCarouselType,
   event: MouseEvent | TouchEvent,
 ): boolean {
-  const target = event.target;
-  if (!(target instanceof Element)) {
-    return true;
-  }
-  if (target.closest("[data-drawer-tile-slot]")) {
-    return false;
-  }
-  if (target.closest("[data-drawer-carousel-nav]")) {
-    return false;
-  }
-  return true;
+  return !drawerCarouselInteractionShouldSkipEmbla(event.target);
+}
+
+function watchFocusIgnoreDrawerChrome(
+  _emblaApi: EmblaCarouselType,
+  event: FocusEvent,
+): boolean {
+  return !drawerCarouselInteractionShouldSkipEmbla(event.target);
 }
 
 export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -155,14 +162,18 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                   </div>
                   <div className="relative min-h-0 min-w-0">
                     <Carousel
-                      opts={{ align: "start", watchDrag: watchDragIgnoreDrawerTileSlot }}
+                      opts={{
+                        align: "start",
+                        watchDrag: watchDragIgnoreDrawerChrome,
+                        watchFocus: watchFocusIgnoreDrawerChrome,
+                      }}
                       className="w-full"
                     >
-                      <CarouselContent className="items-stretch">
+                      <CarouselContent viewportClassName="relative z-10" className="items-stretch">
                         {collection.tiles.map((tile) => (
                           <CarouselItem
                             key={catalogKey(tile.def)}
-                            className="relative z-0 flex flex-col items-center justify-center hover:z-[5]"
+                            className="relative z-0 flex min-h-0 flex-col items-center hover:z-[5]"
                           >
                             <TilePreview
                               tile={tile}

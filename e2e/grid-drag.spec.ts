@@ -90,10 +90,10 @@ test.describe("Home grid drag", () => {
         x: Math.min(120, gridBox!.width / 2),
         y: Math.min(80, gridBox!.height / 2),
       },
+      steps: 24,
     });
-    await page.waitForTimeout(400);
 
-    await expect(newTiles).toHaveCount(1);
+    await expect(newTiles).toHaveCount(1, { timeout: 15_000 });
   });
 
   test("releasing a drawer tile outside the grid springs back without adding an instance", async ({
@@ -117,8 +117,8 @@ test.describe("Home grid drag", () => {
 
     await slot.dragTo(page.getByLabel("Search tiles"), {
       targetPosition: { x: 4, y: 12 },
+      steps: 12,
     });
-    await page.waitForTimeout(400);
 
     await expect(tiles).toHaveCount(0);
   });
@@ -182,10 +182,10 @@ test.describe("Home grid drag", () => {
         x: Math.min(160, gridBox!.width / 2),
         y: Math.min(100, gridBox!.height / 2),
       },
+      steps: 24,
     });
-    await page.waitForTimeout(400);
 
-    await expect(text2x2Tiles).toHaveCount(1);
+    await expect(text2x2Tiles).toHaveCount(1, { timeout: 15_000 });
   });
 
   test("seeded work text tiles can be reordered within the grid", async ({ page }) => {

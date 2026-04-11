@@ -34,19 +34,21 @@ type DrawerTilePreviewProps = {
 function DrawerTilePreview({ tile, fullWidth, fullHeight }: DrawerTilePreviewProps) {
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <div
-        data-drawer-tile-slot
-        data-drawer-tile-type={tile.typeId}
-        tabIndex={0}
-        className="shrink-0 overflow-hidden rounded-md bg-background/80 outline-none ring-1 ring-border/60 focus-visible:ring-2 focus-visible:ring-ring"
-        style={{ width: fullWidth, height: fullHeight }}
-        aria-label={`${tile.collectionLabel} ${tile.dims.w}×${tile.dims.h}`}
-      >
-        <div className="h-full w-full">
-          <tile.Component />
+      <div className="origin-center scale-75">
+        <div
+          data-drawer-tile-slot
+          data-drawer-tile-type={tile.typeId}
+          tabIndex={0}
+          className="shrink-0 overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 focus-visible:ring-2 focus-visible:ring-ring"
+          style={{ width: fullWidth, height: fullHeight }}
+          aria-label={`${tile.collectionLabel} ${tile.dims.w}×${tile.dims.h}`}
+        >
+          <div className="h-full w-full">
+            <tile.Component />
+          </div>
         </div>
       </div>
-      <span className="inline-flex rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+      <span className="inline-flex rounded bg-muted px-2 py-1 text-xs font-semibold text-foreground">
         {tile.dims.w}×{tile.dims.h}
       </span>
     </div>
@@ -176,19 +178,17 @@ export function TileDrawer({ open, onClose }: TileDrawerProps) {
                 <div className="text-sm font-semibold">{collection.label}</div>
                 <div className="relative min-h-0 min-w-0 -mx-6 py-1">
                   <Carousel opts={{ align: 'start' }} className="w-full">
-                    <CarouselContent>
+                    <CarouselContent className="items-stretch">
                       {collection.tiles.map((tile) => (
                         <CarouselItem
                           key={tile.typeId}
-                          className="min-h-0 shrink-0 grow-0 basis-full"
+                          className="flex flex-col items-center justify-center"
                         >
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <DrawerTilePreview
-                              tile={tile}
-                              fullWidth={tile.dims.w * cellUnitPx}
-                              fullHeight={tile.dims.h * cellUnitPx}
-                            />
-                          </div>
+                          <DrawerTilePreview
+                            tile={tile}
+                            fullWidth={tile.dims.w * cellUnitPx}
+                            fullHeight={tile.dims.h * cellUnitPx}
+                          />
                         </CarouselItem>
                       ))}
                     </CarouselContent>

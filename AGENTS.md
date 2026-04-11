@@ -5,6 +5,7 @@ DO NOT GIVE ME HIGH LEVEL SHIT, IF I ASK FOR FIX OR EXPLANATION, I WANT ACTUAL C
 DO NOT ADD UNREQUESTED FUNCTIONALITY. IF I GIVE YOU A COMPONENT TO ADD WITH MOCK DATA, USE MOCK DATA. DO NOT CHANGE THE PROPS OR ARGS ON ANY OTHER COMPONENT OR FUNCTION.
 
 - Please consult `./docs/**/*.md` for static engineering guidance and `./.skills/*/SKILL.md` only for the remaining workflow skills that still exist in this repo.
+- NO ABSTRACTIONS unless I explicitly say so. If you've got an abstraction or some way to do things more concisely, prompt me at the end AFTER showing me the UNCONCISE way.
 - **On every task:** read and apply `./docs/styleguide/README.md` and the linked section docs relevant to the task before writing or editing code.
 - Do what I ask and ONLY THAT. Do not take it upon yourself to fix type errors or dependency issues that exist already. Tell me about them maybe but do FIX things unless I explicitly say so.
 - If you know what I'm asking for (which is often WHAT I'M TELLING YOU) do NOT get clever. Do what I ask and then prompt me to look at something broken BEFORE trying to fix it yourself.

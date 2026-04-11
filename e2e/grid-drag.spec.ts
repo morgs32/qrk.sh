@@ -96,6 +96,84 @@ test.describe("Home grid drag", () => {
     await expect(newTiles).toHaveCount(1, { timeout: 15_000 });
   });
 
+  test("drawer tiles use a custom native drag image preview", async ({ page }) => {
+    await page.addInitScript(() => {
+      const proto = DataTransfer.prototype;
+      const original = proto.setDragImage;
+      const calls: Array<{
+        hasPreviewAttr: boolean;
+        transform: string;
+        width: number;
+        height: number;
+      }> = [];
+
+      proto.setDragImage = function patchedSetDragImage(
+        image: Element,
+        x: number,
+        y: number,
+      ) {
+        void x;
+        void y;
+
+        if (image instanceof HTMLElement) {
+          const rect = image.getBoundingClientRect();
+          calls.push({
+            hasPreviewAttr: image.dataset.nativeDragPreview === "tile",
+            transform: image.style.transform,
+            width: rect.width,
+            height: rect.height,
+          });
+        }
+
+        return original.call(this, image, x, y);
+      };
+
+      (window as typeof window & { __qrkSetDragImageCalls?: typeof calls }).__qrkSetDragImageCalls =
+        calls;
+    });
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/", { waitUntil: "load" });
+
+    const grid = page.locator(".home-grid");
+    await expect(grid).toBeVisible({ timeout: 90_000 });
+
+    await page.getByLabel("Open drawer").click();
+    await expect(page.getByLabel("Workspace drawer")).toBeVisible();
+
+    const slot = page.locator('[data-drawer-tile-slot][data-drawer-tile-type="orange-flag--1x1"]').first();
+    await expect(slot).toBeVisible();
+
+    const gridBox = await grid.boundingBox();
+    expect(gridBox).not.toBeNull();
+    await slot.dragTo(grid, {
+      targetPosition: {
+        x: Math.min(120, gridBox!.width / 2),
+        y: Math.min(80, gridBox!.height / 2),
+      },
+      steps: 20,
+    });
+
+    const calls = await page.evaluate(() => {
+      return (
+        (window as typeof window & {
+          __qrkSetDragImageCalls?: Array<{
+            hasPreviewAttr: boolean;
+            transform: string;
+            width: number;
+            height: number;
+          }>;
+        }).__qrkSetDragImageCalls ?? []
+      );
+    });
+
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls[0]?.hasPreviewAttr).toBe(true);
+    expect(calls[0]?.transform).toContain("rotate(");
+    expect(calls[0]?.width).toBeGreaterThan(0);
+    expect(calls[0]?.height).toBeGreaterThan(0);
+  });
+
   test("releasing a drawer tile outside the grid springs back without adding an instance", async ({
     page,
   }) => {

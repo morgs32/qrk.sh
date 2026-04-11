@@ -26,6 +26,14 @@ Use these rules for **repo-authored React components** that are **not** shadcn a
 
 The tile drawer uses shadcn `Carousel` (Embla) **per collection**. Each tile is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the tile sized to **`dims × gridCellHeightPx`** from [lib/stores/grid-store.ts](lib/stores/grid-store.ts) (same value [Grid.tsx](components/home/Grid.tsx) uses as `rowHeight`, i.e. container width ÷ column count). Fall back to `DRAWER_PREVIEW_UNIT_PX` only when the grid has not measured yet.
 
+### Good vs bad: `DrawerTilePreview` props (inline types, no cross-file props export)
+
+Keep [DrawerTilePreview.tsx](../../components/home/DrawerTilePreview.tsx) decoupled from [TileDrawer.tsx](../../components/home/TileDrawer.tsx): **do not** export a `DrawerTilePreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a three-field API.
+
+- **Bad**: `export type DrawerTilePreviewProps` in `TileDrawer.tsx` and `import { DrawerTilePreviewProps } from './TileDrawer'` in `DrawerTilePreview.tsx` (parent owns types for a child it does not implement).
+
+- **Good**: annotate the preview’s props inline on `DrawerTilePreview` (using `(typeof homepageTiles)[number] & { dims: … }` next to `tile`, plus `fullWidth` / `fullHeight`), and keep `DrawerHomepageTile` as a private helper type inside `TileDrawer` only.
+
 ### Good vs bad: home grid store naming (`Grid`, `I*` types)
 
 The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefix on the Zustand module, hook, seed, and domain types. Prefix grid-store **object/interface types** with **`I`** (for example `IGridState`, `IGridSeed`).

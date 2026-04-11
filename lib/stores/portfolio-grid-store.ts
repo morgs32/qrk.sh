@@ -51,6 +51,8 @@ type PortfolioGridState = {
   hiddenByBreakpoint: HiddenByBreakpoint;
   alignmentByBreakpoint: AlignmentByBreakpoint;
   draggingTypeId: string | null;
+  /** Pixel size of one grid row/column (`width / cols`), for drawer preview at drop scale. */
+  gridCellHeightPx: number | null;
   initialHiddenByBreakpoint: HiddenByBreakpoint;
   initialAlignmentByBreakpoint: AlignmentByBreakpoint;
   initialized: boolean;
@@ -60,6 +62,7 @@ type PortfolioGridState = {
   ) => void;
   setActiveBreakpoint: (breakpoint: GridBreakpoint) => void;
   setDraggingTypeId: (typeId: string | null) => void;
+  setGridCellHeightPx: (px: number | null) => void;
   setBreakpointLayout: (breakpoint: GridBreakpoint, layout: Layout) => void;
   setBreakpointAlignment: (
     breakpoint: GridBreakpoint,
@@ -413,6 +416,7 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
   hiddenByBreakpoint: defaultHiddenByBreakpoint(),
   alignmentByBreakpoint: defaultAlignmentByBreakpoint(),
   draggingTypeId: null,
+  gridCellHeightPx: null,
   initialHiddenByBreakpoint: defaultHiddenByBreakpoint(),
   initialAlignmentByBreakpoint: defaultAlignmentByBreakpoint(),
   initialized: false,
@@ -440,6 +444,9 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
   },
   setDraggingTypeId: (typeId) => {
     set({ draggingTypeId: typeId });
+  },
+  setGridCellHeightPx: (px) => {
+    set({ gridCellHeightPx: px });
   },
   setBreakpointLayout: (breakpoint, layout) => {
     const state = get();

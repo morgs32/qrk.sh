@@ -3,24 +3,24 @@ import type {
   HiddenByBreakpoint,
   TileSize
 } from '@/lib/stores/portfolio-grid-store';
-import type { HomepageTileCollection, HomepageTileDefinition } from './types';
+import type { HomepageTileDefinition, HomepageTileVariantSize, ITileCollection } from './types';
 
-import { blackCircleCollection } from './collections/BlackCircle';
-import { blackMCollection } from './collections/BlackMLogo';
-import { blueGridCollection } from './collections/BlueGrid';
-import { creamBenchCollection } from './collections/CreamBench';
-import { creamSquareCollection } from './collections/CreamSquare';
-import { greenArchCollection } from './collections/GreenArch';
-import { greenCrossCollection } from './collections/GreenCross';
-import { greenEmptyCollection } from './collections/GreenEmpty';
-import { greenGCollection } from './collections/GreenGLogo';
-import { orangeBlocksCollection } from './collections/OrangeBlocks';
-import { orangeFlagCollection } from './collections/OrangeFlag';
-import { pinkAsteriskCollection } from './collections/PinkAsterisk';
-import { pinkDotsCollection } from './collections/PinkDots';
-import { purpleLinesCollection } from './collections/PurpleLines';
+import { blackCircleCollection } from './collections/BlackCircle/BlackCircleCollection';
+import { blackMCollection } from './collections/BlackMLogo/BlackMLogoCollection';
+import { blueGridCollection } from './collections/BlueGrid/BlueGridCollection';
+import { creamBenchCollection } from './collections/CreamBench/CreamBenchCollection';
+import { creamSquareCollection } from './collections/CreamSquare/CreamSquareCollection';
+import { greenArchCollection } from './collections/GreenArch/GreenArchCollection';
+import { greenCrossCollection } from './collections/GreenCross/GreenCrossCollection';
+import { greenEmptyCollection } from './collections/GreenEmpty/GreenEmptyCollection';
+import { greenGCollection } from './collections/GreenGLogo/GreenGLogoCollection';
+import { orangeBlocksCollection } from './collections/OrangeBlocks/OrangeBlocksCollection';
+import { orangeFlagCollection } from './collections/OrangeFlag/OrangeFlagCollection';
+import { pinkAsteriskCollection } from './collections/PinkAsterisk/PinkAsteriskCollection';
+import { pinkDotsCollection } from './collections/PinkDots/PinkDotsCollection';
+import { purpleLinesCollection } from './collections/PurpleLines/PurpleLinesCollection';
 
-const homepageTileCollections: readonly HomepageTileCollection[] = [
+const homepageTileCollections: readonly ITileCollection[] = [
   orangeFlagCollection,
   blackCircleCollection,
   greenArchCollection,
@@ -37,7 +37,7 @@ const homepageTileCollections: readonly HomepageTileCollection[] = [
   greenCrossCollection
 ];
 
-const homepageTileVariantSizes: readonly TileSize[] = ['1x1', '2x2', '4x1'];
+const homepageTileVariantSizes: readonly HomepageTileVariantSize[] = ['1x1', '2x2', '4x1'];
 
 export const homepageTiles: HomepageTileDefinition[] = homepageTileCollections.flatMap(
   (collection) =>
@@ -48,7 +48,7 @@ export const homepageTiles: HomepageTileDefinition[] = homepageTileCollections.f
       collectionLabel: collection.collectionLabel,
       label: collection.collectionLabel,
       size,
-      Component: collection.Component
+      Component: collection.components[size]
     }))
 );
 
@@ -67,4 +67,3 @@ export const homepageGridConfig: {
     sm: []
   }
 };
-

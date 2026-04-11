@@ -2,18 +2,18 @@
 
 import { useMemo, useState } from 'react';
 import type { EmblaCarouselType } from 'embla-carousel';
-import { X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { catalogKey, homepageTiles } from './tiles';
 import { Button } from '@/components/ui/button';
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious
+  useCarousel
 } from '@/components/ui/carousel';
 import { Input } from '@/components/ui/input';
-import { useGridStore } from '@/lib/stores/grid-store';
+import { cn } from '@/lib/utils';
+import { useGridStore } from '@/components/home/useGridStore';
 import { TilePreview } from './TilePreview';
 
 /** Fallback when the grid has not measured yet (`gridCellHeightPx` is null). */
@@ -27,7 +27,59 @@ function watchDragIgnoreDrawerTileSlot(
   if (!(target instanceof Element)) {
     return true;
   }
-  return target.closest('[data-drawer-tile-slot]') === null;
+  if (target.closest('[data-drawer-tile-slot]')) {
+    return false;
+  }
+  if (target.closest('[data-drawer-carousel-nav]')) {
+    return false;
+  }
+  return true;
+}
+
+function TileDrawerCarouselNav() {
+  const { scrollPrev, scrollNext, canScrollPrev, canScrollNext } = useCarousel();
+
+  const railButtonClass =
+    'stretched-button inline-flex h-full w-full items-center justify-center rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-muted/50';
+
+  return (
+    <>
+      <div
+        data-drawer-carousel-nav
+        className="absolute inset-y-0 left-2 z-10 w-14"
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={!canScrollPrev}
+          onClick={scrollPrev}
+          className={cn(railButtonClass)}
+          aria-label="Previous slide"
+        >
+          <span className="relative z-10 flex size-10 items-center justify-center rounded-full border border-border bg-background shadow-xs dark:bg-input/30">
+            <ArrowLeft className="size-4 shrink-0" aria-hidden />
+          </span>
+        </Button>
+      </div>
+      <div
+        data-drawer-carousel-nav
+        className="absolute inset-y-0 right-2 z-10 w-14"
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={!canScrollNext}
+          onClick={scrollNext}
+          className={cn(railButtonClass)}
+          aria-label="Next slide"
+        >
+          <span className="relative z-10 flex size-10 items-center justify-center rounded-full border border-border bg-background shadow-xs dark:bg-input/30">
+            <ArrowRight className="size-4 shrink-0" aria-hidden />
+          </span>
+        </Button>
+      </div>
+    </>
+  );
 }
 
 export function TileDrawer({ open, onClose }: {
@@ -168,14 +220,7 @@ export function TileDrawer({ open, onClose }: {
                           </CarouselItem>
                         ))}
                       </CarouselContent>
-                      <CarouselPrevious
-                        type="button"
-                        className="top-1/2 left-1 z-10 size-8 -translate-y-1/2"
-                      />
-                      <CarouselNext
-                        type="button"
-                        className="top-1/2 right-1 z-10 size-8 -translate-y-1/2"
-                      />
+                      <TileDrawerCarouselNav />
                     </Carousel>
                   </div>
                 </div>

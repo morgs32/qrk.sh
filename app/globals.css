@@ -122,6 +122,17 @@
   }
 }
 
+/* Stretched hit target (Bootstrap stretched-link pattern): ::after fills the nearest positioned
+   ancestor. Keep real content in a child with position: relative; z-index above the pseudo. */
+@layer utilities {
+  .stretched-button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+}
+
 /* Keep background scroll/interaction even when Vaul/Radix applies scroll lock. */
 html body[data-scroll-locked] {
   overflow: auto !important;

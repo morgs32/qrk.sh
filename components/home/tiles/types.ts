@@ -6,7 +6,8 @@ export type HomepageTileVariantSize = '1x1' | '2x2' | '4x1';
 export type ITileCollection = {
   collectionId: string;
   collectionLabel: string;
-  components: Record<HomepageTileVariantSize, ComponentType>;
+  /** Only declare variants this collection supports (e.g. TextTile omits 1x1). */
+  components: Partial<Record<HomepageTileVariantSize, ComponentType>>;
 };
 
 export type HomepageTileDefinition = {

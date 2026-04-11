@@ -23,7 +23,7 @@ export const GRID_COLUMNS: Record<GridBreakpoint, number> = {
 export type GridAlignment = 'left' | 'right';
 export type TileSize = '1x1' | '2x2' | '4x4' | '2x1' | '4x1' | '4x2';
 
-export type PortfolioGridTileType = {
+export type IGridTileType = {
   typeId: string;
   size: TileSize;
 };
@@ -34,7 +34,7 @@ export type TextTilePayload = {
   href: string;
 };
 
-export type PortfolioGridTileInstance = {
+export type IGridTileInstance = {
   instanceId: string;
   typeId: string;
   size: TileSize;
@@ -42,11 +42,11 @@ export type PortfolioGridTileInstance = {
   text?: TextTilePayload;
 };
 
-export type PortfolioGridSeed = {
-  tileTypes: PortfolioGridTileType[];
-  config?: PortfolioGridConfig;
+export type IGridSeed = {
+  tileTypes: IGridTileType[];
+  config?: IGridConfig;
   /** Appended after auto-seeded 2×2 art tiles (e.g. work TextTile rows). */
-  explicitInstances?: PortfolioGridTileInstance[];
+  explicitInstances?: IGridTileInstance[];
   /** `typeId`s that would normally get a default 2×2 seed but should not (drawer-only types). */
   autoSeedExcludeTypeIds?: string[];
 };
@@ -59,15 +59,15 @@ export type ExternalDropPosition = {
   position: { x: number; y: number };
 };
 
-export type PortfolioGridConfig = {
+export type IGridConfig = {
   alignmentByBreakpoint?: Partial<AlignmentByBreakpoint>;
   hiddenByBreakpoint?: Partial<HiddenByBreakpoint>;
 };
 
-type PortfolioGridState = {
+type IGridState = {
   activeBreakpoint: GridBreakpoint;
-  tileTypes: PortfolioGridTileType[];
-  instances: PortfolioGridTileInstance[];
+  tileTypes: IGridTileType[];
+  instances: IGridTileInstance[];
   layouts: GridLayouts;
   hiddenByBreakpoint: HiddenByBreakpoint;
   alignmentByBreakpoint: AlignmentByBreakpoint;
@@ -78,7 +78,7 @@ type PortfolioGridState = {
   initialHiddenByBreakpoint: HiddenByBreakpoint;
   initialAlignmentByBreakpoint: AlignmentByBreakpoint;
   initialized: boolean;
-  initializeGrid: (seed: PortfolioGridSeed) => void;
+  initializeGrid: (seed: IGridSeed) => void;
   setActiveBreakpoint: (breakpoint: GridBreakpoint) => void;
   setExternalDraggingTypeId: (typeId: string | null) => void;
   setExternalDropPosition: (drop: ExternalDropPosition | null) => void;
@@ -193,9 +193,9 @@ function compactLayout(layout: Layout, breakpoint: GridBreakpoint): Layout {
 }
 
 function getVisibleInstances(
-  instances: PortfolioGridTileInstance[],
+  instances: IGridTileInstance[],
   hiddenIds: string[]
-): PortfolioGridTileInstance[] {
+): IGridTileInstance[] {
   const hiddenSet = new Set(hiddenIds);
   return instances.filter((tile) => !hiddenSet.has(tile.instanceId));
 }
@@ -277,7 +277,7 @@ function canPlaceItem(
 }
 
 export function buildInitialLayout(
-  instances: PortfolioGridTileInstance[],
+  instances: IGridTileInstance[],
   breakpoint: GridBreakpoint
 ): Layout {
   const cols = GRID_COLUMNS[breakpoint];
@@ -314,7 +314,7 @@ export function buildInitialLayout(
 
 function appendItemToBottom(
   layout: Layout,
-  tile: PortfolioGridTileInstance,
+  tile: IGridTileInstance,
   breakpoint: GridBreakpoint
 ): Layout {
   const { w, h } = sizeToDimensions(tile.size);
@@ -336,9 +336,9 @@ function appendItemToBottom(
 }
 
 function seedInstances(
-  tileTypes: PortfolioGridTileType[],
+  tileTypes: IGridTileType[],
   autoSeedExcludeTypeIds: Set<string>
-): PortfolioGridTileInstance[] {
+): IGridTileInstance[] {
   const seededTileTypes = tileTypes.filter(
     (tileType) =>
       !tileType.typeId.includes('--') && !autoSeedExcludeTypeIds.has(tileType.typeId)
@@ -374,7 +374,7 @@ function mergeAlignmentByBreakpoint(
 
 function deriveBreakpointLayout(
   breakpoint: GridBreakpoint,
-  instances: PortfolioGridTileInstance[],
+  instances: IGridTileInstance[],
   layouts: GridLayouts,
   hiddenByBreakpoint: HiddenByBreakpoint
 ): Layout {
@@ -408,8 +408,8 @@ function deriveBreakpointLayout(
 }
 
 function buildInitialState(
-  instances: PortfolioGridTileInstance[],
-  config?: PortfolioGridConfig
+  instances: IGridTileInstance[],
+  config?: IGridConfig
 ) {
   const hiddenByBreakpoint = mergeHiddenByBreakpoint(config?.hiddenByBreakpoint);
   const alignmentByBreakpoint = mergeAlignmentByBreakpoint(
@@ -434,7 +434,7 @@ function buildInitialState(
   };
 }
 
-export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
+export const useGridStore = create<IGridState>((set, get) => ({
   activeBreakpoint: 'lg',
   tileTypes: [],
   instances: [],
@@ -454,7 +454,7 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
 
     const exclude = new Set(seed.autoSeedExcludeTypeIds ?? []);
     const autoSeeded = seedInstances(seed.tileTypes, exclude);
-    const instances: PortfolioGridTileInstance[] = [
+    const instances: IGridTileInstance[] = [
       ...autoSeeded,
       ...(seed.explicitInstances ?? [])
     ];
@@ -574,7 +574,7 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
         : `${typeId}--${Date.now()}--${Math.random().toString(16).slice(2)}`;
     const { w, h } = sizeToDimensions(tileType.size);
 
-    const nextInstances: PortfolioGridTileInstance[] = [
+    const nextInstances: IGridTileInstance[] = [
       ...state.instances,
       {
         instanceId,

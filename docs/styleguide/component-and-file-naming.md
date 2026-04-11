@@ -24,7 +24,15 @@ Use these rules for **repo-authored React components** that are **not** shadcn a
 
 ### Good vs bad: TileDrawer carousel slides (one panel per tile)
 
-The tile drawer uses shadcn `Carousel` (Embla) **per collection**. Each tile is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the tile at full drawer pixels (`dims × DRAWER_PREVIEW_UNIT_PX`) centered inside.
+The tile drawer uses shadcn `Carousel` (Embla) **per collection**. Each tile is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the tile sized to **`dims × gridCellHeightPx`** from [lib/stores/grid-store.ts](lib/stores/grid-store.ts) (same value [Grid.tsx](components/home/Grid.tsx) uses as `rowHeight`, i.e. container width ÷ column count). Fall back to `DRAWER_PREVIEW_UNIT_PX` only when the grid has not measured yet.
+
+### Good vs bad: home grid store naming (`Grid`, `I*` types)
+
+The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefix on the Zustand module, hook, seed, and domain types. Prefix grid-store **object/interface types** with **`I`** (for example `IGridState`, `IGridSeed`).
+
+- **Bad**: `portfolio-grid-store.ts`, `usePortfolioGridStore`, `PortfolioGridSeed`, `portfolioGridSeed`, `PortfolioGridTileInstance`, test ids like `portfolio-grid-layout`, and a layout class name tied to “portfolio” when the surface is the generic home grid.
+
+- **Good**: `lib/stores/grid-store.ts`, `useGridStore`, `IGridSeed`, `gridSeed`, `IGridTileInstance`, `data-testid="grid-layout"`, and a scoped layout class such as `home-grid` (see [app/globals.css](../../app/globals.css) placeholder styling).
 
 - **Bad**: `basis-auto` with many small tiles in one viewport row when the product goal is “one tile, one panel” at a time; or shrinking tiles with `scale-75` when previews should read at full drawer size.
 

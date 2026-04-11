@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { TileSize } from '@/lib/stores/portfolio-grid-store';
+import type { TileSize } from '@/lib/stores/grid-store';
 
 export type TextTilePresentationProps = {
   title: string;

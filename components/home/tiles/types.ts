@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import type { TileSize } from '@/lib/stores/portfolio-grid-store';
+import type { TileSize } from '@/lib/stores/grid-store';
 
 export type HomepageTileVariantSize = '1x1' | '2x2' | '4x1';
 

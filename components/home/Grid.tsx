@@ -11,7 +11,7 @@ import {
   type LayoutItem
 } from 'react-grid-layout';
 import { BottomToolbar } from '@/components/home/BottomToolbar';
-import { portfolioGridSeed } from '@/components/home/gridState';
+import { gridSeed } from '@/components/home/gridState';
 import { homepageTiles } from './tiles';
 import { TextTilePresentation } from '@/components/home/tiles/collections/TextTile/TextTilePresentation';
 import {
@@ -21,8 +21,8 @@ import {
   sizeToDimensions,
   toCanonicalLayout,
   toRenderableLayout,
-  usePortfolioGridStore
-} from '@/lib/stores/portfolio-grid-store';
+  useGridStore
+} from '@/lib/stores/grid-store';
 
 /**
  * Set `NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED=true` when running a second dev
@@ -76,30 +76,30 @@ export function Grid({ onAddClick }: GridProps) {
   const [dragGridMetrics, setDragGridMetrics] = useState<DragGridMetrics | null>(
     null
   );
-  const initialized = usePortfolioGridStore((state) => state.initialized);
-  const instances = usePortfolioGridStore((state) => state.instances);
-  const layouts = usePortfolioGridStore((state) => state.layouts);
-  const alignmentByBreakpoint = usePortfolioGridStore(
+  const initialized = useGridStore((state) => state.initialized);
+  const instances = useGridStore((state) => state.instances);
+  const layouts = useGridStore((state) => state.layouts);
+  const alignmentByBreakpoint = useGridStore(
     (state) => state.alignmentByBreakpoint
   );
-  const initializeGrid = usePortfolioGridStore((state) => state.initializeGrid);
-  const setActiveBreakpoint = usePortfolioGridStore(
+  const initializeGrid = useGridStore((state) => state.initializeGrid);
+  const setActiveBreakpoint = useGridStore(
     (state) => state.setActiveBreakpoint
   );
-  const externalDraggingTypeId = usePortfolioGridStore(
+  const externalDraggingTypeId = useGridStore(
     (state) => state.externalDraggingTypeId
   );
-  const setExternalDropPosition = usePortfolioGridStore(
+  const setExternalDropPosition = useGridStore(
     (state) => state.setExternalDropPosition
   );
-  const setBreakpointLayout = usePortfolioGridStore(
+  const setBreakpointLayout = useGridStore(
     (state) => state.setBreakpointLayout
   );
-  const setGridCellHeightPx = usePortfolioGridStore((state) => state.setGridCellHeightPx);
+  const setGridCellHeightPx = useGridStore((state) => state.setGridCellHeightPx);
 
   useEffect(() => {
     if (!initialized) {
-      initializeGrid(portfolioGridSeed);
+      initializeGrid(gridSeed);
     }
   }, [initializeGrid, initialized]);
 
@@ -215,7 +215,7 @@ export function Grid({ onAddClick }: GridProps) {
           return;
         }
 
-        const store = usePortfolioGridStore.getState();
+        const store = useGridStore.getState();
         if (store.externalDraggingTypeId) {
           return;
         }
@@ -287,7 +287,7 @@ export function Grid({ onAddClick }: GridProps) {
   return (
     <>
       <div ref={containerRef} className="w-full">
-        <div className="w-full" data-testid="portfolio-grid-root">
+        <div className="w-full" data-testid="grid-root">
           {!mounted || !initialized || computedRowHeight === 0 ? (
             <div className="grid grid-cols-2">
               {tileDefinitions.map(({ typeId, Component }) => (
@@ -297,12 +297,12 @@ export function Grid({ onAddClick }: GridProps) {
               ))}
             </div>
           ) : (
-            <div className="w-full" data-testid="portfolio-grid-layout">
+            <div className="w-full" data-testid="grid-layout">
               <GridLayout
                 width={layoutWidth}
                 layout={renderLayout}
                 autoSize
-                className="portfolio-grid"
+                className="home-grid"
                 compactor={verticalCompactor}
                 gridConfig={{
                   cols: layoutCols,

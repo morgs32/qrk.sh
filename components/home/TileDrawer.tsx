@@ -12,8 +12,12 @@ import {
   CarouselPrevious
 } from '@/components/ui/carousel';
 import { Input } from '@/components/ui/input';
-import { sizeToDimensions } from '@/lib/stores/portfolio-grid-store';
+import {
+  sizeToDimensions,
+  useGridStore
+} from '@/lib/stores/grid-store';
 
+/** Fallback when the grid has not measured yet (`gridCellHeightPx` is null). */
 export const DRAWER_PREVIEW_UNIT_PX = 96;
 
 type HomepageTile = (typeof homepageTiles)[number];
@@ -56,6 +60,9 @@ type TileDrawerProps = {
 
 export function TileDrawer({ open, onClose }: TileDrawerProps) {
   const [query, setQuery] = useState('');
+  const gridCellHeightPx = useGridStore((state) => state.gridCellHeightPx);
+  const cellUnitPx =
+    gridCellHeightPx && gridCellHeightPx > 0 ? gridCellHeightPx : DRAWER_PREVIEW_UNIT_PX;
 
   const filteredCollections = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -167,27 +174,23 @@ export function TileDrawer({ open, onClose }: TileDrawerProps) {
             filteredCollections.map((collection) => (
               <div key={collection.collectionId} className="min-w-0 space-y-2">
                 <div className="text-sm font-semibold">{collection.label}</div>
-                <div className="relative min-h-0 min-w-0 py-1">
+                <div className="relative min-h-0 min-w-0 -mx-6 py-1">
                   <Carousel opts={{ align: 'start' }} className="w-full">
-                    <CarouselContent className="-ml-3">
-                      {collection.tiles.map((tile) => {
-                        const fullWidth = tile.dims.w * DRAWER_PREVIEW_UNIT_PX;
-                        const fullHeight = tile.dims.h * DRAWER_PREVIEW_UNIT_PX;
-                        return (
-                          <CarouselItem
-                            key={tile.typeId}
-                            className="min-h-0 shrink-0 grow-0 basis-full pl-3"
-                          >
-                            <div className="flex min-h-[min(280px,45vh)] flex-col items-center justify-center gap-2 rounded-lg border border-border bg-muted/10 p-6">
-                              <DrawerTilePreview
-                                tile={tile}
-                                fullWidth={fullWidth}
-                                fullHeight={fullHeight}
-                              />
-                            </div>
-                          </CarouselItem>
-                        );
-                      })}
+                    <CarouselContent>
+                      {collection.tiles.map((tile) => (
+                        <CarouselItem
+                          key={tile.typeId}
+                          className="min-h-0 shrink-0 grow-0 basis-full"
+                        >
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <DrawerTilePreview
+                              tile={tile}
+                              fullWidth={tile.dims.w * cellUnitPx}
+                              fullHeight={tile.dims.h * cellUnitPx}
+                            />
+                          </div>
+                        </CarouselItem>
+                      ))}
                     </CarouselContent>
                     <CarouselPrevious
                       type="button"

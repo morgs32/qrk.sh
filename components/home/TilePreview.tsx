@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, type DragEvent } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
+import { DimensionBadge } from "@/components/home/DimensionBadge";
 import { useGridStore } from "@/components/home/useGridStore";
 import { catalogKey, type ICollectionTile } from "./tiles";
 
@@ -20,19 +21,36 @@ export function TilePreview({
   fullHeight: number;
 }) {
   const setExternalDraggingTileDef = useGridStore((state) => state.setExternalDraggingTileDef);
+  const slotRef = useRef<HTMLDivElement>(null);
+  const tileRef = useRef(tile);
+  tileRef.current = tile;
 
-  const handleDragStart = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      const payload = serializeTileDef(tile);
-      event.dataTransfer.effectAllowed = "copy";
-      event.dataTransfer.setData(TILE_DRAG_MIME, payload);
-      event.dataTransfer.setData("text/plain", catalogKey(tile.def));
-      setExternalDraggingTileDef(tile.def);
-      // Embla’s viewport listens for dragstart and calls preventDefault(); stop bubbling so native DnD can start.
+  // Native listener on the draggable node runs before `dragstart` bubbles to Embla’s viewport.
+  // Drawer carousels use `watchDrag` / `watchFocus` to skip Embla pointer/focus behavior, but
+  // React’s delegated `onDragStart` still fires too late relative to the viewport.
+  useLayoutEffect(() => {
+    const node = slotRef.current;
+    if (!node) {
+      return;
+    }
+
+    const onDragStart = (event: DragEvent) => {
+      const dt = event.dataTransfer;
+      if (!dt) {
+        return;
+      }
+      const t = tileRef.current;
+      const payload = serializeTileDef(t);
+      dt.effectAllowed = "copy";
+      dt.setData(TILE_DRAG_MIME, payload);
+      dt.setData("text/plain", catalogKey(t.def));
+      setExternalDraggingTileDef(t.def);
       event.stopPropagation();
-    },
-    [setExternalDraggingTileDef, tile],
-  );
+    };
+
+    node.addEventListener("dragstart", onDragStart);
+    return () => node.removeEventListener("dragstart", onDragStart);
+  }, [setExternalDraggingTileDef]);
 
   const handleDragEnd = useCallback(() => {
     setExternalDraggingTileDef(null);
@@ -41,27 +59,29 @@ export function TilePreview({
   const TileComponent = tile.component;
 
   return (
-    <div className="drawer-tile-preview flex w-full flex-col items-center gap-3 touch-manipulation">
-      <div className="drawer-tile-scale origin-center scale-75 transition-transform duration-200 ease-out motion-reduce:transition-none [.drawer-tile-preview:has(:active)_&]:scale-100 motion-reduce:[.drawer-tile-preview:has(:active)_&]:scale-75">
-        <div
-          data-drawer-tile-slot
-          data-drawer-tile-type={catalogKey(tile.def)}
-          draggable
-          tabIndex={0}
-          className="shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"
-          style={{ width: fullWidth, height: fullHeight }}
-          aria-label={`${tile.def.collectionLabel} ${tile.def.w}×${tile.def.h}`}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="h-full w-full">
-            <TileComponent />
+    <div className="drawer-tile-preview flex h-full min-h-0 w-full flex-1 flex-col touch-manipulation">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+        <div className="drawer-tile-scale origin-center scale-75 transition-transform duration-200 ease-out motion-reduce:transition-none [.drawer-tile-preview:has(:active)_&]:scale-100 motion-reduce:[.drawer-tile-preview:has(:active)_&]:scale-75">
+          <div
+            ref={slotRef}
+            data-drawer-tile-slot
+            data-drawer-tile-type={catalogKey(tile.def)}
+            draggable
+            tabIndex={0}
+            className="shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"
+            style={{ width: fullWidth, height: fullHeight }}
+            aria-label={`${tile.def.collectionLabel} ${tile.def.w}×${tile.def.h}`}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="h-full w-full">
+              <TileComponent />
+            </div>
           </div>
         </div>
       </div>
-      <span className="inline-flex rounded bg-muted px-2 py-1 text-xs font-semibold text-foreground">
-        {tile.def.w}×{tile.def.h}
-      </span>
+      <div className="flex shrink-0 justify-center pt-3">
+        <DimensionBadge w={tile.def.w} h={tile.def.h} />
+      </div>
     </div>
   );
 }

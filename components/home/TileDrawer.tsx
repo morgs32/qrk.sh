@@ -160,7 +160,7 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                   <div className="sticky top-0 z-[11] border-b border-border/60 bg-background/95 px-6 py-2.5 backdrop-blur-sm">
                     <div className="text-sm font-semibold">{collection.label}</div>
                   </div>
-                  <div className="relative min-h-0 min-w-0">
+                  <div className="min-h-0 min-w-0">
                     <Carousel
                       opts={{
                         align: "start",
@@ -169,21 +169,27 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                       }}
                       className="w-full"
                     >
-                      <CarouselContent viewportClassName="relative z-10" className="items-stretch">
-                        {collection.tiles.map((tile) => (
-                          <CarouselItem
-                            key={catalogKey(tile.def)}
-                            className="relative z-0 flex min-h-0 flex-col items-center hover:z-[5]"
-                          >
-                            <TilePreview
-                              tile={tile}
-                              fullWidth={tile.def.w * cellUnitPx}
-                              fullHeight={tile.def.h * cellUnitPx}
-                            />
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                      <TileDrawerCarouselNav />
+                      <div className="flex min-h-0 w-full items-stretch gap-2">
+                        <TileDrawerCarouselNav edge="start" />
+                        <CarouselContent
+                          viewportClassName="relative min-h-0 min-w-0 flex-1 z-10"
+                          className="items-stretch"
+                        >
+                          {collection.tiles.map((tile) => (
+                            <CarouselItem
+                              key={catalogKey(tile.def)}
+                              className="flex min-h-0 flex-col items-center"
+                            >
+                              <TilePreview
+                                tile={tile}
+                                fullWidth={tile.def.w * cellUnitPx}
+                                fullHeight={tile.def.h * cellUnitPx}
+                              />
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        <TileDrawerCarouselNav edge="end" />
+                      </div>
                     </Carousel>
                   </div>
                 </div>

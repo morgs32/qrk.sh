@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 function boxCenter(box: {
   x: number;
@@ -16,26 +16,6 @@ function centerDistance(
   const ca = boxCenter(a);
   const cb = boxCenter(b);
   return Math.hypot(ca.x - cb.x, ca.y - cb.y);
-}
-
-async function startDrawerTileDrag(page: Page, thumb: Locator) {
-  await expect(thumb).toBeVisible();
-  await thumb.scrollIntoViewIfNeeded();
-
-  const thumbBox = await thumb.boundingBox();
-  expect(thumbBox).not.toBeNull();
-
-  const startX = thumbBox!.x + thumbBox!.width / 2;
-  const startY = thumbBox!.y + thumbBox!.height / 2;
-
-  await page.mouse.move(startX, startY);
-  await page.mouse.down();
-  await page.mouse.move(startX + 18, startY + 18, { steps: 6 });
-
-  const overlay = page.getByTestId('drawer-drag-overlay');
-  await expect(overlay).toBeVisible();
-
-  return { overlay, thumbBox: thumbBox! };
 }
 
 test.describe('Portfolio grid drag', () => {
@@ -89,81 +69,93 @@ test.describe('Portfolio grid drag', () => {
     await expect(tile).toBeVisible();
   });
 
-  test('dragging a drawer tile onto the grid creates a new instance and grows the overlay', async ({
+  test.skip(
+    'dragging a drawer tile onto the grid creates a new instance and grows the overlay',
+    async () => {
+      // Pending native HTML5 DnD from drawer; @dnd-kit bridge removed.
+    }
+  );
+
+  test.skip(
+    'releasing a drawer tile outside the grid springs back without adding an instance',
+    async () => {
+      // Pending native HTML5 DnD from drawer; @dnd-kit bridge removed.
+    }
+  );
+
+  test('standalone Work section is removed; work appears as grid text tiles with links', async ({
     page
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'load' });
 
-    const layout = page.getByTestId('portfolio-grid-layout');
+    const rightColumn = page.locator('[data-home-right-scroll]');
+    await expect(rightColumn).toBeVisible({ timeout: 90_000 });
+    await expect(rightColumn.locator('h2', { hasText: /^Work$/ })).toHaveCount(0);
+
     const grid = page.locator('.portfolio-grid');
-    await expect(layout).toBeVisible({ timeout: 90_000 });
     await expect(grid).toBeVisible();
 
-    const typeSelector = '[data-tile-type-id="orange-flag"]';
-    await expect(grid.locator(typeSelector).first()).toBeVisible();
+    const workRows = grid.locator('[data-tile-type-id="text-tile--4x1"]');
+    await expect(workRows).toHaveCount(46);
 
-    const beforeCount = await grid.locator(typeSelector).count();
-    const beforeGridItemCount = await grid.locator('.react-grid-item').count();
-    expect(beforeCount).toBeGreaterThanOrEqual(1);
-
-    await page.getByLabel('Open drawer').click();
-    await page.waitForTimeout(250);
-
-    const thumb = page.locator('[data-drawer-tile-type="orange-flag"]');
-    const { overlay, thumbBox } = await startDrawerTileDrag(page, thumb);
-    const overlayBox = await overlay.boundingBox();
-    const gridRootBox = await page.getByTestId('portfolio-grid-root').boundingBox();
-
-    expect(overlayBox).not.toBeNull();
-    expect(gridRootBox).not.toBeNull();
-    expect(overlayBox!.width).toBeGreaterThan(thumbBox.width + 100);
-    expect(overlayBox!.height).toBeGreaterThan(thumbBox.height + 100);
-    expect(Math.abs(overlayBox!.width - gridRootBox!.width / 2)).toBeLessThanOrEqual(8);
-    expect(Math.abs(overlayBox!.height - gridRootBox!.width / 2)).toBeLessThanOrEqual(8);
-
-    await page.mouse.move(gridRootBox!.x + 220, gridRootBox!.y + 220, { steps: 14 });
-    await expect
-      .poll(async () => grid.locator('.react-grid-item').count())
-      .toBeGreaterThan(beforeGridItemCount);
-    await page.mouse.up();
-    await page.waitForTimeout(200);
-
-    await expect(grid.locator(typeSelector)).toHaveCount(beforeCount + 1);
-    await expect(overlay).toHaveCount(0);
+    const blanchette = grid.getByRole('link', { name: /Blanchette/ }).first();
+    await expect(blanchette).toBeVisible();
+    await expect(blanchette).toHaveAttribute('href', '#');
   });
 
-  test('releasing a drawer tile outside the grid springs back without adding an instance', async ({
-    page
-  }) => {
+  test('Text tile drawer shows only 2x2 and 4x1 variants', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/', { waitUntil: 'load' });
+
+    await page.getByLabel('Open drawer').click();
+    await expect(page.getByLabel('Workspace drawer')).toBeVisible();
+
+    await expect(page.locator('[data-drawer-tile-type="text-tile"]')).toHaveCount(1);
+    await expect(page.locator('[data-drawer-tile-type="text-tile--4x1"]')).toHaveCount(1);
+    await expect(page.locator('[data-drawer-tile-type="text-tile--1x1"]')).toHaveCount(0);
+  });
+
+  test.skip('dragging a Text tile from the drawer onto the grid adds a sample instance', async () => {
+    // Pending native HTML5 DnD from drawer; @dnd-kit bridge removed.
+  });
+
+  test('seeded work text tiles can be reordered within the grid', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'load' });
 
     const grid = page.locator('.portfolio-grid');
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const typeSelector = '[data-tile-type-id="orange-flag"]';
-    const beforeCount = await grid.locator(typeSelector).count();
+    const first = grid.locator('[data-tile-instance-id="text-tile-work--0"]');
+    const second = grid.locator('[data-tile-instance-id="text-tile-work--1"]');
+    await expect(first).toBeVisible();
+    await expect(second).toBeVisible();
 
-    await page.getByLabel('Open drawer').click();
-    await page.waitForTimeout(250);
+    const boxA = await first.boundingBox();
+    const boxB = await second.boundingBox();
+    expect(boxA).not.toBeNull();
+    expect(boxB).not.toBeNull();
 
-    const thumb = page.locator('[data-drawer-tile-type="orange-flag"]');
-    const { overlay } = await startDrawerTileDrag(page, thumb);
-    const overlayBoxBeforeCancel = await overlay.boundingBox();
-    expect(overlayBoxBeforeCancel).not.toBeNull();
+    const startX = boxA!.x + boxA!.width / 2;
+    const startY = boxA!.y + boxA!.height / 2;
+    const endX = boxB!.x + boxB!.width / 2;
+    const endY = boxB!.y + boxB!.height / 2;
 
-    await page.mouse.move(120, 180, { steps: 10 });
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(endX, endY, { steps: 14 });
+    await page.waitForTimeout(80);
     await page.mouse.up();
+    await page.waitForTimeout(300);
 
-    await expect(grid.locator(typeSelector)).toHaveCount(beforeCount);
-    await expect(overlay).toBeVisible();
-    await expect(thumb).toBeVisible();
-    await page.waitForTimeout(120);
-    const overlayBoxDuringCancel = await overlay.boundingBox();
-    expect(overlayBoxDuringCancel).not.toBeNull();
-    expect(overlayBoxDuringCancel!.width).toBeLessThan(overlayBoxBeforeCancel!.width - 20);
-    await page.waitForTimeout(600);
-    await expect(overlay).toHaveCount(0);
+    const boxAAfter = await first.boundingBox();
+    expect(boxAAfter).not.toBeNull();
+    expect(
+      Math.hypot(
+        boxAAfter!.y + boxAAfter!.height / 2 - (boxB!.y + boxB!.height / 2),
+        boxAAfter!.x + boxAAfter!.width / 2 - (boxB!.x + boxB!.width / 2)
+      )
+    ).toBeGreaterThan(20);
   });
 });

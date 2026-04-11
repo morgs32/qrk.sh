@@ -1,8 +1,3 @@
-import type {
-  AlignmentByBreakpoint,
-  HiddenByBreakpoint,
-  TileSize
-} from '@/lib/stores/portfolio-grid-store';
 import type { HomepageTileDefinition, HomepageTileVariantSize, ITileCollection } from './types';
 
 import { blackCircleCollection } from './collections/BlackCircle/BlackCircleCollection';
@@ -19,6 +14,7 @@ import { orangeFlagCollection } from './collections/OrangeFlag/OrangeFlagCollect
 import { pinkAsteriskCollection } from './collections/PinkAsterisk/PinkAsteriskCollection';
 import { pinkDotsCollection } from './collections/PinkDots/PinkDotsCollection';
 import { purpleLinesCollection } from './collections/PurpleLines/PurpleLinesCollection';
+import { textTileCollection } from './collections/TextTile/TextTileCollection';
 
 const homepageTileCollections: readonly ITileCollection[] = [
   orangeFlagCollection,
@@ -34,36 +30,23 @@ const homepageTileCollections: readonly ITileCollection[] = [
   purpleLinesCollection,
   pinkAsteriskCollection,
   greenEmptyCollection,
-  greenCrossCollection
+  greenCrossCollection,
+  textTileCollection
 ];
 
 const homepageTileVariantSizes: readonly HomepageTileVariantSize[] = ['1x1', '2x2', '4x1'];
 
 export const homepageTiles: HomepageTileDefinition[] = homepageTileCollections.flatMap(
   (collection) =>
-    homepageTileVariantSizes.map((size) => ({
-      typeId:
-        size === '2x2' ? collection.collectionId : `${collection.collectionId}--${size}`,
-      collectionId: collection.collectionId,
-      collectionLabel: collection.collectionLabel,
-      label: collection.collectionLabel,
-      size,
-      Component: collection.components[size]
-    }))
+    homepageTileVariantSizes
+      .filter((size) => collection.components[size] != null)
+      .map((size) => ({
+        typeId:
+          size === '2x2' ? collection.collectionId : `${collection.collectionId}--${size}`,
+        collectionId: collection.collectionId,
+        collectionLabel: collection.collectionLabel,
+        label: collection.collectionLabel,
+        size,
+        Component: collection.components[size]!
+      }))
 );
-
-export const homepageGridConfig: {
-  alignmentByBreakpoint: AlignmentByBreakpoint;
-  hiddenByBreakpoint: HiddenByBreakpoint;
-} = {
-  alignmentByBreakpoint: {
-    lg: 'left',
-    md: 'left',
-    sm: 'left'
-  },
-  hiddenByBreakpoint: {
-    lg: [],
-    md: [],
-    sm: []
-  }
-};

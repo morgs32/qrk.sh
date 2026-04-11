@@ -10,7 +10,10 @@ import {
   type Layout,
   type LayoutItem
 } from 'react-grid-layout';
-import { homepageGridConfig, homepageTiles } from './tiles';
+import { BottomToolbar } from '@/components/home/BottomToolbar';
+import { portfolioGridSeed } from '@/components/home/gridState';
+import { homepageTiles } from './tiles';
+import { TextTilePresentation } from '@/components/home/tiles/collections/TextTile/TextTilePresentation';
 import {
   GRID_BREAKPOINTS,
   GRID_COLUMNS,
@@ -50,7 +53,11 @@ type ExternalGridDragEvent = DragEvent & {
   qrkDrawerTypeId?: string;
 };
 
-export function PortfolioGrid() {
+export type GridProps = {
+  onAddClick: () => void;
+};
+
+export function Grid({ onAddClick }: GridProps) {
   // Default hook (not measureBeforeMount): avoids a stuck 0×0 first measure in
   // nested flex layouts; ResizeObserver then sets the real width.
   const { containerRef, mounted, width, measureWidth } = useContainerWidth();
@@ -92,10 +99,7 @@ export function PortfolioGrid() {
 
   useEffect(() => {
     if (!initialized) {
-      initializeGrid(
-        tileDefinitions.map(({ typeId, size }) => ({ typeId, size })),
-        homepageGridConfig
-      );
+      initializeGrid(portfolioGridSeed);
     }
   }, [initializeGrid, initialized]);
 
@@ -281,75 +285,92 @@ export function PortfolioGrid() {
   );
 
   return (
-    <div ref={containerRef} className="w-full">
-      <div className="w-full" data-testid="portfolio-grid-root">
-        {!mounted || !initialized || computedRowHeight === 0 ? (
-          <div className="grid grid-cols-2">
-            {tileDefinitions.map(({ typeId, Component }) => (
-              <div key={typeId} className="aspect-square">
-                <Component />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="w-full" data-testid="portfolio-grid-layout">
-            <GridLayout
-              width={layoutWidth}
-              layout={renderLayout}
-              autoSize
-              className="portfolio-grid"
-              compactor={verticalCompactor}
-              gridConfig={{
-                cols: layoutCols,
-                rowHeight: layoutRowHeight,
-                margin: [0, 0],
-                containerPadding: [0, 0],
-                maxRows: Number.POSITIVE_INFINITY
-              }}
-              dragConfig={{
-                enabled: true,
-                bounded: GRID_DRAG_BOUNDED,
-                threshold: 3
-              }}
-              dropConfig={{
-                enabled: true,
-                defaultItem: {
-                  w: externalDroppingItem.w,
-                  h: externalDroppingItem.h
-                },
-                onDragOver: handleExternalDropDragOver
-              }}
-              droppingItem={externalDroppingItem}
-              resizeConfig={{
-                enabled: false,
-                handles: []
-              }}
-              onDragStart={handleDragStart}
-              onDragStop={handleDragStop}
-              onDrop={handleExternalDrop}
-              onLayoutChange={handleLayoutChange}
-            >
-              {orderedInstances.map((instance) => {
-                const Component = tileComponentByTypeId.get(instance.typeId);
-                if (!Component) {
-                  return null;
-                }
+    <>
+      <div ref={containerRef} className="w-full">
+        <div className="w-full" data-testid="portfolio-grid-root">
+          {!mounted || !initialized || computedRowHeight === 0 ? (
+            <div className="grid grid-cols-2">
+              {tileDefinitions.map(({ typeId, Component }) => (
+                <div key={typeId} className="aspect-square">
+                  <Component />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="w-full" data-testid="portfolio-grid-layout">
+              <GridLayout
+                width={layoutWidth}
+                layout={renderLayout}
+                autoSize
+                className="portfolio-grid"
+                compactor={verticalCompactor}
+                gridConfig={{
+                  cols: layoutCols,
+                  rowHeight: layoutRowHeight,
+                  margin: [0, 0],
+                  containerPadding: [0, 0],
+                  maxRows: Number.POSITIVE_INFINITY
+                }}
+                dragConfig={{
+                  enabled: true,
+                  bounded: GRID_DRAG_BOUNDED,
+                  threshold: 3
+                }}
+                dropConfig={{
+                  enabled: true,
+                  defaultItem: {
+                    w: externalDroppingItem.w,
+                    h: externalDroppingItem.h
+                  },
+                  onDragOver: handleExternalDropDragOver
+                }}
+                droppingItem={externalDroppingItem}
+                resizeConfig={{
+                  enabled: false,
+                  handles: []
+                }}
+                onDragStart={handleDragStart}
+                onDragStop={handleDragStop}
+                onDrop={handleExternalDrop}
+                onLayoutChange={handleLayoutChange}
+              >
+                {orderedInstances.map((instance) => {
+                  const Component = tileComponentByTypeId.get(instance.typeId);
+                  if (!Component && !instance.text) {
+                    return null;
+                  }
 
-                return (
-                  <div
-                    key={instance.instanceId}
-                    data-tile-instance-id={instance.instanceId}
-                    data-tile-type-id={instance.typeId}
-                    className="cursor-grab touch-none active:cursor-grabbing"
-                  >
-                    <Component />
-                  </div>
-                );
-              })}
-            </GridLayout>
-          </div>
-        )}
+                  return (
+                    <div
+                      key={instance.instanceId}
+                      data-tile-instance-id={instance.instanceId}
+                      data-tile-type-id={instance.typeId}
+                      className="cursor-grab touch-none active:cursor-grabbing"
+                    >
+                      {instance.text ? (
+                        <TextTilePresentation
+                          title={instance.text.title}
+                          category={instance.text.category}
+                          href={instance.text.href}
+                          size={instance.size}
+                        />
+                      ) : (
+                        Component && <Component />
+                      )}
+                    </div>
+                  );
+                })}
+              </GridLayout>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      <div className="pointer-events-none fixed bottom-6 left-1/2 right-0 z-30 flex justify-center px-4">
+        <div className="pointer-events-auto">
+          <BottomToolbar onAddClick={onAddClick} />
+        </div>
+      </div>
+    </>
   );
 }

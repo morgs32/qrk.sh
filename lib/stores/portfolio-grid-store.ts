@@ -28,10 +28,27 @@ export type PortfolioGridTileType = {
   size: TileSize;
 };
 
+export type TextTilePayload = {
+  title: string;
+  category: string;
+  href: string;
+};
+
 export type PortfolioGridTileInstance = {
   instanceId: string;
   typeId: string;
   size: TileSize;
+  /** When set (TextTile work items), grid renders payload instead of the static tile component. */
+  text?: TextTilePayload;
+};
+
+export type PortfolioGridSeed = {
+  tileTypes: PortfolioGridTileType[];
+  config?: PortfolioGridConfig;
+  /** Appended after auto-seeded 2×2 art tiles (e.g. work TextTile rows). */
+  explicitInstances?: PortfolioGridTileInstance[];
+  /** `typeId`s that would normally get a default 2×2 seed but should not (drawer-only types). */
+  autoSeedExcludeTypeIds?: string[];
 };
 
 export type GridLayouts = Record<GridBreakpoint, Layout>;
@@ -61,10 +78,7 @@ type PortfolioGridState = {
   initialHiddenByBreakpoint: HiddenByBreakpoint;
   initialAlignmentByBreakpoint: AlignmentByBreakpoint;
   initialized: boolean;
-  initializeGrid: (
-    tileTypes: PortfolioGridTileType[],
-    config?: PortfolioGridConfig
-  ) => void;
+  initializeGrid: (seed: PortfolioGridSeed) => void;
   setActiveBreakpoint: (breakpoint: GridBreakpoint) => void;
   setExternalDraggingTypeId: (typeId: string | null) => void;
   setExternalDropPosition: (drop: ExternalDropPosition | null) => void;
@@ -321,8 +335,14 @@ function appendItemToBottom(
   );
 }
 
-function seedInstances(tileTypes: PortfolioGridTileType[]): PortfolioGridTileInstance[] {
-  const seededTileTypes = tileTypes.filter((tileType) => !tileType.typeId.includes('--'));
+function seedInstances(
+  tileTypes: PortfolioGridTileType[],
+  autoSeedExcludeTypeIds: Set<string>
+): PortfolioGridTileInstance[] {
+  const seededTileTypes = tileTypes.filter(
+    (tileType) =>
+      !tileType.typeId.includes('--') && !autoSeedExcludeTypeIds.has(tileType.typeId)
+  );
 
   return seededTileTypes.map((tileType, index) => ({
     instanceId: `${tileType.typeId}--${index}`,
@@ -427,16 +447,21 @@ export const usePortfolioGridStore = create<PortfolioGridState>((set, get) => ({
   initialHiddenByBreakpoint: defaultHiddenByBreakpoint(),
   initialAlignmentByBreakpoint: defaultAlignmentByBreakpoint(),
   initialized: false,
-  initializeGrid: (tileTypes, config) => {
+  initializeGrid: (seed) => {
     if (get().initialized) {
       return;
     }
 
-    const instances = seedInstances(tileTypes);
-    const initialState = buildInitialState(instances, config);
+    const exclude = new Set(seed.autoSeedExcludeTypeIds ?? []);
+    const autoSeeded = seedInstances(seed.tileTypes, exclude);
+    const instances: PortfolioGridTileInstance[] = [
+      ...autoSeeded,
+      ...(seed.explicitInstances ?? [])
+    ];
+    const initialState = buildInitialState(instances, seed.config);
 
     set({
-      tileTypes,
+      tileTypes: seed.tileTypes,
       instances,
       layouts: initialState.layouts,
       hiddenByBreakpoint: initialState.hiddenByBreakpoint,

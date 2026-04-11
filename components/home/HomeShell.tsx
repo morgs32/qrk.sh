@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
+import { createRoot, type Root } from 'react-dom/client';
 import Link from 'next/link';
 import { Plus, X } from 'lucide-react';
 import { PortfolioGrid } from '@/components/home/PortfolioGrid';
@@ -25,10 +26,9 @@ export function HomeShell({ workItems }: HomeShellProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [query, setQuery] = useState('');
   const setDraggingTypeId = usePortfolioGridStore((state) => state.setDraggingTypeId);
-  const gridCellHeightPx = usePortfolioGridStore((state) => state.gridCellHeightPx);
-  const draggingTypeId = usePortfolioGridStore((state) => state.draggingTypeId);
   type HomepageTile = (typeof homepageTiles)[number];
   const isDrawerOpenRef = useRef(isDrawerOpen);
+  const drawerDragImageCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     isDrawerOpenRef.current = isDrawerOpen;
@@ -233,15 +233,8 @@ export function HomeShell({ workItems }: HomeShellProps) {
                       <div className="-mx-1 flex flex-row flex-nowrap gap-3 overflow-x-auto overscroll-x-contain px-1 pb-1">
                         {collection.tiles.map((tile) => {
                           const dims = sizeToDimensions(tile.size);
-                          const cellPx =
-                            gridCellHeightPx != null && gridCellHeightPx > 0
-                              ? gridCellHeightPx
-                              : null;
-                          const atDropScale =
-                            draggingTypeId === tile.typeId && cellPx != null;
-                          const unit = atDropScale ? cellPx : DRAWER_PREVIEW_UNIT_PX;
-                          const previewWidth = dims.w * unit;
-                          const previewHeight = dims.h * unit;
+                          const previewWidth = dims.w * DRAWER_PREVIEW_UNIT_PX;
+                          const previewHeight = dims.h * DRAWER_PREVIEW_UNIT_PX;
 
                           return (
                             <div
@@ -257,9 +250,10 @@ export function HomeShell({ workItems }: HomeShellProps) {
                                 }}
                                 draggable
                                 onDragStart={(event) => {
-                                  flushSync(() => {
-                                    setDraggingTypeId(tile.typeId);
-                                  });
+                                  drawerDragImageCleanupRef.current?.();
+                                  drawerDragImageCleanupRef.current = null;
+
+                                  setDraggingTypeId(tile.typeId);
                                   event.dataTransfer.setData(
                                     'application/x-qrk-tile-type',
                                     tile.typeId
@@ -267,8 +261,48 @@ export function HomeShell({ workItems }: HomeShellProps) {
                                   event.dataTransfer.setData('text/plain', tile.typeId);
                                   event.dataTransfer.setData('text', tile.typeId);
                                   event.dataTransfer.effectAllowed = 'copy';
+
+                                  const cellPx =
+                                    usePortfolioGridStore.getState().gridCellHeightPx;
+                                  if (cellPx != null && cellPx > 0) {
+                                    const ghostW = dims.w * cellPx;
+                                    const ghostH = dims.h * cellPx;
+                                    const host = document.createElement('div');
+                                    host.setAttribute('aria-hidden', 'true');
+                                    host.style.cssText = [
+                                      'position:fixed',
+                                      'left:-9999px',
+                                      'top:0',
+                                      `width:${ghostW}px`,
+                                      `height:${ghostH}px`,
+                                      'overflow:hidden',
+                                      'pointer-events:none',
+                                      'z-index:-1'
+                                    ].join(';');
+                                    document.body.appendChild(host);
+                                    const root: Root = createRoot(host);
+                                    const Tile = tile.Component;
+                                    flushSync(() => {
+                                      root.render(<Tile />);
+                                    });
+                                    event.dataTransfer.setDragImage(
+                                      host,
+                                      ghostW / 2,
+                                      ghostH / 2
+                                    );
+                                    drawerDragImageCleanupRef.current = () => {
+                                      requestAnimationFrame(() => {
+                                        root.unmount();
+                                        host.remove();
+                                      });
+                                    };
+                                  }
                                 }}
-                                onDragEnd={() => setDraggingTypeId(null)}
+                                onDragEnd={() => {
+                                  drawerDragImageCleanupRef.current?.();
+                                  drawerDragImageCleanupRef.current = null;
+                                  setDraggingTypeId(null);
+                                }}
                                 aria-label={`Drag ${collection.label} ${dims.w}×${dims.h}`}
                                 role="button"
                                 tabIndex={0}

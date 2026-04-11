@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { rootDomain, protocol } from '@/lib/utils';
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { rootDomain, protocol } from "@/lib/utils";
 
 export default function NotFound() {
   const [subdomain, setSubdomain] = useState<string | null>(null);
@@ -11,16 +11,16 @@ export default function NotFound() {
 
   useEffect(() => {
     // Extract subdomain from URL if we're on a subdomain page
-    if (pathname?.startsWith('/subdomain/')) {
-      const extractedSubdomain = pathname.split('/')[2];
+    if (pathname?.startsWith("/subdomain/")) {
+      const extractedSubdomain = pathname.split("/")[2];
       if (extractedSubdomain) {
         setSubdomain(extractedSubdomain);
       }
     } else {
       // Try to extract from hostname for direct subdomain access
       const hostname = window.location.hostname;
-      if (hostname.includes(`.${rootDomain.split(':')[0]}`)) {
-        const extractedSubdomain = hostname.split('.')[0];
+      if (hostname.includes(`.${rootDomain.split(":")[0]}`)) {
+        const extractedSubdomain = hostname.split(".")[0];
         setSubdomain(extractedSubdomain);
       }
     }
@@ -32,16 +32,13 @@ export default function NotFound() {
         <h1 className="text-4xl font-bold tracking-tight text-gray-900">
           {subdomain ? (
             <>
-              <span className="text-blue-600">{subdomain}</span>.{rootDomain}{' '}
-              doesn't exist
+              <span className="text-blue-600">{subdomain}</span>.{rootDomain} doesn't exist
             </>
           ) : (
-            'Subdomain Not Found'
+            "Subdomain Not Found"
           )}
         </h1>
-        <p className="mt-3 text-lg text-gray-600">
-          This subdomain hasn't been created yet.
-        </p>
+        <p className="mt-3 text-lg text-gray-600">This subdomain hasn't been created yet.</p>
         <div className="mt-6">
           <Link
             href={`${protocol}://${rootDomain}`}

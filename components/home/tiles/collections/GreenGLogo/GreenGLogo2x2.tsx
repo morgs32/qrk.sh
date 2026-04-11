@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { GreenGLogoGraphic } from './GreenGLogoGraphic';
+import { TileFrame } from "../../TileFrame";
+import { GreenGLogoGraphic } from "./GreenGLogoGraphic";
 
 export function GreenGLogo2x2() {
   return (

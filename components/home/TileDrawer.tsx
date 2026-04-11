@@ -1,92 +1,38 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import type { EmblaCarouselType } from 'embla-carousel';
-import { ArrowLeft, ArrowRight, X } from 'lucide-react';
-import { catalogKey, homepageTiles } from './tiles';
-import { Button } from '@/components/ui/button';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  useCarousel
-} from '@/components/ui/carousel';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-import { useGridStore } from '@/components/home/useGridStore';
-import { TilePreview } from './TilePreview';
+import { useMemo, useState } from "react";
+import type { EmblaCarouselType } from "embla-carousel";
+import { X } from "lucide-react";
+import { catalogKey, homepageTiles } from "./tiles";
+import { Button } from "@/components/ui/button";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { Input } from "@/components/ui/input";
+import { useGridStore } from "@/components/home/useGridStore";
+import { TileDrawerCarouselNav } from "./TileDrawerCarouselNav";
+import { TilePreview } from "./TilePreview";
 
 /** Fallback when the grid has not measured yet (`gridCellHeightPx` is null). */
 export const DRAWER_PREVIEW_UNIT_PX = 96;
 
 function watchDragIgnoreDrawerTileSlot(
   _emblaApi: EmblaCarouselType,
-  event: MouseEvent | TouchEvent
+  event: MouseEvent | TouchEvent,
 ): boolean {
   const target = event.target;
   if (!(target instanceof Element)) {
     return true;
   }
-  if (target.closest('[data-drawer-tile-slot]')) {
+  if (target.closest("[data-drawer-tile-slot]")) {
     return false;
   }
-  if (target.closest('[data-drawer-carousel-nav]')) {
+  if (target.closest("[data-drawer-carousel-nav]")) {
     return false;
   }
   return true;
 }
 
-function TileDrawerCarouselNav() {
-  const { scrollPrev, scrollNext, canScrollPrev, canScrollNext } = useCarousel();
-
-  const railButtonClass =
-    'stretched-button inline-flex h-full w-full items-center justify-center rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-muted/50';
-
-  return (
-    <>
-      <div
-        data-drawer-carousel-nav
-        className="absolute inset-y-0 left-2 z-10 w-14"
-      >
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={!canScrollPrev}
-          onClick={scrollPrev}
-          className={cn(railButtonClass)}
-          aria-label="Previous slide"
-        >
-          <span className="relative z-10 flex size-10 items-center justify-center rounded-full border border-border bg-background shadow-xs dark:bg-input/30">
-            <ArrowLeft className="size-4 shrink-0" aria-hidden />
-          </span>
-        </Button>
-      </div>
-      <div
-        data-drawer-carousel-nav
-        className="absolute inset-y-0 right-2 z-10 w-14"
-      >
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={!canScrollNext}
-          onClick={scrollNext}
-          className={cn(railButtonClass)}
-          aria-label="Next slide"
-        >
-          <span className="relative z-10 flex size-10 items-center justify-center rounded-full border border-border bg-background shadow-xs dark:bg-input/30">
-            <ArrowRight className="size-4 shrink-0" aria-hidden />
-          </span>
-        </Button>
-      </div>
-    </>
-  );
-}
-
-export function TileDrawer({ open, onClose }: {
-  open: boolean;
-  onClose: () => void;
-}) {
-  const [query, setQuery] = useState('');
+export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [query, setQuery] = useState("");
   const gridCellHeightPx = useGridStore((state) => state.gridCellHeightPx);
   const cellUnitPx =
     gridCellHeightPx && gridCellHeightPx > 0 ? gridCellHeightPx : DRAWER_PREVIEW_UNIT_PX;
@@ -99,13 +45,11 @@ export function TileDrawer({ open, onClose }: {
     >();
 
     homepageTiles.forEach((tile) => {
-      const entry =
-        collections.get(tile.def.collectionId) ??
-        {
-          collectionId: tile.def.collectionId,
-          label: tile.def.collectionLabel,
-          tiles: []
-        };
+      const entry = collections.get(tile.def.collectionId) ?? {
+        collectionId: tile.def.collectionId,
+        label: tile.def.collectionLabel,
+        tiles: [],
+      };
 
       entry.tiles.push(tile);
       collections.set(tile.def.collectionId, entry);
@@ -114,9 +58,10 @@ export function TileDrawer({ open, onClose }: {
     const ordered = Array.from(collections.values()).map((collection) => ({
       ...collection,
       tiles: [...collection.tiles].sort((a, b) => {
-        const rank = (w: number, h: number) => (w === 1 && h === 1 ? 0 : w === 2 && h === 2 ? 1 : 2);
+        const rank = (w: number, h: number) =>
+          w === 1 && h === 1 ? 0 : w === 2 && h === 2 ? 1 : 2;
         return rank(a.def.w, a.def.h) - rank(b.def.w, b.def.h);
-      })
+      }),
     }));
 
     if (!q) {
@@ -129,7 +74,7 @@ export function TileDrawer({ open, onClose }: {
           collection.label.toLowerCase().includes(q) ||
           collection.collectionId.toLowerCase().includes(q);
         const matchingTiles = collection.tiles.filter((tile) =>
-          catalogKey(tile.def).toLowerCase().includes(q)
+          catalogKey(tile.def).toLowerCase().includes(q),
         );
 
         return matchesCollection ? collection : { ...collection, tiles: matchingTiles };
@@ -145,7 +90,7 @@ export function TileDrawer({ open, onClose }: {
     <div
       role="dialog"
       aria-label="Workspace drawer"
-      className="fixed top-16 bottom-0 left-0 z-40 flex h-[calc(100vh-4rem)] w-full min-h-0 flex-col border-r border-border bg-background/95 shadow-2xl backdrop-blur-sm md:w-1/2"
+      className="fixed top-16 bottom-0 left-0 z-40 flex h-[calc(100vh-4rem)] w-full min-h-0 flex-col border-r border-border bg-background shadow-2xl md:w-1/2"
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">
@@ -181,7 +126,7 @@ export function TileDrawer({ open, onClose }: {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setQuery('')}
+              onClick={() => setQuery("")}
               disabled={query.trim().length === 0}
             >
               Clear
@@ -201,9 +146,9 @@ export function TileDrawer({ open, onClose }: {
                   <div className="sticky top-0 z-[11] border-b border-border/60 bg-background/95 px-6 py-2.5 backdrop-blur-sm">
                     <div className="text-sm font-semibold">{collection.label}</div>
                   </div>
-                  <div className="relative min-h-0 min-w-0 border-b border-border/60 py-1 pb-4 pt-2">
+                  <div className="relative min-h-0 min-w-0">
                     <Carousel
-                      opts={{ align: 'start', watchDrag: watchDragIgnoreDrawerTileSlot }}
+                      opts={{ align: "start", watchDrag: watchDragIgnoreDrawerTileSlot }}
                       className="w-full"
                     >
                       <CarouselContent className="items-stretch">

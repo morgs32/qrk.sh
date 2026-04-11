@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { HeroCopy } from '@/components/home/HeroCopy';
-import { Grid } from '@/components/home/Grid';
-import { TileDrawer } from '@/components/home/TileDrawer';
+import { useEffect, useRef, useState } from "react";
+import { HeroCopy } from "@/components/home/HeroCopy";
+import { Grid } from "@/components/home/Grid";
+import { TileDrawer } from "@/components/home/TileDrawer";
 
 export function HomeShell() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -19,13 +19,13 @@ export function HomeShell() {
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         setIsDrawerOpen(false);
       }
     };
 
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [isDrawerOpen]);
 
   useEffect(() => {
@@ -39,18 +39,18 @@ export function HomeShell() {
         return;
       }
 
-      const rightColumn = document.querySelector<HTMLElement>('[data-home-right-scroll]');
+      const rightColumn = document.querySelector<HTMLElement>("[data-home-right-scroll]");
       if (rightColumn && rightColumn.contains(target)) {
         event.stopImmediatePropagation();
       }
     };
 
-    window.addEventListener('wheel', allowBackgroundScroll, { capture: true });
-    window.addEventListener('touchmove', allowBackgroundScroll, { capture: true });
+    window.addEventListener("wheel", allowBackgroundScroll, { capture: true });
+    window.addEventListener("touchmove", allowBackgroundScroll, { capture: true });
 
     return () => {
-      window.removeEventListener('wheel', allowBackgroundScroll, { capture: true } as never);
-      window.removeEventListener('touchmove', allowBackgroundScroll, { capture: true } as never);
+      window.removeEventListener("wheel", allowBackgroundScroll, { capture: true } as never);
+      window.removeEventListener("touchmove", allowBackgroundScroll, { capture: true } as never);
     };
   }, []);
 

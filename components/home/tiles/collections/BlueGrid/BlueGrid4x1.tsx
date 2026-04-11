@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { BlueGridGraphic } from './BlueGridGraphic';
+import { TileFrame } from "../../TileFrame";
+import { BlueGridGraphic } from "./BlueGridGraphic";
 
 export function BlueGrid4x1() {
   return (

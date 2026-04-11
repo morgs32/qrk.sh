@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { HomeShell } from '@/components/home/HomeShell';
+import Link from "next/link";
+import { HomeShell } from "@/components/home/HomeShell";
 
 export default function HomePage() {
   return (
@@ -9,28 +9,16 @@ export default function HomePage() {
           Garlott
         </Link>
         <nav className="flex items-center gap-6">
-          <Link
-            href="/work"
-            className="text-xs transition-opacity hover:opacity-70"
-          >
+          <Link href="/work" className="text-xs transition-opacity hover:opacity-70">
             Work
           </Link>
-          <Link
-            href="/about"
-            className="text-xs transition-opacity hover:opacity-70"
-          >
+          <Link href="/about" className="text-xs transition-opacity hover:opacity-70">
             About
           </Link>
-          <Link
-            href="/follow"
-            className="text-xs transition-opacity hover:opacity-70"
-          >
+          <Link href="/follow" className="text-xs transition-opacity hover:opacity-70">
             Follow
           </Link>
-          <Link
-            href="/admin"
-            className="text-xs transition-opacity hover:opacity-70"
-          >
+          <Link href="/admin" className="text-xs transition-opacity hover:opacity-70">
             Admin
           </Link>
         </nav>

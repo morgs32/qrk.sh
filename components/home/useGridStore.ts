@@ -1,32 +1,24 @@
-import { create } from 'zustand';
-import {
-  verticalCompactor,
-  type Layout,
-  type LayoutItem
-} from 'react-grid-layout';
-import {
-  catalogKey,
-  tileDefsEqual,
-  type ICollectionTileDef
-} from '@/components/home/tiles/types';
+import { create } from "zustand";
+import { verticalCompactor, type Layout, type LayoutItem } from "react-grid-layout";
+import { catalogKey, tileDefsEqual, type ICollectionTileDef } from "@/components/home/tiles/types";
 
-export const GRID_BREAKPOINT_ORDER = ['lg', 'md', 'sm'] as const;
+export const GRID_BREAKPOINT_ORDER = ["lg", "md", "sm"] as const;
 export type GridBreakpoint = (typeof GRID_BREAKPOINT_ORDER)[number];
 
 export const GRID_BREAKPOINTS: Record<GridBreakpoint, number> = {
   lg: 1024,
   md: 768,
-  sm: 0
+  sm: 0,
 };
 
 export const GRID_COLUMNS: Record<GridBreakpoint, number> = {
   lg: 4,
   md: 4,
-  sm: 4
+  sm: 4,
 };
 
-export type GridAlignment = 'left' | 'right';
-export type TileSize = '1x1' | '2x2' | '4x4' | '2x1' | '4x1' | '4x2';
+export type GridAlignment = "left" | "right";
+export type TileSize = "1x1" | "2x2" | "4x4" | "2x1" | "4x1" | "4x2";
 
 export type IGridTileType = {
   tileDef: ICollectionTileDef;
@@ -87,16 +79,13 @@ type IGridState = {
   setExternalDropPosition: (drop: ExternalDropPosition | null) => void;
   setGridCellHeightPx: (px: number | null) => void;
   setBreakpointLayout: (breakpoint: GridBreakpoint, layout: Layout) => void;
-  setBreakpointAlignment: (
-    breakpoint: GridBreakpoint,
-    alignment: GridAlignment
-  ) => void;
+  setBreakpointAlignment: (breakpoint: GridBreakpoint, alignment: GridAlignment) => void;
   hideItem: (breakpoint: GridBreakpoint, id: string) => void;
   showItem: (breakpoint: GridBreakpoint, id: string) => void;
   addInstanceAt: (
     breakpoint: GridBreakpoint,
     tileDef: ICollectionTileDef,
-    position: { x: number; y: number }
+    position: { x: number; y: number },
   ) => string | null;
   resetBreakpoint: (breakpoint: GridBreakpoint) => void;
   resetAll: () => void;
@@ -105,19 +94,19 @@ type IGridState = {
 const emptyLayouts = (): GridLayouts => ({
   lg: [],
   md: [],
-  sm: []
+  sm: [],
 });
 
 const defaultHiddenByBreakpoint = (): HiddenByBreakpoint => ({
   lg: [],
   md: [],
-  sm: []
+  sm: [],
 });
 
 const defaultAlignmentByBreakpoint = (): AlignmentByBreakpoint => ({
-  lg: 'left',
-  md: 'left',
-  sm: 'left'
+  lg: "left",
+  md: "left",
+  sm: "left",
 });
 
 function cloneLayout(layout: Layout): Layout {
@@ -169,17 +158,17 @@ function collides(first: LayoutItem, second: LayoutItem) {
 
 export function sizeToDimensions(size: TileSize) {
   switch (size) {
-    case '1x1':
+    case "1x1":
       return { w: 1, h: 1 };
-    case '2x1':
+    case "2x1":
       return { w: 2, h: 1 };
-    case '2x2':
+    case "2x2":
       return { w: 2, h: 2 };
-    case '4x1':
+    case "4x1":
       return { w: 4, h: 1 };
-    case '4x2':
+    case "4x2":
       return { w: 4, h: 2 };
-    case '4x4':
+    case "4x4":
       return { w: 4, h: 4 };
   }
 }
@@ -191,13 +180,13 @@ function compactLayout(layout: Layout, breakpoint: GridBreakpoint): Layout {
 
   return verticalCompactor.compact(
     layout.map((item) => ({ ...item })),
-    GRID_COLUMNS[breakpoint]
+    GRID_COLUMNS[breakpoint],
   );
 }
 
 function getVisibleInstances(
   instances: IGridTileInstance[],
-  hiddenIds: string[]
+  hiddenIds: string[],
 ): IGridTileInstance[] {
   const hiddenSet = new Set(hiddenIds);
   return instances.filter((tile) => !hiddenSet.has(tile.instanceId));
@@ -205,9 +194,7 @@ function getVisibleInstances(
 
 function filterLayout(layout: Layout, tileIds: string[]): Layout {
   const tileIdSet = new Set(tileIds);
-  return layout
-    .filter((item) => tileIdSet.has(item.i))
-    .map((item) => ({ ...item }));
+  return layout.filter((item) => tileIdSet.has(item.i)).map((item) => ({ ...item }));
 }
 
 function packRowsLeft(layout: Layout): Layout {
@@ -224,7 +211,7 @@ function packRowsLeft(layout: Layout): Layout {
 
   return layout.map((item) => ({
     ...item,
-    x: item.x - (minXByRow.get(item.y) ?? 0)
+    x: item.x - (minXByRow.get(item.y) ?? 0),
   }));
 }
 
@@ -243,35 +230,28 @@ function packRowsRight(layout: Layout, breakpoint: GridBreakpoint): Layout {
 
   return leftPackedLayout.map((item) => ({
     ...item,
-    x: item.x + (GRID_COLUMNS[breakpoint] - (rowBounds.get(item.y) ?? 0))
+    x: item.x + (GRID_COLUMNS[breakpoint] - (rowBounds.get(item.y) ?? 0)),
   }));
 }
 
-export function toCanonicalLayout(
-  layout: Layout,
-  breakpoint: GridBreakpoint
-): Layout {
+export function toCanonicalLayout(layout: Layout, breakpoint: GridBreakpoint): Layout {
   return compactLayout(packRowsLeft(layout), breakpoint);
 }
 
 export function toRenderableLayout(
   layout: Layout,
   breakpoint: GridBreakpoint,
-  alignment: GridAlignment
+  alignment: GridAlignment,
 ): Layout {
   const canonicalLayout = toCanonicalLayout(layout, breakpoint);
-  if (alignment === 'left') {
+  if (alignment === "left") {
     return canonicalLayout;
   }
 
   return packRowsRight(canonicalLayout, breakpoint);
 }
 
-function canPlaceItem(
-  layout: LayoutItem[],
-  candidate: LayoutItem,
-  cols: number
-): boolean {
+function canPlaceItem(layout: LayoutItem[], candidate: LayoutItem, cols: number): boolean {
   if (candidate.x + candidate.w > cols) {
     return false;
   }
@@ -281,7 +261,7 @@ function canPlaceItem(
 
 export function buildInitialLayout(
   instances: IGridTileInstance[],
-  breakpoint: GridBreakpoint
+  breakpoint: GridBreakpoint,
 ): Layout {
   const cols = GRID_COLUMNS[breakpoint];
   const layout: LayoutItem[] = [];
@@ -298,7 +278,7 @@ export function buildInitialLayout(
           x,
           y,
           w,
-          h
+          h,
         };
 
         if (canPlaceItem(layout, candidate, cols)) {
@@ -318,7 +298,7 @@ export function buildInitialLayout(
 function appendItemToBottom(
   layout: Layout,
   tile: IGridTileInstance,
-  breakpoint: GridBreakpoint
+  breakpoint: GridBreakpoint,
 ): Layout {
   const { w, h } = tile.tileDef;
   const nextY = layout.reduce((bottom, item) => Math.max(bottom, item.y + item.h), 0);
@@ -331,48 +311,48 @@ function appendItemToBottom(
         x: 0,
         y: nextY,
         w,
-        h
-      }
+        h,
+      },
     ],
-    breakpoint
+    breakpoint,
   );
 }
 
 function seedInstances(
   tileTypes: IGridTileType[],
-  autoSeedExcludeCollectionIds: Set<string>
+  autoSeedExcludeCollectionIds: Set<string>,
 ): IGridTileInstance[] {
   const seededTileTypes = tileTypes.filter(
     (tileType) =>
       tileType.tileDef.w === 2 &&
       tileType.tileDef.h === 2 &&
-      !autoSeedExcludeCollectionIds.has(tileType.tileDef.collectionId)
+      !autoSeedExcludeCollectionIds.has(tileType.tileDef.collectionId),
   );
 
   return seededTileTypes.map((tileType, index) => ({
     instanceId: `${catalogKey(tileType.tileDef)}--${index}`,
-    tileDef: tileType.tileDef
+    tileDef: tileType.tileDef,
   }));
 }
 
 function mergeHiddenByBreakpoint(
-  hiddenByBreakpoint?: Partial<HiddenByBreakpoint>
+  hiddenByBreakpoint?: Partial<HiddenByBreakpoint>,
 ): HiddenByBreakpoint {
   const defaults = defaultHiddenByBreakpoint();
 
   return {
     lg: [...(hiddenByBreakpoint?.lg ?? defaults.lg)],
     md: [...(hiddenByBreakpoint?.md ?? defaults.md)],
-    sm: [...(hiddenByBreakpoint?.sm ?? defaults.sm)]
+    sm: [...(hiddenByBreakpoint?.sm ?? defaults.sm)],
   };
 }
 
 function mergeAlignmentByBreakpoint(
-  alignmentByBreakpoint?: Partial<AlignmentByBreakpoint>
+  alignmentByBreakpoint?: Partial<AlignmentByBreakpoint>,
 ): AlignmentByBreakpoint {
   return {
     ...defaultAlignmentByBreakpoint(),
-    ...alignmentByBreakpoint
+    ...alignmentByBreakpoint,
   };
 }
 
@@ -380,12 +360,9 @@ function deriveBreakpointLayout(
   breakpoint: GridBreakpoint,
   instances: IGridTileInstance[],
   layouts: GridLayouts,
-  hiddenByBreakpoint: HiddenByBreakpoint
+  hiddenByBreakpoint: HiddenByBreakpoint,
 ): Layout {
-  const visibleInstances = getVisibleInstances(
-    instances,
-    hiddenByBreakpoint[breakpoint]
-  );
+  const visibleInstances = getVisibleInstances(instances, hiddenByBreakpoint[breakpoint]);
   if (visibleInstances.length === 0) {
     return [];
   }
@@ -403,7 +380,7 @@ function deriveBreakpointLayout(
           nextLayout.some((item) => item.i === tile.instanceId)
             ? nextLayout
             : appendItemToBottom(nextLayout, tile, breakpoint),
-        toCanonicalLayout(sourceLayout, breakpoint)
+        toCanonicalLayout(sourceLayout, breakpoint),
       );
     }
   }
@@ -411,35 +388,30 @@ function deriveBreakpointLayout(
   return buildInitialLayout(visibleInstances, breakpoint);
 }
 
-function buildInitialState(
-  instances: IGridTileInstance[],
-  config?: IGridConfig
-) {
+function buildInitialState(instances: IGridTileInstance[], config?: IGridConfig) {
   const hiddenByBreakpoint = mergeHiddenByBreakpoint(config?.hiddenByBreakpoint);
-  const alignmentByBreakpoint = mergeAlignmentByBreakpoint(
-    config?.alignmentByBreakpoint
-  );
+  const alignmentByBreakpoint = mergeAlignmentByBreakpoint(config?.alignmentByBreakpoint);
   const lgInstances = getVisibleInstances(instances, hiddenByBreakpoint.lg);
-  const lgLayout = buildInitialLayout(lgInstances, 'lg');
+  const lgLayout = buildInitialLayout(lgInstances, "lg");
   const seedLayouts: GridLayouts = {
     lg: lgLayout,
     md: [],
-    sm: []
+    sm: [],
   };
 
   return {
     layouts: {
       lg: lgLayout,
-      md: deriveBreakpointLayout('md', instances, seedLayouts, hiddenByBreakpoint),
-      sm: deriveBreakpointLayout('sm', instances, seedLayouts, hiddenByBreakpoint)
+      md: deriveBreakpointLayout("md", instances, seedLayouts, hiddenByBreakpoint),
+      sm: deriveBreakpointLayout("sm", instances, seedLayouts, hiddenByBreakpoint),
     },
     hiddenByBreakpoint,
-    alignmentByBreakpoint
+    alignmentByBreakpoint,
   };
 }
 
 export const useGridStore = create<IGridState>((set, get) => ({
-  activeBreakpoint: 'lg',
+  activeBreakpoint: "lg",
   tileTypes: [],
   instances: [],
   layouts: emptyLayouts(),
@@ -458,10 +430,7 @@ export const useGridStore = create<IGridState>((set, get) => ({
 
     const exclude = new Set(seed.autoSeedExcludeCollectionIds ?? []);
     const autoSeeded = seedInstances(seed.tileTypes, exclude);
-    const instances: IGridTileInstance[] = [
-      ...autoSeeded,
-      ...(seed.explicitInstances ?? [])
-    ];
+    const instances: IGridTileInstance[] = [...autoSeeded, ...(seed.explicitInstances ?? [])];
     const initialState = buildInitialState(instances, seed.config);
 
     set({
@@ -472,7 +441,7 @@ export const useGridStore = create<IGridState>((set, get) => ({
       alignmentByBreakpoint: initialState.alignmentByBreakpoint,
       initialHiddenByBreakpoint: initialState.hiddenByBreakpoint,
       initialAlignmentByBreakpoint: initialState.alignmentByBreakpoint,
-      initialized: true
+      initialized: true,
     });
   },
   setActiveBreakpoint: (breakpoint) => {
@@ -491,13 +460,10 @@ export const useGridStore = create<IGridState>((set, get) => ({
     const state = get();
     const visibleInstances = getVisibleInstances(
       state.instances,
-      state.hiddenByBreakpoint[breakpoint]
+      state.hiddenByBreakpoint[breakpoint],
     );
     const visibleInstanceIds = visibleInstances.map((tile) => tile.instanceId);
-    let nextLayout = toCanonicalLayout(
-      filterLayout(layout, visibleInstanceIds),
-      breakpoint
-    );
+    let nextLayout = toCanonicalLayout(filterLayout(layout, visibleInstanceIds), breakpoint);
 
     visibleInstances.forEach((tile) => {
       if (!nextLayout.some((item) => item.i === tile.instanceId)) {
@@ -508,36 +474,34 @@ export const useGridStore = create<IGridState>((set, get) => ({
     set({
       layouts: {
         ...state.layouts,
-        [breakpoint]: nextLayout
-      }
+        [breakpoint]: nextLayout,
+      },
     });
   },
   setBreakpointAlignment: (breakpoint, alignment) => {
     set((state) => ({
       alignmentByBreakpoint: {
         ...state.alignmentByBreakpoint,
-        [breakpoint]: alignment
-      }
+        [breakpoint]: alignment,
+      },
     }));
   },
   hideItem: (breakpoint, id) => {
     const state = get();
-    const nextHidden = Array.from(
-      new Set([...state.hiddenByBreakpoint[breakpoint], id])
-    );
+    const nextHidden = Array.from(new Set([...state.hiddenByBreakpoint[breakpoint], id]));
 
     set({
       hiddenByBreakpoint: {
         ...state.hiddenByBreakpoint,
-        [breakpoint]: nextHidden
+        [breakpoint]: nextHidden,
       },
       layouts: {
         ...state.layouts,
         [breakpoint]: toCanonicalLayout(
           state.layouts[breakpoint].filter((item) => item.i !== id),
-          breakpoint
-        )
-      }
+          breakpoint,
+        ),
+      },
     });
   },
   showItem: (breakpoint, id) => {
@@ -547,9 +511,7 @@ export const useGridStore = create<IGridState>((set, get) => ({
       return;
     }
 
-    const nextHidden = state.hiddenByBreakpoint[breakpoint].filter(
-      (hiddenId) => hiddenId !== id
-    );
+    const nextHidden = state.hiddenByBreakpoint[breakpoint].filter((hiddenId) => hiddenId !== id);
     const nextLayout = state.layouts[breakpoint].some((item) => item.i === id)
       ? state.layouts[breakpoint]
       : appendItemToBottom(state.layouts[breakpoint], instance, breakpoint);
@@ -557,12 +519,12 @@ export const useGridStore = create<IGridState>((set, get) => ({
     set({
       hiddenByBreakpoint: {
         ...state.hiddenByBreakpoint,
-        [breakpoint]: nextHidden
+        [breakpoint]: nextHidden,
       },
       layouts: {
         ...state.layouts,
-        [breakpoint]: nextLayout
-      }
+        [breakpoint]: nextLayout,
+      },
     });
   },
   addInstanceAt: (breakpoint, tileDef, position) => {
@@ -573,7 +535,7 @@ export const useGridStore = create<IGridState>((set, get) => ({
     }
 
     const instanceId =
-      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `${catalogKey(tileDef)}--${Date.now()}--${Math.random().toString(16).slice(2)}`;
     const { w, h } = tileType.tileDef;
@@ -582,12 +544,12 @@ export const useGridStore = create<IGridState>((set, get) => ({
       ...state.instances,
       {
         instanceId,
-        tileDef: tileType.tileDef
-      }
+        tileDef: tileType.tileDef,
+      },
     ];
 
     const nextHidden = state.hiddenByBreakpoint[breakpoint].filter(
-      (hiddenId) => hiddenId !== instanceId
+      (hiddenId) => hiddenId !== instanceId,
     );
 
     const candidate: LayoutItem = {
@@ -595,24 +557,24 @@ export const useGridStore = create<IGridState>((set, get) => ({
       x: Math.max(0, position.x),
       y: Math.max(0, position.y),
       w,
-      h
+      h,
     };
 
     const nextLayout = toCanonicalLayout(
       [...cloneLayout(state.layouts[breakpoint]), candidate],
-      breakpoint
+      breakpoint,
     );
 
     set({
       instances: nextInstances,
       hiddenByBreakpoint: {
         ...state.hiddenByBreakpoint,
-        [breakpoint]: nextHidden
+        [breakpoint]: nextHidden,
       },
       layouts: {
         ...state.layouts,
-        [breakpoint]: nextLayout
-      }
+        [breakpoint]: nextLayout,
+      },
     });
 
     return instanceId;
@@ -621,36 +583,36 @@ export const useGridStore = create<IGridState>((set, get) => ({
     const state = get();
     const nextLayouts = { ...state.layouts };
 
-    if (breakpoint === 'lg') {
+    if (breakpoint === "lg") {
       nextLayouts.lg = buildInitialLayout(
         getVisibleInstances(state.instances, state.hiddenByBreakpoint.lg),
-        'lg'
+        "lg",
       );
     } else {
       nextLayouts[breakpoint] = deriveBreakpointLayout(
         breakpoint,
         state.instances,
         nextLayouts,
-        state.hiddenByBreakpoint
+        state.hiddenByBreakpoint,
       );
     }
 
     set({
-      layouts: nextLayouts
+      layouts: nextLayouts,
     });
   },
   resetAll: () => {
     const state = get();
     const initialState = buildInitialState(state.instances, {
       hiddenByBreakpoint: state.initialHiddenByBreakpoint,
-      alignmentByBreakpoint: state.initialAlignmentByBreakpoint
+      alignmentByBreakpoint: state.initialAlignmentByBreakpoint,
     });
 
     set({
       layouts: initialState.layouts,
       hiddenByBreakpoint: initialState.hiddenByBreakpoint,
       alignmentByBreakpoint: initialState.alignmentByBreakpoint,
-      activeBreakpoint: 'lg'
+      activeBreakpoint: "lg",
     });
-  }
+  },
 }));

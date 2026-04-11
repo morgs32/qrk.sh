@@ -1,27 +1,21 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { LayoutGrid, Type, ImageIcon, Plus } from 'lucide-react';
+import * as React from "react";
+import { LayoutGrid, Type, ImageIcon, Plus } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
-interface ToolbarButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ToolbarButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   tooltip?: string;
-  variant?: 'default' | 'ghost';
+  variant?: "default" | "ghost";
   children: React.ReactNode;
 }
 
 function ToolbarButton({
   tooltip,
-  variant = 'ghost',
+  variant = "ghost",
   children,
   className,
   ...props
@@ -32,10 +26,10 @@ function ToolbarButton({
       variant={variant}
       size="sm"
       className={cn(
-        'h-8 px-2 text-muted-foreground hover:text-foreground',
-        variant === 'default' &&
-          'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground',
-        className
+        "h-8 px-2 text-muted-foreground hover:text-foreground",
+        variant === "default" &&
+          "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+        className,
       )}
       {...props}
     >
@@ -57,16 +51,8 @@ function ToolbarButton({
   return button;
 }
 
-function ToolbarGroup({
-  children,
-  className
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn('flex items-center gap-0.5', className)}>{children}</div>
-  );
+function ToolbarGroup({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn("flex items-center gap-0.5", className)}>{children}</div>;
 }
 
 function ToolbarSeparator() {
@@ -107,11 +93,7 @@ export function BottomToolbar({ onAddClick }: BottomToolbarProps) {
         <ToolbarSeparator />
 
         <ToolbarGroup>
-          <ToolbarButton
-            tooltip="Add Button"
-            aria-label="Open drawer"
-            onClick={onAddClick}
-          >
+          <ToolbarButton tooltip="Add Button" aria-label="Open drawer" onClick={onAddClick}>
             <Plus className="h-4 w-4" />
             Button
           </ToolbarButton>

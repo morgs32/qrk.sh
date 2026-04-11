@@ -17,6 +17,14 @@ Use these rules for **repo-authored React components** that are **not** shadcn a
   - `components/home/Grid.tsx`
   - `export function Grid() { ... }`
 
+### Good vs bad: one file per component
+
+Prefer **one primary React component per file** (matching the PascalCase file name). Nesting sizable presentational or interactive subcomponents in the parent file makes diffs noisier and obscures imports.
+
+- **Bad**: `TileDrawer.tsx` defines both `TileDrawer` and a multi-markup helper like `TileDrawerCarouselNav` in the same module.
+
+- **Good**: `TileDrawerCarouselNav.tsx` exports `TileDrawerCarouselNav`; [TileDrawer.tsx](../../components/home/TileDrawer.tsx) imports it. Keep **`data-drawer-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
+
 ### Exceptions (this rule does not apply)
 
 - **shadcn/ui components**: anything under `components/ui/**` keeps shadcn’s conventions.

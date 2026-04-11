@@ -57,4 +57,3 @@ Do not rely on globals that only exist inside one app's config. Export the neede
 ## Response requirement
 
 After fixing type errors, list the non-obvious issues in the reply.
-

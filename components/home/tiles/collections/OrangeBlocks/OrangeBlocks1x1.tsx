@@ -1,5 +1,5 @@
-import { TileFrame } from '../../TileFrame';
-import { OrangeBlocksGraphic } from './OrangeBlocksGraphic';
+import { TileFrame } from "../../TileFrame";
+import { OrangeBlocksGraphic } from "./OrangeBlocksGraphic";
 
 export function OrangeBlocks1x1() {
   return (

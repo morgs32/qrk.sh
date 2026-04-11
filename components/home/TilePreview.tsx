@@ -61,6 +61,9 @@ export function TilePreview({
   return (
     <div className="drawer-tile-preview flex h-full min-h-0 w-full flex-1 flex-col touch-manipulation">
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+      <div className="flex items-center justify-center h-10">
+        {/* <DimensionBadge w={tile.def.w} h={tile.def.h} /> */}
+      </div>
         <div className="drawer-tile-scale origin-center scale-75 transition-transform duration-200 ease-out motion-reduce:transition-none [.drawer-tile-preview:has(:active)_&]:scale-100 motion-reduce:[.drawer-tile-preview:has(:active)_&]:scale-75">
           <div
             ref={slotRef}
@@ -78,9 +81,9 @@ export function TilePreview({
             </div>
           </div>
         </div>
-      </div>
-      <div className="flex shrink-0 justify-center pt-3">
+      <div className="flex items-center justify-center h-10">
         <DimensionBadge w={tile.def.w} h={tile.def.h} />
+      </div>
       </div>
     </div>
   );

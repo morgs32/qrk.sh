@@ -208,7 +208,7 @@ html body[data-scroll-locked] {
   opacity: 0.8;
 }
 
-.portfolio-grid .react-grid-placeholder {
+.home-grid .react-grid-placeholder {
   background: transparent;
   opacity: 0;
 }

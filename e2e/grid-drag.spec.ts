@@ -18,15 +18,15 @@ function centerDistance(
   return Math.hypot(ca.x - cb.x, ca.y - cb.y);
 }
 
-test.describe('Portfolio grid drag', () => {
+test.describe('Home grid drag', () => {
   test('tile bounding box stays stable through drag threshold; moves with pointer', async ({
     page
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'load' });
 
-    const layout = page.getByTestId('portfolio-grid-layout');
-    const grid = page.locator('.portfolio-grid');
+    const layout = page.getByTestId('grid-layout');
+    const grid = page.locator('.home-grid');
     const tile = grid.locator('[data-tile-type-id="orange-flag"]').first();
     await expect(tile).toBeVisible({ timeout: 90_000 });
     await expect(layout).toBeVisible();
@@ -93,7 +93,7 @@ test.describe('Portfolio grid drag', () => {
     await expect(rightColumn).toBeVisible({ timeout: 90_000 });
     await expect(rightColumn.locator('h2', { hasText: /^Work$/ })).toHaveCount(0);
 
-    const grid = page.locator('.portfolio-grid');
+    const grid = page.locator('.home-grid');
     await expect(grid).toBeVisible();
 
     const workRows = grid.locator('[data-tile-type-id="text-tile--4x1"]');
@@ -124,7 +124,7 @@ test.describe('Portfolio grid drag', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'load' });
 
-    const grid = page.locator('.portfolio-grid');
+    const grid = page.locator('.home-grid');
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
     const first = grid.locator('[data-tile-instance-id="text-tile-work--0"]');

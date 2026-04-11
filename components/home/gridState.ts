@@ -1,11 +1,11 @@
 import type {
   AlignmentByBreakpoint,
   HiddenByBreakpoint,
-  PortfolioGridSeed
-} from '@/lib/stores/portfolio-grid-store';
+  IGridSeed
+} from '@/lib/stores/grid-store';
 import { homepageTiles } from './tiles';
 
-export const portfolioGridConfig: {
+export const gridConfig: {
   alignmentByBreakpoint: AlignmentByBreakpoint;
   hiddenByBreakpoint: HiddenByBreakpoint;
 } = {
@@ -70,9 +70,9 @@ export const WORK_ITEMS_SEED = [
   { name: 'Perl Tangara Conference', category: 'Identity' }
 ] as const;
 
-export const portfolioGridSeed: PortfolioGridSeed = {
+export const gridSeed: IGridSeed = {
   tileTypes: homepageTiles.map(({ typeId, size }) => ({ typeId, size })),
-  config: portfolioGridConfig,
+  config: gridConfig,
   autoSeedExcludeTypeIds: ['text-tile'],
   explicitInstances: WORK_ITEMS_SEED.map((item, index) => ({
     instanceId: `text-tile-work--${index}`,

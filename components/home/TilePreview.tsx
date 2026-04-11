@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, type DragEvent } from 'react';
-import { useGridStore } from '@/lib/stores/grid-store';
+import { useGridStore } from '@/components/home/useGridStore';
 import { catalogKey, type ICollectionTile } from './tiles';
 
 const TILE_DRAG_MIME = 'application/x-qrk-tile-def';

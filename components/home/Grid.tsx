@@ -21,7 +21,7 @@ import {
   toCanonicalLayout,
   toRenderableLayout,
   useGridStore
-} from '@/lib/stores/grid-store';
+} from '@/components/home/useGridStore';
 
 /**
  * Set `NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED=true` when running a second dev

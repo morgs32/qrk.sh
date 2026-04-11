@@ -88,7 +88,7 @@ test.describe('Portfolio grid drag', () => {
 
     await page.getByLabel('Open drawer').click();
     await page.waitForTimeout(250);
-    const thumb = page.getByRole('button', { name: 'Drag Orange flag' });
+    const thumb = page.locator('[data-drawer-tile-type="orange-flag"]');
     await expect(thumb).toBeVisible();
     await thumb.scrollIntoViewIfNeeded();
     await grid.scrollIntoViewIfNeeded();

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import Link from 'next/link';
 import { Plus, X } from 'lucide-react';
 import { PortfolioGrid } from '@/components/home/PortfolioGrid';
@@ -18,10 +19,14 @@ type HomeShellProps = {
   workItems: WorkItem[];
 };
 
+const DRAWER_PREVIEW_UNIT_PX = 96;
+
 export function HomeShell({ workItems }: HomeShellProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [query, setQuery] = useState('');
   const setDraggingTypeId = usePortfolioGridStore((state) => state.setDraggingTypeId);
+  const gridCellHeightPx = usePortfolioGridStore((state) => state.gridCellHeightPx);
+  const draggingTypeId = usePortfolioGridStore((state) => state.draggingTypeId);
   type HomepageTile = (typeof homepageTiles)[number];
   const isDrawerOpenRef = useRef(isDrawerOpen);
 
@@ -215,7 +220,7 @@ export function HomeShell({ workItems }: HomeShellProps) {
               </Button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="min-h-0 min-w-0 flex-1 overflow-y-auto pr-1">
               {filteredCollections.length === 0 ? (
                 <div className="rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
                   No tiles match “{query.trim()}”.
@@ -223,46 +228,58 @@ export function HomeShell({ workItems }: HomeShellProps) {
               ) : (
                 <div className="flex flex-col gap-6">
                   {filteredCollections.map((collection) => (
-                    <div key={collection.collectionId} className="space-y-2">
+                    <div key={collection.collectionId} className="min-w-0 space-y-2">
                       <div className="text-sm font-semibold">{collection.label}</div>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="-mx-1 flex flex-row flex-nowrap gap-3 overflow-x-auto overscroll-x-contain px-1 pb-1">
                         {collection.tiles.map((tile) => {
                           const dims = sizeToDimensions(tile.size);
+                          const cellPx =
+                            gridCellHeightPx != null && gridCellHeightPx > 0
+                              ? gridCellHeightPx
+                              : null;
+                          const atDropScale =
+                            draggingTypeId === tile.typeId && cellPx != null;
+                          const unit = atDropScale ? cellPx : DRAWER_PREVIEW_UNIT_PX;
+                          const previewWidth = dims.w * unit;
+                          const previewHeight = dims.h * unit;
 
                           return (
                             <div
                               key={tile.typeId}
-                              className="group cursor-grab select-none rounded-md p-2 hover:bg-muted/40 active:cursor-grabbing"
-                              draggable
-                              onDragStart={(event) => {
-                                event.dataTransfer.setData(
-                                  'application/x-qrk-tile-type',
-                                  tile.typeId
-                                );
-                                event.dataTransfer.setData('text/plain', tile.typeId);
-                                event.dataTransfer.setData('text', tile.typeId);
-                                event.dataTransfer.effectAllowed = 'copy';
-                                setDraggingTypeId(tile.typeId);
-                              }}
-                              onDragEnd={() => setDraggingTypeId(null)}
-                              aria-label={`Drag ${collection.label} ${dims.w}×${dims.h}`}
-                              role="button"
-                              tabIndex={0}
+                              className="flex shrink-0 flex-col items-start gap-2"
                             >
-                              <div className="flex w-24 flex-col items-start">
-                                <div className="w-full overflow-hidden">
-                                  <div className="aspect-square w-full overflow-hidden">
-                                    <div className="h-full w-full scale-[0.72] origin-center transition-transform group-hover:scale-[0.76]">
-                                      <tile.Component />
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="mt-2">
-                                  <span className="inline-flex rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                                    {dims.w}×{dims.h}
-                                  </span>
+                              <div
+                                data-drawer-tile-type={tile.typeId}
+                                className="cursor-grab select-none overflow-hidden rounded-md outline-none hover:bg-muted/40 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"
+                                style={{
+                                  width: previewWidth,
+                                  height: previewHeight
+                                }}
+                                draggable
+                                onDragStart={(event) => {
+                                  flushSync(() => {
+                                    setDraggingTypeId(tile.typeId);
+                                  });
+                                  event.dataTransfer.setData(
+                                    'application/x-qrk-tile-type',
+                                    tile.typeId
+                                  );
+                                  event.dataTransfer.setData('text/plain', tile.typeId);
+                                  event.dataTransfer.setData('text', tile.typeId);
+                                  event.dataTransfer.effectAllowed = 'copy';
+                                }}
+                                onDragEnd={() => setDraggingTypeId(null)}
+                                aria-label={`Drag ${collection.label} ${dims.w}×${dims.h}`}
+                                role="button"
+                                tabIndex={0}
+                              >
+                                <div className="h-full w-full">
+                                  <tile.Component />
                                 </div>
                               </div>
+                              <span className="inline-flex rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                {dims.w}×{dims.h}
+                              </span>
                             </div>
                           );
                         })}

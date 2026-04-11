@@ -80,6 +80,7 @@ export function PortfolioGrid() {
   );
   const addInstanceAt = usePortfolioGridStore((state) => state.addInstanceAt);
   const draggingTypeId = usePortfolioGridStore((state) => state.draggingTypeId);
+  const setGridCellHeightPx = usePortfolioGridStore((state) => state.setGridCellHeightPx);
 
   useEffect(() => {
     if (!initialized) {
@@ -97,6 +98,16 @@ export function PortfolioGrid() {
   useEffect(() => {
     setActiveBreakpoint(breakpoint);
   }, [breakpoint, setActiveBreakpoint]);
+
+  useEffect(() => {
+    if (!mounted || width <= 0) {
+      setGridCellHeightPx(null);
+      return;
+    }
+
+    const cols = GRID_COLUMNS[breakpoint];
+    setGridCellHeightPx(width / cols);
+  }, [breakpoint, mounted, setGridCellHeightPx, width]);
 
   const visibleIds = useMemo(() => {
     const hiddenSet = new Set(hiddenByBreakpoint[breakpoint]);

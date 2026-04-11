@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import { homepageTiles } from './tiles';
+import { catalogKey, homepageTiles } from './tiles';
 import { Button } from '@/components/ui/button';
 import {
   Carousel,
@@ -12,19 +12,11 @@ import {
   CarouselPrevious
 } from '@/components/ui/carousel';
 import { Input } from '@/components/ui/input';
-import {
-  sizeToDimensions,
-  useGridStore
-} from '@/lib/stores/grid-store';
-import { DrawerTilePreview } from './DrawerTilePreview';
+import { useGridStore } from '@/lib/stores/grid-store';
+import { TilePreview } from './TilePreview';
 
 /** Fallback when the grid has not measured yet (`gridCellHeightPx` is null). */
 export const DRAWER_PREVIEW_UNIT_PX = 96;
-
-type HomepageTile = (typeof homepageTiles)[number];
-type DrawerHomepageTile = HomepageTile & {
-  dims: { w: number; h: number };
-};
 
 export function TileDrawer({ open, onClose }: {
   open: boolean;
@@ -39,30 +31,27 @@ export function TileDrawer({ open, onClose }: {
     const q = query.trim().toLowerCase();
     const collections = new Map<
       string,
-      { collectionId: string; label: string; tiles: DrawerHomepageTile[] }
+      { collectionId: string; label: string; tiles: typeof homepageTiles }
     >();
 
     homepageTiles.forEach((tile) => {
       const entry =
-        collections.get(tile.collectionId) ??
+        collections.get(tile.def.collectionId) ??
         {
-          collectionId: tile.collectionId,
-          label: tile.collectionLabel,
+          collectionId: tile.def.collectionId,
+          label: tile.def.collectionLabel,
           tiles: []
         };
 
-      entry.tiles.push({
-        ...tile,
-        dims: sizeToDimensions(tile.size)
-      });
-      collections.set(tile.collectionId, entry);
+      entry.tiles.push(tile);
+      collections.set(tile.def.collectionId, entry);
     });
 
     const ordered = Array.from(collections.values()).map((collection) => ({
       ...collection,
       tiles: [...collection.tiles].sort((a, b) => {
-        const order = (size: string) => (size === '1x1' ? 0 : size === '2x2' ? 1 : 2);
-        return order(a.size) - order(b.size);
+        const rank = (w: number, h: number) => (w === 1 && h === 1 ? 0 : w === 2 && h === 2 ? 1 : 2);
+        return rank(a.def.w, a.def.h) - rank(b.def.w, b.def.h);
       })
     }));
 
@@ -76,7 +65,7 @@ export function TileDrawer({ open, onClose }: {
           collection.label.toLowerCase().includes(q) ||
           collection.collectionId.toLowerCase().includes(q);
         const matchingTiles = collection.tiles.filter((tile) =>
-          tile.typeId.toLowerCase().includes(q)
+          catalogKey(tile.def).toLowerCase().includes(q)
         );
 
         return matchesCollection ? collection : { ...collection, tiles: matchingTiles };
@@ -137,29 +126,29 @@ export function TileDrawer({ open, onClose }: {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div aria-label="Tile carousel" className="flex flex-col gap-6 px-6 pb-8 pt-4">
+          <div aria-label="Tile collections" className="flex flex-col gap-6 pb-8 pt-4">
             {filteredCollections.length === 0 ? (
-              <div className="rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
+              <div className="mx-6 rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
                 No tiles match “{query.trim()}”.
               </div>
             ) : (
               filteredCollections.map((collection) => (
                 <div key={collection.collectionId} className="min-w-0 pb-6">
-                  <div className="sticky top-0 z-[11] -mx-6 border-b border-border/60 bg-background/95 px-6 py-2.5 backdrop-blur-sm">
+                  <div className="sticky top-0 z-[11] border-b border-border/60 bg-background/95 px-6 py-2.5 backdrop-blur-sm">
                     <div className="text-sm font-semibold">{collection.label}</div>
                   </div>
-                  <div className="relative min-h-0 min-w-0 -mx-6 border-b border-border/60 py-1 pb-4 pt-2">
+                  <div className="relative min-h-0 min-w-0 border-b border-border/60 py-1 pb-4 pt-2">
                     <Carousel opts={{ align: 'start' }} className="w-full">
                       <CarouselContent className="items-stretch">
                         {collection.tiles.map((tile) => (
                           <CarouselItem
-                            key={tile.typeId}
+                            key={catalogKey(tile.def)}
                             className="relative z-0 flex flex-col items-center justify-center hover:z-[5]"
                           >
-                            <DrawerTilePreview
+                            <TilePreview
                               tile={tile}
-                              fullWidth={tile.dims.w * cellUnitPx}
-                              fullHeight={tile.dims.h * cellUnitPx}
+                              fullWidth={tile.def.w * cellUnitPx}
+                              fullHeight={tile.def.h * cellUnitPx}
                             />
                           </CarouselItem>
                         ))}

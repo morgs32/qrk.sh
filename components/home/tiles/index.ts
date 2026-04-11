@@ -1,20 +1,20 @@
-import type { HomepageTileDefinition, HomepageTileVariantSize } from './types';
-
 import { homepageTileCollections } from './homepageTileCollections';
+import type { ICollectionTile, ICollectionTileDef } from './types';
+import { tileDefsEqual } from './types';
 
-const homepageTileVariantSizes: readonly HomepageTileVariantSize[] = ['1x1', '2x2', '4x1'];
+export type {
+  ICollectionTile,
+  ICollectionTileDef,
+  ITile,
+  ITileVariantDef
+} from './types';
+export { catalogKey, tileDefsEqual } from './types';
+export { makeTile } from './makeTile';
+export { makeTileCollection } from './makeTileCollection';
 
-export const homepageTiles: HomepageTileDefinition[] = homepageTileCollections.flatMap(
-  (collection) =>
-    homepageTileVariantSizes
-      .filter((size) => collection.components[size] != null)
-      .map((size) => ({
-        typeId:
-          size === '2x2' ? collection.collectionId : `${collection.collectionId}--${size}`,
-        collectionId: collection.collectionId,
-        collectionLabel: collection.collectionLabel,
-        label: collection.collectionLabel,
-        size,
-        Component: collection.components[size]!
-      }))
-);
+export const homepageTiles: ICollectionTile[] = homepageTileCollections.flat();
+
+/** Resolve a catalog entry by structural match on `def` (same contract as grid seed / drag). */
+export function findCollectionTile(def: ICollectionTileDef): ICollectionTile | undefined {
+  return homepageTiles.find((tile) => tileDefsEqual(tile.def, def));
+}

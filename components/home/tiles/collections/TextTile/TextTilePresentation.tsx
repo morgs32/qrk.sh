@@ -1,20 +1,21 @@
 import Link from 'next/link';
-import type { TileSize } from '@/lib/stores/grid-store';
 
 export type TextTilePresentationProps = {
   title: string;
   category: string;
   href: string;
-  size: TileSize;
+  w: number;
+  h: number;
 };
 
 export function TextTilePresentation({
   title,
   category,
   href,
-  size
+  w,
+  h
 }: TextTilePresentationProps) {
-  const isWide = size === '4x1';
+  const isWide = w === 4 && h === 1;
 
   return (
     <Link

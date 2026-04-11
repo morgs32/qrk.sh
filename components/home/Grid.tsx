@@ -12,13 +12,12 @@ import {
 } from 'react-grid-layout';
 import { BottomToolbar } from '@/components/home/BottomToolbar';
 import { gridSeed } from '@/components/home/gridState';
-import { homepageTiles } from './tiles';
+import { catalogKey, findCollectionTile, homepageTiles } from './tiles';
 import { TextTilePresentation } from '@/components/home/tiles/collections/TextTile/TextTilePresentation';
 import {
   GRID_BREAKPOINTS,
   GRID_COLUMNS,
   layoutPositionsEqual,
-  sizeToDimensions,
   toCanonicalLayout,
   toRenderableLayout,
   useGridStore
@@ -30,16 +29,6 @@ import {
  */
 const GRID_DRAG_BOUNDED =
   process.env.NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED !== 'true';
-
-/**
- * Breakpoints and Zustand-backed layouts are enough here; migrating to
- * `ResponsiveGridLayout` would mostly duplicate that wiring.
- */
-const tileDefinitions = homepageTiles.map(({ typeId, size, Component }) => ({
-  typeId,
-  size,
-  Component
-}));
 
 type DragGridMetrics = {
   width: number;
@@ -86,11 +75,8 @@ export function Grid({ onAddClick }: GridProps) {
   const setActiveBreakpoint = useGridStore(
     (state) => state.setActiveBreakpoint
   );
-  const externalDraggingTypeId = useGridStore(
-    (state) => state.externalDraggingTypeId
-  );
-  const setExternalDropPosition = useGridStore(
-    (state) => state.setExternalDropPosition
+  const externalDraggingTileDef = useGridStore(
+    (state) => state.externalDraggingTileDef
   );
   const setBreakpointLayout = useGridStore(
     (state) => state.setBreakpointLayout
@@ -143,18 +129,8 @@ export function Grid({ onAddClick }: GridProps) {
     };
   }, []);
 
-  const tileComponentByTypeId = useMemo(() => {
-    return new Map(tileDefinitions.map((entry) => [entry.typeId, entry.Component]));
-  }, []);
-
-  const tileDimensionsByTypeId = useMemo(() => {
-    return new Map(
-      tileDefinitions.map((entry) => [entry.typeId, sizeToDimensions(entry.size)])
-    );
-  }, []);
-
-  const externalDraggingDims = externalDraggingTypeId
-    ? tileDimensionsByTypeId.get(externalDraggingTypeId) ?? null
+  const externalDraggingDims = externalDraggingTileDef
+    ? { w: externalDraggingTileDef.w, h: externalDraggingTileDef.h }
     : null;
 
   const externalDroppingItem = useMemo<LayoutItem>(
@@ -216,7 +192,7 @@ export function Grid({ onAddClick }: GridProps) {
         }
 
         const store = useGridStore.getState();
-        if (store.externalDraggingTypeId) {
+        if (store.externalDraggingTileDef) {
           return;
         }
 
@@ -267,22 +243,21 @@ export function Grid({ onAddClick }: GridProps) {
     [externalDraggingDims]
   );
 
-  const handleExternalDrop = useCallback(
-    (_layout: Layout, item: LayoutItem | undefined) => {
-      if (!externalDraggingTypeId || !item) {
-        return;
-      }
+  const handleExternalDrop = useCallback((_layout: Layout, item: LayoutItem | undefined) => {
+    if (!item) {
+      return;
+    }
 
-      setExternalDropPosition({
-        typeId: externalDraggingTypeId,
-        position: {
-          x: item.x,
-          y: item.y
-        }
-      });
-    },
-    [externalDraggingTypeId, setExternalDropPosition]
-  );
+    const store = useGridStore.getState();
+    const tileDef = store.externalDraggingTileDef;
+    if (!tileDef) {
+      return;
+    }
+
+    store.addInstanceAt(store.activeBreakpoint, tileDef, { x: item.x, y: item.y });
+    store.setExternalDraggingTileDef(null);
+    store.setExternalDropPosition(null);
+  }, []);
 
   return (
     <>
@@ -290,11 +265,14 @@ export function Grid({ onAddClick }: GridProps) {
         <div className="w-full" data-testid="grid-root">
           {!mounted || !initialized || computedRowHeight === 0 ? (
             <div className="grid grid-cols-2">
-              {tileDefinitions.map(({ typeId, Component }) => (
-                <div key={typeId} className="aspect-square">
-                  <Component />
-                </div>
-              ))}
+              {homepageTiles.map((tile) => {
+                const TileComponent = tile.component;
+                return (
+                  <div key={catalogKey(tile.def)} className="aspect-square">
+                    <TileComponent />
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="w-full" data-testid="grid-layout">
@@ -335,8 +313,9 @@ export function Grid({ onAddClick }: GridProps) {
                 onLayoutChange={handleLayoutChange}
               >
                 {orderedInstances.map((instance) => {
-                  const Component = tileComponentByTypeId.get(instance.typeId);
-                  if (!Component && !instance.text) {
+                  const catalogTile = findCollectionTile(instance.tileDef);
+                  const TileComponent = catalogTile?.component;
+                  if (!TileComponent && !instance.text) {
                     return null;
                   }
 
@@ -344,7 +323,7 @@ export function Grid({ onAddClick }: GridProps) {
                     <div
                       key={instance.instanceId}
                       data-tile-instance-id={instance.instanceId}
-                      data-tile-type-id={instance.typeId}
+                      data-tile-type-id={catalogKey(instance.tileDef)}
                       className="cursor-grab touch-none active:cursor-grabbing"
                     >
                       {instance.text ? (
@@ -352,10 +331,11 @@ export function Grid({ onAddClick }: GridProps) {
                           title={instance.text.title}
                           category={instance.text.category}
                           href={instance.text.href}
-                          size={instance.size}
+                          w={instance.tileDef.w}
+                          h={instance.tileDef.h}
                         />
                       ) : (
-                        Component && <Component />
+                        TileComponent && <TileComponent />
                       )}
                     </div>
                   );

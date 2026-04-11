@@ -6,7 +6,8 @@ export function TextTile4x1() {
       title="Text Tile"
       category="Sample"
       href="#"
-      size="4x1"
+      w={4}
+      h={1}
     />
   );
 }

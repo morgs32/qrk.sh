@@ -174,7 +174,10 @@ export function TileDrawer({ open, onClose }: TileDrawerProps) {
             </div>
           ) : (
             filteredCollections.map((collection) => (
-              <div key={collection.collectionId} className="min-w-0 space-y-2">
+              <div
+                key={collection.collectionId}
+                className="min-w-0 space-y-2 border-b border-border/60 pb-6"
+              >
                 <div className="text-sm font-semibold">{collection.label}</div>
                 <div className="relative min-h-0 min-w-0 -mx-6 py-1">
                   <Carousel opts={{ align: 'start' }} className="w-full">

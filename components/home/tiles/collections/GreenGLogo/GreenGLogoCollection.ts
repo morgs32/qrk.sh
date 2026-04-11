@@ -1,14 +1,15 @@
-import type { ITileCollection } from '../../types';
+import { makeTile } from '../../makeTile';
+import { makeTileCollection } from '../../makeTileCollection';
 import { GreenGLogo1x1 } from './GreenGLogo1x1';
 import { GreenGLogo2x2 } from './GreenGLogo2x2';
 import { GreenGLogo4x1 } from './GreenGLogo4x1';
 
-export const greenGCollection: ITileCollection = {
+export const greenGCollection = makeTileCollection({
   collectionId: 'green-g-logo',
   collectionLabel: 'Green G',
-  components: {
-    '1x1': GreenGLogo1x1,
-    '2x2': GreenGLogo2x2,
-    '4x1': GreenGLogo4x1
-  }
-};
+  tiles: [
+    makeTile({ w: 1, h: 1, component: GreenGLogo1x1 }),
+    makeTile({ w: 2, h: 2, component: GreenGLogo2x2 }),
+    makeTile({ w: 4, h: 1, component: GreenGLogo4x1 })
+  ]
+});

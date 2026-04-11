@@ -13,10 +13,9 @@ import { pinkAsteriskCollection } from './collections/PinkAsterisk/PinkAsteriskC
 import { pinkDotsCollection } from './collections/PinkDots/PinkDotsCollection';
 import { purpleLinesCollection } from './collections/PurpleLines/PurpleLinesCollection';
 import { textTileCollection } from './collections/TextTile/TextTileCollection';
-import type { ITileCollection } from './types';
+import type { ICollectionTile } from './types';
 
-
-export const homepageTileCollections: readonly ITileCollection[] = [
+export const homepageTileCollections: readonly ICollectionTile[][] = [
   orangeFlagCollection,
   blackCircleCollection,
   greenArchCollection,

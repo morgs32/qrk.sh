@@ -1,14 +1,15 @@
-import type { ITileCollection } from '../../types';
+import { makeTile } from '../../makeTile';
+import { makeTileCollection } from '../../makeTileCollection';
 import { GreenCross1x1 } from './GreenCross1x1';
 import { GreenCross2x2 } from './GreenCross2x2';
 import { GreenCross4x1 } from './GreenCross4x1';
 
-export const greenCrossCollection: ITileCollection = {
+export const greenCrossCollection = makeTileCollection({
   collectionId: 'green-cross',
   collectionLabel: 'Green cross',
-  components: {
-    '1x1': GreenCross1x1,
-    '2x2': GreenCross2x2,
-    '4x1': GreenCross4x1
-  }
-};
+  tiles: [
+    makeTile({ w: 1, h: 1, component: GreenCross1x1 }),
+    makeTile({ w: 2, h: 2, component: GreenCross2x2 }),
+    makeTile({ w: 4, h: 1, component: GreenCross4x1 })
+  ]
+});

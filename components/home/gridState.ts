@@ -70,14 +70,21 @@ export const WORK_ITEMS_SEED = [
   { name: 'Perl Tangara Conference', category: 'Identity' }
 ] as const;
 
+const textTile4x1 = homepageTiles.find(
+  (t) => t.def.collectionId === 'text-tile' && t.def.w === 4 && t.def.h === 1
+);
+if (!textTile4x1) {
+  throw new Error('Homepage catalog must include text-tile 4×1 variant');
+}
+const textTile4x1Def = textTile4x1.def;
+
 export const gridSeed: IGridSeed = {
-  tileTypes: homepageTiles.map(({ typeId, size }) => ({ typeId, size })),
+  tileTypes: homepageTiles.map((tile) => ({ tileDef: tile.def })),
   config: gridConfig,
-  autoSeedExcludeTypeIds: ['text-tile'],
+  autoSeedExcludeCollectionIds: ['text-tile'],
   explicitInstances: WORK_ITEMS_SEED.map((item, index) => ({
     instanceId: `text-tile-work--${index}`,
-    typeId: 'text-tile--4x1',
-    size: '4x1',
+    tileDef: textTile4x1Def,
     text: {
       title: item.name,
       category: item.category,

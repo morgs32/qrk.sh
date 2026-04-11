@@ -4,6 +4,11 @@ import {
   type Layout,
   type LayoutItem
 } from 'react-grid-layout';
+import {
+  catalogKey,
+  tileDefsEqual,
+  type ICollectionTileDef
+} from '@/components/home/tiles/types';
 
 export const GRID_BREAKPOINT_ORDER = ['lg', 'md', 'sm'] as const;
 export type GridBreakpoint = (typeof GRID_BREAKPOINT_ORDER)[number];
@@ -24,8 +29,7 @@ export type GridAlignment = 'left' | 'right';
 export type TileSize = '1x1' | '2x2' | '4x4' | '2x1' | '4x1' | '4x2';
 
 export type IGridTileType = {
-  typeId: string;
-  size: TileSize;
+  tileDef: ICollectionTileDef;
 };
 
 export type TextTilePayload = {
@@ -36,8 +40,7 @@ export type TextTilePayload = {
 
 export type IGridTileInstance = {
   instanceId: string;
-  typeId: string;
-  size: TileSize;
+  tileDef: ICollectionTileDef;
   /** When set (TextTile work items), grid renders payload instead of the static tile component. */
   text?: TextTilePayload;
 };
@@ -47,15 +50,15 @@ export type IGridSeed = {
   config?: IGridConfig;
   /** Appended after auto-seeded 2×2 art tiles (e.g. work TextTile rows). */
   explicitInstances?: IGridTileInstance[];
-  /** `typeId`s that would normally get a default 2×2 seed but should not (drawer-only types). */
-  autoSeedExcludeTypeIds?: string[];
+  /** Collection ids excluded from the default 2×2 auto-seed row. */
+  autoSeedExcludeCollectionIds?: string[];
 };
 
 export type GridLayouts = Record<GridBreakpoint, Layout>;
 export type HiddenByBreakpoint = Record<GridBreakpoint, string[]>;
 export type AlignmentByBreakpoint = Record<GridBreakpoint, GridAlignment>;
 export type ExternalDropPosition = {
-  typeId: string;
+  tileDef: ICollectionTileDef;
   position: { x: number; y: number };
 };
 
@@ -71,7 +74,7 @@ type IGridState = {
   layouts: GridLayouts;
   hiddenByBreakpoint: HiddenByBreakpoint;
   alignmentByBreakpoint: AlignmentByBreakpoint;
-  externalDraggingTypeId: string | null;
+  externalDraggingTileDef: ICollectionTileDef | null;
   externalDropPosition: ExternalDropPosition | null;
   /** Pixel size of one grid row/column (`width / cols`), for drawer preview at drop scale. */
   gridCellHeightPx: number | null;
@@ -80,7 +83,7 @@ type IGridState = {
   initialized: boolean;
   initializeGrid: (seed: IGridSeed) => void;
   setActiveBreakpoint: (breakpoint: GridBreakpoint) => void;
-  setExternalDraggingTypeId: (typeId: string | null) => void;
+  setExternalDraggingTileDef: (tileDef: ICollectionTileDef | null) => void;
   setExternalDropPosition: (drop: ExternalDropPosition | null) => void;
   setGridCellHeightPx: (px: number | null) => void;
   setBreakpointLayout: (breakpoint: GridBreakpoint, layout: Layout) => void;
@@ -92,7 +95,7 @@ type IGridState = {
   showItem: (breakpoint: GridBreakpoint, id: string) => void;
   addInstanceAt: (
     breakpoint: GridBreakpoint,
-    typeId: string,
+    tileDef: ICollectionTileDef,
     position: { x: number; y: number }
   ) => string | null;
   resetBreakpoint: (breakpoint: GridBreakpoint) => void;
@@ -284,7 +287,7 @@ export function buildInitialLayout(
   const layout: LayoutItem[] = [];
 
   instances.forEach((tile) => {
-    const { w, h } = sizeToDimensions(tile.size);
+    const { w, h } = tile.tileDef;
     let y = 0;
     let placed = false;
 
@@ -317,7 +320,7 @@ function appendItemToBottom(
   tile: IGridTileInstance,
   breakpoint: GridBreakpoint
 ): Layout {
-  const { w, h } = sizeToDimensions(tile.size);
+  const { w, h } = tile.tileDef;
   const nextY = layout.reduce((bottom, item) => Math.max(bottom, item.y + item.h), 0);
 
   return toCanonicalLayout(
@@ -337,17 +340,18 @@ function appendItemToBottom(
 
 function seedInstances(
   tileTypes: IGridTileType[],
-  autoSeedExcludeTypeIds: Set<string>
+  autoSeedExcludeCollectionIds: Set<string>
 ): IGridTileInstance[] {
   const seededTileTypes = tileTypes.filter(
     (tileType) =>
-      !tileType.typeId.includes('--') && !autoSeedExcludeTypeIds.has(tileType.typeId)
+      tileType.tileDef.w === 2 &&
+      tileType.tileDef.h === 2 &&
+      !autoSeedExcludeCollectionIds.has(tileType.tileDef.collectionId)
   );
 
   return seededTileTypes.map((tileType, index) => ({
-    instanceId: `${tileType.typeId}--${index}`,
-    typeId: tileType.typeId,
-    size: tileType.size
+    instanceId: `${catalogKey(tileType.tileDef)}--${index}`,
+    tileDef: tileType.tileDef
   }));
 }
 
@@ -441,7 +445,7 @@ export const useGridStore = create<IGridState>((set, get) => ({
   layouts: emptyLayouts(),
   hiddenByBreakpoint: defaultHiddenByBreakpoint(),
   alignmentByBreakpoint: defaultAlignmentByBreakpoint(),
-  externalDraggingTypeId: null,
+  externalDraggingTileDef: null,
   externalDropPosition: null,
   gridCellHeightPx: null,
   initialHiddenByBreakpoint: defaultHiddenByBreakpoint(),
@@ -452,7 +456,7 @@ export const useGridStore = create<IGridState>((set, get) => ({
       return;
     }
 
-    const exclude = new Set(seed.autoSeedExcludeTypeIds ?? []);
+    const exclude = new Set(seed.autoSeedExcludeCollectionIds ?? []);
     const autoSeeded = seedInstances(seed.tileTypes, exclude);
     const instances: IGridTileInstance[] = [
       ...autoSeeded,
@@ -474,8 +478,8 @@ export const useGridStore = create<IGridState>((set, get) => ({
   setActiveBreakpoint: (breakpoint) => {
     set({ activeBreakpoint: breakpoint });
   },
-  setExternalDraggingTypeId: (typeId) => {
-    set({ externalDraggingTypeId: typeId });
+  setExternalDraggingTileDef: (tileDef) => {
+    set({ externalDraggingTileDef: tileDef });
   },
   setExternalDropPosition: (drop) => {
     set({ externalDropPosition: drop });
@@ -561,9 +565,9 @@ export const useGridStore = create<IGridState>((set, get) => ({
       }
     });
   },
-  addInstanceAt: (breakpoint, typeId, position) => {
+  addInstanceAt: (breakpoint, tileDef, position) => {
     const state = get();
-    const tileType = state.tileTypes.find((entry) => entry.typeId === typeId);
+    const tileType = state.tileTypes.find((entry) => tileDefsEqual(entry.tileDef, tileDef));
     if (!tileType) {
       return null;
     }
@@ -571,15 +575,14 @@ export const useGridStore = create<IGridState>((set, get) => ({
     const instanceId =
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
-        : `${typeId}--${Date.now()}--${Math.random().toString(16).slice(2)}`;
-    const { w, h } = sizeToDimensions(tileType.size);
+        : `${catalogKey(tileDef)}--${Date.now()}--${Math.random().toString(16).slice(2)}`;
+    const { w, h } = tileType.tileDef;
 
     const nextInstances: IGridTileInstance[] = [
       ...state.instances,
       {
         instanceId,
-        typeId,
-        size: tileType.size
+        tileDef: tileType.tileDef
       }
     ];
 

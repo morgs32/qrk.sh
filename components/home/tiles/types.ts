@@ -4,6 +4,8 @@ import type { ComponentType } from "react";
 export type ITileVariantDef = {
   w: number;
   h: number;
+  /** Kebab-case slug for this variant (e.g. `1x1`, `work-row`). */
+  name: string;
   /** Display label for this variant; collection merges default from `collectionLabel` when omitted. */
   label?: string;
 };
@@ -14,6 +16,8 @@ export type ICollectionTileDef = ITileVariantDef & {
   collectionLabel: string;
   /** Resolved label after collection merge (always set on catalog tiles). */
   label: string;
+  /** Same as `def.name` on one variant in the collection; that variant sorts first in the drawer carousel. */
+  popular: string;
 };
 
 export type ITile = {
@@ -41,6 +45,8 @@ export function tileDefsEqual(a: ICollectionTileDef, b: ICollectionTileDef): boo
   return (
     a.collectionId === b.collectionId &&
     a.collectionLabel === b.collectionLabel &&
+    a.popular === b.popular &&
+    a.name === b.name &&
     a.w === b.w &&
     a.h === b.h &&
     a.label === b.label

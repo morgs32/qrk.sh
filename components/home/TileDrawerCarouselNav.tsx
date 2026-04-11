@@ -9,7 +9,7 @@ export function TileDrawerCarouselNav() {
   const { scrollPrev, scrollNext, canScrollPrev, canScrollNext } = useCarousel();
 
   const railButtonClass =
-    "stretched-button inline-flex h-full w-full items-center justify-center rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-muted/50";
+    "stretched-button inline-flex h-full min-h-0 w-full items-center justify-center rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-muted/50 disabled:pointer-events-auto";
 
   return (
     <>
@@ -19,7 +19,10 @@ export function TileDrawerCarouselNav() {
           variant="ghost"
           disabled={!canScrollPrev}
           onClick={scrollPrev}
-          className={cn(railButtonClass)}
+          className={cn(
+            railButtonClass,
+            canScrollPrev ? "cursor-pointer" : "cursor-not-allowed",
+          )}
           aria-label="Previous slide"
         >
           <span className="relative z-10 flex size-10 items-center justify-center rounded-full border border-border bg-background shadow-xs dark:bg-input/30">
@@ -33,7 +36,10 @@ export function TileDrawerCarouselNav() {
           variant="ghost"
           disabled={!canScrollNext}
           onClick={scrollNext}
-          className={cn(railButtonClass)}
+          className={cn(
+            railButtonClass,
+            canScrollNext ? "cursor-pointer" : "cursor-not-allowed",
+          )}
           aria-label="Next slide"
         >
           <span className="relative z-10 flex size-10 items-center justify-center rounded-full border border-border bg-background shadow-xs dark:bg-input/30">

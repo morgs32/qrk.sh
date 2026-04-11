@@ -28,6 +28,8 @@ export function TilePreview({
       event.dataTransfer.setData(TILE_DRAG_MIME, payload);
       event.dataTransfer.setData("text/plain", catalogKey(tile.def));
       setExternalDraggingTileDef(tile.def);
+      // Embla’s viewport listens for dragstart and calls preventDefault(); stop bubbling so native DnD can start.
+      event.stopPropagation();
     },
     [setExternalDraggingTileDef, tile],
   );

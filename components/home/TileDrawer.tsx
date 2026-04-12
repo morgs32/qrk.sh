@@ -5,7 +5,7 @@ import type { EmblaCarouselType } from "embla-carousel";
 import { X } from "lucide-react";
 import { catalogKey, homepageTiles } from "./tiles";
 import { Button } from "@/components/ui/button";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, useCarousel } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
 import { useGridStore } from "@/components/home/useGridStore";
 import { TileDrawerCarouselNav } from "./TileDrawerCarouselNav";
@@ -33,6 +33,25 @@ function watchDragIgnoreDrawerChrome(
 
 function watchFocusIgnoreDrawerChrome(_emblaApi: EmblaCarouselType, event: FocusEvent): boolean {
   return !drawerCarouselInteractionShouldSkipEmbla(event.target);
+}
+
+function TileDrawerCarouselNavOverlay() {
+  const { canScrollPrev, canScrollNext } = useCarousel();
+
+  return (
+    <>
+      {canScrollPrev ? (
+        <div className="absolute inset-y-0 left-0 z-10 w-14">
+          <TileDrawerCarouselNav edge="start" />
+        </div>
+      ) : null}
+      {canScrollNext ? (
+        <div className="absolute inset-y-0 right-0 z-10 w-14">
+          <TileDrawerCarouselNav edge="end" />
+        </div>
+      ) : null}
+    </>
+  );
 }
 
 export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -145,7 +164,7 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
           <div aria-label="Tile collections" className="flex flex-col gap-6 pb-8 pt-4">
             {filteredCollections.length === 0 ? (
               <div className="mx-6 rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
@@ -154,10 +173,10 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
             ) : (
               filteredCollections.map((collection) => (
                 <div key={collection.collectionId} className="min-w-0 pb-6">
-                  <div className="sticky top-0 z-[11] border-b border-border/60 bg-background/95 px-6 py-2.5 backdrop-blur-sm">
+                  <div className="sticky top-0 z-[11] bg-muted/80 px-6 py-2.5 backdrop-blur-sm dark:bg-muted/50">
                     <div className="text-sm font-semibold">{collection.label}</div>
                   </div>
-                  <div className="min-h-0 min-w-0">
+                  <div className="min-h-0 min-w-0 border-b border-border/60">
                     <Carousel
                       opts={{
                         align: "start",
@@ -167,16 +186,9 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                       className="w-full"
                     >
                       <div className="relative min-h-0 w-full">
-                        <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-[12] flex items-stretch justify-between gap-0">
-                          <div className="pointer-events-auto flex min-h-0 w-14 shrink-0 flex-col overflow-hidden rounded-l-none rounded-r-md border border-border/50 bg-muted/40 dark:bg-muted/25">
-                            <TileDrawerCarouselNav edge="start" />
-                          </div>
-                          <div className="pointer-events-auto flex min-h-0 w-14 shrink-0 flex-col overflow-hidden rounded-l-md rounded-r-none border border-border/50 bg-muted/40 dark:bg-muted/25">
-                            <TileDrawerCarouselNav edge="end" />
-                          </div>
-                        </div>
+                        <TileDrawerCarouselNavOverlay />
                         <CarouselContent
-                          viewportClassName="relative min-h-0 min-w-0 w-full overflow-visible"
+                          viewportClassName="relative min-h-0 min-w-0 w-full"
                           className="items-stretch"
                         >
                           {collection.tiles.map((tile) => (

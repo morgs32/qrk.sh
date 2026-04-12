@@ -54,7 +54,7 @@ Skim these headings when touching `components/home/**` or homepage tiles:
 
 ### Services overview
 
-Single Next.js 16 app (Turbopack) with Upstash Redis as the only external dependency.
+Single Next.js 16 app (Turbopack), no external services required.
 
 | Command | Purpose |
 |---|---|
@@ -64,13 +64,6 @@ Single Next.js 16 app (Turbopack) with Upstash Redis as the only external depend
 | `pnpm lint` | oxlint |
 | `pnpm format:check` | oxfmt (format check) |
 | `pnpm test:e2e` | Playwright e2e tests |
-
-### Redis dependency
-
-- The app uses `@upstash/redis` (REST-based, no local Redis server needed).
-- Env vars `KV_REST_API_URL` and `KV_REST_API_TOKEN` must be set in `.env.local` for admin/subdomain features.
-- Without Redis credentials: homepage (`/`), tile editor (`/edit-tiles`), and text editor (`/edit-text`) work fine. Admin (`/admin`) and subdomain pages return 500.
-- Build succeeds without Redis credentials (warnings only).
 
 ### Dev server gotchas
 

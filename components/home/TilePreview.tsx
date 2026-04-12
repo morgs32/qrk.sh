@@ -2,7 +2,6 @@
 
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { DimensionBadge } from "@/components/home/DimensionBadge";
-import { setCustomNativeDragPreview } from "@/components/home/setCustomNativeDragPreview";
 import { useGridStore } from "@/components/home/useGridStore";
 import { catalogKey, type ICollectionTile } from "./tiles";
 
@@ -24,7 +23,6 @@ export function TilePreview({
   const setExternalDraggingTileDef = useGridStore((state) => state.setExternalDraggingTileDef);
   const slotRef = useRef<HTMLDivElement>(null);
   const tileRef = useRef(tile);
-  const dragPreviewCleanupRef = useRef<(() => void) | null>(null);
   tileRef.current = tile;
 
   // Native listener on the draggable node runs before `dragstart` bubbles to Embla’s viewport.
@@ -42,33 +40,22 @@ export function TilePreview({
         return;
       }
 
-      dragPreviewCleanupRef.current?.();
-
       const t = tileRef.current;
       const payload = serializeTileDef(t);
       dt.effectAllowed = "copy";
       dt.setData(TILE_DRAG_MIME, payload);
       dt.setData("text/plain", catalogKey(t.def));
-      dragPreviewCleanupRef.current = setCustomNativeDragPreview({
-        dataTransfer: dt,
-        source: node,
-        event,
-      });
       setExternalDraggingTileDef(t.def);
       event.stopPropagation();
     };
 
     node.addEventListener("dragstart", onDragStart);
     return () => {
-      dragPreviewCleanupRef.current?.();
-      dragPreviewCleanupRef.current = null;
       node.removeEventListener("dragstart", onDragStart);
     };
   }, [setExternalDraggingTileDef]);
 
   const handleDragEnd = useCallback(() => {
-    dragPreviewCleanupRef.current?.();
-    dragPreviewCleanupRef.current = null;
     setExternalDraggingTileDef(null);
   }, [setExternalDraggingTileDef]);
 

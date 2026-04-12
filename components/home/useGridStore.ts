@@ -42,8 +42,8 @@ export type IGridSeed = {
   config?: IGridConfig;
   /** Appended after auto-seeded 2×2 art tiles (e.g. work TextTile rows). */
   explicitInstances?: IGridTileInstance[];
-  /** Collection ids excluded from the default 2×2 auto-seed row. */
-  autoSeedExcludeCollectionIds?: string[];
+  /** Collection names excluded from the default 2×2 auto-seed row. */
+  autoSeedExcludeCollectionNames?: string[];
 };
 
 export type GridLayouts = Record<GridBreakpoint, Layout>;
@@ -320,13 +320,13 @@ function appendItemToBottom(
 
 function seedInstances(
   tileTypes: IGridTileType[],
-  autoSeedExcludeCollectionIds: Set<string>,
+  autoSeedExcludeCollectionNames: Set<string>,
 ): IGridTileInstance[] {
   const seededTileTypes = tileTypes.filter(
     (tileType) =>
       tileType.tileDef.w === 2 &&
       tileType.tileDef.h === 2 &&
-      !autoSeedExcludeCollectionIds.has(tileType.tileDef.collectionId),
+      !autoSeedExcludeCollectionNames.has(tileType.tileDef.collectionName),
   );
 
   return seededTileTypes.map((tileType, index) => ({
@@ -428,7 +428,7 @@ export const useGridStore = create<IGridState>((set, get) => ({
       return;
     }
 
-    const exclude = new Set(seed.autoSeedExcludeCollectionIds ?? []);
+    const exclude = new Set(seed.autoSeedExcludeCollectionNames ?? []);
     const autoSeeded = seedInstances(seed.tileTypes, exclude);
     const instances: IGridTileInstance[] = [...autoSeeded, ...(seed.explicitInstances ?? [])];
     const initialState = buildInitialState(instances, seed.config);

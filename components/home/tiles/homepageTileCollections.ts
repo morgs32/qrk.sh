@@ -15,7 +15,8 @@ import { purpleLinesCollection } from "./collections/PurpleLines/PurpleLinesColl
 import { textTileCollection } from "./collections/TextTile/TextTileCollection";
 import type { ICollectionTile } from "./types";
 
-export const homepageTileCollections: readonly ICollectionTile[][] = [
+/** Full `makeCollection` results (`tiles` map + `list` order). */
+export const homepageCatalogCollections = [
   orangeFlagCollection,
   blackCircleCollection,
   greenArchCollection,
@@ -31,4 +32,8 @@ export const homepageTileCollections: readonly ICollectionTile[][] = [
   greenEmptyCollection,
   greenCrossCollection,
   textTileCollection,
-];
+] as const;
+
+export const homepageTileCollections: readonly ICollectionTile[][] = homepageCatalogCollections.map(
+  (c) => Object.values(c.tiles).sort((a, b) => a.def.order - b.def.order),
+);

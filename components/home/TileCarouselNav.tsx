@@ -77,6 +77,8 @@ export function TileCarouselNav({ tiles }: { tiles: ICollectionTile[] }) {
   const chevronBtn =
     "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground outline-none transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0";
 
+  const currentTile = tiles[selected];
+
   return (
     <div
       data-drawer-carousel-nav
@@ -84,7 +86,15 @@ export function TileCarouselNav({ tiles }: { tiles: ICollectionTile[] }) {
       role="toolbar"
       aria-label="Tile size and slides"
     >
-      <div className="flex w-full min-w-0 items-center justify-center bg-background/95 py-3 backdrop-blur-sm dark:bg-background/90">
+      <div className="flex w-full min-w-0 flex-col items-center justify-center bg-background/95 py-3 backdrop-blur-sm dark:bg-background/90">
+        {currentTile ? (
+          <p
+            className="mb-2 text-center text-sm font-semibold tabular-nums text-foreground"
+            aria-live="polite"
+          >
+            {currentTile.def.label}
+          </p>
+        ) : null}
         <div className="flex max-w-full min-w-0 items-center gap-3 rounded-full border border-border/60 bg-muted/50 py-2 pl-2 pr-2 dark:bg-muted/30">
           <button
             type="button"

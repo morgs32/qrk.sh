@@ -281,7 +281,7 @@ export function Grid() {
                     if (suppressTileIdClickRef.current) {
                       return;
                     }
-                    router.push(`/edit-tiles/${encodeURIComponent(item.i)}`);
+                    router.push(`/edit-tiles/${item.def.collectionName}/${item.i}`);
                   }}
                 >
                   <TileComponent />

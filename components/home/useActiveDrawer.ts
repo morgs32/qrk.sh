@@ -18,16 +18,13 @@ export function parseHomeDrawerPathname(pathname: string): IHomeDrawerPathParsed
   const prefix = "/edit-tiles/";
   if (pathname.startsWith(prefix)) {
     const rest = pathname.slice(prefix.length);
-    if (rest.length > 0 && !rest.includes("/")) {
-      try {
-        return {
-          isTileDrawerOpen: true,
-          tileId: decodeURIComponent(rest),
-          isProseDrawerOpen: false,
-        };
-      } catch {
-        return { isTileDrawerOpen: false, tileId: null, isProseDrawerOpen: false };
-      }
+    const segments = rest.split("/").filter(Boolean);
+    if (segments.length === 2) {
+      return {
+        isTileDrawerOpen: true,
+        tileId: segments[1],
+        isProseDrawerOpen: false,
+      };
     }
   }
   return { isTileDrawerOpen: false, tileId: null, isProseDrawerOpen: false };

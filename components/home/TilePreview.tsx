@@ -8,8 +8,8 @@ function serializeTileDef(tile: ICollectionTile) {
   return JSON.stringify(tile.def);
 }
 
-/** Matches homepage workspace: half viewport (`HomeShell` `w-1/2`) ÷ 4 columns, same as `Grid` `GRID_COLS`. */
-const PREVIEW_GRID_COLS = 4;
+/** Matches homepage workspace: half viewport (`HomeShell` `w-1/2`) ÷ 8 columns, same as `Grid` `GRID_COLS`. */
+const PREVIEW_GRID_COLS = 8;
 
 export function TilePreview({ tile }: { tile: ICollectionTile }) {
   const slotRef = useRef<HTMLDivElement>(null);

@@ -156,14 +156,14 @@ export function TileDrawer(props: {
                             className="flex w-full flex-col"
                           >
                             {/*
-                              Slide min-height must match TilePreview slot: half-viewport ÷ 4 cols = 50vw/4 per grid unit.
+                              Slide min-height must match TilePreview slot: half-viewport ÷ 8 cols = 50vw/8 per grid unit.
                               (Using 12vw/2 here clipped slides vs preview and looked empty.)
                             */}
                             <div
                               className="flex min-h-0 w-full flex-col"
                               style={
                                 {
-                                  height: `calc(${maxH} * 50vw / 4 + 5.75rem)`,
+                                  height: `calc(${maxH} * 50vw / 8 + 5.75rem)`,
                                   "--drawer-collection-max-h": String(maxH),
                                 } as CSSProperties
                               }
@@ -178,7 +178,7 @@ export function TileDrawer(props: {
                                     data-drawer-slide-grid-h={tile.def.h}
                                     className="relative py-10"
                                     style={{
-                                      minHeight: `calc(${tile.def.h} * 50vw / 4)`,
+                                      minHeight: `calc(${tile.def.h} * 50vw / 8)`,
                                     }}
                                   >
                                     <TilePreview tile={tile} />

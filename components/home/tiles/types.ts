@@ -4,7 +4,7 @@ import type { ComponentType } from "react";
 export type ITileVariantDef = {
   w: number;
   h: number;
-  /** Kebab-case slug for this variant (e.g. `1x1`, `work-row`). */
+  /** Kebab-case slug for this variant (e.g. `2x2`, `work-row`). */
   name: string;
   /** Display label for this variant; collection merges default from `collectionLabel` when omitted. */
   label?: string;
@@ -31,11 +31,11 @@ export type ICollectionTile = {
 };
 
 /**
- * Stable id matching legacy `typeId` rules: 2×2 primary slot uses bare `collectionName`,
+ * Stable id matching legacy `typeId` rules: 4×4 primary slot uses bare `collectionName`,
  * other variants use `${collectionName}--${w}x${h}`.
  */
 export function catalogKey(def: ICollectionTileDef): string {
-  if (def.w === 2 && def.h === 2) {
+  if (def.w === 4 && def.h === 4) {
     return def.collectionName;
   }
   return `${def.collectionName}--${def.w}x${def.h}`;

@@ -29,7 +29,7 @@ import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
  */
 const GRID_DRAG_BOUNDED = process.env.NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED !== "true";
 
-const GRID_COLS = 4;
+const GRID_COLS = 8;
 
 /** Placeholder identity while dragging from outside (react-grid-layout external drop). */
 const DROPPING_ITEM: LayoutItem = {
@@ -41,13 +41,13 @@ const DROPPING_ITEM: LayoutItem = {
 };
 
 function defaultDefForGridShape(w: number, h: number): ICollectionTileDef {
-  if (w === 4 && h === 1) {
-    return textTileCollection.tiles["4x1"].def;
+  if (w === 8 && h === 2) {
+    return textTileCollection.tiles["8x2"].def;
   }
-  if (w === 1 && h === 1) {
-    return creamSquareCollection.tiles["1x1"].def;
+  if (w === 2 && h === 2) {
+    return creamSquareCollection.tiles["2x2"].def;
   }
-  return creamSquareCollection.tiles["2x2"].def;
+  return creamSquareCollection.tiles["4x4"].def;
 }
 
 function mergeRglLayoutIntoILayout(prev: ILayout, rgl: Layout): ILayout {

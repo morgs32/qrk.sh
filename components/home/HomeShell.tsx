@@ -1,24 +1,46 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { usePathname, useRouter } from "next/navigation";
 import { HeroCopy } from "@/components/home/HeroCopy";
 import { BottomToolbar } from "@/components/home/BottomToolbar";
 import { Grid } from "@/components/home/Grid";
 import { ProseDrawer } from "@/components/home/ProseDrawer";
 import { TileDrawer } from "@/components/home/TileDrawer";
-const drawerModes = ["add-tiles", "edit-text"] as const;
+import { parseHomeDrawerPathname } from "@/components/home/useActiveDrawer";
 
 export function HomeShell() {
-  const [drawer, setDrawer] = useQueryState("drawer", parseAsStringLiteral(drawerModes));
-  const isTileDrawerOpen = drawer === "add-tiles";
-  const isProseDrawerOpen = drawer === "edit-text";
+  const pathname = usePathname();
+  const router = useRouter();
+  const { isTileDrawerOpen, tileId, isProseDrawerOpen } = parseHomeDrawerPathname(pathname);
+
   const setIsTileDrawerOpen = useCallback(
     (open: boolean) => {
-      void setDrawer(open ? "add-tiles" : null);
+      if (open) {
+        router.push("/edit-tiles");
+      } else {
+        router.push("/");
+      }
     },
-    [setDrawer],
+    [router],
   );
+
+  const closeTileDrawer = useCallback(() => {
+    router.push("/");
+  }, [router]);
+
+  const closeProseDrawer = useCallback(() => {
+    router.push("/");
+  }, [router]);
+
+  const openProseDrawer = useCallback(() => {
+    router.push("/edit-text");
+  }, [router]);
+
+  const backToTileCatalog = useCallback(() => {
+    router.push("/edit-tiles");
+  }, [router]);
+
   const isTileDrawerOpenRef = useRef(isTileDrawerOpen);
 
   useEffect(() => {
@@ -26,19 +48,19 @@ export function HomeShell() {
   }, [isTileDrawerOpen]);
 
   useEffect(() => {
-    if (!drawer) {
+    if (!isTileDrawerOpen && !isProseDrawerOpen) {
       return;
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        void setDrawer(null);
+        router.push("/");
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [drawer, setDrawer]);
+  }, [isTileDrawerOpen, isProseDrawerOpen, router]);
 
   useEffect(() => {
     const allowBackgroundScroll = (event: Event) => {
@@ -87,13 +109,18 @@ export function HomeShell() {
             addTilesOpen={isTileDrawerOpen}
             editTextOpen={isProseDrawerOpen}
             onTilesToolbarClick={() => void setIsTileDrawerOpen(!isTileDrawerOpen)}
-            onEditTextClick={() => void setDrawer(isProseDrawerOpen ? null : "edit-text")}
+            onEditTextClick={() => void (isProseDrawerOpen ? closeProseDrawer() : openProseDrawer())}
           />
         </div>
       </div>
 
-      <TileDrawer open={isTileDrawerOpen} onClose={() => void setIsTileDrawerOpen(false)} />
-      <ProseDrawer open={isProseDrawerOpen} onClose={() => void setDrawer(null)} />
+      <TileDrawer
+        open={isTileDrawerOpen}
+        tileId={tileId}
+        onBackToCatalog={backToTileCatalog}
+        onClose={closeTileDrawer}
+      />
+      <ProseDrawer open={isProseDrawerOpen} onClose={closeProseDrawer} />
     </>
   );
 }

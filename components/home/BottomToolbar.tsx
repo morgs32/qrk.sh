@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Type, X } from "lucide-react";
+import { Pencil, Type, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -127,13 +127,13 @@ export function BottomToolbar({
               </ToolbarButton>
             ) : (
               <ToolbarButton
-                tooltip="Add tiles"
-                aria-label="Add tiles"
+                tooltip="Edit tiles"
+                aria-label="Edit tiles"
                 onClick={onTilesToolbarClick}
                 className="w-full justify-start"
               >
-                <Plus className="h-4 w-4" />
-                Add tiles
+                <Pencil className="h-4 w-4" />
+                Edit tiles
               </ToolbarButton>
             )}
           </ToolbarGroup>

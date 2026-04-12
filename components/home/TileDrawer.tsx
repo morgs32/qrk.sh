@@ -11,9 +11,6 @@ import { Input } from "@/components/ui/input";
 import { TileDrawerCarouselNav } from "./TileDrawerCarouselNav";
 import { TilePreview } from "./TilePreview";
 
-/** Drawer tile preview cell size when not tied to live grid metrics. */
-export const DRAWER_PREVIEW_UNIT_PX = 96;
-
 /** When true, Embla should not handle drag / focus for this interaction (drawer tile DnD, nav, etc.). */
 function drawerCarouselInteractionShouldSkipEmbla(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) {
@@ -37,7 +34,6 @@ function watchFocusIgnoreDrawerChrome(_emblaApi: EmblaCarouselType, event: Focus
 
 export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [query, setQuery] = useState("");
-  const cellUnitPx = DRAWER_PREVIEW_UNIT_PX;
 
   const filteredCollections = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -154,11 +150,7 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                               key={catalogKey(tile.def)}
                               className="flex min-h-0 flex-col items-center"
                             >
-                              <TilePreview
-                                tile={tile}
-                                fullWidth={tile.def.w * cellUnitPx}
-                                fullHeight={tile.def.h * cellUnitPx}
-                              />
+                              <TilePreview tile={tile} />
                             </CarouselItem>
                           ))}
                         </CarouselContent>

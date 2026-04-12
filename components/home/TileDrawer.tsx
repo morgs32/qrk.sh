@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { TileDrawerCarouselNav } from "./TileDrawerCarouselNav";
+import { TileDrawerCarouselDimensionNav } from "./TileDrawerCarouselDimensionNav";
 import { TilePreview } from "./TilePreview";
 
 /** When true, Embla should not handle drag / focus for this interaction (drawer tile DnD, nav, etc.). */
@@ -92,6 +92,7 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
               type="button"
               variant="ghost"
               size="icon"
+              className="cursor-pointer"
               aria-label="Close drawer"
               onClick={onClose}
             >
@@ -140,9 +141,7 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                       }}
                       className="w-full"
                     >
-                      <div className="relative min-h-0 w-full">
-                        <TileDrawerCarouselNav edge="start" />
-                        <TileDrawerCarouselNav edge="end" />
+                      <div className="flex min-h-0 w-full flex-col">
                         <CarouselContent
                           viewportClassName="relative min-h-0 min-w-0 w-full"
                           className="items-stretch"
@@ -156,6 +155,7 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                             </CarouselItem>
                           ))}
                         </CarouselContent>
+                        <TileDrawerCarouselDimensionNav tiles={collection.tiles} />
                       </div>
                     </Carousel>
                   </div>

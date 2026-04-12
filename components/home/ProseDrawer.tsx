@@ -3,13 +3,10 @@
 import { X } from "lucide-react";
 
 import { ProseDrawerTiptap } from "@/components/home/ProseDrawerTiptap";
-import { useProseDrawerStore } from "@/components/home/useProseDrawerStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export function ProseDrawer() {
-  const open = useProseDrawerStore((s) => s.open);
-  const setOpen = useProseDrawerStore((s) => s.setOpen);
+export function ProseDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
 
   return (
     <div
@@ -36,8 +33,9 @@ export function ProseDrawer() {
               type="button"
               variant="ghost"
               size="icon"
+              className="cursor-pointer"
               aria-label="Close drawer"
-              onClick={() => setOpen(false)}
+              onClick={onClose}
             >
               <X className="size-4" />
             </Button>

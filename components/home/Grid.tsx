@@ -8,7 +8,6 @@ import GridLayout, {
   type Layout,
   type LayoutItem,
 } from "react-grid-layout";
-import { BottomToolbar } from "@/components/home/BottomToolbar";
 import type { ILayout } from "@/components/home/seedLayout";
 import { creamSquareCollection } from "@/components/home/tiles/collections/CreamSquare/CreamSquareCollection";
 import { textTileCollection } from "@/components/home/tiles/collections/TextTile/TextTileCollection";
@@ -92,13 +91,7 @@ function dataTransferHasTileMime(dt: globalThis.DataTransfer | null): boolean {
   return false;
 }
 
-export function Grid({
-  addTilesOpen,
-  onTilesToolbarClick,
-}: {
-  addTilesOpen: boolean;
-  onTilesToolbarClick: () => void;
-}) {
+export function Grid() {
   const { containerRef, width, mounted } = useContainerWidth();
   const layout = useGridLayoutStore((s) => s.layout);
   const setLayout = useGridLayoutStore((s) => s.setLayout);
@@ -279,12 +272,6 @@ export function Grid({
             })}
           </GridLayout>
         )}
-      </div>
-
-      <div className="pointer-events-none fixed bottom-6 left-1/2 right-0 z-30 flex justify-center px-4">
-        <div className="pointer-events-auto">
-          <BottomToolbar addTilesOpen={addTilesOpen} onTilesToolbarClick={onTilesToolbarClick} />
-        </div>
       </div>
     </>
   );

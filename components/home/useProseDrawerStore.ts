@@ -6,8 +6,6 @@ type EditorBlock = {
 };
 
 type ProseDrawerState = {
-  open: boolean;
-  setOpen: (open: boolean) => void;
   blocks: EditorBlock[];
   addBlock: () => void;
   updateBlock: (id: string, content: string) => void;
@@ -15,8 +13,6 @@ type ProseDrawerState = {
 };
 
 export const useProseDrawerStore = create<ProseDrawerState>((set) => ({
-  open: false,
-  setOpen: (open) => set({ open }),
   blocks: [{ id: crypto.randomUUID(), content: "" }],
   addBlock: () =>
     set((state) => ({

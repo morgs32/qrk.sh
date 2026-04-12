@@ -1,7 +1,6 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { DimensionBadge } from "@/components/home/DimensionBadge";
 import {
   registerActiveTileDragGridShape,
   TILE_DRAG_MIME,
@@ -55,9 +54,6 @@ export function TilePreview({ tile }: { tile: ICollectionTile }) {
   return (
     <div className="drawer-tile-preview flex h-full min-h-0 w-full flex-1 flex-col touch-manipulation">
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
-        <div className="flex items-center justify-center h-10">
-          {/* <DimensionBadge w={tile.def.w} h={tile.def.h} /> */}
-        </div>
         <div className="drawer-tile-scale origin-center">
           <div
             ref={slotRef}
@@ -76,9 +72,6 @@ export function TilePreview({ tile }: { tile: ICollectionTile }) {
               <TileComponent />
             </div>
           </div>
-        </div>
-        <div className="flex items-center justify-center h-10">
-          <DimensionBadge w={tile.def.w} h={tile.def.h} />
         </div>
       </div>
     </div>

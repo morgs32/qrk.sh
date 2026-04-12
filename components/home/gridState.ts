@@ -71,7 +71,7 @@ export const WORK_ITEMS_SEED = [
 ] as const;
 
 const textTile4x1 = homepageTiles.find(
-  (t) => t.def.collectionId === "text-tile" && t.def.w === 4 && t.def.h === 1,
+  (t) => t.def.collectionName === "text-tile" && t.def.w === 4 && t.def.h === 1,
 );
 if (!textTile4x1) {
   throw new Error("Homepage catalog must include text-tile 4×1 variant");
@@ -81,7 +81,7 @@ const textTile4x1Def = textTile4x1.def;
 export const gridSeed: IGridSeed = {
   tileTypes: homepageTiles.map((tile) => ({ tileDef: tile.def })),
   config: gridConfig,
-  autoSeedExcludeCollectionIds: ["text-tile"],
+  autoSeedExcludeCollectionNames: ["text-tile"],
   explicitInstances: WORK_ITEMS_SEED.map((item, index) => ({
     instanceId: `text-tile-work--${index}`,
     tileDef: textTile4x1Def,

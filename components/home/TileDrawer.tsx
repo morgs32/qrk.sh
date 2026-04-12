@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import type { EmblaCarouselType } from "embla-carousel";
 import { X } from "lucide-react";
-import { catalogKey, homepageTiles } from "./tiles";
+import { catalogKey, collectionsHash } from "./tiles";
 import { Button } from "@/components/ui/button";
-import { Carousel, CarouselContent, CarouselItem, useCarousel } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
 import { useGridStore } from "@/components/home/useGridStore";
 import { TileDrawerCarouselNav } from "./TileDrawerCarouselNav";
@@ -35,25 +35,6 @@ function watchFocusIgnoreDrawerChrome(_emblaApi: EmblaCarouselType, event: Focus
   return !drawerCarouselInteractionShouldSkipEmbla(event.target);
 }
 
-function TileDrawerCarouselNavOverlay() {
-  const { canScrollPrev, canScrollNext } = useCarousel();
-
-  return (
-    <>
-      {canScrollPrev ? (
-        <div className="absolute inset-y-0 left-0 z-10 w-14">
-          <TileDrawerCarouselNav edge="start" />
-        </div>
-      ) : null}
-      {canScrollNext ? (
-        <div className="absolute inset-y-0 right-0 z-10 w-14">
-          <TileDrawerCarouselNav edge="end" />
-        </div>
-      ) : null}
-    </>
-  );
-}
-
 export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [query, setQuery] = useState("");
   const gridCellHeightPx = useGridStore((state) => state.gridCellHeightPx);
@@ -62,37 +43,15 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
 
   const filteredCollections = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const collections = new Map<
-      string,
-      { collectionId: string; label: string; tiles: typeof homepageTiles }
-    >();
-
-    homepageTiles.forEach((tile) => {
-      const entry = collections.get(tile.def.collectionId) ?? {
-        collectionId: tile.def.collectionId,
-        label: tile.def.collectionLabel,
-        tiles: [],
+    const ordered = Object.values(collectionsHash).map(({ tiles }) => {
+      const list = Object.values(tiles).sort((a, b) => a.def.order - b.def.order);
+      const first = list[0]!;
+      return {
+        collectionName: first.def.collectionName,
+        label: first.def.collectionLabel,
+        tiles: [...list],
       };
-
-      entry.tiles.push(tile);
-      collections.set(tile.def.collectionId, entry);
     });
-
-    const ordered = Array.from(collections.values()).map((collection) => ({
-      ...collection,
-      tiles: [...collection.tiles].sort((a, b) => {
-        const popularName = a.def.popular;
-        const popularRank = (tile: (typeof collection.tiles)[number]) =>
-          tile.def.name === popularName ? 0 : 1;
-        const byPopular = popularRank(a) - popularRank(b);
-        if (byPopular !== 0) {
-          return byPopular;
-        }
-        const rank = (w: number, h: number) =>
-          w === 1 && h === 1 ? 0 : w === 2 && h === 2 ? 1 : 2;
-        return rank(a.def.w, a.def.h) - rank(b.def.w, b.def.h);
-      }),
-    }));
 
     if (!q) {
       return ordered;
@@ -102,7 +61,7 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
       .map((collection) => {
         const matchesCollection =
           collection.label.toLowerCase().includes(q) ||
-          collection.collectionId.toLowerCase().includes(q);
+          collection.collectionName.toLowerCase().includes(q);
         const matchingTiles = collection.tiles.filter((tile) =>
           catalogKey(tile.def).toLowerCase().includes(q),
         );
@@ -165,14 +124,14 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
         </div>
 
         <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-          <div aria-label="Tile collections" className="flex flex-col gap-6 pb-8 pt-4">
+          <div aria-label="Tile collections" className="flex flex-col pb-8">
             {filteredCollections.length === 0 ? (
               <div className="mx-6 rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
                 No tiles match “{query.trim()}”.
               </div>
             ) : (
               filteredCollections.map((collection) => (
-                <div key={collection.collectionId} className="min-w-0 pb-6">
+                <div key={collection.collectionName} className="min-w-0">
                   <div className="sticky top-0 z-[11] bg-muted/80 px-6 py-2.5 backdrop-blur-sm dark:bg-muted/50">
                     <div className="text-sm font-semibold">{collection.label}</div>
                   </div>
@@ -186,7 +145,8 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                       className="w-full"
                     >
                       <div className="relative min-h-0 w-full">
-                        <TileDrawerCarouselNavOverlay />
+                        <TileDrawerCarouselNav edge="start" />
+                        <TileDrawerCarouselNav edge="end" />
                         <CarouselContent
                           viewportClassName="relative min-h-0 min-w-0 w-full"
                           className="items-stretch"

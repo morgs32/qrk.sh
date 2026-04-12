@@ -40,7 +40,7 @@ Keep [TilePreview.tsx](../../components/home/TilePreview.tsx) decoupled from [Ti
 
 - **Bad**: `export type TilePreviewProps` in `TileDrawer.tsx` and `import { TilePreviewProps } from './TileDrawer'` in `TilePreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `TilePreview` with **`ICollectionTile`** from [components/home/tiles/types.ts](../../components/home/tiles/types.ts) (plus `fullWidth` / `fullHeight`). Catalog rows are built with **`makeTile`** (variant **`def` + `component`**) and **`makeTileCollection`** (`ITile[]` → **`ICollectionTile[]`**). Drag uses **`setExternalDraggingTileDef(tile.def)`**; the grid store holds **`ICollectionTileDef`**, not React components.
+- **Good**: annotate the preview’s props inline on `TilePreview` with **`ICollectionTile`** from [components/home/tiles/types.ts](../../components/home/tiles/types.ts) (plus `fullWidth` / `fullHeight`). Catalog rows are built with **`makeTile`** (variant **`def` + `component`**) and **`makeCollection`** (`ITile[]` → **`ICollectionTile[]`**). Drag uses **`setExternalDraggingTileDef(tile.def)`**; the grid store holds **`ICollectionTileDef`**, not React components.
 
 **Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeTileCollectionProps`-style types unless a second module genuinely needs to reference that exact type.
 
@@ -48,15 +48,15 @@ Keep [TilePreview.tsx](../../components/home/TilePreview.tsx) decoupled from [Ti
 
 - **Bad**: ad hoc **`typeId`** strings on every catalog row, or passing full tile objects (including **`component`**) into Zustand for external drag.
 
-- **Good**: **`ICollectionTileDef`** for serializable identity (**`collectionId`**, **`collectionLabel`**, **`w`**, **`h`**, **`label`**); **`catalogKey(def)`** for stable keys (matches legacy `typeId` rules: 2×2 → bare **`collectionId`**). **`ITile`** = variant-only **`def` + `component`**; **`makeTileCollection`** merges collection scope into each **`ICollectionTile`**.
+- **Good**: **`ICollectionTileDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`w`**, **`h`**, **`label`**); **`catalogKey(def)`** for stable keys (matches legacy `typeId` rules: 2×2 → bare **`collectionName`**). **`ITile`** = variant-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionTile`**.
 
 ### Good vs bad: tile factory argument naming (`props`, not `options`; inline type)
 
 Tile factories take **one object** describing what to build. Name that parameter **`props`** so it reads like React’s declarative inputs, not a vague “options” bag. Put the object type **on the function signature**; don’t export a separate props type unless another file must import it.
 
-- **Bad**: `export function makeTile(options: { w; h; component })`; `export type MakeTileCollectionProps = { … }` with `makeTileCollection(props: MakeTileCollectionProps)` when nothing else imports that type.
+- **Bad**: `export function makeTile(options: { w; h; component })`; `export type MakeCollectionProps = { … }` with `makeCollection(props: MakeCollectionProps)` when nothing else imports that type.
 
-- **Good**: `makeTile(props: { w; h; label?; component })` and `makeTileCollection(props: { collectionId; collectionLabel; tiles })` in [components/home/tiles/makeTile.ts](../../components/home/tiles/makeTile.ts) and [makeTileCollection.ts](../../components/home/tiles/makeTileCollection.ts).
+- **Good**: `makeTile(props: { w; h; label?; component })` and `makeCollection(props: { collectionName; collectionLabel; tiles })` in [components/home/tiles/makeTile.ts](../../components/home/tiles/makeTile.ts) and [makeCollection.ts](../../components/home/tiles/makeCollection.ts).
 
 ### Good vs bad: home grid store naming (`Grid`, `I*` types)
 

@@ -7,6 +7,7 @@ export function makeTile<N extends string>(props: {
   name: N;
   w: number;
   h: number;
+  order: number;
   label?: string;
   component: ComponentType;
 }): ITile & { def: { name: N } } {
@@ -20,6 +21,7 @@ export function makeTile<N extends string>(props: {
       name: props.name,
       w: props.w,
       h: props.h,
+      order: props.order,
       ...(props.label !== undefined ? { label: props.label } : {}),
     },
     component: props.component,

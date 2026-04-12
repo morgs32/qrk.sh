@@ -8,16 +8,16 @@ export type ITileVariantDef = {
   name: string;
   /** Display label for this variant; collection merges default from `collectionLabel` when omitted. */
   label?: string;
+  /** Lower sorts earlier in the drawer carousel. */
+  order: number;
 };
 
 /** Serializable catalog row: collection + variant, no React component. */
 export type ICollectionTileDef = ITileVariantDef & {
-  collectionId: string;
+  collectionName: string;
   collectionLabel: string;
   /** Resolved label after collection merge (always set on catalog tiles). */
   label: string;
-  /** Same as `def.name` on one variant in the collection; that variant sorts first in the drawer carousel. */
-  popular: string;
 };
 
 export type ITile = {
@@ -31,21 +31,20 @@ export type ICollectionTile = {
 };
 
 /**
- * Stable id matching legacy `typeId` rules: 2×2 primary slot uses bare `collectionId`,
- * other variants use `${collectionId}--${w}x${h}`.
+ * Stable id matching legacy `typeId` rules: 2×2 primary slot uses bare `collectionName`,
+ * other variants use `${collectionName}--${w}x${h}`.
  */
 export function catalogKey(def: ICollectionTileDef): string {
   if (def.w === 2 && def.h === 2) {
-    return def.collectionId;
+    return def.collectionName;
   }
-  return `${def.collectionId}--${def.w}x${def.h}`;
+  return `${def.collectionName}--${def.w}x${def.h}`;
 }
 
 export function tileDefsEqual(a: ICollectionTileDef, b: ICollectionTileDef): boolean {
   return (
-    a.collectionId === b.collectionId &&
+    a.collectionName === b.collectionName &&
     a.collectionLabel === b.collectionLabel &&
-    a.popular === b.popular &&
     a.name === b.name &&
     a.w === b.w &&
     a.h === b.h &&

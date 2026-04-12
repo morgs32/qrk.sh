@@ -48,4 +48,4 @@ Skim these headings when touching `components/home/**` or homepage tiles:
 3. **TileDrawer carousel slides** — one slide per tile, sizing from `def.w` / `def.h` and `gridCellHeightPx`.
 4. **`TilePreview` props (inline types, no cross-file props export)** — don’t export tiny `XxxProps` types for cross-import churn; **same rule extends to single-use factory argument types** (inline on the function).
 5. **Tile catalog types** — `ICollectionTileDef`, `catalogKey`, drag def vs component.
-6. **Tile factory argument naming** — parameter name `props`, not `options`; **inline** the props object type on `makeTile` / `makeTileCollection` unless another module needs the type.
+6. **Tile factory argument naming** — parameter name `props`, not `options`; **inline** the props object type on `makeTile` / `makeCollection` unless another module needs the type.

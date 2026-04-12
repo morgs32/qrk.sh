@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { LayoutGrid, Type, ImageIcon, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -67,7 +67,7 @@ export function BottomToolbar({ onAddClick }: BottomToolbarProps) {
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex items-center gap-1 rounded-lg border bg-background px-2 py-1.5 shadow-lg">
-        <ToolbarGroup>
+        {/* <ToolbarGroup>
           <ToolbarButton tooltip="Add Text" variant="default">
             Add Text
             <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded bg-primary-foreground/20 text-xs font-medium">
@@ -90,12 +90,12 @@ export function BottomToolbar({ onAddClick }: BottomToolbarProps) {
           </ToolbarButton>
         </ToolbarGroup>
 
-        <ToolbarSeparator />
+        <ToolbarSeparator /> */}
 
         <ToolbarGroup>
-          <ToolbarButton tooltip="Add Button" aria-label="Open drawer" onClick={onAddClick}>
+          <ToolbarButton tooltip="Add tiles" aria-label="Add tiles" onClick={onAddClick}>
             <Plus className="h-4 w-4" />
-            Button
+            Add tiles
           </ToolbarButton>
         </ToolbarGroup>
       </div>

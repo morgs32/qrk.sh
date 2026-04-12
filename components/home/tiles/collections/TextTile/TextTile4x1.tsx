@@ -1,5 +1,5 @@
 import { TextTilePresentation } from "./TextTilePresentation";
 
 export function TextTile4x1() {
-  return <TextTilePresentation title="Text Tile" category="Sample" href="#" w={4} h={1} />;
+  return <TextTilePresentation title="Text Tile" category="Sample" w={4} h={1} />;
 }

@@ -8,9 +8,11 @@ export function makeTile<N extends string>(props: {
   w: number;
   h: number;
   order: number;
-  label?: string;
+  label: string;
   component: ComponentType;
-}): ITile & { def: { name: N } } {
+}): ITile {
+  const { name, w, h, order, label, component } = props;
+
   if (!KEBAB_TILE_NAME.test(props.name)) {
     throw new Error(
       `makeTile: name must be kebab-case (lowercase segments separated by hyphens); got ${JSON.stringify(props.name)}`,
@@ -18,12 +20,12 @@ export function makeTile<N extends string>(props: {
   }
   return {
     def: {
-      name: props.name,
-      w: props.w,
-      h: props.h,
-      order: props.order,
-      ...(props.label !== undefined ? { label: props.label } : {}),
+      name,
+      w,
+      h,
+      order,
+      label,
     },
-    component: props.component,
+    component,
   };
 }

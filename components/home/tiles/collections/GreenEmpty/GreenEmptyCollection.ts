@@ -8,8 +8,8 @@ export const greenEmptyCollection = makeCollection({
   collectionName: "green-empty",
   collectionLabel: "Green empty",
   tiles: {
-    "2x2": makeTile({ name: "2x2", w: 2, h: 2, order: 1, component: GreenEmpty1x1 }),
-    "4x4": makeTile({ name: "4x4", w: 4, h: 4, order: 0, component: GreenEmpty2x2 }),
-    "8x2": makeTile({ name: "8x2", w: 8, h: 2, order: 2, component: GreenEmpty4x1 }),
+    "2x2": makeTile({ name: "2x2", w: 2, h: 2, label: "2×2", order: 1, component: GreenEmpty1x1 }),
+    "4x4": makeTile({ name: "4x4", w: 4, h: 4, label: "4×4", order: 0, component: GreenEmpty2x2 }),
+    "8x2": makeTile({ name: "8x2", w: 8, h: 2, label: "8×2", order: 2, component: GreenEmpty4x1 }),
   },
 });

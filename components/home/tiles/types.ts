@@ -1,19 +1,19 @@
 import type { ComponentType } from "react";
 
 /** Variant-only fields (no collection scope). */
-export type ITileVariantDef = {
+export type ITileDef = {
   w: number;
   h: number;
   /** Kebab-case slug for this variant (e.g. `2x2`, `work-row`). */
   name: string;
   /** Display label for this variant; collection merges default from `collectionLabel` when omitted. */
-  label?: string;
+  label: string;
   /** Lower sorts earlier in the drawer carousel. */
   order: number;
 };
 
 /** Serializable catalog row: collection + variant, no React component. */
-export type ICollectionTileDef = ITileVariantDef & {
+export type ICollectionTileDef = ITileDef & {
   collectionName: string;
   collectionLabel: string;
   /** Resolved label after collection merge (always set on catalog tiles). */
@@ -21,7 +21,7 @@ export type ICollectionTileDef = ITileVariantDef & {
 };
 
 export type ITile = {
-  def: ITileVariantDef;
+  def: ITileDef;
   component: ComponentType;
 };
 

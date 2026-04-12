@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import type { EmblaCarouselType } from "embla-carousel";
 import { X } from "lucide-react";
-import { catalogKey, collectionsHash } from "./tiles";
+import { collectionsHash } from "@/components/home/tiles/collectionsHash";
+import { catalogKey } from "@/components/home/tiles/types";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";

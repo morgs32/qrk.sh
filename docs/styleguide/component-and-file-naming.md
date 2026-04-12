@@ -58,6 +58,14 @@ Tile factories take **one object** describing what to build. Name that parameter
 
 - **Good**: `makeTile(props: { w; h; label?; component })` and `makeCollection(props: { collectionName; collectionLabel; tiles })` in [components/home/tiles/makeTile.ts](../../components/home/tiles/makeTile.ts) and [makeCollection.ts](../../components/home/tiles/makeCollection.ts).
 
+### Good vs bad: no barrel `index.ts` under homepage tiles
+
+Do **not** add `components/home/tiles/index.ts` (or similar) that only re-exports symbols from sibling modules. Name each file after its **primary export** and import that path directly.
+
+- **Bad**: `import { homepageTiles, collectionsHash, findCollectionTile } from "./tiles"` or `@/components/home/tiles` when `./tiles` is a re-export barrel.
+
+- **Good**: `import { catalogKey } from "@/components/home/tiles/types"`; `import { homepageTiles } from "@/components/home/tiles/homepageTiles"`; `import { collectionsHash } from "@/components/home/tiles/collectionsHash"`; `import { findCollectionTile } from "@/components/home/tiles/findCollectionTile"`; catalog list from [homepageTileCollections.ts](../../components/home/tiles/homepageTileCollections.ts).
+
 ### Good vs bad: home grid store naming (`Grid`, `I*` types)
 
 The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefix on the Zustand module, hook, seed, and domain types. Prefix grid-store **object/interface types** with **`I`** (for example `IGridState`, `IGridSeed`).

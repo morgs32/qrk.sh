@@ -49,3 +49,30 @@ Skim these headings when touching `components/home/**` or homepage tiles:
 4. **`TilePreview` props (inline types, no cross-file props export)** — don’t export tiny `XxxProps` types for cross-import churn; **same rule extends to single-use factory argument types** (inline on the function).
 5. **Tile catalog types** — `ICollectionTileDef`, `catalogKey`, drag def vs component.
 6. **Tile factory argument naming** — parameter name `props`, not `options`; **inline** the props object type on `makeTile` / `makeCollection` unless another module needs the type.
+
+## Cursor Cloud specific instructions
+
+### Services overview
+
+Single Next.js 16 app (Turbopack) with Upstash Redis as the only external dependency.
+
+| Command | Purpose |
+|---|---|
+| `pnpm dev` | Dev server on port 3000 |
+| `pnpm build` | Production build |
+| `pnpm start` | Production server on port 5000 |
+| `pnpm lint` | oxlint |
+| `pnpm format:check` | oxfmt (format check) |
+| `pnpm test:e2e` | Playwright e2e tests |
+
+### Redis dependency
+
+- The app uses `@upstash/redis` (REST-based, no local Redis server needed).
+- Env vars `KV_REST_API_URL` and `KV_REST_API_TOKEN` must be set in `.env.local` for admin/subdomain features.
+- Without Redis credentials: homepage (`/`), tile editor (`/edit-tiles`), and text editor (`/edit-text`) work fine. Admin (`/admin`) and subdomain pages return 500.
+- Build succeeds without Redis credentials (warnings only).
+
+### Dev server gotchas
+
+- `pnpm dev` uses Turbopack. Hot reload works without restart for component/style changes.
+- Subdomain routing in local dev uses `*.localhost:3000` (e.g. `http://test.localhost:3000`).

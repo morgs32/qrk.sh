@@ -2,9 +2,8 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { DimensionBadge } from "@/components/home/DimensionBadge";
+import { TILE_DRAG_MIME } from "@/components/home/tileDragMime";
 import { catalogKey, type ICollectionTile } from "@/components/home/tiles/types";
-
-const TILE_DRAG_MIME = "application/x-qrk-tile-def";
 
 function serializeTileDef(tile: ICollectionTile) {
   return JSON.stringify(tile.def);

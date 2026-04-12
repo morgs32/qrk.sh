@@ -220,6 +220,6 @@ html body[data-scroll-locked] {
 }
 
 .grid-layout .react-grid-placeholder {
-  background: transparent;
-  opacity: 0;
+  background: color-mix(in oklch, var(--destructive) 45%, transparent);
+  opacity: 1;
 }

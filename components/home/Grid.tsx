@@ -1,31 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
-  GridLayout,
   getBreakpointFromWidth,
+  ResponsiveGridLayout,
   useContainerWidth,
   verticalCompactor,
-  type EventCallback,
   type Layout,
   type LayoutItem,
 } from "react-grid-layout";
 import { BottomToolbar } from "@/components/home/BottomToolbar";
 import { gridSeed } from "@/components/home/gridState";
-import type { ILayoutItem } from "@/components/home/seedLayout";
-import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
 import { findCollectionTile } from "@/components/home/tiles/findCollectionTile";
-import { homepageTiles } from "@/components/home/tiles/homepageTiles";
 import { catalogKey } from "@/components/home/tiles/types";
 import { TextTilePresentation } from "@/components/home/tiles/collections/TextTile/TextTilePresentation";
 import {
   GRID_BREAKPOINTS,
   GRID_COLUMNS,
-  type IGridTileInstance,
-  layoutPositionsEqual,
-  toCanonicalLayout,
-  toRenderableLayout,
   useGridStore,
+  type GridBreakpoint,
 } from "@/components/home/useGridStore";
 
 /**
@@ -34,38 +27,16 @@ import {
  */
 const GRID_DRAG_BOUNDED = process.env.NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED !== "true";
 
-type DragGridMetrics = {
-  width: number;
-  rowHeight: number;
-  cols: number;
-};
-
 type ExternalGridDragEvent = DragEvent & {
   qrkDragOffsetX?: number;
   qrkDragOffsetY?: number;
-  qrkDrawerTypeId?: string;
 };
-
-function mergeLayoutWithDefs(
-  next: Layout,
-  prevWithDefs: readonly ILayoutItem[],
-  instances: readonly IGridTileInstance[],
-): ILayoutItem[] {
-  const defFromPrev = new Map(prevWithDefs.map((it) => [it.i, it.def]));
-  const defFromInst = new Map(instances.map((it) => [it.instanceId, it.tileDef]));
-  return next.map((item) => ({
-    ...item,
-    def: defFromPrev.get(item.i) ?? defFromInst.get(item.i)!,
-  }));
-}
 
 export type GridProps = {
   onAddClick: () => void;
 };
 
 export function Grid({ onAddClick }: GridProps) {
-  // Default hook (not measureBeforeMount): avoids a stuck 0×0 first measure in
-  // nested flex layouts; ResizeObserver then sets the real width.
   const { containerRef, mounted, width, measureWidth } = useContainerWidth();
 
   useEffect(() => {
@@ -79,28 +50,20 @@ export function Grid({ onAddClick }: GridProps) {
 
     return () => cancelAnimationFrame(frame);
   }, [mounted, measureWidth, width]);
-  const [dragGridMetrics, setDragGridMetrics] = useState<DragGridMetrics | null>(null);
-  const initialized = useGridStore((state) => state.initialized);
+
   const instances = useGridStore((state) => state.instances);
-  const alignmentByBreakpoint = useGridStore((state) => state.alignmentByBreakpoint);
-  const gridLayoutWithDefs = useGridLayoutStore((state) => state.layout);
+  const layouts = useGridStore((state) => state.layouts);
   const initializeGrid = useGridStore((state) => state.initializeGrid);
+  const setBreakpointLayout = useGridStore((state) => state.setBreakpointLayout);
   const setActiveBreakpoint = useGridStore((state) => state.setActiveBreakpoint);
   const externalDraggingTileDef = useGridStore((state) => state.externalDraggingTileDef);
-  const setBreakpointLayout = useGridStore((state) => state.setBreakpointLayout);
   const setGridCellHeightPx = useGridStore((state) => state.setGridCellHeightPx);
 
   useEffect(() => {
-    if (!initialized) {
+    if (!useGridStore.getState().initialized) {
       initializeGrid(gridSeed);
     }
-  }, [initializeGrid, initialized]);
-
-  const breakpoint = mounted ? getBreakpointFromWidth(GRID_BREAKPOINTS, width) : "lg";
-
-  useEffect(() => {
-    setActiveBreakpoint(breakpoint);
-  }, [breakpoint, setActiveBreakpoint]);
+  }, [initializeGrid]);
 
   useEffect(() => {
     if (!mounted || width <= 0) {
@@ -108,31 +71,9 @@ export function Grid({ onAddClick }: GridProps) {
       return;
     }
 
-    const cols = GRID_COLUMNS[breakpoint];
-    setGridCellHeightPx(width / cols);
-  }, [breakpoint, mounted, setGridCellHeightPx, width]);
-
-  const renderLayout = useMemo(() => {
-    const plain = gridLayoutWithDefs.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }));
-    return toRenderableLayout(plain, breakpoint, alignmentByBreakpoint[breakpoint]);
-  }, [alignmentByBreakpoint, breakpoint, gridLayoutWithDefs]);
-
-  const renderLayoutRef = useRef(renderLayout);
-  renderLayoutRef.current = renderLayout;
-
-  const gridLayoutWithDefsRef = useRef(gridLayoutWithDefs);
-  gridLayoutWithDefsRef.current = gridLayoutWithDefs;
-
-  const layoutChangeDebounceRef = useRef<number | null>(null);
-  const pendingLayoutFromGridRef = useRef<Layout | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (layoutChangeDebounceRef.current !== null) {
-        window.clearTimeout(layoutChangeDebounceRef.current);
-      }
-    };
-  }, []);
+    const bp = getBreakpointFromWidth(GRID_BREAKPOINTS, Math.max(width, 1)) as GridBreakpoint;
+    setGridCellHeightPx(width / GRID_COLUMNS[bp]);
+  }, [mounted, setGridCellHeightPx, width]);
 
   const externalDragW = externalDraggingTileDef?.w;
   const externalDragH = externalDraggingTileDef?.h;
@@ -154,78 +95,9 @@ export function Grid({ onAddClick }: GridProps) {
     [externalDraggingDims],
   );
 
-  const computedRowHeight = width > 0 ? width / GRID_COLUMNS[breakpoint] : 0;
-  const layoutWidth = dragGridMetrics?.width ?? width;
-  const layoutRowHeight = dragGridMetrics?.rowHeight ?? computedRowHeight;
-  const layoutCols = dragGridMetrics?.cols ?? GRID_COLUMNS[breakpoint];
-
-  const handleDragStart = useCallback<EventCallback>(() => {
-    if (width <= 0) {
-      return;
-    }
-
-    const cols = GRID_COLUMNS[breakpoint];
-    setDragGridMetrics({
-      width,
-      rowHeight: width / cols,
-      cols,
-    });
-  }, [breakpoint, width]);
-
-  const handleDragStop = useCallback<EventCallback>(() => {
-    setDragGridMetrics(null);
-  }, []);
-
-  const handleLayoutChange = useCallback(
-    (nextLayout: Layout) => {
-      pendingLayoutFromGridRef.current = nextLayout;
-
-      if (layoutChangeDebounceRef.current !== null) {
-        window.clearTimeout(layoutChangeDebounceRef.current);
-      }
-
-      layoutChangeDebounceRef.current = window.setTimeout(() => {
-        layoutChangeDebounceRef.current = null;
-
-        const layout = pendingLayoutFromGridRef.current;
-        pendingLayoutFromGridRef.current = null;
-        if (!layout) {
-          return;
-        }
-
-        const store = useGridStore.getState();
-        if (store.externalDraggingTileDef) {
-          return;
-        }
-
-        if (layout.some((item) => item.i === "__external-drop__")) {
-          return;
-        }
-
-        const bp = breakpoint;
-        const canonical = toCanonicalLayout(layout, bp);
-        const propCanonical = toCanonicalLayout(renderLayoutRef.current, bp);
-
-        if (layoutPositionsEqual(canonical, propCanonical)) {
-          return;
-        }
-
-        const currentLayout = store.layouts[bp];
-        if (layoutPositionsEqual(canonical, currentLayout)) {
-          return;
-        }
-
-        const merged = mergeLayoutWithDefs(
-          canonical,
-          gridLayoutWithDefsRef.current,
-          store.instances,
-        );
-        useGridLayoutStore.getState().setLayout(merged);
-        setBreakpointLayout(bp, canonical);
-      }, 48);
-    },
-    [breakpoint, setBreakpointLayout],
-  );
+  const gridWidth = Math.max(width, 1);
+  const resolvedBreakpoint = getBreakpointFromWidth(GRID_BREAKPOINTS, gridWidth) as GridBreakpoint;
+  const rowHeight = gridWidth / GRID_COLUMNS[resolvedBreakpoint];
 
   const handleExternalDropDragOver = useCallback(
     (event: DragEvent) => {
@@ -247,116 +119,109 @@ export function Grid({ onAddClick }: GridProps) {
     [externalDraggingDims],
   );
 
-  const handleExternalDrop = useCallback((_layout: Layout, item: LayoutItem | undefined) => {
-    if (!item) {
-      return;
-    }
+  const handleExternalDrop = useCallback(
+    (_layout: Layout, item: LayoutItem | undefined) => {
+      if (!item) {
+        return;
+      }
 
-    const store = useGridStore.getState();
-    const tileDef = store.externalDraggingTileDef;
-    if (!tileDef) {
-      return;
-    }
+      const store = useGridStore.getState();
+      const tileDef = store.externalDraggingTileDef;
+      if (!tileDef) {
+        return;
+      }
 
-    store.addInstanceAt(store.activeBreakpoint, tileDef, { x: item.x, y: item.y });
-    store.setExternalDraggingTileDef(null);
-    store.setExternalDropPosition(null);
+      const bp = getBreakpointFromWidth(GRID_BREAKPOINTS, gridWidth) as GridBreakpoint;
+      store.addInstanceAt(bp, tileDef, { x: item.x, y: item.y });
+      store.setExternalDraggingTileDef(null);
+      store.setExternalDropPosition(null);
+    },
+    [gridWidth],
+  );
 
-    const next = useGridStore.getState();
-    useGridLayoutStore.getState().setLayout(
-      mergeLayoutWithDefs(
-        next.layouts[next.activeBreakpoint],
-        useGridLayoutStore.getState().layout,
-        next.instances,
-      ),
-    );
-  }, []);
+  const handleLayoutChange = useCallback(
+    (layout: Layout, _allLayouts: Partial<Record<string, Layout>>) => {
+      void _allLayouts;
+      const bp = getBreakpointFromWidth(GRID_BREAKPOINTS, gridWidth) as GridBreakpoint;
+      setBreakpointLayout(bp, [...layout]);
+    },
+    [gridWidth, setBreakpointLayout],
+  );
+
+  const handleBreakpointChange = useCallback(
+    (newBreakpoint: string, _cols: number) => {
+      void _cols;
+      setActiveBreakpoint(newBreakpoint as GridBreakpoint);
+    },
+    [setActiveBreakpoint],
+  );
 
   return (
     <>
-      <div ref={containerRef} className="w-full">
-        <div className="w-full" data-testid="grid-root">
-          {!mounted || !initialized || computedRowHeight === 0 ? (
-            <div className="grid grid-cols-2">
-              {homepageTiles.map((tile) => {
-                const TileComponent = tile.component;
-                return (
-                  <div key={catalogKey(tile.def)} className="aspect-square">
-                    <TileComponent />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="w-full" data-testid="grid-layout">
-              <GridLayout
-                width={layoutWidth}
-                layout={renderLayout}
-                autoSize
-                className="home-grid"
-                compactor={verticalCompactor}
-                gridConfig={{
-                  cols: layoutCols,
-                  rowHeight: layoutRowHeight,
-                  margin: [0, 0],
-                  containerPadding: [0, 0],
-                  maxRows: Number.POSITIVE_INFINITY,
-                }}
-                dragConfig={{
-                  enabled: true,
-                  bounded: GRID_DRAG_BOUNDED,
-                  threshold: 3,
-                }}
-                dropConfig={{
-                  enabled: true,
-                  defaultItem: {
-                    w: externalDroppingItem.w,
-                    h: externalDroppingItem.h,
-                  },
-                  onDragOver: handleExternalDropDragOver,
-                }}
-                droppingItem={externalDroppingItem}
-                resizeConfig={{
-                  enabled: false,
-                  handles: [],
-                }}
-                onDragStart={handleDragStart}
-                onDragStop={handleDragStop}
-                onDrop={handleExternalDrop}
-                onLayoutChange={handleLayoutChange}
-              >
-                {instances.map((instance) => {
-                  const catalogTile = findCollectionTile(instance.tileDef);
-                  const TileComponent = catalogTile?.component;
-                  if (!TileComponent && !instance.text) {
-                    return null;
-                  }
+      <div ref={containerRef} className="w-full" data-testid="grid-layout">
+        <ResponsiveGridLayout
+          width={gridWidth}
+          layouts={layouts}
+          breakpoints={GRID_BREAKPOINTS}
+          cols={GRID_COLUMNS}
+          rowHeight={rowHeight}
+          maxRows={Number.POSITIVE_INFINITY}
+          margin={[0, 0]}
+          containerPadding={[0, 0]}
+          autoSize
+          className="home-grid"
+          compactor={verticalCompactor}
+          dragConfig={{
+            enabled: true,
+            bounded: GRID_DRAG_BOUNDED,
+            threshold: 3,
+          }}
+          dropConfig={{
+            enabled: true,
+            defaultItem: {
+              w: externalDroppingItem.w,
+              h: externalDroppingItem.h,
+            },
+            onDragOver: handleExternalDropDragOver,
+          }}
+          droppingItem={externalDroppingItem}
+          resizeConfig={{
+            enabled: false,
+            handles: [],
+          }}
+          onLayoutChange={handleLayoutChange}
+          onBreakpointChange={handleBreakpointChange}
+          onDrop={handleExternalDrop}
+        >
+          {instances.map((instance) => {
+            const catalogTile = findCollectionTile(instance.tileDef);
+            const TileComponent = catalogTile?.component;
+            if (!TileComponent && !instance.text) {
+              return null;
+            }
 
-                  return (
-                    <div
-                      key={instance.instanceId}
-                      data-tile-instance-id={instance.instanceId}
-                      data-tile-type-id={catalogKey(instance.tileDef)}
-                      className="cursor-grab touch-none active:cursor-grabbing"
-                    >
-                      {instance.text ? (
-                        <TextTilePresentation
-                          title={instance.text.title}
-                          category={instance.text.category}
-                          href={instance.text.href}
-                          w={instance.tileDef.w}
-                          h={instance.tileDef.h}
-                        />
-                      ) : (
-                        TileComponent && <TileComponent />
-                      )}
-                    </div>
-                  );
-                })}
-              </GridLayout>
-            </div>
-          )}
-        </div>
+            return (
+              <div
+                key={instance.instanceId}
+                data-tile-instance-id={instance.instanceId}
+                data-tile-type-id={catalogKey(instance.tileDef)}
+                className="cursor-grab touch-none active:cursor-grabbing"
+              >
+                {instance.text ? (
+                  <TextTilePresentation
+                    title={instance.text.title}
+                    category={instance.text.category}
+                    href={instance.text.href}
+                    w={instance.tileDef.w}
+                    h={instance.tileDef.h}
+                  />
+                ) : (
+                  TileComponent && <TileComponent />
+                )}
+              </div>
+            );
+          })}
+        </ResponsiveGridLayout>
       </div>
 
       <div className="pointer-events-none fixed bottom-6 left-1/2 right-0 z-30 flex justify-center px-4">

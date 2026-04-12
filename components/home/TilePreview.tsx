@@ -3,7 +3,7 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { DimensionBadge } from "@/components/home/DimensionBadge";
 import { useGridStore } from "@/components/home/useGridStore";
-import { catalogKey, type ICollectionTile } from "./tiles";
+import { catalogKey, type ICollectionTile } from "@/components/home/tiles/types";
 
 const TILE_DRAG_MIME = "application/x-qrk-tile-def";
 

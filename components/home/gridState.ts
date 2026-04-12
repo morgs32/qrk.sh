@@ -3,7 +3,7 @@ import type {
   HiddenByBreakpoint,
   IGridSeed,
 } from "@/components/home/useGridStore";
-import { homepageTiles } from "./tiles";
+import { homepageTiles } from "@/components/home/tiles/homepageTiles";
 
 export const gridConfig: {
   alignmentByBreakpoint: AlignmentByBreakpoint;

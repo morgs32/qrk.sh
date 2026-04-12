@@ -1,11 +1,10 @@
 import { create } from "zustand";
-import type { Layout } from "react-grid-layout";
 
-import { seedLayout } from "@/components/home/seedLayout";
+import { seedLayout, type ILayout } from "@/components/home/seedLayout";
 
 type GridLayoutState = {
-  layout: Layout;
-  setLayout: (layout: Layout) => void;
+  layout: ILayout;
+  setLayout: (layout: ILayout) => void;
 };
 
 export const useGridLayoutStore = create<GridLayoutState>((set) => ({

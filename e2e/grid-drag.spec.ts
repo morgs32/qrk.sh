@@ -201,9 +201,7 @@ test.describe("Home grid drag", () => {
     await expect(tiles).toHaveCount(0);
   });
 
-  test("standalone Work section is removed; work appears as grid text tiles with links", async ({
-    page,
-  }) => {
+  test("standalone Work section is removed; work appears as grid text tiles", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/", { waitUntil: "load" });
 
@@ -217,9 +215,9 @@ test.describe("Home grid drag", () => {
     const workRows = grid.locator('[data-tile-type-id="text-tile--4x1"]');
     await expect(workRows).toHaveCount(46);
 
-    const blanchette = grid.getByRole("link", { name: /Blanchette/ }).first();
-    await expect(blanchette).toBeVisible();
-    await expect(blanchette).toHaveAttribute("href", "#");
+    const sampleRow = workRows.first();
+    await expect(sampleRow.getByText("Text Tile")).toBeVisible();
+    await expect(sampleRow.locator("a")).toHaveCount(0);
   });
 
   test("Text tile drawer shows only 2x2 and 4x1 variants", async ({ page }) => {

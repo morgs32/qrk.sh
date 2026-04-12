@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import GridLayout, {
   useContainerWidth,
   verticalCompactor,
@@ -96,24 +97,70 @@ export function Grid({ onAddClick }: { onAddClick: () => void }) {
   const layout = useGridLayoutStore((s) => s.layout);
   const setLayout = useGridLayoutStore((s) => s.setLayout);
   const [gridDropSessionKey, setGridDropSessionKey] = useState(0);
+  /** True while the tile drag pointer was last seen inside the grid wrapper (hit-test on `dragover`). */
+  const pointerWasOverGridRef = useRef(false);
+  /** We already remounted because the pointer left the grid; skip redundant `dragend` bump. */
+  const clearedPlaceholderByLeaveRef = useRef(false);
 
   const gridWidth = Math.max(width, 1);
   const rowHeight = gridWidth / GRID_COLS;
 
-  /** RGL does not clear external-drop placeholder on `dragend`; remount when our tile HTML5 drag ends. */
+  /**
+   * RGL’s dragleave counter can miss leaving the grid; hit-test on `document` `dragover` and remount as
+   * soon as the pointer leaves `containerRef`. `dragend` still unregisters shape and bumps if needed.
+   */
   useEffect(() => {
+    const onDocumentDragOver = (event: globalThis.DragEvent) => {
+      if (!dataTransferHasTileMime(event.dataTransfer)) {
+        return;
+      }
+      const el = containerRef.current;
+      if (!el) {
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      const inside =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+
+      if (inside) {
+        pointerWasOverGridRef.current = true;
+        clearedPlaceholderByLeaveRef.current = false;
+        return;
+      }
+
+      if (pointerWasOverGridRef.current) {
+        pointerWasOverGridRef.current = false;
+        clearedPlaceholderByLeaveRef.current = true;
+        flushSync(() => {
+          setGridDropSessionKey((k) => k + 1);
+        });
+      }
+    };
+
     const onDocumentDragEnd = (event: globalThis.DragEvent) => {
+      pointerWasOverGridRef.current = false;
+      const skipBump = clearedPlaceholderByLeaveRef.current;
+      clearedPlaceholderByLeaveRef.current = false;
       if (!dataTransferHasTileMime(event.dataTransfer)) {
         return;
       }
       unregisterActiveTileDragGridShape();
+      if (skipBump) {
+        return;
+      }
       setGridDropSessionKey((k) => k + 1);
     };
+
+    document.addEventListener("dragover", onDocumentDragOver, true);
     document.addEventListener("dragend", onDocumentDragEnd, true);
     return () => {
+      document.removeEventListener("dragover", onDocumentDragOver, true);
       document.removeEventListener("dragend", onDocumentDragEnd, true);
     };
-  }, []);
+  }, [containerRef]);
 
   /** Sync store on drag end only — `onLayoutChange` can fire during RGL reconciliation and loop with controlled `layout`. */
   const onDragStop = useCallback(
@@ -172,25 +219,6 @@ export function Grid({ onAddClick }: { onAddClick: () => void }) {
 
   return (
     <>
-      <div className="mb-3">
-        <div
-          className="droppable-element cursor-grab overflow-hidden rounded-md bg-background/80 active:cursor-grabbing"
-          style={{ width: rowHeight, height: rowHeight }}
-          draggable
-          aria-label="Drag tile into grid"
-          onDragStart={(e) => {
-            e.dataTransfer.effectAllowed = "copy";
-            e.dataTransfer.setData("text/plain", "new-item");
-            e.dataTransfer.setData(TILE_DRAG_MIME, JSON.stringify(DEMO_EXTERNAL_DRAG_DEF));
-            registerActiveTileDragGridShape(DEMO_EXTERNAL_DRAG_DEF.w, DEMO_EXTERNAL_DRAG_DEF.h);
-          }}
-        >
-          <div className="h-full w-full">
-            <DemoExternalDragTile />
-          </div>
-        </div>
-      </div>
-
       <div ref={containerRef} className="grid-layout-wrapper w-full" data-testid="grid-layout">
         {mounted && (
           <GridLayout

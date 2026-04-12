@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { TileDrawerCarouselDimensionNav } from "./TileDrawerCarouselDimensionNav";
+import { TileCarouselNav } from "./TileCarouselNav";
 import { TileDrawerTileDetail } from "./TileDrawerTileDetail";
 import { TilePreview } from "./TilePreview";
 
@@ -185,7 +185,7 @@ export function TileDrawer(props: {
                                   </CarouselItem>
                                 ))}
                               </CarouselContent>
-                              <TileDrawerCarouselDimensionNav tiles={collection.tiles} />
+                              <TileCarouselNav tiles={collection.tiles} />
                             </div>
                           </Carousel>
                         </div>

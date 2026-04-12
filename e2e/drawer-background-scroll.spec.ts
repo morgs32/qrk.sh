@@ -21,7 +21,7 @@ test.describe("Drawer background interaction", () => {
     });
     expect(maxScrollTop).toBeGreaterThan(afterFirstWheel + 50);
 
-    await page.getByLabel("Open drawer").click();
+    await page.getByRole("button", { name: "Edit tiles" }).click();
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
     const beforeDrawerWheel = await rightColumn.evaluate((el) => (el as HTMLElement).scrollTop);

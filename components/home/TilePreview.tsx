@@ -1,10 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import {
-  registerActiveTileDragGridShape,
-  TILE_DRAG_MIME,
-} from "@/components/home/tileDragMime";
+import { registerActiveTileDragGridShape, TILE_DRAG_MIME } from "@/components/home/tileDragMime";
 import { catalogKey, type ICollectionTile } from "@/components/home/tiles/types";
 
 function serializeTileDef(tile: ICollectionTile) {

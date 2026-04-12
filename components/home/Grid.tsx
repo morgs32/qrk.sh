@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { useRouter } from "next/navigation";
 import GridLayout, {
   useContainerWidth,
   verticalCompactor,
+  type EventCallback,
   type Layout,
   type LayoutItem,
 } from "react-grid-layout";
@@ -15,7 +17,6 @@ import { findCollectionTile } from "@/components/home/tiles/findCollectionTile";
 import {
   getActiveTileDragGridShape,
   parseTileDefFromDataTransfer,
-  registerActiveTileDragGridShape,
   TILE_DRAG_MIME,
   unregisterActiveTileDragGridShape,
 } from "@/components/home/tileDragMime";
@@ -29,9 +30,6 @@ import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
 const GRID_DRAG_BOUNDED = process.env.NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED !== "true";
 
 const GRID_COLS = 4;
-
-const DEMO_EXTERNAL_DRAG_DEF = creamSquareCollection.tiles["1x1"].def;
-const DemoExternalDragTile = creamSquareCollection.tiles["1x1"].component;
 
 /** Placeholder identity while dragging from outside (react-grid-layout external drop). */
 const DROPPING_ITEM: LayoutItem = {
@@ -92,10 +90,13 @@ function dataTransferHasTileMime(dt: globalThis.DataTransfer | null): boolean {
 }
 
 export function Grid() {
+  const router = useRouter();
   const { containerRef, width, mounted } = useContainerWidth();
   const layout = useGridLayoutStore((s) => s.layout);
   const setLayout = useGridLayoutStore((s) => s.setLayout);
   const [gridDropSessionKey, setGridDropSessionKey] = useState(0);
+  /** True after RGL drag threshold until the post-drag `click` can be ignored. */
+  const suppressTileIdClickRef = useRef(false);
   /** True while the tile drag pointer was last seen inside the grid wrapper (hit-test on `dragover`). */
   const pointerWasOverGridRef = useRef(false);
   /** We already remounted because the pointer left the grid; skip redundant `dragend` bump. */
@@ -161,17 +162,27 @@ export function Grid() {
     };
   }, [containerRef]);
 
+  const onDragStart = useCallback<EventCallback>(() => {
+    suppressTileIdClickRef.current = true;
+  }, []);
+
   /** Sync store on drag end only — `onLayoutChange` can fire during RGL reconciliation and loop with controlled `layout`. */
-  const onDragStop = useCallback(
-    (next: Layout) => {
-      if (next.some((li) => li.i === DROPPING_ITEM.i)) {
-        return;
+  const onDragStop = useCallback<EventCallback>(
+    (next) => {
+      try {
+        if (next.some((li) => li.i === DROPPING_ITEM.i)) {
+          return;
+        }
+        const prev = useGridLayoutStore.getState().layout;
+        if (layoutPositionsMatchStore(prev, next)) {
+          return;
+        }
+        setLayout(mergeRglLayoutIntoILayout(prev, next));
+      } finally {
+        window.setTimeout(() => {
+          suppressTileIdClickRef.current = false;
+        }, 0);
       }
-      const prev = useGridLayoutStore.getState().layout;
-      if (layoutPositionsMatchStore(prev, next)) {
-        return;
-      }
-      setLayout(mergeRglLayoutIntoILayout(prev, next));
     },
     [setLayout],
   );
@@ -249,6 +260,7 @@ export function Grid() {
               onDragOver: onDropDragOver,
             }}
             droppingItem={DROPPING_ITEM}
+            onDragStart={onDragStart}
             onDragStop={onDragStop}
             onDrop={onDrop}
           >
@@ -265,6 +277,12 @@ export function Grid() {
                   data-tile-instance-id={item.i}
                   data-tile-type-id={catalogKey(item.def)}
                   className="cursor-grab touch-none active:cursor-grabbing"
+                  onClick={() => {
+                    if (suppressTileIdClickRef.current) {
+                      return;
+                    }
+                    router.push(`/edit-tiles/${encodeURIComponent(item.i)}`);
+                  }}
                 >
                   <TileComponent />
                 </div>

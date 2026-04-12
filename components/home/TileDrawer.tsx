@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import type { EmblaCarouselType } from "embla-carousel";
 import { X } from "lucide-react";
 import { collectionsHash } from "@/components/home/tiles/collectionsHash";
@@ -10,6 +10,7 @@ import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carouse
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { TileDrawerCarouselDimensionNav } from "./TileDrawerCarouselDimensionNav";
+import { TileDrawerTileDetail } from "./TileDrawerTileDetail";
 import { TilePreview } from "./TilePreview";
 
 /** When true, Embla should not handle drag / focus for this interaction (drawer tile DnD, nav, etc.). */
@@ -33,8 +34,15 @@ function watchFocusIgnoreDrawerChrome(_emblaApi: EmblaCarouselType, event: Focus
   return !drawerCarouselInteractionShouldSkipEmbla(event.target);
 }
 
-export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function TileDrawer(props: {
+  open: boolean;
+  tileId: string | null;
+  onBackToCatalog: () => void;
+  onClose: () => void;
+}) {
+  const { open, tileId, onBackToCatalog, onClose } = props;
   const [query, setQuery] = useState("");
+  const showTileDetail = Boolean(open && tileId);
 
   const filteredCollections = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -78,92 +86,102 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
       )}
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <div className="text-sm font-semibold">Tiles</div>
-              <div className="text-xs text-muted-foreground">
-                Browse tiles by collection. Drag-and-drop from the drawer will return with native
-                HTML5 DnD.
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="cursor-pointer"
-              aria-label="Close drawer"
-              onClick={onClose}
-            >
-              <X className="size-4" />
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search tiles…"
-                aria-label="Search tiles"
-              />
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setQuery("")}
-              disabled={query.trim().length === 0}
-            >
-              Clear
-            </Button>
-          </div>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-          <div aria-label="Tile collections" className="flex flex-col pb-8">
-            {filteredCollections.length === 0 ? (
-              <div className="mx-6 rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
-                No tiles match “{query.trim()}”.
-              </div>
-            ) : (
-              filteredCollections.map((collection) => (
-                <div key={collection.collectionName} className="min-w-0">
-                  <div className="sticky top-0 z-[11] bg-muted/80 px-6 py-2.5 backdrop-blur-sm dark:bg-muted/50">
-                    <div className="text-sm font-semibold">{collection.label}</div>
-                  </div>
-                  <div className="min-h-0 min-w-0 border-b border-border/60">
-                    <Carousel
-                      opts={{
-                        align: "start",
-                        watchDrag: watchDragIgnoreDrawerChrome,
-                        watchFocus: watchFocusIgnoreDrawerChrome,
-                      }}
-                      className="w-full"
-                    >
-                      <div className="flex min-h-0 w-full flex-col">
-                        <CarouselContent
-                          viewportClassName="relative min-h-0 min-w-0 w-full"
-                          className="items-stretch"
-                        >
-                          {collection.tiles.map((tile) => (
-                            <CarouselItem
-                              key={catalogKey(tile.def)}
-                              className="flex min-h-0 flex-col items-center"
-                            >
-                              <TilePreview tile={tile} />
-                            </CarouselItem>
-                          ))}
-                        </CarouselContent>
-                        <TileDrawerCarouselDimensionNav tiles={collection.tiles} />
-                      </div>
-                    </Carousel>
+        {showTileDetail && tileId ? (
+          <TileDrawerTileDetail tileId={tileId} onBack={onBackToCatalog} onClose={onClose} />
+        ) : (
+          <>
+            <div className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="text-sm font-semibold">Tiles</div>
+                  <div className="text-xs text-muted-foreground">
+                    Browse tiles by collection. Drag-and-drop from the drawer will return with
+                    native HTML5 DnD.
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="cursor-pointer"
+                  aria-label="Close drawer"
+                  onClick={onClose}
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <Input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search tiles…"
+                    aria-label="Search tiles"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setQuery("")}
+                  disabled={query.trim().length === 0}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+              <div aria-label="Tile collections" className="flex flex-col pb-8">
+                {filteredCollections.length === 0 ? (
+                  <div className="mx-6 rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
+                    No tiles match “{query.trim()}”.
+                  </div>
+                ) : (
+                  filteredCollections.map((collection) => {
+                    const maxH = Math.max(...collection.tiles.map((t) => t.def.h));
+                    return (
+                      <div key={collection.collectionName} className="min-w-0">
+                        <div className="sticky top-0 z-[11] bg-muted/80 px-6 py-2.5 backdrop-blur-sm dark:bg-muted/50">
+                          <div className="text-sm font-semibold">{collection.label}</div>
+                        </div>
+                        <div className="min-h-0 min-w-0 border-b border-border/60">
+                          <Carousel
+                            opts={{
+                              align: "start",
+                              watchDrag: watchDragIgnoreDrawerChrome,
+                              watchFocus: watchFocusIgnoreDrawerChrome,
+                            }}
+                            className="w-full"
+                          >
+                            {/* --drawer-collection-max-h: nav sticky min-h. Each slide min-h matches that tile’s def.h (not collection max). */}
+                            <div className={`h-[calc(${maxH} * 12vw / 2)] absolute w-full`}>
+                              <CarouselContent
+                                viewportClassName="relative min-h-0 min-w-0 w-full"
+                                className="items-stretch"
+                              >
+                                {collection.tiles.map((tile) => (
+                                  <CarouselItem
+                                    key={catalogKey(tile.def)}
+                                    data-drawer-slide-grid-h={tile.def.h}
+                                    className="relative"
+                                  >
+                                    <TilePreview tile={tile} />
+                                  </CarouselItem>
+                                ))}
+                              </CarouselContent>
+                            </div>
+                          </Carousel>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

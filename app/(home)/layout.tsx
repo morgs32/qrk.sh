@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { HomeShell } from "@/components/home/HomeShell";
 
-export default function HomePage() {
+export default function HomeLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="h-screen overflow-hidden">
       <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-border bg-background px-6">
@@ -34,6 +34,7 @@ export default function HomePage() {
       <Suspense fallback={null}>
         <HomeShell />
       </Suspense>
+      {children}
     </div>
   );
 }

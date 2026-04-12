@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, Type, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -61,13 +61,44 @@ function ToolbarSeparator() {
 
 export type BottomToolbarProps = {
   addTilesOpen: boolean;
+  editTextOpen: boolean;
   onTilesToolbarClick: () => void;
+  onEditTextClick: () => void;
 };
 
-export function BottomToolbar({ addTilesOpen, onTilesToolbarClick }: BottomToolbarProps) {
+export function BottomToolbar({
+  addTilesOpen,
+  editTextOpen,
+  onTilesToolbarClick,
+  onEditTextClick,
+}: BottomToolbarProps) {
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex items-center gap-1 rounded-lg border bg-background px-2 py-1.5 shadow-lg">
+        <ToolbarGroup>
+          {editTextOpen ? (
+            <ToolbarButton
+              tooltip="Close"
+              aria-label="Close"
+              onClick={onEditTextClick}
+              className="h-10 min-w-10 px-0"
+            >
+              <X className="!size-7 shrink-0 text-destructive" strokeWidth={2.5} aria-hidden />
+            </ToolbarButton>
+          ) : (
+            <ToolbarButton
+              tooltip="Edit text"
+              aria-label="Edit text"
+              onClick={onEditTextClick}
+            >
+              <Type className="h-4 w-4" />
+              Edit text
+            </ToolbarButton>
+          )}
+        </ToolbarGroup>
+
+        <ToolbarSeparator />
+
         {/* <ToolbarGroup>
           <ToolbarButton tooltip="Add Text" variant="default">
             Add Text
@@ -94,26 +125,25 @@ export function BottomToolbar({ addTilesOpen, onTilesToolbarClick }: BottomToolb
         <ToolbarSeparator /> */}
 
         <ToolbarGroup>
-          <ToolbarButton
-            tooltip={addTilesOpen ? "Close" : "Add tiles"}
-            aria-label={addTilesOpen ? "Close" : "Add tiles"}
-            onClick={onTilesToolbarClick}
-            className={cn(
-              addTilesOpen && "text-destructive hover:text-destructive hover:bg-destructive/10",
-            )}
-          >
-            {addTilesOpen ? (
-              <>
-                <X className="h-4 w-4" />
-                Close
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4" />
-                Add tiles
-              </>
-            )}
-          </ToolbarButton>
+          {addTilesOpen ? (
+            <ToolbarButton
+              tooltip="Close"
+              aria-label="Close"
+              onClick={onTilesToolbarClick}
+              className="h-10 min-w-10 px-0"
+            >
+              <X className="!size-7 shrink-0 text-destructive" strokeWidth={2.5} aria-hidden />
+            </ToolbarButton>
+          ) : (
+            <ToolbarButton
+              tooltip="Add tiles"
+              aria-label="Add tiles"
+              onClick={onTilesToolbarClick}
+            >
+              <Plus className="h-4 w-4" />
+              Add tiles
+            </ToolbarButton>
+          )}
         </ToolbarGroup>
       </div>
     </TooltipProvider>

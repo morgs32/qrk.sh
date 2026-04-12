@@ -22,7 +22,7 @@ import type { ICollectionTileDef } from "@/components/home/tiles/types";
 export type ILayoutItem = LayoutItem & { def: ICollectionTileDef };
 export type ILayout = ILayoutItem[];
 
-/** Mirrors grid seed shape: 14× 2×2 art row, then 46× full-width 4×1 rows (`gridState` / `useGridStore`). */
+/** Homepage grid: 14× 2×2 art row, then 46× full-width 4×1 text rows (`useGridLayoutStore` initial state). */
 export const seedLayout: ILayout = [
   { i: "orange-flag--0", x: 0, y: 0, w: 2, h: 2, def: orangeFlagCollection.tiles["2x2"].def },
   { i: "black-circle--1", x: 2, y: 0, w: 2, h: 2, def: blackCircleCollection.tiles["2x2"].def },

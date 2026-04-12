@@ -8,11 +8,10 @@ import { catalogKey } from "@/components/home/tiles/types";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
-import { useGridStore } from "@/components/home/useGridStore";
 import { TileDrawerCarouselNav } from "./TileDrawerCarouselNav";
 import { TilePreview } from "./TilePreview";
 
-/** Fallback when the grid has not measured yet (`gridCellHeightPx` is null). */
+/** Drawer tile preview cell size when not tied to live grid metrics. */
 export const DRAWER_PREVIEW_UNIT_PX = 96;
 
 /** When true, Embla should not handle drag / focus for this interaction (drawer tile DnD, nav, etc.). */
@@ -38,9 +37,7 @@ function watchFocusIgnoreDrawerChrome(_emblaApi: EmblaCarouselType, event: Focus
 
 export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [query, setQuery] = useState("");
-  const gridCellHeightPx = useGridStore((state) => state.gridCellHeightPx);
-  const cellUnitPx =
-    gridCellHeightPx && gridCellHeightPx > 0 ? gridCellHeightPx : DRAWER_PREVIEW_UNIT_PX;
+  const cellUnitPx = DRAWER_PREVIEW_UNIT_PX;
 
   const filteredCollections = useMemo(() => {
     const q = query.trim().toLowerCase();

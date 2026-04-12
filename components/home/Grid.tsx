@@ -23,12 +23,16 @@ export function Grid({ onAddClick }: { onAddClick: () => void }) {
 
   return (
     <>
-      <div ref={containerRef} className="w-full" data-testid="grid-layout">
+      <div
+        ref={containerRef}
+        className="grid-layout-wrapper w-full"
+        data-testid="grid-layout"
+      >
         <GridLayout
           width={gridWidth}
           layout={layout}
           autoSize
-          className="home-grid"
+          className="grid-layout"
           compactor={verticalCompactor}
           gridConfig={{
             cols: GRID_COLS,

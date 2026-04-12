@@ -219,7 +219,7 @@ html body[data-scroll-locked] {
   opacity: 0.8;
 }
 
-.home-grid .react-grid-placeholder {
+.grid-layout .react-grid-placeholder {
   background: transparent;
   opacity: 0;
 }

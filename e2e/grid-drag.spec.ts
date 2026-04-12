@@ -21,7 +21,7 @@ test.describe("Home grid drag", () => {
     await page.goto("/", { waitUntil: "load" });
 
     const layout = page.getByTestId("grid-layout");
-    const grid = page.locator(".home-grid");
+    const grid = page.locator(".grid-layout");
     const tile = grid.locator('[data-tile-type-id="orange-flag"]').first();
     await expect(tile).toBeVisible({ timeout: 90_000 });
     await expect(layout).toBeVisible();
@@ -70,7 +70,7 @@ test.describe("Home grid drag", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/", { waitUntil: "load" });
 
-    const grid = page.locator(".home-grid");
+    const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
     const typeId = "orange-flag--1x1";
@@ -107,11 +107,7 @@ test.describe("Home grid drag", () => {
         height: number;
       }> = [];
 
-      proto.setDragImage = function patchedSetDragImage(
-        image: Element,
-        x: number,
-        y: number,
-      ) {
+      proto.setDragImage = function patchedSetDragImage(image: Element, x: number, y: number) {
         void x;
         void y;
 
@@ -135,13 +131,15 @@ test.describe("Home grid drag", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/", { waitUntil: "load" });
 
-    const grid = page.locator(".home-grid");
+    const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
     await page.getByLabel("Open drawer").click();
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
-    const slot = page.locator('[data-drawer-tile-slot][data-drawer-tile-type="orange-flag--1x1"]').first();
+    const slot = page
+      .locator('[data-drawer-tile-slot][data-drawer-tile-type="orange-flag--1x1"]')
+      .first();
     await expect(slot).toBeVisible();
 
     const gridBox = await grid.boundingBox();
@@ -156,14 +154,16 @@ test.describe("Home grid drag", () => {
 
     const calls = await page.evaluate(() => {
       return (
-        (window as typeof window & {
-          __qrkSetDragImageCalls?: Array<{
-            hasPreviewAttr: boolean;
-            transform: string;
-            width: number;
-            height: number;
-          }>;
-        }).__qrkSetDragImageCalls ?? []
+        (
+          window as typeof window & {
+            __qrkSetDragImageCalls?: Array<{
+              hasPreviewAttr: boolean;
+              transform: string;
+              width: number;
+              height: number;
+            }>;
+          }
+        ).__qrkSetDragImageCalls ?? []
       );
     });
 
@@ -180,7 +180,7 @@ test.describe("Home grid drag", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/", { waitUntil: "load" });
 
-    const grid = page.locator(".home-grid");
+    const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
     const typeId = "orange-flag--1x1";
@@ -211,7 +211,7 @@ test.describe("Home grid drag", () => {
     await expect(rightColumn).toBeVisible({ timeout: 90_000 });
     await expect(rightColumn.locator("h2", { hasText: /^Work$/ })).toHaveCount(0);
 
-    const grid = page.locator(".home-grid");
+    const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible();
 
     const workRows = grid.locator('[data-tile-type-id="text-tile--4x1"]');
@@ -234,11 +234,13 @@ test.describe("Home grid drag", () => {
     await expect(page.locator('[data-drawer-tile-type="text-tile--1x1"]')).toHaveCount(0);
   });
 
-  test("dragging a Text tile from the drawer onto the grid adds a sample instance", async ({ page }) => {
+  test("dragging a Text tile from the drawer onto the grid adds a sample instance", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/", { waitUntil: "load" });
 
-    const grid = page.locator(".home-grid");
+    const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
     const typeId = "text-tile";
@@ -270,7 +272,7 @@ test.describe("Home grid drag", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/", { waitUntil: "load" });
 
-    const grid = page.locator(".home-grid");
+    const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
     const first = grid.locator('[data-tile-instance-id="text-tile-work--0"]');

@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { DimensionBadge } from "@/components/home/DimensionBadge";
-import { useGridStore } from "@/components/home/useGridStore";
 import { catalogKey, type ICollectionTile } from "@/components/home/tiles/types";
 
 const TILE_DRAG_MIME = "application/x-qrk-tile-def";
@@ -20,7 +19,6 @@ export function TilePreview({
   fullWidth: number;
   fullHeight: number;
 }) {
-  const setExternalDraggingTileDef = useGridStore((state) => state.setExternalDraggingTileDef);
   const slotRef = useRef<HTMLDivElement>(null);
   const tileRef = useRef(tile);
   tileRef.current = tile;
@@ -45,7 +43,6 @@ export function TilePreview({
       dt.effectAllowed = "copy";
       dt.setData(TILE_DRAG_MIME, payload);
       dt.setData("text/plain", catalogKey(t.def));
-      setExternalDraggingTileDef(t.def);
       event.stopPropagation();
     };
 
@@ -53,11 +50,7 @@ export function TilePreview({
     return () => {
       node.removeEventListener("dragstart", onDragStart);
     };
-  }, [setExternalDraggingTileDef]);
-
-  const handleDragEnd = useCallback(() => {
-    setExternalDraggingTileDef(null);
-  }, [setExternalDraggingTileDef]);
+  }, []);
 
   const TileComponent = tile.component;
 
@@ -77,7 +70,6 @@ export function TilePreview({
             className="shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"
             style={{ width: fullWidth, height: fullHeight }}
             aria-label={`${tile.def.collectionLabel} ${tile.def.w}×${tile.def.h}`}
-            onDragEnd={handleDragEnd}
           >
             <div className="h-full w-full">
               <TileComponent />

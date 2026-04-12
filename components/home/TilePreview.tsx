@@ -63,7 +63,9 @@ export function TilePreview({ tile }: { tile: ICollectionTile }) {
         }}
         aria-label={`${tile.def.collectionLabel} ${tile.def.w}×${tile.def.h}`}
       >
-        <TileComponent />
+        <div className="h-full w-full">
+          <TileComponent />
+        </div>
       </div>
     </div>
   );

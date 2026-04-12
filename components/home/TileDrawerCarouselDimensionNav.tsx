@@ -32,7 +32,7 @@ export function TileDrawerCarouselDimensionNav({ tiles }: { tiles: ICollectionTi
   return (
     <div
       data-drawer-carousel-nav
-      className="sticky bottom-0 z-[12] flex min-h-[calc(var(--drawer-collection-max-h,1)*12.5vw/2)] w-full min-w-0 shrink-0 flex-col justify-end px-6"
+      className="sticky bottom-0 z-[8] flex w-full min-w-0 shrink-0 flex-col justify-end px-6"
       role="toolbar"
       aria-label="Tile size and slides"
     >

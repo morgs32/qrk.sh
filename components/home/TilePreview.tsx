@@ -49,27 +49,21 @@ export function TilePreview({ tile }: { tile: ICollectionTile }) {
   const TileComponent = tile.component;
 
   return (
-    <div className="drawer-tile-preview flex h-full min-h-0 w-full flex-1 flex-col touch-manipulation">
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
-        <div className="drawer-tile-scale origin-center">
-          <div
-            ref={slotRef}
-            data-drawer-tile-slot
-            data-drawer-tile-type={catalogKey(tile.def)}
-            draggable
-            tabIndex={0}
-            className="shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"
-            style={{
-              width: `calc(${tile.def.w} * 50vw / ${PREVIEW_GRID_COLS})`,
-              height: `calc(${tile.def.h} * 50vw / ${PREVIEW_GRID_COLS})`,
-            }}
-            aria-label={`${tile.def.collectionLabel} ${tile.def.w}×${tile.def.h}`}
-          >
-            <div className="h-full w-full">
-              <TileComponent />
-            </div>
-          </div>
-        </div>
+    <div className="drawer-tile-preview flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center touch-manipulation">
+      <div
+        ref={slotRef}
+        data-drawer-tile-slot
+        data-drawer-tile-type={catalogKey(tile.def)}
+        draggable
+        tabIndex={0}
+        className="shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"
+        style={{
+          width: `calc(${tile.def.w} * 50vw / ${PREVIEW_GRID_COLS})`,
+          height: `calc(${tile.def.h} * 50vw / ${PREVIEW_GRID_COLS})`,
+        }}
+        aria-label={`${tile.def.collectionLabel} ${tile.def.w}×${tile.def.h}`}
+      >
+        <TileComponent />
       </div>
     </div>
   );

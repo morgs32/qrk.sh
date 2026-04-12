@@ -153,24 +153,40 @@ export function TileDrawer(props: {
                               watchDrag: watchDragIgnoreDrawerChrome,
                               watchFocus: watchFocusIgnoreDrawerChrome,
                             }}
-                            className="w-full"
+                            className="flex w-full flex-col"
                           >
-                            {/* --drawer-collection-max-h: nav sticky min-h. Each slide min-h matches that tile’s def.h (not collection max). */}
-                            <div className={`h-[calc(${maxH} * 12vw / 2)] absolute w-full`}>
+                            {/*
+                              In-flow height (not position:absolute): absolute children collapse the Carousel
+                              root to 0px tall, so every collection’s carousels stack and blur toolbars overlap.
+                              Slide band uses max def.h; +5.75rem reserves the dimension nav row below.
+                            */}
+                            <div
+                              className="flex min-h-0 w-full flex-col"
+                              style={
+                                {
+                                  height: `calc(${maxH} * 12vw / 2 + 5.75rem)`,
+                                  "--drawer-collection-max-h": String(maxH),
+                                } as CSSProperties
+                              }
+                            >
                               <CarouselContent
-                                viewportClassName="relative min-h-0 min-w-0 w-full"
-                                className="items-stretch"
+                                viewportClassName="relative min-h-0 w-full min-w-0 flex-1 basis-0 overflow-hidden"
+                                className="min-h-0 items-stretch"
                               >
                                 {collection.tiles.map((tile) => (
                                   <CarouselItem
                                     key={catalogKey(tile.def)}
                                     data-drawer-slide-grid-h={tile.def.h}
                                     className="relative"
+                                    style={{
+                                      minHeight: `calc(${tile.def.h} * 12vw / 2)`,
+                                    }}
                                   >
                                     <TilePreview tile={tile} />
                                   </CarouselItem>
                                 ))}
                               </CarouselContent>
+                              <TileDrawerCarouselDimensionNav tiles={collection.tiles} />
                             </div>
                           </Carousel>
                         </div>

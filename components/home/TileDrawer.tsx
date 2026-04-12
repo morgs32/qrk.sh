@@ -73,7 +73,7 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
       aria-hidden={!open}
       inert={!open}
       className={cn(
-        "fixed top-16 bottom-0 left-0 z-40 flex h-[calc(100vh-4rem)] w-full min-h-0 flex-col border-r border-border bg-background shadow-[8px_0_32px_-4px_rgb(0_0_0/0.14),4px_0_16px_-4px_rgb(0_0_0/0.08)] transition-transform duration-300 ease-out md:w-1/2 dark:shadow-[8px_0_32px_-4px_rgb(0_0_0/0.45),4px_0_16px_-4px_rgb(0_0_0/0.25)]",
+        "fixed top-16 bottom-0 left-0 z-40 flex h-[calc(100vh-4rem)] w-full min-h-0 flex-col border-r border-border bg-background shadow-[4px_0_20px_-6px_rgb(0_0_0/0.07),2px_0_10px_-4px_rgb(0_0_0/0.04)] transition-transform duration-300 ease-out md:w-1/2 dark:shadow-[4px_0_20px_-6px_rgb(0_0_0/0.2),2px_0_10px_-4px_rgb(0_0_0/0.1)]",
         open ? "translate-x-0" : "-translate-x-full pointer-events-none select-none",
       )}
     >

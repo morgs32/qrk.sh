@@ -15,7 +15,7 @@ export function ProseDrawer({ open, onClose }: { open: boolean; onClose: () => v
       aria-hidden={!open}
       inert={!open}
       className={cn(
-        "fixed top-16 right-0 bottom-0 z-40 flex h-[calc(100vh-4rem)] w-full min-h-0 flex-col border-l border-border bg-background shadow-2xl transition-transform duration-300 ease-out md:w-1/2",
+        "fixed top-16 right-0 bottom-0 z-40 flex h-[calc(100vh-4rem)] w-full min-h-0 flex-col border-l border-border bg-background shadow-[-4px_0_20px_-6px_rgb(0_0_0/0.07),-2px_0_10px_-4px_rgb(0_0_0/0.04)] transition-transform duration-300 ease-out md:w-1/2 dark:shadow-[-4px_0_20px_-6px_rgb(0_0_0/0.2),-2px_0_10px_-4px_rgb(0_0_0/0.1)]",
         open ? "translate-x-0" : "pointer-events-none translate-x-full select-none",
       )}
     >

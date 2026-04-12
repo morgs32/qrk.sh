@@ -31,10 +31,7 @@ function watchDragIgnoreDrawerChrome(
   return !drawerCarouselInteractionShouldSkipEmbla(event.target);
 }
 
-function watchFocusIgnoreDrawerChrome(
-  _emblaApi: EmblaCarouselType,
-  event: FocusEvent,
-): boolean {
+function watchFocusIgnoreDrawerChrome(_emblaApi: EmblaCarouselType, event: FocusEvent): boolean {
   return !drawerCarouselInteractionShouldSkipEmbla(event.target);
 }
 
@@ -169,10 +166,17 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                       }}
                       className="w-full"
                     >
-                      <div className="flex min-h-0 w-full items-stretch gap-2">
-                        <TileDrawerCarouselNav edge="start" />
+                      <div className="relative min-h-0 w-full">
+                        <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-[12] flex items-stretch justify-between gap-0">
+                          <div className="pointer-events-auto flex min-h-0 w-14 shrink-0 flex-col overflow-hidden rounded-l-none rounded-r-md border border-border/50 bg-muted/40 dark:bg-muted/25">
+                            <TileDrawerCarouselNav edge="start" />
+                          </div>
+                          <div className="pointer-events-auto flex min-h-0 w-14 shrink-0 flex-col overflow-hidden rounded-l-md rounded-r-none border border-border/50 bg-muted/40 dark:bg-muted/25">
+                            <TileDrawerCarouselNav edge="end" />
+                          </div>
+                        </div>
                         <CarouselContent
-                          viewportClassName="relative min-h-0 min-w-0 flex-1 z-10"
+                          viewportClassName="relative min-h-0 min-w-0 w-full overflow-visible"
                           className="items-stretch"
                         >
                           {collection.tiles.map((tile) => (
@@ -188,7 +192,6 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                             </CarouselItem>
                           ))}
                         </CarouselContent>
-                        <TileDrawerCarouselNav edge="end" />
                       </div>
                     </Carousel>
                   </div>

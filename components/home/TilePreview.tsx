@@ -80,7 +80,7 @@ export function TilePreview({
         <div className="flex items-center justify-center h-10">
           {/* <DimensionBadge w={tile.def.w} h={tile.def.h} /> */}
         </div>
-        <div className="drawer-tile-scale origin-center scale-75 ">
+        <div className="drawer-tile-scale origin-center">
           <div
             ref={slotRef}
             data-drawer-tile-slot

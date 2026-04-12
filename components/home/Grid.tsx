@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import GridLayout, {
   useContainerWidth,
   verticalCompactor,
@@ -13,8 +13,11 @@ import { creamSquareCollection } from "@/components/home/tiles/collections/Cream
 import { textTileCollection } from "@/components/home/tiles/collections/TextTile/TextTileCollection";
 import { findCollectionTile } from "@/components/home/tiles/findCollectionTile";
 import {
+  getActiveTileDragGridShape,
   parseTileDefFromDataTransfer,
+  registerActiveTileDragGridShape,
   TILE_DRAG_MIME,
+  unregisterActiveTileDragGridShape,
 } from "@/components/home/tileDragMime";
 import { catalogKey, type ICollectionTileDef } from "@/components/home/tiles/types";
 import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
@@ -75,13 +78,42 @@ function layoutPositionsMatchStore(prev: ILayout, next: Layout): boolean {
   return true;
 }
 
+function dataTransferHasTileMime(dt: globalThis.DataTransfer | null): boolean {
+  if (!dt) {
+    return false;
+  }
+  const { types } = dt;
+  for (let i = 0; i < types.length; i++) {
+    if (types[i] === TILE_DRAG_MIME) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function Grid({ onAddClick }: { onAddClick: () => void }) {
   const { containerRef, width, mounted } = useContainerWidth();
   const layout = useGridLayoutStore((s) => s.layout);
   const setLayout = useGridLayoutStore((s) => s.setLayout);
+  const [gridDropSessionKey, setGridDropSessionKey] = useState(0);
 
   const gridWidth = Math.max(width, 1);
   const rowHeight = gridWidth / GRID_COLS;
+
+  /** RGL does not clear external-drop placeholder on `dragend`; remount when our tile HTML5 drag ends. */
+  useEffect(() => {
+    const onDocumentDragEnd = (event: globalThis.DragEvent) => {
+      if (!dataTransferHasTileMime(event.dataTransfer)) {
+        return;
+      }
+      unregisterActiveTileDragGridShape();
+      setGridDropSessionKey((k) => k + 1);
+    };
+    document.addEventListener("dragend", onDocumentDragEnd, true);
+    return () => {
+      document.removeEventListener("dragend", onDocumentDragEnd, true);
+    };
+  }, []);
 
   /** Sync store on drag end only — `onLayoutChange` can fire during RGL reconciliation and loop with controlled `layout`. */
   const onDragStop = useCallback(
@@ -102,6 +134,10 @@ export function Grid({ onAddClick }: { onAddClick: () => void }) {
     const parsed = parseTileDefFromDataTransfer(e.dataTransfer);
     if (parsed) {
       return { w: parsed.w, h: parsed.h };
+    }
+    const pending = getActiveTileDragGridShape();
+    if (pending) {
+      return { w: pending.w, h: pending.h };
     }
     return { w: 1, h: 1 };
   }, []);
@@ -146,6 +182,7 @@ export function Grid({ onAddClick }: { onAddClick: () => void }) {
             e.dataTransfer.effectAllowed = "copy";
             e.dataTransfer.setData("text/plain", "new-item");
             e.dataTransfer.setData(TILE_DRAG_MIME, JSON.stringify(DEMO_EXTERNAL_DRAG_DEF));
+            registerActiveTileDragGridShape(DEMO_EXTERNAL_DRAG_DEF.w, DEMO_EXTERNAL_DRAG_DEF.h);
           }}
         >
           <div className="h-full w-full">
@@ -157,6 +194,7 @@ export function Grid({ onAddClick }: { onAddClick: () => void }) {
       <div ref={containerRef} className="grid-layout-wrapper w-full" data-testid="grid-layout">
         {mounted && (
           <GridLayout
+            key={gridDropSessionKey}
             width={gridWidth}
             layout={layout}
             autoSize

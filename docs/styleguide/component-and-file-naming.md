@@ -32,15 +32,15 @@ Prefer **one primary React component per file** (matching the PascalCase file na
 
 ### Good vs bad: TileDrawer carousel slides (one panel per tile)
 
-The tile drawer uses shadcn `Carousel` (Embla) **per collection**. Each tile is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the tile sized to **`def.w` / `def.h` × `gridCellHeightPx`** from [lib/stores/grid-store.ts](lib/stores/grid-store.ts) (same value [Grid.tsx](components/home/Grid.tsx) uses as `rowHeight`, i.e. container width ÷ column count). Fall back to `DRAWER_PREVIEW_UNIT_PX` only when the grid has not measured yet.
+The tile drawer uses shadcn `Carousel` (Embla) **per collection**. Each tile is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def.w * 50vw / 4)`** by **`calc(def.h * 50vw / 4)`**, i.e. half the viewport (see [HomeShell.tsx](../../components/home/HomeShell.tsx) workspace `w-1/2`) divided into four columns—the same column count [Grid.tsx](../../components/home/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width ÷ column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
 
 ### Good vs bad: `TilePreview` props (inline types, no cross-file props export)
 
-Keep [TilePreview.tsx](../../components/home/TilePreview.tsx) decoupled from [TileDrawer.tsx](../../components/home/TileDrawer.tsx): **do not** export a `TilePreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a three-field API.
+Keep [TilePreview.tsx](../../components/home/TilePreview.tsx) decoupled from [TileDrawer.tsx](../../components/home/TileDrawer.tsx): **do not** export a `TilePreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a small props API.
 
 - **Bad**: `export type TilePreviewProps` in `TileDrawer.tsx` and `import { TilePreviewProps } from './TileDrawer'` in `TilePreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `TilePreview` with **`ICollectionTile`** from [components/home/tiles/types.ts](../../components/home/tiles/types.ts) (plus `fullWidth` / `fullHeight`). Catalog rows are built with **`makeTile`** (variant **`def` + `component`**) and **`makeCollection`** (`ITile[]` → **`ICollectionTile[]`**). Drag uses **`setExternalDraggingTileDef(tile.def)`**; the grid store holds **`ICollectionTileDef`**, not React components.
+- **Good**: annotate the preview’s props inline on `TilePreview` with **`{ tile: ICollectionTile }`** from [components/home/tiles/types.ts](../../components/home/tiles/types.ts). Catalog rows are built with **`makeTile`** (variant **`def` + `component`**) and **`makeCollection`** (`ITile[]` → **`ICollectionTile[]`**). Drawer drag uses native **`DataTransfer`** ([`TILE_DRAG_MIME`](../../components/home/tileDragMime.ts)); [useGridLayoutStore.ts](../../components/home/useGridLayoutStore.ts) holds **`layout`** with **`def`** per item, not React components.
 
 **Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeTileCollectionProps`-style types unless a second module genuinely needs to reference that exact type.
 

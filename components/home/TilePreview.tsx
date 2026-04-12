@@ -2,22 +2,20 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { DimensionBadge } from "@/components/home/DimensionBadge";
-import { TILE_DRAG_MIME } from "@/components/home/tileDragMime";
+import {
+  registerActiveTileDragGridShape,
+  TILE_DRAG_MIME,
+} from "@/components/home/tileDragMime";
 import { catalogKey, type ICollectionTile } from "@/components/home/tiles/types";
 
 function serializeTileDef(tile: ICollectionTile) {
   return JSON.stringify(tile.def);
 }
 
-export function TilePreview({
-  tile,
-  fullWidth,
-  fullHeight,
-}: {
-  tile: ICollectionTile;
-  fullWidth: number;
-  fullHeight: number;
-}) {
+/** Matches homepage workspace: half viewport (`HomeShell` `w-1/2`) ÷ 4 columns, same as `Grid` `GRID_COLS`. */
+const PREVIEW_GRID_COLS = 4;
+
+export function TilePreview({ tile }: { tile: ICollectionTile }) {
   const slotRef = useRef<HTMLDivElement>(null);
   const tileRef = useRef(tile);
   tileRef.current = tile;
@@ -42,6 +40,7 @@ export function TilePreview({
       dt.effectAllowed = "copy";
       dt.setData(TILE_DRAG_MIME, payload);
       dt.setData("text/plain", catalogKey(t.def));
+      registerActiveTileDragGridShape(t.def.w, t.def.h);
       event.stopPropagation();
     };
 
@@ -67,7 +66,10 @@ export function TilePreview({
             draggable
             tabIndex={0}
             className="shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"
-            style={{ width: fullWidth, height: fullHeight }}
+            style={{
+              width: `calc(${tile.def.w} * 50vw / ${PREVIEW_GRID_COLS})`,
+              height: `calc(${tile.def.h} * 50vw / ${PREVIEW_GRID_COLS})`,
+            }}
             aria-label={`${tile.def.collectionLabel} ${tile.def.w}×${tile.def.h}`}
           >
             <div className="h-full w-full">

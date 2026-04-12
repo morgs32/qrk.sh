@@ -55,8 +55,16 @@ function ToolbarGroup({ children, className }: { children: React.ReactNode; clas
   return <div className={cn("flex items-center gap-0.5", className)}>{children}</div>;
 }
 
-function ToolbarSeparator() {
-  return <div className="mx-1.5 h-5 w-px bg-border" />;
+function ToolbarSeparator({ collapsed }: { collapsed?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "shrink-0 bg-border",
+        collapsed ? "h-5 w-0 min-w-0 overflow-hidden" : "h-5 w-px",
+      )}
+      aria-hidden
+    />
+  );
 }
 
 export type BottomToolbarProps = {
@@ -72,32 +80,64 @@ export function BottomToolbar({
   onTilesToolbarClick,
   onEditTextClick,
 }: BottomToolbarProps) {
+  const drawerOpen = editTextOpen || addTilesOpen;
+
+  const editTextClose = (
+    <ToolbarButton
+      onClick={onEditTextClick}
+      className="h-8 w-full min-w-0 justify-center gap-1.5 text-destructive hover:text-destructive"
+    >
+      <X className="!size-5 shrink-0 text-destructive" strokeWidth={2} aria-hidden />
+      Close
+    </ToolbarButton>
+  );
+
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="flex items-center gap-1 rounded-lg border bg-background px-2 py-1.5 shadow-lg">
-        <ToolbarGroup>
-          {editTextOpen ? (
-            <ToolbarButton
-              tooltip="Close"
-              aria-label="Close"
-              onClick={onEditTextClick}
-              className="h-10 min-w-10 px-0"
-            >
-              <X className="!size-7 shrink-0 text-destructive" strokeWidth={2.5} aria-hidden />
-            </ToolbarButton>
-          ) : (
-            <ToolbarButton
-              tooltip="Edit text"
-              aria-label="Edit text"
-              onClick={onEditTextClick}
-            >
-              <Type className="h-4 w-4" />
-              Edit text
-            </ToolbarButton>
-          )}
-        </ToolbarGroup>
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center rounded-lg border bg-background px-2 py-1.5 shadow-lg">
+        <div className="flex min-h-0 min-w-0 w-full justify-end pr-1.5">
+          <ToolbarGroup className="w-full min-w-0">
+            {editTextOpen ? (
+              editTextClose
+            ) : (
+              <ToolbarButton
+                tooltip="Edit text"
+                aria-label="Edit text"
+                onClick={onEditTextClick}
+                className="w-full justify-end"
+              >
+                <Type className="h-4 w-4" />
+                Edit text
+              </ToolbarButton>
+            )}
+          </ToolbarGroup>
+        </div>
 
-        <ToolbarSeparator />
+        <ToolbarSeparator collapsed={drawerOpen} />
+
+        <div className="flex min-h-0 min-w-0 w-full justify-start pl-1.5">
+          <ToolbarGroup className="w-full min-w-0">
+            {addTilesOpen ? (
+              <ToolbarButton
+                onClick={onTilesToolbarClick}
+                className="h-8 w-full min-w-0 justify-center gap-1.5 text-destructive hover:text-destructive"
+              >
+                <X className="!size-5 shrink-0 text-destructive" strokeWidth={2} aria-hidden />
+                Close
+              </ToolbarButton>
+            ) : (
+              <ToolbarButton
+                tooltip="Add tiles"
+                aria-label="Add tiles"
+                onClick={onTilesToolbarClick}
+                className="w-full justify-start"
+              >
+                <Plus className="h-4 w-4" />
+                Add tiles
+              </ToolbarButton>
+            )}
+          </ToolbarGroup>
+        </div>
 
         {/* <ToolbarGroup>
           <ToolbarButton tooltip="Add Text" variant="default">
@@ -124,27 +164,6 @@ export function BottomToolbar({
 
         <ToolbarSeparator /> */}
 
-        <ToolbarGroup>
-          {addTilesOpen ? (
-            <ToolbarButton
-              tooltip="Close"
-              aria-label="Close"
-              onClick={onTilesToolbarClick}
-              className="h-10 min-w-10 px-0"
-            >
-              <X className="!size-7 shrink-0 text-destructive" strokeWidth={2.5} aria-hidden />
-            </ToolbarButton>
-          ) : (
-            <ToolbarButton
-              tooltip="Add tiles"
-              aria-label="Add tiles"
-              onClick={onTilesToolbarClick}
-            >
-              <Plus className="h-4 w-4" />
-              Add tiles
-            </ToolbarButton>
-          )}
-        </ToolbarGroup>
       </div>
     </TooltipProvider>
   );

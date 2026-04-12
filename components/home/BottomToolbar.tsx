@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -60,10 +60,11 @@ function ToolbarSeparator() {
 }
 
 export type BottomToolbarProps = {
-  onAddClick: () => void;
+  addTilesOpen: boolean;
+  onTilesToolbarClick: () => void;
 };
 
-export function BottomToolbar({ onAddClick }: BottomToolbarProps) {
+export function BottomToolbar({ addTilesOpen, onTilesToolbarClick }: BottomToolbarProps) {
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex items-center gap-1 rounded-lg border bg-background px-2 py-1.5 shadow-lg">
@@ -93,9 +94,25 @@ export function BottomToolbar({ onAddClick }: BottomToolbarProps) {
         <ToolbarSeparator /> */}
 
         <ToolbarGroup>
-          <ToolbarButton tooltip="Add tiles" aria-label="Add tiles" onClick={onAddClick}>
-            <Plus className="h-4 w-4" />
-            Add tiles
+          <ToolbarButton
+            tooltip={addTilesOpen ? "Close" : "Add tiles"}
+            aria-label={addTilesOpen ? "Close" : "Add tiles"}
+            onClick={onTilesToolbarClick}
+            className={cn(
+              addTilesOpen && "text-destructive hover:text-destructive hover:bg-destructive/10",
+            )}
+          >
+            {addTilesOpen ? (
+              <>
+                <X className="h-4 w-4" />
+                Close
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                Add tiles
+              </>
+            )}
           </ToolbarButton>
         </ToolbarGroup>
       </div>

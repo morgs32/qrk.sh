@@ -8,6 +8,7 @@ import { catalogKey } from "@/components/home/tiles/types";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { TileDrawerCarouselNav } from "./TileDrawerCarouselNav";
 import { TilePreview } from "./TilePreview";
 
@@ -65,15 +66,16 @@ export function TileDrawer({ open, onClose }: { open: boolean; onClose: () => vo
       .filter((collection) => collection.tiles.length > 0);
   }, [query]);
 
-  if (!open) {
-    return null;
-  }
-
   return (
     <div
       role="dialog"
       aria-label="Workspace drawer"
-      className="fixed top-16 bottom-0 left-0 z-40 flex h-[calc(100vh-4rem)] w-full min-h-0 flex-col border-r border-border bg-background shadow-2xl md:w-1/2"
+      aria-hidden={!open}
+      inert={!open}
+      className={cn(
+        "fixed top-16 bottom-0 left-0 z-40 flex h-[calc(100vh-4rem)] w-full min-h-0 flex-col border-r border-border bg-background shadow-[8px_0_32px_-4px_rgb(0_0_0/0.14),4px_0_16px_-4px_rgb(0_0_0/0.08)] transition-transform duration-300 ease-out md:w-1/2 dark:shadow-[8px_0_32px_-4px_rgb(0_0_0/0.45),4px_0_16px_-4px_rgb(0_0_0/0.25)]",
+        open ? "translate-x-0" : "-translate-x-full pointer-events-none select-none",
+      )}
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">

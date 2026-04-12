@@ -156,15 +156,14 @@ export function TileDrawer(props: {
                             className="flex w-full flex-col"
                           >
                             {/*
-                              In-flow height (not position:absolute): absolute children collapse the Carousel
-                              root to 0px tall, so every collection’s carousels stack and blur toolbars overlap.
-                              Slide band uses max def.h; +5.75rem reserves the dimension nav row below.
+                              Slide min-height must match TilePreview slot: half-viewport ÷ 4 cols = 50vw/4 per grid unit.
+                              (Using 12vw/2 here clipped slides vs preview and looked empty.)
                             */}
                             <div
                               className="flex min-h-0 w-full flex-col"
                               style={
                                 {
-                                  height: `calc(${maxH} * 12vw / 2 + 5.75rem)`,
+                                  height: `calc(${maxH} * 50vw / 4 + 5.75rem)`,
                                   "--drawer-collection-max-h": String(maxH),
                                 } as CSSProperties
                               }
@@ -177,9 +176,9 @@ export function TileDrawer(props: {
                                   <CarouselItem
                                     key={catalogKey(tile.def)}
                                     data-drawer-slide-grid-h={tile.def.h}
-                                    className="relative"
+                                    className="relative py-10"
                                     style={{
-                                      minHeight: `calc(${tile.def.h} * 12vw / 2)`,
+                                      minHeight: `calc(${tile.def.h} * 50vw / 4)`,
                                     }}
                                   >
                                     <TilePreview tile={tile} />

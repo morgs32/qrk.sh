@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * Matches TileDrawer + TilePreview: `calc(def.h * 50vw / 4)` (half viewport ÷ 4 cols).
+ * Matches TileCollectionCarousel slide `minHeight`: `calc(def.h * 50vw / 8)` (half viewport ÷ 8 cols).
  */
 function expectedSlideMinHeightPx(viewportWidth: number, gridH: number): number {
-  return gridH * viewportWidth * 0.5 * 0.25;
+  return (gridH * viewportWidth * 0.5) / 8;
 }
 
 test.describe("Tile drawer preview slide min-height", () => {

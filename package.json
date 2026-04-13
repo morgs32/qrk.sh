@@ -22,7 +22,6 @@
     "@tiptap/extension-placeholder": "^3.22.3",
     "@tiptap/react": "^3.22.3",
     "@tiptap/starter-kit": "^3.22.3",
-    "@upstash/redis": "^1.37.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
@@ -38,6 +37,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-grid-layout": "^2.2.3",
+    "swr": "^2.3.3",
     "tailwind-merge": "^3.5.0",
     "vaul": "^1.1.2",
     "zustand": "^5.0.12"

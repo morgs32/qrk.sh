@@ -1,8 +1,9 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { useMemo } from "react";
 import type { EmblaCarouselType } from "embla-carousel";
-import { type ICollectionTile } from "@/components/home/tiles/types";
+import type { ICollection, ICollectionTile } from "@/components/home/tiles/types";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { TileCarouselNav } from "./TileCarouselNav";
 import { TilePreview } from "./TilePreview";
@@ -29,14 +30,25 @@ function watchFocusIgnoreDrawerChrome(_emblaApi: EmblaCarouselType, event: Focus
   return !drawerCarouselInteractionShouldSkipEmbla(event.target);
 }
 
-export function TileCarousel(props: { collectionLabel: string; tiles: ICollectionTile[] }) {
-  const { collectionLabel, tiles } = props;
-  const maxH = Math.max(...tiles.map((t) => t.def.h));
+function defaultTileSort(a: ICollectionTile, b: ICollectionTile): number {
+  return a.def.order - b.def.order;
+}
+
+export function TileCollectionCarousel(props: {
+  collection: ICollection;
+  tileSortFn?: (a: ICollectionTile, b: ICollectionTile) => number;
+}) {
+  const { collection, tileSortFn = defaultTileSort } = props;
+  const tiles = useMemo(
+    () => Object.values(collection.tiles).sort(tileSortFn),
+    [collection, tileSortFn],
+  );
+  const maxH = tiles.length > 0 ? Math.max(...tiles.map((t) => t.def.h)) : 1;
 
   return (
     <>
       <div className="sticky top-0 z-[11] bg-muted/80 px-6 py-2.5 backdrop-blur-sm dark:bg-muted/50">
-        <div className="text-sm font-semibold">{collectionLabel}</div>
+        <div className="text-sm font-semibold">{collection.collectionLabel}</div>
       </div>
       <div className="min-h-0 min-w-0 border-b border-border/60">
         <Carousel

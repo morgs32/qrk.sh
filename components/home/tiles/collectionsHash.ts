@@ -4,6 +4,7 @@ import { blueGridCollection } from "./collections/BlueGrid/BlueGridCollection";
 import { creamBenchCollection } from "./collections/CreamBench/CreamBenchCollection";
 import { creamSquareCollection } from "./collections/CreamSquare/CreamSquareCollection";
 import { greenArchCollection } from "./collections/GreenArch/GreenArchCollection";
+import { githubCardsCollection } from "./collections/GitHubCards/GitHubCardsCollection";
 import { greenCrossCollection } from "./collections/GreenCross/GreenCrossCollection";
 import { greenEmptyCollection } from "./collections/GreenEmpty/GreenEmptyCollection";
 import { greenGCollection } from "./collections/GreenGLogo/GreenGLogoCollection";
@@ -30,5 +31,6 @@ export const collectionsHash = {
   "pink-asterisk": pinkAsteriskCollection,
   "green-empty": greenEmptyCollection,
   "green-cross": greenCrossCollection,
+  "github-cards": githubCardsCollection,
   "text-tile": textTileCollection,
 } as const satisfies Record<string, ICollection>;

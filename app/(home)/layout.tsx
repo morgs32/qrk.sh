@@ -19,9 +19,6 @@ export default function HomeLayout({ children }: Readonly<{ children: React.Reac
           <Link href="/follow" className="text-xs transition-opacity hover:opacity-70">
             Follow
           </Link>
-          <Link href="/admin" className="text-xs transition-opacity hover:opacity-70">
-            Admin
-          </Link>
         </nav>
         <button
           type="button"

@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { TileCarousel } from "./TileCarousel";
+import { TileCollectionCarousel } from "./TileCollectionCarousel";
 import { TileDrawerTileDetail } from "./TileDrawerTileDetail";
 import { collectionsHash } from "./tiles/collectionsHash";
 
@@ -21,24 +21,14 @@ export function TileDrawer(props: {
 
   const filteredCollections = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const collectionsAndOrderedTiles = Object.values(collectionsHash).map(({ tiles }) => {
-      const list = Object.values(tiles).sort((a, b) => a.def.order - b.def.order);
-      const first = list[0]!;
-      return {
-        collectionName: first.def.collectionName,
-        label: first.def.collectionLabel,
-        tiles: [...list],
-      };
-    });
-
+    const all = Object.values(collectionsHash);
     if (!q) {
-      return collectionsAndOrderedTiles;
+      return all;
     }
-
-    return collectionsAndOrderedTiles.filter(
+    return all.filter(
       (collection) =>
         collection.collectionName.toLowerCase().includes(q) ||
-        collection.label.toLowerCase().includes(q),
+        collection.collectionLabel.toLowerCase().includes(q),
     );
   }, [query]);
 
@@ -109,7 +99,7 @@ export function TileDrawer(props: {
                 ) : (
                   filteredCollections.map((collection) => (
                     <div key={collection.collectionName} className="min-w-0">
-                      <TileCarousel collectionLabel={collection.label} tiles={collection.tiles} />
+                      <TileCollectionCarousel collection={collection} />
                     </div>
                   ))
                 )}

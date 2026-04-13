@@ -1,4 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+function drawerTilePreviewSlot(page: Page, collectionName: string, tileName: string) {
+  return page.locator(
+    `[data-tile-drawer-tile-slot][data-tile-drawer-collection-name="${collectionName}"][data-tile-drawer-tile-name="${tileName}"]`,
+  );
+}
 
 function boxCenter(box: { x: number; y: number; width: number; height: number }) {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
@@ -73,14 +79,14 @@ test.describe("Home grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const typeId = "orange-flag--1x1";
-    const newTiles = grid.locator(`[data-tile-type-id="${typeId}"]`);
+    const gridCatalogKey = "orange-flag--2x2";
+    const newTiles = grid.locator(`[data-tile-type-id="${gridCatalogKey}"]`);
     await expect(newTiles).toHaveCount(0);
 
     await page.getByRole("button", { name: "Edit tiles" }).click();
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
-    const slot = page.locator(`[data-drawer-tile-slot][data-drawer-tile-type="${typeId}"]`).first();
+    const slot = drawerTilePreviewSlot(page, "orange-flag", "2x2").first();
     await expect(slot).toBeVisible();
 
     const gridBox = await grid.boundingBox();
@@ -105,14 +111,14 @@ test.describe("Home grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const typeId = "orange-flag--1x1";
-    const tiles = grid.locator(`[data-tile-type-id="${typeId}"]`);
+    const gridCatalogKey = "orange-flag--2x2";
+    const tiles = grid.locator(`[data-tile-type-id="${gridCatalogKey}"]`);
     await expect(tiles).toHaveCount(0);
 
     await page.getByRole("button", { name: "Edit tiles" }).click();
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
-    const slot = page.locator(`[data-drawer-tile-slot][data-drawer-tile-type="${typeId}"]`).first();
+    const slot = drawerTilePreviewSlot(page, "orange-flag", "2x2").first();
     await expect(slot).toBeVisible();
 
     await slot.dragTo(page.getByLabel("Search tiles"), {
@@ -149,9 +155,9 @@ test.describe("Home grid drag", () => {
     await page.getByRole("button", { name: "Edit tiles" }).click();
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
-    await expect(page.locator('[data-drawer-tile-type="text-tile"]')).toHaveCount(1);
-    await expect(page.locator('[data-drawer-tile-type="text-tile--4x1"]')).toHaveCount(1);
-    await expect(page.locator('[data-drawer-tile-type="text-tile--1x1"]')).toHaveCount(0);
+    await expect(drawerTilePreviewSlot(page, "text-tile", "4x4")).toHaveCount(1);
+    await expect(drawerTilePreviewSlot(page, "text-tile", "8x2")).toHaveCount(1);
+    await expect(drawerTilePreviewSlot(page, "text-tile", "1x1")).toHaveCount(0);
   });
 
   test("dragging a Text tile from the drawer onto the grid adds a sample instance", async ({
@@ -163,8 +169,8 @@ test.describe("Home grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const typeId = "text-tile";
-    const text2x2Tiles = grid.locator(`[data-tile-type-id="${typeId}"]`);
+    const gridCatalogKey = "text-tile";
+    const text2x2Tiles = grid.locator(`[data-tile-type-id="${gridCatalogKey}"]`);
     await expect(text2x2Tiles).toHaveCount(0);
 
     await page.getByRole("button", { name: "Edit tiles" }).click();
@@ -172,7 +178,7 @@ test.describe("Home grid drag", () => {
     await page.getByLabel("Search tiles").fill("Text tile");
     await expect(page.getByText("Text tile").first()).toBeVisible();
 
-    const slot = page.locator(`[data-drawer-tile-slot][data-drawer-tile-type="${typeId}"]`).first();
+    const slot = drawerTilePreviewSlot(page, "text-tile", "4x4").first();
     await expect(slot).toBeVisible();
 
     const gridBox = await grid.boundingBox();

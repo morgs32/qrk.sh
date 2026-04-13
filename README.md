@@ -13,6 +13,16 @@ A production-ready example of a multi-tenant application built with Next.js 15, 
 - ✅ Support for local development with subdomains
 - ✅ Compatible with Vercel preview deployments
 
+## Homepage tile catalog identity
+
+The grid / tile drawer catalog is defined under `components/home/tiles/`. These rules are **invariants** for every collection and variant:
+
+1. **`collectionName`** — kebab-case id for the collection; **each collection has a distinct `collectionName`** in the catalog.
+2. **`def.name`** (on each tile variant) — kebab-case slug **unique within that collection** (e.g. `2x2`, `4x4`, `8x2` among siblings).
+3. **Globally**, **`(collectionName, def.name)`** uniquely identifies a catalog tile variant. Do not rely on a single concatenated string for that pair in the drawer UI: [TilePreview](components/home/TilePreview.tsx) sets **`data-tile-drawer-collection-name`** and **`data-tile-drawer-tile-name`** separately.
+
+More detail and test patterns: [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md) (section **Tile variant identity**).
+
 ## Tech Stack
 
 - [Next.js 15](https://nextjs.org/) with App Router

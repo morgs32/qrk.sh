@@ -20,7 +20,8 @@ import {
   TILE_DRAG_MIME,
   useTileDrawerStore,
 } from "@/components/home/useTileDrawerStore";
-import { catalogKey, type ICollectionTileDef } from "@/components/home/tiles/types";
+import { catalogKey } from "@/components/home/tiles/catalogKey";
+import type { ICollectionTileDef } from "@/components/home/tiles/types";
 import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
 
 /**

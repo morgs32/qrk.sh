@@ -23,7 +23,7 @@ Prefer **one primary React component per file** (matching the PascalCase file na
 
 - **Bad**: `TileDrawer.tsx` defines both `TileDrawer` and a multi-markup helper like `TileDrawerCarouselNav` in the same module.
 
-- **Good**: `TileDrawerCarouselNav.tsx` exports `TileDrawerCarouselNav`; [TileDrawer.tsx](../../components/home/TileDrawer.tsx) imports it. Keep **`data-drawer-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
+- **Good**: `TileDrawerCarouselNav.tsx` exports `TileDrawerCarouselNav`; [TileDrawer.tsx](../../components/home/TileDrawer.tsx) imports it. Keep **`data-tile-drawer-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
 
 ### Exceptions (this rule does not apply)
 
@@ -50,6 +50,25 @@ Keep [TilePreview.tsx](../../components/home/TilePreview.tsx) decoupled from [Ti
 
 - **Good**: **`ICollectionTileDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`w`**, **`h`**, **`label`**); **`catalogKey(def)`** for stable keys (matches legacy `typeId` rules: 2×2 → bare **`collectionName`**). **`ITile`** = variant-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionTile`**.
 
+### Tile variant identity: `collectionName` + tile def `name`
+
+**Invariant (homepage catalog):**
+
+1. **`collectionName`** is **unique per collection** across the catalog.
+2. Within one collection, each tile variant’s **`def.name`** (kebab-case, e.g. `2x2`, `8x2`) is **unique among that collection’s tiles**.
+3. Therefore **`(collectionName, def.name)`** is **unique for every catalog tile variant**—use this pair for tests and DOM hooks instead of a composite string.
+
+[TilePreview.tsx](../../components/home/TilePreview.tsx) exposes it on the draggable slot:
+
+- **`data-tile-drawer-collection-name`** = **`tile.def.collectionName`**
+- **`data-tile-drawer-tile-name`** = **`tile.def.name`**
+
+(Together with **`data-tile-drawer-tile-slot`**, used by carousel drag guards.)
+
+- **Bad**: a single attribute holding `makeTileKey` / `catalogKey` / concatenated ids when you need to target “this variant in this collection” in the drawer.
+
+- **Good**: two attributes, values exactly `def.collectionName` and `def.name`; in Playwright, `[data-tile-drawer-tile-slot][data-tile-drawer-collection-name="…"][data-tile-drawer-tile-name="…"]` (see [`e2e/grid-drag.spec.ts`](../../e2e/grid-drag.spec.ts) `drawerTilePreviewSlot`).
+
 ### Good vs bad: tile factory argument naming (`props`, not `options`; inline type)
 
 Tile factories take **one object** describing what to build. Name that parameter **`props`** so it reads like React’s declarative inputs, not a vague “options” bag. Put the object type **on the function signature**; don’t export a separate props type unless another file must import it.
@@ -64,7 +83,7 @@ Do **not** add `components/home/tiles/index.ts` (or similar) that only re-export
 
 - **Bad**: `import { homepageTiles, collectionsHash, findCollectionTile } from "./tiles"` or `@/components/home/tiles` when `./tiles` is a re-export barrel.
 
-- **Good**: `import { catalogKey } from "@/components/home/tiles/types"`; `import { homepageTiles } from "@/components/home/tiles/homepageTiles"`; `import { collectionsHash } from "@/components/home/tiles/collectionsHash"`; `import { findCollectionTile } from "@/components/home/tiles/findCollectionTile"`; catalog list from [homepageTileCollections.ts](../../components/home/tiles/homepageTileCollections.ts).
+- **Good**: `import { catalogKey } from "@/components/home/tiles/catalogKey"`; `import { homepageTiles } from "@/components/home/tiles/homepageTiles"`; `import { collectionsHash } from "@/components/home/tiles/collectionsHash"`; `import { findCollectionTile } from "@/components/home/tiles/findCollectionTile"`; catalog list from [homepageTileCollections.ts](../../components/home/tiles/homepageTileCollections.ts).
 
 ### Good vs bad: home grid store naming (`Grid`, `I*` types)
 

@@ -13,7 +13,8 @@ function drawerCarouselInteractionShouldSkipEmbla(target: EventTarget | null): b
     return false;
   }
   return Boolean(
-    target.closest("[data-drawer-tile-slot]") || target.closest("[data-drawer-carousel-nav]"),
+    target.closest("[data-tile-drawer-tile-slot]") ||
+    target.closest("[data-tile-drawer-carousel-nav]"),
   );
 }
 
@@ -66,7 +67,7 @@ export function TileCarousel(props: { collectionLabel: string; tiles: ICollectio
               {tiles.map((tile) => (
                 <CarouselItem
                   key={tile.def.name}
-                  data-drawer-slide-grid-h={tile.def.h}
+                  data-tile-drawer-slide-grid-h={tile.def.h}
                   className="relative py-10"
                   style={{
                     minHeight: `calc(${tile.def.h} * 50vw / 8)`,

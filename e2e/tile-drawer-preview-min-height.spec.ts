@@ -24,10 +24,15 @@ test.describe("Tile drawer preview slide min-height", () => {
       if (!varHost) {
         return { ok: false as const, reason: "no --drawer-collection-max-h host" };
       }
-      const maxHStr = getComputedStyle(varHost).getPropertyValue("--drawer-collection-max-h").trim();
+      const maxHStr = getComputedStyle(varHost)
+        .getPropertyValue("--drawer-collection-max-h")
+        .trim();
       const maxH = Number.parseFloat(maxHStr);
       if (!Number.isFinite(maxH) || maxH <= 0) {
-        return { ok: false as const, reason: `bad --drawer-collection-max-h: ${JSON.stringify(maxHStr)}` };
+        return {
+          ok: false as const,
+          reason: `bad --drawer-collection-max-h: ${JSON.stringify(maxHStr)}`,
+        };
       }
 
       const slides = Array.from(
@@ -38,10 +43,10 @@ test.describe("Tile drawer preview slide min-height", () => {
       }
 
       const slideGridHs = slides.map((el) =>
-        Number.parseFloat(el.getAttribute("data-drawer-slide-grid-h") ?? ""),
+        Number.parseFloat(el.getAttribute("data-tile-drawer-slide-grid-h") ?? ""),
       );
       if (slideGridHs.some((h) => !Number.isFinite(h) || h <= 0)) {
-        return { ok: false as const, reason: "bad data-drawer-slide-grid-h on slide" };
+        return { ok: false as const, reason: "bad data-tile-drawer-slide-grid-h on slide" };
       }
 
       const minHeights = slides.map((el) => parseFloat(getComputedStyle(el).minHeight));

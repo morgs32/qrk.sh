@@ -48,12 +48,9 @@ export function TilePreview({ tile }: { tile: ICollectionTile }) {
     <div className="drawer-tile-preview flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center touch-manipulation">
       <div
         ref={slotRef}
-        data-drawer-tile-slot
-        data-drawer-tile-type={
-          tile.def.w === 4 && tile.def.h === 4
-            ? tile.def.collectionName
-            : `${tile.def.collectionName}--${tile.def.w}x${tile.def.h}`
-        }
+        data-tile-drawer-tile-slot
+        data-tile-drawer-collection-name={tile.def.collectionName}
+        data-tile-drawer-tile-name={tile.def.name}
         draggable
         tabIndex={0}
         className="shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"

@@ -2,13 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { X } from "lucide-react";
-import { collectionsHash } from "@/components/home/tiles/collectionsHash";
-import { catalogKey } from "@/components/home/tiles/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { TileCarousel } from "./TileCarousel";
 import { TileDrawerTileDetail } from "./TileDrawerTileDetail";
+import { collectionsHash } from "./tiles/collectionsHash";
 
 export function TileDrawer(props: {
   open: boolean;
@@ -22,7 +21,7 @@ export function TileDrawer(props: {
 
   const filteredCollections = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const ordered = Object.values(collectionsHash).map(({ tiles }) => {
+    const collectionsAndOrderedTiles = Object.values(collectionsHash).map(({ tiles }) => {
       const list = Object.values(tiles).sort((a, b) => a.def.order - b.def.order);
       const first = list[0]!;
       return {
@@ -33,21 +32,14 @@ export function TileDrawer(props: {
     });
 
     if (!q) {
-      return ordered;
+      return collectionsAndOrderedTiles;
     }
 
-    return ordered
-      .map((collection) => {
-        const matchesCollection =
-          collection.label.toLowerCase().includes(q) ||
-          collection.collectionName.toLowerCase().includes(q);
-        const matchingTiles = collection.tiles.filter((tile) =>
-          catalogKey(tile.def).toLowerCase().includes(q),
-        );
-
-        return matchesCollection ? collection : { ...collection, tiles: matchingTiles };
-      })
-      .filter((collection) => collection.tiles.length > 0);
+    return collectionsAndOrderedTiles.filter(
+      (collection) =>
+        collection.collectionName.toLowerCase().includes(q) ||
+        collection.label.toLowerCase().includes(q),
+    );
   }, [query]);
 
   return (

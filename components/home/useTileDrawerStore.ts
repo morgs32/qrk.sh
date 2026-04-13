@@ -1,23 +1,26 @@
+import { create } from "zustand";
 import type { ICollectionTileDef } from "@/components/home/tiles/types";
 
 export const TILE_DRAG_MIME = "application/x-qrk-tile-def";
+
+type TileDrawerDragState = {
+  activeTileDragGridShape: { w: number; h: number } | null;
+  registerActiveTileDragGridShape: (w: number, h: number) => void;
+  unregisterActiveTileDragGridShape: () => void;
+};
+
+export const useTileDrawerStore = create<TileDrawerDragState>((set) => ({
+  activeTileDragGridShape: null,
+  registerActiveTileDragGridShape: (w, h) => set({ activeTileDragGridShape: { w, h } }),
+  unregisterActiveTileDragGridShape: () => set({ activeTileDragGridShape: null }),
+}));
 
 /**
  * Browsers often omit custom `getData` payloads during `dragover`; only `dragstart`/`drop` see them.
  * Register `def.w` / `def.h` on drag start so the grid drop placeholder can size before drop.
  */
-let activeTileDragGridShape: { w: number; h: number } | null = null;
-
-export function registerActiveTileDragGridShape(w: number, h: number) {
-  activeTileDragGridShape = { w, h };
-}
-
-export function unregisterActiveTileDragGridShape() {
-  activeTileDragGridShape = null;
-}
-
 export function getActiveTileDragGridShape(): { w: number; h: number } | null {
-  return activeTileDragGridShape;
+  return useTileDrawerStore.getState().activeTileDragGridShape;
 }
 
 export function parseTileDefFromDataTransfer(dt: DataTransfer | null): ICollectionTileDef | null {

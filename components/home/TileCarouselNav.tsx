@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCarousel } from "@/components/ui/carousel";
-import { catalogKey, type ICollectionTile } from "@/components/home/tiles/types";
+import { type ICollectionTile } from "@/components/home/tiles/types";
 import { cn } from "@/lib/utils";
 
 const maxVisibleDots = 5;
@@ -115,7 +115,10 @@ export function TileCarouselNav({ tiles }: { tiles: ICollectionTile[] }) {
               {tiles.map((tile, i) => {
                 const active = i === selected;
                 return (
-                  <div key={catalogKey(tile.def)} className="flex min-w-0 shrink-0 items-center justify-center">
+                  <div
+                    key={tile.def.name}
+                    className="flex min-w-0 shrink-0 items-center justify-center"
+                  >
                     <button
                       type="button"
                       onClick={() => goToSlide(i)}

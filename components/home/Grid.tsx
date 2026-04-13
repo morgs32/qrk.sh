@@ -18,8 +18,8 @@ import {
   getActiveTileDragGridShape,
   parseTileDefFromDataTransfer,
   TILE_DRAG_MIME,
-  unregisterActiveTileDragGridShape,
-} from "@/components/home/tileDragMime";
+  useTileDrawerStore,
+} from "@/components/home/useTileDrawerStore";
 import { catalogKey, type ICollectionTileDef } from "@/components/home/tiles/types";
 import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
 
@@ -147,7 +147,7 @@ export function Grid() {
       if (!dataTransferHasTileMime(event.dataTransfer)) {
         return;
       }
-      unregisterActiveTileDragGridShape();
+      useTileDrawerStore.getState().unregisterActiveTileDragGridShape();
       if (skipBump) {
         return;
       }

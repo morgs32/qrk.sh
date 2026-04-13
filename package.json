@@ -31,6 +31,7 @@
     "es-toolkit": "^1.45.1",
     "frimousse": "^0.3.0",
     "lucide-react": "^1.7.0",
+    "nanoid": "^5.1.7",
     "next": "^16.2.3",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

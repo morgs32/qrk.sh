@@ -21,7 +21,7 @@ export type ICollection<TILES extends Record<string, ITile> = Record<string, ITi
 };
 
 /** Serializable catalog row: collection + variant, no React component. */
-export type ICollectionTileDef<TILE_DEF extends ITileDef> = TILE_DEF & {
+export type ICollectionTileDef<TILE_DEF extends ITileDef = ITileDef> = TILE_DEF & {
   collectionName: string;
   collectionLabel: string;
   /** Resolved label after collection merge (always set on catalog tiles). */

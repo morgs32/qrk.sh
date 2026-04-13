@@ -40,7 +40,7 @@ Keep [TilePreview.tsx](../../components/home/TilePreview.tsx) decoupled from [Ti
 
 - **Bad**: `export type TilePreviewProps` in `TileDrawer.tsx` and `import { TilePreviewProps } from './TileDrawer'` in `TilePreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `TilePreview` with **`{ tile: ICollectionTile }`** from [components/home/tiles/types.ts](../../components/home/tiles/types.ts). Catalog rows are built with **`makeTile`** (variant **`def` + `component`**) and **`makeCollection`** (`ITile[]` → **`ICollectionTile[]`**). Drawer drag uses native **`DataTransfer`** ([`TILE_DRAG_MIME`](../../components/home/tileDragMime.ts)); [useGridLayoutStore.ts](../../components/home/useGridLayoutStore.ts) holds **`layout`** with **`def`** per item, not React components.
+- **Good**: annotate the preview’s props inline on `TilePreview` with **`{ tile: ICollectionTile }`** from [components/home/tiles/types.ts](../../components/home/tiles/types.ts). Catalog rows are built with **`makeTile`** (variant **`def` + `component`**) and **`makeCollection`** (`ITile[]` → **`ICollectionTile[]`**). Drawer drag uses native **`DataTransfer`** ([`TILE_DRAG_MIME` / `useTileDrawerStore`](../../components/home/useTileDrawerStore.ts)); [useGridLayoutStore.ts](../../components/home/useGridLayoutStore.ts) holds **`layout`** with **`def`** per item, not React components.
 
 **Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeTileCollectionProps`-style types unless a second module genuinely needs to reference that exact type.
 

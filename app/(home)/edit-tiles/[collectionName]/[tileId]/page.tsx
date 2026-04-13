@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { TileCarousel } from "@/components/home/TileCarousel";
-import { collectionsHash } from "@/components/home/tiles/collectionsHash";
 import type { ICollectionTile } from "@/components/home/tiles/types";
+import { collectionsHash } from "../../../../../components/home/tiles/collectionsHash";
 
 export default async function EditTilesTilePage({
   params,
@@ -9,6 +9,7 @@ export default async function EditTilesTilePage({
   params: Promise<{ collectionName: string; tileId: string }>;
 }) {
   const { collectionName } = await params;
+
   const entry = collectionsHash[collectionName];
   if (!entry) {
     notFound();

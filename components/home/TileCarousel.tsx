@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import type { EmblaCarouselType } from "embla-carousel";
-import { catalogKey, type ICollectionTile } from "@/components/home/tiles/types";
+import { type ICollectionTile } from "@/components/home/tiles/types";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { TileCarouselNav } from "./TileCarouselNav";
 import { TilePreview } from "./TilePreview";
@@ -65,7 +65,7 @@ export function TileCarousel(props: { collectionLabel: string; tiles: ICollectio
             >
               {tiles.map((tile) => (
                 <CarouselItem
-                  key={catalogKey(tile.def)}
+                  key={tile.def.name}
                   data-drawer-slide-grid-h={tile.def.h}
                   className="relative py-10"
                   style={{

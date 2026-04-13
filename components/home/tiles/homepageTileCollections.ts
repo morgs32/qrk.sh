@@ -13,27 +13,22 @@ import { pinkAsteriskCollection } from "./collections/PinkAsterisk/PinkAsteriskC
 import { pinkDotsCollection } from "./collections/PinkDots/PinkDotsCollection";
 import { purpleLinesCollection } from "./collections/PurpleLines/PurpleLinesCollection";
 import { textTileCollection } from "./collections/TextTile/TextTileCollection";
-import type { ICollectionTile } from "./types";
+import { ICollection } from "./types";
 
-/** Full `makeCollection` results (`tiles` map + `list` order). */
-export const homepageCatalogCollections = [
-  orangeFlagCollection,
-  blackCircleCollection,
-  greenArchCollection,
-  blueGridCollection,
-  creamBenchCollection,
-  greenGCollection,
-  creamSquareCollection,
-  pinkDotsCollection,
-  blackMCollection,
-  orangeBlocksCollection,
-  purpleLinesCollection,
-  pinkAsteriskCollection,
-  greenEmptyCollection,
-  greenCrossCollection,
-  textTileCollection,
-] as const;
-
-export const homepageTileCollections: readonly ICollectionTile[][] = homepageCatalogCollections.map(
-  (c) => Object.values(c.tiles).sort((a, b) => a.def.order - b.def.order),
-);
+export const collectionsHash = {
+  "orange-flag": orangeFlagCollection,
+  "black-circle": blackCircleCollection,
+  "green-arch": greenArchCollection,
+  "blue-grid": blueGridCollection,
+  "cream-bench": creamBenchCollection,
+  "green-g": greenGCollection,
+  "cream-square": creamSquareCollection,
+  "pink-dots": pinkDotsCollection,
+  "black-m": blackMCollection,
+  "orange-blocks": orangeBlocksCollection,
+  "purple-lines": purpleLinesCollection,
+  "pink-asterisk": pinkAsteriskCollection,
+  "green-empty": greenEmptyCollection,
+  "green-cross": greenCrossCollection,
+  "text-tile": textTileCollection,
+} as const satisfies Record<string, ICollection>;

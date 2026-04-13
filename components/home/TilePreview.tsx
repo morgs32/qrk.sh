@@ -2,11 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { registerActiveTileDragGridShape, TILE_DRAG_MIME } from "@/components/home/tileDragMime";
-import { catalogKey, type ICollectionTile } from "@/components/home/tiles/types";
-
-function serializeTileDef(tile: ICollectionTile) {
-  return JSON.stringify(tile.def);
-}
+import { type ICollectionTile } from "@/components/home/tiles/types";
 
 /** Matches homepage workspace: half viewport (`HomeShell` `w-1/2`) ÷ 8 columns, same as `Grid` `GRID_COLS`. */
 const PREVIEW_GRID_COLS = 8;
@@ -31,10 +27,9 @@ export function TilePreview({ tile }: { tile: ICollectionTile }) {
         return;
       }
 
-      const t = tileRef.current;
-      const payload = serializeTileDef(t);
+      const payload = tileRef.current.def;
       dt.effectAllowed = "copy";
-      dt.setData(TILE_DRAG_MIME, payload);
+      dt.setData(TILE_DRAG_MIME, JSON.stringify(payload));
       dt.setData("text/plain", catalogKey(t.def));
       registerActiveTileDragGridShape(t.def.w, t.def.h);
       event.stopPropagation();

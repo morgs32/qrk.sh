@@ -12,8 +12,16 @@ export type ITileDef = {
   order: number;
 };
 
+export type ICollection<TILES extends Record<string, ITile> = Record<string, ITile>> = {
+  collectionName: string;
+  collectionLabel: string;
+  tiles: {
+    [K in keyof TILES]: ICollectionTile<TILES[K]>;
+  };
+};
+
 /** Serializable catalog row: collection + variant, no React component. */
-export type ICollectionTileDef = ITileDef & {
+export type ICollectionTileDef<TILE_DEF extends ITileDef> = TILE_DEF & {
   collectionName: string;
   collectionLabel: string;
   /** Resolved label after collection merge (always set on catalog tiles). */
@@ -25,29 +33,7 @@ export type ITile = {
   component: ComponentType;
 };
 
-export type ICollectionTile = {
-  def: ICollectionTileDef;
-  component: ComponentType;
+export type ICollectionTile<TILE extends ITile = ITile> = {
+  def: ICollectionTileDef<TILE["def"]>;
+  component: TILE["component"];
 };
-
-/**
- * Stable id matching legacy `typeId` rules: 4×4 primary slot uses bare `collectionName`,
- * other variants use `${collectionName}--${w}x${h}`.
- */
-export function catalogKey(def: ICollectionTileDef): string {
-  if (def.w === 4 && def.h === 4) {
-    return def.collectionName;
-  }
-  return `${def.collectionName}--${def.w}x${def.h}`;
-}
-
-export function tileDefsEqual(a: ICollectionTileDef, b: ICollectionTileDef): boolean {
-  return (
-    a.collectionName === b.collectionName &&
-    a.collectionLabel === b.collectionLabel &&
-    a.name === b.name &&
-    a.w === b.w &&
-    a.h === b.h &&
-    a.label === b.label
-  );
-}

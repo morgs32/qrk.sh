@@ -3,8 +3,10 @@ import { blackMCollection } from "./collections/BlackMLogo/BlackMLogoCollection"
 import { blueGridCollection } from "./collections/BlueGrid/BlueGridCollection";
 import { creamBenchCollection } from "./collections/CreamBench/CreamBenchCollection";
 import { creamSquareCollection } from "./collections/CreamSquare/CreamSquareCollection";
+import { figmaCollection } from "./collections/Figma/FigmaCollection";
 import { greenArchCollection } from "./collections/GreenArch/GreenArchCollection";
 import { githubCardsCollection } from "./collections/GitHubCards/GitHubCardsCollection";
+import { imageCollection } from "./collections/Image/ImageCollection";
 import { greenCrossCollection } from "./collections/GreenCross/GreenCrossCollection";
 import { greenEmptyCollection } from "./collections/GreenEmpty/GreenEmptyCollection";
 import { greenGCollection } from "./collections/GreenGLogo/GreenGLogoCollection";
@@ -32,5 +34,7 @@ export const collectionsHash = {
   "green-empty": greenEmptyCollection,
   "green-cross": greenCrossCollection,
   "github-cards": githubCardsCollection,
+  figma: figmaCollection,
+  image: imageCollection,
   "text-tile": textTileCollection,
 } as const satisfies Record<string, ICollection>;

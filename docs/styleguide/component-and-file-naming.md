@@ -98,13 +98,23 @@ Do **not** add `components/home/tiles/index.ts` (or similar) that only re-export
 
 - **Good**: `import { homepageTiles } from "@/components/home/tiles/homepageTiles"`; `import { collectionsHash } from "@/components/home/tiles/collectionsHash"`; `import { findCollectionTile } from "@/components/home/tiles/findCollectionTile"`; catalog list from [homepageTileCollections.ts](../../components/home/tiles/homepageTileCollections.ts).
 
-### Good vs bad: RSC + `ICollection` — don’t add `FromCatalog` on shared UI
+### Good vs bad: `ICollection` + `TileCollectionCarousel` — don’t add `FromCatalog` on shared UI
 
-A server `page.tsx` cannot pass **`ICollection`** (tile **`component`** refs) into a client child. The fix is **not** a second exported wrapper on the shared carousel that imports **`collectionsHash`** and takes **`collectionName`**: that couples every import site to a parallel API and drags catalog knowledge into **`components/home`**.
+Do **not** add a second exported wrapper on the shared carousel that imports **`collectionsHash`** and takes **`collectionName`**: that couples every import site to a parallel API and drags catalog knowledge into **`components/home`**.
 
 - **Bad**: `TileCollectionCarouselFromCatalog` (or similar) exported from [TileCollectionCarousel.tsx](../../components/home/TileCollectionCarousel.tsx) — thin pass-through: `collectionsHash[collectionName]` → **`TileCollectionCarousel`**.
 
-- **Good**: [TileCollectionCarousel.tsx](../../components/home/TileCollectionCarousel.tsx) accepts **`collection: ICollection`** (and optional **`tileSortFn`**) only. Put the hash lookup in a **route-local** `"use client"` module next to the server page — e.g. [EditTilesTileCarousel.tsx](../../app/(home)/edit-tiles/[collectionName]/[tileId]/EditTilesTileCarousel.tsx) — so **`collectionsHash`** is imported at the **route** boundary, not inside the shared carousel.
+- **Good**: [TileCollectionCarousel.tsx](../../components/home/TileCollectionCarousel.tsx) accepts **`collection: ICollection`** (and optional **`tileSortFn`**) only. Resolve **`collectionsHash[collectionName]`** in the route’s [page.tsx](../../app/(home)/edit-tiles/[collectionName]/[tileId]/page.tsx) and pass **`collection`** into **`TileCollectionCarousel`**; keep **`collectionsHash`** out of the shared carousel module.
+
+### Good vs bad: edit-tiles tile route — keep one-off logic in `page.tsx`
+
+**Prefer consolidating** behavior for [edit-tiles … / [tileId]/page.tsx](../../app/(home)/edit-tiles/[collectionName]/[tileId]/page.tsx) in that file. Do **not** add a **separate module** whose **only** consumer is that single `page.tsx` (extra imports and folder noise for no reuse).
+
+- **Bad**: `EditTilesTileCarousel.tsx` (or `FooHelper.ts`) next to the page — a thin wrapper or helper used **only** once by that `page.tsx`.
+
+- **Good**: Render shared UI (e.g. **`TileCollectionCarousel`**) **directly** in the page’s JSX; put small helpers at **module scope** in the same file; if the page is a client component, use **`useMemo`** / local **function declarations** / inline **child components** in the **same file** instead of a sibling file only this route imports.
+
+Reuse still belongs in **`components/`** or **`lib/`** when **multiple** routes or features need it — this rule targets **single-use** splinters next to one page.
 
 ### Good vs bad: home grid store naming (`Grid`, `I*` types)
 

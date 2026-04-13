@@ -82,11 +82,11 @@ export function TileCarouselNav({ tiles }: { tiles: ICollectionTile[] }) {
   return (
     <div
       data-tile-drawer-carousel-nav
-      className="sticky bottom-0 z-[8] flex w-full min-w-0 shrink-0 flex-col justify-end px-6"
+      className="sticky bottom-0 z-[8] flex w-full min-w-0 shrink-0 flex-col justify-end"
       role="toolbar"
       aria-label="Tile size and slides"
     >
-      <div className="flex w-full min-w-0 flex-col items-center justify-center bg-background/95 py-3 backdrop-blur-sm dark:bg-background/90">
+      <div className="flex w-full min-w-0 flex-col items-center justify-center bg-background/65 py-3 backdrop-blur-sm dark:bg-background/90">
         {currentTile ? (
           <p
             className="mb-2 text-center text-sm font-semibold tabular-nums text-foreground"

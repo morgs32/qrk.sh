@@ -48,7 +48,7 @@ Keep [TilePreview.tsx](../../components/home/TilePreview.tsx) decoupled from [Ti
 
 - **Bad**: ad hoc **`typeId`** strings on every catalog row, or passing full tile objects (including **`component`**) into Zustand for external drag.
 
-- **Good**: **`ICollectionTileDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`w`**, **`h`**, **`label`**); **`catalogKey(def)`** for stable keys (matches legacy `typeId` rules: 2×2 → bare **`collectionName`**). **`ITile`** = variant-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionTile`**.
+- **Good**: **`ICollectionTileDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`w`**, **`h`**, **`label`**, variant **`name`**). **`ITile`** = variant-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionTile`**.
 
 ### Tile variant identity: `collectionName` + tile def `name`
 
@@ -58,6 +58,14 @@ Keep [TilePreview.tsx](../../components/home/TilePreview.tsx) decoupled from [Ti
 2. Within one collection, each tile variant’s **`def.name`** (kebab-case, e.g. `2x2`, `8x2`) is **unique among that collection’s tiles**.
 3. Therefore **`(collectionName, def.name)`** is **unique for every catalog tile variant**—use this pair for tests and DOM hooks instead of a composite string.
 
+### Terminology: `tileNames` (catalog identity)
+
+In code and tests, **`tileNames`** means **that pair**: **`collectionName`** plus **`tile.def.name`** (the variant slug, e.g. `2x2`, `4x4`). Together they uniquely identify **any homepage catalog tile variant**. They are **not** a grid **instance** id (`item.i`), **not** a single concatenated key, and **not** `w`×`h` alone.
+
+- **Bad**: calling a composite like `` `${collectionName}--${w}x${h}` `` or a bare `collectionName` “tileNames”; using “tile name” only for `def.name` without scoping by collection when both matter.
+
+- **Good**: pass or thread **`collectionName`** and **`def.name`** (or parameters **`collectionName`**, **`tileName`** when `tileName` is the variant slug); locate grid tiles with **`gridLocateByTileNames(grid, collectionName, tileName)`** in [`e2e/grid-drag.spec.ts`](../../e2e/grid-drag.spec.ts).
+
 [TilePreview.tsx](../../components/home/TilePreview.tsx) exposes it on the draggable slot:
 
 - **`data-tile-drawer-collection-name`** = **`tile.def.collectionName`**
@@ -65,9 +73,14 @@ Keep [TilePreview.tsx](../../components/home/TilePreview.tsx) decoupled from [Ti
 
 (Together with **`data-tile-drawer-tile-slot`**, used by carousel drag guards.)
 
-- **Bad**: a single attribute holding `makeTileKey` / `catalogKey` / concatenated ids when you need to target “this variant in this collection” in the drawer.
+[Grid.tsx](../../components/home/Grid.tsx) sets on each placed tile wrapper:
 
-- **Good**: two attributes, values exactly `def.collectionName` and `def.name`; in Playwright, `[data-tile-drawer-tile-slot][data-tile-drawer-collection-name="…"][data-tile-drawer-tile-name="…"]` (see [`e2e/grid-drag.spec.ts`](../../e2e/grid-drag.spec.ts) `drawerTilePreviewSlot`).
+- **`data-tile-grid-collection-name`** = **`item.def.collectionName`**
+- **`data-tile-grid-tile-name`** = **`item.def.name`**
+
+- **Bad**: a single attribute holding `makeTileKey` / concatenated ids when you need to target “this variant in this collection” in the drawer **or on the grid**.
+
+- **Good**: two attributes, values exactly `def.collectionName` and `def.name`. In Playwright: drawer — `[data-tile-drawer-tile-slot][data-tile-drawer-collection-name="…"][data-tile-drawer-tile-name="…"]` (`drawerTilePreviewSlot` in [`e2e/grid-drag.spec.ts`](../../e2e/grid-drag.spec.ts)); grid — `[data-tile-grid-collection-name="…"][data-tile-grid-tile-name="…"]` scoped under `.grid-layout` (`gridLocateByTileNames` in the same file).
 
 ### Good vs bad: tile factory argument naming (`props`, not `options`; inline type)
 
@@ -83,7 +96,7 @@ Do **not** add `components/home/tiles/index.ts` (or similar) that only re-export
 
 - **Bad**: `import { homepageTiles, collectionsHash, findCollectionTile } from "./tiles"` or `@/components/home/tiles` when `./tiles` is a re-export barrel.
 
-- **Good**: `import { catalogKey } from "@/components/home/tiles/catalogKey"`; `import { homepageTiles } from "@/components/home/tiles/homepageTiles"`; `import { collectionsHash } from "@/components/home/tiles/collectionsHash"`; `import { findCollectionTile } from "@/components/home/tiles/findCollectionTile"`; catalog list from [homepageTileCollections.ts](../../components/home/tiles/homepageTileCollections.ts).
+- **Good**: `import { homepageTiles } from "@/components/home/tiles/homepageTiles"`; `import { collectionsHash } from "@/components/home/tiles/collectionsHash"`; `import { findCollectionTile } from "@/components/home/tiles/findCollectionTile"`; catalog list from [homepageTileCollections.ts](../../components/home/tiles/homepageTileCollections.ts).
 
 ### Good vs bad: home grid store naming (`Grid`, `I*` types)
 

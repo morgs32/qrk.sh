@@ -20,7 +20,6 @@ import {
   TILE_DRAG_MIME,
   useTileDrawerStore,
 } from "@/components/home/useTileDrawerStore";
-import { catalogKey } from "@/components/home/tiles/catalogKey";
 import type { ICollectionTileDef } from "@/components/home/tiles/types";
 import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
 
@@ -276,7 +275,8 @@ export function Grid() {
                 <div
                   key={item.i}
                   data-tile-instance-id={item.i}
-                  data-tile-type-id={catalogKey(item.def)}
+                  data-tile-grid-collection-name={item.def.collectionName}
+                  data-tile-grid-tile-name={item.def.name}
                   className="cursor-grab touch-none active:cursor-grabbing"
                   onClick={() => {
                     if (suppressTileIdClickRef.current) {

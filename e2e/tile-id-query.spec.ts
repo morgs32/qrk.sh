@@ -17,7 +17,11 @@ test.describe("tile instance path", () => {
     await page.goto("/", { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
-    const tile = grid.locator('[data-tile-type-id="orange-flag"]').first();
+    const tile = grid
+      .locator(
+        '[data-tile-grid-collection-name="orange-flag"][data-tile-grid-tile-name="4x4"]',
+      )
+      .first();
     await expect(tile).toBeVisible({ timeout: 90_000 });
     await tile.scrollIntoViewIfNeeded();
 

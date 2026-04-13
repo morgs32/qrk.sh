@@ -4,15 +4,10 @@ import { TileCarousel } from "@/components/home/TileCarousel";
 import type { ICollectionTile } from "@/components/home/tiles/types";
 import { collectionsHash } from "@/components/home/tiles/collectionsHash";
 
-/** Self-map for `Schema.Enums` (each key maps to its string value). */
-const editTilesCollectionNameEnums = Object.fromEntries(
-  (Object.keys(collectionsHash) as (keyof typeof collectionsHash)[]).map((k) => [k, k]),
-) as { [K in keyof typeof collectionsHash]: K };
-
-const EditTilesCollectionNameSchema = Schema.Enums(editTilesCollectionNameEnums);
+const collectionNames = Object.keys(collectionsHash) as Array<keyof typeof collectionsHash>;
 
 const EditTilesRouteParamsSchema = Schema.Struct({
-  collectionName: EditTilesCollectionNameSchema,
+  collectionName: Schema.Union(...collectionNames.map((name) => Schema.Literal(name))),
   tileId: Schema.String,
 });
 

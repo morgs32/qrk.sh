@@ -1,4 +1,6 @@
 import { Header } from "./Header";
+import { Toolbars } from "./Toolbars/Toolbars";
+import { Drawers } from "./Drawers/Drawers";
 
 export default async function PageLayout({
   children,
@@ -16,6 +18,7 @@ export default async function PageLayout({
       <div className="min-h-0 flex-1">
         <Drawers />
         {children}
+        <Toolbars />
       </div>
     </div>
   );

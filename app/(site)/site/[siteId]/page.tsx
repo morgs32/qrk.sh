@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { DEFAULT_SITE_PAGE_ID } from "./Drawers/matchDrawerPathname";
-import { pagePattern } from "./routePatterns";
+import { DEFAULT_SITE_PAGE_ID, pagePattern } from "./routePatterns";
 
 export default async function SitePage({
   params,

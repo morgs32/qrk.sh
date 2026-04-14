@@ -2,80 +2,63 @@
 
 import { useMemo } from "react";
 import { Cog, CogIcon, Minus, Plus, RectangleHorizontal, Type, X } from "lucide-react";
-import Link from "next/link";
-import { useParams, usePathname, useRouter } from "next/navigation";
-import { brickCatalogPattern, pagePattern } from "../../../routePatterns";
+import { useParams, usePathname } from "next/navigation";
+import {
+  brickCatalogPattern,
+  brickDetailPattern,
+  composePattern,
+  pathnameToMatchUrl,
+} from "../../../routePatterns";
 import { BottomToolbar, ToolbarButton, ToolbarSeparator } from "./BottomToolbar";
-import { cn } from "@/lib/utils";
+
+const bricksMatchPattern = [brickCatalogPattern, brickDetailPattern] as const;
 
 export function SiteToolbar() {
-  const router = useRouter();
   const pathname = usePathname();
   const params = useParams<{ siteId: string; pageId: string }>();
   const siteId = params.siteId;
   const pageId = params.pageId;
 
-  const { basePath, isBrickCatalog, isCompose, bricksToolbarHref, isDefault } = useMemo(() => {
-    const basePath = `/site/${siteId}/page/${pageId}`;
-    const isBrickCatalog =
-      pathname === `${basePath}/brick-catalog` || pathname.startsWith(`${basePath}/brick/`);
-    const isCompose = pathname === `${basePath}/compose`;
-    const bricksToolbarHref = isBrickCatalog
-      ? pagePattern.href({ siteId, pageId })
-      : brickCatalogPattern.href({ siteId, pageId });
+  const hrefParams = useMemo(() => ({ siteId, pageId }), [siteId, pageId]);
 
-    return {
-      basePath,
-      isBrickCatalog,
-      isCompose,
-      bricksToolbarHref,
-      isDefault: !isCompose && !isBrickCatalog,
-    };
-  }, [pathname, siteId, pageId]);
+  const isDefault = useMemo(() => {
+    const url = pathnameToMatchUrl(pathname);
+    return (
+      !composePattern.test(url) &&
+      !brickCatalogPattern.test(url) &&
+      !brickDetailPattern.test(url)
+    );
+  }, [pathname]);
 
   return (
     <div className="pointer-events-none fixed bottom-6 left-0 right-0 z-30 flex justify-center px-4">
       <div className="pointer-events-auto">
         <BottomToolbar>
           <ToolbarButton
-            tooltip={isCompose ? "Close compose" : "Compose"}
-            aria-label={isCompose ? "Close compose" : "Compose"}
-            onClick={() => {
-              router.push(isCompose ? basePath : `${basePath}/compose`);
-            }}
-            className={cn(
-              "h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground",
-              isCompose && "text-destructive hover:text-destructive",
-            )}
-          >
-            {isCompose ? (
-              <X className="!size-4 shrink-0" strokeWidth={2} aria-hidden />
-            ) : (
-              <Type className="h-3.5 w-3.5" />
-            )}
-            {isCompose ? "Close" : "Compose"}
-          </ToolbarButton>
+            kind="route"
+            matchPattern={composePattern}
+            hrefParams={hrefParams}
+            activeLabel="Close"
+            inactiveLabel="Compose"
+            activeIcon={<X className="!size-4 shrink-0" strokeWidth={2} aria-hidden />}
+            inactiveIcon={<Type className="h-3.5 w-3.5" />}
+            activeDestructive
+            className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+          />
 
           <ToolbarSeparator />
 
           <ToolbarButton
-            asChild
-            tooltip={isBrickCatalog ? "Close bricks drawer" : "Add bricks"}
-            aria-label={isBrickCatalog ? "Close bricks drawer" : "Add bricks"}
-            className={cn(
-              "h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground",
-              isBrickCatalog && "text-destructive hover:text-destructive",
-            )}
-          >
-            <Link href={bricksToolbarHref}>
-              {isBrickCatalog ? (
-                <X className="!size-4 shrink-0" strokeWidth={2} aria-hidden />
-              ) : (
-                <Plus className="h-3.5 w-3.5" />
-              )}
-              {isBrickCatalog ? "Close" : "Add bricks"}
-            </Link>
-          </ToolbarButton>
+            kind="route"
+            matchPattern={bricksMatchPattern}
+            hrefParams={hrefParams}
+            activeLabel="Close"
+            inactiveLabel="Add bricks"
+            activeIcon={<X className="!size-4 shrink-0" strokeWidth={2} aria-hidden />}
+            inactiveIcon={<Plus className="h-3.5 w-3.5" />}
+            activeDestructive
+            className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+          />
 
           {isDefault && (
             <>

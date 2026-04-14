@@ -6,8 +6,8 @@ export const DEFAULT_SITE_PAGE_ID = "home" as const;
 export const pagePattern = new RoutePattern("site/:siteId/page/:pageId");
 
 export const brickCatalogPattern = new RoutePattern("site/:siteId/page/:pageId/brick-catalog");
-const brickDetailPattern = new RoutePattern("site/:siteId/page/:pageId/brick/:brickId");
-const composePattern = new RoutePattern("site/:siteId/page/:pageId/compose");
+export const brickDetailPattern = new RoutePattern("site/:siteId/page/:pageId/brick/:brickId");
+export const composePattern = new RoutePattern("site/:siteId/page/:pageId/compose");
 
 const patterns = {
   brickCatalog: brickCatalogPattern,
@@ -18,7 +18,11 @@ const patterns = {
 /**
  * Pathname-only URLs for matching (host is ignored; origin is stable for tests).
  */
-const PAGE_PATH_MATCH_ORIGIN = "http://qrk.invalid";
+export const PAGE_PATH_MATCH_ORIGIN = "http://qrk.invalid";
+
+export function pathnameToMatchUrl(pathname: string) {
+  return new URL(pathname, PAGE_PATH_MATCH_ORIGIN);
+}
 
 export const pathMatcher = new ArrayMatcher<keyof typeof patterns>();
 
@@ -27,5 +31,5 @@ Object.entries(patterns).forEach(([key, pattern]) => {
 });
 
 export function matchPagePathname(pathname: string) {
-  return pathMatcher.match(new URL(pathname, PAGE_PATH_MATCH_ORIGIN));
+  return pathMatcher.match(pathnameToMatchUrl(pathname));
 }

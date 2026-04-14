@@ -1,13 +1,11 @@
 "use client";
 
-import { AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
-import { LeftDrawer } from "./LeftDrawer";
-import { RightDrawer } from "./RightDrawer";
+import { SiteToolbar } from "../page/[pageId]/Toolbars/SiteToolbar";
 import { matchPagePathname } from "../routePatterns";
 
-export function Drawers() {
+export function Toolbars() {
   const pathname = usePathname();
   const match = useMemo(() => matchPagePathname(pathname), [pathname]);
 
@@ -15,13 +13,12 @@ export function Drawers() {
     switch (match?.data) {
       case "brickCatalog":
       case "brickDetail":
-        return <LeftDrawer key="left" data={match.data} />;
       case "compose":
-        return <RightDrawer key="right" data={match.data} />;
+        return <SiteToolbar key="bottom" />;
       default:
         return null;
     }
   }, [match?.data]);
 
-  return <AnimatePresence>{render}</AnimatePresence>;
+  return <>{render}</>;
 }

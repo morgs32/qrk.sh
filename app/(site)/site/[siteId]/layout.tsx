@@ -1,5 +1,4 @@
 import { Header } from "./Header";
-import { Drawers } from "./Drawers/Drawers";
 
 export default async function PageLayout({
   children,

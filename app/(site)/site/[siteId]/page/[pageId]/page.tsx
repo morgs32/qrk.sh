@@ -1,3 +1,5 @@
+import { MainColumns } from "./MainColumns";
+
 export default function SitePage() {
-  return null;
+  return <MainColumns />;
 }

@@ -1,5 +1,8 @@
 import { makeBackend, makeSystem } from "zerospin";
 
+import { createSite } from "@/zerospin/dashboard/contracts";
+import { dashboardController } from "@/zerospin/dashboard/dashboardController";
+import { Site } from "@/zerospin/dashboard/models";
 import {
   createLayoutItem,
   createTextTileContent,
@@ -7,12 +10,12 @@ import {
   updateLayoutItem,
   updateTextTileContent,
   updateUser,
-} from "@/zerospin/contracts";
-import { qrkController } from "@/zerospin/controller";
-import { LayoutItem, TextTileContent, User } from "@/zerospin/models";
+} from "@/zerospin/website/contracts";
+import { websiteController } from "@/zerospin/website/controller";
+import { LayoutItem, TextTileContent, User } from "@/zerospin/website/models";
 
 export const backend = makeBackend({
-  controller: qrkController,
+  controller: websiteController,
   getGraph: (props) => {
     const { actorId, db } = props;
     return db.query.user
@@ -30,12 +33,26 @@ export const backend = makeBackend({
   },
 });
 
+export const dashboardBackend = makeBackend({
+  controller: dashboardController,
+  getGraph: (props) => {
+    const { actorId, db } = props;
+    return db.query.user
+      .findFirst({
+        where: { id: { eq: actorId } },
+      })
+      .sync();
+  },
+});
+
 export const system = makeSystem({
   controllers: {
-    Qrk: qrkController,
+    website: websiteController,
+    dashboard: dashboardController,
   },
   backends: {
-    Qrk: backend,
+    website: backend,
+    dashboard: dashboardBackend,
   },
   contracts: {
     createLayoutItem,
@@ -44,11 +61,13 @@ export const system = makeSystem({
     updateLayoutItem,
     updateTextTileContent,
     updateUser,
+    createSite,
   },
   models: {
     layoutItem: LayoutItem,
     textTileContent: TextTileContent,
     user: User,
+    site: Site,
   },
   actor: "user",
   id: "qrkSys_v1_7KpQmN2xRt4YwZ8",

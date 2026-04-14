@@ -7,16 +7,16 @@ import {
   updateLayoutItem,
   updateTextTileContent,
   updateUser,
-} from "@/zerospin/contracts";
-import { LayoutItem, TextTileContent, User } from "@/zerospin/models";
+} from "@/zerospin/website/contracts";
+import { LayoutItem, TextTileContent, User } from "@/zerospin/website/models";
 
-export const qrkModels = {
+export const websiteModels = {
   layoutItem: LayoutItem,
   textTileContent: TextTileContent,
   user: User,
 };
 
-export const qrkController = makeController({
+export const websiteController = makeController({
   contracts: {
     createLayoutItem,
     createTextTileContent,
@@ -25,9 +25,9 @@ export const qrkController = makeController({
     updateTextTileContent,
     updateUser,
   },
-  name: "Qrk",
-  systemName: "qrk",
-  models: qrkModels,
+  name: "website",
+  systemName: "qrk-sh",
+  models: websiteModels,
   linked: "user",
   actor: "user",
 });

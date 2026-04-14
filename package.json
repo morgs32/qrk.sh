@@ -48,10 +48,13 @@
   "pnpm": {
     "overrides": {
       "@zerospin/error": "file:../zerospin/packages/error",
-      "@zerospin/profiler": "file:../zerospin/packages/profiler"
+      "@zerospin/profiler": "file:../zerospin/packages/profiler",
+      "@zerospin/system-worker": "file:../zerospin/packages/system-worker",
+      "zerospin": "file:../zerospin/packages/core"
     }
   },
   "devDependencies": {
+    "@zerospin/cli": "file:../zerospin/packages/cli",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/node": "^25.5.2",

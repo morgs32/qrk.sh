@@ -5,7 +5,7 @@ import {
   updateResource,
 } from "zerospin";
 
-import { LayoutItem, TextTileContent, User } from "@/zerospin/models";
+import { LayoutItem, TextTileContent, User } from "@/zerospin/website/models";
 
 export const createUser = makeContract({
   commandName: "createUser",

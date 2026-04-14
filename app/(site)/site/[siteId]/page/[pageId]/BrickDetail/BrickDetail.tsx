@@ -1,14 +1,14 @@
 "use client";
 
-import { ArrowLeft, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { pagePattern } from "../../../routePatterns";
+import { useParams, useRouter } from "next/navigation";
 
-export function BrickDetail(props: {
-  brickId: string;
-  onBack: () => void;
-  onClose: () => void;
-}) {
-  const { brickId, onBack, onClose } = props;
+export function BrickDetail() {
+  const router = useRouter();
+  const params = useParams<{ siteId: string; pageId: string; brickId: string }>();
+  const brickId = params.brickId;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -17,22 +17,10 @@ export function BrickDetail(props: {
           <Button
             type="button"
             variant="ghost"
-            size="sm"
-            className="cursor-pointer gap-2 px-2"
-            aria-label="Back to brick catalog"
-            onClick={onBack}
-          >
-            <ArrowLeft className="size-4" />
-            Back
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
             size="icon"
             className="cursor-pointer"
             aria-label="Close drawer"
-            onClick={onClose}
+            onClick={() => router.push(pagePattern.href({ ...params }))}
           >
             <X className="size-4" />
           </Button>

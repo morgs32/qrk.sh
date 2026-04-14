@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { X, ZoomOut } from "lucide-react";
+import { Undo, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 
 import { pagePattern } from "../routePatterns";
@@ -14,13 +14,13 @@ const toolbarPresenceTransition = {
 };
 
 /** Figma: https://www.figma.com/design/x1KYuaPaEo89CE715oUD4I/qrk.sh?node-id=46-459 */
-export function BrickCatalogToolbar() {
+export function ComposeToolbar() {
   const params = useParams<{ siteId: string; pageId: string }>();
   const router = useRouter();
 
   return (
-    <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 md:left-[75%]">
-      <div className="pointer-events-auto" role="toolbar" aria-label="Brick catalog">
+    <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 md:left-[25%]">
+      <div className="pointer-events-auto" role="toolbar" aria-label="Compose">
         <motion.div
           layout
           layoutId="site-bottom-toolbar-shell"
@@ -31,8 +31,8 @@ export function BrickCatalogToolbar() {
         >
           <BottomToolbar className="rounded-full border-border/80 bg-background px-1.5 py-1 shadow-md">
             <ToolbarButton
-              label="Zoom out"
-              icon={<ZoomOut className="h-3.5 w-3.5" strokeWidth={2} />}
+              label="Undo"
+              icon={<Undo className="h-3.5 w-3.5" strokeWidth={2} />}
               onClick={() => {}}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />

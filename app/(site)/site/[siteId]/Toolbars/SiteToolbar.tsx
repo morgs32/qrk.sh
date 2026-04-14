@@ -20,65 +20,68 @@ export function SiteToolbar() {
   const hrefParams = useMemo(() => ({ siteId, pageId }), [siteId, pageId]);
 
   return (
-    <motion.div
-      initial={{ y: "100%", opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: "100%", opacity: 0 }}
-      transition={toolbarPresenceTransition}
-      className="pointer-events-none fixed bottom-6 left-0 right-0 z-30 flex justify-center px-4"
-    >
+    <div className="pointer-events-none fixed bottom-6 left-0 right-0 z-30 flex justify-center px-4">
       <div className="pointer-events-auto">
-        <BottomToolbar>
-          <ToolbarButton
-            label="Compose"
-            icon={<Type className="h-3.5 w-3.5" />}
-            href={composePattern.href(hrefParams)}
-            className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-          />
+        <motion.div
+          layout
+          layoutId="site-bottom-toolbar-shell"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={toolbarPresenceTransition}
+        >
+          <BottomToolbar>
+            <ToolbarButton
+              label="Compose"
+              icon={<Type className="h-3.5 w-3.5" />}
+              href={composePattern.href(hrefParams)}
+              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+            />
 
-          <ToolbarSeparator />
+            <ToolbarSeparator />
 
-          <ToolbarButton
-            label="Add bricks"
-            icon={<Plus className="h-3.5 w-3.5" />}
-            href={brickCatalogPattern.href(hrefParams)}
-            className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-          />
+            <ToolbarButton
+              label="Add bricks"
+              icon={<Plus className="h-3.5 w-3.5" />}
+              href={brickCatalogPattern.href(hrefParams)}
+              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+            />
 
-          <ToolbarSeparator />
+            <ToolbarSeparator />
 
-          <ToolbarButton
-            tooltip="Set breakpoints"
-            aria-label="Set breakpoints"
-            className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-          >
-            <RectangleHorizontal className="h-3.5 w-3.5" />
-            Set breakpoints
-          </ToolbarButton>
+            <ToolbarButton
+              tooltip="Set breakpoints"
+              aria-label="Set breakpoints"
+              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+            >
+              <RectangleHorizontal className="h-3.5 w-3.5" />
+              Set breakpoints
+            </ToolbarButton>
 
-          <ToolbarSeparator />
+            <ToolbarSeparator />
 
-          <ToolbarButton
-            tooltip="Page settings"
-            aria-label="Page settings"
-            className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-          >
-            <Cog className="h-3.5 w-3.5" />
-            Page settings
-          </ToolbarButton>
+            <ToolbarButton
+              tooltip="Page settings"
+              aria-label="Page settings"
+              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+            >
+              <Cog className="h-3.5 w-3.5" />
+              Page settings
+            </ToolbarButton>
 
-          <ToolbarSeparator />
+            <ToolbarSeparator />
 
-          <ToolbarButton
-            tooltip="Site settings"
-            aria-label="Site settings"
-            className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-          >
-            <CogIcon className="h-3.5 w-3.5" />
-            Site settings
-          </ToolbarButton>
-        </BottomToolbar>
+            <ToolbarButton
+              tooltip="Site settings"
+              aria-label="Site settings"
+              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+            >
+              <CogIcon className="h-3.5 w-3.5" />
+              Site settings
+            </ToolbarButton>
+          </BottomToolbar>
+        </motion.div>
       </div>
-    </motion.div>
+    </div>
   );
 }

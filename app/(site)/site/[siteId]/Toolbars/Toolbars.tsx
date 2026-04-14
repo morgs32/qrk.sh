@@ -1,11 +1,12 @@
 "use client";
 
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, LayoutGroup } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { BrickCatalogToolbar } from "./BrickCatalogToolbar";
 import { SiteToolbar } from "./SiteToolbar";
 import { matchPagePathname } from "../routePatterns";
+import { ComposeToolbar } from "./ComposeToolbar";
 
 export function Toolbars() {
   const pathname = usePathname();
@@ -15,10 +16,16 @@ export function Toolbars() {
     switch (match?.data) {
       case "brickCatalog":
         return <BrickCatalogToolbar key="brick-catalog-toolbar" />;
+      case "compose":
+        return <ComposeToolbar key="compose-toolbar" />;
       default:
         return <SiteToolbar key="default" />;
     }
   }, [match?.data]);
 
-  return <AnimatePresence>{render}</AnimatePresence>;
+  return (
+    <LayoutGroup>
+      <AnimatePresence mode="popLayout">{render}</AnimatePresence>
+    </LayoutGroup>
+  );
 }

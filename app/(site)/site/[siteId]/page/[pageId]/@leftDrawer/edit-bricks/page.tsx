@@ -11,7 +11,6 @@ export default function EditBricksPage() {
 
   return (
     <BrickCatalog
-      open
       brickId={null}
       onBackToCatalog={() => {
         router.push(`/site/${siteId}/page/${pageId}/edit-bricks`);

@@ -3,6 +3,8 @@ import { usePathname } from "next/navigation";
 import { BrickCatalog } from "../page/[pageId]/BrickCatalog/BrickCatalog";
 import { BrickDetail } from "../page/[pageId]/BrickDetail/BrickDetail";
 import { Compose } from "../page/[pageId]/Compose/Compose";
+import { LeftDrawer } from "./LeftDrawer";
+import { RightDrawer } from "./RightDrawer";
 
 /** Default `[pageId]` for the primary site workspace (`/site/:siteId/page/:pageId`). */
 export const DEFAULT_SITE_PAGE_ID = "home" as const;
@@ -33,11 +35,10 @@ export function Drawers() {
   const match = pathMatcher.match(new URL(pathname, DRAWER_MATCH_ORIGIN));
   switch (match?.data) {
     case "brickCatalog":
-      return <BrickCatalog />;
     case "brickDetail":
-      return <BrickDetail />;
+      return <LeftDrawer data={match.data} />;
     case "compose":
-      return <Compose />;
+      return <RightDrawer data={match.data} />;
     default:
       return null;
   }

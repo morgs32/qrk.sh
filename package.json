@@ -34,6 +34,7 @@
     "embla-carousel": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "es-toolkit": "^1.45.1",
+    "framer-motion": "^12.38.0",
     "frimousse": "^0.3.0",
     "lucide-react": "^1.7.0",
     "nanoid": "^5.1.7",

@@ -11,7 +11,6 @@ export default function BrickCatalogPage() {
 
   return (
     <BrickCatalog
-      open
       brickId={null}
       onBackToCatalog={() => {
         router.push(`/site/${siteId}/page/${pageId}/brick-catalog`);

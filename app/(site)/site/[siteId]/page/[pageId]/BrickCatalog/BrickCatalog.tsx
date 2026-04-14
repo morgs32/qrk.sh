@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BrickCollectionCarousel } from "../BrickCollectionCarousel/BrickCollectionCarousel";
+import { BrickCarousel } from "../BrickCarousel/BrickCarousel";
+import { BrickCarouselError } from "../BrickCarousel/BrickCarouselError";
 import { collectionsHash } from "@/components/home/bricks/collectionsHash";
 import { useParams, useRouter } from "next/navigation";
 import { pagePattern } from "../../../routePatterns";
@@ -79,8 +80,10 @@ export function BrickCatalog() {
             </div>
           ) : (
             filteredCollections.map((collection) => (
-              <div key={collection.collectionName} className="min-w-0">
-                <BrickCollectionCarousel collection={collection} />
+              <div key={collection.collectionName} className="min-w-0 border-b border-border/60">
+                <BrickCarouselError>
+                  <BrickCarousel collection={collection} />
+                </BrickCarouselError>
               </div>
             ))
           )}

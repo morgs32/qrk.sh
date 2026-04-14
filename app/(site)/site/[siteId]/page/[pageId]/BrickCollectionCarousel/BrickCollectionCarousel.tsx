@@ -64,7 +64,7 @@ export function BrickCollectionCarousel(props: {
             (Using 12vw/2 here clipped slides vs preview and looked empty.)
           */}
           <div
-            className="flex min-h-0 w-full flex-col"
+            className="group flex min-h-0 w-full flex-col"
             style={
               {
                 height: `calc(${maxH} * 50vw / 8 + 5.75rem)`,

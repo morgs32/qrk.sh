@@ -82,11 +82,11 @@ export function BrickCarouselNav({ bricks }: { bricks: ICollectionBrick[] }) {
   return (
     <div
       data-brick-drawer-carousel-nav
-      className="sticky bottom-0 z-[8] flex w-full min-w-0 shrink-0 flex-col justify-end"
+      className="sticky bottom-0 z-[8] flex w-full min-w-0 shrink-0 flex-col justify-end opacity-0 pointer-events-none transition-opacity duration-200 ease-out group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
       role="toolbar"
       aria-label="Brick size and slides"
     >
-      <div className="flex w-full min-w-0 flex-col items-center justify-center bg-background/65 py-3 backdrop-blur-sm dark:bg-background/90">
+      <div className="flex w-full min-w-0 flex-col items-center justify-center py-3">
         {currentBrick ? (
           <p
             className="mb-2 text-center text-sm font-semibold tabular-nums text-foreground"
@@ -95,7 +95,7 @@ export function BrickCarouselNav({ bricks }: { bricks: ICollectionBrick[] }) {
             {currentBrick.def.label}
           </p>
         ) : null}
-        <div className="flex max-w-full min-w-0 items-center gap-3 rounded-full border border-border/60 bg-muted/50 py-2 pl-2 pr-2 dark:bg-muted/30">
+        <div className="flex max-w-full min-w-0 items-center gap-3 rounded-full py-2 pl-2 pr-2">
           <button
             type="button"
             className={chevronBtn}

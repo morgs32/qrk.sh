@@ -35,6 +35,9 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@remix-run/route-pattern':
+        specifier: ^0.20.0
+        version: 0.20.0
       '@tiptap/extension-placeholder':
         specifier: ^3.22.3
         version: 3.22.3(@tiptap/extensions@3.22.3(@tiptap/core@3.22.3(@tiptap/pm@3.22.3))(@tiptap/pm@3.22.3))
@@ -1515,6 +1518,9 @@ packages:
 
   '@remix-run/route-pattern@0.16.0':
     resolution: {integrity: sha512-Co6bPtODF7cLYVBweayRXfEb31ybz45WqwT/u72eDQJZgRSVKFf0Ps9fqinSaiX0Xp7jvkRCBAbSUgLuLLjzuw==}
+
+  '@remix-run/route-pattern@0.20.0':
+    resolution: {integrity: sha512-TEdJ5eFn40St26oyaRYGI1FWeXDvlEzkbvollM8Xit0qIuDFyFG03Okvvfc1s8KgR9sYULDPjxJIzk6xvIRR9A==}
 
   '@remix-run/session@0.4.1':
     resolution: {integrity: sha512-Bm6aKYgutb/raHZ3laloz8g/Qu7f3CeK3o4gUVDMxtEiAdWCzJamwHoTpGOc5+g1Kuy7z85v4M6nGrF06MFDSg==}
@@ -5847,6 +5853,8 @@ snapshots:
   '@remix-run/headers@0.18.0': {}
 
   '@remix-run/route-pattern@0.16.0': {}
+
+  '@remix-run/route-pattern@0.20.0': {}
 
   '@remix-run/session@0.4.1': {}
 

@@ -36,19 +36,19 @@ Use this file to find **repo conventions and docs** quickly. Prefer the linked s
 
 | Topic                                                                                                             | Location                                                                                     |
 | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Site directory** — `/site/[siteId]` workspace (shell markup on [`page.tsx`](<app/(site)/site/[siteId]/page.tsx>), plus colocated `Grid`, drawers, toolbar); shared tiles/catalog still in `components/home/` | Block comment on that page |
-| Component/file naming, home tile drawer, catalog types (`ITile`, `ICollectionTile`), tile factories, inline props | [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md) |
+| **Site directory** — `/site/[siteId]` workspace (shell markup on [`page.tsx`](<app/(site)/site/[siteId]/page.tsx>), plus colocated `Grid`, drawers, toolbar); shared bricks/catalog still in `components/home/` | Block comment on that page |
+| Component/file naming, home brick drawer, catalog types (`IBrick`, `ICollectionBrick`), brick factories, inline props | [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md) |
 | Effect (core, Schema, errors)                                                                                     | [docs/effect/README.md](docs/effect/README.md)                                               |
 | TypeScript tooling                                                                                                | [docs/tooling/typescript.md](docs/tooling/typescript.md)                                     |
 
 ## `component-and-file-naming.md` — section map
 
-Skim these headings when touching `components/home/**`, the **site directory** (`app/(site)/site/[siteId]/`), or homepage tiles:
+Skim these headings when touching `components/home/**`, the **site directory** (`app/(site)/site/[siteId]/`), or homepage bricks:
 
 1. **PascalCase file name matches the component** — default for non-shadcn React files.
-2. **One file per component** — e.g. `TileDrawerCarouselNav` in its own file, not nested in `TileDrawer.tsx`.
-3. **TileDrawer carousel slides** — one slide per tile, sizing from `def.w` / `def.h` and `gridCellHeightPx`.
-4. **`TilePreview` props (inline types, no cross-file props export)** — don’t export tiny `XxxProps` types for cross-import churn; **same rule extends to single-use factory argument types** (inline on the function).
-5. **Tile catalog types** — `ICollectionTileDef`, pair-based grid hooks (`data-tile-grid-collection-name` / `data-tile-grid-tile-name` on [`Grid.tsx`](<app/(site)/site/[siteId]/Grid.tsx>) for the site workspace; [`HomeGrid.tsx`](app/(home)/HomeGrid.tsx) for `/`), drag def vs component.
-6. **Tile factory argument naming** — parameter name `props`, not `options`; **inline** the props object type on `makeTile` / `makeCollection` unless another module needs the type.
+2. **One file per component** — e.g. `BrickCarouselNav` in its own file, not nested in `BrickDrawer.tsx`.
+3. **BrickDrawer carousel slides** — one slide per brick, sizing from `def.w` / `def.h` and `gridCellHeightPx`.
+4. **`BrickPreview` props (inline types, no cross-file props export)** — don’t export tiny `XxxProps` types for cross-import churn; **same rule extends to single-use factory argument types** (inline on the function).
+5. **Brick catalog types** — `ICollectionBrickDef`, pair-based grid hooks (`data-brick-grid-collection-name` / `data-brick-grid-brick-name` on [`Grid.tsx`](<app/(site)/site/[siteId]/Grid.tsx>) for the site workspace; [`HomeGrid.tsx`](app/(home)/HomeGrid.tsx) for `/`), drag def vs component.
+6. **Brick factory argument naming** — parameter name `props`, not `options`; **inline** the props object type on `makeBrick` / `makeCollection` unless another module needs the type.
 7. **RSC + `ICollection`** — no `FromCatalog` wrapper on shared carousel; route-local client + `collectionsHash` lookup next to `page.tsx`.

@@ -2,27 +2,27 @@ import { makeController } from "zerospin";
 
 import {
   createLayoutItem,
-  createTextTileContent,
+  createTextBrickContent,
   createUser,
   updateLayoutItem,
-  updateTextTileContent,
+  updateTextBrickContent,
   updateUser,
 } from "@/zerospin/website/contracts";
-import { LayoutItem, TextTileContent, User } from "@/zerospin/website/models";
+import { LayoutItem, TextBrickContent, User } from "@/zerospin/website/models";
 
 export const websiteModels = {
   layoutItem: LayoutItem,
-  textTileContent: TextTileContent,
+  textBrickContent: TextBrickContent,
   user: User,
 };
 
 export const websiteController = makeController({
   contracts: {
     createLayoutItem,
-    createTextTileContent,
+    createTextBrickContent,
     createUser,
     updateLayoutItem,
-    updateTextTileContent,
+    updateTextBrickContent,
     updateUser,
   },
   name: "website",

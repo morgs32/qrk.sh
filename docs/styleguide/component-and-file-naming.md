@@ -21,98 +21,98 @@ Use these rules for **repo-authored React components** that are **not** shadcn a
 
 Prefer **one primary React component per file** (matching the PascalCase file name). Nesting sizable presentational or interactive subcomponents in the parent file makes diffs noisier and obscures imports.
 
-- **Bad**: `TileDrawer.tsx` defines both `TileDrawer` and a multi-markup helper like `TileDrawerCarouselNav` in the same module.
+- **Bad**: `BrickDrawer.tsx` defines both `BrickDrawer` and a multi-markup helper like `BrickCarouselNav` in the same module.
 
-- **Good**: `TileDrawerCarouselNav.tsx` exports `TileDrawerCarouselNav`; [TileDrawer.tsx](../../components/home/TileDrawer.tsx) imports it. Keep **`data-tile-drawer-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
+- **Good**: `BrickCarouselNav.tsx` exports `BrickCarouselNav`; [BrickDrawer.tsx](../../app/(site)/site/[siteId]/BrickDrawer.tsx) imports it. Keep **`data-brick-drawer-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
 
 ### Exceptions (this rule does not apply)
 
 - **shadcn/ui components**: anything under `components/ui/**` keeps shadcn’s conventions.
 - **Next.js special files**: framework-reserved files under `app/**` keep their required names (for example `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, `route.ts`).
 
-### Good vs bad: TileDrawer carousel slides (one panel per tile)
+### Good vs bad: BrickDrawer carousel slides (one panel per brick)
 
-The tile drawer uses shadcn `Carousel` (Embla) **per collection**. Each tile is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def.w * 50vw / 4)`** by **`calc(def.h * 50vw / 4)`**, i.e. half the viewport (see [HomeShell.tsx](../../components/home/HomeShell.tsx) workspace `w-1/2`) divided into four columns—the same column count [Grid.tsx](../../components/home/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width ÷ column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
+The brick drawer uses shadcn `Carousel` (Embla) **per collection**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def.w * 50vw / 4)`** by **`calc(def.h * 50vw / 4)`**, i.e. half the viewport (site workspace `w-1/2`) divided into four columns—the same column count [Grid.tsx](../../app/(site)/site/[siteId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
 
-### Good vs bad: `TilePreview` props (inline types, no cross-file props export)
+### Good vs bad: `BrickPreview` props (inline types, no cross-file props export)
 
-Keep [TilePreview.tsx](../../components/home/TilePreview.tsx) decoupled from [TileDrawer.tsx](../../components/home/TileDrawer.tsx): **do not** export a `TilePreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a small props API.
+Keep [BrickPreview.tsx](../../app/(site)/site/[siteId]/BrickPreview.tsx) decoupled from [BrickDrawer.tsx](../../app/(site)/site/[siteId]/BrickDrawer.tsx): **do not** export a `BrickPreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a small props API.
 
-- **Bad**: `export type TilePreviewProps` in `TileDrawer.tsx` and `import { TilePreviewProps } from './TileDrawer'` in `TilePreview.tsx` (parent owns types for a child it does not implement).
+- **Bad**: `export type BrickPreviewProps` in `BrickDrawer.tsx` and `import { BrickPreviewProps } from './BrickDrawer'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `TilePreview` with **`{ tile: ICollectionTile }`** from [components/home/tiles/types.ts](../../components/home/tiles/types.ts). Catalog rows are built with **`makeTile`** (variant **`def` + `component`**) and **`makeCollection`** (`ITile[]` → **`ICollectionTile[]`**). Drawer drag uses native **`DataTransfer`** ([`TILE_DRAG_MIME` / `useTileDrawerStore`](../../components/home/useTileDrawerStore.ts)); [useGridLayoutStore.ts](../../components/home/useGridLayoutStore.ts) holds **`layout`** with **`def`** per item, not React components.
+- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: ICollectionBrick }`** from [components/home/bricks/types.ts](../../components/home/bricks/types.ts). Catalog rows are built with **`makeBrick`** (variant **`def` + `component`**) and **`makeCollection`** (`IBrick[]` → **`ICollectionBrick[]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../components/home/useBrickDrawerStore.ts)); [useGridLayoutStore.ts](../../components/home/useGridLayoutStore.ts) holds **`layout`** with **`def`** per item, not React components.
 
-**Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeTileCollectionProps`-style types unless a second module genuinely needs to reference that exact type.
+**Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeBrickCollectionProps`-style types unless a second module genuinely needs to reference that exact type.
 
-### Good vs bad: tile catalog types (`ITile`, `ICollectionTile`, `ICollectionTileDef`)
+### Good vs bad: brick catalog types (`IBrick`, `ICollectionBrick`, `ICollectionBrickDef`)
 
-- **Bad**: ad hoc **`typeId`** strings on every catalog row, or passing full tile objects (including **`component`**) into Zustand for external drag.
+- **Bad**: ad hoc **`typeId`** strings on every catalog row, or passing full brick objects (including **`component`**) into Zustand for external drag.
 
-- **Good**: **`ICollectionTileDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`w`**, **`h`**, **`label`**, variant **`name`**). **`ITile`** = variant-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionTile`**.
+- **Good**: **`ICollectionBrickDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`w`**, **`h`**, **`label`**, variant **`name`**). **`IBrick`** = variant-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionBrick`**.
 
-### Tile variant identity: `collectionName` + tile def `name`
+### Brick variant identity: `collectionName` + brick def `name`
 
 **Invariant (homepage catalog):**
 
 1. **`collectionName`** is **unique per collection** across the catalog.
-2. Within one collection, each tile variant’s **`def.name`** (kebab-case, e.g. `2x2`, `8x2`) is **unique among that collection’s tiles**.
-3. Therefore **`(collectionName, def.name)`** is **unique for every catalog tile variant**—use this pair for tests and DOM hooks instead of a composite string.
+2. Within one collection, each brick variant’s **`def.name`** (kebab-case, e.g. `2x2`, `8x2`) is **unique among that collection’s bricks**.
+3. Therefore **`(collectionName, def.name)`** is **unique for every catalog brick variant**—use this pair for tests and DOM hooks instead of a composite string.
 
-### Terminology: `tileNames` (catalog identity)
+### Terminology: `brickNames` (catalog identity)
 
-In code and tests, **`tileNames`** means **that pair**: **`collectionName`** plus **`tile.def.name`** (the variant slug, e.g. `2x2`, `4x4`). Together they uniquely identify **any homepage catalog tile variant**. They are **not** a grid **instance** id (`item.i`), **not** a single concatenated key, and **not** `w`×`h` alone.
+In code and tests, **`brickNames`** means **that pair**: **`collectionName`** plus **`brick.def.name`** (the variant slug, e.g. `2x2`, `4x4`). Together they uniquely identify **any homepage catalog brick variant**. They are **not** a grid **instance** id (`item.i`), **not** a single concatenated key, and **not** `w`×`h` alone.
 
-- **Bad**: calling a composite like `` `${collectionName}--${w}x${h}` `` or a bare `collectionName` “tileNames”; using “tile name” only for `def.name` without scoping by collection when both matter.
+- **Bad**: calling a composite like `` `${collectionName}--${w}x${h}` `` or a bare `collectionName` “brickNames”; using “brick name” only for `def.name` without scoping by collection when both matter.
 
-- **Good**: pass or thread **`collectionName`** and **`def.name`** (or parameters **`collectionName`**, **`tileName`** when `tileName` is the variant slug); locate grid tiles with **`gridLocateByTileNames(grid, collectionName, tileName)`** in [`e2e/grid-drag.spec.ts`](../../e2e/grid-drag.spec.ts).
+- **Good**: pass or thread **`collectionName`** and **`def.name`** (or parameters **`collectionName`**, **`brickName`** when `brickName` is the variant slug); locate grid bricks with **`gridLocateByBrickNames(grid, collectionName, brickName)`** in [`e2e/grid-drag.spec.ts`](../../e2e/grid-drag.spec.ts).
 
-[TilePreview.tsx](../../components/home/TilePreview.tsx) exposes it on the draggable slot:
+[BrickPreview.tsx](../../app/(site)/site/[siteId]/BrickPreview.tsx) exposes it on the draggable slot:
 
-- **`data-tile-drawer-collection-name`** = **`tile.def.collectionName`**
-- **`data-tile-drawer-tile-name`** = **`tile.def.name`**
+- **`data-brick-drawer-collection-name`** = **`brick.def.collectionName`**
+- **`data-brick-drawer-brick-name`** = **`brick.def.name`**
 
-(Together with **`data-tile-drawer-tile-slot`**, used by carousel drag guards.)
+(Together with **`data-brick-drawer-brick-slot`**, used by carousel drag guards.)
 
-[Grid.tsx](../../components/home/Grid.tsx) sets on each placed tile wrapper:
+[Grid.tsx](../../app/(site)/site/[siteId]/Grid.tsx) sets on each placed brick wrapper:
 
-- **`data-tile-grid-collection-name`** = **`item.def.collectionName`**
-- **`data-tile-grid-tile-name`** = **`item.def.name`**
+- **`data-brick-grid-collection-name`** = **`item.def.collectionName`**
+- **`data-brick-grid-brick-name`** = **`item.def.name`**
 
-- **Bad**: a single attribute holding `makeTileKey` / concatenated ids when you need to target “this variant in this collection” in the drawer **or on the grid**.
+- **Bad**: a single attribute holding `makeBrickKey` / concatenated ids when you need to target “this variant in this collection” in the drawer **or on the grid**.
 
-- **Good**: two attributes, values exactly `def.collectionName` and `def.name`. In Playwright: drawer — `[data-tile-drawer-tile-slot][data-tile-drawer-collection-name="…"][data-tile-drawer-tile-name="…"]` (`drawerTilePreviewSlot` in [`e2e/grid-drag.spec.ts`](../../e2e/grid-drag.spec.ts)); grid — `[data-tile-grid-collection-name="…"][data-tile-grid-tile-name="…"]` scoped under `.grid-layout` (`gridLocateByTileNames` in the same file).
+- **Good**: two attributes, values exactly `def.collectionName` and `def.name`. In Playwright: drawer — `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="…"][data-brick-drawer-brick-name="…"]` (`drawerBrickPreviewSlot` in [`e2e/grid-drag.spec.ts`](../../e2e/grid-drag.spec.ts)); grid — `[data-brick-grid-collection-name="…"][data-brick-grid-brick-name="…"]` scoped under `.grid-layout` (`gridLocateByBrickNames` in the same file).
 
-### Good vs bad: tile factory argument naming (`props`, not `options`; inline type)
+### Good vs bad: brick factory argument naming (`props`, not `options`; inline type)
 
-Tile factories take **one object** describing what to build. Name that parameter **`props`** so it reads like React’s declarative inputs, not a vague “options” bag. Put the object type **on the function signature**; don’t export a separate props type unless another file must import it.
+Brick factories take **one object** describing what to build. Name that parameter **`props`** so it reads like React’s declarative inputs, not a vague “options” bag. Put the object type **on the function signature**; don’t export a separate props type unless another file must import it.
 
-- **Bad**: `export function makeTile(options: { w; h; component })`; `export type MakeCollectionProps = { … }` with `makeCollection(props: MakeCollectionProps)` when nothing else imports that type.
+- **Bad**: `export function makeBrick(options: { w; h; component })`; `export type MakeCollectionProps = { … }` with `makeCollection(props: MakeCollectionProps)` when nothing else imports that type.
 
-- **Good**: `makeTile(props: { w; h; label?; component })` and `makeCollection(props: { collectionName; collectionLabel; tiles })` in [components/home/tiles/makeTile.ts](../../components/home/tiles/makeTile.ts) and [makeCollection.ts](../../components/home/tiles/makeCollection.ts).
+- **Good**: `makeBrick(props: { w; h; label?; component })` and `makeCollection(props: { collectionName; collectionLabel; bricks })` in [components/home/bricks/makeBrick.ts](../../components/home/bricks/makeBrick.ts) and [makeCollection.ts](../../components/home/bricks/makeCollection.ts).
 
-### Good vs bad: no barrel `index.ts` under homepage tiles
+### Good vs bad: no barrel `index.ts` under homepage bricks
 
-Do **not** add `components/home/tiles/index.ts` (or similar) that only re-exports symbols from sibling modules. Name each file after its **primary export** and import that path directly.
+Do **not** add `components/home/bricks/index.ts` (or similar) that only re-exports symbols from sibling modules. Name each file after its **primary export** and import that path directly.
 
-- **Bad**: `import { homepageTiles, collectionsHash, findCollectionTile } from "./tiles"` or `@/components/home/tiles` when `./tiles` is a re-export barrel.
+- **Bad**: `import { homepageBricks, collectionsHash, findCollectionBrick } from "./bricks"` or `@/components/home/bricks` when `./bricks` is a re-export barrel.
 
-- **Good**: `import { homepageTiles } from "@/components/home/tiles/homepageTiles"`; `import { collectionsHash } from "@/components/home/tiles/collectionsHash"`; `import { findCollectionTile } from "@/components/home/tiles/findCollectionTile"`; catalog list from [homepageTileCollections.ts](../../components/home/tiles/homepageTileCollections.ts).
+- **Good**: `import { collectionsHash } from "@/components/home/bricks/collectionsHash"`; `import { findCollectionBrick } from "@/components/home/bricks/findCollectionBrick"`; import specific collections from their modules under `collections/`.
 
-### Good vs bad: `ICollection` + `TileCollectionCarousel` — don’t add `FromCatalog` on shared UI
+### Good vs bad: `ICollection` + `BrickCollectionCarousel` — don’t add `FromCatalog` on shared UI
 
 Do **not** add a second exported wrapper on the shared carousel that imports **`collectionsHash`** and takes **`collectionName`**: that couples every import site to a parallel API and drags catalog knowledge into **`components/home`**.
 
-- **Bad**: `TileCollectionCarouselFromCatalog` (or similar) exported from [TileCollectionCarousel.tsx](../../components/home/TileCollectionCarousel.tsx) — thin pass-through: `collectionsHash[collectionName]` → **`TileCollectionCarousel`**.
+- **Bad**: `BrickCollectionCarouselFromCatalog` (or similar) exported from [BrickCollectionCarousel.tsx](../../app/(site)/site/[siteId]/BrickCollectionCarousel.tsx) — thin pass-through: `collectionsHash[collectionName]` → **`BrickCollectionCarousel`**.
 
-- **Good**: [TileCollectionCarousel.tsx](../../components/home/TileCollectionCarousel.tsx) accepts **`collection: ICollection`** (and optional **`tileSortFn`**) only. Resolve **`collectionsHash[collectionName]`** in the route’s [page.tsx](../../app/(home)/edit-tiles/[collectionName]/[tileId]/page.tsx) and pass **`collection`** into **`TileCollectionCarousel`**; keep **`collectionsHash`** out of the shared carousel module.
+- **Good**: [BrickCollectionCarousel.tsx](../../app/(site)/site/[siteId]/BrickCollectionCarousel.tsx) accepts **`collection: ICollection`** (and optional **`brickSortFn`**) only. Resolve **`collectionsHash[collectionName]`** in the route’s client `page.tsx` next to the site workspace and pass **`collection`** into **`BrickCollectionCarousel`**; keep **`collectionsHash`** out of the shared carousel module.
 
-### Good vs bad: edit-tiles tile route — keep one-off logic in `page.tsx`
+### Good vs bad: edit-bricks route — keep one-off logic in `page.tsx`
 
-**Prefer consolidating** behavior for [edit-tiles … / [tileId]/page.tsx](../../app/(home)/edit-tiles/[collectionName]/[tileId]/page.tsx) in that file. Do **not** add a **separate module** whose **only** consumer is that single `page.tsx` (extra imports and folder noise for no reuse).
+**Prefer consolidating** behavior for `@leftDrawer` routes (e.g. [edit-bricks/page.tsx](../../app/(site)/site/[siteId]/@leftDrawer/edit-bricks/page.tsx), [brick/[brickId]/page.tsx](../../app/(site)/site/[siteId]/@leftDrawer/brick/[brickId]/page.tsx)) in those files. Do **not** add a **separate module** whose **only** consumer is that single `page.tsx` (extra imports and folder noise for no reuse).
 
-- **Bad**: `EditTilesTileCarousel.tsx` (or `FooHelper.ts`) next to the page — a thin wrapper or helper used **only** once by that `page.tsx`.
+- **Bad**: `EditBricksFoo.tsx` (or `FooHelper.ts`) next to the page — a thin wrapper or helper used **only** once by that `page.tsx`.
 
-- **Good**: Render shared UI (e.g. **`TileCollectionCarousel`**) **directly** in the page’s JSX; put small helpers at **module scope** in the same file; if the page is a client component, use **`useMemo`** / local **function declarations** / inline **child components** in the **same file** instead of a sibling file only this route imports.
+- **Good**: Render shared UI (e.g. **`BrickCollectionCarousel`**) **directly** in the page’s JSX; put small helpers at **module scope** in the same file; if the page is a client component, use **`useMemo`** / local **function declarations** / inline **child components** in the **same file** instead of a sibling file only this route imports.
 
 Reuse still belongs in **`components/`** or **`lib/`** when **multiple** routes or features need it — this rule targets **single-use** splinters next to one page.
 
@@ -120,10 +120,10 @@ Reuse still belongs in **`components/`** or **`lib/`** when **multiple** routes 
 
 The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefix on the Zustand module, hook, seed, and domain types. Prefix grid-store **object/interface types** with **`I`** (for example `IGridState`, `IGridSeed`).
 
-- **Bad**: `portfolio-grid-store.ts`, `usePortfolioGridStore`, `PortfolioGridSeed`, `portfolioGridSeed`, `PortfolioGridTileInstance`, test ids like `portfolio-grid-layout`, and a layout class name tied to “portfolio” when the surface is the generic home grid.
+- **Bad**: `portfolio-grid-store.ts`, `usePortfolioGridStore`, `PortfolioGridSeed`, `portfolioGridSeed`, `PortfolioGridBrickInstance`, test ids like `portfolio-grid-layout`, and a layout class name tied to “portfolio” when the surface is the generic home grid.
 
-- **Good**: `lib/stores/grid-store.ts`, `useGridStore`, `IGridSeed`, `gridSeed`, `IGridTileInstance`, `data-testid="grid-layout"`, and a scoped layout class such as `grid` (see [app/globals.css](../../app/globals.css) placeholder styling).
+- **Good**: `lib/stores/grid-store.ts`, `useGridStore`, `IGridSeed`, `gridSeed`, `IGridBrickInstance`, `data-testid="grid-layout"`, and a scoped layout class such as `grid` (see [app/globals.css](../../app/globals.css) placeholder styling).
 
-- **Bad**: `basis-auto` with many small tiles in one viewport row when the product goal is “one tile, one panel” at a time; or shrinking tiles with `scale-75` when previews should read at full drawer size.
+- **Bad**: `basis-auto` with many small bricks in one viewport row when the product goal is “one brick, one panel” at a time; or shrinking bricks with `scale-75` when previews should read at full drawer size.
 
-- **Good**: `CarouselItem` with `basis-full shrink-0 grow-0` (plus `pl-*` / `-ml-*` spacing on content), inner panel wrapper for border/padding, and the tile slot matching full width/height in px—no transform scaling.
+- **Good**: `CarouselItem` with `basis-full shrink-0 grow-0` (plus `pl-*` / `-ml-*` spacing on content), inner panel wrapper for border/padding, and the brick slot matching full width/height in px—no transform scaling.

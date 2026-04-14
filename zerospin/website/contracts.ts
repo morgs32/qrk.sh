@@ -5,7 +5,7 @@ import {
   updateResource,
 } from "zerospin";
 
-import { LayoutItem, TextTileContent, User } from "@/zerospin/website/models";
+import { LayoutItem, TextBrickContent, User } from "@/zerospin/website/models";
 
 export const createUser = makeContract({
   commandName: "createUser",
@@ -138,10 +138,10 @@ export const updateLayoutItem = makeContract({
   version: "1.0.0",
 });
 
-export const createTextTileContent = makeContract({
-  commandName: "createTextTileContent",
+export const createTextBrickContent = makeContract({
+  commandName: "createTextBrickContent",
   payload: {
-    id: primitives.id({ model: TextTileContent }),
+    id: primitives.id({ model: TextBrickContent }),
     layoutItemId: primitives.id({ model: LayoutItem }),
     body: primitives.text(),
   },
@@ -149,7 +149,7 @@ export const createTextTileContent = makeContract({
     const { id, layoutItemId, body } = payload;
     return [
       createResource({
-        model: TextTileContent,
+        model: TextBrickContent,
         id,
         attributes: { layoutItemId, body },
       }),
@@ -158,17 +158,17 @@ export const createTextTileContent = makeContract({
   version: "1.0.0",
 });
 
-export const updateTextTileContent = makeContract({
-  commandName: "updateTextTileContent",
+export const updateTextBrickContent = makeContract({
+  commandName: "updateTextBrickContent",
   payload: {
-    id: primitives.id({ model: TextTileContent }),
+    id: primitives.id({ model: TextBrickContent }),
     body: primitives.text(),
   },
   program: ({ payload }) => {
     const { id, body } = payload;
     return [
       updateResource({
-        model: TextTileContent,
+        model: TextBrickContent,
         id,
         attributes: { body },
       }),

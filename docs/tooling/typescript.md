@@ -52,32 +52,32 @@ Do not replace the whole type with `type Assertion = ...`.
 
 For a dynamic route page, validate `params` with **Effect `Schema`**: define **one `Schema.Struct`** in the **same module as the page** (above the default export), decode with **`Schema.decodeUnknownEither`**, and branch with **`Either.isLeft`** (e.g. call `notFound()` on the left). Do **not** add a sibling file that only exports a tiny struct for one page, and do **not** wrap **`decodeUnknownSync`** in **`try`/`catch`** when **`decodeUnknownEither`** already models failure.
 
-- **Bad**: `editTilesRouteParamsSchema.ts` that only holds `Schema.Struct({ … })` imported by one `page.tsx`; or `try { decodeUnknownSync(schema)(raw) } catch { notFound() }`.
+- **Bad**: `editBricksRouteParamsSchema.ts` that only holds `Schema.Struct({ … })` imported by one `page.tsx`; or `try { decodeUnknownSync(schema)(raw) } catch { notFound() }`.
 
-- **Good**: colocate in the route’s `page.tsx` (see `app/(home)/edit-tiles/[collectionName]/[tileId]/page.tsx`):
+- **Good**: colocate in the route’s `page.tsx` (for example parallel routes under `app/(site)/site/[siteId]/@leftDrawer/…`):
 
 ```ts
-const EditTilesRouteParamsSchema = Schema.Struct({
+const EditBricksRouteParamsSchema = Schema.Struct({
   collectionName: Schema.String,
-  tileId: Schema.String,
+  brickId: Schema.String,
 });
 
-const decoded = Schema.decodeUnknownEither(EditTilesRouteParamsSchema)(rawParams);
+const decoded = Schema.decodeUnknownEither(EditBricksRouteParamsSchema)(rawParams);
 if (Either.isLeft(decoded)) {
   notFound();
 }
-const { collectionName, tileId } = decoded.right;
+const { collectionName, brickId } = decoded.right;
 ```
 
 Keep domain checks that the schema cannot express (e.g. `collectionName in collectionsHash`) **after** a successful decode.
 
 ### Good vs bad: Effect `Schema` constant names and `satisfies`
 
-Name Effect schema values **PascalCase** (e.g. `TileDragDefSchema`, `EditTilesRouteParamsSchema`), not camelCase. When a **domain type already exists** that the decoded value should match, constrain the struct with **`satisfies Schema.Schema<ThatType>`** so drift between schema fields and the type is a compile error.
+Name Effect schema values **PascalCase** (e.g. `BrickDragDefSchema`, `EditBricksRouteParamsSchema`), not camelCase. When a **domain type already exists** that the decoded value should match, constrain the struct with **`satisfies Schema.Schema<ThatType>`** so drift between schema fields and the type is a compile error.
 
-- **Bad**: `const tileDragDefSchema = Schema.Struct({ … })` with no link to `ICollectionTileDef`; or adding a throwaway `type Foo = { … }` next to the schema **only** to satisfy the compiler when the product model does not yet define `Foo`.
+- **Bad**: `const brickDragDefSchema = Schema.Struct({ … })` with no link to `ICollectionBrickDef`; or adding a throwaway `type Foo = { … }` next to the schema **only** to satisfy the compiler when the product model does not yet define `Foo`.
 
-- **Good**: put `satisfies Schema.Schema<…>` on the **`Schema.Struct`** that describes the **parsed object** (see `TileDragDefFromJsonStringSchema` in [`components/home/useTileDrawerStore.ts`](../../components/home/useTileDrawerStore.ts) and the `parseJson` subsection below).
+- **Good**: put `satisfies Schema.Schema<…>` on the **`Schema.Struct`** that describes the **parsed object** (see `BrickDragDefFromJsonStringSchema` in [`components/home/useBrickDrawerStore.ts`](../../components/home/useBrickDrawerStore.ts) and the `parseJson` subsection below).
 
 If there is **no** existing type that should own the decoded shape, **do not** invent one in passing: agree on the canonical name and module with the team (or your past self in the issue), add that type where domain types live, then add `satisfies Schema.Schema<…>`. Until then, PascalCase the schema only (e.g. route `params` in `page.tsx`).
 
@@ -90,7 +90,7 @@ Use **`Schema.parseJson`** when the value you decode is a **string** containing 
 - **Good**:
 
 ```ts
-const TileDragDefFromJsonStringSchema = Schema.parseJson(
+const BrickDragDefFromJsonStringSchema = Schema.parseJson(
   Schema.Struct({
     collectionName: Schema.String,
     collectionLabel: Schema.String,
@@ -99,7 +99,7 @@ const TileDragDefFromJsonStringSchema = Schema.parseJson(
     order: Schema.Number,
     w: Schema.Number,
     h: Schema.Number,
-  }) satisfies Schema.Schema<ICollectionTileDef>,
+  }) satisfies Schema.Schema<ICollectionBrickDef>,
 );
 ```
 
@@ -110,14 +110,14 @@ Decode at the call site with **`Schema.decodeUnknownEither`** (input is `unknown
 - **Good**:
 
 ```ts
-const decoded = Schema.decodeUnknownEither(TileDragDefFromJsonStringSchema)(raw);
+const decoded = Schema.decodeUnknownEither(BrickDragDefFromJsonStringSchema)(raw);
 if (Either.isLeft(decoded)) {
   return null;
 }
 return decoded.right;
 ```
 
-See [`components/home/useTileDrawerStore.ts`](../../components/home/useTileDrawerStore.ts) (`parseTileDefFromDataTransfer`).
+See [`components/home/useBrickDrawerStore.ts`](../../components/home/useBrickDrawerStore.ts) (`parseBrickDefFromDataTransfer`).
 
 ### Workspace package imports
 

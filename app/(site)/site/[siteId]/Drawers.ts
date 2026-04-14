@@ -1,7 +1,7 @@
-import { ArrayMatcher, RoutePattern, type Match } from "@remix-run/route-pattern";
+import { ArrayMatcher, RoutePattern } from "@remix-run/route-pattern";
 
-const editTilesPattern = new RoutePattern("site/:siteId/edit-tiles");
-const tileDetailPattern = new RoutePattern("site/:siteId/tile/:tileId");
+const editBricksPattern = new RoutePattern("site/:siteId/edit-bricks");
+const brickDetailPattern = new RoutePattern("site/:siteId/brick/:brickId");
 const editTextPattern = new RoutePattern("site/:siteId/edit-text");
 
 /**
@@ -9,7 +9,7 @@ const editTextPattern = new RoutePattern("site/:siteId/edit-text");
  */
 const DRAWER_MATCH_ORIGIN = "http://qrk.invalid";
 
-export type DrawerPathData = "edit-tiles" | "tile-detail" | "edit-text";
+export type DrawerPathData = "edit-bricks" | "brick-detail" | "edit-text";
 
 export function drawerPathnameToUrl(pathname: string): URL {
   const normalized = pathname.startsWith("/") ? pathname : `/${pathname}`;
@@ -23,8 +23,8 @@ export function drawerPathnameToUrl(pathname: string): URL {
  */
 export const pathMatcher = new ArrayMatcher<DrawerPathData>();
 
-pathMatcher.add(editTilesPattern, "edit-tiles");
-pathMatcher.add(tileDetailPattern, "tile-detail");
+pathMatcher.add(editBricksPattern, "edit-bricks");
+pathMatcher.add(brickDetailPattern, "brick-detail");
 pathMatcher.add(editTextPattern, "edit-text");
 
 export function Drawers() {}

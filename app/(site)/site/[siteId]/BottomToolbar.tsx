@@ -68,19 +68,19 @@ function ToolbarSeparator({ collapsed }: { collapsed?: boolean }) {
 }
 
 export type BottomToolbarProps = {
-  addTilesOpen: boolean;
+  addBricksOpen: boolean;
   editTextOpen: boolean;
-  onTilesToolbarClick: () => void;
+  onBricksToolbarClick: () => void;
   onEditTextClick: () => void;
 };
 
 export function BottomToolbar({
-  addTilesOpen,
+  addBricksOpen,
   editTextOpen,
-  onTilesToolbarClick,
+  onBricksToolbarClick,
   onEditTextClick,
 }: BottomToolbarProps) {
-  const isDefault = !editTextOpen && !addTilesOpen;
+  const isDefault = !editTextOpen && !addBricksOpen;
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -108,20 +108,20 @@ export function BottomToolbar({
 
         <ToolbarGroup>
           <ToolbarButton
-            tooltip={addTilesOpen ? "Close tiles drawer" : "Edit tiles"}
-            aria-label={addTilesOpen ? "Close tiles drawer" : "Edit tiles"}
-            onClick={onTilesToolbarClick}
+            tooltip={addBricksOpen ? "Close bricks drawer" : "Edit bricks"}
+            aria-label={addBricksOpen ? "Close bricks drawer" : "Edit bricks"}
+            onClick={onBricksToolbarClick}
             className={cn(
               "h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground",
-              addTilesOpen && "text-destructive hover:text-destructive",
+              addBricksOpen && "text-destructive hover:text-destructive",
             )}
           >
-            {addTilesOpen ? (
+            {addBricksOpen ? (
               <X className="!size-4 shrink-0" strokeWidth={2} aria-hidden />
             ) : (
               <Pencil className="h-3.5 w-3.5" />
             )}
-            {addTilesOpen ? "Close" : "Edit tiles"}
+            {addBricksOpen ? "Close" : "Edit bricks"}
           </ToolbarButton>
         </ToolbarGroup>
 

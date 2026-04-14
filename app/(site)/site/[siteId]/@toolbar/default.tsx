@@ -1,5 +1,5 @@
 import { SiteBottomToolbar } from "../SiteBottomToolbar";
 
-export default function ToolbarSlotDefault() {
+export default function ToolbarDefault() {
   return <SiteBottomToolbar />;
 }

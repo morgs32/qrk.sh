@@ -1,3 +1,3 @@
-export default function RightDrawerDefaultSlot() {
+export default function RightDrawerDefault() {
   return null;
 }

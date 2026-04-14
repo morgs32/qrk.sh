@@ -4,17 +4,17 @@ Next.js app with App Router.
 
 ## Features
 
-- Homepage tile grid and catalog (see **Homepage tile catalog identity** below)
+- Homepage brick grid and catalog (see **Homepage brick catalog identity** below)
 
-## Homepage tile catalog identity
+## Homepage brick catalog identity
 
-The grid / tile drawer catalog is defined under `components/home/tiles/`. These rules are **invariants** for every collection and variant:
+The grid / brick drawer catalog is defined under `components/home/bricks/`. These rules are **invariants** for every collection and variant:
 
 1. **`collectionName`** — kebab-case id for the collection; **each collection has a distinct `collectionName`** in the catalog.
-2. **`def.name`** (on each tile variant) — kebab-case slug **unique within that collection** (e.g. `2x2`, `4x4`, `8x2` among siblings).
-3. **Globally**, **`(collectionName, def.name)`** uniquely identifies a catalog tile variant. Do not rely on a single concatenated string for that pair in the drawer UI: [TilePreview](components/home/TilePreview.tsx) sets **`data-tile-drawer-collection-name`** and **`data-tile-drawer-tile-name`** separately.
+2. **`def.name`** (on each brick variant) — kebab-case slug **unique within that collection** (e.g. `2x2`, `4x4`, `8x2` among siblings).
+3. **Globally**, **`(collectionName, def.name)`** uniquely identifies a catalog brick variant. Do not rely on a single concatenated string for that pair in the drawer UI: [BrickPreview](app/(site)/site/[siteId]/BrickPreview.tsx) sets **`data-brick-drawer-collection-name`** and **`data-brick-drawer-brick-name`** separately.
 
-More detail and test patterns: [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md) (section **Tile variant identity**).
+More detail and test patterns: [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md) (section **Brick variant identity**).
 
 ## Tech Stack
 

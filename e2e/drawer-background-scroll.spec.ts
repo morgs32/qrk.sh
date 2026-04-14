@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 test.describe("Drawer background interaction", () => {
   test("grid column can still scroll while drawer is open", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/", { waitUntil: "load" });
+    await page.goto("/site/e2e", { waitUntil: "load" });
 
-    const rightColumn = page.locator("[data-home-right-scroll]");
+    const rightColumn = page.locator("[data-site-right-scroll]");
     await expect(rightColumn).toBeVisible({ timeout: 90_000 });
 
     // Ensure it is scrollable by scrolling once.
@@ -21,7 +21,7 @@ test.describe("Drawer background interaction", () => {
     });
     expect(maxScrollTop).toBeGreaterThan(afterFirstWheel + 50);
 
-    await page.getByRole("button", { name: "Edit tiles" }).click();
+    await page.goto("/site/e2e/edit-bricks", { waitUntil: "load" });
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
     const beforeDrawerWheel = await rightColumn.evaluate((el) => (el as HTMLElement).scrollTop);

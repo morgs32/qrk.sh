@@ -11,16 +11,16 @@ import GridLayout, {
   type LayoutItem,
 } from "react-grid-layout";
 import type { ILayout } from "@/components/home/seedLayout";
-import { creamSquareCollection } from "@/components/home/tiles/collections/CreamSquare/CreamSquareCollection";
-import { textTileCollection } from "@/components/home/tiles/collections/TextTile/TextTileCollection";
-import { findCollectionTile } from "@/components/home/tiles/findCollectionTile";
+import { creamSquareCollection } from "@/components/home/bricks/collections/CreamSquare/CreamSquareCollection";
+import { textBrickCollection } from "@/components/home/bricks/collections/TextBrick/TextBrickCollection";
+import { findCollectionBrick } from "@/components/home/bricks/findCollectionBrick";
 import {
-  getActiveTileDragGridShape,
-  parseTileDefFromDataTransfer,
-  TILE_DRAG_MIME,
-  useTileDrawerStore,
-} from "@/components/home/useTileDrawerStore";
-import type { ICollectionTileDef } from "@/components/home/tiles/types";
+  getActiveBrickDragGridShape,
+  parseBrickDefFromDataTransfer,
+  BRICK_DRAG_MIME,
+  useBrickDrawerStore,
+} from "@/components/home/useBrickDrawerStore";
+import type { ICollectionBrickDef } from "@/components/home/bricks/types";
 import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
 
 /**
@@ -40,14 +40,14 @@ const DROPPING_ITEM: LayoutItem = {
   h: 1,
 };
 
-function defaultDefForGridShape(w: number, h: number): ICollectionTileDef {
+function defaultDefForGridShape(w: number, h: number): ICollectionBrickDef {
   if (w === 8 && h === 2) {
-    return textTileCollection.tiles["8x2"].def;
+    return textBrickCollection.bricks["8x2"].def;
   }
   if (w === 2 && h === 2) {
-    return creamSquareCollection.tiles["2x2"].def;
+    return creamSquareCollection.bricks["2x2"].def;
   }
-  return creamSquareCollection.tiles["4x4"].def;
+  return creamSquareCollection.bricks["4x4"].def;
 }
 
 function mergeRglLayoutIntoILayout(prev: ILayout, rgl: Layout): ILayout {
@@ -76,13 +76,13 @@ function layoutPositionsMatchStore(prev: ILayout, next: Layout): boolean {
   return true;
 }
 
-function dataTransferHasTileMime(dt: globalThis.DataTransfer | null): boolean {
+function dataTransferHasBrickMime(dt: globalThis.DataTransfer | null): boolean {
   if (!dt) {
     return false;
   }
   const { types } = dt;
   for (let i = 0; i < types.length; i++) {
-    if (types[i] === TILE_DRAG_MIME) {
+    if (types[i] === BRICK_DRAG_MIME) {
       return true;
     }
   }
@@ -98,8 +98,8 @@ export function Grid() {
   const setLayout = useGridLayoutStore((s) => s.setLayout);
   const [gridDropSessionKey, setGridDropSessionKey] = useState(0);
   /** True after RGL drag threshold until the post-drag `click` can be ignored. */
-  const suppressTileIdClickRef = useRef(false);
-  /** True while the tile drag pointer was last seen inside the grid wrapper (hit-test on `dragover`). */
+  const suppressBrickIdClickRef = useRef(false);
+  /** True while the brick drag pointer was last seen inside the grid wrapper (hit-test on `dragover`). */
   const pointerWasOverGridRef = useRef(false);
   /** We already remounted because the pointer left the grid; skip redundant `dragend` bump. */
   const clearedPlaceholderByLeaveRef = useRef(false);
@@ -113,7 +113,7 @@ export function Grid() {
    */
   useEffect(() => {
     const onDocumentDragOver = (event: globalThis.DragEvent) => {
-      if (!dataTransferHasTileMime(event.dataTransfer)) {
+      if (!dataTransferHasBrickMime(event.dataTransfer)) {
         return;
       }
       const el = containerRef.current;
@@ -146,10 +146,10 @@ export function Grid() {
       pointerWasOverGridRef.current = false;
       const skipBump = clearedPlaceholderByLeaveRef.current;
       clearedPlaceholderByLeaveRef.current = false;
-      if (!dataTransferHasTileMime(event.dataTransfer)) {
+      if (!dataTransferHasBrickMime(event.dataTransfer)) {
         return;
       }
-      useTileDrawerStore.getState().unregisterActiveTileDragGridShape();
+      useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
       if (skipBump) {
         return;
       }
@@ -165,7 +165,7 @@ export function Grid() {
   }, [containerRef]);
 
   const onDragStart = useCallback<EventCallback>(() => {
-    suppressTileIdClickRef.current = true;
+    suppressBrickIdClickRef.current = true;
   }, []);
 
   /** Sync store on drag end only — `onLayoutChange` can fire during RGL reconciliation and loop with controlled `layout`. */
@@ -182,7 +182,7 @@ export function Grid() {
         setLayout(mergeRglLayoutIntoILayout(prev, next));
       } finally {
         window.setTimeout(() => {
-          suppressTileIdClickRef.current = false;
+          suppressBrickIdClickRef.current = false;
         }, 0);
       }
     },
@@ -190,11 +190,11 @@ export function Grid() {
   );
 
   const onDropDragOver = useCallback((e: globalThis.DragEvent) => {
-    const parsed = parseTileDefFromDataTransfer(e.dataTransfer);
+    const parsed = parseBrickDefFromDataTransfer(e.dataTransfer);
     if (parsed) {
       return { w: parsed.w, h: parsed.h };
     }
-    const pending = getActiveTileDragGridShape();
+    const pending = getActiveBrickDragGridShape();
     if (pending) {
       return { w: pending.w, h: pending.h };
     }
@@ -210,7 +210,7 @@ export function Grid() {
       const prev = useGridLayoutStore.getState().layout;
       const parsed =
         e && "dataTransfer" in e
-          ? parseTileDefFromDataTransfer((e as globalThis.DragEvent).dataTransfer)
+          ? parseBrickDefFromDataTransfer((e as globalThis.DragEvent).dataTransfer)
           : null;
 
       const mapped = nextLayout.map((li) => {
@@ -267,27 +267,27 @@ export function Grid() {
             onDrop={onDrop}
           >
             {layout.map((item) => {
-              const catalogTile = findCollectionTile(item.def);
-              const TileComponent = catalogTile?.component;
-              if (!TileComponent) {
+              const catalogBrick = findCollectionBrick(item.def);
+              const BrickComponent = catalogBrick?.component;
+              if (!BrickComponent) {
                 return null;
               }
 
               return (
                 <div
                   key={item.i}
-                  data-tile-instance-id={item.i}
-                  data-tile-grid-collection-name={item.def.collectionName}
-                  data-tile-grid-tile-name={item.def.name}
+                  data-brick-instance-id={item.i}
+                  data-brick-grid-collection-name={item.def.collectionName}
+                  data-brick-grid-brick-name={item.def.name}
                   className="cursor-grab touch-none active:cursor-grabbing"
                   onClick={() => {
-                    if (suppressTileIdClickRef.current) {
+                    if (suppressBrickIdClickRef.current) {
                       return;
                     }
-                    router.push(`/site/${siteId}/tile/${item.i}`);
+                    router.push(`/site/${siteId}/brick/${item.i}`);
                   }}
                 >
-                  <TileComponent />
+                  <BrickComponent />
                 </div>
               );
             })}

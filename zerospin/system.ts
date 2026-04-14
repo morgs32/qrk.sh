@@ -5,14 +5,14 @@ import { dashboardController } from "@/zerospin/dashboard/dashboardController";
 import { Site } from "@/zerospin/dashboard/models";
 import {
   createLayoutItem,
-  createTextTileContent,
+  createTextBrickContent,
   createUser,
   updateLayoutItem,
-  updateTextTileContent,
+  updateTextBrickContent,
   updateUser,
 } from "@/zerospin/website/contracts";
 import { websiteController } from "@/zerospin/website/controller";
-import { LayoutItem, TextTileContent, User } from "@/zerospin/website/models";
+import { LayoutItem, TextBrickContent, User } from "@/zerospin/website/models";
 
 export const backend = makeBackend({
   controller: websiteController,
@@ -24,7 +24,7 @@ export const backend = makeBackend({
         with: {
           layoutItems: {
             with: {
-              textContent: true,
+              textBrickContent: true,
             },
           },
         },
@@ -56,16 +56,16 @@ export const system = makeSystem({
   },
   contracts: {
     createLayoutItem,
-    createTextTileContent,
+    createTextBrickContent,
     createUser,
     updateLayoutItem,
-    updateTextTileContent,
+    updateTextBrickContent,
     updateUser,
     createSite,
   },
   models: {
     layoutItem: LayoutItem,
-    textTileContent: TextTileContent,
+    textBrickContent: TextBrickContent,
     user: User,
     site: Site,
   },

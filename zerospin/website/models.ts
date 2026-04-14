@@ -30,13 +30,13 @@ export const LayoutItem = makeModel({
   version: 1,
 });
 
-export const TextTileContent = makeModel({
-  abbreviation: "ttc",
-  modelName: "textTileContent",
+export const TextBrickContent = makeModel({
+  abbreviation: "tbc",
+  modelName: "textBrickContent",
   attributes: {
     layoutItemId: primitives.ref({
       model: LayoutItem,
-      inverse: { name: "textContent", kind: "one" },
+      inverse: { name: "textBrickContent", kind: "one" },
     }),
     body: primitives.text(),
   },

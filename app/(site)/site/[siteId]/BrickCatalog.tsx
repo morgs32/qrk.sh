@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { BrickCollectionCarousel } from "./BrickCollectionCarousel";
-import { BrickDrawerBrickDetail } from "./BrickDrawerBrickDetail";
+import { BrickDetail } from "./BrickDetail/BrickDetail";
 import { collectionsHash } from "@/components/home/bricks/collectionsHash";
 
-export function BrickDrawer(props: {
+export function BrickCatalog(props: {
   open: boolean;
   brickId: string | null;
   onBackToCatalog: () => void;
@@ -45,7 +45,7 @@ export function BrickDrawer(props: {
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {showBrickDetail && brickId ? (
-          <BrickDrawerBrickDetail brickId={brickId} onBack={onBackToCatalog} onClose={onClose} />
+          <BrickDetail brickId={brickId} onBack={onBackToCatalog} onClose={onClose} />
         ) : (
           <>
             <div className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">

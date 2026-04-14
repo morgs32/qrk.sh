@@ -54,7 +54,7 @@ test.describe("brick instance path", () => {
   test("brick drawer shows instance id on brick detail route", async ({ page }) => {
     await page.goto(`${sitePath}/brick/orange-flag--0`, { waitUntil: "load" });
 
-    await expect(page.getByTestId("brick-drawer-brick-detail-title")).toHaveText("orange-flag--0", {
+    await expect(page.getByTestId("brick-detail-title")).toHaveText("orange-flag--0", {
       timeout: 90_000,
     });
   });
@@ -62,7 +62,7 @@ test.describe("brick instance path", () => {
   test("Back from brick detail opens catalog at edit-bricks", async ({ page }) => {
     await page.goto(`${sitePath}/brick/orange-flag--0`, { waitUntil: "load" });
 
-    await expect(page.getByTestId("brick-drawer-brick-detail-title")).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId("brick-detail-title")).toBeVisible({ timeout: 90_000 });
     await page.getByRole("button", { name: "Back to brick catalog" }).click();
 
     await expect.poll(() => new URL(page.url()).pathname).toBe(`${sitePath}/edit-bricks`);
@@ -72,7 +72,7 @@ test.describe("brick instance path", () => {
   test("closing brick drawer returns to site root", async ({ page }) => {
     await page.goto(`${sitePath}/brick/orange-flag--0`, { waitUntil: "load" });
 
-    await expect(page.getByTestId("brick-drawer-brick-detail-title")).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId("brick-detail-title")).toBeVisible({ timeout: 90_000 });
     await page.getByRole("button", { name: "Close drawer" }).click();
 
     await expect.poll(() => new URL(page.url()).pathname).toBe(sitePath);

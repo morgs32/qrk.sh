@@ -3,7 +3,7 @@
 import { ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function BrickDrawerBrickDetail(props: {
+export function BrickDetail(props: {
   brickId: string;
   onBack: () => void;
   onClose: () => void;
@@ -40,10 +40,7 @@ export function BrickDrawerBrickDetail(props: {
       </div>
 
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-6">
-        <h1
-          className="text-2xl font-semibold tracking-tight"
-          data-testid="brick-drawer-brick-detail-title"
-        >
+        <h1 className="text-2xl font-semibold tracking-tight" data-testid="brick-detail-title">
           {brickId}
         </h1>
       </div>

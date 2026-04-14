@@ -5,8 +5,8 @@ import { useMemo } from "react";
 import type { EmblaCarouselType } from "embla-carousel";
 import type { ICollection, ICollectionBrick } from "@/components/home/bricks/types";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { BrickCarouselNav } from "./BrickCarouselNav";
-import { BrickPreview } from "./BrickPreview";
+import { BrickCarouselNav } from "./BrickCatalogPreview/BrickCarouselNav";
+import { BrickPreview } from "./BrickCatalogPreview/BrickPreview";
 
 /** When true, Embla should not handle drag / focus for this interaction (drawer brick DnD, nav, etc.). */
 function drawerCarouselInteractionShouldSkipEmbla(target: EventTarget | null): boolean {

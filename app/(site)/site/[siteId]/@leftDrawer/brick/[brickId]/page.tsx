@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { BrickDrawer } from "../../../BrickDrawer";
+import { BrickCatalog } from "../../../BrickCatalog";
 
 export default function BrickDetailPage() {
   const router = useRouter();
@@ -10,7 +10,7 @@ export default function BrickDetailPage() {
   const brickId = params.brickId;
 
   return (
-    <BrickDrawer
+    <BrickCatalog
       open
       brickId={brickId}
       onBackToCatalog={() => {

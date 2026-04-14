@@ -6,8 +6,7 @@ import { ProseDrawerTiptap } from "./ProseDrawerTiptap";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export function ProseDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-
+export function Prose({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <div
       role="dialog"
@@ -25,7 +24,7 @@ export function ProseDrawer({ open, onClose }: { open: boolean; onClose: () => v
             <div className="space-y-1">
               <div className="text-sm font-semibold">Text</div>
               <div className="text-xs text-muted-foreground">
-                Rich text blocks with formatting. Content is kept in the prose drawer store.
+                Rich text blocks with formatting. Content is kept in the prose store.
               </div>
             </div>
 

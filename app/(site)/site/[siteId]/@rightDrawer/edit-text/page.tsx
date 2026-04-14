@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ProseDrawer } from "../../ProseDrawer";
+import { Prose } from "../../Prose/Prose";
 
 export default function EditTextPage() {
   const router = useRouter();
@@ -9,7 +9,7 @@ export default function EditTextPage() {
   const siteId = params.siteId;
 
   return (
-    <ProseDrawer
+    <Prose
       open
       onClose={() => {
         router.push(`/site/${siteId}`);

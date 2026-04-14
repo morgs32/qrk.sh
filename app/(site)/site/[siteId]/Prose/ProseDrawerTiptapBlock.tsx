@@ -6,7 +6,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Hash, Italic, List, ListOrdered, Pilcrow, Quote } from "lucide-react";
 
-import { useProseDrawerStore } from "./useProseDrawerStore";
+import { useProseDrawerStore } from "../useProseDrawerStore";
 import { Button } from "@/components/ui/button";
 
 export function ProseDrawerTiptapBlock({ id, initialContent }: { id: string; initialContent: string }) {

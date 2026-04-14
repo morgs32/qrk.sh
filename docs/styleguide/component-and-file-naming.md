@@ -21,24 +21,24 @@ Use these rules for **repo-authored React components** that are **not** shadcn a
 
 Prefer **one primary React component per file** (matching the PascalCase file name). Nesting sizable presentational or interactive subcomponents in the parent file makes diffs noisier and obscures imports.
 
-- **Bad**: `BrickDrawer.tsx` defines both `BrickDrawer` and a multi-markup helper like `BrickCarouselNav` in the same module.
+- **Bad**: `BrickCatalog.tsx` defines both `BrickCatalog` and a multi-markup helper like `BrickCarouselNav` in the same module.
 
-- **Good**: `BrickCarouselNav.tsx` exports `BrickCarouselNav`; [BrickDrawer.tsx](../../app/(site)/site/[siteId]/BrickDrawer.tsx) imports it. Keep **`data-brick-drawer-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
+- **Good**: Under [BrickCatalogPreview/](../../app/(site)/site/[siteId]/BrickCatalogPreview/), [BrickCarouselNav.tsx](../../app/(site)/site/[siteId]/BrickCatalogPreview/BrickCarouselNav.tsx) exports `BrickCarouselNav` and [BrickPreview.tsx](../../app/(site)/site/[siteId]/BrickCatalogPreview/BrickPreview.tsx) exports `BrickPreview`; [BrickCollectionCarousel.tsx](../../app/(site)/site/[siteId]/BrickCollectionCarousel.tsx) imports them. Keep **`data-brick-drawer-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
 
 ### Exceptions (this rule does not apply)
 
 - **shadcn/ui components**: anything under `components/ui/**` keeps shadcn’s conventions.
 - **Next.js special files**: framework-reserved files under `app/**` keep their required names (for example `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, `route.ts`).
 
-### Good vs bad: BrickDrawer carousel slides (one panel per brick)
+### Good vs bad: BrickCatalog carousel slides (one panel per brick)
 
-The brick drawer uses shadcn `Carousel` (Embla) **per collection**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def.w * 50vw / 4)`** by **`calc(def.h * 50vw / 4)`**, i.e. half the viewport (site workspace `w-1/2`) divided into four columns—the same column count [Grid.tsx](../../app/(site)/site/[siteId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
+The brick catalog drawer uses shadcn `Carousel` (Embla) **per collection**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def.w * 50vw / 4)`** by **`calc(def.h * 50vw / 4)`**, i.e. half the viewport (site workspace `w-1/2`) divided into four columns—the same column count [Grid.tsx](../../app/(site)/site/[siteId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
 
 ### Good vs bad: `BrickPreview` props (inline types, no cross-file props export)
 
-Keep [BrickPreview.tsx](../../app/(site)/site/[siteId]/BrickPreview.tsx) decoupled from [BrickDrawer.tsx](../../app/(site)/site/[siteId]/BrickDrawer.tsx): **do not** export a `BrickPreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a small props API.
+Keep [BrickPreview.tsx](../../app/(site)/site/[siteId]/BrickCatalogPreview/BrickPreview.tsx) decoupled from [BrickCatalog.tsx](../../app/(site)/site/[siteId]/BrickCatalog.tsx): **do not** export a `BrickPreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a small props API.
 
-- **Bad**: `export type BrickPreviewProps` in `BrickDrawer.tsx` and `import { BrickPreviewProps } from './BrickDrawer'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
+- **Bad**: `export type BrickPreviewProps` in `BrickCatalog.tsx` and `import { BrickPreviewProps } from './BrickCatalog'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
 
 - **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: ICollectionBrick }`** from [components/home/bricks/types.ts](../../components/home/bricks/types.ts). Catalog rows are built with **`makeBrick`** (variant **`def` + `component`**) and **`makeCollection`** (`IBrick[]` → **`ICollectionBrick[]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../components/home/useBrickDrawerStore.ts)); [useGridLayoutStore.ts](../../components/home/useGridLayoutStore.ts) holds **`layout`** with **`def`** per item, not React components.
 
@@ -66,7 +66,7 @@ In code and tests, **`brickNames`** means **that pair**: **`collectionName`** pl
 
 - **Good**: pass or thread **`collectionName`** and **`def.name`** (or parameters **`collectionName`**, **`brickName`** when `brickName` is the variant slug); locate grid bricks with **`gridLocateByBrickNames(grid, collectionName, brickName)`** in [`e2e/grid-drag.spec.ts`](../../e2e/grid-drag.spec.ts).
 
-[BrickPreview.tsx](../../app/(site)/site/[siteId]/BrickPreview.tsx) exposes it on the draggable slot:
+[BrickPreview.tsx](../../app/(site)/site/[siteId]/BrickCatalogPreview/BrickPreview.tsx) exposes it on the draggable slot:
 
 - **`data-brick-drawer-collection-name`** = **`brick.def.collectionName`**
 - **`data-brick-drawer-brick-name`** = **`brick.def.name`**

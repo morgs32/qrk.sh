@@ -1,11 +1,17 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { SiteSlotColumns } from "./SiteSlotColumns";
+import { SiteBottomToolbar } from "./SiteBottomToolbar";
 
 export default async function SiteLayout({
   children,
+  left,
+  right,
   params,
 }: Readonly<{
   children: React.ReactNode;
+  left: React.ReactNode;
+  right: React.ReactNode;
   params: Promise<{ siteId: string }>;
 }>) {
   const { siteId } = await params;
@@ -36,6 +42,11 @@ export default async function SiteLayout({
       </header>
 
       <Suspense fallback={null}>{children}</Suspense>
+      <SiteSlotColumns
+        left={<Suspense fallback={null}>{left}</Suspense>}
+        right={<Suspense fallback={null}>{right}</Suspense>}
+      />
+      <SiteBottomToolbar />
     </div>
   );
 }

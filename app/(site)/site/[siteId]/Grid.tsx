@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { flushSync } from "react-dom";
 import GridLayout, {
   useContainerWidth,
@@ -21,8 +22,6 @@ import {
 } from "@/components/home/useTileDrawerStore";
 import type { ICollectionTileDef } from "@/components/home/tiles/types";
 import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
-import { useDrawerSearchParam } from "./useDrawerSearchParam";
-import { useTileIdSearchParam } from "./useTileIdSearchParam";
 
 /**
  * Set `NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED=true` when running a second dev
@@ -91,8 +90,9 @@ function dataTransferHasTileMime(dt: globalThis.DataTransfer | null): boolean {
 }
 
 export function Grid() {
-  const [, setDrawer] = useDrawerSearchParam();
-  const [, setTileId] = useTileIdSearchParam();
+  const router = useRouter();
+  const params = useParams<{ siteId: string }>();
+  const siteId = params.siteId;
   const { containerRef, width, mounted } = useContainerWidth();
   const layout = useGridLayoutStore((s) => s.layout);
   const setLayout = useGridLayoutStore((s) => s.setLayout);
@@ -284,8 +284,7 @@ export function Grid() {
                     if (suppressTileIdClickRef.current) {
                       return;
                     }
-                    void setDrawer("edit-tiles");
-                    void setTileId(item.i);
+                    router.push(`/site/${siteId}/tile/${item.i}`);
                   }}
                 >
                   <TileComponent />

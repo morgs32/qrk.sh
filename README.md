@@ -44,11 +44,11 @@ More detail and test patterns: [docs/styleguide/component-and-file-naming.md](do
    pnpm dev
    ```
 
-3. Open http://localhost:3000
+3. Open http://localhost:4000
 
 ### Production server
 
-After `pnpm build`, `pnpm start` runs the production server on **port 5000** (http://localhost:5000).
+After `pnpm build`, `pnpm start` runs the production server on **port 4000** (http://localhost:4000).
 
 ## Deployment
 

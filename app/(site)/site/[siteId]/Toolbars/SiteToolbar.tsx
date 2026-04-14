@@ -1,10 +1,16 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useMemo } from "react";
-import { Cog, CogIcon, Minus, Plus, RectangleHorizontal, Type } from "lucide-react";
+import { Cog, CogIcon, Plus, RectangleHorizontal, Type } from "lucide-react";
 import { useParams } from "next/navigation";
 import { brickCatalogPattern, composePattern } from "../routePatterns";
 import { BottomToolbar, ToolbarButton, ToolbarSeparator } from "./BottomToolbar";
+
+const toolbarPresenceTransition = {
+  duration: 0.3,
+  ease: [0, 0, 0.2, 1] as const,
+};
 
 export function SiteToolbar() {
   const params = useParams<{ siteId: string; pageId: string }>();
@@ -14,7 +20,13 @@ export function SiteToolbar() {
   const hrefParams = useMemo(() => ({ siteId, pageId }), [siteId, pageId]);
 
   return (
-    <div className="pointer-events-none fixed bottom-6 left-0 right-0 z-30 flex justify-center px-4">
+    <motion.div
+      initial={{ y: "100%", opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: "100%", opacity: 0 }}
+      transition={toolbarPresenceTransition}
+      className="pointer-events-none fixed bottom-6 left-0 right-0 z-30 flex justify-center px-4"
+    >
       <div className="pointer-events-auto">
         <BottomToolbar>
           <ToolbarButton
@@ -32,17 +44,6 @@ export function SiteToolbar() {
             href={brickCatalogPattern.href(hrefParams)}
             className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
           />
-
-          <ToolbarSeparator />
-
-          <ToolbarButton
-            tooltip="Edit header"
-            aria-label="Edit header"
-            className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-          >
-            <Minus className="h-3.5 w-3.5" />
-            Edit header
-          </ToolbarButton>
 
           <ToolbarSeparator />
 
@@ -78,6 +79,6 @@ export function SiteToolbar() {
           </ToolbarButton>
         </BottomToolbar>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,12 +1,15 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 
 import { ComposeDrawerTiptap } from "./ComposeDrawerTiptap";
 import { Button } from "@/components/ui/button";
+import { pagePattern } from "../../../routePatterns";
 
-export function Compose(props: { onClose: () => void }) {
-  const { onClose } = props;
+export function Compose() {
+  const params = useParams<{ siteId: string; pageId: string }>();
+  const router = useRouter();
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -25,7 +28,7 @@ export function Compose(props: { onClose: () => void }) {
             size="icon"
             className="cursor-pointer"
             aria-label="Close drawer"
-            onClick={onClose}
+            onClick={() => router.push(pagePattern.href({ ...params }))}
           >
             <X className="size-4" />
           </Button>

@@ -1,7 +1,9 @@
 "use client";
 
+import { AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
+import { BrickCatalogToolbar } from "./BrickCatalogToolbar";
 import { SiteToolbar } from "./SiteToolbar";
 import { matchPagePathname } from "../routePatterns";
 
@@ -12,13 +14,11 @@ export function Toolbars() {
   const render = useMemo(() => {
     switch (match?.data) {
       case "brickCatalog":
-      case "brickDetail":
-      case "compose":
-        return <SiteToolbar key="bottom" />;
+        return <BrickCatalogToolbar key="brick-catalog-toolbar" />;
       default:
-        return <SiteToolbar key="bottom" />;
+        return <SiteToolbar key="default" />;
     }
   }, [match?.data]);
 
-  return <>{render}</>;
+  return <AnimatePresence>{render}</AnimatePresence>;
 }

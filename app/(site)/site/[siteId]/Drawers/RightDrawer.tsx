@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Compose } from "../page/[pageId]/Compose/Compose";
 
@@ -14,13 +13,6 @@ const COMPOSE_ARIA_LABEL = "Compose drawer";
 
 export function RightDrawer(props: { data: "compose" }) {
   const { data } = props;
-  const router = useRouter();
-  const pathname = usePathname();
-
-  const onCloseCompose = () => {
-    const base = pathname.replace(/\/compose\/?$/, "");
-    router.push(base.length > 0 ? base : pathname);
-  };
 
   return (
     <AnimatePresence>
@@ -39,7 +31,7 @@ export function RightDrawer(props: { data: "compose" }) {
           )}
         >
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            <Compose onClose={onCloseCompose} />
+            <Compose />
           </div>
         </motion.div>
       ) : null}

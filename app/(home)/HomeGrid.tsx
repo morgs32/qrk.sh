@@ -88,7 +88,7 @@ function dataTransferHasTileMime(dt: globalThis.DataTransfer | null): boolean {
   return false;
 }
 
-export function GridDumb() {
+export function HomeGrid() {
   const { containerRef, width, mounted } = useContainerWidth();
   const layout = useGridLayoutStore((s) => s.layout);
   const setLayout = useGridLayoutStore((s) => s.setLayout);

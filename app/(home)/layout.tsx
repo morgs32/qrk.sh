@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { HomeShellDumb } from "./HomeShellDumb";
 
 export default function HomeLayout({
   children,
@@ -32,10 +31,7 @@ export default function HomeLayout({
         </button>
       </header>
 
-      <Suspense fallback={null}>
-        <HomeShellDumb />
-      </Suspense>
-      {children}
+      <Suspense fallback={null}>{children}</Suspense>
     </div>
   );
 }

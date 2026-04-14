@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { TileCollectionCarousel } from "./TileCollectionCarousel";
 import { TileDrawerTileDetail } from "./TileDrawerTileDetail";
-import { collectionsHash } from "./tiles/collectionsHash";
+import { collectionsHash } from "@/components/home/tiles/collectionsHash";
 
 export function TileDrawer(props: {
   open: boolean;

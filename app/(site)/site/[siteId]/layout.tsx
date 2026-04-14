@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { HomeShell } from "@/components/home/HomeShell";
 
 export default async function SiteLayout({
   children,
@@ -36,10 +35,7 @@ export default async function SiteLayout({
         </button>
       </header>
 
-      <Suspense fallback={null}>
-        <HomeShell />
-      </Suspense>
-      {children}
+      <Suspense fallback={null}>{children}</Suspense>
     </div>
   );
 }

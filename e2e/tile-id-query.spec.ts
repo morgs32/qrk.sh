@@ -2,10 +2,12 @@ import { expect, test } from "@playwright/test";
 
 const sitePath = "/site/e2e";
 
+function getSearchParams(url: string) {
+  return new URL(url).searchParams;
+}
+
 test.describe("tile instance path", () => {
-  test("clicking a grid tile navigates to /site/:siteId/edit-tiles/:collectionName/:instanceId", async ({
-    page,
-  }) => {
+  test("clicking a grid tile sets drawer=edit-tiles and tileId on /site/:siteId", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(sitePath, { waitUntil: "load" });
 
@@ -13,12 +15,14 @@ test.describe("tile instance path", () => {
     await expect(tile).toBeVisible({ timeout: 90_000 });
     await tile.click();
 
+    await expect.poll(() => new URL(page.url()).pathname).toBe(sitePath);
     await expect
-      .poll(() => new URL(page.url()).pathname)
-      .toBe(`${sitePath}/edit-tiles/orange-flag/orange-flag--0`);
+      .poll(() => getSearchParams(page.url()).get("drawer"))
+      .toBe("edit-tiles");
+    await expect.poll(() => getSearchParams(page.url()).get("tileId")).toBe("orange-flag--0");
   });
 
-  test("dragging a grid tile does not change pathname to an instance route", async ({ page }) => {
+  test("dragging a grid tile does not set tile detail search params", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(sitePath, { waitUntil: "load" });
 
@@ -44,35 +48,38 @@ test.describe("tile instance path", () => {
     await page.mouse.up();
     await page.waitForTimeout(200);
 
-    expect(new URL(page.url()).pathname.startsWith(`${sitePath}/edit-tiles/`)).toBe(false);
+    expect(new URL(page.url()).pathname).toBe(sitePath);
+    expect(getSearchParams(page.url()).get("tileId")).toBeNull();
   });
 
-  test("tile drawer shows instance id on /site/:siteId/edit-tiles/:collectionName/:instanceId", async ({
-    page,
-  }) => {
-    await page.goto(`${sitePath}/edit-tiles/orange-flag/orange-flag--0`, { waitUntil: "load" });
+  test("tile drawer shows instance id when tileId is in the query string", async ({ page }) => {
+    await page.goto(`${sitePath}?drawer=edit-tiles&tileId=orange-flag--0`, { waitUntil: "load" });
 
     await expect(page.getByTestId("tile-drawer-tile-detail-title")).toHaveText("orange-flag--0", {
       timeout: 90_000,
     });
   });
 
-  test("Back from tile detail goes to /site/:siteId/edit-tiles and shows catalog", async ({ page }) => {
-    await page.goto(`${sitePath}/edit-tiles/orange-flag/orange-flag--0`, { waitUntil: "load" });
+  test("Back from tile detail clears tileId and shows catalog", async ({ page }) => {
+    await page.goto(`${sitePath}?drawer=edit-tiles&tileId=orange-flag--0`, { waitUntil: "load" });
 
     await expect(page.getByTestId("tile-drawer-tile-detail-title")).toBeVisible({ timeout: 90_000 });
     await page.getByRole("button", { name: "Back to tile catalog" }).click();
 
-    await expect.poll(() => new URL(page.url()).pathname).toBe(`${sitePath}/edit-tiles`);
+    await expect.poll(() => new URL(page.url()).pathname).toBe(sitePath);
+    await expect.poll(() => getSearchParams(page.url()).get("drawer")).toBe("edit-tiles");
+    expect(getSearchParams(page.url()).get("tileId")).toBeNull();
     await expect(page.getByLabel("Search tiles")).toBeVisible();
   });
 
-  test("closing tile drawer navigates to /site/:siteId", async ({ page }) => {
-    await page.goto(`${sitePath}/edit-tiles/orange-flag/orange-flag--0`, { waitUntil: "load" });
+  test("closing tile drawer clears drawer and tileId", async ({ page }) => {
+    await page.goto(`${sitePath}?drawer=edit-tiles&tileId=orange-flag--0`, { waitUntil: "load" });
 
     await expect(page.getByTestId("tile-drawer-tile-detail-title")).toBeVisible({ timeout: 90_000 });
     await page.getByRole("button", { name: "Close drawer" }).click();
 
     await expect.poll(() => new URL(page.url()).pathname).toBe(sitePath);
+    expect(getSearchParams(page.url()).get("drawer")).toBeNull();
+    expect(getSearchParams(page.url()).get("tileId")).toBeNull();
   });
 });

@@ -5,7 +5,7 @@ import { TILE_DRAG_MIME, useTileDrawerStore } from "@/components/home/useTileDra
 import { type ICollectionTile } from "@/components/home/tiles/types";
 import { makeId } from "@/lib/makeId";
 
-/** Matches homepage workspace: half viewport (`HomeShell` `w-1/2`) ÷ 8 columns, same as `Grid` `GRID_COLS`. */
+/** Matches site workspace: half viewport (right column `w-1/2`) ÷ 8 columns, same as `Grid` `GRID_COLS`. */
 const PREVIEW_GRID_COLS = 8;
 
 export function TilePreview({ tile }: { tile: ICollectionTile }) {

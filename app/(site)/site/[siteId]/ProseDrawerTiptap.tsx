@@ -1,7 +1,7 @@
 "use client";
 
-import { ProseDrawerTiptapBlock } from "@/components/home/ProseDrawerTiptapBlock";
-import { useProseDrawerStore } from "@/components/home/useProseDrawerStore";
+import { ProseDrawerTiptapBlock } from "./ProseDrawerTiptapBlock";
+import { useProseDrawerStore } from "./useProseDrawerStore";
 import { Button } from "@/components/ui/button";
 
 export function ProseDrawerTiptap() {

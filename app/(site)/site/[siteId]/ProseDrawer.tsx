@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 
-import { ProseDrawerTiptap } from "@/components/home/ProseDrawerTiptap";
+import { ProseDrawerTiptap } from "./ProseDrawerTiptap";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

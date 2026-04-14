@@ -68,18 +68,12 @@ function ToolbarLabeledButton({
     </>
   );
 
-  if (href !== undefined && href !== "") {
-    const button = (
-      <Button asChild variant={variant} size="sm" className={contentClassName}>
-        <Link href={href} aria-label={typeof ariaLabel === "string" ? ariaLabel : undefined}>
-          {body}
-        </Link>
-      </Button>
-    );
+  const { "aria-label": _a, ...buttonProps } = rest;
 
+  function wrapTooltip(trigger: React.ReactElement) {
     return (
       <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipTrigger asChild>{trigger}</TooltipTrigger>
         <TooltipContent side="top" sideOffset={8}>
           {tip}
         </TooltipContent>
@@ -87,28 +81,31 @@ function ToolbarLabeledButton({
     );
   }
 
-  const { "aria-label": _a, ...buttonProps } = rest;
-  const button = (
-    <Button
-      type="button"
-      variant={variant}
-      size="sm"
-      className={contentClassName}
-      aria-label={ariaLabel}
-      {...buttonProps}
-    >
-      {body}
-    </Button>
-  );
+  function renderTrigger() {
+    if (href !== undefined && href !== "") {
+      return (
+        <Button asChild variant={variant} size="sm" className={contentClassName}>
+          <Link href={href} aria-label={typeof ariaLabel === "string" ? ariaLabel : undefined}>
+            {body}
+          </Link>
+        </Button>
+      );
+    }
+    return (
+      <Button
+        type="button"
+        variant={variant}
+        size="sm"
+        className={contentClassName}
+        aria-label={ariaLabel}
+        {...buttonProps}
+      >
+        {body}
+      </Button>
+    );
+  }
 
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent side="top" sideOffset={8}>
-        {tip}
-      </TooltipContent>
-    </Tooltip>
-  );
+  return wrapTooltip(renderTrigger());
 }
 
 export function ToolbarButton(props: ToolbarButtonProps) {

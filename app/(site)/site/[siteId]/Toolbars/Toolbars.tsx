@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
-import { SiteToolbar } from "../page/[pageId]/Toolbars/SiteToolbar";
+import { SiteToolbar } from "./SiteToolbar";
 import { matchPagePathname } from "../routePatterns";
 
 export function Toolbars() {

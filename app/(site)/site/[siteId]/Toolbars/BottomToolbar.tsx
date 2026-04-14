@@ -1,88 +1,103 @@
 "use client";
 
 import * as React from "react";
-import type { RoutePattern } from "@remix-run/route-pattern";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { pagePattern, pathnameToMatchUrl } from "../../../routePatterns";
 
-function routePatternsActive(
-  matchPattern: RoutePattern | readonly RoutePattern[],
-  url: URL,
-): boolean {
-  const list = Array.isArray(matchPattern) ? matchPattern : [matchPattern];
-  return list.some((p) => p.test(url));
-}
-
-/** Inactive `href` uses the first pattern (single pattern or tuple); active always exits to `pagePattern`. */
-function enterPatternFromMatch(matchPattern: RoutePattern | readonly RoutePattern[]): RoutePattern {
-  return (Array.isArray(matchPattern) ? matchPattern[0] : matchPattern) as RoutePattern;
-}
-
-type BaseToolbarButtonProps = {
-  kind?: undefined;
+export type ToolbarButtonLegacyProps = {
   tooltip?: string;
   variant?: "default" | "ghost";
   asChild?: boolean;
   children: React.ReactNode;
+  label?: never;
+  icon?: never;
 } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children">;
 
-export type RouteToolbarButtonProps = {
-  kind: "route";
-  matchPattern: RoutePattern | readonly RoutePattern[];
-  hrefParams: { siteId: string; pageId: string };
-  activeLabel: string;
-  inactiveLabel: string;
-  activeIcon: React.ReactNode;
-  inactiveIcon: React.ReactNode;
+export type ToolbarButtonLabeledProps = {
+  label: string;
+  icon: React.ReactNode;
+  isActive?: boolean;
+  activeLabel?: string;
+  activeIcon?: React.ReactNode;
+  href?: string;
   activeDestructive?: boolean;
+  tooltip?: string;
   variant?: "default" | "ghost";
-  className?: string;
-};
+  children?: never;
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children">;
 
-export type ToolbarButtonProps = BaseToolbarButtonProps | RouteToolbarButtonProps;
+export type ToolbarButtonProps = ToolbarButtonLegacyProps | ToolbarButtonLabeledProps;
 
-function ToolbarRouteButton({
-  matchPattern,
-  hrefParams,
+function isLabeledToolbarButton(props: ToolbarButtonProps): props is ToolbarButtonLabeledProps {
+  return "label" in props && "icon" in props;
+}
+
+function ToolbarLabeledButton({
+  label,
+  icon,
+  isActive = false,
   activeLabel,
-  inactiveLabel,
   activeIcon,
-  inactiveIcon,
+  href,
   activeDestructive = false,
+  tooltip,
   variant = "ghost",
   className,
-}: RouteToolbarButtonProps) {
-  const pathname = usePathname();
-  const url = pathnameToMatchUrl(pathname);
-  const active = routePatternsActive(matchPattern, url);
-  const href = active
-    ? pagePattern.href(hrefParams)
-    : enterPatternFromMatch(matchPattern).href(hrefParams);
-  const label = active ? activeLabel : inactiveLabel;
-  const icon = active ? activeIcon : inactiveIcon;
+  ...rest
+}: ToolbarButtonLabeledProps) {
+  const displayLabel = isActive && activeLabel !== undefined ? activeLabel : label;
+  const displayIcon = isActive && activeIcon !== undefined ? activeIcon : icon;
+  const tip = tooltip ?? displayLabel;
+  const ariaLabel = rest["aria-label"] ?? displayLabel;
 
+  const contentClassName = cn(
+    "h-8 px-2 text-muted-foreground hover:text-foreground",
+    variant === "default" &&
+      "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+    isActive && activeDestructive && "text-destructive hover:text-destructive",
+    className,
+  );
+
+  const body = (
+    <>
+      {displayIcon}
+      {displayLabel}
+    </>
+  );
+
+  if (href !== undefined && href !== "") {
+    const button = (
+      <Button asChild variant={variant} size="sm" className={contentClassName}>
+        <Link href={href} aria-label={typeof ariaLabel === "string" ? ariaLabel : undefined}>
+          {body}
+        </Link>
+      </Button>
+    );
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent side="top" sideOffset={8}>
+          {tip}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  const { "aria-label": _a, ...buttonProps } = rest;
   const button = (
     <Button
-      asChild
+      type="button"
       variant={variant}
       size="sm"
-      className={cn(
-        "h-8 px-2 text-muted-foreground hover:text-foreground",
-        variant === "default" &&
-          "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
-        active && activeDestructive && "text-destructive hover:text-destructive",
-        className,
-      )}
+      className={contentClassName}
+      aria-label={ariaLabel}
+      {...buttonProps}
     >
-      <Link href={href} aria-label={label}>
-        {icon}
-        {label}
-      </Link>
+      {body}
     </Button>
   );
 
@@ -90,15 +105,15 @@ function ToolbarRouteButton({
     <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
       <TooltipContent side="top" sideOffset={8}>
-        {label}
+        {tip}
       </TooltipContent>
     </Tooltip>
   );
 }
 
 export function ToolbarButton(props: ToolbarButtonProps) {
-  if (props.kind === "route") {
-    return <ToolbarRouteButton {...props} />;
+  if (isLabeledToolbarButton(props)) {
+    return <ToolbarLabeledButton {...props} />;
   }
 
   const { tooltip, variant = "ghost", asChild, children, className, ...rest } = props;

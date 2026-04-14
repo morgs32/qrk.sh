@@ -1,17 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { Cog, CogIcon, Minus, Plus, RectangleHorizontal, Type, X } from "lucide-react";
+import { Cog, CogIcon, Minus, Plus, RectangleHorizontal, Type } from "lucide-react";
 import { useParams, usePathname } from "next/navigation";
 import {
   brickCatalogPattern,
   brickDetailPattern,
   composePattern,
   pathnameToMatchUrl,
-} from "../../../routePatterns";
+} from "../routePatterns";
 import { BottomToolbar, ToolbarButton, ToolbarSeparator } from "./BottomToolbar";
-
-const bricksMatchPattern = [brickCatalogPattern, brickDetailPattern] as const;
 
 export function SiteToolbar() {
   const pathname = usePathname();
@@ -35,28 +33,18 @@ export function SiteToolbar() {
       <div className="pointer-events-auto">
         <BottomToolbar>
           <ToolbarButton
-            kind="route"
-            matchPattern={composePattern}
-            hrefParams={hrefParams}
-            activeLabel="Close"
-            inactiveLabel="Compose"
-            activeIcon={<X className="!size-4 shrink-0" strokeWidth={2} aria-hidden />}
-            inactiveIcon={<Type className="h-3.5 w-3.5" />}
-            activeDestructive
+            label="Compose"
+            icon={<Type className="h-3.5 w-3.5" />}
+            href={composePattern.href(hrefParams)}
             className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
           />
 
           <ToolbarSeparator />
 
           <ToolbarButton
-            kind="route"
-            matchPattern={bricksMatchPattern}
-            hrefParams={hrefParams}
-            activeLabel="Close"
-            inactiveLabel="Add bricks"
-            activeIcon={<X className="!size-4 shrink-0" strokeWidth={2} aria-hidden />}
-            inactiveIcon={<Plus className="h-3.5 w-3.5" />}
-            activeDestructive
+            label="Add bricks"
+            icon={<Plus className="h-3.5 w-3.5" />}
+            href={brickCatalogPattern.href(hrefParams)}
             className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
           />
 

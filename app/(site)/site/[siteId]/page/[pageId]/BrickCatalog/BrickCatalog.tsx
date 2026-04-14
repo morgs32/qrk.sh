@@ -41,8 +41,8 @@ export function BrickCatalog(props: {
               <div className="space-y-1">
                 <div className="text-sm font-semibold">Bricks</div>
                 <div className="text-xs text-muted-foreground">
-                  Browse bricks by collection. Drag-and-drop from the drawer will return with native
-                  HTML5 DnD.
+                  Browse bricks by collection. Drag-and-drop from the drawer will return with
+                  native HTML5 DnD.
                 </div>
               </div>
 

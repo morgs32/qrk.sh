@@ -1,8 +1,5 @@
 import { ArrayMatcher, RoutePattern } from "@remix-run/route-pattern";
 import { usePathname } from "next/navigation";
-import { BrickCatalog } from "../page/[pageId]/BrickCatalog/BrickCatalog";
-import { BrickDetail } from "../page/[pageId]/BrickDetail/BrickDetail";
-import { Compose } from "../page/[pageId]/Compose/Compose";
 import { LeftDrawer } from "./LeftDrawer";
 import { RightDrawer } from "./RightDrawer";
 

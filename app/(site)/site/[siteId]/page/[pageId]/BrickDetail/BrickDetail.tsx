@@ -11,7 +11,7 @@ export function BrickDetail(props: {
   const { brickId, onBack, onClose } = props;
 
   return (
-    <>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <div className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-4">
           <Button
@@ -44,6 +44,6 @@ export function BrickDetail(props: {
           {brickId}
         </h1>
       </div>
-    </>
+    </div>
   );
 }

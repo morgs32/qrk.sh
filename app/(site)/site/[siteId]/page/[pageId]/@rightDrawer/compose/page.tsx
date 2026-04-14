@@ -11,7 +11,6 @@ export default function ComposePage() {
 
   return (
     <Compose
-      open
       onClose={() => {
         router.push(`/site/${siteId}/page/${pageId}`);
       }}

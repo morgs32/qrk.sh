@@ -25,6 +25,7 @@ export type ToolbarButtonLabeledProps = {
   href?: string;
   activeDestructive?: boolean;
   tooltip?: string;
+  showTooltip?: boolean;
   variant?: "default" | "ghost";
   children?: never;
 } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children">;
@@ -44,6 +45,7 @@ function ToolbarLabeledButton({
   href,
   activeDestructive = false,
   tooltip,
+  showTooltip = false,
   variant = "ghost",
   className,
   ...rest
@@ -71,6 +73,9 @@ function ToolbarLabeledButton({
   const { "aria-label": _a, ...buttonProps } = rest;
 
   function wrapTooltip(trigger: React.ReactElement) {
+    if (!showTooltip) {
+      return trigger;
+    }
     return (
       <Tooltip>
         <TooltipTrigger asChild>{trigger}</TooltipTrigger>

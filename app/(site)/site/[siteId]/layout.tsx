@@ -1,18 +1,17 @@
 import { Suspense } from "react";
 import { Header } from "./Header";
-import { SiteSlotColumns } from "./SiteSlotColumns";
 import { MainColumns } from "./MainColumns";
 
 export default async function SiteLayout({
   children,
-  left,
-  right,
+  leftDrawer,
+  rightDrawer,
   toolbar,
   params,
 }: Readonly<{
   children: React.ReactNode;
-  left: React.ReactNode;
-  right: React.ReactNode;
+  leftDrawer: React.ReactNode;
+  rightDrawer: React.ReactNode;
   toolbar: React.ReactNode;
   params: Promise<{ siteId: string }>;
 }>) {
@@ -25,12 +24,24 @@ export default async function SiteLayout({
       <div className="min-h-0 flex-1">
         <Suspense fallback={null}>{children}</Suspense>
         <MainColumns />
-        <SiteSlotColumns
-          left={<Suspense fallback={null}>{left}</Suspense>}
-          right={<Suspense fallback={null}>{right}</Suspense>}
-        />
+        <LeftDrawer>
+          <Suspense fallback={null}>{leftDrawer}</Suspense>
+        </LeftDrawer>
+        <RightDrawer>
+          <Suspense fallback={null}>{rightDrawer}</Suspense>
+        </RightDrawer>
         <Suspense fallback={null}>{toolbar}</Suspense>
       </div>
     </div>
   );
+}
+
+function LeftDrawer(props: { children: React.ReactNode }) {
+  const { children } = props;
+  return <>{children}</>;
+}
+
+function RightDrawer(props: { children: React.ReactNode }) {
+  const { children } = props;
+  return <>{children}</>;
 }

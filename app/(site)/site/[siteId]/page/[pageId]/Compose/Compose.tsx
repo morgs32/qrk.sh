@@ -2,15 +2,15 @@
 
 import { X } from "lucide-react";
 
-import { ProseDrawerTiptap } from "./ProseDrawerTiptap";
+import { ComposeDrawerTiptap } from "./ComposeDrawerTiptap";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export function Prose({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function Compose({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <div
       role="dialog"
-      aria-label="Text editor"
+      aria-label="Compose"
       aria-hidden={!open}
       inert={!open}
       className={cn(
@@ -22,9 +22,9 @@ export function Prose({ open, onClose }: { open: boolean; onClose: () => void })
         <div className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-background/95 px-6 pb-5 pt-6 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <div className="text-sm font-semibold">Text</div>
+              <div className="text-sm font-semibold">Compose</div>
               <div className="text-xs text-muted-foreground">
-                Rich text blocks with formatting. Content is kept in the prose store.
+                Rich text blocks with formatting. Content is kept in the compose store.
               </div>
             </div>
 
@@ -43,7 +43,7 @@ export function Prose({ open, onClose }: { open: boolean; onClose: () => void })
 
         <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
           <div className="px-6 py-6 pb-8">
-            <ProseDrawerTiptap />
+            <ComposeDrawerTiptap />
           </div>
         </div>
       </div>

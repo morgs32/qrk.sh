@@ -1,17 +1,21 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { Compose } from "../../Compose/Compose";
+import { BrickCatalog } from "../../BrickCatalog/BrickCatalog";
 
-export default function ComposePage() {
+export default function EditBricksPage() {
   const router = useRouter();
   const params = useParams<{ siteId: string; pageId: string }>();
   const siteId = params.siteId;
   const pageId = params.pageId;
 
   return (
-    <Compose
+    <BrickCatalog
       open
+      brickId={null}
+      onBackToCatalog={() => {
+        router.push(`/site/${siteId}/page/${pageId}/edit-bricks`);
+      }}
       onClose={() => {
         router.push(`/site/${siteId}/page/${pageId}`);
       }}

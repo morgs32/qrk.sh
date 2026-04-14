@@ -5,14 +5,14 @@ type EditorBlock = {
   content: string;
 };
 
-type ProseDrawerState = {
+type ComposeState = {
   blocks: EditorBlock[];
   addBlock: () => void;
   updateBlock: (id: string, content: string) => void;
   removeBlock: (id: string) => void;
 };
 
-export const useProseDrawerStore = create<ProseDrawerState>((set) => ({
+export const useComposeStore = create<ComposeState>((set) => ({
   blocks: [{ id: crypto.randomUUID(), content: "" }],
   addBlock: () =>
     set((state) => ({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { BrickCatalog } from "../../../BrickCatalog";
+import { BrickCatalog } from "../../../BrickCatalog/BrickCatalog";
 
 export default function BrickDetailPage() {
   const router = useRouter();

@@ -6,10 +6,10 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Hash, Italic, List, ListOrdered, Pilcrow, Quote } from "lucide-react";
 
-import { useProseDrawerStore } from "../useProseDrawerStore";
+import { useComposeStore } from "./useComposeStore";
 import { Button } from "@/components/ui/button";
 
-export function ProseDrawerTiptapBlock({
+export function ComposeDrawerTiptapBlock({
   id,
   initialContent,
 }: {
@@ -18,7 +18,7 @@ export function ProseDrawerTiptapBlock({
 }) {
   const [headingExpanded, setHeadingExpanded] = useState(false);
   const [htmlContent, setHtmlContent] = useState(initialContent);
-  const updateBlock = useProseDrawerStore((s) => s.updateBlock);
+  const updateBlock = useComposeStore((s) => s.updateBlock);
 
   const editor = useEditor({
     extensions: [
@@ -99,7 +99,7 @@ export function ProseDrawerTiptapBlock({
     <div className="flex flex-col gap-4">
       <div className="rounded-lg border bg-muted/10 p-4">
         <article
-          className="prose-preview max-w-none"
+          className="compose-preview max-w-none"
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
       </div>

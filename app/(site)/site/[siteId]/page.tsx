@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { DEFAULT_SITE_PAGE_ID } from "./Drawers";
+import { DEFAULT_SITE_PAGE_ID } from "./Drawers/Drawers";
 
 export default async function SiteRootPage({
   params,

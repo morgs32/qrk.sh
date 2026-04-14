@@ -1,7 +1,8 @@
 import { ArrayMatcher, RoutePattern } from "@remix-run/route-pattern";
 import { usePathname } from "next/navigation";
-import { BrickCatalog } from "./page/[pageId]/BrickCatalog";
-import { BrickDetail } from "./page/[pageId]/BrickDetail/BrickDetail";
+import { BrickCatalog } from "../page/[pageId]/BrickCatalog/BrickCatalog";
+import { BrickDetail } from "../page/[pageId]/BrickDetail/BrickDetail";
+import { Compose } from "../page/[pageId]/Compose/Compose";
 
 /** Default `[pageId]` for the primary site workspace (`/site/:siteId/page/:pageId`). */
 export const DEFAULT_SITE_PAGE_ID = "home" as const;
@@ -29,7 +30,7 @@ Object.entries(patterns).forEach(([key, pattern]) => {
 
 export function Drawers() {
   const pathname = usePathname();
-  const match = pathMatcher.match(pathname);
+  const match = pathMatcher.match(new URL(pathname, DRAWER_MATCH_ORIGIN));
   switch (match?.data) {
     case "brickCatalog":
       return <BrickCatalog />;

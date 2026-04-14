@@ -1,7 +1,7 @@
-import { Suspense } from "react";
 import { Header } from "./Header";
+import { Drawers } from "./Drawers/Drawers";
 
-export default async function SiteLayout({
+export default async function PageLayout({
   children,
   params,
 }: Readonly<{
@@ -15,7 +15,8 @@ export default async function SiteLayout({
       <Header siteId={siteId} />
 
       <div className="min-h-0 flex-1">
-        <Suspense fallback={null}>{children}</Suspense>
+        <Drawers />
+        {children}
       </div>
     </div>
   );

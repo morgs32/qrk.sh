@@ -5,8 +5,8 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { BrickCollectionCarousel } from "./BrickCollectionCarousel";
-import { BrickDetail } from "./BrickDetail/BrickDetail";
+import { BrickCollectionCarousel } from "../BrickCollectionCarousel/BrickCollectionCarousel";
+import { BrickDetail } from "../BrickDetail/BrickDetail";
 import { collectionsHash } from "@/components/home/bricks/collectionsHash";
 
 export function BrickCatalog(props: {

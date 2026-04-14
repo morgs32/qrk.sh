@@ -47,7 +47,7 @@ function ToolbarLabeledButton({
   tooltip,
   showTooltip = false,
   variant = "ghost",
-  className,
+  className: _className,
   ...rest
 }: ToolbarButtonLabeledProps) {
   const displayLabel = isActive && activeLabel !== undefined ? activeLabel : label;
@@ -55,12 +55,12 @@ function ToolbarLabeledButton({
   const tip = tooltip ?? displayLabel;
   const ariaLabel = rest["aria-label"] ?? displayLabel;
 
-  const contentClassName = cn(
+  const className = cn(
     "h-8 px-2 text-muted-foreground hover:text-foreground",
     variant === "default" &&
       "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
     isActive && activeDestructive && "text-destructive hover:text-destructive",
-    className,
+    _className,
   );
 
   const body = (
@@ -71,6 +71,22 @@ function ToolbarLabeledButton({
   );
 
   const { "aria-label": _a, ...buttonProps } = rest;
+  const hasHref = href !== undefined && href !== "";
+
+  function wrapButton(children: React.ReactNode) {
+    return (
+      <Button
+        asChild
+        variant={variant}
+        size="sm"
+        aria-label={ariaLabel}
+        className={className}
+        {...buttonProps}
+      >
+        {children}
+      </Button>
+    );
+  }
 
   function wrapTooltip(trigger: React.ReactElement) {
     if (!showTooltip) {
@@ -86,31 +102,11 @@ function ToolbarLabeledButton({
     );
   }
 
-  function renderTrigger() {
-    if (href !== undefined && href !== "") {
-      return (
-        <Button asChild variant={variant} size="sm" className={contentClassName}>
-          <Link href={href} aria-label={typeof ariaLabel === "string" ? ariaLabel : undefined}>
-            {body}
-          </Link>
-        </Button>
-      );
-    }
-    return (
-      <Button
-        type="button"
-        variant={variant}
-        size="sm"
-        className={contentClassName}
-        aria-label={ariaLabel}
-        {...buttonProps}
-      >
-        {body}
-      </Button>
-    );
+  if (hasHref) {
+    return wrapTooltip(wrapButton(<Link href={href}>{body}</Link>));
   }
 
-  return wrapTooltip(renderTrigger());
+  return wrapTooltip(wrapButton(<button>{body}</button>));
 }
 
 export function ToolbarButton(props: ToolbarButtonProps) {

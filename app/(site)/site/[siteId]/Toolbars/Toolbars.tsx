@@ -16,7 +16,7 @@ export function Toolbars() {
       case "compose":
         return <SiteToolbar key="bottom" />;
       default:
-        return null;
+        return <SiteToolbar key="bottom" />;
     }
   }, [match?.data]);
 

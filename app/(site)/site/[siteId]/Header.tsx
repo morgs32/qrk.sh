@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { DEFAULT_SITE_PAGE_ID } from "../../Drawers";
 
 export function Header(props: { siteId: string }) {
   const { siteId } = props;
 
   return (
     <header className="z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-6">
-      <Link href={`/site/${siteId}`} className="text-sm font-medium">
+      <Link href={`/site/${siteId}/page/${DEFAULT_SITE_PAGE_ID}`} className="text-sm font-medium">
         Garlott
       </Link>
       <nav className="flex items-center gap-6">

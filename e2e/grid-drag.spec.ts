@@ -80,7 +80,7 @@ test.describe("Home grid drag", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/site/e2e/edit-bricks", { waitUntil: "load" });
+    await page.goto("/site/e2e/page/home/brick-catalog", { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
@@ -110,7 +110,7 @@ test.describe("Home grid drag", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/site/e2e/edit-bricks", { waitUntil: "load" });
+    await page.goto("/site/e2e/page/home/brick-catalog", { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
@@ -152,7 +152,7 @@ test.describe("Home grid drag", () => {
 
   test("Text brick drawer shows only 2x2 and 4x1 variants", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/site/e2e/edit-bricks", { waitUntil: "load" });
+    await page.goto("/site/e2e/page/home/brick-catalog", { waitUntil: "load" });
 
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
@@ -165,7 +165,7 @@ test.describe("Home grid drag", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/site/e2e/edit-bricks", { waitUntil: "load" });
+    await page.goto("/site/e2e/page/home/brick-catalog", { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });

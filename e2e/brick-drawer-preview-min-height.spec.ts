@@ -9,7 +9,7 @@ test.describe("Brick drawer preview slide min-height", () => {
   test("carousel slides resolve min-height from collection max def.h", async ({ page }) => {
     const viewportWidth = 1440;
     await page.setViewportSize({ width: viewportWidth, height: 900 });
-    await page.goto("/site/e2e/edit-bricks", { waitUntil: "load" });
+    await page.goto("/site/e2e/page/home/brick-catalog", { waitUntil: "load" });
 
     const drawer = page.getByRole("dialog", { name: "Workspace drawer" });
     await expect(drawer).toBeVisible({ timeout: 90_000 });

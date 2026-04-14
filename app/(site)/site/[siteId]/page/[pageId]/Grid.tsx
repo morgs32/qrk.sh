@@ -91,8 +91,9 @@ function dataTransferHasBrickMime(dt: globalThis.DataTransfer | null): boolean {
 
 export function Grid() {
   const router = useRouter();
-  const params = useParams<{ siteId: string }>();
+  const params = useParams<{ siteId: string; pageId: string }>();
   const siteId = params.siteId;
+  const pageId = params.pageId;
   const { containerRef, width, mounted } = useContainerWidth();
   const layout = useGridLayoutStore((s) => s.layout);
   const setLayout = useGridLayoutStore((s) => s.setLayout);
@@ -284,7 +285,7 @@ export function Grid() {
                     if (suppressBrickIdClickRef.current) {
                       return;
                     }
-                    router.push(`/site/${siteId}/brick/${item.i}`);
+                    router.push(`/site/${siteId}/page/${pageId}/brick/${item.i}`);
                   }}
                 >
                   <BrickComponent />

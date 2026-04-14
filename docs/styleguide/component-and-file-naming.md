@@ -23,7 +23,7 @@ Prefer **one primary React component per file** (matching the PascalCase file na
 
 - **Bad**: `BrickCatalog.tsx` defines both `BrickCatalog` and a multi-markup helper like `BrickCarouselNav` in the same module.
 
-- **Good**: Under [BrickCatalogPreview/](../../app/(site)/site/[siteId]/BrickCatalogPreview/), [BrickCarouselNav.tsx](../../app/(site)/site/[siteId]/BrickCatalogPreview/BrickCarouselNav.tsx) exports `BrickCarouselNav` and [BrickPreview.tsx](../../app/(site)/site/[siteId]/BrickCatalogPreview/BrickPreview.tsx) exports `BrickPreview`; [BrickCollectionCarousel.tsx](../../app/(site)/site/[siteId]/BrickCollectionCarousel.tsx) imports them. Keep **`data-brick-drawer-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
+- **Good**: Under [BrickCatalogPreview/](../../app/(site)/site/[siteId]/page/[pageId]/BrickCatalogPreview/), [BrickCarouselNav.tsx](../../app/(site)/site/[siteId]/page/[pageId]/BrickCatalogPreview/BrickCarouselNav.tsx) exports `BrickCarouselNav` and [BrickPreview.tsx](../../app/(site)/site/[siteId]/page/[pageId]/BrickCatalogPreview/BrickPreview.tsx) exports `BrickPreview`; [BrickCollectionCarousel.tsx](../../app/(site)/site/[siteId]/page/[pageId]/BrickCollectionCarousel.tsx) imports them. Keep **`data-brick-drawer-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
 
 ### Exceptions (this rule does not apply)
 
@@ -32,11 +32,11 @@ Prefer **one primary React component per file** (matching the PascalCase file na
 
 ### Good vs bad: BrickCatalog carousel slides (one panel per brick)
 
-The brick catalog drawer uses shadcn `Carousel` (Embla) **per collection**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def.w * 50vw / 4)`** by **`calc(def.h * 50vw / 4)`**, i.e. half the viewport (site workspace `w-1/2`) divided into four columns—the same column count [Grid.tsx](../../app/(site)/site/[siteId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
+The brick catalog drawer uses shadcn `Carousel` (Embla) **per collection**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def.w * 50vw / 4)`** by **`calc(def.h * 50vw / 4)`**, i.e. half the viewport (site workspace `w-1/2`) divided into four columns—the same column count [Grid.tsx](../../app/(site)/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
 
 ### Good vs bad: `BrickPreview` props (inline types, no cross-file props export)
 
-Keep [BrickPreview.tsx](../../app/(site)/site/[siteId]/BrickCatalogPreview/BrickPreview.tsx) decoupled from [BrickCatalog.tsx](../../app/(site)/site/[siteId]/BrickCatalog.tsx): **do not** export a `BrickPreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a small props API.
+Keep [BrickPreview.tsx](../../app/(site)/site/[siteId]/page/[pageId]/BrickCatalogPreview/BrickPreview.tsx) decoupled from [BrickCatalog.tsx](../../app/(site)/site/[siteId]/page/[pageId]/BrickCatalog.tsx): **do not** export a `BrickPreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a small props API.
 
 - **Bad**: `export type BrickPreviewProps` in `BrickCatalog.tsx` and `import { BrickPreviewProps } from './BrickCatalog'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
 
@@ -66,14 +66,14 @@ In code and tests, **`brickNames`** means **that pair**: **`collectionName`** pl
 
 - **Good**: pass or thread **`collectionName`** and **`def.name`** (or parameters **`collectionName`**, **`brickName`** when `brickName` is the variant slug); locate grid bricks with **`gridLocateByBrickNames(grid, collectionName, brickName)`** in [`e2e/grid-drag.spec.ts`](../../e2e/grid-drag.spec.ts).
 
-[BrickPreview.tsx](../../app/(site)/site/[siteId]/BrickCatalogPreview/BrickPreview.tsx) exposes it on the draggable slot:
+[BrickPreview.tsx](../../app/(site)/site/[siteId]/page/[pageId]/BrickCatalogPreview/BrickPreview.tsx) exposes it on the draggable slot:
 
 - **`data-brick-drawer-collection-name`** = **`brick.def.collectionName`**
 - **`data-brick-drawer-brick-name`** = **`brick.def.name`**
 
 (Together with **`data-brick-drawer-brick-slot`**, used by carousel drag guards.)
 
-[Grid.tsx](../../app/(site)/site/[siteId]/Grid.tsx) sets on each placed brick wrapper:
+[Grid.tsx](../../app/(site)/site/[siteId]/page/[pageId]/Grid.tsx) sets on each placed brick wrapper:
 
 - **`data-brick-grid-collection-name`** = **`item.def.collectionName`**
 - **`data-brick-grid-brick-name`** = **`item.def.name`**
@@ -102,15 +102,15 @@ Do **not** add `components/home/bricks/index.ts` (or similar) that only re-expor
 
 Do **not** add a second exported wrapper on the shared carousel that imports **`collectionsHash`** and takes **`collectionName`**: that couples every import site to a parallel API and drags catalog knowledge into **`components/home`**.
 
-- **Bad**: `BrickCollectionCarouselFromCatalog` (or similar) exported from [BrickCollectionCarousel.tsx](../../app/(site)/site/[siteId]/BrickCollectionCarousel.tsx) — thin pass-through: `collectionsHash[collectionName]` → **`BrickCollectionCarousel`**.
+- **Bad**: `BrickCollectionCarouselFromCatalog` (or similar) exported from [BrickCollectionCarousel.tsx](../../app/(site)/site/[siteId]/page/[pageId]/BrickCollectionCarousel.tsx) — thin pass-through: `collectionsHash[collectionName]` → **`BrickCollectionCarousel`**.
 
-- **Good**: [BrickCollectionCarousel.tsx](../../app/(site)/site/[siteId]/BrickCollectionCarousel.tsx) accepts **`collection: ICollection`** (and optional **`brickSortFn`**) only. Resolve **`collectionsHash[collectionName]`** in the route’s client `page.tsx` next to the site workspace and pass **`collection`** into **`BrickCollectionCarousel`**; keep **`collectionsHash`** out of the shared carousel module.
+- **Good**: [BrickCollectionCarousel.tsx](../../app/(site)/site/[siteId]/page/[pageId]/BrickCollectionCarousel.tsx) accepts **`collection: ICollection`** (and optional **`brickSortFn`**) only. Resolve **`collectionsHash[collectionName]`** in the route’s client `page.tsx` next to the site workspace and pass **`collection`** into **`BrickCollectionCarousel`**; keep **`collectionsHash`** out of the shared carousel module.
 
-### Good vs bad: edit-bricks route — keep one-off logic in `page.tsx`
+### Good vs bad: brick-catalog route — keep one-off logic in `page.tsx`
 
-**Prefer consolidating** behavior for `@leftDrawer` routes (e.g. [edit-bricks/page.tsx](../../app/(site)/site/[siteId]/@leftDrawer/edit-bricks/page.tsx), [brick/[brickId]/page.tsx](../../app/(site)/site/[siteId]/@leftDrawer/brick/[brickId]/page.tsx)) in those files. Do **not** add a **separate module** whose **only** consumer is that single `page.tsx` (extra imports and folder noise for no reuse).
+**Prefer consolidating** behavior for `@leftDrawer` routes (e.g. [brick-catalog/page.tsx](../../app/(site)/site/[siteId]/page/[pageId]/@leftDrawer/brick-catalog/page.tsx), [brick/[brickId]/page.tsx](../../app/(site)/site/[siteId]/page/[pageId]/@leftDrawer/brick/[brickId]/page.tsx)) in those files. Do **not** add a **separate module** whose **only** consumer is that single `page.tsx` (extra imports and folder noise for no reuse).
 
-- **Bad**: `EditBricksFoo.tsx` (or `FooHelper.ts`) next to the page — a thin wrapper or helper used **only** once by that `page.tsx`.
+- **Bad**: `BrickCatalogFoo.tsx` (or `FooHelper.ts`) next to the page — a thin wrapper or helper used **only** once by that `page.tsx`.
 
 - **Good**: Render shared UI (e.g. **`BrickCollectionCarousel`**) **directly** in the page’s JSX; put small helpers at **module scope** in the same file; if the page is a client component, use **`useMemo`** / local **function declarations** / inline **child components** in the **same file** instead of a sibling file only this route imports.
 

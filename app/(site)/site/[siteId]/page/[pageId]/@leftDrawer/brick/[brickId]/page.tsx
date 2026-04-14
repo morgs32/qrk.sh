@@ -5,8 +5,9 @@ import { BrickCatalog } from "../../../BrickCatalog";
 
 export default function BrickDetailPage() {
   const router = useRouter();
-  const params = useParams<{ siteId: string; brickId: string }>();
+  const params = useParams<{ siteId: string; pageId: string; brickId: string }>();
   const siteId = params.siteId;
+  const pageId = params.pageId;
   const brickId = params.brickId;
 
   return (
@@ -14,10 +15,10 @@ export default function BrickDetailPage() {
       open
       brickId={brickId}
       onBackToCatalog={() => {
-        router.push(`/site/${siteId}/edit-bricks`);
+        router.push(`/site/${siteId}/page/${pageId}/brick-catalog`);
       }}
       onClose={() => {
-        router.push(`/site/${siteId}`);
+        router.push(`/site/${siteId}/page/${pageId}`);
       }}
     />
   );

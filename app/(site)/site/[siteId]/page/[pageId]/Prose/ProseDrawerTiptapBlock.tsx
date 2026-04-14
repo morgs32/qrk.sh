@@ -9,7 +9,13 @@ import { Bold, Hash, Italic, List, ListOrdered, Pilcrow, Quote } from "lucide-re
 import { useProseDrawerStore } from "../useProseDrawerStore";
 import { Button } from "@/components/ui/button";
 
-export function ProseDrawerTiptapBlock({ id, initialContent }: { id: string; initialContent: string }) {
+export function ProseDrawerTiptapBlock({
+  id,
+  initialContent,
+}: {
+  id: string;
+  initialContent: string;
+}) {
   const [headingExpanded, setHeadingExpanded] = useState(false);
   const [htmlContent, setHtmlContent] = useState(initialContent);
   const updateBlock = useProseDrawerStore((s) => s.updateBlock);
@@ -80,7 +86,11 @@ export function ProseDrawerTiptapBlock({ id, initialContent }: { id: string; ini
     if (level === null) {
       editor.chain().focus().setParagraph().run();
     } else {
-      editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 }).run();
+      editor
+        .chain()
+        .focus()
+        .toggleHeading({ level: level as 1 | 2 | 3 })
+        .run();
     }
     setHeadingExpanded(false);
   };
@@ -88,7 +98,10 @@ export function ProseDrawerTiptapBlock({ id, initialContent }: { id: string; ini
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-lg border bg-muted/10 p-4">
-        <article className="prose-preview max-w-none" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+        <article
+          className="prose-preview max-w-none"
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
       </div>
 
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">

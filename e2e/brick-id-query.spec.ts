@@ -1,30 +1,30 @@
 import { expect, test } from "@playwright/test";
 
-const sitePath = "/site/e2e";
+const pageBase = "/site/e2e/page/home";
 
 function getSearchParams(url: string) {
   return new URL(url).searchParams;
 }
 
 test.describe("brick instance path", () => {
-  test("clicking a grid brick navigates to brick detail under /site/:siteId/brick/:brickId", async ({
+  test("clicking a grid brick navigates to brick detail under /site/:siteId/page/:pageId/brick/:brickId", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(sitePath, { waitUntil: "load" });
+    await page.goto(pageBase, { waitUntil: "load" });
 
     const brick = page.locator('[data-brick-instance-id="orange-flag--0"]');
     await expect(brick).toBeVisible({ timeout: 90_000 });
     await brick.click();
 
-    await expect.poll(() => new URL(page.url()).pathname).toBe(`${sitePath}/brick/orange-flag--0`);
+    await expect.poll(() => new URL(page.url()).pathname).toBe(`${pageBase}/brick/orange-flag--0`);
     expect(getSearchParams(page.url()).get("drawer")).toBeNull();
     expect(getSearchParams(page.url()).get("brickId")).toBeNull();
   });
 
   test("dragging a grid brick does not navigate to brick detail", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(sitePath, { waitUntil: "load" });
+    await page.goto(pageBase, { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     const brick = grid
@@ -48,33 +48,33 @@ test.describe("brick instance path", () => {
     await page.mouse.up();
     await page.waitForTimeout(200);
 
-    expect(new URL(page.url()).pathname).toBe(sitePath);
+    expect(new URL(page.url()).pathname).toBe(pageBase);
   });
 
   test("brick drawer shows instance id on brick detail route", async ({ page }) => {
-    await page.goto(`${sitePath}/brick/orange-flag--0`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/brick/orange-flag--0`, { waitUntil: "load" });
 
     await expect(page.getByTestId("brick-detail-title")).toHaveText("orange-flag--0", {
       timeout: 90_000,
     });
   });
 
-  test("Back from brick detail opens catalog at edit-bricks", async ({ page }) => {
-    await page.goto(`${sitePath}/brick/orange-flag--0`, { waitUntil: "load" });
+  test("Back from brick detail opens catalog at brick-catalog", async ({ page }) => {
+    await page.goto(`${pageBase}/brick/orange-flag--0`, { waitUntil: "load" });
 
     await expect(page.getByTestId("brick-detail-title")).toBeVisible({ timeout: 90_000 });
     await page.getByRole("button", { name: "Back to brick catalog" }).click();
 
-    await expect.poll(() => new URL(page.url()).pathname).toBe(`${sitePath}/edit-bricks`);
+    await expect.poll(() => new URL(page.url()).pathname).toBe(`${pageBase}/brick-catalog`);
     await expect(page.getByLabel("Search bricks")).toBeVisible();
   });
 
   test("closing brick drawer returns to site root", async ({ page }) => {
-    await page.goto(`${sitePath}/brick/orange-flag--0`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/brick/orange-flag--0`, { waitUntil: "load" });
 
     await expect(page.getByTestId("brick-detail-title")).toBeVisible({ timeout: 90_000 });
     await page.getByRole("button", { name: "Close drawer" }).click();
 
-    await expect.poll(() => new URL(page.url()).pathname).toBe(sitePath);
+    await expect.poll(() => new URL(page.url()).pathname).toBe(pageBase);
   });
 });

@@ -69,38 +69,38 @@ function ToolbarSeparator({ collapsed }: { collapsed?: boolean }) {
 
 export type BottomToolbarProps = {
   addBricksOpen: boolean;
-  editTextOpen: boolean;
+  composeOpen: boolean;
   onBricksToolbarClick: () => void;
-  onEditTextClick: () => void;
+  onComposeClick: () => void;
 };
 
 export function BottomToolbar({
   addBricksOpen,
-  editTextOpen,
+  composeOpen,
   onBricksToolbarClick,
-  onEditTextClick,
+  onComposeClick,
 }: BottomToolbarProps) {
-  const isDefault = !editTextOpen && !addBricksOpen;
+  const isDefault = !composeOpen && !addBricksOpen;
 
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex items-center rounded-sm border border-border/80 bg-background px-2 py-1 shadow-md">
         <ToolbarGroup>
           <ToolbarButton
-            tooltip={editTextOpen ? "Close text editor" : "Edit text"}
-            aria-label={editTextOpen ? "Close text editor" : "Edit text"}
-            onClick={onEditTextClick}
+            tooltip={composeOpen ? "Close compose" : "Compose"}
+            aria-label={composeOpen ? "Close compose" : "Compose"}
+            onClick={onComposeClick}
             className={cn(
               "h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground",
-              editTextOpen && "text-destructive hover:text-destructive",
+              composeOpen && "text-destructive hover:text-destructive",
             )}
           >
-            {editTextOpen ? (
+            {composeOpen ? (
               <X className="!size-4 shrink-0" strokeWidth={2} aria-hidden />
             ) : (
               <Type className="h-3.5 w-3.5" />
             )}
-            {editTextOpen ? "Close" : "Edit text"}
+            {composeOpen ? "Close" : "Compose"}
           </ToolbarButton>
         </ToolbarGroup>
 

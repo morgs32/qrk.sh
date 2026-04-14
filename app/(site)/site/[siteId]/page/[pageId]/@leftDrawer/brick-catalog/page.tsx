@@ -3,20 +3,21 @@
 import { useParams, useRouter } from "next/navigation";
 import { BrickCatalog } from "../../BrickCatalog";
 
-export default function EditBricksPage() {
+export default function BrickCatalogPage() {
   const router = useRouter();
-  const params = useParams<{ siteId: string }>();
+  const params = useParams<{ siteId: string; pageId: string }>();
   const siteId = params.siteId;
+  const pageId = params.pageId;
 
   return (
     <BrickCatalog
       open
       brickId={null}
       onBackToCatalog={() => {
-        router.push(`/site/${siteId}/edit-bricks`);
+        router.push(`/site/${siteId}/page/${pageId}/brick-catalog`);
       }}
       onClose={() => {
-        router.push(`/site/${siteId}`);
+        router.push(`/site/${siteId}/page/${pageId}`);
       }}
     />
   );

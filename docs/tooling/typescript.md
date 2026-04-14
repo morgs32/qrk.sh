@@ -52,17 +52,17 @@ Do not replace the whole type with `type Assertion = ...`.
 
 For a dynamic route page, validate `params` with **Effect `Schema`**: define **one `Schema.Struct`** in the **same module as the page** (above the default export), decode with **`Schema.decodeUnknownEither`**, and branch with **`Either.isLeft`** (e.g. call `notFound()` on the left). Do **not** add a sibling file that only exports a tiny struct for one page, and do **not** wrap **`decodeUnknownSync`** in **`try`/`catch`** when **`decodeUnknownEither`** already models failure.
 
-- **Bad**: `editBricksRouteParamsSchema.ts` that only holds `Schema.Struct({ … })` imported by one `page.tsx`; or `try { decodeUnknownSync(schema)(raw) } catch { notFound() }`.
+- **Bad**: `brickCatalogRouteParamsSchema.ts` that only holds `Schema.Struct({ … })` imported by one `page.tsx`; or `try { decodeUnknownSync(schema)(raw) } catch { notFound() }`.
 
-- **Good**: colocate in the route’s `page.tsx` (for example parallel routes under `app/(site)/site/[siteId]/@leftDrawer/…`):
+- **Good**: colocate in the route’s `page.tsx` (for example parallel routes under `app/(site)/site/[siteId]/page/[pageId]/@leftDrawer/…`):
 
 ```ts
-const EditBricksRouteParamsSchema = Schema.Struct({
+const BrickCatalogRouteParamsSchema = Schema.Struct({
   collectionName: Schema.String,
   brickId: Schema.String,
 });
 
-const decoded = Schema.decodeUnknownEither(EditBricksRouteParamsSchema)(rawParams);
+const decoded = Schema.decodeUnknownEither(BrickCatalogRouteParamsSchema)(rawParams);
 if (Either.isLeft(decoded)) {
   notFound();
 }
@@ -73,7 +73,7 @@ Keep domain checks that the schema cannot express (e.g. `collectionName in colle
 
 ### Good vs bad: Effect `Schema` constant names and `satisfies`
 
-Name Effect schema values **PascalCase** (e.g. `BrickDragDefSchema`, `EditBricksRouteParamsSchema`), not camelCase. When a **domain type already exists** that the decoded value should match, constrain the struct with **`satisfies Schema.Schema<ThatType>`** so drift between schema fields and the type is a compile error.
+Name Effect schema values **PascalCase** (e.g. `BrickDragDefSchema`, `BrickCatalogRouteParamsSchema`), not camelCase. When a **domain type already exists** that the decoded value should match, constrain the struct with **`satisfies Schema.Schema<ThatType>`** so drift between schema fields and the type is a compile error.
 
 - **Bad**: `const brickDragDefSchema = Schema.Struct({ … })` with no link to `ICollectionBrickDef`; or adding a throwaway `type Foo = { … }` next to the schema **only** to satisfy the compiler when the product model does not yet define `Foo`.
 

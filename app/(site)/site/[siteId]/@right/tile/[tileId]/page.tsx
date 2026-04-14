@@ -1,24 +1,11 @@
-"use client";
+import { Grid } from "../../../Grid";
 
-import { useParams, useRouter } from "next/navigation";
-import { TileDrawer } from "../../../TileDrawer";
-
-export default function TileDetailPage() {
-  const router = useRouter();
-  const params = useParams<{ siteId: string; tileId: string }>();
-  const siteId = params.siteId;
-  const tileId = params.tileId;
-
+export default function TileDetailRightPage() {
   return (
-    <TileDrawer
-      open
-      tileId={tileId}
-      onBackToCatalog={() => {
-        router.push(`/site/${siteId}/edit-tiles`);
-      }}
-      onClose={() => {
-        router.push(`/site/${siteId}`);
-      }}
-    />
+    <div data-home-right-scroll className="min-h-full w-full min-w-0 overflow-y-auto">
+      <div className="w-full pb-24">
+        <Grid />
+      </div>
+    </div>
   );
 }

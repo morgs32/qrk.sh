@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Pencil, Type, X } from "lucide-react";
+import { Cog, CogIcon, Minus, Pencil, RectangleHorizontal, Type, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -80,90 +80,106 @@ export function BottomToolbar({
   onTilesToolbarClick,
   onEditTextClick,
 }: BottomToolbarProps) {
-  const drawerOpen = editTextOpen || addTilesOpen;
-
-  const editTextClose = (
-    <ToolbarButton
-      onClick={onEditTextClick}
-      className="h-8 w-full min-w-0 justify-center gap-1.5 text-destructive hover:text-destructive"
-    >
-      <X className="!size-5 shrink-0 text-destructive" strokeWidth={2} aria-hidden />
-      Close
-    </ToolbarButton>
-  );
+  const isDefault = !editTextOpen && !addTilesOpen;
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center rounded-lg border bg-background px-2 py-1.5 shadow-lg">
-        <div className="flex min-h-0 min-w-0 w-full justify-end pr-1.5">
-          <ToolbarGroup className="w-full min-w-0">
+      <div className="flex items-center rounded-sm border border-border/80 bg-background px-2 py-1 shadow-md">
+        <ToolbarGroup>
+          <ToolbarButton
+            tooltip={editTextOpen ? "Close text editor" : "Edit text"}
+            aria-label={editTextOpen ? "Close text editor" : "Edit text"}
+            onClick={onEditTextClick}
+            className={cn(
+              "h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground",
+              editTextOpen && "text-destructive hover:text-destructive",
+            )}
+          >
             {editTextOpen ? (
-              editTextClose
+              <X className="!size-4 shrink-0" strokeWidth={2} aria-hidden />
             ) : (
-              <ToolbarButton
-                tooltip="Edit text"
-                aria-label="Edit text"
-                onClick={onEditTextClick}
-                className="w-full justify-end"
-              >
-                <Type className="h-4 w-4" />
-                Edit text
-              </ToolbarButton>
+              <Type className="h-3.5 w-3.5" />
             )}
-          </ToolbarGroup>
-        </div>
-
-        <ToolbarSeparator collapsed={drawerOpen} />
-
-        <div className="flex min-h-0 min-w-0 w-full justify-start pl-1.5">
-          <ToolbarGroup className="w-full min-w-0">
-            {addTilesOpen ? (
-              <ToolbarButton
-                onClick={onTilesToolbarClick}
-                className="h-8 w-full min-w-0 justify-center gap-1.5 text-destructive hover:text-destructive"
-              >
-                <X className="!size-5 shrink-0 text-destructive" strokeWidth={2} aria-hidden />
-                Close
-              </ToolbarButton>
-            ) : (
-              <ToolbarButton
-                tooltip="Edit tiles"
-                aria-label="Edit tiles"
-                onClick={onTilesToolbarClick}
-                className="w-full justify-start"
-              >
-                <Pencil className="h-4 w-4" />
-                Edit tiles
-              </ToolbarButton>
-            )}
-          </ToolbarGroup>
-        </div>
-
-        {/* <ToolbarGroup>
-          <ToolbarButton tooltip="Add Text" variant="default">
-            Add Text
-            <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded bg-primary-foreground/20 text-xs font-medium">
-              T
-            </span>
+            {editTextOpen ? "Close" : "Edit text"}
           </ToolbarButton>
         </ToolbarGroup>
 
         <ToolbarSeparator />
 
         <ToolbarGroup>
-          <ToolbarButton tooltip="Layout Grid">
-            <LayoutGrid className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton tooltip="Typography">
-            <Type className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton tooltip="Add Image">
-            <ImageIcon className="h-4 w-4" />
+          <ToolbarButton
+            tooltip={addTilesOpen ? "Close tiles drawer" : "Edit tiles"}
+            aria-label={addTilesOpen ? "Close tiles drawer" : "Edit tiles"}
+            onClick={onTilesToolbarClick}
+            className={cn(
+              "h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground",
+              addTilesOpen && "text-destructive hover:text-destructive",
+            )}
+          >
+            {addTilesOpen ? (
+              <X className="!size-4 shrink-0" strokeWidth={2} aria-hidden />
+            ) : (
+              <Pencil className="h-3.5 w-3.5" />
+            )}
+            {addTilesOpen ? "Close" : "Edit tiles"}
           </ToolbarButton>
         </ToolbarGroup>
 
-        <ToolbarSeparator /> */}
+        {isDefault && (
+          <>
+            <ToolbarSeparator />
 
+            <ToolbarGroup>
+              <ToolbarButton
+                tooltip="Edit header"
+                aria-label="Edit header"
+                className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+              >
+                <Minus className="h-3.5 w-3.5" />
+                Edit header
+              </ToolbarButton>
+            </ToolbarGroup>
+
+            <ToolbarSeparator />
+
+            <ToolbarGroup>
+              <ToolbarButton
+                tooltip="Set breakpoints"
+                aria-label="Set breakpoints"
+                className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+              >
+                <RectangleHorizontal className="h-3.5 w-3.5" />
+                Set breakpoints
+              </ToolbarButton>
+            </ToolbarGroup>
+
+            <ToolbarSeparator />
+
+            <ToolbarGroup>
+              <ToolbarButton
+                tooltip="Page settings"
+                aria-label="Page settings"
+                className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+              >
+                <Cog className="h-3.5 w-3.5" />
+                Page settings
+              </ToolbarButton>
+            </ToolbarGroup>
+
+            <ToolbarSeparator />
+
+            <ToolbarGroup>
+              <ToolbarButton
+                tooltip="Site settings"
+                aria-label="Site settings"
+                className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+              >
+                <CogIcon className="h-3.5 w-3.5" />
+                Site settings
+              </ToolbarButton>
+            </ToolbarGroup>
+          </>
+        )}
       </div>
     </TooltipProvider>
   );

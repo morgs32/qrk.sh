@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { useParams, useRouter } from "next/navigation";
 import GridLayout, {
   useContainerWidth,
   verticalCompactor,
@@ -89,16 +88,11 @@ function dataTransferHasTileMime(dt: globalThis.DataTransfer | null): boolean {
   return false;
 }
 
-export function Grid() {
-  const router = useRouter();
-  const { siteId } = useParams<{ siteId: string }>();
-  const siteBase = `/site/${siteId}`;
+export function GridDumb() {
   const { containerRef, width, mounted } = useContainerWidth();
   const layout = useGridLayoutStore((s) => s.layout);
   const setLayout = useGridLayoutStore((s) => s.setLayout);
   const [gridDropSessionKey, setGridDropSessionKey] = useState(0);
-  /** True after RGL drag threshold until the post-drag `click` can be ignored. */
-  const suppressTileIdClickRef = useRef(false);
   /** True while the tile drag pointer was last seen inside the grid wrapper (hit-test on `dragover`). */
   const pointerWasOverGridRef = useRef(false);
   /** We already remounted because the pointer left the grid; skip redundant `dragend` bump. */
@@ -164,27 +158,16 @@ export function Grid() {
     };
   }, [containerRef]);
 
-  const onDragStart = useCallback<EventCallback>(() => {
-    suppressTileIdClickRef.current = true;
-  }, []);
-
-  /** Sync store on drag end only — `onLayoutChange` can fire during RGL reconciliation and loop with controlled `layout`. */
   const onDragStop = useCallback<EventCallback>(
     (next) => {
-      try {
-        if (next.some((li) => li.i === DROPPING_ITEM.i)) {
-          return;
-        }
-        const prev = useGridLayoutStore.getState().layout;
-        if (layoutPositionsMatchStore(prev, next)) {
-          return;
-        }
-        setLayout(mergeRglLayoutIntoILayout(prev, next));
-      } finally {
-        window.setTimeout(() => {
-          suppressTileIdClickRef.current = false;
-        }, 0);
+      if (next.some((li) => li.i === DROPPING_ITEM.i)) {
+        return;
       }
+      const prev = useGridLayoutStore.getState().layout;
+      if (layoutPositionsMatchStore(prev, next)) {
+        return;
+      }
+      setLayout(mergeRglLayoutIntoILayout(prev, next));
     },
     [setLayout],
   );
@@ -262,7 +245,6 @@ export function Grid() {
               onDragOver: onDropDragOver,
             }}
             droppingItem={DROPPING_ITEM}
-            onDragStart={onDragStart}
             onDragStop={onDragStop}
             onDrop={onDrop}
           >
@@ -280,12 +262,6 @@ export function Grid() {
                   data-tile-grid-collection-name={item.def.collectionName}
                   data-tile-grid-tile-name={item.def.name}
                   className="cursor-grab touch-none active:cursor-grabbing"
-                  onClick={() => {
-                    if (suppressTileIdClickRef.current) {
-                      return;
-                    }
-                    router.push(`${siteBase}/edit-tiles/${item.def.collectionName}/${item.i}`);
-                  }}
                 >
                   <TileComponent />
                 </div>

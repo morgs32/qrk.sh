@@ -9,20 +9,25 @@ export type IHomeDrawerPathParsed = {
 };
 
 export function parseHomeDrawerPathname(pathname: string): IHomeDrawerPathParsed {
-  if (pathname === "/edit-text") {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments[0] !== "site" || segments.length < 2) {
+    return { isTileDrawerOpen: false, tileId: null, isProseDrawerOpen: false };
+  }
+  const rest = segments.slice(2);
+  if (rest.length === 0) {
+    return { isTileDrawerOpen: false, tileId: null, isProseDrawerOpen: false };
+  }
+  if (rest[0] === "edit-text" && rest.length === 1) {
     return { isTileDrawerOpen: false, tileId: null, isProseDrawerOpen: true };
   }
-  if (pathname === "/edit-tiles") {
-    return { isTileDrawerOpen: true, tileId: null, isProseDrawerOpen: false };
-  }
-  const prefix = "/edit-tiles/";
-  if (pathname.startsWith(prefix)) {
-    const rest = pathname.slice(prefix.length);
-    const segments = rest.split("/").filter(Boolean);
-    if (segments.length === 2) {
+  if (rest[0] === "edit-tiles") {
+    if (rest.length === 1) {
+      return { isTileDrawerOpen: true, tileId: null, isProseDrawerOpen: false };
+    }
+    if (rest.length === 3) {
       return {
         isTileDrawerOpen: true,
-        tileId: segments[1],
+        tileId: rest[2],
         isProseDrawerOpen: false,
       };
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { HeroCopy } from "@/components/home/HeroCopy";
 import { BottomToolbar } from "@/components/home/BottomToolbar";
 import { Grid } from "@/components/home/Grid";
@@ -12,34 +12,36 @@ import { parseHomeDrawerPathname } from "@/components/home/useActiveDrawer";
 export function HomeShell() {
   const pathname = usePathname();
   const router = useRouter();
+  const { siteId } = useParams<{ siteId: string }>();
+  const siteBase = `/site/${siteId}`;
   const { isTileDrawerOpen, tileId, isProseDrawerOpen } = parseHomeDrawerPathname(pathname);
 
   const setIsTileDrawerOpen = useCallback(
     (open: boolean) => {
       if (open) {
-        router.push("/edit-tiles");
+        router.push(`${siteBase}/edit-tiles`);
       } else {
-        router.push("/");
+        router.push(siteBase);
       }
     },
-    [router],
+    [router, siteBase],
   );
 
   const closeTileDrawer = useCallback(() => {
-    router.push("/");
-  }, [router]);
+    router.push(siteBase);
+  }, [router, siteBase]);
 
   const closeProseDrawer = useCallback(() => {
-    router.push("/");
-  }, [router]);
+    router.push(siteBase);
+  }, [router, siteBase]);
 
   const openProseDrawer = useCallback(() => {
-    router.push("/edit-text");
-  }, [router]);
+    router.push(`${siteBase}/edit-text`);
+  }, [router, siteBase]);
 
   const backToTileCatalog = useCallback(() => {
-    router.push("/edit-tiles");
-  }, [router]);
+    router.push(`${siteBase}/edit-tiles`);
+  }, [router, siteBase]);
 
   const isTileDrawerOpenRef = useRef(isTileDrawerOpen);
 
@@ -54,13 +56,13 @@ export function HomeShell() {
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        router.push("/");
+        router.push(siteBase);
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isTileDrawerOpen, isProseDrawerOpen, router]);
+  }, [isTileDrawerOpen, isProseDrawerOpen, router, siteBase]);
 
   useEffect(() => {
     const allowBackgroundScroll = (event: Event) => {

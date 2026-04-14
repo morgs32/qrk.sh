@@ -13,10 +13,13 @@ const EditTilesRouteParamsSchema = Schema.Struct({
 export default async function EditTilesTilePage({
   params,
 }: {
-  params: Promise<{ collectionName: string; tileId: string }>;
+  params: Promise<{ siteId: string; collectionName: string; tileId: string }>;
 }) {
   const rawParams = await params;
-  const decoded = Schema.decodeUnknownEither(EditTilesRouteParamsSchema)(rawParams);
+  const decoded = Schema.decodeUnknownEither(EditTilesRouteParamsSchema)({
+    collectionName: rawParams.collectionName,
+    tileId: rawParams.tileId,
+  });
   if (Either.isLeft(decoded)) {
     notFound();
   }

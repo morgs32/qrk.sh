@@ -13,8 +13,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@zerospin/error": "file:../zerospin/packages/error",
-    "@zerospin/profiler": "file:../zerospin/packages/profiler",
+    "@clerk/nextjs": "^7.1.0",
     "@effect/schema": "^0.75.5",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
@@ -26,6 +25,8 @@
     "@tiptap/starter-kit": "^3.22.3",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "@zerospin/error": "file:../zerospin/packages/error",
+    "@zerospin/profiler": "file:../zerospin/packages/profiler",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "effect": "^3.21.0",
@@ -36,14 +37,15 @@
     "lucide-react": "^1.7.0",
     "nanoid": "^5.1.7",
     "next": "^16.2.3",
+    "nuqs": "^2.8.9",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-grid-layout": "^2.2.3",
     "swr": "^2.3.3",
     "tailwind-merge": "^3.5.0",
     "vaul": "^1.1.2",
-    "zustand": "^5.0.12",
-    "zerospin": "file:../zerospin/packages/core"
+    "zerospin": "file:../zerospin/packages/core",
+    "zustand": "^5.0.12"
   },
   "pnpm": {
     "overrides": {
@@ -54,12 +56,12 @@
     }
   },
   "devDependencies": {
-    "@zerospin/cli": "file:../zerospin/packages/cli",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@zerospin/cli": "file:../zerospin/packages/cli",
     "oxfmt": "^0.44.0",
     "oxlint": "^1.59.0",
     "tailwindcss": "^4.2.2",

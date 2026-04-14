@@ -8,9 +8,9 @@ import { type ICollectionBrick } from "@/components/home/bricks/types";
 import { cn } from "@/lib/utils";
 
 const maxVisibleDots = 5;
-/** Dot row slide width matches `size-8` hit target per Embla slide. */
-const dotSlideWidthPx = 32;
-const dotGapPx = 8;
+/** Dot row slide width matches `size-7` hit target per Embla slide. */
+const dotSlideWidthPx = 28;
+const dotGapPx = 4;
 
 function getScale(index: number, selected: number) {
   const distance = Math.abs(index - selected);
@@ -75,30 +75,33 @@ export function BrickCarouselNav({ bricks }: { bricks: ICollectionBrick[] }) {
   );
 
   const chevronBtn =
-    "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground outline-none transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0";
+    "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground outline-none transition-[color,background-color,opacity] duration-200 ease-out hover:bg-muted/60 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0";
+
+  const chevronReveal =
+    "pointer-events-none absolute top-1/2 z-[1] -translate-y-1/2 opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-hover:disabled:opacity-40 focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:disabled:opacity-40";
 
   const currentBrick = bricks[selected];
 
   return (
     <div
       data-brick-drawer-carousel-nav
-      className="sticky bottom-0 z-[8] flex w-full min-w-0 shrink-0 flex-col justify-end opacity-0 pointer-events-none transition-opacity duration-200 ease-out group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
+      className="sticky bottom-0 z-[8] flex w-full min-w-0 shrink-0 flex-col justify-end pointer-events-none"
       role="toolbar"
       aria-label="Brick size and slides"
     >
-      <div className="flex w-full min-w-0 flex-col items-center justify-center py-3">
+      <div className="pointer-events-auto flex w-full min-w-0 flex-col items-center justify-center py-3">
         {currentBrick ? (
           <p
-            className="mb-2 text-center text-sm font-semibold tabular-nums text-foreground"
+            className="mb-2 text-center text-sm font-medium tabular-nums text-muted-foreground opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 group-focus-within:opacity-100"
             aria-live="polite"
           >
             {currentBrick.def.label}
           </p>
         ) : null}
-        <div className="flex max-w-full min-w-0 items-center gap-3 rounded-full py-2 pl-2 pr-2">
+        <div className="relative flex w-full max-w-full min-w-0 items-center justify-center py-2 pl-2 pr-2">
           <button
             type="button"
-            className={chevronBtn}
+            className={cn(chevronBtn, chevronReveal, "left-2")}
             disabled={!canScrollPrev}
             onClick={scrollPrev}
             aria-label="Previous slide"
@@ -122,7 +125,7 @@ export function BrickCarouselNav({ bricks }: { bricks: ICollectionBrick[] }) {
                     <button
                       type="button"
                       onClick={() => goToSlide(i)}
-                      className="flex size-8 shrink-0 items-center justify-center p-0 transition-all duration-300 ease-out"
+                      className="flex size-7 shrink-0 items-center justify-center p-0 transition-all duration-300 ease-out"
                       style={{
                         transform: `scale(${getScale(i, selected)})`,
                         opacity: getOpacity(i, selected),
@@ -147,7 +150,7 @@ export function BrickCarouselNav({ bricks }: { bricks: ICollectionBrick[] }) {
 
           <button
             type="button"
-            className={chevronBtn}
+            className={cn(chevronBtn, chevronReveal, "right-2")}
             disabled={!canScrollNext}
             onClick={scrollNext}
             aria-label="Next slide"

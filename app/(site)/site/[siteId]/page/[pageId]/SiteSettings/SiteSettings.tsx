@@ -124,7 +124,7 @@ export function SiteSettings() {
                 <div className="font-medium">Favicon</div>
                 <p className="text-sm text-muted-foreground">64 × 64 pixels</p>
               </div>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap justify-end gap-4">
                 <div className="flex flex-col items-center gap-2">
                   <span className="text-xs text-muted-foreground">Light</span>
                   <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
@@ -155,25 +155,25 @@ export function SiteSettings() {
             </div>
 
             <div className="flex min-w-0 flex-col gap-4">
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <div className="font-medium">Social Preview</div>
-                  <p className="text-sm text-muted-foreground">1200 × 630 pixels</p>
-                </div>
+              <div className="space-y-1">
+                <div className="font-medium">Social Preview</div>
+                <p className="text-sm text-muted-foreground">1200 × 630 pixels</p>
+              </div>
+              <div className="flex flex-col items-end gap-4">
                 <Button type="button" variant="outline">
                   Upload
                 </Button>
-              </div>
-              <div className="relative w-full max-w-[375px] overflow-hidden rounded-md border bg-muted">
-                <div className="relative aspect-[375/197] w-full">
-                  <Image
-                    src="/site-settings-social-preview.png"
-                    alt="Social preview"
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 767px) 100vw, 375px"
-                    priority
-                  />
+                <div className="relative w-full max-w-[375px] overflow-hidden rounded-md border bg-muted">
+                  <div className="relative aspect-[375/197] w-full">
+                    <Image
+                      src="/site-settings-social-preview.png"
+                      alt="Social preview"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 767px) 100vw, 375px"
+                      priority
+                    />
+                  </div>
                 </div>
               </div>
             </div>

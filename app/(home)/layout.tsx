@@ -9,8 +9,8 @@ export default function HomeLayout({
   return (
     <div className="h-screen overflow-hidden">
       <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-border bg-background px-6">
-        <Link href="/" className="text-sm font-medium">
-          Garlott
+        <Link href="/" aria-label="Home" className="inline-flex items-center">
+          <img src="/qrk-sh.svg" alt="QRK.SH" className="h-4 w-auto" />
         </Link>
         <nav className="flex items-center gap-6">
           <Link href="/work" className="text-xs transition-opacity hover:opacity-70">

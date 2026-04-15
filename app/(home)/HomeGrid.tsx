@@ -1,274 +1,114 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
-import GridLayout, {
-  useContainerWidth,
-  verticalCompactor,
-  type EventCallback,
-  type Layout,
-  type LayoutItem,
-} from "react-grid-layout";
-import type { ILayout } from "@/components/home/seedLayout";
-import { creamSquareCollection } from "@/components/home/bricks/collections/CreamSquare/CreamSquareCollection";
-import { textBrickCollection } from "@/components/home/bricks/collections/TextBrick/TextBrickCollection";
-import { findCollectionBrick } from "@/components/home/bricks/findCollectionBrick";
-import {
-  getActiveBrickDragGridShape,
-  parseBrickDefFromDataTransfer,
-  BRICK_DRAG_MIME,
-  useBrickDrawerStore,
-} from "@/components/home/useBrickDrawerStore";
-import type { ICollectionBrickDef } from "@/components/home/bricks/types";
-import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
+import { useEffect, useMemo, useState } from "react";
+import type { CarouselApi } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { collectionsHash } from "@/components/home/bricks/collectionsHash";
 
-/**
- * Set `NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED=true` when running a second dev
- * server (e.g. port 3001) to A/B `dragConfig.bounded` vs grid math issues.
- */
-const GRID_DRAG_BOUNDED = process.env.NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED !== "true";
+const ROWS = [
+  ["orange-flag", "black-circle", "green-arch", "blue-grid"],
+  ["cream-bench", "green-g", "cream-square", "pink-dots"],
+  ["black-m", "orange-blocks", "purple-lines", "pink-asterisk"],
+] as const;
 
-const GRID_COLS = 8;
-
-/** Placeholder identity while dragging from outside (react-grid-layout external drop). */
-const DROPPING_ITEM: LayoutItem = {
-  i: "__external__",
-  x: 0,
-  y: 0,
-  w: 1,
-  h: 1,
-};
-
-function defaultDefForGridShape(w: number, h: number): ICollectionBrickDef {
-  if (w === 8 && h === 2) {
-    return textBrickCollection.bricks["8x2"].def;
-  }
-  if (w === 2 && h === 2) {
-    return creamSquareCollection.bricks["2x2"].def;
-  }
-  return creamSquareCollection.bricks["4x4"].def;
-}
-
-function mergeRglLayoutIntoILayout(prev: ILayout, rgl: Layout): ILayout {
-  const prevByI = new Map(prev.map((p) => [p.i, p]));
-  return rgl.map((li) => {
-    const old = prevByI.get(li.i);
-    if (old) {
-      return { ...li, def: old.def };
-    }
-    return { ...li, def: defaultDefForGridShape(li.w, li.h) };
-  });
-}
-
-/** Skip `setLayout` when grid geometry matches the store (avoids redundant commits). */
-function layoutPositionsMatchStore(prev: ILayout, next: Layout): boolean {
-  if (prev.length !== next.length) {
-    return false;
-  }
-  const nextByI = new Map(next.map((li) => [li.i, li]));
-  for (const p of prev) {
-    const n = nextByI.get(p.i);
-    if (!n || n.x !== p.x || n.y !== p.y || n.w !== p.w || n.h !== p.h) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function dataTransferHasBrickMime(dt: globalThis.DataTransfer | null): boolean {
-  if (!dt) {
-    return false;
-  }
-  const { types } = dt;
-  for (let i = 0; i < types.length; i++) {
-    if (types[i] === BRICK_DRAG_MIME) {
-      return true;
-    }
-  }
-  return false;
-}
+const AUTOPLAY_DELAY_MS = 3000;
 
 export function HomeGrid() {
-  const { containerRef, width, mounted } = useContainerWidth();
-  const layout = useGridLayoutStore((s) => s.layout);
-  const setLayout = useGridLayoutStore((s) => s.setLayout);
-  const [gridDropSessionKey, setGridDropSessionKey] = useState(0);
-  /** True while the brick drag pointer was last seen inside the grid wrapper (hit-test on `dragover`). */
-  const pointerWasOverGridRef = useRef(false);
-  /** We already remounted because the pointer left the grid; skip redundant `dragend` bump. */
-  const clearedPlaceholderByLeaveRef = useRef(false);
+  const [api0, setApi0] = useState<CarouselApi>();
+  const [api1, setApi1] = useState<CarouselApi>();
+  const [api2, setApi2] = useState<CarouselApi>();
 
-  const gridWidth = Math.max(width, 1);
-  const rowHeight = gridWidth / GRID_COLS;
-
-  /**
-   * RGL’s dragleave counter can miss leaving the grid; hit-test on `document` `dragover` and remount as
-   * soon as the pointer leaves `containerRef`. `dragend` still unregisters shape and bumps if needed.
-   */
   useEffect(() => {
-    const onDocumentDragOver = (event: globalThis.DragEvent) => {
-      if (!dataTransferHasBrickMime(event.dataTransfer)) {
-        return;
-      }
-      const el = containerRef.current;
-      if (!el) {
-        return;
-      }
-      const rect = el.getBoundingClientRect();
-      const inside =
-        event.clientX >= rect.left &&
-        event.clientX <= rect.right &&
-        event.clientY >= rect.top &&
-        event.clientY <= rect.bottom;
+    if (!api0) return;
+    const interval = window.setInterval(() => api0.scrollNext(), AUTOPLAY_DELAY_MS);
+    return () => window.clearInterval(interval);
+  }, [api0]);
 
-      if (inside) {
-        pointerWasOverGridRef.current = true;
-        clearedPlaceholderByLeaveRef.current = false;
-        return;
-      }
+  useEffect(() => {
+    if (!api1) return;
+    const interval = window.setInterval(() => api1.scrollNext(), AUTOPLAY_DELAY_MS);
+    return () => window.clearInterval(interval);
+  }, [api1]);
 
-      if (pointerWasOverGridRef.current) {
-        pointerWasOverGridRef.current = false;
-        clearedPlaceholderByLeaveRef.current = true;
-        flushSync(() => {
-          setGridDropSessionKey((k) => k + 1);
-        });
-      }
-    };
+  useEffect(() => {
+    if (!api2) return;
+    const interval = window.setInterval(() => api2.scrollNext(), AUTOPLAY_DELAY_MS);
+    return () => window.clearInterval(interval);
+  }, [api2]);
 
-    const onDocumentDragEnd = (event: globalThis.DragEvent) => {
-      pointerWasOverGridRef.current = false;
-      const skipBump = clearedPlaceholderByLeaveRef.current;
-      clearedPlaceholderByLeaveRef.current = false;
-      if (!dataTransferHasBrickMime(event.dataTransfer)) {
-        return;
-      }
-      useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
-      if (skipBump) {
-        return;
-      }
-      setGridDropSessionKey((k) => k + 1);
-    };
-
-    document.addEventListener("dragover", onDocumentDragOver, true);
-    document.addEventListener("dragend", onDocumentDragEnd, true);
-    return () => {
-      document.removeEventListener("dragover", onDocumentDragOver, true);
-      document.removeEventListener("dragend", onDocumentDragEnd, true);
-    };
-  }, [containerRef]);
-
-  const onDragStop = useCallback<EventCallback>(
-    (next) => {
-      if (next.some((li) => li.i === DROPPING_ITEM.i)) {
-        return;
-      }
-      const prev = useGridLayoutStore.getState().layout;
-      if (layoutPositionsMatchStore(prev, next)) {
-        return;
-      }
-      setLayout(mergeRglLayoutIntoILayout(prev, next));
-    },
-    [setLayout],
-  );
-
-  const onDropDragOver = useCallback((e: globalThis.DragEvent) => {
-    const parsed = parseBrickDefFromDataTransfer(e.dataTransfer);
-    if (parsed) {
-      return { w: parsed.w, h: parsed.h };
-    }
-    const pending = getActiveBrickDragGridShape();
-    if (pending) {
-      return { w: pending.w, h: pending.h };
-    }
-    return { w: 1, h: 1 };
-  }, []);
-
-  const onDrop = useCallback(
-    (nextLayout: Layout, item: LayoutItem | undefined, e: Event) => {
-      if (!item) {
-        return;
-      }
-      const newId = crypto.randomUUID();
-      const prev = useGridLayoutStore.getState().layout;
-      const parsed =
-        e && "dataTransfer" in e
-          ? parseBrickDefFromDataTransfer((e as globalThis.DragEvent).dataTransfer)
-          : null;
-
-      const mapped = nextLayout.map((li) => {
-        const existing = prev.find((p) => p.i === li.i);
-        if (existing) {
-          return { ...li, def: existing.def };
-        }
+  const rowTiles = useMemo(() => {
+    return ROWS.map((row) => {
+      return row.map((collectionName) => {
+        const collection = collectionsHash[collectionName];
         return {
-          ...li,
-          i: newId,
-          def: parsed ?? defaultDefForGridShape(li.w, li.h),
+          collectionName,
+          Tile: collection.bricks["4x4"].component,
         };
       });
-      setLayout(mapped);
-    },
-    [setLayout],
-  );
+    });
+  }, []);
 
   return (
     <>
-      <div ref={containerRef} className="grid-layout-wrapper w-full" data-testid="grid-layout">
-        {mounted && (
-          <GridLayout
-            key={gridDropSessionKey}
-            width={gridWidth}
-            layout={layout}
-            autoSize
-            className="grid-layout"
-            compactor={verticalCompactor}
-            gridConfig={{
-              cols: GRID_COLS,
-              rowHeight,
-              margin: [0, 0],
-              containerPadding: [0, 0],
-              maxRows: Number.POSITIVE_INFINITY,
-            }}
-            dragConfig={{
-              enabled: true,
-              bounded: GRID_DRAG_BOUNDED,
-              threshold: 3,
-            }}
-            resizeConfig={{
-              enabled: false,
-              handles: [],
-            }}
-            dropConfig={{
-              enabled: true,
-              defaultItem: { w: 1, h: 1 },
-              onDragOver: onDropDragOver,
-            }}
-            droppingItem={DROPPING_ITEM}
-            onDragStop={onDragStop}
-            onDrop={onDrop}
+      <div className="w-full" data-testid="grid-layout">
+        <div className="flex flex-col">
+          <Carousel
+            setApi={setApi0}
+            opts={{ loop: true, align: "start" }}
+            className="w-full"
+            aria-label="Home tiles row 1"
           >
-            {layout.map((item) => {
-              const catalogBrick = findCollectionBrick(item.def);
-              const BrickComponent = catalogBrick?.component;
-              if (!BrickComponent) {
-                return null;
-              }
+            <CarouselContent className="-ml-0">
+              {rowTiles[0].map(({ collectionName, Tile }) => {
+                return (
+                  <CarouselItem key={collectionName} className="basis-1/2 pl-0">
+                    <div className="w-full aspect-square">
+                      <Tile />
+                    </div>
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+          </Carousel>
 
-              return (
-                <div
-                  key={item.i}
-                  data-brick-instance-id={item.i}
-                  data-brick-grid-collection-name={item.def.collectionName}
-                  data-brick-grid-brick-name={item.def.name}
-                  className="cursor-grab touch-none active:cursor-grabbing"
-                >
-                  <BrickComponent />
-                </div>
-              );
-            })}
-          </GridLayout>
-        )}
+          <Carousel
+            setApi={setApi1}
+            opts={{ loop: true, align: "start" }}
+            className="w-full"
+            aria-label="Home tiles row 2"
+          >
+            <CarouselContent className="-ml-0">
+              {rowTiles[1].map(({ collectionName, Tile }) => {
+                return (
+                  <CarouselItem key={collectionName} className="basis-1/2 pl-0">
+                    <div className="w-full aspect-square">
+                      <Tile />
+                    </div>
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+          </Carousel>
+
+          <Carousel
+            setApi={setApi2}
+            opts={{ loop: true, align: "start" }}
+            className="w-full"
+            aria-label="Home tiles row 3"
+          >
+            <CarouselContent className="-ml-0">
+              {rowTiles[2].map(({ collectionName, Tile }) => {
+                return (
+                  <CarouselItem key={collectionName} className="basis-1/2 pl-0">
+                    <div className="w-full aspect-square">
+                      <Tile />
+                    </div>
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+          </Carousel>
+        </div>
       </div>
     </>
   );

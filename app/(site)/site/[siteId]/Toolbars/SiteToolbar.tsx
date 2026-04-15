@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import {
   File,
   Globe,
+  LayoutDashboard,
   Plus,
   RectangleHorizontal,
   Type,
@@ -43,6 +44,16 @@ export function SiteToolbar() {
           transition={toolbarPresenceTransition}
         >
           <BottomToolbar>
+            <ToolbarButton
+              label="Dashboard"
+              icon={<LayoutDashboard className="h-3.5 w-3.5" />}
+              tooltip="Dashboard"
+              href="/"
+              className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
+            />
+
+            <ToolbarSeparator />
+
             <ToolbarButton
               label="Compose"
               icon={<Type className="h-3.5 w-3.5" />}

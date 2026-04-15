@@ -63,11 +63,6 @@ export function SiteSettings() {
 
       <div className="space-y-8 px-4 py-6">
         <div className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="site-title">Title</Label>
-            <Input id="site-title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-
           <div className="grid gap-6 md:grid-cols-2 md:items-stretch">
             <div className="flex h-full min-h-0 flex-col gap-2">
               <Label htmlFor="site-description">Description</Label>
@@ -98,25 +93,27 @@ export function SiteSettings() {
               </Card>
             </div>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="site-language">Language</Label>
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger id="site-language" className="w-full">
-                <div className="flex w-full min-w-0 items-center justify-between gap-2">
-                  <SelectValue placeholder="Language" />
-                  <span className="shrink-0 text-xs text-muted-foreground">{language}</span>
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">English</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         <div className="space-y-6">
           <h2 className="text-lg font-semibold">Site Images</h2>
+
+          <div className="flex min-w-0 flex-col gap-4">
+            <div className="space-y-1">
+              <div className="font-medium">Logo</div>
+              <p className="text-sm text-muted-foreground">
+                PNG or SVG; height up to 48px recommended
+              </p>
+            </div>
+            <div className="flex flex-col items-start gap-4">
+              <Button type="button" variant="outline">
+                Upload
+              </Button>
+              <div className="relative flex w-full max-w-[375px] min-h-16 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                <span className="text-sm text-muted-foreground">Logo</span>
+              </div>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 gap-16 md:grid-cols-2 md:gap-6 md:items-start">
             <div className="flex min-w-0 flex-col gap-4">
@@ -124,9 +121,12 @@ export function SiteSettings() {
                 <div className="font-medium">Favicon</div>
                 <p className="text-sm text-muted-foreground">64 × 64 pixels</p>
               </div>
-              <div className="flex flex-wrap justify-end gap-4">
-                <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-wrap justify-start gap-4">
+                <div className="flex flex-col items-start gap-2">
                   <span className="text-xs text-muted-foreground">Light</span>
+                  <Button type="button" size="sm" variant="outline">
+                    Upload
+                  </Button>
                   <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
                     <div className="flex items-center gap-1 border-b bg-background px-2 py-1.5">
                       <div className="size-4 shrink-0 rounded-sm bg-muted" />
@@ -134,12 +134,12 @@ export function SiteSettings() {
                     </div>
                     <div className="h-16 bg-background" />
                   </div>
+                </div>
+                <div className="flex flex-col items-start gap-2">
+                  <span className="text-xs text-muted-foreground">Dark</span>
                   <Button type="button" size="sm" variant="outline">
                     Upload
                   </Button>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Dark</span>
                   <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
                     <div className="flex items-center gap-1 border-b bg-zinc-900 px-2 py-1.5">
                       <div className="size-4 shrink-0 rounded-sm bg-zinc-700" />
@@ -147,9 +147,6 @@ export function SiteSettings() {
                     </div>
                     <div className="h-16 bg-zinc-950" />
                   </div>
-                  <Button type="button" size="sm" variant="outline">
-                    Upload
-                  </Button>
                 </div>
               </div>
             </div>
@@ -159,7 +156,7 @@ export function SiteSettings() {
                 <div className="font-medium">Social Preview</div>
                 <p className="text-sm text-muted-foreground">1200 × 630 pixels</p>
               </div>
-              <div className="flex flex-col items-end gap-4">
+              <div className="flex flex-col items-start gap-4">
                 <Button type="button" variant="outline">
                   Upload
                 </Button>

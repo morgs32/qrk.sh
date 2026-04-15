@@ -68,8 +68,7 @@ export function SiteSettings() {
       </header>
 
       <div className="space-y-8 px-4 py-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="site-title">Title</Label>
             <Input
@@ -78,19 +77,40 @@ export function SiteSettings() {
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="site-description">Description</Label>
-            <Textarea
-              id="site-description"
-              className="min-h-[126px]"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-            />
-          </div>
-        </div>
 
-        <div className="space-y-4">
+          <div className="grid gap-6 md:grid-cols-2 md:items-stretch">
+            <div className="flex h-full min-h-0 flex-col gap-2">
+              <Label htmlFor="site-description">Description</Label>
+              <Textarea
+                id="site-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            <div className="flex h-full min-h-0 flex-col gap-2">
+              <Label>Preview</Label>
+              <Card className="max-h-[126px] max-w-[400px] shrink-0 overflow-hidden py-4 shadow-none">
+                <CardContent className="min-w-0 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Globe className="size-3.5 shrink-0" aria-hidden />
+                    <span className="truncate">makeitrainey.framer.website</span>
+                  </div>
+                  <a
+                    href="#"
+                    className="block truncate text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    {title}
+                  </a>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">
+                    {description}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="site-language">Language</Label>
             <Select value={language} onValueChange={setLanguage}>
@@ -107,34 +127,11 @@ export function SiteSettings() {
               </SelectContent>
             </Select>
           </div>
-
-          <div className="space-y-2">
-            <Label>Preview</Label>
-            <Card className="py-4 shadow-none">
-              <CardContent className="space-y-2">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Globe className="size-3.5 shrink-0" aria-hidden />
-                  <span className="truncate">makeitrainey.framer.website</span>
-                </div>
-                <a
-                  href="#"
-                  className="block truncate text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-                  onClick={(e) => e.preventDefault()}
-                >
-                  {title}
-                </a>
-                <p className="line-clamp-3 text-sm text-muted-foreground">
-                  {description}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
         </div>
-      </div>
 
-      <Separator />
+        <Separator />
 
-      <div className="space-y-0">
+        <div className="space-y-0">
         <div className="flex items-start justify-between gap-4 py-4">
           <div className="min-w-0 space-y-1 pr-4">
             <div className="font-medium">Accessibility</div>

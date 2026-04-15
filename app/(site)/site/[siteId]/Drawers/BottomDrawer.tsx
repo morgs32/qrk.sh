@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import { PageSettings } from "../page/[pageId]/PageSettings/PageSettings";
 import { SiteSettings } from "../page/[pageId]/SiteSettings/SiteSettings";
 
 const drawerTransition = {
@@ -16,6 +17,11 @@ export function BottomDrawer(props: { data: "pageSettings" | "siteSettings" }) {
   const render = useMemo(() => {
     switch (data) {
       case "pageSettings":
+        return (
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            <PageSettings />
+          </div>
+        );
       case "siteSettings":
         return (
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">

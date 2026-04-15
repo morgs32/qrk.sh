@@ -1,7 +1,6 @@
 "use client";
 import { HeroCopy } from "@/components/home/HeroCopy";
 import { Grid } from "./Grid";
-import type React from "react";
 import { usePageStore } from "./pageStore";
 
 export function MainColumns() {

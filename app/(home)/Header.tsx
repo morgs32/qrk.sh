@@ -7,7 +7,8 @@ import { useUser } from "@clerk/nextjs";
 
 export function Header() {
   const router = useRouter();
-  const { isSignedIn } = useUser();
+  const { isSignedIn, user } = useUser();
+  const username = user?.username;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-border bg-background px-6">
@@ -16,6 +17,15 @@ export function Header() {
         <span className="text-xs leading-none text-muted-foreground">(get quirky with it)</span>
       </Link>
       {isSignedIn ? (
+        username ? (
+          <Link
+            href={`/${username}`}
+            className="rounded-full border border-border bg-background px-3 py-1.5 text-[10px] text-foreground transition-opacity hover:opacity-70"
+          >
+            Dashboard
+          </Link>
+        ) : null
+      ) : (
         <button
           type="button"
           className="rounded-full bg-foreground px-3 py-1.5 text-[10px] text-background transition-opacity hover:opacity-90"
@@ -25,7 +35,7 @@ export function Header() {
         >
           START A PROJECT
         </button>
-      ) : null}
+      )}
     </header>
   );
 }

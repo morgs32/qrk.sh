@@ -1,10 +1,12 @@
 "use client";
 
-import { Check, Copy, Globe, X } from "lucide-react";
+import { Globe, X } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import useSWR from "swr";
 
+import { CopyButton } from "./CopyButton";
 import { pagePattern, publishedPattern } from "../../../routePatterns";
 
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +24,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
 
 export function SiteSettings() {
@@ -36,9 +38,19 @@ export function SiteSettings() {
     return `https://www.qrk.sh${pathname}`;
   }, [siteId, username]);
 
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [isCopying, setIsCopying] = useState(false);
-  const [didCopy, setDidCopy] = useState(false);
+  const { data: qrDataUrl } = useSWR(
+    [username, siteId],
+    async ([username, siteId]) => {
+      const pathname = publishedPattern.href({ username, siteId });
+      const url = `https://www.qrk.sh${pathname}`;
+      const { toDataURL } = await import("qrcode");
+      return toDataURL(url, {
+        errorCorrectionLevel: "M",
+        margin: 1,
+        width: 256,
+      });
+    },
+  );
 
   const [title, setTitle] = useState("Make it Rainey");
   const [description, setDescription] = useState(
@@ -51,32 +63,6 @@ export function SiteSettings() {
   const [layoutDirection, setLayoutDirection] = useState(false);
   const [automaticLocale, setAutomaticLocale] = useState(false);
   const [passwordProtect, setPasswordProtect] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function run() {
-      const { toDataURL } = await import("qrcode");
-      const url = await toDataURL(publishedUrl, {
-        errorCorrectionLevel: "M",
-        margin: 1,
-        width: 256,
-      });
-      if (!cancelled) {
-        setQrDataUrl(url);
-      }
-    }
-
-    run().catch(() => {
-      if (!cancelled) {
-        setQrDataUrl(null);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [publishedUrl]);
 
   return (
     <div className="w-full">
@@ -119,37 +105,7 @@ export function SiteSettings() {
                 )}
 
                 <div className="pointer-events-none absolute inset-0 flex items-start justify-end p-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="secondary"
-                        className="pointer-events-auto size-8 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
-                        aria-label="Copy published URL"
-                        disabled={isCopying}
-                        onClick={async () => {
-                          try {
-                            setIsCopying(true);
-                            await navigator.clipboard.writeText(publishedUrl);
-                            setDidCopy(true);
-                            window.setTimeout(() => setDidCopy(false), 1200);
-                          } finally {
-                            setIsCopying(false);
-                          }
-                        }}
-                      >
-                        {didCopy ? (
-                          <Check className="size-3.5" aria-hidden />
-                        ) : (
-                          <Copy className="size-3.5" aria-hidden />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left" sideOffset={8}>
-                      {didCopy ? "Copied" : "Copy"}
-                    </TooltipContent>
-                  </Tooltip>
+                  <CopyButton text={publishedUrl} />
                 </div>
               </div>
 

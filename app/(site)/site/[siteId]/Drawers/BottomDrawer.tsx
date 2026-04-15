@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import { Breakpoints } from "../page/[pageId]/Breakpoints/Breakpoints";
 import { PageSettings } from "../page/[pageId]/PageSettings/PageSettings";
 import { SiteSettings } from "../page/[pageId]/SiteSettings/SiteSettings";
 
@@ -11,7 +12,9 @@ const drawerTransition = {
   ease: [0, 0, 0.2, 1] as const,
 };
 
-export function BottomDrawer(props: { data: "pageSettings" | "siteSettings" }) {
+export function BottomDrawer(props: {
+  data: "pageSettings" | "siteSettings" | "breakpoints";
+}) {
   const { data } = props;
 
   const render = useMemo(() => {
@@ -26,6 +29,12 @@ export function BottomDrawer(props: { data: "pageSettings" | "siteSettings" }) {
         return (
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
             <SiteSettings />
+          </div>
+        );
+      case "breakpoints":
+        return (
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            <Breakpoints />
           </div>
         );
     }

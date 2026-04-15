@@ -20,6 +20,7 @@ export function Toolbars() {
         return <ComposeToolbar key="compose-toolbar" />;
       case "pageSettings":
       case "siteSettings":
+      case "breakpoints":
         return null;
       default:
         return <SiteToolbar key="default" />;

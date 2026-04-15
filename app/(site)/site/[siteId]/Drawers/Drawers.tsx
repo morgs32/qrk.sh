@@ -21,6 +21,7 @@ export function Drawers() {
         return <RightDrawer key="right" data={match.data} />;
       case "pageSettings":
       case "siteSettings":
+      case "breakpoints":
         return <BottomDrawer key="bottom" data={match.data} />;
       default:
         return null;

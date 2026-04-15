@@ -19,6 +19,7 @@ export const brickDetailPattern = new RoutePattern("site/:siteId/page/:pageId/br
 export const composePattern = new RoutePattern("site/:siteId/page/:pageId/compose");
 export const pageSettingsPattern = new RoutePattern("site/:siteId/page/:pageId/page-settings");
 export const siteSettingsPattern = new RoutePattern("site/:siteId/page/:pageId/site-settings");
+export const breakpointsPattern = new RoutePattern("site/:siteId/page/:pageId/breakpoints");
 
 const patterns = {
   brickCatalog: brickCatalogPattern,
@@ -26,6 +27,7 @@ const patterns = {
   compose: composePattern,
   pageSettings: pageSettingsPattern,
   siteSettings: siteSettingsPattern,
+  breakpoints: breakpointsPattern,
 } satisfies Record<string, RoutePattern>;
 
 /**

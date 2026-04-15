@@ -42,14 +42,8 @@ export function SiteSettings() {
   return (
     <div className="w-full">
       <header className="sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border bg-muted/95 px-4 py-2.5 backdrop-blur-sm">
-        <Globe
-          className="size-5 shrink-0 text-foreground"
-          strokeWidth={2}
-          aria-hidden
-        />
-        <h1 className="min-w-0 flex-1 text-base font-semibold tracking-tight">
-          Site Settings
-        </h1>
+        <Globe className="size-5 shrink-0 text-foreground" strokeWidth={2} aria-hidden />
+        <h1 className="min-w-0 flex-1 text-base font-semibold tracking-tight">Site Settings</h1>
         <div className="flex shrink-0 items-center gap-1">
           <Button type="button" variant="outline" size="sm" className="h-8 px-3">
             Save
@@ -71,11 +65,7 @@ export function SiteSettings() {
         <div className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="site-title">Title</Label>
-            <Input
-              id="site-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+            <Input id="site-title" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 md:items-stretch">
@@ -103,9 +93,7 @@ export function SiteSettings() {
                   >
                     {title}
                   </a>
-                  <p className="line-clamp-2 text-sm text-muted-foreground">
-                    {description}
-                  </p>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">{description}</p>
                 </CardContent>
               </Card>
             </div>
@@ -117,9 +105,7 @@ export function SiteSettings() {
               <SelectTrigger id="site-language" className="w-full">
                 <div className="flex w-full min-w-0 items-center justify-between gap-2">
                   <SelectValue placeholder="Language" />
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {language}
-                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{language}</span>
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -129,167 +115,70 @@ export function SiteSettings() {
           </div>
         </div>
 
-        <Separator />
+        <div className="space-y-6">
+          <h2 className="text-lg font-semibold">Site Images</h2>
 
-        <div className="space-y-0">
-        <div className="flex items-start justify-between gap-4 py-4">
-          <div className="min-w-0 space-y-1 pr-4">
-            <div className="font-medium">Accessibility</div>
-            <p className="text-sm text-muted-foreground">
-              Disable movement animations and custom cursors if the user prefers
-              reduced motion.
-            </p>
-          </div>
-          <Switch
-            checked={accessibility}
-            onCheckedChange={setAccessibility}
-            aria-label="Accessibility"
-          />
-        </div>
-        <Separator />
-        <div className="flex items-start justify-between gap-4 py-4">
-          <div className="min-w-0 space-y-1 pr-4">
-            <div className="font-medium">Navigation</div>
-            <p className="text-sm text-muted-foreground">
-              Preserve URL parameters when navigating between pages.
-            </p>
-          </div>
-          <Switch
-            checked={navigation}
-            onCheckedChange={setNavigation}
-            aria-label="Navigation"
-          />
-        </div>
-        <Separator />
-        <div className="flex items-start justify-between gap-4 py-4">
-          <div className="min-w-0 space-y-1 pr-4">
-            <div className="font-medium">Layout Direction</div>
-            <p className="text-sm text-muted-foreground">
-              Reverse layout direction for right-to-left languages (e.g. Arabic,
-              Hebrew).
-            </p>
-          </div>
-          <Switch
-            checked={layoutDirection}
-            onCheckedChange={setLayoutDirection}
-            aria-label="Layout direction"
-          />
-        </div>
-        <Separator />
-        <div className="flex items-start justify-between gap-4 py-4">
-          <div className="min-w-0 space-y-1 pr-4">
-            <div className="font-medium">Automatic Locale</div>
-            <p className="text-sm text-muted-foreground">
-              Auto-redirect site visitors to their preferred locale based on
-              their browser language settings.
-            </p>
-          </div>
-          <Switch
-            checked={automaticLocale}
-            onCheckedChange={setAutomaticLocale}
-            aria-label="Automatic locale"
-          />
-        </div>
-        <Separator />
-        <div className="flex items-start justify-between gap-4 py-4">
-          <div className="min-w-0 space-y-1 pr-4">
-            <div className="flex flex-wrap items-center gap-2 font-medium">
-              <span>Password Protect</span>
-              <Badge variant="default">UPGRADE</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Protect your site with a password. Changes will take effect
-              immediately.
-            </p>
-          </div>
-          <Switch
-            checked={passwordProtect}
-            onCheckedChange={setPasswordProtect}
-            aria-label="Password protect"
-          />
-        </div>
-      </div>
-
-      <Separator />
-
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-1">
-          <div className="font-medium">Danger Zone</div>
-          <p className="text-sm text-muted-foreground">
-            Unpublish your website from all domains.
-          </p>
-        </div>
-        <Button type="button" variant="destructive" className="shrink-0">
-          Unpublish
-        </Button>
-      </div>
-
-      <Separator />
-
-      <div className="space-y-6">
-        <h2 className="text-lg font-semibold">Site Images</h2>
-
-        <div className="grid grid-cols-1 gap-16 md:grid-cols-2 md:gap-6 md:items-start">
-          <div className="flex min-w-0 flex-col gap-4">
-            <div className="space-y-1">
-              <div className="font-medium">Favicon</div>
-              <p className="text-sm text-muted-foreground">64 × 64 pixels</p>
-            </div>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-xs text-muted-foreground">Light</span>
-                <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
-                  <div className="flex items-center gap-1 border-b bg-background px-2 py-1.5">
-                    <div className="size-4 shrink-0 rounded-sm bg-muted" />
-                    <div className="h-2 min-w-0 flex-1 rounded bg-muted/80" />
-                  </div>
-                  <div className="h-16 bg-background" />
-                </div>
-                <Button type="button" size="sm" variant="outline">
-                  Upload
-                </Button>
-              </div>
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-xs text-muted-foreground">Dark</span>
-                <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
-                  <div className="flex items-center gap-1 border-b bg-zinc-900 px-2 py-1.5">
-                    <div className="size-4 shrink-0 rounded-sm bg-zinc-700" />
-                    <div className="h-2 min-w-0 flex-1 rounded bg-zinc-600" />
-                  </div>
-                  <div className="h-16 bg-zinc-950" />
-                </div>
-                <Button type="button" size="sm" variant="outline">
-                  Upload
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-4">
-            <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-16 md:grid-cols-2 md:gap-6 md:items-start">
+            <div className="flex min-w-0 flex-col gap-4">
               <div className="space-y-1">
-                <div className="font-medium">Social Preview</div>
-                <p className="text-sm text-muted-foreground">1200 × 630 pixels</p>
+                <div className="font-medium">Favicon</div>
+                <p className="text-sm text-muted-foreground">64 × 64 pixels</p>
               </div>
-              <Button type="button" variant="outline">
-                Upload
-              </Button>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Light</span>
+                  <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
+                    <div className="flex items-center gap-1 border-b bg-background px-2 py-1.5">
+                      <div className="size-4 shrink-0 rounded-sm bg-muted" />
+                      <div className="h-2 min-w-0 flex-1 rounded bg-muted/80" />
+                    </div>
+                    <div className="h-16 bg-background" />
+                  </div>
+                  <Button type="button" size="sm" variant="outline">
+                    Upload
+                  </Button>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Dark</span>
+                  <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
+                    <div className="flex items-center gap-1 border-b bg-zinc-900 px-2 py-1.5">
+                      <div className="size-4 shrink-0 rounded-sm bg-zinc-700" />
+                      <div className="h-2 min-w-0 flex-1 rounded bg-zinc-600" />
+                    </div>
+                    <div className="h-16 bg-zinc-950" />
+                  </div>
+                  <Button type="button" size="sm" variant="outline">
+                    Upload
+                  </Button>
+                </div>
+              </div>
             </div>
-            <div className="relative w-full overflow-hidden rounded-md border bg-muted">
-              <div className="relative aspect-[1200/630] w-full">
-                <Image
-                  src="/site-settings-social-preview.png"
-                  alt="Social preview"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 767px) 100vw, 50vw"
-                  priority
-                />
+
+            <div className="flex min-w-0 flex-col gap-4">
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="font-medium">Social Preview</div>
+                  <p className="text-sm text-muted-foreground">1200 × 630 pixels</p>
+                </div>
+                <Button type="button" variant="outline">
+                  Upload
+                </Button>
+              </div>
+              <div className="relative w-full max-w-[375px] overflow-hidden rounded-md border bg-muted">
+                <div className="relative aspect-[375/197] w-full">
+                  <Image
+                    src="/site-settings-social-preview.png"
+                    alt="Social preview"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 767px) 100vw, 375px"
+                    priority
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );

@@ -1,9 +1,10 @@
- "use client";
+"use client";
 
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
+import { Button } from "../../components/ui/button";
 
 export function Header() {
   const router = useRouter();
@@ -18,23 +19,19 @@ export function Header() {
       </Link>
       {isSignedIn ? (
         username ? (
-          <Link
-            href={`/${username}`}
-            className="rounded-full border border-border bg-background px-3 py-1.5 text-[10px] text-foreground transition-opacity hover:opacity-70"
-          >
-            Dashboard
-          </Link>
+          <Button className="font-bold" asChild>
+            <Link href={`/${username}`}>Dashboard</Link>
+          </Button>
         ) : null
       ) : (
-        <button
-          type="button"
-          className="rounded-full bg-foreground px-3 py-1.5 text-[10px] text-background transition-opacity hover:opacity-90"
+        <Button
+          className="font-bold"
           onClick={() => {
             router.push("/sign-in");
           }}
         >
           START A PROJECT
-        </button>
+        </Button>
       )}
     </header>
   );

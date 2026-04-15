@@ -1,11 +1,11 @@
 "use client";
 
-import { Globe, X } from "lucide-react";
+import { Check, Copy, Globe, X } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { pagePattern } from "../../../routePatterns";
+import { pagePattern, publishedPattern } from "../../../routePatterns";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,23 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useUsername } from "@/hooks/useUsername";
 
 export function SiteSettings() {
   const params = useParams<{ siteId: string; pageId: string }>();
   const router = useRouter();
+  const username = useUsername();
+  const siteId = params.siteId;
+
+  const publishedUrl = useMemo(() => {
+    const pathname = publishedPattern.href({ username, siteId });
+    return `https://www.qrk.sh${pathname}`;
+  }, [siteId, username]);
+
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
+  const [didCopy, setDidCopy] = useState(false);
 
   const [title, setTitle] = useState("Make it Rainey");
   const [description, setDescription] = useState(
@@ -38,6 +51,32 @@ export function SiteSettings() {
   const [layoutDirection, setLayoutDirection] = useState(false);
   const [automaticLocale, setAutomaticLocale] = useState(false);
   const [passwordProtect, setPasswordProtect] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      const { toDataURL } = await import("qrcode");
+      const url = await toDataURL(publishedUrl, {
+        errorCorrectionLevel: "M",
+        margin: 1,
+        width: 256,
+      });
+      if (!cancelled) {
+        setQrDataUrl(url);
+      }
+    }
+
+    run().catch(() => {
+      if (!cancelled) {
+        setQrDataUrl(null);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [publishedUrl]);
 
   return (
     <div className="w-full">
@@ -62,6 +101,70 @@ export function SiteSettings() {
       </header>
 
       <div className="space-y-8 px-4 py-6">
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Published URL</h2>
+          <TooltipProvider delayDuration={0}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+              <div className="group relative h-40 w-40 shrink-0 overflow-hidden rounded-md border bg-background">
+                {qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="Published URL QR code"
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                    Generating…
+                  </div>
+                )}
+
+                <div className="pointer-events-none absolute inset-0 flex items-start justify-end p-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="secondary"
+                        className="pointer-events-auto size-8 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
+                        aria-label="Copy published URL"
+                        disabled={isCopying}
+                        onClick={async () => {
+                          try {
+                            setIsCopying(true);
+                            await navigator.clipboard.writeText(publishedUrl);
+                            setDidCopy(true);
+                            window.setTimeout(() => setDidCopy(false), 1200);
+                          } finally {
+                            setIsCopying(false);
+                          }
+                        }}
+                      >
+                        {didCopy ? (
+                          <Check className="size-3.5" aria-hidden />
+                        ) : (
+                          <Copy className="size-3.5" aria-hidden />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" sideOffset={8}>
+                      {didCopy ? "Copied" : "Copy"}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="text-sm text-muted-foreground">
+                  Scan to open your published site.
+                </div>
+                <div className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground">
+                  <div className="truncate">{publishedUrl}</div>
+                </div>
+              </div>
+            </div>
+          </TooltipProvider>
+        </div>
+
         <div className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2 md:items-stretch">
             <div className="flex h-full min-h-0 flex-col gap-2">

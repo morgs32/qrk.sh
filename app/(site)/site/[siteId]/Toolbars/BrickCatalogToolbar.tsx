@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { X, ZoomOut } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
+import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
 
 import { pagePattern } from "../routePatterns";
 
@@ -17,6 +18,7 @@ const toolbarPresenceTransition = {
 export function BrickCatalogToolbar() {
   const params = useParams<{ siteId: string; pageId: string }>();
   const router = useRouter();
+  const setZoomIn = useGridLayoutStore((s) => s.setZoomIn);
 
   return (
     <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 md:left-[75%]">
@@ -33,7 +35,7 @@ export function BrickCatalogToolbar() {
             <ToolbarButton
               label="Zoom out"
               icon={<ZoomOut className="h-3.5 w-3.5" strokeWidth={2} />}
-              onClick={() => {}}
+              onClick={() => setZoomIn(false)}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 

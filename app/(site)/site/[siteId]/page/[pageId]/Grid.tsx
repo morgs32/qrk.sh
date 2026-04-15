@@ -97,7 +97,9 @@ export function Grid() {
   const { containerRef, width, mounted } = useContainerWidth();
   const layout = useGridLayoutStore((s) => s.layout);
   const setLayout = useGridLayoutStore((s) => s.setLayout);
+  const zoomIn = useGridLayoutStore((s) => s.zoomIn);
   const [gridDropSessionKey, setGridDropSessionKey] = useState(0);
+  const [gridScale, setGridScale] = useState(1);
   /** True after RGL drag threshold until the post-drag `click` can be ignored. */
   const suppressBrickIdClickRef = useRef(false);
   /** True while the brick drag pointer was last seen inside the grid wrapper (hit-test on `dragover`). */
@@ -107,6 +109,8 @@ export function Grid() {
 
   const gridWidth = Math.max(width, 1);
   const rowHeight = gridWidth / GRID_COLS;
+  const maxY = layout.reduce((m, li) => Math.max(m, li.y + li.h), 0);
+  const gridHeightPx = maxY * rowHeight;
 
   /**
    * RGL’s dragleave counter can miss leaving the grid; hit-test on `document` `dragover` and remount as
@@ -164,6 +168,32 @@ export function Grid() {
       document.removeEventListener("dragend", onDocumentDragEnd, true);
     };
   }, [containerRef]);
+
+  useEffect(() => {
+    if (zoomIn) {
+      setGridScale(1);
+      return;
+    }
+
+    const heightPx = gridHeightPx;
+    if (!Number.isFinite(heightPx) || heightPx <= 0) {
+      setGridScale(1);
+      return;
+    }
+
+    const el = containerRef.current;
+    const parentRect = el?.parentElement?.getBoundingClientRect();
+    const parentHeightPx = parentRect?.height ?? 0;
+    let availableHeightPx = parentHeightPx;
+
+    if (!Number.isFinite(availableHeightPx) || availableHeightPx <= 0) {
+      const headerHeightPx = document.querySelector("header")?.getBoundingClientRect().height ?? 64;
+      availableHeightPx = window.innerHeight - headerHeightPx;
+    }
+
+    const nextScale = Math.min(1, availableHeightPx / heightPx);
+    setGridScale(Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1);
+  }, [containerRef, gridHeightPx, zoomIn]);
 
   const onDragStart = useCallback<EventCallback>(() => {
     suppressBrickIdClickRef.current = true;
@@ -232,68 +262,83 @@ export function Grid() {
 
   return (
     <>
-      <div ref={containerRef} className="grid-layout-wrapper w-full" data-testid="grid-layout">
-        {mounted && (
-          <GridLayout
-            key={gridDropSessionKey}
-            width={gridWidth}
-            layout={layout}
-            autoSize
-            className="grid-layout"
-            compactor={verticalCompactor}
-            gridConfig={{
-              cols: GRID_COLS,
-              rowHeight,
-              margin: [0, 0],
-              containerPadding: [0, 0],
-              maxRows: Number.POSITIVE_INFINITY,
-            }}
-            dragConfig={{
-              enabled: true,
-              bounded: GRID_DRAG_BOUNDED,
-              threshold: 3,
-            }}
-            resizeConfig={{
-              enabled: false,
-              handles: [],
-            }}
-            dropConfig={{
-              enabled: true,
-              defaultItem: { w: 1, h: 1 },
-              onDragOver: onDropDragOver,
-            }}
-            droppingItem={DROPPING_ITEM}
-            onDragStart={onDragStart}
-            onDragStop={onDragStop}
-            onDrop={onDrop}
-          >
-            {layout.map((item) => {
-              const catalogBrick = findCollectionBrick(item.def);
-              const BrickComponent = catalogBrick?.component;
-              if (!BrickComponent) {
-                return null;
-              }
+      <div
+        ref={containerRef}
+        className="grid-layout-wrapper w-full"
+        data-testid="grid-layout"
+        style={{ height: gridHeightPx > 0 ? gridHeightPx * gridScale : undefined }}
+      >
+        <div
+          style={{
+            transform: `scale(${gridScale})`,
+            transformOrigin: "top left",
+            width: gridWidth,
+            height: gridHeightPx > 0 ? gridHeightPx : undefined,
+          }}
+        >
+          {mounted && (
+            <GridLayout
+              key={gridDropSessionKey}
+              width={gridWidth}
+              layout={layout}
+              autoSize
+              className="grid-layout"
+              compactor={verticalCompactor}
+              transformScale={gridScale}
+              gridConfig={{
+                cols: GRID_COLS,
+                rowHeight,
+                margin: [0, 0],
+                containerPadding: [0, 0],
+                maxRows: Number.POSITIVE_INFINITY,
+              }}
+              dragConfig={{
+                enabled: true,
+                bounded: GRID_DRAG_BOUNDED,
+                threshold: 3,
+              }}
+              resizeConfig={{
+                enabled: false,
+                handles: [],
+              }}
+              dropConfig={{
+                enabled: true,
+                defaultItem: { w: 1, h: 1 },
+                onDragOver: onDropDragOver,
+              }}
+              droppingItem={DROPPING_ITEM}
+              onDragStart={onDragStart}
+              onDragStop={onDragStop}
+              onDrop={onDrop}
+            >
+              {layout.map((item) => {
+                const catalogBrick = findCollectionBrick(item.def);
+                const BrickComponent = catalogBrick?.component;
+                if (!BrickComponent) {
+                  return null;
+                }
 
-              return (
-                <div
-                  key={item.i}
-                  data-brick-instance-id={item.i}
-                  data-brick-grid-collection-name={item.def.collectionName}
-                  data-brick-grid-brick-name={item.def.name}
-                  className="cursor-grab touch-none active:cursor-grabbing"
-                  onClick={() => {
-                    if (suppressBrickIdClickRef.current) {
-                      return;
-                    }
-                    router.push(`/site/${siteId}/page/${pageId}/brick/${item.i}`);
-                  }}
-                >
-                  <BrickComponent />
-                </div>
-              );
-            })}
-          </GridLayout>
-        )}
+                return (
+                  <div
+                    key={item.i}
+                    data-brick-instance-id={item.i}
+                    data-brick-grid-collection-name={item.def.collectionName}
+                    data-brick-grid-brick-name={item.def.name}
+                    className="cursor-grab touch-none active:cursor-grabbing"
+                    onClick={() => {
+                      if (suppressBrickIdClickRef.current) {
+                        return;
+                      }
+                      router.push(`/site/${siteId}/page/${pageId}/brick/${item.i}`);
+                    }}
+                  >
+                    <BrickComponent />
+                  </div>
+                );
+              })}
+            </GridLayout>
+          )}
+        </div>
       </div>
     </>
   );

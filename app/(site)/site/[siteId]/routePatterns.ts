@@ -14,6 +14,18 @@ export const DEFAULT_SITE_PAGE_ID = "home" as const;
  */
 export const pagePattern = new RoutePattern("site/:siteId/page/:pageId");
 
+/** Public published site URL (`https://www.qrk.sh/:username/:siteId`). */
+export const publishedPattern = new RoutePattern(":username/:siteId");
+
+/** User dashboard pathname (`/:username`). Build with `dashboardPattern.href({ username })`. */
+export const dashboardPattern = new RoutePattern(":username");
+
+/**
+ * Clerk redirects here first so we can send the user to `/:username` once `useUser()` is available.
+ * (Dashboard URL needs `username`; it cannot be set statically on `<ClerkProvider />`.)
+ */
+export const postAuthPath = "/post-auth" as const;
+
 export const brickCatalogPattern = new RoutePattern("site/:siteId/page/:pageId/brick-catalog");
 export const brickDetailPattern = new RoutePattern("site/:siteId/page/:pageId/brick/:brickId");
 export const composePattern = new RoutePattern("site/:siteId/page/:pageId/compose");

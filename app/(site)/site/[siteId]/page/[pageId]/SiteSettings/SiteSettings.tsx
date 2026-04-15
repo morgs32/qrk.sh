@@ -7,11 +7,11 @@ import { useMemo, useState } from "react";
 import useSWR from "swr";
 
 import { CopyButton } from "./CopyButton";
+import { SiteCard } from "./SiteCard";
 import { pagePattern, publishedPattern } from "../../../routePatterns";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -37,6 +37,7 @@ export function SiteSettings() {
     const pathname = publishedPattern.href({ username, siteId });
     return `https://www.qrk.sh${pathname}`;
   }, [siteId, username]);
+  const publishedUrlDisplay = useMemo(() => publishedUrl.replace(/^https?:\/\//, ""), [publishedUrl]);
 
   const { data: qrDataUrl } = useSWR(
     [username, siteId],
@@ -134,22 +135,7 @@ export function SiteSettings() {
 
             <div className="flex h-full min-h-0 flex-col gap-2">
               <Label>Preview</Label>
-              <Card className="max-h-[126px] max-w-[400px] shrink-0 overflow-hidden py-4 shadow-none">
-                <CardContent className="min-w-0 space-y-2">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Globe className="size-3.5 shrink-0" aria-hidden />
-                    <span className="truncate">makeitrainey.framer.website</span>
-                  </div>
-                  <a
-                    href="#"
-                    className="block truncate text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    {title}
-                  </a>
-                  <p className="line-clamp-2 text-sm text-muted-foreground">{description}</p>
-                </CardContent>
-              </Card>
+              <SiteCard title={title} url={publishedUrlDisplay} publishedAt="Mar 30" />
             </div>
           </div>
         </div>

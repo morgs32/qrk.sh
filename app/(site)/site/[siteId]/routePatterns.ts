@@ -17,11 +17,15 @@ export const pagePattern = new RoutePattern("site/:siteId/page/:pageId");
 export const brickCatalogPattern = new RoutePattern("site/:siteId/page/:pageId/brick-catalog");
 export const brickDetailPattern = new RoutePattern("site/:siteId/page/:pageId/brick/:brickId");
 export const composePattern = new RoutePattern("site/:siteId/page/:pageId/compose");
+export const pageSettingsPattern = new RoutePattern("site/:siteId/page/:pageId/page-settings");
+export const siteSettingsPattern = new RoutePattern("site/:siteId/page/:pageId/site-settings");
 
 const patterns = {
   brickCatalog: brickCatalogPattern,
   brickDetail: brickDetailPattern,
   compose: composePattern,
+  pageSettings: pageSettingsPattern,
+  siteSettings: siteSettingsPattern,
 } satisfies Record<string, RoutePattern>;
 
 /**

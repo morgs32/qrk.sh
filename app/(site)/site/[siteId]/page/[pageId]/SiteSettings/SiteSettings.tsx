@@ -1,0 +1,269 @@
+"use client";
+
+import { Globe } from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+
+export function SiteSettings() {
+  const [title, setTitle] = useState("Make it Rainey");
+  const [description, setDescription] = useState(
+    "We are helping Austin home owners save $600 or more on their property taxes.",
+  );
+  const [language, setLanguage] = useState("en");
+
+  const [accessibility, setAccessibility] = useState(true);
+  const [navigation, setNavigation] = useState(false);
+  const [layoutDirection, setLayoutDirection] = useState(false);
+  const [automaticLocale, setAutomaticLocale] = useState(false);
+  const [passwordProtect, setPasswordProtect] = useState(false);
+
+  return (
+    <div className="mx-auto w-full max-w-screen-lg space-y-8 px-4 py-6">
+      <div className="flex items-start justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">Site Settings</h1>
+        <Button type="button" variant="outline">
+          Save
+        </Button>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="site-title">Title</Label>
+            <Input
+              id="site-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="site-description">Description</Label>
+            <Textarea
+              id="site-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="site-language">Language</Label>
+            <Select value={language} onValueChange={setLanguage}>
+              <SelectTrigger id="site-language" className="w-full">
+                <div className="flex w-full min-w-0 items-center justify-between gap-2">
+                  <SelectValue placeholder="Language" />
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {language}
+                  </span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Preview</Label>
+            <Card className="py-4 shadow-none">
+              <CardContent className="space-y-2">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Globe className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">makeitrainey.framer.website</span>
+                </div>
+                <a
+                  href="#"
+                  className="block truncate text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  {title}
+                </a>
+                <p className="line-clamp-3 text-sm text-muted-foreground">
+                  {description}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-0">
+        <div className="flex items-start justify-between gap-4 py-4">
+          <div className="min-w-0 space-y-1 pr-4">
+            <div className="font-medium">Accessibility</div>
+            <p className="text-sm text-muted-foreground">
+              Disable movement animations and custom cursors if the user prefers
+              reduced motion.
+            </p>
+          </div>
+          <Switch
+            checked={accessibility}
+            onCheckedChange={setAccessibility}
+            aria-label="Accessibility"
+          />
+        </div>
+        <Separator />
+        <div className="flex items-start justify-between gap-4 py-4">
+          <div className="min-w-0 space-y-1 pr-4">
+            <div className="font-medium">Navigation</div>
+            <p className="text-sm text-muted-foreground">
+              Preserve URL parameters when navigating between pages.
+            </p>
+          </div>
+          <Switch
+            checked={navigation}
+            onCheckedChange={setNavigation}
+            aria-label="Navigation"
+          />
+        </div>
+        <Separator />
+        <div className="flex items-start justify-between gap-4 py-4">
+          <div className="min-w-0 space-y-1 pr-4">
+            <div className="font-medium">Layout Direction</div>
+            <p className="text-sm text-muted-foreground">
+              Reverse layout direction for right-to-left languages (e.g. Arabic,
+              Hebrew).
+            </p>
+          </div>
+          <Switch
+            checked={layoutDirection}
+            onCheckedChange={setLayoutDirection}
+            aria-label="Layout direction"
+          />
+        </div>
+        <Separator />
+        <div className="flex items-start justify-between gap-4 py-4">
+          <div className="min-w-0 space-y-1 pr-4">
+            <div className="font-medium">Automatic Locale</div>
+            <p className="text-sm text-muted-foreground">
+              Auto-redirect site visitors to their preferred locale based on
+              their browser language settings.
+            </p>
+          </div>
+          <Switch
+            checked={automaticLocale}
+            onCheckedChange={setAutomaticLocale}
+            aria-label="Automatic locale"
+          />
+        </div>
+        <Separator />
+        <div className="flex items-start justify-between gap-4 py-4">
+          <div className="min-w-0 space-y-1 pr-4">
+            <div className="flex flex-wrap items-center gap-2 font-medium">
+              <span>Password Protect</span>
+              <Badge variant="default">UPGRADE</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Protect your site with a password. Changes will take effect
+              immediately.
+            </p>
+          </div>
+          <Switch
+            checked={passwordProtect}
+            onCheckedChange={setPasswordProtect}
+            aria-label="Password protect"
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <div className="font-medium">Danger Zone</div>
+          <p className="text-sm text-muted-foreground">
+            Unpublish your website from all domains.
+          </p>
+        </div>
+        <Button type="button" variant="destructive" className="shrink-0">
+          Unpublish
+        </Button>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-6">
+        <h2 className="text-lg font-semibold">Site Images</h2>
+
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-1">
+            <div className="font-medium">Favicon</div>
+            <p className="text-sm text-muted-foreground">64 × 64 pixels</p>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-xs text-muted-foreground">Light</span>
+              <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
+                <div className="flex items-center gap-1 border-b bg-background px-2 py-1.5">
+                  <div className="size-4 shrink-0 rounded-sm bg-muted" />
+                  <div className="h-2 min-w-0 flex-1 rounded bg-muted/80" />
+                </div>
+                <div className="h-16 bg-background" />
+              </div>
+              <Button type="button" size="sm" variant="outline">
+                Upload
+              </Button>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-xs text-muted-foreground">Dark</span>
+              <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
+                <div className="flex items-center gap-1 border-b bg-zinc-900 px-2 py-1.5">
+                  <div className="size-4 shrink-0 rounded-sm bg-zinc-700" />
+                  <div className="h-2 min-w-0 flex-1 rounded bg-zinc-600" />
+                </div>
+                <div className="h-16 bg-zinc-950" />
+              </div>
+              <Button type="button" size="sm" variant="outline">
+                Upload
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <div className="font-medium">Social Preview</div>
+              <p className="text-sm text-muted-foreground">1200 × 630 pixels</p>
+            </div>
+            <Button type="button" variant="outline">
+              Upload
+            </Button>
+          </div>
+          <div className="relative w-full max-w-xl overflow-hidden rounded-md border bg-muted">
+            <div className="relative aspect-[1200/630] w-full">
+              <Image
+                src="/site-settings-social-preview.png"
+                alt="Social preview"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 576px"
+                priority
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

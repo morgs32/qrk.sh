@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { LeftDrawer } from "./LeftDrawer";
 import { RightDrawer } from "./RightDrawer";
 import { matchPagePathname } from "../routePatterns";
+import { BottomDrawer } from "./BottomDrawer";
 
 export function Drawers() {
   const pathname = usePathname();
@@ -18,6 +19,9 @@ export function Drawers() {
         return <LeftDrawer key="left" data={match.data} />;
       case "compose":
         return <RightDrawer key="right" data={match.data} />;
+      case "pageSettings":
+      case "siteSettings":
+        return <BottomDrawer key="bottom" data={match.data} />;
       default:
         return null;
     }

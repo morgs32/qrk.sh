@@ -18,6 +18,9 @@ export function Toolbars() {
         return <BrickCatalogToolbar key="brick-catalog-toolbar" />;
       case "compose":
         return <ComposeToolbar key="compose-toolbar" />;
+      case "pageSettings":
+      case "siteSettings":
+        return null;
       default:
         return <SiteToolbar key="default" />;
     }

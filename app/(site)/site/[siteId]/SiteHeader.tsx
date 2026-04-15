@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export function Header(props: { siteId: string }) {
+export function SiteHeader(props: { siteId: string }) {
   const { siteId } = props;
 
   return (
@@ -28,3 +28,4 @@ export function Header(props: { siteId: string }) {
     </header>
   );
 }
+

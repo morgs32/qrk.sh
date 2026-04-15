@@ -12,6 +12,7 @@ const ROWS = [
 ] as const;
 
 const AUTOPLAY_DELAY_MS = 3000;
+const AUTOPLAY_STAGGER_MS = 600;
 
 export function HomeGrid() {
   const [api0, setApi0] = useState<CarouselApi>();
@@ -26,14 +27,30 @@ export function HomeGrid() {
 
   useEffect(() => {
     if (!api1) return;
-    const interval = window.setInterval(() => api1.scrollNext(), AUTOPLAY_DELAY_MS);
-    return () => window.clearInterval(interval);
+    let interval: number | undefined;
+    const timeout = window.setTimeout(() => {
+      interval = window.setInterval(() => api1.scrollNext(), AUTOPLAY_DELAY_MS);
+    }, AUTOPLAY_STAGGER_MS);
+    return () => {
+      window.clearTimeout(timeout);
+      if (interval !== undefined) {
+        window.clearInterval(interval);
+      }
+    };
   }, [api1]);
 
   useEffect(() => {
     if (!api2) return;
-    const interval = window.setInterval(() => api2.scrollNext(), AUTOPLAY_DELAY_MS);
-    return () => window.clearInterval(interval);
+    let interval: number | undefined;
+    const timeout = window.setTimeout(() => {
+      interval = window.setInterval(() => api2.scrollNext(), AUTOPLAY_DELAY_MS);
+    }, AUTOPLAY_STAGGER_MS * 2);
+    return () => {
+      window.clearTimeout(timeout);
+      if (interval !== undefined) {
+        window.clearInterval(interval);
+      }
+    };
   }, [api2]);
 
   const rowTiles = useMemo(() => {
@@ -73,7 +90,8 @@ export function HomeGrid() {
 
           <Carousel
             setApi={setApi1}
-            opts={{ loop: true, align: "start" }}
+            dir="rtl"
+            opts={{ loop: true, align: "start", direction: "rtl" }}
             className="w-full"
             aria-label="Home tiles row 2"
           >

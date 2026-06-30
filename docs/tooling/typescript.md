@@ -10,10 +10,10 @@ Use this doc when fixing TypeScript errors in this repo.
 
 ## Workflow
 
-1. Run the full typecheck from repo root:
+1. Run the web app typecheck from repo root:
 
 ```sh
-pnpm exec tsc -p tsconfig.json --noEmit
+pnpm --filter @qrk.sh/web typecheck
 ```
 
 2. Capture all failing tasks and their error messages.
@@ -54,7 +54,7 @@ For a dynamic route page, validate `params` with **Effect `Schema`**: define **o
 
 - **Bad**: `brickCatalogRouteParamsSchema.ts` that only holds `Schema.Struct({ … })` imported by one `page.tsx`; or `try { decodeUnknownSync(schema)(raw) } catch { notFound() }`.
 
-- **Good**: colocate in the route’s `page.tsx` (for example parallel routes under `app/(site)/site/[siteId]/page/[pageId]/@leftDrawer/…`):
+- **Good**: colocate in the route’s `page.tsx` (for example parallel routes under `apps/web/app/(site)/site/[siteId]/page/[pageId]/@leftDrawer/…`):
 
 ```ts
 const BrickCatalogRouteParamsSchema = Schema.Struct({
@@ -77,7 +77,7 @@ Name Effect schema values **PascalCase** (e.g. `BrickDragDefSchema`, `BrickCatal
 
 - **Bad**: `const brickDragDefSchema = Schema.Struct({ … })` with no link to `ICollectionBrickDef`; or adding a throwaway `type Foo = { … }` next to the schema **only** to satisfy the compiler when the product model does not yet define `Foo`.
 
-- **Good**: put `satisfies Schema.Schema<…>` on the **`Schema.Struct`** that describes the **parsed object** (see `BrickDragDefFromJsonStringSchema` in [`components/home/useBrickDrawerStore.ts`](../../components/home/useBrickDrawerStore.ts) and the `parseJson` subsection below).
+- **Good**: put `satisfies Schema.Schema<…>` on the **`Schema.Struct`** that describes the **parsed object** (see `BrickDragDefFromJsonStringSchema` in [`apps/web/components/home/useBrickDrawerStore.ts`](../../apps/web/components/home/useBrickDrawerStore.ts) and the `parseJson` subsection below).
 
 If there is **no** existing type that should own the decoded shape, **do not** invent one in passing: agree on the canonical name and module with the team (or your past self in the issue), add that type where domain types live, then add `satisfies Schema.Schema<…>`. Until then, PascalCase the schema only (e.g. route `params` in `page.tsx`).
 
@@ -117,7 +117,7 @@ if (Either.isLeft(decoded)) {
 return decoded.right;
 ```
 
-See [`components/home/useBrickDrawerStore.ts`](../../components/home/useBrickDrawerStore.ts) (`parseBrickDefFromDataTransfer`).
+See [`apps/web/components/home/useBrickDrawerStore.ts`](../../apps/web/components/home/useBrickDrawerStore.ts) (`parseBrickDefFromDataTransfer`).
 
 ### Workspace package imports
 

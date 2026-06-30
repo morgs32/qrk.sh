@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -15,10 +16,16 @@
 /playwright-report/
 /test-results/
 /blob-report/
+**/coverage/
+**/playwright-report/
+**/test-results/
+**/blob-report/
 
 # next.js
 /.next/
 /out/
+**/.next/
+**/out/
 
 # production
 /build

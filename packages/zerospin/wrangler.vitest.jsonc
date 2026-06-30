@@ -1,0 +1,57 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "qrk-sh-e2e",
+  "main": "./src/Worker.ts",
+  "compatibility_date": "2026-01-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "rules": [{ "type": "Text", "globs": ["**/*.sql"] }],
+  "durable_objects": {
+    "bindings": [
+      { "name": "CLOUD_REPO", "class_name": "CloudRepo" },
+      { "name": "ACTOR_REPO", "class_name": "ActorRepo" },
+      { "name": "SURFACE_REPO", "class_name": "SurfaceRepo" },
+      { "name": "FRONTEND_REPO", "class_name": "FrontendRepo" },
+      { "name": "SYSTEM_REPO", "class_name": "SystemRepo" },
+      { "name": "ACCOUNT_REPO", "class_name": "AccountRepo" },
+      { "name": "FINALIZED_COMMAND_REPO", "class_name": "FinalizedCommandRepo" },
+      { "name": "AUTHORIZATION_REPO", "class_name": "AuthorizationRepo" },
+      { "name": "ACCOUNT_DELTA_FANOUT_REPO", "class_name": "AccountDeltaFanout" },
+      { "name": "ACTOR_DELTA_FANOUT_REPO", "class_name": "ActorDeltaFanout" },
+      { "name": "SURFACE_DELTA_FANOUT_REPO", "class_name": "SurfaceDeltaFanout" },
+      { "name": "FRONTEND_DELTA_FANOUT_REPO", "class_name": "FrontendDeltaFanout" },
+      { "name": "FRONTEND_WEBSOCKET_SUBSCRIBER", "class_name": "FrontendWebSocketSubscriber" }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "ActorRepo",
+        "SurfaceRepo",
+        "FrontendRepo",
+        "SystemRepo",
+        "AccountRepo",
+        "CloudRepo",
+        "FinalizedCommandRepo",
+        "AuthorizationRepo",
+        "AccountDeltaFanout",
+        "ActorDeltaFanout",
+        "SurfaceDeltaFanout",
+        "FrontendDeltaFanout",
+        "FrontendWebSocketSubscriber"
+      ]
+    }
+  ],
+  "vars": {
+    "TESTING": true,
+    "ZEROSPIN_ENVIRONMENT_ID": "zerospin-dev",
+    "CLOUD_CLERK_SECRET_KEY": "sk_cloud_test",
+    "CLOUD_CLERK_PUBLISHABLE_KEY": "pk_cloud_test",
+    "ADMIN_CLERK_SECRET_KEY": "sk_admin_test",
+    "ADMIN_CLERK_PUBLISHABLE_KEY": "pk_admin_test",
+    "CLOUD_CLERK_JWKS_ENDPOINT": "https://example.com/jwks"
+  },
+  "alias": {
+    "@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDbAdapter": "./src/shims/makeMigratedInMemoryWasmSqliteDbAdapter.ts"
+  }
+}

@@ -13,6 +13,7 @@ export const Grid = makeModel({
     }),
     name: primitives.text(),
     columnCount: primitives.integer(),
+    revision: primitives.integer(),
   },
-  version: 1,
+  version: 2,
 });

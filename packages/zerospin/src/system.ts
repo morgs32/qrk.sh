@@ -1,14 +1,7 @@
 import { makeAccountController } from "@zerospin/core/accountController/makeAccountController";
 import { makeSystem } from "@zerospin/core/system/makeSystem";
 
-import {
-  createGrid,
-  createGridItem,
-  createPage,
-  createSite,
-  createUser,
-  updateGridItem,
-} from "./contracts";
+import { createGrid, createPage, createSite, createUser, updateGrid } from "./contracts";
 import { Grid } from "./models/Grid";
 import { GridItem } from "./models/GridItem";
 import { Page } from "./models/Page";
@@ -17,6 +10,7 @@ import { User } from "./models/User";
 import { owner } from "./owner";
 
 export const userAccount = makeAccountController({
+  name: "user",
   actorControllers: {
     owner,
   },
@@ -29,19 +23,17 @@ export const userAccount = makeAccountController({
   },
   contracts: {
     createGrid,
-    createGridItem,
     createPage,
     createSite,
     createUser,
-    updateGridItem,
+    updateGrid,
   },
 });
 
 export const system = makeSystem({
-  id: "sys_qrk_sh_1",
   accountControllers: {
     user: userAccount,
   },
   name: "qrk-sh",
-  version: "1.0.0",
+  version: "2.0.0",
 });

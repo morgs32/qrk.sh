@@ -7,51 +7,50 @@
   "rules": [{ "type": "Text", "globs": ["**/*.sql"] }],
   "durable_objects": {
     "bindings": [
-      { "name": "CLOUD_REPO", "class_name": "CloudRepo" },
       { "name": "ACTOR_REPO", "class_name": "ActorRepo" },
-      { "name": "SURFACE_REPO", "class_name": "SurfaceRepo" },
-      { "name": "FRONTEND_REPO", "class_name": "FrontendRepo" },
       { "name": "SYSTEM_REPO", "class_name": "SystemRepo" },
       { "name": "ACCOUNT_REPO", "class_name": "AccountRepo" },
-      { "name": "FINALIZED_COMMAND_REPO", "class_name": "FinalizedCommandRepo" },
+      { "name": "SERVICE_REPO", "class_name": "ServiceRepo" },
+      { "name": "ACCOUNT_BLOCK_REPO", "class_name": "AccountBlockRepo" },
+      { "name": "ACTOR_BLOCK_REPO", "class_name": "ActorBlockRepo" },
+      { "name": "FRONTEND_REPO", "class_name": "FrontendRepo" },
+      { "name": "FRONTEND_BLOCK_REPO", "class_name": "FrontendBlockRepo" },
+      { "name": "SERVICE_BLOCK_REPO", "class_name": "ServiceBlockRepo" },
       { "name": "AUTHORIZATION_REPO", "class_name": "AuthorizationRepo" },
-      { "name": "ACCOUNT_DELTA_FANOUT_REPO", "class_name": "AccountDeltaFanout" },
-      { "name": "ACTOR_DELTA_FANOUT_REPO", "class_name": "ActorDeltaFanout" },
-      { "name": "SURFACE_DELTA_FANOUT_REPO", "class_name": "SurfaceDeltaFanout" },
-      { "name": "FRONTEND_DELTA_FANOUT_REPO", "class_name": "FrontendDeltaFanout" },
-      { "name": "FRONTEND_WEBSOCKET_SUBSCRIBER", "class_name": "FrontendWebSocketSubscriber" }
-    ]
+      { "name": "LOG_REPO", "class_name": "LogRepo" },
+      { "name": "LOG_AGENT", "class_name": "LogAgent" },
+    ],
   },
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": [
         "ActorRepo",
-        "SurfaceRepo",
-        "FrontendRepo",
         "SystemRepo",
         "AccountRepo",
-        "CloudRepo",
-        "FinalizedCommandRepo",
+        "ServiceRepo",
+        "AccountBlockRepo",
+        "ActorBlockRepo",
         "AuthorizationRepo",
-        "AccountDeltaFanout",
-        "ActorDeltaFanout",
-        "SurfaceDeltaFanout",
-        "FrontendDeltaFanout",
-        "FrontendWebSocketSubscriber"
-      ]
-    }
+        "LogRepo",
+        "LogAgent",
+      ],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["FrontendRepo", "FrontendBlockRepo", "ServiceBlockRepo"],
+    },
   ],
   "vars": {
     "TESTING": true,
+    "CLERK_AUTHORIZED_PARTY": "http://localhost:4000",
+    "CLERK_SECRET_KEY": "sk_test_qrk_workerd",
     "ZEROSPIN_ENVIRONMENT_ID": "zerospin-dev",
-    "CLOUD_CLERK_SECRET_KEY": "sk_cloud_test",
-    "CLOUD_CLERK_PUBLISHABLE_KEY": "pk_cloud_test",
-    "ADMIN_CLERK_SECRET_KEY": "sk_admin_test",
-    "ADMIN_CLERK_PUBLISHABLE_KEY": "pk_admin_test",
-    "CLOUD_CLERK_JWKS_ENDPOINT": "https://example.com/jwks"
+    "ZEROSPIN_SYSTEM_ID": "sys_qrk_sh_1",
+    "ZEROSPIN_SYSTEM_VERSION": "2.0.0",
   },
   "alias": {
-    "@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDbAdapter": "./src/shims/makeMigratedInMemoryWasmSqliteDbAdapter.ts"
-  }
+    "@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDbAdapter": "./src/shims/makeMigratedInMemoryWasmSqliteDbAdapter.ts",
+    "system": "./src/system.ts",
+  },
 }

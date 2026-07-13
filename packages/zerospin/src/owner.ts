@@ -1,18 +1,12 @@
+import { verifyToken } from "@clerk/backend";
 import { makeActorController } from "@zerospin/core/actorController/makeActorController";
-import { makeSurfaceController } from "@zerospin/core/actorController/makeSurfaceController";
 import { makeSelection } from "@zerospin/core/models/makeSelection";
 import { makeAccountId } from "@zerospin/core/utils/makeAccountId";
+import { prefixActorId } from "@zerospin/core/utils/prefixActorId";
 import { ZerospinError } from "@zerospin/error";
+import { env } from "cloudflare:workers";
 import { Effect } from "effect";
 
-import {
-  createGrid,
-  createGridItem,
-  createPage,
-  createSite,
-  createUser,
-  updateGridItem,
-} from "./contracts";
 import { Grid } from "./models/Grid";
 import { GridItem } from "./models/GridItem";
 import { Page } from "./models/Page";
@@ -21,6 +15,7 @@ import { User } from "./models/User";
 import { ownerFrontend } from "./ownerFrontend";
 
 export const owner = makeActorController({
+  name: "owner",
   models: {
     grid: Grid,
     gridItem: GridItem,
@@ -32,12 +27,9 @@ export const owner = makeActorController({
     grid: makeSelection({
       model: Grid,
       where: ({ actorId }) => ({
-        archivedAt: null,
         page: {
-          archivedAt: null,
           site: {
-            archivedAt: null,
-            user: { actorId, archivedAt: null },
+            user: { actorId },
           },
         },
       }),
@@ -45,14 +37,10 @@ export const owner = makeActorController({
     gridItem: makeSelection({
       model: GridItem,
       where: ({ actorId }) => ({
-        archivedAt: null,
         grid: {
-          archivedAt: null,
           page: {
-            archivedAt: null,
             site: {
-              archivedAt: null,
-              user: { actorId, archivedAt: null },
+              user: { actorId },
             },
           },
         },
@@ -61,71 +49,103 @@ export const owner = makeActorController({
     page: makeSelection({
       model: Page,
       where: ({ actorId }) => ({
-        archivedAt: null,
         site: {
-          archivedAt: null,
-          user: { actorId, archivedAt: null },
+          user: { actorId },
         },
       }),
     }),
     site: makeSelection({
       model: Site,
       where: ({ actorId }) => ({
-        archivedAt: null,
-        user: { actorId, archivedAt: null },
+        user: { actorId },
       }),
     }),
     user: makeSelection({
       model: User,
-      where: ({ actorId }) => ({ actorId, archivedAt: null }),
+      where: ({ actorId }) => ({ actorId }),
     }),
   },
-  surfaces: {
-    web: makeSurfaceController({
+  frontends: {
+    web: {
       frontendController: ownerFrontend,
-      models: {
-        grid: Grid,
-        gridItem: GridItem,
-        page: Page,
-        site: Site,
-        user: User,
-      },
-      contracts: {
-        createGrid,
-        createGridItem,
-        createPage,
-        createSite,
-        createUser,
-        updateGridItem,
-      },
-      modelAdapters: {},
-      contractAdapters: {
-        createGrid: ({ payload }) => Effect.succeed(payload),
-        createGridItem: ({ payload }) => Effect.succeed(payload),
-        createPage: ({ payload }) => Effect.succeed(payload),
-        createSite: ({ payload }) => Effect.succeed(payload),
-        createUser: ({ payload }) => Effect.succeed(payload),
-        updateGridItem: ({ payload }) => Effect.succeed(payload),
-      },
-      authenticate: (props) =>
-        Effect.gen(function* () {
-          const user = props.db.query.user
-            .findFirst({
-              where: { id: { eq: props.signature.userId } },
-            })
-            .sync();
-          if (user === undefined) {
+      authenticate: Effect.fn("owner.authenticate")(function* ({
+        signature,
+        db,
+        makeAccountCommand,
+        finalizeAccountCommands,
+      }) {
+        const verifiedToken = yield* Effect.tryPromise({
+          try: () =>
+            verifyToken(signature.sessionToken, {
+              secretKey: env.CLERK_SECRET_KEY,
+              authorizedParties: [env.CLERK_AUTHORIZED_PARTY],
+            }),
+          catch: (cause) =>
+            new ZerospinError({
+              code: "owner-session-token-invalid",
+              message: "The Clerk session token could not be verified",
+              cause: ZerospinError.prettyUnknownFailure(cause),
+              status: 401,
+            }),
+        });
+
+        const clerkUserId = verifiedToken.sub;
+        const actorId = prefixActorId(clerkUserId);
+        const accountId = makeAccountId({ id: "1" });
+        const existingUser = db.query.user
+          .findFirst({
+            where: { clerkUserId: { eq: clerkUserId } },
+          })
+          .sync();
+
+        if (existingUser !== undefined) {
+          if (existingUser.actorId !== actorId) {
             return yield* new ZerospinError({
-              code: "user-not-found",
-              message: `User ${props.signature.userId} was not found`,
-              status: 404,
+              code: "owner-user-actor-mismatch",
+              message: `User ${existingUser.id} has an unexpected actor identity`,
+              status: 409,
             });
           }
+
           return {
-            actorId: user.actorId,
-            accountId: makeAccountId({ id: "1" }),
+            actorId,
+            accountId,
           };
-        }),
-    }),
+        }
+
+        const createUserCommand = yield* makeAccountCommand({
+          contractName: "createUser",
+          payload: {
+            id: User.prefixId(clerkUserId),
+            clerkUserId,
+            username: null,
+            displayName: null,
+          },
+        });
+
+        yield* finalizeAccountCommands({
+          commands: [createUserCommand],
+        });
+
+        const createdUser = db.query.user
+          .findFirst({
+            where: { clerkUserId: { eq: clerkUserId } },
+          })
+          .sync();
+
+        if (createdUser === undefined || createdUser.actorId !== actorId) {
+          return yield* new ZerospinError({
+            code: "owner-user-create-failed",
+            message: `User for verified Clerk identity ${clerkUserId} was not created`,
+            status: 500,
+          });
+        }
+
+        return {
+          actorId,
+          accountId,
+        };
+      }),
+    },
   },
 });

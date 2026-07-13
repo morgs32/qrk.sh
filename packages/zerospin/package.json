@@ -5,19 +5,18 @@
   "scripts": {
     "lint": "oxlint . --format stylish",
     "test:workerd": "vitest run --config vitest.workerd.config.ts",
-    "types": "wrangler types -c ./wrangler.vitest.jsonc"
+    "types": "wrangler types ./worker-configuration.d.ts -c ../../apps/web/wrangler.jsonc"
+  },
+  "dependencies": {
+    "@clerk/backend": "^3.8.5",
+    "@zerospin/dispatch-worker": "file:../../../zerospin/packages/dispatch-worker"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.3",
     "@effect/vitest": "^0.29.0",
     "@types/node": "^25.5.2",
-    "@zerospin/cbor": "file:../../../zerospin/packages/cbor",
     "@zerospin/core": "file:../../../zerospin/packages/core",
-    "@zerospin/durables": "file:../../../zerospin/packages/durables",
     "@zerospin/error": "file:../../../zerospin/packages/error",
-    "@zerospin/fanout": "file:../../../zerospin/packages/fanout",
-    "@zerospin/json-schema-diff": "file:../../../zerospin/packages/json-schema-diff",
-    "apis": "file:../../../zerospin/apps/apis",
     "capnweb": "^0.7.0",
     "cloudflare": "^6.1.0",
     "drizzle-orm": "1.0.0-beta.17-67b1795",

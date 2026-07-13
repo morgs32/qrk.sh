@@ -1,9 +1,11 @@
 import { createMutation } from "@zerospin/core/contracts/createMutation";
+import { deleteMutation } from "@zerospin/core/contracts/deleteMutation";
 import { makeContract } from "@zerospin/core/contracts/makeContract";
 import { updateMutation } from "@zerospin/core/contracts/updateMutation";
+import { makeModelIdSchema } from "@zerospin/core/models/makeIdSchema";
 import { primitives } from "@zerospin/core/models/primitives";
-import { makeActorId } from "@zerospin/core/utils/makeActorId";
-import { Effect } from "effect";
+import { prefixActorId } from "@zerospin/core/utils/prefixActorId";
+import { Effect, Schema } from "effect";
 
 import { Grid } from "./models/Grid";
 import { GridItem } from "./models/GridItem";
@@ -16,7 +18,9 @@ export const createUser = makeContract({
   payload: {
     id: primitives.id({ model: User }),
     clerkUserId: primitives.text(),
-    username: primitives.text(),
+    username: primitives.text({
+      nullable: true,
+    }),
     displayName: primitives.text({
       nullable: true,
     }),
@@ -28,7 +32,8 @@ export const createUser = makeContract({
         model: User,
         resourceId: id,
         attributes: {
-          actorId: makeActorId({ id: clerkUserId }),
+          actorId: prefixActorId(clerkUserId),
+          clerkUserId,
           username,
           displayName,
         },
@@ -78,7 +83,7 @@ export const createPage = makeContract({
       nullable: true,
     }),
     pageType: primitives.enum({
-      values: ["split-scroll", "shared-scroll"] as const,
+      values: ["split-scroll", "shared-scroll"],
     }),
   },
   program: ({ payload }) => {
@@ -107,86 +112,172 @@ export const createGrid = makeContract({
     pageId: primitives.id({ model: Page }),
     name: primitives.text(),
     columnCount: primitives.integer(),
+    gridItems: primitives.json({
+      schema: Schema.Array(
+        Schema.Struct({
+          id: makeModelIdSchema(GridItem),
+          itemKey: Schema.String,
+          x: Schema.Int,
+          y: Schema.Int,
+          w: Schema.Int,
+          h: Schema.Int,
+          collectionName: Schema.String,
+          brickName: Schema.String,
+        }),
+      ),
+    }),
   },
-  program: ({ payload }) => {
-    const { id, pageId, name, columnCount } = payload;
-    return Effect.all({
-      created: createMutation({
-        model: Grid,
-        resourceId: id,
-        attributes: {
-          pageId,
-          name,
-          columnCount,
-        },
-      }),
-    });
-  },
+  program: ({ payload }) =>
+    Effect.gen(function* () {
+      const { id, pageId, name, columnCount, gridItems } = payload;
+      const mutations = [];
+
+      // 1 — create the Grid before any GridItem references it.
+      mutations.push(
+        yield* createMutation({
+          model: Grid,
+          resourceId: id,
+          attributes: {
+            pageId,
+            name,
+            columnCount,
+            revision: 0,
+          },
+        }),
+      );
+
+      // 2 — preserve submitted order and emit one create mutation per GridItem.
+      for (const gridItem of gridItems) {
+        mutations.push(
+          yield* createMutation({
+            model: GridItem,
+            resourceId: gridItem.id,
+            attributes: {
+              gridId: id,
+              itemKey: gridItem.itemKey,
+              x: gridItem.x,
+              y: gridItem.y,
+              w: gridItem.w,
+              h: gridItem.h,
+              collectionName: gridItem.collectionName,
+              brickName: gridItem.brickName,
+            },
+          }),
+        );
+      }
+
+      return mutations;
+    }),
   version: "1.0.0",
 });
 
-export const createGridItem = makeContract({
-  commandName: "createGridItem",
+export const updateGrid = makeContract({
+  commandName: "updateGrid",
   payload: {
-    id: primitives.id({ model: GridItem }),
-    gridId: primitives.id({ model: Grid }),
-    itemKey: primitives.text(),
-    x: primitives.integer(),
-    y: primitives.integer(),
-    w: primitives.integer(),
-    h: primitives.integer(),
-    collectionName: primitives.text(),
-    brickName: primitives.text(),
+    id: primitives.id({ model: Grid }),
+    name: primitives.text(),
+    columnCount: primitives.integer(),
+    gridIntent: primitives.enum({
+      values: ["update", "none"],
+    }),
+    expectedRevision: primitives.integer(),
+    gridItems: primitives.json({
+      schema: Schema.Array(
+        Schema.Struct({
+          intent: Schema.Literal("create", "update", "none"),
+          id: makeModelIdSchema(GridItem),
+          itemKey: Schema.String,
+          x: Schema.Int,
+          y: Schema.Int,
+          w: Schema.Int,
+          h: Schema.Int,
+          collectionName: Schema.String,
+          brickName: Schema.String,
+        }),
+      ),
+    }),
+    deletedGridItemIds: primitives.json({
+      schema: Schema.Array(makeModelIdSchema(GridItem)),
+    }),
   },
-  program: ({ payload }) => {
-    const { id, gridId, itemKey, x, y, w, h, collectionName, brickName } = payload;
-    return Effect.all({
-      created: createMutation({
-        model: GridItem,
-        resourceId: id,
-        attributes: {
-          gridId,
-          itemKey,
-          x,
-          y,
-          w,
-          h,
-          collectionName,
-          brickName,
-        },
-      }),
-    });
-  },
-  version: "1.0.0",
-});
+  program: ({ payload }) =>
+    Effect.gen(function* () {
+      const mutations = [];
 
-export const updateGridItem = makeContract({
-  commandName: "updateGridItem",
-  payload: {
-    id: primitives.id({ model: GridItem }),
-    x: primitives.integer(),
-    y: primitives.integer(),
-    w: primitives.integer(),
-    h: primitives.integer(),
-    collectionName: primitives.text(),
-    brickName: primitives.text(),
-  },
-  program: ({ payload }) => {
-    const { id, x, y, w, h, collectionName, brickName } = payload;
-    return Effect.all({
-      updated: updateMutation({
-        model: GridItem,
-        resourceId: id,
-        attributes: {
-          x,
-          y,
-          w,
-          h,
-          collectionName,
-          brickName,
-        },
-      }),
-    });
-  },
+      // 1 — every real aggregate change advances Grid.revision. This makes a
+      // GridItem-only Save visible to the next editor snapshot without writing
+      // a Grid mutation when the complete aggregate is unchanged.
+      if (
+        payload.gridIntent === "update" ||
+        payload.gridItems.some((gridItem) => gridItem.intent !== "none") ||
+        payload.deletedGridItemIds.length > 0
+      ) {
+        mutations.push(
+          yield* updateMutation({
+            model: Grid,
+            resourceId: payload.id,
+            attributes: {
+              name: payload.name,
+              columnCount: payload.columnCount,
+              revision: payload.expectedRevision + 1,
+            },
+          }),
+        );
+      }
+
+      // 2 — emit exactly the create and update mutations approved by the frontend guard.
+      for (const gridItem of payload.gridItems) {
+        if (gridItem.intent === "none") {
+          continue;
+        }
+
+        if (gridItem.intent === "create") {
+          mutations.push(
+            yield* createMutation({
+              model: GridItem,
+              resourceId: gridItem.id,
+              attributes: {
+                gridId: payload.id,
+                itemKey: gridItem.itemKey,
+                x: gridItem.x,
+                y: gridItem.y,
+                w: gridItem.w,
+                h: gridItem.h,
+                collectionName: gridItem.collectionName,
+                brickName: gridItem.brickName,
+              },
+            }),
+          );
+          continue;
+        }
+
+        mutations.push(
+          yield* updateMutation({
+            model: GridItem,
+            resourceId: gridItem.id,
+            attributes: {
+              x: gridItem.x,
+              y: gridItem.y,
+              w: gridItem.w,
+              h: gridItem.h,
+              collectionName: gridItem.collectionName,
+              brickName: gridItem.brickName,
+            },
+          }),
+        );
+      }
+
+      // 3 — omitted persisted items arrive explicitly as deletes in the same command.
+      for (const deletedGridItemId of payload.deletedGridItemIds) {
+        mutations.push(
+          yield* deleteMutation({
+            model: GridItem,
+            resourceId: deletedGridItemId,
+          }),
+        );
+      }
+
+      return mutations;
+    }),
   version: "1.0.0",
 });

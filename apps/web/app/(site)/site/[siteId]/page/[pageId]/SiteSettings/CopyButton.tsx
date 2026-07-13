@@ -31,7 +31,11 @@ export function CopyButton({ text }: { text: string }) {
             }
           }}
         >
-          {didCopy ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+          {didCopy ? (
+            <Check className="size-3.5" aria-hidden />
+          ) : (
+            <Copy className="size-3.5" aria-hidden />
+          )}
         </Button>
       </TooltipTrigger>
       <TooltipContent side="left" sideOffset={8}>
@@ -40,4 +44,3 @@ export function CopyButton({ text }: { text: string }) {
     </Tooltip>
   );
 }
-

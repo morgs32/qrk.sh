@@ -8,4 +8,3 @@ declare module "qrcode" {
 
   export function toDataURL(text: string, options?: QRCodeToDataURLOptions): Promise<string>;
 }
-

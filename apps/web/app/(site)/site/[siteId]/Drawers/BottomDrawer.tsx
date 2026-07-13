@@ -12,9 +12,7 @@ const drawerTransition = {
   ease: [0, 0, 0.2, 1] as const,
 };
 
-export function BottomDrawer(props: {
-  data: "pageSettings" | "siteSettings" | "breakpoints";
-}) {
+export function BottomDrawer(props: { data: "pageSettings" | "siteSettings" | "breakpoints" }) {
   const { data } = props;
 
   const render = useMemo(() => {

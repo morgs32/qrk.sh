@@ -72,7 +72,10 @@ export function GitHubLanguagesCard() {
     );
   }
 
-  const totalBytes = Object.values(data as Record<string, number>).reduce((acc, val) => acc + val, 0);
+  const totalBytes = Object.values(data as Record<string, number>).reduce(
+    (acc, val) => acc + val,
+    0,
+  );
 
   const languages = Object.entries(data as Record<string, number>)
     .map(([name, bytes]) => ({
@@ -145,7 +148,9 @@ export function GitHubLanguagesCard() {
                   />
                   <span className="text-foreground truncate">{lang.name}</span>
                 </div>
-                <span className="text-muted-foreground shrink-0 tabular-nums">{lang.percentage}%</span>
+                <span className="text-muted-foreground shrink-0 tabular-nums">
+                  {lang.percentage}%
+                </span>
               </div>
             ))}
           </div>

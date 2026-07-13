@@ -20,7 +20,10 @@ type BrickCarouselErrorState = {
   error: Error | null;
 };
 
-export class BrickCarouselError extends Component<BrickCarouselErrorProps, BrickCarouselErrorState> {
+export class BrickCarouselError extends Component<
+  BrickCarouselErrorProps,
+  BrickCarouselErrorState
+> {
   state: BrickCarouselErrorState = { error: null };
 
   static getDerivedStateFromError(error: Error): BrickCarouselErrorState {

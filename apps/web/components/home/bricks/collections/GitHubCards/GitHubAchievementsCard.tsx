@@ -13,7 +13,8 @@ const achievements: Achievement[] = [
   {
     id: "starstruck",
     name: "Starstruck",
-    image: "https://github.githubassets.com/images/modules/profile/achievements/starstruck-default.png",
+    image:
+      "https://github.githubassets.com/images/modules/profile/achievements/starstruck-default.png",
     gradient: "from-amber-200 via-orange-200 to-rose-200",
   },
   {
@@ -26,19 +27,22 @@ const achievements: Achievement[] = [
   {
     id: "pull-shark",
     name: "Pull Shark",
-    image: "https://github.githubassets.com/images/modules/profile/achievements/pull-shark-default.png",
+    image:
+      "https://github.githubassets.com/images/modules/profile/achievements/pull-shark-default.png",
     gradient: "from-cyan-200 via-sky-200 to-blue-200",
   },
   {
     id: "galaxy-brain",
     name: "Galaxy Brain",
-    image: "https://github.githubassets.com/images/modules/profile/achievements/galaxy-brain-default.png",
+    image:
+      "https://github.githubassets.com/images/modules/profile/achievements/galaxy-brain-default.png",
     gradient: "from-purple-200 via-violet-200 to-fuchsia-200",
   },
   {
     id: "quickdraw",
     name: "Quickdraw",
-    image: "https://github.githubassets.com/images/modules/profile/achievements/quickdraw-default.png",
+    image:
+      "https://github.githubassets.com/images/modules/profile/achievements/quickdraw-default.png",
     gradient: "from-indigo-200 via-purple-200 to-pink-200",
   },
   {
@@ -57,7 +61,8 @@ const achievements: Achievement[] = [
   {
     id: "public-sponsor",
     name: "Public Sponsor",
-    image: "https://github.githubassets.com/images/modules/profile/achievements/public-sponsor-default.png",
+    image:
+      "https://github.githubassets.com/images/modules/profile/achievements/public-sponsor-default.png",
     gradient: "from-pink-200 via-rose-200 to-red-200",
   },
 ];

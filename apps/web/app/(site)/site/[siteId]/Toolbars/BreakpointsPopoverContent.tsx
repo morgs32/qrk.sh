@@ -13,10 +13,7 @@ export function BreakpointsPopoverContent() {
           {BREAKPOINT_ROWS.map((row) => {
             const Icon = row.Icon;
             return (
-              <div
-                key={row.prefix}
-                className="flex min-w-0 items-center justify-between gap-4"
-              >
+              <div key={row.prefix} className="flex min-w-0 items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -25,9 +22,7 @@ export function BreakpointsPopoverContent() {
                         aria-label={row.typicalDevice}
                         className="inline-flex shrink-0 cursor-default items-center justify-center rounded-sm border-0 bg-transparent p-0.5 text-muted-foreground outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        {Icon && (
-                          <Icon className="size-3.5 shrink-0" strokeWidth={2} aria-hidden />
-                        )}
+                        {Icon && <Icon className="size-3.5 shrink-0" strokeWidth={2} aria-hidden />}
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top">{row.typicalDevice}</TooltipContent>

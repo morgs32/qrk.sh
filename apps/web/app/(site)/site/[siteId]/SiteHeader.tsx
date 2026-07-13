@@ -28,4 +28,3 @@ export function SiteHeader(props: { siteId: string }) {
     </header>
   );
 }
-

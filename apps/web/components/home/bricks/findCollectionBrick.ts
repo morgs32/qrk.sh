@@ -5,5 +5,7 @@ import type { ICollectionBrick, ICollectionBrickDef } from "@/components/home/br
 export function findCollectionBrick(def: ICollectionBrickDef): ICollectionBrick | undefined {
   const collection = collectionsHash[def.collectionName as keyof typeof collectionsHash];
   if (!collection) return undefined;
-  return collection.bricks[def.name as keyof typeof collection.bricks] as ICollectionBrick | undefined;
+  return collection.bricks[def.name as keyof typeof collection.bricks] as
+    | ICollectionBrick
+    | undefined;
 }

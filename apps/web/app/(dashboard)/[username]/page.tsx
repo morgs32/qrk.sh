@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 
-export default async function UsernameDashboardPage(props: { params: Promise<{ username: string }> }) {
+export default async function UsernameDashboardPage(props: {
+  params: Promise<{ username: string }>;
+}) {
   const { username } = await props.params;
 
   return (
@@ -13,4 +15,3 @@ export default async function UsernameDashboardPage(props: { params: Promise<{ u
     </main>
   );
 }
-

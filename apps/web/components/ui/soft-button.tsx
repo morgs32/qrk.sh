@@ -3,7 +3,11 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /** Frosted circular control: inset highlight + soft outer shadow (works on busy backgrounds). */
-export function SoftButton({ className, type = "button", ...props }: React.ComponentProps<"button">) {
+export function SoftButton({
+  className,
+  type = "button",
+  ...props
+}: React.ComponentProps<"button">) {
   return (
     <button
       type={type}

@@ -3,7 +3,15 @@
 import Image from "next/image";
 import { useState } from "react";
 import useSWR from "swr";
-import { AlertCircle, BookOpen, GitBranch, Link as LinkIcon, MapPin, RefreshCw, Users } from "lucide-react";
+import {
+  AlertCircle,
+  BookOpen,
+  GitBranch,
+  Link as LinkIcon,
+  MapPin,
+  RefreshCw,
+  Users,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -184,7 +192,12 @@ function ProfileAvatar(props: { src: string; alt: string; fallback: string }) {
 }
 
 export function GitHubProfileCard() {
-  const { data: user, error, isLoading, mutate } = useSWR<GitHubUser>(GITHUB_PROFILE_API_URL, fetcher);
+  const {
+    data: user,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR<GitHubUser>(GITHUB_PROFILE_API_URL, fetcher);
 
   if (isLoading) {
     return (
@@ -223,11 +236,7 @@ export function GitHubProfileCard() {
     <Card className={profileCardShellClass}>
       <CardHeader className="shrink-0 px-4 pb-2 pt-0">
         <div className="flex items-start gap-4">
-          <ProfileAvatar
-            src={avatarSrc}
-            alt={displayName}
-            fallback={avatarFallback}
-          />
+          <ProfileAvatar src={avatarSrc} alt={displayName} fallback={avatarFallback} />
 
           <div className="min-w-0 flex-1">
             <h2 className={`text-xl font-semibold ${profileHeadingClass}`}>{displayName}</h2>

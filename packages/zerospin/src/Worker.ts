@@ -3,14 +3,14 @@ import { newWorkersRpcResponse } from "capnweb";
 import { env, WorkerEntrypoint } from "cloudflare:workers";
 
 export { CloudRepo } from "apis/CloudRepo/CloudRepo";
-export { AccountRepo } from "system-worker/AccountRepo/AccountRepo";
-export { ActorRepo } from "system-worker/ActorRepo/ActorRepo";
-export { AuthorizationRepo } from "system-worker/AuthorizationRepo/AuthorizationRepo";
-export { FinalizedCommandRepo } from "system-worker/FinalizedCommandRepo/FinalizedCommandRepo";
-export { FrontendRepo } from "system-worker/FrontendRepo/FrontendRepo";
-export { FrontendWebSocketSubscriber } from "system-worker/FrontendWebSocketSubscriber";
-export { SurfaceRepo } from "system-worker/SurfaceRepo/SurfaceRepo";
-export { SystemRepo } from "system-worker/SystemRepo/SystemRepo";
+export { AccountRepo } from "system-worker";
+export { ActorRepo } from "system-worker";
+export { AuthorizationRepo } from "system-worker";
+export { FinalizedCommandRepo } from "system-worker";
+export { FrontendRepo } from "system-worker";
+export { FrontendWebSocketSubscriber } from "system-worker";
+export { SurfaceRepo } from "system-worker";
+export { SystemRepo } from "system-worker";
 export {
   AccountDeltaFanout,
   ActorDeltaFanout,

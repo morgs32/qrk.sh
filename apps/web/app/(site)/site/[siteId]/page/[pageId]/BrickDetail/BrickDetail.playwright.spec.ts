@@ -28,9 +28,7 @@ test.describe("BrickDetail route", () => {
 
     const grid = page.locator(".grid-layout");
     const brick = grid
-      .locator(
-        '[data-brick-grid-collection-name="orange-flag"][data-brick-grid-brick-name="4x4"]',
-      )
+      .locator('[data-brick-grid-collection-name="orange-flag"][data-brick-grid-brick-name="4x4"]')
       .first();
     await expect(brick).toBeVisible({ timeout: 90_000 });
     await brick.scrollIntoViewIfNeeded();

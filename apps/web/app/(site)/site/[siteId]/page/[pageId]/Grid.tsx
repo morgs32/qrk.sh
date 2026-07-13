@@ -10,6 +10,7 @@ import GridLayout, {
   type Layout,
   type LayoutItem,
 } from "react-grid-layout";
+import { createScaledStrategy } from "react-grid-layout/core";
 import type { ILayout } from "@/components/home/seedLayout";
 import { creamSquareCollection } from "@/components/home/bricks/collections/CreamSquare/CreamSquareCollection";
 import { textBrickCollection } from "@/components/home/bricks/collections/TextBrick/TextBrickCollection";
@@ -284,7 +285,7 @@ export function Grid() {
               autoSize
               className="grid-layout"
               compactor={verticalCompactor}
-              transformScale={gridScale}
+              positionStrategy={createScaledStrategy(gridScale)}
               gridConfig={{
                 cols: GRID_COLS,
                 rowHeight,

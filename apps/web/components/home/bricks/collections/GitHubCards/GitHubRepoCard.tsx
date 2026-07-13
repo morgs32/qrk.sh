@@ -51,14 +51,21 @@ export function GitHubRepoCard() {
 
   return (
     <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-700 bg-zinc-800 py-0 shadow-none transition-colors hover:border-zinc-600">
-      <a href={data.html_url} target="_blank" rel="noopener noreferrer" className="block h-full min-h-0">
+      <a
+        href={data.html_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block h-full min-h-0"
+      >
         <CardContent className="flex h-full min-h-0 flex-col p-4">
           <div className="mb-2 flex items-center gap-2">
             <Monitor className="h-5 w-5 text-zinc-400" />
             <h3 className="text-lg font-semibold text-zinc-100">{data.name}</h3>
           </div>
 
-          <p className="text-zinc-400 mb-4 min-h-0 flex-1 text-sm">{data.description || "No description provided"}</p>
+          <p className="text-zinc-400 mb-4 min-h-0 flex-1 text-sm">
+            {data.description || "No description provided"}
+          </p>
 
           <div className="text-zinc-400 mt-auto flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">

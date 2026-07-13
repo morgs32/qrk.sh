@@ -23,8 +23,8 @@
     "drizzle-orm": "1.0.0-beta.17-67b1795",
     "effect": "^3.21.0",
     "oxlint": "^1.59.0",
-    "system": "file:../../../zerospin/internal/system",
-    "system-worker": "file:../../../zerospin/internal/system-worker",
+    "system": "file:../../../zerospin/packages/system",
+    "system-worker": "file:../../../zerospin/packages/system-worker",
     "typescript": "^6.0.2",
     "vitest": "^4.1.5",
     "wrangler": "^4.90.0"

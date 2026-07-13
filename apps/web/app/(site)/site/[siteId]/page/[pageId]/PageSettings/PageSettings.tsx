@@ -6,20 +6,11 @@ import { useState } from "react";
 
 import { pagePattern } from "../../../routePatterns";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
 export function PageSettings() {
@@ -30,13 +21,6 @@ export function PageSettings() {
   const [description, setDescription] = useState(
     "We are helping Austin home owners save $600 or more on their property taxes.",
   );
-  const [language, setLanguage] = useState("en");
-
-  const [accessibility, setAccessibility] = useState(true);
-  const [navigation, setNavigation] = useState(false);
-  const [layoutDirection, setLayoutDirection] = useState(false);
-  const [automaticLocale, setAutomaticLocale] = useState(false);
-  const [passwordProtect, setPasswordProtect] = useState(false);
 
   return (
     <div className="w-full">

@@ -23,7 +23,9 @@ export function SiteCard({
           </div>
 
           <div className="min-w-0">
-            <div className="truncate text-lg font-medium leading-tight text-foreground">{title}</div>
+            <div className="truncate text-lg font-medium leading-tight text-foreground">
+              {title}
+            </div>
             <div className="truncate text-foreground/70">{url}</div>
           </div>
         </div>

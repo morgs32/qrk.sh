@@ -16,6 +16,7 @@
   "dependencies": {
     "@clerk/nextjs": "^7.1.0",
     "@effect/schema": "^0.75.5",
+    "@qrk.sh/zerospin": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-popover": "^1.1.15",
@@ -27,6 +28,7 @@
     "@tiptap/starter-kit": "^3.22.3",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "@zerospin/react": "file:../../../zerospin/packages/react",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "effect": "^3.21.0",

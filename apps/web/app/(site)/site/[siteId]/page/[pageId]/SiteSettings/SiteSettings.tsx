@@ -10,19 +10,8 @@ import { CopyButton } from "./CopyButton";
 import { SiteCard } from "./SiteCard";
 import { pagePattern, publishedPattern } from "../../../routePatterns";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
@@ -37,33 +26,26 @@ export function SiteSettings() {
     const pathname = publishedPattern.href({ username, siteId });
     return `https://www.qrk.sh${pathname}`;
   }, [siteId, username]);
-  const publishedUrlDisplay = useMemo(() => publishedUrl.replace(/^https?:\/\//, ""), [publishedUrl]);
-
-  const { data: qrDataUrl } = useSWR(
-    [username, siteId],
-    async ([username, siteId]) => {
-      const pathname = publishedPattern.href({ username, siteId });
-      const url = `https://www.qrk.sh${pathname}`;
-      const { toDataURL } = await import("qrcode");
-      return toDataURL(url, {
-        errorCorrectionLevel: "M",
-        margin: 1,
-        width: 256,
-      });
-    },
+  const publishedUrlDisplay = useMemo(
+    () => publishedUrl.replace(/^https?:\/\//, ""),
+    [publishedUrl],
   );
 
-  const [title, setTitle] = useState("Make it Rainey");
+  const { data: qrDataUrl } = useSWR([username, siteId], async ([username, siteId]) => {
+    const pathname = publishedPattern.href({ username, siteId });
+    const url = `https://www.qrk.sh${pathname}`;
+    const { toDataURL } = await import("qrcode");
+    return toDataURL(url, {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 256,
+    });
+  });
+
+  const [title] = useState("Make it Rainey");
   const [description, setDescription] = useState(
     "We are helping Austin home owners save $600 or more on their property taxes.",
   );
-  const [language, setLanguage] = useState("en");
-
-  const [accessibility, setAccessibility] = useState(true);
-  const [navigation, setNavigation] = useState(false);
-  const [layoutDirection, setLayoutDirection] = useState(false);
-  const [automaticLocale, setAutomaticLocale] = useState(false);
-  const [passwordProtect, setPasswordProtect] = useState(false);
 
   return (
     <div className="w-full">
@@ -94,10 +76,13 @@ export function SiteSettings() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
               <div className="group relative h-40 w-40 shrink-0 overflow-hidden rounded-md border bg-background">
                 {qrDataUrl ? (
-                  <img
+                  <Image
                     src={qrDataUrl}
                     alt="Published URL QR code"
                     className="h-full w-full object-contain"
+                    width={256}
+                    height={256}
+                    unoptimized
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">

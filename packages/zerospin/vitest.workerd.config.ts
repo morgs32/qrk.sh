@@ -90,11 +90,11 @@ export default defineConfig({
       },
       {
         find: /^system-worker\/(.+)$/,
-        replacement: `${path.join(zerospinRoot, "internal/system-worker/src")}/$1`,
+        replacement: `${path.join(zerospinRoot, "packages/system-worker/src")}/$1`,
       },
       {
         find: "system-worker",
-        replacement: path.join(zerospinRoot, "internal/system-worker/src/SystemWorker.ts"),
+        replacement: path.join(zerospinRoot, "packages/system-worker/src/SystemWorker.ts"),
       },
     ],
   },

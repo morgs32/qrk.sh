@@ -26,7 +26,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} antialiased`}>
-        <ClerkProvider signInFallbackRedirectUrl={postAuthPath} signUpFallbackRedirectUrl={postAuthPath}>
+        <ClerkProvider
+          signInFallbackRedirectUrl={postAuthPath}
+          signUpFallbackRedirectUrl={postAuthPath}
+        >
           <NuqsAdapter>{children}</NuqsAdapter>
         </ClerkProvider>
         <SpeedInsights />

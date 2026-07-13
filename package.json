@@ -5,13 +5,15 @@
       "@zerospin/cbor": "file:../zerospin/packages/cbor",
       "@zerospin/cli": "file:../zerospin/packages/cli",
       "@zerospin/core": "file:../zerospin/packages/core",
+      "@zerospin/devtools": "file:../zerospin/packages/devtools",
       "@zerospin/durables": "file:../zerospin/packages/durables",
       "@zerospin/error": "file:../zerospin/packages/error",
       "@zerospin/fanout": "file:../zerospin/packages/fanout",
       "@zerospin/json-schema-diff": "file:../zerospin/packages/json-schema-diff",
+      "@zerospin/react": "file:../zerospin/packages/react",
       "apis": "file:../zerospin/apps/apis",
-      "system": "file:../zerospin/internal/system",
-      "system-worker": "file:../zerospin/internal/system-worker"
+      "system": "file:../zerospin/packages/system",
+      "system-worker": "file:../zerospin/packages/system-worker"
     }
   },
   "packageManager": "pnpm@10.33.0"

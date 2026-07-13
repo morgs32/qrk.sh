@@ -2,14 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useMemo } from "react";
-import {
-  File,
-  Globe,
-  LayoutDashboard,
-  Plus,
-  RectangleHorizontal,
-  Type,
-} from "lucide-react";
+import { File, Globe, LayoutDashboard, Plus, RectangleHorizontal, Type } from "lucide-react";
 import { useParams } from "next/navigation";
 import {
   brickCatalogPattern,

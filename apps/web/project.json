@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@qrk.sh/web",
+  "targets": {
+    "dev": {
+      "continuous": true,
+      "dependsOn": ["zerospin:dev"]
+    },
+    "zerospin:dev": {
+      "continuous": true
+    }
+  }
+}

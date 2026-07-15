@@ -12,6 +12,7 @@
 !.yarn/versions
 
 # testing
+/.nx/
 /coverage
 /playwright-report/
 /test-results/
@@ -20,6 +21,8 @@
 **/playwright-report/
 **/test-results/
 **/blob-report/
+/apps/web/.wrangler/
+/apps/web/tmp/
 
 # next.js
 /.next/
@@ -41,7 +44,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env.*
 
 # vercel
 .vercel
@@ -49,3 +52,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.claude/worktrees
+.claude/settings.local.json

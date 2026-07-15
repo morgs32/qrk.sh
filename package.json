@@ -1,20 +1,28 @@
 {
   "private": true,
+  "scripts": {
+    "dev": "nx run @qrk.sh/web:dev"
+  },
+  "devDependencies": {
+    "nx": "^22.7.7"
+  },
+  "packageManager": "pnpm@10.33.0",
   "pnpm": {
     "overrides": {
-      "@zerospin/cbor": "file:../zerospin/packages/cbor",
       "@zerospin/cli": "file:../zerospin/packages/cli",
       "@zerospin/core": "file:../zerospin/packages/core",
       "@zerospin/devtools": "file:../zerospin/packages/devtools",
-      "@zerospin/durables": "file:../zerospin/packages/durables",
       "@zerospin/error": "file:../zerospin/packages/error",
-      "@zerospin/fanout": "file:../zerospin/packages/fanout",
-      "@zerospin/json-schema-diff": "file:../zerospin/packages/json-schema-diff",
       "@zerospin/react": "file:../zerospin/packages/react",
-      "apis": "file:../zerospin/apps/apis",
       "system": "file:../zerospin/packages/system",
-      "system-worker": "file:../zerospin/packages/system-worker"
+      "system-worker": "file:../zerospin/packages/system-worker",
+      "@zerospin/dispatch-worker": "file:../zerospin/packages/dispatch-worker",
+      "@zerospin/frontend": "file:../zerospin/packages/frontend",
+      "@zerospin/live-query": "file:../zerospin/packages/live-query",
+      "@zerospin/logger": "file:../zerospin/packages/logger",
+      "@zerospin/server-only": "file:../zerospin/packages/server-only",
+      "@zerospin/shared-worker": "file:../zerospin/packages/shared-worker",
+      "@zerospin/studio": "file:../zerospin/packages/studio"
     }
-  },
-  "packageManager": "pnpm@10.33.0"
+  }
 }

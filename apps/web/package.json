@@ -2,10 +2,10 @@
   "name": "@qrk.sh/web",
   "private": true,
   "scripts": {
-    "dev": "NEXT_PUBLIC_ZEROSPIN_API_URL=${NEXT_PUBLIC_ZEROSPIN_API_URL:-http://localhost:4001} next dev --turbopack -p ${PORT:-4000} & zerospin dev --port ${ZEROSPIN_PORT:-4001}",
-    "zerospin:dev": "zerospin dev --port ${ZEROSPIN_PORT:-4001}",
+    "dev": "next dev --turbopack & zerospin dev",
+    "zerospin:dev": "zerospin dev",
     "build": "next build",
-    "start": "next start -p 4000",
+    "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",

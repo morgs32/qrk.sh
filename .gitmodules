@@ -1,0 +1,3 @@
+[submodule "vendor/zerospin"]
+	path = vendor/zerospin
+	url = https://github.com/morgs32/zerospin.git

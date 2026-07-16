@@ -9,8 +9,28 @@ description: Send the current user a Slack DM from Codex. Use when the user says
 
 Use this skill to deliver a concise Slack message to the authenticated user's own Slack account.
 This is a write workflow, so also use the Slack plugin's outbound-message rules when composing the final text.
-For immediate sends, prefer this incoming webhook:
-`$SLACK_ME_WEBHOOK_URL`
+
+## Required env
+
+Immediate webhook sends need `SLACK_ME_WEBHOOK_URL` in the **repository root** `.env.local`:
+
+```bash
+# <repo-root>/.env.local
+SLACK_ME_WEBHOOK_URL=https://hooks.slack.com/services/...
+```
+
+That file is gitignored (`**/.env*`). It must already exist locally with a real Slack incoming webhook URL — do not invent one, and never commit the URL into this skill or any other tracked file.
+
+Load the value before posting (example):
+
+```bash
+set -a && source .env.local && set +a
+curl -sS -X POST -H 'Content-Type: application/json' \
+  --data "$(jq -n --arg text "$MESSAGE" '{text:$text}')" \
+  "$SLACK_ME_WEBHOOK_URL"
+```
+
+If `.env.local` is missing or `SLACK_ME_WEBHOOK_URL` is empty, stop and tell the user to add it at the repo root; do not fall back to a hardcoded webhook.
 
 ## Workflow
 
@@ -22,7 +42,7 @@ For immediate sends, prefer this incoming webhook:
    - Preserve important file paths, links, command names, dates, owners, and error text.
    - Do not add broad mentions or channel references.
    - For immediate webhook sends, append this italic fine print on the same line as the message: `_-- Sent via /slack-me_`.
-3. For immediate sends, post the message through the incoming webhook.
+3. For immediate sends, post the message through the incoming webhook from `SLACK_ME_WEBHOOK_URL`.
    - Use `curl` with `Content-Type: application/json` and a JSON body containing `text`.
    - Do not call `slack_send_message` unless the webhook request fails.
    - Incoming webhooks cannot create drafts, schedule future sends, choose arbitrary DM recipients, or return a per-message Slack permalink.
@@ -42,6 +62,7 @@ For immediate sends, prefer this incoming webhook:
 
 ## Failure Handling
 
+- If `SLACK_ME_WEBHOOK_URL` is missing from root `.env.local`, say so and ask the user to add it; do not send.
 - If Slack is disconnected or the current user cannot be resolved, say that Slack access is unavailable and ask the user to reconnect the Slack plugin.
 - If the webhook request fails, report the HTTP response and fall back to the Slack connector send path when available.
 - If a draft already exists, stop and tell the user Slack cannot overwrite the existing attached draft.

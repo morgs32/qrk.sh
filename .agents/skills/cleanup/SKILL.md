@@ -9,7 +9,15 @@ description: >-
 
 # Cleanup
 
-One skill for Zerospin cleanup.
+One skill for Zerospin cleanup. **Pattern guidance lives in the `*-llm-wiki` subtrees** — treat them as the canonical good/bad reference, not ad-hoc prose in chat.
+
+| Subtree                                                                                                     | Scope                                                                                                             |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| [`vendor/morgs32/llm-wiki/patterns/`](../../../vendor/morgs32/llm-wiki/patterns/index.md)                               | Repo-agnostic code shape — functions, naming, Effect, RPC, runtime, tooling, Next.js, Cloudflare, durable objects |
+| [`llm-wiki/patterns/`](../../../llm-wiki/patterns/index.md)             | Zerospin domain — system-worker, contracts, fanout, schemas, examples, TypeScript workspace wiring                |
+| [`llm-wiki/patterns/cases/`](../../../llm-wiki/patterns/cases/index.md) | Session evidence — before/after smells with links to mock `.ts` patterns                                          |
+
+Each pattern is a mock `.ts` file: code shows the **good** shape; **`@bad` JSDoc tags** document anti-patterns. See [`vendor/morgs32/llm-wiki/patterns/README.md`](../../../vendor/morgs32/llm-wiki/patterns/README.md).
 
 ## When to invoke
 
@@ -29,14 +37,18 @@ Turn vague readability frustration into a concrete mode. Do not jump straight in
 Always:
 
 1. `AGENTS.md`
-2. `docs/cleanup/function-shapes.md`
-3. `docs/cleanup/naming-and-imports.md` — required for **Imports** mode; [app-local deep relative imports](../../../docs/cleanup/naming-and-imports.md#good-vs-bad-app-local-deep-relative-imports)
+2. The matching topic in [`vendor/morgs32/llm-wiki/patterns/index.md`](../../../vendor/morgs32/llm-wiki/patterns/index.md) or [`llm-wiki/patterns/index.md`](../../../llm-wiki/patterns/index.md) — read the linked mock `.ts` files for the smell you are judging or fixing
+3. When a Zerospin smell matches a [case study](../../../llm-wiki/patterns/cases/index.md), read that case and its linked pattern file fully
+
+Standing defaults (when no tighter match):
+
+- [`vendor/morgs32/llm-wiki/patterns/functions/effect-fn-one-props-object.ts`](../../../vendor/morgs32/llm-wiki/patterns/functions/effect-fn-one-props-object.ts)
+- [`vendor/morgs32/llm-wiki/patterns/naming/no-re-exports-outside-barrels.ts`](../../../vendor/morgs32/llm-wiki/patterns/naming/no-re-exports-outside-barrels.ts) — required for **Imports** mode; cross-package imports → [`vendor/morgs32/llm-wiki/patterns/naming/monorepo-cross-package-imports.ts`](../../../vendor/morgs32/llm-wiki/patterns/naming/monorepo-cross-package-imports.ts)
 
 For **Pass** mode, also read:
 
-4. [docs/cleanup/index.md](../../../docs/cleanup/index.md)
-5. [docs/cleanup/cases/index.md](../../../docs/cleanup/cases/index.md) — match smells to case pages; read relevant cases fully
-6. Relevant [`docs/architecture/`](../../../docs/architecture/) when repo roles, finalize, fanout, batch workflow, or trust boundaries apply
+4. [`llm-wiki/patterns/cases/index.md`](../../../llm-wiki/patterns/cases/index.md) — match smells to case pages before editing
+5. Relevant [`wiki/architecture/`](../../../wiki/architecture/) when repo roles, finalize, fanout, batch workflow, or trust boundaries apply
 
 For **Judge**, **Review**, or **Prune** on code that crosses those boundaries, read the matching architecture doc before editing.
 
@@ -83,24 +95,24 @@ Choose one mode for the turn. Combine only when the user clearly wants judgment 
 Add one only if needed beyond the modes above:
 
 - [`step-by-step`](../step-by-step/SKILL.md) — structural delete with fallout handled in sequence
-- [`update-cleanup`](../update-cleanup/SKILL.md) — codify a repeatable lesson (also step 6 of **Pass**)
+- [`update-llm-wiki`](../update-llm-wiki/SKILL.md) — codify a repeatable lesson from a repo example (also step 6 of **Pass**)
 - [`update-architecture`](../update-architecture/SKILL.md) — simplification changes documented topology or flow
 
 ## Pass mode (orchestrated workflow)
 
-Use **Pass** for intentional cleanup with docs, architecture, and optional codify. Inside **Pass**, pick **Judge**, **Review**, **Prune**, or **Imports** for the actual edit work.
+Use **Pass** for intentional cleanup with patterns, architecture, and optional codify. Inside **Pass**, pick **Judge**, **Review**, **Prune**, or **Imports** for the actual edit work.
 
 1. **Scope** — User-named files/dirs only ([AGENTS.md](../../../AGENTS.md#rules)). Default microscopic; ask before repo-wide sweep.
 
-2. **Read** — [docs/cleanup/index.md](../../../docs/cleanup/index.md) and [cases/index.md](../../../docs/cleanup/cases/index.md); match smells to case pages and read relevant cases fully.
+2. **Read** — [`vendor/morgs32/llm-wiki/patterns/index.md`](../../../vendor/morgs32/llm-wiki/patterns/index.md) and [`llm-wiki/patterns/cases/index.md`](../../../llm-wiki/patterns/cases/index.md); match smells to case pages and read relevant cases fully.
 
-3. **Architecture check** — If repo roles, finalize, fanout, batch workflow, or trust boundaries: read the matching [`docs/architecture/`](../../../docs/architecture/) doc **before** editing ([AGENTS.md — consult architecture docs first](../../../AGENTS.md#consult-architecture-docs-first)).
+3. **Architecture check** — If repo roles, finalize, fanout, batch workflow, or trust boundaries: read the matching [`wiki/architecture/`](../../../wiki/architecture/) doc **before** editing ([AGENTS.md — consult architecture docs first](../../../AGENTS.md#consult-architecture-docs-first)).
 
 4. **Route** — Pick **Judge**, **Review**, **Prune**, or **Imports** per [decision rules](#decision-rules). Structural delete with fallout → [`step-by-step`](../step-by-step/SKILL.md).
 
 5. **Execute** — Smallest direct diff. No new abstractions without explicit user approval ([AGENTS.md](../../../AGENTS.md#ask-before-abstractions)).
 
-6. **Codify** — Repeatable lesson → [`update-cleanup`](../update-cleanup/SKILL.md) (extend a [case page](../../../docs/cleanup/cases/index.md) or good-vs-bad section).
+6. **Codify** — Repeatable lesson → [`update-llm-wiki`](../update-llm-wiki/SKILL.md) (find a useful repo example; add a mock `.ts` pattern with `@bad` JSDoc or extend a [case page](../../../llm-wiki/patterns/cases/index.md)).
 
 7. **Verify**
    - `rg` for deleted symbol references
@@ -157,7 +169,7 @@ Focus on:
 - Bolt-on type fixes at the call site instead of fixing the factory/base type
 - "Helpful" exports, index files, aliases, or props/types the user did not ask for
 - Big method refactors that add indirection without deleting real complexity
-- Runtime-boundary moves between CLI, `apps/apis`, cloud, or `system-worker` without approval
+- Runtime-boundary moves between CLI, dispatch-worker, shared-worker, or system-worker without approval
 - Repo-wide cleanup passes disguised as a local fix
 
 ## Simplification order (Prune mode)
@@ -203,29 +215,29 @@ Import-path hygiene only. Stay within the user's **stated file/scope** unless th
 
 ### Prefer an alias when
 
-1. The file's **own package/app** has `compilerOptions.paths` and `baseUrl` that map a prefix (commonly `"@/*": ["./*"]` with `baseUrl: "."`).
+1. The file's **own package or example project** has a `compilerOptions.paths` entry that maps the prefix (commonly `"@/*": ["./src/*"]`).
 2. The resolved target lives **under that same package's root**, not in another workspace package.
 
 ### How to pick the import
 
 - Read the **`tsconfig.json` next to the file being edited**. Do not assume every project uses `@/`; only use what that config defines.
-- For `"@/*": ["./*"]` and `baseUrl: "."`, a file at `admin/src/admin/lib/apiUrl.ts` is `@/admin/lib/apiUrl` when paths map `@/*` → `./src/*`.
+- For `"@/*": ["./src/*"]`, `examples/shopping/src/lib/utils.ts` is `@/lib/utils`.
 - If there is **no** path alias, shorten with a **shorter** relative path if possible, or leave a note — do not invent a fake alias.
 
-**Examples (admin app):**
+**Examples (shopping example):**
 
-- Bad: `import { x } from '../../../../../../../lib/x'` from a nested `app/.../page.tsx`
-- Good: `import { x } from '@/lib/x'` when `admin/tsconfig.json` has `@/*` → `./*`
+- Bad: `import { cn } from '../../../../lib/utils'` from a nested component
+- Good: `import { cn } from '@/lib/utils'` when `examples/shopping/tsconfig.json` maps `@/*` → `./src/*`
 
 ### Cross-package imports
 
-- Targets in another `packages/*` or `apps/*` workspace package use the **package name** or an established subpath from that package's `package.json` exports — **not** the current file's `@/` alias.
+- Targets in another `packages/*`, `examples/*`, or `docs/` workspace project use the **package name** or an established subpath from that package's `package.json` exports — **not** the current file's `@/` alias.
 - If unsure, check the destination package's `package.json` `name` and `exports`.
 
 ### Imports verification
 
 - Mental check: the new specifier resolves the same module as before.
-- If the project uses **oxlint** for that app/package, a quick pass against import rules (e.g. `import/no-useless-path-segments`) is enough; do not add new lint config unless the user asked.
+- If the project uses **oxlint**, a quick pass against import rules (e.g. `import/no-useless-path-segments`) is enough; do not add new lint config unless the user asked.
 
 ## False-positive checks
 

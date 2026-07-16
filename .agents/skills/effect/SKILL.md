@@ -8,14 +8,9 @@ description: >-
 
 # Effect
 
-Look at the `./vendor/effect` folder for documentation, idiomatic effect implementations, types and source code.
+Look at the `./vendor/effect` folder for documentation, idiomatic Effect
+implementations, types, and source code.
 
-Pull upstream Effect (squashed subtree):
-
-```bash
-git subtree pull \
-  --prefix=vendor/effect \
-  https://github.com/Effect-TS/effect.git \
-  main \
-  --squash
-```
+For upstream synchronization, use the repository-local
+[`update-vendor`](../update-vendor/SKILL.md) skill instead of duplicating
+the subtree workflow here.

@@ -61,7 +61,7 @@ try {
       message: 'Failed to parse ci_information JSON',
       noProgressCount: inputNoProgressCount + 1,
       envRerunCount,
-    })
+    }),
   );
   process.exit(0);
 }
@@ -89,16 +89,16 @@ const failureClassification = rawFailureClassification?.toLowerCase() ?? null;
 
 function categorizeTasks() {
   const verifiedSet = new Set(verifiedTaskIds);
-  const unverified = failedTaskIds.filter((t) => !verifiedSet.has(t));
+  const unverified = failedTaskIds.filter(t => !verifiedSet.has(t));
   if (unverified.length === 0) return { category: 'all_verified' };
 
-  const e2e = unverified.filter((t) => {
+  const e2e = unverified.filter(t => {
     const parts = t.split(':');
     return parts.length >= 2 && parts[1].includes('e2e');
   });
   if (e2e.length === unverified.length) return { category: 'e2e_only' };
 
-  const verifiable = unverified.filter((t) => {
+  const verifiable = unverified.filter(t => {
     const parts = t.split(':');
     return !(parts.length >= 2 && parts[1].includes('e2e'));
   });
@@ -328,7 +328,7 @@ const messages = {
 
   // actionable
   fix_auto_applying: () => 'Fix verified! Auto-applying...',
-  fix_auto_apply_skipped: (extra) =>
+  fix_auto_apply_skipped: extra =>
     `Fix verified but auto-apply was skipped. ${
       extra?.autoApplySkipReason
         ? `Reason: ${extra.autoApplySkipReason}`
@@ -339,7 +339,7 @@ const messages = {
       verificationStatus || 'N/A'
     }`,
   fix_apply_ready: () => 'Fix available and verified. Ready to apply.',
-  fix_needs_local_verify: (extra) =>
+  fix_needs_local_verify: extra =>
     `Fix available. ${extra.verifiableTaskIds.length} task(s) need local verification.`,
   fix_failed: () => 'Self-healing failed to generate a fix.',
   no_fix: () => 'CI failed, no fix available.',

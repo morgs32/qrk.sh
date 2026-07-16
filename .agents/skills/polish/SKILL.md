@@ -16,32 +16,36 @@ If an abstraction, named type, export, runtime-boundary move, or broad cleanup a
 1. Read `AGENTS.md`, root `package.json`, and `nx.json`.
 2. Use the `AGENTS.md` docs lookup for any domain touched by a failure. Read relevant architecture docs before changing repo roles, finalize paths, batch workflows, trust boundaries, or API/worker behavior.
 3. Run `git status --short` and preserve unrelated user changes.
-4. Use `pnpm`; this repo declares `packageManager: pnpm@11.1.1`.
+4. Use `pnpm`; this repo declares `packageManager: pnpm@11.1.1`. Prefix Nx commands with `pnpm nx` (for example `pnpm nx run-many -t lint --all`), not a globally installed `nx` binary.
 5. Do not hide command failures inside shell loops or bundled command chains. Run gates intentionally so each failure is readable.
 
 ## Baseline Gates
 
-Run the root gates one at a time and keep the failing output visible:
+Run the root gates one at a time and keep the failing output visible. Prefer Nx task targets over root `package.json` script aliases so dependency pipelines and task defaults apply.
 
 ```bash
 pnpm format:check
-pnpm lint
-pnpm ts
-pnpm types
-pnpm test
-pnpm test:workerd
+pnpm nx run-many -t lint --all
+pnpm nx run-many -t ts --all --nxBail
+pnpm nx run-many -t types --all
+CI=true pnpm nx run-many -t test --all
+CI=true pnpm nx run-many -t test:workerd --all
 ```
 
-`pnpm ts` is the broad TypeScript gate. `pnpm types` is narrower but still part of this repo's root contract, so include it in a full polish pass.
+`format:check` / `pnpm format` are the only gates that run `oxfmt` directly; the rest are Nx targets.
+
+`ts` is the broad TypeScript gate. `types` is narrower but still part of this repo's root contract, so include it in a full polish pass.
+
+When a failure is isolated to one project, rerun the narrowest Nx target instead of the whole workspace, for example `pnpm nx run @zerospin/core:ts`.
 
 If an Nx task or target shape is unclear, use the `nx-workspace` skill to inspect resolved project configuration. If the issue is task execution, use the `nx-run-tasks` skill.
 
 ## Fix Order
 
 1. Formatting: if `pnpm format:check` fails, run `pnpm format`, inspect the diff, and keep only formatting changes that belong to the current polish pass.
-2. Lint: fix every lint error and warning surfaced by `pnpm lint`. Prefer the smallest source change that satisfies the rule. Do not silence rules unless the rule is wrong for this exact line and the comment explains why.
-3. TypeScript: fix `pnpm ts` and `pnpm types` failures at their real source. Do not use bolt-on assertions, new type aliases, interfaces, `as const`, or exported wrappers without user approval.
-4. Tests: fix `pnpm test` and `pnpm test:workerd` failures by preserving intended behavior. Do not skip, delete, or weaken tests unless the user explicitly requested that.
+2. Lint: fix every lint error and warning surfaced by `pnpm nx run-many -t lint --all`. Prefer the smallest source change that satisfies the rule. Do not silence rules unless the rule is wrong for this exact line and the comment explains why.
+3. TypeScript: fix `pnpm nx run-many -t ts --all --nxBail` and `pnpm nx run-many -t types --all` failures at their real source. Do not use bolt-on assertions, new type aliases, interfaces, `as const`, or exported wrappers without user approval.
+4. Tests: fix `CI=true pnpm nx run-many -t test --all` and `CI=true pnpm nx run-many -t test:workerd --all` failures by preserving intended behavior. Do not skip, delete, or weaken tests unless the user explicitly requested that.
 5. Docs: if a fix moves, renames, inlines, or deletes code referenced by repo docs, update the relevant docs in the same pass.
 
 ## Iteration Rules

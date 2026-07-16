@@ -94,15 +94,15 @@ For each session in scope, read the `.jsonl` file line by line using the format 
 
 Extract and tag:
 
-| Tag              | What to capture                                                                                                                                            |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `frustration`    | User correction, repeated instruction, caps, "again", "stop", "DO NOT", "partial", "stub", "you didn't", "why did you", explicit rejection of agent output |
-| `doc-request`    | User asks to update **docs/cleanup/**, **architecture**, **AGENTS.md**, **TODOS.md**, **plans/**, README, or "docs stay in sync"                           |
-| `recurring-task` | Same task type appears in **≥2 sessions** across either or both sources                                                                                    |
-| `skill-attached` | Skills attached or named (`$SkillName`, `<manually_attached_skills>`, Codex `<skills_instructions>`) — note whether the session still went wrong           |
-| `agent-mistake`  | Assistant did something the user had to fix: extra refactors, wrapper helpers, wrong runtime boundary, stale doc paths, bolt-on types                      |
-| `missing-skill`  | User had to spell out a multi-step workflow that no attached skill covered                                                                                 |
-| `cross-tool`     | Same theme in both Cursor and Codex — strong signal for a shared repo skill                                                                                |
+| Tag              | What to capture                                                                                                                                                                           |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frustration`    | User correction, repeated instruction, caps, "again", "stop", "DO NOT", "partial", "stub", "you didn't", "why did you", explicit rejection of agent output                                |
+| `doc-request`    | User asks to update **vendor/morgs32/llm-wiki/patterns/**, **llm-wiki/patterns/**, **architecture**, **AGENTS.md**, **TODOS.md**, **.plans/**, README, or "docs stay in sync" |
+| `recurring-task` | Same task type appears in **≥2 sessions** across either or both sources                                                                                                                   |
+| `skill-attached` | Skills attached or named (`$SkillName`, `<manually_attached_skills>`, Codex `<skills_instructions>`) — note whether the session still went wrong                                          |
+| `agent-mistake`  | Assistant did something the user had to fix: extra refactors, wrapper helpers, wrong runtime boundary, stale doc paths, bolt-on types                                                     |
+| `missing-skill`  | User had to spell out a multi-step workflow that no attached skill covered                                                                                                                |
+| `cross-tool`     | Same theme in both Cursor and Codex — strong signal for a shared repo skill                                                                                                               |
 
 **Do not** treat assistant `[REDACTED]` placeholders or Codex system/developer preamble as evidence. Prefer **verbatim user quotes** (trim to ≤240 chars).
 
@@ -121,7 +121,7 @@ find "$CURSOR_ROOT" -name '*.jsonl' -not -path '*/subagents/*' -mtime -14 | head
 rg -i 'zerospin|GitHub/zerospin' "$CODEX_INDEX" 2>/dev/null | tail -40
 
 # Keyword triage across both sources
-rg -i 'docs/cleanup|cleanup mode|architecture|AGENTS\\.md|update.*doc|partial|DO NOT|re-export|wrapper|again\\?' \
+rg -i 'llm-wiki/patterns|zerospin-llm-wiki|cleanup mode|architecture|AGENTS\\.md|update.*doc|partial|DO NOT|re-export|wrapper|again\\?' \
   "$CURSOR_ROOT" "$CODEX_SESSIONS" "$CODEX_ARCHIVED" --glob '*.jsonl' -l | head -40
 ```
 
@@ -135,18 +135,18 @@ Group tagged snippets into **themes**. A theme qualifies for output only if:
 2. **1 session** with strong frustration **and** a clear doc/skill fix, **or**
 3. **≥3 doc-request** mentions of the same doc area (e.g. `zerospin-fanout.md`, `BatchWorkflow.md`).
 
-Drop one-off typos, one-shot tasks, and themes already fully covered by an existing skill (say "already covered by `update-cleanup`" and skip).
+Drop one-off typos, one-shot tasks, and themes already fully covered by an existing skill (say "already covered by `update-llm-wiki`" and skip).
 
 ### 4. Map themes → skill actions
 
 For each surviving theme, pick exactly one action type:
 
-| Action                | When                                                                                                                        |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Deepen**            | Skill exists but transcripts show repeated failure modes it doesn't address                                                 |
-| **New skill**         | Recurring multi-step workflow with no skill; propose a concrete name under `.agents/skills/<kebab-name>/`                   |
-| **Rule in AGENTS.md** | Single-line guardrail repeated across sessions; not enough for a full skill                                                 |
-| **Doc-only**          | User asked for cleanup docs/architecture updates; route to `update-cleanup` or `update-architecture` instead of a new skill |
+| Action                | When                                                                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Deepen**            | Skill exists but transcripts show repeated failure modes it doesn't address                                                  |
+| **New skill**         | Recurring multi-step workflow with no skill; propose a concrete name under `.agents/skills/<kebab-name>/`                    |
+| **Rule in AGENTS.md** | Single-line guardrail repeated across sessions; not enough for a full skill                                                  |
+| **Doc-only**          | User asked for cleanup wiki/architecture updates; route to `update-llm-wiki` or `update-architecture` instead of a new skill |
 
 Prioritize **doc-request** and **frustration** themes over convenience automations.
 
@@ -167,7 +167,7 @@ Output **only** this structure (Markdown). No preamble essay.
 
 ### 1. <Short title>
 
-- **Action:** Deepen `existing-skill` | New skill `<proposed-name>` | Update `AGENTS.md` | Run `update-cleanup` / `update-architecture`
+- **Action:** Deepen `existing-skill` | New skill `<proposed-name>` | Update `AGENTS.md` | Run `update-llm-wiki` / `update-architecture`
 - **Why now:** <one sentence tied to frequency or severity>
 - **Evidence:**
   - **Cursor** — Session [`<6-word title>`](session-uuid) — user: "<quote>"
@@ -195,7 +195,7 @@ Output **only** this structure (Markdown). No preamble essay.
 If the automation prompt asks to **persist** the report, write:
 
 ```
-plans/local-session-review-YYYY-MM-DD.md
+.plans/plans/local-session-review-YYYY-MM-DD.md
 ```
 
 Use the next free date; do not overwrite prior reviews. **Do not commit** unless the user or automation explicitly requests a git commit.
@@ -205,7 +205,7 @@ Use the next free date; do not overwrite prior reviews. **Do not commit** unless
 1. **Every recommendation must cite ≥1 user quote** from a named session (Cursor uuid or Codex thread id). No quote → no recommendation.
 2. **No generic advice** ("write better tests", "read the code first"). Every item must name a **repo path, skill name, doc file, or workflow step**.
 3. **Frustration-weighted ranking** — sort recommendations by (frustration signals × recurrence × doc-request bonus). Boost themes that appear in **both** Cursor and Codex.
-4. **Doc-update calls are first-class** — if the user asked to sync `docs/cleanup/` or architecture and the agent didn't, recommend `update-cleanup` / `update-architecture` with the **exact doc paths** mentioned in chat.
+4. **Doc-update calls are first-class** — if the user asked to sync pattern subtrees or architecture and the agent didn't, recommend `update-llm-wiki` / `update-architecture` with the **exact pattern paths** mentioned in chat.
 5. **Do not recommend installing external skills** unless transcripts show a gap **no** repo skill can cover; then use `find-skills` and name the search query you'd run.
 6. **Do not implement skills in this pass** unless the prompt explicitly says to — default is report only.
 

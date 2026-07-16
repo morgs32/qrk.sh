@@ -1,20 +1,22 @@
 ---
 name: update-architecture
 description: >-
-  Sync docs/architecture workflow docs with source code: mermaid diagrams,
+  Sync wiki/architecture workflow docs with source code: mermaid diagrams,
   Trigger steps, and Annotated workflow steps. Use when the user asks to update
-  architecture docs, workflow docs, mermaid in docs/architecture, or says
+  architecture docs, workflow docs, mermaid in wiki/architecture, or says
   update-architecture.
 ---
 
 # update-architecture
 
-Keep `docs/architecture/*.md` workflow docs aligned with the code they describe.
+Keep `wiki/architecture/*.md` workflow docs aligned with the code they describe.
+
+The post-commit LLM Wiki ingest hook may also update these pages. When editing manually or via an agent pass, preserve YAML frontmatter `sources[]` blocks (path, sha, lines) and refresh SHAs when cited files change.
 
 ## When to apply
 
 - The user changed a workflow, API entrypoint, or repo path and wants the architecture doc updated.
-- The user says **update-architecture**, **update mermaid**, or points at `docs/architecture/` with code that drifted.
+- The user says **update-architecture**, **update mermaid**, or points at `wiki/architecture/` with code that drifted.
 - Stay within the **named doc(s)** unless they ask for a broader pass.
 
 ## Workflow
@@ -24,19 +26,19 @@ Keep `docs/architecture/*.md` workflow docs aligned with the code they describe.
 
 2. **Update both diagram types when the doc has them**
    - **Sequence diagram** — trust-boundary and RPC path (who calls whom, `makeAsync`, `decodeRpc`, early failures, conditional branches).
-   - **Flowchart** — workflow steps after the trigger (`WorkflowStep.do`, SystemWorker/Repo calls, branch gates).
+   - **Flowchart** — lifecycle or workflow phases after the trigger (named Effects, SystemWorker/Repo calls, branch gates).
 
 3. **Update the Trigger section**  
-   Numbered list mirroring the **triggering** code path (usually an `*Api` method). One numbered step per phase; nest sub-steps for entrypoint/repo delegation.
+   Numbered list mirroring the **triggering** code path (for example, a CLI command, package entrypoint, or `*Api` method). One numbered step per phase; nest sub-steps for entrypoint/repo delegation.
 
 4. **Update Annotated workflow steps**  
-   Numbered list for the **workflow class** itself (`*.run`, each `step.do`, payloads returned, spawn conditions). Separate from Trigger — Trigger ends when the workflow is enqueued.
+   Numbered list for the workflow or lifecycle implementation itself (`Effect.fn`, runtime boundary, repo calls, returned receipts, and branch conditions). Separate it from Trigger so invocation and implementation remain distinct.
 
 5. **Use preview-safe relative links**  
-   From `docs/architecture/Foo.md`:
-   - Source under repo root: `../../apps/...`, `../../internal/...`, `../../packages/...`
+   From `wiki/architecture/Foo.md`:
+   - Source under repo root: `../../packages/...`, `../../examples/...`, `../../docs/...`
    - Sibling architecture doc: `./OtherWorkflow.md`
-   - Do **not** use root-absolute paths like `/apps/...` — Markdown preview will not open them.
+   - Do **not** use root-absolute paths like `/packages/...` — Markdown preview will not open them.
 
 6. **Link labels**  
    Prefer ``[`Symbol.method`](relative/path.ts)`` or ``[`file.ts`](relative/path.ts)``. Match symbol names in the linked file.
@@ -44,49 +46,50 @@ Keep `docs/architecture/*.md` workflow docs aligned with the code they describe.
 7. **Keep scope tight**  
    Update only the sections that drifted. Do not rewrite unrelated architecture docs or fix root-absolute links elsewhere unless asked.
 
+8. **Frontmatter**  
+   After substantive edits, update `sources[].sha` via `git hash-object <path>` for each cited file and bump `updated`.
+
 ## Section templates
 
-### Trigger (Api → workflow enqueue)
+### Trigger (CLI → dispatch boundary)
 
 ```markdown
 ## Trigger
 
-1. [`SurfaceApi.pushStagedAccountCommands`](../../apps/apis/src/SurfaceApi/SurfaceApi.ts)
-   1. Read `surfaceName` from `stagedCommands[0]?.surfaceName`; fail if missing.
-   2. Resolve `SystemWorker` via [`getSystemWorker`](../../apps/apis/src/getSystemWorker/getSystemWorker.ts).
-   3. `makeAsync` → entrypoint RPC → `decodeRpc` → `{ pushed, failed }`.
-   4. If `pushed.length > 0`, allocate workflow id and call `create…Workflow`.
-   5. Return `{ pushed, failed }`.
+1. [`devFn`](../../packages/cli/src/dev/devFn.ts)
+   1. Load and validate the project configuration.
+   2. Generate the local Wrangler configuration and start the dispatch Worker.
+2. [`E2eWorker.fetch`](../../packages/dispatch-worker/src/Worker.ts)
+   1. Resolve `DevZerospinApis` by the stable local system-worker name.
+   2. Forward the request to that Durable Object.
 ```
 
-### Annotated workflow steps (workflow class body)
+### Annotated workflow steps (lifecycle implementation)
 
 ```markdown
 ## Annotated workflow steps
 
-1. [`FinalizePushedAccountCommandsWorkflow.run`](../../apps/apis/src/workflows/.../FinalizePushedAccountCommandsWorkflow.ts)
-   1. Destructure payload fields.
-   2. Run `step.do('finalize')` via [`FinalizeStep.ts`](../../apps/apis/src/workflows/.../FinalizeStep.ts).
-
-2. Step `finalize`
-   1. Resolve [`SystemWorker`](../../packages/system-worker/src/SystemWorker.ts).
-   2. `makeAsync` → `finalizePushedAccountCommands` → `decodeRpc`.
-   3. Return `{ accountId, hadNewFinalizedCommands }`.
+1. [`DevZerospinApis`](../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts)
+   1. Validate the stable local instance key and Worker version.
+   2. Select or allocate the deploy and generation.
+   3. Drain, prepare, and open the selected SystemWorker generation.
+   4. Promote the completed deploy or persist the terminal failure.
 ```
 
 ## Mermaid conventions
 
-- **Sequence**: name participants after runtime boundaries (`SurfaceApi`, `SurfaceApiEntrypoint`, `SurfaceRepo`, workflow class). Show `makeAsync` / `decodeRpc` on the Api side when used. Use `alt` for missing-input failures and `pushed.length > 0` (or equivalent gates).
-- **Flowchart**: one subgraph per workflow. Node labels = method or step name strings. Branch labels = `"yes"` / `"no"` on the condition that matches code.
+- **Sequence**: name participants after runtime boundaries (`CLI`, `Dispatch Worker`, `DevZerospinApis`, `SystemWorker`). Show `makeAsync` / `decodeRpc` where the source uses them. Use `alt` for missing-input failures and real branch gates.
+- **Flowchart**: use one subgraph per public workflow or lifecycle. Node labels = method or phase names. Branch labels = `"yes"` / `"no"` on the condition that matches code.
 
 ## Checklist before finishing
 
-- [ ] Sequence diagram matches the triggering Api method through workflow enqueue.
-- [ ] Flowchart matches `Workflow.run` and each `step.do`.
+- [ ] Sequence diagram matches the triggering path through the first public runtime or repo boundary.
+- [ ] Flowchart matches the implementation's named phases and branch conditions.
 - [ ] Trigger and Annotated sections are separate and numbered consistently.
 - [ ] Every ``[`…`](…)`` link uses a relative path from the doc file.
 - [ ] No behavior invented — each step traceable to a line in source.
+- [ ] Frontmatter `sources` SHAs refreshed when cited files changed.
 
 ## Example
 
-Canonical reference after a pass: [`docs/architecture/BatchWorkflow.md`](../../docs/architecture/BatchWorkflow.md).
+Canonical reference after a pass: [`wiki/architecture/DeploySystem.md`](../../../wiki/architecture/DeploySystem.md).

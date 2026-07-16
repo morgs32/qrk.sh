@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Polish'
+  short_description: 'Fix lint, typecheck, and test failures'
+  default_prompt: 'Use $polish to fix repo-wide lint warnings, type errors, and test failures.'

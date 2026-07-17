@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, gt, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 
@@ -28,9 +28,33 @@ export class ScraperRepo extends DurableObject<IScraperEnv> {
       error: null,
       createdAt: now,
       updatedAt: now,
+      expiredAt: null,
     };
     this.#db.insert(scrapeJobs).values(job).run();
     return job;
+  }
+
+  findOrCreateGitHubJob(message: IScrapeMessage): { id: string; created: boolean } {
+    const now = Date.now();
+    const existing = this.#db
+      .select()
+      .from(scrapeJobs)
+      .where(
+        and(
+          eq(scrapeJobs.pageType, "github"),
+          eq(scrapeJobs.url, message.url),
+          or(
+            eq(scrapeJobs.status, "pending"),
+            and(eq(scrapeJobs.status, "completed"), gt(scrapeJobs.expiredAt, now)),
+          ),
+        ),
+      )
+      .orderBy(desc(scrapeJobs.createdAt))
+      .get();
+    if (existing !== undefined) {
+      return { id: existing.id, created: false };
+    }
+    return { id: this.createJob(message).id, created: true };
   }
 
   getJob(id: string): IScrapeJob | null {
@@ -53,15 +77,15 @@ export class ScraperRepo extends DurableObject<IScraperEnv> {
   recordRetry(props: { id: string; error: string }): void {
     this.#db
       .update(scrapeJobs)
-      .set({ status: "pending", payload: null, error: props.error, updatedAt: Date.now() })
+      .set({ status: "pending", payload: null, error: props.error, updatedAt: Date.now(), expiredAt: null })
       .where(eq(scrapeJobs.id, props.id))
       .run();
   }
 
-  completeJob(props: { id: string; payload: unknown }): void {
+  completeJob(props: { id: string; payload: unknown; expiredAt?: number }): void {
     this.#db
       .update(scrapeJobs)
-      .set({ status: "completed", payload: props.payload, error: null, updatedAt: Date.now() })
+      .set({ status: "completed", payload: props.payload, error: null, updatedAt: Date.now(), expiredAt: props.expiredAt ?? null })
       .where(eq(scrapeJobs.id, props.id))
       .run();
   }
@@ -69,7 +93,7 @@ export class ScraperRepo extends DurableObject<IScraperEnv> {
   failJob(props: { id: string; error: string }): void {
     this.#db
       .update(scrapeJobs)
-      .set({ status: "failed", payload: null, error: props.error, updatedAt: Date.now() })
+      .set({ status: "failed", payload: null, error: props.error, updatedAt: Date.now(), expiredAt: null })
       .where(eq(scrapeJobs.id, props.id))
       .run();
   }

@@ -6,6 +6,7 @@ export const PageTypeSchema = Schema.Literal(
   "linktree",
   "beacons",
   "instagram",
+  "github",
   "tiktok",
   "youtube",
   "truth-social",
@@ -56,4 +57,13 @@ export const YouTubePayloadSchema = Schema.Struct({
 export const TruthSocialPayloadSchema = Schema.Struct({
   username: Schema.String,
   acct: Schema.String,
+});
+
+export const GitHubPayloadSchema = Schema.Struct({
+  login: Schema.String,
+});
+
+export const GitHubJobReservationSchema = Schema.Struct({
+  id: Schema.String,
+  created: Schema.Boolean,
 });

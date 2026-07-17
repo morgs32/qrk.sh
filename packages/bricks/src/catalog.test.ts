@@ -22,6 +22,6 @@ describe("brick catalog identity", () => {
       }
     }
 
-    expect(collectionNames.size).toBe(18);
+    expect(collectionNames.size).toBe(19);
   });
 });

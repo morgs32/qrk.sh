@@ -10,9 +10,9 @@ test("shares one persisted grid across the root, collection, and detail routes",
   });
   await page.reload();
 
-  await expect(page.locator("[data-collection-link]")).toHaveCount(18);
-  await expect(page.locator("[data-collection-entry]")).toHaveCount(18);
-  await expect(page.locator("[data-collection-representative]")).toHaveCount(18);
+  await expect(page.locator("[data-collection-link]")).toHaveCount(19);
+  await expect(page.locator("[data-collection-entry]")).toHaveCount(19);
+  await expect(page.locator("[data-collection-representative]")).toHaveCount(19);
   await expect(page.getByLabel("Brick collections")).toBeVisible();
 
   const orangeCollection = page.locator('[data-collection-entry="orange-flag"]');
@@ -132,25 +132,37 @@ test("renders static, image, and GitHub bricks", async ({ page }) => {
   await page.goto("/bricks/image/4x4");
   await expect(page.getByTestId("brick-preview").locator("img")).toBeVisible();
 
-  await page.goto("/bricks/github-cards/4x4");
+  await page.goto("/bricks/github-profile/4x4");
+  await expect(page.getByTestId("brick-preview").locator('[data-slot="card"]')).toBeVisible();
+
+  await page.goto("/bricks/github-repo/repo-4x2");
+  await expect(page.getByTestId("brick-preview").getByText("ink-steps")).toBeVisible();
+
+  await page.goto("/bricks/github-repo/2x2");
   await expect(page.getByTestId("brick-preview").locator('[data-slot="card"]')).toBeVisible();
 });
 
-test("shows brick data in a collection tab", async ({ page }) => {
-  await page.goto("/collections/github-cards");
+test("shows brick config in a collection tab", async ({ page }) => {
+  await page.goto("/collections/github-profile");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("button", { name: "View data" }).click();
+  await expect(page.getByText("Hello World", { exact: true })).toBeVisible();
 
   const profileView = page.getByLabel("4×4 view");
   await expect(profileView.getByRole("tab", { name: "Preview" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
-  await profileView.getByRole("tab", { name: "View data" }).click();
+  await profileView.getByRole("tab", { name: "View config" }).click();
 
-  await expect(profileView.getByRole("tab", { name: "View data" })).toHaveAttribute(
+  await expect(profileView.getByRole("tab", { name: "View config" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
-  await expect(page.getByText('"collectionName": "github-cards"', { exact: false })).toBeVisible();
+  await expect(
+    page.getByText('"collectionName": "github-profile"', { exact: false }),
+  ).toBeVisible();
 });
 
 test("resizes the preview proportionally and switches canvas theme", async ({ page }) => {

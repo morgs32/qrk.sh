@@ -8,6 +8,7 @@ import { ScraperRepo } from "./ScraperRepo";
 import { ScrapeMessageSchema } from "./schemas";
 import { scrapeBeacons } from "./scrapeBeacons";
 import { scrapeInstagram } from "./scrapeInstagram";
+import { scrapeGitHub } from "./scrapeGitHub";
 import { scrapeLinktree } from "./scrapeLinktree";
 import { scrapeTikTok } from "./scrapeTikTok";
 import { scrapeTruthSocial } from "./scrapeTruthSocial";
@@ -18,6 +19,7 @@ import { Effect } from "effect";
 export { ScraperRepo };
 
 const GLOBAL_SCRAPER_REPO_NAME = "global";
+const GITHUB_PROFILE_CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 
 const processFailure = async (props: {
   env: IScraperEnv;
@@ -127,6 +129,26 @@ const processTruthSocialBatch = async (batch: MessageBatch<IScrapeMessage>, env:
   }
 };
 
+const processGitHubBatch = async (batch: MessageBatch<IScrapeMessage>, env: IScraperEnv): Promise<void> => {
+  for (const message of batch.messages) {
+    const decoded = Schema.decodeUnknownSync(ScrapeMessageSchema)(message.body, { onExcessProperty: "error" });
+    const repo = env.SCRAPER_REPO.getByName(GLOBAL_SCRAPER_REPO_NAME);
+    const attemptCount = await repo.startAttempt(decoded.id);
+    if (decoded.pageType !== "github") {
+      await processFailure({ env, message, attemptCount, error: new ScrapeError({ code: "queue-page-type-mismatch", message: `${decoded.pageType} message was delivered to github Queue` }) });
+      continue;
+    }
+    try {
+      const result = await Effect.runPromise(scrapeGitHub({ url: decoded.url, token: env.GITHUB_TOKEN }).pipe(Effect.either));
+      if (Either.isLeft(result)) throw result.left;
+      await repo.completeJob({ id: decoded.id, payload: result.right, expiredAt: Date.now() + GITHUB_PROFILE_CACHE_TTL_MS });
+      message.ack();
+    } catch (error) {
+      await processFailure({ env, message, attemptCount, error });
+    }
+  }
+};
+
 // oxlint-disable-next-line import/no-default-export -- Cloudflare Worker entrypoint.
 export default {
   fetch(request: Request, env: IScraperEnv): Promise<Response> {
@@ -146,6 +168,8 @@ export default {
       await processBrowserBatch({ batch, env, expectedPageType: "youtube" });
     } else if (batch.queue === "scraper-truth-social") {
       await processTruthSocialBatch(batch, env);
+    } else if (batch.queue === "scraper-github") {
+      await processGitHubBatch(batch, env);
     } else {
       for (const message of batch.messages) {
         const attemptCount = await env.SCRAPER_REPO.getByName(GLOBAL_SCRAPER_REPO_NAME).startAttempt(message.body.id);

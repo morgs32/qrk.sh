@@ -16,7 +16,8 @@
       { "binding": "INSTAGRAM_QUEUE", "queue": "scraper-instagram" },
       { "binding": "TIKTOK_QUEUE", "queue": "scraper-tiktok" },
       { "binding": "YOUTUBE_QUEUE", "queue": "scraper-youtube" },
-      { "binding": "TRUTH_SOCIAL_QUEUE", "queue": "scraper-truth-social" }
+      { "binding": "TRUTH_SOCIAL_QUEUE", "queue": "scraper-truth-social" },
+      { "binding": "GITHUB_QUEUE", "queue": "scraper-github" }
     ],
     "consumers": [
       { "queue": "scraper-linktree", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
@@ -24,7 +25,8 @@
       { "queue": "scraper-instagram", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
       { "queue": "scraper-tiktok", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
       { "queue": "scraper-youtube", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
-      { "queue": "scraper-truth-social", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 }
+      { "queue": "scraper-truth-social", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
+      { "queue": "scraper-github", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 }
     ]
   }
 }

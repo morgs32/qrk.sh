@@ -119,6 +119,7 @@ Plans and specs live under [`.plans/`](./.plans/):
 | Effect core, Schema, and errors | [`docs/effect/README.md`](./docs/effect/README.md) |
 | TypeScript fixes and validation patterns | [`docs/tooling/typescript.md`](./docs/tooling/typescript.md) |
 | Reusable code patterns | [`vendor/morgs32/llm-wiki/patterns/`](./vendor/morgs32/llm-wiki/patterns/index.md) |
+| React controls, shadcn, buttons, and design-system components | [`prefer-design-system-components.ts`](./vendor/morgs32/llm-wiki/patterns/react/prefer-design-system-components.ts) |
 | Agent workflow skills | [`.agents/skills/`](./.agents/skills/) |
 
 When a code change invalidates a linked doc, update that doc in the same requested pass. Do not leave stale file paths or symbol names.

@@ -29,3 +29,21 @@ export const truthSocialFixture = {
   acct: "creator",
   display_name: "Creator",
 };
+
+export const gitHubFixture = {
+  login: "octocat",
+  id: 1,
+  node_id: "MDQ6VXNlcjE=",
+  avatar_url: "https://github.com/images/error/octocat_happy.gif",
+  html_url: "https://github.com/octocat",
+  name: "The Octocat",
+  company: "GitHub",
+  blog: "https://github.blog",
+  location: "San Francisco",
+  email: "octocat@github.com",
+  bio: "A complete provider-native profile fixture",
+  public_repos: 8,
+  followers: 100,
+  following: 2,
+  custom_future_field: { retained: true },
+};

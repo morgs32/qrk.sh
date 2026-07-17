@@ -27,7 +27,11 @@ export function SandboxGrid() {
   const rowHeight = gridWidth / 8;
 
   return (
-    <section ref={containerRef} aria-label="Brick grid" className="min-h-screen bg-white">
+    <section
+      ref={containerRef}
+      aria-label="Brick grid"
+      className="min-h-screen bg-white md:sticky md:top-0 md:h-screen md:self-start md:overflow-y-auto"
+    >
       {mounted && hasHydrated && (
         <GridLayout
           width={gridWidth}

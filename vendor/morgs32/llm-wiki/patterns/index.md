@@ -105,6 +105,12 @@ See [README.md](./README.md) for format.
 | `rpc/promise-either-then-get-or-throw.ts`        | Unwrap Promise Either with `then`                  |
 | `rpc/return-either-from-loaders.ts`              | /\*\*       |
 
+## react
+
+| File                                       | Description                                                        |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| `react/prefer-design-system-components.ts` | Default to existing shadcn components instead of hand-styled HTML |
+
 ## runtime
 
 | File                                            | Description |

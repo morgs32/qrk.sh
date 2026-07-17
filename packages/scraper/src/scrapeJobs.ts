@@ -12,4 +12,5 @@ export const scrapeJobs = sqliteTable("scrape_jobs", {
   error: text("error"),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
+  expiredAt: integer("expired_at"),
 });

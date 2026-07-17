@@ -5,7 +5,8 @@ import { creamBenchCollection } from "./collections/CreamBench/CreamBenchCollect
 import { creamSquareCollection } from "./collections/CreamSquare/CreamSquareCollection";
 import { figmaCollection } from "./collections/Figma/FigmaCollection";
 import { greenArchCollection } from "./collections/GreenArch/GreenArchCollection";
-import { githubCardsCollection } from "./collections/GitHubCards/GitHubCardsCollection";
+import { githubProfileCollection } from "./collections/GitHubCards/GitHubProfileCollection";
+import { githubRepoCollection } from "./collections/GitHubCards/GitHubRepoCollection";
 import { imageCollection } from "./collections/Image/ImageCollection";
 import { greenCrossCollection } from "./collections/GreenCross/GreenCrossCollection";
 import { greenEmptyCollection } from "./collections/GreenEmpty/GreenEmptyCollection";
@@ -33,7 +34,8 @@ export const collectionsHash = {
   "pink-asterisk": pinkAsteriskCollection,
   "green-empty": greenEmptyCollection,
   "green-cross": greenCrossCollection,
-  "github-cards": githubCardsCollection,
+  "github-profile": githubProfileCollection,
+  "github-repo": githubRepoCollection,
   figma: figmaCollection,
   image: imageCollection,
   "text-brick": textBrickCollection,

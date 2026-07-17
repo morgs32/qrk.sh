@@ -32,6 +32,7 @@ a {
 }
 
 .sandbox-wordmark {
+  color: inherit;
   font-family: "Silkscreen", sans-serif;
   text-decoration: none;
 }

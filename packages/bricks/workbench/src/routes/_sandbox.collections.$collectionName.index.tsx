@@ -4,6 +4,7 @@ import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
+import { Button } from "../../../src/ui/button";
 import { useGridStore } from "../useGridStore";
 
 export const Route = createFileRoute("/_sandbox/collections/$collectionName/")({
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/_sandbox/collections/$collectionName/")({
 function CollectionCatalog() {
   const { collectionName } = Route.useParams();
   const [activeViews, setActiveViews] = useState<Record<string, string | number>>({});
+  const [isCollectionDataExpanded, setIsCollectionDataExpanded] = useState(false);
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const collection = Object.values(collectionsHash).find(
     (candidate) => candidate.collectionName === collectionName,
@@ -35,6 +37,24 @@ function CollectionCatalog() {
           {collection.collectionLabel}
         </h1>
         <p className="mt-0 font-mono text-sm text-zinc-500">{collection.collectionName}</p>
+        <Button
+          type="button"
+          size="sm"
+          className="mt-4"
+          aria-controls="collection-data-section"
+          aria-expanded={isCollectionDataExpanded}
+          onClick={() => setIsCollectionDataExpanded((currentValue) => !currentValue)}
+        >
+          View data
+        </Button>
+        {isCollectionDataExpanded && (
+          <section
+            id="collection-data-section"
+            className="mt-4 border border-zinc-300 bg-white p-4 text-sm"
+          >
+            Hello World
+          </section>
+        )}
       </div>
       <div className="mt-8 flex flex-col gap-10">
         {bricks.map((brick) => {
@@ -77,7 +97,7 @@ function CollectionCatalog() {
                           : "cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2"
                       }
                     >
-                      View data
+                      View config
                     </Tabs.Tab>
                   </Tabs.List>
                 </div>

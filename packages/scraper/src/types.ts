@@ -4,6 +4,7 @@ export type IPageType =
   | "linktree"
   | "beacons"
   | "instagram"
+  | "github"
   | "tiktok"
   | "youtube"
   | "truth-social";
@@ -20,6 +21,7 @@ export type IScrapeJob = Readonly<{
   error: string | null;
   createdAt: number;
   updatedAt: number;
+  expiredAt: number | null;
 }>;
 
 export type IScrapeMessage = Readonly<{
@@ -55,5 +57,7 @@ export interface IScraperEnv {
   TIKTOK_QUEUE: Queue<IScrapeMessage>;
   YOUTUBE_QUEUE: Queue<IScrapeMessage>;
   TRUTH_SOCIAL_QUEUE: Queue<IScrapeMessage>;
+  GITHUB_QUEUE: Queue<IScrapeMessage>;
+  GITHUB_TOKEN: string;
   SCRAPER_REPO: DurableObjectNamespace<import("./ScraperRepo").ScraperRepo>;
 }

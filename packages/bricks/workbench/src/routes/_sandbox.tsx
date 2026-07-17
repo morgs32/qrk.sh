@@ -8,7 +8,7 @@ function SandboxLayout() {
   return (
     <main className="min-h-screen">
       <div className="grid min-h-screen md:grid-cols-2">
-        <section className="border-b border-zinc-300 pb-6 md:border-b-0 md:border-r md:pb-0">
+        <section className="border-b border-zinc-300 bg-white pb-6 md:relative md:z-10 md:border-b-0 md:pb-0 md:shadow-[6px_0_12px_-4px_rgba(0,0,0,0.3)]">
           <Outlet />
         </section>
         <SandboxGrid />

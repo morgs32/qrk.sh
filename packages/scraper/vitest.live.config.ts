@@ -11,6 +11,10 @@ export default defineConfig({
   plugins: [
     cloudflareTest({
       miniflare: {
+        bindings: {
+          GITHUB_TOKEN: process.env.GITHUB_TOKEN ?? "missing-live-github-token",
+          SCRAPER_LIVE_GITHUB_URL: process.env.SCRAPER_LIVE_GITHUB_URL ?? "missing-live-github-url",
+        },
         compatibilityFlags: ["service_binding_extra_handlers"],
         queueConsumers: {
           "scraper-linktree": { maxBatchTimeout: 0.05 },
@@ -19,6 +23,7 @@ export default defineConfig({
           "scraper-tiktok": { maxBatchTimeout: 0.05 },
           "scraper-youtube": { maxBatchTimeout: 0.05 },
           "scraper-truth-social": { maxBatchTimeout: 0.05 },
+          "scraper-github": { maxBatchTimeout: 0.05 },
         },
       },
       wrangler: { configPath: path.join(packageRoot, "wrangler.jsonc") },

@@ -11,6 +11,7 @@ import { owner } from "./owner";
 
 export const userAccount = makeAccountController({
   name: "user",
+  version: "1.0.0",
   actorControllers: {
     owner,
   },

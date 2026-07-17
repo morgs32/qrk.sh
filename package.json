@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "dev": "pnpm --dir ../zerospin exec nx run-many -t lib && pnpm install --offline && nx run @qrk.sh/web:dev"
+    "dev": "pnpm --dir vendor/zerospin exec nx run-many -t lib && pnpm install --offline && nx run @qrk.sh/web:dev"
   },
   "devDependencies": {
     "nx": "^22.7.7"
@@ -9,20 +9,20 @@
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
     "overrides": {
-      "@zerospin/cli": "file:../zerospin/packages/cli",
-      "@zerospin/core": "file:../zerospin/packages/core",
-      "@zerospin/devtools": "file:../zerospin/packages/devtools",
-      "@zerospin/error": "file:../zerospin/packages/error",
-      "@zerospin/react": "file:../zerospin/packages/react",
-      "system": "file:../zerospin/packages/system",
-      "system-worker": "file:../zerospin/packages/system-worker",
-      "@zerospin/dispatch-worker": "file:../zerospin/packages/dispatch-worker",
-      "@zerospin/frontend": "file:../zerospin/packages/frontend",
-      "@zerospin/live-query": "file:../zerospin/packages/live-query",
-      "@zerospin/logger": "file:../zerospin/packages/logger",
-      "@zerospin/server-only": "file:../zerospin/packages/server-only",
-      "@zerospin/shared-worker": "file:../zerospin/packages/shared-worker",
-      "@zerospin/studio": "file:../zerospin/packages/studio"
+      "@zerospin/cli": "workspace:*",
+      "@zerospin/core": "workspace:*",
+      "@zerospin/devtools": "workspace:*",
+      "@zerospin/error": "workspace:*",
+      "@zerospin/react": "workspace:*",
+      "system": "workspace:*",
+      "system-worker": "workspace:*",
+      "@zerospin/dispatch-worker": "workspace:*",
+      "@zerospin/frontend": "workspace:*",
+      "@zerospin/live-query": "workspace:*",
+      "@zerospin/logger": "workspace:*",
+      "@zerospin/server-only": "workspace:*",
+      "@zerospin/shared-worker": "workspace:*",
+      "@zerospin/studio": "workspace:*"
     }
   }
 }

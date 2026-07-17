@@ -65,11 +65,14 @@ export const ownerFrontend = makeFrontendController({
           });
         }
 
-        const user = db.query.user
-          .findFirst({
-            where: { id: { eq: site.userId } },
-          })
-          .sync();
+        const user =
+          site.userId === null
+            ? undefined
+            : db.query.user
+                .findFirst({
+                  where: { id: { eq: site.userId } },
+                })
+                .sync();
 
         if (user === undefined || user.actorId !== actorId) {
           return yield* new ZerospinError({
@@ -96,13 +99,16 @@ export const ownerFrontend = makeFrontendController({
           });
         }
 
-        const site = db.query.site
-          .findFirst({
-            where: { id: { eq: page.siteId } },
-          })
-          .sync();
+        const site =
+          page.siteId === null
+            ? undefined
+            : db.query.site
+                .findFirst({
+                  where: { id: { eq: page.siteId } },
+                })
+                .sync();
         const user =
-          site === undefined
+          site === undefined || site.userId === null
             ? undefined
             : db.query.user
                 .findFirst({
@@ -213,13 +219,16 @@ export const ownerFrontend = makeFrontendController({
           });
         }
 
-        const page = db.query.page
-          .findFirst({
-            where: { id: { eq: grid.pageId } },
-          })
-          .sync();
+        const page =
+          grid.pageId === null
+            ? undefined
+            : db.query.page
+                .findFirst({
+                  where: { id: { eq: grid.pageId } },
+                })
+                .sync();
         const site =
-          page === undefined
+          page === undefined || page.siteId === null
             ? undefined
             : db.query.site
                 .findFirst({
@@ -227,7 +236,7 @@ export const ownerFrontend = makeFrontendController({
                 })
                 .sync();
         const user =
-          site === undefined
+          site === undefined || site.userId === null
             ? undefined
             : db.query.user
                 .findFirst({

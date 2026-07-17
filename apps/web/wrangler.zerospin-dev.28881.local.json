@@ -1,14 +1,14 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "qrk-sh",
-  "main": "/Users/morgs32/GitHub/qrk.sh/node_modules/.pnpm/@zerospin+dispatch-worker@file+..+zerospin+packages+dispatch-worker_207b70f18c6efaa06cc974bfacfc6147/node_modules/@zerospin/dispatch-worker/dist/Worker.js",
+  "main": "/Users/morgs32/GitHub/qrk.sh/vendor/zerospin/packages/dispatch-worker/dist/Worker.js",
   "compatibility_date": "2026-01-20",
   "compatibility_flags": [
     "nodejs_compat"
   ],
   "alias": {
     "system": "../../packages/zerospin/src/system.ts",
-    "seeds": "/Users/morgs32/GitHub/qrk.sh/node_modules/.pnpm/@zerospin+dispatch-worker@file+..+zerospin+packages+dispatch-worker_207b70f18c6efaa06cc974bfacfc6147/node_modules/@zerospin/dispatch-worker/dist/emptySeeds.js"
+    "seeds": "/Users/morgs32/GitHub/qrk.sh/vendor/zerospin/packages/dispatch-worker/dist/emptySeeds.js"
   },
   "rules": [
     {

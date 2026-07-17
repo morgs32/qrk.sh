@@ -16,6 +16,7 @@ import { ownerFrontend } from "./ownerFrontend";
 
 export const owner = makeActorController({
   name: "owner",
+  version: "1.0.0",
   models: {
     grid: Grid,
     brick: Brick,

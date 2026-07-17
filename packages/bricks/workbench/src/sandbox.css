@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap");
 @import "@qrk.sh/bricks/styles.css";
 @source "./**/*.{ts,tsx}";
 
@@ -26,4 +27,8 @@ body {
 
 a {
   color: inherit;
+}
+
+.sandbox-wordmark {
+  font-family: "Silkscreen", sans-serif;
 }

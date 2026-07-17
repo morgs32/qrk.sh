@@ -22,8 +22,8 @@ function RootLayout() {
   return (
     <div className="min-h-screen">
       <header className="border-b border-zinc-300 bg-white px-6 py-4">
-        <Link to="/" className="text-lg font-semibold no-underline">
-          QRK brick sandbox
+        <Link to="/" className="sandbox-wordmark text-lg no-underline">
+          QRK.SH SANDBOX
         </Link>
       </header>
       <Outlet />

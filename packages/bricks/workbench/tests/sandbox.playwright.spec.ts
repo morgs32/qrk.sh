@@ -8,19 +8,19 @@ test("catalog opens collections with vertical, full-size bricks on the left", as
   await page.locator('[data-collection-link="orange-flag"]').click();
   await page.waitForLoadState("networkidle");
   await expect(page.locator("[data-brick-full-size]")).toHaveCount(3);
-  const brickSizes = await page.locator('[data-brick-full-size="orange-flag/8x2"]').evaluate(
-    (brickElement) => {
+  const brickSizes = await page
+    .locator('[data-brick-full-size="orange-flag/8x2"]')
+    .evaluate((brickElement) => {
       const brick = brickElement.getBoundingClientRect();
       const pane = brickElement.parentElement?.getBoundingClientRect();
       return { brickWidth: brick.width, brickHeight: brick.height, paneWidth: pane?.width };
-    },
-  );
+    });
   expect(brickSizes.brickWidth).toBe(brickSizes.paneWidth);
   expect(brickSizes.brickHeight).toBe(brickSizes.brickWidth / 4);
 
-  const twoByTwoSize = await page.locator('[data-brick-full-size="orange-flag/2x2"]').evaluate(
-    (brickElement) => brickElement.getBoundingClientRect().width,
-  );
+  const twoByTwoSize = await page
+    .locator('[data-brick-full-size="orange-flag/2x2"]')
+    .evaluate((brickElement) => brickElement.getBoundingClientRect().width);
   expect(twoByTwoSize).toBe(brickSizes.brickWidth / 4);
   await expect(page.getByLabel("Empty canvas")).toBeEmpty();
 });

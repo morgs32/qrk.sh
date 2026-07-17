@@ -50,6 +50,10 @@ Keep [BrickPreview.tsx](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/B
 
 - **Good**: **`ICollectionBrickDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`w`**, **`h`**, **`label`**, variant **`name`**). **`IBrick`** = variant-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionBrick`**.
 
+### Terminology: collection variants and bricks
+
+A **collection variant** is the reusable catalog definition identified by **`(collectionName, brickName)`**. A **brick** is an implementation of one collection variant. When that implementation is placed in a Grid, its resource and identity are still **`brick`** and **`brickId`**; do not call it a “grid brick” or “grid item.”
+
 ### Brick variant identity: `collectionName` + brick def `name`
 
 **Invariant (homepage catalog):**
@@ -64,7 +68,7 @@ In code and tests, **`brickNames`** means **that pair**: **`collectionName`** pl
 
 - **Bad**: calling a composite like `` `${collectionName}--${w}x${h}` `` or a bare `collectionName` “brickNames”; using “brick name” only for `def.name` without scoping by collection when both matter.
 
-- **Good**: pass or thread **`collectionName`** and **`def.name`** (or parameters **`collectionName`**, **`brickName`** when `brickName` is the variant slug); locate grid bricks with **`gridLocateByBrickNames(grid, collectionName, brickName)`** in [Grid.playwright.spec.ts](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/Grid.playwright.spec.ts>).
+- **Good**: pass or thread **`collectionName`** and **`def.name`** (or parameters **`collectionName`**, **`brickName`** when `brickName` is the variant slug); locate bricks with **`gridLocateByBrickNames(grid, collectionName, brickName)`** in [Grid.playwright.spec.ts](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/Grid.playwright.spec.ts>).
 
 [BrickPreview.tsx](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/BrickCatalogPreview/BrickPreview.tsx>) exposes it on the draggable slot:
 
@@ -75,12 +79,13 @@ In code and tests, **`brickNames`** means **that pair**: **`collectionName`** pl
 
 [Grid.tsx](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/Grid.tsx>) sets on each placed brick wrapper:
 
-- **`data-brick-grid-collection-name`** = **`item.def.collectionName`**
-- **`data-brick-grid-brick-name`** = **`item.def.name`**
+- **`data-brick-collection-name`** = **`item.def.collectionName`**
+- **`data-brick-name`** = **`item.def.name`**
+- **`data-brick-id`** = the placed brick id (`item.i` at the `react-grid-layout` boundary)
 
 - **Bad**: a single attribute holding `makeBrickKey` / concatenated ids when you need to target “this variant in this collection” in the drawer **or on the grid**.
 
-- **Good**: two attributes, values exactly `def.collectionName` and `def.name`. In Playwright: drawer — `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="…"][data-brick-drawer-brick-name="…"]` (`drawerBrickPreviewSlot` in [Grid.playwright.spec.ts](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/Grid.playwright.spec.ts>)); grid — `[data-brick-grid-collection-name="…"][data-brick-grid-brick-name="…"]` scoped under `.grid-layout` (`gridLocateByBrickNames` in the same file).
+- **Good**: values exactly `def.collectionName`, `def.name`, and the brick id. In Playwright: drawer — `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="…"][data-brick-drawer-brick-name="…"]` (`drawerBrickPreviewSlot` in [Grid.playwright.spec.ts](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/Grid.playwright.spec.ts>)); Grid — `[data-brick-collection-name="…"][data-brick-name="…"]` scoped under `.grid-layout` (`gridLocateByBrickNames` in the same file).
 
 ### Good vs bad: brick factory argument naming (`props`, not `options`; inline type)
 
@@ -128,9 +133,9 @@ When destructuring tuple keys in hooks like `useSWR`, use full semantic names (f
 
 The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefix on the Zustand module, hook, seed, and domain types. Prefix grid-store **object/interface types** with **`I`** (for example `IGridState`, `IGridSeed`).
 
-- **Bad**: `portfolio-grid-store.ts`, `usePortfolioGridStore`, `PortfolioGridSeed`, `portfolioGridSeed`, `PortfolioGridBrickInstance`, test ids like `portfolio-grid-layout`, and a layout class name tied to “portfolio” when the surface is the generic home grid.
+- **Bad**: `portfolio-grid-store.ts`, `usePortfolioGridStore`, `PortfolioGridSeed`, `portfolioGridSeed`, `PortfolioBrickInstance`, test ids like `portfolio-grid-layout`, and a layout class name tied to “portfolio” when the surface is the generic home grid.
 
-- **Good**: `apps/web/lib/stores/grid-store.ts`, `useGridStore`, `IGridSeed`, `gridSeed`, `IGridBrickInstance`, `data-testid="grid-layout"`, and a scoped layout class such as `grid` (see [apps/web/app/globals.css](../../apps/web/app/globals.css) placeholder styling).
+- **Good**: `apps/web/lib/stores/grid-store.ts`, `useGridStore`, `IGridSeed`, `gridSeed`, `IBrickInstance`, `data-testid="grid-layout"`, and a scoped layout class such as `grid` (see [apps/web/app/globals.css](../../apps/web/app/globals.css) placeholder styling).
 
 - **Bad**: `basis-auto` with many small bricks in one viewport row when the product goal is “one brick, one panel” at a time; or shrinking bricks with `scale-75` when previews should read at full drawer size.
 

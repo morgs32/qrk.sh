@@ -323,9 +323,9 @@ export function Grid() {
                 return (
                   <div
                     key={item.i}
-                    data-brick-instance-id={item.i}
-                    data-brick-grid-collection-name={item.def.collectionName}
-                    data-brick-grid-brick-name={item.def.name}
+                    data-brick-id={item.i}
+                    data-brick-collection-name={item.def.collectionName}
+                    data-brick-name={item.def.name}
                     className="cursor-grab touch-none active:cursor-grabbing"
                     onClick={() => {
                       if (suppressBrickIdClickRef.current) {

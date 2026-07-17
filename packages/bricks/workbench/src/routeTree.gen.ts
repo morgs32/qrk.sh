@@ -14,7 +14,7 @@ import { Route as SandboxIndexRouteImport } from './routes/_sandbox.index'
 import { Route as BricksCollectionNameBrickNameRouteImport } from './routes/bricks.$collectionName.$brickName'
 import { Route as SandboxCollectionsCollectionNameRouteImport } from './routes/_sandbox.collections.$collectionName'
 import { Route as SandboxCollectionsCollectionNameIndexRouteImport } from './routes/_sandbox.collections.$collectionName.index'
-import { Route as SandboxCollectionsCollectionNameGridBrickGridBrickIdRouteImport } from './routes/_sandbox.collections.$collectionName.gridBrick.$gridBrickId'
+import { Route as SandboxCollectionsCollectionNameBrickBrickIdRouteImport } from './routes/_sandbox.collections.$collectionName.brick.$brickId'
 
 const SandboxRoute = SandboxRouteImport.update({
   id: '/_sandbox',
@@ -43,10 +43,10 @@ const SandboxCollectionsCollectionNameIndexRoute =
     path: '/',
     getParentRoute: () => SandboxCollectionsCollectionNameRoute,
   } as any)
-const SandboxCollectionsCollectionNameGridBrickGridBrickIdRoute =
-  SandboxCollectionsCollectionNameGridBrickGridBrickIdRouteImport.update({
-    id: '/gridBrick/$gridBrickId',
-    path: '/gridBrick/$gridBrickId',
+const SandboxCollectionsCollectionNameBrickBrickIdRoute =
+  SandboxCollectionsCollectionNameBrickBrickIdRouteImport.update({
+    id: '/brick/$brickId',
+    path: '/brick/$brickId',
     getParentRoute: () => SandboxCollectionsCollectionNameRoute,
   } as any)
 
@@ -55,13 +55,13 @@ export interface FileRoutesByFullPath {
   '/collections/$collectionName': typeof SandboxCollectionsCollectionNameRouteWithChildren
   '/bricks/$collectionName/$brickName': typeof BricksCollectionNameBrickNameRoute
   '/collections/$collectionName/': typeof SandboxCollectionsCollectionNameIndexRoute
-  '/collections/$collectionName/gridBrick/$gridBrickId': typeof SandboxCollectionsCollectionNameGridBrickGridBrickIdRoute
+  '/collections/$collectionName/brick/$brickId': typeof SandboxCollectionsCollectionNameBrickBrickIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof SandboxIndexRoute
   '/bricks/$collectionName/$brickName': typeof BricksCollectionNameBrickNameRoute
   '/collections/$collectionName': typeof SandboxCollectionsCollectionNameIndexRoute
-  '/collections/$collectionName/gridBrick/$gridBrickId': typeof SandboxCollectionsCollectionNameGridBrickGridBrickIdRoute
+  '/collections/$collectionName/brick/$brickId': typeof SandboxCollectionsCollectionNameBrickBrickIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,7 +70,7 @@ export interface FileRoutesById {
   '/_sandbox/collections/$collectionName': typeof SandboxCollectionsCollectionNameRouteWithChildren
   '/bricks/$collectionName/$brickName': typeof BricksCollectionNameBrickNameRoute
   '/_sandbox/collections/$collectionName/': typeof SandboxCollectionsCollectionNameIndexRoute
-  '/_sandbox/collections/$collectionName/gridBrick/$gridBrickId': typeof SandboxCollectionsCollectionNameGridBrickGridBrickIdRoute
+  '/_sandbox/collections/$collectionName/brick/$brickId': typeof SandboxCollectionsCollectionNameBrickBrickIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -79,13 +79,13 @@ export interface FileRouteTypes {
     | '/collections/$collectionName'
     | '/bricks/$collectionName/$brickName'
     | '/collections/$collectionName/'
-    | '/collections/$collectionName/gridBrick/$gridBrickId'
+    | '/collections/$collectionName/brick/$brickId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/bricks/$collectionName/$brickName'
     | '/collections/$collectionName'
-    | '/collections/$collectionName/gridBrick/$gridBrickId'
+    | '/collections/$collectionName/brick/$brickId'
   id:
     | '__root__'
     | '/_sandbox'
@@ -93,7 +93,7 @@ export interface FileRouteTypes {
     | '/_sandbox/collections/$collectionName'
     | '/bricks/$collectionName/$brickName'
     | '/_sandbox/collections/$collectionName/'
-    | '/_sandbox/collections/$collectionName/gridBrick/$gridBrickId'
+    | '/_sandbox/collections/$collectionName/brick/$brickId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -138,11 +138,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SandboxCollectionsCollectionNameIndexRouteImport
       parentRoute: typeof SandboxCollectionsCollectionNameRoute
     }
-    '/_sandbox/collections/$collectionName/gridBrick/$gridBrickId': {
-      id: '/_sandbox/collections/$collectionName/gridBrick/$gridBrickId'
-      path: '/gridBrick/$gridBrickId'
-      fullPath: '/collections/$collectionName/gridBrick/$gridBrickId'
-      preLoaderRoute: typeof SandboxCollectionsCollectionNameGridBrickGridBrickIdRouteImport
+    '/_sandbox/collections/$collectionName/brick/$brickId': {
+      id: '/_sandbox/collections/$collectionName/brick/$brickId'
+      path: '/brick/$brickId'
+      fullPath: '/collections/$collectionName/brick/$brickId'
+      preLoaderRoute: typeof SandboxCollectionsCollectionNameBrickBrickIdRouteImport
       parentRoute: typeof SandboxCollectionsCollectionNameRoute
     }
   }
@@ -150,15 +150,15 @@ declare module '@tanstack/react-router' {
 
 interface SandboxCollectionsCollectionNameRouteChildren {
   SandboxCollectionsCollectionNameIndexRoute: typeof SandboxCollectionsCollectionNameIndexRoute
-  SandboxCollectionsCollectionNameGridBrickGridBrickIdRoute: typeof SandboxCollectionsCollectionNameGridBrickGridBrickIdRoute
+  SandboxCollectionsCollectionNameBrickBrickIdRoute: typeof SandboxCollectionsCollectionNameBrickBrickIdRoute
 }
 
 const SandboxCollectionsCollectionNameRouteChildren: SandboxCollectionsCollectionNameRouteChildren =
   {
     SandboxCollectionsCollectionNameIndexRoute:
       SandboxCollectionsCollectionNameIndexRoute,
-    SandboxCollectionsCollectionNameGridBrickGridBrickIdRoute:
-      SandboxCollectionsCollectionNameGridBrickGridBrickIdRoute,
+    SandboxCollectionsCollectionNameBrickBrickIdRoute:
+      SandboxCollectionsCollectionNameBrickBrickIdRoute,
   }
 
 const SandboxCollectionsCollectionNameRouteWithChildren =

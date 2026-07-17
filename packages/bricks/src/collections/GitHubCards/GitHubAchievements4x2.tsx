@@ -3,7 +3,7 @@ import { GitHubAchievementsCard } from "./GitHubAchievementsCard";
 
 export function GitHubAchievements4x2() {
   return (
-    <BrickFrame backgroundClassName="bg-zinc-950" textClassName="text-zinc-100">
+    <BrickFrame backgroundClassName="bg-white" textClassName="text-zinc-950">
       <div className="flex h-full w-full min-h-0 items-stretch justify-stretch">
         <GitHubAchievementsCard />
       </div>

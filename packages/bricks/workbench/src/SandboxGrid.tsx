@@ -8,13 +8,13 @@ import { useGridStore } from "./useGridStore";
 export function SandboxGrid() {
   const { containerRef, mounted, width } = useContainerWidth();
   const navigate = useNavigate();
-  const suppressGridBrickClickRef = useRef(false);
+  const suppressBrickClickRef = useRef(false);
   const layout = useGridStore((state) => state.layout);
-  const gridBricksById = useGridStore((state) => state.gridBricksById);
+  const bricksById = useGridStore((state) => state.bricksById);
   const activeBrickDrag = useGridStore((state) => state.activeBrickDrag);
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const setLayout = useGridStore((state) => state.setLayout);
-  const addGridBrick = useGridStore((state) => state.addGridBrick);
+  const addBrick = useGridStore((state) => state.addBrick);
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export function SandboxGrid() {
               return;
             }
 
-            const gridBrickId = crypto.randomUUID();
+            const brickId = crypto.randomUUID();
             const gridLayoutWithDroppedBrick = nextLayout.map((layoutItem) => {
               if (layoutItem.i !== item.i) {
                 return layoutItem;
@@ -68,26 +68,26 @@ export function SandboxGrid() {
 
               return {
                 ...layoutItem,
-                i: gridBrickId,
+                i: brickId,
                 w: activeBrickDrag.w,
                 h: activeBrickDrag.h,
               };
             });
-            addGridBrick(gridBrickId, activeBrickDrag, gridLayoutWithDroppedBrick);
+            addBrick(brickId, activeBrickDrag, gridLayoutWithDroppedBrick);
             setActiveBrickDrag(null);
           }}
           onDragStart={() => {
-            suppressGridBrickClickRef.current = true;
+            suppressBrickClickRef.current = true;
           }}
           onDragStop={(nextLayout) => {
             setLayout(nextLayout);
             window.setTimeout(() => {
-              suppressGridBrickClickRef.current = false;
+              suppressBrickClickRef.current = false;
             }, 0);
           }}
         >
           {layout.map((layoutItem) => {
-            const brickDef = gridBricksById[layoutItem.i];
+            const brickDef = bricksById[layoutItem.i];
             const brick = brickDef ? findCollectionBrick(brickDef) : undefined;
 
             if (brick) {
@@ -97,20 +97,20 @@ export function SandboxGrid() {
                 <div
                   key={layoutItem.i}
                   className="size-full cursor-grab active:cursor-grabbing"
-                  data-grid-brick={`${brick.def.collectionName}/${brick.def.name}`}
-                  data-grid-brick-id={layoutItem.i}
+                  data-brick={`${brick.def.collectionName}/${brick.def.name}`}
+                  data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
                   onClick={() => {
-                    if (suppressGridBrickClickRef.current) {
+                    if (suppressBrickClickRef.current) {
                       return;
                     }
 
                     void navigate({
-                      to: "/collections/$collectionName/gridBrick/$gridBrickId",
+                      to: "/collections/$collectionName/brick/$brickId",
                       params: {
                         collectionName: brick.def.collectionName,
-                        gridBrickId: layoutItem.i,
+                        brickId: layoutItem.i,
                       },
                     });
                   }}

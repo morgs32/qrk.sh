@@ -2,6 +2,7 @@
 
 import { Image } from "@unpic/react";
 import { useState } from "react";
+import { ActivityCalendar } from "react-activity-calendar";
 import useSWR from "swr";
 import {
   AlertCircle,
@@ -9,6 +10,7 @@ import {
   GitBranch,
   Link as LinkIcon,
   MapPin,
+  Quote,
   RefreshCw,
   Users,
 } from "lucide-react";
@@ -32,97 +34,46 @@ interface GitHubUser {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-/** GitHub dark UI — fixed palette so the brick reads dark regardless of app theme. */
+/** Fixed light palette so every GitHub brick reads consistently for now. */
 const profileCardShellClass =
-  "h-full min-h-0 w-full gap-3 overflow-hidden rounded-none border border-[#30363d] bg-[#0d1117] py-4 text-[#c9d1d9] shadow-none";
-const profileMutedClass = "text-[#8b949e]";
-const profileHeadingClass = "text-[#f0f6fc]";
+  "h-full min-h-0 w-full gap-1 overflow-hidden rounded-none border border-zinc-200 bg-white py-3 text-zinc-900 shadow-none";
+const profileMutedClass = "text-zinc-500";
+const profileHeadingClass = "text-zinc-950";
 
 function generateContributionData() {
-  const weeks = 26;
-  const contributions: number[][] = [];
+  const days = 26 * 7;
+  const startDate = new Date("2025-11-02T00:00:00.000Z");
+  const contributions = [];
 
-  for (let week = 0; week < weeks; week++) {
-    const weekData: number[] = [];
-    for (let day = 0; day < 7; day++) {
-      const rand = Math.random();
-      if (rand < 0.3) weekData.push(0);
-      else if (rand < 0.5) weekData.push(1);
-      else if (rand < 0.7) weekData.push(2);
-      else if (rand < 0.85) weekData.push(3);
-      else weekData.push(4);
-    }
-    contributions.push(weekData);
+  for (let dayIndex = 0; dayIndex < days; dayIndex++) {
+    const date = new Date(startDate);
+    date.setUTCDate(startDate.getUTCDate() + dayIndex);
+
+    const level = (dayIndex * 7 + (dayIndex % 6)) % 5;
+    contributions.push({
+      date: date.toISOString().slice(0, 10),
+      count: level * 3,
+      level,
+    });
   }
 
   return contributions;
 }
 
-/** GitHub contribution graph scale (dark theme). */
-const contributionColors = [
-  "bg-[#161b22]",
-  "bg-[#0e4429]",
-  "bg-[#006d32]",
-  "bg-[#26a641]",
-  "bg-[#39d353]",
-];
-
-const months = ["Nov", "Dec", "Jan", "Feb", "Mar", "Apr"];
-const days = ["Mon", "Wed", "Fri"];
-
 function ContributionGraph() {
   const contributions = generateContributionData();
 
   return (
-    <div className="space-y-2">
-      <p className={`text-sm ${profileMutedClass}`}>2,560 contributions in the last year</p>
-
-      <div className="overflow-x-auto">
-        <div className="inline-block">
-          <div className="mb-1 ml-8 flex">
-            {months.map((month) => (
-              <span
-                key={month}
-                className={`text-xs ${profileMutedClass}`}
-                style={{ width: `${(26 / 6) * 13}px` }}
-              >
-                {month}
-              </span>
-            ))}
-          </div>
-
-          <div className="flex gap-0.5">
-            <div className="flex w-7 flex-col justify-around pr-1">
-              {days.map((day) => (
-                <span key={day} className={`text-xs leading-3 ${profileMutedClass}`}>
-                  {day}
-                </span>
-              ))}
-            </div>
-
-            <div className="flex gap-[3px]">
-              {contributions.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex flex-col gap-[3px]">
-                  {week.map((level, dayIndex) => (
-                    <div
-                      key={dayIndex}
-                      className={`h-[11px] w-[11px] rounded-full ${contributionColors[level]}`}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-2 flex items-center justify-end gap-1">
-            <span className={`mr-1 text-xs ${profileMutedClass}`}>Less</span>
-            {contributionColors.map((color, i) => (
-              <div key={i} className={`h-[11px] w-[11px] rounded-full ${color}`} />
-            ))}
-            <span className={`ml-1 text-xs ${profileMutedClass}`}>More</span>
-          </div>
-        </div>
-      </div>
+    <div>
+      <ActivityCalendar
+        data={contributions}
+        blockMargin={2}
+        blockSize={9}
+        colorScheme="light"
+        fontSize={10}
+        showTotalCount={false}
+        showWeekdayLabels={["mon", "wed", "fri"]}
+      />
     </div>
   );
 }
@@ -157,7 +108,7 @@ function GitHubProfileErrorState(props: { onRetry: () => void }) {
         type="button"
         variant="outline"
         size="sm"
-        className="border-zinc-700 bg-transparent text-zinc-300 transition-all hover:border-zinc-600 hover:bg-zinc-800 hover:text-zinc-100"
+        className="border-zinc-300 bg-white text-zinc-700 transition-all hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950"
         onClick={onRetry}
       >
         <RefreshCw className="h-4 w-4" />
@@ -173,7 +124,7 @@ function ProfileAvatar(props: { src: string; alt: string; fallback: string }) {
 
   if (failed || !src) {
     return (
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#21262d] text-sm font-medium text-[#f0f6fc]">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-sm font-medium text-zinc-900">
         {fallback}
       </div>
     );
@@ -205,10 +156,10 @@ export function GitHubProfileCard() {
         <CardContent className="p-4">
           <div className="animate-pulse space-y-4">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-[#21262d]" />
+              <div className="h-16 w-16 rounded-full bg-zinc-200" />
               <div className="space-y-2">
-                <div className="h-5 w-32 rounded bg-[#21262d]" />
-                <div className="h-4 w-24 rounded bg-[#21262d]" />
+                <div className="h-5 w-32 rounded bg-zinc-200" />
+                <div className="h-4 w-24 rounded bg-zinc-200" />
               </div>
             </div>
           </div>
@@ -234,20 +185,25 @@ export function GitHubProfileCard() {
 
   return (
     <Card className={profileCardShellClass}>
-      <CardHeader className="shrink-0 px-4 pb-2 pt-0">
-        <div className="flex items-start gap-4">
+      <CardHeader className="shrink-0 px-4 pb-0 pt-0">
+        <div className="flex items-center gap-4">
           <ProfileAvatar src={avatarSrc} alt={displayName} fallback={avatarFallback} />
 
           <div className="min-w-0 flex-1">
             <h2 className={`text-xl font-semibold ${profileHeadingClass}`}>{displayName}</h2>
             <p className={profileMutedClass}>@{user.login}</p>
-            {user.bio && <p className={`mt-1 text-sm ${profileMutedClass}`}>{user.bio}</p>}
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="min-h-0 flex-1 space-y-3 overflow-auto px-4 pb-4">
-        <div className={`flex flex-wrap gap-4 text-sm ${profileMutedClass}`}>
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto px-4 pb-2">
+        <div className={`flex flex-col gap-2 text-sm ${profileMutedClass}`}>
+          {user.bio && (
+            <div className="flex items-center gap-1">
+              <Quote className="h-4 w-4 shrink-0" />
+              <span>{user.bio}</span>
+            </div>
+          )}
           {user.location && (
             <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4 shrink-0" />
@@ -259,7 +215,7 @@ export function GitHubProfileCard() {
               href={user.blog.startsWith("http") ? user.blog : `https://${user.blog}`}
               target="_blank"
               rel="noopener noreferrer"
-              className={`flex items-center gap-1 transition-colors hover:text-[#58a6ff] ${profileMutedClass}`}
+              className={`flex items-center gap-1 transition-colors hover:text-blue-600 ${profileMutedClass}`}
             >
               <LinkIcon className="h-4 w-4 shrink-0" />
               <span>{user.blog.replace(/^https?:\/\//, "")}</span>
@@ -284,7 +240,7 @@ export function GitHubProfileCard() {
           </div>
         </div>
 
-        <div className="border-t border-[#30363d] pt-2">
+        <div className="mt-auto">
           <ContributionGraph />
         </div>
       </CardContent>

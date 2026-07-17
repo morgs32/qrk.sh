@@ -3,17 +3,17 @@ import { primitives } from "@zerospin/core/models/primitives";
 
 import { Grid } from "./Grid";
 
-export const GridItem = makeModel(
+export const Brick = makeModel(
   {
-    abbreviation: "gitm",
-    modelName: "gridItem",
+    abbreviation: "brck",
+    modelName: "brick",
     attributes: {
       gridId: primitives.ref({
         table: Grid.table,
         relation: "grid",
-        inverse: "items",
+        inverse: "bricks",
       }),
-      itemKey: primitives.text(),
+      brickKey: primitives.text(),
       x: primitives.integer(),
       y: primitives.integer(),
       w: primitives.integer(),

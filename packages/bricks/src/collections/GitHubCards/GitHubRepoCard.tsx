@@ -27,12 +27,12 @@ export function GitHubRepoCard() {
 
   if (isLoading) {
     return (
-      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-700 bg-zinc-800 py-0 shadow-none">
+      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-200 bg-white py-0 shadow-none">
         <CardContent className="p-4">
           <div className="animate-pulse space-y-3">
-            <div className="h-5 w-1/2 rounded bg-zinc-700" />
-            <div className="h-4 w-3/4 rounded bg-zinc-700" />
-            <div className="mt-4 h-4 w-1/4 rounded bg-zinc-700" />
+            <div className="h-5 w-1/2 rounded bg-zinc-200" />
+            <div className="h-4 w-3/4 rounded bg-zinc-200" />
+            <div className="mt-4 h-4 w-1/4 rounded bg-zinc-200" />
           </div>
         </CardContent>
       </Card>
@@ -41,16 +41,16 @@ export function GitHubRepoCard() {
 
   if (!data || data.name === undefined) {
     return (
-      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-700 bg-zinc-800 py-0 shadow-none">
+      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-200 bg-white py-0 shadow-none">
         <CardContent className="p-4">
-          <p className="text-zinc-400">Repository not found</p>
+          <p className="text-zinc-500">Repository not found</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-700 bg-zinc-800 py-0 shadow-none transition-colors hover:border-zinc-600">
+    <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-200 bg-white py-0 shadow-none transition-colors hover:border-zinc-300">
       <a
         href={data.html_url}
         target="_blank"
@@ -59,15 +59,15 @@ export function GitHubRepoCard() {
       >
         <CardContent className="flex h-full min-h-0 flex-col p-4">
           <div className="mb-2 flex items-center gap-2">
-            <Monitor className="h-5 w-5 text-zinc-400" />
-            <h3 className="text-lg font-semibold text-zinc-100">{data.name}</h3>
+            <Monitor className="h-5 w-5 text-zinc-500" />
+            <h3 className="text-lg font-semibold text-zinc-950">{data.name}</h3>
           </div>
 
-          <p className="text-zinc-400 mb-4 min-h-0 flex-1 text-sm">
+          <p className="text-zinc-500 mb-4 min-h-0 flex-1 text-sm">
             {data.description || "No description provided"}
           </p>
 
-          <div className="text-zinc-400 mt-auto flex items-center gap-4 text-sm">
+          <div className="text-zinc-500 mt-auto flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
               <Star className="h-4 w-4" />
               <span>{data.stargazers_count}</span>

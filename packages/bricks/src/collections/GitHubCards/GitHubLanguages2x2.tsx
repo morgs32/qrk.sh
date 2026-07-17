@@ -3,7 +3,7 @@ import { GitHubLanguagesCard } from "./GitHubLanguagesCard";
 
 export function GitHubLanguages2x2() {
   return (
-    <BrickFrame backgroundClassName="bg-card" textClassName="text-card-foreground">
+    <BrickFrame backgroundClassName="bg-white" textClassName="text-zinc-950">
       <div className="flex h-full w-full min-h-0 items-stretch justify-stretch">
         <GitHubLanguagesCard />
       </div>

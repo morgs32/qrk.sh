@@ -18,6 +18,7 @@ export default defineConfig({
         "es-toolkit/object",
         "lucide-react",
         "react",
+        "react-activity-calendar",
         "react-dom",
         "react/jsx-runtime",
         "swr",

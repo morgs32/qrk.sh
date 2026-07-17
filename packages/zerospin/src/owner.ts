@@ -8,7 +8,7 @@ import { env } from "cloudflare:workers";
 import { Effect } from "effect";
 
 import { Grid } from "./models/Grid";
-import { GridItem } from "./models/GridItem";
+import { Brick } from "./models/Brick";
 import { Page } from "./models/Page";
 import { Site } from "./models/Site";
 import { User } from "./models/User";
@@ -18,7 +18,7 @@ export const owner = makeActorController({
   name: "owner",
   models: {
     grid: Grid,
-    gridItem: GridItem,
+    brick: Brick,
     page: Page,
     site: Site,
     user: User,
@@ -34,8 +34,8 @@ export const owner = makeActorController({
         },
       }),
     }),
-    gridItem: makeSelection({
-      model: GridItem,
+    brick: makeSelection({
+      model: Brick,
       where: ({ actorId }) => ({
         grid: {
           page: {

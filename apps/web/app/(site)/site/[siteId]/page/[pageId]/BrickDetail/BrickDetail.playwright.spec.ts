@@ -7,13 +7,13 @@ function getSearchParams(url: string) {
 }
 
 test.describe("BrickDetail route", () => {
-  test("clicking a grid brick navigates to brick detail under /site/:siteId/page/:pageId/brick/:brickId", async ({
+  test("clicking a brick navigates to brick detail under /site/:siteId/page/:pageId/brick/:brickId", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(pageBase, { waitUntil: "load" });
 
-    const brick = page.locator('[data-brick-instance-id="orange-flag--0"]');
+    const brick = page.locator('[data-brick-id="orange-flag--0"]');
     await expect(brick).toBeVisible({ timeout: 90_000 });
     await brick.click();
 
@@ -22,13 +22,13 @@ test.describe("BrickDetail route", () => {
     expect(getSearchParams(page.url()).get("brickId")).toBeNull();
   });
 
-  test("dragging a grid brick does not navigate to brick detail", async ({ page }) => {
+  test("dragging a brick does not navigate to brick detail", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(pageBase, { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     const brick = grid
-      .locator('[data-brick-grid-collection-name="orange-flag"][data-brick-grid-brick-name="4x4"]')
+      .locator('[data-brick-collection-name="orange-flag"][data-brick-name="4x4"]')
       .first();
     await expect(brick).toBeVisible({ timeout: 90_000 });
     await brick.scrollIntoViewIfNeeded();
@@ -49,7 +49,7 @@ test.describe("BrickDetail route", () => {
     expect(new URL(page.url()).pathname).toBe(pageBase);
   });
 
-  test("brick drawer shows instance id on brick detail route", async ({ page }) => {
+  test("brick drawer shows brick id on brick detail route", async ({ page }) => {
     await page.goto(`${pageBase}/brick/orange-flag--0`, { waitUntil: "load" });
 
     await expect(page.getByTestId("brick-detail-title")).toHaveText("orange-flag--0", {

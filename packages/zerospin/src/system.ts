@@ -3,7 +3,7 @@ import { makeSystem } from "@zerospin/core/system/makeSystem";
 
 import { createGrid, createPage, createSite, createUser, updateGrid } from "./contracts";
 import { Grid } from "./models/Grid";
-import { GridItem } from "./models/GridItem";
+import { Brick } from "./models/Brick";
 import { Page } from "./models/Page";
 import { Site } from "./models/Site";
 import { User } from "./models/User";
@@ -16,7 +16,7 @@ export const userAccount = makeAccountController({
   },
   models: {
     grid: Grid,
-    gridItem: GridItem,
+    brick: Brick,
     page: Page,
     site: Site,
     user: User,

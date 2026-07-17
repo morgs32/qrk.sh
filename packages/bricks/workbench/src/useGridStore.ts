@@ -5,11 +5,11 @@ import { persist } from "zustand/middleware";
 
 export const useGridStore = create<{
   layout: Layout;
-  gridBricksById: Record<string, ICollectionBrickDef>;
+  bricksById: Record<string, ICollectionBrickDef>;
   activeBrickDrag: ICollectionBrickDef | null;
   hasHydrated: boolean;
   setLayout: (layout: Layout) => void;
-  addGridBrick: (gridBrickId: string, brickDef: ICollectionBrickDef, layout: Layout) => void;
+  addBrick: (brickId: string, brickDef: ICollectionBrickDef, layout: Layout) => void;
   setActiveBrickDrag: (brickDef: ICollectionBrickDef | null) => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 }>()(
@@ -21,18 +21,18 @@ export const useGridStore = create<{
         { i: "fixture-3", x: 4, y: 0, w: 2, h: 2 },
         { i: "fixture-4", x: 6, y: 0, w: 2, h: 2 },
       ],
-      gridBricksById: {},
+      bricksById: {},
       activeBrickDrag: null,
       hasHydrated: false,
       setLayout: (layout) => {
         set({ layout });
       },
-      addGridBrick: (gridBrickId, brickDef, layout) => {
+      addBrick: (brickId, brickDef, layout) => {
         set((state) => ({
           layout,
-          gridBricksById: {
-            ...state.gridBricksById,
-            [gridBrickId]: brickDef,
+          bricksById: {
+            ...state.bricksById,
+            [brickId]: brickDef,
           },
         }));
       },
@@ -47,7 +47,7 @@ export const useGridStore = create<{
       name: "qrk-bricks-sandbox-single-grid",
       partialize: (state) => ({
         layout: state.layout,
-        gridBricksById: state.gridBricksById,
+        bricksById: state.bricksById,
       }),
       skipHydration: true,
       onRehydrateStorage: (stateBeforeHydration) => (stateAfterHydration) => {

@@ -4,7 +4,7 @@ import { Effect, Schema } from "effect";
 
 import { createGrid, createPage, createSite, updateGrid } from "./contracts";
 import { Grid } from "./models/Grid";
-import { GridItem } from "./models/GridItem";
+import { Brick } from "./models/Brick";
 import { Page } from "./models/Page";
 import { Site } from "./models/Site";
 import { User } from "./models/User";
@@ -23,7 +23,7 @@ export const ownerFrontend = makeFrontendController({
   systemName: "qrk-sh",
   models: {
     grid: Grid,
-    gridItem: GridItem,
+    brick: Brick,
     page: Page,
     site: Site,
     user: User,
@@ -142,55 +142,55 @@ export const ownerFrontend = makeFrontendController({
         }
 
         // 1 — a create snapshot cannot repeat a resource id or stable item key.
-        for (let gridItemIndex = 0; gridItemIndex < payload.gridItems.length; gridItemIndex += 1) {
-          const gridItem = payload.gridItems[gridItemIndex];
-          if (gridItem === undefined) {
+        for (let brickIndex = 0; brickIndex < payload.bricks.length; brickIndex += 1) {
+          const brick = payload.bricks[brickIndex];
+          if (brick === undefined) {
             continue;
           }
 
-          const canonicalGridItemId = GridItem.prefixId(`${payload.id}/${gridItem.itemKey}`);
-          if (gridItem.id !== canonicalGridItemId) {
+          const canonicalBrickId = Brick.prefixId(`${payload.id}/${brick.brickKey}`);
+          if (brick.id !== canonicalBrickId) {
             return yield* new ZerospinError({
-              code: "create-grid-item-id-not-canonical",
-              message: `GridItem ${gridItem.id} must use canonical Grid item id ${canonicalGridItemId}`,
+              code: "create-brick-id-not-canonical",
+              message: `Brick ${brick.id} must use canonical Brick id ${canonicalBrickId}`,
               status: 400,
             });
           }
 
           for (
-            let comparedGridItemIndex = gridItemIndex + 1;
-            comparedGridItemIndex < payload.gridItems.length;
-            comparedGridItemIndex += 1
+            let comparedBrickIndex = brickIndex + 1;
+            comparedBrickIndex < payload.bricks.length;
+            comparedBrickIndex += 1
           ) {
-            const comparedGridItem = payload.gridItems[comparedGridItemIndex];
-            if (comparedGridItem === undefined) {
+            const comparedBrick = payload.bricks[comparedBrickIndex];
+            if (comparedBrick === undefined) {
               continue;
             }
-            if (gridItem.id === comparedGridItem.id) {
+            if (brick.id === comparedBrick.id) {
               return yield* new ZerospinError({
-                code: "create-grid-duplicate-grid-item-id",
-                message: `GridItem id ${gridItem.id} appears more than once`,
+                code: "create-grid-duplicate-brick-id",
+                message: `Brick id ${brick.id} appears more than once`,
                 status: 400,
               });
             }
-            if (gridItem.itemKey === comparedGridItem.itemKey) {
+            if (brick.brickKey === comparedBrick.brickKey) {
               return yield* new ZerospinError({
-                code: "create-grid-duplicate-grid-item-key",
-                message: `GridItem key ${gridItem.itemKey} appears more than once`,
+                code: "create-grid-duplicate-brick-key",
+                message: `Brick key ${brick.brickKey} appears more than once`,
                 status: 400,
               });
             }
           }
 
-          const existingGridItem = db.query.gridItem
+          const existingBrick = db.query.brick
             .findFirst({
-              where: { id: { eq: gridItem.id } },
+              where: { id: { eq: brick.id } },
             })
             .sync();
-          if (existingGridItem !== undefined) {
+          if (existingBrick !== undefined) {
             return yield* new ZerospinError({
-              code: "create-grid-item-already-exists",
-              message: `GridItem ${gridItem.id} already exists`,
+              code: "create-brick-already-exists",
+              message: `Brick ${brick.id} already exists`,
               status: 409,
             });
           }
@@ -282,66 +282,66 @@ export const ownerFrontend = makeFrontendController({
           });
         }
 
-        const persistedGridItems = db.query.gridItem
+        const persistedBricks = db.query.brick
           .findMany({
             where: { gridId: { eq: payload.id } },
           })
           .sync();
         let hasMutationIntent = payload.gridIntent === "update";
 
-        // 1 — desired snapshot ids and item keys must each be unique.
-        for (let gridItemIndex = 0; gridItemIndex < payload.gridItems.length; gridItemIndex += 1) {
-          const gridItem = payload.gridItems[gridItemIndex];
-          if (gridItem === undefined) {
+        // 1 — desired snapshot ids and brick keys must each be unique.
+        for (let brickIndex = 0; brickIndex < payload.bricks.length; brickIndex += 1) {
+          const brick = payload.bricks[brickIndex];
+          if (brick === undefined) {
             continue;
           }
 
-          const canonicalGridItemId = GridItem.prefixId(`${payload.id}/${gridItem.itemKey}`);
-          if (gridItem.id !== canonicalGridItemId) {
+          const canonicalBrickId = Brick.prefixId(`${payload.id}/${brick.brickKey}`);
+          if (brick.id !== canonicalBrickId) {
             return yield* new ZerospinError({
-              code: "update-grid-item-id-not-canonical",
-              message: `GridItem ${gridItem.id} must use canonical Grid item id ${canonicalGridItemId}`,
+              code: "update-brick-id-not-canonical",
+              message: `Brick ${brick.id} must use canonical Brick id ${canonicalBrickId}`,
               status: 400,
             });
           }
 
           for (
-            let comparedGridItemIndex = gridItemIndex + 1;
-            comparedGridItemIndex < payload.gridItems.length;
-            comparedGridItemIndex += 1
+            let comparedBrickIndex = brickIndex + 1;
+            comparedBrickIndex < payload.bricks.length;
+            comparedBrickIndex += 1
           ) {
-            const comparedGridItem = payload.gridItems[comparedGridItemIndex];
-            if (comparedGridItem === undefined) {
+            const comparedBrick = payload.bricks[comparedBrickIndex];
+            if (comparedBrick === undefined) {
               continue;
             }
-            if (gridItem.id === comparedGridItem.id) {
+            if (brick.id === comparedBrick.id) {
               return yield* new ZerospinError({
-                code: "update-grid-duplicate-grid-item-id",
-                message: `GridItem id ${gridItem.id} appears more than once`,
+                code: "update-grid-duplicate-brick-id",
+                message: `Brick id ${brick.id} appears more than once`,
                 status: 400,
               });
             }
-            if (gridItem.itemKey === comparedGridItem.itemKey) {
+            if (brick.brickKey === comparedBrick.brickKey) {
               return yield* new ZerospinError({
-                code: "update-grid-duplicate-grid-item-key",
-                message: `GridItem key ${gridItem.itemKey} appears more than once`,
+                code: "update-grid-duplicate-brick-key",
+                message: `Brick key ${brick.brickKey} appears more than once`,
                 status: 400,
               });
             }
           }
 
-          const persistedGridItem = db.query.gridItem
+          const persistedBrick = db.query.brick
             .findFirst({
-              where: { id: { eq: gridItem.id } },
+              where: { id: { eq: brick.id } },
             })
             .sync();
 
-          if (gridItem.intent === "create") {
+          if (brick.intent === "create") {
             hasMutationIntent = true;
-            if (persistedGridItem !== undefined) {
+            if (persistedBrick !== undefined) {
               return yield* new ZerospinError({
-                code: "update-grid-create-item-already-exists",
-                message: `GridItem ${gridItem.id} cannot be created because it already exists`,
+                code: "update-grid-create-brick-already-exists",
+                message: `Brick ${brick.id} cannot be created because it already exists`,
                 status: 409,
               });
             }
@@ -349,38 +349,38 @@ export const ownerFrontend = makeFrontendController({
           }
 
           if (
-            persistedGridItem === undefined ||
-            persistedGridItem.gridId !== payload.id ||
-            persistedGridItem.itemKey !== gridItem.itemKey
+            persistedBrick === undefined ||
+            persistedBrick.gridId !== payload.id ||
+            persistedBrick.brickKey !== brick.brickKey
           ) {
             return yield* new ZerospinError({
-              code: "update-grid-item-identity-mismatch",
-              message: `GridItem ${gridItem.id} does not match Grid ${payload.id} and key ${gridItem.itemKey}`,
+              code: "update-brick-identity-mismatch",
+              message: `Brick ${brick.id} does not match Grid ${payload.id} and key ${brick.brickKey}`,
               status: 400,
             });
           }
 
-          const gridItemChanged =
-            persistedGridItem.x !== gridItem.x ||
-            persistedGridItem.y !== gridItem.y ||
-            persistedGridItem.w !== gridItem.w ||
-            persistedGridItem.h !== gridItem.h ||
-            persistedGridItem.collectionName !== gridItem.collectionName ||
-            persistedGridItem.brickName !== gridItem.brickName;
+          const brickChanged =
+            persistedBrick.x !== brick.x ||
+            persistedBrick.y !== brick.y ||
+            persistedBrick.w !== brick.w ||
+            persistedBrick.h !== brick.h ||
+            persistedBrick.collectionName !== brick.collectionName ||
+            persistedBrick.brickName !== brick.brickName;
 
-          if (gridItem.intent === "update") {
+          if (brick.intent === "update") {
             hasMutationIntent = true;
-            if (!gridItemChanged) {
+            if (!brickChanged) {
               return yield* new ZerospinError({
-                code: "update-grid-item-intent-without-change",
-                message: `GridItem ${gridItem.id} declared update intent without changed attributes`,
+                code: "update-brick-intent-without-change",
+                message: `Brick ${brick.id} declared update intent without changed attributes`,
                 status: 400,
               });
             }
-          } else if (gridItemChanged) {
+          } else if (brickChanged) {
             return yield* new ZerospinError({
-              code: "update-grid-item-change-without-intent",
-              message: `GridItem ${gridItem.id} changed without update intent`,
+              code: "update-brick-change-without-intent",
+              message: `Brick ${brick.id} changed without update intent`,
               status: 400,
             });
           }
@@ -388,66 +388,66 @@ export const ownerFrontend = makeFrontendController({
 
         // 2 — delete ids must be unique, belong to this Grid, and not remain in the desired snapshot.
         for (
-          let deletedGridItemIndex = 0;
-          deletedGridItemIndex < payload.deletedGridItemIds.length;
-          deletedGridItemIndex += 1
+          let deletedBrickIndex = 0;
+          deletedBrickIndex < payload.deletedBrickIds.length;
+          deletedBrickIndex += 1
         ) {
-          const deletedGridItemId = payload.deletedGridItemIds[deletedGridItemIndex];
-          if (deletedGridItemId === undefined) {
+          const deletedBrickId = payload.deletedBrickIds[deletedBrickIndex];
+          if (deletedBrickId === undefined) {
             continue;
           }
           hasMutationIntent = true;
 
           for (
-            let comparedDeletedGridItemIndex = deletedGridItemIndex + 1;
-            comparedDeletedGridItemIndex < payload.deletedGridItemIds.length;
-            comparedDeletedGridItemIndex += 1
+            let comparedDeletedBrickIndex = deletedBrickIndex + 1;
+            comparedDeletedBrickIndex < payload.deletedBrickIds.length;
+            comparedDeletedBrickIndex += 1
           ) {
-            if (deletedGridItemId === payload.deletedGridItemIds[comparedDeletedGridItemIndex]) {
+            if (deletedBrickId === payload.deletedBrickIds[comparedDeletedBrickIndex]) {
               return yield* new ZerospinError({
                 code: "update-grid-duplicate-delete-id",
-                message: `Deleted GridItem id ${deletedGridItemId} appears more than once`,
+                message: `Deleted Brick id ${deletedBrickId} appears more than once`,
                 status: 400,
               });
             }
           }
 
-          for (const desiredGridItem of payload.gridItems) {
-            if (desiredGridItem.id === deletedGridItemId) {
+          for (const desiredBrick of payload.bricks) {
+            if (desiredBrick.id === deletedBrickId) {
               return yield* new ZerospinError({
-                code: "update-grid-item-kept-and-deleted",
-                message: `GridItem ${deletedGridItemId} cannot be kept and deleted in one snapshot`,
+                code: "update-brick-kept-and-deleted",
+                message: `Brick ${deletedBrickId} cannot be kept and deleted in one snapshot`,
                 status: 400,
               });
             }
           }
 
-          const deletedGridItem = db.query.gridItem
+          const deletedBrick = db.query.brick
             .findFirst({
-              where: { id: { eq: deletedGridItemId } },
+              where: { id: { eq: deletedBrickId } },
             })
             .sync();
-          if (deletedGridItem === undefined || deletedGridItem.gridId !== payload.id) {
+          if (deletedBrick === undefined || deletedBrick.gridId !== payload.id) {
             return yield* new ZerospinError({
-              code: "update-grid-delete-item-identity-mismatch",
-              message: `Deleted GridItem ${deletedGridItemId} does not belong to Grid ${payload.id}`,
+              code: "update-grid-delete-brick-identity-mismatch",
+              message: `Deleted Brick ${deletedBrickId} does not belong to Grid ${payload.id}`,
               status: 400,
             });
           }
         }
 
-        // 3 — every persisted item must be represented exactly once as kept or deleted.
-        for (const persistedGridItem of persistedGridItems) {
+        // 3 — every persisted brick must be represented exactly once as kept or deleted.
+        for (const persistedBrick of persistedBricks) {
           let isInDesiredSnapshot = false;
-          for (const desiredGridItem of payload.gridItems) {
-            if (desiredGridItem.id === persistedGridItem.id) {
+          for (const desiredBrick of payload.bricks) {
+            if (desiredBrick.id === persistedBrick.id) {
               isInDesiredSnapshot = true;
             }
           }
 
           let isDeleted = false;
-          for (const deletedGridItemId of payload.deletedGridItemIds) {
-            if (deletedGridItemId === persistedGridItem.id) {
+          for (const deletedBrickId of payload.deletedBrickIds) {
+            if (deletedBrickId === persistedBrick.id) {
               isDeleted = true;
             }
           }
@@ -455,7 +455,7 @@ export const ownerFrontend = makeFrontendController({
           if (!isInDesiredSnapshot && !isDeleted) {
             return yield* new ZerospinError({
               code: "update-grid-incomplete-snapshot",
-              message: `Persisted GridItem ${persistedGridItem.id} is missing from the submitted snapshot`,
+              message: `Persisted Brick ${persistedBrick.id} is missing from the submitted snapshot`,
               status: 400,
             });
           }

@@ -7,7 +7,7 @@ import { describe, expect } from "vitest";
 
 import { createGrid, updateGrid } from "./contracts";
 import { Grid } from "./models/Grid";
-import { GridItem } from "./models/GridItem";
+import { Brick } from "./models/Brick";
 import { Page } from "./models/Page";
 import { Site } from "./models/Site";
 import { User } from "./models/User";
@@ -15,13 +15,13 @@ import { ownerFrontend } from "./ownerFrontend";
 
 describe("aggregate Grid contracts", () => {
   it.effect(
-    "createGrid emits one Grid mutation and one mutation for every submitted GridItem",
+    "createGrid emits one Grid mutation and one mutation for every submitted Brick",
     () =>
       Effect.gen(function* () {
         const gridId = "grd_contract_create";
         const pageId = "pag_contract_create";
-        const firstGridItemId = "gitm_contract_create_first";
-        const secondGridItemId = "gitm_contract_create_second";
+        const firstBrickId = "brck_contract_create_first";
+        const secondBrickId = "brck_contract_create_second";
 
         const mutations = yield* createGrid.program({
           payload: {
@@ -29,10 +29,10 @@ describe("aggregate Grid contracts", () => {
             pageId,
             name: "Home grid",
             columnCount: 8,
-            gridItems: [
+            bricks: [
               {
-                id: firstGridItemId,
-                itemKey: "orange-flag--0",
+                id: firstBrickId,
+                brickKey: "orange-flag--0",
                 x: 0,
                 y: 0,
                 w: 4,
@@ -41,8 +41,8 @@ describe("aggregate Grid contracts", () => {
                 brickName: "4x4",
               },
               {
-                id: secondGridItemId,
-                itemKey: "text-brick-work--0",
+                id: secondBrickId,
+                brickKey: "text-brick-work--0",
                 x: 0,
                 y: 4,
                 w: 8,
@@ -69,13 +69,13 @@ describe("aggregate Grid contracts", () => {
           },
         });
         expect(mutations[1]).toEqual({
-          model: GridItem,
+          model: Brick,
           operationName: "create",
-          resourceId: firstGridItemId,
+          resourceId: firstBrickId,
           operation: {
             attributes: {
               gridId,
-              itemKey: "orange-flag--0",
+              brickKey: "orange-flag--0",
               x: 0,
               y: 0,
               w: 4,
@@ -86,13 +86,13 @@ describe("aggregate Grid contracts", () => {
           },
         });
         expect(mutations[2]).toEqual({
-          model: GridItem,
+          model: Brick,
           operationName: "create",
-          resourceId: secondGridItemId,
+          resourceId: secondBrickId,
           operation: {
             attributes: {
               gridId,
-              itemKey: "text-brick-work--0",
+              brickKey: "text-brick-work--0",
               x: 0,
               y: 4,
               w: 8,
@@ -105,7 +105,7 @@ describe("aggregate Grid contracts", () => {
       }),
   );
 
-  it.effect("createGrid with no GridItems emits only the Grid mutation", () =>
+  it.effect("createGrid with no Bricks emits only the Grid mutation", () =>
     Effect.gen(function* () {
       const mutations = yield* createGrid.program({
         payload: {
@@ -113,7 +113,7 @@ describe("aggregate Grid contracts", () => {
           pageId: "pag_contract_create_empty",
           name: "Empty grid",
           columnCount: 8,
-          gridItems: [],
+          bricks: [],
         },
       });
 
@@ -125,14 +125,14 @@ describe("aggregate Grid contracts", () => {
   );
 
   it.effect(
-    "updateGrid emits one mixed create/update/delete set and omits unchanged GridItems",
+    "updateGrid emits one mixed create/update/delete set and omits unchanged Bricks",
     () =>
       Effect.gen(function* () {
         const gridId = "grd_contract_update";
-        const createdGridItemId = "gitm_contract_update_created";
-        const unchangedGridItemId = "gitm_contract_update_unchanged";
-        const updatedGridItemId = "gitm_contract_update_changed";
-        const deletedGridItemId = "gitm_contract_update_deleted";
+        const createdBrickId = "brck_contract_update_created";
+        const unchangedBrickId = "brck_contract_update_unchanged";
+        const updatedBrickId = "brck_contract_update_changed";
+        const deletedBrickId = "brck_contract_update_deleted";
         const expectedRevision = 3;
 
         const mutations = yield* updateGrid.program({
@@ -142,11 +142,11 @@ describe("aggregate Grid contracts", () => {
             columnCount: 12,
             gridIntent: "update",
             expectedRevision,
-            gridItems: [
+            bricks: [
               {
                 intent: "create",
-                id: createdGridItemId,
-                itemKey: "new-brick",
+                id: createdBrickId,
+                brickKey: "new-brick",
                 x: 0,
                 y: 0,
                 w: 2,
@@ -156,8 +156,8 @@ describe("aggregate Grid contracts", () => {
               },
               {
                 intent: "none",
-                id: unchangedGridItemId,
-                itemKey: "unchanged-brick",
+                id: unchangedBrickId,
+                brickKey: "unchanged-brick",
                 x: 2,
                 y: 0,
                 w: 2,
@@ -167,8 +167,8 @@ describe("aggregate Grid contracts", () => {
               },
               {
                 intent: "update",
-                id: updatedGridItemId,
-                itemKey: "changed-brick",
+                id: updatedBrickId,
+                brickKey: "changed-brick",
                 x: 0,
                 y: 2,
                 w: 8,
@@ -177,7 +177,7 @@ describe("aggregate Grid contracts", () => {
                 brickName: "8x2",
               },
             ],
-            deletedGridItemIds: [deletedGridItemId],
+            deletedBrickIds: [deletedBrickId],
           },
         });
 
@@ -195,13 +195,13 @@ describe("aggregate Grid contracts", () => {
           },
         });
         expect(mutations[1]).toEqual({
-          model: GridItem,
+          model: Brick,
           operationName: "create",
-          resourceId: createdGridItemId,
+          resourceId: createdBrickId,
           operation: {
             attributes: {
               gridId,
-              itemKey: "new-brick",
+              brickKey: "new-brick",
               x: 0,
               y: 0,
               w: 2,
@@ -212,9 +212,9 @@ describe("aggregate Grid contracts", () => {
           },
         });
         expect(mutations[2]).toEqual({
-          model: GridItem,
+          model: Brick,
           operationName: "update",
-          resourceId: updatedGridItemId,
+          resourceId: updatedBrickId,
           operation: {
             attributes: {
               x: 0,
@@ -227,21 +227,21 @@ describe("aggregate Grid contracts", () => {
           },
         });
         expect(mutations[3]).toEqual({
-          model: GridItem,
+          model: Brick,
           operationName: "delete",
-          resourceId: deletedGridItemId,
+          resourceId: deletedBrickId,
           operation: {},
         });
-        expect(mutations.some((mutation) => mutation.resourceId === unchangedGridItemId)).toBe(
+        expect(mutations.some((mutation) => mutation.resourceId === unchangedBrickId)).toBe(
           false,
         );
       }),
   );
 
-  it.effect("updateGrid advances the aggregate revision for a GridItem-only update", () =>
+  it.effect("updateGrid advances the aggregate revision for a Brick-only update", () =>
     Effect.gen(function* () {
-      const gridId = "grd_contract_item_only_update";
-      const gridItemId = "gitm_contract_item_only_update";
+      const gridId = "grd_contract_brick_only_update";
+      const brickId = "brck_contract_brick_only_update";
       const mutations = yield* updateGrid.program({
         payload: {
           id: gridId,
@@ -249,11 +249,11 @@ describe("aggregate Grid contracts", () => {
           columnCount: 8,
           gridIntent: "none",
           expectedRevision: 7,
-          gridItems: [
+          bricks: [
             {
               intent: "update",
-              id: gridItemId,
-              itemKey: "changed-brick",
+              id: brickId,
+              brickKey: "changed-brick",
               x: 4,
               y: 2,
               w: 4,
@@ -262,7 +262,7 @@ describe("aggregate Grid contracts", () => {
               brickName: "4x4",
             },
           ],
-          deletedGridItemIds: [],
+          deletedBrickIds: [],
         },
       });
 
@@ -279,13 +279,13 @@ describe("aggregate Grid contracts", () => {
           },
         },
       });
-      expect(mutations[1]?.model).toBe(GridItem);
+      expect(mutations[1]?.model).toBe(Brick);
       expect(mutations[1]?.operationName).toBe("update");
-      expect(mutations[1]?.resourceId).toBe(gridItemId);
+      expect(mutations[1]?.resourceId).toBe(brickId);
     }),
   );
 
-  it.effect("updateGrid emits no mutation for an unchanged Grid and unchanged GridItems", () =>
+  it.effect("updateGrid emits no mutation for an unchanged Grid and unchanged Bricks", () =>
     Effect.gen(function* () {
       const mutations = yield* updateGrid.program({
         payload: {
@@ -294,11 +294,11 @@ describe("aggregate Grid contracts", () => {
           columnCount: 8,
           gridIntent: "none",
           expectedRevision: 0,
-          gridItems: [
+          bricks: [
             {
               intent: "none",
-              id: "gitm_contract_update_none",
-              itemKey: "unchanged-brick",
+              id: "brck_contract_update_none",
+              brickKey: "unchanged-brick",
               x: 0,
               y: 0,
               w: 4,
@@ -307,7 +307,7 @@ describe("aggregate Grid contracts", () => {
               brickName: "4x4",
             },
           ],
-          deletedGridItemIds: [],
+          deletedBrickIds: [],
         },
       });
 
@@ -324,7 +324,7 @@ describe("owner frontend Grid guards", () => {
       const siteId = "sit_grid_guard_site";
       const pageId = "pag_grid_guard_page";
       const gridId = Grid.prefixId(`${pageId}/main`);
-      const gridItemId = GridItem.prefixId(`${gridId}/orange-flag--0`);
+      const brickId = Brick.prefixId(`${gridId}/orange-flag--0`);
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
         models: ownerFrontend.models,
@@ -378,7 +378,7 @@ describe("owner frontend Grid guards", () => {
         throw new Error("Expected ownerFrontend createGrid guard");
       }
 
-      // 2 — Grid and GridItem ids are deterministic parts of the aggregate boundary.
+      // 2 — Grid and Brick ids are deterministic parts of the aggregate boundary.
       const noncanonicalGridError = yield* createGuard({
         actorId,
         db,
@@ -387,7 +387,7 @@ describe("owner frontend Grid guards", () => {
           pageId,
           name: "Home grid",
           columnCount: 8,
-          gridItems: [],
+          bricks: [],
         },
       }).pipe(Effect.flip);
 
@@ -396,7 +396,7 @@ describe("owner frontend Grid guards", () => {
         status: 400,
       });
 
-      const noncanonicalGridItemError = yield* createGuard({
+      const noncanonicalBrickError = yield* createGuard({
         actorId,
         db,
         payload: {
@@ -404,10 +404,10 @@ describe("owner frontend Grid guards", () => {
           pageId,
           name: "Home grid",
           columnCount: 8,
-          gridItems: [
+          bricks: [
             {
-              id: "gitm_grid_guard_noncanonical",
-              itemKey: "orange-flag--0",
+              id: "brck_grid_guard_noncanonical",
+              brickKey: "orange-flag--0",
               x: 0,
               y: 0,
               w: 4,
@@ -419,12 +419,12 @@ describe("owner frontend Grid guards", () => {
         },
       }).pipe(Effect.flip);
 
-      expect(noncanonicalGridItemError).toMatchObject({
-        code: "create-grid-item-id-not-canonical",
+      expect(noncanonicalBrickError).toMatchObject({
+        code: "create-brick-id-not-canonical",
         status: 400,
       });
 
-      // 3 — complete the owned Page -> Grid -> GridItem graph for update checks.
+      // 3 — complete the owned Page -> Grid -> Brick graph for update checks.
       db.insert(Grid.drizzleSchema)
         .values({
           id: gridId,
@@ -438,15 +438,15 @@ describe("owner frontend Grid guards", () => {
           revision: 0,
         })
         .run();
-      db.insert(GridItem.drizzleSchema)
+      db.insert(Brick.drizzleSchema)
         .values({
-          id: gridItemId,
-          modelName: GridItem.modelName,
-          version: GridItem.version,
+          id: brickId,
+          modelName: Brick.modelName,
+          version: Brick.version,
           createdAt: now,
           updatedAt: now,
           gridId,
-          itemKey: "orange-flag--0",
+          brickKey: "orange-flag--0",
           x: 0,
           y: 0,
           w: 4,
@@ -471,11 +471,11 @@ describe("owner frontend Grid guards", () => {
           columnCount: 8,
           gridIntent: "none",
           expectedRevision: 0,
-          gridItems: [
+          bricks: [
             {
               intent: "update",
-              id: gridItemId,
-              itemKey: "orange-flag--0",
+              id: brickId,
+              brickKey: "orange-flag--0",
               x: 0,
               y: 0,
               w: 4,
@@ -484,12 +484,12 @@ describe("owner frontend Grid guards", () => {
               brickName: "4x4",
             },
           ],
-          deletedGridItemIds: [],
+          deletedBrickIds: [],
         },
       }).pipe(Effect.flip);
 
       expect(error).toMatchObject({
-        code: "update-grid-item-intent-without-change",
+        code: "update-brick-intent-without-change",
         status: 400,
       });
 
@@ -503,11 +503,11 @@ describe("owner frontend Grid guards", () => {
           columnCount: 8,
           gridIntent: "none",
           expectedRevision: 0,
-          gridItems: [
+          bricks: [
             {
               intent: "none",
-              id: "gitm_grid_guard_noncanonical_update",
-              itemKey: "orange-flag--0",
+              id: "brck_grid_guard_noncanonical_update",
+              brickKey: "orange-flag--0",
               x: 0,
               y: 0,
               w: 4,
@@ -516,16 +516,16 @@ describe("owner frontend Grid guards", () => {
               brickName: "4x4",
             },
           ],
-          deletedGridItemIds: [],
+          deletedBrickIds: [],
         },
       }).pipe(Effect.flip);
 
       expect(noncanonicalUpdateItemError).toMatchObject({
-        code: "update-grid-item-id-not-canonical",
+        code: "update-brick-id-not-canonical",
         status: 400,
       });
 
-      // 6 — a canonical desired item cannot claim a missing GridItem resource.
+      // 6 — a canonical desired item cannot claim a missing Brick resource.
       const foreignIdentityError = yield* guard({
         actorId,
         db,
@@ -535,11 +535,11 @@ describe("owner frontend Grid guards", () => {
           columnCount: 8,
           gridIntent: "none",
           expectedRevision: 0,
-          gridItems: [
+          bricks: [
             {
               intent: "none",
-              id: GridItem.prefixId(`${gridId}/missing-brick`),
-              itemKey: "missing-brick",
+              id: Brick.prefixId(`${gridId}/missing-brick`),
+              brickKey: "missing-brick",
               x: 0,
               y: 0,
               w: 4,
@@ -548,16 +548,16 @@ describe("owner frontend Grid guards", () => {
               brickName: "4x4",
             },
           ],
-          deletedGridItemIds: [],
+          deletedBrickIds: [],
         },
       }).pipe(Effect.flip);
 
       expect(foreignIdentityError).toMatchObject({
-        code: "update-grid-item-identity-mismatch",
+        code: "update-brick-identity-mismatch",
         status: 400,
       });
 
-      // 7 — every persisted GridItem must be kept or explicitly deleted.
+      // 7 — every persisted Brick must be kept or explicitly deleted.
       const incompleteSnapshotError = yield* guard({
         actorId,
         db,
@@ -567,8 +567,8 @@ describe("owner frontend Grid guards", () => {
           columnCount: 8,
           gridIntent: "none",
           expectedRevision: 0,
-          gridItems: [],
-          deletedGridItemIds: [],
+          bricks: [],
+          deletedBrickIds: [],
         },
       }).pipe(Effect.flip);
 
@@ -587,11 +587,11 @@ describe("owner frontend Grid guards", () => {
           columnCount: 8,
           gridIntent: "none",
           expectedRevision: -1,
-          gridItems: [
+          bricks: [
             {
               intent: "none",
-              id: gridItemId,
-              itemKey: "orange-flag--0",
+              id: brickId,
+              brickKey: "orange-flag--0",
               x: 0,
               y: 0,
               w: 4,
@@ -600,7 +600,7 @@ describe("owner frontend Grid guards", () => {
               brickName: "4x4",
             },
           ],
-          deletedGridItemIds: [],
+          deletedBrickIds: [],
         },
       }).pipe(Effect.flip);
 

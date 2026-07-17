@@ -47,13 +47,13 @@ export function GitHubLanguagesCard() {
 
   if (isLoading) {
     return (
-      <Card className="border-border bg-card h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border py-0 shadow-none">
+      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-200 bg-white py-0 text-zinc-950 shadow-none">
         <CardContent className="p-3">
           <div className="flex items-center gap-3">
-            <div className="bg-muted h-20 w-20 animate-pulse rounded-full" />
+            <div className="h-20 w-20 animate-pulse rounded-full bg-zinc-200" />
             <div className="flex-1 space-y-2">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="bg-muted h-3 rounded animate-pulse" />
+                <div key={i} className="h-3 animate-pulse rounded bg-zinc-200" />
               ))}
             </div>
           </div>
@@ -64,9 +64,9 @@ export function GitHubLanguagesCard() {
 
   if (error || !data) {
     return (
-      <Card className="border-border bg-card h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border py-0 shadow-none">
+      <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-200 bg-white py-0 text-zinc-950 shadow-none">
         <CardContent className="p-3">
-          <p className="text-muted-foreground text-xs">Failed to load languages</p>
+          <p className="text-xs text-zinc-500">Failed to load languages</p>
         </CardContent>
       </Card>
     );
@@ -112,7 +112,7 @@ export function GitHubLanguagesCard() {
   const circumference = 2 * Math.PI * radius;
 
   return (
-    <Card className="border-border bg-card h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border py-0 shadow-none">
+    <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border border-zinc-200 bg-white py-0 text-zinc-950 shadow-none">
       <CardContent className="min-h-0 flex-1 overflow-auto p-3">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
@@ -146,11 +146,9 @@ export function GitHubLanguagesCard() {
                     className="h-2.5 w-2.5 shrink-0 rounded-sm"
                     style={{ backgroundColor: getLanguageColor(lang.name) }}
                   />
-                  <span className="text-foreground truncate">{lang.name}</span>
+                  <span className="truncate text-zinc-900">{lang.name}</span>
                 </div>
-                <span className="text-muted-foreground shrink-0 tabular-nums">
-                  {lang.percentage}%
-                </span>
+                <span className="shrink-0 tabular-nums text-zinc-500">{lang.percentage}%</span>
               </div>
             ))}
           </div>

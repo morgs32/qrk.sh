@@ -10,7 +10,7 @@ function drawerBrickPreviewSlot(page: Page, collectionName: string, brickName: s
 
 function gridLocateByBrickNames(grid: Locator, collectionName: string, brickName: string) {
   return grid.locator(
-    `[data-brick-grid-collection-name="${collectionName}"][data-brick-grid-brick-name="${brickName}"]`,
+    `[data-brick-collection-name="${collectionName}"][data-brick-name="${brickName}"]`,
   );
 }
 
@@ -191,8 +191,8 @@ test.describe("Site grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const first = grid.locator('[data-brick-instance-id="text-brick-work--0"]');
-    const second = grid.locator('[data-brick-instance-id="text-brick-work--1"]');
+    const first = grid.locator('[data-brick-id="text-brick-work--0"]');
+    const second = grid.locator('[data-brick-id="text-brick-work--1"]');
     await expect(first).toBeVisible();
     await expect(second).toBeVisible();
 

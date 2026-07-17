@@ -6,7 +6,7 @@
 
 ## Goal
 
-Extract all eighteen catalog collections into a publishable `@qrk.sh/bricks` package, colocate a non-published TanStack Start development sandbox inside that package, and make the private Next.js application consume only the package's catalog API and CSS. Preserve existing brick identities, zero-prop component behavior, GridItem persistence, and private editor interactions.
+Extract all eighteen catalog collections into a publishable `@qrk.sh/bricks` package, colocate a non-published TanStack Start development sandbox inside that package, and make the private Next.js application consume only the package's catalog API and CSS. Preserve existing brick identities, zero-prop component behavior, Brick persistence, and private editor interactions.
 
 ## Requirements Trace
 
@@ -52,7 +52,7 @@ Extract all eighteen catalog collections into a publishable `@qrk.sh/bricks` pac
    1. Import `@qrk.sh/bricks/styles.css` once from the existing global application style entrypoint.
    2. Replace every import of moved catalog types, lookup functions, registry values, and collection definitions with the approved package root API; where the web app currently imports a specific collection only to obtain a default `def`, resolve that exact entry from `collectionsHash` without changing fallback selection.
    3. Remove the old app-owned bricks directory only after searches prove every consumer uses `@qrk.sh/bricks` and no private module still imports a moved file.
-   4. Preserve Grid, GridItem layout and persistence, Zustand stores, drawer drag payloads, BrickCarousel, BrickPreview, BrickDetail, site routes, component props, and DOM identity attributes unchanged except for their package imports.
+   4. Preserve Grid and Brick layout behavior, Zustand stores, drawer drag payloads, BrickCarousel, BrickPreview, BrickDetail, site routes, and component props unchanged except for their package imports and the separately approved Brick terminology migration.
 8. Build the TanStack Start sandbox against the public package surface only.
    1. Import `@qrk.sh/bricks/styles.css` once in the root route and render all package content under the package theme root marker.
    2. Implement `/` by reading `collectionsHash` and rendering one explicit collection link for every catalog collection with its label and variant count.
@@ -79,7 +79,7 @@ Extract all eighteen catalog collections into a publishable `@qrk.sh/bricks` pac
     5. Run `git diff --check` and search for stale app-owned brick imports, duplicate catalog definitions, `next/image` inside the package, and unapproved public subpath exports.
 11. Perform a requirement-by-requirement completion audit.
     1. Match every spec user story and implementation decision to the package manifest, built artifacts, sandbox routes, private app imports, or direct test output.
-    2. Confirm all eighteen collections moved, every registered variant is reachable by `(collectionName, brickName)`, and no GridItem schema or persisted identity changed.
+    2. Confirm all eighteen collections moved, every registered variant is reachable by `(collectionName, brickName)`, and the extraction adds no Brick schema or persisted identity changes beyond the separately approved Brick terminology migration.
     3. Confirm consumers require only the root JavaScript import and one stylesheet import and do not configure Tailwind scanning or provide shadcn aliases.
     4. Keep this plan active under `.plans/plans/` until every required build, typecheck, catalog invariant test, sandbox Playwright test, package dry-run inspection, and focused private Playwright regression is green.
 

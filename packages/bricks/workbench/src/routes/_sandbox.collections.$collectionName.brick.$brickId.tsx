@@ -5,25 +5,25 @@ import { ArrowLeft } from "lucide-react";
 import { useGridStore } from "../useGridStore";
 
 export const Route = createFileRoute(
-  "/_sandbox/collections/$collectionName/gridBrick/$gridBrickId",
+  "/_sandbox/collections/$collectionName/brick/$brickId",
 )({
-  component: GridBrickDetail,
+  component: BrickDetail,
 });
 
-function GridBrickDetail() {
-  const { collectionName, gridBrickId } = Route.useParams();
+function BrickDetail() {
+  const { collectionName, brickId } = Route.useParams();
   const hasHydrated = useGridStore((state) => state.hasHydrated);
-  const brickDef = useGridStore((state) => state.gridBricksById[gridBrickId]);
+  const brickDef = useGridStore((state) => state.bricksById[brickId]);
   const brick =
     brickDef?.collectionName === collectionName ? findCollectionBrick(brickDef) : undefined;
 
   if (!hasHydrated) {
-    return <div className="px-6 pt-6 text-sm text-zinc-500">Loading grid brick…</div>;
+    return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
   }
 
   if (!brick) {
     return (
-      <div className="px-6 pt-6" data-testid="grid-brick-not-found">
+      <div className="px-6 pt-6" data-testid="brick-not-found">
         <Link
           to="/collections/$collectionName"
           params={{ collectionName }}
@@ -32,9 +32,9 @@ function GridBrickDetail() {
           <ArrowLeft aria-hidden className="size-4" />
           <span>Back to collection</span>
         </Link>
-        <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Grid brick not found</h1>
+        <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Brick not found</h1>
         <p className="mt-0 text-zinc-600">
-          This grid brick ID is not stored for the requested collection.
+          This brick ID is not stored for the requested collection.
         </p>
       </div>
     );

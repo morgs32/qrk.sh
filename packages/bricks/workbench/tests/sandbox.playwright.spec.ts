@@ -39,12 +39,12 @@ test("shares one persisted grid across the root, collection, and detail routes",
     .locator('[data-collection-representative="black-circle/2x2"]')
     .dragTo(rootGridLayout, { targetPosition: { x: 180, y: 20 } });
 
-  const orangeGridBrick = page.locator('[data-grid-brick="orange-flag/2x2"]');
-  const blackGridBrick = page.locator('[data-grid-brick="black-circle/2x2"]');
-  await expect(orangeGridBrick).toBeVisible();
-  await expect(blackGridBrick).toBeVisible();
+  const orangeBrick = page.locator('[data-brick="orange-flag/2x2"]');
+  const blackBrick = page.locator('[data-brick="black-circle/2x2"]');
+  await expect(orangeBrick).toBeVisible();
+  await expect(blackBrick).toBeVisible();
 
-  const originalOrangeBrickBox = await orangeGridBrick.boundingBox();
+  const originalOrangeBrickBox = await orangeBrick.boundingBox();
   const rootGridLayoutBox = await rootGridLayout.boundingBox();
   expect(originalOrangeBrickBox).not.toBeNull();
   expect(rootGridLayoutBox).not.toBeNull();
@@ -52,14 +52,14 @@ test("shares one persisted grid across the root, collection, and detail routes",
     throw new Error("Expected the root grid and orange brick to have browser layout boxes");
   }
 
-  await orangeGridBrick.dragTo(rootGridLayout, {
+  await orangeBrick.dragTo(rootGridLayout, {
     targetPosition: { x: rootGridLayoutBox.width - 20, y: rootGridLayoutBox.height - 20 },
   });
   await expect
-    .poll(async () => (await orangeGridBrick.boundingBox())?.x)
+    .poll(async () => (await orangeBrick.boundingBox())?.x)
     .not.toBe(originalOrangeBrickBox.x);
-  const movedGridX = await orangeGridBrick.getAttribute("data-grid-x");
-  const movedGridY = await orangeGridBrick.getAttribute("data-grid-y");
+  const movedGridX = await orangeBrick.getAttribute("data-grid-x");
+  const movedGridY = await orangeBrick.getAttribute("data-grid-y");
   expect(movedGridX).not.toBeNull();
   expect(movedGridY).not.toBeNull();
 
@@ -84,45 +84,45 @@ test("shares one persisted grid across the root, collection, and detail routes",
 
   const collectionGrid = page.getByLabel("Brick grid");
   await expect(collectionGrid.getByTestId(/grid-fixture-/)).toHaveCount(4);
-  await expect(orangeGridBrick).toBeVisible();
-  await expect(blackGridBrick).toBeVisible();
-  await expect(orangeGridBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
-  await expect(orangeGridBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
+  await expect(orangeBrick).toBeVisible();
+  await expect(blackBrick).toBeVisible();
+  await expect(orangeBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
+  await expect(orangeBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
 
   await page.getByRole("link", { name: "All collections" }).click();
   await expect(page).toHaveURL(/\/$/);
   expect(await persistentGridElement?.evaluate((element) => element.isConnected)).toBe(true);
-  await expect(orangeGridBrick).toBeVisible();
-  await expect(blackGridBrick).toBeVisible();
+  await expect(orangeBrick).toBeVisible();
+  await expect(blackBrick).toBeVisible();
   await page.locator('[data-collection-link="orange-flag"]').click();
 
-  const orangeGridBrickId = await orangeGridBrick.getAttribute("data-grid-brick-id");
-  expect(orangeGridBrickId).not.toBeNull();
-  await orangeGridBrick.click();
-  await expect(page).toHaveURL(/\/collections\/orange-flag\/gridBrick\/[^/]+$/);
+  const orangeBrickId = await orangeBrick.getAttribute("data-brick-id");
+  expect(orangeBrickId).not.toBeNull();
+  await orangeBrick.click();
+  await expect(page).toHaveURL(/\/collections\/orange-flag\/brick\/[^/]+$/);
   await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
   await expect(page.getByTestId("selected-brick-preview").locator("svg")).toBeVisible();
-  const gridBrickDetailUrl = page.url();
+  const brickDetailUrl = page.url();
 
   await page.reload();
-  await expect(page).toHaveURL(gridBrickDetailUrl);
+  await expect(page).toHaveURL(brickDetailUrl);
   await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
   await expect(page.getByTestId("selected-brick-preview").locator("svg")).toBeVisible();
-  const restoredOrangeGridBrick = page.locator('[data-grid-brick="orange-flag/2x2"]');
-  await expect(restoredOrangeGridBrick).toBeVisible();
-  await expect(page.locator('[data-grid-brick="black-circle/2x2"]')).toBeVisible();
+  const restoredOrangeBrick = page.locator('[data-brick="orange-flag/2x2"]');
+  await expect(restoredOrangeBrick).toBeVisible();
+  await expect(page.locator('[data-brick="black-circle/2x2"]')).toBeVisible();
   await expect(page.getByLabel("Brick grid").getByTestId(/grid-fixture-/)).toHaveCount(4);
-  await expect(restoredOrangeGridBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
-  await expect(restoredOrangeGridBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
+  await expect(restoredOrangeBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
+  await expect(restoredOrangeBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
 
-  await page.goto("/collections/orange-flag/gridBrick/missing-grid-brick");
-  await expect(page.getByTestId("grid-brick-not-found")).toBeVisible();
+  await page.goto("/collections/orange-flag/brick/missing-brick");
+  await expect(page.getByTestId("brick-not-found")).toBeVisible();
   await expect(page.getByLabel("Brick grid")).toBeVisible();
 
-  await page.goto(`/collections/black-circle/gridBrick/${orangeGridBrickId}`);
-  await expect(page.getByTestId("grid-brick-not-found")).toBeVisible();
-  await expect(page.locator('[data-grid-brick="orange-flag/2x2"]')).toBeVisible();
-  await expect(page.locator('[data-grid-brick="black-circle/2x2"]')).toBeVisible();
+  await page.goto(`/collections/black-circle/brick/${orangeBrickId}`);
+  await expect(page.getByTestId("brick-not-found")).toBeVisible();
+  await expect(page.locator('[data-brick="orange-flag/2x2"]')).toBeVisible();
+  await expect(page.locator('[data-brick="black-circle/2x2"]')).toBeVisible();
 });
 
 test("renders static, image, and GitHub bricks", async ({ page }) => {
@@ -134,6 +134,23 @@ test("renders static, image, and GitHub bricks", async ({ page }) => {
 
   await page.goto("/bricks/github-cards/4x4");
   await expect(page.getByTestId("brick-preview").locator('[data-slot="card"]')).toBeVisible();
+});
+
+test("shows brick data in a collection tab", async ({ page }) => {
+  await page.goto("/collections/github-cards");
+
+  const profileView = page.getByLabel("4×4 view");
+  await expect(profileView.getByRole("tab", { name: "Preview" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await profileView.getByRole("tab", { name: "View data" }).click();
+
+  await expect(profileView.getByRole("tab", { name: "View data" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByText('"collectionName": "github-cards"', { exact: false })).toBeVisible();
 });
 
 test("resizes the preview proportionally and switches canvas theme", async ({ page }) => {

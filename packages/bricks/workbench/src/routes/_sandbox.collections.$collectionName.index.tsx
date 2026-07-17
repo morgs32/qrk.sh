@@ -1,5 +1,7 @@
 import { collectionsHash } from "@qrk.sh/bricks";
+import { Tabs } from "@base-ui/react/tabs";
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { useGridStore } from "../useGridStore";
@@ -10,6 +12,7 @@ export const Route = createFileRoute("/_sandbox/collections/$collectionName/")({
 
 function CollectionCatalog() {
   const { collectionName } = Route.useParams();
+  const [activeViews, setActiveViews] = useState<Record<string, string | number>>({});
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const collection = Object.values(collectionsHash).find(
     (candidate) => candidate.collectionName === collectionName,
@@ -39,32 +42,78 @@ function CollectionCatalog() {
 
           return (
             <section key={brick.def.name}>
-              <h2 className="m-0 px-6 text-2xl font-semibold">{brick.def.label}</h2>
-              <div className="mt-6 overflow-auto">
-                <div
-                  className={
-                    brick.def.w === 8
-                      ? "qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                      : "qrk-bricks ml-6 cursor-grab overflow-hidden active:cursor-grabbing"
-                  }
-                  data-brick-full-size={`${brick.def.collectionName}/${brick.def.name}`}
-                  draggable
-                  onDragStart={(event) => {
-                    setActiveBrickDrag(brick.def);
-                    event.dataTransfer.effectAllowed = "copy";
-                    event.dataTransfer.setData("text/plain", brick.def.name);
-                  }}
-                  onDragEnd={() => {
-                    setActiveBrickDrag(null);
-                  }}
-                  style={{
-                    width: `${(brick.def.w / 8) * 100}%`,
-                    aspectRatio: `${brick.def.w} / ${brick.def.h}`,
-                  }}
-                >
-                  <BrickComponent />
+              <Tabs.Root
+                value={activeViews[brick.def.name] ?? `${brick.def.name}-preview`}
+                onValueChange={(nextValue) => {
+                  setActiveViews((currentViews) => {
+                    return {
+                      ...currentViews,
+                      [brick.def.name]: nextValue,
+                    };
+                  });
+                }}
+              >
+                <div className="flex items-baseline justify-between gap-4 px-6">
+                  <h2 className="m-0 text-2xl font-semibold">{brick.def.label}</h2>
+                  <Tabs.List
+                    className="flex shrink-0 gap-2 text-sm"
+                    aria-label={`${brick.def.label} view`}
+                  >
+                    <Tabs.Tab
+                      value={`${brick.def.name}-preview`}
+                      className={(state) =>
+                        state.active
+                          ? "cursor-pointer border-0 bg-transparent p-0 font-medium text-zinc-950 no-underline"
+                          : "cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2"
+                      }
+                    >
+                      Preview
+                    </Tabs.Tab>
+                    <Tabs.Tab
+                      value={`${brick.def.name}-data`}
+                      className={(state) =>
+                        state.active
+                          ? "cursor-pointer border-0 bg-transparent p-0 font-medium text-zinc-950 no-underline"
+                          : "cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2"
+                      }
+                    >
+                      View data
+                    </Tabs.Tab>
+                  </Tabs.List>
                 </div>
-              </div>
+                <Tabs.Panel value={`${brick.def.name}-preview`}>
+                  <div className="mt-6 overflow-auto">
+                    <div
+                      className={
+                        brick.def.w === 8
+                          ? "qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
+                          : "qrk-bricks ml-6 cursor-grab overflow-hidden active:cursor-grabbing"
+                      }
+                      data-brick-full-size={`${brick.def.collectionName}/${brick.def.name}`}
+                      draggable
+                      onDragStart={(event) => {
+                        setActiveBrickDrag(brick.def);
+                        event.dataTransfer.effectAllowed = "copy";
+                        event.dataTransfer.setData("text/plain", brick.def.name);
+                      }}
+                      onDragEnd={() => {
+                        setActiveBrickDrag(null);
+                      }}
+                      style={{
+                        width: `${(brick.def.w / 8) * 100}%`,
+                        aspectRatio: `${brick.def.w} / ${brick.def.h}`,
+                      }}
+                    >
+                      <BrickComponent />
+                    </div>
+                  </div>
+                </Tabs.Panel>
+                <Tabs.Panel value={`${brick.def.name}-data`}>
+                  <pre className="mx-6 mt-6 overflow-auto bg-zinc-100 p-4 text-xs">
+                    {JSON.stringify(brick.def, null, 2)}
+                  </pre>
+                </Tabs.Panel>
+              </Tabs.Root>
             </section>
           );
         })}

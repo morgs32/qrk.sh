@@ -1,0 +1,78 @@
+{
+  "name": "zerospin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A local first library",
+  "license": "ISC",
+  "author": "Morgan Intrator",
+  "scripts": {
+    "build": "nx run-many -t lib build --all",
+    "lib": "nx run-many -t lib --all",
+    "dev": "NX_DAEMON=false nx run docs:dev",
+    "types": "nx run-many -t types --all",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "lint": "nx run-many -t lint --all",
+    "ci:publish": "pnpm build && pnpm publish -r --access=public",
+    "test": "CI=true nx run-many -t test --all",
+    "test:workerd": "CI=true nx run-many -t test:workerd --all",
+    "ts": "nx run-many -t ts --all --nxBail",
+    "knip": "knip --reporter compact",
+    "knip:production": "knip --production --include-entry-exports --reporter compact",
+    "knip:deps": "knip --reporter compact --dependencies"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0",
+    "@effect/vitest": "^0.29.0",
+    "@nx/js": "22.7.1",
+    "@swc-node/register": "~1.11.1",
+    "@swc/core": "~1.15.5",
+    "@swc/helpers": "~0.5.18",
+    "@zerospin/cli": "workspace:*",
+    "eslint": "^10.3.0",
+    "eslint-plugin-perfectionist": "^5.9.0",
+    "knip": "^6.12.2",
+    "madge": "^8.0.0",
+    "nx": "^22.7.1",
+    "oxfmt": "^0.48.0",
+    "oxlint": "^1.63.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "rimraf": "^6.1.3",
+    "tsafe": "^1.8.12",
+    "tslib": "^2.8.1",
+    "typescript": "6.0.3",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.1.1",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@clerk/shared",
+      "@parcel/watcher",
+      "@swc/core",
+      "better-sqlite3",
+      "core-js",
+      "core-js-pure",
+      "esbuild",
+      "msgpackr-extract",
+      "msw",
+      "nx",
+      "protobufjs",
+      "sharp",
+      "workerd"
+    ],
+    "overrides": {
+      "@effect/sql": "0.51.1",
+      "drizzle-orm": "1.0.0-beta.17-67b1795",
+      "typescript": "5.7.2",
+      "effect": "^3.17.11",
+      "react": "19.2.6",
+      "react-dom": "19.2.6",
+      "vite": "^8.0.11"
+    }
+  }
+}

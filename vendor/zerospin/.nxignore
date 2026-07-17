@@ -1,0 +1,9 @@
+.nx/
+vendor/
+**/.next/
+**/dist/
+**/.wrangler/
+**/build/
+**/out/
+**/.output/
+**/generated/

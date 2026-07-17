@@ -1,0 +1,79 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+.npmrc
+node_modules
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# agents
+.claude/
+.cursor/
+.codex/
+.skills/
+.opencode/
+.playwright-mcp/
+
+# wrangler
+.wrangler/
+
+# next.js
+.next/
+out/
+
+# production
+build/
+dist/
+.output/
+.vinxi/
+.turbo/
+generated/
+.nx/
+
+# misc
+.DS_Store
+*.pem
+*.db
+*.local
+*.local.*
+tmp/
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+**/.env*
+!**/.env.example
+!**/.env.e2e.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+packages/devtools/src/**/*.js
+packages/devtools/src/**/*.js.map
+packages/devtools/src/**/*.jsx
+packages/devtools/src/**/*.jsx.map
+packages/devtools/src/**/*.d.ts
+packages/devtools/src/**/*.d.ts.map
+
+.trigger
+# Sentry Config File
+.env.sentry-build-plugin
+
+# llm-wiki local state and per-machine obsidian workspace
+.llmwiki/state/
+.obsidian/workspace.json
+.obsidian/cache
+.obsidian/workspaces.json

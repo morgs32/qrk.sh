@@ -1,0 +1,270 @@
+---
+title: Make a system
+description: Define models, contracts, a frontend, an actor, and a system with Zerospin make methods.
+---
+
+This guide shows the direct shape for defining a small system. It keeps each exported piece visible so the relationships between models, contracts, frontend, actor, and system are easy to inspect.
+
+## Imports
+
+Import the builders, primitive descriptors, typed error shape, and Effect schema tools used by the system.
+
+```ts
+import { makeActorController } from '@zerospin/core/actorController/makeActorController.js';
+import { makeSurfaceController } from '@zerospin/core/actorController/makeSurfaceController.js';
+import { makeAccountController } from '@zerospin/core/accountController/makeAccountController.js';
+import { makeContract } from '@zerospin/core/contracts/makeContract.js';
+import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController.js';
+import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { makeModelIdSchema } from '@zerospin/core/models/makeIdSchema.js';
+import { makeModel } from '@zerospin/core/models/makeModel.js';
+import { primitives } from '@zerospin/core/models/primitives.js';
+import { makeSystem } from '@zerospin/core/system/makeSystem.js';
+import { Effect, Schema } from 'effect';
+```
+
+## Models
+
+Models define the resource types in the system. Each call provides one complete current definition followed by its complete historical definitions; these first-version models have empty history arrays. The `User` model is the actor model. `List` belongs to a user, and `Item` belongs to a list.
+
+```ts
+export const User = makeModel(
+  {
+    abbreviation: 'usr',
+    modelName: 'user',
+    attributes: {
+      name: primitives.text(),
+    },
+    indexes: [],
+    version: '1.0.0',
+  },
+  [],
+);
+
+export const List = makeModel(
+  {
+    abbreviation: 'lst',
+    modelName: 'list',
+    attributes: {
+      name: primitives.text(),
+      userId: primitives.ref({
+        table: User.table,
+        relation: 'user',
+        inverse: 'lists',
+      }),
+    },
+    indexes: [],
+    version: '1.0.0',
+  },
+  [],
+);
+
+export const Item = makeModel(
+  {
+    abbreviation: 'tsk',
+    modelName: 'item',
+    attributes: {
+      listId: primitives.ref({
+        table: List.table,
+        relation: 'list',
+        inverse: 'items',
+      }),
+      name: primitives.text(),
+    },
+    indexes: [],
+    version: '1.0.0',
+  },
+  [],
+);
+```
+
+## Contracts
+
+Contracts define commands. Each contract has a payload shape, an explicit mutation schema, and a `program` whose Effect result matches that schema. Mutation schemas and constructors belong to the versioned model definition.
+
+`createList` creates a `List` resource and stores the user relationship on `userId`.
+
+```ts
+export const createList = makeContract({
+  commandName: 'createList',
+  payload: {
+    id: List.primaryKey({ autogenerate: false }),
+    name: primitives.text(),
+    userId: User.primaryKey({ autogenerate: false }),
+  },
+  mutations: Schema.Struct({
+    created: List.createMutation('1.0.0'),
+  }),
+  program: props => {
+    const { payload } = props;
+    const { id, name, userId } = payload;
+    return Effect.all({
+      created: List.create('1.0.0', {
+        resourceId: id,
+        attributes: {
+          name,
+          userId,
+        },
+      }),
+    });
+  },
+  version: '1.0.0',
+});
+```
+
+`createItem` creates an `Item` resource and stores the list relationship on `listId`.
+
+```ts
+export const createItem = makeContract({
+  commandName: 'createItem',
+  payload: {
+    id: Item.primaryKey({ autogenerate: false }),
+    listId: List.primaryKey({ autogenerate: false }),
+    name: primitives.text(),
+  },
+  mutations: Schema.Struct({
+    created: Item.createMutation('1.0.0'),
+  }),
+  program: props => {
+    const { payload } = props;
+    const { id, listId, name } = payload;
+    return Effect.all({
+      created: Item.create('1.0.0', {
+        resourceId: id,
+        attributes: {
+          listId,
+          name,
+        },
+      }),
+    });
+  },
+  version: '1.0.0',
+});
+```
+
+`updateList` changes the list name with the `List` model's matching versioned update schema and constructor.
+
+```ts
+export const updateList = makeContract({
+  commandName: 'updateList',
+  payload: {
+    id: List.primaryKey({ autogenerate: false }),
+    name: primitives.text(),
+  },
+  mutations: Schema.Struct({
+    updated: List.updateMutation('1.0.0'),
+  }),
+  program: props => {
+    const { payload } = props;
+    const { id, name } = payload;
+    return Effect.all({
+      updated: List.update('1.0.0', {
+        resourceId: id,
+        attributes: { name },
+      }),
+    });
+  },
+  version: '1.0.0',
+});
+```
+
+## Frontend
+
+The frontend names the command surface and model set for a UI-facing actor surface.
+
+```ts
+export const listFrontend = makeFrontendController({
+  contracts: {
+    createList,
+    createItem,
+    updateList,
+  },
+  accountName: 'user',
+  actorName: 'main',
+  version: '1.0.0',
+  systemName: 'system1',
+  models: {
+    list: List,
+    item: Item,
+    user: User,
+  },
+  signature: Schema.Struct({
+    userId: makeModelIdSchema(User),
+  }),
+});
+
+export const frontends = {
+  main: listFrontend,
+};
+```
+
+## Actor
+
+The actor ties frontends to graph loading and authentication via surfaces. `getGraph` loads the actor resource and related lists. `authenticate` resolves the actor id from the frontend signature.
+
+```ts
+export const listActor = makeActorController({
+  version: '1.0.0',
+  models: listFrontend.models,
+  contracts: listFrontend.contracts,
+  surfaces: {
+    main: makeSurfaceController({
+      frontend: listFrontend,
+      authenticate: props =>
+        Effect.gen(function* () {
+          const user = props.db.query.user
+            .findFirst({
+              where: { id: { eq: props.signature.userId } },
+            })
+            .sync();
+          if (user === undefined) {
+            return yield* new ZerospinError({
+              code: 'user-not-found',
+              message: `User ${props.signature.userId} was not found`,
+            });
+          }
+          return { actorId: user.id, accountId: 'acct_1' };
+        }),
+      getGraph: Effect.fn('getGraph')(function* (props) {
+        const { actorId, db } = props;
+        const user = db.query.user
+          .findFirst({
+            where: { id: { eq: actorId } },
+            with: {
+              lists: true,
+            },
+          })
+          .sync();
+        if (user === undefined) {
+          return yield* new ZerospinError({
+            code: 'user-not-found',
+            message: `User ${actorId} was not found`,
+          });
+        }
+        return { user };
+      }),
+    }),
+  },
+});
+
+export const userAccount = makeAccountController({
+  version: '1.0.0',
+  actorControllers: {
+    main: listActor,
+  },
+});
+```
+
+## System
+
+The system registers accounts and actors. Export `frontends` separately for worker deploy wiring.
+
+```ts
+export const system = makeSystem({
+  name: 'system1',
+  version: '1.0.1',
+  accounts: {
+    user: userAccount,
+  },
+});
+```

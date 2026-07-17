@@ -1,0 +1,24 @@
+{
+  "name": "docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --host 0.0.0.0 --port ${PORT:-3003}",
+    "build": "astro build",
+    "ts": "astro check",
+    "preview": "astro preview --host 0.0.0.0 --port ${PORT:-3003}",
+    "deploy": "nx run docs:build && wrangler deploy"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@astrojs/mdx": "^5.0.4",
+    "@astrojs/starlight": "^0.39.2",
+    "astro": "^6.3.1"
+  },
+  "devDependencies": {
+    "@effect/language-service": "^0.85.1",
+    "typescript": "6.0.3",
+    "wrangler": "^4.90.0"
+  }
+}

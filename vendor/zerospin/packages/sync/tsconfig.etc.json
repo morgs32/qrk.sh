@@ -1,0 +1,28 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "types": [
+      "@cloudflare/vitest-pool-workers/types",
+      "node",
+      "vitest/globals",
+      "./worker-configuration.d.ts"
+    ]
+  },
+  "include": [
+    "vitest.config.ts",
+    "vitest.workerd.config.ts",
+    "vitest.playwright.config.ts",
+    "vitest.playwright.platform.config.ts",
+    "vitest.playwright.setup.ts",
+    "vitest.playwright.test-config.ts",
+    "worker-configuration.d.ts"
+  ],
+  "exclude": [],
+  "references": [
+    {
+      "path": "./tsconfig.json"
+    }
+  ]
+}

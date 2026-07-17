@@ -1,0 +1,36 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "types": ["node", "vitest/globals", "./worker-configuration.d.ts"]
+  },
+  "include": [
+    "next-env.d.ts",
+    "e2e.playwright.config.ts",
+    "e2e/**/*.ts",
+    "vitest.playwright.config.ts",
+    "vitest.*.config.ts",
+    "vitest.setup.ts",
+    "zerospin.config.ts",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "*.jsonc",
+    "*.d.ts"
+  ],
+  "exclude": ["dist", "node_modules", "tests/workerd/**"],
+  "references": [
+    {
+      "path": "../../packages/react"
+    },
+    {
+      "path": "../../packages/sdk"
+    },
+    {
+      "path": "../../packages/error"
+    },
+    {
+      "path": "../../packages/cli"
+    }
+  ]
+}

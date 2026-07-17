@@ -1,0 +1,114 @@
+{
+  "name": "@zerospin/core",
+  "version": "2.0.1",
+  "private": false,
+  "description": "Zerospin internal APIs (merged library)",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./contracts/makeCommand": {
+      "types": "./dist/__private__/contracts/makeCommand.d.ts",
+      "import": "./dist/__private__/contracts/makeCommand.js",
+      "default": "./dist/__private__/contracts/makeCommand.js"
+    },
+    "./contracts/makeSessionCommand": {
+      "types": "./dist/__private__/contracts/makeSessionCommand.d.ts",
+      "import": "./dist/__private__/contracts/makeSessionCommand.js",
+      "default": "./dist/__private__/contracts/makeSessionCommand.js"
+    },
+    "./accountController/makeAccountCommand": {
+      "types": "./dist/__private__/accountController/makeAccountCommand.d.ts",
+      "import": "./dist/__private__/accountController/makeAccountCommand.js",
+      "default": "./dist/__private__/accountController/makeAccountCommand.js"
+    },
+    "./frontendBinding/makeActorCommand": {
+      "types": "./dist/__private__/frontendBinding/makeActorCommand.d.ts",
+      "import": "./dist/__private__/frontendBinding/makeActorCommand.js",
+      "default": "./dist/__private__/frontendBinding/makeActorCommand.js"
+    },
+    "./service/makeServiceCommand": {
+      "types": "./dist/__private__/service/makeServiceCommand.d.ts",
+      "import": "./dist/__private__/service/makeServiceCommand.js",
+      "default": "./dist/__private__/service/makeServiceCommand.js"
+    },
+    "./session/makeUnstagedCommand": {
+      "types": "./dist/__private__/session/makeUnstagedCommand.d.ts",
+      "import": "./dist/__private__/session/makeUnstagedCommand.js",
+      "default": "./dist/__private__/session/makeUnstagedCommand.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lib": "pnpm run clean && tsc -b tsconfig.json",
+    "ts": "tsc -p tsconfig.etc.json --noEmit",
+    "watch": "tsc -b tsconfig.json --watch",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
+    "lint": "oxlint . --format stylish"
+  },
+  "dependencies": {
+    "@effect/platform": "^0.96.1",
+    "@effect/sql": "0.51.1",
+    "@livestore/wa-sqlite": "^1.0.5",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/core": "^2.7.1",
+    "@opentelemetry/sdk-trace-node": "^2.7.1",
+    "@zerospin/error": "workspace:*",
+    "@zerospin/logger": "workspace:*",
+    "@zerospin/server-only": "workspace:*",
+    "capnweb": "^0.7.0",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "1.0.0-beta.17-67b1795",
+    "effect": "^3.21.4",
+    "es-toolkit": "^1.46.1",
+    "mutative": "^1.3.0",
+    "nanoid": "^5.1.11",
+    "sql.js": "^1.14.1",
+    "tiny-invariant": "^1.3.3",
+    "tsafe": "^1.8.12",
+    "type-fest": "^5.6.0",
+    "ulid": "^3.0.2",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@effect/language-service": "^0.85.1",
+    "@effect/opentelemetry": "^0.63.0",
+    "@effect/vitest": "^0.29.0",
+    "@opentelemetry/sdk-logs": "^0.217.0",
+    "@opentelemetry/sdk-metrics": "^2.7.1",
+    "@opentelemetry/sdk-trace-base": "^2.7.1",
+    "@opentelemetry/sdk-trace-web": "^2.7.1",
+    "@types/node": "^25.6.2",
+    "@types/react": "^19.2.14",
+    "@types/sql.js": "^1.4.11",
+    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/pretty-format": "^4.1.5",
+    "happy-dom": "^20.9.0",
+    "jsdom": "^29.1.1",
+    "knip": "^6.12.2",
+    "msw": "^2.14.5",
+    "react": "19.2.6",
+    "rimraf": "^6.1.3",
+    "tsx": "^4.21.0",
+    "typescript": "6.0.3",
+    "vite": "^8.0.11",
+    "vitest": "^4.1.5"
+  },
+  "peerDependencies": {
+    "@effect/opentelemetry": "^0.48.4",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/core": "^2.1.0",
+    "@opentelemetry/sdk-trace-base": "^2.0.1",
+    "@opentelemetry/sdk-trace-node": "^2.0.1",
+    "effect": "^3.17.11",
+    "next": ">=14",
+    "react": ">=18",
+    "react-dom": ">=18",
+    "solid-js": ">=1.9.7"
+  }
+}

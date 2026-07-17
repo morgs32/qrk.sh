@@ -1,0 +1,28 @@
+{
+  "extends": ["../../.oxlintrc.json"],
+  "globals": {
+    "Blob": "readonly",
+    "File": "readonly",
+    "FormData": "readonly",
+    "Headers": "readonly",
+    "Request": "readonly",
+    "Response": "readonly",
+    "URL": "readonly",
+    "URLSearchParams": "readonly",
+    "console": "readonly",
+    "crypto": "readonly",
+    "describe": "readonly",
+    "document": "readonly",
+    "expect": "readonly",
+    "fetch": "readonly",
+    "IntersectionObserver": "readonly",
+    "it": "readonly",
+    "localStorage": "readonly",
+    "navigator": "readonly",
+    "process": "readonly",
+    "sessionStorage": "readonly",
+    "setTimeout": "readonly",
+    "vi": "readonly",
+    "window": "readonly"
+  }
+}

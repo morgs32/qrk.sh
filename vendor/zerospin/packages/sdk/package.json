@@ -1,0 +1,39 @@
+{
+  "name": "@zerospin/sdk",
+  "version": "2.0.1",
+  "private": false,
+  "description": "Zerospin system barrel (re-exports from core)",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lib": "pnpm run clean && tsc -b tsconfig.json",
+    "watch": "tsc -b tsconfig.json --watch",
+    "prepublishOnly": "pnpm run lib"
+  },
+  "dependencies": {
+    "@zerospin/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@effect/language-service": "^0.85.1",
+    "@types/node": "^25.6.2",
+    "rimraf": "^6.1.3",
+    "typescript": "6.0.3"
+  },
+  "peerDependencies": {
+    "effect": "^3.17.11"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "disableSourceOfProjectReferenceRedirect": true,
+    "disableReferencedProjectLoad": true,
+    "sourceMap": true
+  }
+}

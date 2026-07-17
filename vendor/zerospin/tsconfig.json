@@ -1,0 +1,53 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/system-worker"
+    },
+    {
+      "path": "./packages/sdk"
+    },
+    {
+      "path": "./packages/devtools"
+    },
+    {
+      "path": "./packages/system"
+    },
+    {
+      "path": "./packages/error"
+    },
+    {
+      "path": "./packages/frontend"
+    },
+    {
+      "path": "./packages/react"
+    },
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./docs"
+    },
+    {
+      "path": "./packages/cli"
+    },
+    {
+      "path": "./packages/studio"
+    },
+    {
+      "path": "./packages/dispatch-worker"
+    },
+    {
+      "path": "./packages/shared-worker"
+    },
+    {
+      "path": "./packages/live-query"
+    },
+    {
+      "path": "./packages/logger"
+    },
+    {
+      "path": "./packages/sync"
+    }
+  ]
+}

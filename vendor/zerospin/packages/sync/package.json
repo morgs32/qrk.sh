@@ -1,0 +1,47 @@
+{
+  "name": "@zerospin/sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Agents read-only DO state sync spike",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lib": "pnpm run clean && tsc -b tsconfig.json",
+    "ts": "tsc -p e2e/tsconfig.json --noEmit && tsc -p tsconfig.etc.json --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "test:vitest:browser": "vitest run --config vitest.playwright.config.ts",
+    "test:vitest:browser:platform": "vitest run --config vitest.playwright.platform.config.ts",
+    "e2e": "vitest run --config vitest.workerd.config.ts && vitest run --config vitest.playwright.config.ts",
+    "lint": "oxlint . --format stylish"
+  },
+  "dependencies": {
+    "agents": "^0.17.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.16.3",
+    "@effect/language-service": "^0.85.1",
+    "@types/node": "^25.6.2",
+    "@types/react": "^19.2.17",
+    "@vitest/browser-playwright": "^4.1.5",
+    "@zerospin/core": "workspace:*",
+    "@zerospin/error": "workspace:*",
+    "capnweb": "^0.7.0",
+    "cloudflare": "^6.1.0",
+    "effect": "^3.21.4",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "rimraf": "^6.1.3",
+    "typescript": "6.0.3",
+    "vitest": "^4.1.5",
+    "vitest-browser-react": "^2.2.0",
+    "wrangler": "^4.90.0"
+  }
+}

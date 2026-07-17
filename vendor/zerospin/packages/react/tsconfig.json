@@ -1,0 +1,70 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "target": "es2022",
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "esnext", "es2021"],
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "incremental": true,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": false,
+    "noEmit": false,
+    "plugins": [
+      {
+        "name": "@effect/language-service"
+      }
+    ],
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.react.spec.ts",
+    "**/*.react.spec.tsx",
+    "**/*.typecheck.ts",
+    "**/*.typecheck.tsx"
+  ],
+  "references": [
+    {
+      "path": "../shared-worker"
+    },
+    {
+      "path": "../logger"
+    },
+    {
+      "path": "../live-query"
+    },
+    {
+      "path": "../frontend"
+    },
+    {
+      "path": "../error"
+    },
+    {
+      "path": "../devtools"
+    },
+    {
+      "path": "../core"
+    }
+  ]
+}

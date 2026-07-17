@@ -1,0 +1,54 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "shopping",
+  "targets": {
+    "dev": {
+      "continuous": true,
+      "dependsOn": ["^lib", "zerospin:dev"]
+    },
+    "zerospin:dev": {
+      "continuous": true,
+      "dependsOn": ["^lib"]
+    },
+    "e2e-app": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "next:dev"
+      },
+      "continuous": true,
+      "dependsOn": ["^lib", "zerospin:dev"]
+    },
+    "test:playwright": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:playwright"
+      }
+    },
+    "test:e2e": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:e2e"
+      },
+      "dependsOn": ["^lib", "zerospin:dev"]
+    },
+    "test:playwright:ui": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:playwright:ui"
+      }
+    },
+    "test:vitest:browser": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:vitest:browser"
+      }
+    },
+    "test:workerd": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:workerd"
+      },
+      "dependsOn": ["^lib"]
+    }
+  }
+}

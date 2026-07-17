@@ -1,0 +1,28 @@
+{
+  "name": "system",
+  "version": "2.0.1",
+  "private": false,
+  "description": "Zerospin system definition",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/system.ts"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lib": "pnpm run clean && tsc -b tsconfig.json"
+  },
+  "dependencies": {
+    "@zerospin/core": "workspace:*",
+    "@zerospin/error": "workspace:*",
+    "effect": "^3.21.4"
+  },
+  "devDependencies": {
+    "@effect/language-service": "^0.85.1",
+    "@types/node": "^25.6.2",
+    "rimraf": "^6.1.3",
+    "typescript": "6.0.3"
+  }
+}

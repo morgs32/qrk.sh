@@ -1,0 +1,49 @@
+{
+  "extends": ["../../.oxlintrc.json"],
+  "overrides": [
+    {
+      "files": ["tests/**/*.ts", "tests/**/*.tsx"],
+      "rules": {
+        "eslint/no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/types.ts"],
+      "rules": {
+        "typescript/triple-slash-reference": "off"
+      }
+    }
+  ],
+  "env": {
+    "browser": true,
+    "node": true,
+    "vitest": true
+  },
+  "globals": {
+    "Blob": "readonly",
+    "File": "readonly",
+    "FormData": "readonly",
+    "Headers": "readonly",
+    "Request": "readonly",
+    "Response": "readonly",
+    "URL": "readonly",
+    "URLSearchParams": "readonly",
+    "WebSocketPair": "readonly",
+    "Worker": "readonly",
+    "console": "readonly",
+    "crypto": "readonly",
+    "describe": "readonly",
+    "document": "readonly",
+    "expect": "readonly",
+    "fetch": "readonly",
+    "IntersectionObserver": "readonly",
+    "it": "readonly",
+    "localStorage": "readonly",
+    "navigator": "readonly",
+    "process": "readonly",
+    "sessionStorage": "readonly",
+    "setTimeout": "readonly",
+    "vi": "readonly",
+    "window": "readonly"
+  }
+}

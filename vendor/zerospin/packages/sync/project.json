@@ -1,0 +1,19 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@zerospin/sync",
+  "targets": {
+    "lib": {
+      "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "e2e": {
+      "dependsOn": ["lib"]
+    },
+    "test:vitest:browser:platform": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:vitest:browser:platform"
+      }
+    }
+  }
+}

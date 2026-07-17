@@ -1,0 +1,73 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "target": "es2022",
+    "allowJs": true,
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "esnext", "es2021"],
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "incremental": true,
+    "composite": true,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "plugins": [
+      {
+        "name": "@effect/language-service"
+      }
+    ],
+    "types": ["node", "./worker-configuration.d.ts"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "worker-configuration.d.ts",
+    "env-types.d.ts"
+  ],
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.node.spec.ts",
+    "**/*.react.spec.ts",
+    "**/*.react.spec.tsx",
+    "**/*.workerd.spec.ts",
+    "tests/workerd/**",
+    "src/TestWorker.ts",
+    "src/FixtureRepo/**",
+    "src/makeRepo/test/**",
+    "src/workerd-utils/**"
+  ],
+  "references": [
+    {
+      "path": "../logger"
+    },
+    {
+      "path": "../error"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../system"
+    }
+  ]
+}

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BrickCarousel } from "../BrickCarousel/BrickCarousel";
 import { BrickCarouselError } from "../BrickCarousel/BrickCarouselError";
-import { collectionsHash } from "@/components/home/bricks/collectionsHash";
+import { collectionsHash } from "@qrk.sh/bricks";
 import { useParams, useRouter } from "next/navigation";
 import { pagePattern } from "../../../routePatterns";
 

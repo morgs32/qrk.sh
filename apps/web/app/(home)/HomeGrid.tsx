@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CarouselApi } from "@/components/ui/carousel";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { collectionsHash } from "@/components/home/bricks/collectionsHash";
+import { collectionsHash } from "@qrk.sh/bricks";
 
 const ROWS = [
   ["orange-flag", "black-circle", "green-arch", "blue-grid"],
-  ["cream-bench", "green-g", "cream-square", "pink-dots"],
-  ["black-m", "orange-blocks", "purple-lines", "pink-asterisk"],
+  ["cream-bench", "green-g-logo", "cream-square", "pink-dots"],
+  ["black-m-logo", "orange-block", "purple-lines", "pink-asterisk"],
 ] as const;
 
 const AUTOPLAY_DELAY_MS = 3000;

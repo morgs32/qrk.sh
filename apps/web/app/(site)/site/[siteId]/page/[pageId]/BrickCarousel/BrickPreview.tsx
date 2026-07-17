@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
-import { type ICollectionBrick } from "@/components/home/bricks/types";
+import { type ICollectionBrick } from "@qrk.sh/bricks";
 import { makeId } from "@/lib/makeId";
 
 /** Matches site workspace: half viewport (right column `w-1/2`) / 8 columns, same as `Grid` `GRID_COLS`. */

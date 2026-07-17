@@ -1,80 +1,142 @@
-# AGENTS.md file
+# AGENTS.md
 
-DO NOT GIVE ME HIGH LEVEL SHIT, IF I ASK FOR FIX OR EXPLANATION, I WANT ACTUAL CODE OR EXPLANATION! I DON'T WANT "Here's how you can blablabla"
+**Agents and LLMs may not add `ALLOWED_CAST` comments.** Only the human user may add an `ALLOWED_CAST` marker manually, or authorize one through an explicit prompt or explicit permission in chat. If a cast appears necessary and no permission has been given, stop and ask instead of adding the marker yourself.
 
-DO NOT ADD UNREQUESTED FUNCTIONALITY. IF I GIVE YOU A COMPONENT TO ADD WITH MOCK DATA, USE MOCK DATA. DO NOT CHANGE THE PROPS OR ARGS ON ANY OTHER COMPONENT OR FUNCTION.
+**Please do not give me partial implementations.** Ship the full requested behavior in one pass. Do not land stubs, no-op hooks, or unrequested follow-up wiring when the intended behavior is already known.
 
-- Please consult `./docs/**/*.md` for static engineering guidance and `./.skills/*/SKILL.md` only for the remaining workflow skills that still exist in this repo.
-- NO ABSTRACTIONS unless I explicitly say so. If you've got an abstraction or some way to do things more concisely, prompt me at the end AFTER showing me the UNCONCISE way.
-- **On every task:** read and apply `./docs/styleguide/README.md` and the linked section docs relevant to the task before writing or editing code.
-- Do what I ask and ONLY THAT. Do not take it upon yourself to fix type errors or dependency issues that exist already. Tell me about them maybe but do FIX things unless I explicitly say so.
-- If you know what I'm asking for (which is often WHAT I'M TELLING YOU) do NOT get clever. Do what I ask and then prompt me to look at something broken BEFORE trying to fix it yourself.
-- Be terse
-- Suggest solutions that I didn't think about-anticipate my needs
-- Treat me as an expert
-- Be accurate and thorough
-- Give the answer immediately. Provide detailed explanations and restate my query in your own words if necessary after giving the answer
-- Value good arguments over authorities, the source is irrelevant
-- Consider new technologies and contrarian ideas, not just the conventional wisdom
-- You may use high levels of controllerulation or prediction, just flag it for me
-- No moral lectures
-- Discuss safety only when it's crucial and non-obvious
-- If your content policy is an issue, provide the closest acceptable response and explain the content policy issue afterward
-- Cite sources whenever possible at the end, not inline
-- No need to mention your knowledge cutoff
-- No need to disclose you're an AI
-- Please recontrollert my formatting preferences when you provide code.
-- Please recontrollert all code comments, they're usually there for a reason. Remove them ONLY if they're completely irrelevant after a code change. if unsure, do not remove the comment.
-- Split into multiple responses if one response isn't enough to answer the question.
-- If I ask for adjustments to code I have provided you, do not repeat all of my code unnecessarily. Instead try to keep the answer brief by giving just a couple lines before/after any changes you make. Multiple code blocks are ok.
+**Do not add unrequested functionality.** If I give you a component to add with mock data, use mock data. Do not change the props or arguments of any other component or function.
 
-## Agent orientation
+## Behaviors
 
-Use this file to find **repo conventions and docs** quickly. Prefer the linked styleguide before inventing new patterns.
+### Work habits
 
-## Docs index
+- Think before acting. Read existing files before writing code.
+- On every task, read the relevant guidance under [`docs/`](./docs/). For React or site-workspace changes, always read [`docs/styleguide/component-and-file-naming.md`](./docs/styleguide/component-and-file-naming.md).
+- Prefer editing over rewriting whole files unless I explicitly ask you to wipe or replace a file.
+- Do not re-read files you have already read unless the file may have changed.
+- Skip files over 100 KB unless explicitly required.
+- Test your code before declaring it done.
+- Keep solutions simple, direct, and verbose enough to make control flow obvious.
+- User instructions always override this file.
+- Preserve existing work in progress and unrelated changes.
 
-| Topic                                                                                                             | Location                                                                                     |
-| ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Site directory** — `/site/[siteId]/page/[pageId]` workspace (shell markup on [`page/[pageId]/page.tsx`](<apps/web/app/(site)/site/[siteId]/page/[pageId]/page.tsx>), plus colocated `Grid`, drawers, toolbar); shared bricks/catalog still in `apps/web/components/home/` | Block comment on that page |
-| Component/file naming, `BrickCatalog` / `BrickCatalogPreview`, catalog types (`IBrick`, `ICollectionBrick`), brick factories, inline props | [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md) |
-| Effect (core, Schema, errors)                                                                                     | [docs/effect/README.md](docs/effect/README.md)                                               |
-| TypeScript tooling                                                                                                | [docs/tooling/typescript.md](docs/tooling/typescript.md)                                     |
+### Communication
 
-## `component-and-file-naming.md` — section map
+- Any question asked to the user is blocking. Do not infer an answer or continue past it until the user explicitly answers or withdraws the question.
+- Be terse. No sycophantic openers or closing fluff.
+- Treat me as an expert.
+- Give the answer immediately. If I ask for a fix or explanation, provide the actual code or concrete explanation, not high-level advice.
+- Be accurate and thorough. Value good arguments over authority.
+- Suggest useful alternatives at the end; do not implement them without approval.
+- Speculation and prediction are allowed, but label them.
+- Preserve code comments unless they are completely irrelevant after the change. If unsure, keep them.
+- When showing adjustments to code I supplied, show only the relevant surrounding lines instead of repeating the entire file.
 
-Skim these headings when touching `apps/web/components/home/**`, the **site directory** (`apps/web/app/(site)/site/[siteId]/page/[pageId]/`), or homepage bricks:
+### Long-running dev servers
 
-1. **PascalCase file name matches the component** — default for non-shadcn React files.
-2. **One file per component** — e.g. `BrickCarouselNav` in its own file under `BrickCatalogPreview/`, not nested in `BrickCatalog.tsx`.
-3. **BrickCatalog carousel slides** — one slide per brick, sizing from `def.w` / `def.h` and `gridCellHeightPx`.
-4. **`BrickPreview` props (inline types, no cross-file props export)** — don’t export tiny `XxxProps` types for cross-import churn; **same rule extends to single-use factory argument types** (inline on the function).
-5. **Brick catalog types** — `ICollectionBrickDef`, pair-based grid hooks (`data-brick-grid-collection-name` / `data-brick-grid-brick-name` on [`Grid.tsx`](<apps/web/app/(site)/site/[siteId]/page/[pageId]/Grid.tsx>) for the site workspace; [`HomeGrid.tsx`](apps/web/app/(home)/HomeGrid.tsx) for `/`), drag def vs component.
-6. **Brick factory argument naming** — parameter name `props`, not `options`; **inline** the props object type on `makeBrick` / `makeCollection` unless another module needs the type.
-7. **RSC + `ICollection`** — no `FromCatalog` wrapper on shared carousel; route-local client + `collectionsHash` lookup next to `page.tsx`.
+When starting a long-lived process such as `next dev`, `wrangler dev`, or the root `pnpm dev`, do not use a fixed sleep as the readiness check. Watch stdout/stderr for the server's actual ready message, then proceed. Do not wait for the process to exit.
 
+- Wrangler: wait for `Ready on http://`.
+- Next.js: wait for `Ready in` or its printed local URL.
+- Unknown server: inspect its output and use a real ready-looking line; do not invent a silent delay.
+
+If the ready message never appears, report the terminal tail and stop.
+
+## Rules
+
+### Scope and WIP
+
+Treat the codebase as partially authored by whoever is iterating in the IDE.
+
+- Do what I ask and only that.
+- Do not restore, rewrite, prettify, refactor, add dependencies, or fix adjacent errors unless I explicitly request that scope.
+- Do not replace intentional local wiring with a shared or canonical alternative unless I ask to unify it.
+- If a file looks like glue in progress, assume it is WIP. Do not stabilize it unless asked.
+- If unrelated type, dependency, lint, or test failures exist, report them; do not fix them.
+- Do not change component props or function arguments outside the requested change.
+- If another change would be useful, mention it after completing the requested work instead of bundling it into the diff.
+
+### Ask before abstractions
+
+I am afraid of abstractions. Before adding any new helper, function, wrapper, utility, service, loop over data, barrel, re-export, or other abstraction, ask me first and get explicit confirmation.
+
+- If you think an abstraction is better, stop and provide its proposed name, purpose, and exact call sites.
+- Do not make code more concise without approval. Implement it explicitly and verbosely, with annotations where they clarify the behavior.
+- Do not create a local wrapper around a single call expression. Inline the call unless I explicitly approve the wrapper.
+- Do not add `index.ts` barrels or re-export symbols without approval. Import from the module that defines the symbol.
+
+### Ask before new types
+
+Before adding a new `type` alias, `interface`, or other named type assignment, ask me first and get explicit confirmation.
+
+- Provide the proposed name, shape, and exact use sites.
+- Inline single-use prop and argument shapes at the use site.
+- Do not export a type merely to share a small shape between a parent and child component.
+
+### Casts and type fixes
+
+- Read the relevant code before adding or preserving a cast.
+- Do not add `ALLOWED_CAST` comments without explicit human permission.
+- Do not use `as any as`, `as unknown as`, or another assertion chain to hide a type mismatch.
+- Do not sprinkle `as const` or `as const satisfies` onto object literals unless I ask for it or TypeScript demonstrably requires it.
+- Fix type errors at the real factory, model, annotation, or call-site boundary. Do not bolt fields or intersection types onto a value merely to silence the compiler.
+- Do not wrap `yield*` in parentheses. Use `return yield* effect.pipe(...)` or assign the result to a binding first.
+
+### Components and files
+
+Follow [`docs/styleguide/component-and-file-naming.md`](./docs/styleguide/component-and-file-naming.md) when touching repo-authored React components, homepage bricks, or the site workspace.
+
+- Use PascalCase component filenames matching the primary component, except for shadcn files and Next.js special files.
+- Prefer one primary React component per file, subject to the styleguide's route-local exceptions.
+- Keep single-use route logic in its owning `page.tsx` rather than creating a one-consumer sibling module.
+- Use the existing brick identity, drag, grid, and catalog conventions documented in the styleguide. Do not invent parallel identifiers or wrapper APIs.
+
+### Effect and TypeScript
+
+- This is an Effect-first repository. Read [`docs/effect/README.md`](./docs/effect/README.md) and the linked section relevant to the change before editing Effect code.
+- Use [`docs/tooling/typescript.md`](./docs/tooling/typescript.md) for TypeScript work.
+- Prefer named `Effect.fn` programs for domain behavior. Promise-returning functions belong at framework or runtime boundaries and should remain thin.
+- Use Effect `Schema` at untrusted boundaries and preserve the repository's schema naming and decoding conventions.
+- Do not move validation or trust-boundary behavior between the browser, Next.js server code, packages, or Workers without asking first.
+
+### Plan documents
+
+Plans and specs live under [`.plans/`](./.plans/):
+
+- Design specs: `.plans/specs/XXX-spec-<topic>.md`.
+- Implementation plans: `.plans/plans/XXX-plan-<topic>.md`, reusing the source spec's number and topic.
+- Choose a new number by inspecting existing filenames and using one more than the highest three-digit prefix.
+- Archive a spec after converting it into a plan; archive a plan only after implementation is complete and verified.
+- Update an existing plan in place when revising it.
+- Use ordered lists for plan steps.
+- Present plan-review findings as a numbered list.
+
+### Documentation routing
+
+| Topic | Guidance |
+| --- | --- |
+| React components, files, site workspace, bricks, and catalog | [`docs/styleguide/component-and-file-naming.md`](./docs/styleguide/component-and-file-naming.md) |
+| Effect core, Schema, and errors | [`docs/effect/README.md`](./docs/effect/README.md) |
+| TypeScript fixes and validation patterns | [`docs/tooling/typescript.md`](./docs/tooling/typescript.md) |
+| Reusable code patterns | [`vendor/morgs32/llm-wiki/patterns/`](./vendor/morgs32/llm-wiki/patterns/index.md) |
+| Agent workflow skills | [`.agents/skills/`](./.agents/skills/) |
+
+When a code change invalidates a linked doc, update that doc in the same requested pass. Do not leave stale file paths or symbol names.
 
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
 ## General Guidelines for working with Nx
 
-- For navigating/exploring the workspace, invoke the `nx-workspace` skill first - it has patterns for querying projects, targets, and dependencies
-- When running tasks (for example build, lint, test, e2e, etc.), always prefer running the task through `nx` (i.e. `nx run`, `nx run-many`, `nx affected`) instead of using the underlying tooling directly
-- Prefix nx commands with the workspace's package manager (e.g., `pnpm nx build`, `npm exec nx test`) - avoids using globally installed CLI
-- You have access to the Nx MCP server and its tools, use them to help the user
-- For Nx plugin best practices, check `node_modules/@nx/<plugin>/PLUGIN.md`. Not all plugins have this file - proceed without it if unavailable.
-- NEVER guess CLI flags - always check nx_docs or `--help` first when unsure
+- For navigating or exploring the workspace, invoke the `nx-workspace` skill first.
+- Run build, test, lint, serve, typecheck, and other configured tasks through Nx so dependency targets and task pipelines run too.
+- Prefix Nx commands with this workspace's package manager, for example `pnpm nx run <project>:<target>`.
+- Use direct package-manager commands only when the user explicitly asks for them or no Nx target exists.
+- For Nx plugin details, check `node_modules/@nx/<plugin>/PLUGIN.md` when it exists.
+- Never guess unfamiliar Nx flags; check the relevant docs or `--help` first.
 
-## Scaffolding & Generators
+## Scaffolding and generators
 
-- For scaffolding tasks (creating apps, libs, project structure, setup), ALWAYS invoke the `nx-generate` skill FIRST before exploring or calling MCP tools
-
-## When to use nx_docs
-
-- USE for: advanced config options, unfamiliar flags, migration guides, plugin configuration, edge cases
-- DON'T USE for: basic generator syntax (`nx g @nx/react:app`), standard commands, things you already know
-- The `nx-generate` skill handles generator discovery internally - don't call nx_docs just to look up generator syntax
-
+- Invoke the `nx-generate` skill before scaffolding apps, libraries, or project structure.
 
 <!-- nx configuration end-->

@@ -2,22 +2,23 @@
 
 import type { LayoutItem } from "react-grid-layout";
 
-import { blackCircleCollection } from "@/components/home/bricks/collections/BlackCircle/BlackCircleCollection";
-import { blackMCollection } from "@/components/home/bricks/collections/BlackMLogo/BlackMLogoCollection";
-import { blueGridCollection } from "@/components/home/bricks/collections/BlueGrid/BlueGridCollection";
-import { creamBenchCollection } from "@/components/home/bricks/collections/CreamBench/CreamBenchCollection";
-import { creamSquareCollection } from "@/components/home/bricks/collections/CreamSquare/CreamSquareCollection";
-import { greenArchCollection } from "@/components/home/bricks/collections/GreenArch/GreenArchCollection";
-import { greenCrossCollection } from "@/components/home/bricks/collections/GreenCross/GreenCrossCollection";
-import { greenEmptyCollection } from "@/components/home/bricks/collections/GreenEmpty/GreenEmptyCollection";
-import { greenGCollection } from "@/components/home/bricks/collections/GreenGLogo/GreenGLogoCollection";
-import { orangeBlocksCollection } from "@/components/home/bricks/collections/OrangeBlocks/OrangeBlocksCollection";
-import { orangeFlagCollection } from "@/components/home/bricks/collections/OrangeFlag/OrangeFlagCollection";
-import { pinkAsteriskCollection } from "@/components/home/bricks/collections/PinkAsterisk/PinkAsteriskCollection";
-import { pinkDotsCollection } from "@/components/home/bricks/collections/PinkDots/PinkDotsCollection";
-import { purpleLinesCollection } from "@/components/home/bricks/collections/PurpleLines/PurpleLinesCollection";
-import { textBrickCollection } from "@/components/home/bricks/collections/TextBrick/TextBrickCollection";
-import type { ICollectionBrickDef } from "@/components/home/bricks/types";
+import { collectionsHash, type ICollectionBrickDef } from "@qrk.sh/bricks";
+
+const blackCircleCollection = collectionsHash["black-circle"];
+const blackMCollection = collectionsHash["black-m-logo"];
+const blueGridCollection = collectionsHash["blue-grid"];
+const creamBenchCollection = collectionsHash["cream-bench"];
+const creamSquareCollection = collectionsHash["cream-square"];
+const greenArchCollection = collectionsHash["green-arch"];
+const greenCrossCollection = collectionsHash["green-cross"];
+const greenEmptyCollection = collectionsHash["green-empty"];
+const greenGCollection = collectionsHash["green-g-logo"];
+const orangeBlocksCollection = collectionsHash["orange-block"];
+const orangeFlagCollection = collectionsHash["orange-flag"];
+const pinkAsteriskCollection = collectionsHash["pink-asterisk"];
+const pinkDotsCollection = collectionsHash["pink-dots"];
+const purpleLinesCollection = collectionsHash["purple-lines"];
+const textBrickCollection = collectionsHash["text-brick"];
 
 export type ILayoutItem = LayoutItem & { def: ICollectionBrickDef };
 export type ILayout = ILayoutItem[];

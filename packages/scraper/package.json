@@ -1,0 +1,27 @@
+{
+  "name": "scraper",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "oxlint . --format stylish",
+    "test:e2e": "vitest run --config vitest.config.ts",
+    "test:live": "SCRAPER_LIVE_TESTS=1 vitest run --config vitest.live.config.ts",
+    "typecheck": "tsc --noEmit",
+    "types": "wrangler types ./worker-configuration.d.ts"
+  },
+  "dependencies": {
+    "@cloudflare/puppeteer": "^1.1.0",
+    "capnweb": "^0.7.0",
+    "drizzle-orm": "1.0.0-beta.17-67b1795",
+    "effect": "^3.21.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.16.3",
+    "@effect/vitest": "^0.29.0",
+    "@types/node": "^25.5.2",
+    "oxlint": "^1.59.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.5",
+    "wrangler": "^4.90.0"
+  }
+}

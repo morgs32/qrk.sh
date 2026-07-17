@@ -1,0 +1,61 @@
+{
+  "name": "@qrk.sh/bricks",
+  "version": "0.0.0",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "scripts": {
+    "dev": "vite dev --config workbench/vite.config.ts --host 127.0.0.1 --port 4100",
+    "build": "vite build && tailwindcss -i src/styles.css -o dist/styles.css --minify && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "build:workbench": "vite build --config workbench/vite.config.ts",
+    "generate-routes": "tsr generate",
+    "typecheck": "pnpm generate-routes && tsc --noEmit",
+    "lint": "oxlint src workbench/src workbench/tests workbench/vite.config.ts workbench/playwright.config.ts",
+    "format": "oxfmt src workbench/src/routes workbench/src/router.tsx workbench/src/sandbox.css workbench/tests workbench/vite.config.ts workbench/playwright.config.ts package.json tsconfig.json tsconfig.build.json tsr.config.json vite.config.ts vitest.config.ts",
+    "format:check": "oxfmt --check src workbench/src/routes workbench/src/router.tsx workbench/src/sandbox.css workbench/tests workbench/vite.config.ts workbench/playwright.config.ts package.json tsconfig.json tsconfig.build.json tsr.config.json vite.config.ts vitest.config.ts",
+    "test": "vitest run --config vitest.config.ts",
+    "test:e2e": "playwright test --config workbench/playwright.config.ts"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
+    "@unpic/react": "1.0.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "es-toolkit": "^1.45.1",
+    "lucide-react": "^1.7.0",
+    "swr": "^2.3.3",
+    "tailwind-merge": "^3.5.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@tailwindcss/cli": "4.3.3",
+    "@tailwindcss/vite": "4.3.3",
+    "@tanstack/react-router": "1.170.18",
+    "@tanstack/react-start": "1.168.28",
+    "@tanstack/router-cli": "1.167.19",
+    "@types/node": "^25.5.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "oxfmt": "^0.44.0",
+    "oxlint": "^1.59.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "4.3.3",
+    "typescript": "^6.0.2",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}

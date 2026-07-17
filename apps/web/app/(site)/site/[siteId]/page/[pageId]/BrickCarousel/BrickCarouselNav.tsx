@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { type CarouselApi } from "@/components/ui/carousel";
-import { type ICollectionBrick } from "@/components/home/bricks/types";
+import { type ICollectionBrick } from "@qrk.sh/bricks";
 import { cn } from "@/lib/utils";
 
 const maxVisibleDots = 5;

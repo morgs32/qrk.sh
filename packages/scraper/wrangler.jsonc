@@ -1,0 +1,30 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "scraper",
+  "main": "./src/Worker.ts",
+  "compatibility_date": "2026-07-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "browser": { "binding": "BROWSER" },
+  "durable_objects": {
+    "bindings": [{ "name": "SCRAPER_REPO", "class_name": "ScraperRepo" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ScraperRepo"] }],
+  "queues": {
+    "producers": [
+      { "binding": "LINKTREE_QUEUE", "queue": "scraper-linktree" },
+      { "binding": "BEACONS_QUEUE", "queue": "scraper-beacons" },
+      { "binding": "INSTAGRAM_QUEUE", "queue": "scraper-instagram" },
+      { "binding": "TIKTOK_QUEUE", "queue": "scraper-tiktok" },
+      { "binding": "YOUTUBE_QUEUE", "queue": "scraper-youtube" },
+      { "binding": "TRUTH_SOCIAL_QUEUE", "queue": "scraper-truth-social" }
+    ],
+    "consumers": [
+      { "queue": "scraper-linktree", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
+      { "queue": "scraper-beacons", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
+      { "queue": "scraper-instagram", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
+      { "queue": "scraper-tiktok", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
+      { "queue": "scraper-youtube", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
+      { "queue": "scraper-truth-social", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 }
+    ]
+  }
+}

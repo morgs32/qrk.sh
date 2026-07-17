@@ -1,6 +1,6 @@
 import { Either, Schema } from "effect";
 import { create } from "zustand";
-import type { ICollectionBrickDef } from "@/components/home/bricks/types";
+import type { ICollectionBrickDef } from "@qrk.sh/bricks";
 
 export const BRICK_DRAG_MIME = "application/x-qrk-brick-def";
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { EmblaCarouselType } from "embla-carousel";
-import type { ICollection, ICollectionBrick } from "@/components/home/bricks/types";
+import type { ICollection, ICollectionBrick } from "@qrk.sh/bricks";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   type CarouselApi,

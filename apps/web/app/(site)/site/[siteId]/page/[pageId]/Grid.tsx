@@ -12,16 +12,14 @@ import GridLayout, {
 } from "react-grid-layout";
 import { createScaledStrategy } from "react-grid-layout/core";
 import type { ILayout } from "@/components/home/seedLayout";
-import { creamSquareCollection } from "@/components/home/bricks/collections/CreamSquare/CreamSquareCollection";
-import { textBrickCollection } from "@/components/home/bricks/collections/TextBrick/TextBrickCollection";
-import { findCollectionBrick } from "@/components/home/bricks/findCollectionBrick";
+import { collectionsHash, findCollectionBrick } from "@qrk.sh/bricks";
 import {
   getActiveBrickDragGridShape,
   parseBrickDefFromDataTransfer,
   BRICK_DRAG_MIME,
   useBrickDrawerStore,
 } from "@/components/home/useBrickDrawerStore";
-import type { ICollectionBrickDef } from "@/components/home/bricks/types";
+import type { ICollectionBrickDef } from "@qrk.sh/bricks";
 import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
 
 /**
@@ -31,6 +29,9 @@ import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
 const GRID_DRAG_BOUNDED = process.env.NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED !== "true";
 
 const GRID_COLS = 8;
+
+const creamSquareCollection = collectionsHash["cream-square"];
+const textBrickCollection = collectionsHash["text-brick"];
 
 /** Placeholder identity while dragging from outside (react-grid-layout external drop). */
 const DROPPING_ITEM: LayoutItem = {

@@ -24,7 +24,7 @@ function CollectionCatalog() {
   return (
     <>
       <div className="px-6 pt-6">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-zinc-600">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm">
           <ArrowLeft aria-hidden className="size-4" />
           <span>All collections</span>
         </Link>
@@ -42,7 +42,11 @@ function CollectionCatalog() {
               <h2 className="m-0 px-6 text-2xl font-semibold">{brick.def.label}</h2>
               <div className="mt-6 overflow-auto">
                 <div
-                  className="qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
+                  className={
+                    brick.def.w === 8
+                      ? "qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
+                      : "qrk-bricks ml-6 cursor-grab overflow-hidden active:cursor-grabbing"
+                  }
                   data-brick-full-size={`${brick.def.collectionName}/${brick.def.name}`}
                   draggable
                   onDragStart={(event) => {

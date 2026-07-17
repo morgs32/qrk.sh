@@ -27,9 +27,11 @@ body {
 }
 
 a {
-  color: inherit;
+  color: #71717a;
+  text-decoration: underline;
 }
 
 .sandbox-wordmark {
   font-family: "Silkscreen", sans-serif;
+  text-decoration: none;
 }

@@ -25,6 +25,7 @@
     "test:e2e": "playwright test --config workbench/playwright.config.ts"
   },
   "dependencies": {
+    "@base-ui/react": "^1.6.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@unpic/react": "1.0.2",
     "class-variance-authority": "^0.7.1",

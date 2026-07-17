@@ -11,10 +11,9 @@ export const Route = createFileRoute("/collections/$collectionName/gridBrick/$gr
 function GridBrickDetail() {
   const { collectionName, gridBrickId } = Route.useParams();
   const hasHydrated = useGridStore((state) => state.hasHydrated);
-  const brickDef = useGridStore(
-    (state) => state.collectionGrids[collectionName]?.gridBricksById[gridBrickId],
-  );
-  const brick = brickDef ? findCollectionBrick(brickDef) : undefined;
+  const brickDef = useGridStore((state) => state.gridBricksById[gridBrickId]);
+  const brick =
+    brickDef?.collectionName === collectionName ? findCollectionBrick(brickDef) : undefined;
 
   if (!hasHydrated) {
     return <div className="px-6 pt-6 text-sm text-zinc-500">Loading grid brick…</div>;
@@ -26,7 +25,7 @@ function GridBrickDetail() {
         <Link
           to="/collections/$collectionName"
           params={{ collectionName }}
-          className="inline-flex items-center gap-2 text-sm text-zinc-600"
+          className="inline-flex items-center gap-2 text-sm"
         >
           <ArrowLeft aria-hidden className="size-4" />
           <span>Back to collection</span>
@@ -47,7 +46,7 @@ function GridBrickDetail() {
         <Link
           to="/collections/$collectionName"
           params={{ collectionName }}
-          className="inline-flex items-center gap-2 text-sm text-zinc-600"
+          className="inline-flex items-center gap-2 text-sm"
         >
           <ArrowLeft aria-hidden className="size-4" />
           <span>Back to {brick.def.collectionLabel}</span>

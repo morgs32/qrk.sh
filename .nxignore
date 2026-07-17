@@ -1,0 +1,5 @@
+vendor/**
+!vendor/zerospin/
+!vendor/zerospin/packages/
+!vendor/zerospin/packages/*/
+!vendor/zerospin/packages/*/**

@@ -1,0 +1,19 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "sync-fixture",
+  "main": "e2e/worker.ts",
+  "compatibility_date": "2025-04-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      { "name": "FIXTURE_STATE_REPO", "class_name": "FixtureStateRepo" },
+      { "name": "FIXTURE_SYNC_AGENT", "class_name": "FixtureSyncAgent" },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["FixtureStateRepo", "FixtureSyncAgent"],
+    },
+  ],
+}

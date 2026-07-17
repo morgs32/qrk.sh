@@ -1,0 +1,181 @@
+{
+  "name": "@zerospin/dispatch-worker",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "wrangler.vitest.jsonc"
+  ],
+  "exports": {
+    "./SystemApi": {
+      "types": "./dist/SystemApi/SystemApi.d.ts",
+      "import": "./dist/SystemApi/SystemApi.js",
+      "default": "./dist/SystemApi/SystemApi.js"
+    },
+    "./SystemApi/SystemApi": {
+      "types": "./dist/SystemApi/SystemApi.d.ts",
+      "import": "./dist/SystemApi/SystemApi.js",
+      "default": "./dist/SystemApi/SystemApi.js"
+    },
+    "./SystemApiFailure": {
+      "types": "./dist/SystemApi/SystemApiFailure.d.ts",
+      "import": "./dist/SystemApi/SystemApiFailure.js",
+      "default": "./dist/SystemApi/SystemApiFailure.js"
+    },
+    "./SystemApi/SystemApiFailure": {
+      "types": "./dist/SystemApi/SystemApiFailure.d.ts",
+      "import": "./dist/SystemApi/SystemApiFailure.js",
+      "default": "./dist/SystemApi/SystemApiFailure.js"
+    },
+    "./FrontendApi": {
+      "types": "./dist/FrontendApi/FrontendApi.d.ts",
+      "import": "./dist/FrontendApi/FrontendApi.js",
+      "default": "./dist/FrontendApi/FrontendApi.js"
+    },
+    "./FrontendApi/FrontendApi": {
+      "types": "./dist/FrontendApi/FrontendApi.d.ts",
+      "import": "./dist/FrontendApi/FrontendApi.js",
+      "default": "./dist/FrontendApi/FrontendApi.js"
+    },
+    "./FrontendApiFailure": {
+      "types": "./dist/FrontendApi/FrontendApiFailure.d.ts",
+      "import": "./dist/FrontendApi/FrontendApiFailure.js",
+      "default": "./dist/FrontendApi/FrontendApiFailure.js"
+    },
+    "./FrontendApi/FrontendApiFailure": {
+      "types": "./dist/FrontendApi/FrontendApiFailure.d.ts",
+      "import": "./dist/FrontendApi/FrontendApiFailure.js",
+      "default": "./dist/FrontendApi/FrontendApiFailure.js"
+    },
+    "./ZerospinApis": {
+      "types": "./dist/ZerospinApis/ZerospinApis.d.ts",
+      "import": "./dist/ZerospinApis/ZerospinApis.js",
+      "default": "./dist/ZerospinApis/ZerospinApis.js"
+    },
+    "./ZerospinApis/ZerospinApis": {
+      "types": "./dist/ZerospinApis/ZerospinApis.d.ts",
+      "import": "./dist/ZerospinApis/ZerospinApis.js",
+      "default": "./dist/ZerospinApis/ZerospinApis.js"
+    },
+    "./SystemWorkerResolver": {
+      "types": "./dist/SystemWorkerResolver/SystemWorkerResolver.d.ts",
+      "import": "./dist/SystemWorkerResolver/SystemWorkerResolver.js",
+      "default": "./dist/SystemWorkerResolver/SystemWorkerResolver.js"
+    },
+    "./SystemWorkerResolver/SystemWorkerResolver": {
+      "types": "./dist/SystemWorkerResolver/SystemWorkerResolver.d.ts",
+      "import": "./dist/SystemWorkerResolver/SystemWorkerResolver.js",
+      "default": "./dist/SystemWorkerResolver/SystemWorkerResolver.js"
+    },
+    "./WorkerExportsSystemWorkerResolver": {
+      "types": "./dist/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.d.ts",
+      "import": "./dist/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.js",
+      "default": "./dist/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.js"
+    },
+    "./ApiKeyIdentityResolver": {
+      "types": "./dist/ApiKeyIdentityResolver/ApiKeyIdentityResolver.d.ts",
+      "import": "./dist/ApiKeyIdentityResolver/ApiKeyIdentityResolver.js",
+      "default": "./dist/ApiKeyIdentityResolver/ApiKeyIdentityResolver.js"
+    },
+    "./ApiKeyIdentityResolver/ApiKeyIdentityResolver": {
+      "types": "./dist/ApiKeyIdentityResolver/ApiKeyIdentityResolver.d.ts",
+      "import": "./dist/ApiKeyIdentityResolver/ApiKeyIdentityResolver.js",
+      "default": "./dist/ApiKeyIdentityResolver/ApiKeyIdentityResolver.js"
+    },
+    "./makeStaticApiKeyIdentityResolver": {
+      "types": "./dist/ApiKeyIdentityResolver/makeStaticApiKeyIdentityResolver.d.ts",
+      "import": "./dist/ApiKeyIdentityResolver/makeStaticApiKeyIdentityResolver.js",
+      "default": "./dist/ApiKeyIdentityResolver/makeStaticApiKeyIdentityResolver.js"
+    },
+    "./CloudApiKeyJwtClaimsSchema": {
+      "types": "./dist/CloudApiKeyJwtClaimsSchema.d.ts",
+      "import": "./dist/CloudApiKeyJwtClaimsSchema.js",
+      "default": "./dist/CloudApiKeyJwtClaimsSchema.js"
+    },
+    "./makeSystemWorkerName": {
+      "types": "./dist/makeSystemWorkerName.d.ts",
+      "import": "./dist/makeSystemWorkerName.js",
+      "default": "./dist/makeSystemWorkerName.js"
+    },
+    "./getSystemWorkerNameFromClaims": {
+      "types": "./dist/getSystemWorkerNameFromClaims.d.ts",
+      "import": "./dist/getSystemWorkerNameFromClaims.js",
+      "default": "./dist/getSystemWorkerNameFromClaims.js"
+    },
+    "./makeDispatchRuntime": {
+      "types": "./dist/makeDispatchRuntime.d.ts",
+      "import": "./dist/makeDispatchRuntime.js",
+      "default": "./dist/makeDispatchRuntime.js"
+    },
+    "./makeTestApis": {
+      "types": "./dist/makeTestApis.d.ts",
+      "import": "./dist/makeTestApis.js",
+      "default": "./dist/makeTestApis.js"
+    },
+    "./retryTransientDoErrors": {
+      "types": "./dist/retryTransientDoErrors.d.ts",
+      "import": "./dist/retryTransientDoErrors.js",
+      "default": "./dist/retryTransientDoErrors.js"
+    },
+    "./Worker": {
+      "types": "./dist/Worker.d.ts",
+      "import": "./dist/Worker.js",
+      "default": "./dist/Worker.js"
+    },
+    "./shims/makeMigratedInMemoryWasmSqliteDb": {
+      "types": "./dist/shims/makeMigratedInMemoryWasmSqliteDb.d.ts",
+      "import": "./dist/shims/makeMigratedInMemoryWasmSqliteDb.js",
+      "default": "./dist/shims/makeMigratedInMemoryWasmSqliteDb.js"
+    },
+    "./vitest/makePlaywrightVitestConfig": {
+      "types": "./dist/vitest/makePlaywrightVitestConfig.d.ts",
+      "import": "./dist/vitest/makePlaywrightVitestConfig.js",
+      "default": "./dist/vitest/makePlaywrightVitestConfig.js"
+    },
+    "./vitest/makeWorkerdE2eTestLayer": {
+      "types": "./dist/vitest/makeWorkerdE2eTestLayer.d.ts",
+      "import": "./dist/vitest/makeWorkerdE2eTestLayer.js",
+      "default": "./dist/vitest/makeWorkerdE2eTestLayer.js"
+    },
+    "./vitest/makeWorkerdVitestConfig": {
+      "types": "./dist/vitest/makeWorkerdVitestConfig.d.ts",
+      "import": "./dist/vitest/makeWorkerdVitestConfig.js",
+      "default": "./dist/vitest/makeWorkerdVitestConfig.js"
+    },
+    "./vitest/workerdSetup": {
+      "types": "./dist/vitest/workerdSetup.d.ts",
+      "import": "./dist/vitest/workerdSetup.js",
+      "default": "./dist/vitest/workerdSetup.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lib": "pnpm run clean && tsc -b tsconfig.json",
+    "test": "vitest run --config vitest.config.ts",
+    "ts": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint . --format stylish"
+  },
+  "dependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.16.3",
+    "@remix-run/route-pattern": "^0.22.1",
+    "@vitest/browser-playwright": "4.1.5",
+    "@zerospin/core": "workspace:*",
+    "@zerospin/error": "workspace:*",
+    "@zerospin/logger": "workspace:*",
+    "capnweb": "^0.7.0",
+    "cloudflare": "^6.1.0",
+    "drizzle-orm": "1.0.0-beta.17-67b1795",
+    "effect": "^3.21.4",
+    "system": "workspace:*",
+    "system-worker": "workspace:*",
+    "vitest": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.4",
+    "rimraf": "^6.1.3",
+    "typescript": "6.0.3"
+  }
+}

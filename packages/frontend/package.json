@@ -1,0 +1,63 @@
+{
+  "name": "@zerospin/frontend",
+  "version": "2.0.1",
+  "private": false,
+  "description": "Zerospin browser transport programs",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src"
+  ],
+  "exports": {
+    "./fetchActor": {
+      "types": "./dist/fetchActor.d.ts",
+      "import": "./dist/fetchActor.js",
+      "default": "./dist/fetchActor.js"
+    },
+    "./fetchFrontendState": {
+      "types": "./dist/fetchFrontendState.d.ts",
+      "import": "./dist/fetchFrontendState.js",
+      "default": "./dist/fetchFrontendState.js"
+    },
+    "./pushStagedCommands": {
+      "types": "./dist/pushStagedCommands.d.ts",
+      "import": "./dist/pushStagedCommands.js",
+      "default": "./dist/pushStagedCommands.js"
+    },
+    "./executeActorQuery": {
+      "types": "./dist/executeActorQuery.d.ts",
+      "import": "./dist/executeActorQuery.js",
+      "default": "./dist/executeActorQuery.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lib": "pnpm run clean && tsc -b tsconfig.json",
+    "ts": "tsc -p tsconfig.etc.json --noEmit",
+    "watch": "tsc -b tsconfig.json --watch",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
+    "lint": "oxlint . --format stylish"
+  },
+  "dependencies": {
+    "@zerospin/core": "workspace:*",
+    "@zerospin/error": "workspace:*",
+    "@zerospin/logger": "workspace:*",
+    "drizzle-orm": "1.0.0-beta.17-67b1795",
+    "effect": "^3.21.4"
+  },
+  "devDependencies": {
+    "@effect/language-service": "^0.85.1",
+    "@effect/vitest": "^0.29.0",
+    "@types/node": "^25.6.2",
+    "@zerospin/dispatch-worker": "workspace:*",
+    "rimraf": "^6.1.3",
+    "typescript": "6.0.3",
+    "vite": "^8.0.11",
+    "vitest": "^4.1.5"
+  },
+  "peerDependencies": {
+    "effect": "^3.17.11"
+  }
+}

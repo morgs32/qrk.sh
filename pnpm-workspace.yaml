@@ -1,0 +1,22 @@
+# Set to 0 so `pnpm install` succeeds when the registry omits `time` metadata for
+# some packages (pnpm then cannot enforce minimumReleaseAge). Restore a non-zero
+# value (e.g. 10080) when your registry metadata is reliable again.
+minimumReleaseAge: 0
+
+packages:
+  - 'docs'
+  - 'packages/*'
+  - 'examples/*'
+allowBuilds:
+  '@clerk/shared': true
+  '@parcel/watcher': true
+  '@swc/core': true
+  core-js: true
+  core-js-pure: true
+  esbuild: true
+  msgpackr-extract: true
+  msw: true
+  nx: true
+  protobufjs: true
+  sharp: true
+  workerd: true

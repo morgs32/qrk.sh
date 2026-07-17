@@ -1,0 +1,126 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  // Default mode includes tests as importers, so exports only referenced from specs look "used".
+  // Run `pnpm knip:production` to analyze shippable code only (--production --include-entry-exports).
+  "include": ["files", "exports", "types"],
+  "ignore": [
+    "vendor/effect/**",
+    "**/*.typecheck.ts",
+    ".agents/skills/**",
+    ".github/skills/**",
+  ],
+  // *RepoTables.ts: shapes/tables used only inside the same module
+  "ignoreExportsUsedInFile": true,
+  "ignoreIssues": {
+    "**/components/ui/**": ["exports"],
+    "examples/shopping/src/components/ui/**": ["exports"],
+    "packages/system-worker/src/types.ts": ["types"],
+  },
+  "workspaces": {
+    ".": {
+      "entry": ["nx.json", ".github/workflows/*.yml"],
+      "ignoreDependencies": [
+        "@changesets/cli",
+        "@zerospin/cli",
+        "madge",
+        "react",
+        "react-dom",
+        "rimraf",
+        "tsafe",
+        "tslib",
+      ],
+    },
+    "examples/shopping": {
+      "entry": [
+        "src/zerospin/session.worker.ts",
+        "zerospin.config.ts",
+        "vitest.config.ts",
+        // Referenced as string paths from zerospin.config.ts
+        "src/zerospin/system.ts",
+        "src/zerospin/seeds.ts",
+        "src/zerospin/models.ts",
+        "src/zerospin/frontend.ts",
+      ],
+      "ignoreFiles": ["vitest-env.d.ts"],
+      "vitest": true,
+      "next": true,
+    },
+    "examples/parking": {
+      "entry": [
+        "src/zerospin/provider.session.worker.ts",
+        "src/zerospin/owner.session.worker.ts",
+        "zerospin.config.ts",
+        "vitest.config.ts",
+        "src/zerospin/system.ts",
+        "src/zerospin/seeds.ts",
+        "src/zerospin/models.ts",
+        "src/zerospin/frontends.ts",
+      ],
+      "ignoreFiles": ["vitest-env.d.ts"],
+      "vitest": true,
+      "next": true,
+      "playwright": true,
+    },
+    "packages/core": {
+      "entry": [
+        "src/**!",
+        "!**/*.{spec,node.spec,typecheck,bench,test,test-d,spec-d,d}.ts!",
+        "!**/*.{spec,node.spec,typecheck,bench,test,test-d,spec-d,d}.tsx!",
+      ],
+      "project": [
+        "src/**!",
+        "!**/*.{spec,node.spec,typecheck,bench,test,test-d,spec-d,d}.ts!",
+        "!**/*.{spec,node.spec,typecheck,bench,test,test-d,spec-d,d}.tsx!",
+      ],
+      "vitest": true,
+    },
+    "packages/cli": {
+      "entry": ["src/cli.tsx", "src/commands/**/*.tsx", "src/commands/**/*.ts"],
+      "vitest": true,
+    },
+    "packages/devtools": {
+      "entry": [
+        "src/ZerospinDevtools.tsx",
+        "src/types.ts",
+        "src/zerospinDevtoolsStore.ts",
+      ],
+      "vitest": true,
+    },
+    "packages/live-query": {
+      "entry": ["src/makeLiveQuery.ts"],
+      "vitest": true,
+    },
+    "packages/error": {
+      "entry": ["src/index.ts"],
+      "vitest": true,
+    },
+    "packages/react": {
+      "entry": ["src/index.ts", "vitest.setup.ts!"],
+      "vitest": true,
+    },
+    "packages/sdk": {
+      "entry": ["src/index.ts"],
+      "vitest": true,
+    },
+    "packages/system": {
+      "entry": ["src/index.ts"],
+      "vitest": true,
+    },
+    "packages/system-worker": {
+      "entry": [
+        "src/TestWorker.ts",
+        "vitest.workerd.config.ts",
+        "vitest.node.config.ts",
+      ],
+      "paths": {
+        "system": ["./src/fixtures/system.ts"],
+      },
+      "ignore": ["worker.d.ts"],
+      "ignoreFiles": ["vitest.workerd.config.ts"],
+      "vitest": true,
+      "wrangler": {
+        "config": ["wrangler.jsonc", "wrangler.vitest.jsonc"],
+      },
+    },
+  },
+}

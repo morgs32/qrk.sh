@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "sync-dispatch",
+  "main": "e2e/dispatchWorker.ts",
+  "compatibility_date": "2025-04-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "dispatch_namespaces": [
+    {
+      "binding": "SYNC_USER_NAMESPACE",
+      "namespace": "zerospin-sync-e2e",
+    },
+  ],
+}

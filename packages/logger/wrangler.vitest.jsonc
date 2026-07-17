@@ -1,0 +1,29 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "zerospin-logger-test",
+  "main": "./specs/workerd/finalizeAccountCommands/SystemApi.ts",
+  "compatibility_date": "2026-01-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      { "name": "ACCOUNT_REPO", "class_name": "AccountRepo" },
+      {
+        "name": "ACCOUNT_BLOCK_REPO",
+        "class_name": "AccountBlockRepo",
+      },
+      { "name": "ACTOR_REPO", "class_name": "ActorRepo" },
+      { "name": "RESET_REPO", "class_name": "ResetRepo" },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "AccountRepo",
+        "AccountBlockRepo",
+        "ActorRepo",
+        "ResetRepo",
+      ],
+    },
+  ],
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@zerospin/server-only",
+  "version": "0.0.1",
+  "private": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "react-server": "./empty.js",
+      "workerd": "./empty.js",
+      "node": "./empty.js",
+      "default": "./index.js"
+    }
+  }
+}

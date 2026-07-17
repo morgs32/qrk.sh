@@ -1,0 +1,36 @@
+{
+  "name": "@zerospin/logger",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lib": "pnpm run clean && tsc -b tsconfig.json",
+    "ts": "tsc -p tsconfig.etc.json --noEmit",
+    "test": "vitest run",
+    "test:workerd": "vitest run --config vitest.workerd.config.ts",
+    "test:watch": "vitest watch",
+    "lint": "oxlint . --format stylish"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.16.3",
+    "@effect/language-service": "^0.85.1",
+    "@types/node": "^25.6.2",
+    "@zerospin/error": "workspace:*",
+    "effect": "^3.21.4",
+    "rimraf": "^6.1.3",
+    "typescript": "6.0.3",
+    "vitest": "^4.1.5",
+    "wrangler": "^4.90.0"
+  },
+  "peerDependencies": {
+    "effect": "^3.17.11"
+  }
+}

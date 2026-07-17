@@ -1,0 +1,40 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "vendor/**",
+    "vendor/effect/**",
+    "**/package.json",
+    "**/worker-configuration.d.ts"
+  ],
+  "singleQuote": true,
+  "trailingComma": "all",
+  "arrowParens": "avoid",
+  "printWidth": 80,
+  "experimentalSortImports": {
+    "groups": [
+      "react",
+      "builtin",
+      "external",
+      "loot-core",
+      "parent",
+      "sibling",
+      "index",
+      "desktop-client"
+    ],
+    "customGroups": [
+      {
+        "groupName": "react",
+        "elementNamePattern": ["react"]
+      },
+      {
+        "groupName": "loot-core",
+        "elementNamePattern": ["loot-core"]
+      },
+      {
+        "groupName": "desktop-client",
+        "elementNamePattern": ["@desktop-client"]
+      }
+    ],
+    "newlinesBetween": true
+  }
+}

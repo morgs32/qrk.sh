@@ -1,0 +1,52 @@
+{
+  "name": "@zerospin/shared-worker",
+  "version": "2.0.1",
+  "private": false,
+  "description": "Zerospin browser SharedWorker session storage",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./makeSharedWorkerSession": {
+      "types": "./dist/makeSharedWorkerSession.d.ts",
+      "import": "./dist/makeSharedWorkerSession.js",
+      "default": "./dist/makeSharedWorkerSession.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "drizzle:user": "drizzle-kit generate --config drizzle.user.config.ts && node scripts/writeUserMigrationManifest.mjs",
+    "lib": "pnpm run clean && tsc -b tsconfig.json && tsup && node -e \"const fs=require('node:fs'); const path=require('node:path'); const asyncJs=require.resolve('wa-sqlite/dist/wa-sqlite-async.mjs'); fs.copyFileSync(path.join(path.dirname(asyncJs), 'wa-sqlite-async.wasm'), 'dist/wa-sqlite-async.wasm');\"",
+    "ts": "tsc -p tsconfig.etc.json --noEmit",
+    "watch": "tsc -b tsconfig.json --watch",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
+    "lint": "oxlint . --format stylish"
+  },
+  "dependencies": {
+    "@zerospin/core": "workspace:*",
+    "@zerospin/error": "workspace:*",
+    "@zerospin/logger": "workspace:*",
+    "capnweb": "^0.7.0",
+    "drizzle-orm": "1.0.0-beta.17-67b1795",
+    "effect": "^3.21.4",
+    "es-toolkit": "^1.46.1",
+    "wa-sqlite": "^1.0.0",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@effect/language-service": "^0.85.1",
+    "@effect/vitest": "^0.29.0",
+    "@types/node": "^25.6.2",
+    "@vitest/coverage-v8": "^4.1.5",
+    "drizzle-kit": "1.0.0-beta.17-67b1795",
+    "happy-dom": "^20.9.0",
+    "rimraf": "^6.1.3",
+    "tsup": "^8.5.1",
+    "typescript": "6.0.3",
+    "vite": "^8.0.11",
+    "vitest": "^4.1.5"
+  },
+  "peerDependencies": {
+    "effect": "^3.17.11"
+  }
+}

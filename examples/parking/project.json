@@ -1,0 +1,45 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "parking",
+  "targets": {
+    "dev": {
+      "dependsOn": ["^lib", "worker:dev"],
+      "continuous": true
+    },
+    "worker:dev": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "worker:dev"
+      },
+      "continuous": true,
+      "dependsOn": ["^lib"]
+    },
+    "e2e-app": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "dev"
+      },
+      "continuous": true,
+      "dependsOn": ["^lib", "worker:dev"]
+    },
+    "test:playwright": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:playwright"
+      }
+    },
+    "test:playwright:ui": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:playwright:ui"
+      }
+    },
+    "test:workerd": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:workerd"
+      },
+      "dependsOn": ["^lib"]
+    }
+  }
+}

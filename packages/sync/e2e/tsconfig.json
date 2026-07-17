@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.etc.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [
+      "@cloudflare/vitest-pool-workers/types",
+      "@vitest/browser-playwright",
+      "node",
+      "vitest/globals",
+      "../worker-configuration.d.ts"
+    ]
+  },
+  "include": ["./**/*.{ts,tsx}", "../worker-configuration.d.ts"]
+}

@@ -1,0 +1,38 @@
+# zerospin — docs-from-code-with-llm-wiki configuration
+#
+# Edit this file once. The post-commit hook reads it on every run.
+
+cli: cursor-agent
+
+doc_types:
+  architecture: true
+  api: true
+  user: false
+  decisions: true
+  concepts: true
+
+include:
+  - 'packages/**'
+  - 'docs/**'
+  - 'examples/**'
+
+exclude:
+  - 'vendor/**'
+  - '**/*.spec.ts'
+  - '**/*.test.ts'
+  - '**/*.workerd.spec.ts'
+  - '**/*.node.spec.ts'
+  - '**/*.playwright.spec.ts'
+  - '**/__tests__/**'
+  - '**/node_modules/**'
+  - 'dist/**'
+  - 'build/**'
+  - 'wiki/**'
+  - '.llmwiki/**'
+
+custom_types: []
+
+hook:
+  async: true
+  max_diff_lines: 2000
+  commit_message_prefix: 'wiki: update'

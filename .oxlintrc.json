@@ -1,0 +1,439 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "import", "jsx-a11y"],
+  "jsPlugins": ["eslint-plugin-perfectionist"],
+  "env": {
+    "browser": true,
+    "node": true,
+    "vitest": true
+  },
+  "globals": {
+    "Blob": "readonly",
+    "File": "readonly",
+    "FormData": "readonly",
+    "Headers": "readonly",
+    "Request": "readonly",
+    "Response": "readonly",
+    "URL": "readonly",
+    "URLSearchParams": "readonly",
+    "WebSocketPair": "readonly",
+    "Worker": "readonly",
+    "console": "readonly",
+    "crypto": "readonly",
+    "describe": "readonly",
+    "document": "readonly",
+    "expect": "readonly",
+    "fetch": "readonly",
+    "IntersectionObserver": "readonly",
+    "it": "readonly",
+    "localStorage": "readonly",
+    "navigator": "readonly",
+    "process": "readonly",
+    "sessionStorage": "readonly",
+    "setTimeout": "readonly",
+    "vi": "readonly",
+    "window": "readonly"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.config.js", "**/*.config.mjs", "**/*.config.ts"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": [
+        "**/page.ts",
+        "**/page.tsx",
+        "**/layout.ts",
+        "**/layout.tsx",
+        "**/[[...*]]/page.ts",
+        "**/[[...*]]/page.tsx",
+        "**/loading.ts",
+        "**/loading.tsx",
+        "**/error.ts",
+        "**/error.tsx",
+        "**/not-found.ts",
+        "**/not-found.tsx",
+        "**/template.ts",
+        "**/template.tsx",
+        "**/default.ts",
+        "**/default.tsx"
+      ],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["**/middleware.ts", "**/proxy.ts"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["**/system.ts"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["**/src/index.ts", "**/migrations/index.ts"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["**/components/**/*.tsx", "**/components/**/*.ts"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/*.test.ts",
+        "**/*.test.tsx"
+      ],
+      "rules": {
+        "typescript/consistent-type-imports": "off",
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["**/*.d.ts"],
+      "rules": {
+        "typescript/consistent-type-imports": "off",
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/zerospin/src/**/*.ts",
+        "packages/core/src/profiler/**/*.ts"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/kysely-schema-do/**/*.ts",
+        "packages/kysely-schema-do/**/*.tsx"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["**/router.tsx", "**/routeTree.gen.ts"],
+      "rules": {
+        "react/jsx-filename-extension": "off"
+      }
+    },
+    {
+      "files": ["**/src/routes/index.tsx"],
+      "rules": {
+        "react/jsx-filename-extension": "off"
+      }
+    },
+    {
+      "files": ["packages/react/src/ZerospinConfig.tsx"],
+      "rules": {
+        "react/jsx-filename-extension": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/react/src/devtools/SessionsPlugin/sessions/sessionId/commands/SessionsCommandsColumnPicker.tsx"
+      ],
+      "rules": {
+        "jsx-a11y/prefer-tag-over-role": "off"
+      }
+    },
+    {
+      "files": ["packages/devtools/**/*.tsx", "packages/devtools/**/*.ts"],
+      "rules": {
+        "react/jsx-key": "off"
+      }
+    },
+    {
+      "files": ["**/*.config.d.ts", "packages/devtools/vitest.config.d.ts"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    }
+  ],
+  "rules": {
+    "perfectionist/sort-named-imports": [
+      "warn",
+      {
+        "groups": ["value-import", "type-import"]
+      }
+    ],
+    "jsx-a11y/no-autofocus": [
+      "warn",
+      {
+        "ignoreNonDOM": true
+      }
+    ],
+    "jsx-a11y/alt-text": "warn",
+    "jsx-a11y/anchor-has-content": "warn",
+    "jsx-a11y/anchor-is-valid": [
+      "warn",
+      {
+        "aspects": ["noHref", "invalidHref"]
+      }
+    ],
+    "jsx-a11y/aria-activedescendant-has-tabindex": "warn",
+    "jsx-a11y/aria-props": "warn",
+    "jsx-a11y/aria-proptypes": "warn",
+    "jsx-a11y/aria-role": [
+      "warn",
+      {
+        "ignoreNonDOM": true
+      }
+    ],
+    "jsx-a11y/aria-unsupported-elements": "warn",
+    "jsx-a11y/heading-has-content": "warn",
+    "jsx-a11y/iframe-has-title": "warn",
+    "jsx-a11y/img-redundant-alt": "warn",
+    "jsx-a11y/no-access-key": "warn",
+    "jsx-a11y/no-distracting-elements": "warn",
+    "jsx-a11y/no-redundant-roles": "warn",
+    "jsx-a11y/role-has-required-aria-props": "warn",
+    "jsx-a11y/role-supports-aria-props": "warn",
+    "jsx-a11y/scope": "warn",
+    "typescript/ban-ts-comment": ["warn"],
+    "typescript/consistent-type-imports": [
+      "warn",
+      {
+        "prefer": "type-imports",
+        "fixStyle": "inline-type-imports"
+      }
+    ],
+    "typescript/no-implied-eval": "warn",
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-restricted-types": [
+      "warn",
+      {
+        "types": {
+          "FunctionComponent": {
+            "message": "Type the props argument and let TS infer or use ComponentType for a component prop"
+          },
+          "FC": {
+            "message": "Type the props argument and let TS infer or use ComponentType for a component prop"
+          }
+        }
+      }
+    ],
+    "typescript/no-var-requires": "warn",
+    "import/first": "error",
+    "import/no-amd": "error",
+    "import/no-default-export": "warn",
+    "import/no-webpack-loader-syntax": "error",
+    "import/no-duplicates": [
+      "warn",
+      {
+        "prefer-inline": true
+      }
+    ],
+    "react/exhaustive-deps": [
+      "warn",
+      {
+        "additionalHooks": "(useQuery|useEffectAfterMount)"
+      }
+    ],
+    "react/jsx-curly-brace-presence": "warn",
+    "react/jsx-filename-extension": [
+      "warn",
+      {
+        "extensions": [".jsx", ".tsx"],
+        "allow": "as-needed"
+      }
+    ],
+    "react/jsx-no-comment-textnodes": "warn",
+    "react/jsx-no-duplicate-props": "warn",
+    "react/jsx-no-target-blank": "warn",
+    "react/jsx-no-undef": "error",
+    "react/jsx-no-useless-fragment": "warn",
+    "react/jsx-pascal-case": [
+      "warn",
+      {
+        "allowAllCaps": true,
+        "ignore": []
+      }
+    ],
+    "react/no-danger-with-children": "warn",
+    "react/no-direct-mutation-state": "warn",
+    "react/no-is-mounted": "warn",
+    "react/require-render-return": "error",
+    "react/rules-of-hooks": "error",
+    "react/self-closing-comp": "warn",
+    "react/style-prop-object": "warn",
+    "react/jsx-boolean-value": "warn",
+    "eslint/array-callback-return": "warn",
+    "eslint/curly": ["warn", "multi-line", "consistent"],
+    "eslint/default-case": [
+      "warn",
+      {
+        "commentPattern": "^no default$"
+      }
+    ],
+    "eslint/eqeqeq": ["warn", "smart"],
+    "eslint/no-array-constructor": "warn",
+    "eslint/no-caller": "warn",
+    "eslint/no-cond-assign": ["warn", "except-parens"],
+    "eslint/no-const-assign": "warn",
+    "eslint/no-control-regex": "warn",
+    "eslint/no-delete-var": "warn",
+    "eslint/no-dupe-class-members": "warn",
+    "eslint/no-dupe-keys": "warn",
+    "eslint/no-duplicate-case": "warn",
+    "eslint/no-empty-character-class": "warn",
+    "eslint/no-empty-function": [
+      "warn",
+      {
+        "allow": ["arrowFunctions"]
+      }
+    ],
+    "eslint/no-empty-pattern": "warn",
+    "eslint/no-eval": "warn",
+    "eslint/no-ex-assign": "warn",
+    "eslint/no-extend-native": "warn",
+    "eslint/no-extra-bind": "warn",
+    "eslint/no-extra-label": "warn",
+    "eslint/no-fallthrough": "warn",
+    "eslint/no-func-assign": "warn",
+    "eslint/no-invalid-regexp": "warn",
+    "eslint/no-iterator": "warn",
+    "eslint/no-label-var": "warn",
+    "eslint/no-var": "warn",
+    "eslint/no-labels": [
+      "warn",
+      {
+        "allowLoop": true,
+        "allowSwitch": false
+      }
+    ],
+    "eslint/no-new-func": "warn",
+    "eslint/no-script-url": "warn",
+    "eslint/no-self-assign": "warn",
+    "eslint/no-self-compare": "warn",
+    "eslint/no-sequences": "warn",
+    "eslint/no-shadow-restricted-names": "warn",
+    "eslint/no-sparse-arrays": "warn",
+    "eslint/no-template-curly-in-string": "warn",
+    "eslint/no-this-before-super": "warn",
+    "eslint/no-throw-literal": "warn",
+    "eslint/no-unreachable": "warn",
+    "eslint/no-obj-calls": "warn",
+    "eslint/no-new-wrappers": "warn",
+    "eslint/no-unsafe-negation": "warn",
+    "eslint/no-multi-str": "warn",
+    "eslint/no-global-assign": "warn",
+    "eslint/no-lone-blocks": "warn",
+    "eslint/no-unused-labels": "warn",
+    "eslint/no-object-constructor": "warn",
+    "eslint/no-new-native-nonconstructor": "warn",
+    "eslint/no-redeclare": "warn",
+    "eslint/no-useless-computed-key": "warn",
+    "eslint/no-useless-concat": "warn",
+    "eslint/no-useless-escape": "warn",
+    "eslint/require-yield": "off",
+    "eslint/getter-return": "warn",
+    "eslint/unicode-bom": ["warn", "never"],
+    "eslint/valid-typeof": "warn",
+    "eslint/no-useless-rename": [
+      "warn",
+      {
+        "ignoreDestructuring": false,
+        "ignoreImport": false,
+        "ignoreExport": false
+      }
+    ],
+    "eslint/object-shorthand": ["warn", "always"],
+    "eslint/no-with": "warn",
+    "eslint/no-regex-spaces": "warn",
+    "eslint/no-restricted-globals": [
+      "warn",
+      "addEventListener",
+      "blur",
+      "close",
+      "closed",
+      "confirm",
+      "defaultStatus",
+      "defaultstatus",
+      "event",
+      "external",
+      "find",
+      "focus",
+      "frameElement",
+      "frames",
+      "history",
+      "innerHeight",
+      "innerWidth",
+      "length",
+      "location",
+      "locationbar",
+      "menubar",
+      "moveBy",
+      "moveTo",
+      "name",
+      "onblur",
+      "onerror",
+      "onfocus",
+      "onload",
+      "onresize",
+      "onunload",
+      "open",
+      "opener",
+      "opera",
+      "outerHeight",
+      "outerWidth",
+      "pageXOffset",
+      "pageYOffset",
+      "parent",
+      "print",
+      "removeEventListener",
+      "resizeBy",
+      "resizeTo",
+      "screen",
+      "screenLeft",
+      "screenTop",
+      "screenX",
+      "screenY",
+      "scroll",
+      "scrollbars",
+      "scrollBy",
+      "scrollTo",
+      "scrollX",
+      "scrollY",
+      "status",
+      "statusbar",
+      "stop",
+      "toolbar",
+      "top"
+    ],
+    "eslint/no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@zerospin/sdk",
+            "message": "Import @zerospin/sdk only in examples/shopping. Use the matching @zerospin/core/* module elsewhere."
+          }
+        ],
+        "patterns": [
+          {
+            "group": ["**/src/**"],
+            "message": "Do not import from any /src/ path. Use the owning package alias or public entrypoint instead."
+          }
+        ]
+      }
+    ],
+    "eslint/no-useless-constructor": "warn",
+    "eslint/no-undef": "warn",
+    "eslint/no-unused-expressions": "warn"
+  }
+}

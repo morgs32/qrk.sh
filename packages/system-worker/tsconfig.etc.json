@@ -1,0 +1,40 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "types": [
+      "@cloudflare/vitest-pool-workers/types",
+      "node",
+      "vite/client",
+      "vitest/globals",
+      "./worker-configuration.d.ts"
+    ]
+  },
+  "include": [
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.typecheck.ts",
+    "src/**/*.typecheck.tsx",
+    "src/workerd-utils/**/*.ts",
+    "vitest-env.d.ts",
+    "worker-configuration.d.ts",
+    "env-types.d.ts",
+    "vitest.node.config.ts",
+    "vitest.workerd.config.ts"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.json"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/error"
+    },
+    {
+      "path": "../system"
+    }
+  ]
+}

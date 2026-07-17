@@ -1,0 +1,56 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "defaultBase": "main",
+  "plugins": [
+    {
+      "plugin": "nx/plugins/package-json",
+      "exclude": ["vendor/**"]
+    },
+    {
+      "plugin": "@nx/js/typescript",
+      "exclude": ["vendor/**"],
+      "options": {
+        "typecheck": {
+          "targetName": "tsc:typecheck"
+        },
+        "build": false
+      }
+    }
+  ],
+  "targetDefaults": {
+    "dev": {
+      "dependsOn": ["^lib"],
+      "continuous": true
+    },
+    "build": {
+      "dependsOn": ["^lib"],
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "lib": {
+      "dependsOn": ["^lib"],
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        "{projectRoot}/tsup.config.ts",
+        "{projectRoot}/tsconfig*.json"
+      ],
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "ts": {
+      "cache": true,
+      "dependsOn": ["lib", "^lib"],
+      "inputs": ["default", "{projectRoot}/tsconfig*.json"]
+    },
+    "test": {
+      "dependsOn": ["^lib"],
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "deploy": {
+      "dependsOn": ["^lib"]
+    }
+  },
+  "analytics": true
+}

@@ -1,0 +1,48 @@
+{
+  "name": "@zerospin/error",
+  "version": "2.1.5",
+  "private": false,
+  "type": "module",
+  "types": "./dist/types.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./snapshot-serializers/*.js": {
+      "types": "./dist/snapshot-serializers/*.d.ts",
+      "import": "./dist/snapshot-serializers/*.js",
+      "require": "./dist/snapshot-serializers/*.js",
+      "default": "./dist/snapshot-serializers/*.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lib": "pnpm run clean && tsc -b tsconfig.json",
+    "ts": "tsc -p tsconfig.etc.json --noEmit",
+    "watch": "tsc -b tsconfig.json --watch",
+    "prepublishOnly": "pnpm run lib",
+    "test": "vitest",
+    "lint": "oxlint . --format stylish",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "knip": "knip"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@effect/language-service": "^0.85.1",
+    "@types/node": "^25.6.2",
+    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/pretty-format": "^4.1.5",
+    "effect": "^3.21.4",
+    "jsdom": "^29.1.1",
+    "knip": "^6.12.2",
+    "rimraf": "^6.1.3",
+    "typescript": "6.0.3",
+    "vitest": "^4.1.5"
+  },
+  "peerDependencies": {
+    "effect": "^3.17.11"
+  }
+}

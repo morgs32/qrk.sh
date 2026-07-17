@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CollectionsCollectionNameRouteImport } from './routes/collections.$collectionName'
+import { Route as CollectionsCollectionNameIndexRouteImport } from './routes/collections.$collectionName.index'
 import { Route as BricksCollectionNameBrickNameRouteImport } from './routes/bricks.$collectionName.$brickName'
+import { Route as CollectionsCollectionNameGridBrickGridBrickIdRouteImport } from './routes/collections.$collectionName.gridBrick.$gridBrickId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -24,46 +26,72 @@ const CollectionsCollectionNameRoute =
     path: '/collections/$collectionName',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CollectionsCollectionNameIndexRoute =
+  CollectionsCollectionNameIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => CollectionsCollectionNameRoute,
+  } as any)
 const BricksCollectionNameBrickNameRoute =
   BricksCollectionNameBrickNameRouteImport.update({
     id: '/bricks/$collectionName/$brickName',
     path: '/bricks/$collectionName/$brickName',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CollectionsCollectionNameGridBrickGridBrickIdRoute =
+  CollectionsCollectionNameGridBrickGridBrickIdRouteImport.update({
+    id: '/gridBrick/$gridBrickId',
+    path: '/gridBrick/$gridBrickId',
+    getParentRoute: () => CollectionsCollectionNameRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/collections/$collectionName': typeof CollectionsCollectionNameRoute
+  '/collections/$collectionName': typeof CollectionsCollectionNameRouteWithChildren
   '/bricks/$collectionName/$brickName': typeof BricksCollectionNameBrickNameRoute
+  '/collections/$collectionName/': typeof CollectionsCollectionNameIndexRoute
+  '/collections/$collectionName/gridBrick/$gridBrickId': typeof CollectionsCollectionNameGridBrickGridBrickIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/collections/$collectionName': typeof CollectionsCollectionNameRoute
   '/bricks/$collectionName/$brickName': typeof BricksCollectionNameBrickNameRoute
+  '/collections/$collectionName': typeof CollectionsCollectionNameIndexRoute
+  '/collections/$collectionName/gridBrick/$gridBrickId': typeof CollectionsCollectionNameGridBrickGridBrickIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/collections/$collectionName': typeof CollectionsCollectionNameRoute
+  '/collections/$collectionName': typeof CollectionsCollectionNameRouteWithChildren
   '/bricks/$collectionName/$brickName': typeof BricksCollectionNameBrickNameRoute
+  '/collections/$collectionName/': typeof CollectionsCollectionNameIndexRoute
+  '/collections/$collectionName/gridBrick/$gridBrickId': typeof CollectionsCollectionNameGridBrickGridBrickIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/collections/$collectionName' | '/bricks/$collectionName/$brickName'
+    | '/'
+    | '/collections/$collectionName'
+    | '/bricks/$collectionName/$brickName'
+    | '/collections/$collectionName/'
+    | '/collections/$collectionName/gridBrick/$gridBrickId'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/collections/$collectionName' | '/bricks/$collectionName/$brickName'
+    | '/'
+    | '/bricks/$collectionName/$brickName'
+    | '/collections/$collectionName'
+    | '/collections/$collectionName/gridBrick/$gridBrickId'
   id:
     | '__root__'
     | '/'
     | '/collections/$collectionName'
     | '/bricks/$collectionName/$brickName'
+    | '/collections/$collectionName/'
+    | '/collections/$collectionName/gridBrick/$gridBrickId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CollectionsCollectionNameRoute: typeof CollectionsCollectionNameRoute
+  CollectionsCollectionNameRoute: typeof CollectionsCollectionNameRouteWithChildren
   BricksCollectionNameBrickNameRoute: typeof BricksCollectionNameBrickNameRoute
 }
 
@@ -83,6 +111,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CollectionsCollectionNameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/collections/$collectionName/': {
+      id: '/collections/$collectionName/'
+      path: '/'
+      fullPath: '/collections/$collectionName/'
+      preLoaderRoute: typeof CollectionsCollectionNameIndexRouteImport
+      parentRoute: typeof CollectionsCollectionNameRoute
+    }
     '/bricks/$collectionName/$brickName': {
       id: '/bricks/$collectionName/$brickName'
       path: '/bricks/$collectionName/$brickName'
@@ -90,12 +125,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BricksCollectionNameBrickNameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/collections/$collectionName/gridBrick/$gridBrickId': {
+      id: '/collections/$collectionName/gridBrick/$gridBrickId'
+      path: '/gridBrick/$gridBrickId'
+      fullPath: '/collections/$collectionName/gridBrick/$gridBrickId'
+      preLoaderRoute: typeof CollectionsCollectionNameGridBrickGridBrickIdRouteImport
+      parentRoute: typeof CollectionsCollectionNameRoute
+    }
   }
 }
 
+interface CollectionsCollectionNameRouteChildren {
+  CollectionsCollectionNameIndexRoute: typeof CollectionsCollectionNameIndexRoute
+  CollectionsCollectionNameGridBrickGridBrickIdRoute: typeof CollectionsCollectionNameGridBrickGridBrickIdRoute
+}
+
+const CollectionsCollectionNameRouteChildren: CollectionsCollectionNameRouteChildren =
+  {
+    CollectionsCollectionNameIndexRoute: CollectionsCollectionNameIndexRoute,
+    CollectionsCollectionNameGridBrickGridBrickIdRoute:
+      CollectionsCollectionNameGridBrickGridBrickIdRoute,
+  }
+
+const CollectionsCollectionNameRouteWithChildren =
+  CollectionsCollectionNameRoute._addFileChildren(
+    CollectionsCollectionNameRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CollectionsCollectionNameRoute: CollectionsCollectionNameRoute,
+  CollectionsCollectionNameRoute: CollectionsCollectionNameRouteWithChildren,
   BricksCollectionNameBrickNameRoute: BricksCollectionNameBrickNameRoute,
 }
 export const routeTree = rootRouteImport

@@ -2,6 +2,9 @@ import { expect, test } from "@playwright/test";
 
 test("catalog opens collections with vertical, full-size bricks on the left", async ({ page }) => {
   await page.goto("/");
+  await page.evaluate(() => {
+    window.localStorage.removeItem("qrk-bricks-sandbox-grid");
+  });
 
   await expect(page.locator("[data-collection-link]")).toHaveCount(18);
 
@@ -68,9 +71,43 @@ test("catalog opens collections with vertical, full-size bricks on the left", as
   await expect
     .poll(async () => (await droppedBrick.boundingBox())?.x)
     .not.toBe(originalDroppedBrickBox.x);
+  const movedDroppedBrickBox = await droppedBrick.boundingBox();
+  expect(movedDroppedBrickBox).not.toBeNull();
+  if (!movedDroppedBrickBox) {
+    throw new Error("Expected the moved grid brick to have a browser layout box");
+  }
+  const movedGridX = await droppedBrick.getAttribute("data-grid-x");
+  const movedGridY = await droppedBrick.getAttribute("data-grid-y");
+  expect(movedGridX).not.toBeNull();
+  expect(movedGridY).not.toBeNull();
+
+  await droppedBrick.click();
+  await expect(page).toHaveURL(/\/collections\/orange-flag\/gridBrick\/[^/]+$/);
+  await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
+  await expect(page.getByTestId("selected-brick-preview").locator("svg")).toBeVisible();
+  const gridBrickDetailUrl = page.url();
 
   await page.reload();
+  await expect(page).toHaveURL(gridBrickDetailUrl);
+  await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
+  await expect(page.getByTestId("selected-brick-preview").locator("svg")).toBeVisible();
+  const restoredDroppedBrick = page.locator('[data-grid-brick="orange-flag/2x2"]');
+  await expect(restoredDroppedBrick).toBeVisible();
+  await expect(page.getByLabel("Brick grid").getByTestId(/grid-fixture-/)).toHaveCount(4);
+  await expect(restoredDroppedBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
+  await expect(restoredDroppedBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
+
+  await page.goto("/collections/black-circle");
+  await expect(page.getByLabel("Brick grid").getByTestId(/grid-fixture-/)).toHaveCount(4);
   await expect(page.locator('[data-grid-brick="orange-flag/2x2"]')).toHaveCount(0);
+
+  await page.goto(gridBrickDetailUrl);
+  await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
+  await expect(page.locator('[data-grid-brick="orange-flag/2x2"]')).toBeVisible();
+
+  await page.goto("/collections/orange-flag/gridBrick/missing-grid-brick");
+  await expect(page.getByTestId("grid-brick-not-found")).toBeVisible();
+  await expect(page.getByLabel("Brick grid")).toBeVisible();
   await expect(page.getByLabel("Brick grid").getByTestId(/grid-fixture-/)).toHaveCount(4);
 });
 

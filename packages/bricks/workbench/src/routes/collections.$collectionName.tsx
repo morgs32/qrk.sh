@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
-import { collectionsHash, type ICollectionBrick } from "@qrk.sh/bricks";
-import { Link, createFileRoute, notFound } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
-import GridLayout, { type Layout, useContainerWidth, verticalCompactor } from "react-grid-layout";
+import { useEffect, useRef } from "react";
+import { collectionsHash, findCollectionBrick } from "@qrk.sh/bricks";
+import { Link, Outlet, createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import GridLayout, { useContainerWidth, verticalCompactor } from "react-grid-layout";
+
+import { useGridStore } from "../useGridStore";
 
 export const Route = createFileRoute("/collections/$collectionName")({
   loader: ({ params }) => {
@@ -23,23 +24,36 @@ export const Route = createFileRoute("/collections/$collectionName")({
 function CollectionPage() {
   const collectionName = Route.useLoaderData();
   const { containerRef, mounted, width } = useContainerWidth();
-  const activeBrickNameRef = useRef<string | null>(null);
-  const [gridLayout, setGridLayout] = useState<Layout>([
-    { i: "fixture-1", x: 0, y: 0, w: 2, h: 2 },
-    { i: "fixture-2", x: 2, y: 0, w: 2, h: 2 },
-    { i: "fixture-3", x: 4, y: 0, w: 2, h: 2 },
-    { i: "fixture-4", x: 6, y: 0, w: 2, h: 2 },
-  ]);
-  const [gridBricks, setGridBricks] = useState(new Map<string, ICollectionBrick>());
+  const navigate = useNavigate();
+  const suppressGridBrickClickRef = useRef(false);
+  const hasHydrated = useGridStore((state) => state.hasHydrated);
+  const collectionGrid = useGridStore((state) => state.collectionGrids[collectionName]);
+  const activeBrickDrag = useGridStore((state) => state.activeBrickDrag);
+  const ensureCollectionGrid = useGridStore((state) => state.ensureCollectionGrid);
+  const setCollectionLayout = useGridStore((state) => state.setCollectionLayout);
+  const addGridBrick = useGridStore((state) => state.addGridBrick);
+  const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const collection = Object.values(collectionsHash).find(
     (candidate) => candidate.collectionName === collectionName,
   );
+
+  useEffect(() => {
+    if (!useGridStore.persist.hasHydrated()) {
+      void useGridStore.persist.rehydrate();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (hasHydrated) {
+      ensureCollectionGrid(collectionName);
+    }
+  }, [collectionName, ensureCollectionGrid, hasHydrated]);
 
   if (!collection) {
     throw notFound();
   }
 
-  const bricks = Object.values(collection.bricks);
+  const gridLayout = collectionGrid?.layout ?? [];
   const gridWidth = Math.max(width, 1);
   const rowHeight = gridWidth / 8;
 
@@ -47,52 +61,11 @@ function CollectionPage() {
     <main className="min-h-screen">
       <div className="grid min-h-screen md:grid-cols-2">
         <section className="border-b border-zinc-300 pb-6 md:border-b-0 md:border-r md:pb-0">
-          <div className="px-6 pt-6">
-            <Link to="/" className="inline-flex items-center gap-2 text-sm text-zinc-600">
-              <ArrowLeft aria-hidden className="size-4" />
-              <span>All collections</span>
-            </Link>
-            <h1 className="mb-1 mt-5 text-4xl font-semibold tracking-tight">
-              {collection.collectionLabel}
-            </h1>
-            <p className="mt-0 font-mono text-sm text-zinc-500">{collection.collectionName}</p>
-          </div>
-          <div className="mt-8 flex flex-col gap-10">
-            {bricks.map((brick) => {
-              const BrickComponent = brick.component;
-
-              return (
-                <section key={brick.def.name}>
-                  <h2 className="m-0 px-6 text-2xl font-semibold">{brick.def.label}</h2>
-                  <div className="mt-6 overflow-auto">
-                    <div
-                      className="qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                      data-brick-full-size={`${brick.def.collectionName}/${brick.def.name}`}
-                      draggable
-                      onDragStart={(event) => {
-                        activeBrickNameRef.current = brick.def.name;
-                        event.dataTransfer.effectAllowed = "copy";
-                        event.dataTransfer.setData("text/plain", brick.def.name);
-                      }}
-                      onDragEnd={() => {
-                        activeBrickNameRef.current = null;
-                      }}
-                      style={{
-                        width: `${(brick.def.w / 8) * 100}%`,
-                        aspectRatio: `${brick.def.w} / ${brick.def.h}`,
-                      }}
-                    >
-                      <BrickComponent />
-                    </div>
-                  </div>
-                </section>
-              );
-            })}
-          </div>
+          <Outlet />
         </section>
 
         <section ref={containerRef} aria-label="Brick grid" className="min-h-screen bg-white">
-          {mounted && (
+          {mounted && hasHydrated && collectionGrid && (
             <GridLayout
               width={gridWidth}
               layout={gridLayout}
@@ -113,7 +86,7 @@ function CollectionPage() {
                 defaultItem: { w: 2, h: 2 },
                 onDragOver: (event) => {
                   const brickName =
-                    event.dataTransfer?.getData("text/plain") || activeBrickNameRef.current;
+                    event.dataTransfer?.getData("text/plain") || activeBrickDrag?.name;
                   const brick = Object.values(collection.bricks).find(
                     (candidate) => candidate.def.name === brickName,
                   );
@@ -132,7 +105,7 @@ function CollectionPage() {
 
                 const brickName =
                   (event instanceof DragEvent ? event.dataTransfer?.getData("text/plain") : "") ||
-                  activeBrickNameRef.current;
+                  activeBrickDrag?.name;
                 const brick = Object.values(collection.bricks).find(
                   (candidate) => candidate.def.name === brickName,
                 );
@@ -142,33 +115,34 @@ function CollectionPage() {
                 }
 
                 const gridBrickId = crypto.randomUUID();
-                setGridLayout(
-                  nextLayout.map((layoutItem) => {
-                    if (layoutItem.i !== item.i) {
-                      return layoutItem;
-                    }
+                const gridLayoutWithDroppedBrick = nextLayout.map((layoutItem) => {
+                  if (layoutItem.i !== item.i) {
+                    return layoutItem;
+                  }
 
-                    return {
-                      ...layoutItem,
-                      i: gridBrickId,
-                      w: brick.def.w,
-                      h: brick.def.h,
-                    };
-                  }),
-                );
-                setGridBricks((currentGridBricks) => {
-                  const nextGridBricks = new Map(currentGridBricks);
-                  nextGridBricks.set(gridBrickId, brick);
-                  return nextGridBricks;
+                  return {
+                    ...layoutItem,
+                    i: gridBrickId,
+                    w: brick.def.w,
+                    h: brick.def.h,
+                  };
                 });
-                activeBrickNameRef.current = null;
+                addGridBrick(collectionName, gridBrickId, brick.def, gridLayoutWithDroppedBrick);
+                setActiveBrickDrag(null);
+              }}
+              onDragStart={() => {
+                suppressGridBrickClickRef.current = true;
               }}
               onDragStop={(nextLayout) => {
-                setGridLayout(nextLayout);
+                setCollectionLayout(collectionName, nextLayout);
+                window.setTimeout(() => {
+                  suppressGridBrickClickRef.current = false;
+                }, 0);
               }}
             >
               {gridLayout.map((layoutItem) => {
-                const brick = gridBricks.get(layoutItem.i);
+                const brickDef = collectionGrid.gridBricksById[layoutItem.i];
+                const brick = brickDef ? findCollectionBrick(brickDef) : undefined;
 
                 if (brick) {
                   const BrickComponent = brick.component;
@@ -176,8 +150,20 @@ function CollectionPage() {
                   return (
                     <div
                       key={layoutItem.i}
-                      className="size-full"
+                      className="size-full cursor-grab active:cursor-grabbing"
                       data-grid-brick={`${brick.def.collectionName}/${brick.def.name}`}
+                      data-grid-x={layoutItem.x}
+                      data-grid-y={layoutItem.y}
+                      onClick={() => {
+                        if (suppressGridBrickClickRef.current) {
+                          return;
+                        }
+
+                        void navigate({
+                          to: "/collections/$collectionName/gridBrick/$gridBrickId",
+                          params: { collectionName, gridBrickId: layoutItem.i },
+                        });
+                      }}
                     >
                       <BrickComponent />
                     </div>

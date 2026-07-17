@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { useGridStore } from "../useGridStore";
 
-export const Route = createFileRoute("/collections/$collectionName/")({
+export const Route = createFileRoute("/_sandbox/collections/$collectionName/")({
   component: CollectionCatalog,
 });
 

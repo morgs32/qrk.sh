@@ -1,9 +1,7 @@
 import { collectionsHash } from "@qrk.sh/bricks";
 import { Link, Outlet, createFileRoute, notFound } from "@tanstack/react-router";
 
-import { SandboxGrid } from "../SandboxGrid";
-
-export const Route = createFileRoute("/collections/$collectionName")({
+export const Route = createFileRoute("/_sandbox/collections/$collectionName")({
   loader: ({ params }) => {
     const collection = Object.values(collectionsHash).find(
       (candidate) => candidate.collectionName === params.collectionName,
@@ -22,16 +20,7 @@ export const Route = createFileRoute("/collections/$collectionName")({
 function CollectionPage() {
   Route.useLoaderData();
 
-  return (
-    <main className="min-h-screen">
-      <div className="grid min-h-screen md:grid-cols-2">
-        <section className="border-b border-zinc-300 pb-6 md:border-b-0 md:border-r md:pb-0">
-          <Outlet />
-        </section>
-        <SandboxGrid />
-      </div>
-    </main>
-  );
+  return <Outlet />;
 }
 
 function CollectionNotFound() {

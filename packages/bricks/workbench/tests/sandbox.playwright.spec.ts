@@ -28,6 +28,8 @@ test("shares one persisted grid across the root, collection, and detail routes",
   const rootGrid = page.getByLabel("Brick grid");
   await expect(rootGrid).toBeVisible();
   await expect(rootGrid.getByTestId(/grid-fixture-/)).toHaveCount(4);
+  const persistentGridElement = await rootGrid.elementHandle();
+  expect(persistentGridElement).not.toBeNull();
   const rootGridLayout = rootGrid.locator(".react-grid-layout");
 
   await page
@@ -63,6 +65,7 @@ test("shares one persisted grid across the root, collection, and detail routes",
 
   await page.locator('[data-collection-link="orange-flag"]').click();
   await page.waitForLoadState("networkidle");
+  expect(await persistentGridElement?.evaluate((element) => element.isConnected)).toBe(true);
   await expect(page.locator("[data-brick-full-size]")).toHaveCount(3);
   const brickSizes = await page
     .locator('[data-brick-full-size="orange-flag/8x2"]')
@@ -85,6 +88,13 @@ test("shares one persisted grid across the root, collection, and detail routes",
   await expect(blackGridBrick).toBeVisible();
   await expect(orangeGridBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
   await expect(orangeGridBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
+
+  await page.getByRole("link", { name: "All collections" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  expect(await persistentGridElement?.evaluate((element) => element.isConnected)).toBe(true);
+  await expect(orangeGridBrick).toBeVisible();
+  await expect(blackGridBrick).toBeVisible();
+  await page.locator('[data-collection-link="orange-flag"]').click();
 
   const orangeGridBrickId = await orangeGridBrick.getAttribute("data-grid-brick-id");
   expect(orangeGridBrickId).not.toBeNull();

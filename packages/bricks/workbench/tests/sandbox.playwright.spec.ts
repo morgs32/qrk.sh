@@ -37,6 +37,41 @@ test("catalog opens collections with vertical, full-size bricks on the left", as
   });
   expect(gridFixtureSize.fixtureWidth).toBe(gridFixtureSize.gridWidth / 4);
   expect(gridFixtureSize.fixtureHeight).toBe(gridFixtureSize.fixtureWidth);
+
+  const gridLayout = grid.locator(".react-grid-layout");
+  await page
+    .locator('[data-brick-full-size="orange-flag/2x2"]')
+    .dragTo(gridLayout, { targetPosition: { x: 20, y: 20 } });
+
+  const droppedBrick = page.locator('[data-grid-brick="orange-flag/2x2"]');
+  await expect(droppedBrick).toBeVisible();
+  await expect(droppedBrick.locator("svg")).toBeVisible();
+  await expect(grid.getByTestId(/grid-fixture-/)).toHaveCount(4);
+  const droppedBrickSize = await droppedBrick.evaluate((brickElement) => {
+    const brick = brickElement.getBoundingClientRect();
+    return { width: brick.width, height: brick.height };
+  });
+  expect(droppedBrickSize.width).toBe(gridFixtureSize.fixtureWidth);
+  expect(droppedBrickSize.height).toBe(gridFixtureSize.fixtureHeight);
+
+  const originalDroppedBrickBox = await droppedBrick.boundingBox();
+  const gridLayoutBox = await gridLayout.boundingBox();
+  expect(originalDroppedBrickBox).not.toBeNull();
+  expect(gridLayoutBox).not.toBeNull();
+  if (!originalDroppedBrickBox || !gridLayoutBox) {
+    throw new Error("Expected the dropped brick and grid layout to have browser layout boxes");
+  }
+
+  await droppedBrick.dragTo(gridLayout, {
+    targetPosition: { x: gridLayoutBox.width - 20, y: gridLayoutBox.height - 20 },
+  });
+  await expect
+    .poll(async () => (await droppedBrick.boundingBox())?.x)
+    .not.toBe(originalDroppedBrickBox.x);
+
+  await page.reload();
+  await expect(page.locator('[data-grid-brick="orange-flag/2x2"]')).toHaveCount(0);
+  await expect(page.getByLabel("Brick grid").getByTestId(/grid-fixture-/)).toHaveCount(4);
 });
 
 test("renders static, image, and GitHub bricks", async ({ page }) => {

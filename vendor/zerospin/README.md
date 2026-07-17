@@ -102,3 +102,8 @@ cp examples/shopping/.env.e2e.example examples/shopping/.env.e2e
 
 Never commit populated `.env` files. Any credential previously committed in an
 environment file must be rotated before this repository is made public.
+
+## Zerospin subrepo metadata
+
+- Upstream: https://github.com/morgs32/zerospin.git
+- Branch: main

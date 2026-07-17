@@ -1,5 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap");
 @import "@qrk.sh/bricks/styles.css";
+@import "react-grid-layout/css/styles.css";
 @source "./**/*.{ts,tsx}";
 
 * {

@@ -1,6 +1,7 @@
 import { collectionsHash } from "@qrk.sh/bricks";
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import GridLayout, { useContainerWidth, verticalCompactor } from "react-grid-layout";
 
 export const Route = createFileRoute("/collections/$collectionName")({
   loader: ({ params }) => {
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/collections/$collectionName")({
 
 function CollectionPage() {
   const collectionName = Route.useLoaderData();
+  const { containerRef, mounted, width } = useContainerWidth();
   const collection = Object.values(collectionsHash).find(
     (candidate) => candidate.collectionName === collectionName,
   );
@@ -29,6 +31,8 @@ function CollectionPage() {
   }
 
   const bricks = Object.values(collection.bricks);
+  const gridWidth = Math.max(width, 1);
+  const rowHeight = gridWidth / 8;
 
   return (
     <main className="min-h-screen">
@@ -69,7 +73,36 @@ function CollectionPage() {
           </div>
         </section>
 
-        <section aria-label="Empty canvas" />
+        <section ref={containerRef} aria-label="Brick grid" className="min-h-screen bg-white">
+          {mounted && (
+            <GridLayout
+              width={gridWidth}
+              layout={[
+                { i: "fixture-1", x: 0, y: 0, w: 2, h: 2 },
+                { i: "fixture-2", x: 2, y: 0, w: 2, h: 2 },
+                { i: "fixture-3", x: 4, y: 0, w: 2, h: 2 },
+                { i: "fixture-4", x: 6, y: 0, w: 2, h: 2 },
+              ]}
+              autoSize
+              className="grid-layout"
+              compactor={verticalCompactor}
+              gridConfig={{
+                cols: 8,
+                rowHeight,
+                margin: [0, 0],
+                containerPadding: [0, 0],
+                maxRows: Number.POSITIVE_INFINITY,
+              }}
+              dragConfig={{ enabled: true, bounded: true, threshold: 3 }}
+              resizeConfig={{ enabled: false, handles: [] }}
+            >
+              <div key="fixture-1" data-testid="grid-fixture-1" className="size-full bg-zinc-300" />
+              <div key="fixture-2" data-testid="grid-fixture-2" className="size-full bg-zinc-300" />
+              <div key="fixture-3" data-testid="grid-fixture-3" className="size-full bg-zinc-300" />
+              <div key="fixture-4" data-testid="grid-fixture-4" className="size-full bg-zinc-300" />
+            </GridLayout>
+          )}
+        </section>
       </div>
     </main>
   );

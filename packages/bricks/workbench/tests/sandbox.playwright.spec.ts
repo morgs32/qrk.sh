@@ -22,7 +22,21 @@ test("catalog opens collections with vertical, full-size bricks on the left", as
     .locator('[data-brick-full-size="orange-flag/2x2"]')
     .evaluate((brickElement) => brickElement.getBoundingClientRect().width);
   expect(twoByTwoSize).toBe(brickSizes.brickWidth / 4);
-  await expect(page.getByLabel("Empty canvas")).toBeEmpty();
+
+  const grid = page.getByLabel("Brick grid");
+  await expect(grid).toBeVisible();
+  await expect(grid.getByTestId(/grid-fixture-/)).toHaveCount(4);
+  const gridFixtureSize = await page.getByTestId("grid-fixture-1").evaluate((fixtureElement) => {
+    const fixture = fixtureElement.getBoundingClientRect();
+    const grid = fixtureElement.parentElement?.parentElement?.getBoundingClientRect();
+    return {
+      fixtureWidth: fixture.width,
+      fixtureHeight: fixture.height,
+      gridWidth: grid?.width ?? 0,
+    };
+  });
+  expect(gridFixtureSize.fixtureWidth).toBe(gridFixtureSize.gridWidth / 4);
+  expect(gridFixtureSize.fixtureHeight).toBe(gridFixtureSize.fixtureWidth);
 });
 
 test("renders static, image, and GitHub bricks", async ({ page }) => {

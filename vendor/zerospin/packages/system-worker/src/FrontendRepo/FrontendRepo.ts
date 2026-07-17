@@ -21,6 +21,7 @@ import type { IActorId, IAnyTables, IShape } from '@zerospin/core/models/types';
 import { FrontendBlockSchema } from '@zerospin/core/session/FrontendBlockSchema';
 import type { IFrontendState } from '@zerospin/core/session/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { ZerospinError, type IAnyErrorJson } from '@zerospin/error';
 import { Effect, type Schema } from 'effect';
@@ -142,7 +143,7 @@ export const frontendRepoDrizzleSchemas =
   makeDrizzleSchemasRecordFromTables(frontendRepoTables);
 
 const frontendRepoUtils = makeRepoUtils({
-  abbreviation: coreAbbreviations.frontendRepo,
+  abbreviation: systemWorkerAbbreviations.frontendRepo,
   repoType: 'FrontendRepo',
   namePattern: RoutePattern.parse(
     '/:generationId/:accountId/:accountName/:actorName/:actorId/:frontendName',

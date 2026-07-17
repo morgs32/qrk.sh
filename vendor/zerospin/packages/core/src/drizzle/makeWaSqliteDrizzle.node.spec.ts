@@ -38,6 +38,38 @@ async function makeTestDatabase() {
 }
 
 describe('makeWaSqliteDrizzle', () => {
+  it('enables immediate SQLite foreign-key enforcement', async () => {
+    const { client, db } = await makeTestDatabase();
+
+    try {
+      expect(
+        db.get<{ foreign_keys: number }>(sql`PRAGMA foreign_keys`),
+      ).toEqual({ foreign_keys: 1 });
+
+      db.run(sql`
+        create table parent_rows (
+          id text primary key not null
+        )
+      `);
+      db.run(sql`
+        create table child_rows (
+          id text primary key not null,
+          parent_id text not null,
+          foreign key (parent_id) references parent_rows (id)
+        )
+      `);
+
+      expect(() =>
+        db.run(sql`
+          insert into child_rows (id, parent_id)
+          values ('child-1', 'missing-parent')
+        `),
+      ).toThrow('Failed to run the query');
+    } finally {
+      await client.sqlite3.close(client.db);
+    }
+  });
+
   it('supports sync builder methods and run() change counts', async () => {
     const { client, db } = await makeTestDatabase();
 

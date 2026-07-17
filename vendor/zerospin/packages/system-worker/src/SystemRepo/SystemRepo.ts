@@ -21,7 +21,6 @@ import type {
   ISystemSpec,
 } from '@zerospin/core/system/types';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { type IAnyErrorJson } from '@zerospin/error';
@@ -33,7 +32,10 @@ import invariant from 'tiny-invariant';
 
 import { getRepoTableRows } from '../getRepoTableRows/getRepoTableRows.js';
 import { managedRuntime } from '../managedRuntime.js';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
+import { consumeFrontendWebSocketTicket } from './consumeFrontendWebSocketTicket/consumeFrontendWebSocketTicket.js';
+import { createFrontendWebSocketTicket } from './createFrontendWebSocketTicket/createFrontendWebSocketTicket.js';
 import { getAccountIds } from './getAccountIds/getAccountIds.js';
 import { assertGenerationAdmission } from './assertGenerationAdmission/assertGenerationAdmission.js';
 import { drainGeneration } from './drainGeneration/drainGeneration.js';
@@ -51,21 +53,21 @@ const systemRepoTables = {
     name: 'generationState',
     shape: {
       generationId: primitives.primaryKey({
-        abbreviation: cloudIdAbbreviations.generation,
+        abbreviation: coreAbbreviations.generation,
       }),
       prevGenerationId: primitives.opaqueId({
-        abbreviation: cloudIdAbbreviations.generation,
+        abbreviation: coreAbbreviations.generation,
         nullable: true,
       }),
       initialDeployId: primitives.opaqueId({
-        abbreviation: cloudIdAbbreviations.deploy,
+        abbreviation: coreAbbreviations.deploy,
       }),
       activeDeployId: primitives.opaqueId({
-        abbreviation: cloudIdAbbreviations.deploy,
+        abbreviation: coreAbbreviations.deploy,
         nullable: true,
       }),
       preparingDeployId: primitives.opaqueId({
-        abbreviation: cloudIdAbbreviations.deploy,
+        abbreviation: coreAbbreviations.deploy,
         nullable: true,
       }),
       readiness: primitives.enum({
@@ -93,7 +95,7 @@ const systemRepoTables = {
     name: 'drainBounds',
     shape: {
       deployId: primitives.opaqueId({
-        abbreviation: cloudIdAbbreviations.deploy,
+        abbreviation: coreAbbreviations.deploy,
       }),
       repoType: primitives.enum({
         values: ['ServiceBlockRepo', 'AccountBlockRepo'],
@@ -115,7 +117,7 @@ const systemRepoTables = {
     name: 'replayCompletions',
     shape: {
       deployId: primitives.opaqueId({
-        abbreviation: cloudIdAbbreviations.deploy,
+        abbreviation: coreAbbreviations.deploy,
       }),
       repoType: primitives.enum({
         values: ['ServiceRepo', 'AccountRepo'],
@@ -130,6 +132,24 @@ const systemRepoTables = {
       {
         name: 'replayCompletions_deployId_targetRepoName_unique',
         columns: ['deployId', 'targetRepoName'],
+        unique: true,
+      },
+    ],
+  }),
+  frontendWebSocketTickets: makeTable({
+    name: 'frontendWebSocketTickets',
+    shape: {
+      ticketHash: primitives.text(),
+      deployId: primitives.opaqueId({
+        abbreviation: coreAbbreviations.deploy,
+      }),
+      repoName: primitives.text(),
+      expiresAt: primitives.date(),
+    },
+    indexes: [
+      {
+        name: 'frontendWebSocketTickets_ticketHash_unique',
+        columns: ['ticketHash'],
         unique: true,
       },
     ],
@@ -169,7 +189,7 @@ export class SystemRepo extends DurableObject {
 
   static getRepo(props: { generationId: string }): SystemRepo {
     return env.SYSTEM_REPO.getByName(
-      `${coreAbbreviations.systemRepo}_${props.generationId}`,
+      `${systemWorkerAbbreviations.systemRepo}_${props.generationId}`,
     );
   }
 
@@ -179,7 +199,7 @@ export class SystemRepo extends DurableObject {
   constructor(ctx: DurableObjectState, workerEnv: Env) {
     super(ctx, workerEnv);
     const name = ctx.id.name;
-    const prefix = `${coreAbbreviations.systemRepo}_`;
+    const prefix = `${systemWorkerAbbreviations.systemRepo}_`;
     invariant(
       name !== undefined &&
         name.startsWith(prefix) &&
@@ -215,6 +235,7 @@ export class SystemRepo extends DurableObject {
                 'generationState',
                 'drainBounds',
                 'replayCompletions',
+                'frontendWebSocketTickets',
                 'accounts',
                 'repos',
               ],
@@ -275,6 +296,48 @@ export class SystemRepo extends DurableObject {
     );
   }
 
+  async createFrontendWebSocketTicket(props: {
+    deployId: string;
+    repoName: string;
+  }) {
+    return managedRuntime.runPromise(
+      createFrontendWebSocketTicket({
+        db: this.#db,
+        deployId: props.deployId,
+        generationId: this.#generationId,
+        repoName: props.repoName,
+        generationStateTable: systemRepoDrizzleSchemas.generationState,
+        generationStateColumns: getTableColumns(
+          systemRepoDrizzleSchemas.generationState,
+        ),
+        frontendWebSocketTicketTable:
+          systemRepoDrizzleSchemas.frontendWebSocketTickets,
+        frontendWebSocketTicketColumns: getTableColumns(
+          systemRepoDrizzleSchemas.frontendWebSocketTickets,
+        ),
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
+  async consumeFrontendWebSocketTicket(props: { ticket: string }) {
+    return managedRuntime.runPromise(
+      consumeFrontendWebSocketTicket({
+        db: this.#db,
+        generationId: this.#generationId,
+        ticket: props.ticket,
+        generationStateTable: systemRepoDrizzleSchemas.generationState,
+        generationStateColumns: getTableColumns(
+          systemRepoDrizzleSchemas.generationState,
+        ),
+        frontendWebSocketTicketTable:
+          systemRepoDrizzleSchemas.frontendWebSocketTickets,
+        frontendWebSocketTicketColumns: getTableColumns(
+          systemRepoDrizzleSchemas.frontendWebSocketTickets,
+        ),
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
   async drainGeneration(props: { deployId: string }) {
     return managedRuntime.runPromise(
       drainGeneration({
@@ -290,6 +353,8 @@ export class SystemRepo extends DurableObject {
           systemRepoDrizzleSchemas.drainBounds,
         ),
         repoTable: systemRepoDrizzleSchemas.repos,
+        frontendWebSocketTicketTable:
+          systemRepoDrizzleSchemas.frontendWebSocketTickets,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }

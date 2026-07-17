@@ -7,7 +7,7 @@
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { mapParseError, type IAnyError } from '@zerospin/error';
 import type { ITelemetryBatch } from '@zerospin/logger';
 import { sql } from 'drizzle-orm';
@@ -29,7 +29,7 @@ export const appendTelemetryBatch = Effect.fn(
   }): Effect.fn.Return<void, IAnyError> {
     const { batch, db } = props;
     const systemId = yield* Schema.validate(
-      makeAbbreviationIdSchema(cloudIdAbbreviations.systemRecord),
+      makeAbbreviationIdSchema(coreAbbreviations.system),
     )(props.systemId).pipe(
       mapParseError({
         code: 'failed-to-decode-telemetry-batch-system-id',
@@ -38,7 +38,7 @@ export const appendTelemetryBatch = Effect.fn(
       }),
     );
     const generationId = yield* Schema.validate(
-      makeAbbreviationIdSchema(cloudIdAbbreviations.generation),
+      makeAbbreviationIdSchema(coreAbbreviations.generation),
     )(props.generationId).pipe(
       mapParseError({
         code: 'failed-to-decode-telemetry-batch-generation-id',
@@ -47,7 +47,7 @@ export const appendTelemetryBatch = Effect.fn(
       }),
     );
     const deployId = yield* Schema.validate(
-      makeAbbreviationIdSchema(cloudIdAbbreviations.deploy),
+      makeAbbreviationIdSchema(coreAbbreviations.deploy),
     )(props.deployId).pipe(
       mapParseError({
         code: 'failed-to-decode-telemetry-batch-deploy-id',

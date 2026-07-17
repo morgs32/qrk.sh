@@ -5,6 +5,7 @@ const moduleFactory = vi.hoisted(() =>
 );
 const vfsRegister = vi.hoisted(() => vi.fn());
 const openV2 = vi.hoisted(() => vi.fn(async () => 123));
+const exec = vi.hoisted(() => vi.fn(async () => undefined));
 const createVfs = vi.hoisted(() =>
   vi.fn(function (
     this: {
@@ -24,6 +25,7 @@ vi.mock('wa-sqlite/dist/wa-sqlite-async.mjs', () => ({
 
 vi.mock('wa-sqlite', () => ({
   Factory: vi.fn(() => ({
+    exec,
     open_v2: openV2,
     vfs_register: vfsRegister,
   })),
@@ -63,6 +65,7 @@ describe('makeIdbSQLite3', () => {
       6,
       'zerospin/session/test/frontend-replicas/replica.db',
     );
+    expect(exec).toHaveBeenCalledWith(123, 'PRAGMA foreign_keys = ON;');
     expect(client.db).toBe(123);
   });
 

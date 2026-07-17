@@ -8,7 +8,7 @@ import { primitives } from '@zerospin/core/models/primitives';
 import { checkSystemCompatibility } from '@zerospin/core/system/checkSystemCompatibility';
 import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { dutils } from '@zerospin/core/utils/dutils';
 import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
@@ -36,7 +36,7 @@ const generationTable = makeTable({
   name: 'generation',
   shape: {
     id: primitives.primaryKey({
-      abbreviation: cloudIdAbbreviations.generation,
+      abbreviation: coreAbbreviations.generation,
     }),
     prevGenerationId: primitives.self({
       relation: 'previousGeneration',
@@ -50,7 +50,7 @@ const deployTable = makeTable({
   name: 'deploy',
   shape: {
     id: primitives.primaryKey({
-      abbreviation: cloudIdAbbreviations.deploy,
+      abbreviation: coreAbbreviations.deploy,
     }),
     systemWorkerName: primitives.text(),
     deployIndex: primitives.integer(),
@@ -100,10 +100,10 @@ const systemInstanceTable = makeTable({
   name: 'systemInstance',
   shape: {
     systemWorkerName: primitives.primaryKey({
-      abbreviation: cloudIdAbbreviations.systemRecord,
+      abbreviation: coreAbbreviations.system,
     }),
     systemId: primitives.opaqueId({
-      abbreviation: cloudIdAbbreviations.systemRecord,
+      abbreviation: coreAbbreviations.system,
     }),
     instanceId: primitives.text(),
     activeDeployId: primitives.ref({
@@ -611,11 +611,11 @@ export class DevZerospinApis extends DevZerospinApisRepo {
           isClean ||
           compatibility?.requiresNewGeneration === true;
         const deployId = yield* makeIdFromAbbreviation({
-          abbreviation: cloudIdAbbreviations.deploy,
+          abbreviation: coreAbbreviations.deploy,
         });
         const generationId = createsGeneration
           ? yield* makeIdFromAbbreviation({
-              abbreviation: cloudIdAbbreviations.generation,
+              abbreviation: coreAbbreviations.generation,
             })
           : activeState.activeDeploy === null
             ? yield* new ZerospinError({

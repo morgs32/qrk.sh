@@ -9,19 +9,23 @@ export function makeBrowserSession<
 >(props: {
   session: ISession<FRONTEND>;
   browserUserController: IBrowserUserController;
+  onCommandStaged?: () => void;
 }): IBrowserSession<FRONTEND> {
-  const { browserUserController, session } = props;
+  const { browserUserController, onCommandStaged, session } = props;
 
   return {
     browserUserController,
     coreSession: session,
     frontend: session.frontend,
+    generateSignature: session.generateSignature,
     onInitialized: session.onInitialized,
-    pushQueue: session.pushQueue,
-    pushStagedCommands: () => session.pushStagedCommands(),
     sessionId: session.sessionId,
-    stageCommand(stageProps) {
-      return session.stageCommand(stageProps);
+    async stageCommand(stageProps) {
+      const result = await session.stageCommand(stageProps);
+      if (result._tag === 'Right') {
+        onCommandStaged?.();
+      }
+      return result;
     },
     store: session.store,
   };

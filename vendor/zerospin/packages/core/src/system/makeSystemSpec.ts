@@ -2,7 +2,6 @@ import { JSONSchema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
 import { encodeShape } from '../models/encodeShape.ts';
-import { primitives } from '../models/primitives.ts';
 
 import type { ISystem, ISystemSpec } from './types.ts';
 
@@ -46,13 +45,7 @@ export function makeSystemSpec<
               abbreviation: definition.abbreviation,
               version: definition.version,
               properties: encodeShape({
-                id: primitives.primaryKey({
-                  abbreviation: definition.abbreviation,
-                }),
-                modelName: primitives.text({ nullable: false }),
-                createdAt: primitives.date({ nullable: false }),
-                updatedAt: primitives.date({ nullable: false }),
-                version: primitives.text({ nullable: false }),
+                ...model.metadata,
                 ...definition.attributes,
               }),
               indexes: definition.indexes,
@@ -206,13 +199,7 @@ export function makeSystemSpec<
                   abbreviation: definition.abbreviation,
                   version: definition.version,
                   properties: encodeShape({
-                    id: primitives.primaryKey({
-                      abbreviation: definition.abbreviation,
-                    }),
-                    modelName: primitives.text({ nullable: false }),
-                    createdAt: primitives.date({ nullable: false }),
-                    updatedAt: primitives.date({ nullable: false }),
-                    version: primitives.text({ nullable: false }),
+                    ...model.metadata,
                     ...definition.attributes,
                   }),
                   indexes: definition.indexes,
@@ -250,13 +237,7 @@ export function makeSystemSpec<
                         abbreviation: definition.abbreviation,
                         version: definition.version,
                         properties: encodeShape({
-                          id: primitives.primaryKey({
-                            abbreviation: definition.abbreviation,
-                          }),
-                          modelName: primitives.text({ nullable: false }),
-                          createdAt: primitives.date({ nullable: false }),
-                          updatedAt: primitives.date({ nullable: false }),
-                          version: primitives.text({ nullable: false }),
+                          ...model.metadata,
                           ...definition.attributes,
                         }),
                         indexes: definition.indexes,
@@ -302,13 +283,7 @@ export function makeSystemSpec<
               abbreviation: definition.abbreviation,
               version: definition.version,
               properties: encodeShape({
-                id: primitives.primaryKey({
-                  abbreviation: definition.abbreviation,
-                }),
-                modelName: primitives.text({ nullable: false }),
-                createdAt: primitives.date({ nullable: false }),
-                updatedAt: primitives.date({ nullable: false }),
-                version: primitives.text({ nullable: false }),
+                ...model.metadata,
                 ...definition.attributes,
               }),
               indexes: definition.indexes,

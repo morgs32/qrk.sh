@@ -32,7 +32,28 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
               'applyMutationInverseTx: create inverseOperation must be null',
           });
         }
-        tx.delete(table).where(eq(table.id, resourceId)).run();
+        yield* Effect.try({
+          try: () =>
+            tx.delete(table).where(eq(table.id, resourceId)).run(),
+          catch: cause => {
+            const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+              cause instanceof Error && cause.cause !== undefined
+                ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+                : ''
+            }`;
+            if (
+              !failure.toLowerCase().includes('foreign key constraint failed')
+            ) {
+              throw cause;
+            }
+            return new ZerospinError({
+              code: 'mutation-referential-integrity-failed',
+              message: `Cannot apply create mutation inverse to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+              cause: failure,
+              extra: { modelName: model.modelName, resourceId, operationName },
+            });
+          },
+        });
         return;
       case 'update': {
         if (mutation.inverseOperation === null) {
@@ -76,13 +97,35 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
             prefix: `Failed to encode inverse update attributes for model "${model.modelName}"`,
           }),
         );
-        tx.update(table)
-          .set({
-            updatedAt: lastAppliedAt,
-            ...(encodedAttributes as IEncodedRecord),
-          })
-          .where(eq(table.id, resourceId))
-          .run();
+        yield* Effect.try({
+          try: () =>
+            tx
+              .update(table)
+              .set({
+                updatedAt: lastAppliedAt,
+                ...(encodedAttributes as IEncodedRecord),
+              })
+              .where(eq(table.id, resourceId))
+              .run(),
+          catch: cause => {
+            const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+              cause instanceof Error && cause.cause !== undefined
+                ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+                : ''
+            }`;
+            if (
+              !failure.toLowerCase().includes('foreign key constraint failed')
+            ) {
+              throw cause;
+            }
+            return new ZerospinError({
+              code: 'mutation-referential-integrity-failed',
+              message: `Cannot apply update mutation inverse to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+              cause: failure,
+              extra: { modelName: model.modelName, resourceId, operationName },
+            });
+          },
+        });
         return;
       }
       case 'delete': {
@@ -100,10 +143,32 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
               'applyMutationInverseTx: delete inverseOperation must include resource',
           });
         }
-        upsertHelper({
-          table,
-          tx,
-          values: mutation.inverseOperation.resource,
+        const inverseResource = mutation.inverseOperation.resource;
+        yield* Effect.try({
+          try: () =>
+            upsertHelper({
+              table,
+              tx,
+              values: inverseResource,
+            }),
+          catch: cause => {
+            const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+              cause instanceof Error && cause.cause !== undefined
+                ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+                : ''
+            }`;
+            if (
+              !failure.toLowerCase().includes('foreign key constraint failed')
+            ) {
+              throw cause;
+            }
+            return new ZerospinError({
+              code: 'mutation-referential-integrity-failed',
+              message: `Cannot apply delete mutation inverse to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+              cause: failure,
+              extra: { modelName: model.modelName, resourceId, operationName },
+            });
+          },
         });
         return;
       }
@@ -130,18 +195,67 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
           });
         }
         const inverseOperation = mutation.inverseOperation;
-        tx.update(table)
-          .set({
-            [inverseOperation.property]: inverseOperation.prevId,
-            updatedAt: lastAppliedAt,
-          })
-          .where(eq(table.id, resourceId))
-          .run();
+        yield* Effect.try({
+          try: () =>
+            tx
+              .update(table)
+              .set({
+                [inverseOperation.property]: inverseOperation.prevId,
+                updatedAt: lastAppliedAt,
+              })
+              .where(eq(table.id, resourceId))
+              .run(),
+          catch: cause => {
+            const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+              cause instanceof Error && cause.cause !== undefined
+                ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+                : ''
+            }`;
+            if (
+              !failure.toLowerCase().includes('foreign key constraint failed')
+            ) {
+              throw cause;
+            }
+            return new ZerospinError({
+              code: 'mutation-referential-integrity-failed',
+              message: `Cannot apply move mutation inverse to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+              cause: failure,
+              extra: { modelName: model.modelName, resourceId, operationName },
+            });
+          },
+        });
         return;
       }
       case 'replicateResource': {
         if (mutation.inverseOperation === null) {
-          tx.delete(table).where(eq(table.id, resourceId)).run();
+          yield* Effect.try({
+            try: () =>
+              tx.delete(table).where(eq(table.id, resourceId)).run(),
+            catch: cause => {
+              const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+                cause instanceof Error && cause.cause !== undefined
+                  ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+                  : ''
+              }`;
+              if (
+                !failure
+                  .toLowerCase()
+                  .includes('foreign key constraint failed')
+              ) {
+                throw cause;
+              }
+              return new ZerospinError({
+                code: 'mutation-referential-integrity-failed',
+                message: `Cannot apply replicateResource mutation inverse to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+                cause: failure,
+                extra: {
+                  modelName: model.modelName,
+                  resourceId,
+                  operationName,
+                },
+              });
+            },
+          });
           return;
         }
         if (!('resource' in mutation.inverseOperation)) {
@@ -151,10 +265,32 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
               'applyMutationInverseTx: replicateResource inverseOperation must include resource',
           });
         }
-        upsertHelper({
-          table,
-          tx,
-          values: mutation.inverseOperation.resource,
+        const inverseResource = mutation.inverseOperation.resource;
+        yield* Effect.try({
+          try: () =>
+            upsertHelper({
+              table,
+              tx,
+              values: inverseResource,
+            }),
+          catch: cause => {
+            const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+              cause instanceof Error && cause.cause !== undefined
+                ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+                : ''
+            }`;
+            if (
+              !failure.toLowerCase().includes('foreign key constraint failed')
+            ) {
+              throw cause;
+            }
+            return new ZerospinError({
+              code: 'mutation-referential-integrity-failed',
+              message: `Cannot apply replicateResource mutation inverse to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+              cause: failure,
+              extra: { modelName: model.modelName, resourceId, operationName },
+            });
+          },
         });
         return;
       }

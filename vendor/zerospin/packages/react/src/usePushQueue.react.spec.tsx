@@ -13,7 +13,7 @@ import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
 import type { ISessionId } from '@zerospin/core/session/types';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
-import { Effect, Layer, ManagedRuntime, Redacted } from 'effect';
+import { Effect, Layer, ManagedRuntime, Queue, Redacted } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -64,21 +64,22 @@ const sessionRuntime = ManagedRuntime.make(
 
 function HookProbe<FRONTEND extends IFrontendController>(props: {
   session: IBrowserSession<FRONTEND>;
-  onReady: () => void;
+  pushQueue: Queue.Queue<number>;
+  onReady: (pushStagedCommands: () => Promise<unknown>) => void;
   enabled?: boolean;
 }) {
-  const { enabled = true, onReady, session } = props;
+  const { enabled = true, onReady, pushQueue, session } = props;
 
-  usePushQueue({
+  const { pushStagedCommands } = usePushQueue({
     session,
-    generateSignature: () => Effect.succeed({ actorId: 'act_1' }),
+    pushQueue,
     sessionRuntime,
     enabled,
   });
 
   useEffect(() => {
-    onReady();
-  }, [onReady]);
+    onReady(pushStagedCommands);
+  }, [onReady, pushStagedCommands]);
 
   return null;
 }
@@ -86,8 +87,9 @@ function HookProbe<FRONTEND extends IFrontendController>(props: {
 async function makeInitializedBrowserSession(props: {
   sessionId: ISessionId;
   userId: string;
+  onCommandStaged?: () => void;
 }) {
-  const { sessionId, userId } = props;
+  const { onCommandStaged, sessionId, userId } = props;
   const dbConfig = makeResourceDbConfig({
     models: mainModels,
     otherTables: sessionRepoTables,
@@ -98,18 +100,22 @@ async function makeInitializedBrowserSession(props: {
   );
   const coreSession = makeSession({
     frontend: main,
+    generateSignature: () => Effect.succeed({ actorId: 'act_1' }),
     sessionId,
     runtime: sessionRuntime,
   });
   const session = makeBrowserSession({
     session: coreSession,
     browserUserController: makeBrowserUserController(userId),
+    onCommandStaged,
   });
   session.store.setState({
     sessionId,
     accountId: 'acct_1',
     accountName: main.accountName,
     actorId: 'usr_1',
+    generationId: 'gen_1',
+    systemVersion: '1.0.0',
     systemWorkerName: 'stub-deploy',
     db,
     schema,
@@ -155,6 +161,7 @@ describe('usePushQueue', () => {
     const sessionId = 'sesn_paused' as ISessionId;
     const coreSession = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'act_1' }),
       sessionId,
       runtime: sessionRuntime,
     });
@@ -163,13 +170,20 @@ describe('usePushQueue', () => {
       browserUserController: makeBrowserUserController('user_paused'),
     });
     session.store.setState({ isPushPaused: true });
+    const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
 
     await act(async () => {
-      root.render(<HookProbe session={session} onReady={() => {}} />);
+      root.render(
+        <HookProbe
+          session={session}
+          pushQueue={pushQueue}
+          onReady={() => {}}
+        />,
+      );
       await Promise.resolve();
     });
 
-    session.coreSession.pushQueue.offer();
+    sessionRuntime.runFork(Queue.offer(pushQueue, Date.now()));
     await new Promise(resolve => setTimeout(resolve, 250));
 
     expect(pushStagedCommandsState.calls).toBe(0);
@@ -179,6 +193,7 @@ describe('usePushQueue', () => {
     const sessionId = 'sesn_resume' as ISessionId;
     const coreSession = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'act_1' }),
       sessionId,
       runtime: sessionRuntime,
     });
@@ -187,13 +202,20 @@ describe('usePushQueue', () => {
       browserUserController: makeBrowserUserController('user_resume'),
     });
     session.store.setState({ isPushPaused: true });
+    const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
 
     await act(async () => {
-      root.render(<HookProbe session={session} onReady={() => {}} />);
+      root.render(
+        <HookProbe
+          session={session}
+          pushQueue={pushQueue}
+          onReady={() => {}}
+        />,
+      );
       await Promise.resolve();
     });
 
-    session.coreSession.pushQueue.offer();
+    sessionRuntime.runFork(Queue.offer(pushQueue, Date.now()));
     await new Promise(resolve => setTimeout(resolve, 250));
     expect(pushStagedCommandsState.calls).toBe(0);
 
@@ -209,23 +231,35 @@ describe('usePushQueue', () => {
     });
   });
 
-  it('session.pushStagedCommands runs while isPushPaused is true', async () => {
+  it('returned pushStagedCommands runs while isPushPaused is true', async () => {
     const session = await makeInitializedBrowserSession({
       sessionId: 'sesn_manual' as ISessionId,
       userId: 'user_manual',
     });
     session.store.setState({ isPushPaused: true });
+    const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
+    let manuallyPushStagedCommands: () => Promise<unknown> = () => {
+      throw new Error('Hook did not return pushStagedCommands');
+    };
 
     await act(async () => {
-      root.render(<HookProbe session={session} onReady={() => {}} />);
+      root.render(
+        <HookProbe
+          session={session}
+          pushQueue={pushQueue}
+          onReady={pushStagedCommands => {
+            manuallyPushStagedCommands = pushStagedCommands;
+          }}
+        />,
+      );
       await Promise.resolve();
     });
 
-    session.coreSession.pushQueue.offer();
+    sessionRuntime.runFork(Queue.offer(pushQueue, Date.now()));
     await new Promise(resolve => setTimeout(resolve, 250));
     expect(pushStagedCommandsState.calls).toBe(0);
 
-    const result = await session.coreSession.pushStagedCommands();
+    const result = await manuallyPushStagedCommands();
 
     expect(result).toEqual({
       pendingCommands: [],
@@ -258,14 +292,26 @@ describe('usePushQueue', () => {
     });
     session.store.setState({ isPushPaused: true });
     pushStagedCommandsState.shouldFail = true;
+    const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
+    let manuallyPushStagedCommands: () => Promise<unknown> = () => {
+      throw new Error('Hook did not return pushStagedCommands');
+    };
 
     await act(async () => {
-      root.render(<HookProbe session={session} onReady={() => {}} />);
+      root.render(
+        <HookProbe
+          session={session}
+          pushQueue={pushQueue}
+          onReady={pushStagedCommands => {
+            manuallyPushStagedCommands = pushStagedCommands;
+          }}
+        />,
+      );
       await Promise.resolve();
     });
 
     await expect(
-      session.coreSession.pushStagedCommands(),
+      manuallyPushStagedCommands(),
     ).rejects.toThrowError('Expected manual push failure');
 
     expect(pushStagedCommandsState.calls).toBe(1);
@@ -291,6 +337,7 @@ describe('usePushQueue', () => {
     const sessionId = 'sesn_preinit' as ISessionId;
     const coreSession = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'act_1' }),
       sessionId,
       runtime: sessionRuntime,
     });
@@ -298,26 +345,85 @@ describe('usePushQueue', () => {
       session: coreSession,
       browserUserController: makeBrowserUserController('user_preinit'),
     });
+    const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
+    let manuallyPushStagedCommands: () => Promise<unknown> = () => {
+      throw new Error('Hook did not return pushStagedCommands');
+    };
 
     await act(async () => {
       root.render(
-        <HookProbe enabled={false} session={session} onReady={() => {}} />,
+        <HookProbe
+          enabled={false}
+          session={session}
+          pushQueue={pushQueue}
+          onReady={pushStagedCommands => {
+            manuallyPushStagedCommands = pushStagedCommands;
+          }}
+        />,
       );
       await Promise.resolve();
     });
 
     expect(() => {
-      session.coreSession.pushStagedCommands();
+      manuallyPushStagedCommands();
     }).toThrowError('Session store is not initialized');
 
     await new Promise(resolve => setTimeout(resolve, 250));
     expect(pushStagedCommandsState.calls).toBe(0);
   });
 
+  it('notifies onCommandStaged only after successful browser staging', async () => {
+    const onCommandStaged = vi.fn();
+    const initializedSession = await makeInitializedBrowserSession({
+      sessionId: 'sesn_stage_notification',
+      userId: 'user_stage_notification',
+      onCommandStaged,
+    });
+
+    const staged = await initializedSession.stageCommand({
+      contractName: 'createList',
+      payload: {
+        id: 'lst_stage_notification',
+        name: 'Stage notification',
+        userId: 'usr_1',
+      },
+    });
+
+    expect(staged._tag).toBe('Right');
+    expect(onCommandStaged).toHaveBeenCalledTimes(1);
+
+    const uninitializedCoreSession = makeSession({
+      frontend: main,
+      generateSignature: () => Effect.succeed({ actorId: 'act_1' }),
+      sessionId: 'sesn_failed_stage_notification',
+      runtime: sessionRuntime,
+    });
+    const uninitializedSession = makeBrowserSession({
+      session: uninitializedCoreSession,
+      browserUserController: makeBrowserUserController(
+        'user_failed_stage_notification',
+      ),
+      onCommandStaged,
+    });
+
+    const failed = await uninitializedSession.stageCommand({
+      contractName: 'createList',
+      payload: {
+        id: 'lst_failed_stage_notification',
+        name: 'Failed stage notification',
+        userId: 'usr_1',
+      },
+    });
+
+    expect(failed._tag).toBe('Left');
+    expect(onCommandStaged).toHaveBeenCalledTimes(1);
+  });
+
   it('flushes queued push work on initial online mount', async () => {
     const sessionId = 'sesn_1' as ISessionId;
     const coreSession = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'act_1' }),
       sessionId,
       runtime: sessionRuntime,
     });
@@ -325,9 +431,16 @@ describe('usePushQueue', () => {
       session: coreSession,
       browserUserController: makeBrowserUserController('user_1'),
     });
+    const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
 
     await act(async () => {
-      root.render(<HookProbe session={session} onReady={() => {}} />);
+      root.render(
+        <HookProbe
+          session={session}
+          pushQueue={pushQueue}
+          onReady={() => {}}
+        />,
+      );
       await Promise.resolve();
     });
 
@@ -345,6 +458,7 @@ describe('usePushQueue', () => {
     const sessionId = 'sesn_2' as ISessionId;
     const coreSession = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'act_1' }),
       sessionId,
       runtime: sessionRuntime,
     });
@@ -352,13 +466,20 @@ describe('usePushQueue', () => {
       session: coreSession,
       browserUserController: makeBrowserUserController('user_2'),
     });
+    const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
 
     await act(async () => {
-      root.render(<HookProbe session={session} onReady={() => {}} />);
+      root.render(
+        <HookProbe
+          session={session}
+          pushQueue={pushQueue}
+          onReady={() => {}}
+        />,
+      );
       await Promise.resolve();
     });
 
-    session.coreSession.pushQueue.offer();
+    sessionRuntime.runFork(Queue.offer(pushQueue, Date.now()));
     await new Promise(resolve => setTimeout(resolve, 250));
 
     expect(pushStagedCommandsState.calls).toBe(0);
@@ -372,6 +493,7 @@ describe('usePushQueue', () => {
     const sessionId = 'sesn_3' as ISessionId;
     const coreSession = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'act_1' }),
       sessionId,
       runtime: sessionRuntime,
     });
@@ -379,21 +501,23 @@ describe('usePushQueue', () => {
       session: coreSession,
       browserUserController: makeBrowserUserController('user_3'),
     });
-    const offerSpy = vi.spyOn(session.coreSession.pushQueue, 'offer');
+    const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
 
     await act(async () => {
-      root.render(<HookProbe session={session} onReady={() => {}} />);
+      root.render(
+        <HookProbe
+          session={session}
+          pushQueue={pushQueue}
+          onReady={() => {}}
+        />,
+      );
       await Promise.resolve();
     });
-
-    offerSpy.mockClear();
 
     await act(async () => {
       window.dispatchEvent(new Event('online'));
       await Promise.resolve();
     });
-
-    expect(offerSpy).toHaveBeenCalledTimes(1);
 
     await vi.waitFor(() => {
       expect(pushStagedCommandsState.calls).toBe(1);
@@ -404,6 +528,7 @@ describe('usePushQueue', () => {
     const sessionId = 'sesn_4' as ISessionId;
     const coreSession = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'act_1' }),
       sessionId,
       runtime: sessionRuntime,
     });
@@ -411,9 +536,16 @@ describe('usePushQueue', () => {
       session: coreSession,
       browserUserController: makeBrowserUserController('user_4'),
     });
+    const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
 
     await act(async () => {
-      root.render(<HookProbe session={session} onReady={() => {}} />);
+      root.render(
+        <HookProbe
+          session={session}
+          pushQueue={pushQueue}
+          onReady={() => {}}
+        />,
+      );
       await Promise.resolve();
     });
 
@@ -429,7 +561,7 @@ describe('usePushQueue', () => {
       await Promise.resolve();
     });
 
-    session.coreSession.pushQueue.offer();
+    sessionRuntime.runFork(Queue.offer(pushQueue, Date.now()));
     await new Promise(resolve => setTimeout(resolve, 250));
 
     expect(pushStagedCommandsState.calls).toBe(0);

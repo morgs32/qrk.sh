@@ -61,6 +61,7 @@ describe("SessionsCommandsLayout", () => {
     const session = makeSession({
       frontend: main,
       sessionId,
+      generateSignature: () => Effect.succeed({ userId: "usr_1" }),
     });
 
     session.store.setState({
@@ -78,7 +79,15 @@ describe("SessionsCommandsLayout", () => {
       lastRebasedPushedCursor: null,
       isPushPaused: false,
     });
-    zerospinDevtoolsStore.getState().addSession(session);
+    zerospinDevtoolsStore.getState().addSession({
+      session,
+      pushStagedCommands: () =>
+        Promise.resolve({
+          pendingCommands: [],
+          pushedCommands: [],
+          failedCommands: [],
+        }),
+    });
 
     const router = createMemoryRouter(
       createRoutesFromElements(

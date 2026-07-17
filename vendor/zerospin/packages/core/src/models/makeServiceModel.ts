@@ -1,16 +1,20 @@
 import type { InferProps } from '../utils/types.ts';
 
-import { makeModel } from './makeModel.ts';
+import { makeModelAndMetadata, type makeModel } from './makeModel.ts';
+import { primitives } from './primitives.ts';
 import type {
+  IDateDescriptor,
   IDrizzleIndexConfig,
   IModel,
+  IPrimaryKeyDescriptor,
   IServiceModel,
   IShape,
+  ITextDescriptor,
 } from './types.ts';
 
 /*
  * 1. Strip serviceName from props; keep model fields.
- * 2. Build the plain model via makeModel.
+ * 2. Build the service model with explicit framework metadata.
  * 3. Assemble model + serviceName into a service model object.
  * 4. Seal serviceName as non-writable / non-configurable.
  * 5. Return the sealed IServiceModel.
@@ -42,7 +46,21 @@ export function makeServiceModel<
   },
   historicalDefinitions: HISTORICAL_DEFINITIONS,
 ): IServiceModel<
-  IModel<ATTRIBUTES, ABBREVIATION, MODEL_NAME, VERSION, HISTORICAL_DEFINITIONS>,
+  IModel<
+    ATTRIBUTES,
+    ABBREVIATION,
+    MODEL_NAME,
+    VERSION,
+    HISTORICAL_DEFINITIONS,
+    {
+      id: IPrimaryKeyDescriptor<ABBREVIATION>;
+      modelName: ITextDescriptor<false>;
+      createdAt: IDateDescriptor<false>;
+      updatedAt: IDateDescriptor<false>;
+      version: ITextDescriptor<false>;
+      deletedAt: IDateDescriptor<true>;
+    }
+  >,
   SERVICE_NAME
 > {
   // 1 — pull serviceName out so it is not passed into makeModel
@@ -54,17 +72,33 @@ export function makeServiceModel<
     indexes = [],
     version,
   } = props;
-  // 2 — same factory path as account/session models (table, schemas, spec)
-  const model = makeModel<
+  // 2 — service models own the complete metadata shape they pass into the shared model factory
+  const model = makeModelAndMetadata<
     MODEL_NAME,
     ABBREVIATION,
     ATTRIBUTES,
+    {
+      id: IPrimaryKeyDescriptor<ABBREVIATION>;
+      modelName: ITextDescriptor<false>;
+      createdAt: IDateDescriptor<false>;
+      updatedAt: IDateDescriptor<false>;
+      version: ITextDescriptor<false>;
+      deletedAt: IDateDescriptor<true>;
+    },
     VERSION,
     HISTORICAL_DEFINITIONS
   >(
     {
       abbreviation,
       modelName,
+      metadata: {
+        id: primitives.primaryKey({ abbreviation }),
+        modelName: primitives.text({ nullable: false }),
+        createdAt: primitives.date({ nullable: false }),
+        updatedAt: primitives.date({ nullable: false }),
+        version: primitives.text({ nullable: false }),
+        deletedAt: primitives.date({ nullable: true }),
+      },
       attributes,
       indexes,
       version,

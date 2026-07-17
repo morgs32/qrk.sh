@@ -1,4 +1,10 @@
-import React, { act, createRef, useEffect, type RefObject } from 'react';
+import React, {
+  act,
+  createRef,
+  StrictMode,
+  useEffect,
+  type RefObject,
+} from 'react';
 
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeModel } from '@zerospin/core/models/makeModel';
@@ -27,6 +33,18 @@ vi.mock('capnweb', async importOriginal => {
   return {
     ...actual,
     newHttpBatchRpcSession: newHttpBatchRpcSessionMock,
+  };
+});
+
+vi.mock('./acquireFrontendWebSocket', async () => {
+  const { Effect } = await import('effect');
+  return {
+    acquireFrontendWebSocket: Effect.fn('acquireFrontendWebSocket')(
+      function* () {
+        yield* Effect.void;
+        return Effect.void;
+      },
+    ),
   };
 });
 
@@ -270,6 +288,45 @@ describe('makeReactFrontend.Provider', () => {
     ).rejects.toThrow(
       'The same ReactSession.Provider is already mounted on this page.',
     );
+  });
+
+  it('keeps the provider push queue open through StrictMode effect replay', async () => {
+    const scheduledMicrotasks: Array<() => void> = [];
+    const queueMicrotaskSpy = vi
+      .spyOn(globalThis, 'queueMicrotask')
+      .mockImplementation(callback => {
+        scheduledMicrotasks.push(callback);
+      });
+    const runtimeRunSync = vi.spyOn(
+      ReactSession.sessionRuntime,
+      'runSync',
+    );
+
+    await act(async () => {
+      root.render(
+        <StrictMode>
+          <ZerospinConfig userId="user_strict_mode">
+            <ReactSession.Provider
+              generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
+            >
+              <div />
+            </ReactSession.Provider>
+          </ZerospinConfig>
+        </StrictMode>,
+      );
+      await Promise.resolve();
+    });
+
+    await Promise.resolve();
+
+    const strictModeCleanup = scheduledMicrotasks.at(-1);
+    expect(strictModeCleanup).toBeDefined();
+    const runSyncCallCount = runtimeRunSync.mock.calls.length;
+    strictModeCleanup?.();
+    expect(runtimeRunSync).toHaveBeenCalledTimes(runSyncCallCount);
+
+    runtimeRunSync.mockRestore();
+    queueMicrotaskSpy.mockRestore();
   });
 });
 

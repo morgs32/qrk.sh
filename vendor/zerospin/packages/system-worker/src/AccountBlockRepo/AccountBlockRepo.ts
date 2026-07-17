@@ -10,7 +10,7 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import type { IAccountCursor } from '@zerospin/core/models/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { ZerospinError, type IAnyErrorJson } from '@zerospin/error';
@@ -48,7 +48,7 @@ const DELIVERY_BATCH_SIZE = 100;
 const DELIVERY_ALARM_DELAY_MS = 250;
 
 const accountBlockRepoUtils = makeRepoUtils({
-  abbreviation: coreAbbreviations.accountBlockRepo,
+  abbreviation: systemWorkerAbbreviations.accountBlockRepo,
   repoType: 'AccountBlockRepo',
   namePattern: RoutePattern.parse('/:generationId/:accountId/:accountName'),
   managedRuntime,

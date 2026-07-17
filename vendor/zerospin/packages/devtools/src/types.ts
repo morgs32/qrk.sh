@@ -1,3 +1,8 @@
+import type {
+  IEncodedCommand,
+  IFailedStagedCommand,
+  IPushedCommand,
+} from "@zerospin/core/contracts/types";
 import type { ISession, ISessionId } from "@zerospin/core/session/types";
 
 export type IModifierKey = "Alt" | "Control" | "Meta" | "Shift" | "CtrlOrMeta";
@@ -49,11 +54,22 @@ export interface IProfilerProfile {
   readonly props: Readonly<Record<string, unknown>>;
 }
 
+export interface IDevtoolsSessionEntry {
+  readonly session: ISession;
+  readonly pushStagedCommands: () => Promise<
+    Readonly<{
+      pendingCommands: readonly IEncodedCommand<IPushedCommand>[];
+      pushedCommands: readonly IEncodedCommand<IPushedCommand>[];
+      failedCommands: readonly IEncodedCommand<IFailedStagedCommand>[];
+    }>
+  >;
+}
+
 export type IZerospinDevtoolsStoreState = {
-  readonly sessionsById: ReadonlyMap<ISessionId, ISession>;
+  readonly sessionsById: ReadonlyMap<ISessionId, IDevtoolsSessionEntry>;
   readonly profiles: ReadonlyArray<IProfilerProfile>;
   readonly sharedWorkerUserApi: unknown | null;
-  addSession: (session: ISession) => void;
+  addSession: (entry: IDevtoolsSessionEntry) => void;
   removeSession: (sessionId: ISessionId) => void;
   setSharedWorkerUserApi: (sharedWorkerUserApi: unknown | null) => void;
 };

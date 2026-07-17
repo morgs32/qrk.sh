@@ -6,7 +6,7 @@ import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { IAccountCursor } from '@zerospin/core/models/types';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import {
@@ -66,7 +66,7 @@ export const replayAccountBlock = Effect.fn('AccountRepo.replayAccountBlock')(
     } = props;
 
     const validatedDeployId = yield* Schema.decodeUnknown(
-      makeAbbreviationIdSchema(cloudIdAbbreviations.deploy),
+      makeAbbreviationIdSchema(coreAbbreviations.deploy),
     )(deployId).pipe(
       mapParseError({
         code: 'account-replay-deploy-id-invalid',
@@ -74,7 +74,7 @@ export const replayAccountBlock = Effect.fn('AccountRepo.replayAccountBlock')(
       }),
     );
     const validatedPrevGenerationId = yield* Schema.decodeUnknown(
-      makeAbbreviationIdSchema(cloudIdAbbreviations.generation),
+      makeAbbreviationIdSchema(coreAbbreviations.generation),
     )(prevGenerationId).pipe(
       mapParseError({
         code: 'account-replay-prev-generation-id-invalid',

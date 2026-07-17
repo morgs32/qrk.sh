@@ -33,7 +33,7 @@ import type {
 } from '@zerospin/core/models/types';
 import type { IEncodedQuery } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
@@ -168,7 +168,7 @@ const accountRepoTables = {
     name: 'serviceSubscriptions',
     shape: {
       serviceRepoName: primitives.primaryKey({
-        abbreviation: coreAbbreviations.serviceRepo,
+        abbreviation: systemWorkerAbbreviations.serviceRepo,
       }),
       serviceName: primitives.text(),
       currentServiceCursor: primitives.cursor({
@@ -186,10 +186,10 @@ const accountRepoTables = {
     name: 'accountReplayReceipts',
     shape: {
       deployId: primitives.opaqueId({
-        abbreviation: cloudIdAbbreviations.deploy,
+        abbreviation: coreAbbreviations.deploy,
       }),
       prevGenerationId: primitives.opaqueId({
-        abbreviation: cloudIdAbbreviations.generation,
+        abbreviation: coreAbbreviations.generation,
       }),
       sourceAccountIndex: primitives.integer(),
       lastAccountCursor: primitives.cursor({
@@ -217,7 +217,7 @@ export const accountRepoDrizzleSchemas =
   makeDrizzleSchemasRecordFromTables(accountRepoTables);
 
 const accountRepoUtils = makeRepoUtils({
-  abbreviation: coreAbbreviations.accountRepo,
+  abbreviation: systemWorkerAbbreviations.accountRepo,
   repoType: 'AccountRepo',
   namePattern: RoutePattern.parse('/:generationId/:accountId/:accountName'),
   managedRuntime,

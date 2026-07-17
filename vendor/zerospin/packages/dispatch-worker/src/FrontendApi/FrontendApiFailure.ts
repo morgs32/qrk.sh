@@ -39,6 +39,15 @@ export class FrontendApiFailure extends RpcTarget {
     };
   }
 
+  async createFrontendWebSocketTicket(
+    _request: Parameters<FrontendApi['createFrontendWebSocketTicket']>[0],
+  ): ReturnType<FrontendApi['createFrontendWebSocketTicket']> {
+    return {
+      result: encodeLeft(this.error),
+      link: null,
+    };
+  }
+
   async pushCommands(
     _request: Parameters<FrontendApi['pushCommands']>[0],
   ): ReturnType<FrontendApi['pushCommands']> {

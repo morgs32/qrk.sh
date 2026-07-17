@@ -48,6 +48,23 @@ describe('makeServiceModel', () => {
     );
 
     expect(Product.serviceName).toBe('app');
+    expect(Product.attributes).toEqual({ name: primitives.text() });
+    expect(Object.keys(Product.metadata)).toEqual([
+      'id',
+      'modelName',
+      'createdAt',
+      'updatedAt',
+      'version',
+      'deletedAt',
+    ]);
+    expect(Product.metadata.deletedAt).toMatchObject({
+      kind: 'date',
+      nullable: true,
+    });
+    expect(Product.propertiesShape).toEqual({
+      ...Product.metadata,
+      ...Product.attributes,
+    });
     expect(CartItem.attributes.productId.table).toBe(Product.table);
     expect(Object.getOwnPropertyDescriptor(Product, 'serviceName')).toEqual({
       configurable: false,

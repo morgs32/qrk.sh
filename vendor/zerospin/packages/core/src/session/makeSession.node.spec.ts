@@ -18,7 +18,7 @@ import {
   type ISpanRecord,
 } from '@zerospin/logger';
 import { Effect } from 'effect';
-import { describe, expect } from 'vitest';
+import { describe, expect, vi } from 'vitest';
 
 const frontend = makeFrontendController({
   contracts: {},
@@ -31,14 +31,16 @@ const frontend = makeFrontendController({
   signature: {},
 });
 
-describe('makeSession pushQueue', () => {
+describe('makeSession configuration', () => {
   it('initializes push and shared worker flags', () => {
     const defaultSession = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_1' as ISessionId,
     });
     const configuredSession = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_2' as ISessionId,
       isPushPaused: true,
       isSharedWorkerEnabled: true,
@@ -51,31 +53,31 @@ describe('makeSession pushQueue', () => {
     expect(configuredSession.store.getState().isSharedWorkerEnabled).toBe(true);
   });
 
-  it.effect('offer wakes take', () =>
-    Effect.gen(function* () {
-      const session = makeSession({
-        frontend,
-        sessionId: 'sesn_1' as ISessionId,
-      });
+  it('stores the exact signature factory without invoking it', () => {
+    const generateSignature = vi.fn(() =>
+      Effect.succeed({ actorId: 'usr_1' }),
+    );
+    const session = makeSession({
+      frontend,
+      generateSignature,
+      sessionId: 'sesn_signature_factory',
+    });
 
-      session.pushQueue.offer();
-      const wake = yield* session.pushQueue.take();
-
-      expect(typeof wake).toBe('number');
-
-      yield* session.pushQueue.shutdown();
-    }),
-  );
+    expect(session.generateSignature).toBe(generateSignature);
+    expect(generateSignature).not.toHaveBeenCalled();
+  });
 });
 
 describe('makeSession telemetry', () => {
   it('keeps ordered telemetry isolated per session without deduplication', () => {
     const first = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_telemetry_1',
     });
     const second = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_telemetry_2',
     });
     const span: ISpanRecord = {
@@ -111,6 +113,7 @@ describe('makeSession telemetry', () => {
   it('clears the current batch and accepts later in-flight completion', () => {
     const session = makeSession({
       frontend,
+      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_telemetry_clear',
     });
     const collector = session.store.getState().telemetryCollector;
@@ -186,6 +189,7 @@ describe('makeSession onInitialized', () => {
     const deps = await makeInitializedSessionDeps();
     const session = makeSession({
       frontend: main,
+      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_1' as ISessionId,
     });
     const deliveries: IInitializedSessionState<
@@ -213,6 +217,7 @@ describe('makeSession onInitialized', () => {
     const deps = await makeInitializedSessionDeps();
     const session = makeSession({
       frontend: main,
+      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_2' as ISessionId,
     });
     publishInitializedState({ session, deps });
@@ -232,6 +237,7 @@ describe('makeSession onInitialized', () => {
     const deps = await makeInitializedSessionDeps();
     const session = makeSession({
       frontend: main,
+      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_3' as ISessionId,
     });
     const deliveries: IInitializedSessionState<

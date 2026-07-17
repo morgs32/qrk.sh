@@ -1,7 +1,7 @@
 ---
 title: Index
 type: meta
-updated: 2026-07-15
+updated: 2026-07-17
 ---
 
 # Index
@@ -24,6 +24,7 @@ Organised by category. Pages are `[[wiki-links]]` without the `.md` extension.
 ## Architecture
 
 - [[architecture/FrontendApi]] — per-frontend linked RPCs, persisted server roots, and actor query routing
+- [[architecture/FrontendWebSocket]] — one-use admission tickets and hibernating frontend-block connections
 - [[architecture/SystemApi]] — concrete secret-key linked gateway, twenty-nine leaves, and RepoExplorer/service routing
 - [[architecture/Blockchain]] — account and service block chains converging on frontend projections
 - [[architecture/bootstrapBrowserSession]] — browser bootstrap, session telemetry, Logs, SharedWorker

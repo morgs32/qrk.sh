@@ -48,12 +48,15 @@ export function makeResourceDbConfig<
     );
   }
 
+  const tables = {
+    ...modelTables,
+    ...props.otherTables,
+  };
+
   return Brand.nominal<IResourceDbConfig<MODELS, OTHER_TABLES>>()(
-    makeDbConfig({
-      tables: {
-        ...modelTables,
-        ...props.otherTables,
-      },
-    }),
+    {
+      schema: makeDrizzleSchemasRecordFromTables(tables),
+      relations: makeDrizzleRelationsFromTables(tables),
+    },
   );
 }

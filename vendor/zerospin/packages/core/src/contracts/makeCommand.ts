@@ -6,7 +6,7 @@ import type {
   InferPayloadInput,
 } from '../models/types.ts';
 import type { CuidFactory } from '../services/CuidFactory.ts';
-import { cloudIdAbbreviations } from '../utils/cloudIdAbbreviations.ts';
+import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
 import { makeIdFromAbbreviation } from '../utils/makeIdFromAbbreviation.ts';
 import type { Prettify } from '../utils/types';
 
@@ -30,7 +30,7 @@ export const makeCommand = Effect.fn('makeCommand')(function* <
 > {
   const { contract, payload } = props;
   const commandId = yield* makeIdFromAbbreviation({
-    abbreviation: cloudIdAbbreviations.command,
+    abbreviation: coreAbbreviations.command,
   });
   const decodedPayload = yield* contract.validatePayload({ payload });
 

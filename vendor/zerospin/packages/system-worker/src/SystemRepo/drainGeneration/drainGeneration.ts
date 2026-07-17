@@ -46,6 +46,7 @@ export const drainGeneration = Effect.fn('SystemRepo.drainGeneration')(
       repoName: AnyColumn;
     }>;
     repoTable: IAnyDrizzleSchema;
+    frontendWebSocketTicketTable: IAnyDrizzleSchema;
   }): Effect.fn.Return<
     Readonly<{
       deployId: string;
@@ -60,6 +61,7 @@ export const drainGeneration = Effect.fn('SystemRepo.drainGeneration')(
       deployId,
       drainBoundsColumns,
       drainBoundsTable,
+      frontendWebSocketTicketTable,
       generationId,
       generationStateColumns,
       generationStateTable,
@@ -123,6 +125,14 @@ export const drainGeneration = Effect.fn('SystemRepo.drainGeneration')(
       });
     }
     if (generationState.admission === 'drained') {
+      yield* Effect.try({
+        try: () => db.delete(frontendWebSocketTicketTable).run(),
+        catch: ZerospinError.catch({
+          code: 'frontend-websocket-ticket-drained-cleanup-failed',
+          message: 'Failed to remove tickets from a drained generation',
+          extra: { deployId, generationId },
+        }),
+      });
       return { deployId, generationId, admission: 'drained' };
     }
     if (
@@ -518,6 +528,18 @@ export const drainGeneration = Effect.fn('SystemRepo.drainGeneration')(
       catch: ZerospinError.catch({
         code: 'generation-drain-complete-write-failed',
         message: 'Failed to mark generation drain complete',
+        extra: { deployId, generationId },
+      }),
+    });
+
+    // Checkpoint 5: a drained generation cannot admit any WebSocket ticket.
+    // Purge after the durable lifecycle transition so a retry can finish this
+    // cleanup from the already-drained branch above if deletion fails.
+    yield* Effect.try({
+      try: () => db.delete(frontendWebSocketTicketTable).run(),
+      catch: ZerospinError.catch({
+        code: 'frontend-websocket-ticket-drained-cleanup-failed',
+        message: 'Failed to remove tickets from a drained generation',
         extra: { deployId, generationId },
       }),
     });

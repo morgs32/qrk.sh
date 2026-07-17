@@ -3,7 +3,7 @@ import { makeTable } from '../models/makeTable.ts';
 import { makeDrizzleSchemaFromTable } from '../models/primitiveMaps.ts';
 import { primitives } from '../models/primitives.ts';
 import type { IAnyTables } from '../models/types.ts';
-import { cloudIdAbbreviations } from '../utils/cloudIdAbbreviations.ts';
+import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
 
 import {
   sessionExecutedPushedCommandShape,
@@ -18,7 +18,7 @@ const sharedWorkerMetadataTable = makeTable({
   shape: {
     id: primitives.primaryKey({ abbreviation: 'wwm' }),
     systemId: primitives.opaqueId({
-      abbreviation: cloudIdAbbreviations.systemRecord,
+      abbreviation: coreAbbreviations.system,
     }),
     generationId: primitives.text(),
     accountName: primitives.text(),

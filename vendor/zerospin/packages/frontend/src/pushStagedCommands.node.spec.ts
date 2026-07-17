@@ -73,6 +73,7 @@ describe('pushStagedCommands', () => {
         const sessionId = 'sesn_1' as ISessionId;
         const session = makeSession({
           frontend: main,
+          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
           sessionId,
         });
         session.store.setState({
@@ -171,10 +172,7 @@ describe('pushStagedCommands', () => {
           link: null,
         }));
 
-        const result = yield* pushStagedCommands({
-          session,
-          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
-        });
+        const result = yield* pushStagedCommands({ session });
 
         const stagedRows = db
           .select()
@@ -222,7 +220,14 @@ describe('pushStagedCommands', () => {
         const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
 
         const sessionId = 'sesn_empty';
-        const session = makeSession({ frontend: main, sessionId });
+        const generateSignature = vi.fn(() =>
+          Effect.succeed({ actorId: 'usr_1' }),
+        );
+        const session = makeSession({
+          frontend: main,
+          generateSignature,
+          sessionId,
+        });
         session.store.setState({
           sessionId,
           accountId: 'acct_1',
@@ -240,13 +245,7 @@ describe('pushStagedCommands', () => {
           lastRebasedPushedCursor: null,
         });
 
-        const generateSignature = vi.fn(() =>
-          Effect.succeed({ actorId: 'usr_1' }),
-        );
-        const result = yield* pushStagedCommands({
-          session,
-          generateSignature,
-        });
+        const result = yield* pushStagedCommands({ session });
 
         expect(result).toEqual({
           pendingCommands: [],
@@ -270,7 +269,11 @@ describe('pushStagedCommands', () => {
         const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
 
         const sessionId = 'sesn_request_failure';
-        const session = makeSession({ frontend: main, sessionId });
+        const session = makeSession({
+          frontend: main,
+          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+          sessionId,
+        });
         session.store.setState({
           sessionId,
           accountId: 'acct_1',
@@ -301,10 +304,9 @@ describe('pushStagedCommands', () => {
 
         pushCommands.mockRejectedValue(new Error('network unavailable'));
 
-        const result = yield* pushStagedCommands({
-          session,
-          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
-        }).pipe(Effect.either);
+        const result = yield* pushStagedCommands({ session }).pipe(
+          Effect.either,
+        );
 
         const stagedRows = db
           .select()
@@ -332,7 +334,11 @@ describe('pushStagedCommands', () => {
         const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
 
         const sessionId = 'sesn_rebase_failure';
-        const session = makeSession({ frontend: main, sessionId });
+        const session = makeSession({
+          frontend: main,
+          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+          sessionId,
+        });
         session.store.setState({
           sessionId,
           accountId: 'acct_1',
@@ -390,10 +396,9 @@ describe('pushStagedCommands', () => {
           link: null,
         }));
 
-        const result = yield* pushStagedCommands({
-          session,
-          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
-        }).pipe(Effect.either);
+        const result = yield* pushStagedCommands({ session }).pipe(
+          Effect.either,
+        );
 
         const stagedRows = db
           .select()
@@ -421,7 +426,11 @@ describe('pushStagedCommands', () => {
         const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
 
         const sessionId = 'sesn_in_flight';
-        const session = makeSession({ frontend: main, sessionId });
+        const session = makeSession({
+          frontend: main,
+          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+          sessionId,
+        });
         session.store.setState({
           sessionId,
           accountId: 'acct_1',
@@ -487,10 +496,7 @@ describe('pushStagedCommands', () => {
           },
         );
 
-        yield* pushStagedCommands({
-          session,
-          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
-        });
+        yield* pushStagedCommands({ session });
 
         const stagedRows = db
           .select()

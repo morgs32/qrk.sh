@@ -2,7 +2,6 @@ import { type Async } from '@zerospin/core/async/Async';
 import type { IActor } from '@zerospin/core/actorController/types';
 import type { IFrontendController } from '@zerospin/core/frontendController/types';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
-import { SignatureFactory } from '@zerospin/core/services/SignatureFactory';
 import { ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
 import type { ISession } from '@zerospin/core/session/types';
 import type {
@@ -34,17 +33,12 @@ export const fetchActor = Effect.fn('fetchActor')(function* <
     systemEnvironmentId: ISystemEnvironmentId;
   },
   IAnyError,
-  | ZerospinApisUrl
-  | PublishableKey
-  | SignatureFactory
-  | TelemetryCollector
-  | Async
+  ZerospinApisUrl | PublishableKey | TelemetryCollector | Async
 > {
   const { session } = props;
 
   const publishableKey = yield* PublishableKey;
-  const generateSignature = yield* SignatureFactory;
-  const signature = yield* generateSignature();
+  const signature = yield* session.generateSignature();
   const apiUrl = yield* ZerospinApisUrl;
 
   using apis = newSyncRpcSession<ZerospinApis>(apiUrl);

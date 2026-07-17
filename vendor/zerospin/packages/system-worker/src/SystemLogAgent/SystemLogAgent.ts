@@ -4,7 +4,7 @@ import type {
   ISystemLogRow,
   ISystemLogState,
 } from '@zerospin/core/system/types';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { defaultRetrySchedule } from '@zerospin/core/utils/defaultRetrySchedule';
 import { mapParseError, ZerospinError } from '@zerospin/error';
 import { Agent, type Connection, type ConnectionContext } from 'agents';
@@ -35,7 +35,7 @@ export class SystemLogAgent extends Agent<Env, ISystemLogState> {
       Effect.gen(function* () {
         // 2 — reject unnamed or malformed activations before any repo lookup
         const generationId = yield* Schema.validate(
-          makeAbbreviationIdSchema(cloudIdAbbreviations.generation),
+          makeAbbreviationIdSchema(coreAbbreviations.generation),
         )(name).pipe(
           mapParseError({
             code: 'failed-to-decode-system-log-agent-generation-id',

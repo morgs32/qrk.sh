@@ -88,10 +88,14 @@ describe('ServiceRepo', () => {
             getRepo: getServiceRepo,
             repo: ServiceRepo,
             key: { generationId: 'gen_test', serviceName: 'app' },
-            fn: ({ db, schema }) => {
+            fn: ({ db, schema, storage }) => {
               const productTable = schema.product;
               const serviceCursorsTable = schema.serviceCursors;
               return {
+                foreignKeys:
+                  storage.sql.exec<{ foreign_keys: number }>(
+                    'PRAGMA foreign_keys',
+                  ).one().foreign_keys,
                 products: db
                   .select({
                     id: productTable.id,
@@ -114,6 +118,7 @@ describe('ServiceRepo', () => {
         expect(result.failedCommands).toEqual([]);
         expect(result.executedCommands).toHaveLength(2);
         expect(result.executedCommands[0]?.serviceCursor).toMatch(/^svcur_/);
+        expect(rows.foreignKeys).toBe(1);
         expect(rows.products).toEqual([
           {
             id: 'prd_service_finalize',
@@ -313,7 +318,202 @@ describe('ServiceRepo', () => {
             name: 'Second Service Finalized Product',
           },
         ]);
+
+        const deleteResult = yield* makeAsync(() =>
+          serviceRepo.finalizeServiceCommands({
+            serviceName: 'app',
+            commands: [
+              {
+                id: 'cmd_service_snapshot_delete',
+                commandName: 'deleteProduct',
+                payload: { id: 'prd_service_finalize' },
+                version: '1.0.0',
+                systemVersion: '1.0.0',
+                commandType: 'service',
+                serviceName: 'app',
+              },
+            ],
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        expect(deleteResult.failedCommands).toEqual([]);
+
+        const deletedRow = yield* Effect.promise(() =>
+          executeInRepo({
+            managedRuntime,
+            getRepo: getServiceRepo,
+            repo: ServiceRepo,
+            key: { generationId: 'gen_test', serviceName: 'app' },
+            fn: ({ db, schema }) =>
+              db
+                .select()
+                .from(schema.product)
+                .where(eq(schema.product.id, 'prd_service_finalize'))
+                .get(),
+          }),
+        );
+        expect(deletedRow).toEqual(
+          expect.objectContaining({
+            id: 'prd_service_finalize',
+            name: 'Service Snapshot Updated Product',
+            deletedAt: expect.any(Date),
+            updatedAt: expect.any(Date),
+          }),
+        );
+        expect(deletedRow?.deletedAt).toEqual(deletedRow?.updatedAt);
+
+        const deletedSnapshot = yield* makeAsync(() =>
+          serviceRepo.getReplicatedResources({
+            currentServiceIndex: null,
+            resources: [
+              {
+                modelName: 'product',
+                resourceId: 'prd_service_finalize',
+              },
+            ],
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        expect(deletedSnapshot.resources).toEqual([
+          expect.objectContaining({
+            status: 'missing',
+            modelName: 'product',
+            resourceId: 'prd_service_finalize',
+            failure: expect.objectContaining({
+              code: 'service-resource-deleted',
+            }),
+          }),
+        ]);
+
+        const unfilteredDeletedQuery = yield* makeAsync(() =>
+          serviceRepo.executeServiceQuery({
+            serviceName: 'app',
+            queryName: 'getProducts',
+            params: {},
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        expect(unfilteredDeletedQuery).toEqual([
+          {
+            id: 'prd_service_finalize',
+            name: 'Service Snapshot Updated Product',
+          },
+          {
+            id: 'prd_service_finalize_second',
+            name: 'Second Service Finalized Product',
+          },
+        ]);
       }),
+    );
+
+    it.effect(
+      'rolls back one terminal-deletion failure and continues its sibling command',
+      () =>
+        Effect.gen(function* () {
+          const serviceRepo = yield* getServiceRepo({
+            key: {
+              generationId: 'gen_service_command_savepoint',
+              serviceName: 'app',
+            },
+          });
+          const seedResult = yield* makeAsync(() =>
+            serviceRepo.finalizeServiceCommands({
+              serviceName: 'app',
+              commands: [
+                {
+                  id: 'cmd_service_savepoint_seed',
+                  commandName: 'createProduct',
+                  payload: {
+                    id: 'prd_service_savepoint_deleted',
+                    name: 'Deleted seed product',
+                  },
+                  version: '1.0.0',
+                  systemVersion: '1.0.0',
+                  commandType: 'service',
+                  serviceName: 'app',
+                },
+                {
+                  id: 'cmd_service_savepoint_delete',
+                  commandName: 'deleteProduct',
+                  payload: { id: 'prd_service_savepoint_deleted' },
+                  version: '1.0.0',
+                  systemVersion: '1.0.0',
+                  commandType: 'service',
+                  serviceName: 'app',
+                },
+              ],
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
+          expect(seedResult.failedCommands).toEqual([]);
+
+          const siblingResult = yield* makeAsync(() =>
+            serviceRepo.finalizeServiceCommands({
+              serviceName: 'app',
+              commands: [
+                {
+                  id: 'cmd_service_savepoint_terminal_failure',
+                  commandName: 'updateProduct',
+                  payload: {
+                    id: 'prd_service_savepoint_deleted',
+                    name: 'Forbidden resurrection',
+                  },
+                  version: '1.0.0',
+                  systemVersion: '1.0.0',
+                  commandType: 'service',
+                  serviceName: 'app',
+                },
+                {
+                  id: 'cmd_service_savepoint_sibling_success',
+                  commandName: 'createProduct',
+                  payload: {
+                    id: 'prd_service_savepoint_sibling',
+                    name: 'Successful sibling product',
+                  },
+                  version: '1.0.0',
+                  systemVersion: '1.0.0',
+                  commandType: 'service',
+                  serviceName: 'app',
+                },
+              ],
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
+
+          expect(siblingResult.failedCommands).toHaveLength(1);
+          expect(siblingResult.failedCommands[0]).toEqual(
+            expect.objectContaining({
+              id: 'cmd_service_savepoint_terminal_failure',
+              failure: expect.stringContaining('service-resource-deleted'),
+            }),
+          );
+          expect(siblingResult.executedCommands).toEqual([
+            expect.objectContaining({
+              id: 'cmd_service_savepoint_sibling_success',
+            }),
+          ]);
+
+          const products = yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getServiceRepo,
+              repo: ServiceRepo,
+              key: {
+                generationId: 'gen_service_command_savepoint',
+                serviceName: 'app',
+              },
+              fn: ({ db, schema }) =>
+                db.select().from(schema.product).all(),
+            }),
+          );
+          expect(products).toEqual([
+            expect.objectContaining({
+              id: 'prd_service_savepoint_deleted',
+              name: 'Deleted seed product',
+              deletedAt: expect.any(Date),
+            }),
+            expect.objectContaining({
+              id: 'prd_service_savepoint_sibling',
+              name: 'Successful sibling product',
+              deletedAt: null,
+            }),
+          ]);
+        }).pipe(Effect.provide(AsyncLive)),
     );
 
     it.effect('returns failed commands for unknown services', () =>
@@ -595,7 +795,7 @@ describe('ServiceRepo', () => {
     );
 
     it.effect(
-      'replays exact service blocks with idempotent receipts and bounded reads',
+      'replays exact service blocks with deleted rows, idempotent receipts, and bounded reads',
       () =>
         Effect.gen(function* () {
           const prevGenerationId = 'gen_service_replay_source';
@@ -619,10 +819,21 @@ describe('ServiceRepo', () => {
                   serviceName: 'app',
                   systemVersion: '1.0.0',
                 },
+                {
+                  id: 'cmd_service_replay_delete',
+                  commandName: 'deleteProduct',
+                  payload: {
+                    id: 'prd_service_replay',
+                  },
+                  version: '1.0.0',
+                  commandType: 'service',
+                  serviceName: 'app',
+                  systemVersion: '1.0.0',
+                },
               ],
             }),
           ).pipe(Effect.flatMap(decodeRpc));
-          expect(sourceResult.executedCommands).toHaveLength(1);
+          expect(sourceResult.executedCommands).toHaveLength(2);
           yield* makeAsync(() =>
             sourceServiceRepo.drainServiceBlockOutbox(),
           ).pipe(Effect.flatMap(decodeRpc));
@@ -705,7 +916,11 @@ describe('ServiceRepo', () => {
             expect.objectContaining({
               id: 'prd_service_replay',
               name: 'Replayed product',
+              deletedAt: expect.any(Date),
             }),
+          );
+          expect(targetState.product?.deletedAt).toEqual(
+            targetState.product?.updatedAt,
           );
           expect(targetState.receipts).toHaveLength(1);
 

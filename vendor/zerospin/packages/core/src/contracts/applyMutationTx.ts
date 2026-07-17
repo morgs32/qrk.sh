@@ -52,6 +52,33 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
         operationName,
         resourceId,
       });
+
+      if ('serviceName' in model && resourceRow.deletedAt !== null) {
+        if (
+          resourceRow.deletedAt instanceof Date &&
+          resourceRow.deletedAt.getTime() === appliedAt.getTime()
+        ) {
+          return {
+            ...mutation,
+            commandId,
+            mutationIndex,
+            appliedAt,
+            lastAppliedAt: resourceRow.updatedAt,
+            inverseOperation: null,
+          };
+        }
+        return yield* new ZerospinError({
+          code: 'service-resource-deleted',
+          message: `Cannot apply delete mutation to deleted service resource "${resourceId}"`,
+          extra: {
+            modelName: model.modelName,
+            resourceId,
+            operationName,
+            deletedAt: resourceRow.deletedAt,
+          },
+        });
+      }
+
       const resource = yield* Schema.validate(model.resourceSchema)(
         resourceRow,
       ).pipe(
@@ -63,10 +90,58 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
       inverseOperation = { resource };
       lastAppliedAt = resourceRow.updatedAt;
 
-      tx.delete(table).where(eq(table.id, resourceId)).run();
+      yield* Effect.try({
+        try: () =>
+          'serviceName' in model
+            ? tx
+                .update(table)
+                .set({ ...{ deletedAt: appliedAt }, updatedAt: appliedAt })
+                .where(eq(table.id, resourceId))
+                .run()
+            : tx.delete(table).where(eq(table.id, resourceId)).run(),
+        catch: cause => {
+          const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+            cause instanceof Error && cause.cause !== undefined
+              ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+              : ''
+          }`;
+          if (!failure.toLowerCase().includes('foreign key constraint failed')) {
+            throw cause;
+          }
+          return new ZerospinError({
+            code: 'mutation-referential-integrity-failed',
+            message: `Cannot apply delete mutation to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+            cause: failure,
+            extra: { modelName: model.modelName, resourceId, operationName },
+          });
+        },
+      });
       break;
     }
     case 'create': {
+      if ('serviceName' in model) {
+        const existingResource = tx
+          .select()
+          .from(table)
+          .where(eq(table.id, resourceId))
+          .get();
+        if (
+          existingResource !== undefined &&
+          'deletedAt' in existingResource &&
+          existingResource.deletedAt !== null
+        ) {
+          return yield* new ZerospinError({
+            code: 'service-resource-deleted',
+            message: `Cannot apply create mutation to deleted service resource "${resourceId}"`,
+            extra: {
+              modelName: model.modelName,
+              resourceId,
+              operationName,
+              deletedAt: existingResource.deletedAt,
+            },
+          });
+        }
+      }
       const encodedAttributes = yield* Schema.encodeUnknown(
         model.attributesSchema as InferAttributesSchema<typeof model>,
       )(mutation.operation.attributes).pipe(
@@ -75,16 +150,37 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
           prefix: `Failed to encode attributes for model "${model.modelName}"`,
         }),
       );
-      tx.insert(table)
-        .values({
-          id: resourceId,
-          createdAt: appliedAt,
-          updatedAt: appliedAt,
-          modelName: model.modelName,
-          version: mutation.modelVersion,
-          ...encodedAttributes,
-        })
-        .run();
+      yield* Effect.try({
+        try: () =>
+          tx
+            .insert(table)
+            .values({
+              id: resourceId,
+              createdAt: appliedAt,
+              updatedAt: appliedAt,
+              modelName: model.modelName,
+              version: mutation.modelVersion,
+              ...('serviceName' in model ? { deletedAt: null } : {}),
+              ...encodedAttributes,
+            })
+            .run(),
+        catch: cause => {
+          const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+            cause instanceof Error && cause.cause !== undefined
+              ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+              : ''
+          }`;
+          if (!failure.toLowerCase().includes('foreign key constraint failed')) {
+            throw cause;
+          }
+          return new ZerospinError({
+            code: 'mutation-referential-integrity-failed',
+            message: `Cannot apply create mutation to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+            cause: failure,
+            extra: { modelName: model.modelName, resourceId, operationName },
+          });
+        },
+      });
       break;
     }
     case 'update': {
@@ -94,6 +190,18 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
         operationName,
         resourceId,
       });
+      if ('serviceName' in model && resourceRow.deletedAt !== null) {
+        return yield* new ZerospinError({
+          code: 'service-resource-deleted',
+          message: `Cannot apply update mutation to deleted service resource "${resourceId}"`,
+          extra: {
+            modelName: model.modelName,
+            resourceId,
+            operationName,
+            deletedAt: resourceRow.deletedAt,
+          },
+        });
+      }
       const attributeKeys = Object.keys(model.attributes);
       const rawAttributes: Record<string, unknown> = {};
 
@@ -133,13 +241,33 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
           prefix: `Failed to encode attributes for model "${model.modelName}"`,
         }),
       );
-      tx.update(table)
-        .set({
-          updatedAt: appliedAt,
-          ...encodedAttributes,
-        })
-        .where(eq(table.id, resourceId))
-        .run();
+      yield* Effect.try({
+        try: () =>
+          tx
+            .update(table)
+            .set({
+              updatedAt: appliedAt,
+              ...encodedAttributes,
+            })
+            .where(eq(table.id, resourceId))
+            .run(),
+        catch: cause => {
+          const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+            cause instanceof Error && cause.cause !== undefined
+              ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+              : ''
+          }`;
+          if (!failure.toLowerCase().includes('foreign key constraint failed')) {
+            throw cause;
+          }
+          return new ZerospinError({
+            code: 'mutation-referential-integrity-failed',
+            message: `Cannot apply update mutation to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+            cause: failure,
+            extra: { modelName: model.modelName, resourceId, operationName },
+          });
+        },
+      });
       break;
     }
     case 'move': {
@@ -149,19 +277,51 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
         operationName,
         resourceId,
       });
+      if ('serviceName' in model && resourceRow.deletedAt !== null) {
+        return yield* new ZerospinError({
+          code: 'service-resource-deleted',
+          message: `Cannot apply move mutation to deleted service resource "${resourceId}"`,
+          extra: {
+            modelName: model.modelName,
+            resourceId,
+            operationName,
+            deletedAt: resourceRow.deletedAt,
+          },
+        });
+      }
       inverseOperation = {
         property: mutation.operation.property,
         prevId: mutation.operation.prevId,
       };
       lastAppliedAt = resourceRow.updatedAt;
 
-      tx.update(table)
-        .set({
-          [mutation.operation.property]: mutation.operation.nextId,
-          updatedAt: appliedAt,
-        })
-        .where(eq(table.id, resourceId))
-        .run();
+      yield* Effect.try({
+        try: () =>
+          tx
+            .update(table)
+            .set({
+              [mutation.operation.property]: mutation.operation.nextId,
+              updatedAt: appliedAt,
+            })
+            .where(eq(table.id, resourceId))
+            .run(),
+        catch: cause => {
+          const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+            cause instanceof Error && cause.cause !== undefined
+              ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+              : ''
+          }`;
+          if (!failure.toLowerCase().includes('foreign key constraint failed')) {
+            throw cause;
+          }
+          return new ZerospinError({
+            code: 'mutation-referential-integrity-failed',
+            message: `Cannot apply move mutation to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+            cause: failure,
+            extra: { modelName: model.modelName, resourceId, operationName },
+          });
+        },
+      });
       break;
     }
     default: {

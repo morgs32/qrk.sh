@@ -24,6 +24,7 @@ import type {
   InferDecodedRow,
 } from '@zerospin/core/models/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import type { IAnyErrorJson } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
@@ -91,7 +92,7 @@ const actorBlockTables = {
     name: 'frontendSubscribers',
     shape: {
       frontendRepoName: primitives.primaryKey({
-        abbreviation: coreAbbreviations.frontendRepo,
+        abbreviation: systemWorkerAbbreviations.frontendRepo,
       }),
       frontendName: primitives.text(),
       currentAccountCursor: primitives.cursor({
@@ -111,7 +112,7 @@ const actorBlockDbConfig = makeDbConfig({ tables: actorBlockTables });
 export const actorBlockDrizzleSchemas = actorBlockDbConfig.schema;
 
 const actorBlockRepoUtils = makeRepoUtils({
-  abbreviation: coreAbbreviations.actorBlockRepo,
+  abbreviation: systemWorkerAbbreviations.actorBlockRepo,
   repoType: 'ActorBlockRepo',
   namePattern: RoutePattern.parse(
     '/:generationId/:accountId/:accountName/:actorName/:actorId',

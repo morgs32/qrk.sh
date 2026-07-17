@@ -143,6 +143,27 @@ export const getReplicatedResources = Effect.fn(
             });
             continue;
           }
+          if ('deletedAt' in resource && resource.deletedAt !== null) {
+            resourceResults.push({
+              status: 'missing',
+              modelName: resourceRef.modelName,
+              resourceId: resourceRef.resourceId,
+              failure: Schema.encodeSync(ZerospinError.schema)(
+                new ZerospinError({
+                  code: 'service-resource-deleted',
+                  message: `Service resource ${serviceName}.${resourceRef.modelName}.${resourceRef.resourceId} is deleted`,
+                  extra: {
+                    serviceName,
+                    modelName: resourceRef.modelName,
+                    resourceId: resourceRef.resourceId,
+                    operationName: 'replicateResource',
+                    deletedAt: resource.deletedAt,
+                  },
+                }),
+              ),
+            });
+            continue;
+          }
           resourceResults.push({
             status: 'found',
             modelName: resourceRef.modelName,

@@ -15,6 +15,7 @@ export type IReplicateResourceMutation<
   readonly resourceId: InferIdFromAbbreviation<MODEL['abbreviation']>;
   readonly operation: {
     readonly serviceName: string;
-    readonly resource: InferResource<MODEL, ATTRIBUTES>;
+    readonly resource: InferResource<MODEL, ATTRIBUTES> &
+      Readonly<{ deletedAt?: Date | null }>;
   };
 };

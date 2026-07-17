@@ -89,10 +89,14 @@ describe('frontend session logs integration', () => {
     });
     const session = makeSession({
       frontend: shopperFrontend,
+      generateSignature: () =>
+        Effect.succeed({ clerkUserId: 'user_logs' }),
       sessionId: 'sesn_frontend_logs',
     });
     const otherSession = makeSession({
       frontend: shopperFrontend,
+      generateSignature: () =>
+        Effect.succeed({ clerkUserId: 'user_logs' }),
       sessionId: 'sesn_other_frontend_logs',
     });
     const tracedFrontendApi = makeTraceableApiTarget(frontendApi);
@@ -205,7 +209,7 @@ describe('frontend session logs integration', () => {
       failedCommands: [],
     };
     let completeManualPush = () => {};
-    session.pushStagedCommands = vi.fn(
+    const pushStagedCommands = vi.fn(
       () =>
         new Promise<typeof emptyPushResult>(resolve => {
           completeManualPush = () => {
@@ -230,7 +234,9 @@ describe('frontend session logs integration', () => {
           };
         }),
     );
-    Reflect.apply(zerospinDevtoolsStore.getState().addSession, null, [session]);
+    Reflect.apply(zerospinDevtoolsStore.getState().addSession, null, [
+      { session, pushStagedCommands },
+    ]);
 
     const container = document.createElement('div');
     document.body.appendChild(container);

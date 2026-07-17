@@ -25,7 +25,7 @@ export function useApi<
   ReactContext: object;
   sessionRuntime: IReactFrontend<IFrontendController>['sessionRuntime'];
 }) {
-  const { generateSignature, session } = useCtxOrThrow(
+  const { session } = useCtxOrThrow(
     reactFrontend as Pick<IReactFrontend<IFrontendController>, 'ReactContext'>,
   );
   const { sessionRuntime } = reactFrontend;
@@ -53,7 +53,6 @@ export function useApi<
         return sessionRuntime.runPromise(
           executeActorQuery<ACTOR, typeof session.frontend, QUERY_NAME>({
             session: session.coreSession,
-            generateSignature,
             queryName,
             params,
           }).pipe(
@@ -67,6 +66,6 @@ export function useApi<
         );
       },
     }),
-    [generateSignature, session, sessionRuntime],
+    [session, sessionRuntime],
   );
 }

@@ -1,26 +1,38 @@
 ---
 title: Blockchain
 type: module
-updated: 2026-07-15
+updated: 2026-07-17
 sources:
   - path: packages/core/src/models/makeModel.ts
-    sha: 34e6b02d5d01be768fca5b254fe2be9f7bfacf25
-    lines: 186-838
+    sha: 097e0f387ea5462ee008ec6df006b0ad69a01b29
+    lines: 186-967
   - path: packages/core/src/models/primitives.ts
     sha: e537d9e7a4207032ea776802124cb3b21f743e3b
     lines: 539-722
   - path: packages/core/src/drizzle/makeDbConfig.ts
-    sha: dae6fc98c6267d766b418ce7029d55985073f350
-    lines: 13-58
+    sha: 3366d6e746ddde1820ad19183e9836547e0fcdf1
+    lines: 13-61
+  - path: packages/core/src/drizzle/makeDrizzleSchemas.ts
+    sha: 7b9f236783a3ccfc3956b0cc7eb8f3562457ab28
+    lines: 16-53
+  - path: packages/core/src/drizzle/makeTableMigrationSQL.ts
+    sha: 62450bc2bb4d232e298f768ea61250485364cb18
+    lines: 4-82
+  - path: packages/core/src/drizzle/makeInMemorySqlJsDatabase.ts
+    sha: 9bb417d8da941603c956150f074434647045cd08
+    lines: 1-12
+  - path: packages/core/src/drizzle/makeInMemorySQLite3.ts
+    sha: 91fb285cd4b5eaa1dde768166386ce0cb49e90b9
+    lines: 1-25
   - path: packages/core/src/drizzle/makeDrizzleRelations.ts
     sha: 63216eb0ded20f3d5ab9e02598dd8b96fc30404a
     lines: 19-385
   - path: packages/core/src/utils/coreAbbreviations.ts
-    sha: fec14d61db9eea6e945c00c7cc439920ca9d8376
-    lines: 5-24
+    sha: 09f1c75ac7c25c3813d8d171f6c42e0f7a9e12a2
+    lines: 1-15
   - path: packages/core/src/models/makeServiceModel.ts
-    sha: 40a03b58ab7753fb9666fa54b6add938ddb72627
-    lines: 1-86
+    sha: 1946ceaaf532d5cbd65b13a5ef4be6551f2e8b5e
+    lines: 1-120
   - path: packages/core/src/service/makeServiceController.ts
     sha: bc375f32be4857b0b5c1c350f0ffa3f50b5b29ac
     lines: 97-548
@@ -37,14 +49,14 @@ sources:
     sha: 9bb7c05ff3a9adaed4766b2bd2f88f485282b2f8
     lines: 33-68
   - path: packages/core/src/contracts/applyAccountMutationTx.ts
-    sha: 443366813ba2b7df77365bf1807c167d2ad858e9
-    lines: 10-42
+    sha: b77bec02330e123ba0f44955d0b4d18745e1277b
+    lines: 10-91
   - path: packages/core/src/contracts/applyFrontendMutationTx.ts
-    sha: bdd1513dd889fb1d5144b67150b59c599bb442dc
-    lines: 14-69
+    sha: 480d1d5590fe30d6472d5f0232620d9dbad364ef
+    lines: 14-114
   - path: packages/core/src/contracts/applyMutationInverseTx.ts
-    sha: b172001296bf6655524e183902bb0ee092db0ba8
-    lines: 1-170
+    sha: 9a8f391977e1f73e54c021653caa24326dfe9425
+    lines: 1-306
   - path: packages/core/src/contracts/types.ts
     sha: 917543b8c93c44a0b977d1e2ad7685e0fb9c82a5
     lines: 250-321
@@ -55,14 +67,17 @@ sources:
     sha: 35d910653ccf5eba6f8da07f7c2cdb734ac516f6
     lines: 29-69
   - path: packages/core/src/contracts/applyMutationTx.ts
-    sha: fd7b02fe97efdea599bf1fab0c015b753431a81e
-    lines: 1-184
+    sha: 16894c304c1acc89f747ca5e1d5b7b166fea64af
+    lines: 1-344
   - path: packages/core/src/contracts/commitAppliedMutationTx.ts
-    sha: 5463412b89083a1c8fe78a6829f39d64521930fa
-    lines: 1-150
+    sha: d320d9f19c72d28f075537551d0173a67c75535a
+    lines: 1-338
+  - path: packages/core/src/models/EncodedResourceSchema.ts
+    sha: 7eccf697153144bc0493b30bac80da5f4a0914da
+    lines: 1-20
   - path: packages/core/src/session/types.ts
-    sha: b364102394f1cbea7dc9f2a00e53871efb9fb990
-    lines: 70-104
+    sha: 0ec24ff5cdf3723b879d98c62c69179b5e156baf
+    lines: 68-102
   - path: packages/core/src/session/FrontendBlockSchema.ts
     sha: ff9cd074655165c9dc4630cfadf6fc60bd073289
     lines: 17-35
@@ -70,55 +85,55 @@ sources:
     sha: 519f6ebc7c050acd1f0b243a263bdfb5f2e0bfa5
     lines: 43-480
   - path: packages/core/src/session/makeSession.ts
-    sha: b4a199dcad160a0bb015b636cede6d57a9a43d3c
-    lines: 126-204
+    sha: 1f456d6389d271cc6f1cd093544f8a8728054896
+    lines: 163-269
   - path: packages/system-worker/src/AccountRepo/finalizeAccountBlock/prepareAccountCommands.ts
-    sha: 536ee8a7f4075776e6497c347e2956abded4a7d4
+    sha: 27f2f4780540899e248e4d54200dc46d08312330
     lines: 33-393
   - path: packages/system-worker/src/AccountRepo/finalizeAccountBlock/finalizeCommandsTx.ts
-    sha: 045aa60d18753f93d9a7b908d723aefaf6ae825d
-    lines: 40-280
+    sha: 398d21443a01c5d69226a52f84f8b11c703c3a86
+    lines: 40-323
   - path: packages/system-worker/src/AccountRepo/finalizeAccountBlock/finalizeAccountBlock.ts
     sha: 7884500e2efa0127bfee09c14bc9fe675cb9677a
     lines: 42-70
   - path: packages/system-worker/src/AccountRepo/finalizePushedCommands/finalizePushedCommands.ts
-    sha: 1398d41a26f99ead919ab55640081f0a935fd61c
+    sha: 8f43b4a4f6fc922f7dd5466394af73232257d90a
     lines: 83-619
   - path: packages/system-worker/src/ServiceRepo/finalizeServiceCommands/finalizeServiceCommands.ts
-    sha: 317b1dbb2eb6a9602e794be1f9050b778c3a8b24
-    lines: 34-260
+    sha: fdb0343437e08018f8486dbb33975d41384bbc1e
+    lines: 34-306
   - path: packages/system-worker/src/ServiceRepo/drainServiceBlockOutbox/drainServiceBlockOutbox.ts
     sha: c054653ea7259d2e27958d6f53054af29e5a01e1
     lines: 20-76
   - path: packages/system-worker/src/ServiceBlockRepo/ServiceBlockRepo.ts
-    sha: fbaedf91789ba24a651720671b0e84f6adaa0de5
+    sha: a8b24046d96ce11292de338928891ed0a9da4f49
     lines: 29-130
   - path: packages/system-worker/src/ServiceBlockRepo/drainAccountSubscribers/drainAccountSubscribers.ts
     sha: 97692c1cf6a76519228105f7d6129c44b8d28fb5
     lines: 18-143
   - path: packages/system-worker/src/AccountRepo/handleServiceBlocks/handleServiceBlocks.ts
-    sha: ad80b5db007edde13c4219fdf7cc4040a6d2aab0
+    sha: ce682657e12d7a969ee673834a213b3c2a60dd5c
     lines: 21-171
   - path: packages/system-worker/src/AccountRepo/drainAccountOutboxes/drainAccountOutboxes.ts
     sha: 8594b5f2dba63fbd1eea0ff4d1409dd35cb1a407
     lines: 25-148
   - path: packages/system-worker/src/AccountRepo/AccountRepo.ts
-    sha: 2d418b60b7bb367f69d2b9f761094809a700f487
+    sha: d5e2b109a96af29b4fbabb5d494aaa666b703195
     lines: 103-469
   - path: packages/system-worker/src/ServiceRepo/getReplicatedResources/getReplicatedResources.ts
-    sha: 602481820b163e5e1e5ae4d40aa50f60a9e3ddd8
-    lines: 22-200
+    sha: fa08df82d8b5788fb1d85a1737c4b6c09e8e44ef
+    lines: 22-221
   - path: packages/system-worker/src/ActorRepo/handleAccountBlocks/handleAccountBlocks.ts
     sha: f16e02a25a6fad35a88b392cf8989b7b6d780c4d
     lines: 62-230
   - path: packages/system-worker/src/ActorRepo/ActorRepo.ts
-    sha: 0e120cb142ec60b10b05850b8ec2444bd5d6a54e
+    sha: f5d1c1e23b534623b3d440bf5335bdd8bb7a05e7
     lines: 130-137
   - path: packages/system-worker/src/AccountBlockRepo/AccountBlockRepo.ts
-    sha: 6e36a0ded3dcad406e2d3d650a983f4d5e27adbc
+    sha: 0c619a5bec96f50b084b4032d0774be0b164a570
     lines: 49-277
   - path: packages/system-worker/src/AccountBlockRepo/accountBlockDrizzleSchemas.ts
-    sha: cad0ee974c9ce423b01d15c4c5402037afd16f53
+    sha: 0ee534df62829865ffc7d1668f9653f5adeecb2c
     lines: 184-214
   - path: packages/system-worker/src/AccountBlockRepo/publish/publish.ts
     sha: da7263c9a86a66cf81c67be158e2db9af23ae0ec
@@ -142,13 +157,13 @@ sources:
     sha: 98e7f3bc6f68c5a64b9f401979073114fac272dd
     lines: 40-127
   - path: packages/system-worker/src/ActorBlockRepo/ActorBlockRepo.ts
-    sha: 531e4499e0df7e6a1d66767844d8a801c9ad5b09
+    sha: 25715c3f7bef9596bfb20a6a7391c156b0221ef7
     lines: 78-124
   - path: packages/system-worker/src/ActorBlockRepo/drainFrontendSubscribers/drainFrontendSubscribers.ts
     sha: 36f24eece9f36c373a59fac88f801e0fb571bbf0
     lines: 25-199
   - path: packages/system-worker/src/FrontendRepo/FrontendRepo.ts
-    sha: 0f67aa7553b5ab97444a8358f82a11cc561afe5b
+    sha: 7c2ccca152cec0b79da550126c0f8b35994cfd5d
     lines: 41-275
   - path: packages/system-worker/src/FrontendRepo/bootstrap/bootstrap.ts
     sha: 9ae3dff43643ff23e27bebe20b3a61986e7dddc1
@@ -169,17 +184,20 @@ sources:
     sha: c71e0f2b54896d1ede9f51062721d000216fc7ab
     lines: 17-80
   - path: packages/system-worker/src/FrontendBlockRepo/FrontendBlockRepo.ts
-    sha: 0e6f3351a1a230d095ac789be1c998bd8b6f20f0
-    lines: 20-76
+    sha: 3c44fd361688681314927055d1e502d278991065
+    lines: 23-78
   - path: packages/system-worker/src/FrontendBlockRepo/storeFrontendBlocks/storeFrontendBlocks.ts
     sha: 354ffdbcac993cccd9907ad25ce5489becb3241a
     lines: 10-49
   - path: packages/system-worker/src/SystemWorker.ts
-    sha: 445f11170f8c6a2f0849a77fd6223bef431edbc3
-    lines: 246-2097
+    sha: 635b5321cfdd30d05bb423874df3c49561e40a32
+    lines: 246-2170
+  - path: packages/system-worker/src/makeDurableDb.ts
+    sha: d992bea35148f50ee8ca7fadaa966ca8c011c4a0
+    lines: 1-20
   - path: packages/system-worker/src/SystemRepo/SystemRepo.ts
-    sha: e97edea08c5d8337ac43c85ca65a94808237513d
-    lines: 167-223
+    sha: 7064d1caef9da512bd027d0273a4c0d8f84cdac7
+    lines: 139-246
   - path: packages/system-worker/src/makeRepo/makeRepoNameUtils.ts
     sha: 91b16507aa924ce42db97b7e1666fa3b015ea9e8
     lines: 33-79
@@ -193,17 +211,17 @@ sources:
     sha: 9346bac82cc92c94713ace366066bdd787ad848e
     lines: 117-164
   - path: packages/react/src/acquireFrontendWebSocket.ts
-    sha: 0b6ba95d452db4520308c56b63678324cb5b8898
-    lines: 16-140
+    sha: 4eea39c3a926bc94014e1c006d040254a72a6d9e
+    lines: 17-194
   - path: packages/frontend/src/pushStagedCommands.ts
-    sha: 09615c19fab4713ceebce820c66ab5d5af8ba6b2
-    lines: 55-93
+    sha: 26531afd3b096043ffa9631a05e9821f67ea088b
+    lines: 44-105
   - path: packages/dispatch-worker/src/FrontendApi/FrontendApi.ts
-    sha: 388ff588d33259fc3b454a892bd0809761e9702c
-    lines: 171-405
+    sha: b0cb96df80fa967717868bdb82091b5dcf21dca2
+    lines: 171-431
   - path: packages/dispatch-worker/src/Worker.ts
-    sha: 23485614b3a059372674a560cbf0f01f908245b4
-    lines: 23-34
+    sha: 1eca022f6fdd5fd643f3f0cbb1f3c3a773ec7d3b
+    lines: 21-55
   - path: examples/shopping/src/zerospin/contracts.ts
     sha: be8d4cda98b5ad8705ac5cf2dc5edc08027d955b
     lines: 98-123
@@ -223,28 +241,28 @@ sources:
     sha: af09b8827fc43dc5713df5191a036f8ef686aac6
     lines: 9-55
   - path: packages/system-worker/src/AccountRepo/replayAccountBlock/replayAccountBlock.ts
-    sha: 8197e7a593383b8c712b926443d8159f3d22589f
+    sha: 57fb18a326a3fd81fb402227d5543d627b67132d
     lines: 85-438
   - path: packages/system-worker/src/AuthorizationRepo/AuthorizationRepo.ts
-    sha: 508214f0fb8e09396716e18f38fc0a40c23a83f7
+    sha: dce16cc1051282ac028fd4d9548b92218973487b
     lines: 79-84
   - path: packages/system-worker/src/ServiceBlockRepo/getReplayBound/getReplayBound.ts
     sha: 75d2488588b9c13bbfbd54f51d569e6703afdb3a
     lines: 9-53
   - path: packages/system-worker/src/ServiceRepo/ServiceRepo.ts
-    sha: c028fc4ce6cef8b40fd51fdc4231fc6960e9997b
+    sha: 0f143124a50f6d96081a502adc800138a35566a0
     lines: 191-196
   - path: packages/system-worker/src/ServiceRepo/replayServiceBlock/replayServiceBlock.ts
-    sha: 7f1788d0f7364440dfa28d06ec3b4250d4471869
+    sha: e25551587408408fdd424e03eae4e34d1690d91f
     lines: 27-354
   - path: packages/system-worker/src/SystemLogRepo/SystemLogRepo.ts
-    sha: 5828f71dfa66b810f996c33b446bc9e9608daaf2
+    sha: ca52cf79a8126f57ac2d0155db005036d72f0362
     lines: 263-279
   - path: packages/system-worker/src/SystemLogRepo/appendTelemetryBatch/appendTelemetryBatch.ts
-    sha: 9de7fe70ed7a17174f1191c2ee59676dbeb944a6
+    sha: dcc909f7b275ffae3bf2749acaf8a0c4ab55fd50
     lines: 21-155
   - path: packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts
-    sha: 155147edbe9c66e6904e2b1e823749aa1ab26008
+    sha: 1deef6dd44fcd28c8a0a2699efe030bbeeaddfb4
     lines: 69-525
   - path: packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts
     sha: 7e1352d1f5b40ced689ef915fc0a2825b0623fad
@@ -270,8 +288,9 @@ Zerospin has two authoritative durable block chains that converge in AccountRepo
 4. `FrontendRepo` receives authoritative convergence only from ActorBlockRepo delivery, converts actor deltas into one monotonic `frontendIndex`, then publishes `IFrontendBlock` values through its one-to-one `FrontendBlockRepo` websocket/archive (../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:166-187,
    ../../packages/system-worker/src/FrontendBlockRepo/FrontendBlockRepo.ts:20-76).
 
-AccountRepo owns canonical service replicas and one subscription watermark per
-service; row existence in a service-model table is replication membership.
+AccountRepo owns canonical service replicas, including retained deleted rows,
+and one subscription watermark per service. The service-model table itself is
+the replication record; no separate membership or deletion registry exists.
 FrontendRepo has no service subscription, service watermark, or separate
 replicated-resource registry (../../packages/system-worker/src/AccountRepo/AccountRepo.ts:140-175,
 ../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:62-116).
@@ -420,7 +439,7 @@ forward `one`; a unique ref produces an inverse `one`, while a non-unique ref
 produces an inverse `many`
 (../../packages/core/src/models/makeModel.ts:186-305,
 ../../packages/core/src/models/primitives.ts:539-722,
-../../packages/core/src/drizzle/makeDbConfig.ts:13-58,
+../../packages/core/src/drizzle/makeDbConfig.ts:13-61,
 ../../packages/core/src/drizzle/makeDrizzleRelations.ts:19-385).
 
 Shopping declares models in dependency order: Cart references `User.table`, and
@@ -436,10 +455,35 @@ so only Products referenced by active actor CartItems enter the actor graph
 historical definitions. Every definition carries the same `modelName` and
 abbreviation plus its own SemVer, complete attributes, and indexes. Construction
 rejects an invalid SemVer, a historical identity mismatch, and duplicate
-versions; the historical array is definition data, not a migration chain
-(../../packages/core/src/models/makeModel.ts:189-303). `makeServiceModel`
-passes the same current and historical definitions through `makeModel` and then
-adds its immutable service owner (../../packages/core/src/models/makeServiceModel.ts:18-86).
+versions; the historical array is definition data, not a migration chain.
+`makeModel` supplies explicit framework metadata through
+`makeModelAndMetadata`; `makeServiceModel` supplies the same metadata plus its
+nullable `deletedAt` deletion marker before attaching the immutable service
+owner (../../packages/core/src/models/makeModel.ts:230-340,
+../../packages/core/src/models/makeServiceModel.ts:22-120).
+
+## Persisted reference enforcement
+
+Every persisted `primitives.ref` is both a Drizzle relation and an immediate
+SQLite foreign key. Database configuration combines resource-model and other
+tables into one graph, records each logical table identity, and resolves lazy
+Drizzle reference closures against that graph. Migration SQL emits concrete
+`FOREIGN KEY (...) REFERENCES ... (...)` clauses without cascade, set-null, or
+deferred options, leaving SQLite's default `NO ACTION` behavior
+(../../packages/core/src/drizzle/makeDbConfig.ts:26-61,
+../../packages/core/src/drizzle/makeDrizzleSchemas.ts:16-53,
+../../packages/core/src/drizzle/makeTableMigrationSQL.ts:43-60).
+
+Every database-opening boundary explicitly enables `PRAGMA foreign_keys = ON`
+before transactions begin. A create, update, delete, move, or replicated-row
+write that violates a reference becomes
+`mutation-referential-integrity-failed` with model, resource, and operation
+context; inverse replay maps the same write failure instead of exposing a raw
+SQLite defect (../../packages/core/src/drizzle/makeInMemorySqlJsDatabase.ts:7-12,
+../../packages/core/src/drizzle/makeInMemorySQLite3.ts:18-25,
+../../packages/system-worker/src/makeDurableDb.ts:11-20,
+../../packages/core/src/contracts/applyMutationTx.ts:93-118,
+../../packages/core/src/contracts/applyMutationInverseTx.ts:27-303).
 
 The returned model owns both sides of every versioned mutation operation:
 `createMutation(version)` / `create(version, props)`,
@@ -536,59 +580,64 @@ The same mutation has runtime-specific write behavior:
 1. Browser sessions and FrontendRepo use
    [`applyFrontendMutationTx`](../../packages/core/src/contracts/applyFrontendMutationTx.ts).
    It immediately upserts the complete resource and captures the prior complete
-   row for optimistic rollback (../../packages/core/src/contracts/applyFrontendMutationTx.ts:14-69).
+   row for optimistic rollback (../../packages/core/src/contracts/applyFrontendMutationTx.ts:14-114).
 2. AccountRepo and ActorRepo use
    [`applyAccountMutationTx`](../../packages/core/src/contracts/applyAccountMutationTx.ts).
    It upserts the complete canonical service row into the account/actor model
    table while preserving applied-mutation metadata
-   (../../packages/core/src/contracts/applyAccountMutationTx.ts:10-42).
+   (../../packages/core/src/contracts/applyAccountMutationTx.ts:10-91).
 3. Authoritative service changes reach the browser as ordinary actor-selected
-   inserted, updated, or deleted rows. A failed optimistic command still
+   inserted or updated rows; a service delete is an update carrying
+   `deletedAt`. A failed optimistic command still
    restores or deletes its previous local replica through the saved inverse
    (../../packages/core/src/session/applyFrontendBlock.ts:43-153,
    ../../packages/core/src/contracts/applyMutationInverseTx.ts:20-92).
 
 AccountRepo has no per-resource registry or watermark. A service-model row joins
-replication when a canonical snapshot is inserted and remains a member across
-actor selection exit until an authoritative service delete removes that row.
-ActorRepo and FrontendRepo store only the rows currently selected into their
-graphs (../../packages/system-worker/src/AccountRepo/AccountRepo.ts:140-175,
+replication when a canonical snapshot is inserted. An authoritative service
+delete retains that row with `deletedAt`, and ActorRepo, FrontendRepo, and the
+session receive the retained resource through the ordinary updated-resource
+path. ActorRepo and FrontendRepo store the rows selected into their graphs
+(../../packages/system-worker/src/AccountRepo/AccountRepo.ts:140-175,
 ../../packages/system-worker/src/AccountRepo/handleServiceBlocks/handleServiceBlocks.ts:105-171,
 ../../packages/system-worker/src/ActorRepo/handleAccountBlocks/handleAccountBlocks.ts:84-153).
 
 ## Model-owned delete mutations
 
-`Model.delete(version, { resourceId })` is the owner-only hard delete and
-`Model.deleteMutation(version)` is its matching encoded/decoded schema.
-Ownership is the ordinary mutation rule enforced by
+`Model.deleteMutation(version)` and `Model.delete(version, { resourceId })`
+remain the single encoded/decoded delete operation. Ownership is the ordinary
+mutation rule enforced by
 `assertMutationsUseModels`: service contracts delete their own service models,
 account contracts delete plain account models, and an account contract emitting
 delete for a service model is rejected
 (../../packages/core/src/models/makeModel.ts:557-622,
 ../../packages/core/src/contracts/assertMutationsUseModels.ts:29-69).
 
-Authoritative application requires the live row: deleting a missing resource
-fails the command with `mutation-row-not-found`, exactly like update and move. The applied mutation stores the complete prior resource as its
-`{ resource }` inverse, so a failed optimistic delete restores the local row
-through the ordinary inverse path
-(../../packages/core/src/contracts/applyMutationTx.ts:1-184,
-../../packages/core/src/contracts/applyMutationInverseTx.ts:1-170).
+For a plain model, delete still physically removes the row. For a service model,
+the same delete preserves every attribute and sets both `deletedAt` and
+`updatedAt` to the mutation's `appliedAt`. The applied mutation still stores the
+complete prior resource as its `{ resource }` inverse
+(../../packages/core/src/contracts/applyMutationTx.ts:48-119,
+../../packages/core/src/contracts/applyMutationInverseTx.ts:1-306).
 
-Replica replay is idempotent: `commitAppliedMutationTx` issues a plain SQL
-delete, so replaying a delete against an already-missing row is a no-op
-(../../packages/core/src/contracts/commitAppliedMutationTx.ts:1-150).
+Deletion is terminal. An exact same-timestamp service-delete replay succeeds as
+a no-op; a differently timestamped delete, create, update, move, or replication
+against the deleted id fails with `service-resource-deleted`. ServiceRepo also
+returns that failure instead of a live canonical row for new replication
+(../../packages/core/src/contracts/applyMutationTx.ts:48-80,
+../../packages/core/src/contracts/applyMutationTx.ts:121-331,
+../../packages/core/src/contracts/commitAppliedMutationTx.ts:40-320,
+../../packages/system-worker/src/ServiceRepo/getReplicatedResources/getReplicatedResources.ts:122-172).
 
-When AccountRepo applies a relevant service delete, the model-row deletion
-itself releases replication membership. Later service blocks that mention the
-absent row skip it while still advancing the service subscription watermark,
-and a new `replicateResource` command for the deleted id fails during canonical
-replacement because ServiceRepo no longer holds a live row
+When AccountRepo applies a relevant service delete, it retains the same row and
+advances the service subscription watermark. Downstream projections therefore
+carry one identical deletion timestamp without transforming the encoded delete
+mutation or its inverse
 (../../packages/system-worker/src/AccountRepo/handleServiceBlocks/handleServiceBlocks.ts:105-171,
-../../packages/system-worker/src/AccountRepo/finalizeAccountBlock/prepareAccountCommands.ts:298-351).
+../../packages/core/src/contracts/commitAppliedMutationTx.ts:40-320).
 
-Delete is a tombstone, not an erasure: finalized account, actor, service, and
-frontend blocks are immutable archives, so the resource's bytes remain in
-block history even after every live replica row is removed.
+Queries receive no implicit `deletedAt` predicate. A service query can return a
+deleted row unless its caller explicitly excludes it.
 
 ## Account validation and canonical replacement
 
@@ -602,7 +651,7 @@ SQLite transaction; preparation maps missing or failed results back to their
 owning commands and replaces successful client seeds with decoded canonical
 rows
 (../../packages/system-worker/src/AccountRepo/finalizeAccountBlock/prepareAccountCommands.ts:33-393,
-../../packages/system-worker/src/ServiceRepo/getReplicatedResources/getReplicatedResources.ts:22-200).
+../../packages/system-worker/src/ServiceRepo/getReplicatedResources/getReplicatedResources.ts:22-221).
 
 Both ordinary and pushed finalization run grouped snapshot preparation and the
 local AccountRepo transaction inside one coarse `blockConcurrencyWhile` gate,
@@ -621,7 +670,14 @@ subscription at the snapshot watermark. Successful commands retain the full
 command and full canonical replication mutation in the final account block
 (../../packages/system-worker/src/AccountRepo/finalizeAccountBlock/prepareAccountCommands.ts:279-393,
 ../../packages/system-worker/src/AccountRepo/finalizeAccountBlock/finalizeCommandsTx.ts:40-239,
-../../packages/system-worker/src/AccountRepo/finalizeAccountBlock/finalizeCommandsTx.ts:241-280).
+../../packages/system-worker/src/AccountRepo/finalizeAccountBlock/finalizeCommandsTx.ts:241-313).
+
+Ordinary AccountRepo and ServiceRepo commands apply inside one savepoint per
+command. A referential-integrity or terminal-deletion failure rolls back every
+mutation from that command, records the normal failed command, and leaves later
+sibling commands eligible to execute; pushed-command savepoints are unchanged
+(../../packages/system-worker/src/AccountRepo/finalizeAccountBlock/finalizeCommandsTx.ts:242-313,
+../../packages/system-worker/src/ServiceRepo/finalizeServiceCommands/finalizeServiceCommands.ts:101-230).
 
 ## Account and actor delivery
 
@@ -746,8 +802,8 @@ AccountRepo processes blocks explicitly by `serviceIndex`, applies mutations
 only when the addressed service-model row already exists, and advances the one
 service subscription watermark even when every mutation is irrelevant. A
 relevant ServiceBlock enqueues one AccountBlock with a fresh account
-cursor/index and empty executed/failed command arrays; a delete removes the row
-and therefore its replication membership
+cursor/index and empty executed/failed command arrays; a service delete updates
+the retained row with its deletion marker
 (../../packages/system-worker/src/AccountRepo/handleServiceBlocks/handleServiceBlocks.ts:72-171).
 
 `drainAccountOutboxes` retries pending account subscriptions, then publishes
@@ -859,9 +915,9 @@ counts before committing target readiness
 
 Browser staging runs the frontend contract immediately with frontend models,
 so `replicateResource` inserts the whole service row optimistically and saves
-its inverse before any network request (../../packages/core/src/session/makeSession.ts:126-204).
+its inverse before any network request (../../packages/core/src/session/makeSession.ts:163-269).
 
-The browser sends full encoded staged rows through one linked `FrontendApi.pushCommands` call. The gateway validates that wire shape, binds account/actor/frontend scope plus its pinned deploy/generation pair, and SystemWorker write-admits that pair before delegating to the corresponding generation-scoped FrontendRepo (../../packages/frontend/src/pushStagedCommands.ts:55-93, ../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:171-203, ../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:382-405, ../../packages/system-worker/src/SystemWorker.ts:1581-1653).
+For nonempty staging, the browser obtains a signature from the session and sends the full encoded staged rows through one linked `FrontendApi.pushCommands` call. The gateway validates that wire shape, binds account/actor/frontend scope plus its pinned deploy/generation pair, and SystemWorker write-admits that pair before delegating to the corresponding generation-scoped FrontendRepo (../../packages/frontend/src/pushStagedCommands.ts:63-105, ../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:171-203, ../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:408-431, ../../packages/system-worker/src/SystemWorker.ts:1581-1653).
 
 FrontendRepo classifies each session in staged-cursor order. An exact command still in an open pushed block returns as pending; a reused cursor with different command content fails as a conflict; cursors at or below the terminal and processed SQLite-KV watermarks fail with distinct terminal/processed codes; only higher cursors enter new admission (../../packages/system-worker/src/FrontendRepo/pushCommands/pushCommands.ts:75-299).
 
@@ -891,14 +947,23 @@ frontend index, stores the encoded block, and broadcasts
 (../../packages/system-worker/src/FrontendBlockRepo/FrontendBlockRepo.ts:20-76,
 ../../packages/system-worker/src/FrontendBlockRepo/storeFrontendBlocks/storeFrontendBlocks.ts:10-49).
 
-React builds the exact `frtbrepo_{generationId}/{accountId}/{accountName}/{actorName}/{actorId}/{frontendName}` room name. Duplicate or older frontend indexes are ignored. A newer block is applied with the session's prior `lastRebasedPushedCursor`, then the store advances both the frontend index and pushed watermark (../../packages/react/src/acquireFrontendWebSocket.ts:16-140).
+React obtains a one-use ticket through the authenticated FrontendApi and opens
+the fixed `/ws-frontend-blocks` route with only `publishableKey` and `ticket`.
+The browser never constructs or transmits the FrontendBlockRepo name. Duplicate
+or older frontend indexes are ignored. A newer block is applied with the
+session's prior `lastRebasedPushedCursor`, then the store advances both the
+frontend index and pushed watermark
+(../../packages/react/src/acquireFrontendWebSocket.ts:38-117).
 
 Session block application rewinds staged overlays and only pushed overlays newer than the prior watermark, applies the convergence patch, reconciles pending and terminal lifecycle rows at the new watermark, then replays newer pushed commands before staged commands. A staged replay failure becomes a local failed command; a pushed replay failure also stays locally failed. A later authoritative execution is suppressed by that local failure, while a later authoritative failure replaces its details (../../packages/core/src/session/applyFrontendBlock.ts:50-165, ../../packages/core/src/session/applyFrontendBlock.ts:167-299, ../../packages/core/src/session/applyFrontendBlock.ts:301-480).
 
-`SystemWorker.fetch` forwards `/ws-subscriber/{frontendBlockRepoName}` directly
-to `FRONTEND_BLOCK_REPO`, and the public dispatch Worker exposes the same direct
-route for local development (../../packages/system-worker/src/SystemWorker.ts:2068-2097,
-../../packages/dispatch-worker/src/Worker.ts:23-34).
+The public dispatch Worker validates the fixed request shape and forwards the
+unchanged upgrade to SystemWorker. SystemWorker consumes the generation-local
+ticket, receives its server-derived repo name, and only then forwards directly
+to `FRONTEND_BLOCK_REPO`. The spent ticket is not restored if the final forward
+fails (../../packages/dispatch-worker/src/Worker.ts:21-55,
+../../packages/system-worker/src/SystemWorker.ts:2086-2162). See
+[[FrontendWebSocket]] for the admission and hibernation boundary.
 
 ## Recovery guarantees
 
@@ -911,9 +976,9 @@ route for local development (../../packages/system-worker/src/SystemWorker.ts:20
    ../../packages/system-worker/src/ActorBlockRepo/ActorBlockRepo.ts:90-106,
    ../../packages/system-worker/src/ServiceBlockRepo/ServiceBlockRepo.ts:40-56).
 3. AccountRepo owns each service cursor; FrontendRepo exposes its account cursor, browser `frontendIndex`, and pushed rebase watermark, so the browser receives one ordinary convergence stream without replaying optimistic commands already represented by server state (../../packages/system-worker/src/FrontendRepo/getFrontendState/getFrontendState.ts:58-84, ../../packages/core/src/session/types.ts:76-104).
-4. Replication membership is row existence: canonical snapshot insertion joins
-   a row, and only the owning service's delete mutation removes it. There is no
-   account-initiated release API
+4. Canonical snapshot insertion creates the replicated row; the owning
+   service's delete mutation terminally marks and retains it. There is no
+   account-initiated release or undelete API
    (../../packages/system-worker/src/AccountRepo/finalizeAccountBlock/finalizeCommandsTx.ts:137-169,
    ../../packages/system-worker/src/AccountRepo/handleServiceBlocks/handleServiceBlocks.ts:112-171).
 5. FrontendRepo pushed-block failures remain durable on the first failed row, preserve strict pushed-cursor order, and resume only when later FrontendRepo activity starts another drain; the pushed-block path deliberately has no retry alarm (../../packages/system-worker/src/FrontendRepo/drainPushedBlockOutbox/drainPushedBlockOutbox.ts:47-133, ../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:166-275).

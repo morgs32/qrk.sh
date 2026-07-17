@@ -17,6 +17,7 @@ import {
 } from './primitiveMaps.ts';
 import { primitives } from './primitives.ts';
 import type {
+  IDateDescriptor,
   IDrizzleIndexConfig,
   IDrizzleSchema,
   IModel,
@@ -26,12 +27,14 @@ import type {
   IResourceShape,
   IServiceModel,
   IShape,
+  ITextDescriptor,
 } from './types.ts';
 
 type IReservedKeys =
   // Model / metadata keys that are not allowed as user attributes.
   | 'accountCursor'
   | 'createdAt'
+  | 'deletedAt'
   | 'id'
   | 'modelName'
   | 'pushedCursor'
@@ -223,7 +226,14 @@ export function makeModel<
   ABBREVIATION,
   MODEL_NAME,
   VERSION,
-  HISTORICAL_DEFINITIONS
+  HISTORICAL_DEFINITIONS,
+  {
+    id: IPrimaryKeyDescriptor<ABBREVIATION>;
+    modelName: ITextDescriptor<false>;
+    createdAt: IDateDescriptor<false>;
+    updatedAt: IDateDescriptor<false>;
+    version: ITextDescriptor<false>;
+  }
 >;
 export function makeModel<
   MODEL_NAME extends string,
@@ -233,9 +243,99 @@ export function makeModel<
   props: {
     abbreviation: ABBREVIATION;
     modelName: MODEL_NAME;
-    attributes: ATTRIBUTES;
+    attributes: ATTRIBUTES & {
+      [K in keyof ATTRIBUTES &
+        string]: ATTRIBUTES[K] extends IPrimaryKeyDescriptor
+        ? ITypeError<`Attribute "${K}" on makeModel cannot be a primary key because makeModel synthesizes the model id primary key`>
+        : ATTRIBUTES[K] extends { autogenerate: boolean }
+          ? ITypeError<`Attribute "${K}" on makeModel cannot autogenerate because autogeneration belongs to contract payload primary keys`>
+          : ATTRIBUTES[K];
+    } & {
+      [K in IReservedKeys]?: never;
+    };
     indexes: readonly IDrizzleIndexConfig<
       keyof InferProperties<ATTRIBUTES, ABBREVIATION> & string
+    >[];
+    version: string;
+  },
+  historicalDefinitions: readonly {
+    readonly abbreviation: string;
+    readonly attributes: IShape;
+    readonly indexes: readonly IDrizzleIndexConfig<string>[];
+    readonly modelName: string;
+    readonly version: string;
+  }[],
+): IModel {
+  return makeModelAndMetadata(
+    {
+      ...props,
+      metadata: {
+        id: primitives.primaryKey({ abbreviation: props.abbreviation }),
+        modelName: primitives.text({ nullable: false }),
+        createdAt: primitives.date({ nullable: false }),
+        updatedAt: primitives.date({ nullable: false }),
+        version: primitives.text({ nullable: false }),
+      },
+    },
+    historicalDefinitions,
+  );
+}
+
+export function makeModelAndMetadata<
+  MODEL_NAME extends string,
+  ABBREVIATION extends string,
+  ATTRIBUTES extends IShape,
+  METADATA extends IResourceShape,
+  const VERSION extends string,
+  const HISTORICAL_DEFINITIONS extends readonly {
+    readonly abbreviation: string;
+    readonly attributes: IShape;
+    readonly indexes: readonly IDrizzleIndexConfig<string>[];
+    readonly modelName: string;
+    readonly version: string;
+  }[],
+>(
+  props: {
+    abbreviation: ABBREVIATION;
+    modelName: MODEL_NAME;
+    metadata: METADATA;
+    attributes: ATTRIBUTES & {
+      [K in keyof ATTRIBUTES &
+        string]: ATTRIBUTES[K] extends IPrimaryKeyDescriptor
+        ? ITypeError<`Attribute "${K}" on makeModel cannot be a primary key because makeModel synthesizes the model id primary key`>
+        : ATTRIBUTES[K] extends { autogenerate: boolean }
+          ? ITypeError<`Attribute "${K}" on makeModel cannot autogenerate because autogeneration belongs to contract payload primary keys`>
+          : ATTRIBUTES[K];
+    } & {
+      [K in IReservedKeys]?: never;
+    };
+    indexes: readonly IDrizzleIndexConfig<
+      keyof InferProperties<ATTRIBUTES, ABBREVIATION, METADATA> & string
+    >[];
+    version: VERSION;
+  },
+  historicalDefinitions: HISTORICAL_DEFINITIONS,
+): IModel<
+  ATTRIBUTES,
+  ABBREVIATION,
+  MODEL_NAME,
+  VERSION,
+  HISTORICAL_DEFINITIONS,
+  METADATA
+>;
+export function makeModelAndMetadata<
+  MODEL_NAME extends string,
+  ABBREVIATION extends string,
+  ATTRIBUTES extends IShape,
+  METADATA extends IResourceShape,
+>(
+  props: {
+    abbreviation: ABBREVIATION;
+    modelName: MODEL_NAME;
+    metadata: METADATA;
+    attributes: ATTRIBUTES;
+    indexes: readonly IDrizzleIndexConfig<
+      keyof InferProperties<ATTRIBUTES, ABBREVIATION, METADATA> & string
     >[];
     version: string;
   },
@@ -250,6 +350,7 @@ export function makeModel<
   const {
     abbreviation,
     modelName,
+    metadata,
     attributes: declaredAttributes,
     indexes,
     version,
@@ -302,19 +403,27 @@ export function makeModel<
     );
   }
 
-  const mergedShape: InferProperties<ATTRIBUTES, ABBREVIATION> = {
-    id: primitives.primaryKey({ abbreviation }),
-    modelName: primitives.text({ nullable: false }),
-    createdAt: primitives.date({ nullable: false }),
-    updatedAt: primitives.date({ nullable: false }),
-    version: primitives.text({ nullable: false }),
-
+  const mergedShape: InferProperties<ATTRIBUTES, ABBREVIATION, METADATA> = {
+    ...metadata,
     ...declaredAttributes,
   };
 
   for (const [key, value] of Object.entries(mergedShape)) {
     if (!isAttributeDescriptor(value)) {
       throw new Error(`Invalid attribute descriptor for "${key}"`);
+    }
+    if (
+      key in declaredAttributes &&
+      (key === 'createdAt' ||
+        key === 'deletedAt' ||
+        key === 'id' ||
+        key === 'modelName' ||
+        key === 'updatedAt' ||
+        key === 'version')
+    ) {
+      throw new Error(
+        `Invalid attribute "${key}" on model "${modelName}": framework metadata keys are reserved`,
+      );
     }
     if (key in declaredAttributes && value.kind === PrimitiveKind.PrimaryKey) {
       throw new Error(
@@ -359,6 +468,7 @@ export function makeModel<
   const model: IModel = {
     abbreviation,
     attributes: declaredAttributes,
+    metadata,
     indexes,
     historicalDefinitions,
     modelName,
@@ -711,13 +821,9 @@ export function makeModel<
         Schema.Schema.AnyNoContext
       > = mapValues(
         {
-            id: primitives.primaryKey({ abbreviation }),
-            modelName: primitives.text({ nullable: false }),
-            createdAt: primitives.date({ nullable: false }),
-            updatedAt: primitives.date({ nullable: false }),
-            version: primitives.text({ nullable: false }),
-            ...definition.attributes,
-          },
+          ...metadata,
+          ...definition.attributes,
+        },
         descriptor => descriptorToJsonEffectSchema(descriptor),
       );
       const resourceSchema = Schema.Struct(resourcePropertySchemas);
@@ -787,11 +893,7 @@ export function makeModel<
       return Effect.gen(function* () {
         yield* Schema.validate(
           makeEffectSchema({
-            id: primitives.primaryKey({ abbreviation }),
-            modelName: primitives.text({ nullable: false }),
-            createdAt: primitives.date({ nullable: false }),
-            updatedAt: primitives.date({ nullable: false }),
-            version: primitives.text({ nullable: false }),
+            ...metadata,
             ...definition.attributes,
           }),
         )(props.resource).pipe(
@@ -801,6 +903,19 @@ export function makeModel<
             extra: { modelName, serviceName: mutation.operation.serviceName },
           }),
         );
+
+        if (props.resource.deletedAt !== null) {
+          return yield* new ZerospinError({
+            code: 'service-resource-deleted',
+            message: `Cannot replicate deleted service resource "${props.resource.id}"`,
+            extra: {
+              modelName,
+              resourceId: props.resource.id,
+              operationName: 'replicateResource',
+              deletedAt: props.resource.deletedAt,
+            },
+          });
+        }
 
         if (props.resource.modelName !== modelName) {
           return yield* new ZerospinError({

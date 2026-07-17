@@ -1,10 +1,10 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { mainModels, User } from '../fixtures/system.ts';
+import { List, mainModels, User } from '../fixtures/system.ts';
 
 import { makeResourceDbConfig } from './makeDbConfig.ts';
 import { makeMigratedInMemorySqljsDb } from './makeMigratedInMemorySqljsDb.ts';
@@ -19,6 +19,24 @@ describe('makeInMemorySqljsDb', () => {
       const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
 
       const now = new Date('2020-01-01T00:00:00.000Z');
+
+      expect(
+        db.get<{ foreign_keys: number }>(sql`PRAGMA foreign_keys`),
+      ).toEqual({ foreign_keys: 1 });
+
+      expect(() =>
+        db.insert(List.drizzleSchema)
+          .values({
+            id: 'lst_testsqljsorphan01',
+            modelName: List.modelName,
+            createdAt: now,
+            updatedAt: now,
+            version: List.version,
+            name: 'Orphan list',
+            userId: 'usr_testsqljsmissing1',
+          })
+          .run(),
+      ).toThrow(/foreign key constraint failed/i);
 
       db.insert(User.drizzleSchema)
         .values({

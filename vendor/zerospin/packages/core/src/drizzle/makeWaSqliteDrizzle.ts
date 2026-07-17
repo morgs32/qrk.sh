@@ -37,6 +37,8 @@ export function makeWaSqliteDrizzle<CONFIG extends IDbConfig>(
   WaSqliteDatabase<IDbConfigSchema<CONFIG>, IDbConfigRelations<CONFIG>> & {
     $client: IWaSqliteClient;
   } {
+  client.sqlite3.exec(client.db, 'PRAGMA foreign_keys = ON;');
+
   const dialect = new SQLiteSyncDialect(
     config.casing === undefined ? {} : { casing: config.casing },
   );

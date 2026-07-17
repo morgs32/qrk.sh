@@ -13,7 +13,7 @@ import { makeDrizzleSchemasRecordFromTables } from '@zerospin/core/drizzle/makeD
 import { makeTable } from '@zerospin/core/models/makeTable';
 import { primitives } from '@zerospin/core/models/primitives';
 import type { IAnyTables, IShape } from '@zerospin/core/models/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { type IAnyErrorJson } from '@zerospin/error';
@@ -31,7 +31,7 @@ import { getAuthorizedActorFrontends } from './getAuthorizedActorFrontends/getAu
 
 const authorizationAttemptShape = {
   authorizationAttemptCursor: primitives.cursor({
-    abbreviation: coreAbbreviations.authorizationAttemptCursor,
+    abbreviation: systemWorkerAbbreviations.authorizationAttemptCursor,
   }),
   actorId: primitives.text(),
   actorName: primitives.text(),
@@ -78,7 +78,7 @@ export const authorizationRepoDrizzleSchemas =
   makeDrizzleSchemasRecordFromTables(authorizationRepoTables);
 
 const authorizationRepoUtils = makeRepoUtils({
-  abbreviation: coreAbbreviations.authorizationRepo,
+  abbreviation: systemWorkerAbbreviations.authorizationRepo,
   repoType: 'AuthorizationRepo',
   namePattern: RoutePattern.parse('/:generationId/:accountId/:accountName'),
   managedRuntime,

@@ -321,6 +321,32 @@ const getFrontendStateApiHandler = makeApiHandler({
   handler: getFrontendState,
 });
 
+const createFrontendWebSocketTicket = Effect.fn(
+  'FrontendApi.createFrontendWebSocketTicket',
+  { root: true },
+)(function* () {
+  const authResults = yield* FrontendAuthResults;
+  const systemWorker = yield* SystemWorkerApi;
+
+  return yield* makeAsync(() =>
+    systemWorker.createFrontendWebSocketTicket({
+      accountId: authResults.actor.accountId,
+      accountName: authResults.accountName,
+      actorId: authResults.actor.actorId,
+      actorName: authResults.actorName,
+      deployId: authResults.deployId,
+      frontendName: authResults.frontendName,
+      generationId: authResults.generationId,
+    }),
+  ).pipe(Effect.flatMap(decodeRpc));
+});
+
+const createFrontendWebSocketTicketApiHandler = makeApiHandler({
+  name: 'FrontendApi.createFrontendWebSocketTicket',
+  argsSchema: Schema.mutable(Schema.Tuple()),
+  handler: createFrontendWebSocketTicket,
+});
+
 export class FrontendApi extends RpcTarget {
   declare [BrandTypeId]: 'TargetApi';
 
@@ -447,6 +473,16 @@ export class FrontendApi extends RpcTarget {
   ): Promise<ILinkedRpcEnvelope<IFrontendState, IAnyErrorJson>> {
     return this.#runtime.runPromise(
       getFrontendStateApiHandler(request).pipe(
+        Effect.provideService(FrontendAuthResults, this.#authResults),
+      ),
+    );
+  }
+
+  async createFrontendWebSocketTicket(
+    request: IRpcRequest<[]>,
+  ): Promise<ILinkedRpcEnvelope<string, IAnyErrorJson>> {
+    return this.#runtime.runPromise(
+      createFrontendWebSocketTicketApiHandler(request).pipe(
         Effect.provideService(FrontendAuthResults, this.#authResults),
       ),
     );

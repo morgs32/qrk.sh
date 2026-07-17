@@ -1060,6 +1060,7 @@ describe('generation replay', () => {
                     version: '1.0.0',
                     createdAt: now,
                     updatedAt: now,
+                    deletedAt: null,
                   })
                   .run();
               },

@@ -10,7 +10,7 @@ import type { ISessionId } from "@zerospin/core/session/types";
 import { Effect } from "effect";
 import { createRoot, type Root } from "react-dom/client";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SessionToolbar } from "./SessionToolbar";
 import { zerospinDevtoolsStore } from "../../../zerospinDevtoolsStore.js";
@@ -50,12 +50,15 @@ describe("SessionToolbar", () => {
       frontend: main,
       sessionId,
       isPushPaused: true,
+      generateSignature: () => Effect.succeed({ userId: "usr_1" }),
     });
     session.store.setState({
       sessionId,
       accountId: "acct_1",
       accountName: main.accountName,
       actorId: "usr_1",
+      generationId: "generation_toolbar",
+      systemVersion: main.version,
       systemWorkerName: "stub-deploy",
       db,
       schema: dbConfig.schema,
@@ -80,13 +83,17 @@ describe("SessionToolbar", () => {
       failedCommands: [],
     };
     let completePush = () => {};
-    session.pushStagedCommands = () =>
+    const pushStagedCommands = vi.fn(() =>
       new Promise<typeof emptyPushResult>((resolve) => {
         completePush = () => {
           resolve(emptyPushResult);
         };
-      });
-    zerospinDevtoolsStore.getState().addSession(session);
+      }),
+    );
+    zerospinDevtoolsStore.getState().addSession({
+      session,
+      pushStagedCommands,
+    });
 
     const router = createMemoryRouter(
       [
@@ -125,6 +132,7 @@ describe("SessionToolbar", () => {
 
     expect(pushButton?.textContent).toBe("Pushing…");
     expect(pushButton?.disabled).toBe(true);
+    expect(pushStagedCommands).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       completePush();

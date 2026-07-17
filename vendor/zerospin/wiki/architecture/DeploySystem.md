@@ -1,19 +1,19 @@
 ---
 title: DeploySystem
 type: module
-updated: 2026-07-15
+updated: 2026-07-17
 sources:
   - path: packages/cli/src/commands/dev.tsx
     sha: 0fd2a7ef66b87e96d86ff62cace56148c8959721
     lines: 12-35
   - path: packages/cli/src/dev/devFn.ts
-    sha: 2e8800a4b2cf432b10fc0048ce2e3b3737fd715c
+    sha: 733cb45145637099e04528e5a56ea04aa0df6623
     lines: 34-498
   - path: packages/dispatch-worker/src/Worker.ts
-    sha: 23485614b3a059372674a560cbf0f01f908245b4
-    lines: 21-55
+    sha: 1eca022f6fdd5fd643f3f0cbb1f3c3a773ec7d3b
+    lines: 21-77
   - path: packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts
-    sha: 814212ae97aae99a7fc04c1b283f31e8f0d2a117
+    sha: 87e1ec8a78e45629c499dd3c2d75a004e3e2b324
     lines: 35-1522
   - path: packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts
     sha: 5fbd6cb4a8df630a48ec18b3357b2df87fc0a63a
@@ -28,8 +28,8 @@ sources:
     sha: 41dbe6d5a5d54bd0fbe7bb2b8a8d3b3ed672b1e3
     lines: 16-67
   - path: packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts
-    sha: 155147edbe9c66e6904e2b1e823749aa1ab26008
-    lines: 69-525
+    sha: 1deef6dd44fcd28c8a0a2699efe030bbeeaddfb4
+    lines: 32-549
   - path: packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts
     sha: 7e1352d1f5b40ced689ef915fc0a2825b0623fad
     lines: 91-1421
@@ -39,8 +39,17 @@ sources:
   - path: packages/system-worker/src/SystemRepo/assertGenerationAdmission/assertGenerationAdmission.ts
     sha: 75ce4acf5cabaa07b8b697d3084148382ef4390b
     lines: 34-138
+  - path: packages/system-worker/src/SystemRepo/SystemRepo.ts
+    sha: 7064d1caef9da512bd027d0273a4c0d8f84cdac7
+    lines: 51-182
+  - path: packages/system-worker/src/SystemRepo/createFrontendWebSocketTicket/createFrontendWebSocketTicket.ts
+    sha: fba8bd7929781ae27c18a331d790ff2ddbb0c0f1
+    lines: 42-115
+  - path: packages/system-worker/src/SystemRepo/consumeFrontendWebSocketTicket/consumeFrontendWebSocketTicket.ts
+    sha: e786d9ea1c2965795c773f1668ed4f9c8293584d
+    lines: 43-182
   - path: packages/system-worker/src/SystemLogRepo/SystemLogRepo.ts
-    sha: 5828f71dfa66b810f996c33b446bc9e9608daaf2
+    sha: ca52cf79a8126f57ac2d0155db005036d72f0362
     lines: 40-327
 ---
 
@@ -195,6 +204,49 @@ returning it to local control
 ../../packages/system-worker/src/prepareGeneration/prepareGeneration.ts:17-84,
 ../../packages/system-worker/src/openGeneration/openGeneration.ts:16-67).
 
+`readiness` and `admission` are separate axes in the generation-local
+`generationState` row. Preparation establishes whether the durable graph can
+serve; opening and draining determine which ordinary operations may enter that
+already-prepared graph
+(../../packages/system-worker/src/SystemRepo/SystemRepo.ts:51-93,
+../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:1316-1387,
+../../packages/system-worker/src/SystemRepo/openGeneration/openGeneration.ts:83-141).
+
+```mermaid
+stateDiagram-v2
+  direction LR
+
+  state "initializing + closed" as Initializing
+  state "ready + closed" as Prepared
+  state "ready + open" as Open
+  state "ready + draining" as Draining
+  state "ready + drained" as Drained
+  state "failed + closed" as Failed
+
+  [*] --> Initializing: create generation
+  Initializing --> Prepared: preparation succeeds
+  Initializing --> Failed: preparation fails
+  Prepared --> Open: openGeneration
+  Open --> Open: compatible deploy reuse
+  Open --> Draining: drainGeneration closes writes
+  Draining --> Draining: interrupted drain is retried
+  Draining --> Drained: work terminal and replay bounds durable
+```
+
+“Opening” means atomically installing the prepared deploy and SystemSpec as the
+generation-local active pair and changing admission to `open`. It is not the
+creation of a WebSocket or the start of a Worker process. A repeated open for
+the same already-active deploy is idempotent
+(../../packages/system-worker/src/SystemRepo/openGeneration/openGeneration.ts:72-141,
+../../packages/system-worker/src/SystemRepo/openGeneration/openGeneration.ts:143-191).
+
+“Draining” means writes are closed before accepted work is driven to terminal
+storage. Reads remain admitted so already-accepted operations and already-minted
+credentials can finish. It does not delete the generation: `ready + drained`
+is a valid terminal admission state
+(../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:92-173,
+../../packages/system-worker/src/SystemRepo/assertGenerationAdmission/assertGenerationAdmission.ts:84-137).
+
 1. Drain closes new writes, drains registered work in dependency order, captures
    immutable service/account replay bounds, and reaches `drained` only after all
    bounds exist
@@ -215,12 +267,66 @@ returning it to local control
    returns the generation identity
    (../../packages/system-worker/src/SystemRepo/openGeneration/openGeneration.ts:72-191).
 
+### Normal drain order and retries
+
+After the `open` to `draining` transition, SystemRepo drains registered repos
+in dependency order: FrontendRepo, ServiceRepo, ServiceBlockRepo, AccountRepo,
+then AccountBlockRepo. Only after those postconditions hold does it re-read the
+block-repo registrations and persist immutable service and account replay bounds
+(../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:153-298,
+../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:300-480).
+
+The final transition to `drained` occurs only when the stored-bound count
+matches the complete re-read registration set. Remaining frontend WebSocket
+tickets are purged after that durable transition
+(../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:482-547).
+
+An interrupted drain remains in `draining`; the next call skips the initial
+write-closing transition and repeats the idempotent repo drains. Existing replay
+bounds must match values observed by a retry. If the lifecycle transition
+succeeded but ticket cleanup failed, the already-`drained` branch retries that
+cleanup without reopening admission
+(../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:127-173,
+../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:300-480,
+../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:515-547).
+
 ## Admission and failure behavior
 
 SystemRepo admission requires a ready generation and a deploy equal to the
 generation-local active deploy. Reads are allowed while admission is `open` or
 `draining`; writes require `open`
 (../../packages/system-worker/src/SystemRepo/assertGenerationAdmission/assertGenerationAdmission.ts:34-138).
+
+| Generation state | Ordinary reads | Ordinary writes | Ticket mint | Ticket consume |
+| --- | ---: | ---: | ---: | ---: |
+| `initializing + closed` | No | No | No | No |
+| `ready + closed` | No | No | No | No |
+| `ready + open` | Yes | Yes | Yes | Yes |
+| `ready + draining` | Yes | No | No | Yes |
+| `ready + drained` | No | No | No | No |
+| `failed + closed` | No | No | No | No |
+
+Ticket mint uses write admission, while consumption uses read admission with
+the deploy stored in the ticket row. This makes an already-minted ticket usable
+during `draining` but prevents issuance of a new credential after writes close
+(../../packages/system-worker/src/SystemRepo/createFrontendWebSocketTicket/createFrontendWebSocketTicket.ts:42-51,
+../../packages/system-worker/src/SystemRepo/consumeFrontendWebSocketTicket/consumeFrontendWebSocketTicket.ts:123-151).
+
+### Generation readiness versus local HTTP readiness
+
+`generationState.readiness` belongs to one durable generation. `ready` means
+that root preparation or replay finished and its postconditions were committed;
+it does not by itself select that generation as the stable local deployment or
+open ordinary admission
+(../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:1316-1387,
+../../packages/system-worker/src/SystemRepo/openGeneration/openGeneration.ts:83-141).
+
+`GET /__zerospin/ready` is instead the process-facing local CLI gate on
+`DevZerospinApis.#apisReadiness`. It returns 204 only after candidate lifecycle,
+opening, stable-pointer promotion, and public API construction have all
+completed; a terminal initialization failure returns 500
+(../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1234-1359,
+../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1503-1520).
 
 A local candidate failure never implies rollback of the stable active pointer.
 The failure remains attached to its Worker version at the last durable phase;

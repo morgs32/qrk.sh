@@ -1,7 +1,8 @@
 import { makeTable } from '@zerospin/core/models/makeTable';
 import { primitives } from '@zerospin/core/models/primitives';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { Effect } from 'effect';
+
+import { systemWorkerAbbreviations } from '../../../packages/system-worker/src/systemWorkerAbbreviations';
 
 /**
  * Persist the exact prefixed `*RepoName` and pass that stored value unchanged to `getByName` during delivery.
@@ -14,13 +15,13 @@ const actorSubscriberTable = makeTable({
   name: 'actorSubscribers',
   shape: {
     actorRepoName: primitives.primaryKey({
-      abbreviation: coreAbbreviations.actorRepo,
+      abbreviation: systemWorkerAbbreviations.actorRepo,
     }),
   },
 });
 
 export const actorRepoUtils = makeRepoUtils({
-  abbreviation: coreAbbreviations.actorRepo,
+  abbreviation: systemWorkerAbbreviations.actorRepo,
   namePattern: parseRoutePattern(
     '/:generationId/:accountId/:accountName/:actorName/:actorId',
   ),

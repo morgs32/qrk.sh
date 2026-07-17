@@ -190,6 +190,7 @@ describe('AccountRepo', () => {
                 version: '1.0.0',
                 createdAt: seedTime,
                 updatedAt: seedTime,
+                deletedAt: null,
               },
             },
           });
@@ -248,6 +249,139 @@ describe('AccountRepo', () => {
             'replicated-service-resource-not-found',
           );
           expect(block.appliedMutations).toEqual([]);
+        }).pipe(Effect.provide(AsyncLive)),
+    );
+
+    it.effect(
+      'rolls back one foreign-key failure and continues its sibling command',
+      () =>
+        Effect.gen(function* () {
+          const accountId = makeAccountId({
+            id: 'account-repo-command-savepoint',
+          });
+          const actorId = yield* makeIdFromAbbreviation({
+            abbreviation: 'actr',
+          });
+          const validUserId = yield* makeIdFromAbbreviation({
+            abbreviation: mainModels.user.abbreviation,
+          });
+          const missingUserId = yield* makeIdFromAbbreviation({
+            abbreviation: mainModels.user.abbreviation,
+          });
+          const failedListId = yield* makeIdFromAbbreviation({
+            abbreviation: mainModels.list.abbreviation,
+          });
+          const successfulListId = yield* makeIdFromAbbreviation({
+            abbreviation: mainModels.list.abbreviation,
+          });
+          const accountKey = {
+            generationId: 'gen_account_command_savepoint',
+            accountId,
+            accountName: main.accountName,
+          };
+          const accountRepo = yield* getAccountRepo({ key: accountKey });
+
+          yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getAccountRepo,
+              repo: AccountRepo,
+              key: accountKey,
+              fn: ({ db, schema }) => {
+                const now = new Date(0);
+                db.insert(schema.user)
+                  .values({
+                    id: validUserId,
+                    actorId,
+                    modelName: 'user',
+                    name: 'Account savepoint parent user',
+                    version: '1.0.0',
+                    createdAt: now,
+                    updatedAt: now,
+                  })
+                  .run();
+              },
+            }),
+          );
+
+          const failedCommand = yield* makeAccountCommand({
+            contracts: userAccount.contracts,
+            contractName: 'createList',
+            accountId,
+            accountName: main.accountName,
+            actorId,
+            actorName: main.actorName,
+            frontendName: main.frontendName,
+            systemName: main.systemName,
+            systemVersion: system.version,
+            payload: {
+              id: failedListId,
+              name: 'Foreign-key failure',
+              userId: missingUserId,
+            },
+          });
+          const successfulCommand = yield* makeAccountCommand({
+            contracts: userAccount.contracts,
+            contractName: 'createList',
+            accountId,
+            accountName: main.accountName,
+            actorId,
+            actorName: main.actorName,
+            frontendName: main.frontendName,
+            systemName: main.systemName,
+            systemVersion: system.version,
+            payload: {
+              id: successfulListId,
+              name: 'Successful sibling list',
+              userId: validUserId,
+            },
+          });
+
+          const block = yield* makeTraceableRpcTarget<
+            Pick<AccountRepo, 'finalizeAccountBlock'>
+          >(accountRepo)
+            .finalizeAccountBlock({
+              accountId,
+              accountName: main.accountName,
+              commands: [failedCommand, successfulCommand],
+            })
+            .pipe(
+              Effect.provideService(
+                TelemetryCollector,
+                makeTelemetryCollector(),
+              ),
+              Effect.catchAll(error => Effect.die(error)),
+            );
+
+          expect(block.failedCommands).toEqual([
+            expect.objectContaining({
+              id: failedCommand.id,
+              failure: expect.stringContaining(
+                'mutation-referential-integrity-failed',
+              ),
+            }),
+          ]);
+          expect(block.executedCommands).toEqual([
+            expect.objectContaining({ id: successfulCommand.id }),
+          ]);
+          expect(block.appliedMutations).toHaveLength(1);
+
+          const lists = yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getAccountRepo,
+              repo: AccountRepo,
+              key: accountKey,
+              fn: ({ db, schema }) => db.select().from(schema.list).all(),
+            }),
+          );
+          expect(lists).toEqual([
+            expect.objectContaining({
+              id: successfulListId,
+              name: 'Successful sibling list',
+              userId: validUserId,
+            }),
+          ]);
         }).pipe(Effect.provide(AsyncLive)),
     );
 

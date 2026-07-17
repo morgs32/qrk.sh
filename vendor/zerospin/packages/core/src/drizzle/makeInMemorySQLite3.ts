@@ -20,6 +20,7 @@ export async function makeInMemorySQLite3(
   const module = await moduleFactory();
   const sqlite3 = SQLite.Factory(module);
   const db = sqlite3.open_v2Sync(':memory:');
+  sqlite3.exec(db, 'PRAGMA foreign_keys = ON;');
   const pendingTableNames = new Set<string>();
   const tableChangeListeners = new Set<
     (changedTableNames: ReadonlySet<string>) => void

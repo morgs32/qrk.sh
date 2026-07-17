@@ -5,7 +5,6 @@ import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
 import type { ISession } from '@zerospin/core/session/types';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
-import type { ISignatureFactory } from '@zerospin/core/utils/types';
 import type { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import {
@@ -25,7 +24,6 @@ export const executeActorQuery = Effect.fn('executeActorQuery')(
     QUERY_NAME extends keyof ACTOR['api'] & string,
   >(props: {
     session: ISession<FRONTEND>;
-    generateSignature: ISignatureFactory;
     queryName: QUERY_NAME;
     params: Schema.Schema.Type<ACTOR['api'][QUERY_NAME]['paramsSchema']>;
   }): Effect.fn.Return<
@@ -39,10 +37,10 @@ export const executeActorQuery = Effect.fn('executeActorQuery')(
     IAnyError,
     Async | PublishableKey | TelemetryCollector | ZerospinApisUrl
   > {
-    const { generateSignature, params, queryName, session } = props;
+    const { params, queryName, session } = props;
     const publishableKey = yield* PublishableKey;
     const apiUrl = yield* ZerospinApisUrl;
-    const signature = yield* generateSignature();
+    const signature = yield* session.generateSignature();
 
     using apis = newSyncRpcSession<ZerospinApis>(apiUrl);
     const frontendApi = makeTraceableApiTarget(

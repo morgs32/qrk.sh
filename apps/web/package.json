@@ -2,7 +2,7 @@
   "name": "@qrk.sh/web",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack & zerospin dev",
+    "dev": "next dev --turbopack",
     "zerospin:dev": "zerospin dev",
     "build": "next build",
     "start": "next start",

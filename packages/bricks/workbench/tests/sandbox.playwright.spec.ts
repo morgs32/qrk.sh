@@ -1,16 +1,28 @@
 import { expect, test } from "@playwright/test";
 
-test("catalog links every collection and preserves two-part brick URLs", async ({ page }) => {
+test("catalog opens collections with vertical, full-size bricks on the left", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.locator("[data-collection-link]")).toHaveCount(18);
 
   await page.locator('[data-collection-link="orange-flag"]').click();
-  await expect(page.locator("[data-brick-link]")).toHaveCount(3);
-  await expect(page.locator('[data-brick-link="orange-flag/2x2"]')).toHaveAttribute(
-    "href",
-    "/bricks/orange-flag/2x2",
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("[data-brick-full-size]")).toHaveCount(3);
+  const brickSizes = await page.locator('[data-brick-full-size="orange-flag/8x2"]').evaluate(
+    (brickElement) => {
+      const brick = brickElement.getBoundingClientRect();
+      const pane = brickElement.parentElement?.getBoundingClientRect();
+      return { brickWidth: brick.width, brickHeight: brick.height, paneWidth: pane?.width };
+    },
   );
+  expect(brickSizes.brickWidth).toBe(brickSizes.paneWidth);
+  expect(brickSizes.brickHeight).toBe(brickSizes.brickWidth / 4);
+
+  const twoByTwoSize = await page.locator('[data-brick-full-size="orange-flag/2x2"]').evaluate(
+    (brickElement) => brickElement.getBoundingClientRect().width,
+  );
+  expect(twoByTwoSize).toBe(brickSizes.brickWidth / 4);
+  await expect(page.getByLabel("Empty canvas")).toBeEmpty();
 });
 
 test("renders static, image, and GitHub bricks", async ({ page }) => {

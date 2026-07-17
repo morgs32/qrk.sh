@@ -1,7 +1,4 @@
-import { createMutation } from "@zerospin/core/contracts/createMutation";
-import { deleteMutation } from "@zerospin/core/contracts/deleteMutation";
 import { makeContract } from "@zerospin/core/contracts/makeContract";
-import { updateMutation } from "@zerospin/core/contracts/updateMutation";
 import { makeModelIdSchema } from "@zerospin/core/models/makeIdSchema";
 import { primitives } from "@zerospin/core/models/primitives";
 import { prefixActorId } from "@zerospin/core/utils/prefixActorId";
@@ -16,7 +13,7 @@ import { User } from "./models/User";
 export const createUser = makeContract({
   commandName: "createUser",
   payload: {
-    id: primitives.id({ model: User }),
+    id: User.primaryKey({ autogenerate: false }),
     clerkUserId: primitives.text(),
     username: primitives.text({
       nullable: true,
@@ -25,11 +22,13 @@ export const createUser = makeContract({
       nullable: true,
     }),
   },
+  mutations: Schema.Struct({
+    created: User.createMutation("1.0.0"),
+  }),
   program: ({ payload }) => {
     const { id, clerkUserId, username, displayName } = payload;
     return Effect.all({
-      created: createMutation({
-        model: User,
+      created: User.create("1.0.0", {
         resourceId: id,
         attributes: {
           actorId: prefixActorId(clerkUserId),
@@ -46,19 +45,21 @@ export const createUser = makeContract({
 export const createSite = makeContract({
   commandName: "createSite",
   payload: {
-    id: primitives.id({ model: Site }),
-    userId: primitives.id({ model: User }),
+    id: Site.primaryKey({ autogenerate: false }),
+    userId: User.primaryKey({ autogenerate: false }),
     slug: primitives.text(),
     name: primitives.text(),
     description: primitives.text({
       nullable: true,
     }),
   },
+  mutations: Schema.Struct({
+    created: Site.createMutation("1.0.0"),
+  }),
   program: ({ payload }) => {
     const { id, userId, slug, name, description } = payload;
     return Effect.all({
-      created: createMutation({
-        model: Site,
+      created: Site.create("1.0.0", {
         resourceId: id,
         attributes: {
           userId,
@@ -75,8 +76,8 @@ export const createSite = makeContract({
 export const createPage = makeContract({
   commandName: "createPage",
   payload: {
-    id: primitives.id({ model: Page }),
-    siteId: primitives.id({ model: Site }),
+    id: Page.primaryKey({ autogenerate: false }),
+    siteId: Site.primaryKey({ autogenerate: false }),
     slug: primitives.text(),
     title: primitives.text(),
     description: primitives.text({
@@ -86,11 +87,13 @@ export const createPage = makeContract({
       values: ["split-scroll", "shared-scroll"],
     }),
   },
+  mutations: Schema.Struct({
+    created: Page.createMutation("1.0.0"),
+  }),
   program: ({ payload }) => {
     const { id, siteId, slug, title, description, pageType } = payload;
     return Effect.all({
-      created: createMutation({
-        model: Page,
+      created: Page.create("1.0.0", {
         resourceId: id,
         attributes: {
           siteId,
@@ -108,8 +111,8 @@ export const createPage = makeContract({
 export const createGrid = makeContract({
   commandName: "createGrid",
   payload: {
-    id: primitives.id({ model: Grid }),
-    pageId: primitives.id({ model: Page }),
+    id: Grid.primaryKey({ autogenerate: false }),
+    pageId: Page.primaryKey({ autogenerate: false }),
     name: primitives.text(),
     columnCount: primitives.integer(),
     gridItems: primitives.json({
@@ -127,6 +130,12 @@ export const createGrid = makeContract({
       ),
     }),
   },
+  mutations: Schema.Array(
+    Schema.Union(
+      Grid.createMutation("2.0.0"),
+      GridItem.createMutation("1.0.0"),
+    ),
+  ),
   program: ({ payload }) =>
     Effect.gen(function* () {
       const { id, pageId, name, columnCount, gridItems } = payload;
@@ -134,8 +143,7 @@ export const createGrid = makeContract({
 
       // 1 — create the Grid before any GridItem references it.
       mutations.push(
-        yield* createMutation({
-          model: Grid,
+        yield* Grid.create("2.0.0", {
           resourceId: id,
           attributes: {
             pageId,
@@ -149,8 +157,7 @@ export const createGrid = makeContract({
       // 2 — preserve submitted order and emit one create mutation per GridItem.
       for (const gridItem of gridItems) {
         mutations.push(
-          yield* createMutation({
-            model: GridItem,
+          yield* GridItem.create("1.0.0", {
             resourceId: gridItem.id,
             attributes: {
               gridId: id,
@@ -174,7 +181,7 @@ export const createGrid = makeContract({
 export const updateGrid = makeContract({
   commandName: "updateGrid",
   payload: {
-    id: primitives.id({ model: Grid }),
+    id: Grid.primaryKey({ autogenerate: false }),
     name: primitives.text(),
     columnCount: primitives.integer(),
     gridIntent: primitives.enum({
@@ -200,6 +207,14 @@ export const updateGrid = makeContract({
       schema: Schema.Array(makeModelIdSchema(GridItem)),
     }),
   },
+  mutations: Schema.Array(
+    Schema.Union(
+      Grid.updateMutation("2.0.0"),
+      GridItem.createMutation("1.0.0"),
+      GridItem.updateMutation("1.0.0"),
+      GridItem.deleteMutation("1.0.0"),
+    ),
+  ),
   program: ({ payload }) =>
     Effect.gen(function* () {
       const mutations = [];
@@ -213,8 +228,7 @@ export const updateGrid = makeContract({
         payload.deletedGridItemIds.length > 0
       ) {
         mutations.push(
-          yield* updateMutation({
-            model: Grid,
+          yield* Grid.update("2.0.0", {
             resourceId: payload.id,
             attributes: {
               name: payload.name,
@@ -233,8 +247,7 @@ export const updateGrid = makeContract({
 
         if (gridItem.intent === "create") {
           mutations.push(
-            yield* createMutation({
-              model: GridItem,
+            yield* GridItem.create("1.0.0", {
               resourceId: gridItem.id,
               attributes: {
                 gridId: payload.id,
@@ -252,8 +265,7 @@ export const updateGrid = makeContract({
         }
 
         mutations.push(
-          yield* updateMutation({
-            model: GridItem,
+          yield* GridItem.update("1.0.0", {
             resourceId: gridItem.id,
             attributes: {
               x: gridItem.x,
@@ -270,8 +282,7 @@ export const updateGrid = makeContract({
       // 3 — omitted persisted items arrive explicitly as deletes in the same command.
       for (const deletedGridItemId of payload.deletedGridItemIds) {
         mutations.push(
-          yield* deleteMutation({
-            model: GridItem,
+          yield* GridItem.delete("1.0.0", {
             resourceId: deletedGridItemId,
           }),
         );

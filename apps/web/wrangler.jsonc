@@ -20,8 +20,8 @@
       { "name": "FRONTEND_BLOCK_REPO", "class_name": "FrontendBlockRepo" },
       { "name": "SERVICE_BLOCK_REPO", "class_name": "ServiceBlockRepo" },
       { "name": "AUTHORIZATION_REPO", "class_name": "AuthorizationRepo" },
-      { "name": "LOG_REPO", "class_name": "LogRepo" },
-      { "name": "LOG_AGENT", "class_name": "LogAgent" },
+      { "name": "SYSTEM_LOG_REPO", "class_name": "SystemLogRepo" },
+      { "name": "SYSTEM_LOG_AGENT", "class_name": "SystemLogAgent" },
     ],
   },
   "migrations": [
@@ -35,8 +35,8 @@
         "AccountBlockRepo",
         "ActorBlockRepo",
         "AuthorizationRepo",
-        "LogRepo",
-        "LogAgent",
+        "SystemLogRepo",
+        "SystemLogAgent",
       ],
     },
     {

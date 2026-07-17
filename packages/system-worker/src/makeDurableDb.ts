@@ -12,6 +12,7 @@ export function makeDurableDb<CONFIG extends IDbConfig>(props: {
   dbConfig: CONFIG;
 }): IDb<CONFIG> {
   const { dbConfig, storage } = props;
+  storage.sql.exec('PRAGMA foreign_keys = ON;');
 
   return drizzle(storage, {
     schema: dbConfig.schema,

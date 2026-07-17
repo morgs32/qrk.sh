@@ -4,7 +4,6 @@ import { mapValues, pick } from 'es-toolkit';
 
 import { makeAbbreviationIdSchema } from '../models/makeIdSchema.ts';
 import { PrimitiveKind } from '../models/primitiveKind.ts';
-import { primitives } from '../models/primitives.ts';
 import type { IModel } from '../models/types.ts';
 
 import type {
@@ -102,11 +101,7 @@ export const makeOperationJsonSchema = (props: {
   const resourceSchema = Schema.Struct(
     mapValues(
       {
-        id: primitives.primaryKey({ abbreviation: model.abbreviation }),
-        modelName: primitives.text({ nullable: false }),
-        createdAt: primitives.date({ nullable: false }),
-        updatedAt: primitives.date({ nullable: false }),
-        version: primitives.text({ nullable: false }),
+        ...model.metadata,
         ...definition.attributes,
       },
       descriptor => {
@@ -259,11 +254,7 @@ export const makeInverseOperationJsonSchema = (props: {
   const resourceSchema = Schema.Struct(
     mapValues(
       {
-        id: primitives.primaryKey({ abbreviation: model.abbreviation }),
-        modelName: primitives.text({ nullable: false }),
-        createdAt: primitives.date({ nullable: false }),
-        updatedAt: primitives.date({ nullable: false }),
-        version: primitives.text({ nullable: false }),
+        ...model.metadata,
         ...definition.attributes,
       },
       descriptor => {

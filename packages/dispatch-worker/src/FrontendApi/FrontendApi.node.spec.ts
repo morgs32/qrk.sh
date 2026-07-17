@@ -53,7 +53,7 @@ describe('FrontendApi', () => {
 
     // Step 1: The zero-argument method rejects an unexpected positional argument.
     const invalidEmptyTupleEnvelope = await Reflect.apply(
-      api.fetchActor,
+      api.createFrontendWebSocketTicket,
       api,
       [
         {
@@ -144,6 +144,126 @@ describe('FrontendApi', () => {
       expect(excessProperty.left.code).toBe('frontend-api-arguments-invalid');
     }
     expect(getSystemWorker).not.toHaveBeenCalled();
+  });
+
+  it('forwards the full authenticated identity and returns a raw linked WebSocket ticket', async () => {
+    const dispose = vi.fn();
+    const createFrontendWebSocketTicket = vi.fn(async () =>
+      encodeRight('raw-frontend-websocket-ticket'),
+    );
+    const appendTelemetryBatch = vi.fn(
+      async (props: { batch: ITelemetryBatch }) => {
+        expect(props.batch.spans.at(-1)).toMatchObject({
+          name: 'FrontendApi.createFrontendWebSocketTicket',
+          parentSpanId: null,
+          status: 'ok',
+        });
+        return encodeRight(undefined);
+      },
+    );
+    getSystemWorker.mockReturnValue({
+      createFrontendWebSocketTicket,
+      appendTelemetryBatch,
+      [Symbol.dispose]: dispose,
+    });
+    const api = new FrontendApi({
+      authResults: {
+        deployId: 'dpl_test',
+        generationId: 'gen_test',
+        actor: {
+          accountId: 'acct_1',
+          actorId: 'actr_1',
+        },
+        accountName: 'main',
+        actorName: 'user',
+        frontendName: 'default',
+        systemId: 'sys_1',
+        systemWorkerName: 'sys_1:dev:user_1',
+        systemEnvironmentId: 'dev',
+      },
+      runtime,
+    });
+
+    const envelope = await api.createFrontendWebSocketTicket({
+      args: [],
+      traceContext: {
+        traceId: 'trc_browser',
+        parentSpanId: 'spn_browser_websocket',
+      },
+    });
+
+    expect(await Effect.runPromise(decodeRpc(envelope.result))).toBe(
+      'raw-frontend-websocket-ticket',
+    );
+    expect(createFrontendWebSocketTicket).toHaveBeenCalledWith({
+      accountId: 'acct_1',
+      accountName: 'main',
+      actorId: 'actr_1',
+      actorName: 'user',
+      deployId: 'dpl_test',
+      frontendName: 'default',
+      generationId: 'gen_test',
+    });
+    expect(envelope.link).toMatchObject({
+      priorTraceId: 'trc_browser',
+      priorSpanId: 'spn_browser_websocket',
+      kind: 'causedBy',
+    });
+    expect(appendTelemetryBatch).toHaveBeenCalledTimes(1);
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('encodes a SystemWorker WebSocket ticket failure and its failed root span', async () => {
+    const dispose = vi.fn();
+    const ticketError = new ZerospinError({
+      code: 'frontend-websocket-ticket-write-failed',
+      message: 'Ticket storage failed',
+    });
+    const appendTelemetryBatch = vi.fn(
+      async (props: { batch: ITelemetryBatch }) => {
+        expect(props.batch.spans.at(-1)).toMatchObject({
+          name: 'FrontendApi.createFrontendWebSocketTicket',
+          parentSpanId: null,
+          status: 'error',
+        });
+        return encodeRight(undefined);
+      },
+    );
+    getSystemWorker.mockReturnValue({
+      createFrontendWebSocketTicket: vi.fn(async () => encodeLeft(ticketError)),
+      appendTelemetryBatch,
+      [Symbol.dispose]: dispose,
+    });
+    const api = new FrontendApi({
+      authResults: {
+        deployId: 'dpl_test',
+        generationId: 'gen_test',
+        actor: { accountId: 'acct_1', actorId: 'actr_1' },
+        accountName: 'main',
+        actorName: 'user',
+        frontendName: 'default',
+        systemId: 'sys_1',
+        systemWorkerName: 'sys_1:dev:user_1',
+        systemEnvironmentId: 'dev',
+      },
+      runtime,
+    });
+
+    const envelope = await api.createFrontendWebSocketTicket({
+      args: [],
+      traceContext: null,
+    });
+    const result = await Effect.runPromise(
+      decodeRpc(envelope.result).pipe(Effect.either),
+    );
+
+    expect(Either.isLeft(result)).toBe(true);
+    if (Either.isLeft(result)) {
+      expect(result.left.code).toBe('frontend-websocket-ticket-write-failed');
+    }
+    expect(envelope.link).toBe(null);
+    expect(appendTelemetryBatch).toHaveBeenCalledTimes(1);
+    expect(dispose).toHaveBeenCalledTimes(1);
   });
 
   it('resolves and disposes a fresh SystemWorker for every successful leaf call', async () => {
@@ -473,6 +593,11 @@ describe('FrontendApi', () => {
       args: [],
       traceContext: null,
     });
+    const createFrontendWebSocketTicket =
+      await api.createFrontendWebSocketTicket({
+        args: [],
+        traceContext: null,
+      });
 
     // Step 2: Exercise all three one-argument leaves explicitly.
     const pushCommands = await api.pushCommands({
@@ -502,6 +627,10 @@ describe('FrontendApi', () => {
     expect(makeFrontendSpec).toEqual({ result: encodedError, link: null });
     expect(getFrontendState).toEqual({ result: encodedError, link: null });
     expect(fetchActor).toEqual({ result: encodedError, link: null });
+    expect(createFrontendWebSocketTicket).toEqual({
+      result: encodedError,
+      link: null,
+    });
     expect(pushCommands).toEqual({ result: encodedError, link: null });
     expect(executeServiceQuery).toEqual({ result: encodedError, link: null });
     expect(executeActorQuery).toEqual({ result: encodedError, link: null });

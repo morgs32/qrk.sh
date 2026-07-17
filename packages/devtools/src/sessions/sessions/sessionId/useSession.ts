@@ -8,7 +8,10 @@ export function useSession(): ISession | undefined {
   const { sessionId } = useParams<{ sessionId: ISessionId }>();
   return useStore(
     zerospinDevtoolsStore,
-    (state) => sessionId && state.sessionsById.get(sessionId),
+    (state) =>
+      sessionId === undefined
+        ? undefined
+        : state.sessionsById.get(sessionId)?.session,
   );
 }
 

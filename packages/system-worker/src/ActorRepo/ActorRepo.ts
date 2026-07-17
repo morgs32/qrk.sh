@@ -29,6 +29,7 @@ import type {
   IShape,
 } from '@zerospin/core/models/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { ZerospinError, type IAnyErrorJson } from '@zerospin/error';
 import {
@@ -129,7 +130,7 @@ export const actorRepoDrizzleSchemas =
   makeDrizzleSchemasRecordFromTables(actorRepoTables);
 
 const actorRepoUtils = makeRepoUtils({
-  abbreviation: coreAbbreviations.actorRepo,
+  abbreviation: systemWorkerAbbreviations.actorRepo,
   repoType: 'ActorRepo',
   namePattern: RoutePattern.parse(
     '/:generationId/:accountId/:accountName/:actorName/:actorId',

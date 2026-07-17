@@ -29,6 +29,11 @@
       "types": "./dist/executeActorQuery.d.ts",
       "import": "./dist/executeActorQuery.js",
       "default": "./dist/executeActorQuery.js"
+    },
+    "./createFrontendWebSocketTicket": {
+      "types": "./dist/createFrontendWebSocketTicket.d.ts",
+      "import": "./dist/createFrontendWebSocketTicket.js",
+      "default": "./dist/createFrontendWebSocketTicket.js"
     }
   },
   "scripts": {

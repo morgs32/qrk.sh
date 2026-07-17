@@ -13,7 +13,7 @@ import type {
   ISystemLogLevel,
   ISystemLogRow,
 } from '@zerospin/core/system/types';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { dutils } from '@zerospin/core/utils/dutils';
 import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
 import { mapParseError, type IAnyError } from '@zerospin/error';
@@ -49,7 +49,7 @@ export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
     const { db, level, message, payload, source } = props;
     // 1 — SystemLogRepo rejects identities that do not carry their locked prefixes
     const systemId = yield* Schema.validate(
-      makeAbbreviationIdSchema(cloudIdAbbreviations.systemRecord),
+      makeAbbreviationIdSchema(coreAbbreviations.system),
     )(props.systemId).pipe(
       mapParseError({
         code: 'failed-to-decode-log-row-system-id',
@@ -58,7 +58,7 @@ export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
       }),
     );
     const generationId = yield* Schema.validate(
-      makeAbbreviationIdSchema(cloudIdAbbreviations.generation),
+      makeAbbreviationIdSchema(coreAbbreviations.generation),
     )(props.generationId).pipe(
       mapParseError({
         code: 'failed-to-decode-log-row-generation-id',
@@ -67,7 +67,7 @@ export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
       }),
     );
     const deployId = yield* Schema.validate(
-      makeAbbreviationIdSchema(cloudIdAbbreviations.deploy),
+      makeAbbreviationIdSchema(coreAbbreviations.deploy),
     )(props.deployId).pipe(
       mapParseError({
         code: 'failed-to-decode-log-row-deploy-id',

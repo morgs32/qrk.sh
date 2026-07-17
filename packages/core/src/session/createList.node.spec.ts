@@ -6,9 +6,8 @@ import { describe, expect } from 'vitest';
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
-import { main, mainModels } from '../fixtures/system.ts';
+import { main, mainModels, User } from '../fixtures/system.ts';
 import { PublishableKey } from '../services/PublishableKey.ts';
-import { SignatureFactory } from '../services/SignatureFactory.ts';
 import { ZerospinApisUrl } from '../services/ZerospinApisUrl.ts';
 import { IncrementalMonotonicFactory } from '../test-utils/IncrementalMonotonicFactory.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
@@ -34,7 +33,6 @@ const TestLayer = Layer.mergeAll(
   AsyncLive,
   Layer.succeed(ZerospinApisUrl, 'https://api.example.com/'),
   Layer.succeed(PublishableKey, Redacted.make('pk_test')),
-  Layer.succeed(SignatureFactory, () => Effect.succeed({ actorId: 'usr_1' })),
 );
 
 describe('createList', () => {
@@ -64,10 +62,23 @@ describe('createList', () => {
         const db = yield* makeMigratedInMemoryWasmSqliteDb({
           dbConfig,
         });
+        const now = new Date('2026-01-01T00:00:00.000Z');
+        db.insert(User.drizzleSchema)
+          .values({
+            id: 'usr_1',
+            modelName: User.modelName,
+            createdAt: now,
+            updatedAt: now,
+            version: User.version,
+            actorId: 'actr_1',
+            name: 'User',
+          })
+          .run();
 
         const sessionId = 'sesn_1' as ISessionId;
         const session = makeSession({
           frontend: main,
+          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
           sessionId,
         });
         session.store.setState({
@@ -144,6 +155,7 @@ describe('createList', () => {
           const sessionId = 'sesn_1' as ISessionId;
           const session = makeSession({
             frontend: main,
+            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
             sessionId,
           });
           session.store.setState({

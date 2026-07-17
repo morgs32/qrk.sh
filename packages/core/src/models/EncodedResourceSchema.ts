@@ -5,6 +5,7 @@ import type { IEncodedResourceShape } from './types.ts';
 export const EncodedResourceSchema = Schema.extend(
   Schema.Struct({
     createdAt: Schema.Date,
+    deletedAt: Schema.optional(Schema.NullOr(Schema.Date)),
     id: Schema.String,
     modelName: Schema.String,
     updatedAt: Schema.Date,

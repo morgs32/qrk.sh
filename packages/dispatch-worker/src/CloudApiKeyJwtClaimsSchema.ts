@@ -1,6 +1,6 @@
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { ISystemId } from '@zerospin/core/system/types';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { Schema } from 'effect';
 
 /** Raw Clerk user dev API key `claims` object (JWT template). */
@@ -29,7 +29,7 @@ export type ICloudApiKeyIdentity = ICloudApiKeyJwtClaims & {
 };
 
 const cloudApiKeyJwtClaimsBase = {
-  systemId: makeAbbreviationIdSchema(cloudIdAbbreviations.systemRecord),
+  systemId: makeAbbreviationIdSchema(coreAbbreviations.system),
   keyType: Schema.Literal('secret', 'publishable'),
   keyPairName: Schema.String,
 } as const;

@@ -125,6 +125,17 @@ describe('makeSelection', () => {
         })
         .run();
 
+      db.insert(Product.drizzleSchema)
+        .values({
+          id: testProductId,
+          modelName: Product.modelName,
+          createdAt: now,
+          updatedAt: now,
+          version: Product.version,
+          name: 'Product',
+        })
+        .run();
+
       db.insert(CartItem.drizzleSchema)
         .values({
           id: testItemId,
@@ -135,17 +146,6 @@ describe('makeSelection', () => {
           cartId: testCartId,
           productId: testProductId,
           quantity: 2,
-        })
-        .run();
-
-      db.insert(Product.drizzleSchema)
-        .values({
-          id: testProductId,
-          modelName: Product.modelName,
-          createdAt: now,
-          updatedAt: now,
-          version: Product.version,
-          name: 'Product',
         })
         .run();
 

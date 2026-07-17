@@ -8,7 +8,7 @@ import { describe, expect } from 'vitest';
 import { encodeCommand } from '../contracts/encodeCommand.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
-import { List, main, mainModels } from '../fixtures/system.ts';
+import { List, main, mainModels, User } from '../fixtures/system.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { decodeRpc } from '../utils/decodeRpc.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
@@ -115,7 +115,17 @@ describe('applyFrontendBlock', () => {
               frontendIndex: null,
               lastRebasedPushedCursor: localPushed.pushedCursor,
               pushedCommands: [localPushed],
-              resources: [],
+              resources: [
+                {
+                  id: 'usr_1',
+                  modelName: User.modelName,
+                  createdAt: now,
+                  updatedAt: now,
+                  version: User.version,
+                  actorId: 'actr_1',
+                  name: 'User',
+                },
+              ],
               stagedCommands: [],
               executedPushedCommands: [],
               failedPushedCommands: [],
@@ -269,7 +279,17 @@ describe('applyFrontendBlock', () => {
               frontendIndex: null,
               lastRebasedPushedCursor: pushedCommand.pushedCursor,
               pushedCommands: [pushedCommand],
-              resources: [],
+              resources: [
+                {
+                  id: 'usr_1',
+                  modelName: User.modelName,
+                  createdAt: now,
+                  updatedAt: now,
+                  version: User.version,
+                  actorId: 'actr_1',
+                  name: 'User',
+                },
+              ],
               stagedCommands: [],
               executedPushedCommands: [],
               failedPushedCommands: [],
@@ -350,6 +370,17 @@ describe('applyFrontendBlock', () => {
           const { schema } = dbConfig;
           const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
 
+          db.insert(User.drizzleSchema)
+            .values({
+              id: 'usr_1',
+              modelName: User.modelName,
+              createdAt: now,
+              updatedAt: now,
+              version: User.version,
+              actorId: 'actr_1',
+              name: 'User',
+            })
+            .run();
           db.insert(models.list.drizzleSchema)
             .values({
               id: 'lst_rollback',
@@ -365,6 +396,7 @@ describe('applyFrontendBlock', () => {
           const sessionId = 'sesn_rollback' as ISessionId;
           const session = makeSession({
             frontend: main,
+            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
             sessionId,
           });
           session.store.setState({
@@ -496,9 +528,21 @@ describe('applyFrontendBlock', () => {
           const { schema } = dbConfig;
           const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
 
+          db.insert(User.drizzleSchema)
+            .values({
+              id: 'usr_1',
+              modelName: User.modelName,
+              createdAt: now,
+              updatedAt: now,
+              version: User.version,
+              actorId: 'actr_1',
+              name: 'User',
+            })
+            .run();
           const sessionId = 'sesn_executed' as ISessionId;
           const session = makeSession({
             frontend: main,
+            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
             sessionId,
           });
           session.store.setState({
@@ -617,6 +661,17 @@ describe('applyFrontendBlock', () => {
           const { schema } = dbConfig;
           const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
 
+          db.insert(User.drizzleSchema)
+            .values({
+              id: 'usr_1',
+              modelName: User.modelName,
+              createdAt: now,
+              updatedAt: now,
+              version: User.version,
+              actorId: 'actr_1',
+              name: 'User',
+            })
+            .run();
           db.insert(models.list.drizzleSchema)
             .values({
               id: 'lst_watermark',
@@ -630,7 +685,11 @@ describe('applyFrontendBlock', () => {
             .run();
 
           const sessionId = 'sesn_watermark';
-          const session = makeSession({ frontend: main, sessionId });
+          const session = makeSession({
+            frontend: main,
+            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            sessionId,
+          });
           session.store.setState({
             sessionId,
             accountId: 'acct_1',
@@ -735,6 +794,17 @@ describe('applyFrontendBlock', () => {
           const { schema } = dbConfig;
           const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
 
+          db.insert(User.drizzleSchema)
+            .values({
+              id: 'usr_1',
+              modelName: User.modelName,
+              createdAt: now,
+              updatedAt: now,
+              version: User.version,
+              actorId: 'actr_1',
+              name: 'User',
+            })
+            .run();
           db.insert(models.list.drizzleSchema)
             .values({
               id: 'lst_replay_failure',
@@ -748,7 +818,11 @@ describe('applyFrontendBlock', () => {
             .run();
 
           const sessionId = 'sesn_replay_failure';
-          const session = makeSession({ frontend: main, sessionId });
+          const session = makeSession({
+            frontend: main,
+            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            sessionId,
+          });
           session.store.setState({
             sessionId,
             accountId: 'acct_1',

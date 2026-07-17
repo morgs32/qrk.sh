@@ -5,7 +5,7 @@ import {
   type ITelemetryCollector,
 } from '@zerospin/logger';
 import { sql } from 'drizzle-orm';
-import { Effect, Layer, ManagedRuntime, Queue, Runtime, Schema } from 'effect';
+import { Effect, Layer, ManagedRuntime, Runtime, Schema } from 'effect';
 import { createStore } from 'zustand/vanilla';
 
 import { applyFrontendMutationTx } from '../contracts/applyFrontendMutationTx.ts';
@@ -30,6 +30,7 @@ import { encodeRpc } from '../utils/encodeRpc.ts';
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 import { makeCursor } from '../utils/makeCursor.ts';
 import { NanoIdFactory } from '../utils/NanoIdFactory.ts';
+import type { ISignatureFactory } from '../utils/types.ts';
 import { UlidMonotonicFactory } from '../utils/UlidMonotonicFactory.ts';
 
 import {
@@ -49,6 +50,7 @@ export const defaultSessionRuntime = ManagedRuntime.make(
 
 export function makeSession<FRONTEND extends IFrontendController>(props: {
   frontend: FRONTEND;
+  generateSignature: ISignatureFactory;
   sessionId: ISessionId;
   isPushPaused?: boolean;
   isSharedWorkerEnabled?: boolean;
@@ -58,32 +60,12 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
 }): ISession<FRONTEND> {
   const {
     frontend,
+    generateSignature,
     sessionId,
     isPushPaused = false,
     isSharedWorkerEnabled = false,
     runtime = defaultSessionRuntime,
   } = props;
-
-  const pushQueueHandle = (
-    'context' in runtime
-      ? Runtime.runSync(runtime, Queue.bounded<number>(1))
-      : runtime.runSync(Queue.bounded<number>(1))
-  ) as Queue.Queue<number>;
-
-  const forkPushQueueOffer = () => {
-    const offer = Queue.offer(pushQueueHandle, Date.now());
-    if ('context' in runtime) {
-      Runtime.runFork(runtime, offer);
-      return;
-    }
-    runtime.runFork(offer);
-  };
-
-  const pushQueue = {
-    offer: forkPushQueueOffer,
-    take: () => Queue.take(pushQueueHandle),
-    shutdown: () => Queue.shutdown(pushQueueHandle),
-  };
 
   const store = createStore<ISessionState<InferFrontendModels<FRONTEND>>>(
     (set, get) => {
@@ -284,23 +266,13 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
       }),
     });
 
-    yield* Effect.sync(() => {
-      pushQueue.offer();
-    });
-
     return staged;
   });
 
   const session: ISession<FRONTEND> = {
     frontend,
+    generateSignature,
     onInitialized,
-    pushQueue,
-    pushStagedCommands: () =>
-      Promise.resolve({
-        pendingCommands: [],
-        pushedCommands: [],
-        failedCommands: [],
-      }),
     sessionId,
     stageCommand(props) {
       const effect = stageCommandEffect(props).pipe(

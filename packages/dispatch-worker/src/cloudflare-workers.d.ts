@@ -53,6 +53,7 @@ declare module 'cloudflare:workers' {
         DevZerospinApis?: DurableObjectNamespace<
           import('./DevZerospinApis/DevZerospinApis').DevZerospinApis
         >;
+        SystemWorker?: import('system-worker').SystemWorker;
       };
     };
     fetch(request: Request): Promise<Response>;

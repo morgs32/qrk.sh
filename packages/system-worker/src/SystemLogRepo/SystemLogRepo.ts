@@ -15,8 +15,8 @@ import type {
   ISystemLogLevel,
   ISystemLogRow,
 } from '@zerospin/core/system/types';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { type IAnyErrorJson } from '@zerospin/error';
 import type {
@@ -52,13 +52,13 @@ const logRowShape = Object.freeze({
   message: primitives.text(),
   level: primitives.enum({ values: systemLogLevelValues }),
   systemId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.systemRecord,
+    abbreviation: coreAbbreviations.system,
   }),
   generationId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.generation,
+    abbreviation: coreAbbreviations.generation,
   }),
   deployId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.deploy,
+    abbreviation: coreAbbreviations.deploy,
   }),
   payload: primitives.json({
     schema: Schema.Unknown,
@@ -87,13 +87,13 @@ const telemetrySpanShape = {
     nullable: true,
   }),
   systemId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.systemRecord,
+    abbreviation: coreAbbreviations.system,
   }),
   generationId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.generation,
+    abbreviation: coreAbbreviations.generation,
   }),
   deployId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.deploy,
+    abbreviation: coreAbbreviations.deploy,
   }),
 };
 
@@ -146,13 +146,13 @@ const telemetryLogShape = {
     nullable: true,
   }),
   systemId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.systemRecord,
+    abbreviation: coreAbbreviations.system,
   }),
   generationId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.generation,
+    abbreviation: coreAbbreviations.generation,
   }),
   deployId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.deploy,
+    abbreviation: coreAbbreviations.deploy,
   }),
 };
 
@@ -180,13 +180,13 @@ const telemetryLinkShape = {
   priorSpanId: primitives.opaqueId({ abbreviation: 'spn' }),
   kind: primitives.enum({ values: ['causedBy', 'retryOf'] }),
   systemId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.systemRecord,
+    abbreviation: coreAbbreviations.system,
   }),
   generationId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.generation,
+    abbreviation: coreAbbreviations.generation,
   }),
   deployId: primitives.opaqueId({
-    abbreviation: cloudIdAbbreviations.deploy,
+    abbreviation: coreAbbreviations.deploy,
   }),
 };
 
@@ -263,7 +263,7 @@ export const systemLogRepoDrizzleSchemas = systemLogRepoDbConfig.schema;
 export const systemLogRowSchema = makeEffectSchema(logRowShape);
 
 const systemLogRepoUtils = makeRepoUtils({
-  abbreviation: coreAbbreviations.systemLogRepo,
+  abbreviation: systemWorkerAbbreviations.systemLogRepo,
   repoType: 'SystemLogRepo',
   namePattern: RoutePattern.parse('/:generationId'),
   managedRuntime,

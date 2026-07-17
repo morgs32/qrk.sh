@@ -35,6 +35,7 @@ import type { IAccountCursor } from '@zerospin/core/models/types';
 import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { dutils } from '@zerospin/core/utils/dutils';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { makeCursor } from '@zerospin/core/utils/makeCursor';
@@ -315,7 +316,7 @@ export const finalizePushedCommands = Effect.fn(
         // 4 — start at the persisted account frontier, then align old members from C through W
         for (const serviceAlignment of batchedPreparation.serviceAlignments) {
           const persistedServiceRepoName = yield* Schema.decodeUnknown(
-            makeAbbreviationIdSchema(coreAbbreviations.serviceRepo),
+            makeAbbreviationIdSchema(systemWorkerAbbreviations.serviceRepo),
           )(serviceAlignment.serviceRepoName).pipe(
             mapParseError({
               code: 'account-service-repo-name-decode-failed',

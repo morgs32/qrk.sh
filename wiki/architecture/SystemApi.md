@@ -19,14 +19,14 @@ sources:
     sha: 6edc44830ff21a47443c533b6c50d637759eed76
     lines: 12-35
   - path: packages/system-worker/src/SystemWorker.ts
-    sha: 445f11170f8c6a2f0849a77fd6223bef431edbc3
-    lines: 246-2066
+    sha: 635b5321cfdd30d05bb423874df3c49561e40a32
+    lines: 246-2170
   - path: packages/system-worker/src/SystemLogRepo/appendTelemetryBatch/appendTelemetryBatch.ts
-    sha: 9de7fe70ed7a17174f1191c2ee59676dbeb944a6
+    sha: dcc909f7b275ffae3bf2749acaf8a0c4ab55fd50
     lines: 21-155
   - path: examples/shopping/src/Worker.ts
-    sha: fab78db94e4d47bf594be1ff6cc316d6d18c8339
-    lines: 9-61
+    sha: fce5a09dc4e9b4ce13c1cd46b36e7d645504b63b
+    lines: 9-84
 ---
 
 # SystemApi
@@ -167,8 +167,8 @@ the supplied identity on the rows
 ## Callers
 
 1. A public Worker may expose `ZerospinApis` directly through Cap'n Web, as the
-   standalone shopping example does
-   (../../examples/shopping/src/Worker.ts:43-61).
+   standalone shopping example does for requests outside its fixed frontend
+   WebSocket route (../../examples/shopping/src/Worker.ts:43-84).
 2. Tooling clients request `SystemApi` from the concrete root and consume the
    linked envelopes; environment-specific key verification and SystemWorker
    lookup remain resolver responsibilities

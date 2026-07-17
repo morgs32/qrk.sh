@@ -59,6 +59,11 @@ export const mockFrontendApi = {
     })
   ),
 
+  createFrontendWebSocketTicket: vi.fn(async () => ({
+    result: encodeRight('test_frontend_websocket_ticket'),
+    link: null,
+  })),
+
   pushCommands: vi.fn(async () =>
     ({
       result: encodeRight({

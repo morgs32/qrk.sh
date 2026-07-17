@@ -57,6 +57,7 @@ import { getActorRepo } from './ActorRepo/getActorRepo/getActorRepo.js';
 import { getAuthorizationRepo } from './AuthorizationRepo/getAuthorizationRepo/getAuthorizationRepo.js';
 import { getFrontendRepo } from './FrontendRepo/getFrontendRepo/getFrontendRepo.js';
 import { getSystemLogRepo } from './SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
+import { createFrontendWebSocketTicket } from './createFrontendWebSocketTicket/createFrontendWebSocketTicket.js';
 import { drainGeneration } from './drainGeneration/drainGeneration.js';
 import { getGenerationId } from './getGenerationId/getGenerationId.js';
 import { managedRuntime } from './managedRuntime.js';
@@ -240,6 +241,23 @@ export class SystemWorker extends WorkerEntrypoint {
   > {
     return managedRuntime.runPromise(
       openGeneration(props).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
+  createFrontendWebSocketTicket(props: {
+    deployId: string;
+    generationId: string;
+    accountId: string;
+    accountName: string;
+    actorId: IActorId;
+    actorName: string;
+    frontendName: string;
+  }): Promise<Schema.EitherEncoded<string, IAnyErrorJson>> {
+    return managedRuntime.runPromise(
+      createFrontendWebSocketTicket(props).pipe(
+        Effect.provide(AsyncLive),
+        encodeRpc,
+      ),
     );
   }
 
@@ -2065,7 +2083,7 @@ export class SystemWorker extends WorkerEntrypoint {
       return env.SYSTEM_LOG_AGENT.getByName(generationId).fetch(request);
     }
 
-    if (url.pathname.startsWith('/ws-subscriber/')) {
+    if (url.pathname === '/ws-frontend-blocks') {
       if (request.headers.get('Upgrade') !== 'websocket') {
         return Response.json(
           { message: 'Expected WebSocket upgrade' },
@@ -2073,24 +2091,71 @@ export class SystemWorker extends WorkerEntrypoint {
         );
       }
 
-      const encodedName = decodeURIComponent(
-        url.pathname.slice('/ws-subscriber/'.length),
-      );
-      const name = encodedName.startsWith('/')
-        ? encodedName.slice(1)
-        : encodedName;
-      const frontendBlockRepo = env.FRONTEND_BLOCK_REPO.getByName(
-        name,
-      ) as DurableObjectStub<Rpc.DurableObjectBranded> & {
-        fetch(request: Request): Promise<Response>;
-      };
+      const publishableKeys = url.searchParams.getAll('publishableKey');
+      const tickets = url.searchParams.getAll('ticket');
+      const publishableKey = publishableKeys[0];
+      const ticket = tickets[0];
+      if (
+        publishableKeys.length !== 1 ||
+        publishableKey === undefined ||
+        publishableKey.length === 0 ||
+        tickets.length !== 1 ||
+        ticket === undefined ||
+        !/^[A-Za-z0-9_-]{43}$/.test(ticket)
+      ) {
+        return Response.json(
+          { message: 'Missing or invalid WebSocket parameters' },
+          { status: 400 },
+        );
+      }
 
-      return managedRuntime.runPromise(
-        makeAsync(() => frontendBlockRepo.fetch(request)).pipe(
+      const settled = await managedRuntime.runPromise(
+        makeAsync(() =>
+          SystemRepo.getRepo({
+            generationId: env.ZEROSPIN_GENERATION_ID,
+          }).consumeFrontendWebSocketTicket({
+            ticket,
+          }),
+        ).pipe(
+          Effect.flatMap(decodeRpc),
+          Effect.either,
           Effect.provide(AsyncLive),
-          Effect.catchAll(error =>
+        ),
+      );
+      if (settled._tag === 'Left') {
+        if (
+          settled.left.code === 'frontend-websocket-ticket-invalid' ||
+          settled.left.code.startsWith('generation-')
+        ) {
+          return Response.json(
+            { message: 'WebSocket ticket is invalid or expired' },
+            { status: 401 },
+          );
+        }
+        return Response.json(
+          { message: 'Failed to admit WebSocket connection' },
+          { status: 500 },
+        );
+      }
+
+      // The ticket is already spent. A forwarding failure must not make the
+      // same capability reusable, so the browser has to authenticate again.
+      return managedRuntime.runPromise(
+        makeAsync(() => {
+          const frontendBlockRepo = env.FRONTEND_BLOCK_REPO.getByName(
+            settled.right,
+          ) as DurableObjectStub<Rpc.DurableObjectBranded> & {
+            fetch(request: Request): Promise<Response>;
+          };
+          return frontendBlockRepo.fetch(request);
+        }).pipe(
+          Effect.provide(AsyncLive),
+          Effect.catchAll(() =>
             Effect.succeed(
-              Response.json({ message: error.message }, { status: 500 }),
+              Response.json(
+                { message: 'Failed to forward WebSocket connection' },
+                { status: 500 },
+              ),
             ),
           ),
         ),

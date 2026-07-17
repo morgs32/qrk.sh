@@ -1,20 +1,23 @@
-import type { ISession, ISessionId } from "@zerospin/core/session/types";
+import type { ISessionId } from "@zerospin/core/session/types";
 import { createStore } from "zustand/vanilla";
 
-import type { IZerospinDevtoolsStoreState } from "./types.js";
+import type {
+  IDevtoolsSessionEntry,
+  IZerospinDevtoolsStoreState,
+} from "./types.js";
 
 export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
   (set) => ({
     sessionsById: new Map(),
     profiles: [],
     sharedWorkerUserApi: null,
-    addSession: (session: ISession) =>
+    addSession: (entry: IDevtoolsSessionEntry) =>
       set((state) => {
-        if (state.sessionsById.has(session.sessionId)) {
+        if (state.sessionsById.has(entry.session.sessionId)) {
           return state;
         }
         const nextSessionsById = new Map(state.sessionsById);
-        nextSessionsById.set(session.sessionId, session);
+        nextSessionsById.set(entry.session.sessionId, entry);
         return { sessionsById: nextSessionsById };
       }),
     removeSession: (sessionId: ISessionId) =>

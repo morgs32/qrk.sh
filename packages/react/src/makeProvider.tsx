@@ -16,16 +16,15 @@ import type { IFrontendController } from '@zerospin/core/frontendController/type
 import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
-import { SignatureFactory } from '@zerospin/core/services/SignatureFactory';
 import type { ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
 import { makeSession } from '@zerospin/core/session/makeSession';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
 import type { ISignatureFactory } from '@zerospin/core/utils/types';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import { type IAnyError } from '@zerospin/error';
 import { makeTelemetryLayer } from '@zerospin/logger';
-import { Effect, type ManagedRuntime } from 'effect';
+import { Effect, Queue, type ManagedRuntime } from 'effect';
 import useSWRImmutable from 'swr/immutable';
 import { useStore } from 'zustand/react';
 
@@ -106,15 +105,23 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
       providerInstanceRef.current = {};
     }
 
+    // A capacity-one dropping queue retains one pending wake while paused or
+    // offline without parking one producer fiber for every staged command.
+    const pushQueue = useMemo(
+      () => sessionRuntime.runSync(Queue.dropping<number>(1)),
+      [],
+    );
+
     // 3 — one browser session id/store per Provider mount
     const coreSession = useMemo(() => {
       const sessionId = sessionRuntime.runSync(
         makeIdFromAbbreviation({
-          abbreviation: cloudIdAbbreviations.defaultSession,
+          abbreviation: coreAbbreviations.session,
         }),
       );
       return makeSession({
         frontend,
+        generateSignature: generateSignatureRef.current,
         sessionId,
         isPushPaused,
         isSharedWorkerEnabled: isSharedWorkerEnabledRef.current,
@@ -126,9 +133,14 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
       () =>
         makeBrowserSession({
           browserUserController,
+          onCommandStaged: () => {
+            if (!isUnmountedRef.current) {
+              sessionRuntime.runFork(Queue.offer(pushQueue, Date.now()));
+            }
+          },
           session: coreSession,
         }),
-      [browserUserController, coreSession],
+      [browserUserController, coreSession, pushQueue],
     );
 
     useImperativeHandle(ref, () => ({ session }), [session]);
@@ -145,7 +157,6 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
             bootstrapBrowserSession({
               session: browserSession.coreSession,
               browserUserController,
-              generateSignature: generateSignatureRef.current,
             }).pipe(
               Effect.provide(
                 makeTelemetryLayer(
@@ -153,10 +164,6 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
                 ),
               ),
               Effect.provide(AsyncLive),
-              Effect.provideService(
-                SignatureFactory,
-                generateSignatureRef.current,
-              ),
             ),
           )
           .then(data => {
@@ -178,9 +185,9 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
       state => state.isInitialized,
     );
 
-    usePushQueue({
+    const { pushStagedCommands } = usePushQueue({
+      pushQueue,
       session,
-      generateSignature,
       sessionRuntime,
       enabled: isInitialized,
     });
@@ -212,18 +219,29 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
           releaseBrowserSessionRef.current = null;
           sessionRuntime.runSync(releaseBrowserSession);
         }
+        // React StrictMode immediately replays this effect's setup after its
+        // simulated cleanup. Defer the terminal shutdown so that replay can
+        // mark the still-mounted provider active before this check runs.
+        queueMicrotask(() => {
+          if (isUnmountedRef.current) {
+            sessionRuntime.runSync(Queue.shutdown(pushQueue));
+          }
+        });
       };
-    }, []);
+    }, [pushQueue]);
 
     useEffect(() => {
       // 6 — devtools store tracks the concrete initialized session by sessionId
       // Register with devtools when mounted; session is stable for this provider instance.
-      zerospinDevtoolsStore.getState().addSession(session);
+      zerospinDevtoolsStore.getState().addSession({
+        pushStagedCommands,
+        session: coreSession,
+      });
 
       return () => {
         zerospinDevtoolsStore.getState().removeSession(session.sessionId);
       };
-    }, [session]);
+    }, [coreSession, pushStagedCommands, session]);
 
     if (bootstrapError) {
       // 7 — map only missing-deploy / apis-down cases; keep domain errors intact
@@ -258,14 +276,9 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
       return null;
     }
 
-    // 8 — initialized provider makes the session and current signature factory available
+    // 8 — initialized provider makes the browser session available
     return (
-      <ReactContext.Provider
-        value={{
-          session,
-          generateSignature,
-        }}
-      >
+      <ReactContext.Provider value={{ session }}>
         {children}
       </ReactContext.Provider>
     );

@@ -23,14 +23,35 @@ export default class E2eWorker extends WorkerEntrypoint {
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
-    if (url.pathname.startsWith('/ws-subscriber/')) {
-      const encodedName = decodeURIComponent(
-        url.pathname.slice('/ws-subscriber/'.length),
-      );
-      const name = encodedName.startsWith('/')
-        ? encodedName.slice(1)
-        : encodedName;
-      return env.FRONTEND_BLOCK_REPO.getByName(name).fetch(request);
+    if (url.pathname === '/ws-frontend-blocks') {
+      if (request.headers.get('Upgrade') !== 'websocket') {
+        return Response.json(
+          { message: 'Expected WebSocket upgrade' },
+          { status: 426 },
+        );
+      }
+      const publishableKeys = url.searchParams.getAll('publishableKey');
+      const tickets = url.searchParams.getAll('ticket');
+      if (
+        publishableKeys.length !== 1 ||
+        publishableKeys[0] === undefined ||
+        publishableKeys[0].length === 0 ||
+        tickets.length !== 1 ||
+        tickets[0] === undefined ||
+        !/^[A-Za-z0-9_-]{43}$/.test(tickets[0])
+      ) {
+        return Response.json(
+          { message: 'Missing or invalid WebSocket parameters' },
+          { status: 400 },
+        );
+      }
+      const systemWorker = this.ctx.exports.SystemWorker;
+      if (systemWorker === undefined) {
+        return new Response('Missing SystemWorker ctx.exports entrypoint', {
+          status: 500,
+        });
+      }
+      return systemWorker.fetch(request);
     }
 
     const devZerospinApisNamespace = this.ctx.exports.DevZerospinApis;

@@ -7,8 +7,11 @@ import { AsyncLive } from '../async/AsyncLive.ts';
 import { encodeCommand } from '../contracts/encodeCommand.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
-import { List, main, mainModels } from '../fixtures/system.ts';
-import type { InferEncodedRow } from '../models/types.ts';
+import { List, main, mainModels, User } from '../fixtures/system.ts';
+import type {
+  IEncodedResourceShape,
+  InferEncodedRow,
+} from '../models/types.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
@@ -121,6 +124,15 @@ describe('applyFrontendState', () => {
               pushedCommands: [pushedCommand],
               resources: [
                 {
+                  id: 'usr_1',
+                  modelName: User.modelName,
+                  createdAt: now,
+                  updatedAt: now,
+                  version: User.version,
+                  actorId: 'actr_1',
+                  name: 'User',
+                },
+                {
                   id: 'lst_1',
                   modelName: List.modelName,
                   createdAt: now,
@@ -171,15 +183,17 @@ describe('applyFrontendState', () => {
         });
         const { schema } = dbConfig;
         const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
-        const resources: Array<{
-          id: string;
-          modelName: string;
-          createdAt: Date;
-          updatedAt: Date;
-          version: string;
-          name: string;
-          userId: string;
-        }> = [];
+        const resources: IEncodedResourceShape[] = [
+          {
+            id: 'usr_1',
+            modelName: User.modelName,
+            createdAt: now,
+            updatedAt: now,
+            version: User.version,
+            actorId: 'actr_1',
+            name: 'User',
+          },
+        ];
 
         for (let index = 0; index < 105; index += 1) {
           resources.push({

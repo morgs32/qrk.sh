@@ -143,6 +143,7 @@ describe('useApi', () => {
     const onResult = vi.fn();
     const coreSession = {
       frontend,
+      generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
       sessionId: 'sesn_1',
       store: {
         getState: () => ({
@@ -158,12 +159,7 @@ describe('useApi', () => {
 
     await act(async () => {
       root.render(
-        <ReactContext.Provider
-          value={{
-            session,
-            generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
-          }}
-        >
+        <ReactContext.Provider value={{ session }}>
           <UseApiProbe onResult={onResult} />
         </ReactContext.Provider>,
       );

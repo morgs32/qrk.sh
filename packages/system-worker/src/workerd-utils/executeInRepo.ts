@@ -63,6 +63,7 @@ export async function executeInRepo<
           .pipe(Effect.provide(AsyncLive)),
       );
       const { relations, schema } = dbConfig;
+      state.storage.sql.exec('PRAGMA foreign_keys = ON;');
       const db = drizzle(state.storage, {
         schema,
         relations,

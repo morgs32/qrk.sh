@@ -1,12 +1,12 @@
-import { type CSSProperties, useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 import { getInitializedStateOrThrow } from "@zerospin/core/session/getInitializedStateOrThrow";
-import { Link } from "react-router";
+import type { ISessionId } from "@zerospin/core/session/types";
+import { Link, useParams } from "react-router";
 import { useStore } from "zustand/react";
 
 import { useLiveQueryOnDb } from "../../../useLiveQueryOnDb";
-
-import { useSessionOrThrow } from "./useSession";
+import { zerospinDevtoolsStore } from "../../../zerospinDevtoolsStore.js";
 
 const styles = {
   toolbarRoot: {
@@ -45,7 +45,14 @@ const styles = {
 } as const;
 
 export function SessionToolbar() {
-  const session = useSessionOrThrow();
+  const { sessionId } = useParams<{ sessionId: ISessionId }>();
+  const entry = useStore(zerospinDevtoolsStore, (state) =>
+    sessionId === undefined ? undefined : state.sessionsById.get(sessionId),
+  );
+  if (entry === undefined) {
+    throw new Error("Session not found");
+  }
+  const { pushStagedCommands, session } = entry;
   const [isPushing, setIsPushing] = useState(false);
   const isPushPaused = useStore(session.store, (state) => state.isPushPaused);
   const lastDevtoolsPush = useStore(
@@ -82,11 +89,10 @@ export function SessionToolbar() {
         disabled={pushDisabled}
         onClick={() => {
           // 1 — The toolbar owns only the in-flight presentation state. The
-          // session boundary records the completed trace and preserves the
-          // push result or rejection for non-UI callers.
+          // registered push boundary records the completed trace and preserves
+          // the push result or rejection for non-UI callers.
           setIsPushing(true);
-          void session
-            .pushStagedCommands()
+          void pushStagedCommands()
             .catch(() => undefined)
             .finally(() => {
               setIsPushing(false);

@@ -6,7 +6,7 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from './systemWorkerAbbreviations.js';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { env, runInDurableObject } from 'cloudflare:test';
 import { Effect } from 'effect';
@@ -24,7 +24,7 @@ describe('RepoExplorer', () => {
           serviceName: 'app',
         },
       });
-      const fixedSystemRepoName = `${coreAbbreviations.systemRepo}_gen_test`;
+      const fixedSystemRepoName = `${systemWorkerAbbreviations.systemRepo}_gen_test`;
       const openedSystemRepoName = yield* Effect.promise(() =>
         runInDurableObject(
           env.SYSTEM_REPO.getByName(fixedSystemRepoName),
@@ -67,7 +67,7 @@ describe('RepoExplorer', () => {
         expect.arrayContaining([
           expect.objectContaining({
             repoType: 'ServiceRepo',
-            repoName: `${coreAbbreviations.serviceRepo}_gen_test/app`,
+            repoName: `${systemWorkerAbbreviations.serviceRepo}_gen_test/app`,
             tableNames: expect.arrayContaining([
               'product',
               'serviceCursors',
@@ -87,21 +87,21 @@ describe('RepoExplorer', () => {
         expect.arrayContaining([
           expect.objectContaining({
             repoType: 'ServiceRepo',
-            repoName: `${coreAbbreviations.serviceRepo}_gen_other/app`,
+            repoName: `${systemWorkerAbbreviations.serviceRepo}_gen_other/app`,
           }),
         ]),
       );
       expect(registrations).not.toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            repoName: `${coreAbbreviations.serviceRepo}_gen_other/app`,
+            repoName: `${systemWorkerAbbreviations.serviceRepo}_gen_other/app`,
           }),
         ]),
       );
       expect(otherRegistrations).not.toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            repoName: `${coreAbbreviations.serviceRepo}_gen_test/app`,
+            repoName: `${systemWorkerAbbreviations.serviceRepo}_gen_test/app`,
           }),
         ]),
       );
@@ -112,6 +112,7 @@ describe('RepoExplorer', () => {
         'createdAt',
         'updatedAt',
         'version',
+        'deletedAt',
         'name',
       ]);
       expect(productTable.rows).toEqual([]);

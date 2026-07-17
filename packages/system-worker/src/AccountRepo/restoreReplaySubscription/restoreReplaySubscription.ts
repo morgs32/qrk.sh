@@ -3,7 +3,7 @@ import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { IServiceCursorId } from '@zerospin/core/models/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import {
   mapParseError,
@@ -54,7 +54,7 @@ export const restoreReplaySubscription = Effect.fn(
 
   // 1 — the target generation, never the copied source name, determines repo identity.
   const serviceRepoName = yield* Schema.decodeUnknown(
-    makeAbbreviationIdSchema(coreAbbreviations.serviceRepo),
+    makeAbbreviationIdSchema(systemWorkerAbbreviations.serviceRepo),
   )(
     yield* ServiceRepo.repoUtils.nameUtils.makeName({
       generationId,

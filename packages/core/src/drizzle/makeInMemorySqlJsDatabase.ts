@@ -6,5 +6,7 @@ import initSqlJs from 'sql.js';
  */
 export async function makeInMemorySqlJsDatabase() {
   const SQL = await initSqlJs();
-  return new SQL.Database();
+  const database = new SQL.Database();
+  database.exec('PRAGMA foreign_keys = ON;');
+  return database;
 }

@@ -23,7 +23,18 @@ const Product = makeServiceModel(
     indexes: [],
     version: '1.0.0',
   },
-  [],
+  [
+    {
+      abbreviation: 'prd',
+      modelName: 'product',
+      attributes: {
+        name: primitives.text(),
+        price: primitives.number(),
+      },
+      indexes: [],
+      version: '0.9.0',
+    },
+  ],
 );
 
 const createProduct = makeContract({
@@ -81,6 +92,13 @@ describe('makeSystemSpec', () => {
       nullable: false,
       unique: false,
     });
+    expect(
+      spec.serviceControllers.app?.models.product?.properties.deletedAt,
+    ).toMatchObject({ kind: 'date', nullable: true });
+    expect(
+      spec.serviceControllers.app?.models.product?.historicalDefinitions[0]
+        ?.properties.deletedAt,
+    ).toMatchObject({ kind: 'date', nullable: true });
     expect(
       spec.serviceControllers.app?.contracts.createProduct
         ?.mutationsJsonSchema,

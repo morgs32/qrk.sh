@@ -11,6 +11,7 @@ import { makeTable } from '@zerospin/core/models/makeTable';
 import { primitives } from '@zerospin/core/models/primitives';
 import type { IAnyTables, IServiceCursorId } from '@zerospin/core/models/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import type { IAnyErrorJson } from '@zerospin/error';
 import { Effect, type Schema } from 'effect';
@@ -44,7 +45,7 @@ const serviceBlockTables = {
     name: 'accountSubscribers',
     shape: {
       accountRepoName: primitives.primaryKey({
-        abbreviation: coreAbbreviations.accountRepo,
+        abbreviation: systemWorkerAbbreviations.accountRepo,
       }),
       accountId: primitives.text(),
       accountName: primitives.text(),
@@ -64,7 +65,7 @@ const serviceBlockDbConfig = makeDbConfig({ tables: serviceBlockTables });
 export const serviceBlockDrizzleSchemas = serviceBlockDbConfig.schema;
 
 const serviceBlockRepoUtils = makeRepoUtils({
-  abbreviation: coreAbbreviations.serviceBlockRepo,
+  abbreviation: systemWorkerAbbreviations.serviceBlockRepo,
   repoType: 'ServiceBlockRepo',
   namePattern: RoutePattern.parse('/:generationId/:serviceName'),
   managedRuntime,

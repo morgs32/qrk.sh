@@ -4,6 +4,7 @@ import { main } from "@zerospin/core/fixtures/system";
 import { makeSession } from "@zerospin/core/session/makeSession";
 import type { ISessionId } from "@zerospin/core/session/types";
 import type { ITelemetryBatch } from "@zerospin/logger";
+import { Effect } from "effect";
 import { createRoot, type Root } from "react-dom/client";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -148,9 +149,21 @@ describe("SessionsLogsRoute", () => {
   });
 
   it("renders and updates session-owned traces without losing the active selection", async () => {
-    const session = makeSession({ frontend: main, sessionId });
+    const session = makeSession({
+      frontend: main,
+      sessionId,
+      generateSignature: () => Effect.succeed({ userId: "usr_1" }),
+    });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addSession(session);
+    zerospinDevtoolsStore.getState().addSession({
+      session,
+      pushStagedCommands: () =>
+        Promise.resolve({
+          pendingCommands: [],
+          pushedCommands: [],
+          failedCommands: [],
+        }),
+    });
 
     const router = createMemoryRouter(
       [
@@ -375,7 +388,11 @@ describe("SessionsLogsRoute", () => {
   });
 
   it("keeps a zero-duration span visible on the one millisecond fallback range", async () => {
-    const session = makeSession({ frontend: main, sessionId });
+    const session = makeSession({
+      frontend: main,
+      sessionId,
+      generateSignature: () => Effect.succeed({ userId: "usr_1" }),
+    });
     session.store.setState({
       telemetry: {
         spans: [
@@ -394,7 +411,15 @@ describe("SessionsLogsRoute", () => {
         links: [],
       },
     });
-    zerospinDevtoolsStore.getState().addSession(session);
+    zerospinDevtoolsStore.getState().addSession({
+      session,
+      pushStagedCommands: () =>
+        Promise.resolve({
+          pendingCommands: [],
+          pushedCommands: [],
+          failedCommands: [],
+        }),
+    });
 
     const router = createMemoryRouter(
       [
@@ -423,9 +448,21 @@ describe("SessionsLogsRoute", () => {
   });
 
   it("selects the exact trace named by a valid traceId query parameter", async () => {
-    const session = makeSession({ frontend: main, sessionId });
+    const session = makeSession({
+      frontend: main,
+      sessionId,
+      generateSignature: () => Effect.succeed({ userId: "usr_1" }),
+    });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addSession(session);
+    zerospinDevtoolsStore.getState().addSession({
+      session,
+      pushStagedCommands: () =>
+        Promise.resolve({
+          pendingCommands: [],
+          pushedCommands: [],
+          failedCommands: [],
+        }),
+    });
 
     const router = createMemoryRouter(
       [
@@ -453,9 +490,21 @@ describe("SessionsLogsRoute", () => {
   });
 
   it("selects the newest trace when the traceId query parameter is absent", async () => {
-    const session = makeSession({ frontend: main, sessionId });
+    const session = makeSession({
+      frontend: main,
+      sessionId,
+      generateSignature: () => Effect.succeed({ userId: "usr_1" }),
+    });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addSession(session);
+    zerospinDevtoolsStore.getState().addSession({
+      session,
+      pushStagedCommands: () =>
+        Promise.resolve({
+          pendingCommands: [],
+          pushedCommands: [],
+          failedCommands: [],
+        }),
+    });
 
     const router = createMemoryRouter(
       [
@@ -479,9 +528,21 @@ describe("SessionsLogsRoute", () => {
   });
 
   it("falls back to the newest trace for a stale traceId query parameter", async () => {
-    const session = makeSession({ frontend: main, sessionId });
+    const session = makeSession({
+      frontend: main,
+      sessionId,
+      generateSignature: () => Effect.succeed({ userId: "usr_1" }),
+    });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addSession(session);
+    zerospinDevtoolsStore.getState().addSession({
+      session,
+      pushStagedCommands: () =>
+        Promise.resolve({
+          pendingCommands: [],
+          pushedCommands: [],
+          failedCommands: [],
+        }),
+    });
 
     const router = createMemoryRouter(
       [
@@ -504,7 +565,11 @@ describe("SessionsLogsRoute", () => {
   });
 
   it("clears only the selected session telemetry, push pointer, and trace query", async () => {
-    const session = makeSession({ frontend: main, sessionId });
+    const session = makeSession({
+      frontend: main,
+      sessionId,
+      generateSignature: () => Effect.succeed({ userId: "usr_1" }),
+    });
     session.store.setState({
       telemetry: initialTelemetry,
       lastDevtoolsPush: {
@@ -513,7 +578,15 @@ describe("SessionsLogsRoute", () => {
         status: "ok",
       },
     });
-    zerospinDevtoolsStore.getState().addSession(session);
+    zerospinDevtoolsStore.getState().addSession({
+      session,
+      pushStagedCommands: () =>
+        Promise.resolve({
+          pendingCommands: [],
+          pushedCommands: [],
+          failedCommands: [],
+        }),
+    });
 
     const otherTelemetry: ITelemetryBatch = {
       spans: [
@@ -534,6 +607,7 @@ describe("SessionsLogsRoute", () => {
     const otherSession = makeSession({
       frontend: main,
       sessionId: otherSessionId,
+      generateSignature: () => Effect.succeed({ userId: "usr_1" }),
     });
     otherSession.store.setState({
       telemetry: otherTelemetry,
@@ -543,7 +617,15 @@ describe("SessionsLogsRoute", () => {
         status: "ok",
       },
     });
-    zerospinDevtoolsStore.getState().addSession(otherSession);
+    zerospinDevtoolsStore.getState().addSession({
+      session: otherSession,
+      pushStagedCommands: () =>
+        Promise.resolve({
+          pendingCommands: [],
+          pushedCommands: [],
+          failedCommands: [],
+        }),
+    });
 
     const router = createMemoryRouter(
       [

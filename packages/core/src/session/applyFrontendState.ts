@@ -46,19 +46,18 @@ export const applyFrontendState = Effect.fn('applyFrontendState')(function* <
   const { db, frontendState, models, schema } = props;
   const { pushedCommands } = frontendState;
 
-  yield* makeTx({
-    db,
-    program: Effect.fn('transaction')(function* ({ tx }) {
-      yield* Effect.void;
-      const rows = tx.all<{ name: string }>(
-        sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`,
-      );
-      for (const row of rows) {
-        const tableName = row.name.replaceAll('"', '""');
-        tx.run(sql.raw(`DROP TABLE IF EXISTS "${tableName}"`));
-      }
-    }),
-  });
+  db.run(sql.raw('PRAGMA foreign_keys = OFF;'));
+  try {
+    const existingTables = db.all<{ name: string }>(
+      sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`,
+    );
+    for (const row of existingTables) {
+      const tableName = row.name.replaceAll('"', '""');
+      db.run(sql.raw(`DROP TABLE IF EXISTS "${tableName}"`));
+    }
+  } finally {
+    db.run(sql.raw('PRAGMA foreign_keys = ON;'));
+  }
 
   yield* migrateDb({
     db,

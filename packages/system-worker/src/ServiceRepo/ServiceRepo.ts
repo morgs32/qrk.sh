@@ -23,8 +23,8 @@ import type {
   IShape,
 } from '@zerospin/core/models/types';
 import type { IRepoTableData } from '@zerospin/core/system/types';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import type { IRpcEitherEncoded } from '@zerospin/core/utils/types';
 import { ZerospinError, type IAnyErrorJson } from '@zerospin/error';
@@ -159,10 +159,10 @@ const serviceRepoTables = {
     name: 'serviceReplayReceipts',
     shape: {
       deployId: primitives.opaqueId({
-        abbreviation: cloudIdAbbreviations.deploy,
+        abbreviation: coreAbbreviations.deploy,
       }),
       prevGenerationId: primitives.opaqueId({
-        abbreviation: cloudIdAbbreviations.generation,
+        abbreviation: coreAbbreviations.generation,
       }),
       sourceServiceIndex: primitives.integer(),
       lastServiceCursor: primitives.cursor({
@@ -190,7 +190,7 @@ export const serviceRepoDrizzleSchemas =
   makeDrizzleSchemasRecordFromTables(serviceRepoTables);
 
 const serviceRepoUtils = makeRepoUtils({
-  abbreviation: coreAbbreviations.serviceRepo,
+  abbreviation: systemWorkerAbbreviations.serviceRepo,
   repoType: 'ServiceRepo',
   namePattern: RoutePattern.parse('/:generationId/:serviceName'),
   managedRuntime,

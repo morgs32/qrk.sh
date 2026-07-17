@@ -12,7 +12,7 @@ import type {
   IServiceCursorId,
 } from '@zerospin/core/models/types';
 import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import {
@@ -198,7 +198,7 @@ export const prepareAccountCommands = Effect.fn(
     serviceGroup =>
       Effect.gen(function* () {
         const persistedServiceRepoName = yield* Schema.decodeUnknown(
-          makeAbbreviationIdSchema(coreAbbreviations.serviceRepo),
+          makeAbbreviationIdSchema(systemWorkerAbbreviations.serviceRepo),
         )(serviceGroup.serviceRepoName).pipe(
           mapParseError({
             code: 'account-service-repo-name-decode-failed',

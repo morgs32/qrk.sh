@@ -1,32 +1,32 @@
 import type { Async } from '@zerospin/core/async/Async';
 import type { IFrontendController } from '@zerospin/core/frontendController/types';
-import type { IAccountId, IActorId } from '@zerospin/core/models/types';
 import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
 import { applyFrontendBlock } from '@zerospin/core/session/applyFrontendBlock';
 import { FrontendBlockSchema } from '@zerospin/core/session/FrontendBlockSchema';
 import type { ISession } from '@zerospin/core/session/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import type { ISignatureFactory } from '@zerospin/core/utils/types';
-import type { IAnyError } from '@zerospin/error';
-import { annotateFunctionSpan } from '@zerospin/logger';
+import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { createFrontendWebSocketTicket } from '@zerospin/frontend/createFrontendWebSocketTicket';
+import {
+  annotateFunctionSpan,
+  type TelemetryCollector,
+} from '@zerospin/logger';
 import { Effect, Exit, Redacted, Runtime, Schema, Scope } from 'effect';
 
 export const acquireFrontendWebSocket = Effect.fn('acquireFrontendWebSocket')(
   function* <FRONTEND extends IFrontendController>(props: {
     session: ISession<FRONTEND>;
-    accountId: IAccountId;
-    actorId: IActorId;
-    generationId: string;
-    generateSignature: ISignatureFactory;
   }): Effect.fn.Return<
     Effect.Effect<void>,
     IAnyError,
-    Async | CuidFactory | PublishableKey | ZerospinApisUrl
+    | Async
+    | CuidFactory
+    | PublishableKey
+    | TelemetryCollector
+    | ZerospinApisUrl
   > {
-    const { session, accountId, actorId, generationId, generateSignature } =
-      props;
+    const { session } = props;
 
     if (
       typeof window === 'undefined' ||
@@ -37,42 +37,24 @@ export const acquireFrontendWebSocket = Effect.fn('acquireFrontendWebSocket')(
 
     const apiUrl = yield* ZerospinApisUrl;
     const publishableKey = yield* PublishableKey;
-    const signature = yield* generateSignature();
     const sessionState = session.store.getState();
     if (!sessionState.isInitialized) {
       return Effect.void;
     }
-    const frontendBlockRepoName = `${coreAbbreviations.frontendBlockRepo}_${generationId}/${accountId}/${sessionState.accountName}/${session.frontend.actorName}/${actorId}/${session.frontend.frontendName}`;
+    const ticket = yield* createFrontendWebSocketTicket({ session });
     const frontendWebSocketUrl = new URL(apiUrl);
     if (frontendWebSocketUrl.protocol === 'https:') {
       frontendWebSocketUrl.protocol = 'wss:';
     } else if (frontendWebSocketUrl.protocol === 'http:') {
       frontendWebSocketUrl.protocol = 'ws:';
     }
-    frontendWebSocketUrl.pathname = `/ws-subscriber/${encodeURIComponent(
-      frontendBlockRepoName,
-    )}`;
+    frontendWebSocketUrl.pathname = '/ws-frontend-blocks';
     frontendWebSocketUrl.search = '';
     frontendWebSocketUrl.searchParams.set(
       'publishableKey',
       Redacted.value(publishableKey),
     );
-    frontendWebSocketUrl.searchParams.set(
-      'accountName',
-      session.frontend.accountName,
-    );
-    frontendWebSocketUrl.searchParams.set(
-      'actorName',
-      session.frontend.actorName,
-    );
-    frontendWebSocketUrl.searchParams.set(
-      'frontendName',
-      session.frontend.frontendName,
-    );
-    frontendWebSocketUrl.searchParams.set(
-      'signature',
-      JSON.stringify(signature),
-    );
+    frontendWebSocketUrl.searchParams.set('ticket', ticket);
 
     const runtime = yield* Effect.runtime<
       Async | CuidFactory | PublishableKey | ZerospinApisUrl
@@ -80,10 +62,14 @@ export const acquireFrontendWebSocket = Effect.fn('acquireFrontendWebSocket')(
 
     const frontendWebSocketScope = yield* Scope.make();
     yield* Effect.acquireRelease(
-      Effect.sync(() => {
-        const frontendWebSocket = new window.WebSocket(
-          frontendWebSocketUrl.toString(),
-        );
+      Effect.gen(function* () {
+        const frontendWebSocket = yield* Effect.try({
+          try: () => new window.WebSocket(frontendWebSocketUrl.toString()),
+          catch: ZerospinError.catch({
+            code: 'frontend-websocket-construction-failed',
+            message: 'Failed to construct frontend WebSocket',
+          }),
+        });
         frontendWebSocket.addEventListener('message', event => {
           Runtime.runSync(runtime)(
             Effect.gen(function* () {
@@ -129,6 +115,71 @@ export const acquireFrontendWebSocket = Effect.fn('acquireFrontendWebSocket')(
             ),
           );
         });
+
+        // Bootstrap is not complete until the network has accepted the upgrade.
+        // A failed or closed pre-open socket rejects bootstrap; no reconnect is
+        // attempted because the ticket has already been spent by the Worker.
+        yield* Effect.async<void, IAnyError>(resume => {
+          let settled = false;
+          const onOpen = () => {
+            if (settled) {
+              return;
+            }
+            settled = true;
+            frontendWebSocket.removeEventListener('open', onOpen);
+            frontendWebSocket.removeEventListener('error', onError);
+            frontendWebSocket.removeEventListener('close', onClose);
+            resume(Effect.void);
+          };
+          const onError = () => {
+            if (settled) {
+              return;
+            }
+            settled = true;
+            frontendWebSocket.removeEventListener('open', onOpen);
+            frontendWebSocket.removeEventListener('error', onError);
+            frontendWebSocket.removeEventListener('close', onClose);
+            frontendWebSocket.close();
+            resume(
+              Effect.fail(
+                new ZerospinError({
+                  code: 'frontend-websocket-open-failed',
+                  message: 'Frontend WebSocket failed before opening',
+                }),
+              ),
+            );
+          };
+          const onClose = () => {
+            if (settled) {
+              return;
+            }
+            settled = true;
+            frontendWebSocket.removeEventListener('open', onOpen);
+            frontendWebSocket.removeEventListener('error', onError);
+            frontendWebSocket.removeEventListener('close', onClose);
+            resume(
+              Effect.fail(
+                new ZerospinError({
+                  code: 'frontend-websocket-closed-before-open',
+                  message: 'Frontend WebSocket closed before opening',
+                }),
+              ),
+            );
+          };
+          frontendWebSocket.addEventListener('open', onOpen);
+          frontendWebSocket.addEventListener('error', onError);
+          frontendWebSocket.addEventListener('close', onClose);
+          return Effect.sync(() => {
+            if (!settled) {
+              settled = true;
+              frontendWebSocket.removeEventListener('open', onOpen);
+              frontendWebSocket.removeEventListener('error', onError);
+              frontendWebSocket.removeEventListener('close', onClose);
+              frontendWebSocket.close();
+            }
+          });
+        });
+
         return frontendWebSocket;
       }),
       frontendWebSocket =>

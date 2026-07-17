@@ -7,7 +7,7 @@
 import { type IActor } from '@zerospin/core/actorController/types';
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { dutils } from '@zerospin/core/utils/dutils';
 import { makeCursor } from '@zerospin/core/utils/makeCursor';
 import { and, eq } from 'drizzle-orm';
@@ -30,7 +30,7 @@ export const authorize = Effect.fn('AuthorizationRepo.authorize')(
     const failure = null;
 
     const authorizationAttemptCursor = yield* makeCursor({
-      abbreviation: coreAbbreviations.authorizationAttemptCursor,
+      abbreviation: systemWorkerAbbreviations.authorizationAttemptCursor,
     });
 
     yield* makeTx({

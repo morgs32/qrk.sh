@@ -40,7 +40,25 @@ export function makeTableMigrationStatements(
     return `PRIMARY KEY (${columnNames})`;
   });
 
-  const tableDefinition = [...columnLines, ...primaryKeyLines].join(',\n  ');
+  const foreignKeyLines: string[] = [];
+  for (const foreignKey of tableConfig.foreignKeys) {
+    const reference = foreignKey.reference();
+    const columnNames = reference.columns
+      .map(column => column.name)
+      .join(', ');
+    const foreignColumnNames = reference.foreignColumns
+      .map(column => column.name)
+      .join(', ');
+    foreignKeyLines.push(
+      `FOREIGN KEY (${columnNames}) REFERENCES ${getTableConfig(reference.foreignTable).name} (${foreignColumnNames})`,
+    );
+  }
+
+  const tableDefinition = [
+    ...columnLines,
+    ...primaryKeyLines,
+    ...foreignKeyLines,
+  ].join(',\n  ');
 
   const statements: string[] = [
     `CREATE TABLE ${tableConfig.name} (\n  ${tableDefinition}\n);`,

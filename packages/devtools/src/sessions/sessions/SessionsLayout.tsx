@@ -114,7 +114,8 @@ export function SessionsLayout() {
   const sessions = useStore(
     zerospinDevtoolsStore,
     useShallow(
-      (state): Array<ISession> => Array.from(state.sessionsById.values()),
+      (state): Array<ISession> =>
+        Array.from(state.sessionsById.values(), (entry) => entry.session),
     ),
   );
 

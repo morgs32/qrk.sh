@@ -608,14 +608,16 @@ export type IResourceShape = {
 export type InferProperties<
   ATTRIBUTES extends IShape,
   ABBREVIATION extends string = string,
-> = ATTRIBUTES &
-  Omit<IResourceShape, 'id'> & {
+  METADATA extends IResourceShape = Omit<IResourceShape, 'id'> & {
     id: IPrimaryKeyDescriptor<ABBREVIATION>;
-  };
+  },
+> = ATTRIBUTES &
+  METADATA;
 
 export type IDecodedResource = InferDecodedRow<IResourceShape>;
 
 export type IEncodedResourceShape = InferEncodedRow<IResourceShape> &
+  Readonly<{ deletedAt?: Date | null | undefined }> &
   Record<string, unknown>;
 
 export type IEncodedResource = Readonly<IEncodedResourceShape> &
@@ -638,6 +640,7 @@ export type IDrizzleResourceTable = SQLiteTableWithColumns<
 /** Keys merged by {@link makeModel}; not part of payload / {@link IModel.attributesSchema}. */
 export type IModelReservedAttributeKeys =
   | 'createdAt'
+  | 'deletedAt'
   | 'id'
   | 'modelName'
   | 'updatedAt'
@@ -682,11 +685,16 @@ export type IModel<
     readonly modelName: string;
     readonly version: string;
   }[],
+  METADATA extends IResourceShape = Omit<IResourceShape, 'id'> & {
+    id: IPrimaryKeyDescriptor<ABBREVIATION>;
+    deletedAt?: IDateDescriptor<true>;
+  },
 > = {
   abbreviation: ABBREVIATION;
   attributes: ATTRIBUTES;
+  readonly metadata: METADATA;
   indexes: readonly IDrizzleIndexConfig<
-    keyof InferProperties<ATTRIBUTES, ABBREVIATION> & string
+    keyof InferProperties<ATTRIBUTES, ABBREVIATION, METADATA> & string
   >[];
   historicalDefinitions: HISTORICAL_DEFINITIONS;
   modelName: MODEL_NAME;
@@ -703,8 +711,11 @@ export type IModel<
     readonly modelName: MODEL_NAME;
   };
   prefixId: (id: string) => InferIdFromAbbreviation<ABBREVIATION>;
-  propertiesShape: InferProperties<ATTRIBUTES, ABBREVIATION>;
-  table: ITable<MODEL_NAME, InferProperties<ATTRIBUTES, ABBREVIATION>>;
+  propertiesShape: InferProperties<ATTRIBUTES, ABBREVIATION, METADATA>;
+  table: ITable<
+    MODEL_NAME,
+    InferProperties<ATTRIBUTES, ABBREVIATION, METADATA>
+  >;
   drizzleSchema: IDrizzleResourceTable & {
     [BrandTypeId]: 'drizzleSchema';
   };
@@ -741,7 +752,8 @@ export type IModel<
             ABBREVIATION,
             MODEL_NAME,
             VERSION,
-            HISTORICAL_DEFINITIONS
+            HISTORICAL_DEFINITIONS,
+            METADATA
           >,
           MODEL_VERSION extends VERSION
             ? ATTRIBUTES
@@ -791,7 +803,8 @@ export type IModel<
             ABBREVIATION,
             MODEL_NAME,
             VERSION,
-            HISTORICAL_DEFINITIONS
+            HISTORICAL_DEFINITIONS,
+            METADATA
           >,
           MODEL_VERSION extends VERSION
             ? ATTRIBUTES
@@ -815,7 +828,8 @@ export type IModel<
             ABBREVIATION,
             MODEL_NAME,
             VERSION,
-            HISTORICAL_DEFINITIONS
+            HISTORICAL_DEFINITIONS,
+            METADATA
           >,
           MODEL_VERSION extends VERSION
             ? ATTRIBUTES
@@ -881,7 +895,8 @@ export type IModel<
             ABBREVIATION,
             MODEL_NAME,
             VERSION,
-            HISTORICAL_DEFINITIONS
+            HISTORICAL_DEFINITIONS,
+            METADATA
           >,
           MODEL_VERSION extends VERSION
             ? ATTRIBUTES
@@ -905,7 +920,8 @@ export type IModel<
             ABBREVIATION,
             MODEL_NAME,
             VERSION,
-            HISTORICAL_DEFINITIONS
+            HISTORICAL_DEFINITIONS,
+            METADATA
           >
         >,
         Readonly<{
@@ -932,7 +948,8 @@ export type IModel<
             ABBREVIATION,
             MODEL_NAME,
             VERSION,
-            HISTORICAL_DEFINITIONS
+            HISTORICAL_DEFINITIONS,
+            METADATA
           >
         >,
         IAnyError
@@ -950,7 +967,8 @@ export type IModel<
             ABBREVIATION,
             MODEL_NAME,
             VERSION,
-            HISTORICAL_DEFINITIONS
+            HISTORICAL_DEFINITIONS,
+            METADATA
           >
         >,
         Readonly<{
@@ -984,7 +1002,8 @@ export type IModel<
             ABBREVIATION,
             MODEL_NAME,
             VERSION,
-            HISTORICAL_DEFINITIONS
+            HISTORICAL_DEFINITIONS,
+            METADATA
           >
         >,
         IAnyError
@@ -1001,7 +1020,8 @@ export type IModel<
             ABBREVIATION,
             MODEL_NAME,
             VERSION,
-            HISTORICAL_DEFINITIONS
+            HISTORICAL_DEFINITIONS,
+            METADATA
           >,
           SERVICE_NAME
         >,
@@ -1014,7 +1034,8 @@ export type IModel<
               ABBREVIATION,
               MODEL_NAME,
               VERSION,
-              HISTORICAL_DEFINITIONS
+              HISTORICAL_DEFINITIONS,
+              METADATA
             >,
             SERVICE_NAME
           >,
@@ -1039,8 +1060,9 @@ export type IModel<
                   : Extract<
                       HISTORICAL_DEFINITIONS[number],
                       { readonly version: MODEL_VERSION }
-                    >['attributes'],
-                ABBREVIATION
+                >['attributes'],
+                ABBREVIATION,
+                METADATA
               >
             >;
           };
@@ -1058,7 +1080,8 @@ export type IModel<
             ABBREVIATION,
             MODEL_NAME,
             VERSION,
-            HISTORICAL_DEFINITIONS
+            HISTORICAL_DEFINITIONS,
+            METADATA
           >,
           SERVICE_NAME
         >,
@@ -1070,7 +1093,8 @@ export type IModel<
               ABBREVIATION,
               MODEL_NAME,
               VERSION,
-              HISTORICAL_DEFINITIONS
+              HISTORICAL_DEFINITIONS,
+              METADATA
             >,
             MODEL_VERSION extends VERSION
               ? ATTRIBUTES
@@ -1088,7 +1112,8 @@ export type IModel<
               ABBREVIATION,
               MODEL_NAME,
               VERSION,
-              HISTORICAL_DEFINITIONS
+              HISTORICAL_DEFINITIONS,
+              METADATA
             >,
             SERVICE_NAME
           >,
@@ -1113,16 +1138,16 @@ export type IServiceModel<
 export type InferResource<
   MODEL extends IModel,
   ATTRIBUTES extends IShape = MODEL['attributes'],
-> = IDecodedResource &
-  InferDecodedRow<InferProperties<ATTRIBUTES, MODEL['abbreviation']>>;
+> = IDecodedResource & InferDecodedRow<ATTRIBUTES & MODEL['metadata']>;
 
 export type InferEncodedResource<MODEL extends IModel> = InferEncodedRow<
-  InferProperties<MODEL['attributes'], MODEL['abbreviation']>
->;
+  IResourceShape
+> &
+  InferEncodedRow<MODEL['attributes'] & MODEL['metadata']>;
 
 export type InferPropertiesTable<MODEL extends IModel> = IDrizzleSchema<
   MODEL['modelName'],
-  InferProperties<MODEL['attributes'], MODEL['abbreviation']>
+  MODEL['attributes'] & MODEL['metadata']
 > & {
   [BrandTypeId]: 'drizzleSchema';
 };

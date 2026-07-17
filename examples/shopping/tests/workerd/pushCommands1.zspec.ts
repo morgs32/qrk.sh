@@ -7,7 +7,6 @@ import { getFrontendDbModels } from '@zerospin/core/frontendController/getFronte
 import { makeSession } from '@zerospin/core/session/makeSession';
 import { sessionStagedCommandDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { makeAccountId } from '@zerospin/core/utils/makeAccountId';
 import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
@@ -105,6 +104,8 @@ describe('pushCommands1: FrontendRepo-owned push and websocket convergence', () 
           });
           const session = makeSession({
             frontend: shopperFrontend,
+            generateSignature: () =>
+              Effect.succeed({ clerkUserId: E2E_CLERK_USER_ID_1 }),
             sessionId,
           });
           const models = getFrontendDbModels(session.frontend);
@@ -162,16 +163,44 @@ describe('pushCommands1: FrontendRepo-owned push and websocket convergence', () 
           });
 
           // 4 - open the frontend websocket before pushing commands
-          const frontendBlockRepoName = `${coreAbbreviations.frontendBlockRepo}_gen_test/${E2E_ACCOUNT_ID}/${shopperFrontend.accountName}/${shopperFrontend.actorName}/${E2E_ACTOR_ID_1}/${shopperFrontend.frontendName}`;
-          const websocketResponse = yield* Effect.promise(() =>
+          const nonUpgradeResponse = yield* Effect.promise(() =>
             SELF.fetch(
-              `http://zerospin-test-rpc.invalid/ws-subscriber/${encodeURIComponent(
-                frontendBlockRepoName,
-              )}`,
-              {
-                headers: { Upgrade: 'websocket' },
-              },
+              'http://zerospin-test-rpc.invalid/ws-frontend-blocks?publishableKey=pk_test&ticket=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
             ),
+          );
+          expect(nonUpgradeResponse.status).toBe(426);
+
+          const missingTicketResponse = yield* Effect.promise(() =>
+            SELF.fetch(
+              'http://zerospin-test-rpc.invalid/ws-frontend-blocks?publishableKey=pk_test',
+              { headers: { Upgrade: 'websocket' } },
+            ),
+          );
+          expect(missingTicketResponse.status).toBe(400);
+
+          const invalidTicketResponse = yield* Effect.promise(() =>
+            SELF.fetch(
+              'http://zerospin-test-rpc.invalid/ws-frontend-blocks?publishableKey=pk_test&ticket=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+              { headers: { Upgrade: 'websocket' } },
+            ),
+          );
+          expect(invalidTicketResponse.status).toBe(401);
+
+          const ticket = yield* makeAsync(() =>
+            frontendApi.createFrontendWebSocketTicket({
+              traceContext: null,
+              args: [],
+            }),
+          ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
+          const frontendWebSocketUrl = new URL(
+            'http://zerospin-test-rpc.invalid/ws-frontend-blocks',
+          );
+          frontendWebSocketUrl.searchParams.set('publishableKey', 'pk_test');
+          frontendWebSocketUrl.searchParams.set('ticket', ticket);
+          const websocketResponse = yield* Effect.promise(() =>
+            SELF.fetch(frontendWebSocketUrl, {
+              headers: { Upgrade: 'websocket' },
+            }),
           );
           expect(websocketResponse.status).toBe(101);
           expect(websocketResponse.webSocket).not.toBeNull();

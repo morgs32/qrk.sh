@@ -6,6 +6,7 @@ import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { makeCursor } from '@zerospin/core/utils/makeCursor';
 import {
@@ -50,7 +51,7 @@ export const handleServiceBlocks = Effect.fn('AccountRepo.handleServiceBlocks')(
       storage,
     } = props;
     const persistedServiceRepoName = yield* Schema.decodeUnknown(
-      makeAbbreviationIdSchema(coreAbbreviations.serviceRepo),
+      makeAbbreviationIdSchema(systemWorkerAbbreviations.serviceRepo),
     )(serviceRepoName).pipe(
       mapParseError({
         code: 'account-service-repo-name-decode-failed',

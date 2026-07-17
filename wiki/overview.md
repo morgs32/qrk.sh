@@ -1,7 +1,7 @@
 ---
 title: Overview
 type: meta
-updated: 2026-07-15
+updated: 2026-07-17
 sources:
   - path: packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts
     sha: 5fbd6cb4a8df630a48ec18b3357b2df87fc0a63a
@@ -18,6 +18,12 @@ sources:
   - path: packages/system-worker/src/FrontendRepo/FrontendRepo.ts
     sha: 0f67aa7553b5ab97444a8358f82a11cc561afe5b
     lines: 41-275
+  - path: packages/react/src/acquireFrontendWebSocket.ts
+    sha: 4eea39c3a926bc94014e1c006d040254a72a6d9e
+    lines: 38-191
+  - path: packages/system-worker/src/SystemWorker.ts
+    sha: 635b5321cfdd30d05bb423874df3c49561e40a32
+    lines: 2086-2160
 ---
 
 # Overview
@@ -61,7 +67,14 @@ The browser packages bootstrap and live-sync that projection through
 
 ## Data flow
 
-See [[architecture/Blockchain]] for the account/service → frontend block chains and [[architecture/bootstrapBrowserSession]] for client bootstrap and live block application.
+See [[architecture/Blockchain]] for the account/service → frontend block chains,
+[[architecture/bootstrapBrowserSession]] for client bootstrap and live block
+application, and [[architecture/FrontendWebSocket]] for the authenticated
+one-use ticket and direct hibernating connection boundary. The browser's fixed
+route contains no durable identity or repo name; SystemWorker consumes the
+ticket before selecting FrontendBlockRepo
+(../packages/react/src/acquireFrontendWebSocket.ts:38-57,
+../packages/system-worker/src/SystemWorker.ts:2086-2160).
 
 ## Entry points
 

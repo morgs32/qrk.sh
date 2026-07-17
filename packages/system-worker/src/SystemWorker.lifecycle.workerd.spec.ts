@@ -12,6 +12,7 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { env, runInDurableObject } from 'cloudflare:test';
 import { Effect } from 'effect';
 import { describe, expect } from 'vitest';
 
@@ -20,6 +21,7 @@ import { system } from './fixtures/system.js';
 import { openGeneration } from './openGeneration/openGeneration.js';
 import { prepareGeneration } from './prepareGeneration/prepareGeneration.js';
 import { SystemRepo } from './SystemRepo/SystemRepo.js';
+import { systemWorkerAbbreviations } from './systemWorkerAbbreviations.js';
 
 describe('SystemWorker generation lifecycle', () => {
   it.effect(
@@ -74,6 +76,44 @@ describe('SystemWorker generation lifecycle', () => {
           admission: 'open',
         });
 
+        const initialDeployTicket = yield* makeAsync(() =>
+          SystemRepo.getRepo({ generationId }).createFrontendWebSocketTicket({
+            deployId: initialDeployId,
+            repoName: 'frtbrepo_initial_target',
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        expect(initialDeployTicket).toMatch(/^[A-Za-z0-9_-]{43}$/);
+        const storedInitialDeployTicket = yield* Effect.promise(() =>
+          runInDurableObject(
+            env.SYSTEM_REPO.getByName(
+              `${systemWorkerAbbreviations.systemRepo}_${generationId}`,
+            ),
+            (_instance, state) =>
+              state.storage.sql
+                .exec<{
+                  ticketHash: string;
+                  deployId: string;
+                  repoName: string;
+                  expiresAt: number;
+                }>(
+                  'SELECT ticketHash, deployId, repoName, expiresAt FROM frontendWebSocketTickets WHERE repoName = ?',
+                  'frtbrepo_initial_target',
+                )
+                .one(),
+          ),
+        );
+        expect(storedInitialDeployTicket.ticketHash).toMatch(
+          /^[A-Za-z0-9_-]{43}$/,
+        );
+        expect(storedInitialDeployTicket.ticketHash).not.toBe(
+          initialDeployTicket,
+        );
+        expect(Object.hasOwn(storedInitialDeployTicket, 'ticket')).toBe(false);
+        expect(storedInitialDeployTicket).toMatchObject({
+          deployId: initialDeployId,
+          repoName: 'frtbrepo_initial_target',
+        });
+
         // 3. Identical encoded model definitions select the existing lineage.
         //    The second deploy prepares against the same generation rather than
         //    allocating or replaying a successor generation.
@@ -112,6 +152,91 @@ describe('SystemWorker generation lifecycle', () => {
           workerVersionId: openedRoot.workerVersionId,
         });
 
+        const staleDeployTicket = yield* makeAsync(() =>
+          SystemRepo.getRepo({
+            generationId,
+          }).consumeFrontendWebSocketTicket({
+            ticket: initialDeployTicket,
+          }),
+        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+        expect(staleDeployTicket._tag).toBe('Left');
+        if (staleDeployTicket._tag === 'Left') {
+          expect(staleDeployTicket.left.code).toBe(
+            'generation-deploy-not-active',
+          );
+        }
+
+        const activeRepoName = 'frtbrepo_active_target';
+        const activeTicket = yield* makeAsync(() =>
+          SystemRepo.getRepo({ generationId }).createFrontendWebSocketTicket({
+            deployId: reuseDeployId,
+            repoName: activeRepoName,
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        const consumedRepoName = yield* makeAsync(() =>
+          SystemRepo.getRepo({
+            generationId,
+          }).consumeFrontendWebSocketTicket({ ticket: activeTicket }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        expect(consumedRepoName).toBe(activeRepoName);
+
+        const replayedTicket = yield* makeAsync(() =>
+          SystemRepo.getRepo({
+            generationId,
+          }).consumeFrontendWebSocketTicket({ ticket: activeTicket }),
+        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+        expect(replayedTicket._tag).toBe('Left');
+        if (replayedTicket._tag === 'Left') {
+          expect(replayedTicket.left.code).toBe(
+            'frontend-websocket-ticket-invalid',
+          );
+        }
+
+        const malformedTicket = yield* makeAsync(() =>
+          SystemRepo.getRepo({
+            generationId,
+          }).consumeFrontendWebSocketTicket({ ticket: 'not-base64url' }),
+        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+        expect(malformedTicket._tag).toBe('Left');
+        if (malformedTicket._tag === 'Left') {
+          expect(malformedTicket.left.code).toBe(
+            'frontend-websocket-ticket-invalid',
+          );
+        }
+
+        const expiredRepoName = 'frtbrepo_expired_target';
+        const expiredTicket = yield* makeAsync(() =>
+          SystemRepo.getRepo({ generationId }).createFrontendWebSocketTicket({
+            deployId: reuseDeployId,
+            repoName: expiredRepoName,
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        yield* Effect.promise(() =>
+          runInDurableObject(
+            env.SYSTEM_REPO.getByName(
+              `${systemWorkerAbbreviations.systemRepo}_${generationId}`,
+            ),
+            (_instance, state) => {
+              state.storage.sql.exec(
+                'UPDATE frontendWebSocketTickets SET expiresAt = ? WHERE repoName = ?',
+                Math.floor(Date.now() / 1_000) - 1,
+                expiredRepoName,
+              );
+            },
+          ),
+        );
+        const expiredTicketResult = yield* makeAsync(() =>
+          SystemRepo.getRepo({
+            generationId,
+          }).consumeFrontendWebSocketTicket({ ticket: expiredTicket }),
+        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+        expect(expiredTicketResult._tag).toBe('Left');
+        if (expiredTicketResult._tag === 'Left') {
+          expect(expiredTicketResult.left.code).toBe(
+            'frontend-websocket-ticket-invalid',
+          );
+        }
+
         const staleDeployAdmission = yield* makeAsync(() =>
           SystemRepo.getRepo({ generationId }).assertGenerationAdmission({
             deployId: initialDeployId,
@@ -135,6 +260,54 @@ describe('SystemWorker generation lifecycle', () => {
         if (staleDeployDrain._tag === 'Left') {
           expect(staleDeployDrain.left.code).toBe(
             'generation-drain-deploy-mismatch',
+          );
+        }
+
+        const drainingRepoName = 'frtbrepo_draining_target';
+        const drainingTicket = yield* makeAsync(() =>
+          SystemRepo.getRepo({ generationId }).createFrontendWebSocketTicket({
+            deployId: reuseDeployId,
+            repoName: drainingRepoName,
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        const ticketPurgedAtDrain = yield* makeAsync(() =>
+          SystemRepo.getRepo({ generationId }).createFrontendWebSocketTicket({
+            deployId: reuseDeployId,
+            repoName: 'frtbrepo_purge_target',
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+
+        yield* Effect.promise(() =>
+          runInDurableObject(
+            env.SYSTEM_REPO.getByName(
+              `${systemWorkerAbbreviations.systemRepo}_${generationId}`,
+            ),
+            (_instance, state) => {
+              state.storage.sql.exec(
+                "UPDATE generationState SET admission = 'draining' WHERE generationId = ?",
+                generationId,
+              );
+            },
+          ),
+        );
+
+        const consumedWhileDraining = yield* makeAsync(() =>
+          SystemRepo.getRepo({
+            generationId,
+          }).consumeFrontendWebSocketTicket({ ticket: drainingTicket }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        expect(consumedWhileDraining).toBe(drainingRepoName);
+
+        const mintWhileDraining = yield* makeAsync(() =>
+          SystemRepo.getRepo({ generationId }).createFrontendWebSocketTicket({
+            deployId: reuseDeployId,
+            repoName: 'frtbrepo_rejected_during_drain',
+          }),
+        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+        expect(mintWhileDraining._tag).toBe('Left');
+        if (mintWhileDraining._tag === 'Left') {
+          expect(mintWhileDraining.left.code).toBe(
+            'generation-write-admission-closed',
           );
         }
 
@@ -169,6 +342,31 @@ describe('SystemWorker generation lifecycle', () => {
         if (drainedReadAdmission._tag === 'Left') {
           expect(drainedReadAdmission.left.code).toBe(
             'generation-read-admission-closed',
+          );
+        }
+
+        const purgedTicket = yield* makeAsync(() =>
+          SystemRepo.getRepo({
+            generationId,
+          }).consumeFrontendWebSocketTicket({ ticket: ticketPurgedAtDrain }),
+        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+        expect(purgedTicket._tag).toBe('Left');
+        if (purgedTicket._tag === 'Left') {
+          expect(purgedTicket.left.code).toBe(
+            'frontend-websocket-ticket-invalid',
+          );
+        }
+
+        const mintAfterDrain = yield* makeAsync(() =>
+          SystemRepo.getRepo({ generationId }).createFrontendWebSocketTicket({
+            deployId: reuseDeployId,
+            repoName: 'frtbrepo_rejected_after_drain',
+          }),
+        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+        expect(mintAfterDrain._tag).toBe('Left');
+        if (mintAfterDrain._tag === 'Left') {
+          expect(mintAfterDrain.left.code).toBe(
+            'generation-write-admission-closed',
           );
         }
 

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { makeModel } from '../models/makeModel.ts';
 import { primitives } from '../models/primitives.ts';
 
+import { makeResourceDbConfig } from './makeDbConfig.ts';
 import { makeTableMigrationSQL } from './makeTableMigrationSQL.ts';
 
 const namePropertySchema = primitives.text();
@@ -70,6 +71,9 @@ const Item = makeModel(
   },
   [],
 );
+const itemDrizzleSchema = makeResourceDbConfig({
+  models: { user: User, item: Item },
+}).schema.item;
 
 describe('makeTableMigrationSQL (models from makeModel)', () => {
   it('migrationSQL contains CREATE TABLE for the model table name', () => {
@@ -78,7 +82,7 @@ describe('makeTableMigrationSQL (models from makeModel)', () => {
   });
 
   it('migrationSQL includes metadata columns and custom attributes', () => {
-    const sql = makeTableMigrationSQL(Item.drizzleSchema);
+    const sql = makeTableMigrationSQL(itemDrizzleSchema);
 
     expect(sql).toContain('CREATE TABLE item');
     expect(sql).toContain('id text PRIMARY KEY NOT NULL');
@@ -91,14 +95,14 @@ describe('makeTableMigrationSQL (models from makeModel)', () => {
   });
 
   it('migrationSQL uses strict CREATE TABLE and does not include IF NOT EXISTS', () => {
-    const sql = makeTableMigrationSQL(Item.drizzleSchema);
+    const sql = makeTableMigrationSQL(itemDrizzleSchema);
 
     expect(sql).toContain('CREATE TABLE item');
     expect(sql).not.toContain('IF NOT EXISTS');
   });
 
   it('migrationSQL omits NOT NULL for nullable property schemas', () => {
-    const sql = makeTableMigrationSQL(Item.drizzleSchema);
+    const sql = makeTableMigrationSQL(itemDrizzleSchema);
 
     expect(sql).toContain('countNullable integer');
     expect(sql).not.toContain('countNullable integer NOT NULL');
@@ -112,16 +116,19 @@ describe('makeTableMigrationSQL (models from makeModel)', () => {
     expect(sql).not.toContain('userIdNullable text NOT NULL');
   });
 
-  it('migrationSQL keeps table refs as text without SQLite references', () => {
-    const sql = makeTableMigrationSQL(Item.drizzleSchema);
+  it('migrationSQL emits immediate SQLite references for persisted refs', () => {
+    const sql = makeTableMigrationSQL(itemDrizzleSchema);
 
     expect(sql).toContain('userId text NOT NULL');
     expect(sql).toContain('userIdNullable text');
-    expect(sql).not.toContain('REFERENCES');
+    expect(sql).toContain('FOREIGN KEY (userId) REFERENCES user (id)');
+    expect(sql).toContain('FOREIGN KEY (userIdNullable) REFERENCES user (id)');
+    expect(sql).not.toContain('ON DELETE');
+    expect(sql).not.toContain('DEFERRABLE');
   });
 
   it('migrationSQL includes expected built-in and custom column clauses', () => {
-    const sql = makeTableMigrationSQL(Item.drizzleSchema);
+    const sql = makeTableMigrationSQL(itemDrizzleSchema);
 
     expect(sql).toContain('id text PRIMARY KEY NOT NULL');
     expect(sql).toContain('enabledDefault integer NOT NULL DEFAULT 1');

@@ -31,7 +31,6 @@ import {
 import type { ISession } from '@zerospin/core/session/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
-import type { ISignatureFactory } from '@zerospin/core/utils/types';
 import type { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import {
@@ -46,7 +45,6 @@ export const pushStagedCommands = Effect.fn('pushStagedCommands')(function* <
   FRONTEND extends IFrontendController,
 >(props: {
   session: ISession<FRONTEND>;
-  generateSignature: ISignatureFactory;
 }): Effect.fn.Return<
   Readonly<{
     pendingCommands: readonly IEncodedCommand<IPushedCommand>[];
@@ -60,7 +58,7 @@ export const pushStagedCommands = Effect.fn('pushStagedCommands')(function* <
   | TelemetryCollector
   | ZerospinApisUrl
 > {
-  const { generateSignature, session } = props;
+  const { session } = props;
 
   const { db, models } = getInitializedStateOrThrow({ session });
 
@@ -80,7 +78,7 @@ export const pushStagedCommands = Effect.fn('pushStagedCommands')(function* <
 
   const publishableKey = yield* PublishableKey;
   const apiUrl = yield* ZerospinApisUrl;
-  const signature = yield* generateSignature();
+  const signature = yield* session.generateSignature();
 
   using apis = newSyncRpcSession<ZerospinApis>(apiUrl);
   const frontendApi = makeTraceableApiTarget(

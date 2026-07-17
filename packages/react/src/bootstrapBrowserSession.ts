@@ -12,7 +12,6 @@ import type {
 import type { IActorId } from '@zerospin/core/models/types';
 import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
 import { type PublishableKey } from '@zerospin/core/services/PublishableKey';
-import { SignatureFactory } from '@zerospin/core/services/SignatureFactory';
 import { type ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
 import { applyFrontendState } from '@zerospin/core/session/applyFrontendState';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
@@ -21,7 +20,6 @@ import type {
   ISessionSchema,
   ISessionWaSqliteDb,
 } from '@zerospin/core/session/types';
-import type { ISignatureFactory } from '@zerospin/core/utils/types';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { fetchActor } from '@zerospin/frontend/fetchActor';
@@ -49,7 +47,6 @@ export const bootstrapBrowserSession = Effect.fn('bootstrapBrowserSession')(
   function* <FRONTEND extends IFrontendController>(props: {
     session: ISession<FRONTEND>;
     browserUserController: IBrowserUserController;
-    generateSignature: ISignatureFactory;
   }): Effect.fn.Return<
     {
       db: ISessionWaSqliteDb<
@@ -62,14 +59,9 @@ export const bootstrapBrowserSession = Effect.fn('bootstrapBrowserSession')(
       releaseBrowserSession: Effect.Effect<void>;
     },
     IAnyError,
-    | Async
-    | CuidFactory
-    | PublishableKey
-    | SignatureFactory
-    | TelemetryCollector
-    | ZerospinApisUrl
+    Async | CuidFactory | PublishableKey | TelemetryCollector | ZerospinApisUrl
   > {
-    const { browserUserController, session, generateSignature } = props;
+    const { browserUserController, session } = props;
 
     // 1 — resource tables + sessionRepoTables
     const models = getFrontendDbModels(session.frontend);
@@ -80,16 +72,10 @@ export const bootstrapBrowserSession = Effect.fn('bootstrapBrowserSession')(
     const schema: ISessionSchema<InferFrontendModels<FRONTEND>> =
       dbConfig.schema;
 
-    const signatureLayer = Effect.provideService(
-      SignatureFactory,
-      generateSignature,
-    );
-
     // 2 — RPC before WASM so capnweb batch is not blocked on first wa-sqlite load
-    const { actor, generationId, systemId, systemVersion } =
-      yield* fetchActor({
-        session,
-      }).pipe(signatureLayer);
+    const { actor, generationId, systemId, systemVersion } = yield* fetchActor({
+      session,
+    });
 
     // 3 — main-thread in-memory WASM SQLite session DB
     const db = yield* makeMigratedInMemoryWasmSqliteDb({
@@ -132,9 +118,7 @@ export const bootstrapBrowserSession = Effect.fn('bootstrapBrowserSession')(
       let appliedFrontendIndex: number | null = null;
 
       // 4 — fetch FrontendApi state for the main-thread session db.
-      const frontendState = yield* fetchFrontendState({ session }).pipe(
-        signatureLayer,
-      );
+      const frontendState = yield* fetchFrontendState({ session });
 
       // 5 — hydrate main-thread db from frontendState.
       yield* applyFrontendState({
@@ -181,10 +165,6 @@ export const bootstrapBrowserSession = Effect.fn('bootstrapBrowserSession')(
 
       releaseFrontendWebSocket = yield* acquireFrontendWebSocket({
         session,
-        accountId,
-        actorId,
-        generationId,
-        generateSignature,
       });
 
       return {

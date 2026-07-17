@@ -6,6 +6,7 @@ import {
   index,
   sqliteTable,
   uniqueIndex,
+  type AnySQLiteColumn,
 } from 'drizzle-orm/sqlite-core';
 import { Effect, ParseResult, Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
@@ -19,6 +20,7 @@ import { PrimitiveKind } from './primitiveKind.ts';
 import type {
   IAnyDrizzleSchema,
   IAnyPrimitiveDescriptor,
+  IAnyRefDescriptor,
   IAnyShape,
   IDrizzleIndexConfig,
   IDrizzleSchema,
@@ -34,9 +36,19 @@ import type {
 
 function buildDrizzleColumnsFromShape<SHAPE extends IAnyShape>(
   shape: SHAPE,
+  resolveReference?: (
+    descriptor: IAnyRefDescriptor,
+  ) => () => AnySQLiteColumn,
 ): InferDrizzleColumnBuildersFromShape<SHAPE> {
   return mapValues(shape, (descriptor, key) =>
-    descriptorToDrizzleColumn({ key: String(key), descriptor }),
+    descriptorToDrizzleColumn({
+      key: String(key),
+      descriptor,
+      ...(descriptor.kind === PrimitiveKind.Ref &&
+      resolveReference !== undefined
+        ? { reference: resolveReference(descriptor) }
+        : {}),
+    }),
   ) as InferDrizzleColumnBuildersFromShape<SHAPE>;
 }
 
@@ -214,14 +226,17 @@ export function descriptorToDrizzleColumn<
 >(props: {
   key: string;
   descriptor: D;
+  reference?: () => AnySQLiteColumn;
 }): InferDrizzleColumnBuilderFromDescriptor<D>;
 export function descriptorToDrizzleColumn(props: {
   key: string;
   descriptor: IEncodedShape[string];
+  reference?: () => AnySQLiteColumn;
 }): ColumnBuilderBase;
 export function descriptorToDrizzleColumn(props: {
   key: string;
   descriptor: IAnyPrimitiveDescriptor | IEncodedShape[string];
+  reference?: () => AnySQLiteColumn;
 }): ColumnBuilderBase {
   const { key, descriptor } = props;
   const nullable = descriptor.nullable === true;
@@ -289,7 +304,19 @@ export function descriptorToDrizzleColumn(props: {
         }
         return descriptor.unique === true ? col.unique() : col;
       }
-      case PrimitiveKind.Ref:
+      case PrimitiveKind.Ref: {
+        let col = nullable
+          ? drizzleText(key).$type<
+              InferIdFromAbbreviation<typeof descriptor.abbreviation>
+            >()
+          : drizzleText(key)
+              .$type<InferIdFromAbbreviation<typeof descriptor.abbreviation>>()
+              .notNull();
+        if (props.reference !== undefined) {
+          col = col.references(props.reference);
+        }
+        return descriptor.unique === true ? col.unique() : col;
+      }
       case PrimitiveKind.Cursor:
       case PrimitiveKind.OpaqueId: {
         const col = nullable
@@ -440,9 +467,14 @@ export function makeDrizzleSchema<
 export function makeDrizzleSchemaFromTable<
   TABLE_NAME extends string,
   SHAPE extends IAnyShape,
->(table: ITable<TABLE_NAME, SHAPE>): IDrizzleSchema<TABLE_NAME, SHAPE> {
+>(
+  table: ITable<TABLE_NAME, SHAPE>,
+  resolveReference?: (
+    descriptor: IAnyRefDescriptor,
+  ) => () => AnySQLiteColumn,
+): IDrizzleSchema<TABLE_NAME, SHAPE> {
   const { indexes, name, shape } = table;
-  const columns = buildDrizzleColumnsFromShape(shape);
+  const columns = buildDrizzleColumnsFromShape(shape, resolveReference);
   if (indexes.length === 0) {
     return sqliteTable(name, columns);
   }

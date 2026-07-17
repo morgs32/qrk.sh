@@ -1,7 +1,6 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import type { InferIdFromAbbreviation } from '@zerospin/core/models/types';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
-import { SignatureFactory } from '@zerospin/core/services/SignatureFactory';
 import { ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
 import { makeSession } from '@zerospin/core/session/makeSession';
 import {
@@ -95,6 +94,10 @@ vi.mock('@zerospin/frontend/fetchActor', async () => {
           accountId: 'acct_1',
           actorId: testActorId.actorId,
         },
+        deployId: 'dpl_browser',
+        generationId: 'gen_browser',
+        systemId: 'sys_browser',
+        systemVersion: '1.0.0',
         systemWorkerName: SYSTEM_WORKER_NAME,
         systemEnvironmentId: 'dev' as const,
       };
@@ -112,15 +115,24 @@ vi.mock('@zerospin/frontend/fetchFrontendState', async () => {
   };
 });
 
+vi.mock('@zerospin/react/acquireFrontendWebSocket', async () => {
+  const { Effect } = await import('effect');
+  return {
+    acquireFrontendWebSocket: Effect.fn('acquireFrontendWebSocket')(
+      function* () {
+        yield* Effect.void;
+        return Effect.void;
+      },
+    ),
+  };
+});
+
 const TestLayer = Layer.mergeAll(
   makePrefixedIncrementalIdFactory('reactAndSharedWorkerFlow1'),
   IncrementalMonotonicFactory,
   ErrorLayer,
   Layer.succeed(ZerospinApisUrl, 'https://api.example.com/'),
   Layer.succeed(PublishableKey, Redacted.make('pk_test')),
-  Layer.succeed(SignatureFactory, () =>
-    Effect.succeed({ clerkUserId: testActorId.clerkUserId }),
-  ),
 );
 
 const generateSignature: ISignatureFactory = () =>
@@ -138,10 +150,12 @@ describe('reactAndSharedWorkerFlow1', () => {
         });
         const session1 = makeSession({
           frontend: shopperFrontend,
+          generateSignature,
           sessionId: sessionId1,
         });
         const session2 = makeSession({
           frontend: shopperFrontend,
+          generateSignature,
           sessionId: sessionId2,
         });
         const controller1 = makeBrowserUserController(testActorId.clerkUserId);
@@ -150,9 +164,7 @@ describe('reactAndSharedWorkerFlow1', () => {
         const bootstrap1 = bootstrapBrowserSession({
           session: session1,
           browserUserController: controller1,
-          generateSignature,
         }).pipe(
-          Effect.provideService(SignatureFactory, generateSignature),
           Effect.provide(
             makeTelemetryLayer(
               session1.store.getState().telemetryCollector,
@@ -164,9 +176,7 @@ describe('reactAndSharedWorkerFlow1', () => {
         const bootstrap2 = bootstrapBrowserSession({
           session: session2,
           browserUserController: controller2,
-          generateSignature,
         }).pipe(
-          Effect.provideService(SignatureFactory, generateSignature),
           Effect.provide(
             makeTelemetryLayer(
               session2.store.getState().telemetryCollector,
@@ -205,6 +215,7 @@ describe('reactAndSharedWorkerFlow1', () => {
         });
         const session1 = makeSession({
           frontend: shopperFrontend,
+          generateSignature,
           sessionId: sessionId1,
         });
 
@@ -213,9 +224,7 @@ describe('reactAndSharedWorkerFlow1', () => {
           browserUserController: makeBrowserUserController(
             testActorId.clerkUserId,
           ),
-          generateSignature,
         }).pipe(
-          Effect.provideService(SignatureFactory, generateSignature),
           Effect.provide(
             makeTelemetryLayer(
               session1.store.getState().telemetryCollector,

@@ -4,14 +4,13 @@ import { makeFrontendController } from '@zerospin/core/frontendController/makeFr
 import { makeModel } from '@zerospin/core/models/makeModel';
 import { primitives } from '@zerospin/core/models/primitives';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
-import { SignatureFactory } from '@zerospin/core/services/SignatureFactory';
 import { ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
 import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
 import { makeSession } from '@zerospin/core/session/makeSession';
 import { mockFrontendApi } from '@zerospin/core/session/test-utils/mockFrontendApi';
 import { IncrementalMonotonicFactory } from '@zerospin/core/test-utils/IncrementalMonotonicFactory';
 import { makePrefixedIncrementalIdFactory } from '@zerospin/core/test-utils/makePrefixedIncrementalIdFactory';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { encodeLeft } from '@zerospin/core/utils/encodeLeft';
 import { encodeRight } from '@zerospin/core/utils/encodeRight';
 import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
@@ -97,7 +96,6 @@ const TestLayer = Layer.mergeAll(
   IncrementalMonotonicFactory,
   Layer.succeed(ZerospinApisUrl, 'https://api.example.com/'),
   Layer.succeed(PublishableKey, Redacted.make('pk_test')),
-  Layer.succeed(SignatureFactory, () => Effect.succeed({ actorId: 'usr_1' })),
   AsyncLive,
   makeTelemetryLayer(telemetryCollector),
   TestContext,
@@ -107,6 +105,7 @@ describe('bootstrapBrowserSession', () => {
   beforeEach(() => {
     Reflect.deleteProperty(globalThis, 'window');
     telemetryCollector.flush();
+    vi.mocked(mockFrontendApi.getFrontendState).mockReset();
     vi.mocked(mockFrontendApi.getFrontendState).mockImplementation(
       async () => ({
         result: encodeRight({
@@ -125,20 +124,26 @@ describe('bootstrapBrowserSession', () => {
         link: null,
       }),
     );
-    vi.mocked(mockFrontendApi.fetchActor).mockResolvedValue(
+    vi.mocked(mockFrontendApi.fetchActor).mockReset();
+    vi.mocked(mockFrontendApi.fetchActor).mockResolvedValue({
+      result: encodeRight({
+        actor: {
+          accountId: 'acct_1',
+          actorId: 'usr_1',
+        },
+        deployId: 'dpl_1',
+        generationId: 'gen_1',
+        systemId: 'sys_1',
+        systemVersion: '1.0.0',
+        systemWorkerName: 'stub-deploy',
+        systemEnvironmentId: 'dev',
+      }),
+      link: null,
+    });
+    vi.mocked(mockFrontendApi.createFrontendWebSocketTicket).mockReset();
+    vi.mocked(mockFrontendApi.createFrontendWebSocketTicket).mockResolvedValue(
       {
-        result: encodeRight({
-          actor: {
-            accountId: 'acct_1',
-            actorId: 'usr_1',
-          },
-          deployId: 'dpl_1',
-          generationId: 'gen_1',
-          systemId: 'sys_1',
-          systemVersion: '1.0.0',
-          systemWorkerName: 'stub-deploy',
-          systemEnvironmentId: 'dev',
-        }),
+        result: encodeRight('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
         link: null,
       },
     );
@@ -160,17 +165,17 @@ describe('bootstrapBrowserSession', () => {
     it.effect('hydrates the session database with fetched frontendState', () =>
       Effect.gen(function* () {
         const sessionId = yield* makeIdFromAbbreviation({
-          abbreviation: cloudIdAbbreviations.defaultSession,
+          abbreviation: coreAbbreviations.session,
         });
         const session = makeSession({
           frontend,
+          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
           sessionId,
         });
 
         yield* bootstrapBrowserSession({
           session,
           browserUserController: makeBrowserUserController('user_1'),
-          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
         });
 
         expect(mockFrontendApi.getFrontendState).toHaveBeenCalledTimes(1);
@@ -186,17 +191,17 @@ describe('bootstrapBrowserSession', () => {
       () =>
         Effect.gen(function* () {
           const sessionId = yield* makeIdFromAbbreviation({
-            abbreviation: cloudIdAbbreviations.defaultSession,
+            abbreviation: coreAbbreviations.session,
           });
           const session = makeSession({
             frontend,
+            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
             sessionId,
           });
 
           const bootstrapResult = yield* bootstrapBrowserSession({
             session,
             browserUserController: makeBrowserUserController('user_1'),
-            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
           });
           yield* bootstrapResult.releaseBrowserSession;
         }),
@@ -205,30 +210,28 @@ describe('bootstrapBrowserSession', () => {
 
     it.effect('reports fetchActor RPC failures during bootstrap', () =>
       Effect.gen(function* () {
-        vi.mocked(mockFrontendApi.fetchActor).mockResolvedValueOnce(
-          {
-            result: encodeLeft(
-              new ZerospinError({
-                code: 'fetch-actor-test-failure',
-                message: 'Fetch actor failed in test',
-              }),
-            ),
-            link: null,
-          },
-        );
+        vi.mocked(mockFrontendApi.fetchActor).mockResolvedValueOnce({
+          result: encodeLeft(
+            new ZerospinError({
+              code: 'fetch-actor-test-failure',
+              message: 'Fetch actor failed in test',
+            }),
+          ),
+          link: null,
+        });
 
         const sessionId = yield* makeIdFromAbbreviation({
-          abbreviation: cloudIdAbbreviations.defaultSession,
+          abbreviation: coreAbbreviations.session,
         });
         const session = makeSession({
           frontend,
+          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
           sessionId,
         });
 
         const maybeBootstrap = yield* bootstrapBrowserSession({
           session,
           browserUserController: makeBrowserUserController('user_1'),
-          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
         }).pipe(Effect.either);
 
         expect(Either.isLeft(maybeBootstrap)).toBe(true);
@@ -241,26 +244,164 @@ describe('bootstrapBrowserSession', () => {
       }),
     );
 
+    it.effect('fails bootstrap when the frontend WebSocket errors before open', () =>
+      Effect.gen(function* () {
+        const closeMock = vi.fn();
+        const removeEventListenerMock = vi.fn();
+        const addEventListenerMock =
+          vi.fn<
+            (
+              type: string,
+              listener: (event: { data: unknown }) => void,
+            ) => void
+          >((type, listener) => {
+            if (type === 'error') {
+              queueMicrotask(() => listener({ data: undefined }));
+            }
+          });
+        const WebSocketMock = vi.fn(function (
+          this: {
+            addEventListener: typeof addEventListenerMock;
+            removeEventListener: typeof removeEventListenerMock;
+            close: typeof closeMock;
+          },
+          _url: string,
+        ) {
+          this.addEventListener = addEventListenerMock;
+          this.removeEventListener = removeEventListenerMock;
+          this.close = closeMock;
+        });
+        Object.defineProperty(globalThis, 'window', {
+          configurable: true,
+          value: { WebSocket: WebSocketMock },
+        });
+        const sessionId = yield* makeIdFromAbbreviation({
+          abbreviation: coreAbbreviations.session,
+        });
+        const session = makeSession({
+          frontend,
+          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+          sessionId,
+        });
+
+        const result = yield* bootstrapBrowserSession({
+          session,
+          browserUserController: makeBrowserUserController('user_1'),
+        }).pipe(Effect.either);
+
+        expect(Either.isLeft(result)).toBe(true);
+        if (Either.isLeft(result)) {
+          expect(result.left.code).toBe('frontend-websocket-open-failed');
+        }
+        expect(closeMock).toHaveBeenCalledTimes(1);
+        expect(removeEventListenerMock).toHaveBeenCalledWith(
+          'open',
+          expect.any(Function),
+        );
+        expect(removeEventListenerMock).toHaveBeenCalledWith(
+          'error',
+          expect.any(Function),
+        );
+        expect(removeEventListenerMock).toHaveBeenCalledWith(
+          'close',
+          expect.any(Function),
+        );
+      }),
+    );
+
+    it.effect('fails bootstrap when the frontend WebSocket closes before open', () =>
+      Effect.gen(function* () {
+        const closeMock = vi.fn();
+        const removeEventListenerMock = vi.fn();
+        const addEventListenerMock =
+          vi.fn<
+            (
+              type: string,
+              listener: (event: { data: unknown }) => void,
+            ) => void
+          >((type, listener) => {
+            if (type === 'close') {
+              queueMicrotask(() => listener({ data: undefined }));
+            }
+          });
+        const WebSocketMock = vi.fn(function (
+          this: {
+            addEventListener: typeof addEventListenerMock;
+            removeEventListener: typeof removeEventListenerMock;
+            close: typeof closeMock;
+          },
+          _url: string,
+        ) {
+          this.addEventListener = addEventListenerMock;
+          this.removeEventListener = removeEventListenerMock;
+          this.close = closeMock;
+        });
+        Object.defineProperty(globalThis, 'window', {
+          configurable: true,
+          value: { WebSocket: WebSocketMock },
+        });
+        const sessionId = yield* makeIdFromAbbreviation({
+          abbreviation: coreAbbreviations.session,
+        });
+        const session = makeSession({
+          frontend,
+          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+          sessionId,
+        });
+
+        const result = yield* bootstrapBrowserSession({
+          session,
+          browserUserController: makeBrowserUserController('user_1'),
+        }).pipe(Effect.either);
+
+        expect(Either.isLeft(result)).toBe(true);
+        if (Either.isLeft(result)) {
+          expect(result.left.code).toBe(
+            'frontend-websocket-closed-before-open',
+          );
+        }
+        expect(removeEventListenerMock).toHaveBeenCalledWith(
+          'open',
+          expect.any(Function),
+        );
+        expect(removeEventListenerMock).toHaveBeenCalledWith(
+          'error',
+          expect.any(Function),
+        );
+        expect(removeEventListenerMock).toHaveBeenCalledWith(
+          'close',
+          expect.any(Function),
+        );
+      }),
+    );
+
     it.effect(
       'opens the browser WebSocket with the expected URL and closes it on release',
       () =>
         Effect.gen(function* () {
           const closeMock = vi.fn();
+          const removeEventListenerMock = vi.fn();
           const addEventListenerMock =
             vi.fn<
               (
                 type: string,
                 listener: (event: { data: unknown }) => void,
               ) => void
-            >();
+            >((type, listener) => {
+              if (type === 'open') {
+                queueMicrotask(() => listener({ data: undefined }));
+              }
+            });
           const WebSocketMock = vi.fn(function (
             this: {
               addEventListener: typeof addEventListenerMock;
+              removeEventListener: typeof removeEventListenerMock;
               close: typeof closeMock;
             },
             _url: string,
           ) {
             this.addEventListener = addEventListenerMock;
+            this.removeEventListener = removeEventListenerMock;
             this.close = closeMock;
           });
           Object.defineProperty(globalThis, 'window', {
@@ -271,17 +412,17 @@ describe('bootstrapBrowserSession', () => {
           });
 
           const sessionId = yield* makeIdFromAbbreviation({
-            abbreviation: cloudIdAbbreviations.defaultSession,
+            abbreviation: coreAbbreviations.session,
           });
           const session = makeSession({
             frontend,
+            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
             sessionId,
           });
 
           const bootstrapResult = yield* bootstrapBrowserSession({
             session,
             browserUserController: makeBrowserUserController('user_1'),
-            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
           });
 
           const frontendWebSocketUrl = new URL(
@@ -291,23 +432,20 @@ describe('bootstrapBrowserSession', () => {
           expect(WebSocketMock).toHaveBeenCalledTimes(1);
           expect(frontendWebSocketUrl.protocol).toBe('wss:');
           expect(frontendWebSocketUrl.pathname).toBe(
-            '/ws-subscriber/frtbrepo_gen_1%2Facct_1%2Fmain%2FtestFrontend%2Fusr_1%2Fdefault',
+            '/ws-frontend-blocks',
           );
           expect(frontendWebSocketUrl.searchParams.get('publishableKey')).toBe(
             'pk_test',
           );
-          expect(frontendWebSocketUrl.searchParams.get('accountName')).toBe(
-            String(frontend.accountName),
+          expect(frontendWebSocketUrl.searchParams.get('ticket')).toBe(
+            'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
           );
-          expect(frontendWebSocketUrl.searchParams.get('actorName')).toBe(
-            frontend.actorName,
+          expect(Array.from(frontendWebSocketUrl.searchParams.keys())).toEqual(
+            ['publishableKey', 'ticket'],
           );
-          expect(frontendWebSocketUrl.searchParams.get('frontendName')).toBe(
-            frontend.frontendName,
-          );
-          expect(frontendWebSocketUrl.searchParams.get('signature')).toBe(
-            JSON.stringify({ actorId: 'usr_1' }),
-          );
+          expect(
+            mockFrontendApi.createFrontendWebSocketTicket,
+          ).toHaveBeenCalledTimes(1);
           expect(addEventListenerMock).toHaveBeenCalledWith(
             'message',
             expect.any(Function),

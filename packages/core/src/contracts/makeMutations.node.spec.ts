@@ -462,6 +462,7 @@ describe('makeMutations', () => {
             version: '1.0.0',
             createdAt: now,
             updatedAt: now,
+            deletedAt: null,
           },
         },
         commandType: 'service' as const,

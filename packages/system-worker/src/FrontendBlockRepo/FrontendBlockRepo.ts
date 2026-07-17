@@ -7,7 +7,7 @@ import { primitives } from '@zerospin/core/models/primitives';
 import type { IAnyTables } from '@zerospin/core/models/types';
 import { FrontendBlockSchema } from '@zerospin/core/session/FrontendBlockSchema';
 import type { IFrontendBlock } from '@zerospin/core/session/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import type { IAnyErrorJson } from '@zerospin/error';
 import { Effect, type Schema } from 'effect';
@@ -35,7 +35,7 @@ const frontendBlockDbConfig = makeDbConfig({ tables: frontendBlockTables });
 export const frontendBlockDrizzleSchemas = frontendBlockDbConfig.schema;
 
 const frontendBlockRepoUtils = makeRepoUtils({
-  abbreviation: coreAbbreviations.frontendBlockRepo,
+  abbreviation: systemWorkerAbbreviations.frontendBlockRepo,
   repoType: 'FrontendBlockRepo',
   namePattern: RoutePattern.parse(
     '/:generationId/:accountId/:accountName/:actorName/:actorId/:frontendName',

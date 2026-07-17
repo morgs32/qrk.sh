@@ -17,7 +17,6 @@ import type {
   IInitializedSessionState,
   ISession,
 } from '@zerospin/core/session/types';
-import type { ISignatureFactory } from '@zerospin/core/utils/types';
 import type { IAnyError } from '@zerospin/error';
 import type { Layer, ManagedRuntime } from 'effect';
 
@@ -33,7 +32,6 @@ export type IBrowserSession<
 
 export type IReactSessionContext<FRONTEND extends IFrontendController> = {
   session: IBrowserSession<FRONTEND>;
-  generateSignature: ISignatureFactory;
 };
 
 export type ISessionProviderBaseServices =

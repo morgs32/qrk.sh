@@ -16,6 +16,7 @@ import { makeTable } from '@zerospin/core/models/makeTable';
 import { primitives } from '@zerospin/core/models/primitives';
 import type { IAnyTables, InferDecodedRow } from '@zerospin/core/models/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
@@ -186,7 +187,7 @@ export const accountBlockTables = {
     name: 'actorSubscribers',
     shape: {
       actorRepoName: primitives.primaryKey({
-        abbreviation: coreAbbreviations.actorRepo,
+        abbreviation: systemWorkerAbbreviations.actorRepo,
       }),
       accountId: primitives.text(),
       accountName: primitives.text(),

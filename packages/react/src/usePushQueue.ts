@@ -1,86 +1,70 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import type { IFrontendController } from '@zerospin/core/frontendController/types';
 import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
-import type { ISignatureFactory } from '@zerospin/core/utils/types';
 import { pushStagedCommands } from '@zerospin/frontend/pushStagedCommands';
 import { makeTelemetryLayer } from '@zerospin/logger';
-import { Duration, Effect, Exit, Fiber, Ref, Schema } from 'effect';
+import { Duration, Effect, Exit, Fiber, Queue, Ref, Schema } from 'effect';
 import { useStore } from 'zustand/react';
 
 import type { IBrowserSession, ISessionProviderRuntime } from './types';
 
 export function usePushQueue<FRONTEND extends IFrontendController>(props: {
   session: IBrowserSession<FRONTEND>;
-  generateSignature: ISignatureFactory;
+  pushQueue: Queue.Queue<number>;
   sessionRuntime: ISessionProviderRuntime;
   enabled: boolean;
 }) {
-  const { enabled, generateSignature, session, sessionRuntime } = props;
+  const { enabled, pushQueue, session, sessionRuntime } = props;
 
   const isPushPaused = useStore(session.store, state => state.isPushPaused);
   const pushEnabled = enabled && !isPushPaused;
 
   const setOnlineRef = useRef<(online: boolean) => void>(() => {});
 
-  useEffect(() => {
-    const runPushStagedCommands = () =>
-      pushStagedCommands({
-        session: session.coreSession,
-        generateSignature,
-      });
+  const manuallyPushStagedCommands = useCallback(() => {
+    // Pre-initialization push is an ordering error: fail the caller
+    // synchronously instead of leaving a hung or rejected orphan Promise.
+    getInitializedStateOrThrow({ session: session.coreSession });
+    return sessionRuntime.runPromise(
+      Effect.gen(function* () {
+        // 1 — This span exists only for an explicit DevTools push. Automatic
+        // queue drains keep their existing tracing and never update the
+        // session's manual-push pointer.
+        const span = yield* Effect.currentSpan.pipe(Effect.orDie);
+        const traceId = Schema.decodeUnknownSync(
+          Schema.TemplateLiteral('trc_', Schema.String),
+        )(span.traceId);
 
-    session.coreSession.pushStagedCommands = () => {
-      // Pre-initialization push is an ordering error: fail the caller
-      // synchronously instead of leaving a hung or rejected orphan Promise.
-      getInitializedStateOrThrow({ session: session.coreSession });
-      return sessionRuntime.runPromise(
-        Effect.gen(function* () {
-          // 1 — This span exists only for an explicit DevTools push. Automatic
-          // queue drains keep their existing tracing and never update the
-          // session's manual-push pointer.
-          const span = yield* Effect.currentSpan.pipe(Effect.orDie);
-          const traceId = Schema.decodeUnknownSync(
-            Schema.TemplateLiteral('trc_', Schema.String),
-          )(span.traceId);
-
-          // 2 — Record the same trace for either settlement while preserving
-          // the original push result or failure for the imperative caller.
-          return yield* runPushStagedCommands().pipe(
-            Effect.onExit(exit =>
-              Effect.sync(() => {
-                session.coreSession.store.setState({
-                  lastDevtoolsPush: {
-                    traceId,
-                    completedAt: Date.now(),
-                    status: Exit.isSuccess(exit) ? 'ok' : 'error',
-                  },
-                });
-              }),
-            ),
-          );
+        // 2 — Record the same trace for either settlement while preserving
+        // the original push result or failure for the imperative caller.
+        return yield* pushStagedCommands({
+          session: session.coreSession,
         }).pipe(
-          Effect.withSpan('devtools.pushStagedCommands'),
-          Effect.provide(
-            makeTelemetryLayer(
-              session.coreSession.store.getState().telemetryCollector,
-            ),
+          Effect.onExit(exit =>
+            Effect.sync(() => {
+              session.coreSession.store.setState({
+                lastDevtoolsPush: {
+                  traceId,
+                  completedAt: Date.now(),
+                  status: Exit.isSuccess(exit) ? 'ok' : 'error',
+                },
+              });
+            }),
+          ),
+        );
+      }).pipe(
+        Effect.withSpan('devtools.pushStagedCommands'),
+        Effect.provide(
+          makeTelemetryLayer(
+            session.coreSession.store.getState().telemetryCollector,
           ),
         ),
-      );
-    };
-
-    return () => {
-      session.coreSession.pushStagedCommands = () =>
-        Promise.resolve({
-          pendingCommands: [],
-          pushedCommands: [],
-          failedCommands: [],
-        });
-    };
-  }, [generateSignature, session, sessionRuntime]);
+      ),
+    );
+  }, [session, sessionRuntime]);
 
   useEffect(() => {
     if (!pushEnabled) {
@@ -101,11 +85,10 @@ export function usePushQueue<FRONTEND extends IFrontendController>(props: {
                 return;
               }
 
-              yield* session.coreSession.pushQueue.take();
+              yield* Queue.take(pushQueue);
 
               yield* pushStagedCommands({
                 session: session.coreSession,
-                generateSignature,
               }).pipe(
                 Effect.provide(
                   makeTelemetryLayer(
@@ -120,7 +103,7 @@ export function usePushQueue<FRONTEND extends IFrontendController>(props: {
         setOnlineRef.current = (online: boolean) => {
           sessionRuntime.runSync(Ref.set(isOnline, online));
           if (online) {
-            session.coreSession.pushQueue.offer();
+            sessionRuntime.runFork(Queue.offer(pushQueue, Date.now()));
           }
         };
         setOnlineRef.current(
@@ -135,14 +118,7 @@ export function usePushQueue<FRONTEND extends IFrontendController>(props: {
       void sessionRuntime.runPromise(Fiber.interrupt(setupFiber));
       setOnlineRef.current = () => {};
     };
-  }, [
-    enabled,
-    generateSignature,
-    isPushPaused,
-    pushEnabled,
-    session,
-    sessionRuntime,
-  ]);
+  }, [enabled, isPushPaused, pushQueue, pushEnabled, session, sessionRuntime]);
 
   useEffect(() => {
     if (!pushEnabled || typeof window === 'undefined') {
@@ -164,4 +140,8 @@ export function usePushQueue<FRONTEND extends IFrontendController>(props: {
       window.removeEventListener('offline', onOffline);
     };
   }, [pushEnabled]);
+
+  return {
+    pushStagedCommands: manuallyPushStagedCommands,
+  };
 }

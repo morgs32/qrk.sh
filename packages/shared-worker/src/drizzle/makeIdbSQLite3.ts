@@ -39,5 +39,6 @@ export async function makeIdbSQLite3(props: {
     SQLite.SQLITE_OPEN_CREATE | SQLite.SQLITE_OPEN_READWRITE,
     vfs.name,
   );
+  await sqlite3.exec(db, 'PRAGMA foreign_keys = ON;');
   return { sqlite3, db, vfs };
 }

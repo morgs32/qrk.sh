@@ -62,6 +62,9 @@ describe('makeModel', () => {
     type UserRow = InferResource<typeof User>;
     assert<Equals<UserRow['id'], `usr_${string}`>>();
     assert<Equals<InferResource<typeof User>['id'], `usr_${string}`>>();
+    assert<
+      Equals<'deletedAt' extends keyof InferResource<typeof User> ? true : false, false>
+    >();
 
     // Drizzle `$inferSelect.id` stays `string`; typed row shape uses `InferResource` for prefix branding.
   });
@@ -71,6 +74,18 @@ describe('makeModel', () => {
     expect(User.modelName).toBe('user');
     expect(User.attributes).toEqual({
       name: namePropertySchema,
+    });
+    expect(Object.keys(User.metadata)).toEqual([
+      'id',
+      'modelName',
+      'createdAt',
+      'updatedAt',
+      'version',
+    ]);
+    expect(User.metadata).not.toHaveProperty('deletedAt');
+    expect(User.propertiesShape).toEqual({
+      ...User.metadata,
+      ...User.attributes,
     });
     expect(User.version).toBe('1.0.0');
     expect(makeEffectSchema(User.attributes)).toBeDefined();
@@ -398,6 +413,24 @@ describe('makeModel', () => {
         [],
       ),
     ).toThrow();
+  });
+
+  it('reserves service deletion metadata on plain models', () => {
+    expect(() =>
+      makeModel(
+        {
+          abbreviation: 'bad',
+          modelName: 'reservedDeletedAt',
+          attributes: {
+            // @ts-expect-error deletedAt is framework metadata even on plain models
+            deletedAt: primitives.date({ nullable: true }),
+          },
+          indexes: [],
+          version: '1.0.0',
+        },
+        [],
+      ),
+    ).toThrow(/framework metadata keys are reserved/);
   });
 
   it('rejects payload primary keys on attributes', () => {

@@ -6,7 +6,7 @@ import { describe, expect } from 'vitest';
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
-import { List, main, mainModels } from '../fixtures/system.ts';
+import { List, main, mainModels, User } from '../fixtures/system.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
@@ -74,6 +74,15 @@ describe('applyFrontendReplicaState', () => {
             lastRebasedPushedCursor: null,
             pushedCommands: [],
             resources: [
+              {
+                id: 'usr_1',
+                modelName: User.modelName,
+                createdAt: now,
+                updatedAt: now,
+                version: User.version,
+                actorId: 'actr_1',
+                name: 'User',
+              },
               {
                 id: 'lst_1',
                 modelName: List.modelName,

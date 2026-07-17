@@ -17,6 +17,7 @@ import type {
 } from '@zerospin/core/contracts/types';
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
+import { withSavepoint } from '@zerospin/core/drizzle/withSavepoint';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { dutils } from '@zerospin/core/utils/dutils';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
@@ -167,27 +168,59 @@ export const finalizeServiceCommands = Effect.fn(
             continue;
           }
 
-          for (const [
-            mutationIndex,
-            mutation,
-          ] of maybeMutations.right.mutations.entries()) {
-            if (mutation.operationName === 'replicateResource') {
-              return yield* new ZerospinError({
-                code: 'service-contract-cannot-replicate-resource',
-                message: `Service contract ${command.commandName} cannot emit replicateResource`,
-              });
-            }
-            const appliedMutation = yield* applyMutationTx({
-              tx,
-              mutation,
-              commandId: command.id,
-              mutationIndex,
-              appliedAt: now,
+          const maybeAppliedMutations = yield* withSavepoint({
+            tx,
+            program: Effect.fn(
+              'ServiceRepo.finalizeServiceCommands.commandSavepoint',
+            )(function* ({ tx }) {
+              const commandAppliedMutations: IEncodedAppliedMutation[] = [];
+              for (const [
+                mutationIndex,
+                mutation,
+              ] of maybeMutations.right.mutations.entries()) {
+                if (mutation.operationName === 'replicateResource') {
+                  return yield* new ZerospinError({
+                    code: 'service-contract-cannot-replicate-resource',
+                    message: `Service contract ${command.commandName} cannot emit replicateResource`,
+                  });
+                }
+                const appliedMutation = yield* applyMutationTx({
+                  tx,
+                  mutation,
+                  commandId: command.id,
+                  mutationIndex,
+                  appliedAt: now,
+                });
+                commandAppliedMutations.push(
+                  yield* encodeAppliedMutation({ mutation: appliedMutation }),
+                );
+              }
+              return commandAppliedMutations;
+            }),
+          }).pipe(Effect.either);
+
+          if (Either.isLeft(maybeAppliedMutations)) {
+            failedCommands.push({
+              ...command,
+              serviceCursor,
+              serviceIndex: currentServiceIndex,
+              failedAt: now,
+              failure: ZerospinError.stringify(maybeAppliedMutations.left),
+              status: 'failed',
             });
-            appliedMutations.push(
-              yield* encodeAppliedMutation({ mutation: appliedMutation }),
-            );
+            tx.insert(serviceRepoDrizzleSchemas.serviceCursors)
+              .values({
+                commandId: command.id,
+                serviceCursor,
+                serviceIndex: currentServiceIndex,
+                appliedAt: now,
+              })
+              .onConflictDoNothing()
+              .run();
+            continue;
           }
+
+          appliedMutations.push(...maybeAppliedMutations.right);
 
           tx.insert(serviceRepoDrizzleSchemas.serviceCursors)
             .values({

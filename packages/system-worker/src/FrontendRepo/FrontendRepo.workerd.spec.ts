@@ -231,6 +231,7 @@ describe('FrontendRepo', () => {
                 version: '1.0.0',
                 createdAt: seedTime,
                 updatedAt: seedTime,
+                deletedAt: null,
               },
             },
           });
@@ -722,6 +723,7 @@ describe('FrontendRepo', () => {
                 version: '1.0.0',
                 createdAt: seedTime,
                 updatedAt: seedTime,
+                deletedAt: null,
               },
             },
           });
@@ -793,9 +795,30 @@ describe('FrontendRepo', () => {
               systemWorkerName: 'system-worker-test',
             }),
           ).pipe(Effect.flatMap(decodeRpc));
-          expect(
-            deletedState.resources.find(row => row.id === productId),
-          ).toBeUndefined();
+          const deletedFrontendResource = deletedState.resources.find(
+            row => row.id === productId,
+          );
+          expect(deletedFrontendResource).toEqual(
+            expect.objectContaining({
+              id: productId,
+              name: 'Updated service product',
+              deletedAt: expect.any(Date),
+            }),
+          );
+          const deletedServiceProduct = yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getServiceRepo,
+              repo: ServiceRepo,
+              key: { generationId: 'gen_test', serviceName: 'app' },
+              fn: ({ db, schema }) =>
+                db
+                  .select()
+                  .from(schema.product)
+                  .where(eq(schema.product.id, productId))
+                  .get(),
+            }),
+          );
           const deletedAccountState = yield* Effect.promise(() =>
             executeInRepo({
               managedRuntime,
@@ -819,7 +842,61 @@ describe('FrontendRepo', () => {
               }),
             }),
           );
-          expect(deletedAccountState.product).toBeUndefined();
+          const deletedActorProduct = yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getActorRepo,
+              repo: ActorRepo,
+              key: actorKey,
+              fn: ({ db, schema }) =>
+                db
+                  .select()
+                  .from(schema.product)
+                  .where(eq(schema.product.id, productId))
+                  .get(),
+            }),
+          );
+          const deletedFrontendProduct = yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getFrontendRepo,
+              repo: FrontendRepo,
+              key: frontendKey,
+              fn: ({ db, schema }) =>
+                db
+                  .select()
+                  .from(schema.product)
+                  .where(eq(schema.product.id, productId))
+                  .get(),
+            }),
+          );
+          expect(deletedServiceProduct).toEqual(
+            expect.objectContaining({
+              id: productId,
+              deletedAt: expect.any(Date),
+            }),
+          );
+          expect(deletedAccountState.product).toEqual(
+            expect.objectContaining({
+              id: productId,
+              deletedAt: deletedServiceProduct?.deletedAt,
+            }),
+          );
+          expect(deletedActorProduct).toEqual(
+            expect.objectContaining({
+              id: productId,
+              deletedAt: deletedServiceProduct?.deletedAt,
+            }),
+          );
+          expect(deletedFrontendProduct).toEqual(
+            expect.objectContaining({
+              id: productId,
+              deletedAt: deletedServiceProduct?.deletedAt,
+            }),
+          );
+          expect(deletedFrontendResource?.deletedAt).toEqual(
+            deletedServiceProduct?.deletedAt,
+          );
           expect(deletedAccountState.subscriptions).toEqual([
             expect.objectContaining({
               serviceName: 'app',
@@ -878,9 +955,15 @@ describe('FrontendRepo', () => {
               name: 'Updated service product',
             }),
           ]);
-          expect(serviceDeleteBlock.delta.deleted).toEqual([
-            { id: productId, modelName: 'product' },
+          expect(serviceDeleteBlock.delta.inserted).toEqual([]);
+          expect(serviceDeleteBlock.delta.updated).toEqual([
+            expect.objectContaining({
+              id: productId,
+              name: 'Updated service product',
+              deletedAt: deletedServiceProduct?.deletedAt,
+            }),
           ]);
+          expect(serviceDeleteBlock.delta.deleted).toEqual([]);
           const serviceBlockRows = yield* Effect.promise(() =>
             executeInRepo({
               managedRuntime,
@@ -966,6 +1049,7 @@ describe('FrontendRepo', () => {
                 version: '1.0.0',
                 createdAt: seedTime,
                 updatedAt: seedTime,
+                deletedAt: null,
               },
             },
           });
@@ -1047,7 +1131,7 @@ describe('FrontendRepo', () => {
     );
 
     it.effect(
-      'deletes a replicated service resource and removes its row membership',
+      'retains a deleted service resource and rejects new replication',
       () =>
         Effect.gen(function* () {
           const accountId = makeAccountId({ id: 'frontend-delete-resource' });
@@ -1166,6 +1250,7 @@ describe('FrontendRepo', () => {
                 version: '1.0.0',
                 createdAt: seedTime,
                 updatedAt: seedTime,
+                deletedAt: null,
               },
             },
           });
@@ -1261,7 +1346,13 @@ describe('FrontendRepo', () => {
               }),
             }),
           );
-          expect(accountDeleteState.products).toEqual([]);
+          expect(accountDeleteState.products).toEqual([
+            expect.objectContaining({
+              id: productId,
+              name: 'Doomed service product',
+              deletedAt: expect.any(Date),
+            }),
+          ]);
           expect(accountDeleteState.subscriptions).toEqual([
             expect.objectContaining({
               serviceName: 'app',
@@ -1282,7 +1373,13 @@ describe('FrontendRepo', () => {
           ).pipe(Effect.flatMap(decodeRpc));
           expect(
             deletedState.resources.find(row => row.id === productId),
-          ).toBeUndefined();
+          ).toEqual(
+            expect.objectContaining({
+              id: productId,
+              name: 'Doomed service product',
+              deletedAt: accountDeleteState.products[0]?.deletedAt,
+            }),
+          );
 
           const rereplicateCommand = yield* makeAccountCommand({
             contracts: userAccount.contracts,
@@ -1302,6 +1399,7 @@ describe('FrontendRepo', () => {
                 version: '1.0.0',
                 createdAt: seedTime,
                 updatedAt: seedTime,
+                deletedAt: null,
               },
             },
           });
@@ -1426,6 +1524,18 @@ describe('FrontendRepo', () => {
               repo: FrontendRepo,
               key: frontendKey,
               fn: async ({ db, name, schema, storage }) => {
+                const now = new Date(0);
+                db.insert(schema.user)
+                  .values({
+                    id: userId,
+                    actorId,
+                    modelName: 'user',
+                    name: 'Frontend push classification user',
+                    version: '1.0.0',
+                    createdAt: now,
+                    updatedAt: now,
+                  })
+                  .run();
                 const result = await managedRuntime.runPromise(
                   pushCommands({
                     accountId,
@@ -1650,7 +1760,7 @@ describe('FrontendRepo', () => {
               getRepo: getFrontendRepo,
               repo: FrontendRepo,
               key: frontendKey,
-              fn: async ({ db, name, storage }) => {
+              fn: async ({ db, name, schema, storage }) => {
                 await managedRuntime.runPromise(
                   bootstrap({
                     key: frontendKey,
@@ -1677,6 +1787,18 @@ describe('FrontendRepo', () => {
                     storage,
                   }),
                 );
+                const now = new Date(0);
+                db.insert(schema.user)
+                  .values({
+                    id: userId,
+                    actorId,
+                    modelName: 'user',
+                    name: 'Frontend push account cursor user',
+                    version: '1.0.0',
+                    createdAt: now,
+                    updatedAt: now,
+                  })
+                  .run();
                 const result = await managedRuntime.runPromise(
                   pushCommands({
                     accountId,
@@ -1809,6 +1931,18 @@ describe('FrontendRepo', () => {
               repo: FrontendRepo,
               key: frontendKey,
               fn: async ({ db, name, schema, storage }) => {
+                const now = new Date(0);
+                db.insert(schema.user)
+                  .values({
+                    id: userId,
+                    actorId,
+                    modelName: 'user',
+                    name: 'Frontend optimistic rebase user',
+                    version: '1.0.0',
+                    createdAt: now,
+                    updatedAt: now,
+                  })
+                  .run();
                 const firstPush = await managedRuntime.runPromise(
                   pushCommands({
                     accountId,

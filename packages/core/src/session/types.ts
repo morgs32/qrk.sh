@@ -5,14 +5,13 @@ import type {
   ITraceId,
 } from '@zerospin/logger';
 import type { AnyRelations } from 'drizzle-orm';
-import type { Effect, Schema } from 'effect';
+import type { Schema } from 'effect';
 import type { StoreApi } from 'zustand';
 
 import type {
   IEncodedCommand,
   IExecutedPushedCommand,
   IFailedPushedCommand,
-  IFailedStagedCommand,
   InferCommand,
   IPushedCommand,
   IStagedCommand,
@@ -40,6 +39,7 @@ import type {
   IPushedCursorId,
   IRef,
 } from '../models/types.ts';
+import type { ISignatureFactory } from '../utils/types.ts';
 
 import type {
   sessionFailedCommandShape,
@@ -171,6 +171,7 @@ export type ISession<
   FRONTEND extends IFrontendController = IFrontendController,
 > = {
   frontend: FRONTEND;
+  generateSignature: ISignatureFactory;
   /**
    * One-shot readiness callback. Registration after initialization invokes
    * the handler synchronously; registration before it fires once in the next
@@ -193,18 +194,6 @@ export type ISession<
       IStagedCommand<InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>>,
       IAnyErrorJson
     >
-  >;
-  pushQueue: {
-    offer: () => void;
-    take: () => Effect.Effect<number>;
-    shutdown: () => Effect.Effect<void>;
-  };
-  pushStagedCommands: () => Promise<
-    Readonly<{
-      pendingCommands: readonly IEncodedCommand<IPushedCommand>[];
-      pushedCommands: readonly IEncodedCommand<IPushedCommand>[];
-      failedCommands: readonly IEncodedCommand<IFailedStagedCommand>[];
-    }>
   >;
   store: ISessionStoreApi<InferFrontendModels<FRONTEND>>;
 };

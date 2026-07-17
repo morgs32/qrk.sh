@@ -9,7 +9,7 @@ import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
 import * as NodePath from '@effect/platform-node/NodePath';
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
-import { cloudIdAbbreviations } from '@zerospin/core/utils/cloudIdAbbreviations';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { makeSystemWorkerName } from '@zerospin/dispatch-worker/makeSystemWorkerName';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { loadConfig } from 'c12';
@@ -116,7 +116,7 @@ export const devFn = Effect.fn('devFn')(function* (props: {
   }
   const rawSystemId = Reflect.get(rawVars, 'ZEROSPIN_SYSTEM_ID');
   const systemId = yield* Schema.decodeUnknown(
-    makeAbbreviationIdSchema(cloudIdAbbreviations.systemRecord),
+    makeAbbreviationIdSchema(coreAbbreviations.system),
   )(rawSystemId).pipe(
     Effect.mapError(
       cause =>

@@ -1,4 +1,8 @@
-import { mapParseError, type IAnyError } from '@zerospin/error';
+import {
+  mapParseError,
+  ZerospinError,
+  type IAnyError,
+} from '@zerospin/error';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
@@ -46,10 +50,51 @@ export const applyFrontendMutationTx = Effect.fn('applyFrontendMutationTx')(
             }),
           );
 
-    upsertHelper({
-      table,
-      tx,
-      values: mutation.operation.resource,
+    const deletedAt =
+      mutation.operation.resource.deletedAt ??
+      (previousRow !== undefined && 'deletedAt' in previousRow
+        ? previousRow.deletedAt
+        : undefined);
+    if (deletedAt !== null && deletedAt !== undefined) {
+      return yield* new ZerospinError({
+        code: 'service-resource-deleted',
+        message: `Cannot replicate deleted service resource "${mutation.resourceId}"`,
+        extra: {
+          modelName: mutation.model.modelName,
+          resourceId: mutation.resourceId,
+          operationName: mutation.operationName,
+          deletedAt,
+        },
+      });
+    }
+
+    yield* Effect.try({
+      try: () =>
+        upsertHelper({
+          table,
+          tx,
+          values: mutation.operation.resource,
+        }),
+      catch: cause => {
+        const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
+          cause instanceof Error && cause.cause !== undefined
+            ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
+            : ''
+        }`;
+        if (!failure.toLowerCase().includes('foreign key constraint failed')) {
+          throw cause;
+        }
+        return new ZerospinError({
+          code: 'mutation-referential-integrity-failed',
+          message: `Cannot apply replicateResource mutation to "${mutation.model.modelName}.${mutation.resourceId}" because it violates a persisted reference`,
+          cause: failure,
+          extra: {
+            modelName: mutation.model.modelName,
+            resourceId: mutation.resourceId,
+            operationName: mutation.operationName,
+          },
+        });
+      },
     });
 
     return {

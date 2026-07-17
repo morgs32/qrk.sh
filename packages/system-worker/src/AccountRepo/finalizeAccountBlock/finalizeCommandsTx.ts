@@ -14,10 +14,12 @@ import type {
   IFailedAccountCommand,
 } from '@zerospin/core/contracts/types';
 import type { ITx } from '@zerospin/core/drizzle/types';
+import { withSavepoint } from '@zerospin/core/drizzle/withSavepoint';
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { dutils } from '@zerospin/core/utils/dutils';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { makeCursor } from '@zerospin/core/utils/makeCursor';
@@ -87,7 +89,7 @@ export const finalizeCommandsTx = Effect.fn('AccountRepo.finalizeCommandsTx')(
     // 2 — first-appearance service order is preserved independently of RPC completion order
     for (const serviceAlignment of serviceAlignments) {
       const persistedServiceRepoName = yield* Schema.decodeUnknown(
-        makeAbbreviationIdSchema(coreAbbreviations.serviceRepo),
+        makeAbbreviationIdSchema(systemWorkerAbbreviations.serviceRepo),
       )(serviceAlignment.serviceRepoName).pipe(
         mapParseError({
           code: 'account-service-repo-name-decode-failed',
@@ -262,18 +264,44 @@ export const finalizeCommandsTx = Effect.fn('AccountRepo.finalizeCommandsTx')(
         continue;
       }
 
-      for (const [mutationIndex, mutation] of maybeMutations.right.mutations.entries()) {
-        const appliedMutation = yield* applyAccountMutationTx({
-          tx,
-          mutation,
-          commandId: command.id,
-          mutationIndex,
-          appliedAt: now,
+      const maybeAppliedMutations = yield* withSavepoint({
+        tx,
+        program: Effect.fn('AccountRepo.finalizeCommandsTx.commandSavepoint')(
+          function* ({ tx }) {
+            const commandAppliedMutations: IEncodedAppliedMutation[] = [];
+            for (const [
+              mutationIndex,
+              mutation,
+            ] of maybeMutations.right.mutations.entries()) {
+              const appliedMutation = yield* applyAccountMutationTx({
+                tx,
+                mutation,
+                commandId: command.id,
+                mutationIndex,
+                appliedAt: now,
+              });
+              commandAppliedMutations.push(
+                yield* encodeAppliedMutation({ mutation: appliedMutation }),
+              );
+            }
+            return commandAppliedMutations;
+          },
+        ),
+      }).pipe(Effect.either);
+
+      if (Either.isLeft(maybeAppliedMutations)) {
+        failedCommands.push({
+          ...command,
+          accountCursor,
+          accountIndex: currentAccountIndex,
+          failedAt: now,
+          failure: ZerospinError.stringify(maybeAppliedMutations.left),
+          status: 'failed',
         });
-        appliedMutations.push(
-          yield* encodeAppliedMutation({ mutation: appliedMutation }),
-        );
+        continue;
       }
+
+      appliedMutations.push(...maybeAppliedMutations.right);
 
       executedCommands.push({
         ...command,

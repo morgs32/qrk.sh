@@ -1,7 +1,7 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { IAccountCursor } from '@zerospin/core/models/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { mapParseError } from '@zerospin/error';
 import { sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
@@ -18,7 +18,7 @@ export const subscribeFrontend = Effect.fn('ActorBlockRepo.subscribeFrontend')(
   }) {
     const { db, ...subscriber } = props;
     const persistedFrontendRepoName = yield* Schema.decodeUnknown(
-      makeAbbreviationIdSchema(coreAbbreviations.frontendRepo),
+      makeAbbreviationIdSchema(systemWorkerAbbreviations.frontendRepo),
     )(subscriber.frontendRepoName).pipe(
       mapParseError({
         code: 'actor-block-frontend-repo-name-decode-failed',

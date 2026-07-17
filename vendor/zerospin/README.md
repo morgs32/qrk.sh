@@ -1,10 +1,5 @@
 # Zerospin
 
-## Zerospin subrepo metadata
-
-- Upstream: `https://github.com/morgs32/zerospin.git`
-- Branch: `main`
-
 ## Vendor
 
 `vendor/` contains external repositories vendored with `git subtree`:

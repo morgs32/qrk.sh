@@ -1,10 +1,9 @@
 import { collectionsHash } from "@qrk.sh/bricks";
 import { Tabs } from "@base-ui/react/tabs";
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
-import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
-import { Button } from "../../ui/button";
+import { LeadingRow } from "../LeadingRow";
 import { useGridStore } from "../useGridStore";
 
 export const Route = createFileRoute("/_sandbox/collections/$collectionName/")({
@@ -13,8 +12,6 @@ export const Route = createFileRoute("/_sandbox/collections/$collectionName/")({
 
 function CollectionCatalog() {
   const { collectionName } = Route.useParams();
-  const [activeViews, setActiveViews] = useState<Record<string, string | number>>({});
-  const [isCollectionDataExpanded, setIsCollectionDataExpanded] = useState(false);
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const collection = Object.values(collectionsHash).find(
     (candidate) => candidate.collectionName === collectionName,
@@ -35,28 +32,10 @@ function CollectionCatalog() {
           <ArrowLeft aria-hidden className="size-4" />
           <span>All collections</span>
         </Link>
-        <h1 className="mb-1 mt-5 text-4xl font-semibold tracking-tight">
-          {collection.collectionLabel}
-        </h1>
-        <p className="mt-0 font-mono text-sm text-zinc-500">{collection.collectionName}</p>
-        <Button
-          type="button"
-          size="sm"
-          className="mt-4"
-          aria-controls="collection-data-section"
-          aria-expanded={isCollectionDataExpanded}
-          onClick={() => setIsCollectionDataExpanded((currentValue) => !currentValue)}
-        >
-          View data
-        </Button>
-        {isCollectionDataExpanded && (
-          <section
-            id="collection-data-section"
-            className="mt-4 border border-zinc-300 bg-white p-4 text-sm"
-          >
-            Hello World
-          </section>
-        )}
+        <dl className="mt-5 space-y-3 text-sm">
+          <LeadingRow label="Collection name" value={collection.collectionLabel} />
+          <LeadingRow label="Collection ID" value={collection.collectionName} />
+        </dl>
       </div>
       <div className="mt-8 flex flex-col gap-10">
         {bricks.map((brick) => {
@@ -64,49 +43,41 @@ function CollectionCatalog() {
 
           return (
             <section key={`${brick.def.variant}/${brick.def.size}`}>
-              <Tabs.Root
-                value={
-                  activeViews[`${brick.def.variant}--${brick.def.size}`] ??
-                  `${brick.def.variant}--${brick.def.size}-preview`
-                }
-                onValueChange={(nextValue) => {
-                  setActiveViews((currentViews) => {
-                    return {
-                      ...currentViews,
-                      [`${brick.def.variant}--${brick.def.size}`]: nextValue,
-                    };
-                  });
-                }}
-              >
+              <Tabs.Root value={`${brick.def.variant}--${brick.def.size}-preview`}>
                 <div className="flex items-baseline justify-between gap-4 px-6">
-                  <h2 className="m-0 text-2xl font-semibold">
-                    {brick.def.variant} / {brick.def.label}
-                  </h2>
-                  <Tabs.List
-                    className="flex shrink-0 gap-2 text-sm"
-                    aria-label={`${brick.def.label} view`}
-                  >
-                    <Tabs.Tab
-                      value={`${brick.def.variant}--${brick.def.size}-preview`}
-                      className={(state) =>
-                        state.active
-                          ? "cursor-pointer border-0 bg-transparent p-0 font-medium text-zinc-950 no-underline"
-                          : "cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2"
-                      }
+                  <div>
+                    <h2 className="m-0 text-2xl font-semibold">{brick.def.variant}</h2>
+                    <p className="mb-0 mt-1 text-sm text-zinc-500">
+                      {collection.variants[brick.def.variant]?.variantDescription}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-baseline gap-2">
+                    <Tabs.List
+                      className="flex gap-2 text-sm"
+                      aria-label={`${brick.def.label} preview`}
                     >
-                      Preview
-                    </Tabs.Tab>
-                    <Tabs.Tab
-                      value={`${brick.def.variant}--${brick.def.size}-data`}
-                      className={(state) =>
-                        state.active
-                          ? "cursor-pointer border-0 bg-transparent p-0 font-medium text-zinc-950 no-underline"
-                          : "cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2"
-                      }
+                      <Tabs.Tab
+                        value={`${brick.def.variant}--${brick.def.size}-preview`}
+                        className={(state) =>
+                          state.active
+                            ? "cursor-pointer border-0 bg-transparent p-0 font-medium text-zinc-950 no-underline"
+                            : "cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2"
+                        }
+                      >
+                        {brick.def.size}
+                      </Tabs.Tab>
+                    </Tabs.List>
+                    <Link
+                      to="/collections/$collectionName/$variantName"
+                      params={{
+                        collectionName: brick.def.collectionName,
+                        variantName: brick.def.variant,
+                      }}
+                      className="text-sm text-zinc-500 underline underline-offset-2"
                     >
-                      View config
-                    </Tabs.Tab>
-                  </Tabs.List>
+                      Configure
+                    </Link>
+                  </div>
                 </div>
                 <Tabs.Panel value={`${brick.def.variant}--${brick.def.size}-preview`}>
                   <div className="mt-6 overflow-auto">
@@ -134,11 +105,6 @@ function CollectionCatalog() {
                       <BrickComponent />
                     </div>
                   </div>
-                </Tabs.Panel>
-                <Tabs.Panel value={`${brick.def.variant}--${brick.def.size}-data`}>
-                  <pre className="mx-6 mt-6 overflow-auto bg-zinc-100 p-4 text-xs">
-                    {JSON.stringify(brick.def, null, 2)}
-                  </pre>
                 </Tabs.Panel>
               </Tabs.Root>
             </section>

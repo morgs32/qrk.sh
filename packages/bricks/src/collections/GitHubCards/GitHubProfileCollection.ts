@@ -11,6 +11,7 @@ export const githubCollection = makeCollection({
   variants: {
     profile: makeVariant({
       variant: "profile",
+      variantDescription: "A GitHub profile card.",
       sizes: {
         "4x4": makeBrick({
           variant: "profile",
@@ -25,6 +26,7 @@ export const githubCollection = makeCollection({
     }),
     repo: makeVariant({
       variant: "repo",
+      variantDescription: "A GitHub repository card.",
       sizes: {
         "4x2": makeBrick({
           variant: "repo",

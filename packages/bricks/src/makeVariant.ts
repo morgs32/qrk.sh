@@ -5,6 +5,7 @@ export function makeVariant<
   const SIZES extends Record<string, IBrick<VARIANT, string>>,
 >(props: {
   variant: VARIANT;
+  variantDescription: string;
   sizes: SIZES & {
     [SIZE in keyof SIZES]: SIZES[SIZE] & {
       def: {
@@ -15,6 +16,7 @@ export function makeVariant<
   };
 }) {
   return {
+    variantDescription: props.variantDescription,
     sizes: props.sizes,
   };
 }

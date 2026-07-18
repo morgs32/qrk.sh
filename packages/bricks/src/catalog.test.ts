@@ -14,6 +14,7 @@ describe("brick catalog identity", () => {
 
       for (const [variantName, variant] of Object.entries(collection.variants)) {
         expect(kebabCase.test(variantName)).toBe(true);
+        expect(variant.variantDescription.trim()).not.toBe("");
 
         for (const [sizeName, brick] of Object.entries(variant.sizes)) {
           expect(kebabCase.test(sizeName)).toBe(true);

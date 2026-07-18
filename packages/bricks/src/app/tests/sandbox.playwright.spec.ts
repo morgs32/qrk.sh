@@ -147,20 +147,16 @@ test("shows brick config in a collection tab", async ({ page }) => {
   await page.goto("/collections/github");
   await page.waitForLoadState("networkidle");
 
-  await page.getByRole("button", { name: "View data" }).click();
-  await expect(page.getByText("Hello World", { exact: true })).toBeVisible();
-
-  const profileView = page.getByLabel("4×4 view");
-  await expect(profileView.getByRole("tab", { name: "Preview" })).toHaveAttribute(
+  const profilePreview = page.getByLabel("4×4 preview");
+  await expect(profilePreview.getByRole("tab", { name: "4x4" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
-  await profileView.getByRole("tab", { name: "View config" }).click();
-
-  await expect(profileView.getByRole("tab", { name: "View config" })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
+  await page.getByRole("link", { name: "Configure" }).first().click();
+  await expect(page).toHaveURL(/\/collections\/github\/profile$/);
+  await expect(page.getByTestId("variant-configuration-pane")).toBeVisible();
+  await expect(page.getByText("Variant name", { exact: true })).toBeVisible();
+  await expect(page.getByText("Profile", { exact: true })).toBeVisible();
   await expect(page.getByText('"collectionName": "github"', { exact: false })).toBeVisible();
 });
 

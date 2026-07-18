@@ -11,6 +11,7 @@ export const textBrickCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
+      variantDescription: "A text content block.",
       sizes: {
         "4x4": makeBrick({
           variant: "default",

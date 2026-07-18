@@ -10,6 +10,7 @@ export const imageCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
+      variantDescription: "An editorial image preview.",
       sizes: {
         "4x4": makeBrick({
           variant: "default",

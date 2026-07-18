@@ -16,25 +16,31 @@ function b(t) {
 		collectionName: n,
 		collectionLabel: r,
 		collectionDescription: i,
-		variants: e(a, (t) => ({ sizes: e(t.sizes, (e) => ({
-			def: {
-				collectionName: n,
-				collectionLabel: r,
-				variant: e.def.variant,
-				size: e.def.size,
-				w: e.def.w,
-				h: e.def.h,
-				label: e.def.label,
-				order: e.def.order
-			},
-			component: e.component
-		})) }))
+		variants: e(a, (t) => ({
+			variantDescription: t.variantDescription,
+			sizes: e(t.sizes, (e) => ({
+				def: {
+					collectionName: n,
+					collectionLabel: r,
+					variant: e.def.variant,
+					size: e.def.size,
+					w: e.def.w,
+					h: e.def.h,
+					label: e.def.label,
+					order: e.def.order
+				},
+				component: e.component
+			}))
+		}))
 	};
 }
 //#endregion
 //#region src/makeVariant.ts
 function x(e) {
-	return { sizes: e.sizes };
+	return {
+		variantDescription: e.variantDescription,
+		sizes: e.sizes
+	};
 }
 //#endregion
 //#region src/makeBrick.ts
@@ -127,6 +133,7 @@ var E = b({
 	collectionDescription: "A preview of a Figma project.",
 	variants: { default: x({
 		variant: "default",
+		variantDescription: "A preview of a Figma project.",
 		sizes: { "4x4": C({
 			variant: "default",
 			size: "4x4",
@@ -512,6 +519,7 @@ var J = b({
 	variants: {
 		profile: x({
 			variant: "profile",
+			variantDescription: "A GitHub profile card.",
 			sizes: { "4x4": C({
 				variant: "profile",
 				size: "4x4",
@@ -524,6 +532,7 @@ var J = b({
 		}),
 		repo: x({
 			variant: "repo",
+			variantDescription: "A GitHub repository card.",
 			sizes: { "4x2": C({
 				variant: "repo",
 				size: "4x2",
@@ -573,6 +582,7 @@ var X = b({
 	collectionDescription: "An editorial image preview.",
 	variants: { default: x({
 		variant: "default",
+		variantDescription: "An editorial image preview.",
 		sizes: { "4x4": C({
 			variant: "default",
 			size: "4x4",
@@ -616,6 +626,7 @@ var se = b({
 	collectionDescription: "Solid color fields for visual rhythm.",
 	variants: { default: x({
 		variant: "default",
+		variantDescription: "A solid color field.",
 		sizes: {
 			"2x2": C({
 				variant: "default",
@@ -696,6 +707,7 @@ var ue = b({
 	collectionDescription: "Graphic icons for your grid.",
 	variants: { default: x({
 		variant: "default",
+		variantDescription: "A graphic asterisk icon.",
 		sizes: {
 			"2x2": C({
 				variant: "default",
@@ -776,6 +788,7 @@ var pe = {
 		collectionDescription: "Text blocks for grid content.",
 		variants: { default: x({
 			variant: "default",
+			variantDescription: "A text content block.",
 			sizes: {
 				"4x4": C({
 					variant: "default",

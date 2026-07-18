@@ -14,7 +14,6 @@ import { Route as SandboxIndexRouteImport } from './routes/_sandbox.index'
 import { Route as SandboxCollectionsCollectionNameRouteImport } from './routes/_sandbox.collections.$collectionName'
 import { Route as SandboxCollectionsCollectionNameIndexRouteImport } from './routes/_sandbox.collections.$collectionName.index'
 import { Route as BricksCollectionNameVariantSizeRouteImport } from './routes/bricks.$collectionName.$variant.$size'
-import { Route as SandboxCollectionsCollectionNameVariantNameRouteImport } from './routes/_sandbox.collections.$collectionName.$variantName'
 import { Route as SandboxCollectionsCollectionNameBrickBrickIdRouteImport } from './routes/_sandbox.collections.$collectionName.brick.$brickId'
 
 const SandboxRoute = SandboxRouteImport.update({
@@ -44,12 +43,6 @@ const BricksCollectionNameVariantSizeRoute =
     path: '/bricks/$collectionName/$variant/$size',
     getParentRoute: () => rootRouteImport,
   } as any)
-const SandboxCollectionsCollectionNameVariantNameRoute =
-  SandboxCollectionsCollectionNameVariantNameRouteImport.update({
-    id: '/$variantName',
-    path: '/$variantName',
-    getParentRoute: () => SandboxCollectionsCollectionNameRoute,
-  } as any)
 const SandboxCollectionsCollectionNameBrickBrickIdRoute =
   SandboxCollectionsCollectionNameBrickBrickIdRouteImport.update({
     id: '/brick/$brickId',
@@ -60,14 +53,12 @@ const SandboxCollectionsCollectionNameBrickBrickIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof SandboxIndexRoute
   '/collections/$collectionName': typeof SandboxCollectionsCollectionNameRouteWithChildren
-  '/collections/$collectionName/$variantName': typeof SandboxCollectionsCollectionNameVariantNameRoute
   '/bricks/$collectionName/$variant/$size': typeof BricksCollectionNameVariantSizeRoute
   '/collections/$collectionName/': typeof SandboxCollectionsCollectionNameIndexRoute
   '/collections/$collectionName/brick/$brickId': typeof SandboxCollectionsCollectionNameBrickBrickIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof SandboxIndexRoute
-  '/collections/$collectionName/$variantName': typeof SandboxCollectionsCollectionNameVariantNameRoute
   '/bricks/$collectionName/$variant/$size': typeof BricksCollectionNameVariantSizeRoute
   '/collections/$collectionName': typeof SandboxCollectionsCollectionNameIndexRoute
   '/collections/$collectionName/brick/$brickId': typeof SandboxCollectionsCollectionNameBrickBrickIdRoute
@@ -77,7 +68,6 @@ export interface FileRoutesById {
   '/_sandbox': typeof SandboxRouteWithChildren
   '/_sandbox/': typeof SandboxIndexRoute
   '/_sandbox/collections/$collectionName': typeof SandboxCollectionsCollectionNameRouteWithChildren
-  '/_sandbox/collections/$collectionName/$variantName': typeof SandboxCollectionsCollectionNameVariantNameRoute
   '/bricks/$collectionName/$variant/$size': typeof BricksCollectionNameVariantSizeRoute
   '/_sandbox/collections/$collectionName/': typeof SandboxCollectionsCollectionNameIndexRoute
   '/_sandbox/collections/$collectionName/brick/$brickId': typeof SandboxCollectionsCollectionNameBrickBrickIdRoute
@@ -87,14 +77,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/collections/$collectionName'
-    | '/collections/$collectionName/$variantName'
     | '/bricks/$collectionName/$variant/$size'
     | '/collections/$collectionName/'
     | '/collections/$collectionName/brick/$brickId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/collections/$collectionName/$variantName'
     | '/bricks/$collectionName/$variant/$size'
     | '/collections/$collectionName'
     | '/collections/$collectionName/brick/$brickId'
@@ -103,7 +91,6 @@ export interface FileRouteTypes {
     | '/_sandbox'
     | '/_sandbox/'
     | '/_sandbox/collections/$collectionName'
-    | '/_sandbox/collections/$collectionName/$variantName'
     | '/bricks/$collectionName/$variant/$size'
     | '/_sandbox/collections/$collectionName/'
     | '/_sandbox/collections/$collectionName/brick/$brickId'
@@ -151,13 +138,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BricksCollectionNameVariantSizeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_sandbox/collections/$collectionName/$variantName': {
-      id: '/_sandbox/collections/$collectionName/$variantName'
-      path: '/$variantName'
-      fullPath: '/collections/$collectionName/$variantName'
-      preLoaderRoute: typeof SandboxCollectionsCollectionNameVariantNameRouteImport
-      parentRoute: typeof SandboxCollectionsCollectionNameRoute
-    }
     '/_sandbox/collections/$collectionName/brick/$brickId': {
       id: '/_sandbox/collections/$collectionName/brick/$brickId'
       path: '/brick/$brickId'
@@ -169,15 +149,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface SandboxCollectionsCollectionNameRouteChildren {
-  SandboxCollectionsCollectionNameVariantNameRoute: typeof SandboxCollectionsCollectionNameVariantNameRoute
   SandboxCollectionsCollectionNameIndexRoute: typeof SandboxCollectionsCollectionNameIndexRoute
   SandboxCollectionsCollectionNameBrickBrickIdRoute: typeof SandboxCollectionsCollectionNameBrickBrickIdRoute
 }
 
 const SandboxCollectionsCollectionNameRouteChildren: SandboxCollectionsCollectionNameRouteChildren =
   {
-    SandboxCollectionsCollectionNameVariantNameRoute:
-      SandboxCollectionsCollectionNameVariantNameRoute,
     SandboxCollectionsCollectionNameIndexRoute:
       SandboxCollectionsCollectionNameIndexRoute,
     SandboxCollectionsCollectionNameBrickBrickIdRoute:

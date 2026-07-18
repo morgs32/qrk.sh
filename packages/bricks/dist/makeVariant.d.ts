@@ -1,6 +1,7 @@
 import type { IBrick } from "./types";
 export declare function makeVariant<const VARIANT extends string, const SIZES extends Record<string, IBrick<VARIANT, string>>>(props: {
     variant: VARIANT;
+    variantDescription: string;
     sizes: SIZES & {
         [SIZE in keyof SIZES]: SIZES[SIZE] & {
             def: {
@@ -10,6 +11,7 @@ export declare function makeVariant<const VARIANT extends string, const SIZES ex
         };
     };
 }): {
+    variantDescription: string;
     sizes: SIZES & { [SIZE in keyof SIZES]: SIZES[SIZE] & {
         def: {
             variant: VARIANT;

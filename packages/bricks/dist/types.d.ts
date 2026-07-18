@@ -18,6 +18,7 @@ export type ICollection = {
     collectionLabel: string;
     collectionDescription: string;
     variants: Record<string, {
+        variantDescription: string;
         sizes: Record<string, ICollectionBrick>;
     }>;
 };

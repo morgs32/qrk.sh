@@ -10,6 +10,7 @@ export const figmaCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
+      variantDescription: "A preview of a Figma project.",
       sizes: {
         "4x4": makeBrick({
           variant: "default",

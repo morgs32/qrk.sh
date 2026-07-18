@@ -19,7 +19,7 @@ export type ICollection = {
   collectionName: string;
   collectionLabel: string;
   collectionDescription: string;
-  variants: Record<string, { sizes: Record<string, ICollectionBrick> }>;
+  variants: Record<string, { variantDescription: string; sizes: Record<string, ICollectionBrick> }>;
 };
 
 /** Serializable catalog row: collection + content variant + size, no React component. */

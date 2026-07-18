@@ -12,6 +12,7 @@ export const iconCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
+      variantDescription: "A graphic asterisk icon.",
       sizes: {
         "2x2": makeBrick({
           variant: "default",

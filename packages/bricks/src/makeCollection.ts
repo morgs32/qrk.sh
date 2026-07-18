@@ -6,12 +6,13 @@ export function makeCollection(props: {
   collectionName: string;
   collectionLabel: string;
   collectionDescription: string;
-  variants: Record<string, { sizes: Record<string, IBrick> }>;
+  variants: Record<string, { variantDescription: string; sizes: Record<string, IBrick> }>;
 }): ICollection {
   const { collectionName, collectionLabel, collectionDescription, variants: rawVariants } = props;
 
   const variants = mapValues(rawVariants, (rawVariant) => {
     return {
+      variantDescription: rawVariant.variantDescription,
       sizes: mapValues(rawVariant.sizes, (brick) => {
         return {
           def: {

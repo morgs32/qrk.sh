@@ -4,6 +4,7 @@ export declare function makeCollection(props: {
     collectionLabel: string;
     collectionDescription: string;
     variants: Record<string, {
+        variantDescription: string;
         sizes: Record<string, IBrick>;
     }>;
 }): ICollection;

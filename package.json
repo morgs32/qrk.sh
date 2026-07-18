@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "dev": "pnpm --dir vendor/zerospin exec nx run-many -t lib && pnpm install --offline && nx run @qrk.sh/web:dev"
+    "dev": "nx run @qrk.sh/web:dev"
   },
   "devDependencies": {
     "nx": "^22.7.7"

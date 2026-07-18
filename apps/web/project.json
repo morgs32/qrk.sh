@@ -4,10 +4,15 @@
   "targets": {
     "dev": {
       "continuous": true,
-      "dependsOn": ["zerospin:dev"]
+      "dependsOn": ["^lib", "zerospin:dev", "storybook:dev"]
     },
     "zerospin:dev": {
-      "continuous": true
+      "continuous": true,
+      "dependsOn": ["^lib"]
+    },
+    "storybook:dev": {
+      "continuous": true,
+      "dependsOn": ["^lib"]
     }
   }
 }

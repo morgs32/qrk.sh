@@ -3,7 +3,10 @@ import type { CSSProperties } from "react";
 import { useStore } from "zustand/react";
 
 import { devtoolsStore } from "./store.js";
-import type { IKeyboardKey } from "./types.js";
+import type {
+  IKeyboardKey,
+  IZerospinDevtoolsConfig,
+} from "./types.js";
 import { uppercaseFirstLetter } from "./utils/sanitize.js";
 
 const styles: Record<string, CSSProperties> = {
@@ -83,9 +86,14 @@ const styles: Record<string, CSSProperties> = {
  * 1. Read the persisted shell settings directly from the vanilla store.
  * 2. Update each general, URL, keyboard, and position setting in place.
  * 3. Keep the existing modifier-plus-key hotkey editing behavior.
- * 4. Omit the removed Source Inspector configuration entirely.
+ * 4. Hide theme controls while the host application locks the theme.
+ * 5. Omit the removed Source Inspector configuration entirely.
  */
-export function SettingsRoute() {
+export function SettingsRoute({
+  configuredTheme,
+}: {
+  configuredTheme?: IZerospinDevtoolsConfig["theme"];
+} = {}) {
   const settings = useStore(devtoolsStore, (state) => state.settings);
   const modifiers: Array<IKeyboardKey> = ["CtrlOrMeta", "Alt", "Shift"];
 
@@ -228,24 +236,26 @@ export function SettingsRoute() {
           </span>
         </label>
 
-        <label style={styles.field}>
-          Theme
-          <select
-            style={styles.control}
-            value={settings.theme}
-            onChange={(event) => {
-              const theme =
-                event.currentTarget.value === "dark" ? "dark" : "light";
-              devtoolsStore.setState((state) => ({
-                ...state,
-                settings: { ...state.settings, theme },
-              }));
-            }}
-          >
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-          </select>
-        </label>
+        {configuredTheme === undefined ? (
+          <label style={styles.field}>
+            Theme
+            <select
+              style={styles.control}
+              value={settings.theme}
+              onChange={(event) => {
+                const theme =
+                  event.currentTarget.value === "dark" ? "dark" : "light";
+                devtoolsStore.setState((state) => ({
+                  ...state,
+                  settings: { ...state.settings, theme },
+                }));
+              }}
+            >
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </label>
+        ) : null}
       </section>
 
       <section style={styles.section}>

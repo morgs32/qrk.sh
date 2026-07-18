@@ -24,6 +24,7 @@ import type {
 } from '@zerospin/core/contracts/types';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import type { IFrontendControllerSpec } from '@zerospin/core/frontendController/types';
+import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { IActorId, InferIdFromAbbreviation } from '@zerospin/core/models/types';
 import type { IFrontendState } from '@zerospin/core/session/types';
 import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
@@ -35,6 +36,7 @@ import type {
   ISystemLogRow,
   ISystemSpec,
 } from '@zerospin/core/system/types';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { defaultRetrySchedule } from '@zerospin/core/utils/defaultRetrySchedule';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
@@ -48,7 +50,7 @@ import {
   type ITelemetryBatch,
 } from '@zerospin/logger';
 import { DurableObject, env, WorkerEntrypoint } from 'cloudflare:workers';
-import { Cause, Effect, Schema } from 'effect';
+import { Cause, Effect, Either, Schema } from 'effect';
 import { system } from 'system';
 
 import type { AccountRepo } from './AccountRepo/AccountRepo.js';
@@ -2095,13 +2097,20 @@ export class SystemWorker extends WorkerEntrypoint {
       const tickets = url.searchParams.getAll('ticket');
       const publishableKey = publishableKeys[0];
       const ticket = tickets[0];
+      const ticketParts = ticket?.split('.');
+      const decodedGenerationId = Schema.decodeUnknownEither(
+        makeAbbreviationIdSchema(coreAbbreviations.generation),
+      )(ticketParts?.[0]);
       if (
         publishableKeys.length !== 1 ||
         publishableKey === undefined ||
         publishableKey.length === 0 ||
         tickets.length !== 1 ||
         ticket === undefined ||
-        !/^[A-Za-z0-9_-]{43}$/.test(ticket)
+        ticketParts?.length !== 2 ||
+        ticketParts[1] === undefined ||
+        !/^[A-Za-z0-9_-]{43}$/.test(ticketParts[1]) ||
+        Either.isLeft(decodedGenerationId)
       ) {
         return Response.json(
           { message: 'Missing or invalid WebSocket parameters' },
@@ -2109,10 +2118,21 @@ export class SystemWorker extends WorkerEntrypoint {
         );
       }
 
+      const generationId = decodedGenerationId.right;
+      if (
+        env.ZEROSPIN_INSTANCE_ID !== 'local' &&
+        generationId !== env.ZEROSPIN_GENERATION_ID
+      ) {
+        return Response.json(
+          { message: 'WebSocket ticket is invalid or expired' },
+          { status: 401 },
+        );
+      }
+
       const settled = await managedRuntime.runPromise(
         makeAsync(() =>
           SystemRepo.getRepo({
-            generationId: env.ZEROSPIN_GENERATION_ID,
+            generationId,
           }).consumeFrontendWebSocketTicket({
             ticket,
           }),

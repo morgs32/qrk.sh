@@ -50,7 +50,13 @@ export function ZerospinOwnerProvider({ children }: { children: React.ReactNode 
         }
       >
         {children}
-        <ZerospinDevtools config={{ defaultOpen: true, position: "bottom-right" }} />
+        <ZerospinDevtools
+          config={{
+            defaultOpen: true,
+            position: "bottom-right",
+            theme: "light",
+          }}
+        />
       </ZerospinOwner.Provider>
     </ZerospinConfig>
   );

@@ -70,13 +70,13 @@ const occupiedPixelCells = [
 
 export default function HomePage() {
   return (
-    <main className="mt-16 h-[calc(100svh-4rem)] overflow-x-auto overflow-y-hidden">
+    <main className="h-svh overflow-x-auto overflow-y-hidden">
       <div
         aria-label="QRK.SH pixel wordmark"
         className="grid h-full w-max"
         style={{
-          gridTemplateColumns: "repeat(31, calc((100svh - 4rem) / 6))",
-          gridTemplateRows: "repeat(6, calc((100svh - 4rem) / 6))",
+          gridTemplateColumns: "repeat(31, calc(100svh / 6))",
+          gridTemplateRows: "repeat(6, calc(100svh / 6))",
         }}
       >
         {occupiedPixelCells.map((pixel, index) => (

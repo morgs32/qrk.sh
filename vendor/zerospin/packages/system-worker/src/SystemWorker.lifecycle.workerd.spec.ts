@@ -82,7 +82,9 @@ describe('SystemWorker generation lifecycle', () => {
             repoName: 'frtbrepo_initial_target',
           }),
         ).pipe(Effect.flatMap(decodeRpc));
-        expect(initialDeployTicket).toMatch(/^[A-Za-z0-9_-]{43}$/);
+        expect(initialDeployTicket).toMatch(
+          /^gen_system_worker_lifecycle\.[A-Za-z0-9_-]{43}$/,
+        );
         const storedInitialDeployTicket = yield* Effect.promise(() =>
           runInDurableObject(
             env.SYSTEM_REPO.getByName(
@@ -200,6 +202,23 @@ describe('SystemWorker generation lifecycle', () => {
         expect(malformedTicket._tag).toBe('Left');
         if (malformedTicket._tag === 'Left') {
           expect(malformedTicket.left.code).toBe(
+            'frontend-websocket-ticket-invalid',
+          );
+        }
+
+        const wrongGenerationTicket = yield* makeAsync(() =>
+          SystemRepo.getRepo({
+            generationId,
+          }).consumeFrontendWebSocketTicket({
+            ticket: activeTicket.replace(
+              `${generationId}.`,
+              'gen_wrong_generation.',
+            ),
+          }),
+        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+        expect(wrongGenerationTicket._tag).toBe('Left');
+        if (wrongGenerationTicket._tag === 'Left') {
+          expect(wrongGenerationTicket.left.code).toBe(
             'frontend-websocket-ticket-invalid',
           );
         }

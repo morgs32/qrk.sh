@@ -7,14 +7,7 @@ import HomePage from "./page";
 /** Render the complete public homepage in the same route layout used by Next.js. */
 function HomepageStory() {
   return (
-    <ClerkProvider
-      initialState={{
-        sessionId: undefined,
-        userId: undefined,
-        user: undefined,
-        organization: undefined,
-      }}
-    >
+    <ClerkProvider>
       <HomeLayout>
         <HomePage />
       </HomeLayout>

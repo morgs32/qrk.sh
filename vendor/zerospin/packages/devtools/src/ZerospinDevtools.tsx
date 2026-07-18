@@ -288,11 +288,12 @@ function DevtoolsNavigation(props: {
 }
 
 function DevtoolsRoutes(props: {
+  configuredTheme?: IZerospinDevtoolsConfig["theme"];
   isDetached: boolean;
   onClose: () => void;
   onDetach: () => void;
 }) {
-  const { isDetached, onClose, onDetach } = props;
+  const { configuredTheme, isDetached, onClose, onDetach } = props;
 
   return (
     <Routes>
@@ -361,7 +362,10 @@ function DevtoolsRoutes(props: {
         </Route>
 
         <Route path="/shared-worker" element={<SharedWorkerRoute />} />
-        <Route path="/settings" element={<SettingsRoute />} />
+        <Route
+          path="/settings"
+          element={<SettingsRoute configuredTheme={configuredTheme} />}
+        />
         <Route path="*" element={<Navigate to="/sessions" replace />} />
       </Route>
     </Routes>
@@ -709,6 +713,7 @@ export function ZerospinDevtools({
                 }}
               />
               <DevtoolsRoutes
+                configuredTheme={config?.theme}
                 isDetached={pipWindow !== null}
                 onClose={toggleOpen}
                 onDetach={requestPipWindow}

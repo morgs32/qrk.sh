@@ -1,5 +1,8 @@
 /* eslint-disable perfectionist/sort-exports */
+import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { env, WorkerEntrypoint } from 'cloudflare:workers';
+import { Either, Schema } from 'effect';
 
 import { makeSystemWorkerName } from './makeSystemWorkerName';
 
@@ -32,13 +35,20 @@ export default class E2eWorker extends WorkerEntrypoint {
       }
       const publishableKeys = url.searchParams.getAll('publishableKey');
       const tickets = url.searchParams.getAll('ticket');
+      const ticketParts = tickets[0]?.split('.');
+      const decodedGenerationId = Schema.decodeUnknownEither(
+        makeAbbreviationIdSchema(coreAbbreviations.generation),
+      )(ticketParts?.[0]);
       if (
         publishableKeys.length !== 1 ||
         publishableKeys[0] === undefined ||
         publishableKeys[0].length === 0 ||
         tickets.length !== 1 ||
         tickets[0] === undefined ||
-        !/^[A-Za-z0-9_-]{43}$/.test(tickets[0])
+        ticketParts?.length !== 2 ||
+        ticketParts[1] === undefined ||
+        !/^[A-Za-z0-9_-]{43}$/.test(ticketParts[1]) ||
+        Either.isLeft(decodedGenerationId)
       ) {
         return Response.json(
           { message: 'Missing or invalid WebSocket parameters' },

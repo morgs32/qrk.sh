@@ -63,6 +63,10 @@ export function getExistingStateFromStorage(
       ...initialState.settings,
       ...config,
       ...savedSettings,
+      theme:
+        config?.theme ??
+        savedSettings?.theme ??
+        initialState.settings.theme,
     },
   };
 }

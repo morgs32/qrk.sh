@@ -93,7 +93,8 @@ export function SandboxGrid() {
           {layout.map((layoutItem) => {
             const brickDef = bricksById[layoutItem.i];
             const collection = brickDef ? collectionsHash[brickDef.collectionName] : undefined;
-            const brick = collection?.variants[brickDef.variant]?.sizes[brickDef.size];
+            const variant = collection?.variants[brickDef.variant];
+            const brick = variant?.sizes[brickDef.size];
 
             if (brick) {
               const BrickComponent = brick.component;
@@ -120,7 +121,11 @@ export function SandboxGrid() {
                     });
                   }}
                 >
-                  <BrickComponent />
+                  {variant.defaultData === undefined ? (
+                    <BrickComponent />
+                  ) : (
+                    <BrickComponent data={variant.defaultData} />
+                  )}
                 </div>
               );
             }

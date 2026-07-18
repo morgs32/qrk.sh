@@ -1,7 +1,7 @@
 import type { IShape } from "@zerospin/core/models/types";
-import type { ComponentType } from "react";
+import type { ReactNode } from "react";
 import type { ScraperApi } from "scraper/ScraperApi";
-import type { IJsonValue, IRpcEither } from "scraper/types";
+import type { IRpcEither } from "scraper/types";
 
 /** A size within one content variant (no collection scope). */
 export type IBrickDef<VARIANT extends string = string, SIZE extends string = string> = {
@@ -26,14 +26,18 @@ export type ICollection = {
     string,
     | {
         variantDescription: string;
-        payload?: never;
+        payloadShape?: never;
+        dataShape?: never;
+        defaultData?: never;
         getData?: never;
         sizes: Record<string, ICollectionBrick>;
       }
     | {
         variantDescription: string;
-        payload: IShape;
-        getData: (props: { api: ScraperApi; payload: unknown }) => Promise<IRpcEither<IJsonValue>>;
+        payloadShape: IShape;
+        dataShape: IShape;
+        defaultData: unknown;
+        getData: (props: { api: ScraperApi; payload: unknown }) => Promise<IRpcEither<unknown>>;
         sizes: Record<string, ICollectionBrick>;
       }
   >;
@@ -45,12 +49,21 @@ export type ICollectionBrickDef = IBrickDef & {
   collectionLabel: string;
 };
 
-export type IBrick<VARIANT extends string = string, SIZE extends string = string> = {
+export type IBrick<
+  VARIANT extends string = string,
+  SIZE extends string = string,
+  COMPONENT extends (props: never) => ReactNode = (props: never) => ReactNode,
+> = {
   def: IBrickDef<VARIANT, SIZE>;
-  component: ComponentType;
+  component: COMPONENT;
 };
 
 export type ICollectionBrick = {
   def: ICollectionBrickDef;
-  component: ComponentType;
+  /**
+   * The collection erases each variant's concrete data type after makeVariant has
+   * checked it. Render boundaries still branch explicitly and supply data only for
+   * variants that declare defaultData.
+   */
+  component: { bivarianceHack(props: { data?: unknown }): ReactNode }["bivarianceHack"];
 };

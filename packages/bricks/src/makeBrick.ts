@@ -1,17 +1,21 @@
-import type { ComponentType } from "react";
+import type { ReactNode } from "react";
 import type { IBrick } from "./types";
 
 const KEBAB_BRICK_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export function makeBrick<const VARIANT extends string, const SIZE extends string>(props: {
+export function makeBrick<
+  const VARIANT extends string,
+  const SIZE extends string,
+  const COMPONENT extends (props: never) => ReactNode,
+>(props: {
   variant: VARIANT;
   size: SIZE;
   w: number;
   h: number;
   order: number;
   label: string;
-  component: ComponentType;
-}): IBrick<VARIANT, SIZE> {
+  component: COMPONENT;
+}): IBrick<VARIANT, SIZE, COMPONENT> {
   const { variant, size, w, h, order, label, component } = props;
 
   if (!KEBAB_BRICK_NAME.test(props.variant)) {

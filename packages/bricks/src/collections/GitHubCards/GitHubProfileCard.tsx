@@ -2,83 +2,16 @@
 
 import { Image } from "@unpic/react";
 import { useState } from "react";
-import useSWR from "swr";
-import {
-  AlertCircle,
-  BookOpen,
-  GitBranch,
-  Link as LinkIcon,
-  MapPin,
-  Quote,
-  RefreshCw,
-  Users,
-} from "lucide-react";
+import { BookOpen, Link as LinkIcon, MapPin, Quote, Users } from "lucide-react";
 
-import { Button } from "../../ui/button";
 import { Card, CardContent, CardHeader } from "../../ui/card";
 import { GitHubProfileActivity } from "./GitHubProfileActivity";
-
-const GITHUB_PROFILE_API_URL = "https://api.github.com/users/morgs32";
-
-interface GitHubUser {
-  login: string;
-  name: string;
-  avatar_url: string;
-  bio: string;
-  location: string;
-  blog: string;
-  public_repos: number;
-  followers: number;
-  following: number;
-}
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 /** Fixed light palette so every GitHub brick reads consistently for now. */
 const profileCardShellClass =
   "h-full min-h-0 w-full gap-1 overflow-hidden rounded-none border border-zinc-200 bg-white py-3 text-zinc-900 shadow-none";
 const profileMutedClass = "text-zinc-500";
 const profileHeadingClass = "text-zinc-950";
-
-function GitHubProfileErrorState(props: { onRetry: () => void }) {
-  const { onRetry } = props;
-
-  return (
-    <>
-      <div className="relative mb-3">
-        <div className="absolute inset-0 animate-pulse rounded-full bg-red-500/20 blur-lg" />
-        <div className="relative rounded-full border border-red-500/20 bg-red-500/10 p-3">
-          <AlertCircle className="h-7 w-7 text-red-400" aria-hidden />
-        </div>
-      </div>
-
-      <div className="relative mb-3">
-        <GitBranch className="h-10 w-10 text-zinc-600" aria-hidden />
-        <div className="absolute -bottom-0.5 -right-0.5 rounded-full bg-red-500 p-0.5">
-          <AlertCircle className="h-3 w-3 text-white" aria-hidden />
-        </div>
-      </div>
-
-      <h2 className={`mb-1.5 text-center text-base font-medium ${profileHeadingClass}`}>
-        Failed to load GitHub profile
-      </h2>
-      <p className="mb-4 max-w-[min(100%,16rem)] text-center text-xs text-zinc-500">
-        We couldn&apos;t fetch the profile data. Please check your connection and try again.
-      </p>
-
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="border-zinc-300 bg-white text-zinc-700 transition-all hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950"
-        onClick={onRetry}
-      >
-        <RefreshCw className="h-4 w-4" />
-        Try Again
-      </Button>
-    </>
-  );
-}
 
 function ProfileAvatar(props: { src: string; alt: string; fallback: string }) {
   const { src, alt, fallback } = props;
@@ -104,42 +37,20 @@ function ProfileAvatar(props: { src: string; alt: string; fallback: string }) {
   );
 }
 
-export function GitHubProfileCard() {
-  const {
-    data: user,
-    error,
-    isLoading,
-    mutate,
-  } = useSWR<GitHubUser>(GITHUB_PROFILE_API_URL, fetcher);
-
-  if (isLoading) {
-    return (
-      <Card className={profileCardShellClass}>
-        <CardContent className="p-4">
-          <div className="animate-pulse space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-zinc-200" />
-              <div className="space-y-2">
-                <div className="h-5 w-32 rounded bg-zinc-200" />
-                <div className="h-4 w-24 rounded bg-zinc-200" />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // API error bodies (rate limit, etc.) are JSON without `login`; don’t treat as a user.
-  if (error || !user || typeof user.login !== "string" || user.login.length === 0) {
-    return (
-      <Card className={`${profileCardShellClass} flex min-h-0 flex-col`}>
-        <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-auto px-3 py-4 text-center">
-          <GitHubProfileErrorState onRetry={() => void mutate()} />
-        </CardContent>
-      </Card>
-    );
-  }
+export function GitHubProfileCard(props: {
+  data: {
+    login: string;
+    avatar_url: string;
+    name: string | null;
+    bio: string | null;
+    location: string | null;
+    blog: string;
+    public_repos: number;
+    followers: number;
+    following: number;
+  };
+}) {
+  const user = props.data;
 
   const displayName = user.name || user.login;
   const avatarFallback = user.login.slice(0, 2).toUpperCase();

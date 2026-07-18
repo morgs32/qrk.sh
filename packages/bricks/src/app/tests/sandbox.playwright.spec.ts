@@ -15,6 +15,12 @@ test("shares one persisted grid across the root, collection, and detail routes",
   await expect(page.locator("[data-collection-entry]")).toHaveCount(6);
   await expect(page.locator("[data-collection-representative]")).toHaveCount(6);
   await expect(page.getByLabel("Brick collections")).toBeVisible();
+  await expect(
+    page
+      .locator('[data-collection-entry="github"]')
+      .locator('[data-collection-representative="github/profile/4x4"]')
+      .getByText("@morgs32"),
+  ).toBeVisible();
 
   const swatchCollection = page.locator('[data-collection-entry="swatch"]');
   await swatchCollection.getByRole("tab", { name: "8x2" }).click();
@@ -126,21 +132,25 @@ test("shares one persisted grid across the root, collection, and detail routes",
   await expect(page.locator('[data-brick="icon/default/2x2"]')).toBeVisible();
 });
 
-test("renders static, image, and GitHub bricks", async ({ page }) => {
+test("renders static, image, and repository bricks", async ({ page }) => {
   await page.goto("/bricks/swatch/default/2x2");
   await expect(page.getByTestId("brick-preview").locator("svg")).toBeVisible();
 
   await page.goto("/bricks/image/default/4x4");
   await expect(page.getByTestId("brick-preview").locator("img")).toBeVisible();
 
-  await page.goto("/bricks/github/profile/4x4");
-  await expect(page.getByTestId("brick-preview").locator('[data-slot="card"]')).toBeVisible();
-
   await page.goto("/bricks/github/repo/4x2");
   await expect(page.getByTestId("brick-preview").getByText("ink-steps")).toBeVisible();
 
   await page.goto("/bricks/github-profile/4x4");
   await expect(page.getByTestId("brick-preview")).toHaveCount(0);
+});
+
+test("renders default GitHub profile data in the direct preview", async ({ page }) => {
+  await page.goto("/bricks/github/profile/4x4");
+
+  await expect(page.getByTestId("brick-preview").locator('[data-slot="card"]')).toBeVisible();
+  await expect(page.getByTestId("brick-preview").getByText("@morgs32")).toBeVisible();
 });
 
 test("renders the GitHub profile activity size", async ({ page }) => {
@@ -160,6 +170,9 @@ test("shows brick config in a collection tab", async ({ page }) => {
     "aria-selected",
     "true",
   );
+  await expect(
+    page.locator('[data-brick-full-size="github/profile/4x4"]').getByText("@morgs32"),
+  ).toBeVisible();
   await page.getByRole("link", { name: "Configure" }).first().click();
   await expect(page).toHaveURL(/\/collections\/github\/profile$/);
   const variantConfigurationPane = page.getByTestId("variant-configuration-pane");
@@ -175,27 +188,40 @@ test("shows brick config in a collection tab", async ({ page }) => {
   await expect(page.getByText("Size", { exact: true })).toHaveCount(2);
   await expect(page.locator('[data-variant-size-brick="github/profile/4x4"]')).toBeVisible();
   await expect(page.locator('[data-variant-size-brick="github/profile/4x2"]')).toBeVisible();
+  await expect(
+    page.locator('[data-variant-size-brick="github/profile/4x4"]').getByText("@morgs32"),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator('[data-variant-size-brick="github/profile/4x2"]')
+      .locator("[data-github-profile-activity]"),
+  ).toBeVisible();
   await expect(page.getByLabel("url")).toHaveValue("https://github.com/morgs32");
   await expect(page.getByRole("button", { name: "Get data" })).toBeEnabled();
+  const initialResult = page.getByTestId("variant-data-result");
+  await expect(initialResult).toContainText('"id": 1364795');
+  await expect(initialResult).toContainText('"node_id": "MDQ6VXNlcjEzNjQ3OTU="');
+  await expect(initialResult).toContainText('"login": "morgs32"');
 });
 
-test("loads the GitHub profile variant through the local scraper proxy", async ({ page }) => {
+test("updates the GitHub profile preview and retains the last success after an error", async ({
+  page,
+}) => {
   await page.goto("/collections/github/profile");
   await page.waitForLoadState("networkidle");
 
   const urlInput = page.getByLabel("url");
   await expect(urlInput).toHaveValue("https://github.com/morgs32");
+  await urlInput.fill("https://github.com/octocat");
 
   await page.getByRole("button", { name: "Get data" }).click();
 
   const result = page.getByTestId("variant-data-result");
   await expect(result).toBeVisible();
-  await expect(result).toContainText('"login": "morgs32"');
-});
-
-test("shows an unwrapped GitHub profile URL error", async ({ page }) => {
-  await page.goto("/collections/github/profile");
-  await page.waitForLoadState("networkidle");
+  await expect(result).toContainText('"login": "octocat"');
+  await expect(
+    page.locator('[data-variant-size-brick="github/profile/4x4"]').getByText("@octocat"),
+  ).toBeVisible();
 
   await page.getByLabel("url").fill("https://github.com/topics/effect");
   await page.getByRole("button", { name: "Get data" }).click();
@@ -204,6 +230,10 @@ test("shows an unwrapped GitHub profile URL error", async ({ page }) => {
   await expect(error).toBeVisible();
   await expect(error).toContainText("invalid-scrape-request");
   await expect(error).toContainText("GitHub scrapes require https://github.com/<login>");
+  await expect(result).toContainText('"login": "octocat"');
+  await expect(
+    page.locator('[data-variant-size-brick="github/profile/4x4"]').getByText("@octocat"),
+  ).toBeVisible();
 });
 
 test("renders every size on a variant page", async ({ page }) => {

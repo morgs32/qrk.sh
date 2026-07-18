@@ -5,10 +5,7 @@ import type { CarouselApi } from "@/components/ui/carousel";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { collectionsHash } from "@qrk.sh/bricks";
 
-const ROWS = [
-  ["swatch", "icon", "image", "figma"],
-  ["text-brick"],
-] as const;
+const ROWS = [["swatch", "icon", "image", "figma"], ["text-brick"]] as const;
 
 const AUTOPLAY_DELAY_MS = 3000;
 const AUTOPLAY_STAGGER_MS = 600;
@@ -41,9 +38,11 @@ export function HomeGrid() {
     return ROWS.map((row) => {
       return row.map((collectionName) => {
         const collection = collectionsHash[collectionName];
+        const variant = collection.variants.default;
         return {
           collectionName,
-          Tile: collection.variants.default.sizes["4x4"].component,
+          Tile: variant.sizes["4x4"].component,
+          defaultData: variant.defaultData,
         };
       });
     });
@@ -60,11 +59,11 @@ export function HomeGrid() {
             aria-label="Home tiles row 1"
           >
             <CarouselContent className="-ml-0">
-              {rowTiles[0].map(({ collectionName, Tile }) => {
+              {rowTiles[0].map(({ collectionName, Tile, defaultData }) => {
                 return (
                   <CarouselItem key={collectionName} className="basis-1/2 pl-0">
                     <div className="w-full aspect-square">
-                      <Tile />
+                      {defaultData === undefined ? <Tile /> : <Tile data={defaultData} />}
                     </div>
                   </CarouselItem>
                 );
@@ -80,11 +79,11 @@ export function HomeGrid() {
             aria-label="Home tiles row 2"
           >
             <CarouselContent className="-ml-0">
-              {rowTiles[1].map(({ collectionName, Tile }) => {
+              {rowTiles[1].map(({ collectionName, Tile, defaultData }) => {
                 return (
                   <CarouselItem key={collectionName} className="basis-1/2 pl-0">
                     <div className="w-full aspect-square">
-                      <Tile />
+                      {defaultData === undefined ? <Tile /> : <Tile data={defaultData} />}
                     </div>
                   </CarouselItem>
                 );

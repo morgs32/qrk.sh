@@ -1,6 +1,7 @@
 import { makeEffectSchema } from "@zerospin/core/models/primitiveMaps";
 import type { IShape, InferDecodedRow } from "@zerospin/core/models/types";
 import { Effect, Schema } from "effect";
+import type { ReactNode } from "react";
 import type { ScraperApi } from "scraper/ScraperApi";
 import type { IJsonValue, IRpcEither } from "scraper/types";
 
@@ -8,11 +9,13 @@ import type { IBrick } from "./types";
 
 export function makeVariant<
   const VARIANT extends string,
-  const SIZES extends Record<string, IBrick<VARIANT, string>>,
+  const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
 >(props: {
   variant: VARIANT;
   variantDescription: string;
-  payload?: never;
+  payloadShape?: never;
+  dataShape?: never;
+  defaultData?: never;
   getData?: never;
   sizes: SIZES & {
     [SIZE in keyof SIZES]: SIZES[SIZE] & {
@@ -28,15 +31,18 @@ export function makeVariant<
 };
 export function makeVariant<
   const VARIANT extends string,
-  const SIZES extends Record<string, IBrick<VARIANT, string>>,
-  const PAYLOAD extends IShape,
+  const PAYLOAD_SHAPE extends IShape,
+  const DATA_SHAPE extends IShape,
+  const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
 >(props: {
   variant: VARIANT;
   variantDescription: string;
-  payload: PAYLOAD;
+  payloadShape: PAYLOAD_SHAPE;
+  dataShape: DATA_SHAPE;
+  defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
   getData: (props: {
     api: ScraperApi;
-    payload: InferDecodedRow<PAYLOAD>;
+    payload: InferDecodedRow<PAYLOAD_SHAPE>;
   }) => Promise<IRpcEither<IJsonValue>>;
   sizes: SIZES & {
     [SIZE in keyof SIZES]: SIZES[SIZE] & {
@@ -44,18 +50,30 @@ export function makeVariant<
         variant: VARIANT;
         size: SIZE & string;
       };
+      component: Parameters<SIZES[SIZE]["component"]> extends [
+        { data: InferDecodedRow<DATA_SHAPE> },
+        ...unknown[],
+      ]
+        ? (props: { data: InferDecodedRow<DATA_SHAPE> }) => ReactNode
+        : never;
     };
   };
 }): {
   variantDescription: string;
-  payload: PAYLOAD;
-  getData: (props: { api: ScraperApi; payload: unknown }) => Promise<IRpcEither<IJsonValue>>;
+  payloadShape: PAYLOAD_SHAPE;
+  dataShape: DATA_SHAPE;
+  defaultData: InferDecodedRow<DATA_SHAPE>;
+  getData: (props: {
+    api: ScraperApi;
+    payload: unknown;
+  }) => Promise<IRpcEither<InferDecodedRow<DATA_SHAPE>>>;
   sizes: SIZES;
 };
 export function makeVariant<
   const VARIANT extends string,
-  const SIZES extends Record<string, IBrick<VARIANT, string>>,
-  const PAYLOAD extends IShape,
+  const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
+  const PAYLOAD_SHAPE extends IShape,
+  const DATA_SHAPE extends IShape,
 >(
   props: {
     variant: VARIANT;
@@ -70,30 +88,45 @@ export function makeVariant<
     };
   } & (
     | {
-        payload?: never;
+        payloadShape?: never;
+        dataShape?: never;
+        defaultData?: never;
         getData?: never;
       }
     | {
-        payload: PAYLOAD;
+        payloadShape: PAYLOAD_SHAPE;
+        dataShape: DATA_SHAPE;
+        defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
         getData: (props: {
           api: ScraperApi;
-          payload: InferDecodedRow<PAYLOAD>;
+          payload: InferDecodedRow<PAYLOAD_SHAPE>;
         }) => Promise<IRpcEither<IJsonValue>>;
       }
   ),
 ) {
-  if (props.payload === undefined || props.getData === undefined) {
+  if (
+    props.payloadShape === undefined ||
+    props.dataShape === undefined ||
+    props.defaultData === undefined ||
+    props.getData === undefined
+  ) {
     return {
       variantDescription: props.variantDescription,
       sizes: props.sizes,
     };
   }
 
-  const payloadSchema = makeEffectSchema(props.payload);
+  const payloadSchema = makeEffectSchema(props.payloadShape);
+  const dataSchema = makeEffectSchema(props.dataShape);
+  const defaultData = Schema.decodeUnknownSync(dataSchema)(props.defaultData, {
+    onExcessProperty: "preserve",
+  });
 
   return {
     variantDescription: props.variantDescription,
-    payload: props.payload,
+    payloadShape: props.payloadShape,
+    dataShape: props.dataShape,
+    defaultData,
     getData: async (request: { api: ScraperApi; payload: unknown }) => {
       const decodedPayload = await Effect.runPromise(
         Schema.decodeUnknown(payloadSchema)(request.payload, {
@@ -101,10 +134,22 @@ export function makeVariant<
         }),
       );
 
-      return props.getData({
+      const result = await props.getData({
         api: request.api,
         payload: decodedPayload,
       });
+
+      if (result._tag === "Left") {
+        return result;
+      }
+
+      const data = await Effect.runPromise(
+        Schema.decodeUnknown(dataSchema)(result.right, {
+          onExcessProperty: "preserve",
+        }),
+      );
+
+      return { _tag: "Right", right: data };
     },
     sizes: props.sizes,
   };

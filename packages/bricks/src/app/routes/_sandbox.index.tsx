@@ -145,7 +145,11 @@ function CatalogPage() {
                     aspectRatio: `${selectedBrick.def.w} / ${selectedBrick.def.h}`,
                   }}
                 >
-                  <BrickComponent />
+                  {selectedVariant.defaultData === undefined ? (
+                    <BrickComponent />
+                  ) : (
+                    <BrickComponent data={selectedVariant.defaultData} />
+                  )}
                 </div>
               </div>
             </section>

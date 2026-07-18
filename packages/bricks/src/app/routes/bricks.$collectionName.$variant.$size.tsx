@@ -19,8 +19,8 @@ export const Route = createFileRoute("/bricks/$collectionName/$variant/$size")({
 
 function BrickPage() {
   const brickDef = Route.useLoaderData();
-  const brick =
-    collectionsHash[brickDef.collectionName]?.variants[brickDef.variant]?.sizes[brickDef.size];
+  const variant = collectionsHash[brickDef.collectionName]?.variants[brickDef.variant];
+  const brick = variant?.sizes[brickDef.size];
 
   if (!brick) {
     throw notFound();
@@ -59,7 +59,11 @@ function BrickPage() {
                   height: brick.def.h * gridUnitPx,
                 }}
               >
-                <BrickComponent />
+                {variant.defaultData === undefined ? (
+                  <BrickComponent />
+                ) : (
+                  <BrickComponent data={variant.defaultData} />
+                )}
               </div>
             </div>
           </section>

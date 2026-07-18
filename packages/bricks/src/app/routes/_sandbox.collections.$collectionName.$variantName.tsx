@@ -5,7 +5,7 @@ import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { ArrowLeft } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { ScraperApi } from "scraper/ScraperApi";
-import type { IJsonValue, IScrapeError } from "scraper/types";
+import type { IScrapeError } from "scraper/types";
 
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -24,7 +24,7 @@ function VariantConfiguration() {
   const collection = collectionsHash[collectionName];
   const variant = collection?.variants[variantName];
   const [isLoadingData, setIsLoadingData] = useState(false);
-  const [loadedData, setLoadedData] = useState<IJsonValue>();
+  const [loadedData, setLoadedData] = useState<unknown>();
   const [dataError, setDataError] = useState<IScrapeError>();
   const [requestError, setRequestError] = useState<string>();
 
@@ -34,9 +34,9 @@ function VariantConfiguration() {
 
   const sizes = Object.entries(variant.sizes);
   const firstSize = sizes[0];
-  const payload = variant.payload;
+  const payloadShape = variant.payloadShape;
   const getData = variant.getData;
-  const payloadEntries = payload === undefined ? [] : Object.entries(payload);
+  const payloadEntries = payloadShape === undefined ? [] : Object.entries(payloadShape);
   const hasUnsupportedPayload = payloadEntries.some(([, descriptor]) => {
     return (
       descriptor.kind !== PrimitiveKind.Text ||
@@ -120,7 +120,11 @@ function VariantConfiguration() {
                       aspectRatio: `${brick.def.w} / ${brick.def.h}`,
                     }}
                   >
-                    <BrickComponent />
+                    {variant.defaultData === undefined ? (
+                      <BrickComponent />
+                    ) : (
+                      <BrickComponent data={loadedData ?? variant.defaultData} />
+                    )}
                   </div>
                 </div>
               </section>
@@ -129,7 +133,7 @@ function VariantConfiguration() {
         </div>
       </div>
       <div className="border-l border-zinc-200 px-6 pt-6">
-        {payload !== undefined && getData !== undefined ? (
+        {payloadShape !== undefined && getData !== undefined ? (
           <div>
             <h2 className="m-0 text-lg font-semibold">Data</h2>
             <form
@@ -138,7 +142,6 @@ function VariantConfiguration() {
                 event.preventDefault();
 
                 setIsLoadingData(true);
-                setLoadedData(undefined);
                 setDataError(undefined);
                 setRequestError(undefined);
 
@@ -169,7 +172,7 @@ function VariantConfiguration() {
                 }
               }}
             >
-              {Object.entries(payload).map(([fieldName, descriptor]) => {
+              {Object.entries(payloadShape).map(([fieldName, descriptor]) => {
                 if (
                   descriptor.kind !== PrimitiveKind.Text ||
                   descriptor.nullable !== false ||
@@ -228,14 +231,12 @@ function VariantConfiguration() {
               </div>
             ) : null}
 
-            {loadedData !== undefined ? (
-              <pre
-                className="mt-5 overflow-auto bg-zinc-100 p-4 text-xs"
-                data-testid="variant-data-result"
-              >
-                {JSON.stringify(loadedData, null, 2)}
-              </pre>
-            ) : null}
+            <pre
+              className="mt-5 overflow-auto bg-zinc-100 p-4 text-xs"
+              data-testid="variant-data-result"
+            >
+              {JSON.stringify(loadedData ?? variant.defaultData, null, 2)}
+            </pre>
           </div>
         ) : (
           <pre className="m-0 overflow-auto bg-zinc-100 p-4 text-xs">

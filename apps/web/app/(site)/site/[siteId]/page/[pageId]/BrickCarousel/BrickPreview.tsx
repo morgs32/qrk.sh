@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
-import { type ICollectionBrick } from "@qrk.sh/bricks";
+import { collectionsHash, type ICollectionBrick } from "@qrk.sh/bricks";
 import { makeId } from "@/lib/makeId";
 
 /** Matches site workspace: half viewport (right column `w-1/2`) / 8 columns, same as `Grid` `GRID_COLS`. */
@@ -43,6 +43,7 @@ export function BrickPreview({ brick }: { brick: ICollectionBrick }) {
   }, []);
 
   const BrickComponent = brick.component;
+  const variant = collectionsHash[brick.def.collectionName]?.variants[brick.def.variant];
 
   return (
     <div className="drawer-brick-preview flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center touch-manipulation">
@@ -62,7 +63,11 @@ export function BrickPreview({ brick }: { brick: ICollectionBrick }) {
         aria-label={`${brick.def.collectionLabel} ${brick.def.w}×${brick.def.h}`}
       >
         <div className="h-full w-full">
-          <BrickComponent />
+          {variant?.defaultData === undefined ? (
+            <BrickComponent />
+          ) : (
+            <BrickComponent data={variant.defaultData} />
+          )}
         </div>
       </div>
     </div>

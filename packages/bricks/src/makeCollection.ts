@@ -1,7 +1,8 @@
 import { mapValues } from "es-toolkit/object";
 import type { IShape } from "@zerospin/core/models/types";
+import type { ReactNode } from "react";
 import type { ScraperApi } from "scraper/ScraperApi";
-import type { IJsonValue, IRpcEither } from "scraper/types";
+import type { IRpcEither } from "scraper/types";
 
 import type { ICollection, IBrick } from "./types";
 
@@ -13,15 +14,19 @@ export function makeCollection(props: {
     string,
     | {
         variantDescription: string;
-        payload?: never;
+        payloadShape?: never;
+        dataShape?: never;
+        defaultData?: never;
         getData?: never;
-        sizes: Record<string, IBrick>;
+        sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
       }
     | {
         variantDescription: string;
-        payload: IShape;
-        getData: (props: { api: ScraperApi; payload: unknown }) => Promise<IRpcEither<IJsonValue>>;
-        sizes: Record<string, IBrick>;
+        payloadShape: IShape;
+        dataShape: IShape;
+        defaultData: unknown;
+        getData: (props: { api: ScraperApi; payload: unknown }) => Promise<IRpcEither<unknown>>;
+        sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
       }
   >;
 }): ICollection {
@@ -44,10 +49,17 @@ export function makeCollection(props: {
       };
     });
 
-    if (rawVariant.payload !== undefined && rawVariant.getData !== undefined) {
+    if (
+      rawVariant.payloadShape !== undefined &&
+      rawVariant.dataShape !== undefined &&
+      rawVariant.defaultData !== undefined &&
+      rawVariant.getData !== undefined
+    ) {
       return {
         variantDescription: rawVariant.variantDescription,
-        payload: rawVariant.payload,
+        payloadShape: rawVariant.payloadShape,
+        dataShape: rawVariant.dataShape,
+        defaultData: rawVariant.defaultData,
         getData: rawVariant.getData,
         sizes,
       };

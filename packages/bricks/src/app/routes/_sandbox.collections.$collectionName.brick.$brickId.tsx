@@ -16,7 +16,8 @@ function BrickDetail() {
     brickDef?.collectionName === collectionName
       ? collectionsHash[brickDef.collectionName]
       : undefined;
-  const brick = collection?.variants[brickDef?.variant ?? ""]?.sizes[brickDef?.size ?? ""];
+  const variant = collection?.variants[brickDef?.variant ?? ""];
+  const brick = variant?.sizes[brickDef?.size ?? ""];
 
   if (!hasHydrated) {
     return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
@@ -69,7 +70,11 @@ function BrickDetail() {
             aspectRatio: `${brick.def.w} / ${brick.def.h}`,
           }}
         >
-          <BrickComponent />
+          {variant?.defaultData === undefined ? (
+            <BrickComponent />
+          ) : (
+            <BrickComponent data={variant.defaultData} />
+          )}
         </div>
       </div>
     </section>

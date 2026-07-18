@@ -314,10 +314,9 @@ export function Grid() {
               onDrop={onDrop}
             >
               {layout.map((item) => {
-                const catalogBrick =
-                  collectionsHash[item.def.collectionName]?.variants[item.def.variant]?.sizes[
-                    item.def.size
-                  ];
+                const catalogVariant =
+                  collectionsHash[item.def.collectionName]?.variants[item.def.variant];
+                const catalogBrick = catalogVariant?.sizes[item.def.size];
                 const BrickComponent = catalogBrick?.component;
                 if (!BrickComponent) {
                   return null;
@@ -338,7 +337,11 @@ export function Grid() {
                       router.push(`/site/${siteId}/page/${pageId}/brick/${item.i}`);
                     }}
                   >
-                    <BrickComponent />
+                    {catalogVariant.defaultData === undefined ? (
+                      <BrickComponent />
+                    ) : (
+                      <BrickComponent data={catalogVariant.defaultData} />
+                    )}
                   </div>
                 );
               })}

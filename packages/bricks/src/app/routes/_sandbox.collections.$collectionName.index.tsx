@@ -46,6 +46,7 @@ function CollectionCatalog() {
       <div className="mt-8 flex flex-col gap-10">
         {bricks.map((brick) => {
           const BrickComponent = brick.component;
+          const variant = collection.variants[brick.def.variant];
 
           return (
             <section key={`${brick.def.variant}/${brick.def.size}`}>
@@ -108,7 +109,11 @@ function CollectionCatalog() {
                         aspectRatio: `${brick.def.w} / ${brick.def.h}`,
                       }}
                     >
-                      <BrickComponent />
+                      {variant?.defaultData === undefined ? (
+                        <BrickComponent />
+                      ) : (
+                        <BrickComponent data={variant.defaultData} />
+                      )}
                     </div>
                   </div>
                 </Tabs.Panel>

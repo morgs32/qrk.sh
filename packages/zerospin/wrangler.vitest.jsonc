@@ -47,7 +47,7 @@
     "CLERK_SECRET_KEY": "sk_test_qrk_workerd",
     "ZEROSPIN_ENVIRONMENT_ID": "zerospin-dev",
     "ZEROSPIN_SYSTEM_ID": "sys_qrk_sh_1",
-    "ZEROSPIN_SYSTEM_VERSION": "2.0.0",
+    "ZEROSPIN_SYSTEM_VERSION": "3.0.0",
   },
   "alias": {
     "@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDbAdapter": "./src/shims/makeMigratedInMemoryWasmSqliteDbAdapter.ts",

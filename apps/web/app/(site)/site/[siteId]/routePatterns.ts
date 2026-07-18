@@ -1,8 +1,5 @@
 import { ArrayMatcher, RoutePattern } from "@remix-run/route-pattern";
 
-/** Default `[pageId]` for the primary site workspace (`/site/:siteId/page/:pageId`). */
-export const DEFAULT_SITE_PAGE_ID = "home" as const;
-
 /**
  * Site workspace route patterns (`@remix-run/route-pattern`).
  *

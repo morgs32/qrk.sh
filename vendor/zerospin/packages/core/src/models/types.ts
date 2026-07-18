@@ -115,7 +115,13 @@ export type INumberDescriptor<
 
 export type ITextDescriptor<
   NULLABLE extends boolean = boolean,
-  DEFAULT_VALUE extends string | undefined = string | undefined,
+  DEFAULT_VALUE extends
+    | string
+    | (true extends NULLABLE ? null : never)
+    | undefined =
+    | string
+    | (true extends NULLABLE ? null : never)
+    | undefined,
 > = {
   kind: PrimitiveKind.Text;
   nullable: NULLABLE;
@@ -528,7 +534,7 @@ export type InferDrizzleColumnBuilderFromDescriptor<
                 ? HasDefault<IEncodedNumberColumn<NULLABLE>>
                 : IEncodedNumberColumn<NULLABLE>
               : D extends ITextDescriptor<infer NULLABLE, infer DEFAULT_VALUE>
-                ? [DEFAULT_VALUE] extends [string]
+                ? [DEFAULT_VALUE] extends [string | null]
                   ? HasDefault<IEncodedTextColumn<NULLABLE, string>>
                   : IEncodedTextColumn<NULLABLE, string>
                 : D extends IJsonDescriptor<

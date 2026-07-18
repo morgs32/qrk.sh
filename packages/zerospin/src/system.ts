@@ -11,7 +11,7 @@ import { owner } from "./owner";
 
 export const userAccount = makeAccountController({
   name: "user",
-  version: "1.0.0",
+  version: "1.1.0",
   actorControllers: {
     owner,
   },
@@ -36,5 +36,5 @@ export const system = makeSystem({
     user: userAccount,
   },
   name: "qrk-sh",
-  version: "2.0.0",
+  version: "3.0.0",
 });

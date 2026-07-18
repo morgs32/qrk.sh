@@ -39,6 +39,17 @@ const nullableUniqueRefDescriptor = primitives.ref({
 void (nullableUniqueRefDescriptor.nullable satisfies true);
 void (nullableUniqueRefDescriptor.unique satisfies true);
 
+const nullableTextWithNullDefault = primitives.text({
+  nullable: true,
+  defaultValue: null,
+});
+
+void (nullableTextWithNullDefault.nullable satisfies true);
+void (nullableTextWithNullDefault.defaultValue satisfies null);
+
+// @ts-expect-error CoreTypeError — null text defaults require nullable text
+primitives.text({ defaultValue: null });
+
 const selfRefTable = makeTable({
   name: 'selfRefTable',
   shape: {

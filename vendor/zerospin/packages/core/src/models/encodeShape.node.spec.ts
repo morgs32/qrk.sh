@@ -27,14 +27,21 @@ const JsonSettingsSchema = Schema.Struct({
 describe('encodeShape', () => {
   it('preserves scalar descriptors', () => {
     const name = primitives.text({ unique: true });
+    const optionalName = primitives.text({
+      nullable: true,
+      defaultValue: null,
+    });
     const count = primitives.integer({ defaultValue: 1 });
 
     const encoded = encodeShape({
       name,
+      optionalName,
       count,
     });
 
     expect(encoded.name).toBe(name);
+    expect(encoded.optionalName).toBe(optionalName);
+    expect(encoded.optionalName.defaultValue).toBe(null);
     expect(encoded.count).toBe(count);
   });
 

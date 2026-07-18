@@ -1,11 +1,5 @@
-import { redirect } from "next/navigation";
-import { DEFAULT_SITE_PAGE_ID, pagePattern } from "./routePatterns";
+import { notFound } from "next/navigation";
 
-export default async function SitePage({
-  params,
-}: Readonly<{
-  params: Promise<{ siteId: string }>;
-}>) {
-  const { siteId } = await params;
-  redirect(pagePattern.href({ siteId, pageId: DEFAULT_SITE_PAGE_ID }));
+export default function SitePage() {
+  notFound();
 }

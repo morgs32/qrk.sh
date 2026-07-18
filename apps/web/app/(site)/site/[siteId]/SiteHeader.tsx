@@ -1,13 +1,22 @@
-import Link from "next/link";
+"use client";
 
-export function SiteHeader(props: { siteId: string }) {
-  const { siteId } = props;
+import Link from "next/link";
+import { useParams } from "next/navigation";
+
+import { pagePattern } from "./routePatterns";
+
+export function SiteHeader() {
+  const { siteId, pageId } = useParams<{ siteId: string; pageId?: string }>();
 
   return (
     <header className="z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-6">
-      <Link href={`/site/${siteId}/page/home`} className="text-sm font-medium">
-        Garlott
-      </Link>
+      {pageId === undefined ? (
+        <span className="text-sm font-medium">Garlott</span>
+      ) : (
+        <Link href={pagePattern.href({ siteId, pageId })} className="text-sm font-medium">
+          Garlott
+        </Link>
+      )}
       {/* <nav className="flex items-center gap-6">
         <Link href="/work" className="text-xs transition-opacity hover:opacity-70">
           Work

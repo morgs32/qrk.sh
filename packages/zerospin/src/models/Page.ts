@@ -14,16 +14,42 @@ export const Page = makeModel(
         inverse: "pages",
       }),
       slug: primitives.text(),
-      title: primitives.text(),
+      title: primitives.text({
+        nullable: true,
+        defaultValue: null,
+      }),
       description: primitives.text({
         nullable: true,
+        defaultValue: null,
       }),
       pageType: primitives.enum({
         values: ["split-scroll", "shared-scroll"],
       }),
     },
     indexes: [],
-    version: "1.0.0",
+    version: "2.0.0",
   },
-  [],
+  [
+    {
+      abbreviation: "pag",
+      modelName: "page",
+      attributes: {
+        siteId: primitives.ref({
+          table: Site.table,
+          relation: "site",
+          inverse: "pages",
+        }),
+        slug: primitives.text(),
+        title: primitives.text(),
+        description: primitives.text({
+          nullable: true,
+        }),
+        pageType: primitives.enum({
+          values: ["split-scroll", "shared-scroll"],
+        }),
+      },
+      indexes: [],
+      version: "1.0.0",
+    },
+  ],
 );

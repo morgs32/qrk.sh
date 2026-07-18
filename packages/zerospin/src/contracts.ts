@@ -45,21 +45,28 @@ export const createUser = makeContract({
 export const createSite = makeContract({
   commandName: "createSite",
   payload: {
-    id: Site.primaryKey({ autogenerate: false }),
+    id: Site.primaryKey({ autogenerate: true }),
     userId: User.primaryKey({ autogenerate: false }),
-    slug: primitives.text(),
-    name: primitives.text(),
+    slug: primitives.text({
+      nullable: true,
+      defaultValue: null,
+    }),
+    name: primitives.text({
+      nullable: true,
+      defaultValue: null,
+    }),
     description: primitives.text({
       nullable: true,
+      defaultValue: null,
     }),
   },
   mutations: Schema.Struct({
-    created: Site.createMutation("1.0.0"),
+    created: Site.createMutation("2.0.0"),
   }),
   program: ({ payload }) => {
     const { id, userId, slug, name, description } = payload;
     return Effect.all({
-      created: Site.create("1.0.0", {
+      created: Site.create("2.0.0", {
         resourceId: id,
         attributes: {
           userId,
@@ -70,30 +77,34 @@ export const createSite = makeContract({
       }),
     });
   },
-  version: "1.0.0",
+  version: "1.1.0",
 });
 
 export const createPage = makeContract({
   commandName: "createPage",
   payload: {
-    id: Page.primaryKey({ autogenerate: false }),
+    id: Page.primaryKey({ autogenerate: true }),
     siteId: Site.primaryKey({ autogenerate: false }),
     slug: primitives.text(),
-    title: primitives.text(),
+    title: primitives.text({
+      nullable: true,
+      defaultValue: null,
+    }),
     description: primitives.text({
       nullable: true,
+      defaultValue: null,
     }),
     pageType: primitives.enum({
       values: ["split-scroll", "shared-scroll"],
     }),
   },
   mutations: Schema.Struct({
-    created: Page.createMutation("1.0.0"),
+    created: Page.createMutation("2.0.0"),
   }),
   program: ({ payload }) => {
     const { id, siteId, slug, title, description, pageType } = payload;
     return Effect.all({
-      created: Page.create("1.0.0", {
+      created: Page.create("2.0.0", {
         resourceId: id,
         attributes: {
           siteId,
@@ -105,7 +116,7 @@ export const createPage = makeContract({
       }),
     });
   },
-  version: "1.0.0",
+  version: "1.1.0",
 });
 
 export const createGrid = makeContract({

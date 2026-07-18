@@ -19,7 +19,7 @@ export const ownerFrontend = makeFrontendController({
   accountName: "user",
   actorName: "owner",
   frontendName: "web",
-  version: "1.0.0",
+  version: "1.1.0",
   systemName: "qrk-sh",
   models: {
     grid: Grid,

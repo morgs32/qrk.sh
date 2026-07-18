@@ -246,6 +246,11 @@ function number(props?: {
   };
 }
 
+function text(props: {
+  nullable: true;
+  unique?: boolean;
+  defaultValue: null;
+}): ITextDescriptor<true, null>;
 function text<const DEFAULT_VALUE extends string>(props: {
   nullable: true;
   unique?: boolean;
@@ -282,8 +287,8 @@ function text<NULLABLE extends boolean = false>(props?: {
 function text(props?: {
   nullable?: boolean | undefined;
   unique?: boolean | undefined;
-  defaultValue?: string | undefined;
-}): ITextDescriptor<boolean, string | undefined> {
+  defaultValue?: string | null | undefined;
+}): ITextDescriptor<boolean, string | null | undefined> {
   const { nullable = false, unique = false, defaultValue } = props ?? {};
   if (defaultValue === undefined) {
     return {

@@ -154,10 +154,28 @@ test("shows brick config in a collection tab", async ({ page }) => {
   );
   await page.getByRole("link", { name: "Configure" }).first().click();
   await expect(page).toHaveURL(/\/collections\/github\/profile$/);
-  await expect(page.getByTestId("variant-configuration-pane")).toBeVisible();
+  const variantConfigurationPane = page.getByTestId("variant-configuration-pane");
+  await expect(variantConfigurationPane).toBeVisible();
+  await expect(page.getByLabel("Brick grid")).toHaveCount(1);
+  const variantConfigurationWidths = await variantConfigurationPane.evaluate((element) => ({
+    pane: element.getBoundingClientRect().width,
+    document: document.documentElement.clientWidth,
+  }));
+  expect(variantConfigurationWidths.pane).toBe(variantConfigurationWidths.document);
   await expect(page.getByText("Variant name", { exact: true })).toBeVisible();
   await expect(page.getByText("Profile", { exact: true })).toBeVisible();
   await expect(page.getByText('"collectionName": "github"', { exact: false })).toBeVisible();
+});
+
+test("switches the selected size on a variant page", async ({ page }) => {
+  await page.goto("/collections/swatch/default");
+  await page.waitForLoadState("networkidle");
+
+  const sizeTabs = page.getByLabel("default sizes");
+  await expect(sizeTabs.getByRole("tab", { name: "2x2" })).toHaveAttribute("aria-selected", "true");
+  await sizeTabs.getByRole("tab", { name: "8x2" }).click();
+  await expect(sizeTabs.getByRole("tab", { name: "8x2" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-variant-selected-brick="swatch/default/8x2"]')).toBeVisible();
 });
 
 test("resizes the preview proportionally and switches canvas theme", async ({ page }) => {

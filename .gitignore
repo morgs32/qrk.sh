@@ -24,6 +24,7 @@ storybook-static
 **/blob-report/
 /apps/web/.wrangler/
 /apps/web/tmp/
+/apps/web/wrangler.zerospin-dev.*.local.json
 
 # next.js
 /.next/

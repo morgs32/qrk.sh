@@ -66,7 +66,7 @@ describe("origin-specific scraper repositories", () => {
     using instagramApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     expect(await instagramApi.instagramRepo().scrape("https://instagram.com/creator")).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
     using gitHubApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await gitHubApi.githubRepo().scrape("https://github.com/topics/effect")).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
+    expect(await gitHubApi.githubRepo().getProfile("https://github.com/topics/effect")).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
     using tikTokApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     expect(await tikTokApi.tiktokRepo().scrape("https://www.tiktok.com/t/short")).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
     using youTubeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
@@ -177,8 +177,8 @@ describe("origin-specific scraper repositories", () => {
       return SELF.fetch(input, init);
     }));
     const repo = env.GITHUB_REPO.getByName("global");
-    const firstPromise = repo.scrape("https://github.com/Coalesced/?source=first");
-    const secondPromise = repo.scrape("https://github.com/coalesced");
+    const firstPromise = repo.getProfile("https://github.com/Coalesced/?source=first");
+    const secondPromise = repo.getProfile("https://github.com/coalesced");
     const first = getRight(await firstPromise);
     const second = getRight(await secondPromise);
 
@@ -186,7 +186,7 @@ describe("origin-specific scraper repositories", () => {
     expect(second).toMatchObject({ login: "coalesced" });
     expect(upstreamCalls).toBe(1);
     using cachedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await cachedApi.githubRepo().scrape("https://github.com/coalesced/"))).toMatchObject({ login: "coalesced" });
+    expect(getRight(await cachedApi.githubRepo().getProfile("https://github.com/coalesced/"))).toMatchObject({ login: "coalesced" });
     expect(upstreamCalls).toBe(1);
   });
 
@@ -208,19 +208,19 @@ describe("origin-specific scraper repositories", () => {
       return SELF.fetch(input, init);
     }));
     using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await api.githubRepo().scrape("https://github.com/stale-refresh"))).toMatchObject({ name: "Old" });
+    expect(getRight(await api.githubRepo().getProfile("https://github.com/stale-refresh"))).toMatchObject({ name: "Old" });
 
     vi.setSystemTime(new Date("2026-07-19T00:00:00.001Z"));
     const staleRepo = env.GITHUB_REPO.getByName("global");
-    const firstStale = getRight(await staleRepo.scrape("https://github.com/stale-refresh"));
-    const secondStale = getRight(await staleRepo.scrape("https://github.com/stale-refresh"));
+    const firstStale = getRight(await staleRepo.getProfile("https://github.com/stale-refresh"));
+    const secondStale = getRight(await staleRepo.getProfile("https://github.com/stale-refresh"));
     expect(firstStale).toMatchObject({ name: "Old" });
     expect(secondStale).toMatchObject({ name: "Old" });
     expect(upstreamCalls).toBe(2);
     releaseRefresh?.();
     await vi.waitFor(() => expect(upstreamCalls).toBe(2));
     using refreshedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await refreshedApi.githubRepo().scrape("https://github.com/stale-refresh"))).toMatchObject({ name: "New" });
+    expect(getRight(await refreshedApi.githubRepo().getProfile("https://github.com/stale-refresh"))).toMatchObject({ name: "New" });
   });
 
   it("logs a failed background refresh and retains stale GitHub data indefinitely", async () => {
@@ -238,15 +238,15 @@ describe("origin-specific scraper repositories", () => {
     }));
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await api.githubRepo().scrape("https://github.com/stale-failure"))).toMatchObject({ name: "Last success" });
+    expect(getRight(await api.githubRepo().getProfile("https://github.com/stale-failure"))).toMatchObject({ name: "Last success" });
 
     vi.setSystemTime(new Date("2026-08-18T00:00:00.000Z"));
     using staleApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await staleApi.githubRepo().scrape("https://github.com/stale-failure"))).toMatchObject({ name: "Last success" });
+    expect(getRight(await staleApi.githubRepo().getProfile("https://github.com/stale-failure"))).toMatchObject({ name: "Last success" });
     await vi.waitFor(() => expect(consoleError).toHaveBeenCalled());
     expect(consoleError.mock.calls[0]?.[0]).toContain("scraper-background-refresh-failed");
     using retainedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await retainedApi.githubRepo().scrape("https://github.com/stale-failure"))).toMatchObject({ name: "Last success" });
+    expect(getRight(await retainedApi.githubRepo().getProfile("https://github.com/stale-failure"))).toMatchObject({ name: "Last success" });
   });
 
   it("does not cache a failed first GitHub scrape", async () => {
@@ -261,9 +261,9 @@ describe("origin-specific scraper repositories", () => {
       return SELF.fetch(input, init);
     }));
     using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await api.githubRepo().scrape("https://github.com/not-cached-failure")).toMatchObject({ _tag: "Left", left: { code: "scrape-transient-failure" } });
+    expect(await api.githubRepo().getProfile("https://github.com/not-cached-failure")).toMatchObject({ _tag: "Left", left: { code: "scrape-transient-failure" } });
     using retryApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await retryApi.githubRepo().scrape("https://github.com/not-cached-failure"))).toMatchObject({ login: "not-cached-failure" });
+    expect(getRight(await retryApi.githubRepo().getProfile("https://github.com/not-cached-failure"))).toMatchObject({ login: "not-cached-failure" });
     expect(upstreamCalls).toBe(2);
   });
 

@@ -2,6 +2,16 @@
   "name": "scraper",
   "private": true,
   "type": "module",
+  "exports": {
+    "./ScraperApi": {
+      "types": "./src/ScraperApi.public.d.ts",
+      "import": "./src/ScraperApi.ts"
+    },
+    "./types": {
+      "types": "./src/types.public.d.ts",
+      "import": "./src/types.ts"
+    }
+  },
   "scripts": {
     "dev": "wrangler dev",
     "lint": "oxlint . --ignore-pattern .wrangler --format stylish",

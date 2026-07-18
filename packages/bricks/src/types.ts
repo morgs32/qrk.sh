@@ -1,4 +1,7 @@
+import type { IShape } from "@zerospin/core/models/types";
 import type { ComponentType } from "react";
+import type { ScraperApi } from "scraper/ScraperApi";
+import type { IJsonValue, IRpcEither } from "scraper/types";
 
 /** A size within one content variant (no collection scope). */
 export type IBrickDef<VARIANT extends string = string, SIZE extends string = string> = {
@@ -19,7 +22,21 @@ export type ICollection = {
   collectionName: string;
   collectionLabel: string;
   collectionDescription: string;
-  variants: Record<string, { variantDescription: string; sizes: Record<string, ICollectionBrick> }>;
+  variants: Record<
+    string,
+    | {
+        variantDescription: string;
+        payload?: never;
+        getData?: never;
+        sizes: Record<string, ICollectionBrick>;
+      }
+    | {
+        variantDescription: string;
+        payload: IShape;
+        getData: (props: { api: ScraperApi; payload: unknown }) => Promise<IRpcEither<IJsonValue>>;
+        sizes: Record<string, ICollectionBrick>;
+      }
+  >;
 };
 
 /** Serializable catalog row: collection + content variant + size, no React component. */

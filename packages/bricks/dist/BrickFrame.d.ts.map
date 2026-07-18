@@ -1,1 +1,0 @@
-{"version":3,"file":"BrickFrame.d.ts","sourceRoot":"","sources":["../src/BrickFrame.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,OAAO,CAAC;AAEvC,KAAK,eAAe,GAAG;IACrB,mBAAmB,EAAE,MAAM,CAAC;IAC5B,aAAa,EAAE,MAAM,CAAC;IACtB,QAAQ,CAAC,EAAE,SAAS,CAAC;CACtB,CAAC;AAEF,wBAAgB,UAAU,CAAC,EAAE,mBAAmB,EAAE,aAAa,EAAE,QAAQ,EAAE,EAAE,eAAe,2CAQ3F"}

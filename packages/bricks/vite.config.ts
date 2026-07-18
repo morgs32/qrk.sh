@@ -13,8 +13,11 @@ export default defineConfig({
       external: [
         "@radix-ui/react-slot",
         "@unpic/react",
+        "@zerospin/core/models/primitiveMaps",
+        "@zerospin/core/models/primitives",
         "class-variance-authority",
         "clsx",
+        "effect",
         "es-toolkit/object",
         "lucide-react",
         "react",

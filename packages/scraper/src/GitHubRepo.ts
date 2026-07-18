@@ -45,7 +45,7 @@ export class GitHubRepo extends DurableObject<IScraperEnv> {
     });
   }
 
-  async scrape(url: string): Promise<IRpcEither<IGitHubScrapePayload>> {
+  async getProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>> {
     const normalized = await Effect.runPromise(normalizeGitHubUrl(url).pipe(encodeRpc));
     if (normalized._tag === "Left") return normalized;
     const canonicalUrl = normalized.right;

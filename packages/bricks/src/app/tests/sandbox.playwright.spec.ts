@@ -143,6 +143,14 @@ test("renders static, image, and GitHub bricks", async ({ page }) => {
   await expect(page.getByTestId("brick-preview")).toHaveCount(0);
 });
 
+test("renders the GitHub profile activity size", async ({ page }) => {
+  await page.goto("/bricks/github/profile/4x2");
+
+  await expect(
+    page.getByTestId("brick-preview").locator("[data-github-profile-activity]"),
+  ).toBeVisible();
+});
+
 test("shows brick config in a collection tab", async ({ page }) => {
   await page.goto("/collections/github");
   await page.waitForLoadState("networkidle");
@@ -164,18 +172,48 @@ test("shows brick config in a collection tab", async ({ page }) => {
   expect(variantConfigurationWidths.pane).toBe(variantConfigurationWidths.document);
   await expect(page.getByText("Variant name", { exact: true })).toBeVisible();
   await expect(page.getByText("Profile", { exact: true })).toBeVisible();
-  await expect(page.getByText('"collectionName": "github"', { exact: false })).toBeVisible();
+  await expect(page.getByText("Size", { exact: true })).toHaveCount(2);
+  await expect(page.locator('[data-variant-size-brick="github/profile/4x4"]')).toBeVisible();
+  await expect(page.locator('[data-variant-size-brick="github/profile/4x2"]')).toBeVisible();
+  await expect(page.getByLabel("url")).toHaveValue("https://github.com/morgs32");
+  await expect(page.getByRole("button", { name: "Get data" })).toBeEnabled();
 });
 
-test("switches the selected size on a variant page", async ({ page }) => {
+test("loads the GitHub profile variant through the local scraper proxy", async ({ page }) => {
+  await page.goto("/collections/github/profile");
+  await page.waitForLoadState("networkidle");
+
+  const urlInput = page.getByLabel("url");
+  await expect(urlInput).toHaveValue("https://github.com/morgs32");
+
+  await page.getByRole("button", { name: "Get data" }).click();
+
+  const result = page.getByTestId("variant-data-result");
+  await expect(result).toBeVisible();
+  await expect(result).toContainText('"login": "morgs32"');
+});
+
+test("shows an unwrapped GitHub profile URL error", async ({ page }) => {
+  await page.goto("/collections/github/profile");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByLabel("url").fill("https://github.com/topics/effect");
+  await page.getByRole("button", { name: "Get data" }).click();
+
+  const error = page.getByTestId("variant-data-error");
+  await expect(error).toBeVisible();
+  await expect(error).toContainText("invalid-scrape-request");
+  await expect(error).toContainText("GitHub scrapes require https://github.com/<login>");
+});
+
+test("renders every size on a variant page", async ({ page }) => {
   await page.goto("/collections/swatch/default");
   await page.waitForLoadState("networkidle");
 
-  const sizeTabs = page.getByLabel("default sizes");
-  await expect(sizeTabs.getByRole("tab", { name: "2x2" })).toHaveAttribute("aria-selected", "true");
-  await sizeTabs.getByRole("tab", { name: "8x2" }).click();
-  await expect(sizeTabs.getByRole("tab", { name: "8x2" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator('[data-variant-selected-brick="swatch/default/8x2"]')).toBeVisible();
+  await expect(page.getByText("Size", { exact: true })).toHaveCount(3);
+  await expect(page.locator('[data-variant-size-brick="swatch/default/2x2"]')).toBeVisible();
+  await expect(page.locator('[data-variant-size-brick="swatch/default/4x4"]')).toBeVisible();
+  await expect(page.locator('[data-variant-size-brick="swatch/default/8x2"]')).toBeVisible();
 });
 
 test("resizes the preview proportionally and switches canvas theme", async ({ page }) => {

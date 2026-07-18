@@ -1,43 +1,54 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
-**/node_modules/
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+.npmrc
+node_modules
+.pnp
+.pnp.js
+.yarn/install-state.gz
 
 # testing
-/.nx/
-/coverage
-storybook-static
-/playwright-report/
-/test-results/
-/blob-report/
-**/coverage/
-**/playwright-report/
-**/test-results/
-**/blob-report/
-/apps/web/.wrangler/
-/apps/web/tmp/
-/apps/web/wrangler.zerospin-dev.*.local.json
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+storybook-static/
+
+# agents (local only — .cursor/ and .codex/ agent configs are committed)
+.claude/worktrees
+.claude/settings.local.json
+.skills/
+.opencode/
+.playwright-mcp/
+
+# wrangler
+.wrangler/
+.dev.vars
 
 # next.js
-/.next/
-/out/
-**/.next/
-**/out/
+.next/
+out/
 
 # production
-/build
+build/
+dist/
+.output/
+.vinxi/
+.turbo/
+generated/
+.nx/
+
+# tanstack router generator scratch
+.tanstack/
 
 # misc
 .DS_Store
 *.pem
+*.db
+*.local
+*.local.*
+tmp/
 
 # debug
 npm-debug.log*
@@ -45,8 +56,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env.*
+# local env files
+**/.env*
+!**/.env.example
+!**/.env.e2e.example
 
 # vercel
 .vercel
@@ -55,5 +68,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.claude/worktrees
-.claude/settings.local.json
+.trigger
+# Sentry Config File
+.env.sentry-build-plugin
+
+# llm-wiki local state and per-machine obsidian workspace
+.llmwiki/state/
+.obsidian/workspace.json
+.obsidian/cache
+.obsidian/workspaces.json

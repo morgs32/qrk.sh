@@ -2,7 +2,6 @@
 
 import { Image } from "@unpic/react";
 import { useState } from "react";
-import { ActivityCalendar } from "react-activity-calendar";
 import useSWR from "swr";
 import {
   AlertCircle,
@@ -17,6 +16,7 @@ import {
 
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardHeader } from "../../ui/card";
+import { GitHubProfileActivity } from "./GitHubProfileActivity";
 
 const GITHUB_PROFILE_API_URL = "https://api.github.com/users/morgs32";
 
@@ -39,44 +39,6 @@ const profileCardShellClass =
   "h-full min-h-0 w-full gap-1 overflow-hidden rounded-none border border-zinc-200 bg-white py-3 text-zinc-900 shadow-none";
 const profileMutedClass = "text-zinc-500";
 const profileHeadingClass = "text-zinc-950";
-
-function generateContributionData() {
-  const days = 26 * 7;
-  const startDate = new Date("2025-11-02T00:00:00.000Z");
-  const contributions = [];
-
-  for (let dayIndex = 0; dayIndex < days; dayIndex++) {
-    const date = new Date(startDate);
-    date.setUTCDate(startDate.getUTCDate() + dayIndex);
-
-    const level = (dayIndex * 7 + (dayIndex % 6)) % 5;
-    contributions.push({
-      date: date.toISOString().slice(0, 10),
-      count: level * 3,
-      level,
-    });
-  }
-
-  return contributions;
-}
-
-function ContributionGraph() {
-  const contributions = generateContributionData();
-
-  return (
-    <div>
-      <ActivityCalendar
-        data={contributions}
-        blockMargin={2}
-        blockSize={9}
-        colorScheme="light"
-        fontSize={10}
-        showTotalCount={false}
-        showWeekdayLabels={["mon", "wed", "fri"]}
-      />
-    </div>
-  );
-}
 
 function GitHubProfileErrorState(props: { onRetry: () => void }) {
   const { onRetry } = props;
@@ -240,7 +202,7 @@ export function GitHubProfileCard() {
         </div>
 
         <div className="mt-auto">
-          <ContributionGraph />
+          <GitHubProfileActivity />
         </div>
       </CardContent>
     </Card>

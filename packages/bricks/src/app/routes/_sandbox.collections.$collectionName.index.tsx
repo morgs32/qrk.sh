@@ -3,7 +3,8 @@ import { Tabs } from "@base-ui/react/tabs";
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
-import { LeadingRow } from "../LeadingRow";
+import { CodeText } from "../CodeText";
+import { MetadataField } from "../MetadataField";
 import { useGridStore } from "../useGridStore";
 
 export const Route = createFileRoute("/_sandbox/collections/$collectionName/")({
@@ -32,9 +33,14 @@ function CollectionCatalog() {
           <ArrowLeft aria-hidden className="size-4" />
           <span>All collections</span>
         </Link>
-        <dl className="mt-5 space-y-3 text-sm">
-          <LeadingRow label="Collection name" value={collection.collectionLabel} />
-          <LeadingRow label="Collection ID" value={collection.collectionName} />
+        <dl className="mt-5 grid max-w-[500px] grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <MetadataField label="Collection name">{collection.collectionLabel}</MetadataField>
+          <MetadataField label="Collection ID" className="text-right">
+            <CodeText>{collection.collectionName}</CodeText>
+          </MetadataField>
+          <MetadataField label="Collection description" className="col-span-2">
+            {collection.collectionDescription}
+          </MetadataField>
         </dl>
       </div>
       <div className="mt-8 flex flex-col gap-10">

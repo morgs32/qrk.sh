@@ -67,5 +67,5 @@ it.skipIf(env.GITHUB_TOKEN === "missing-live-github-token" || env.SCRAPER_LIVE_G
   const url = env.SCRAPER_LIVE_GITHUB_URL;
   if (url === undefined) throw new Error("SCRAPER_LIVE_GITHUB_URL is required");
   using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-  expect(getRight(await api.githubRepo().scrape(url))).toHaveProperty("login");
+  expect(getRight(await api.githubRepo().getProfile(url))).toHaveProperty("login");
 });

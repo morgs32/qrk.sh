@@ -214,12 +214,18 @@ importers:
       '@unpic/react':
         specifier: 1.0.2
         version: 1.0.2(next@16.2.10(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@zerospin/core':
+        specifier: workspace:*
+        version: link:../../vendor/zerospin/packages/core
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      effect:
+        specifier: ^3.21.0
+        version: 3.21.4
       es-toolkit:
         specifier: ^1.45.1
         version: 1.49.0
@@ -232,6 +238,9 @@ importers:
       react-grid-layout:
         specifier: ^2.2.3
         version: 2.2.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      scraper:
+        specifier: workspace:*
+        version: link:../scraper
       swr:
         specifier: ^2.3.3
         version: 2.4.1(react@19.2.7)

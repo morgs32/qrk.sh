@@ -3,6 +3,7 @@ import { newWorkersRpcResponse } from "capnweb";
 import { BeaconsRepo } from "./BeaconsRepo";
 import { BrowserHost } from "./BrowserHost";
 import { GitHubRepo } from "./GitHubRepo";
+import { FigmaRepo } from "./FigmaRepo";
 import { InstagramRepo } from "./InstagramRepo";
 import { LinktreeRepo } from "./LinktreeRepo";
 import { ScraperApi } from "./ScraperApi";
@@ -14,6 +15,7 @@ import { YouTubeRepo } from "./YouTubeRepo";
 export {
   BeaconsRepo,
   BrowserHost,
+  FigmaRepo,
   GitHubRepo,
   InstagramRepo,
   LinktreeRepo,

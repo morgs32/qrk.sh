@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --env-file .env.local",
     "lint": "oxlint . --ignore-pattern .wrangler --format stylish",
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:live": "SCRAPER_LIVE_TESTS=1 vitest run --config vitest.live.config.ts",
@@ -31,6 +31,7 @@
     "@effect/vitest": "^0.29.0",
     "@types/node": "^25.5.2",
     "@zerospin/core": "workspace:*",
+    "dotenv": "^17.4.2",
     "oxlint": "^1.59.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.5",

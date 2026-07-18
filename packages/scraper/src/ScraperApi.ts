@@ -28,6 +28,10 @@ export class ScraperApi extends RpcTarget {
     return this.workerEnv.GITHUB_REPO.getByName(GLOBAL_REPO_NAME);
   }
 
+  figmaRepo() {
+    return this.workerEnv.FIGMA_REPO.getByName(GLOBAL_REPO_NAME);
+  }
+
   tiktokRepo() {
     return this.workerEnv.TIKTOK_REPO.getByName(GLOBAL_REPO_NAME);
   }

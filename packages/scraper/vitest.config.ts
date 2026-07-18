@@ -11,7 +11,10 @@ export default defineConfig({
   plugins: [
     cloudflareTest({
       miniflare: {
-        bindings: { GITHUB_TOKEN: "deterministic-test-token" },
+        bindings: {
+          GITHUB_TOKEN: "deterministic-test-token",
+          FIGMA_TOKEN: "deterministic-figma-token",
+        },
       },
       wrangler: {
         configPath: path.join(packageRoot, "wrangler.jsonc"),

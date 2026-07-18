@@ -38,7 +38,10 @@ export function HomeGrid() {
     return ROWS.map((row) => {
       return row.map((collectionName) => {
         const collection = collectionsHash[collectionName];
-        const variant = collection.variants.default;
+        const variant =
+          collectionName === "figma"
+            ? collection.variants.design
+            : collection.variants.default;
         return {
           collectionName,
           Tile: variant.sizes["4x4"].component,

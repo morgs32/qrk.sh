@@ -42,6 +42,14 @@ export const GitHubPayloadSchema = Schema.Struct({
   login: Schema.String,
 }) satisfies Schema.Schema<IGitHubScrapePayload>;
 
+export const FigmaFilePreviewPayloadSchema = Schema.Struct({
+  title: Schema.String,
+  url: Schema.String,
+  thumbnail_url: Schema.optional(Schema.NullOr(Schema.String)),
+  thumbnail_width: Schema.optional(Schema.NullOr(Schema.Int)),
+  thumbnail_height: Schema.optional(Schema.NullOr(Schema.Int)),
+});
+
 export const TikTokPayloadSchema = Schema.Struct({
   username: Schema.String,
   data: JsonValueSchema,

@@ -4,15 +4,17 @@
 declare namespace Cloudflare {
 	interface GlobalProps {
 		mainModule: typeof import("./src/Worker");
-		durableNamespaces: "BrowserHost" | "LinktreeRepo" | "BeaconsRepo" | "InstagramRepo" | "GitHubRepo" | "TikTokRepo" | "YouTubeRepo" | "TruthSocialRepo";
+		durableNamespaces: "BrowserHost" | "LinktreeRepo" | "BeaconsRepo" | "InstagramRepo" | "GitHubRepo" | "TikTokRepo" | "YouTubeRepo" | "TruthSocialRepo" | "FigmaRepo";
 	}
 	interface Env {
 		BROWSER: Fetcher;
+		FIGMA_TOKEN: string;
 		BROWSER_HOST: DurableObjectNamespace<import("./src/Worker").BrowserHost>;
 		LINKTREE_REPO: DurableObjectNamespace<import("./src/Worker").LinktreeRepo>;
 		BEACONS_REPO: DurableObjectNamespace<import("./src/Worker").BeaconsRepo>;
 		INSTAGRAM_REPO: DurableObjectNamespace<import("./src/Worker").InstagramRepo>;
 		GITHUB_REPO: DurableObjectNamespace<import("./src/Worker").GitHubRepo>;
+		FIGMA_REPO: DurableObjectNamespace<import("./src/Worker").FigmaRepo>;
 		TIKTOK_REPO: DurableObjectNamespace<import("./src/Worker").TikTokRepo>;
 		YOUTUBE_REPO: DurableObjectNamespace<import("./src/Worker").YouTubeRepo>;
 		TRUTH_SOCIAL_REPO: DurableObjectNamespace<import("./src/Worker").TruthSocialRepo>;

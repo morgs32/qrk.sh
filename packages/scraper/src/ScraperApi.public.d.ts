@@ -3,6 +3,7 @@ import { BrandTypeId } from "effect/Brand";
 
 import type {
   IBeaconsScrapePayload,
+  IFigmaFilePreviewPayload,
   IGitHubScrapePayload,
   IInstagramScrapePayload,
   ILinktreeScrapePayload,
@@ -33,6 +34,14 @@ export declare class ScraperApi extends RpcTarget {
   githubRepo(): {
     [BrandTypeId]: "TargetApi";
     getProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>>;
+  };
+
+  figmaRepo(): {
+    [BrandTypeId]: "TargetApi";
+    getDesign(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
+    getBoard(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
+    getSlides(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
+    getPrototype(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
   };
 
   tiktokRepo(): {

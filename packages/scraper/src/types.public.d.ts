@@ -36,6 +36,15 @@ export type IGitHubScrapePayload = Readonly<{
   [key: string]: IJsonValue;
 }>;
 
+export type IFigmaFilePreviewPayload = Readonly<{
+  title: string;
+  url: string;
+  thumbnail_url: string | null;
+  thumbnail_width: number | null;
+  thumbnail_height: number | null;
+  [key: string]: IJsonValue;
+}>;
+
 export type ITikTokScrapePayload = Readonly<{
   username: string;
   data: IJsonValue;
@@ -59,6 +68,8 @@ export type IScrapeError = Readonly<{
     | "unsupported-page-shape"
     | "profile-unavailable"
     | "profile-identity-mismatch"
+    | "file-unavailable"
+    | "file-type-mismatch"
     | "scrape-transient-failure";
   message: string;
   retryable?: boolean;

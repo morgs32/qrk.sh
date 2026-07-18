@@ -12,6 +12,7 @@
       { "name": "BEACONS_REPO", "class_name": "BeaconsRepo" },
       { "name": "INSTAGRAM_REPO", "class_name": "InstagramRepo" },
       { "name": "GITHUB_REPO", "class_name": "GitHubRepo" },
+      { "name": "FIGMA_REPO", "class_name": "FigmaRepo" },
       { "name": "TIKTOK_REPO", "class_name": "TikTokRepo" },
       { "name": "YOUTUBE_REPO", "class_name": "YouTubeRepo" },
       { "name": "TRUTH_SOCIAL_REPO", "class_name": "TruthSocialRepo" }
@@ -24,6 +25,10 @@
       "new_classes": ["BrowserHost"],
       "new_sqlite_classes": ["LinktreeRepo", "BeaconsRepo", "InstagramRepo", "GitHubRepo", "TikTokRepo", "YouTubeRepo", "TruthSocialRepo"],
       "deleted_classes": ["ScraperRepo"]
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": ["FigmaRepo"]
     }
   ]
 }

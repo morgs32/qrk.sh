@@ -5,13 +5,13 @@ import { ScrapeError } from "./ScrapeError";
 import { InstagramPayloadSchema } from "./schemas";
 
 export const parseInstagramPayload = Effect.fn("parseInstagramPayload")(function* (props: { payload: unknown; username: string }) {
-  const payload = yield* Schema.decodeUnknown(InstagramPayloadSchema)(props.payload, { onExcessProperty: "ignore" }).pipe(
+  const payload = yield* Schema.decodeUnknown(InstagramPayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
     Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "Instagram page did not expose supported public profile data" })),
   );
   if (payload.username.toLowerCase() !== props.username.toLowerCase()) {
     return yield* new ScrapeError({ code: "profile-identity-mismatch", message: "Instagram payload did not match the requested profile" });
   }
-  return props.payload;
+  return payload;
 });
 
 export const scrapeInstagram = Effect.fn("scrapeInstagram")(function* (props: { browser: Browser; url: string }) {

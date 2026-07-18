@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { collectionsHash } from "./collectionsHash";
-import { findCollectionBrick } from "./findCollectionBrick";
 
 describe("brick catalog identity", () => {
-  it("registers unique kebab-case collection and brick names with exact lookup", () => {
+  it("registers unique kebab-case collection, variant, and size identities", () => {
     const collectionNames = new Set<string>();
     const kebabCase = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -13,15 +12,28 @@ describe("brick catalog identity", () => {
       expect(collectionNames.has(collection.collectionName)).toBe(false);
       collectionNames.add(collection.collectionName);
 
-      const brickNames = new Set<string>();
-      for (const brick of Object.values(collection.bricks)) {
-        expect(kebabCase.test(brick.def.name)).toBe(true);
-        expect(brickNames.has(brick.def.name)).toBe(false);
-        brickNames.add(brick.def.name);
-        expect(findCollectionBrick(brick.def)).toBe(brick);
+      for (const [variantName, variant] of Object.entries(collection.variants)) {
+        expect(kebabCase.test(variantName)).toBe(true);
+
+        for (const [sizeName, brick] of Object.entries(variant.sizes)) {
+          expect(kebabCase.test(sizeName)).toBe(true);
+          expect(brick.def.variant).toBe(variantName);
+          expect(brick.def.size).toBe(sizeName);
+          expect(collection.variants[brick.def.variant]?.sizes[brick.def.size]).toBe(brick);
+        }
       }
     }
 
-    expect(collectionNames.size).toBe(19);
+    expect(collectionNames.size).toBe(6);
+  });
+
+  it("uses default for collections with one content variant", () => {
+    for (const collection of Object.values(collectionsHash)) {
+      if (collection.collectionName === "github") {
+        continue;
+      }
+
+      expect(Object.keys(collection.variants)).toEqual(["default"]);
+    }
   });
 });

@@ -5,13 +5,13 @@ import { ScrapeError } from "./ScrapeError";
 import { TikTokPayloadSchema } from "./schemas";
 
 export const parseTikTokPayload = Effect.fn("parseTikTokPayload")(function* (props: { payload: unknown; username: string }) {
-  const payload = yield* Schema.decodeUnknown(TikTokPayloadSchema)(props.payload, { onExcessProperty: "ignore" }).pipe(
+  const payload = yield* Schema.decodeUnknown(TikTokPayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
     Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "TikTok hydration payload was unsupported" })),
   );
   if (payload.username.toLowerCase() !== props.username.toLowerCase()) {
     return yield* new ScrapeError({ code: "profile-identity-mismatch", message: "TikTok payload did not match the requested profile" });
   }
-  return props.payload;
+  return payload;
 });
 
 export const scrapeTikTok = Effect.fn("scrapeTikTok")(function* (props: { browser: Browser; url: string }) {

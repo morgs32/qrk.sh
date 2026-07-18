@@ -11,9 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SandboxRouteImport } from './routes/_sandbox'
 import { Route as SandboxIndexRouteImport } from './routes/_sandbox.index'
-import { Route as BricksCollectionNameBrickNameRouteImport } from './routes/bricks.$collectionName.$brickName'
 import { Route as SandboxCollectionsCollectionNameRouteImport } from './routes/_sandbox.collections.$collectionName'
 import { Route as SandboxCollectionsCollectionNameIndexRouteImport } from './routes/_sandbox.collections.$collectionName.index'
+import { Route as BricksCollectionNameVariantSizeRouteImport } from './routes/bricks.$collectionName.$variant.$size'
 import { Route as SandboxCollectionsCollectionNameBrickBrickIdRouteImport } from './routes/_sandbox.collections.$collectionName.brick.$brickId'
 
 const SandboxRoute = SandboxRouteImport.update({
@@ -25,12 +25,6 @@ const SandboxIndexRoute = SandboxIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SandboxRoute,
 } as any)
-const BricksCollectionNameBrickNameRoute =
-  BricksCollectionNameBrickNameRouteImport.update({
-    id: '/bricks/$collectionName/$brickName',
-    path: '/bricks/$collectionName/$brickName',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const SandboxCollectionsCollectionNameRoute =
   SandboxCollectionsCollectionNameRouteImport.update({
     id: '/collections/$collectionName',
@@ -43,6 +37,12 @@ const SandboxCollectionsCollectionNameIndexRoute =
     path: '/',
     getParentRoute: () => SandboxCollectionsCollectionNameRoute,
   } as any)
+const BricksCollectionNameVariantSizeRoute =
+  BricksCollectionNameVariantSizeRouteImport.update({
+    id: '/bricks/$collectionName/$variant/$size',
+    path: '/bricks/$collectionName/$variant/$size',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SandboxCollectionsCollectionNameBrickBrickIdRoute =
   SandboxCollectionsCollectionNameBrickBrickIdRouteImport.update({
     id: '/brick/$brickId',
@@ -53,13 +53,13 @@ const SandboxCollectionsCollectionNameBrickBrickIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof SandboxIndexRoute
   '/collections/$collectionName': typeof SandboxCollectionsCollectionNameRouteWithChildren
-  '/bricks/$collectionName/$brickName': typeof BricksCollectionNameBrickNameRoute
+  '/bricks/$collectionName/$variant/$size': typeof BricksCollectionNameVariantSizeRoute
   '/collections/$collectionName/': typeof SandboxCollectionsCollectionNameIndexRoute
   '/collections/$collectionName/brick/$brickId': typeof SandboxCollectionsCollectionNameBrickBrickIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof SandboxIndexRoute
-  '/bricks/$collectionName/$brickName': typeof BricksCollectionNameBrickNameRoute
+  '/bricks/$collectionName/$variant/$size': typeof BricksCollectionNameVariantSizeRoute
   '/collections/$collectionName': typeof SandboxCollectionsCollectionNameIndexRoute
   '/collections/$collectionName/brick/$brickId': typeof SandboxCollectionsCollectionNameBrickBrickIdRoute
 }
@@ -68,7 +68,7 @@ export interface FileRoutesById {
   '/_sandbox': typeof SandboxRouteWithChildren
   '/_sandbox/': typeof SandboxIndexRoute
   '/_sandbox/collections/$collectionName': typeof SandboxCollectionsCollectionNameRouteWithChildren
-  '/bricks/$collectionName/$brickName': typeof BricksCollectionNameBrickNameRoute
+  '/bricks/$collectionName/$variant/$size': typeof BricksCollectionNameVariantSizeRoute
   '/_sandbox/collections/$collectionName/': typeof SandboxCollectionsCollectionNameIndexRoute
   '/_sandbox/collections/$collectionName/brick/$brickId': typeof SandboxCollectionsCollectionNameBrickBrickIdRoute
 }
@@ -77,13 +77,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/collections/$collectionName'
-    | '/bricks/$collectionName/$brickName'
+    | '/bricks/$collectionName/$variant/$size'
     | '/collections/$collectionName/'
     | '/collections/$collectionName/brick/$brickId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/bricks/$collectionName/$brickName'
+    | '/bricks/$collectionName/$variant/$size'
     | '/collections/$collectionName'
     | '/collections/$collectionName/brick/$brickId'
   id:
@@ -91,14 +91,14 @@ export interface FileRouteTypes {
     | '/_sandbox'
     | '/_sandbox/'
     | '/_sandbox/collections/$collectionName'
-    | '/bricks/$collectionName/$brickName'
+    | '/bricks/$collectionName/$variant/$size'
     | '/_sandbox/collections/$collectionName/'
     | '/_sandbox/collections/$collectionName/brick/$brickId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   SandboxRoute: typeof SandboxRouteWithChildren
-  BricksCollectionNameBrickNameRoute: typeof BricksCollectionNameBrickNameRoute
+  BricksCollectionNameVariantSizeRoute: typeof BricksCollectionNameVariantSizeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -117,13 +117,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SandboxIndexRouteImport
       parentRoute: typeof SandboxRoute
     }
-    '/bricks/$collectionName/$brickName': {
-      id: '/bricks/$collectionName/$brickName'
-      path: '/bricks/$collectionName/$brickName'
-      fullPath: '/bricks/$collectionName/$brickName'
-      preLoaderRoute: typeof BricksCollectionNameBrickNameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_sandbox/collections/$collectionName': {
       id: '/_sandbox/collections/$collectionName'
       path: '/collections/$collectionName'
@@ -137,6 +130,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/collections/$collectionName/'
       preLoaderRoute: typeof SandboxCollectionsCollectionNameIndexRouteImport
       parentRoute: typeof SandboxCollectionsCollectionNameRoute
+    }
+    '/bricks/$collectionName/$variant/$size': {
+      id: '/bricks/$collectionName/$variant/$size'
+      path: '/bricks/$collectionName/$variant/$size'
+      fullPath: '/bricks/$collectionName/$variant/$size'
+      preLoaderRoute: typeof BricksCollectionNameVariantSizeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_sandbox/collections/$collectionName/brick/$brickId': {
       id: '/_sandbox/collections/$collectionName/brick/$brickId'
@@ -182,7 +182,7 @@ const SandboxRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   SandboxRoute: SandboxRouteWithChildren,
-  BricksCollectionNameBrickNameRoute: BricksCollectionNameBrickNameRoute,
+  BricksCollectionNameVariantSizeRoute: BricksCollectionNameVariantSizeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

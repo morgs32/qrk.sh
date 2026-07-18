@@ -4,13 +4,13 @@ import { ScrapeError } from "./ScrapeError";
 import { GitHubPayloadSchema } from "./schemas";
 
 export const parseGitHubPayload = Effect.fn("parseGitHubPayload")(function* (props: { payload: unknown; login: string }) {
-  const payload = yield* Schema.decodeUnknown(GitHubPayloadSchema)(props.payload, { onExcessProperty: "ignore" }).pipe(
+  const payload = yield* Schema.decodeUnknown(GitHubPayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
     Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "GitHub user response was unsupported" })),
   );
   if (payload.login.toLowerCase() !== props.login.toLowerCase()) {
     return yield* new ScrapeError({ code: "profile-identity-mismatch", message: "GitHub account did not match the requested profile" });
   }
-  return props.payload;
+  return payload;
 });
 
 export const scrapeGitHub = Effect.fn("scrapeGitHub")(function* (props: { url: string; token: string }) {

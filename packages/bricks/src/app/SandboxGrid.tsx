@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { findCollectionBrick } from "@qrk.sh/bricks";
+import { collectionsHash } from "@qrk.sh/bricks";
 import { useNavigate } from "@tanstack/react-router";
 import GridLayout, { useContainerWidth, verticalCompactor } from "react-grid-layout";
 
@@ -92,7 +92,8 @@ export function SandboxGrid() {
         >
           {layout.map((layoutItem) => {
             const brickDef = bricksById[layoutItem.i];
-            const brick = brickDef ? findCollectionBrick(brickDef) : undefined;
+            const collection = brickDef ? collectionsHash[brickDef.collectionName] : undefined;
+            const brick = collection?.variants[brickDef.variant]?.sizes[brickDef.size];
 
             if (brick) {
               const BrickComponent = brick.component;
@@ -101,7 +102,7 @@ export function SandboxGrid() {
                 <div
                   key={layoutItem.i}
                   className="size-full cursor-grab active:cursor-grabbing"
-                  data-brick={`${brick.def.collectionName}/${brick.def.name}`}
+                  data-brick={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.size}`}
                   data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}

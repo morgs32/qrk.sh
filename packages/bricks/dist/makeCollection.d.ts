@@ -1,7 +1,10 @@
 import type { ICollection, IBrick } from "./types";
-export declare function makeCollection<const T extends Record<string, IBrick>>(props: {
+export declare function makeCollection(props: {
     collectionName: string;
     collectionLabel: string;
-    bricks: T;
-}): ICollection<T>;
+    collectionDescription: string;
+    variants: Record<string, {
+        sizes: Record<string, IBrick>;
+    }>;
+}): ICollection;
 //# sourceMappingURL=makeCollection.d.ts.map

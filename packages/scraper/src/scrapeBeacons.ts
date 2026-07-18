@@ -5,13 +5,13 @@ import { ScrapeError } from "./ScrapeError";
 import { BeaconsPayloadSchema } from "./schemas";
 
 export const parseBeaconsPayload = Effect.fn("parseBeaconsPayload")(function* (props: { payload: unknown; username: string }) {
-  const payload = yield* Schema.decodeUnknown(BeaconsPayloadSchema)(props.payload, { onExcessProperty: "ignore" }).pipe(
+  const payload = yield* Schema.decodeUnknown(BeaconsPayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
     Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "Beacons page did not expose supported profile data" })),
   );
   if (payload.username.toLowerCase() !== props.username.toLowerCase()) {
     return yield* new ScrapeError({ code: "profile-identity-mismatch", message: "Beacons payload did not match the requested profile" });
   }
-  return props.payload;
+  return payload;
 });
 
 export const scrapeBeacons = Effect.fn("scrapeBeacons")(function* (props: { browser: Browser; url: string }) {

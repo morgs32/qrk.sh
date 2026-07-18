@@ -40,7 +40,7 @@ Keep [BrickPreview.tsx](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/B
 
 - **Bad**: `export type BrickPreviewProps` in `BrickCatalog.tsx` and `import { BrickPreviewProps } from './BrickCatalog'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: ICollectionBrick }`** from [apps/web/components/home/bricks/types.ts](../../apps/web/components/home/bricks/types.ts). Catalog rows are built with **`makeBrick`** (variant **`def` + `component`**) and **`makeCollection`** (`IBrick[]` → **`ICollectionBrick[]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/web/components/home/useBrickDrawerStore.ts)); [useGridLayoutStore.ts](../../apps/web/components/home/useGridLayoutStore.ts) holds **`layout`** with **`def`** per item, not React components.
+- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: ICollectionBrick }`**. Catalog rows are built with **`makeBrick`** (a content `variant`, a `size`, and a `component`) and **`makeCollection`** (nested **`variants[variant].sizes[size]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/web/components/home/useBrickDrawerStore.ts)); [useGridLayoutStore.ts](../../apps/web/components/home/useGridLayoutStore.ts) holds **`layout`** with **`def`** per item, not React components.
 
 **Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeBrickCollectionProps`-style types unless a second module genuinely needs to reference that exact type.
 
@@ -48,44 +48,46 @@ Keep [BrickPreview.tsx](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/B
 
 - **Bad**: ad hoc **`typeId`** strings on every catalog row, or passing full brick objects (including **`component`**) into Zustand for external drag.
 
-- **Good**: **`ICollectionBrickDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`w`**, **`h`**, **`label`**, variant **`name`**). **`IBrick`** = variant-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionBrick`**.
+- **Good**: **`ICollectionBrickDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`variant`**, **`size`**, **`w`**, **`h`**, and **`label`**). **`IBrick`** = size-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionBrick`**.
 
 ### Terminology: collection variants and bricks
 
-A **collection variant** is the reusable catalog definition identified by **`(collectionName, brickName)`**. A **brick** is an implementation of one collection variant. When that implementation is placed in a Grid, its resource and identity are still **`brick`** and **`brickId`**; do not call it a “grid brick” or “grid item.”
+A **collection variant** is a content form within a collection, such as GitHub `profile` or `repo`. A **size** is a form of that variant, such as `4x4` or `4x2`. A **brick** is an implementation of one `(collectionName, variant, size)` catalog entry. When that implementation is placed in a Grid, its resource and identity are still **`brick`** and **`brickId`**; do not call it a “grid brick” or “grid item.”
 
-### Brick variant identity: `collectionName` + brick def `name`
+### Brick catalog identity: `collectionName` + `variant` + `size`
 
 **Invariant (homepage catalog):**
 
 1. **`collectionName`** is **unique per collection** across the catalog.
-2. Within one collection, each brick variant’s **`def.name`** (kebab-case, e.g. `2x2`, `8x2`) is **unique among that collection’s bricks**.
-3. Therefore **`(collectionName, def.name)`** is **unique for every catalog brick variant**—use this pair for tests and DOM hooks instead of a composite string.
+2. Within one collection, each **`def.variant`** is kebab-case; its **`def.size`** is kebab-case and unique within that variant.
+3. Therefore **`(collectionName, def.variant, def.size)`** is unique for every catalog entry—use those fields for tests and DOM hooks instead of a composite string.
 
-### Terminology: `brickNames` (catalog identity)
+### Terminology: brick catalog identity
 
-In code and tests, **`brickNames`** means **that pair**: **`collectionName`** plus **`brick.def.name`** (the variant slug, e.g. `2x2`, `4x4`). Together they uniquely identify **any homepage catalog brick variant**. They are **not** a grid **instance** id (`item.i`), **not** a single concatenated key, and **not** `w`×`h` alone.
+In code and tests, use **`collectionName`**, **`variant`**, and **`size`** together. They uniquely identify a homepage catalog entry. They are **not** a grid **instance** id (`item.i`) or a single concatenated key.
 
-- **Bad**: calling a composite like `` `${collectionName}--${w}x${h}` `` or a bare `collectionName` “brickNames”; using “brick name” only for `def.name` without scoping by collection when both matter.
+- **Bad**: calling a composite like `` `${collectionName}--${w}x${h}` `` or using a bare size as a brick identity.
 
-- **Good**: pass or thread **`collectionName`** and **`def.name`** (or parameters **`collectionName`**, **`brickName`** when `brickName` is the variant slug); locate bricks with **`gridLocateByBrickNames(grid, collectionName, brickName)`** in [Grid.playwright.spec.ts](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/Grid.playwright.spec.ts>).
+- **Good**: pass or thread **`collectionName`**, **`def.variant`**, and **`def.size`**; locate bricks with **`gridLocateByBrickIdentity(grid, collectionName, variant, size)`** in [Grid.playwright.spec.ts](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/Grid.playwright.spec.ts>).
 
 [BrickPreview.tsx](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/BrickCatalogPreview/BrickPreview.tsx>) exposes it on the draggable slot:
 
 - **`data-brick-drawer-collection-name`** = **`brick.def.collectionName`**
-- **`data-brick-drawer-brick-name`** = **`brick.def.name`**
+- **`data-brick-drawer-variant`** = **`brick.def.variant`**
+- **`data-brick-drawer-size`** = **`brick.def.size`**
 
 (Together with **`data-brick-drawer-brick-slot`**, used by carousel drag guards.)
 
 [Grid.tsx](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/Grid.tsx>) sets on each placed brick wrapper:
 
 - **`data-brick-collection-name`** = **`item.def.collectionName`**
-- **`data-brick-name`** = **`item.def.name`**
+- **`data-brick-variant`** = **`item.def.variant`**
+- **`data-brick-size`** = **`item.def.size`**
 - **`data-brick-id`** = the placed brick id (`item.i` at the `react-grid-layout` boundary)
 
 - **Bad**: a single attribute holding `makeBrickKey` / concatenated ids when you need to target “this variant in this collection” in the drawer **or on the grid**.
 
-- **Good**: values exactly `def.collectionName`, `def.name`, and the brick id. In Playwright: drawer — `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="…"][data-brick-drawer-brick-name="…"]` (`drawerBrickPreviewSlot` in [Grid.playwright.spec.ts](<../../apps/web/app/(site)/site/[siteId]/page/[pageId]/Grid.playwright.spec.ts>)); Grid — `[data-brick-collection-name="…"][data-brick-name="…"]` scoped under `.grid-layout` (`gridLocateByBrickNames` in the same file).
+- **Good**: expose the collection, variant, size, and brick id separately. In Playwright: drawer — `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="…"][data-brick-drawer-variant="…"][data-brick-drawer-size="…"]`; Grid — `[data-brick-collection-name="…"][data-brick-variant="…"][data-brick-size="…"]` scoped under `.grid-layout`.
 
 ### Good vs bad: brick factory argument naming (`props`, not `options`; inline type)
 
@@ -93,15 +95,15 @@ Brick factories take **one object** describing what to build. Name that paramete
 
 - **Bad**: `export function makeBrick(options: { w; h; component })`; `export type MakeCollectionProps = { … }` with `makeCollection(props: MakeCollectionProps)` when nothing else imports that type.
 
-- **Good**: `makeBrick(props: { w; h; label?; component })` and `makeCollection(props: { collectionName; collectionLabel; bricks })` in [apps/web/components/home/bricks/makeBrick.ts](../../apps/web/components/home/bricks/makeBrick.ts) and [makeCollection.ts](../../apps/web/components/home/bricks/makeCollection.ts).
+- **Good**: `makeBrick(props: { variant; size; w; h; label; component })`, `makeVariant(props: { variant; sizes })`, and `makeCollection(props: { collectionName; collectionLabel; collectionDescription; variants })` in [packages/bricks/src/makeBrick.ts](../../packages/bricks/src/makeBrick.ts), [makeVariant.ts](../../packages/bricks/src/makeVariant.ts), and [makeCollection.ts](../../packages/bricks/src/makeCollection.ts).
 
 ### Good vs bad: no barrel `index.ts` under homepage bricks
 
 Do **not** add `apps/web/components/home/bricks/index.ts` (or similar) that only re-exports symbols from sibling modules. Name each file after its **primary export** and import that path directly.
 
-- **Bad**: `import { homepageBricks, collectionsHash, findCollectionBrick } from "./bricks"` or `@/components/home/bricks` when `./bricks` is a re-export barrel.
+- **Bad**: `import { homepageBricks, collectionsHash } from "./bricks"` or `@/components/home/bricks` when `./bricks` is a re-export barrel.
 
-- **Good**: `import { collectionsHash } from "@/components/home/bricks/collectionsHash"`; `import { findCollectionBrick } from "@/components/home/bricks/findCollectionBrick"`; import specific collections from their modules under `collections/`.
+- **Good**: import `collectionsHash` from its defining module and resolve a component directly through `collection.variants[variant].sizes[size]`; import specific collections from their modules under `collections/`.
 
 ### Good vs bad: `ICollection` + `BrickCarousel` — don’t add `FromCatalog` on shared UI
 

@@ -12,7 +12,7 @@ import GridLayout, {
 } from "react-grid-layout";
 import { createScaledStrategy } from "react-grid-layout/core";
 import type { ILayout } from "@/components/home/seedLayout";
-import { collectionsHash, findCollectionBrick } from "@qrk.sh/bricks";
+import { collectionsHash } from "@qrk.sh/bricks";
 import {
   getActiveBrickDragGridShape,
   parseBrickDefFromDataTransfer,
@@ -30,7 +30,7 @@ const GRID_DRAG_BOUNDED = process.env.NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED !== 
 
 const GRID_COLS = 8;
 
-const creamSquareCollection = collectionsHash["cream-square"];
+const swatchCollection = collectionsHash.swatch;
 const textBrickCollection = collectionsHash["text-brick"];
 
 /** Placeholder identity while dragging from outside (react-grid-layout external drop). */
@@ -44,12 +44,12 @@ const DROPPING_ITEM: LayoutItem = {
 
 function defaultDefForGridShape(w: number, h: number): ICollectionBrickDef {
   if (w === 8 && h === 2) {
-    return textBrickCollection.bricks["8x2"].def;
+    return textBrickCollection.variants.default.sizes["8x2"].def;
   }
   if (w === 2 && h === 2) {
-    return creamSquareCollection.bricks["2x2"].def;
+    return swatchCollection.variants.default.sizes["2x2"].def;
   }
-  return creamSquareCollection.bricks["4x4"].def;
+  return swatchCollection.variants.default.sizes["4x4"].def;
 }
 
 function mergeRglLayoutIntoILayout(prev: ILayout, rgl: Layout): ILayout {
@@ -314,7 +314,10 @@ export function Grid() {
               onDrop={onDrop}
             >
               {layout.map((item) => {
-                const catalogBrick = findCollectionBrick(item.def);
+                const catalogBrick =
+                  collectionsHash[item.def.collectionName]?.variants[item.def.variant]?.sizes[
+                    item.def.size
+                  ];
                 const BrickComponent = catalogBrick?.component;
                 if (!BrickComponent) {
                   return null;
@@ -325,7 +328,8 @@ export function Grid() {
                     key={item.i}
                     data-brick-id={item.i}
                     data-brick-collection-name={item.def.collectionName}
-                    data-brick-name={item.def.name}
+                    data-brick-variant={item.def.variant}
+                    data-brick-size={item.def.size}
                     className="cursor-grab touch-none active:cursor-grabbing"
                     onClick={() => {
                       if (suppressBrickIdClickRef.current) {

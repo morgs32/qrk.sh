@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "oxlint . --format stylish",
+    "dev": "wrangler dev",
+    "lint": "oxlint . --ignore-pattern .wrangler --format stylish",
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:live": "SCRAPER_LIVE_TESTS=1 vitest run --config vitest.live.config.ts",
     "typecheck": "tsc --noEmit",
@@ -19,6 +20,7 @@
     "@cloudflare/vitest-pool-workers": "^0.16.3",
     "@effect/vitest": "^0.29.0",
     "@types/node": "^25.5.2",
+    "@zerospin/core": "workspace:*",
     "oxlint": "^1.59.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.5",

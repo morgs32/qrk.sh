@@ -2,9 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 
 const pageBase = "/site/e2e/page/home";
 
-function drawerBrickPreviewSlot(page: Page, collectionName: string, brickName: string) {
+function drawerBrickPreviewSlot(page: Page, collectionName: string, variant: string, size: string) {
   return page.locator(
-    `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="${collectionName}"][data-brick-drawer-brick-name="${brickName}"]`,
+    `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="${collectionName}"][data-brick-drawer-variant="${variant}"][data-brick-drawer-size="${size}"]`,
   );
 }
 
@@ -15,8 +15,8 @@ test.describe("BrickCatalog", () => {
 
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
-    await expect(drawerBrickPreviewSlot(page, "text-brick", "4x4")).toHaveCount(1);
-    await expect(drawerBrickPreviewSlot(page, "text-brick", "8x2")).toHaveCount(1);
-    await expect(drawerBrickPreviewSlot(page, "text-brick", "1x1")).toHaveCount(0);
+    await expect(drawerBrickPreviewSlot(page, "text-brick", "default", "4x4")).toHaveCount(1);
+    await expect(drawerBrickPreviewSlot(page, "text-brick", "default", "8x2")).toHaveCount(1);
+    await expect(drawerBrickPreviewSlot(page, "text-brick", "default", "1x1")).toHaveCount(0);
   });
 });

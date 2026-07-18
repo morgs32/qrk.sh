@@ -2,31 +2,28 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "scraper",
   "main": "./src/Worker.ts",
-  "compatibility_date": "2026-07-02",
+  "compatibility_date": "2026-05-14",
   "compatibility_flags": ["nodejs_compat"],
   "browser": { "binding": "BROWSER" },
   "durable_objects": {
-    "bindings": [{ "name": "SCRAPER_REPO", "class_name": "ScraperRepo" }]
-  },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ScraperRepo"] }],
-  "queues": {
-    "producers": [
-      { "binding": "LINKTREE_QUEUE", "queue": "scraper-linktree" },
-      { "binding": "BEACONS_QUEUE", "queue": "scraper-beacons" },
-      { "binding": "INSTAGRAM_QUEUE", "queue": "scraper-instagram" },
-      { "binding": "TIKTOK_QUEUE", "queue": "scraper-tiktok" },
-      { "binding": "YOUTUBE_QUEUE", "queue": "scraper-youtube" },
-      { "binding": "TRUTH_SOCIAL_QUEUE", "queue": "scraper-truth-social" },
-      { "binding": "GITHUB_QUEUE", "queue": "scraper-github" }
-    ],
-    "consumers": [
-      { "queue": "scraper-linktree", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
-      { "queue": "scraper-beacons", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
-      { "queue": "scraper-instagram", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
-      { "queue": "scraper-tiktok", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
-      { "queue": "scraper-youtube", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
-      { "queue": "scraper-truth-social", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 },
-      { "queue": "scraper-github", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 2 }
+    "bindings": [
+      { "name": "BROWSER_HOST", "class_name": "BrowserHost" },
+      { "name": "LINKTREE_REPO", "class_name": "LinktreeRepo" },
+      { "name": "BEACONS_REPO", "class_name": "BeaconsRepo" },
+      { "name": "INSTAGRAM_REPO", "class_name": "InstagramRepo" },
+      { "name": "GITHUB_REPO", "class_name": "GitHubRepo" },
+      { "name": "TIKTOK_REPO", "class_name": "TikTokRepo" },
+      { "name": "YOUTUBE_REPO", "class_name": "YouTubeRepo" },
+      { "name": "TRUTH_SOCIAL_REPO", "class_name": "TruthSocialRepo" }
     ]
-  }
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["ScraperRepo"] },
+    {
+      "tag": "v2",
+      "new_classes": ["BrowserHost"],
+      "new_sqlite_classes": ["LinktreeRepo", "BeaconsRepo", "InstagramRepo", "GitHubRepo", "TikTokRepo", "YouTubeRepo", "TruthSocialRepo"],
+      "deleted_classes": ["ScraperRepo"]
+    }
+  ]
 }

@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "zerospin:dev": "zerospin dev",
+    "zerospin:dev": "zerospin dev --clean",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
@@ -11,7 +11,7 @@
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "storybook:dev": "storybook dev -p 6006",
+    "storybook:dev": "storybook dev -p 6006 --no-open",
     "build-storybook": "storybook build",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"

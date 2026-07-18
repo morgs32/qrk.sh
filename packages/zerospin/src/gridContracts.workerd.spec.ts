@@ -14,95 +14,100 @@ import { User } from "./models/User";
 import { ownerFrontend } from "./ownerFrontend";
 
 describe("aggregate Grid contracts", () => {
-  it.effect(
-    "createGrid emits one Grid mutation and one mutation for every submitted Brick",
-    () =>
-      Effect.gen(function* () {
-        const gridId = "grd_contract_create";
-        const pageId = "pag_contract_create";
-        const firstBrickId = "brck_contract_create_first";
-        const secondBrickId = "brck_contract_create_second";
+  it.effect("createGrid emits one Grid mutation and one mutation for every submitted Brick", () =>
+    Effect.gen(function* () {
+      const gridId = "grd_contract_create";
+      const pageId = "pag_contract_create";
+      const firstBrickId = "brck_contract_create_first";
+      const secondBrickId = "brck_contract_create_second";
 
-        const mutations = yield* createGrid.program({
-          payload: {
-            id: gridId,
-            pageId,
-            name: "Home grid",
-            columnCount: 8,
-            bricks: [
-              {
-                id: firstBrickId,
-                brickKey: "orange-flag--0",
-                x: 0,
-                y: 0,
-                w: 4,
-                h: 4,
-                collectionName: "orange-flag",
-                brickName: "4x4",
-              },
-              {
-                id: secondBrickId,
-                brickKey: "text-brick-work--0",
-                x: 0,
-                y: 4,
-                w: 8,
-                h: 2,
-                collectionName: "text-brick",
-                brickName: "8x2",
-              },
-            ],
-          },
-        });
-
-        expect(mutations).toHaveLength(3);
-        expect(mutations[0]).toEqual({
-          model: Grid,
-          operationName: "create",
-          resourceId: gridId,
-          operation: {
-            attributes: {
-              pageId,
-              name: "Home grid",
-              columnCount: 8,
-              revision: 0,
-            },
-          },
-        });
-        expect(mutations[1]).toEqual({
-          model: Brick,
-          operationName: "create",
-          resourceId: firstBrickId,
-          operation: {
-            attributes: {
-              gridId,
+      const mutations = yield* createGrid.program({
+        payload: {
+          id: gridId,
+          pageId,
+          name: "Home grid",
+          columnCount: 8,
+          bricks: [
+            {
+              id: firstBrickId,
               brickKey: "orange-flag--0",
               x: 0,
               y: 0,
               w: 4,
               h: 4,
               collectionName: "orange-flag",
-              brickName: "4x4",
+              variant: "default",
+              size: "4x4",
             },
-          },
-        });
-        expect(mutations[2]).toEqual({
-          model: Brick,
-          operationName: "create",
-          resourceId: secondBrickId,
-          operation: {
-            attributes: {
-              gridId,
+            {
+              id: secondBrickId,
               brickKey: "text-brick-work--0",
               x: 0,
               y: 4,
               w: 8,
               h: 2,
               collectionName: "text-brick",
-              brickName: "8x2",
+              variant: "default",
+              size: "8x2",
             },
+          ],
+        },
+      });
+
+      expect(mutations).toHaveLength(3);
+      expect(mutations[0]).toEqual({
+        model: Grid,
+        modelVersion: "1.0.0",
+        operationName: "create",
+        resourceId: gridId,
+        operation: {
+          attributes: {
+            pageId,
+            name: "Home grid",
+            columnCount: 8,
+            revision: 0,
           },
-        });
-      }),
+        },
+      });
+      expect(mutations[1]).toEqual({
+        model: Brick,
+        modelVersion: "1.0.0",
+        operationName: "create",
+        resourceId: firstBrickId,
+        operation: {
+          attributes: {
+            gridId,
+            brickKey: "orange-flag--0",
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 4,
+            collectionName: "orange-flag",
+            variant: "default",
+            size: "4x4",
+          },
+        },
+      });
+      expect(mutations[2]).toEqual({
+        model: Brick,
+        modelVersion: "1.0.0",
+        operationName: "create",
+        resourceId: secondBrickId,
+        operation: {
+          attributes: {
+            gridId,
+            brickKey: "text-brick-work--0",
+            x: 0,
+            y: 4,
+            w: 8,
+            h: 2,
+            collectionName: "text-brick",
+            variant: "default",
+            size: "8x2",
+          },
+        },
+      });
+    }),
   );
 
   it.effect("createGrid with no Bricks emits only the Grid mutation", () =>
@@ -124,118 +129,123 @@ describe("aggregate Grid contracts", () => {
     }),
   );
 
-  it.effect(
-    "updateGrid emits one mixed create/update/delete set and omits unchanged Bricks",
-    () =>
-      Effect.gen(function* () {
-        const gridId = "grd_contract_update";
-        const createdBrickId = "brck_contract_update_created";
-        const unchangedBrickId = "brck_contract_update_unchanged";
-        const updatedBrickId = "brck_contract_update_changed";
-        const deletedBrickId = "brck_contract_update_deleted";
-        const expectedRevision = 3;
+  it.effect("updateGrid emits one mixed create/update/delete set and omits unchanged Bricks", () =>
+    Effect.gen(function* () {
+      const gridId = "grd_contract_update";
+      const createdBrickId = "brck_contract_update_created";
+      const unchangedBrickId = "brck_contract_update_unchanged";
+      const updatedBrickId = "brck_contract_update_changed";
+      const deletedBrickId = "brck_contract_update_deleted";
+      const expectedRevision = 3;
 
-        const mutations = yield* updateGrid.program({
-          payload: {
-            id: gridId,
-            name: "Renamed grid",
-            columnCount: 12,
-            gridIntent: "update",
-            expectedRevision,
-            bricks: [
-              {
-                intent: "create",
-                id: createdBrickId,
-                brickKey: "new-brick",
-                x: 0,
-                y: 0,
-                w: 2,
-                h: 2,
-                collectionName: "orange-flag",
-                brickName: "2x2",
-              },
-              {
-                intent: "none",
-                id: unchangedBrickId,
-                brickKey: "unchanged-brick",
-                x: 2,
-                y: 0,
-                w: 2,
-                h: 2,
-                collectionName: "cream-square",
-                brickName: "2x2",
-              },
-              {
-                intent: "update",
-                id: updatedBrickId,
-                brickKey: "changed-brick",
-                x: 0,
-                y: 2,
-                w: 8,
-                h: 2,
-                collectionName: "text-brick",
-                brickName: "8x2",
-              },
-            ],
-            deletedBrickIds: [deletedBrickId],
-          },
-        });
-
-        expect(mutations).toHaveLength(4);
-        expect(mutations[0]).toEqual({
-          model: Grid,
-          operationName: "update",
-          resourceId: gridId,
-          operation: {
-            attributes: {
-              name: "Renamed grid",
-              columnCount: 12,
-              revision: 4,
-            },
-          },
-        });
-        expect(mutations[1]).toEqual({
-          model: Brick,
-          operationName: "create",
-          resourceId: createdBrickId,
-          operation: {
-            attributes: {
-              gridId,
+      const mutations = yield* updateGrid.program({
+        payload: {
+          id: gridId,
+          name: "Renamed grid",
+          columnCount: 12,
+          gridIntent: "update",
+          expectedRevision,
+          bricks: [
+            {
+              intent: "create",
+              id: createdBrickId,
               brickKey: "new-brick",
               x: 0,
               y: 0,
               w: 2,
               h: 2,
               collectionName: "orange-flag",
-              brickName: "2x2",
+              variant: "default",
+              size: "2x2",
             },
-          },
-        });
-        expect(mutations[2]).toEqual({
-          model: Brick,
-          operationName: "update",
-          resourceId: updatedBrickId,
-          operation: {
-            attributes: {
+            {
+              intent: "none",
+              id: unchangedBrickId,
+              brickKey: "unchanged-brick",
+              x: 2,
+              y: 0,
+              w: 2,
+              h: 2,
+              collectionName: "cream-square",
+              variant: "default",
+              size: "2x2",
+            },
+            {
+              intent: "update",
+              id: updatedBrickId,
+              brickKey: "changed-brick",
               x: 0,
               y: 2,
               w: 8,
               h: 2,
               collectionName: "text-brick",
-              brickName: "8x2",
+              variant: "default",
+              size: "8x2",
             },
+          ],
+          deletedBrickIds: [deletedBrickId],
+        },
+      });
+
+      expect(mutations).toHaveLength(4);
+      expect(mutations[0]).toEqual({
+        model: Grid,
+        modelVersion: "1.0.0",
+        operationName: "update",
+        resourceId: gridId,
+        operation: {
+          attributes: {
+            name: "Renamed grid",
+            columnCount: 12,
+            revision: 4,
           },
-        });
-        expect(mutations[3]).toEqual({
-          model: Brick,
-          operationName: "delete",
-          resourceId: deletedBrickId,
-          operation: {},
-        });
-        expect(mutations.some((mutation) => mutation.resourceId === unchangedBrickId)).toBe(
-          false,
-        );
-      }),
+        },
+      });
+      expect(mutations[1]).toEqual({
+        model: Brick,
+        modelVersion: "1.0.0",
+        operationName: "create",
+        resourceId: createdBrickId,
+        operation: {
+          attributes: {
+            gridId,
+            brickKey: "new-brick",
+            x: 0,
+            y: 0,
+            w: 2,
+            h: 2,
+            collectionName: "orange-flag",
+            variant: "default",
+            size: "2x2",
+          },
+        },
+      });
+      expect(mutations[2]).toEqual({
+        model: Brick,
+        modelVersion: "1.0.0",
+        operationName: "update",
+        resourceId: updatedBrickId,
+        operation: {
+          attributes: {
+            x: 0,
+            y: 2,
+            w: 8,
+            h: 2,
+            collectionName: "text-brick",
+            variant: "default",
+            size: "8x2",
+          },
+        },
+      });
+      expect(mutations[3]).toEqual({
+        model: Brick,
+        modelVersion: "1.0.0",
+        operationName: "delete",
+        resourceId: deletedBrickId,
+        operation: {},
+      });
+      expect(mutations.some((mutation) => mutation.resourceId === unchangedBrickId)).toBe(false);
+    }),
   );
 
   it.effect("updateGrid advances the aggregate revision for a Brick-only update", () =>
@@ -259,7 +269,8 @@ describe("aggregate Grid contracts", () => {
               w: 4,
               h: 4,
               collectionName: "cream-square",
-              brickName: "4x4",
+              variant: "default",
+              size: "4x4",
             },
           ],
           deletedBrickIds: [],
@@ -269,6 +280,7 @@ describe("aggregate Grid contracts", () => {
       expect(mutations).toHaveLength(2);
       expect(mutations[0]).toEqual({
         model: Grid,
+        modelVersion: "1.0.0",
         operationName: "update",
         resourceId: gridId,
         operation: {
@@ -304,7 +316,8 @@ describe("aggregate Grid contracts", () => {
               w: 4,
               h: 4,
               collectionName: "orange-flag",
-              brickName: "4x4",
+              variant: "default",
+              size: "4x4",
             },
           ],
           deletedBrickIds: [],
@@ -413,7 +426,8 @@ describe("owner frontend Grid guards", () => {
               w: 4,
               h: 4,
               collectionName: "orange-flag",
-              brickName: "4x4",
+              variant: "default",
+              size: "4x4",
             },
           ],
         },
@@ -452,7 +466,8 @@ describe("owner frontend Grid guards", () => {
           w: 4,
           h: 4,
           collectionName: "orange-flag",
-          brickName: "4x4",
+          variant: "default",
+          size: "4x4",
         })
         .run();
 
@@ -481,7 +496,8 @@ describe("owner frontend Grid guards", () => {
               w: 4,
               h: 4,
               collectionName: "orange-flag",
-              brickName: "4x4",
+              variant: "default",
+              size: "4x4",
             },
           ],
           deletedBrickIds: [],
@@ -513,7 +529,8 @@ describe("owner frontend Grid guards", () => {
               w: 4,
               h: 4,
               collectionName: "orange-flag",
-              brickName: "4x4",
+              variant: "default",
+              size: "4x4",
             },
           ],
           deletedBrickIds: [],
@@ -545,7 +562,8 @@ describe("owner frontend Grid guards", () => {
               w: 4,
               h: 4,
               collectionName: "orange-flag",
-              brickName: "4x4",
+              variant: "default",
+              size: "4x4",
             },
           ],
           deletedBrickIds: [],
@@ -597,7 +615,8 @@ describe("owner frontend Grid guards", () => {
               w: 4,
               h: 4,
               collectionName: "orange-flag",
-              brickName: "4x4",
+              variant: "default",
+              size: "4x4",
             },
           ],
           deletedBrickIds: [],

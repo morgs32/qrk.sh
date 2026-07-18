@@ -50,7 +50,8 @@ export function BrickPreview({ brick }: { brick: ICollectionBrick }) {
         ref={slotRef}
         data-brick-drawer-brick-slot
         data-brick-drawer-collection-name={brick.def.collectionName}
-        data-brick-drawer-brick-name={brick.def.name}
+        data-brick-drawer-variant={brick.def.variant}
+        data-brick-drawer-size={brick.def.size}
         draggable
         tabIndex={0}
         className="shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"

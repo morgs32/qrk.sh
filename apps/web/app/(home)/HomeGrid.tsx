@@ -6,9 +6,8 @@ import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carouse
 import { collectionsHash } from "@qrk.sh/bricks";
 
 const ROWS = [
-  ["orange-flag", "black-circle", "green-arch", "blue-grid"],
-  ["cream-bench", "green-g-logo", "cream-square", "pink-dots"],
-  ["black-m-logo", "orange-block", "purple-lines", "pink-asterisk"],
+  ["swatch", "icon", "image", "figma"],
+  ["text-brick"],
 ] as const;
 
 const AUTOPLAY_DELAY_MS = 3000;
@@ -17,7 +16,6 @@ const AUTOPLAY_STAGGER_MS = 600;
 export function HomeGrid() {
   const [api0, setApi0] = useState<CarouselApi>();
   const [api1, setApi1] = useState<CarouselApi>();
-  const [api2, setApi2] = useState<CarouselApi>();
 
   useEffect(() => {
     if (!api0) return;
@@ -39,27 +37,13 @@ export function HomeGrid() {
     };
   }, [api1]);
 
-  useEffect(() => {
-    if (!api2) return;
-    let interval: number | undefined;
-    const timeout = window.setTimeout(() => {
-      interval = window.setInterval(() => api2.scrollNext(), AUTOPLAY_DELAY_MS);
-    }, AUTOPLAY_STAGGER_MS * 2);
-    return () => {
-      window.clearTimeout(timeout);
-      if (interval !== undefined) {
-        window.clearInterval(interval);
-      }
-    };
-  }, [api2]);
-
   const rowTiles = useMemo(() => {
     return ROWS.map((row) => {
       return row.map((collectionName) => {
         const collection = collectionsHash[collectionName];
         return {
           collectionName,
-          Tile: collection.bricks["4x4"].component,
+          Tile: collection.variants.default.sizes["4x4"].component,
         };
       });
     });
@@ -97,25 +81,6 @@ export function HomeGrid() {
           >
             <CarouselContent className="-ml-0">
               {rowTiles[1].map(({ collectionName, Tile }) => {
-                return (
-                  <CarouselItem key={collectionName} className="basis-1/2 pl-0">
-                    <div className="w-full aspect-square">
-                      <Tile />
-                    </div>
-                  </CarouselItem>
-                );
-              })}
-            </CarouselContent>
-          </Carousel>
-
-          <Carousel
-            setApi={setApi2}
-            opts={{ loop: true, align: "start" }}
-            className="w-full"
-            aria-label="Home tiles row 3"
-          >
-            <CarouselContent className="-ml-0">
-              {rowTiles[2].map(({ collectionName, Tile }) => {
                 return (
                   <CarouselItem key={collectionName} className="basis-1/2 pl-0">
                     <div className="w-full aspect-square">

@@ -375,7 +375,8 @@ export const ownerFrontend = makeFrontendController({
             persistedBrick.w !== brick.w ||
             persistedBrick.h !== brick.h ||
             persistedBrick.collectionName !== brick.collectionName ||
-            persistedBrick.brickName !== brick.brickName;
+            persistedBrick.variant !== brick.variant ||
+            persistedBrick.size !== brick.size;
 
           if (brick.intent === "update") {
             hasMutationIntent = true;

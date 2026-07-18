@@ -1,35 +1,39 @@
 import { mapValues } from "es-toolkit/object";
 
-import type { ICollection, ICollectionBrick, IBrick } from "./types";
+import type { ICollection, IBrick } from "./types";
 
-export function makeCollection<const T extends Record<string, IBrick>>(props: {
+export function makeCollection(props: {
   collectionName: string;
   collectionLabel: string;
-  bricks: T;
-}): ICollection<T> {
-  const { collectionName, collectionLabel, bricks: rawBricks } = props;
+  collectionDescription: string;
+  variants: Record<string, { sizes: Record<string, IBrick> }>;
+}): ICollection {
+  const { collectionName, collectionLabel, collectionDescription, variants: rawVariants } = props;
 
-  const bricks = mapValues(rawBricks, (brick) => {
-    const { def, component } = brick;
+  const variants = mapValues(rawVariants, (rawVariant) => {
     return {
-      def: {
-        name: def.name,
-        w: def.w,
-        h: def.h,
-        label: def.label ?? collectionLabel,
-        collectionName,
-        collectionLabel,
-        order: def.order,
-      },
-      component,
+      sizes: mapValues(rawVariant.sizes, (brick) => {
+        return {
+          def: {
+            collectionName,
+            collectionLabel,
+            variant: brick.def.variant,
+            size: brick.def.size,
+            w: brick.def.w,
+            h: brick.def.h,
+            label: brick.def.label,
+            order: brick.def.order,
+          },
+          component: brick.component,
+        };
+      }),
     };
-  }) as {
-    [K in keyof T]: ICollectionBrick<T[K]>;
-  };
+  });
 
   return {
     collectionName,
     collectionLabel,
-    bricks,
+    collectionDescription,
+    variants,
   };
 }

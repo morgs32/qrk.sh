@@ -61,12 +61,12 @@ export const createSite = makeContract({
     }),
   },
   mutations: Schema.Struct({
-    created: Site.createMutation("2.0.0"),
+    created: Site.createMutation("1.0.0"),
   }),
   program: ({ payload }) => {
     const { id, userId, slug, name, description } = payload;
     return Effect.all({
-      created: Site.create("2.0.0", {
+      created: Site.create("1.0.0", {
         resourceId: id,
         attributes: {
           userId,
@@ -99,12 +99,12 @@ export const createPage = makeContract({
     }),
   },
   mutations: Schema.Struct({
-    created: Page.createMutation("2.0.0"),
+    created: Page.createMutation("1.0.0"),
   }),
   program: ({ payload }) => {
     const { id, siteId, slug, title, description, pageType } = payload;
     return Effect.all({
-      created: Page.create("2.0.0", {
+      created: Page.create("1.0.0", {
         resourceId: id,
         attributes: {
           siteId,
@@ -136,16 +136,14 @@ export const createGrid = makeContract({
           w: Schema.Int,
           h: Schema.Int,
           collectionName: Schema.String,
-          brickName: Schema.String,
+          variant: Schema.String,
+          size: Schema.String,
         }),
       ),
     }),
   },
   mutations: Schema.Array(
-    Schema.Union(
-      Grid.createMutation("2.0.0"),
-      Brick.createMutation("1.0.0"),
-    ),
+    Schema.Union(Grid.createMutation("1.0.0"), Brick.createMutation("1.0.0")),
   ),
   program: ({ payload }) =>
     Effect.gen(function* () {
@@ -154,7 +152,7 @@ export const createGrid = makeContract({
 
       // 1 — create the Grid before any Brick references it.
       mutations.push(
-        yield* Grid.create("2.0.0", {
+        yield* Grid.create("1.0.0", {
           resourceId: id,
           attributes: {
             pageId,
@@ -178,7 +176,8 @@ export const createGrid = makeContract({
               w: brick.w,
               h: brick.h,
               collectionName: brick.collectionName,
-              brickName: brick.brickName,
+              variant: brick.variant,
+              size: brick.size,
             },
           }),
         );
@@ -210,7 +209,8 @@ export const updateGrid = makeContract({
           w: Schema.Int,
           h: Schema.Int,
           collectionName: Schema.String,
-          brickName: Schema.String,
+          variant: Schema.String,
+          size: Schema.String,
         }),
       ),
     }),
@@ -220,7 +220,7 @@ export const updateGrid = makeContract({
   },
   mutations: Schema.Array(
     Schema.Union(
-      Grid.updateMutation("2.0.0"),
+      Grid.updateMutation("1.0.0"),
       Brick.createMutation("1.0.0"),
       Brick.updateMutation("1.0.0"),
       Brick.deleteMutation("1.0.0"),
@@ -239,7 +239,7 @@ export const updateGrid = makeContract({
         payload.deletedBrickIds.length > 0
       ) {
         mutations.push(
-          yield* Grid.update("2.0.0", {
+          yield* Grid.update("1.0.0", {
             resourceId: payload.id,
             attributes: {
               name: payload.name,
@@ -268,7 +268,8 @@ export const updateGrid = makeContract({
                 w: brick.w,
                 h: brick.h,
                 collectionName: brick.collectionName,
-                brickName: brick.brickName,
+                variant: brick.variant,
+                size: brick.size,
               },
             }),
           );
@@ -284,7 +285,8 @@ export const updateGrid = makeContract({
               w: brick.w,
               h: brick.h,
               collectionName: brick.collectionName,
-              brickName: brick.brickName,
+              variant: brick.variant,
+              size: brick.size,
             },
           }),
         );

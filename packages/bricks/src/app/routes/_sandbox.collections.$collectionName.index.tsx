@@ -24,7 +24,9 @@ function CollectionCatalog() {
     throw notFound();
   }
 
-  const bricks = Object.values(collection.bricks);
+  const bricks = Object.values(collection.variants).flatMap((variant) =>
+    Object.values(variant.sizes),
+  );
 
   return (
     <>
@@ -61,26 +63,31 @@ function CollectionCatalog() {
           const BrickComponent = brick.component;
 
           return (
-            <section key={brick.def.name}>
+            <section key={`${brick.def.variant}/${brick.def.size}`}>
               <Tabs.Root
-                value={activeViews[brick.def.name] ?? `${brick.def.name}-preview`}
+                value={
+                  activeViews[`${brick.def.variant}--${brick.def.size}`] ??
+                  `${brick.def.variant}--${brick.def.size}-preview`
+                }
                 onValueChange={(nextValue) => {
                   setActiveViews((currentViews) => {
                     return {
                       ...currentViews,
-                      [brick.def.name]: nextValue,
+                      [`${brick.def.variant}--${brick.def.size}`]: nextValue,
                     };
                   });
                 }}
               >
                 <div className="flex items-baseline justify-between gap-4 px-6">
-                  <h2 className="m-0 text-2xl font-semibold">{brick.def.label}</h2>
+                  <h2 className="m-0 text-2xl font-semibold">
+                    {brick.def.variant} / {brick.def.label}
+                  </h2>
                   <Tabs.List
                     className="flex shrink-0 gap-2 text-sm"
                     aria-label={`${brick.def.label} view`}
                   >
                     <Tabs.Tab
-                      value={`${brick.def.name}-preview`}
+                      value={`${brick.def.variant}--${brick.def.size}-preview`}
                       className={(state) =>
                         state.active
                           ? "cursor-pointer border-0 bg-transparent p-0 font-medium text-zinc-950 no-underline"
@@ -90,7 +97,7 @@ function CollectionCatalog() {
                       Preview
                     </Tabs.Tab>
                     <Tabs.Tab
-                      value={`${brick.def.name}-data`}
+                      value={`${brick.def.variant}--${brick.def.size}-data`}
                       className={(state) =>
                         state.active
                           ? "cursor-pointer border-0 bg-transparent p-0 font-medium text-zinc-950 no-underline"
@@ -101,7 +108,7 @@ function CollectionCatalog() {
                     </Tabs.Tab>
                   </Tabs.List>
                 </div>
-                <Tabs.Panel value={`${brick.def.name}-preview`}>
+                <Tabs.Panel value={`${brick.def.variant}--${brick.def.size}-preview`}>
                   <div className="mt-6 overflow-auto">
                     <div
                       className={
@@ -109,12 +116,12 @@ function CollectionCatalog() {
                           ? "qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
                           : "qrk-bricks ml-6 cursor-grab overflow-hidden active:cursor-grabbing"
                       }
-                      data-brick-full-size={`${brick.def.collectionName}/${brick.def.name}`}
+                      data-brick-full-size={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.size}`}
                       draggable
                       onDragStart={(event) => {
                         setActiveBrickDrag(brick.def);
                         event.dataTransfer.effectAllowed = "copy";
-                        event.dataTransfer.setData("text/plain", brick.def.name);
+                        event.dataTransfer.setData("text/plain", brick.def.size);
                       }}
                       onDragEnd={() => {
                         setActiveBrickDrag(null);
@@ -128,7 +135,7 @@ function CollectionCatalog() {
                     </div>
                   </div>
                 </Tabs.Panel>
-                <Tabs.Panel value={`${brick.def.name}-data`}>
+                <Tabs.Panel value={`${brick.def.variant}--${brick.def.size}-data`}>
                   <pre className="mx-6 mt-6 overflow-auto bg-zinc-100 p-4 text-xs">
                     {JSON.stringify(brick.def, null, 2)}
                   </pre>

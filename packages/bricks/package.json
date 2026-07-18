@@ -14,6 +14,7 @@
   },
   "scripts": {
     "dev": "vite dev --config src/app/vite.config.ts --host 127.0.0.1 --port 4100",
+    "scraper:dev": "pnpm --filter scraper dev",
     "build": "vite build && tailwindcss -i src/styles.css -o dist/styles.css --minify && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "generate-routes": "tsr generate",
     "typecheck": "pnpm generate-routes && tsc --noEmit",

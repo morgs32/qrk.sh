@@ -4,13 +4,13 @@ import { ScrapeError } from "./ScrapeError";
 import { TruthSocialPayloadSchema } from "./schemas";
 
 export const parseTruthSocialPayload = Effect.fn("parseTruthSocialPayload")(function* (props: { payload: unknown; username: string }) {
-  const payload = yield* Schema.decodeUnknown(TruthSocialPayloadSchema)(props.payload, { onExcessProperty: "ignore" }).pipe(
+  const payload = yield* Schema.decodeUnknown(TruthSocialPayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
     Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "Truth Social account response was unsupported" })),
   );
   if (payload.username.toLowerCase() !== props.username.toLowerCase()) {
     return yield* new ScrapeError({ code: "profile-identity-mismatch", message: "Truth Social account did not match the requested profile" });
   }
-  return props.payload;
+  return payload;
 });
 
 export const scrapeTruthSocial = Effect.fn("scrapeTruthSocial")(function* (props: { url: string }) {

@@ -2,15 +2,20 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const pageBase = "/site/e2e/page/home";
 
-function drawerBrickPreviewSlot(page: Page, collectionName: string, brickName: string) {
+function drawerBrickPreviewSlot(page: Page, collectionName: string, variant: string, size: string) {
   return page.locator(
-    `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="${collectionName}"][data-brick-drawer-brick-name="${brickName}"]`,
+    `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="${collectionName}"][data-brick-drawer-variant="${variant}"][data-brick-drawer-size="${size}"]`,
   );
 }
 
-function gridLocateByBrickNames(grid: Locator, collectionName: string, brickName: string) {
+function gridLocateByBrickIdentity(
+  grid: Locator,
+  collectionName: string,
+  variant: string,
+  size: string,
+) {
   return grid.locator(
-    `[data-brick-collection-name="${collectionName}"][data-brick-name="${brickName}"]`,
+    `[data-brick-collection-name="${collectionName}"][data-brick-variant="${variant}"][data-brick-size="${size}"]`,
   );
 }
 
@@ -36,7 +41,7 @@ test.describe("Site grid drag", () => {
 
     const layout = page.getByTestId("grid-layout");
     const grid = page.locator(".grid-layout");
-    const brick = gridLocateByBrickNames(grid, "orange-flag", "4x4").first();
+    const brick = gridLocateByBrickIdentity(grid, "swatch", "default", "4x4").first();
     await expect(brick).toBeVisible({ timeout: 90_000 });
     await expect(layout).toBeVisible();
     await expect(grid).toBeVisible();
@@ -87,12 +92,12 @@ test.describe("Site grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const newBricks = gridLocateByBrickNames(grid, "orange-flag", "2x2");
+    const newBricks = gridLocateByBrickIdentity(grid, "swatch", "default", "2x2");
     await expect(newBricks).toHaveCount(0);
 
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
-    const slot = drawerBrickPreviewSlot(page, "orange-flag", "2x2").first();
+    const slot = drawerBrickPreviewSlot(page, "swatch", "default", "2x2").first();
     await expect(slot).toBeVisible();
 
     const gridBox = await grid.boundingBox();
@@ -117,12 +122,12 @@ test.describe("Site grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const bricks = gridLocateByBrickNames(grid, "orange-flag", "2x2");
+    const bricks = gridLocateByBrickIdentity(grid, "swatch", "default", "2x2");
     await expect(bricks).toHaveCount(0);
 
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
-    const slot = drawerBrickPreviewSlot(page, "orange-flag", "2x2").first();
+    const slot = drawerBrickPreviewSlot(page, "swatch", "default", "2x2").first();
     await expect(slot).toBeVisible();
 
     await slot.dragTo(page.getByLabel("Search bricks"), {
@@ -144,7 +149,7 @@ test.describe("Site grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible();
 
-    const workRows = gridLocateByBrickNames(grid, "text-brick", "8x2");
+    const workRows = gridLocateByBrickIdentity(grid, "text-brick", "default", "8x2");
     await expect(workRows).toHaveCount(46);
 
     const sampleRow = workRows.first();
@@ -161,14 +166,14 @@ test.describe("Site grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const text4x4Bricks = gridLocateByBrickNames(grid, "text-brick", "4x4");
+    const text4x4Bricks = gridLocateByBrickIdentity(grid, "text-brick", "default", "4x4");
     await expect(text4x4Bricks).toHaveCount(0);
 
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
     await page.getByLabel("Search bricks").fill("Text brick");
     await expect(page.getByText("Text brick").first()).toBeVisible();
 
-    const slot = drawerBrickPreviewSlot(page, "text-brick", "4x4").first();
+    const slot = drawerBrickPreviewSlot(page, "text-brick", "default", "4x4").first();
     await expect(slot).toBeVisible();
 
     const gridBox = await grid.boundingBox();

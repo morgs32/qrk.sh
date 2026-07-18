@@ -27,26 +27,7 @@ export const Site = makeModel(
       }),
     },
     indexes: [],
-    version: "2.0.0",
+    version: "1.0.0",
   },
-  [
-    {
-      abbreviation: "sit",
-      modelName: "site",
-      attributes: {
-        userId: primitives.ref({
-          table: User.table,
-          relation: "user",
-          inverse: "sites",
-        }),
-        slug: primitives.text(),
-        name: primitives.text(),
-        description: primitives.text({
-          nullable: true,
-        }),
-      },
-      indexes: [],
-      version: "1.0.0",
-    },
-  ],
+  [],
 );

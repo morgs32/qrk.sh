@@ -9,21 +9,22 @@ test("shares one persisted grid across the root, collection, and detail routes",
     window.localStorage.removeItem("qrk-bricks-sandbox-single-grid");
   });
   await page.reload();
+  await page.waitForLoadState("networkidle");
 
-  await expect(page.locator("[data-collection-link]")).toHaveCount(19);
-  await expect(page.locator("[data-collection-entry]")).toHaveCount(19);
-  await expect(page.locator("[data-collection-representative]")).toHaveCount(19);
+  await expect(page.locator("[data-collection-link]")).toHaveCount(6);
+  await expect(page.locator("[data-collection-entry]")).toHaveCount(6);
+  await expect(page.locator("[data-collection-representative]")).toHaveCount(6);
   await expect(page.getByLabel("Brick collections")).toBeVisible();
 
-  const orangeCollection = page.locator('[data-collection-entry="orange-flag"]');
-  await orangeCollection.getByRole("tab", { name: "8x2" }).click();
+  const swatchCollection = page.locator('[data-collection-entry="swatch"]');
+  await swatchCollection.getByRole("tab", { name: "8x2" }).click();
   await expect(
-    orangeCollection.locator('[data-collection-representative="orange-flag/8x2"]'),
+    swatchCollection.locator('[data-collection-representative="swatch/default/8x2"]'),
   ).toBeVisible();
   await expect(
-    orangeCollection.locator('[data-collection-representative="orange-flag/2x2"]'),
+    swatchCollection.locator('[data-collection-representative="swatch/default/2x2"]'),
   ).toHaveCount(0);
-  await orangeCollection.getByRole("tab", { name: "2x2" }).click();
+  await swatchCollection.getByRole("tab", { name: "2x2" }).click();
 
   const rootGrid = page.getByLabel("Brick grid");
   await expect(rootGrid).toBeVisible();
@@ -33,42 +34,42 @@ test("shares one persisted grid across the root, collection, and detail routes",
   const rootGridLayout = rootGrid.locator(".react-grid-layout");
 
   await page
-    .locator('[data-collection-representative="orange-flag/2x2"]')
+    .locator('[data-collection-representative="swatch/default/2x2"]')
     .dragTo(rootGridLayout, { targetPosition: { x: 20, y: 20 } });
   await page
-    .locator('[data-collection-representative="black-circle/2x2"]')
+    .locator('[data-collection-representative="icon/default/2x2"]')
     .dragTo(rootGridLayout, { targetPosition: { x: 180, y: 20 } });
 
-  const orangeBrick = page.locator('[data-brick="orange-flag/2x2"]');
-  const blackBrick = page.locator('[data-brick="black-circle/2x2"]');
-  await expect(orangeBrick).toBeVisible();
-  await expect(blackBrick).toBeVisible();
+  const swatchBrick = page.locator('[data-brick="swatch/default/2x2"]');
+  const iconBrick = page.locator('[data-brick="icon/default/2x2"]');
+  await expect(swatchBrick).toBeVisible();
+  await expect(iconBrick).toBeVisible();
 
-  const originalOrangeBrickBox = await orangeBrick.boundingBox();
+  const originalSwatchBrickBox = await swatchBrick.boundingBox();
   const rootGridLayoutBox = await rootGridLayout.boundingBox();
-  expect(originalOrangeBrickBox).not.toBeNull();
+  expect(originalSwatchBrickBox).not.toBeNull();
   expect(rootGridLayoutBox).not.toBeNull();
-  if (!originalOrangeBrickBox || !rootGridLayoutBox) {
-    throw new Error("Expected the root grid and orange brick to have browser layout boxes");
+  if (!originalSwatchBrickBox || !rootGridLayoutBox) {
+    throw new Error("Expected the root grid and swatch brick to have browser layout boxes");
   }
 
-  await orangeBrick.dragTo(rootGridLayout, {
+  await swatchBrick.dragTo(rootGridLayout, {
     targetPosition: { x: rootGridLayoutBox.width - 20, y: rootGridLayoutBox.height - 20 },
   });
   await expect
-    .poll(async () => (await orangeBrick.boundingBox())?.x)
-    .not.toBe(originalOrangeBrickBox.x);
-  const movedGridX = await orangeBrick.getAttribute("data-grid-x");
-  const movedGridY = await orangeBrick.getAttribute("data-grid-y");
+    .poll(async () => (await swatchBrick.boundingBox())?.x)
+    .not.toBe(originalSwatchBrickBox.x);
+  const movedGridX = await swatchBrick.getAttribute("data-grid-x");
+  const movedGridY = await swatchBrick.getAttribute("data-grid-y");
   expect(movedGridX).not.toBeNull();
   expect(movedGridY).not.toBeNull();
 
-  await page.locator('[data-collection-link="orange-flag"]').click();
+  await page.locator('[data-collection-link="swatch"]').click();
   await page.waitForLoadState("networkidle");
   expect(await persistentGridElement?.evaluate((element) => element.isConnected)).toBe(true);
   await expect(page.locator("[data-brick-full-size]")).toHaveCount(3);
   const brickSizes = await page
-    .locator('[data-brick-full-size="orange-flag/8x2"]')
+    .locator('[data-brick-full-size="swatch/default/8x2"]')
     .evaluate((brickElement) => {
       const brick = brickElement.getBoundingClientRect();
       const pane = brickElement.parentElement?.getBoundingClientRect();
@@ -78,28 +79,28 @@ test("shares one persisted grid across the root, collection, and detail routes",
   expect(brickSizes.brickHeight).toBe(brickSizes.brickWidth / 4);
 
   const twoByTwoSize = await page
-    .locator('[data-brick-full-size="orange-flag/2x2"]')
+    .locator('[data-brick-full-size="swatch/default/2x2"]')
     .evaluate((brickElement) => brickElement.getBoundingClientRect().width);
   expect(twoByTwoSize).toBe(brickSizes.brickWidth / 4);
 
   const collectionGrid = page.getByLabel("Brick grid");
   await expect(collectionGrid.getByTestId(/grid-fixture-/)).toHaveCount(4);
-  await expect(orangeBrick).toBeVisible();
-  await expect(blackBrick).toBeVisible();
-  await expect(orangeBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
-  await expect(orangeBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
+  await expect(swatchBrick).toBeVisible();
+  await expect(iconBrick).toBeVisible();
+  await expect(swatchBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
+  await expect(swatchBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
 
   await page.getByRole("link", { name: "All collections" }).click();
   await expect(page).toHaveURL(/\/$/);
   expect(await persistentGridElement?.evaluate((element) => element.isConnected)).toBe(true);
-  await expect(orangeBrick).toBeVisible();
-  await expect(blackBrick).toBeVisible();
-  await page.locator('[data-collection-link="orange-flag"]').click();
+  await expect(swatchBrick).toBeVisible();
+  await expect(iconBrick).toBeVisible();
+  await page.locator('[data-collection-link="swatch"]').click();
 
-  const orangeBrickId = await orangeBrick.getAttribute("data-brick-id");
-  expect(orangeBrickId).not.toBeNull();
-  await orangeBrick.click();
-  await expect(page).toHaveURL(/\/collections\/orange-flag\/brick\/[^/]+$/);
+  const swatchBrickId = await swatchBrick.getAttribute("data-brick-id");
+  expect(swatchBrickId).not.toBeNull();
+  await swatchBrick.click();
+  await expect(page).toHaveURL(/\/collections\/swatch\/brick\/[^/]+$/);
   await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
   await expect(page.getByTestId("selected-brick-preview").locator("svg")).toBeVisible();
   const brickDetailUrl = page.url();
@@ -108,42 +109,42 @@ test("shares one persisted grid across the root, collection, and detail routes",
   await expect(page).toHaveURL(brickDetailUrl);
   await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
   await expect(page.getByTestId("selected-brick-preview").locator("svg")).toBeVisible();
-  const restoredOrangeBrick = page.locator('[data-brick="orange-flag/2x2"]');
-  await expect(restoredOrangeBrick).toBeVisible();
-  await expect(page.locator('[data-brick="black-circle/2x2"]')).toBeVisible();
+  const restoredSwatchBrick = page.locator('[data-brick="swatch/default/2x2"]');
+  await expect(restoredSwatchBrick).toBeVisible();
+  await expect(page.locator('[data-brick="icon/default/2x2"]')).toBeVisible();
   await expect(page.getByLabel("Brick grid").getByTestId(/grid-fixture-/)).toHaveCount(4);
-  await expect(restoredOrangeBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
-  await expect(restoredOrangeBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
+  await expect(restoredSwatchBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
+  await expect(restoredSwatchBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
 
-  await page.goto("/collections/orange-flag/brick/missing-brick");
+  await page.goto("/collections/swatch/brick/missing-brick");
   await expect(page.getByTestId("brick-not-found")).toBeVisible();
   await expect(page.getByLabel("Brick grid")).toBeVisible();
 
-  await page.goto(`/collections/black-circle/brick/${orangeBrickId}`);
+  await page.goto(`/collections/icon/brick/${swatchBrickId}`);
   await expect(page.getByTestId("brick-not-found")).toBeVisible();
-  await expect(page.locator('[data-brick="orange-flag/2x2"]')).toBeVisible();
-  await expect(page.locator('[data-brick="black-circle/2x2"]')).toBeVisible();
+  await expect(page.locator('[data-brick="swatch/default/2x2"]')).toBeVisible();
+  await expect(page.locator('[data-brick="icon/default/2x2"]')).toBeVisible();
 });
 
 test("renders static, image, and GitHub bricks", async ({ page }) => {
-  await page.goto("/bricks/orange-flag/2x2");
+  await page.goto("/bricks/swatch/default/2x2");
   await expect(page.getByTestId("brick-preview").locator("svg")).toBeVisible();
 
-  await page.goto("/bricks/image/4x4");
+  await page.goto("/bricks/image/default/4x4");
   await expect(page.getByTestId("brick-preview").locator("img")).toBeVisible();
 
-  await page.goto("/bricks/github-profile/4x4");
+  await page.goto("/bricks/github/profile/4x4");
   await expect(page.getByTestId("brick-preview").locator('[data-slot="card"]')).toBeVisible();
 
-  await page.goto("/bricks/github-repo/repo-4x2");
+  await page.goto("/bricks/github/repo/4x2");
   await expect(page.getByTestId("brick-preview").getByText("ink-steps")).toBeVisible();
 
-  await page.goto("/bricks/github-repo/2x2");
-  await expect(page.getByTestId("brick-preview").locator('[data-slot="card"]')).toBeVisible();
+  await page.goto("/bricks/github-profile/4x4");
+  await expect(page.getByTestId("brick-preview")).toHaveCount(0);
 });
 
 test("shows brick config in a collection tab", async ({ page }) => {
-  await page.goto("/collections/github-profile");
+  await page.goto("/collections/github");
   await page.waitForLoadState("networkidle");
 
   await page.getByRole("button", { name: "View data" }).click();
@@ -160,13 +161,11 @@ test("shows brick config in a collection tab", async ({ page }) => {
     "aria-selected",
     "true",
   );
-  await expect(
-    page.getByText('"collectionName": "github-profile"', { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByText('"collectionName": "github"', { exact: false })).toBeVisible();
 });
 
 test("resizes the preview proportionally and switches canvas theme", async ({ page }) => {
-  await page.goto("/bricks/orange-flag/2x2");
+  await page.goto("/bricks/swatch/default/2x2");
   await page.waitForLoadState("networkidle");
 
   const preview = page.getByTestId("brick-preview");
@@ -194,6 +193,6 @@ test("shows explicit not-found states", async ({ page }) => {
   await page.goto("/collections/not-a-collection");
   await expect(page.getByTestId("collection-not-found")).toBeVisible();
 
-  await page.goto("/bricks/orange-flag/not-a-brick");
+  await page.goto("/bricks/swatch/default/not-a-brick");
   await expect(page.getByTestId("brick-not-found")).toBeVisible();
 });

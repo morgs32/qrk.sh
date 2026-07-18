@@ -5,6 +5,9 @@
     "dev": {
       "continuous": true,
       "dependsOn": ["scraper:dev"]
+    },
+    "scraper:dev": {
+      "continuous": true
     }
   }
 }

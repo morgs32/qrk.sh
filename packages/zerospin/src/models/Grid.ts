@@ -18,7 +18,7 @@ export const Grid = makeModel(
       revision: primitives.integer(),
     },
     indexes: [],
-    version: "2.0.0",
+    version: "1.0.0",
   },
   [],
 );

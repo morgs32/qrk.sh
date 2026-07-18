@@ -1,12 +1,10 @@
-import { findCollectionBrick } from "@qrk.sh/bricks";
+import { collectionsHash } from "@qrk.sh/bricks";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
 import { useGridStore } from "../useGridStore";
 
-export const Route = createFileRoute(
-  "/_sandbox/collections/$collectionName/brick/$brickId",
-)({
+export const Route = createFileRoute("/_sandbox/collections/$collectionName/brick/$brickId")({
   component: BrickDetail,
 });
 
@@ -14,8 +12,11 @@ function BrickDetail() {
   const { collectionName, brickId } = Route.useParams();
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const brickDef = useGridStore((state) => state.bricksById[brickId]);
-  const brick =
-    brickDef?.collectionName === collectionName ? findCollectionBrick(brickDef) : undefined;
+  const collection =
+    brickDef?.collectionName === collectionName
+      ? collectionsHash[brickDef.collectionName]
+      : undefined;
+  const brick = collection?.variants[brickDef?.variant ?? ""]?.sizes[brickDef?.size ?? ""];
 
   if (!hasHydrated) {
     return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
@@ -56,7 +57,7 @@ function BrickDetail() {
         <p className="mb-0 mt-8 text-sm text-zinc-500">Brick detail</p>
         <h1 className="mb-1 mt-2 text-4xl font-semibold tracking-tight">{brick.def.label}</h1>
         <p className="mt-0 font-mono text-sm text-zinc-500">
-          {brick.def.collectionName}/{brick.def.name}
+          {brick.def.collectionName}/{brick.def.variant}/{brick.def.size}
         </p>
       </div>
       <div className="mt-8 overflow-auto">

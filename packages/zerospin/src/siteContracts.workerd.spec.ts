@@ -91,7 +91,7 @@ describe("site and page creation contracts", () => {
       expect(siteRows[0]).toEqual(
         expect.objectContaining({
           id: staged.right.payload.id,
-          version: "2.0.0",
+          version: "1.0.0",
           userId,
           slug: null,
           name: null,
@@ -131,7 +131,7 @@ describe("site and page creation contracts", () => {
       expect(pageRows[0]).toEqual(
         expect.objectContaining({
           id: stagedPage.right.payload.id,
-          version: "2.0.0",
+          version: "1.0.0",
           siteId,
           slug: "home",
           title: null,

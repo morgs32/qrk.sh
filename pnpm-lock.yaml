@@ -321,6 +321,9 @@ importers:
       '@types/node':
         specifier: ^25.5.2
         version: 25.5.2
+      '@zerospin/core':
+        specifier: workspace:*
+        version: link:../../vendor/zerospin/packages/core
       oxlint:
         specifier: ^1.59.0
         version: 1.59.0

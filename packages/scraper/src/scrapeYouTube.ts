@@ -5,13 +5,13 @@ import { ScrapeError } from "./ScrapeError";
 import { YouTubePayloadSchema } from "./schemas";
 
 export const parseYouTubePayload = Effect.fn("parseYouTubePayload")(function* (props: { payload: unknown; handle: string }) {
-  const payload = yield* Schema.decodeUnknown(YouTubePayloadSchema)(props.payload, { onExcessProperty: "ignore" }).pipe(
+  const payload = yield* Schema.decodeUnknown(YouTubePayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
     Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "YouTube ytInitialData was unsupported" })),
   );
   if (payload.handle.toLowerCase() !== props.handle.toLowerCase()) {
     return yield* new ScrapeError({ code: "profile-identity-mismatch", message: "YouTube payload did not match the requested channel" });
   }
-  return props.payload;
+  return payload;
 });
 
 export const scrapeYouTube = Effect.fn("scrapeYouTube")(function* (props: { browser: Browser; url: string }) {

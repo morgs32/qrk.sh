@@ -162,5 +162,6 @@ See [README.md](./README.md) for format.
 | `tooling/read-before-casting.ts`               | /\*\*       |
 | `tooling/table-vs-drizzle-schema-naming.ts`    | /\*\*       |
 | `tooling/tsconfig-split-for-ide.md`            | tooling     |
+| `tooling/zerospin-dev-clean-until-production.ts` | Run local Zerospin development with a detached clean generation |
 | `tooling/validate-before-insert.ts`            | /\*\*       |
 | `tooling/vitest-setup-real-dependencies.ts`    | /\*\*       |

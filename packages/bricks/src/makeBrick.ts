@@ -3,24 +3,31 @@ import type { IBrick } from "./types";
 
 const KEBAB_BRICK_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export function makeBrick<N extends string>(props: {
-  name: N;
+export function makeBrick<const VARIANT extends string, const SIZE extends string>(props: {
+  variant: VARIANT;
+  size: SIZE;
   w: number;
   h: number;
   order: number;
   label: string;
   component: ComponentType;
-}): IBrick {
-  const { name, w, h, order, label, component } = props;
+}): IBrick<VARIANT, SIZE> {
+  const { variant, size, w, h, order, label, component } = props;
 
-  if (!KEBAB_BRICK_NAME.test(props.name)) {
+  if (!KEBAB_BRICK_NAME.test(props.variant)) {
     throw new Error(
-      `makeBrick: name must be kebab-case (lowercase segments separated by hyphens); got ${JSON.stringify(props.name)}`,
+      `makeBrick: variant must be kebab-case (lowercase segments separated by hyphens); got ${JSON.stringify(props.variant)}`,
+    );
+  }
+  if (!KEBAB_BRICK_NAME.test(props.size)) {
+    throw new Error(
+      `makeBrick: size must be kebab-case (lowercase segments separated by hyphens); got ${JSON.stringify(props.size)}`,
     );
   }
   return {
     def: {
-      name,
+      variant,
+      size,
       w,
       h,
       order,

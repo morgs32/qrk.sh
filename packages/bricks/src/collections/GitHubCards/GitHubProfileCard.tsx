@@ -221,22 +221,21 @@ export function GitHubProfileCard() {
               <span>{user.blog.replace(/^https?:\/\//, "")}</span>
             </a>
           )}
-        </div>
-
-        <div className="flex gap-4 text-sm">
-          <div className="flex items-center gap-1">
-            <Users className={`h-4 w-4 shrink-0 ${profileMutedClass}`} />
-            <span className={`font-medium ${profileHeadingClass}`}>{user.followers}</span>
-            <span className={profileMutedClass}>followers</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className={`font-medium ${profileHeadingClass}`}>{user.following}</span>
-            <span className={profileMutedClass}>following</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <BookOpen className={`h-4 w-4 shrink-0 ${profileMutedClass}`} />
-            <span className={`font-medium ${profileHeadingClass}`}>{user.public_repos}</span>
-            <span className={profileMutedClass}>repos</span>
+          <div className="flex gap-4 text-sm">
+            <div className="flex items-center gap-1">
+              <Users className={`h-4 w-4 shrink-0 ${profileMutedClass}`} />
+              <span className={`font-medium ${profileHeadingClass}`}>{user.followers}</span>
+              <span className={profileMutedClass}>followers</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className={`font-medium ${profileHeadingClass}`}>{user.following}</span>
+              <span className={profileMutedClass}>following</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <BookOpen className={`h-4 w-4 shrink-0 ${profileMutedClass}`} />
+              <span className={`font-medium ${profileHeadingClass}`}>{user.public_repos}</span>
+              <span className={profileMutedClass}>repos</span>
+            </div>
           </div>
         </div>
 

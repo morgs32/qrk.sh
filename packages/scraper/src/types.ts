@@ -1,42 +1,63 @@
 import type { BrowserWorker } from "@cloudflare/puppeteer";
 
-export type IPageType =
-  | "linktree"
-  | "beacons"
-  | "instagram"
-  | "github"
-  | "tiktok"
-  | "youtube"
-  | "truth-social";
+export type IJsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | ReadonlyArray<null | boolean | number | string | object>
+  | Readonly<{ [key: string]: null | boolean | number | string | object }>;
 
-export type IScrapeStatus = "pending" | "completed" | "failed";
-
-export type IScrapeJob = Readonly<{
-  id: string;
-  url: string;
-  pageType: IPageType;
-  status: IScrapeStatus;
-  attemptCount: number;
-  payload: unknown | null;
-  error: string | null;
-  createdAt: number;
-  updatedAt: number;
-  expiredAt: number | null;
+export type ILinktreeScrapePayload = Readonly<{
+  props: Readonly<{
+    pageProps: Readonly<{
+      account: Readonly<{
+        username: string;
+        [key: string]: IJsonValue;
+      }>;
+      [key: string]: IJsonValue;
+    }>;
+    [key: string]: IJsonValue;
+  }>;
+  [key: string]: IJsonValue;
 }>;
 
-export type IScrapeMessage = Readonly<{
-  id: string;
-  url: string;
-  pageType: IPageType;
+export type IBeaconsScrapePayload = Readonly<{
+  username: string;
+  source: "embedded" | "rendered";
+  data: IJsonValue;
+}>;
+
+export type IInstagramScrapePayload = Readonly<{
+  username: string;
+  data: IJsonValue;
+}>;
+
+export type IGitHubScrapePayload = Readonly<{
+  login: string;
+  [key: string]: IJsonValue;
+}>;
+
+export type ITikTokScrapePayload = Readonly<{
+  username: string;
+  data: IJsonValue;
+}>;
+
+export type IYouTubeScrapePayload = Readonly<{
+  handle: string;
+  data: IJsonValue;
+}>;
+
+export type ITruthSocialScrapePayload = Readonly<{
+  username: string;
+  acct: string;
+  [key: string]: IJsonValue;
 }>;
 
 export type IScrapeError = Readonly<{
   code:
     | "invalid-scrape-request"
-    | "scrape-job-not-found"
     | "scrape-persistence-failed"
-    | "scrape-queue-failed"
-    | "queue-page-type-mismatch"
     | "unsupported-page-shape"
     | "profile-unavailable"
     | "profile-identity-mismatch"
@@ -51,13 +72,13 @@ export type IRpcEither<RIGHT> =
 
 export interface IScraperEnv {
   BROWSER: BrowserWorker;
-  LINKTREE_QUEUE: Queue<IScrapeMessage>;
-  BEACONS_QUEUE: Queue<IScrapeMessage>;
-  INSTAGRAM_QUEUE: Queue<IScrapeMessage>;
-  TIKTOK_QUEUE: Queue<IScrapeMessage>;
-  YOUTUBE_QUEUE: Queue<IScrapeMessage>;
-  TRUTH_SOCIAL_QUEUE: Queue<IScrapeMessage>;
-  GITHUB_QUEUE: Queue<IScrapeMessage>;
+  BROWSER_HOST: DurableObjectNamespace<import("./BrowserHost").BrowserHost>;
+  LINKTREE_REPO: DurableObjectNamespace<import("./LinktreeRepo").LinktreeRepo>;
+  BEACONS_REPO: DurableObjectNamespace<import("./BeaconsRepo").BeaconsRepo>;
+  INSTAGRAM_REPO: DurableObjectNamespace<import("./InstagramRepo").InstagramRepo>;
+  GITHUB_REPO: DurableObjectNamespace<import("./GitHubRepo").GitHubRepo>;
+  TIKTOK_REPO: DurableObjectNamespace<import("./TikTokRepo").TikTokRepo>;
+  YOUTUBE_REPO: DurableObjectNamespace<import("./YouTubeRepo").YouTubeRepo>;
+  TRUTH_SOCIAL_REPO: DurableObjectNamespace<import("./TruthSocialRepo").TruthSocialRepo>;
   GITHUB_TOKEN: string;
-  SCRAPER_REPO: DurableObjectNamespace<import("./ScraperRepo").ScraperRepo>;
 }

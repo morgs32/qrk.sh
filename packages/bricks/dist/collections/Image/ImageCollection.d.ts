@@ -1,4 +1,2 @@
-export declare const imageCollection: import("../..").ICollection<{
-    readonly "4x4": import("../..").IBrick;
-}>;
+export declare const imageCollection: import("../..").ICollection;
 //# sourceMappingURL=ImageCollection.d.ts.map

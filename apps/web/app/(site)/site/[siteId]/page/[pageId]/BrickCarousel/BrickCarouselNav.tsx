@@ -95,7 +95,7 @@ export function BrickCarouselNav(props: {
               const active = i === selected;
               return (
                 <div
-                  key={brick.def.name}
+                  key={`${brick.def.variant}/${brick.def.size}`}
                   className="flex min-w-0 shrink-0 items-center justify-center"
                 >
                   <button

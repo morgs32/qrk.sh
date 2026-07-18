@@ -1,4 +1,2 @@
-export declare const figmaCollection: import("../..").ICollection<{
-    readonly "4x4": import("../..").IBrick;
-}>;
+export declare const figmaCollection: import("../..").ICollection;
 //# sourceMappingURL=FigmaCollection.d.ts.map

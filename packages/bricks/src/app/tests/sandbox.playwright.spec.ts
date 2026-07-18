@@ -11,9 +11,9 @@ test("shares one persisted grid across the root, collection, and detail routes",
   await page.reload();
   await page.waitForLoadState("networkidle");
 
-  await expect(page.locator("[data-collection-link]")).toHaveCount(7);
-  await expect(page.locator("[data-collection-entry]")).toHaveCount(7);
-  await expect(page.locator("[data-collection-representative]")).toHaveCount(7);
+  await expect(page.locator("[data-collection-link]")).toHaveCount(9);
+  await expect(page.locator("[data-collection-entry]")).toHaveCount(9);
+  await expect(page.locator("[data-collection-representative]")).toHaveCount(9);
   await expect(page.getByLabel("Brick collections")).toBeVisible();
   await expect(
     page
@@ -146,6 +146,19 @@ test("renders static, image, and repository bricks", async ({ page }) => {
   await expect(page.getByTestId("brick-preview")).toHaveCount(0);
 });
 
+test("renders the Link default 4x2 preview", async ({ page }) => {
+  await page.goto("/bricks/link/default/4x2");
+
+  const linkCard = page.getByTestId("brick-preview").locator('[data-link-card="default"]');
+  await expect(linkCard).toBeVisible();
+  await expect(linkCard).toHaveAttribute("href", "https://apps.apple.com/");
+  await expect(
+    linkCard.getByText("Celebrate our birthday & get Pro free for one year"),
+  ).toBeVisible();
+  await expect(linkCard.getByText("apps.apple.com")).toBeVisible();
+  await expect(linkCard.locator("img")).toHaveCount(2);
+});
+
 test("renders default GitHub profile data in the direct preview", async ({ page }) => {
   await page.goto("/bricks/github/profile/4x4");
 
@@ -177,15 +190,56 @@ test("loads a selected Google place into the Map preview", async ({ page }) => {
   await page.getByRole("button", { name: "Get data" }).click();
 
   const result = page.getByTestId("variant-data-result");
-  await expect(result).toContainText('"name": "Millennium Park"');
-  await expect(result).toContainText('"latitude":');
-  await expect(result).toContainText('"longitude":');
+  await expect(result).toContainText('name:"Millennium Park"');
+  await expect(result).toContainText("latitude:");
+  await expect(result).toContainText("longitude:");
   await expect
     .poll(() => mapPreview.locator("[data-map-place-id]").getAttribute("data-map-place-id"))
     .not.toBe("ChIJ7cv00DwsDogRAMDACa2m4K8");
 
   await page.getByRole("button", { name: "Clear place search" }).click();
   await expect(placeLookup).toHaveValue("");
+});
+
+test("searches Streamline and loads the selected SVG into every Icon preview", async ({ page }) => {
+  await page.goto("/collections/icon/default");
+  await page.waitForLoadState("networkidle");
+
+  const searchInput = page.getByLabel("Search Streamline icons");
+  await searchInput.fill("home");
+
+  const searchResults = page.getByRole("listbox", { name: "Streamline icon results" });
+  await expect(searchResults).toBeVisible();
+  const firstIcon = searchResults.getByRole("option").first();
+  await expect(firstIcon).toBeVisible();
+  await firstIcon.click();
+  await expect(firstIcon).toHaveAttribute("aria-selected", "true");
+
+  const getDataButton = page.getByRole("button", { name: "Get data" });
+  await getDataButton.click();
+  await expect(getDataButton).toBeEnabled();
+
+  const dataError = page.getByTestId("variant-data-error");
+  if ((await dataError.count()) > 0) {
+    throw new Error((await dataError.textContent()) ?? "Streamline SVG request failed");
+  }
+
+  const result = page.getByTestId("variant-data-result");
+  await expect(result).toContainText('hash:"ico_');
+  await expect(result).toContainText('svg:"<svg');
+
+  await expect(page.locator('[data-variant-size-brick="icon/default/2x2"] img')).toHaveAttribute(
+    "src",
+    /^data:image\/svg\+xml/,
+  );
+  await expect(page.locator('[data-variant-size-brick="icon/default/4x4"] img')).toHaveAttribute(
+    "src",
+    /^data:image\/svg\+xml/,
+  );
+  await expect(page.locator('[data-variant-size-brick="icon/default/8x2"] img')).toHaveAttribute(
+    "src",
+    /^data:image\/svg\+xml/,
+  );
 });
 
 test("renders the Map brick through preview, collection, Grid, and detail boundaries", async ({
@@ -257,7 +311,7 @@ test("loads a Figma Design preview and retains it after a type mismatch", async 
 
   const canonicalUrl = "https://www.figma.com/design/x1KYuaPaEo89CE715oUD4I";
   const result = page.getByTestId("variant-data-result");
-  await expect(result).toContainText(`"url": "${canonicalUrl}"`);
+  await expect(result).toContainText(`url:"${canonicalUrl}"`);
   await expect(designCard).toHaveAttribute("href", canonicalUrl);
   await expect(designCard).toHaveAttribute("target", "_blank");
   await expect(designCard).toHaveAttribute("rel", "noopener noreferrer");
@@ -269,7 +323,7 @@ test("loads a Figma Design preview and retains it after a type mismatch", async 
   await expect(page.getByTestId("variant-data-error")).toContainText("file-type-mismatch");
   await expect(designCard).toHaveAttribute("href", canonicalUrl);
   await expect(designCard.locator('[data-figma-thumbnail="design"]')).toBeVisible();
-  await expect(result).toContainText(`"url": "${canonicalUrl}"`);
+  await expect(result).toContainText(`url:"${canonicalUrl}"`);
 });
 
 test("renders the GitHub profile activity size", async ({ page }) => {
@@ -278,6 +332,23 @@ test("renders the GitHub profile activity size", async ({ page }) => {
   await expect(
     page.getByTestId("brick-preview").locator("[data-github-profile-activity]"),
   ).toBeVisible();
+});
+
+test("authors Text collection content as Tiptap JSON", async ({ page }) => {
+  await page.goto("/collections/text/default");
+  await page.waitForLoadState("networkidle");
+
+  const editor = page.getByLabel("Text content");
+  await expect(editor).toBeVisible();
+  await expect(page.getByRole("button", { name: "Get data" })).toHaveCount(0);
+
+  await editor.fill("Hello from Tiptap");
+  await editor.selectText();
+  await page.getByRole("button", { name: "Bold" }).click();
+
+  const payload = page.getByTestId("variant-payload-result");
+  await expect(payload).toContainText("Hello from Tiptap");
+  await expect(payload).toContainText("bold");
 });
 
 test("shows brick config in a collection tab", async ({ page }) => {
@@ -318,9 +389,17 @@ test("shows brick config in a collection tab", async ({ page }) => {
   await expect(page.getByLabel("url")).toHaveValue("https://github.com/morgs32");
   await expect(page.getByRole("button", { name: "Get data" })).toBeEnabled();
   const initialResult = page.getByTestId("variant-data-result");
-  await expect(initialResult).toContainText('"id": 1364795');
-  await expect(initialResult).toContainText('"node_id": "MDQ6VXNlcjEzNjQ3OTU="');
-  await expect(initialResult).toContainText('"login": "morgs32"');
+  await expect(initialResult).toContainText("id:1364795");
+  await expect(initialResult).toContainText('node_id:"MDQ6VXNlcjEzNjQ3OTU="');
+  await expect(initialResult).toContainText('login:"morgs32"');
+
+  await initialResult.getByText('"morgs32"', { exact: true }).dblclick();
+  await initialResult.getByRole("textbox").fill("edited-default");
+  await initialResult.getByRole("textbox").press("Enter");
+  await expect(initialResult).toContainText('login:"edited-default"');
+  await expect(
+    page.locator('[data-variant-size-brick="github/profile/4x4"]').getByText("@edited-default"),
+  ).toBeVisible();
 });
 
 test("updates the GitHub profile preview and retains the last success after an error", async ({
@@ -337,9 +416,17 @@ test("updates the GitHub profile preview and retains the last success after an e
 
   const result = page.getByTestId("variant-data-result");
   await expect(result).toBeVisible();
-  await expect(result).toContainText('"login": "octocat"');
+  await expect(result).toContainText('login:"octocat"');
   await expect(
     page.locator('[data-variant-size-brick="github/profile/4x4"]').getByText("@octocat"),
+  ).toBeVisible();
+
+  await result.getByText('"octocat"', { exact: true }).dblclick();
+  await result.getByRole("textbox").fill("edited-fetched");
+  await result.getByRole("textbox").press("Enter");
+  await expect(result).toContainText('login:"edited-fetched"');
+  await expect(
+    page.locator('[data-variant-size-brick="github/profile/4x4"]').getByText("@edited-fetched"),
   ).toBeVisible();
 
   await page.getByLabel("url").fill("https://github.com/topics/effect");
@@ -349,9 +436,9 @@ test("updates the GitHub profile preview and retains the last success after an e
   await expect(error).toBeVisible();
   await expect(error).toContainText("invalid-scrape-request");
   await expect(error).toContainText("GitHub scrapes require https://github.com/<login>");
-  await expect(result).toContainText('"login": "octocat"');
+  await expect(result).toContainText('login:"edited-fetched"');
   await expect(
-    page.locator('[data-variant-size-brick="github/profile/4x4"]').getByText("@octocat"),
+    page.locator('[data-variant-size-brick="github/profile/4x4"]').getByText("@edited-fetched"),
   ).toBeVisible();
 });
 

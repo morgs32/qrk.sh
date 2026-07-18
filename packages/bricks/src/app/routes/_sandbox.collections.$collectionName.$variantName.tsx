@@ -2,6 +2,7 @@ import { collectionsHash } from "@qrk.sh/bricks";
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { PrimitiveKind } from "@zerospin/core/models/primitiveKind";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
+import { JsonEditor } from "json-edit-react";
 import { ArrowLeft } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { ScraperApi } from "scraper/ScraperApi";
@@ -155,13 +156,19 @@ function VariantConfiguration() {
         </div>
       </div>
       <div className="border-l border-zinc-200 px-6 pt-6">
-        {payloadShape !== undefined && getData !== undefined ? (
+        {payloadShape !== undefined ? (
           <div>
-            <h2 className="m-0 text-lg font-semibold">Data</h2>
+            <h2 className="m-0 text-lg font-semibold">
+              {getData === undefined ? "Content" : "Data"}
+            </h2>
             <form
               className="mt-5 space-y-5"
               onSubmit={async (event: FormEvent<HTMLFormElement>) => {
                 event.preventDefault();
+
+                if (getData === undefined) {
+                  return;
+                }
 
                 setIsLoadingData(true);
                 setDataError(undefined);
@@ -248,12 +255,14 @@ function VariantConfiguration() {
                   </div>
                 );
               })}
-              <Button disabled={hasUnsupportedPayload || isLoadingData} type="submit">
-                {isLoadingData ? "Getting data..." : "Get data"}
-              </Button>
+              {getData === undefined ? null : (
+                <Button disabled={hasUnsupportedPayload || isLoadingData} type="submit">
+                  {isLoadingData ? "Getting data..." : "Get data"}
+                </Button>
+              )}
             </form>
 
-            {dataError !== undefined ? (
+            {getData !== undefined && dataError !== undefined ? (
               <div
                 className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
                 data-testid="variant-data-error"
@@ -264,7 +273,7 @@ function VariantConfiguration() {
               </div>
             ) : null}
 
-            {requestError !== undefined ? (
+            {getData !== undefined && requestError !== undefined ? (
               <div
                 className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
                 data-testid="variant-request-error"
@@ -274,12 +283,19 @@ function VariantConfiguration() {
               </div>
             ) : null}
 
-            <pre
-              className="mt-5 overflow-auto bg-zinc-100 p-4 text-xs"
-              data-testid="variant-data-result"
-            >
-              {JSON.stringify(loadedData ?? variant.defaultData, null, 2)}
-            </pre>
+            {getData === undefined ? (
+              <div className="mt-5 overflow-auto" data-testid="variant-payload-result">
+                <JsonEditor data={payloadValues} rootName="payload" restrictAdd restrictDelete />
+              </div>
+            ) : (
+              <div className="mt-5 overflow-auto" data-testid="variant-data-result">
+                <JsonEditor
+                  data={loadedData ?? variant.defaultData}
+                  setData={setLoadedData}
+                  restrictDelete
+                />
+              </div>
+            )}
           </div>
         ) : (
           <pre className="m-0 overflow-auto bg-zinc-100 p-4 text-xs">

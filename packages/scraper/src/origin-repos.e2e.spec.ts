@@ -48,31 +48,66 @@ beforeEach(() => {
 describe("origin-specific scraper repositories", () => {
   it.effect("retains each complete provider fixture behind its named payload contract", () =>
     Effect.gen(function* () {
-      expect(yield* parseLinktreePayload({ json: linktreeFixtureJson, username: "miguelangeles" })).toMatchObject({ props: { pageProps: { account: { username: "miguelangeles" }, links: [{ title: "Example" }] } } });
-      expect(yield* parseBeaconsPayload({ payload: beaconsFixture, username: "creator" })).toEqual(beaconsFixture);
-      expect(yield* parseInstagramPayload({ payload: instagramFixture, username: "creator" })).toEqual(instagramFixture);
-      expect(yield* parseGitHubPayload({ payload: gitHubFixture, login: "octocat" })).toEqual(gitHubFixture);
-      expect(yield* parseTikTokPayload({ payload: tikTokFixture, username: "creator" })).toEqual(tikTokFixture);
-      expect(yield* parseYouTubePayload({ payload: youTubeFixture, handle: "creator" })).toEqual(youTubeFixture);
-      expect(yield* parseTruthSocialPayload({ payload: truthSocialFixture, username: "creator" })).toEqual(truthSocialFixture);
+      expect(
+        yield* parseLinktreePayload({ json: linktreeFixtureJson, username: "miguelangeles" }),
+      ).toMatchObject({
+        props: {
+          pageProps: { account: { username: "miguelangeles" }, links: [{ title: "Example" }] },
+        },
+      });
+      expect(yield* parseBeaconsPayload({ payload: beaconsFixture, username: "creator" })).toEqual(
+        beaconsFixture,
+      );
+      expect(
+        yield* parseInstagramPayload({ payload: instagramFixture, username: "creator" }),
+      ).toEqual(instagramFixture);
+      expect(yield* parseGitHubPayload({ payload: gitHubFixture, login: "octocat" })).toEqual(
+        gitHubFixture,
+      );
+      expect(yield* parseTikTokPayload({ payload: tikTokFixture, username: "creator" })).toEqual(
+        tikTokFixture,
+      );
+      expect(yield* parseYouTubePayload({ payload: youTubeFixture, handle: "creator" })).toEqual(
+        youTubeFixture,
+      );
+      expect(
+        yield* parseTruthSocialPayload({ payload: truthSocialFixture, username: "creator" }),
+      ).toEqual(truthSocialFixture);
     }),
   );
 
   it("returns typed invalid-URL failures from every explicit repo accessor", async () => {
     using linktreeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await linktreeApi.linktreeRepo().scrape("https://example.com/profile")).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
+    expect(await linktreeApi.linktreeRepo().scrape("https://example.com/profile")).toMatchObject({
+      _tag: "Left",
+      left: { code: "invalid-scrape-request" },
+    });
     using beaconsApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await beaconsApi.beaconsRepo().scrape("https://creator.beacons.ai")).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
+    expect(await beaconsApi.beaconsRepo().scrape("https://creator.beacons.ai")).toMatchObject({
+      _tag: "Left",
+      left: { code: "invalid-scrape-request" },
+    });
     using instagramApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await instagramApi.instagramRepo().scrape("https://instagram.com/creator")).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
+    expect(
+      await instagramApi.instagramRepo().scrape("https://instagram.com/creator"),
+    ).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
     using gitHubApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await gitHubApi.githubRepo().getProfile("https://github.com/topics/effect")).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
+    expect(
+      await gitHubApi.githubRepo().getProfile("https://github.com/topics/effect"),
+    ).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
     using tikTokApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await tikTokApi.tiktokRepo().scrape("https://www.tiktok.com/t/short")).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
+    expect(await tikTokApi.tiktokRepo().scrape("https://www.tiktok.com/t/short")).toMatchObject({
+      _tag: "Left",
+      left: { code: "invalid-scrape-request" },
+    });
     using youTubeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await youTubeApi.youtubeRepo().scrape("https://www.youtube.com/channel/123")).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
+    expect(
+      await youTubeApi.youtubeRepo().scrape("https://www.youtube.com/channel/123"),
+    ).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
     using truthSocialApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await truthSocialApi.truthSocialRepo().scrape("https://truthsocial.com/@creator/posts/1")).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
+    expect(
+      await truthSocialApi.truthSocialRepo().scrape("https://truthsocial.com/@creator/posts/1"),
+    ).toMatchObject({ _tag: "Left", left: { code: "invalid-scrape-request" } });
   });
 
   it("scrapes and caches all five browser origins through one lazy BrowserHost", async () => {
@@ -89,13 +124,31 @@ describe("origin-specific scraper repositories", () => {
             if (currentUrl.includes("linktr.ee")) return linktreeFixtureJson;
             if (currentUrl.includes("beacons.ai")) return JSON.stringify(beaconsFixture.data);
             if (currentUrl.includes("tiktok.com")) return JSON.stringify(tikTokFixture.data);
-            if (currentUrl.includes("youtube.com") && selector === "link[rel='canonical']") return currentUrl;
+            if (currentUrl.includes("youtube.com") && selector === "link[rel='canonical']")
+              return currentUrl;
             return null;
           }),
-          $$eval: vi.fn(async () => [JSON.stringify(instagramFixture.data)]),
+          $$eval: vi.fn(async () => [JSON.stringify(instagramFixture)]),
           title: vi.fn(async () => "Public profile"),
           waitForFunction: vi.fn(async () => undefined),
-          evaluate: vi.fn(async () => youTubeFixture.data),
+          evaluate: vi.fn(async () => {
+            if (currentUrl.includes("instagram.com")) {
+              return JSON.stringify({
+                username: instagramFixture.username,
+                profileImageUrl: instagramFixture.profileImageUrl,
+                followersText: instagramFixture.followersText,
+                timelineText: JSON.stringify({
+                  items: [
+                    { image_versions2: { candidates: [{ url: instagramFixture.postImageUrl1 }] } },
+                    { image_versions2: { candidates: [{ url: instagramFixture.postImageUrl2 }] } },
+                    { image_versions2: { candidates: [{ url: instagramFixture.postImageUrl3 }] } },
+                    { image_versions2: { candidates: [{ url: instagramFixture.postImageUrl4 }] } },
+                  ],
+                }),
+              });
+            }
+            return youTubeFixture.data;
+          }),
           close: vi.fn(async () => undefined),
         };
       }),
@@ -106,30 +159,56 @@ describe("origin-specific scraper repositories", () => {
     };
     launchMock.mockResolvedValue(browser);
     using linktreeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const linktree = getRight(await linktreeApi.linktreeRepo().scrape("https://linktr.ee/miguelangeles/?source=test"));
+    const linktree = getRight(
+      await linktreeApi.linktreeRepo().scrape("https://linktr.ee/miguelangeles/?source=test"),
+    );
     expect(linktree.props.pageProps.account.username).toBe("miguelangeles");
     using beaconsApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await beaconsApi.beaconsRepo().scrape("https://beacons.ai/creator/?source=test"))).toMatchObject({ username: "creator", source: "embedded" });
+    expect(
+      getRight(await beaconsApi.beaconsRepo().scrape("https://beacons.ai/creator/?source=test")),
+    ).toMatchObject({ username: "creator", source: "embedded" });
     using instagramApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await instagramApi.instagramRepo().scrape("https://www.instagram.com/creator/?source=test"))).toMatchObject({ username: "creator" });
+    expect(
+      getRight(
+        await instagramApi.instagramRepo().scrape("https://www.instagram.com/creator/?source=test"),
+      ),
+    ).toMatchObject({ username: "creator" });
     using tikTokApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await tikTokApi.tiktokRepo().scrape("https://www.tiktok.com/@creator/?source=test"))).toMatchObject({ username: "creator" });
+    expect(
+      getRight(await tikTokApi.tiktokRepo().scrape("https://www.tiktok.com/@creator/?source=test")),
+    ).toMatchObject({ username: "creator" });
     using youTubeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await youTubeApi.youtubeRepo().scrape("https://www.youtube.com/@creator/?source=test"))).toMatchObject({ handle: "creator" });
+    expect(
+      getRight(
+        await youTubeApi.youtubeRepo().scrape("https://www.youtube.com/@creator/?source=test"),
+      ),
+    ).toMatchObject({ handle: "creator" });
 
     expect(launchMock).toHaveBeenCalledTimes(1);
     expect(browser.newPage).toHaveBeenCalledTimes(5);
 
     using cachedLinktreeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await cachedLinktreeApi.linktreeRepo().scrape("https://linktr.ee/miguelangeles"))).toMatchObject({ props: { pageProps: { account: { username: "miguelangeles" } } } });
+    expect(
+      getRight(await cachedLinktreeApi.linktreeRepo().scrape("https://linktr.ee/miguelangeles")),
+    ).toMatchObject({ props: { pageProps: { account: { username: "miguelangeles" } } } });
     using cachedBeaconsApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await cachedBeaconsApi.beaconsRepo().scrape("https://beacons.ai/creator"))).toMatchObject({ username: "creator" });
+    expect(
+      getRight(await cachedBeaconsApi.beaconsRepo().scrape("https://beacons.ai/creator")),
+    ).toMatchObject({ username: "creator" });
     using cachedInstagramApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await cachedInstagramApi.instagramRepo().scrape("https://www.instagram.com/creator"))).toMatchObject({ username: "creator" });
+    expect(
+      getRight(
+        await cachedInstagramApi.instagramRepo().scrape("https://www.instagram.com/creator"),
+      ),
+    ).toMatchObject({ username: "creator" });
     using cachedTikTokApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await cachedTikTokApi.tiktokRepo().scrape("https://www.tiktok.com/@creator"))).toMatchObject({ username: "creator" });
+    expect(
+      getRight(await cachedTikTokApi.tiktokRepo().scrape("https://www.tiktok.com/@creator")),
+    ).toMatchObject({ username: "creator" });
     using cachedYouTubeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await cachedYouTubeApi.youtubeRepo().scrape("https://www.youtube.com/@creator"))).toMatchObject({ handle: "creator" });
+    expect(
+      getRight(await cachedYouTubeApi.youtubeRepo().scrape("https://www.youtube.com/@creator")),
+    ).toMatchObject({ handle: "creator" });
     expect(browser.newPage).toHaveBeenCalledTimes(5);
     let secondBrowserDisconnected: (() => void) | undefined;
     const secondBrowser = {
@@ -140,7 +219,13 @@ describe("origin-specific scraper repositories", () => {
           goto: vi.fn(async (url: string) => {
             currentUrl = url;
           }),
-          $eval: vi.fn(async () => currentUrl.includes("linktr.ee") ? JSON.stringify({ props: { pageProps: { account: { username: "browser-reconnected" } } } }) : null),
+          $eval: vi.fn(async () =>
+            currentUrl.includes("linktr.ee")
+              ? JSON.stringify({
+                  props: { pageProps: { account: { username: "browser-reconnected" } } },
+                })
+              : null,
+          ),
           $$eval: vi.fn(async () => []),
           title: vi.fn(async () => "Public profile"),
           waitForFunction: vi.fn(async () => undefined),
@@ -157,7 +242,9 @@ describe("origin-specific scraper repositories", () => {
     browserDisconnected?.();
     launchMock.mockResolvedValue(secondBrowser);
     using reconnectedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await reconnectedApi.linktreeRepo().scrape("https://linktr.ee/browser-reconnected"))).toMatchObject({ props: { pageProps: { account: { username: "browser-reconnected" } } } });
+    expect(
+      getRight(await reconnectedApi.linktreeRepo().scrape("https://linktr.ee/browser-reconnected")),
+    ).toMatchObject({ props: { pageProps: { account: { username: "browser-reconnected" } } } });
 
     expect(launchMock).toHaveBeenCalledTimes(2);
     expect(secondBrowser.newPage).toHaveBeenCalledTimes(1);
@@ -167,15 +254,49 @@ describe("origin-specific scraper repositories", () => {
 
   it("coalesces concurrent first GitHub scrapes and serves canonical fresh cache hits", async () => {
     let upstreamCalls = 0;
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = input instanceof Request ? input.url : String(input);
-      if (url === "https://api.github.com/users/coalesced") {
-        upstreamCalls += 1;
-        await Promise.resolve();
-        return new Response(JSON.stringify({ ...gitHubFixture, login: "coalesced" }), { status: 200 });
-      }
-      return SELF.fetch(input, init);
-    }));
+    let contributionCalls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (url === "https://api.github.com/users/coalesced") {
+          upstreamCalls += 1;
+          await Promise.resolve();
+          return new Response(JSON.stringify({ ...gitHubFixture, login: "coalesced" }), {
+            status: 200,
+          });
+        }
+        if (url === "https://api.github.com/graphql") {
+          contributionCalls += 1;
+          return new Response(
+            JSON.stringify({
+              data: {
+                user: {
+                  login: "coalesced",
+                  contributionsCollection: {
+                    contributionCalendar: {
+                      weeks: [
+                        {
+                          contributionDays: [
+                            {
+                              date: "2026-07-18",
+                              contributionCount: 4,
+                              contributionLevel: "SECOND_QUARTILE",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+        return SELF.fetch(input, init);
+      }),
+    );
     const repo = env.GITHUB_REPO.getByName("global");
     const firstPromise = repo.getProfile("https://github.com/Coalesced/?source=first");
     const secondPromise = repo.getProfile("https://github.com/coalesced");
@@ -184,10 +305,17 @@ describe("origin-specific scraper repositories", () => {
 
     expect(first).toMatchObject({ login: "coalesced" });
     expect(second).toMatchObject({ login: "coalesced" });
+    expect(first).toMatchObject({
+      contributions: [{ date: "2026-07-18", count: 4, level: 2 }],
+    });
     expect(upstreamCalls).toBe(1);
+    expect(contributionCalls).toBe(1);
     using cachedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await cachedApi.githubRepo().getProfile("https://github.com/coalesced/"))).toMatchObject({ login: "coalesced" });
+    expect(
+      getRight(await cachedApi.githubRepo().getProfile("https://github.com/coalesced/")),
+    ).toMatchObject({ login: "coalesced" });
     expect(upstreamCalls).toBe(1);
+    expect(contributionCalls).toBe(1);
   });
 
   it("serves stale GitHub data while one background refresh replaces it", async () => {
@@ -198,17 +326,57 @@ describe("origin-specific scraper repositories", () => {
     const refreshBlocked = new Promise<void>((resolve) => {
       releaseRefresh = resolve;
     });
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = input instanceof Request ? input.url : String(input);
-      if (url === "https://api.github.com/users/stale-refresh") {
-        upstreamCalls += 1;
-        if (upstreamCalls === 2) await refreshBlocked;
-        return new Response(JSON.stringify({ ...gitHubFixture, login: "stale-refresh", name: upstreamCalls === 1 ? "Old" : "New" }), { status: 200 });
-      }
-      return SELF.fetch(input, init);
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (url === "https://api.github.com/users/stale-refresh") {
+          upstreamCalls += 1;
+          if (upstreamCalls === 2) await refreshBlocked;
+          return new Response(
+            JSON.stringify({
+              ...gitHubFixture,
+              login: "stale-refresh",
+              name: upstreamCalls === 1 ? "Old" : "New",
+            }),
+            { status: 200 },
+          );
+        }
+        if (url === "https://api.github.com/graphql") {
+          return new Response(
+            JSON.stringify({
+              data: {
+                user: {
+                  login: "stale-refresh",
+                  contributionsCollection: {
+                    contributionCalendar: {
+                      weeks: [
+                        {
+                          contributionDays: [
+                            {
+                              date: "2026-07-18",
+                              contributionCount: upstreamCalls,
+                              contributionLevel:
+                                upstreamCalls === 1 ? "FIRST_QUARTILE" : "SECOND_QUARTILE",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+        return SELF.fetch(input, init);
+      }),
+    );
     using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await api.githubRepo().getProfile("https://github.com/stale-refresh"))).toMatchObject({ name: "Old" });
+    expect(
+      getRight(await api.githubRepo().getProfile("https://github.com/stale-refresh")),
+    ).toMatchObject({ name: "Old" });
 
     vi.setSystemTime(new Date("2026-07-19T00:00:00.001Z"));
     const staleRepo = env.GITHUB_REPO.getByName("global");
@@ -220,67 +388,223 @@ describe("origin-specific scraper repositories", () => {
     releaseRefresh?.();
     await vi.waitFor(() => expect(upstreamCalls).toBe(2));
     using refreshedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await refreshedApi.githubRepo().getProfile("https://github.com/stale-refresh"))).toMatchObject({ name: "New" });
+    expect(
+      getRight(await refreshedApi.githubRepo().getProfile("https://github.com/stale-refresh")),
+    ).toMatchObject({ name: "New" });
   });
 
   it("logs a failed background refresh and retains stale GitHub data indefinitely", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-07-18T00:00:00.000Z"));
     let upstreamCalls = 0;
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = input instanceof Request ? input.url : String(input);
-      if (url === "https://api.github.com/users/stale-failure") {
-        upstreamCalls += 1;
-        if (upstreamCalls === 1) return new Response(JSON.stringify({ ...gitHubFixture, login: "stale-failure", name: "Last success" }), { status: 200 });
-        return new Response(null, { status: 500 });
-      }
-      return SELF.fetch(input, init);
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (url === "https://api.github.com/users/stale-failure") {
+          upstreamCalls += 1;
+          if (upstreamCalls === 1)
+            return new Response(
+              JSON.stringify({ ...gitHubFixture, login: "stale-failure", name: "Last success" }),
+              { status: 200 },
+            );
+          return new Response(null, { status: 500 });
+        }
+        if (url === "https://api.github.com/graphql") {
+          return new Response(
+            JSON.stringify({
+              data: {
+                user: {
+                  login: "stale-failure",
+                  contributionsCollection: {
+                    contributionCalendar: {
+                      weeks: [
+                        {
+                          contributionDays: [
+                            {
+                              date: "2026-07-18",
+                              contributionCount: 1,
+                              contributionLevel: "FIRST_QUARTILE",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+        return SELF.fetch(input, init);
+      }),
+    );
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await api.githubRepo().getProfile("https://github.com/stale-failure"))).toMatchObject({ name: "Last success" });
+    expect(
+      getRight(await api.githubRepo().getProfile("https://github.com/stale-failure")),
+    ).toMatchObject({ name: "Last success" });
 
     vi.setSystemTime(new Date("2026-08-18T00:00:00.000Z"));
     using staleApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await staleApi.githubRepo().getProfile("https://github.com/stale-failure"))).toMatchObject({ name: "Last success" });
+    expect(
+      getRight(await staleApi.githubRepo().getProfile("https://github.com/stale-failure")),
+    ).toMatchObject({ name: "Last success" });
     await vi.waitFor(() => expect(consoleError).toHaveBeenCalled());
     expect(consoleError.mock.calls[0]?.[0]).toContain("scraper-background-refresh-failed");
     using retainedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await retainedApi.githubRepo().getProfile("https://github.com/stale-failure"))).toMatchObject({ name: "Last success" });
+    expect(
+      getRight(await retainedApi.githubRepo().getProfile("https://github.com/stale-failure")),
+    ).toMatchObject({ name: "Last success" });
   });
 
   it("does not cache a failed first GitHub scrape", async () => {
     let upstreamCalls = 0;
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = input instanceof Request ? input.url : String(input);
-      if (url === "https://api.github.com/users/not-cached-failure") {
-        upstreamCalls += 1;
-        if (upstreamCalls === 1) return new Response(null, { status: 500 });
-        return new Response(JSON.stringify({ ...gitHubFixture, login: "not-cached-failure" }), { status: 200 });
-      }
-      return SELF.fetch(input, init);
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (url === "https://api.github.com/users/not-cached-failure") {
+          upstreamCalls += 1;
+          if (upstreamCalls === 1) return new Response(null, { status: 500 });
+          return new Response(JSON.stringify({ ...gitHubFixture, login: "not-cached-failure" }), {
+            status: 200,
+          });
+        }
+        if (url === "https://api.github.com/graphql") {
+          return new Response(
+            JSON.stringify({
+              data: {
+                user: {
+                  login: "not-cached-failure",
+                  contributionsCollection: {
+                    contributionCalendar: {
+                      weeks: [
+                        {
+                          contributionDays: [
+                            {
+                              date: "2026-07-18",
+                              contributionCount: 1,
+                              contributionLevel: "FIRST_QUARTILE",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+        return SELF.fetch(input, init);
+      }),
+    );
     using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(await api.githubRepo().getProfile("https://github.com/not-cached-failure")).toMatchObject({ _tag: "Left", left: { code: "scrape-transient-failure" } });
+    expect(
+      await api.githubRepo().getProfile("https://github.com/not-cached-failure"),
+    ).toMatchObject({ _tag: "Left", left: { code: "scrape-transient-failure" } });
     using retryApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await retryApi.githubRepo().getProfile("https://github.com/not-cached-failure"))).toMatchObject({ login: "not-cached-failure" });
+    expect(
+      getRight(await retryApi.githubRepo().getProfile("https://github.com/not-cached-failure")),
+    ).toMatchObject({ login: "not-cached-failure" });
     expect(upstreamCalls).toBe(2);
+  });
+
+  it("does not cache a profile when its contributions request fails", async () => {
+    let profileCalls = 0;
+    let contributionCalls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (url === "https://api.github.com/users/atomic-contributions") {
+          profileCalls += 1;
+          return new Response(JSON.stringify({ ...gitHubFixture, login: "atomic-contributions" }), {
+            status: 200,
+          });
+        }
+        if (url === "https://api.github.com/graphql") {
+          contributionCalls += 1;
+          if (contributionCalls === 1) return new Response(null, { status: 500 });
+          return new Response(
+            JSON.stringify({
+              data: {
+                user: {
+                  login: "atomic-contributions",
+                  contributionsCollection: {
+                    contributionCalendar: {
+                      weeks: [
+                        {
+                          contributionDays: [
+                            {
+                              date: "2026-07-18",
+                              contributionCount: 12,
+                              contributionLevel: "FOURTH_QUARTILE",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+        return SELF.fetch(input, init);
+      }),
+    );
+
+    using api = newSyncRpcSession<ScraperApi>(RPC_URL);
+    expect(
+      await api.githubRepo().getProfile("https://github.com/atomic-contributions"),
+    ).toMatchObject({ _tag: "Left", left: { code: "scrape-transient-failure" } });
+
+    using retryApi = newSyncRpcSession<ScraperApi>(RPC_URL);
+    expect(
+      getRight(await retryApi.githubRepo().getProfile("https://github.com/atomic-contributions")),
+    ).toMatchObject({
+      login: "atomic-contributions",
+      contributions: [{ date: "2026-07-18", count: 12, level: 4 }],
+    });
+    expect(profileCalls).toBe(2);
+    expect(contributionCalls).toBe(2);
   });
 
   it("scrapes and caches Truth Social directly without BrowserHost", async () => {
     let upstreamCalls = 0;
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = input instanceof Request ? input.url : String(input);
-      if (url === "https://truthsocial.com/api/v1/accounts/lookup?acct=direct-origin") {
-        upstreamCalls += 1;
-        return new Response(JSON.stringify({ ...truthSocialFixture, username: "direct-origin", acct: "direct-origin" }), { status: 200 });
-      }
-      return SELF.fetch(input, init);
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (url === "https://truthsocial.com/api/v1/accounts/lookup?acct=direct-origin") {
+          upstreamCalls += 1;
+          return new Response(
+            JSON.stringify({
+              ...truthSocialFixture,
+              username: "direct-origin",
+              acct: "direct-origin",
+            }),
+            { status: 200 },
+          );
+        }
+        return SELF.fetch(input, init);
+      }),
+    );
     using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await api.truthSocialRepo().scrape("https://truthsocial.com/@direct-origin/?source=test"))).toMatchObject({ username: "direct-origin" });
+    expect(
+      getRight(
+        await api.truthSocialRepo().scrape("https://truthsocial.com/@direct-origin/?source=test"),
+      ),
+    ).toMatchObject({ username: "direct-origin" });
     using cachedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await cachedApi.truthSocialRepo().scrape("https://truthsocial.com/@direct-origin"))).toMatchObject({ username: "direct-origin" });
+    expect(
+      getRight(await cachedApi.truthSocialRepo().scrape("https://truthsocial.com/@direct-origin")),
+    ).toMatchObject({ username: "direct-origin" });
     expect(upstreamCalls).toBe(1);
     expect(launchMock).not.toHaveBeenCalled();
   });

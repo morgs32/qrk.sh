@@ -15,6 +15,7 @@ export default defineConfig({
           GITHUB_TOKEN: "deterministic-test-token",
           FIGMA_TOKEN: "deterministic-figma-token",
           GOOGLE_PLACES_API_KEY: "deterministic-google-places-test-key",
+          STREAMLINE_API_KEY: "deterministic-streamline-test-key",
         },
       },
       wrangler: {

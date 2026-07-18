@@ -48,6 +48,11 @@ export function GitHubProfileCard(props: {
     public_repos: number;
     followers: number;
     following: number;
+    contributions: Array<{
+      date: string;
+      count: number;
+      level: 0 | 1 | 2 | 3 | 4;
+    }>;
   };
 }) {
   const user = props.data;
@@ -113,7 +118,7 @@ export function GitHubProfileCard(props: {
         </div>
 
         <div className="mt-auto">
-          <GitHubProfileActivity />
+          <GitHubProfileActivity contributions={user.contributions} />
         </div>
       </CardContent>
     </Card>

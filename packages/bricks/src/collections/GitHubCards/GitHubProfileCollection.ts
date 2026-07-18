@@ -1,4 +1,5 @@
 import { primitives } from "@zerospin/core/models/primitives";
+import { Schema } from "effect";
 
 import { makeCollection } from "../../makeCollection";
 import { makeBrick } from "../../makeBrick";
@@ -28,6 +29,17 @@ export const githubCollection = makeCollection({
         public_repos: primitives.integer(),
         followers: primitives.integer(),
         following: primitives.integer(),
+        contributions: primitives.json({
+          schema: Schema.mutable(
+            Schema.Array(
+              Schema.Struct({
+                date: Schema.String,
+                count: Schema.Int,
+                level: Schema.Literal(0, 1, 2, 3, 4),
+              }),
+            ),
+          ),
+        }),
       },
       defaultData: {
         id: 1364795,
@@ -63,6 +75,15 @@ export const githubCollection = makeCollection({
         created_at: "2012-01-21T20:20:09Z",
         updated_at: "2026-07-15T15:27:35Z",
         login: "morgs32",
+        contributions: [
+          { date: "2026-07-12", count: 0, level: 0 },
+          { date: "2026-07-13", count: 2, level: 1 },
+          { date: "2026-07-14", count: 5, level: 2 },
+          { date: "2026-07-15", count: 8, level: 3 },
+          { date: "2026-07-16", count: 12, level: 4 },
+          { date: "2026-07-17", count: 4, level: 2 },
+          { date: "2026-07-18", count: 1, level: 1 },
+        ],
       },
       getData: ({ api, payload }) => api.githubRepo().getProfile(payload.url),
       sizes: {

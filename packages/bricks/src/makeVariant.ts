@@ -9,6 +9,52 @@ import type { IBrick } from "./types";
 
 export function makeVariant<
   const VARIANT extends string,
+  const PAYLOAD_SHAPE extends IShape,
+  const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
+>(props: {
+  variant: VARIANT;
+  variantDescription: string;
+  payloadShape: PAYLOAD_SHAPE;
+  payloadForm?: {
+    [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
+      defaultValue?: infer DEFAULT_VALUE;
+    }
+      ? undefined extends DEFAULT_VALUE
+        ? never
+        : (props: {
+            value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
+            onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
+          }) => ReactNode
+      : never;
+  };
+  dataShape?: never;
+  defaultData?: never;
+  getData?: never;
+  sizes: SIZES & {
+    [SIZE in keyof SIZES]: SIZES[SIZE] & {
+      def: {
+        variant: VARIANT;
+        size: SIZE & string;
+      };
+    };
+  };
+}): {
+  variantDescription: string;
+  payloadShape: PAYLOAD_SHAPE;
+  payloadForm?: {
+    [fieldName: string]:
+      | {
+          bivarianceHack(props: {
+            value: unknown;
+            onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
+          }): ReactNode;
+        }["bivarianceHack"]
+      | undefined;
+  };
+  sizes: SIZES;
+};
+export function makeVariant<
+  const VARIANT extends string,
   const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
 >(props: {
   variant: VARIANT;
@@ -94,54 +140,44 @@ export function makeVariant<
   }) => Promise<IRpcEither<InferDecodedRow<DATA_SHAPE>>>;
   sizes: SIZES;
 };
-export function makeVariant<
-  const VARIANT extends string,
-  const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
-  const PAYLOAD_SHAPE extends IShape,
-  const DATA_SHAPE extends IShape,
->(
-  props: {
-    variant: VARIANT;
-    variantDescription: string;
-    sizes: SIZES & {
-      [SIZE in keyof SIZES]: SIZES[SIZE] & {
-        def: {
-          variant: VARIANT;
-          size: SIZE & string;
-        };
+export function makeVariant(props: {
+  variant: string;
+  variantDescription: string;
+  payloadShape?: IShape;
+  payloadForm?: Record<
+    string,
+    | {
+        bivarianceHack(props: {
+          value: unknown;
+          onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
+        }): ReactNode;
+      }["bivarianceHack"]
+    | undefined
+  >;
+  dataShape?: IShape;
+  defaultData?: unknown;
+  getData?: {
+    bivarianceHack(props: { api: ScraperApi; payload: unknown }): Promise<IRpcEither<IJsonValue>>;
+  }["bivarianceHack"];
+  sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
+}): object {
+  if (props.payloadShape !== undefined && props.dataShape === undefined) {
+    if (props.payloadForm !== undefined) {
+      return {
+        variantDescription: props.variantDescription,
+        payloadShape: props.payloadShape,
+        payloadForm: props.payloadForm,
+        sizes: props.sizes,
       };
+    }
+
+    return {
+      variantDescription: props.variantDescription,
+      payloadShape: props.payloadShape,
+      sizes: props.sizes,
     };
-  } & (
-    | {
-        payloadShape?: never;
-        payloadForm?: never;
-        dataShape?: never;
-        defaultData?: never;
-        getData?: never;
-      }
-    | {
-        payloadShape: PAYLOAD_SHAPE;
-        payloadForm?: {
-          [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
-            defaultValue?: infer DEFAULT_VALUE;
-          }
-            ? undefined extends DEFAULT_VALUE
-              ? never
-              : (props: {
-                  value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
-                  onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
-                }) => ReactNode
-            : never;
-        };
-        dataShape: DATA_SHAPE;
-        defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
-        getData: (props: {
-          api: ScraperApi;
-          payload: InferDecodedRow<PAYLOAD_SHAPE>;
-        }) => Promise<IRpcEither<IJsonValue>>;
-      }
-  ),
-) {
+  }
+
   if (
     props.payloadShape === undefined ||
     props.dataShape === undefined ||
@@ -156,9 +192,11 @@ export function makeVariant<
 
   const payloadSchema = makeEffectSchema(props.payloadShape);
   const dataSchema = makeEffectSchema(props.dataShape);
-  const defaultData = Schema.decodeUnknownSync(dataSchema)(props.defaultData, {
+  const decodedDataSchema = Schema.typeSchema(dataSchema);
+  const defaultData = Schema.decodeUnknownSync(decodedDataSchema)(props.defaultData, {
     onExcessProperty: "preserve",
   });
+  const getData = props.getData;
 
   return {
     variantDescription: props.variantDescription,
@@ -173,7 +211,7 @@ export function makeVariant<
         }),
       );
 
-      const result = await props.getData({
+      const result = await getData({
         api: request.api,
         payload: decodedPayload,
       });
@@ -183,7 +221,7 @@ export function makeVariant<
       }
 
       const data = await Effect.runPromise(
-        Schema.decodeUnknown(dataSchema)(result.right, {
+        Schema.decodeUnknown(decodedDataSchema)(result.right, {
           onExcessProperty: "preserve",
         }),
       );

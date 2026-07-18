@@ -15,8 +15,8 @@ test.describe("BrickCatalog", () => {
 
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
-    await expect(drawerBrickPreviewSlot(page, "text-brick", "default", "4x4")).toHaveCount(1);
-    await expect(drawerBrickPreviewSlot(page, "text-brick", "default", "8x2")).toHaveCount(1);
-    await expect(drawerBrickPreviewSlot(page, "text-brick", "default", "1x1")).toHaveCount(0);
+    await expect(drawerBrickPreviewSlot(page, "text", "default", "4x4")).toHaveCount(1);
+    await expect(drawerBrickPreviewSlot(page, "text", "default", "8x2")).toHaveCount(1);
+    await expect(drawerBrickPreviewSlot(page, "text", "default", "1x1")).toHaveCount(0);
   });
 });

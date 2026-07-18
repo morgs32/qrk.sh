@@ -10,7 +10,12 @@ export const beaconsFixture = {
 
 export const instagramFixture = {
   username: "creator",
-  data: { user: { username: "creator", is_private: false } },
+  profileImageUrl: "https://example.com/profile.jpg",
+  followersText: "12.2K",
+  postImageUrl1: "https://example.com/post-1.jpg",
+  postImageUrl2: "https://example.com/post-2.jpg",
+  postImageUrl3: "https://example.com/post-3.jpg",
+  postImageUrl4: "https://example.com/post-4.jpg",
 };
 
 export const tikTokFixture = {
@@ -20,7 +25,9 @@ export const tikTokFixture = {
 
 export const youTubeFixture = {
   handle: "creator",
-  data: { metadata: { channelMetadataRenderer: { vanityChannelUrl: "https://www.youtube.com/@creator" } } },
+  data: {
+    metadata: { channelMetadataRenderer: { vanityChannelUrl: "https://www.youtube.com/@creator" } },
+  },
 };
 
 export const truthSocialFixture = {

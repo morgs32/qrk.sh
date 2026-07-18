@@ -28,12 +28,26 @@ export type IBeaconsScrapePayload = Readonly<{
 
 export type IInstagramScrapePayload = Readonly<{
   username: string;
-  data: IJsonValue;
+  profileImageUrl: string;
+  followersText: string;
+  postImageUrl1: string;
+  postImageUrl2: string;
+  postImageUrl3: string;
+  postImageUrl4: string;
 }>;
 
 export type IGitHubScrapePayload = Readonly<{
   login: string;
   [key: string]: IJsonValue;
+}>;
+
+export type ILinkPreview = Readonly<{
+  url: string;
+  title: string;
+  description: string;
+  siteName: string;
+  imageUrl: string;
+  iconUrl: string;
 }>;
 
 export type IFigmaFilePreviewPayload = Readonly<{
@@ -85,6 +99,7 @@ export type IScrapeError = Readonly<{
     | "profile-identity-mismatch"
     | "file-unavailable"
     | "file-type-mismatch"
+    | "link-unavailable"
     | "place-unavailable"
     | "provider-configuration-error"
     | "scrape-transient-failure";

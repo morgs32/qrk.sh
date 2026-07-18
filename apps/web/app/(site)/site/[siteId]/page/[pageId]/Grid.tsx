@@ -31,7 +31,7 @@ const GRID_DRAG_BOUNDED = process.env.NEXT_PUBLIC_PLAYWRIGHT_GRID_UNBOUNDED !== 
 const GRID_COLS = 8;
 
 const swatchCollection = collectionsHash.swatch;
-const textBrickCollection = collectionsHash["text-brick"];
+const textBrickCollection = collectionsHash.text;
 
 /** Placeholder identity while dragging from outside (react-grid-layout external drop). */
 const DROPPING_ITEM: LayoutItem = {

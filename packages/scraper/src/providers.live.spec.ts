@@ -43,7 +43,10 @@ it.skipIf(process.env.SCRAPER_LIVE_BEACONS_URL === undefined)(
   },
 );
 
-it.skipIf(process.env.SCRAPER_LIVE_INSTAGRAM_URL === undefined)(
+it.skipIf(
+  process.env.SCRAPER_LIVE_INSTAGRAM_URL === undefined ||
+    process.env.SCRAPER_LIVE_INSTAGRAM_URL === "missing-live-instagram-url",
+)(
   "scrapes a live Instagram profile",
   async () => {
     const url = process.env.SCRAPER_LIVE_INSTAGRAM_URL;

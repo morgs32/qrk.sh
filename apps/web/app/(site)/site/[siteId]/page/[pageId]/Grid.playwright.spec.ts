@@ -149,7 +149,7 @@ test.describe("Site grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible();
 
-    const workRows = gridLocateByBrickIdentity(grid, "text-brick", "default", "8x2");
+    const workRows = gridLocateByBrickIdentity(grid, "text", "default", "8x2");
     await expect(workRows).toHaveCount(46);
 
     const sampleRow = workRows.first();
@@ -166,14 +166,14 @@ test.describe("Site grid drag", () => {
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
 
-    const text4x4Bricks = gridLocateByBrickIdentity(grid, "text-brick", "default", "4x4");
+    const text4x4Bricks = gridLocateByBrickIdentity(grid, "text", "default", "4x4");
     await expect(text4x4Bricks).toHaveCount(0);
 
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
     await page.getByLabel("Search bricks").fill("Text brick");
     await expect(page.getByText("Text brick").first()).toBeVisible();
 
-    const slot = drawerBrickPreviewSlot(page, "text-brick", "default", "4x4").first();
+    const slot = drawerBrickPreviewSlot(page, "text", "default", "4x4").first();
     await expect(slot).toBeVisible();
 
     const gridBox = await grid.boundingBox();

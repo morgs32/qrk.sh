@@ -1,4 +1,5 @@
 import { primitives } from "@zerospin/core/models/primitives";
+import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 import { ScraperApi } from "scraper/ScraperApi";
 import type { IRpcEither, IScrapeError } from "scraper/types";
@@ -56,6 +57,47 @@ describe("makeVariant data contracts", () => {
       latitude: 41.8781136,
       longitude: -87.6297982,
     });
+  });
+
+  it("preserves a local payload form without adding a data loader", () => {
+    const variant = makeVariant({
+      variant: "local-content",
+      variantDescription: "Locally authored content.",
+      payloadShape: {
+        content: primitives.json({
+          nullable: true,
+          defaultValue: null,
+          schema: Schema.Struct({ type: Schema.String }),
+        }),
+      },
+      payloadForm: {
+        content: (props) => {
+          if (props.value !== null) {
+            props.onChange(props.value);
+          }
+          return null;
+        },
+      },
+      sizes: {
+        "1x1": {
+          def: {
+            variant: "local-content",
+            size: "1x1",
+            w: 1,
+            h: 1,
+            label: "1×1",
+            order: 0,
+          },
+          component: () => null,
+        },
+      },
+    });
+
+    expect(variant.payloadShape.content.defaultValue).toBeNull();
+    expect(variant.payloadForm?.content).toBeTypeOf("function");
+    expect("dataShape" in variant).toBe(false);
+    expect("defaultData" in variant).toBe(false);
+    expect("getData" in variant).toBe(false);
   });
 
   it("infers custom renderer values from their decoded primitive fields", () => {
@@ -452,13 +494,13 @@ describe("makeVariant data contracts", () => {
   it("requires the complete data contract and a declared data component prop", () => {
     // This call is intentionally retained as a compile-time assertion. A variant
     // cannot opt into payload loading without the response shape and default.
-    // @ts-expect-error data-backed variants require all four contract properties
     makeVariant({
       variant: "profile",
       variantDescription: "An incomplete data-backed profile.",
       payloadShape: {
         url: primitives.text(),
       },
+      // @ts-expect-error data-backed variants require all four contract properties
       getData: async ({ payload }: { payload: { url: string } }) => {
         return { _tag: "Right", right: { login: payload.url } };
       },

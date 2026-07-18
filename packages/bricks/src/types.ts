@@ -26,6 +26,24 @@ export type ICollection = {
     string,
     | {
         variantDescription: string;
+        payloadShape: IShape;
+        payloadForm?: {
+          [fieldName: string]:
+            | {
+                bivarianceHack(props: {
+                  value: unknown;
+                  onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
+                }): ReactNode;
+              }["bivarianceHack"]
+            | undefined;
+        };
+        dataShape?: never;
+        defaultData?: never;
+        getData?: never;
+        sizes: Record<string, ICollectionBrick>;
+      }
+    | {
+        variantDescription: string;
         payloadShape?: never;
         payloadForm?: never;
         dataShape?: never;

@@ -25,7 +25,7 @@ describe("brick catalog identity", () => {
       }
     }
 
-    expect(collectionNames.size).toBe(7);
+    expect(collectionNames.size).toBe(10);
   });
 
   it("uses default for collections with one content variant", () => {
@@ -79,5 +79,54 @@ describe("brick catalog identity", () => {
     expect(prototype.dataShape).toHaveProperty("thumbnail_url");
     expect(prototype.defaultData).toMatchObject({ title: "Figma Prototype", url: "" });
     expect(prototype.getData).toBeTypeOf("function");
+  });
+
+  it("registers the data-backed Link default 4x2 variant", () => {
+    const linkCollection = collectionsHash.link;
+    const defaultVariant = linkCollection.variants.default;
+
+    expect(Object.keys(linkCollection.variants)).toEqual(["default"]);
+    expect(Object.keys(defaultVariant.sizes)).toEqual(["4x2"]);
+    expect(defaultVariant.payloadShape).toHaveProperty("url");
+    expect(defaultVariant.dataShape).toMatchObject({
+      url: { kind: "text" },
+      title: { kind: "text" },
+      description: { kind: "text" },
+      siteName: { kind: "text" },
+      imageUrl: { kind: "text" },
+      iconUrl: { kind: "text" },
+    });
+    expect(defaultVariant.defaultData).toMatchObject({
+      title: "Celebrate our birthday & get Pro free for one year",
+      siteName: "apps.apple.com",
+    });
+    expect(defaultVariant.getData).toBeTypeOf("function");
+  });
+
+  it("registers the tokenless TikTok creator embed", () => {
+    const tikTokCollection = collectionsHash.tiktok;
+    const defaultVariant = tikTokCollection.variants.default;
+
+    expect(Object.keys(tikTokCollection.variants)).toEqual(["default"]);
+    expect(Object.keys(defaultVariant.sizes)).toEqual(["4x4"]);
+    expect(defaultVariant.payloadShape).toHaveProperty("url");
+    expect(defaultVariant.dataShape).toMatchObject({ username: { kind: "text" } });
+    expect(defaultVariant.defaultData).toEqual({ username: "theonion" });
+    expect(defaultVariant.getData).toBeTypeOf("function");
+  });
+
+  it("registers locally authored Tiptap JSON for the Text collection", () => {
+    const textCollection = collectionsHash.text;
+    const defaultVariant = textCollection.variants.default;
+
+    expect(textCollection.collectionLabel).toBe("Text");
+    expect(Object.keys(defaultVariant.sizes)).toEqual(["4x4", "8x2"]);
+    expect(defaultVariant.payloadShape?.content).toMatchObject({
+      kind: "json",
+      nullable: true,
+      defaultValue: null,
+    });
+    expect(defaultVariant.payloadForm?.content).toBeTypeOf("function");
+    expect(defaultVariant.getData).toBeUndefined();
   });
 });

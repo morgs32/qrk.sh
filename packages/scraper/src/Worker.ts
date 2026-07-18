@@ -7,7 +7,9 @@ import { FigmaRepo } from "./FigmaRepo";
 import { GooglePlacesRepo } from "./GooglePlacesRepo";
 import { InstagramRepo } from "./InstagramRepo";
 import { LinktreeRepo } from "./LinktreeRepo";
+import { LinkRepo } from "./LinkRepo";
 import { ScraperApi } from "./ScraperApi";
+import { StreamlineRepo } from "./StreamlineRepo";
 import { TikTokRepo } from "./TikTokRepo";
 import { TruthSocialRepo } from "./TruthSocialRepo";
 import type { IScraperEnv } from "./types";
@@ -21,6 +23,8 @@ export {
   GooglePlacesRepo,
   InstagramRepo,
   LinktreeRepo,
+  LinkRepo,
+  StreamlineRepo,
   TikTokRepo,
   TruthSocialRepo,
   YouTubeRepo,

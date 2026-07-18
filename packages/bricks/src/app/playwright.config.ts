@@ -16,7 +16,7 @@ if (!existsSync(bricksEnvPath)) {
 
 if (!existsSync(scraperEnvPath)) {
   throw new Error(
-    `Real-token bricks Playwright tests require ${scraperEnvPath} with non-empty GITHUB_TOKEN, FIGMA_TOKEN, and GOOGLE_PLACES_API_KEY values`,
+    `Real-token bricks Playwright tests require ${scraperEnvPath} with non-empty GITHUB_TOKEN, FIGMA_TOKEN, GOOGLE_PLACES_API_KEY, and STREAMLINE_API_KEY values`,
   );
 }
 
@@ -43,6 +43,8 @@ const figmaTokenMatch = /^\s*FIGMA_TOKEN\s*=\s*(.+?)\s*$/m.exec(scraperEnv);
 const figmaTokenValue = figmaTokenMatch?.[1]?.trim();
 const googlePlacesApiKeyMatch = /^\s*GOOGLE_PLACES_API_KEY\s*=\s*(.+?)\s*$/m.exec(scraperEnv);
 const googlePlacesApiKeyValue = googlePlacesApiKeyMatch?.[1]?.trim();
+const streamlineApiKeyMatch = /^\s*STREAMLINE_API_KEY\s*=\s*(.+?)\s*$/m.exec(scraperEnv);
+const streamlineApiKeyValue = streamlineApiKeyMatch?.[1]?.trim();
 
 if (
   githubTokenValue === undefined ||
@@ -59,10 +61,15 @@ if (
   googlePlacesApiKeyValue.length === 0 ||
   googlePlacesApiKeyValue.startsWith("#") ||
   googlePlacesApiKeyValue === '""' ||
-  googlePlacesApiKeyValue === "''"
+  googlePlacesApiKeyValue === "''" ||
+  streamlineApiKeyValue === undefined ||
+  streamlineApiKeyValue.length === 0 ||
+  streamlineApiKeyValue.startsWith("#") ||
+  streamlineApiKeyValue === '""' ||
+  streamlineApiKeyValue === "''"
 ) {
   throw new Error(
-    `Real-token bricks Playwright tests require ${scraperEnvPath} with non-empty GITHUB_TOKEN, FIGMA_TOKEN, and GOOGLE_PLACES_API_KEY values`,
+    `Real-token bricks Playwright tests require ${scraperEnvPath} with non-empty GITHUB_TOKEN, FIGMA_TOKEN, GOOGLE_PLACES_API_KEY, and STREAMLINE_API_KEY values`,
   );
 }
 

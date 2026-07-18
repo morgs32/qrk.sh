@@ -5,7 +5,7 @@ import type { CarouselApi } from "@/components/ui/carousel";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { collectionsHash } from "@qrk.sh/bricks";
 
-const ROWS = [["swatch", "icon", "image", "figma", "map"], ["text-brick"]] as const;
+const ROWS = [["swatch", "icon", "image", "figma", "map"], ["text"]] as const;
 
 const AUTOPLAY_DELAY_MS = 3000;
 const AUTOPLAY_STAGGER_MS = 600;

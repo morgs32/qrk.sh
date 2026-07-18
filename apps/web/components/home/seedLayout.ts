@@ -6,7 +6,7 @@ import { collectionsHash, type ICollectionBrickDef } from "@qrk.sh/bricks";
 
 const swatchCollection = collectionsHash.swatch;
 const iconCollection = collectionsHash.icon;
-const textBrickCollection = collectionsHash["text-brick"];
+const textBrickCollection = collectionsHash.text;
 
 export type ILayoutItem = LayoutItem & { def: ICollectionBrickDef };
 export type ILayout = ILayoutItem[];

@@ -211,6 +211,12 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@19.2.14)(react@19.2.7)
+      '@tiptap/react':
+        specifier: ^3.22.3
+        version: 3.22.3(@floating-ui/dom@1.8.0)(@tiptap/core@3.22.3(@tiptap/pm@3.22.3))(@tiptap/pm@3.22.3)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@tiptap/starter-kit':
+        specifier: ^3.22.3
+        version: 3.22.3
       '@unpic/react':
         specifier: 1.0.2
         version: 1.0.2(next@16.2.10(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -229,6 +235,9 @@ importers:
       es-toolkit:
         specifier: ^1.45.1
         version: 1.49.0
+      json-edit-react:
+        specifier: ^1.30.2
+        version: 1.30.2(react@19.2.7)
       lucide-react:
         specifier: ^1.7.0
         version: 1.24.0(react@19.2.7)
@@ -7334,6 +7343,11 @@ packages:
     resolution: {integrity: sha512-/sM3dO2FOzXjKQhJuo0Q173wf2KOo8t4I8vHy6lF9poUp7bKT0/NHE8fPX23PwfhnykfqnC2xRxOnVw5XuGIaA==}
     engines: {node: '>=6'}
     hasBin: true
+
+  json-edit-react@1.30.2:
+    resolution: {integrity: sha512-uUIDqCxTvOXoIgxJXLscInTL09M+W7RPl/vJQIXlrgImcK8umQ8MdGFCCExCyPRNoRhAAXQJ0//QnDftM8UdSQ==}
+    peerDependencies:
+      react: '>=16.0.0'
 
   json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
@@ -14582,6 +14596,10 @@ snapshots:
       - '@noble/hashes'
 
   jsesc@3.1.0: {}
+
+  json-edit-react@1.30.2(react@19.2.7):
+    dependencies:
+      react: 19.2.7
 
   json-schema-traverse@1.0.0: {}
 

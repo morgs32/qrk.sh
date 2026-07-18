@@ -14,6 +14,24 @@ export function makeCollection(props: {
     string,
     | {
         variantDescription: string;
+        payloadShape: IShape;
+        payloadForm?: {
+          [fieldName: string]:
+            | {
+                bivarianceHack(props: {
+                  value: unknown;
+                  onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
+                }): ReactNode;
+              }["bivarianceHack"]
+            | undefined;
+        };
+        dataShape?: never;
+        defaultData?: never;
+        getData?: never;
+        sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
+      }
+    | {
+        variantDescription: string;
         payloadShape?: never;
         payloadForm?: never;
         dataShape?: never;
@@ -59,6 +77,23 @@ export function makeCollection(props: {
         component: brick.component,
       };
     });
+
+    if (rawVariant.payloadShape !== undefined && rawVariant.dataShape === undefined) {
+      if (rawVariant.payloadForm !== undefined) {
+        return {
+          variantDescription: rawVariant.variantDescription,
+          payloadShape: rawVariant.payloadShape,
+          payloadForm: rawVariant.payloadForm,
+          sizes,
+        };
+      }
+
+      return {
+        variantDescription: rawVariant.variantDescription,
+        payloadShape: rawVariant.payloadShape,
+        sizes,
+      };
+    }
 
     if (
       rawVariant.payloadShape !== undefined &&

@@ -36,6 +36,10 @@ export class ScraperApi extends RpcTarget {
     return this.workerEnv.GOOGLE_PLACES_REPO.getByName(GLOBAL_REPO_NAME);
   }
 
+  linkRepo() {
+    return this.workerEnv.LINK_REPO.getByName(GLOBAL_REPO_NAME);
+  }
+
   tiktokRepo() {
     return this.workerEnv.TIKTOK_REPO.getByName(GLOBAL_REPO_NAME);
   }
@@ -46,5 +50,9 @@ export class ScraperApi extends RpcTarget {
 
   truthSocialRepo() {
     return this.workerEnv.TRUTH_SOCIAL_REPO.getByName(GLOBAL_REPO_NAME);
+  }
+
+  streamlineRepo() {
+    return this.workerEnv.STREAMLINE_REPO.getByName(GLOBAL_REPO_NAME);
   }
 }

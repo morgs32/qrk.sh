@@ -14,9 +14,11 @@
       { "name": "GITHUB_REPO", "class_name": "GitHubRepo" },
       { "name": "FIGMA_REPO", "class_name": "FigmaRepo" },
       { "name": "GOOGLE_PLACES_REPO", "class_name": "GooglePlacesRepo" },
+      { "name": "LINK_REPO", "class_name": "LinkRepo" },
       { "name": "TIKTOK_REPO", "class_name": "TikTokRepo" },
       { "name": "YOUTUBE_REPO", "class_name": "YouTubeRepo" },
       { "name": "TRUTH_SOCIAL_REPO", "class_name": "TruthSocialRepo" },
+      { "name": "STREAMLINE_REPO", "class_name": "StreamlineRepo" },
     ],
   },
   "migrations": [
@@ -42,6 +44,14 @@
     {
       "tag": "v4",
       "new_sqlite_classes": ["GooglePlacesRepo"],
+    },
+    {
+      "tag": "v5",
+      "new_sqlite_classes": ["LinkRepo"],
+    },
+    {
+      "tag": "v6",
+      "new_classes": ["StreamlineRepo"],
     },
   ],
 }

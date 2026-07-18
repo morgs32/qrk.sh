@@ -5,6 +5,7 @@ import type {
   IGitHubScrapePayload,
   IInstagramScrapePayload,
   IJsonValue,
+  ILinkPreview,
   ILinktreeScrapePayload,
   ITikTokScrapePayload,
   ITruthSocialScrapePayload,
@@ -35,12 +36,35 @@ export const BeaconsPayloadSchema = Schema.Struct({
 
 export const InstagramPayloadSchema = Schema.Struct({
   username: Schema.String,
-  data: JsonValueSchema,
+  profileImageUrl: Schema.String,
+  followersText: Schema.String,
+  postImageUrl1: Schema.String,
+  postImageUrl2: Schema.String,
+  postImageUrl3: Schema.String,
+  postImageUrl4: Schema.String,
 }) satisfies Schema.Schema<IInstagramScrapePayload>;
 
 export const GitHubPayloadSchema = Schema.Struct({
   login: Schema.String,
+  contributions: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        date: Schema.String,
+        count: Schema.Int,
+        level: Schema.Literal(0, 1, 2, 3, 4),
+      }),
+    ),
+  ),
 }) satisfies Schema.Schema<IGitHubScrapePayload>;
+
+export const LinkPreviewSchema = Schema.Struct({
+  url: Schema.String,
+  title: Schema.String,
+  description: Schema.String,
+  siteName: Schema.String,
+  imageUrl: Schema.String,
+  iconUrl: Schema.String,
+}) satisfies Schema.Schema<ILinkPreview>;
 
 export const FigmaFilePreviewPayloadSchema = Schema.Struct({
   title: Schema.String,

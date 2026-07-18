@@ -32,7 +32,8 @@ export default defineConfig({
           SCRAPER_LIVE_FIGMA_SLIDES_URL:
             process.env.SCRAPER_LIVE_FIGMA_SLIDES_URL ?? "missing-live-figma-slides-url",
           SCRAPER_LIVE_GITHUB_URL: process.env.SCRAPER_LIVE_GITHUB_URL ?? "missing-live-github-url",
-          SCRAPER_LIVE_INSTAGRAM_URL: process.env.SCRAPER_LIVE_INSTAGRAM_URL,
+          SCRAPER_LIVE_INSTAGRAM_URL:
+            process.env.SCRAPER_LIVE_INSTAGRAM_URL ?? "missing-live-instagram-url",
         },
       },
       wrangler: { configPath: path.join(packageRoot, "wrangler.jsonc") },

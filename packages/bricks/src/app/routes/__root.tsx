@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { HeadContent, Link, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { RotateCcw } from "lucide-react";
 
-import { Button } from "../../../src/ui/button";
+import { Button } from "../../ui/button";
 import sandboxCss from "../sandbox.css?url";
 import { useGridStore } from "../useGridStore";
 

@@ -12,5 +12,5 @@
     "verbatimModuleSyntax": true,
     "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "workbench/**/*.ts", "workbench/**/*.tsx"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

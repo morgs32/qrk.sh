@@ -11,13 +11,13 @@ export default defineConfig({
     alias: [
       {
         find: "@qrk.sh/bricks/styles.css",
-        replacement: fileURLToPath(new URL("../src/styles.css", import.meta.url)),
+        replacement: fileURLToPath(new URL("../styles.css", import.meta.url)),
       },
       {
         find: "@qrk.sh/bricks",
-        replacement: fileURLToPath(new URL("../src/index.ts", import.meta.url)),
+        replacement: fileURLToPath(new URL("../index.ts", import.meta.url)),
       },
     ],
   },
-  plugins: [tailwindcss(), tanstackStart(), react()],
+  plugins: [tailwindcss(), tanstackStart({ srcDirectory: "." }), react()],
 });

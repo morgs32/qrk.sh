@@ -13,16 +13,15 @@
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {
-    "dev": "vite dev --config workbench/vite.config.ts --host 127.0.0.1 --port 4100",
+    "dev": "vite dev --config src/app/vite.config.ts --host 127.0.0.1 --port 4100",
     "build": "vite build && tailwindcss -i src/styles.css -o dist/styles.css --minify && tsc -p tsconfig.build.json --emitDeclarationOnly",
-    "build:workbench": "vite build --config workbench/vite.config.ts",
     "generate-routes": "tsr generate",
     "typecheck": "pnpm generate-routes && tsc --noEmit",
-    "lint": "oxlint src workbench/src workbench/tests workbench/vite.config.ts workbench/playwright.config.ts",
-    "format": "oxfmt src workbench/src/routes workbench/src/router.tsx workbench/src/sandbox.css workbench/tests workbench/vite.config.ts workbench/playwright.config.ts package.json tsconfig.json tsconfig.build.json tsr.config.json vite.config.ts vitest.config.ts",
-    "format:check": "oxfmt --check src workbench/src/routes workbench/src/router.tsx workbench/src/sandbox.css workbench/tests workbench/vite.config.ts workbench/playwright.config.ts package.json tsconfig.json tsconfig.build.json tsr.config.json vite.config.ts vitest.config.ts",
+    "lint": "oxlint src",
+    "format": "oxfmt src '!**/routeTree.gen.ts' package.json tsconfig.json tsconfig.build.json tsr.config.json vite.config.ts vitest.config.ts",
+    "format:check": "oxfmt --check src '!**/routeTree.gen.ts' package.json tsconfig.json tsconfig.build.json tsr.config.json vite.config.ts vitest.config.ts",
     "test": "vitest run --config vitest.config.ts",
-    "test:e2e": "playwright test --config workbench/playwright.config.ts"
+    "test:e2e": "playwright test --config src/app/playwright.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

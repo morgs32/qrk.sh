@@ -4,7 +4,7 @@ import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
-import { Button } from "../../../src/ui/button";
+import { Button } from "../../ui/button";
 import { useGridStore } from "../useGridStore";
 
 export const Route = createFileRoute("/_sandbox/collections/$collectionName/")({

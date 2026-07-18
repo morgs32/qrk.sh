@@ -4,6 +4,7 @@ import { BeaconsRepo } from "./BeaconsRepo";
 import { BrowserHost } from "./BrowserHost";
 import { GitHubRepo } from "./GitHubRepo";
 import { FigmaRepo } from "./FigmaRepo";
+import { GooglePlacesRepo } from "./GooglePlacesRepo";
 import { InstagramRepo } from "./InstagramRepo";
 import { LinktreeRepo } from "./LinktreeRepo";
 import { ScraperApi } from "./ScraperApi";
@@ -17,6 +18,7 @@ export {
   BrowserHost,
   FigmaRepo,
   GitHubRepo,
+  GooglePlacesRepo,
   InstagramRepo,
   LinktreeRepo,
   TikTokRepo,

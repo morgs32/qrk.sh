@@ -10,14 +10,22 @@ const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
 export default defineConfig(({ mode }) => {
   const packageEnv = loadEnv(mode, packageRoot, "");
   const scraperUrl = packageEnv.SCRAPER_URL;
+  const mapboxToken = packageEnv.PUBLIC_MAPBOX_TOKEN;
 
   if (scraperUrl === undefined || scraperUrl.length === 0) {
-    throw new Error(`SCRAPER_URL is required in ${packageRoot}/.env`);
+    throw new Error(`SCRAPER_URL is required in ${packageRoot}/.env.local`);
+  }
+
+  if (mapboxToken === undefined || mapboxToken.length === 0) {
+    throw new Error(`PUBLIC_MAPBOX_TOKEN is required in ${packageRoot}/.env.local`);
   }
 
   return {
     root: fileURLToPath(new URL(".", import.meta.url)),
     envDir: packageRoot,
+    define: {
+      "import.meta.env.PUBLIC_MAPBOX_TOKEN": JSON.stringify(mapboxToken),
+    },
     resolve: {
       alias: [
         {

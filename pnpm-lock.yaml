@@ -232,6 +232,9 @@ importers:
       lucide-react:
         specifier: ^1.7.0
         version: 1.24.0(react@19.2.7)
+      mapbox-gl:
+        specifier: ^3.18.1
+        version: 3.26.0
       react-activity-calendar:
         specifier: ^3.2.1
         version: 3.2.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -269,6 +272,9 @@ importers:
       '@tanstack/router-cli':
         specifier: 1.167.19
         version: 1.167.19
+      '@types/mapbox-gl':
+        specifier: ^3.5.0
+        version: 3.5.0
       '@types/node':
         specifier: ^25.5.2
         version: 25.5.2
@@ -333,6 +339,9 @@ importers:
       '@zerospin/core':
         specifier: workspace:*
         version: link:../../vendor/zerospin/packages/core
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       oxlint:
         specifier: ^1.59.0
         version: 1.59.0
@@ -5620,6 +5629,10 @@ packages:
   '@types/linkify-it@5.0.0':
     resolution: {integrity: sha512-sVDA58zAw4eWAffKOaQH5/5j3XeayukzDk+ewSsnv3p4yJEZHCCzMDiZM8e0OUrRvmpGZ85jf4yDHkHsgBNr9Q==}
 
+  '@types/mapbox-gl@3.5.0':
+    resolution: {integrity: sha512-3wVAUTC6q1UKatLP9YxFBnGJWi3neJUF9OKeyRdUf/BsYjZAP35xmZkL4zogVJbO3vdExuSVYCAkzUXjpjdhOg==}
+    deprecated: This is a stub types definition. mapbox-gl provides its own type definitions, so you do not need this installed.
+
   '@types/markdown-it@14.1.2':
     resolution: {integrity: sha512-promo4eFwuiW+TfGxhi+0x3czqTYJkG8qB17ZUJiVF10Xm7NLVRSLUsfRTU/6h1e24VvRnXCx+hG7li58lkzog==}
 
@@ -7499,6 +7512,9 @@ packages:
   make-dir@4.0.0:
     resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
     engines: {node: '>=10'}
+
+  mapbox-gl@3.26.0:
+    resolution: {integrity: sha512-N+Y8VmvpD6xDeP0hAbegPZeEMY5TtnLcV0gEUBZ/KHq3s/yUKQm0PVG9JEkId0QFMMe5/W+FEjoyV4NI3B/N7A==}
 
   markdown-it@14.1.1:
     resolution: {integrity: sha512-BuU2qnTti9YKgK5N+IeMubp14ZUKUUw7yeJbkjtosvHiP0AZ5c8IAgEMk79D0eC8F23r4Ac/q8cAIFdm2FtyoA==}
@@ -12985,6 +13001,10 @@ snapshots:
 
   '@types/linkify-it@5.0.0': {}
 
+  '@types/mapbox-gl@3.5.0':
+    dependencies:
+      mapbox-gl: 3.26.0
+
   '@types/markdown-it@14.1.2':
     dependencies:
       '@types/linkify-it': 5.0.0
@@ -14706,6 +14726,8 @@ snapshots:
   make-dir@4.0.0:
     dependencies:
       semver: 7.8.5
+
+  mapbox-gl@3.26.0: {}
 
   markdown-it@14.1.1:
     dependencies:

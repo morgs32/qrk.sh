@@ -25,16 +25,59 @@ describe("brick catalog identity", () => {
       }
     }
 
-    expect(collectionNames.size).toBe(6);
+    expect(collectionNames.size).toBe(7);
   });
 
   it("uses default for collections with one content variant", () => {
     for (const collection of Object.values(collectionsHash)) {
-      if (collection.collectionName === "github") {
+      if (
+        collection.collectionName === "github" ||
+        collection.collectionName === "figma" ||
+        collection.collectionName === "map"
+      ) {
         continue;
       }
 
       expect(Object.keys(collection.variants)).toEqual(["default"]);
     }
+  });
+
+  it("registers four explicit data-backed Figma file variants", () => {
+    const figmaCollection = collectionsHash.figma;
+
+    expect(Object.keys(figmaCollection.variants)).toEqual([
+      "design",
+      "board",
+      "slides",
+      "prototype",
+    ]);
+
+    const design = figmaCollection.variants.design;
+    expect(Object.keys(design.sizes)).toEqual(["4x4"]);
+    expect(design.payloadShape).toHaveProperty("url");
+    expect(design.dataShape).toHaveProperty("thumbnail_url");
+    expect(design.defaultData).toMatchObject({ title: "Figma Design", url: "" });
+    expect(design.getData).toBeTypeOf("function");
+
+    const board = figmaCollection.variants.board;
+    expect(Object.keys(board.sizes)).toEqual(["4x4"]);
+    expect(board.payloadShape).toHaveProperty("url");
+    expect(board.dataShape).toHaveProperty("thumbnail_url");
+    expect(board.defaultData).toMatchObject({ title: "FigJam Board", url: "" });
+    expect(board.getData).toBeTypeOf("function");
+
+    const slides = figmaCollection.variants.slides;
+    expect(Object.keys(slides.sizes)).toEqual(["4x4"]);
+    expect(slides.payloadShape).toHaveProperty("url");
+    expect(slides.dataShape).toHaveProperty("thumbnail_url");
+    expect(slides.defaultData).toMatchObject({ title: "Figma Slides", url: "" });
+    expect(slides.getData).toBeTypeOf("function");
+
+    const prototype = figmaCollection.variants.prototype;
+    expect(Object.keys(prototype.sizes)).toEqual(["4x4"]);
+    expect(prototype.payloadShape).toHaveProperty("url");
+    expect(prototype.dataShape).toHaveProperty("thumbnail_url");
+    expect(prototype.defaultData).toMatchObject({ title: "Figma Prototype", url: "" });
+    expect(prototype.getData).toBeTypeOf("function");
   });
 });

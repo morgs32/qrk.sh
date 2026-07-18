@@ -15,6 +15,7 @@ export function makeCollection(props: {
     | {
         variantDescription: string;
         payloadShape?: never;
+        payloadForm?: never;
         dataShape?: never;
         defaultData?: never;
         getData?: never;
@@ -23,6 +24,16 @@ export function makeCollection(props: {
     | {
         variantDescription: string;
         payloadShape: IShape;
+        payloadForm?: {
+          [fieldName: string]:
+            | {
+                bivarianceHack(props: {
+                  value: unknown;
+                  onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
+                }): ReactNode;
+              }["bivarianceHack"]
+            | undefined;
+        };
         dataShape: IShape;
         defaultData: unknown;
         getData: (props: { api: ScraperApi; payload: unknown }) => Promise<IRpcEither<unknown>>;
@@ -55,6 +66,18 @@ export function makeCollection(props: {
       rawVariant.defaultData !== undefined &&
       rawVariant.getData !== undefined
     ) {
+      if (rawVariant.payloadForm !== undefined) {
+        return {
+          variantDescription: rawVariant.variantDescription,
+          payloadShape: rawVariant.payloadShape,
+          payloadForm: rawVariant.payloadForm,
+          dataShape: rawVariant.dataShape,
+          defaultData: rawVariant.defaultData,
+          getData: rawVariant.getData,
+          sizes,
+        };
+      }
+
       return {
         variantDescription: rawVariant.variantDescription,
         payloadShape: rawVariant.payloadShape,

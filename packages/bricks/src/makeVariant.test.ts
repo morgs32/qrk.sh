@@ -1,9 +1,10 @@
 import { primitives } from "@zerospin/core/models/primitives";
 import { describe, expect, it } from "vitest";
 import { ScraperApi } from "scraper/ScraperApi";
-import type { IScrapeError } from "scraper/types";
+import type { IRpcEither, IScrapeError } from "scraper/types";
 
 import { githubCollection } from "./collections/GitHubCards/GitHubProfileCollection";
+import { mapCollection } from "./collections/Map/MapCollection";
 import { makeVariant } from "./makeVariant";
 
 describe("makeVariant data contracts", () => {
@@ -27,15 +28,159 @@ describe("makeVariant data contracts", () => {
     });
 
     expect("payloadShape" in variant).toBe(false);
+    expect("payloadForm" in variant).toBe(false);
     expect("dataShape" in variant).toBe(false);
     expect("defaultData" in variant).toBe(false);
     expect("getData" in variant).toBe(false);
     expect("payload" in variant).toBe(false);
 
     expect("payloadShape" in githubCollection.variants.repo).toBe(false);
+    expect("payloadForm" in githubCollection.variants.repo).toBe(false);
     expect("dataShape" in githubCollection.variants.repo).toBe(false);
     expect("defaultData" in githubCollection.variants.repo).toBe(false);
     expect("getData" in githubCollection.variants.repo).toBe(false);
+  });
+
+  it("preserves typed custom payload controls through the collection", () => {
+    const placeVariant = mapCollection.variants.place;
+
+    expect(placeVariant?.payloadShape?.googlePlaceId).toMatchObject({
+      kind: "text",
+      nullable: false,
+      defaultValue: "ChIJ7cv00DwsDogRAMDACa2m4K8",
+    });
+    expect(placeVariant?.payloadForm?.googlePlaceId).toBeTypeOf("function");
+    expect(placeVariant?.defaultData).toMatchObject({
+      googlePlaceId: "ChIJ7cv00DwsDogRAMDACa2m4K8",
+      name: "Downtown Chicago",
+      latitude: 41.8781136,
+      longitude: -87.6297982,
+    });
+  });
+
+  it("infers custom renderer values from their decoded primitive fields", () => {
+    const variant = makeVariant({
+      variant: "typed-controls",
+      variantDescription: "Typed custom controls.",
+      payloadShape: {
+        query: primitives.text({ defaultValue: "Chicago" }),
+        zoom: primitives.integer({ defaultValue: 14 }),
+      },
+      payloadForm: {
+        query: (props: { value: string; onChange: (value: string) => void }) => {
+          props.onChange(props.value);
+          return null;
+        },
+        zoom: (props: { value: number; onChange: (value: number) => void }) => {
+          props.onChange(props.value);
+          return null;
+        },
+      },
+      dataShape: {
+        result: primitives.text(),
+      },
+      defaultData: {
+        result: "Chicago",
+      },
+      getData: async ({ payload }) => ({
+        _tag: "Right",
+        right: { result: `${payload.query}:${payload.zoom}` },
+      }),
+      sizes: {
+        "1x1": {
+          def: {
+            variant: "typed-controls",
+            size: "1x1",
+            w: 1,
+            h: 1,
+            label: "1×1",
+            order: 0,
+          },
+          component: (props: { data: { result: string } }) => props.data.result,
+        },
+      },
+    });
+
+    expect(variant.payloadForm?.query).toBeTypeOf("function");
+    expect(variant.payloadForm?.zoom).toBeTypeOf("function");
+  });
+
+  it("rejects unknown custom fields and custom fields without defaults", () => {
+    makeVariant({
+      variant: "invalid-controls",
+      variantDescription: "Invalid custom controls.",
+      payloadShape: {
+        query: primitives.text({ defaultValue: "Chicago" }),
+      },
+      payloadForm: {
+        // @ts-expect-error payloadForm keys must be declared by payloadShape
+        unknownField: () => null,
+      },
+      dataShape: {
+        result: primitives.text(),
+      },
+      defaultData: {
+        result: "Chicago",
+      },
+      getData: async ({
+        payload,
+      }: {
+        payload: { query: string };
+      }): Promise<IRpcEither<{ result: string }>> => {
+        return { _tag: "Right", right: { result: payload.query } };
+      },
+      sizes: {
+        "1x1": {
+          def: {
+            variant: "invalid-controls",
+            size: "1x1",
+            w: 1,
+            h: 1,
+            label: "1×1",
+            order: 0,
+          },
+          component: (props: { data: { result: string } }) => props.data.result,
+        },
+      },
+    });
+
+    makeVariant({
+      variant: "missing-default",
+      variantDescription: "A custom control without a default.",
+      payloadShape: {
+        query: primitives.text(),
+      },
+      payloadForm: {
+        // @ts-expect-error custom payload controls require a descriptor defaultValue
+        query: () => null,
+      },
+      dataShape: {
+        result: primitives.text(),
+      },
+      defaultData: {
+        result: "Chicago",
+      },
+      getData: async ({
+        payload,
+      }: {
+        payload: { query: string };
+      }): Promise<IRpcEither<{ result: string }>> => {
+        return { _tag: "Right", right: { result: payload.query } };
+      },
+      sizes: {
+        "1x1": {
+          def: {
+            variant: "missing-default",
+            size: "1x1",
+            w: 1,
+            h: 1,
+            label: "1×1",
+            order: 0,
+          },
+          component: (props: { data: { result: string } }) => props.data.result,
+        },
+      },
+    });
   });
 
   it("preserves the GitHub profile request, response, default, and callback contract", () => {

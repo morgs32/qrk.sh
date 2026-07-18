@@ -14,6 +14,7 @@ export function makeVariant<
   variant: VARIANT;
   variantDescription: string;
   payloadShape?: never;
+  payloadForm?: never;
   dataShape?: never;
   defaultData?: never;
   getData?: never;
@@ -38,6 +39,18 @@ export function makeVariant<
   variant: VARIANT;
   variantDescription: string;
   payloadShape: PAYLOAD_SHAPE;
+  payloadForm?: {
+    [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
+      defaultValue?: infer DEFAULT_VALUE;
+    }
+      ? undefined extends DEFAULT_VALUE
+        ? never
+        : (props: {
+            value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
+            onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
+          }) => ReactNode
+      : never;
+  };
   dataShape: DATA_SHAPE;
   defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
   getData: (props: {
@@ -61,6 +74,18 @@ export function makeVariant<
 }): {
   variantDescription: string;
   payloadShape: PAYLOAD_SHAPE;
+  payloadForm?: {
+    [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
+      defaultValue?: infer DEFAULT_VALUE;
+    }
+      ? undefined extends DEFAULT_VALUE
+        ? never
+        : (props: {
+            value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
+            onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
+          }) => ReactNode
+      : never;
+  };
   dataShape: DATA_SHAPE;
   defaultData: InferDecodedRow<DATA_SHAPE>;
   getData: (props: {
@@ -89,12 +114,25 @@ export function makeVariant<
   } & (
     | {
         payloadShape?: never;
+        payloadForm?: never;
         dataShape?: never;
         defaultData?: never;
         getData?: never;
       }
     | {
         payloadShape: PAYLOAD_SHAPE;
+        payloadForm?: {
+          [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
+            defaultValue?: infer DEFAULT_VALUE;
+          }
+            ? undefined extends DEFAULT_VALUE
+              ? never
+              : (props: {
+                  value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
+                  onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
+                }) => ReactNode
+            : never;
+        };
         dataShape: DATA_SHAPE;
         defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
         getData: (props: {
@@ -125,6 +163,7 @@ export function makeVariant<
   return {
     variantDescription: props.variantDescription,
     payloadShape: props.payloadShape,
+    payloadForm: props.payloadForm,
     dataShape: props.dataShape,
     defaultData,
     getData: async (request: { api: ScraperApi; payload: unknown }) => {

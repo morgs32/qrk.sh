@@ -47,6 +47,21 @@ export type IFigmaFilePreviewPayload = Readonly<{
   [key: string]: IJsonValue;
 }>;
 
+export type IGooglePlaceSuggestion = Readonly<{
+  placeId: string;
+  description: string;
+  mainText: string;
+  secondaryText: string;
+}>;
+
+export type IGooglePlaceDetails = Readonly<{
+  googlePlaceId: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+}>;
+
 export type ITikTokScrapePayload = Readonly<{
   username: string;
   data: IJsonValue;
@@ -72,6 +87,8 @@ export type IScrapeError = Readonly<{
     | "profile-identity-mismatch"
     | "file-unavailable"
     | "file-type-mismatch"
+    | "place-unavailable"
+    | "provider-configuration-error"
     | "scrape-transient-failure";
   message: string;
   retryable?: boolean;
@@ -89,9 +106,11 @@ export interface IScraperEnv {
   INSTAGRAM_REPO: DurableObjectNamespace<import("./InstagramRepo").InstagramRepo>;
   GITHUB_REPO: DurableObjectNamespace<import("./GitHubRepo").GitHubRepo>;
   FIGMA_REPO: DurableObjectNamespace<import("./FigmaRepo").FigmaRepo>;
+  GOOGLE_PLACES_REPO: DurableObjectNamespace<import("./GooglePlacesRepo").GooglePlacesRepo>;
   TIKTOK_REPO: DurableObjectNamespace<import("./TikTokRepo").TikTokRepo>;
   YOUTUBE_REPO: DurableObjectNamespace<import("./YouTubeRepo").YouTubeRepo>;
   TRUTH_SOCIAL_REPO: DurableObjectNamespace<import("./TruthSocialRepo").TruthSocialRepo>;
   GITHUB_TOKEN: string;
   FIGMA_TOKEN: string;
+  GOOGLE_PLACES_API_KEY: string;
 }

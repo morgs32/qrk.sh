@@ -1,6 +1,7 @@
 import { figmaCollection } from "./collections/Figma/FigmaCollection";
 import { githubCollection } from "./collections/GitHubCards/GitHubProfileCollection";
 import { imageCollection } from "./collections/Image/ImageCollection";
+import { mapCollection } from "./collections/Map/MapCollection";
 import { swatchCollection } from "./collections/GreenEmpty/GreenEmptyCollection";
 import { iconCollection } from "./collections/PinkAsterisk/PinkAsteriskCollection";
 import { textBrickCollection } from "./collections/TextBrick/TextBrickCollection";
@@ -12,5 +13,6 @@ export const collectionsHash: Record<string, ICollection> = {
   github: githubCollection,
   figma: figmaCollection,
   image: imageCollection,
+  map: mapCollection,
   "text-brick": textBrickCollection,
 };

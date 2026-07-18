@@ -27,6 +27,7 @@ export type ICollection = {
     | {
         variantDescription: string;
         payloadShape?: never;
+        payloadForm?: never;
         dataShape?: never;
         defaultData?: never;
         getData?: never;
@@ -35,6 +36,16 @@ export type ICollection = {
     | {
         variantDescription: string;
         payloadShape: IShape;
+        payloadForm?: {
+          [fieldName: string]:
+            | {
+                bivarianceHack(props: {
+                  value: unknown;
+                  onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
+                }): ReactNode;
+              }["bivarianceHack"]
+            | undefined;
+        };
         dataShape: IShape;
         defaultData: unknown;
         getData: (props: { api: ScraperApi; payload: unknown }) => Promise<IRpcEither<unknown>>;

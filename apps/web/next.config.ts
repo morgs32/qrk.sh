@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
+const mapboxToken = process.env.PUBLIC_MAPBOX_TOKEN;
+
+if (mapboxToken === undefined || mapboxToken.length === 0) {
+  throw new Error("PUBLIC_MAPBOX_TOKEN is required in apps/web/.env.local");
+}
+
 const nextConfig: NextConfig = {
+  env: {
+    PUBLIC_MAPBOX_TOKEN: mapboxToken,
+  },
   transpilePackages: ["@qrk.sh/zerospin"],
   images: {
     remotePatterns: [

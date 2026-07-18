@@ -45,6 +45,21 @@ export type IFigmaFilePreviewPayload = Readonly<{
   [key: string]: IJsonValue;
 }>;
 
+export type IGooglePlaceSuggestion = Readonly<{
+  placeId: string;
+  description: string;
+  mainText: string;
+  secondaryText: string;
+}>;
+
+export type IGooglePlaceDetails = Readonly<{
+  googlePlaceId: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+}>;
+
 export type ITikTokScrapePayload = Readonly<{
   username: string;
   data: IJsonValue;
@@ -70,6 +85,8 @@ export type IScrapeError = Readonly<{
     | "profile-identity-mismatch"
     | "file-unavailable"
     | "file-type-mismatch"
+    | "place-unavailable"
+    | "provider-configuration-error"
     | "scrape-transient-failure";
   message: string;
   retryable?: boolean;

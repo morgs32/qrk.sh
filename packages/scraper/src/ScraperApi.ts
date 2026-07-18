@@ -32,6 +32,10 @@ export class ScraperApi extends RpcTarget {
     return this.workerEnv.FIGMA_REPO.getByName(GLOBAL_REPO_NAME);
   }
 
+  googlePlacesRepo() {
+    return this.workerEnv.GOOGLE_PLACES_REPO.getByName(GLOBAL_REPO_NAME);
+  }
+
   tiktokRepo() {
     return this.workerEnv.TIKTOK_REPO.getByName(GLOBAL_REPO_NAME);
   }

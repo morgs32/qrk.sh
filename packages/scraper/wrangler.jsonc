@@ -13,22 +13,35 @@
       { "name": "INSTAGRAM_REPO", "class_name": "InstagramRepo" },
       { "name": "GITHUB_REPO", "class_name": "GitHubRepo" },
       { "name": "FIGMA_REPO", "class_name": "FigmaRepo" },
+      { "name": "GOOGLE_PLACES_REPO", "class_name": "GooglePlacesRepo" },
       { "name": "TIKTOK_REPO", "class_name": "TikTokRepo" },
       { "name": "YOUTUBE_REPO", "class_name": "YouTubeRepo" },
-      { "name": "TRUTH_SOCIAL_REPO", "class_name": "TruthSocialRepo" }
-    ]
+      { "name": "TRUTH_SOCIAL_REPO", "class_name": "TruthSocialRepo" },
+    ],
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["ScraperRepo"] },
     {
       "tag": "v2",
       "new_classes": ["BrowserHost"],
-      "new_sqlite_classes": ["LinktreeRepo", "BeaconsRepo", "InstagramRepo", "GitHubRepo", "TikTokRepo", "YouTubeRepo", "TruthSocialRepo"],
-      "deleted_classes": ["ScraperRepo"]
+      "new_sqlite_classes": [
+        "LinktreeRepo",
+        "BeaconsRepo",
+        "InstagramRepo",
+        "GitHubRepo",
+        "TikTokRepo",
+        "YouTubeRepo",
+        "TruthSocialRepo",
+      ],
+      "deleted_classes": ["ScraperRepo"],
     },
     {
       "tag": "v3",
-      "new_sqlite_classes": ["FigmaRepo"]
-    }
-  ]
+      "new_sqlite_classes": ["FigmaRepo"],
+    },
+    {
+      "tag": "v4",
+      "new_sqlite_classes": ["GooglePlacesRepo"],
+    },
+  ],
 }

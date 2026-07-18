@@ -5,6 +5,8 @@ import type {
   IBeaconsScrapePayload,
   IFigmaFilePreviewPayload,
   IGitHubScrapePayload,
+  IGooglePlaceDetails,
+  IGooglePlaceSuggestion,
   IInstagramScrapePayload,
   ILinktreeScrapePayload,
   IRpcEither,
@@ -42,6 +44,12 @@ export declare class ScraperApi extends RpcTarget {
     getBoard(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
     getSlides(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
     getPrototype(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
+  };
+
+  googlePlacesRepo(): {
+    [BrandTypeId]: "TargetApi";
+    autocomplete(query: string): Promise<IRpcEither<ReadonlyArray<IGooglePlaceSuggestion>>>;
+    getPlace(googlePlaceId: string): Promise<IRpcEither<IGooglePlaceDetails>>;
   };
 
   tiktokRepo(): {

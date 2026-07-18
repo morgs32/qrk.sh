@@ -27,6 +27,23 @@ function VariantConfiguration() {
   const [loadedData, setLoadedData] = useState<unknown>();
   const [dataError, setDataError] = useState<IScrapeError>();
   const [requestError, setRequestError] = useState<string>();
+  const [payloadValues, setPayloadValues] = useState<Record<string, unknown>>(() => {
+    const initialPayloadValues: Record<string, unknown> = {};
+
+    if (variant?.payloadShape === undefined) {
+      return initialPayloadValues;
+    }
+
+    // Build one controlled value for every declared payload field. Custom
+    // renderers are type-rejected when their descriptor has no default, so the
+    // workbench never invents an undefined value for those controls.
+    for (const [fieldName, descriptor] of Object.entries(variant.payloadShape)) {
+      initialPayloadValues[fieldName] =
+        "defaultValue" in descriptor ? descriptor.defaultValue : undefined;
+    }
+
+    return initialPayloadValues;
+  });
 
   if (!collection || !variant) {
     throw notFound();
@@ -35,9 +52,14 @@ function VariantConfiguration() {
   const sizes = Object.entries(variant.sizes);
   const firstSize = sizes[0];
   const payloadShape = variant.payloadShape;
+  const payloadForm = variant.payloadForm;
   const getData = variant.getData;
   const payloadEntries = payloadShape === undefined ? [] : Object.entries(payloadShape);
-  const hasUnsupportedPayload = payloadEntries.some(([, descriptor]) => {
+  const hasUnsupportedPayload = payloadEntries.some(([fieldName, descriptor]) => {
+    if (payloadForm?.[fieldName] !== undefined) {
+      return false;
+    }
+
     return (
       descriptor.kind !== PrimitiveKind.Text ||
       descriptor.nullable !== false ||
@@ -145,19 +167,11 @@ function VariantConfiguration() {
                 setDataError(undefined);
                 setRequestError(undefined);
 
-                const formData = new FormData(event.currentTarget);
-                const submittedPayload: Record<string, FormDataEntryValue | null> = {};
-
-                // Copy only fields declared by this variant's payload contract.
-                for (const [fieldName] of payloadEntries) {
-                  submittedPayload[fieldName] = formData.get(fieldName);
-                }
-
                 try {
                   using api = newSyncRpcSession<ScraperApi>("/scraper-rpc");
                   const result = await getData({
                     api,
-                    payload: submittedPayload,
+                    payload: payloadValues,
                   });
 
                   if (result._tag === "Left") {
@@ -173,6 +187,25 @@ function VariantConfiguration() {
               }}
             >
               {Object.entries(payloadShape).map(([fieldName, descriptor]) => {
+                const PayloadField = payloadForm?.[fieldName];
+
+                if (PayloadField !== undefined) {
+                  return (
+                    <div className="space-y-2" key={fieldName}>
+                      <label className="block text-sm font-medium">{fieldName}</label>
+                      <PayloadField
+                        value={payloadValues[fieldName]}
+                        onChange={(value: unknown) => {
+                          setPayloadValues((currentPayloadValues) => ({
+                            ...currentPayloadValues,
+                            [fieldName]: value,
+                          }));
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
                 if (
                   descriptor.kind !== PrimitiveKind.Text ||
                   descriptor.nullable !== false ||
@@ -197,10 +230,20 @@ function VariantConfiguration() {
                       {fieldName}
                     </label>
                     <Input
-                      defaultValue={descriptor.defaultValue}
                       id={`payload-${fieldName}`}
                       name={fieldName}
+                      onChange={(event) => {
+                        setPayloadValues((currentPayloadValues) => ({
+                          ...currentPayloadValues,
+                          [fieldName]: event.target.value,
+                        }));
+                      }}
                       type="text"
+                      value={
+                        typeof payloadValues[fieldName] === "string"
+                          ? payloadValues[fieldName]
+                          : descriptor.defaultValue
+                      }
                     />
                   </div>
                 );

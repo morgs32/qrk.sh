@@ -11,9 +11,9 @@ test("shares one persisted grid across the root, collection, and detail routes",
   await page.reload();
   await page.waitForLoadState("networkidle");
 
-  await expect(page.locator("[data-collection-link]")).toHaveCount(6);
-  await expect(page.locator("[data-collection-entry]")).toHaveCount(6);
-  await expect(page.locator("[data-collection-representative]")).toHaveCount(6);
+  await expect(page.locator("[data-collection-link]")).toHaveCount(7);
+  await expect(page.locator("[data-collection-entry]")).toHaveCount(7);
+  await expect(page.locator("[data-collection-representative]")).toHaveCount(7);
   await expect(page.getByLabel("Brick collections")).toBeVisible();
   await expect(
     page
@@ -151,6 +151,125 @@ test("renders default GitHub profile data in the direct preview", async ({ page 
 
   await expect(page.getByTestId("brick-preview").locator('[data-slot="card"]')).toBeVisible();
   await expect(page.getByTestId("brick-preview").getByText("@morgs32")).toBeVisible();
+});
+
+test("loads a selected Google place into the Map preview", async ({ page }) => {
+  await page.goto("/collections/map/place");
+
+  const mapPreview = page.locator('[data-variant-size-brick="map/place/4x4"]');
+  await expect(
+    mapPreview.locator('[data-map-place-id="ChIJ7cv00DwsDogRAMDACa2m4K8"]'),
+  ).toBeVisible();
+  await expect(mapPreview.locator(".mapboxgl-canvas")).toBeVisible();
+  await expect(
+    mapPreview.locator('[data-map-marker-place-id="ChIJ7cv00DwsDogRAMDACa2m4K8"]'),
+  ).toBeVisible();
+
+  const placeLookup = page.getByLabel("googlePlaceId");
+  await expect(placeLookup).toHaveValue(/Chicago/i);
+  await placeLookup.fill("Millennium Park Chicago");
+  await expect(page.getByRole("listbox")).toBeVisible();
+  await expect(page.getByRole("option").first()).toBeVisible();
+  await placeLookup.press("ArrowDown");
+  await placeLookup.press("Enter");
+  await expect(page.getByRole("listbox")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Get data" }).click();
+
+  const result = page.getByTestId("variant-data-result");
+  await expect(result).toContainText('"name": "Millennium Park"');
+  await expect(result).toContainText('"latitude":');
+  await expect(result).toContainText('"longitude":');
+  await expect
+    .poll(() => mapPreview.locator("[data-map-place-id]").getAttribute("data-map-place-id"))
+    .not.toBe("ChIJ7cv00DwsDogRAMDACa2m4K8");
+
+  await page.getByRole("button", { name: "Clear place search" }).click();
+  await expect(placeLookup).toHaveValue("");
+});
+
+test("renders the Map brick through preview, collection, Grid, and detail boundaries", async ({
+  page,
+}) => {
+  await page.goto("/bricks/map/place/4x4");
+  await expect(page.getByTestId("brick-preview").locator(".mapboxgl-canvas")).toBeVisible();
+
+  await page.goto("/collections/map");
+  const collectionMap = page.locator('[data-brick-full-size="map/place/4x4"]');
+  await expect(collectionMap.locator(".mapboxgl-canvas")).toBeVisible();
+
+  const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
+  await collectionMap.dragTo(grid, { targetPosition: { x: 20, y: 20 } });
+
+  const placedMap = page.locator('[data-brick="map/place/4x4"]');
+  await expect(placedMap.locator(".mapboxgl-canvas")).toBeVisible();
+  await placedMap.click({ position: { x: 2, y: 2 } });
+  await expect(page).toHaveURL(/\/collections\/map\/brick\/[^/]+$/);
+  await expect(
+    page.getByTestId("selected-brick-preview").locator(".mapboxgl-canvas"),
+  ).toBeVisible();
+});
+
+test("renders four distinct default Figma file variants", async ({ page }) => {
+  await page.goto("/collections/figma");
+  await page.waitForLoadState("networkidle");
+
+  await expect(
+    page.getByText("Live previews for Figma files, boards, slides, and prototypes."),
+  ).toBeVisible();
+  await expect(page.getByText("design", { exact: true })).toBeVisible();
+  await expect(page.getByText("board", { exact: true })).toBeVisible();
+  await expect(page.getByText("slides", { exact: true })).toBeVisible();
+  await expect(page.getByText("prototype", { exact: true })).toBeVisible();
+
+  const design = page.locator('[data-figma-card="design"]');
+  await expect(design).toBeVisible();
+  await expect(design).not.toHaveAttribute("href");
+  await expect(design.locator('[data-figma-fallback="design"]')).toBeVisible();
+
+  const board = page.locator('[data-figma-card="board"]');
+  await expect(board).toBeVisible();
+  await expect(board).not.toHaveAttribute("href");
+  await expect(board.locator('[data-figma-fallback="board"]')).toBeVisible();
+
+  const slides = page.locator('[data-figma-card="slides"]');
+  await expect(slides).toBeVisible();
+  await expect(slides).not.toHaveAttribute("href");
+  await expect(slides.locator('[data-figma-fallback="slides"]')).toBeVisible();
+
+  const prototype = page.locator('[data-figma-card="prototype"]');
+  await expect(prototype).toBeVisible();
+  await expect(prototype).not.toHaveAttribute("href");
+  await expect(prototype.locator('[data-figma-fallback="prototype"]')).toBeVisible();
+  await expect(prototype.getByLabel("Open prototype")).toBeVisible();
+});
+
+test("loads a Figma Design preview and retains it after a type mismatch", async ({ page }) => {
+  await page.goto("/collections/figma/design");
+  await page.waitForLoadState("networkidle");
+
+  const designCard = page.locator('[data-figma-card="design"]');
+  await expect(designCard).not.toHaveAttribute("href");
+
+  const urlInput = page.getByLabel("url");
+  await urlInput.fill("https://www.figma.com/design/x1KYuaPaEo89CE715oUD4I/qrk.sh?node-id=46-459");
+  await page.getByRole("button", { name: "Get data" }).click();
+
+  const canonicalUrl = "https://www.figma.com/design/x1KYuaPaEo89CE715oUD4I";
+  const result = page.getByTestId("variant-data-result");
+  await expect(result).toContainText(`"url": "${canonicalUrl}"`);
+  await expect(designCard).toHaveAttribute("href", canonicalUrl);
+  await expect(designCard).toHaveAttribute("target", "_blank");
+  await expect(designCard).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(designCard.locator('[data-figma-thumbnail="design"]')).toBeVisible();
+
+  await urlInput.fill("https://www.figma.com/board/BcDeFgHiJkLmNoPqRsTuVw/Example-board");
+  await page.getByRole("button", { name: "Get data" }).click();
+
+  await expect(page.getByTestId("variant-data-error")).toContainText("file-type-mismatch");
+  await expect(designCard).toHaveAttribute("href", canonicalUrl);
+  await expect(designCard.locator('[data-figma-thumbnail="design"]')).toBeVisible();
+  await expect(result).toContainText(`"url": "${canonicalUrl}"`);
 });
 
 test("renders the GitHub profile activity size", async ({ page }) => {

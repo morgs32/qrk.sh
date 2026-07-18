@@ -1,0 +1,10 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@qrk.sh/bricks",
+  "targets": {
+    "dev": {
+      "continuous": true,
+      "dependsOn": ["scraper:dev"]
+    }
+  }
+}

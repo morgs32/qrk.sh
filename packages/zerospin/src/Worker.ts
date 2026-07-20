@@ -31,7 +31,7 @@ const qrkSystemId = Schema.decodeUnknownSync(makeAbbreviationIdSchema("sys"))(
 );
 
 // QRK owns both local API key strings. The dispatch boundary accepts only an
-// exact configured key; the owner frontend then separately verifies the Clerk
+// exact configured key; the user frontend then separately verifies the Clerk
 // session token before it selects the QRK actor.
 const qrkApis = new ZerospinApis({
   runtime: makeDispatchRuntime({

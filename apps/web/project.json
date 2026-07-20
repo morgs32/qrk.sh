@@ -3,13 +3,7 @@
   "name": "@qrk.sh/web",
   "targets": {
     "dev": {
-      "continuous": true,
-      "dependsOn": [
-        {
-          "projects": "@qrk.sh/app",
-          "target": "dev"
-        }
-      ]
+      "continuous": true
     }
   }
 }

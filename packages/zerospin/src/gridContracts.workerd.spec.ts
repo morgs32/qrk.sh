@@ -11,7 +11,7 @@ import { Brick } from "./models/Brick";
 import { Page } from "./models/Page";
 import { Site } from "./models/Site";
 import { User } from "./models/User";
-import { ownerFrontend } from "./ownerFrontend";
+import { userFrontend } from "./accounts/user/actors/user/userFrontend";
 
 describe("aggregate Grid contracts", () => {
   it.effect("createGrid emits one Grid mutation and one mutation for every submitted Brick", () =>
@@ -329,18 +329,18 @@ describe("aggregate Grid contracts", () => {
   );
 });
 
-describe("owner frontend Grid guards", () => {
+describe("user frontend Grid guards", () => {
   it.effect("rejects noncanonical identity, false intent, incomplete, and stale snapshots", () =>
     Effect.gen(function* () {
-      const actorId = "actr_grid_guard_owner";
-      const userId = "usr_grid_guard_owner";
+      const actorId = "actr_grid_guard_user";
+      const userId = "usr_grid_guard_user";
       const siteId = "sit_grid_guard_site";
       const pageId = "pag_grid_guard_page";
       const gridId = Grid.prefixId(`${pageId}/main`);
       const brickId = Brick.prefixId(`${gridId}/orange-flag--0`);
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
-        models: ownerFrontend.models,
+        models: userFrontend.models,
       });
       const db = yield* makeMigratedInMemorySqljsDb({ dbConfig }).pipe(Effect.provide(AsyncLive));
 
@@ -353,7 +353,7 @@ describe("owner frontend Grid guards", () => {
           createdAt: now,
           updatedAt: now,
           actorId,
-          clerkUserId: "user_grid_guard_owner",
+          clerkUserId: "user_grid_guard_user",
           username: null,
           displayName: null,
         })
@@ -386,9 +386,9 @@ describe("owner frontend Grid guards", () => {
         })
         .run();
 
-      const [createGuard] = ownerFrontend.guards.createGrid;
+      const [createGuard] = userFrontend.guards.createGrid;
       if (createGuard === undefined) {
-        throw new Error("Expected ownerFrontend createGrid guard");
+        throw new Error("Expected userFrontend createGrid guard");
       }
 
       // 2 — Grid and Brick ids are deterministic parts of the aggregate boundary.
@@ -471,9 +471,9 @@ describe("owner frontend Grid guards", () => {
         })
         .run();
 
-      const [guard] = ownerFrontend.guards.updateGrid;
+      const [guard] = userFrontend.guards.updateGrid;
       if (guard === undefined) {
-        throw new Error("Expected ownerFrontend updateGrid guard");
+        throw new Error("Expected userFrontend updateGrid guard");
       }
 
       // 4 — unchanged attributes paired with update intent must fail before mutation generation.

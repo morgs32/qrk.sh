@@ -13,7 +13,7 @@ export const userAccount = makeAccountController({
   name: "user",
   version: "1.1.0",
   actorControllers: {
-    owner: userActor,
+    user: userActor,
   },
   models: {
     grid: Grid,

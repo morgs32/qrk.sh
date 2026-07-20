@@ -1,10 +1,24 @@
 "use client";
+import { useUser } from "@clerk/nextjs";
+import { useParams } from "next/navigation";
+
 import { HeroCopy } from "@/components/home/HeroCopy";
+
+import { useSiteStore } from "../../siteStore";
 import { Grid } from "./Grid";
-import { usePageStore } from "./pageStore";
 
 export function MainColumns() {
-  const pageType = usePageStore((state) => state.pageType);
+  const params = useParams<{ siteId: string; pageId: string }>();
+  const { user } = useUser();
+  const pageType = useSiteStore((state) =>
+    user === null || user === undefined
+      ? undefined
+      : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId]?.pageType,
+  );
+
+  if (pageType === undefined) {
+    return null;
+  }
 
   if (pageType === "split-scroll") {
     return (

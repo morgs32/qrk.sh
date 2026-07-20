@@ -7,13 +7,13 @@ import { Brick } from "./models/Brick";
 import { Page } from "./models/Page";
 import { Site } from "./models/Site";
 import { User } from "./models/User";
-import { owner } from "./owner";
+import { userActor } from "./accounts/user/actors/user/userActor";
 
 export const userAccount = makeAccountController({
   name: "user",
   version: "1.1.0",
   actorControllers: {
-    owner,
+    owner: userActor,
   },
   models: {
     grid: Grid,

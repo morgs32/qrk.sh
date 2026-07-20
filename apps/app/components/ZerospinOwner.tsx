@@ -10,12 +10,12 @@ import { Effect } from "effect";
 import { ownerFrontend } from "@qrk.sh/zerospin/src/ownerFrontend";
 
 /** One paused browser session shared by the authenticated dashboard and site surfaces. */
-export const ZerospinOwner = makeReactFrontend({
+export const ZerospinUser = makeReactFrontend({
   frontend: ownerFrontend,
   isPushPaused: true,
 });
 
-export function ZerospinOwnerProvider({ children }: { children: React.ReactNode }) {
+export function ZerospinUserProvider({ children }: { children: React.ReactNode }) {
   const { getToken } = useAuth();
   const { isLoaded, user } = useUser();
 
@@ -29,7 +29,7 @@ export function ZerospinOwnerProvider({ children }: { children: React.ReactNode 
 
   return (
     <ZerospinConfig userId={user.id}>
-      <ZerospinOwner.Provider
+      <ZerospinUser.Provider
         key={user.id}
         generateSignature={() =>
           Effect.tryPromise({
@@ -57,7 +57,7 @@ export function ZerospinOwnerProvider({ children }: { children: React.ReactNode 
             theme: "light",
           }}
         />
-      </ZerospinOwner.Provider>
+      </ZerospinUser.Provider>
     </ZerospinConfig>
   );
 }

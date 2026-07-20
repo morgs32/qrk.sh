@@ -1,14 +1,16 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { Globe, X } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import useSWR from "swr";
 
 import { CopyButton } from "./CopyButton";
 import { SiteCard } from "./SiteCard";
 import { pagePattern, publishedPattern } from "../../../routePatterns";
+import { useSiteStore } from "../../../siteStore";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,6 +23,11 @@ export function SiteSettings() {
   const router = useRouter();
   const username = useUsername();
   const siteId = params.siteId;
+  const { user } = useUser();
+  const siteDraft = useSiteStore((state) =>
+    user === null || user === undefined ? undefined : state.owners[user.id]?.sites[params.siteId],
+  );
+  const setSiteDescription = useSiteStore((state) => state.setSiteDescription);
 
   const publishedUrl = useMemo(() => {
     const pathname = publishedPattern.href({ username, siteId });
@@ -42,10 +49,9 @@ export function SiteSettings() {
     });
   });
 
-  const [title] = useState("Make it Rainey");
-  const [description, setDescription] = useState(
-    "We are helping Austin home owners save $600 or more on their property taxes.",
-  );
+  if (user === null || user === undefined || siteDraft === undefined) {
+    return null;
+  }
 
   return (
     <div className="w-full">
@@ -53,8 +59,14 @@ export function SiteSettings() {
         <Globe className="size-5 shrink-0 text-foreground" strokeWidth={2} aria-hidden />
         <h1 className="min-w-0 flex-1 text-base font-semibold tracking-tight">Site Settings</h1>
         <div className="flex shrink-0 items-center gap-1">
-          <Button type="button" variant="outline" size="sm" className="h-8 px-3">
-            Save
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 px-3"
+            onClick={() => router.push(pagePattern.href({ ...params }))}
+          >
+            Done
           </Button>
           <Button
             type="button"
@@ -113,14 +125,14 @@ export function SiteSettings() {
               <Label htmlFor="site-description">Description</Label>
               <Textarea
                 id="site-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={siteDraft.description}
+                onChange={(event) => setSiteDescription(user.id, params.siteId, event.target.value)}
               />
             </div>
 
             <div className="flex h-full min-h-0 flex-col gap-2">
               <Label>Preview</Label>
-              <SiteCard title={title} url={publishedUrlDisplay} publishedAt="Mar 30" />
+              <SiteCard title={siteDraft.name} url={publishedUrlDisplay} publishedAt="Mar 30" />
             </div>
           </div>
         </div>

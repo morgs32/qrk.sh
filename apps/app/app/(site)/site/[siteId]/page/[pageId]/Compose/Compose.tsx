@@ -18,7 +18,7 @@ export function Compose() {
           <div className="space-y-1">
             <div className="text-sm font-semibold">Compose</div>
             <div className="text-xs text-muted-foreground">
-              Rich text blocks with formatting. Content is kept in the compose store.
+              Rich text blocks with formatting. Content is kept in the site draft.
             </div>
           </div>
 

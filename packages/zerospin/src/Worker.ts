@@ -9,7 +9,7 @@ import { env, WorkerEntrypoint } from "cloudflare:workers";
 import { Effect, Layer, Schema } from "effect";
 
 // These named exports are the Durable Object classes referenced by
-// apps/web/wrangler.jsonc. SystemWorker is a loopback Worker export, so this
+// apps/app/wrangler.jsonc. SystemWorker is a loopback Worker export, so this
 // standalone development Worker does not use a dispatch namespace.
 export { AccountBlockRepo } from "system-worker";
 export { AccountRepo } from "system-worker";

@@ -4,15 +4,12 @@
   "targets": {
     "dev": {
       "continuous": true,
-      "dependsOn": ["^lib", "zerospin:dev", "storybook:dev"]
-    },
-    "zerospin:dev": {
-      "continuous": true,
-      "dependsOn": ["^lib"]
-    },
-    "storybook:dev": {
-      "continuous": true,
-      "dependsOn": ["^lib"]
+      "dependsOn": [
+        {
+          "projects": "@qrk.sh/app",
+          "target": "dev"
+        }
+      ]
     }
   }
 }

@@ -7,12 +7,12 @@ import { useSession } from "@zerospin/react/useSession";
 import { User } from "@qrk.sh/zerospin/src/models/User";
 
 import { Button } from "@/components/ui/button";
-import { ZerospinOwner } from "@/components/ZerospinOwner";
+import { ZerospinUser } from "@/components/ZerospinUser";
 
 export default function UsernameDashboardPage() {
   const { username } = useParams<{ username: string }>();
   const router = useRouter();
-  const session = useSession(ZerospinOwner);
+  const session = useSession(ZerospinUser);
   const [error, setError] = useState<string | null>(null);
 
   return (

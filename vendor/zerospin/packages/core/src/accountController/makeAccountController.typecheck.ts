@@ -1,4 +1,5 @@
 import { Effect, Schema } from 'effect';
+import { assert, type Equals } from 'tsafe';
 
 import { makeActorController } from '../actorController/makeActorController.ts';
 import { makeContract } from '../contracts/makeContract.ts';
@@ -6,6 +7,8 @@ import { makeFrontendController } from '../frontendController/makeFrontendContro
 import { makeModel } from '../models/makeModel.ts';
 import { makeSelection } from '../models/makeSelection.ts';
 import { primitives } from '../models/primitives.ts';
+import type { IAssertValidModels } from '../models/types.ts';
+import type { ITypeError } from '../utils/types.ts';
 
 import { makeAccountController } from './makeAccountController.ts';
 
@@ -39,6 +42,13 @@ const List = makeModel(
   },
   [],
 );
+
+assert<
+  Equals<
+    IAssertValidModels<{ list: typeof List }>,
+    ITypeError<'ref "list.userId" target model "user" is not registered on controller models'>
+  >
+>();
 
 const createList = makeContract({
   commandName: 'createList',

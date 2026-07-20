@@ -1189,7 +1189,11 @@ export type IAssertValidModels<MODELS extends IModels> = {
         : never
       : ITypeError<`models key "${K}" must equal model.modelName "${MODELS[K]['modelName'] & string}"`>
     : ITypeError<`models key "${K}" must equal model.modelName "${MODELS[K]['modelName'] & string}"`>;
-};
+}[keyof MODELS & string] extends infer RESULT
+  ? Exclude<RESULT, MODELS[keyof MODELS & string]> extends never
+    ? MODELS
+    : Exclude<RESULT, MODELS[keyof MODELS & string]>
+  : never;
 
 type IRelationRefSelector<
   MODEL extends IModel = IModel,

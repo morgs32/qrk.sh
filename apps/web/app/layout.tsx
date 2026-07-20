@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
-
-import { postAuthPath } from "@/app/(site)/site/[siteId]/routePatterns";
 
 import "./globals.css";
 
@@ -35,10 +32,10 @@ export default function RootLayout({
               fontSize: "1rem",
             },
           }}
-          signInFallbackRedirectUrl={postAuthPath}
-          signUpFallbackRedirectUrl={postAuthPath}
+          signInFallbackRedirectUrl="/post-auth"
+          signUpFallbackRedirectUrl="/post-auth"
         >
-          <NuqsAdapter>{children}</NuqsAdapter>
+          {children}
         </ClerkProvider>
         <SpeedInsights />
       </body>

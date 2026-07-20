@@ -1,12 +1,14 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { RectangleHorizontal, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { pagePattern } from "../../../routePatterns";
+import { useSiteStore } from "../../../siteStore";
 
-import { BREAKPOINT_ROWS } from "./breakpointRows";
-import { useBreakpointsStore } from "./useBreakpointsStore";
+import { BREAKPOINT_ROWS, type BreakpointPrefix } from "./breakpointRows";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -23,10 +25,24 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export function Breakpoints() {
   const params = useParams<{ siteId: string; pageId: string }>();
   const router = useRouter();
-  const selectedPrefix = useBreakpointsStore((s) => s.selectedPrefix);
-  const setSelectedPrefix = useBreakpointsStore((s) => s.setSelectedPrefix);
-  const gridColumnCount = useBreakpointsStore((s) => s.gridColumnCount);
-  const setGridColumnCount = useBreakpointsStore((s) => s.setGridColumnCount);
+  const { user } = useUser();
+  const [selectedPrefix, setSelectedPrefix] = useState<BreakpointPrefix | null>(
+    BREAKPOINT_ROWS[0].prefix,
+  );
+  const breakpointGridColumnCounts = useSiteStore((state) =>
+    user === null || user === undefined
+      ? undefined
+      : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId]
+          ?.breakpointGridColumnCounts,
+  );
+  const setBreakpointGridColumnCount = useSiteStore((state) => state.setBreakpointGridColumnCount);
+
+  const gridColumnCount =
+    selectedPrefix === null ? undefined : breakpointGridColumnCounts?.[selectedPrefix];
+
+  if (user === null || user === undefined || breakpointGridColumnCounts === undefined) {
+    return null;
+  }
 
   return (
     <div className="w-full">
@@ -129,8 +145,14 @@ export function Breakpoints() {
           </div>
         </div>
         <div className="flex shrink-0 items-center justify-end justify-self-end gap-1">
-          <Button type="button" variant="outline" size="sm" className="h-8 px-3">
-            Save
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 px-3"
+            onClick={() => router.push(pagePattern.href({ ...params }))}
+          >
+            Done
           </Button>
           <Button
             type="button"
@@ -148,8 +170,21 @@ export function Breakpoints() {
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium">Grid columns</legend>
           <RadioGroup
-            value={String(gridColumnCount)}
-            onValueChange={(v) => setGridColumnCount(v === "2" ? 2 : 1)}
+            value={gridColumnCount === undefined ? undefined : String(gridColumnCount)}
+            disabled={selectedPrefix === null}
+            onValueChange={(value) => {
+              if (selectedPrefix === null) {
+                return;
+              }
+
+              setBreakpointGridColumnCount(
+                user.id,
+                params.siteId,
+                params.pageId,
+                selectedPrefix,
+                value === "2" ? 2 : 1,
+              );
+            }}
             className="flex flex-row flex-wrap gap-4"
           >
             <div className="flex items-center gap-2">

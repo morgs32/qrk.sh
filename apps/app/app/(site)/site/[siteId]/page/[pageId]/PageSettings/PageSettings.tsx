@@ -1,10 +1,11 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { FileText, Globe, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
 
 import { pagePattern } from "../../../routePatterns";
+import { useSiteStore } from "../../../siteStore";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,11 +17,18 @@ import { Textarea } from "@/components/ui/textarea";
 export function PageSettings() {
   const params = useParams<{ siteId: string; pageId: string }>();
   const router = useRouter();
-
-  const [title, setTitle] = useState("Make it Rainey");
-  const [description, setDescription] = useState(
-    "We are helping Austin home owners save $600 or more on their property taxes.",
+  const { user } = useUser();
+  const pageDraft = useSiteStore((state) =>
+    user === null || user === undefined
+      ? undefined
+      : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId],
   );
+  const setPageTitle = useSiteStore((state) => state.setPageTitle);
+  const setPageDescription = useSiteStore((state) => state.setPageDescription);
+
+  if (user === null || user === undefined || pageDraft === undefined) {
+    return null;
+  }
 
   return (
     <div className="w-full">
@@ -28,8 +36,14 @@ export function PageSettings() {
         <FileText className="size-5 shrink-0 text-foreground" strokeWidth={2} aria-hidden />
         <h1 className="min-w-0 flex-1 text-base font-semibold tracking-tight">Page Settings</h1>
         <div className="flex shrink-0 items-center gap-1">
-          <Button type="button" variant="outline" size="sm" className="h-8 px-3">
-            Save
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 px-3"
+            onClick={() => router.push(pagePattern.href({ ...params }))}
+          >
+            Done
           </Button>
           <Button
             type="button"
@@ -48,7 +62,13 @@ export function PageSettings() {
         <div className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="page-title">Title</Label>
-            <Input id="page-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input
+              id="page-title"
+              value={pageDraft.title}
+              onChange={(event) =>
+                setPageTitle(user.id, params.siteId, params.pageId, event.target.value)
+              }
+            />
           </div>
 
           <div className="flex flex-col gap-6 md:flex-row md:items-stretch md:gap-6">
@@ -57,8 +77,10 @@ export function PageSettings() {
               <Textarea
                 id="page-description"
                 className="min-h-[126px] flex-1 resize-y field-sizing-fixed"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={pageDraft.description}
+                onChange={(event) =>
+                  setPageDescription(user.id, params.siteId, params.pageId, event.target.value)
+                }
               />
             </div>
 
@@ -76,9 +98,11 @@ export function PageSettings() {
                     className="block truncate text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
                     onClick={(e) => e.preventDefault()}
                   >
-                    {title}
+                    {pageDraft.title}
                   </a>
-                  <p className="line-clamp-2 text-sm text-muted-foreground">{description}</p>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">
+                    {pageDraft.description}
+                  </p>
                 </CardContent>
               </Card>
             </div>

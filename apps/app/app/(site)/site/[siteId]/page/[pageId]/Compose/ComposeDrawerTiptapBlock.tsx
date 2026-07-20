@@ -1,13 +1,15 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { useState } from "react";
 import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Hash, Italic, List, ListOrdered, Pilcrow, Quote } from "lucide-react";
+import { useParams } from "next/navigation";
 
-import { useComposeStore } from "./useComposeStore";
 import { Button } from "@/components/ui/button";
+import { useSiteStore } from "../../../siteStore";
 
 export function ComposeDrawerTiptapBlock({
   id,
@@ -16,9 +18,11 @@ export function ComposeDrawerTiptapBlock({
   id: string;
   initialContent: string;
 }) {
+  const params = useParams<{ siteId: string; pageId: string }>();
+  const { user } = useUser();
   const [headingExpanded, setHeadingExpanded] = useState(false);
   const [htmlContent, setHtmlContent] = useState(initialContent);
-  const updateBlock = useComposeStore((s) => s.updateBlock);
+  const updateComposeBlock = useSiteStore((state) => state.updateComposeBlock);
 
   const editor = useEditor({
     extensions: [
@@ -32,7 +36,9 @@ export function ComposeDrawerTiptapBlock({
     onUpdate: ({ editor: ed }) => {
       const html = ed.getHTML();
       setHtmlContent(html);
-      updateBlock(id, html);
+      if (user !== null && user !== undefined) {
+        updateComposeBlock(user.id, params.siteId, params.pageId, id, html);
+      }
     },
     editorProps: {
       attributes: {

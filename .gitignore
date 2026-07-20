@@ -13,7 +13,7 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
-storybook-static/
+.astro/
 
 # agents (local only — .cursor/ and .codex/ agent configs are committed)
 .claude/worktrees

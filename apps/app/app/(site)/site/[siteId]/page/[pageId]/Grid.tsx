@@ -1,18 +1,30 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
+import { useParams } from "next/navigation";
 import GridLayout, { useContainerWidth, verticalCompactor } from "react-grid-layout";
 
-import { useGridLayoutStore } from "@/components/home/useGridLayoutStore";
+import { useSiteStore } from "../../siteStore";
 
 const GRID_COLS = 8;
 
 export function Grid() {
   const { containerRef, width, mounted } = useContainerWidth();
-  const layout = useGridLayoutStore((state) => state.layout);
-  const setLayout = useGridLayoutStore((state) => state.setLayout);
+  const params = useParams<{ siteId: string; pageId: string }>();
+  const { user } = useUser();
+  const layout = useSiteStore((state) =>
+    user === null || user === undefined
+      ? undefined
+      : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId]?.layout,
+  );
+  const setGridLayout = useSiteStore((state) => state.setGridLayout);
 
   const gridWidth = Math.max(width, 1);
   const rowHeight = gridWidth / GRID_COLS;
+
+  if (user === null || user === undefined || layout === undefined) {
+    return null;
+  }
 
   return (
     <div ref={containerRef} className="min-h-full w-full" data-testid="grid-layout">
@@ -40,7 +52,7 @@ export function Grid() {
             handles: [],
           }}
           onDragStop={(nextLayout) => {
-            setLayout(nextLayout);
+            setGridLayout(user.id, params.siteId, params.pageId, nextLayout);
           }}
         >
           {layout.map((layoutItem) => (

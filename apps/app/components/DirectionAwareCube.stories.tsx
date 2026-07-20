@@ -1,6 +1,5 @@
 "use client";
 
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
 
@@ -118,14 +117,8 @@ function DirectionAwareCubeStory() {
   );
 }
 
-const meta = {
-  title: "Experiments/Direction-Aware Cube",
+export default {
   component: DirectionAwareCubeStory,
-  parameters: {
-    layout: "fullscreen",
-  },
-} satisfies Meta<typeof DirectionAwareCubeStory>;
+};
 
-export default meta;
-
-export const Default: StoryObj<typeof meta> = {};
+export const DirectionAwareCube = {};

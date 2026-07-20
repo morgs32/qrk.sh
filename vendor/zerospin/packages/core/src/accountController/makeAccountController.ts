@@ -1,6 +1,6 @@
 import '@zerospin/server-only';
 import type { IAnyError } from '@zerospin/error';
-import { JSONSchema, Schema, type Effect } from 'effect';
+import { Effect, JSONSchema, Schema } from 'effect';
 import { isEqual, mapValues } from 'es-toolkit';
 import type { UnionToIntersection } from 'type-fest';
 
@@ -12,6 +12,7 @@ import type { AssertContractsMutationsInModels } from '../contracts/assertMutati
 import type {
   IAccountCommand,
   ICommand,
+  IContract,
   IContracts,
   IOperationName,
 } from '../contracts/types.ts';
@@ -24,6 +25,7 @@ import type {
   InferPayloadInput,
 } from '../models/types.ts';
 import type { CuidFactory } from '../services/CuidFactory.ts';
+import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 import type { ITypeError } from '../utils/types.ts';
 
 import { makeAccountCommand } from './makeAccountCommand.ts';
@@ -34,6 +36,18 @@ type IMergedActorControllerModels<ACTOR_CONTROLLERS extends IActorControllers> =
 
 type IActorFrontendContracts<ACTOR extends IAnyActorController> =
   ACTOR['frontends'][keyof ACTOR['frontends']]['contracts'];
+
+type InferAuthenticationContracts<ACTOR extends IAnyActorController> =
+  ACTOR extends IAnyActorController
+    ? {
+        [FRONTEND_NAME in keyof ACTOR['frontends'] & string]: Extract<
+          Effect.Effect.Context<
+            ReturnType<ACTOR['frontends'][FRONTEND_NAME]['authenticate']>
+          >,
+          IContract
+        >;
+      }[keyof ACTOR['frontends'] & string]
+    : never;
 
 /** Union of every actor frontend binding `contracts` map (multi-actor accounts). */
 type IMergedActorFrontendContracts<
@@ -128,11 +142,25 @@ export type IAccountController<
   >;
 };
 
-type AccountContractsExtendFrontend<
+type AccountContractsExtendActors<
   ACCOUNT_CONTRACTS extends IContracts,
   FRONTEND_CONTRACTS extends IContracts,
+  AUTHENTICATION_CONTRACTS extends IContract,
 > = keyof FRONTEND_CONTRACTS & string extends keyof ACCOUNT_CONTRACTS & string
-  ? ACCOUNT_CONTRACTS
+  ? [AUTHENTICATION_CONTRACTS] extends [never]
+    ? ACCOUNT_CONTRACTS
+    : UnionToIntersection<
+        AUTHENTICATION_CONTRACTS extends IContract
+          ? AUTHENTICATION_CONTRACTS['commandName'] extends keyof ACCOUNT_CONTRACTS &
+              string
+            ? ACCOUNT_CONTRACTS[AUTHENTICATION_CONTRACTS['commandName']] extends AUTHENTICATION_CONTRACTS
+              ? AUTHENTICATION_CONTRACTS extends ACCOUNT_CONTRACTS[AUTHENTICATION_CONTRACTS['commandName']]
+                ? ACCOUNT_CONTRACTS
+                : ITypeError<`Account contract "${AUTHENTICATION_CONTRACTS['commandName']}" must exactly match the contract used by actor authentication`>
+              : ITypeError<`Account contract "${AUTHENTICATION_CONTRACTS['commandName']}" must exactly match the contract used by actor authentication`>
+            : ITypeError<`Account contracts must include authentication contract "${AUTHENTICATION_CONTRACTS['commandName']}"`>
+          : never
+      >
   : ITypeError<'Account contracts must include every frontend binding contract key'>;
 
 export function makeAccountController<
@@ -184,9 +212,12 @@ export function makeAccountController<
           AssertModelConsistency<MODELS, ACTOR_CONTROLLERS>
       : IAssertValidModels<MODELS>);
   contracts: CONTRACTS &
-    AccountContractsExtendFrontend<
+    AccountContractsExtendActors<
       CONTRACTS,
-      IMergedActorFrontendContracts<ACTOR_CONTROLLERS>
+      IMergedActorFrontendContracts<ACTOR_CONTROLLERS>,
+      InferAuthenticationContracts<
+        ACTOR_CONTROLLERS[keyof ACTOR_CONTROLLERS]
+      >
     > &
     AssertContractsMutationsInModels<CONTRACTS, MODELS>;
   mutationAdapters?: MUTATION_ADAPTERS & {
@@ -582,10 +613,19 @@ export function makeAccountController<
     MUTATION_ADAPTERS,
     VERSION
   >['makeCommand'] = props =>
-    makeAccountCommand({
-      contracts,
-      ...props,
-      accountName: name,
+    Effect.gen(function* () {
+      const { contractName, ...commandProps } = props;
+      const contract = yield* getByKeyOrThrow({
+        record: contracts,
+        key: contractName,
+        recordKind: 'contracts',
+      });
+
+      return yield* makeAccountCommand({
+        contract,
+        ...commandProps,
+        accountName: name,
+      });
     });
 
   return {

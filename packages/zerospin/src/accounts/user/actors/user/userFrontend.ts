@@ -6,7 +6,6 @@ import {
   createGrid,
   createPage,
   createSite,
-  createUser,
   updateGrid,
 } from "../../../../contracts";
 import { Grid } from "../../../../models/Grid";
@@ -20,7 +19,6 @@ export const userFrontend = makeFrontendController({
     createGrid,
     createPage,
     createSite,
-    createUser,
     updateGrid,
   },
   accountName: "user",

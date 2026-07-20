@@ -4,7 +4,6 @@ import { Schema } from 'effect';
 import {
   addToCart,
   createCart,
-  createUser,
   removeFromCart,
   updateCartItemQuantity,
   updateUser,
@@ -15,7 +14,6 @@ export const shopperFrontend = makeFrontendController({
   contracts: {
     addToCart,
     createCart,
-    createUser,
     removeFromCart,
     updateCartItemQuantity,
     updateUser,

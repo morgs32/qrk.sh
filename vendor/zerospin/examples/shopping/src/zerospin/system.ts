@@ -8,7 +8,15 @@ import { makeAccountId } from '@zerospin/core/utils/makeAccountId';
 import { ZerospinError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
-import { createProduct } from './contracts';
+import {
+  addToCart,
+  createCart,
+  createProduct,
+  createUser,
+  removeFromCart,
+  updateCartItemQuantity,
+  updateUser,
+} from './contracts';
 import { shopperFrontend } from './frontend';
 import { Cart, CartItem, Product, User } from './models';
 
@@ -92,7 +100,7 @@ export const shopperActor = makeActorController({
           }
 
           const createUserCommand = yield* makeAccountCommand({
-            contractName: 'createUser',
+            contract: createUser,
             payload: {
               id: userId,
               clerkUserId: signature.clerkUserId,
@@ -138,7 +146,14 @@ export const userAccount = makeAccountController({
     cartItem: CartItem,
     product: Product,
   },
-  contracts: shopperActor.frontends.web!.contracts,
+  contracts: {
+    addToCart,
+    createCart,
+    createUser,
+    removeFromCart,
+    updateCartItemQuantity,
+    updateUser,
+  },
 });
 
 export const system = makeSystem({

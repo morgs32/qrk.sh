@@ -5,7 +5,7 @@ import { makeCommand } from '../contracts/makeCommand.ts';
 import type {
   IAccountCommand,
   ICommand,
-  IContracts,
+  IContract,
   ISessionId,
 } from '../contracts/types.ts';
 import type {
@@ -15,14 +15,11 @@ import type {
   IPushedCursorId,
 } from '../models/types.ts';
 import type { CuidFactory } from '../services/CuidFactory.ts';
-import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 
 export const makeAccountCommand = Effect.fn('makeAccountCommand')(function* <
-  CONTRACTS extends IContracts,
-  CONTRACT_NAME extends keyof CONTRACTS & string,
+  CONTRACT extends IContract,
 >(props: {
-  contracts: CONTRACTS;
-  contractName: CONTRACT_NAME;
+  contract: CONTRACT;
   accountId: string;
   accountName: string;
   actorId?: InferIdFromAbbreviation | null;
@@ -32,13 +29,13 @@ export const makeAccountCommand = Effect.fn('makeAccountCommand')(function* <
   pushedCursor?: IPushedCursorId | null;
   systemName: string;
   systemVersion: string;
-  payload: InferPayloadInput<CONTRACTS[CONTRACT_NAME]['payload']>;
+  payload: InferPayloadInput<CONTRACT['payload']>;
 }): Effect.fn.Return<
   IAccountCommand<
     ICommand<
-      CONTRACTS[CONTRACT_NAME]['commandName'],
-      CONTRACTS[CONTRACT_NAME]['version'],
-      InferCommandPayload<CONTRACTS[CONTRACT_NAME]['payload']>
+      CONTRACT['commandName'],
+      CONTRACT['version'],
+      InferCommandPayload<CONTRACT['payload']>
     >
   >,
   IAnyError,
@@ -47,8 +44,7 @@ export const makeAccountCommand = Effect.fn('makeAccountCommand')(function* <
   const {
     actorId = null,
     actorName = null,
-    contracts,
-    contractName,
+    contract,
     accountId,
     accountName,
     payload,
@@ -59,11 +55,6 @@ export const makeAccountCommand = Effect.fn('makeAccountCommand')(function* <
     systemVersion,
   } = props;
 
-  const contract = yield* getByKeyOrThrow({
-    record: contracts,
-    key: contractName,
-    recordKind: 'contracts',
-  });
   const command = yield* makeCommand({
     contract,
     payload,

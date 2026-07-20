@@ -214,8 +214,7 @@ describe('FrontendRepo', () => {
 
           const seedTime = new Date(1);
           const replicateCommand = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'replicateProduct',
+            contract: userAccount.contracts.replicateProduct,
             accountId,
             accountName: main.accountName,
             actorId,
@@ -706,8 +705,7 @@ describe('FrontendRepo', () => {
           ]);
 
           const repeatedReplicationCommand = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'replicateProduct',
+            contract: userAccount.contracts.replicateProduct,
             accountId,
             accountName: main.accountName,
             actorId,
@@ -1032,8 +1030,7 @@ describe('FrontendRepo', () => {
           });
           const seedTime = new Date(1);
           const replicateCommand = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'replicateProduct',
+            contract: userAccount.contracts.replicateProduct,
             accountId,
             accountName: main.accountName,
             actorId,
@@ -1233,8 +1230,7 @@ describe('FrontendRepo', () => {
 
           const seedTime = new Date(1);
           const replicateCommand = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'replicateProduct',
+            contract: userAccount.contracts.replicateProduct,
             accountId,
             accountName: main.accountName,
             actorId,
@@ -1382,8 +1378,7 @@ describe('FrontendRepo', () => {
           );
 
           const rereplicateCommand = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'replicateProduct',
+            contract: userAccount.contracts.replicateProduct,
             accountId,
             accountName: main.accountName,
             actorId,

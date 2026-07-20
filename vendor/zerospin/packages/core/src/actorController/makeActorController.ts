@@ -67,13 +67,20 @@ type IContractAdaptersAt<
 type IResolvedFrontendBindings<
   MODELS extends IModels,
   FRONTEND_CONTROLLERS extends Record<string, IFrontendControllerInput>,
+  AUTHENTICATES extends {
+    [K in keyof FRONTEND_CONTROLLERS & string]: IFrontendBindingProps<
+      MODELS,
+      FRONTEND_CONTROLLERS[K]
+    >['authenticate'];
+  },
   CONTRACT_ADAPTERS extends IFrontendContractAdapters<FRONTEND_CONTROLLERS>,
 > = {
   [K in keyof FRONTEND_CONTROLLERS & string]: IFrontendBinding<
     K,
     MODELS,
     FRONTEND_CONTROLLERS[K],
-    IContractAdaptersAt<FRONTEND_CONTROLLERS, CONTRACT_ADAPTERS, K>
+    IContractAdaptersAt<FRONTEND_CONTROLLERS, CONTRACT_ADAPTERS, K>,
+    AUTHENTICATES[K]
   >;
 };
 
@@ -85,6 +92,12 @@ type IProps<
     [K in keyof MODELS]: ISelection<MODELS[K]>;
   },
   FRONTEND_CONTROLLERS extends Record<string, IFrontendControllerInput>,
+  AUTHENTICATES extends {
+    [K in keyof FRONTEND_CONTROLLERS & string]: IFrontendBindingProps<
+      MODELS,
+      FRONTEND_CONTROLLERS[K]
+    >['authenticate'];
+  },
   CONTRACT_ADAPTERS extends IFrontendContractAdapters<FRONTEND_CONTROLLERS>,
 > = {
   name: NAME;
@@ -103,7 +116,8 @@ type IProps<
     [K in keyof FRONTEND_CONTROLLERS & string]: IFrontendBindingProps<
       MODELS,
       FRONTEND_CONTROLLERS[K],
-      IContractAdaptersAt<FRONTEND_CONTROLLERS, CONTRACT_ADAPTERS, K>
+      IContractAdaptersAt<FRONTEND_CONTROLLERS, CONTRACT_ADAPTERS, K>,
+      AUTHENTICATES[K]
     >;
   };
   authorize?: IAuthorizeFn;
@@ -117,6 +131,12 @@ export function makeActorController<
     [K in keyof MODELS]: ISelection<MODELS[K]>;
   },
   const FRONTEND_CONTROLLERS extends Record<string, IFrontendControllerInput>,
+  const AUTHENTICATES extends {
+    [K in keyof FRONTEND_CONTROLLERS & string]: IFrontendBindingProps<
+      MODELS,
+      FRONTEND_CONTROLLERS[K]
+    >['authenticate'];
+  },
   const CONTRACT_ADAPTERS extends
     IFrontendContractAdapters<FRONTEND_CONTROLLERS> = {},
 >(
@@ -126,6 +146,7 @@ export function makeActorController<
     MODELS,
     SELECTIONS,
     FRONTEND_CONTROLLERS,
+    AUTHENTICATES,
     CONTRACT_ADAPTERS
   > & {
     api?: undefined;
@@ -134,7 +155,12 @@ export function makeActorController<
   NAME,
   MODELS,
   SELECTIONS,
-  IResolvedFrontendBindings<MODELS, FRONTEND_CONTROLLERS, CONTRACT_ADAPTERS>,
+  IResolvedFrontendBindings<
+    MODELS,
+    FRONTEND_CONTROLLERS,
+    AUTHENTICATES,
+    CONTRACT_ADAPTERS
+  >,
   {},
   VERSION
 >;
@@ -147,6 +173,12 @@ export function makeActorController<
     [K in keyof MODELS]: ISelection<MODELS[K]>;
   },
   const FRONTEND_CONTROLLERS extends Record<string, IFrontendControllerInput>,
+  const AUTHENTICATES extends {
+    [K in keyof FRONTEND_CONTROLLERS & string]: IFrontendBindingProps<
+      MODELS,
+      FRONTEND_CONTROLLERS[K]
+    >['authenticate'];
+  },
   ACTOR_API extends IAnyActorApi,
   const CONTRACT_ADAPTERS extends
     IFrontendContractAdapters<FRONTEND_CONTROLLERS> = {},
@@ -157,6 +189,7 @@ export function makeActorController<
     MODELS,
     SELECTIONS,
     FRONTEND_CONTROLLERS,
+    AUTHENTICATES,
     CONTRACT_ADAPTERS
   > & {
     api: ACTOR_API;
@@ -165,7 +198,12 @@ export function makeActorController<
   NAME,
   MODELS,
   SELECTIONS,
-  IResolvedFrontendBindings<MODELS, FRONTEND_CONTROLLERS, CONTRACT_ADAPTERS>,
+  IResolvedFrontendBindings<
+    MODELS,
+    FRONTEND_CONTROLLERS,
+    AUTHENTICATES,
+    CONTRACT_ADAPTERS
+  >,
   ACTOR_API,
   VERSION
 >;
@@ -178,6 +216,12 @@ export function makeActorController<
     [K in keyof MODELS]: ISelection<MODELS[K]>;
   },
   const FRONTEND_CONTROLLERS extends Record<string, IFrontendControllerInput>,
+  const AUTHENTICATES extends {
+    [K in keyof FRONTEND_CONTROLLERS & string]: IFrontendBindingProps<
+      MODELS,
+      FRONTEND_CONTROLLERS[K]
+    >['authenticate'];
+  },
   ACTOR_API extends IAnyActorApi | {} = {},
   const CONTRACT_ADAPTERS extends
     IFrontendContractAdapters<FRONTEND_CONTROLLERS> = {},
@@ -188,6 +232,7 @@ export function makeActorController<
     MODELS,
     SELECTIONS,
     FRONTEND_CONTROLLERS,
+    AUTHENTICATES,
     CONTRACT_ADAPTERS
   > & {
     api?: ACTOR_API;
@@ -340,6 +385,7 @@ export function makeActorController<
   }) as unknown as IResolvedFrontendBindings<
     MODELS,
     FRONTEND_CONTROLLERS,
+    AUTHENTICATES,
     CONTRACT_ADAPTERS
   >;
 

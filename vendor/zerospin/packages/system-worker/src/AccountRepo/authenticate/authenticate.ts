@@ -5,9 +5,12 @@
  */
 
 import { getFrontendBinding } from '@zerospin/core/accountController/getFrontendBinding';
-import type { IAccountCommand } from '@zerospin/core/contracts/types';
+import { makeAccountCommand } from '@zerospin/core/accountController/makeAccountCommand';
+import type {
+  IAccountCommand,
+  IContract,
+} from '@zerospin/core/contracts/types';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { Effect } from 'effect';
 import { system } from 'system';
 
@@ -42,24 +45,18 @@ export const authenticate = Effect.fn('AccountRepo.authenticate')(
       frontendName,
     });
 
-    const accountController = yield* getByKeyOrThrow({
-      record: system.accountControllers,
-      key: accountName,
-      recordKind: 'accountControllers',
-    });
-
     return yield* frontendBinding.authenticate({
       signature,
       db,
-      makeAccountCommand: (
-        props: Omit<
-          Parameters<typeof accountController.makeCommand>[0],
-          'accountId' | 'systemName' | 'systemVersion'
-        >,
-      ) =>
-        accountController.makeCommand({
-          ...props,
+      makeAccountCommand: <CONTRACT extends IContract>(props: {
+        contract: CONTRACT;
+        payload: Parameters<typeof makeAccountCommand<CONTRACT>>[0]['payload'];
+      }) =>
+        makeAccountCommand<CONTRACT>({
+          contract: props.contract,
+          payload: props.payload,
           accountId,
+          accountName,
           systemName: system.name,
           systemVersion: system.version,
         }),

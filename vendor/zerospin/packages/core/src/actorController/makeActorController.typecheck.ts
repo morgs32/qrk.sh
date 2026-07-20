@@ -1,6 +1,8 @@
 import { Effect, Schema } from 'effect';
+import { assert, type Equals } from 'tsafe';
 
 import { makeContract } from '../contracts/makeContract.ts';
+import type { IContract } from '../contracts/types.ts';
 import { makeContractAdapter } from '../contracts/makeContractAdapter.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { makeModel } from '../models/makeModel.ts';
@@ -136,6 +138,57 @@ const _actorSuperset = makeActorController({
 });
 
 void _actorSuperset;
+
+assert<
+  Equals<
+    Extract<
+      Effect.Effect.Context<
+        ReturnType<typeof _actorSuperset.frontends.main.authenticate>
+      >,
+      IContract
+    >,
+    never
+  >
+>();
+
+const _actorWithOneAuthenticationContract = makeActorController({
+  name: 'main',
+  version: '1.0.0',
+  models: { list: List, user: User },
+  selections,
+  frontends: {
+    main: {
+      frontendController: frontend,
+      authenticate: ({ makeAccountCommand }) =>
+        Effect.gen(function* () {
+          yield* makeAccountCommand({
+            contract: createList,
+            payload: {
+              id: List.prefixId('list-1'),
+              name: 'List 1',
+              userId: User.prefixId('user-1'),
+            },
+          });
+
+          return yield* authenticate();
+        }),
+    },
+  },
+});
+
+assert<
+  Equals<
+    Extract<
+      Effect.Effect.Context<
+        ReturnType<
+          typeof _actorWithOneAuthenticationContract.frontends.main.authenticate
+        >
+      >,
+      IContract
+    >,
+    typeof createList
+  >
+>();
 
 const catalogService = makeServiceController({
   name: 'catalog',

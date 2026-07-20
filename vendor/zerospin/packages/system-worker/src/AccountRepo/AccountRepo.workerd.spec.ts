@@ -123,7 +123,7 @@ describe('AccountRepo', () => {
     );
 
     it.effect(
-      'returns the frontend authenticationentication failure for missing users',
+      'bootstraps a missing user with an authentication-only account contract',
       () =>
         Effect.gen(function* () {
           const accountId = makeAccountId({
@@ -140,18 +140,50 @@ describe('AccountRepo', () => {
             },
           });
 
-          const error = yield* Effect.flip(
-            makeAsync(() =>
-              accountRepo.authenticate({
+          const actor = yield* makeAsync(() =>
+            accountRepo.authenticate({
+              accountName: main.accountName,
+              actorName: main.actorName,
+              frontendName: main.frontendName,
+              signature: { userId },
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
+
+          const accountState = yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getAccountRepo,
+              repo: AccountRepo,
+              key: {
+                generationId: 'gen_test',
+                accountId,
                 accountName: main.accountName,
-                actorName: main.actorName,
-                frontendName: main.frontendName,
-                signature: { userId },
+              },
+              fn: ({ db, schema }) => ({
+                users: db.select().from(schema.user).all(),
+                outbox: db.select().from(schema.accountBlockOutbox).all(),
               }),
-            ).pipe(Effect.flatMap(decodeRpc)),
+            }),
           );
 
-          expect(error.code).toBe('user-not-found');
+          expect(actor).toEqual({
+            accountId: 'acct_1',
+            actorId: accountState.users[0]?.actorId,
+          });
+          expect(accountState.users).toEqual([
+            expect.objectContaining({
+              id: userId,
+              name: 'AccountRepo bootstrapped user',
+            }),
+          ]);
+          expect(accountState.outbox).toEqual([
+            expect.objectContaining({
+              executedCommands: expect.stringContaining(
+                '"commandName":"createUser"',
+              ),
+              failedCommands: '[]',
+            }),
+          ]);
         }).pipe(Effect.provide(AsyncLive)),
     );
 
@@ -173,8 +205,7 @@ describe('AccountRepo', () => {
           });
           const seedTime = new Date(0);
           const command = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'replicateProduct',
+            contract: userAccount.contracts.replicateProduct,
             accountId,
             accountName: main.accountName,
             actorId,
@@ -305,8 +336,7 @@ describe('AccountRepo', () => {
           );
 
           const failedCommand = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'createList',
+            contract: userAccount.contracts.createList,
             accountId,
             accountName: main.accountName,
             actorId,
@@ -321,8 +351,7 @@ describe('AccountRepo', () => {
             },
           });
           const successfulCommand = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'createList',
+            contract: userAccount.contracts.createList,
             accountId,
             accountName: main.accountName,
             actorId,
@@ -588,8 +617,7 @@ describe('AccountRepo', () => {
           }
 
           const initialReplication = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'replicateProductAndStock',
+            contract: userAccount.contracts.replicateProductAndStock,
             accountId,
             accountName: main.accountName,
             actorId,
@@ -715,8 +743,7 @@ describe('AccountRepo', () => {
           ).pipe(Effect.flatMap(decodeRpc));
 
           const missingResourceCommand = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'createListAndReplicateProduct',
+            contract: userAccount.contracts.createListAndReplicateProduct,
             accountId,
             accountName: main.accountName,
             actorId,
@@ -736,8 +763,7 @@ describe('AccountRepo', () => {
             },
           });
           const successfulReplication = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'replicateProductAndStock',
+            contract: userAccount.contracts.replicateProductAndStock,
             accountId,
             accountName: main.accountName,
             actorId,
@@ -1790,8 +1816,7 @@ describe('AccountRepo', () => {
           }
 
           const initialReplication = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'replicateProduct',
+            contract: userAccount.contracts.replicateProduct,
             accountId,
             accountName: main.accountName,
             actorId,

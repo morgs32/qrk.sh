@@ -122,15 +122,22 @@ export type IFrontendBindingProps<
   CONTRACT_ADAPTERS extends IContractAdapters<
     FRONTEND_CONTROLLER['contracts']
   > = {},
-> = {
-  frontendController: FRONTEND_CONTROLLER;
-  authenticate: IAuthenticate<
+  AUTHENTICATE extends IAuthenticate<
     IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS>,
     keyof IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS> & string,
     keyof IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS> & string,
     FRONTEND_CONTROLLER['signature'],
-    IResolvedContracts<FRONTEND_CONTROLLER['contracts'], CONTRACT_ADAPTERS>
-  >;
+    unknown
+  > = IAuthenticate<
+    IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS>,
+    keyof IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS> & string,
+    keyof IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS> & string,
+    FRONTEND_CONTROLLER['signature'],
+    unknown
+  >,
+> = {
+  frontendController: FRONTEND_CONTROLLER;
+  authenticate: AUTHENTICATE;
   modelAdapters?: IModelAdapters<FRONTEND_CONTROLLER['models'], ACTOR_MODELS>;
   contractAdapters?: CONTRACT_ADAPTERS;
 };
@@ -143,6 +150,15 @@ export type IFrontendBinding<
   CONTRACT_ADAPTERS extends IContractAdapters<
     FRONTEND_CONTROLLER['contracts']
   > = {},
+  AUTHENTICATE extends IFrontendBindingProps<
+    ACTOR_MODELS,
+    FRONTEND_CONTROLLER,
+    CONTRACT_ADAPTERS
+  >['authenticate'] = IFrontendBindingProps<
+    ACTOR_MODELS,
+    FRONTEND_CONTROLLER,
+    CONTRACT_ADAPTERS
+  >['authenticate'],
 > = {
   name: NAME;
   frontendController: FRONTEND_CONTROLLER;
@@ -168,11 +184,7 @@ export type IFrontendBinding<
       IAnyError
     >;
   };
-  authenticate: IFrontendBindingProps<
-    ACTOR_MODELS,
-    FRONTEND_CONTROLLER,
-    CONTRACT_ADAPTERS
-  >['authenticate'];
+  authenticate: AUTHENTICATE;
   makeCommand: <
     CONTRACT_NAME extends keyof IResolvedContracts<
       FRONTEND_CONTROLLER['contracts'],

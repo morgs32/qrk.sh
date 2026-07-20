@@ -6,7 +6,7 @@ import type { IActor } from '../actorController/types.ts';
 import type {
   IAccountCommand,
   ICommand,
-  IContracts,
+  IContract,
   IDeploySeedCommand,
   IEncodedAppliedMutation,
   IEncodedCommand,
@@ -356,21 +356,19 @@ type IAuthenticateFinalizeAccountCommands = (props: {
   CuidFactory | MonotonicFactory
 >;
 
-export type IAuthenticateMakeAccountCommand<
-  FRONTEND_CONTRACTS extends IContracts,
-> = <CONTRACT_NAME extends keyof FRONTEND_CONTRACTS & string>(props: {
-  contractName: CONTRACT_NAME;
-  payload: InferPayloadInput<FRONTEND_CONTRACTS[CONTRACT_NAME]['payload']>;
+export type IAuthenticateMakeAccountCommand = <CONTRACT extends IContract>(props: {
+  contract: CONTRACT;
+  payload: InferPayloadInput<CONTRACT['payload']>;
 }) => Effect.Effect<
   IAccountCommand<
     ICommand<
-      FRONTEND_CONTRACTS[CONTRACT_NAME]['commandName'],
-      FRONTEND_CONTRACTS[CONTRACT_NAME]['version'],
-      InferCommandPayload<FRONTEND_CONTRACTS[CONTRACT_NAME]['payload']>
+      CONTRACT['commandName'],
+      CONTRACT['version'],
+      InferCommandPayload<CONTRACT['payload']>
     >
   >,
   IAnyError,
-  CuidFactory
+  CuidFactory | CONTRACT
 >;
 
 export type IAuthenticate<
@@ -378,13 +376,17 @@ export type IAuthenticate<
   _ACTOR_MODEL_KEY extends keyof MODELS & string,
   _ACCOUNT_MODEL_KEY extends keyof MODELS & string,
   SIGNATURE_SCHEMA extends Schema.Schema.AnyNoContext,
-  FRONTEND_CONTRACTS extends IContracts = IContracts,
+  AUTHENTICATION_CONTEXT = never,
 > = (props: {
   signature: IAuthenticationSignature<SIGNATURE_SCHEMA>;
   db: IDb<IResourceDbConfig<MODELS>>;
-  makeAccountCommand: IAuthenticateMakeAccountCommand<FRONTEND_CONTRACTS>;
+  makeAccountCommand: IAuthenticateMakeAccountCommand;
   finalizeAccountCommands: IAuthenticateFinalizeAccountCommands;
-}) => Effect.Effect<IActor, IAnyError, CuidFactory | MonotonicFactory>;
+}) => Effect.Effect<
+  IActor,
+  IAnyError,
+  CuidFactory | MonotonicFactory | AUTHENTICATION_CONTEXT
+>;
 
 /** Erased authentication on heterogeneous actor frontends. */
 export type IAnyAuthentication = {

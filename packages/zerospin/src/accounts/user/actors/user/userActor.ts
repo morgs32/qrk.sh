@@ -8,6 +8,7 @@ import { env } from "cloudflare:workers";
 import { Effect } from "effect";
 
 import { userFrontend } from "./userFrontend";
+import { createUser } from "../../../../contracts";
 import { Grid } from "../../../../models/Grid";
 import { Brick } from "../../../../models/Brick";
 import { Page } from "../../../../models/Page";
@@ -115,7 +116,7 @@ export const userActor = makeActorController({
         }
 
         const createUserCommand = yield* makeAccountCommand({
-          contractName: "createUser",
+          contract: createUser,
           payload: {
             id: User.prefixId(clerkUserId),
             clerkUserId,

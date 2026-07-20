@@ -1,5 +1,5 @@
 import { ZerospinOwnerProvider } from "@/components/ZerospinOwner";
-import { Header } from "./Header";
+import { Header } from "../Header";
 
 export default function DashboardLayout({
   children,

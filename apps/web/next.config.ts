@@ -7,6 +7,9 @@ if (mapboxToken === undefined || mapboxToken.length === 0) {
 }
 
 const nextConfig: NextConfig = {
+  devIndicators: {
+    position: "bottom-left",
+  },
   env: {
     PUBLIC_MAPBOX_TOKEN: mapboxToken,
   },

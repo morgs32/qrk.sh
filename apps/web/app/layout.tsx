@@ -27,6 +27,14 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} antialiased`}>
         <ClerkProvider
+          appearance={{
+            elements: {
+              userButtonPopoverActionButtonIcon: "!size-5",
+            },
+            variables: {
+              fontSize: "1rem",
+            },
+          }}
           signInFallbackRedirectUrl={postAuthPath}
           signUpFallbackRedirectUrl={postAuthPath}
         >

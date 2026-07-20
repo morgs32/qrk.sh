@@ -1,6 +1,5 @@
 "use client";
 import { HeroCopy } from "@/components/home/HeroCopy";
-import { Grid } from "./Grid";
 import { usePageStore } from "./pageStore";
 
 export function MainColumns() {
@@ -13,7 +12,7 @@ export function MainColumns() {
           <HeroCopy />
         </div>
         <div data-site-right-scroll className="min-h-0 overflow-y-auto">
-          <Grid />
+          <div className="min-h-full w-full" data-testid="grid-layout" />
         </div>
       </div>
     );
@@ -26,7 +25,7 @@ export function MainColumns() {
           <HeroCopy />
         </div>
         <div className="min-h-0">
-          <Grid />
+          <div className="min-h-full w-full" data-testid="grid-layout" />
         </div>
       </div>
     </div>

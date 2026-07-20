@@ -1,32 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { BrickCarousel } from "../BrickCarousel/BrickCarousel";
-import { BrickCarouselError } from "../BrickCarousel/BrickCarouselError";
-import { collectionsHash } from "@qrk.sh/bricks";
 import { useParams, useRouter } from "next/navigation";
 import { pagePattern } from "../../../routePatterns";
 
 export function BrickCatalog() {
   const params = useParams<{ siteId: string; pageId: string }>();
   const router = useRouter();
-  const [query, setQuery] = useState("");
-
-  const filteredCollections = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const all = Object.values(collectionsHash);
-    if (!q) {
-      return all;
-    }
-    return all.filter(
-      (collection) =>
-        collection.collectionName.toLowerCase().includes(q) ||
-        collection.collectionLabel.toLowerCase().includes(q),
-    );
-  }, [query]);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -51,44 +32,9 @@ export function BrickCatalog() {
             <X className="size-4" />
           </Button>
         </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search bricks…"
-              aria-label="Search bricks"
-            />
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setQuery("")}
-            disabled={query.trim().length === 0}
-          >
-            Clear
-          </Button>
-        </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-        <div aria-label="Brick collections" className="flex flex-col pb-8">
-          {filteredCollections.length === 0 ? (
-            <div className="mx-6 rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
-              No bricks match “{query.trim()}”.
-            </div>
-          ) : (
-            filteredCollections.map((collection) => (
-              <div key={collection.collectionName} className="min-w-0 border-b border-border/60">
-                <BrickCarouselError>
-                  <BrickCarousel collection={collection} />
-                </BrickCarouselError>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+      <div aria-label="Brick collections" className="min-h-0 flex-1" />
     </div>
   );
 }

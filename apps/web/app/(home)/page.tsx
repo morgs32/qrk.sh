@@ -102,7 +102,7 @@ export default function HomePage() {
         >
           <Link
             className={`${silkscreen.className} font-bold text-[#E86F3A] hover:underline`}
-            href="/post-auth"
+            href="/replace"
           >
             DASHBOARD
           </Link>

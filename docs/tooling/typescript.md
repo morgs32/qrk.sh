@@ -54,7 +54,7 @@ For a dynamic route page, validate `params` with **Effect `Schema`**: define **o
 
 - **Bad**: `brickCatalogRouteParamsSchema.ts` that only holds `Schema.Struct({ … })` imported by one `page.tsx`; or `try { decodeUnknownSync(schema)(raw) } catch { notFound() }`.
 
-- **Good**: colocate in the route’s `page.tsx` (for example parallel routes under `apps/app/app/(site)/site/[siteId]/page/[pageId]/@leftDrawer/…`):
+- **Good**: colocate in the route’s `page.tsx` (for example parallel routes under `apps/app/app/[username]/site/[siteId]/page/[pageId]/@leftDrawer/…`):
 
 ```ts
 const BrickCatalogRouteParamsSchema = Schema.Struct({

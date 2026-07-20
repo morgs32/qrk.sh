@@ -1,0 +1,136 @@
+"use client";
+
+import { useUser } from "@clerk/nextjs";
+import { Schema } from "effect";
+import { FileText, Globe, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+import { pagePattern } from "../../../routePatterns";
+import { useSiteStore } from "../../../siteStore";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { useValidatedParams } from "@/hooks/useValidatedParams";
+
+const ParamsSchema = Schema.Struct({
+  username: Schema.String,
+  siteId: Schema.String,
+  pageId: Schema.String,
+});
+
+export function PageSettings() {
+  const params = useValidatedParams(ParamsSchema);
+  const router = useRouter();
+  const { user } = useUser();
+  const pageDraft = useSiteStore((state) =>
+    user === null || user === undefined
+      ? undefined
+      : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId],
+  );
+  const setPageTitle = useSiteStore((state) => state.setPageTitle);
+  const setPageDescription = useSiteStore((state) => state.setPageDescription);
+
+  if (user === null || user === undefined || pageDraft === undefined) {
+    return null;
+  }
+
+  return (
+    <div className="w-full">
+      <header className="sticky top-0 z-10 flex w-full items-center gap-2 border-b border-border bg-muted/95 px-4 py-2.5 backdrop-blur-sm">
+        <FileText className="size-5 shrink-0 text-foreground" strokeWidth={2} aria-hidden />
+        <h1 className="min-w-0 flex-1 text-base font-semibold tracking-tight">Page Settings</h1>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 px-3"
+            onClick={() => router.push(pagePattern.href({ ...params }))}
+          >
+            Done
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 cursor-pointer"
+            aria-label="Close drawer"
+            onClick={() => router.push(pagePattern.href({ ...params }))}
+          >
+            <X className="size-3.5" />
+          </Button>
+        </div>
+      </header>
+
+      <div className="space-y-8 px-4 py-6">
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="page-title">Title</Label>
+            <Input
+              id="page-title"
+              value={pageDraft.title}
+              onChange={(event) =>
+                setPageTitle(user.id, params.siteId, params.pageId, event.target.value)
+              }
+            />
+          </div>
+
+          <div className="flex flex-col gap-6 md:flex-row md:items-stretch md:gap-6">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+              <Label htmlFor="page-description">Description</Label>
+              <Textarea
+                id="page-description"
+                className="min-h-[126px] flex-1 resize-y field-sizing-fixed"
+                value={pageDraft.description}
+                onChange={(event) =>
+                  setPageDescription(user.id, params.siteId, params.pageId, event.target.value)
+                }
+              />
+            </div>
+
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+              <Label>Preview</Label>
+              {/* Fixed-height SERP mock; description column can grow taller via flex-1 textarea */}
+              <Card className="max-h-[126px] max-w-[400px] shrink-0 overflow-hidden py-4 shadow-none">
+                <CardContent className="min-w-0 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Globe className="size-3.5 shrink-0" aria-hidden />
+                    <span className="truncate">makeitrainey.framer.website</span>
+                  </div>
+                  <a
+                    href="#"
+                    className="block truncate text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    {pageDraft.title}
+                  </a>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">
+                    {pageDraft.description}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-1">
+            <div className="font-medium">Danger Zone</div>
+            <p className="text-sm text-muted-foreground">
+              Unpublish your website from all domains.
+            </p>
+          </div>
+          <Button type="button" variant="destructive" className="shrink-0">
+            Unpublish
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

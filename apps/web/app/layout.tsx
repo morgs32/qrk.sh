@@ -32,8 +32,8 @@ export default function RootLayout({
               fontSize: "1rem",
             },
           }}
-          signInFallbackRedirectUrl="/post-auth"
-          signUpFallbackRedirectUrl="/post-auth"
+          signInFallbackRedirectUrl="/replace"
+          signUpFallbackRedirectUrl="/replace"
         >
           {children}
         </ClerkProvider>

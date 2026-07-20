@@ -118,6 +118,7 @@ Plans and specs live under [`.plans/`](./.plans/):
 | React components, files, site workspace, bricks, and catalog | [`docs/styleguide/component-and-file-naming.md`](./docs/styleguide/component-and-file-naming.md) |
 | Effect core, Schema, and errors | [`docs/effect/README.md`](./docs/effect/README.md) |
 | TypeScript fixes and validation patterns | [`docs/tooling/typescript.md`](./docs/tooling/typescript.md) |
+| Next.js client route params, `useParams`, and `ParamsSchema` | [`validated-client-route-params.ts`](./vendor/morgs32/llm-wiki/patterns/nextjs/validated-client-route-params.ts) |
 | Local Zerospin model resets and clean development state | [`zerospin-dev-clean-until-production.ts`](./vendor/morgs32/llm-wiki/patterns/tooling/zerospin-dev-clean-until-production.ts) |
 | Reusable code patterns | [`vendor/morgs32/llm-wiki/patterns/`](./vendor/morgs32/llm-wiki/patterns/index.md) |
 | React controls, shadcn, buttons, and design-system components | [`prefer-design-system-components.ts`](./vendor/morgs32/llm-wiki/patterns/react/prefer-design-system-components.ts) |

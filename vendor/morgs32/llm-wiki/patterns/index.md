@@ -87,6 +87,7 @@ See [README.md](./README.md) for format.
 | `nextjs/route-params-auth-in-default-export.ts` | /\*\*       |
 | `nextjs/routepattern-for-sidebar-is-active.ts`  | /\*\*       |
 | `nextjs/rsc-loader-shell-effect-fn.ts`          | /\*\*       |
+| `nextjs/validated-client-route-params.ts`       | Validate `useParams` with a colocated Effect schema |
 
 ## rpc
 

@@ -101,9 +101,7 @@ export const replayServiceBlock = Effect.fn('ServiceRepo.replayServiceBlock')(
               ),
             )
             .orderBy(
-              asc(
-                serviceRepoDrizzleSchemas.serviceReplayReceipts.completedAt,
-              ),
+              asc(serviceRepoDrizzleSchemas.serviceReplayReceipts.completedAt),
             )
             .all();
           if (receipts.length > 1) {
@@ -301,10 +299,8 @@ export const replayServiceBlock = Effect.fn('ServiceRepo.replayServiceBlock')(
       .select({
         lastServiceCursor:
           serviceRepoDrizzleSchemas.serviceBlockOutbox.lastServiceCursor,
-        serviceIndex:
-          serviceRepoDrizzleSchemas.serviceBlockOutbox.serviceIndex,
-        publishedAt:
-          serviceRepoDrizzleSchemas.serviceBlockOutbox.publishedAt,
+        serviceIndex: serviceRepoDrizzleSchemas.serviceBlockOutbox.serviceIndex,
+        publishedAt: serviceRepoDrizzleSchemas.serviceBlockOutbox.publishedAt,
         failure: serviceRepoDrizzleSchemas.serviceBlockOutbox.failure,
       })
       .from(serviceRepoDrizzleSchemas.serviceBlockOutbox)

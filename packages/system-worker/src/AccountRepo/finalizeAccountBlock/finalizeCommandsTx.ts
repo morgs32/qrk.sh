@@ -19,20 +19,16 @@ import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { dutils } from '@zerospin/core/utils/dutils';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { makeCursor } from '@zerospin/core/utils/makeCursor';
-import {
-  mapParseError,
-  ZerospinError,
-  type IAnyError,
-} from '@zerospin/error';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { eq } from 'drizzle-orm';
 import { Effect, Either, Schema } from 'effect';
 import { system } from 'system';
 
 import { getLastAccountIndex } from '../../getLastAccountCursor/getLastAccountCursor.js';
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { accountRepoDrizzleSchemas } from '../AccountRepo.js';
 
 import { makeAccountBlockTx } from './makeAccountBlockTx.js';
@@ -124,8 +120,7 @@ export const finalizeCommandsTx = Effect.fn('AccountRepo.finalizeCommandsTx')(
           message: `Subscription ${serviceAlignment.serviceRepoName} changed after its grouped snapshot was prepared`,
         });
       }
-      let currentServiceIndex =
-        serviceAlignment.currentServiceIndex ?? 0;
+      let currentServiceIndex = serviceAlignment.currentServiceIndex ?? 0;
       const orderedBlocks = [...serviceAlignment.serviceBlocks].sort(
         (left, right) => left.serviceIndex - right.serviceIndex,
       );

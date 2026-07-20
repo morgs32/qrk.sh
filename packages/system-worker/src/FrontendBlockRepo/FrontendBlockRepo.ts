@@ -7,7 +7,6 @@ import { primitives } from '@zerospin/core/models/primitives';
 import type { IAnyTables } from '@zerospin/core/models/types';
 import { FrontendBlockSchema } from '@zerospin/core/session/FrontendBlockSchema';
 import type { IFrontendBlock } from '@zerospin/core/session/types';
-import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import type { IAnyErrorJson } from '@zerospin/error';
 import { Effect, type Schema } from 'effect';
@@ -17,6 +16,7 @@ import { Server } from 'partyserver';
 import { makeRepo } from '../makeRepo/makeRepo.js';
 import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
 import { managedRuntime } from '../managedRuntime.js';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 import { storeFrontendBlocks } from './storeFrontendBlocks/storeFrontendBlocks.js';
 

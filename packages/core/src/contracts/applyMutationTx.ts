@@ -105,7 +105,9 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
               ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
               : ''
           }`;
-          if (!failure.toLowerCase().includes('foreign key constraint failed')) {
+          if (
+            !failure.toLowerCase().includes('foreign key constraint failed')
+          ) {
             throw cause;
           }
           return new ZerospinError({
@@ -170,7 +172,9 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
               ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
               : ''
           }`;
-          if (!failure.toLowerCase().includes('foreign key constraint failed')) {
+          if (
+            !failure.toLowerCase().includes('foreign key constraint failed')
+          ) {
             throw cause;
           }
           return new ZerospinError({
@@ -257,7 +261,9 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
               ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
               : ''
           }`;
-          if (!failure.toLowerCase().includes('foreign key constraint failed')) {
+          if (
+            !failure.toLowerCase().includes('foreign key constraint failed')
+          ) {
             throw cause;
           }
           return new ZerospinError({
@@ -311,7 +317,9 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
               ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
               : ''
           }`;
-          if (!failure.toLowerCase().includes('foreign key constraint failed')) {
+          if (
+            !failure.toLowerCase().includes('foreign key constraint failed')
+          ) {
             throw cause;
           }
           return new ZerospinError({

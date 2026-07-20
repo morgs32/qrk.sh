@@ -1,6 +1,5 @@
-import { env } from 'cloudflare:workers';
-
 import { makeSystemWorkerName } from '@zerospin/dispatch-worker/makeSystemWorkerName';
+import { env } from 'cloudflare:workers';
 
 export { AccountBlockRepo } from 'system-worker';
 export { AccountRepo } from 'system-worker';

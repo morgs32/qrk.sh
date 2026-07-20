@@ -1,7 +1,8 @@
+import type { Schema } from 'effect';
+
 import type { IAnyActorController } from '../actorController/types.ts';
 import type { IContracts, IOperationName } from '../contracts/types.ts';
 import type { IModels } from '../models/types.ts';
-import type { Schema } from 'effect';
 
 /** Erased account stored on heterogeneous `IAccountControllers` maps. */
 type IAnyAccountController = {

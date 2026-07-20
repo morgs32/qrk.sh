@@ -1,10 +1,7 @@
 import { Effect, Either, Schema } from 'effect';
 
 import { TelemetryCollector } from './TelemetryCollector.ts';
-import type {
-  ILinkedRpcEnvelope,
-  IRpcRequest,
-} from './types.ts';
+import type { ILinkedRpcEnvelope, IRpcRequest } from './types.ts';
 
 export function makeTraceableApiTarget<TARGET extends object>(
   apiTarget: TARGET,
@@ -95,14 +92,8 @@ export function makeTraceableApiTarget(apiTarget: object) {
                   linkId: Schema.TemplateLiteral('lnk_', Schema.String),
                   traceId: Schema.TemplateLiteral('trc_', Schema.String),
                   spanId: Schema.TemplateLiteral('spn_', Schema.String),
-                  priorTraceId: Schema.TemplateLiteral(
-                    'trc_',
-                    Schema.String,
-                  ),
-                  priorSpanId: Schema.TemplateLiteral(
-                    'spn_',
-                    Schema.String,
-                  ),
+                  priorTraceId: Schema.TemplateLiteral('trc_', Schema.String),
+                  priorSpanId: Schema.TemplateLiteral('spn_', Schema.String),
                   kind: Schema.Literal('causedBy', 'retryOf'),
                 }),
               ),

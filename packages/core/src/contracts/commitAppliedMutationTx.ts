@@ -37,11 +37,7 @@ export const commitAppliedMutationTx = Effect.fn('commitAppliedMutationTx')(
     });
     const existingServiceResource =
       'serviceName' in model
-        ? tx
-            .select()
-            .from(table)
-            .where(eq(table.id, mutation.resourceId))
-            .get()
+        ? tx.select().from(table).where(eq(table.id, mutation.resourceId)).get()
         : undefined;
     if (
       existingServiceResource !== undefined &&
@@ -137,10 +133,7 @@ export const commitAppliedMutationTx = Effect.fn('commitAppliedMutationTx')(
                   })
                   .where(eq(table.id, mutation.resourceId))
                   .run()
-              : tx
-                  .delete(table)
-                  .where(eq(table.id, mutation.resourceId))
-                  .run(),
+              : tx.delete(table).where(eq(table.id, mutation.resourceId)).run(),
           catch: cause => {
             const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
               cause instanceof Error && cause.cause !== undefined

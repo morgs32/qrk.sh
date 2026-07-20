@@ -225,10 +225,7 @@ export const annotateFunctionSpan = <
         return '[Snapshot Unavailable]';
       }
     });
-    yield* Effect.annotateCurrentSpan(
-      'function.arguments',
-      argumentSnapshot,
-    );
+    yield* Effect.annotateCurrentSpan('function.arguments', argumentSnapshot);
 
     const result = yield* effect;
 

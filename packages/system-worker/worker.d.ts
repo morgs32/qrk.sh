@@ -1,9 +1,5 @@
 // oxlint-disable-next-line eslint/no-restricted-imports -- package-local Env augmentation needs the concrete Durable Object classes
-import type {
-  ActorRepo,
-  ServiceRepo,
-  SystemRepo,
-} from './src/index';
+import type { ActorRepo, ServiceRepo, SystemRepo } from './src/index';
 // oxlint-disable-next-line eslint/no-restricted-imports -- package-local Env augmentation needs the concrete Worker class
 import type SystemWorker from './src/system-worker';
 

@@ -134,9 +134,8 @@ describe('makeTraceableRpcTarget', () => {
 
   it('normalizes transport rejection and invalid envelopes to Error', async () => {
     const transportFailure = makeTraceableRpcTarget({
-      call: (
-        _request: IRpcRequest<[]>,
-      ): Promise<IRpcEnvelope<never, never>> => Promise.reject('socket died'),
+      call: (_request: IRpcRequest<[]>): Promise<IRpcEnvelope<never, never>> =>
+        Promise.reject('socket died'),
     });
     const invalidEnvelope = makeTraceableRpcTarget({
       call: () => Promise.resolve({ result: 'invalid' }),
@@ -144,16 +143,14 @@ describe('makeTraceableRpcTarget', () => {
     const localCollector = makeTelemetryCollector();
 
     const transportError = await Effect.runPromise(
-      transportFailure.call().pipe(
-        Effect.flip,
-        Effect.provide(makeTelemetryLayer(localCollector)),
-      ),
+      transportFailure
+        .call()
+        .pipe(Effect.flip, Effect.provide(makeTelemetryLayer(localCollector))),
     );
     const envelopeError = await Effect.runPromise(
-      invalidEnvelope.call().pipe(
-        Effect.flip,
-        Effect.provide(makeTelemetryLayer(localCollector)),
-      ),
+      invalidEnvelope
+        .call()
+        .pipe(Effect.flip, Effect.provide(makeTelemetryLayer(localCollector))),
     );
 
     expect(transportError).toBeInstanceOf(Error);

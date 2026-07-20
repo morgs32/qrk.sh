@@ -111,9 +111,7 @@ export const replayAccountBlock = Effect.fn('AccountRepo.replayAccountBlock')(
               ),
             )
             .orderBy(
-              asc(
-                accountRepoDrizzleSchemas.accountReplayReceipts.completedAt,
-              ),
+              asc(accountRepoDrizzleSchemas.accountReplayReceipts.completedAt),
             )
             .all();
           if (receipts.length > 1) {
@@ -385,10 +383,8 @@ export const replayAccountBlock = Effect.fn('AccountRepo.replayAccountBlock')(
       .select({
         lastAccountCursor:
           accountRepoDrizzleSchemas.accountBlockOutbox.lastAccountCursor,
-        accountIndex:
-          accountRepoDrizzleSchemas.accountBlockOutbox.accountIndex,
-        publishedAt:
-          accountRepoDrizzleSchemas.accountBlockOutbox.publishedAt,
+        accountIndex: accountRepoDrizzleSchemas.accountBlockOutbox.accountIndex,
+        publishedAt: accountRepoDrizzleSchemas.accountBlockOutbox.publishedAt,
         failure: accountRepoDrizzleSchemas.accountBlockOutbox.failure,
       })
       .from(accountRepoDrizzleSchemas.accountBlockOutbox)

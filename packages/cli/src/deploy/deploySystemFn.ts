@@ -3,6 +3,7 @@ import * as NodePath from '@effect/platform-node/NodePath';
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
+import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
 import type {
   IDeployConfig,
   ISystem,
@@ -12,7 +13,7 @@ import type {
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
-import { Effect, Layer } from 'effect';
+import { Effect, Layer, Schema } from 'effect';
 
 import type { ICliApis, IDeploySystemResult } from '../types.js';
 
@@ -57,7 +58,9 @@ export const deploySystemFn = Effect.fn('deploySystemFn')(function* (props: {
           clean,
           script: compiledSystemWorker,
           config: deployConfig,
-          systemSpec: makeSystemSpec({ system }),
+          systemSpec: Schema.decodeUnknownSync(SystemSpecSchema)(
+            makeSystemSpec({ system }),
+          ),
         }),
       cause => makeApiUnreachableError({ zerospinApiUrl, cause }),
     ).pipe(Effect.flatMap(decodeRpc));

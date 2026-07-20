@@ -1,5 +1,5 @@
-import type { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
+import type { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis';
 import { newHttpBatchRpcSession } from 'capnweb';
 import {
   abortAllDurableObjects,
@@ -37,15 +37,9 @@ describe('DevZerospinApis ordinary local lifecycle', () => {
     // 2. First ordinary startup owns a root generation, but it never evaluates
     //    the configured seed Effect and never writes a clean request receipt.
     const stored = await runInDurableObject(devApis, instance => ({
-      active: instance.db
-        .select()
-        .from(instance.schema.systemInstance)
-        .get(),
+      active: instance.db.select().from(instance.schema.systemInstance).get(),
       deploy: instance.db.select().from(instance.schema.deploy).get(),
-      generation: instance.db
-        .select()
-        .from(instance.schema.generation)
-        .get(),
+      generation: instance.db.select().from(instance.schema.generation).get(),
       cleanRequests: instance.db
         .select()
         .from(instance.schema.cleanRequest)
@@ -117,10 +111,7 @@ describe('DevZerospinApis ordinary local lifecycle', () => {
     const stored = await runInDurableObject(
       env.DEV_ZEROSPIN_APIS.getByName(SYSTEM_WORKER_NAME),
       instance => ({
-        active: instance.db
-          .select()
-          .from(instance.schema.systemInstance)
-          .get(),
+        active: instance.db.select().from(instance.schema.systemInstance).get(),
         secondDeploy: instance.db
           .select()
           .from(instance.schema.deploy)
@@ -294,9 +285,7 @@ describe('DevZerospinApis ordinary local lifecycle', () => {
       status: 'succeeded',
       phase: 'complete',
     });
-    expect(stored.secondDeploy.generationId).not.toBe(
-      firstDeploy.generationId,
-    );
+    expect(stored.secondDeploy.generationId).not.toBe(firstDeploy.generationId);
     expect(stored.secondGeneration).toEqual({
       id: stored.secondDeploy.generationId,
       prevGenerationId: firstDeploy.generationId,
@@ -370,10 +359,7 @@ describe('DevZerospinApis ordinary local lifecycle', () => {
     const stored = await runInDurableObject(
       env.DEV_ZEROSPIN_APIS.getByName(SYSTEM_WORKER_NAME),
       instance => ({
-        active: instance.db
-          .select()
-          .from(instance.schema.systemInstance)
-          .get(),
+        active: instance.db.select().from(instance.schema.systemInstance).get(),
         failedDeploy: instance.db
           .select()
           .from(instance.schema.deploy)
@@ -404,9 +390,7 @@ describe('DevZerospinApis ordinary local lifecycle', () => {
       status: 'failed',
       phase: 'checking',
     });
-    expect(stored.failedDeploy.generationId).not.toBe(
-      firstDeploy.generationId,
-    );
+    expect(stored.failedDeploy.generationId).not.toBe(firstDeploy.generationId);
     expect(stored.failedDeploy.failure).not.toBeNull();
     expect(stored.generations).toHaveLength(2);
     expect(stored.drainingLogs).toEqual([]);

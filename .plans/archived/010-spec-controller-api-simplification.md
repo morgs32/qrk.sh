@@ -15,7 +15,7 @@ site:
   construction, `models` is fully derivable from `selections`.
 - **Surface:** `name` duplicates `frontendController.surfaceName`; every call
   site passes identity `contractAdapters` for every contract and
-  `modelAdapters: {}`; and the surface's `models` always equal the *actor's*
+  `modelAdapters: {}`; and the surface's `models` always equal the _actor's_
   model set (verified across shopping, parking, and all three fixture
   systems — including the system-worker fixture, where the surface's four
   models are a strict subset of the frontend's five because `product` is
@@ -101,7 +101,7 @@ same runtime payload today's surface controller carries:
   same-key selection that references the same model object. Account-owned
   models use ordinary mutations; registered `IServiceModel` rows enter through
   `replicateResource` and then use the same actor/frontend graph path.
-- **`modelAdapters`** — optional record of *bare functions*
+- **`modelAdapters`** — optional record of _bare functions_
   `(actorResource) => Effect<frontendResource>`; no `makeModelAdapter`
   wrapper needed because both end models are in scope:
   `models[K]` and `frontendController.models[K]`. Runtime rule: an
@@ -127,34 +127,34 @@ The resolved binding type is `IFrontendBinding` (replacing
 ### Part C: full rename, surface → frontend/actor
 
 The "surface" concept disappears. Two rename families, chosen to avoid
-colliding with the *existing* frontend-command concept (commands staged on
+colliding with the _existing_ frontend-command concept (commands staged on
 the frontend replica — `pushFrontendCommands` — are distinct from commands
 applied actor-side):
 
 **Controller-side artifacts → "frontend" naming:**
 
-| Old | New |
-| --- | --- |
-| `surfaceName` (props, fields, route params, DB columns) | `frontendName` |
-| `makeFrontendController({ surfaceName })` | `makeFrontendController({ frontendName })` |
-| `ISurfaceController` / `IAnySurfaceController` | `IFrontendBinding` / `IAnyFrontendBinding` |
-| `actorController.surfaces` | `actorController.frontends` |
-| `packages/core/src/surfaceController/` | `packages/core/src/frontendBinding/` |
-| `getSurfaceController` | `getFrontendBinding` |
-| `getAuthorizedActorSurfaces` | `getAuthorizedActorFrontends` |
-| `IMergedActorSurfaceContracts` | `IMergedActorFrontendContracts` |
-| `AccountContractsExtendSurface` | `AccountContractsExtendFrontend` |
+| Old                                                     | New                                        |
+| ------------------------------------------------------- | ------------------------------------------ |
+| `surfaceName` (props, fields, route params, DB columns) | `frontendName`                             |
+| `makeFrontendController({ surfaceName })`               | `makeFrontendController({ frontendName })` |
+| `ISurfaceController` / `IAnySurfaceController`          | `IFrontendBinding` / `IAnyFrontendBinding` |
+| `actorController.surfaces`                              | `actorController.frontends`                |
+| `packages/core/src/surfaceController/`                  | `packages/core/src/frontendBinding/`       |
+| `getSurfaceController`                                  | `getFrontendBinding`                       |
+| `getAuthorizedActorSurfaces`                            | `getAuthorizedActorFrontends`              |
+| `IMergedActorSurfaceContracts`                          | `IMergedActorFrontendContracts`            |
+| `AccountContractsExtendSurface`                         | `AccountContractsExtendFrontend`           |
 
 **Command-side artifacts → "actor" naming** (a surface command is a command
 applied actor-side; "frontend command" is already taken):
 
-| Old | New |
-| --- | --- |
-| `ISurfaceCommand` | `IActorCommand` |
-| `commandType: 'surface'` | `commandType: 'actor'` |
-| `makeSurfaceCommand` | `makeActorCommand` |
-| `pushSurfaceCommands` (ActorRepo op + RPC) | `pushActorCommands` |
-| `surface-push-command-*` error codes | `actor-push-command-*` |
+| Old                                        | New                    |
+| ------------------------------------------ | ---------------------- |
+| `ISurfaceCommand`                          | `IActorCommand`        |
+| `commandType: 'surface'`                   | `commandType: 'actor'` |
+| `makeSurfaceCommand`                       | `makeActorCommand`     |
+| `pushSurfaceCommands` (ActorRepo op + RPC) | `pushActorCommands`    |
+| `surface-push-command-*` error codes       | `actor-push-command-*` |
 
 **Persistence note:** `surfaceName` appears in drizzle columns
 (`sessionRepoTables`, `accountBlockDrizzleSchemas`, shared-worker user

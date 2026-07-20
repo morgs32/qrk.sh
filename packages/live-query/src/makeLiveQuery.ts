@@ -1,12 +1,12 @@
-import type { IWaSqliteClient } from "@zerospin/core/drizzle/types";
-import { is, SQL, Subquery } from "drizzle-orm";
+import type { IWaSqliteClient } from '@zerospin/core/drizzle/types';
+import { is, SQL, Subquery } from 'drizzle-orm';
 import {
   getTableConfig,
   getViewConfig,
   SQLiteTable,
   SQLiteView,
-} from "drizzle-orm/sqlite-core";
-import { createStore } from "zustand/vanilla";
+} from 'drizzle-orm/sqlite-core';
+import { createStore } from 'zustand/vanilla';
 
 interface IInternalRelationalQuery {
   config?: unknown;
@@ -17,7 +17,7 @@ interface IInternalRelationalQuery {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function toError(error: unknown): Error {
@@ -40,7 +40,7 @@ function getInternalRelationalQuery(
 function getRelationMap(tableConfig: unknown): Record<string, unknown> | null {
   if (
     !isRecord(tableConfig) ||
-    !("relations" in tableConfig) ||
+    !('relations' in tableConfig) ||
     !isRecord(tableConfig.relations)
   ) {
     return null;
@@ -73,7 +73,7 @@ function collectRelationsV2WhereTableNames(props: {
 }) {
   const { filter, schema, tableConfig, tableNames } = props;
 
-  if (typeof filter !== "object" || filter === null) {
+  if (typeof filter !== 'object' || filter === null) {
     return;
   }
 
@@ -95,7 +95,7 @@ function collectRelationsV2WhereTableNames(props: {
   }
 
   for (const [key, value] of Object.entries(filter)) {
-    if (key === "AND" || key === "OR" || key === "NOT") {
+    if (key === 'AND' || key === 'OR' || key === 'NOT') {
       collectRelationsV2WhereTableNames({
         filter: value,
         schema,
@@ -105,7 +105,7 @@ function collectRelationsV2WhereTableNames(props: {
       continue;
     }
 
-    if (key === "RAW") {
+    if (key === 'RAW') {
       continue;
     }
 
@@ -114,18 +114,18 @@ function collectRelationsV2WhereTableNames(props: {
     }
 
     const relation = relationMap[key];
-    if (typeof relation !== "object" || relation === null) {
+    if (typeof relation !== 'object' || relation === null) {
       continue;
     }
 
-    if ("targetTable" in relation) {
+    if ('targetTable' in relation) {
       collectTableNameFromEntity({
         entity: relation.targetTable,
         tableNames,
       });
     }
 
-    if ("throughTable" in relation) {
+    if ('throughTable' in relation) {
       collectTableNameFromEntity({
         entity: relation.throughTable,
         tableNames,
@@ -133,8 +133,8 @@ function collectRelationsV2WhereTableNames(props: {
     }
 
     const nextTableConfig =
-      "targetTableName" in relation &&
-      typeof relation.targetTableName === "string" &&
+      'targetTableName' in relation &&
+      typeof relation.targetTableName === 'string' &&
       relation.targetTableName in schema
         ? schema[relation.targetTableName]
         : null;
@@ -160,11 +160,11 @@ function collectRelationsV2TableNames(props: {
 }) {
   const { config, schema, tableConfig, tableNames } = props;
 
-  if (typeof config !== "object" || config === null) {
+  if (typeof config !== 'object' || config === null) {
     return;
   }
 
-  if ("where" in config) {
+  if ('where' in config) {
     collectRelationsV2WhereTableNames({
       filter: config.where,
       schema,
@@ -174,8 +174,8 @@ function collectRelationsV2TableNames(props: {
   }
 
   if (
-    !("with" in config) ||
-    typeof config.with !== "object" ||
+    !('with' in config) ||
+    typeof config.with !== 'object' ||
     config.with === null
   ) {
     return;
@@ -192,18 +192,18 @@ function collectRelationsV2TableNames(props: {
     }
 
     const relation = relationMap[relationKey];
-    if (typeof relation !== "object" || relation === null) {
+    if (typeof relation !== 'object' || relation === null) {
       continue;
     }
 
-    if ("targetTable" in relation) {
+    if ('targetTable' in relation) {
       collectTableNameFromEntity({
         entity: relation.targetTable,
         tableNames,
       });
     }
 
-    if ("throughTable" in relation) {
+    if ('throughTable' in relation) {
       collectTableNameFromEntity({
         entity: relation.throughTable,
         tableNames,
@@ -211,8 +211,8 @@ function collectRelationsV2TableNames(props: {
     }
 
     const nextTableConfig =
-      "targetTableName" in relation &&
-      typeof relation.targetTableName === "string" &&
+      'targetTableName' in relation &&
+      typeof relation.targetTableName === 'string' &&
       relation.targetTableName in schema
         ? schema[relation.targetTableName]
         : null;
@@ -271,7 +271,7 @@ function getWatchedTableNames(props: {
     }
 
     throw new Error(
-      "Selecting from subqueries and SQL requires explicit tableNames in useLiveQuery.",
+      'Selecting from subqueries and SQL requires explicit tableNames in useLiveQuery.',
     );
   }
 
@@ -289,7 +289,7 @@ function getWatchedTableNames(props: {
     return [...tableNames];
   }
 
-  throw new Error("Could not infer watched tables for useLiveQuery.");
+  throw new Error('Could not infer watched tables for useLiveQuery.');
 }
 
 /*
@@ -310,12 +310,12 @@ export function makeLiveQuery<RESULT>(props: {
 
   // 1 — initial data remains synchronous, matching the existing React hook contract.
   let initialData: RESULT;
-  if ("all" in query && typeof query.all === "function") {
+  if ('all' in query && typeof query.all === 'function') {
     initialData = query.all();
-  } else if ("sync" in query && typeof query.sync === "function") {
+  } else if ('sync' in query && typeof query.sync === 'function') {
     initialData = query.sync();
   } else {
-    throw new Error("useLiveQuery requires a sync Drizzle query.");
+    throw new Error('useLiveQuery requires a sync Drizzle query.');
   }
 
   const store = createStore<{
@@ -351,7 +351,7 @@ export function makeLiveQuery<RESULT>(props: {
 
       try {
         // 3 — each accepted notification executes the already-built query.
-        if ("all" in query && typeof query.all === "function") {
+        if ('all' in query && typeof query.all === 'function') {
           store.setState({
             data: query.all(),
             error: undefined,
@@ -360,7 +360,7 @@ export function makeLiveQuery<RESULT>(props: {
           return;
         }
 
-        if ("sync" in query && typeof query.sync === "function") {
+        if ('sync' in query && typeof query.sync === 'function') {
           store.setState({
             data: query.sync(),
             error: undefined,
@@ -369,7 +369,7 @@ export function makeLiveQuery<RESULT>(props: {
           return;
         }
 
-        throw new Error("useLiveQuery requires a sync Drizzle query.");
+        throw new Error('useLiveQuery requires a sync Drizzle query.');
       } catch (error) {
         // 4 — preserve the last successful data and timestamp on rerun failure.
         store.setState({ error: toError(error) });
@@ -379,7 +379,7 @@ export function makeLiveQuery<RESULT>(props: {
     runQuery();
 
     const unsubscribeFromDatabase = client.subscribeToTableChanges(
-      (changedTableNames) => {
+      changedTableNames => {
         // One transaction can change several tables watched by this query. Find
         // the first relevant name, rerun once against final committed state,
         // and stop examining the rest of the batch.

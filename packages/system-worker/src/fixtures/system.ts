@@ -19,6 +19,8 @@ import { makeServiceModel } from '@zerospin/core/models/makeServiceModel';
 import { primitives } from '@zerospin/core/models/primitives';
 import { makeServiceController } from '@zerospin/core/service/makeServiceController';
 import { makeSystem } from '@zerospin/core/system/makeSystem';
+import { makeAccountId } from '@zerospin/core/utils/makeAccountId';
+import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
 import { ZerospinError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
@@ -112,6 +114,29 @@ const Stock = makeServiceModel(
   },
   [],
 );
+
+const createUser = makeContract({
+  commandName: 'createUser',
+  payload: {
+    id: User.primaryKey({ autogenerate: false }),
+    actorId: primitives.opaqueId({ abbreviation: 'actr' }),
+    name: primitives.text(),
+  },
+  mutations: Schema.Struct({
+    created: User.createMutation('1.0.0'),
+  }),
+  program: ({ payload }) =>
+    Effect.all({
+      created: User.create('1.0.0', {
+        resourceId: payload.id,
+        attributes: {
+          actorId: payload.actorId,
+          name: payload.name,
+        },
+      }),
+    }),
+  version: '1.0.0',
+});
 
 export const createList = makeContract({
   commandName: 'createList',
@@ -582,15 +607,43 @@ export const mainActor = makeActorController({
               where: { id: { eq: props.signature.userId } },
             })
             .sync();
-          if (user === undefined) {
+          if (user !== undefined) {
+            return {
+              actorId: user.actorId,
+              accountId: makeAccountId({ id: '1' }),
+            };
+          }
+
+          const actorId = yield* makeIdFromAbbreviation({
+            abbreviation: 'actr',
+          });
+          const createUserCommand = yield* props.makeAccountCommand({
+            contract: createUser,
+            payload: {
+              id: props.signature.userId,
+              actorId,
+              name: 'AccountRepo bootstrapped user',
+            },
+          });
+          yield* props.finalizeAccountCommands({
+            commands: [createUserCommand],
+          });
+
+          const createdUser = props.db.query.user
+            .findFirst({
+              where: { id: { eq: props.signature.userId } },
+            })
+            .sync();
+          if (createdUser === undefined) {
             return yield* new ZerospinError({
-              code: 'user-not-found',
-              message: `User ${props.signature.userId} was not found`,
+              code: 'user-create-failed',
+              message: `User ${props.signature.userId} was not created`,
             });
           }
+
           return {
-            actorId: user.actorId,
-            accountId: 'acct_1' as const,
+            actorId: createdUser.actorId,
+            accountId: makeAccountId({ id: '1' }),
           };
         }),
     },
@@ -612,7 +665,10 @@ export const userAccount = makeAccountController({
     product: Product,
     stock: Stock,
   },
-  contracts: mainActor.frontends.main!.contracts,
+  contracts: {
+    createUser,
+    ...mainActor.frontends.main!.contracts,
+  },
 });
 
 export const system = makeSystem({

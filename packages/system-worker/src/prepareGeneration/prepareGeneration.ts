@@ -22,13 +22,8 @@ export const prepareGeneration = Effect.fn('SystemWorker.prepareGeneration')(
     systemSpec: ISystemSpec;
     seeds: readonly IDeploySeedCommand[];
   }) {
-    const {
-      deployId,
-      generationId,
-      prevGenerationId,
-      seeds,
-      systemSpec,
-    } = props;
+    const { deployId, generationId, prevGenerationId, seeds, systemSpec } =
+      props;
 
     // Checkpoint 1: hosted preparation is tied to the concrete uploaded Worker
     // whose code and Version Metadata are being considered for activation.

@@ -11,6 +11,7 @@ import { primitives } from '../models/primitives.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { makeAccountId } from '../utils/makeAccountId.ts';
 
+import { makeAccountCommand } from './makeAccountCommand.ts';
 import { makeAccountController } from './makeAccountController.ts';
 
 const User = makeModel(
@@ -96,6 +97,36 @@ const authenticate = () =>
   });
 
 describe('makeAccountController', () => {
+  it('rejects a missing version before model validation', () => {
+    const props = {
+      name: 'user',
+      version: '1.0.0',
+      actorControllers: {},
+      models: {},
+      contracts: {},
+    };
+    Reflect.deleteProperty(props, 'version');
+
+    expect(() => makeAccountController(props)).toThrow(
+      'makeAccountController: version must be a non-empty string',
+    );
+  });
+
+  it('rejects an empty version before model validation', () => {
+    const props = {
+      name: 'user',
+      version: '1.0.0',
+      actorControllers: {},
+      models: {},
+      contracts: {},
+    };
+    Reflect.set(props, 'version', '');
+
+    expect(() => makeAccountController(props)).toThrow(
+      'makeAccountController: version must be a non-empty string',
+    );
+  });
+
   it('returns actorControllers map on the account and stamps accountName on commands', async () => {
     const createUser = makeContract({
       commandName: 'createUser',
@@ -157,6 +188,27 @@ describe('makeAccountController', () => {
 
     expect(command.accountName).toBe('user');
     expect(command.systemVersion).toBe('1.0.0');
+
+    const lowLevelCommand = await Effect.runPromise(
+      makeAccountCommand({
+        contract: createUser,
+        accountId: makeAccountId({ id: '1' }),
+        accountName: 'user',
+        systemName: frontend.systemName,
+        systemVersion: '1.0.0',
+        payload: {
+          id: User.prefixId('user-1'),
+        },
+      }).pipe(
+        Effect.provide(
+          makePrefixedIncrementalIdFactory('makeAccountCommand'),
+        ),
+      ),
+    );
+
+    expect(lowLevelCommand.commandName).toBe('createUser');
+    expect(lowLevelCommand.version).toBe('1.0.0');
+    expect(lowLevelCommand.payload).toEqual({ id: 'usr_user-1' });
   });
 
   it('throws when an actorControllers key does not match the actor name', () => {

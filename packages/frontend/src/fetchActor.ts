@@ -1,5 +1,5 @@
-import { type Async } from '@zerospin/core/async/Async';
 import type { IActor } from '@zerospin/core/actorController/types';
+import { type Async } from '@zerospin/core/async/Async';
 import type { IFrontendController } from '@zerospin/core/frontendController/types';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
@@ -51,11 +51,13 @@ export const fetchActor = Effect.fn('fetchActor')(function* <
       signature,
     }),
   );
-  return yield* client.fetchActor().pipe(
-    Effect.mapError(error =>
-      error instanceof Error
-        ? ZerospinError.catch({ code: 'async-failed' })(error)
-        : new ZerospinError(error),
-    ),
-  );
+  return yield* client
+    .fetchActor()
+    .pipe(
+      Effect.mapError(error =>
+        error instanceof Error
+          ? ZerospinError.catch({ code: 'async-failed' })(error)
+          : new ZerospinError(error),
+      ),
+    );
 }, annotateFunctionSpan);

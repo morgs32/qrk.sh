@@ -1,7 +1,9 @@
 import { Effect, Schema } from 'effect';
+import { assert, type Equals } from 'tsafe';
 
 import { makeActorController } from '../actorController/makeActorController.ts';
 import { makeContract } from '../contracts/makeContract.ts';
+import type { IContract } from '../contracts/types.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { makeModel } from '../models/makeModel.ts';
 import { makeSelection } from '../models/makeSelection.ts';
@@ -51,6 +53,26 @@ const createList = makeContract({
   version: '1.0.0',
 });
 
+const createUser = makeContract({
+  commandName: 'createUser',
+  payload: {
+    id: User.primaryKey({ autogenerate: false }),
+    name: primitives.text(),
+  },
+  mutations: null,
+  version: '1.0.0',
+});
+
+const incompatibleCreateUser = makeContract({
+  commandName: 'createUser',
+  payload: {
+    id: User.primaryKey({ autogenerate: false }),
+    displayName: primitives.text(),
+  },
+  mutations: null,
+  version: '2.0.0',
+});
+
 const frontend = makeFrontendController({
   contracts: { createList },
   accountName: 'user',
@@ -73,18 +95,79 @@ const actor = makeActorController({
   frontends: {
     main: {
       frontendController: frontend,
-      authenticate: () =>
-        Effect.succeed({
-          actorId: 'usr_1' as const,
-          accountId: 'acct_1' as const,
+      authenticate: ({ makeAccountCommand }) =>
+        Effect.gen(function* () {
+          const createListCommand = yield* makeAccountCommand({
+            contract: createList,
+            payload: {
+              id: List.prefixId('list-1'),
+              name: 'List 1',
+              userId: User.prefixId('user-1'),
+            },
+          });
+          const createUserCommand = yield* makeAccountCommand({
+            contract: createUser,
+            payload: {
+              id: User.prefixId('user-1'),
+              name: 'User 1',
+            },
+          });
+          yield* makeAccountCommand({
+            contract: createUser,
+            // @ts-expect-error — createUser payload requires name
+            payload: {
+              id: User.prefixId('user-1'),
+            },
+          });
+
+          assert<Equals<typeof createListCommand.commandName, 'createList'>>();
+          assert<Equals<typeof createUserCommand.commandName, 'createUser'>>();
+          assert<Equals<typeof createUserCommand.version, '1.0.0'>>();
+          assert<
+            Equals<
+              typeof createListCommand.payload.userId,
+              ReturnType<typeof User.prefixId>
+            >
+          >();
+          assert<
+            Equals<keyof typeof createUserCommand.payload, 'id' | 'name'>
+          >();
+
+          return {
+            actorId: 'usr_1' as const,
+            accountId: 'acct_1' as const,
+          };
         }),
     },
   },
 });
 
-makeAccountController({
+assert<
+  Equals<
+    Extract<
+      Effect.Effect.Context<
+        ReturnType<typeof actor.frontends.main.authenticate>
+      >,
+      IContract
+    >,
+    typeof createList | typeof createUser
+  >
+>();
+
+const versionedAccountController = makeAccountController({
   name: 'user',
   version: '1.0.0',
+  actorControllers: { main: actor },
+  models: { list: List, user: User },
+  contracts: { createList, createUser },
+});
+
+const accountControllerVersion: '1.0.0' = versionedAccountController.version;
+void accountControllerVersion;
+
+// @ts-expect-error — version is required at the factory call site
+makeAccountController({
+  name: 'user',
   actorControllers: { main: actor },
   models: { list: List, user: User },
   contracts: actor.frontends.main.contracts,
@@ -116,7 +199,25 @@ makeAccountController({
   actorControllers: { main: actor },
   models: { list: List, user: User },
   // @ts-expect-error CoreTypeError — account contracts must include every frontend binding contract
-  contracts: {},
+  contracts: { createUser },
+});
+
+makeAccountController({
+  name: 'user',
+  version: '1.0.0',
+  actorControllers: { main: actor },
+  models: { list: List, user: User },
+  // @ts-expect-error CoreTypeError — account contracts must include every actor authentication contract
+  contracts: { createList },
+});
+
+makeAccountController({
+  name: 'user',
+  version: '1.0.0',
+  actorControllers: { main: actor },
+  models: { list: List, user: User },
+  // @ts-expect-error CoreTypeError — account authentication contracts must match exactly
+  contracts: { createList, createUser: incompatibleCreateUser },
 });
 
 const VersionedList = makeModel(

@@ -55,7 +55,9 @@ export const applyAccountMutationTx = Effect.fn('applyAccountMutationTx')(
               ? `\n${ZerospinError.prettyUnknownFailure(cause.cause)}`
               : ''
           }`;
-          if (!failure.toLowerCase().includes('foreign key constraint failed')) {
+          if (
+            !failure.toLowerCase().includes('foreign key constraint failed')
+          ) {
             throw cause;
           }
           return new ZerospinError({

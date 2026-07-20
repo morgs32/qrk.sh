@@ -6,19 +6,15 @@ import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { makeCursor } from '@zerospin/core/utils/makeCursor';
-import {
-  mapParseError,
-  ZerospinError,
-  type IAnyError,
-} from '@zerospin/error';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 import { system } from 'system';
 
 import { getLastAccountIndex } from '../../getLastAccountCursor/getLastAccountCursor.js';
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import type { IAccountBlockOutboxRecord, IServiceBlock } from '../../types.js';
 import { accountRepoDrizzleSchemas } from '../AccountRepo.js';
 import { makeAccountBlockTx } from '../finalizeAccountBlock/makeAccountBlockTx.js';
@@ -42,14 +38,8 @@ export const handleServiceBlocks = Effect.fn('AccountRepo.handleServiceBlocks')(
     db: IDb;
     storage: DurableObjectStorage;
   }): Effect.fn.Return<void, IAnyError, CuidFactory | MonotonicFactory> {
-    const {
-      accountName,
-      blocks,
-      db,
-      serviceName,
-      serviceRepoName,
-      storage,
-    } = props;
+    const { accountName, blocks, db, serviceName, serviceRepoName, storage } =
+      props;
     const persistedServiceRepoName = yield* Schema.decodeUnknown(
       makeAbbreviationIdSchema(systemWorkerAbbreviations.serviceRepo),
     )(serviceRepoName).pipe(

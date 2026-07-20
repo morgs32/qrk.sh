@@ -155,6 +155,12 @@ export function makeFrontendController<
     guards: guardsInput = {},
   } = props;
 
+  if (typeof version !== 'string' || version.length === 0) {
+    throw new Error(
+      'makeFrontendController: version must be a non-empty string',
+    );
+  }
+
   assertValidModels({ models, context: 'makeFrontendController' });
 
   const guards = makeGuards({

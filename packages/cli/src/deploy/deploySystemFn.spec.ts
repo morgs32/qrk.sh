@@ -97,6 +97,34 @@ describe('deploySystemFn', () => {
     vi.clearAllMocks();
   });
 
+  it('rejects a malformed SystemSpec before calling the deploy API', async () => {
+    const system = {
+      name: 'test',
+      version: '1.0.0',
+      accountControllers: {},
+      serviceControllers: {},
+    };
+    Reflect.deleteProperty(system, 'version');
+
+    const error = await Effect.runPromise(
+      deploySystemFn({
+        clean: false,
+        zerospinSecretKey: 'api_key_test_123',
+        zerospinApiUrl,
+        compiledSystemWorker: 'export default {};',
+        environmentId: 'dev',
+        system,
+        config: makeFileConfig(),
+      }).pipe(Effect.provide(AsyncLive), Effect.flip),
+    );
+
+    expect(error).toMatchObject({
+      code: 'deploy-api-threw-exception',
+      cause: expect.stringContaining('version'),
+    });
+    expect(deploySystemWorker).not.toHaveBeenCalled();
+  });
+
   it('sends the API key in the deploy RPC payload', async () => {
     deploySystemWorker.mockResolvedValue(
       Schema.encodeUnknownSync(EitherSchema)(

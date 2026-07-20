@@ -3,8 +3,8 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeMigratedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb';
 import { main, mainModels } from '@zerospin/core/fixtures/system';
-import type { InferFrontendModels } from '@zerospin/core/frontendController/types';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
+import type { InferFrontendModels } from '@zerospin/core/frontendController/types';
 import { makeSession } from '@zerospin/core/session/makeSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
 import type {
@@ -54,9 +54,7 @@ describe('makeSession configuration', () => {
   });
 
   it('stores the exact signature factory without invoking it', () => {
-    const generateSignature = vi.fn(() =>
-      Effect.succeed({ actorId: 'usr_1' }),
-    );
+    const generateSignature = vi.fn(() => Effect.succeed({ actorId: 'usr_1' }));
     const session = makeSession({
       frontend,
       generateSignature,

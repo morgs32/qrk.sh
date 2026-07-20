@@ -37,16 +37,16 @@
         "ActorBlockRepo",
         "AuthorizationRepo",
         "SystemLogRepo",
-        "SystemLogAgent"
-      ]
+        "SystemLogAgent",
+      ],
     },
     {
       "tag": "v2",
       "new_sqlite_classes": [
         "FrontendRepo",
         "FrontendBlockRepo",
-        "ServiceBlockRepo"
-      ]
+        "ServiceBlockRepo",
+      ],
     },
     {
       "tag": "zerospin-dev-v1",

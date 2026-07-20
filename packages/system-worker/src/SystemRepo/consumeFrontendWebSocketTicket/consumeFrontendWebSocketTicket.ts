@@ -42,7 +42,13 @@ export const consumeFrontendWebSocketTicket = Effect.fn(
 
   // Checkpoint 1: reject malformed tickets without hashing or touching storage.
   // The error is deliberately identical to missing, expired, and reused cases.
-  if (!/^[A-Za-z0-9_-]{43}$/.test(ticket)) {
+  const ticketParts = ticket.split('.');
+  if (
+    ticketParts.length !== 2 ||
+    ticketParts[0] !== generationId ||
+    ticketParts[1] === undefined ||
+    !/^[A-Za-z0-9_-]{43}$/.test(ticketParts[1])
+  ) {
     return yield* new ZerospinError({
       code: 'frontend-websocket-ticket-invalid',
       message: 'Frontend WebSocket ticket is invalid or expired',
@@ -141,10 +147,7 @@ export const consumeFrontendWebSocketTicket = Effect.fn(
           and(
             eq(frontendWebSocketTicketColumns.ticketHash, ticketHash),
             eq(frontendWebSocketTicketColumns.deployId, ticketRow.deployId),
-            eq(
-              frontendWebSocketTicketColumns.expiresAt,
-              ticketRow.expiresAt,
-            ),
+            eq(frontendWebSocketTicketColumns.expiresAt, ticketRow.expiresAt),
           ),
         )
         .returning({ repoName: frontendWebSocketTicketColumns.repoName })

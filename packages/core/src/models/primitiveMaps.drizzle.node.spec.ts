@@ -57,16 +57,12 @@ describe('primary-key drizzle metadata', () => {
       notNull: true,
       primary: true,
     });
-    expect(
-      getTableConfig(cursorDrizzleSchema).columns[0],
-    ).toMatchObject({
+    expect(getTableConfig(cursorDrizzleSchema).columns[0]).toMatchObject({
       name: 'cursor',
       notNull: true,
       primary: false,
     });
-    expect(
-      getTableConfig(textDrizzleSchema).columns[0],
-    ).toMatchObject({
+    expect(getTableConfig(textDrizzleSchema).columns[0]).toMatchObject({
       name: 'version',
       notNull: true,
       primary: false,

@@ -222,65 +222,63 @@ describe('checkSystemCompatibility', () => {
     }),
   );
 
-  it.effect(
-    'uses directional payload and query parameter compatibility',
-    () =>
-      Effect.gen(function* () {
-        const prior = structuredClone(baseSpec);
-        prior.serviceControllers.app!.contracts.createProduct!.payloadJsonSchema =
-          JSONSchema.make(Schema.Struct({ id: Schema.String }));
-        prior.serviceControllers.app!.queries.findProducts!.paramsJsonSchema =
-          JSONSchema.make(Schema.Struct({ name: Schema.String }));
+  it.effect('uses directional payload and query parameter compatibility', () =>
+    Effect.gen(function* () {
+      const prior = structuredClone(baseSpec);
+      prior.serviceControllers.app!.contracts.createProduct!.payloadJsonSchema =
+        JSONSchema.make(Schema.Struct({ id: Schema.String }));
+      prior.serviceControllers.app!.queries.findProducts!.paramsJsonSchema =
+        JSONSchema.make(Schema.Struct({ name: Schema.String }));
 
-        const widened = structuredClone(prior);
-        widened.version = '1.1.0';
-        widened.serviceControllers.app!.version = '1.1.0';
-        widened.serviceControllers.app!.contracts.createProduct!.version =
-          '1.1.0';
-        widened.serviceControllers.app!.contracts.createProduct!.payloadJsonSchema =
-          JSONSchema.make(
-            Schema.Struct({
-              id: Schema.String,
-              note: Schema.optional(Schema.String),
-            }),
-          );
-        widened.serviceControllers.app!.queries.findProducts!.paramsJsonSchema =
-          JSONSchema.make(
-            Schema.Struct({
-              name: Schema.String,
-              limit: Schema.optional(Schema.Number),
-            }),
-          );
-        const compatible = yield* checkSystemCompatibility({
-          prior,
-          next: widened,
-        });
-        expect(compatible.requiredBump).toBe('minor');
-        expect(
-          compatible.diffs.filter(diff => diff.kind === 'schema-widened'),
-        ).toHaveLength(2);
-
-        const narrowed = structuredClone(prior);
-        narrowed.version = '2.0.0';
-        narrowed.serviceControllers.app!.version = '2.0.0';
-        narrowed.serviceControllers.app!.contracts.createProduct!.version =
-          '2.0.0';
-        narrowed.serviceControllers.app!.contracts.createProduct!.payloadJsonSchema =
-          JSONSchema.make(
-            Schema.Struct({ id: Schema.String, required: Schema.String }),
-          );
-        const incompatible = yield* checkSystemCompatibility({
-          prior,
-          next: narrowed,
-        });
-        expect(incompatible.requiredBump).toBe('major');
-        expect(incompatible.diffs).toContainEqual(
-          expect.objectContaining({
-            path: 'serviceControllers.app.contracts.createProduct.payloadJsonSchema',
-            kind: 'schema-incompatible',
+      const widened = structuredClone(prior);
+      widened.version = '1.1.0';
+      widened.serviceControllers.app!.version = '1.1.0';
+      widened.serviceControllers.app!.contracts.createProduct!.version =
+        '1.1.0';
+      widened.serviceControllers.app!.contracts.createProduct!.payloadJsonSchema =
+        JSONSchema.make(
+          Schema.Struct({
+            id: Schema.String,
+            note: Schema.optional(Schema.String),
           }),
         );
-      }),
+      widened.serviceControllers.app!.queries.findProducts!.paramsJsonSchema =
+        JSONSchema.make(
+          Schema.Struct({
+            name: Schema.String,
+            limit: Schema.optional(Schema.Number),
+          }),
+        );
+      const compatible = yield* checkSystemCompatibility({
+        prior,
+        next: widened,
+      });
+      expect(compatible.requiredBump).toBe('minor');
+      expect(
+        compatible.diffs.filter(diff => diff.kind === 'schema-widened'),
+      ).toHaveLength(2);
+
+      const narrowed = structuredClone(prior);
+      narrowed.version = '2.0.0';
+      narrowed.serviceControllers.app!.version = '2.0.0';
+      narrowed.serviceControllers.app!.contracts.createProduct!.version =
+        '2.0.0';
+      narrowed.serviceControllers.app!.contracts.createProduct!.payloadJsonSchema =
+        JSONSchema.make(
+          Schema.Struct({ id: Schema.String, required: Schema.String }),
+        );
+      const incompatible = yield* checkSystemCompatibility({
+        prior,
+        next: narrowed,
+      });
+      expect(incompatible.requiredBump).toBe('major');
+      expect(incompatible.diffs).toContainEqual(
+        expect.objectContaining({
+          path: 'serviceControllers.app.contracts.createProduct.payloadJsonSchema',
+          kind: 'schema-incompatible',
+        }),
+      );
+    }),
   );
 
   it.effect('treats mutating-to-null and removed surfaces as major', () =>
@@ -551,7 +549,8 @@ describe('checkSystemCompatibility', () => {
       const narrowed = structuredClone(fixtureSpec);
       narrowed.version = '2.0.0';
       narrowed.accountControllers.user!.version = '2.0.0';
-      narrowed.accountControllers.user!.actorControllers.main!.version = '2.0.0';
+      narrowed.accountControllers.user!.actorControllers.main!.version =
+        '2.0.0';
       narrowed.accountControllers.user!.actorControllers.main!.frontends.main!.frontendController.version =
         '2.0.0';
       narrowed.accountControllers.user!.actorControllers.main!.frontends.main!.frontendController.signatureJsonSchema =
@@ -607,108 +606,115 @@ describe('checkSystemCompatibility', () => {
     }),
   );
 
-  it.effect('treats every structural contract mutation-slot change as major', () =>
-    Effect.gen(function* () {
-      const prior = structuredClone(baseSpec);
-      prior.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
-        JSONSchema.make(
-          Schema.Struct({
-            created: Product.createMutation('1.0.0'),
-            deleted: Product.deleteMutation('1.0.0'),
+  it.effect(
+    'treats every structural contract mutation-slot change as major',
+    () =>
+      Effect.gen(function* () {
+        const prior = structuredClone(baseSpec);
+        prior.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
+          JSONSchema.make(
+            Schema.Struct({
+              created: Product.createMutation('1.0.0'),
+              deleted: Product.deleteMutation('1.0.0'),
+            }),
+          );
+
+        const added = structuredClone(prior);
+        added.version = '2.0.0';
+        added.serviceControllers.app!.version = '2.0.0';
+        added.serviceControllers.app!.contracts.createProduct!.version =
+          '2.0.0';
+        added.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
+          JSONSchema.make(
+            Schema.Struct({
+              created: Product.createMutation('1.0.0'),
+              deleted: Product.deleteMutation('1.0.0'),
+              updated: Product.updateMutation('1.0.0'),
+            }),
+          );
+        const addedResult = yield* checkSystemCompatibility({
+          prior,
+          next: added,
+        });
+        expect(addedResult.diffs).toContainEqual(
+          expect.objectContaining({
+            path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
+            kind: 'mutation-membership-changed',
+            requiredBump: 'major',
           }),
         );
 
-      const added = structuredClone(prior);
-      added.version = '2.0.0';
-      added.serviceControllers.app!.version = '2.0.0';
-      added.serviceControllers.app!.contracts.createProduct!.version = '2.0.0';
-      added.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
-        JSONSchema.make(
-          Schema.Struct({
-            created: Product.createMutation('1.0.0'),
-            deleted: Product.deleteMutation('1.0.0'),
-            updated: Product.updateMutation('1.0.0'),
+        const removed = structuredClone(prior);
+        removed.version = '2.0.0';
+        removed.serviceControllers.app!.version = '2.0.0';
+        removed.serviceControllers.app!.contracts.createProduct!.version =
+          '2.0.0';
+        removed.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
+          JSONSchema.make(
+            Schema.Struct({
+              created: Product.createMutation('1.0.0'),
+            }),
+          );
+        const removedResult = yield* checkSystemCompatibility({
+          prior,
+          next: removed,
+        });
+        expect(removedResult.diffs).toContainEqual(
+          expect.objectContaining({
+            path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
+            kind: 'mutation-membership-changed',
+            requiredBump: 'major',
           }),
         );
-      const addedResult = yield* checkSystemCompatibility({ prior, next: added });
-      expect(addedResult.diffs).toContainEqual(
-        expect.objectContaining({
-          path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
-          kind: 'mutation-membership-changed',
-          requiredBump: 'major',
-        }),
-      );
 
-      const removed = structuredClone(prior);
-      removed.version = '2.0.0';
-      removed.serviceControllers.app!.version = '2.0.0';
-      removed.serviceControllers.app!.contracts.createProduct!.version =
-        '2.0.0';
-      removed.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
-        JSONSchema.make(
-          Schema.Struct({
-            created: Product.createMutation('1.0.0'),
+        const reordered = structuredClone(prior);
+        reordered.version = '2.0.0';
+        reordered.serviceControllers.app!.version = '2.0.0';
+        reordered.serviceControllers.app!.contracts.createProduct!.version =
+          '2.0.0';
+        reordered.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
+          JSONSchema.make(
+            Schema.Struct({
+              deleted: Product.deleteMutation('1.0.0'),
+              created: Product.createMutation('1.0.0'),
+            }),
+          );
+        const reorderedResult = yield* checkSystemCompatibility({
+          prior,
+          next: reordered,
+        });
+        expect(reorderedResult.diffs).toContainEqual(
+          expect.objectContaining({
+            path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
+            kind: 'mutation-membership-changed',
+            requiredBump: 'major',
           }),
         );
-      const removedResult = yield* checkSystemCompatibility({
-        prior,
-        next: removed,
-      });
-      expect(removedResult.diffs).toContainEqual(
-        expect.objectContaining({
-          path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
-          kind: 'mutation-membership-changed',
-          requiredBump: 'major',
-        }),
-      );
 
-      const reordered = structuredClone(prior);
-      reordered.version = '2.0.0';
-      reordered.serviceControllers.app!.version = '2.0.0';
-      reordered.serviceControllers.app!.contracts.createProduct!.version =
-        '2.0.0';
-      reordered.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
-        JSONSchema.make(
-          Schema.Struct({
-            deleted: Product.deleteMutation('1.0.0'),
-            created: Product.createMutation('1.0.0'),
+        const changed = structuredClone(prior);
+        changed.version = '2.0.0';
+        changed.serviceControllers.app!.version = '2.0.0';
+        changed.serviceControllers.app!.contracts.createProduct!.version =
+          '2.0.0';
+        changed.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
+          JSONSchema.make(
+            Schema.Struct({
+              created: Product.updateMutation('1.0.0'),
+              deleted: Product.deleteMutation('1.0.0'),
+            }),
+          );
+        const changedResult = yield* checkSystemCompatibility({
+          prior,
+          next: changed,
+        });
+        expect(changedResult.diffs).toContainEqual(
+          expect.objectContaining({
+            path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
+            kind: 'mutation-membership-changed',
+            requiredBump: 'major',
           }),
         );
-      const reorderedResult = yield* checkSystemCompatibility({
-        prior,
-        next: reordered,
-      });
-      expect(reorderedResult.diffs).toContainEqual(
-        expect.objectContaining({
-          path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
-          kind: 'mutation-membership-changed',
-          requiredBump: 'major',
-        }),
-      );
-
-      const changed = structuredClone(prior);
-      changed.version = '2.0.0';
-      changed.serviceControllers.app!.version = '2.0.0';
-      changed.serviceControllers.app!.contracts.createProduct!.version = '2.0.0';
-      changed.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
-        JSONSchema.make(
-          Schema.Struct({
-            created: Product.updateMutation('1.0.0'),
-            deleted: Product.deleteMutation('1.0.0'),
-          }),
-        );
-      const changedResult = yield* checkSystemCompatibility({
-        prior,
-        next: changed,
-      });
-      expect(changedResult.diffs).toContainEqual(
-        expect.objectContaining({
-          path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
-          kind: 'mutation-membership-changed',
-          requiredBump: 'major',
-        }),
-      );
-    }),
+      }),
   );
 
   it.effect('inherits model severity for a mutation slot version advance', () =>

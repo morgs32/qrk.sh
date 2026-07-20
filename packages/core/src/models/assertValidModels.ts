@@ -20,7 +20,6 @@ export function assertValidModels<MODELS extends IModels>(props: {
         `${context}: models key "${key}" must equal model.modelName "${model.modelName}"`,
       );
     }
-
   }
 
   void makeResourceDbConfig({ models });

@@ -115,9 +115,7 @@ test('standalone system api exposes its spec and app service query', async () =>
       throw new Error('Expected the service-finalization causedBy link');
     }
 
-    expect(readCallerRoot.name).toBe(
-      'shopping.system.executeServiceQuery',
-    );
+    expect(readCallerRoot.name).toBe('shopping.system.executeServiceQuery');
     expect(readCallerRoot.parentSpanId).toBeNull();
     expect(mutationCallerRoot.name).toBe(
       'shopping.system.finalizeServiceCommands',

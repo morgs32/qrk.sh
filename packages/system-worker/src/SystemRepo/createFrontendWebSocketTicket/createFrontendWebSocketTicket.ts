@@ -67,14 +67,17 @@ export const createFrontendWebSocketTicket = Effect.fn(
     }),
   });
 
-  // Checkpoint 3: the browser receives 256 random bits encoded as unpadded
-  // base64url. This is always 43 characters and is safe in a query parameter.
+  // Checkpoint 3: the browser receives the generation routing key followed by
+  // 256 random bits encoded as unpadded base64url. The generation prefix lets
+  // the local SystemWorker select the owning SystemRepo before consuming the
+  // capability; the complete value remains opaque and single-use to callers.
   const ticketBytes = new Uint8Array(32);
   crypto.getRandomValues(ticketBytes);
-  const ticket = btoa(String.fromCharCode(...ticketBytes))
+  const randomTicket = btoa(String.fromCharCode(...ticketBytes))
     .replaceAll('+', '-')
     .replaceAll('/', '_')
     .replaceAll('=', '');
+  const ticket = `${generationId}.${randomTicket}`;
 
   const ticketHashBuffer = yield* Effect.tryPromise({
     try: () =>

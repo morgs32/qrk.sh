@@ -296,44 +296,46 @@ describe('makeMutations', () => {
     }),
   );
 
-  it.effect('rejects program output that does not match the mutations schema', () =>
-    Effect.gen(function* () {
-      const invalidOutputContract = makeContract({
-        commandName: 'invalidCreateOutput',
-        payload: {
-          id: List.primaryKey({ autogenerate: false }),
-        },
-        mutations: Schema.Struct({
-          created: List.createMutation('1.0.0'),
-        }),
-        // @ts-expect-error runtime validation still protects untyped programs
-        program: ({ payload }) =>
-          Effect.all({
-            created: List.delete('1.0.0', { resourceId: payload.id }),
-          }),
-        version: '1.0.0',
-      });
-
-      const result = yield* makeMutations({
-        contract: invalidOutputContract,
-        models: { list: List },
-        owner: { kind: 'account' },
-        command: {
-          id: 'cmd_invalid_output',
+  it.effect(
+    'rejects program output that does not match the mutations schema',
+    () =>
+      Effect.gen(function* () {
+        const invalidOutputContract = makeContract({
           commandName: 'invalidCreateOutput',
+          payload: {
+            id: List.primaryKey({ autogenerate: false }),
+          },
+          mutations: Schema.Struct({
+            created: List.createMutation('1.0.0'),
+          }),
+          // @ts-expect-error runtime validation still protects untyped programs
+          program: ({ payload }) =>
+            Effect.all({
+              created: List.delete('1.0.0', { resourceId: payload.id }),
+            }),
           version: '1.0.0',
-          payload: { id: 'lst_invalid_output' },
-        },
-      }).pipe(Effect.either);
+        });
 
-      expect(result._tag).toBe('Left');
-      if (result._tag === 'Left') {
-        expect(result.left.code).toBe('validate-contract-mutations-failed');
-        expect(result.left.message).toContain(
-          'Contract "invalidCreateOutput" program output did not match its mutations schema',
-        );
-      }
-    }),
+        const result = yield* makeMutations({
+          contract: invalidOutputContract,
+          models: { list: List },
+          owner: { kind: 'account' },
+          command: {
+            id: 'cmd_invalid_output',
+            commandName: 'invalidCreateOutput',
+            version: '1.0.0',
+            payload: { id: 'lst_invalid_output' },
+          },
+        }).pipe(Effect.either);
+
+        expect(result._tag).toBe('Left');
+        if (result._tag === 'Left') {
+          expect(result.left.code).toBe('validate-contract-mutations-failed');
+          expect(result.left.message).toContain(
+            'Contract "invalidCreateOutput" program output did not match its mutations schema',
+          );
+        }
+      }),
   );
 
   it.effect('flattens a mutations-null contract to no mutations', () =>

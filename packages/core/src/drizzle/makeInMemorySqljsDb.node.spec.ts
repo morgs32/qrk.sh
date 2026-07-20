@@ -25,7 +25,8 @@ describe('makeInMemorySqljsDb', () => {
       ).toEqual({ foreign_keys: 1 });
 
       expect(() =>
-        db.insert(List.drizzleSchema)
+        db
+          .insert(List.drizzleSchema)
           .values({
             id: 'lst_testsqljsorphan01',
             modelName: List.modelName,

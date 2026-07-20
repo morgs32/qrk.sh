@@ -42,10 +42,7 @@ export const openGeneration = Effect.fn('SystemWorker.openGeneration')(
       SystemRepo.getRepo({ generationId }).openGeneration({ deployId }),
     );
     const opened = yield* decodeRpc(encoded);
-    if (
-      opened.deployId !== deployId ||
-      opened.generationId !== generationId
-    ) {
+    if (opened.deployId !== deployId || opened.generationId !== generationId) {
       return yield* new ZerospinError({
         code: 'system-worker-open-result-mismatch',
         message: 'SystemRepo opened a different generation identity',

@@ -76,6 +76,10 @@ export function makeSystem<
 }) {
   const { name, accountControllers, serviceControllers = {}, version } = props;
 
+  if (typeof version !== 'string' || version.length === 0) {
+    throw new Error('makeSystem: version must be a non-empty string');
+  }
+
   mapValues(accountControllers, (accountController, key: string) => {
     if (accountController.name !== key) {
       throw new Error(

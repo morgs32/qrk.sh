@@ -29,21 +29,23 @@ export const actorRepoUtils = makeRepoUtils({
   getDbConfig,
 });
 
-export const rememberActorSubscriber = Effect.fn(
-  'rememberActorSubscriber',
-)(function* (props: {
-  actorKey: {
-    generationId: string;
-    accountId: string;
-    accountName: string;
-    actorName: string;
-    actorId: string;
-  };
-}) {
-  const actorRepoName = yield* actorRepoUtils.nameUtils.makeName(props.actorKey);
+export const rememberActorSubscriber = Effect.fn('rememberActorSubscriber')(
+  function* (props: {
+    actorKey: {
+      generationId: string;
+      accountId: string;
+      accountName: string;
+      actorName: string;
+      actorId: string;
+    };
+  }) {
+    const actorRepoName = yield* actorRepoUtils.nameUtils.makeName(
+      props.actorKey,
+    );
 
-  db.insert(actorSubscriberTable).values({ actorRepoName }).run();
-});
+    db.insert(actorSubscriberTable).values({ actorRepoName }).run();
+  },
+);
 
 export const deliverAccountBlocks = Effect.fn('deliverAccountBlocks')(
   function* (props: { blocks: readonly unknown[] }) {

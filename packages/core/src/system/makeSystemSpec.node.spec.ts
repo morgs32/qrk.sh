@@ -2,10 +2,10 @@ import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { makeContract } from '../contracts/makeContract.ts';
+import { userAccount } from '../fixtures/system.ts';
 import { makeServiceModel } from '../models/makeServiceModel.ts';
 import { primitives } from '../models/primitives.ts';
 import { makeServiceController } from '../service/makeServiceController.ts';
-import { userAccount } from '../fixtures/system.ts';
 
 import { makeSystem } from './makeSystem.ts';
 import { makeSystemSpec } from './makeSystemSpec.ts';
@@ -82,12 +82,16 @@ describe('makeSystemSpec', () => {
       systemName: 'shopping',
       version: '1.0.1',
     });
-    expect(spec.serviceControllers.app?.models.product?.properties.name).toMatchObject({
+    expect(
+      spec.serviceControllers.app?.models.product?.properties.name,
+    ).toMatchObject({
       kind: 'text',
       nullable: false,
       unique: false,
     });
-    expect(spec.serviceControllers.app?.models.product?.properties.price).toMatchObject({
+    expect(
+      spec.serviceControllers.app?.models.product?.properties.price,
+    ).toMatchObject({
       kind: 'number',
       nullable: false,
       unique: false,
@@ -100,8 +104,7 @@ describe('makeSystemSpec', () => {
         ?.properties.deletedAt,
     ).toMatchObject({ kind: 'date', nullable: true });
     expect(
-      spec.serviceControllers.app?.contracts.createProduct
-        ?.mutationsJsonSchema,
+      spec.serviceControllers.app?.contracts.createProduct?.mutationsJsonSchema,
     ).toMatchObject({ type: 'object' });
     expect(
       spec.accountControllers.user?.actorControllers.main?.selections.user,

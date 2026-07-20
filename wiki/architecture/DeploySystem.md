@@ -7,14 +7,32 @@ sources:
     sha: 0fd2a7ef66b87e96d86ff62cace56148c8959721
     lines: 12-35
   - path: packages/cli/src/dev/devFn.ts
-    sha: 733cb45145637099e04528e5a56ea04aa0df6623
-    lines: 34-498
+    sha: 2027c6cef5b5bb18ba784724a7583d689b624ee8
+    lines: 34-565
+  - path: packages/cli/src/deploy/deploySystemFn.ts
+    sha: 3fd55b7073740cea05085643ee563f866bcb4224
+    lines: 1-67
+  - path: packages/core/src/system/makeSystem.ts
+    sha: b069c488e81489fd3f0756021c14c3a0da06f8d2
+    lines: 67-84
+  - path: packages/core/src/accountController/makeAccountController.ts
+    sha: 226f6b680bd925626a6f8c4aab6bb78b1541699d
+    lines: 232-247
+  - path: packages/core/src/actorController/makeActorController.ts
+    sha: 76481404fd9982e4211fc4a77c7e45da2f626bed
+    lines: 196-210
+  - path: packages/core/src/frontendController/makeFrontendController.ts
+    sha: 3e89db0b5fef0df49778923a393b982dc5f3f2e0
+    lines: 143-164
+  - path: packages/core/src/service/makeServiceController.ts
+    sha: b212a4bc08d33a8b21cc74ef239541d5abde566c
+    lines: 238-253
   - path: packages/dispatch-worker/src/Worker.ts
     sha: 1eca022f6fdd5fd643f3f0cbb1f3c3a773ec7d3b
     lines: 21-77
   - path: packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts
-    sha: 87e1ec8a78e45629c499dd3c2d75a004e3e2b324
-    lines: 35-1522
+    sha: e45de3b828fbfdfcfe09470926b23d31cee10e49
+    lines: 35-1525
   - path: packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts
     sha: 5fbd6cb4a8df630a48ec18b3357b2df87fc0a63a
     lines: 129-230
@@ -67,42 +85,53 @@ promotion, and the readiness gate
 
 ## Identity model
 
-| Identity | Public local meaning |
-| --- | --- |
-| `systemId` | Authored system identity read from `wrangler.jsonc`. The CLI requires the expected `sys_`-prefixed shape (../../packages/cli/src/dev/devFn.ts:106-130). |
-| `instanceId` | Stable environment selector. Local development fixes it to `local` and derives `systemWorkerName` from `{ systemId, instanceId }` (../../packages/cli/src/dev/devFn.ts:131-143). |
-| `workerVersionId` | Wrangler Version Metadata identity for one concrete code reload. It is the only reload identity supplied to local control state (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:276-309). |
-| `deployId` | Identity allocated by `DevZerospinApis` for one Worker-version candidate (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:600-626). |
-| `deployIndex` | Instance-local integer order assigned when the candidate row is inserted; it is ordering, not identity (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:731-758). |
-| `prevDeployId` | Snapshot of the stable `activeDeployId` at candidate allocation. Final promotion rechecks this predecessor (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:741-758, ../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1269-1289). |
-| `generationId` | Namespace for one persistent repo graph. Compatible code can reuse it; a detached clean start or model change creates a new one (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:600-630). |
-| `prevGenerationId` | Replay source for a new child generation. Initial and explicit clean roots use `null` (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:616-630). |
-| `cleanRequestId` | One CLI-process receipt consumed exactly once to request a detached root and its configured seeds (../../packages/cli/src/dev/devFn.ts:131-143, ../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:527-598). |
-| `activeDeployId` | Stable local instance pointer changed only by the final promotion transaction (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1234-1320). |
-| `activatingDeployId` | Exclusive reservation held between successful preparation and final promotion (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1083-1170). |
+| Identity             | Public local meaning                                                                                                                                                                                                                                                         |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `systemId`           | Authored system identity read from `wrangler.jsonc`. The CLI requires the expected `sys_`-prefixed shape (../../packages/cli/src/dev/devFn.ts:106-130).                                                                                                                      |
+| `instanceId`         | Stable environment selector. Local development fixes it to `local` and derives `systemWorkerName` from `{ systemId, instanceId }` (../../packages/cli/src/dev/devFn.ts:131-143).                                                                                             |
+| `workerVersionId`    | Wrangler Version Metadata identity for one concrete code reload. It is the only reload identity supplied to local control state (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:276-309).                                                             |
+| `deployId`           | Identity allocated by `DevZerospinApis` for one Worker-version candidate (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:600-626).                                                                                                                    |
+| `deployIndex`        | Instance-local integer order assigned when the candidate row is inserted; it is ordering, not identity (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:731-758).                                                                                      |
+| `prevDeployId`       | Snapshot of the stable `activeDeployId` at candidate allocation. Final promotion rechecks this predecessor (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:741-758, ../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1269-1289). |
+| `generationId`       | Namespace for one persistent repo graph. Compatible code can reuse it; a detached clean start or model change creates a new one (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:600-630).                                                             |
+| `prevGenerationId`   | Replay source for a new child generation. Initial and explicit clean roots use `null` (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:616-630).                                                                                                       |
+| `cleanRequestId`     | One CLI-process receipt consumed exactly once to request a detached root and its configured seeds (../../packages/cli/src/dev/devFn.ts:131-143, ../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:527-598).                                              |
+| `activeDeployId`     | Stable local instance pointer changed only by the final promotion transaction (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1234-1320).                                                                                                             |
+| `activatingDeployId` | Exclusive reservation held between successful preparation and final promotion (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1083-1170).                                                                                                             |
 
 ## Core invariants
 
-1. Wrangler code installation is not readiness. The CLI accepts Wrangler's
+1. Authored system, account-controller, actor-controller,
+   frontend-controller, and service-controller factories reject a missing or
+   empty runtime `version` before their downstream maps, models, selections,
+   guards, contracts, or adapters are validated. TypeScript still requires the
+   same properties at each factory call site, but consumer project typechecking
+   remains a consumer build concern rather than a `zerospin dev` phase
+   (../../packages/core/src/system/makeSystem.ts:67-84,
+   ../../packages/core/src/accountController/makeAccountController.ts:232-247,
+   ../../packages/core/src/actorController/makeActorController.ts:196-210,
+   ../../packages/core/src/frontendController/makeFrontendController.ts:143-164,
+   ../../packages/core/src/service/makeServiceController.ts:238-253).
+2. Wrangler code installation is not readiness. The CLI accepts Wrangler's
    listening address and separately calls `/__zerospin/ready`; only a completed
    `DevZerospinApis` initialization returns 204
    (../../packages/cli/src/dev/devFn.ts:400-457,
    ../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1503-1520).
-2. One Worker version maps to one deploy attempt. A failed or interrupted
+3. One Worker version maps to one deploy attempt. A failed or interrupted
    mapping stays failed closed rather than allocating a second deploy ID for the
    same code version
    (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:307-378).
-3. The stable active pointer does not move during checking, drain, preparation,
+4. The stable active pointer does not move during checking, drain, preparation,
    or opening. Promotion rechecks both the captured predecessor and exclusive
    activation reservation
    (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1083-1232,
    ../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1234-1320).
-4. A clean start creates a detached lineage; it does not delete the stable
+5. A clean start creates a detached lineage; it does not delete the stable
    Wrangler persistence directory or old generations
    (../../packages/cli/src/dev/devFn.ts:277-307,
    ../../packages/cli/src/dev/devFn.ts:342-358,
    ../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:597-630).
-5. Ordinary APIs are constructed only after promotion and are pinned to the
+6. Ordinary APIs are constructed only after promotion and are pinned to the
    selected deploy/generation pair
    (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1234-1359,
    ../../packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts:136-230).
@@ -173,24 +202,30 @@ sequenceDiagram
    dispatch runtime from the static local identity resolver and same-isolate
    SystemWorker resolver
    (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:240-285).
-2. It either reopens a valid completed Worker-version mapping or resolves the
+2. It builds and runtime-decodes the current `SystemSpec` before reading an
+   existing Worker-version mapping, comparing compatibility, or allocating any
+   candidate state. Production deployment performs the same decode before the
+   deploy RPC payload crosses the CLI boundary
+   (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:294-308,
+   ../../packages/cli/src/deploy/deploySystemFn.ts:48-67).
+3. It either reopens a valid completed Worker-version mapping or resolves the
    current stable predecessor for a new candidate
    (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:287-525).
-3. It consumes clean state, computes compatibility, allocates the candidate and
+4. It consumes clean state, computes compatibility, allocates the candidate and
    generation identities, and persists the candidate plus first lifecycle event
    atomically
    (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:527-826).
-4. An ordinary child migration inspects the active generation through
+5. An ordinary child migration inspects the active generation through
    `drainGeneration`; initial, clean, and reused generations skip that drain
    (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:847-966).
-5. It calls `prepareGeneration` with seeds only for a newly consumed clean
+6. It calls `prepareGeneration` with seeds only for a newly consumed clean
    receipt and validates the returned identity, readiness, and reuse flag
    (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:968-1081).
-6. It reserves activation, calls `openGeneration`, validates the opened
+7. It reserves activation, calls `openGeneration`, validates the opened
    identity and Version Metadata, then atomically completes and promotes the
    candidate
    (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1083-1359).
-7. Any terminal error records the failed phase, clears only this candidate's
+8. Any terminal error records the failed phase, clears only this candidate's
    reservation, retains the Worker-version mapping, and rejects readiness
    (../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts:1360-1520).
 
@@ -297,14 +332,14 @@ generation-local active deploy. Reads are allowed while admission is `open` or
 `draining`; writes require `open`
 (../../packages/system-worker/src/SystemRepo/assertGenerationAdmission/assertGenerationAdmission.ts:34-138).
 
-| Generation state | Ordinary reads | Ordinary writes | Ticket mint | Ticket consume |
-| --- | ---: | ---: | ---: | ---: |
-| `initializing + closed` | No | No | No | No |
-| `ready + closed` | No | No | No | No |
-| `ready + open` | Yes | Yes | Yes | Yes |
-| `ready + draining` | Yes | No | No | Yes |
-| `ready + drained` | No | No | No | No |
-| `failed + closed` | No | No | No | No |
+| Generation state        | Ordinary reads | Ordinary writes | Ticket mint | Ticket consume |
+| ----------------------- | -------------: | --------------: | ----------: | -------------: |
+| `initializing + closed` |             No |              No |          No |             No |
+| `ready + closed`        |             No |              No |          No |             No |
+| `ready + open`          |            Yes |             Yes |         Yes |            Yes |
+| `ready + draining`      |            Yes |              No |          No |            Yes |
+| `ready + drained`       |             No |              No |          No |             No |
+| `failed + closed`       |             No |              No |          No |             No |
 
 Ticket mint uses write admission, while consumption uses read admission with
 the deploy stored in the ticket row. This makes an already-minted ticket usable

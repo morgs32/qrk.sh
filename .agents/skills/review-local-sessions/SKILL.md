@@ -94,15 +94,15 @@ For each session in scope, read the `.jsonl` file line by line using the format 
 
 Extract and tag:
 
-| Tag              | What to capture                                                                                                                                                                           |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `frustration`    | User correction, repeated instruction, caps, "again", "stop", "DO NOT", "partial", "stub", "you didn't", "why did you", explicit rejection of agent output                                |
+| Tag              | What to capture                                                                                                                                                               |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frustration`    | User correction, repeated instruction, caps, "again", "stop", "DO NOT", "partial", "stub", "you didn't", "why did you", explicit rejection of agent output                    |
 | `doc-request`    | User asks to update **vendor/morgs32/llm-wiki/patterns/**, **llm-wiki/patterns/**, **architecture**, **AGENTS.md**, **TODOS.md**, **.plans/**, README, or "docs stay in sync" |
-| `recurring-task` | Same task type appears in **≥2 sessions** across either or both sources                                                                                                                   |
-| `skill-attached` | Skills attached or named (`$SkillName`, `<manually_attached_skills>`, Codex `<skills_instructions>`) — note whether the session still went wrong                                          |
-| `agent-mistake`  | Assistant did something the user had to fix: extra refactors, wrapper helpers, wrong runtime boundary, stale doc paths, bolt-on types                                                     |
-| `missing-skill`  | User had to spell out a multi-step workflow that no attached skill covered                                                                                                                |
-| `cross-tool`     | Same theme in both Cursor and Codex — strong signal for a shared repo skill                                                                                                               |
+| `recurring-task` | Same task type appears in **≥2 sessions** across either or both sources                                                                                                       |
+| `skill-attached` | Skills attached or named (`$SkillName`, `<manually_attached_skills>`, Codex `<skills_instructions>`) — note whether the session still went wrong                              |
+| `agent-mistake`  | Assistant did something the user had to fix: extra refactors, wrapper helpers, wrong runtime boundary, stale doc paths, bolt-on types                                         |
+| `missing-skill`  | User had to spell out a multi-step workflow that no attached skill covered                                                                                                    |
+| `cross-tool`     | Same theme in both Cursor and Codex — strong signal for a shared repo skill                                                                                                   |
 
 **Do not** treat assistant `[REDACTED]` placeholders or Codex system/developer preamble as evidence. Prefer **verbatim user quotes** (trim to ≤240 chars).
 

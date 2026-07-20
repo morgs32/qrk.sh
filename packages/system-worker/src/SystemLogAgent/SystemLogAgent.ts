@@ -10,9 +10,9 @@ import { mapParseError, ZerospinError } from '@zerospin/error';
 import { Agent, type Connection, type ConnectionContext } from 'agents';
 import { Effect, Either, Schema } from 'effect';
 
+import { managedRuntime } from '../managedRuntime.js';
 import { getSystemLogRepo } from '../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
 import { systemLogRowSchema } from '../SystemLogRepo/SystemLogRepo.js';
-import { managedRuntime } from '../managedRuntime.js';
 
 export class SystemLogAgent extends Agent<Env, ISystemLogState> {
   override initialState: ISystemLogState = {

@@ -246,6 +246,11 @@ function number(props?: {
   };
 }
 
+function text(props: {
+  nullable: true;
+  unique?: boolean;
+  defaultValue: null;
+}): ITextDescriptor<true, null>;
 function text<const DEFAULT_VALUE extends string>(props: {
   nullable: true;
   unique?: boolean;
@@ -282,8 +287,8 @@ function text<NULLABLE extends boolean = false>(props?: {
 function text(props?: {
   nullable?: boolean | undefined;
   unique?: boolean | undefined;
-  defaultValue?: string | undefined;
-}): ITextDescriptor<boolean, string | undefined> {
+  defaultValue?: string | null | undefined;
+}): ITextDescriptor<boolean, string | null | undefined> {
   const { nullable = false, unique = false, defaultValue } = props ?? {};
   if (defaultValue === undefined) {
     return {
@@ -546,15 +551,19 @@ function ref<
   nullable?: NULLABLE;
   unique?: UNIQUE;
   table: TABLE &
-    ([{
-      [KEY in keyof TABLE['shape'] & string]: TABLE['shape'][KEY] extends IPrimaryKeyDescriptor
-        ? KEY
-        : never;
-    }[keyof TABLE['shape'] & string]] extends [never]
+    ([
+      {
+        [KEY in keyof TABLE['shape'] &
+          string]: TABLE['shape'][KEY] extends IPrimaryKeyDescriptor
+          ? KEY
+          : never;
+      }[keyof TABLE['shape'] & string],
+    ] extends [never]
       ? ITypeError<`primitives.ref target table "${TABLE['name']}" must have one primary key`>
       : IsUnion<
             {
-              [KEY in keyof TABLE['shape'] & string]: TABLE['shape'][KEY] extends IPrimaryKeyDescriptor
+              [KEY in keyof TABLE['shape'] &
+                string]: TABLE['shape'][KEY] extends IPrimaryKeyDescriptor
                 ? KEY
                 : never;
             }[keyof TABLE['shape'] & string]
@@ -572,9 +581,8 @@ function ref<
 }): IRefDescriptor<
   NULLABLE,
   TABLE['shape'][{
-    [KEY in keyof TABLE['shape'] & string]: TABLE['shape'][KEY] extends IPrimaryKeyDescriptor
-      ? KEY
-      : never;
+    [KEY in keyof TABLE['shape'] &
+      string]: TABLE['shape'][KEY] extends IPrimaryKeyDescriptor ? KEY : never;
   }[keyof TABLE['shape'] & string]] extends IPrimaryKeyDescriptor<
     infer ABBREVIATION
   >
@@ -582,9 +590,8 @@ function ref<
     : string,
   TABLE,
   {
-    [KEY in keyof TABLE['shape'] & string]: TABLE['shape'][KEY] extends IPrimaryKeyDescriptor
-      ? KEY
-      : never;
+    [KEY in keyof TABLE['shape'] &
+      string]: TABLE['shape'][KEY] extends IPrimaryKeyDescriptor ? KEY : never;
   }[keyof TABLE['shape'] & string],
   RELATION,
   INVERSE,

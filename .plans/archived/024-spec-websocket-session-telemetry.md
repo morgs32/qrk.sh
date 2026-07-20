@@ -58,4 +58,3 @@ Package ownership and cross-store server linking remain separate decisions becau
 1. The final grill must decide whether `acquireFrontendWebSocket` remains React-owned orchestration or moves into `@zerospin/frontend` as non-React browser transport behavior.
 2. The final grill must decide whether browser `error` and `close` events are logs on the acquisition trace or independent root spans.
 3. The final grill must decide whether the wire protocol should later carry server trace identity; that decision requires a separate server-side subscriber design.
-

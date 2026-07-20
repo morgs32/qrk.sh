@@ -22,8 +22,8 @@ Canonical example:
 
 ```ts
 const mockRpcTarget = {
-  double: makeRpcHandler("MockRpc.double")(function* (n: number) {
-    yield* Effect.logInfo("working");
+  double: makeRpcHandler('MockRpc.double')(function* (n: number) {
+    yield* Effect.logInfo('working');
     return n * 2;
   }),
 };
@@ -105,33 +105,38 @@ sequenceDiagram
 3. **Step 1: Write the failing test**
 
 ```ts
-import { describe, expect, it } from "vitest";
-import { getTraceContextFromSlot, runWithTraceContext } from "./traceContextSlot.ts";
-import type { ITraceContext } from "./types.ts";
+import { describe, expect, it } from 'vitest';
+import {
+  getTraceContextFromSlot,
+  runWithTraceContext,
+} from './traceContextSlot.ts';
+import type { ITraceContext } from './types.ts';
 
-describe("traceContextSlot", () => {
-  it("returns null outside runWithTraceContext", () => {
+describe('traceContextSlot', () => {
+  it('returns null outside runWithTraceContext', () => {
     expect(getTraceContextFromSlot()).toBeNull();
   });
 
-  it("exposes context inside runWithTraceContext and clears after", async () => {
+  it('exposes context inside runWithTraceContext and clears after', async () => {
     const context: ITraceContext = {
-      traceId: "trc_test",
-      parentSpanId: "spn_parent",
+      traceId: 'trc_test',
+      parentSpanId: 'spn_parent',
     };
-    const seen = await runWithTraceContext(context, async () => getTraceContextFromSlot());
+    const seen = await runWithTraceContext(context, async () =>
+      getTraceContextFromSlot(),
+    );
     expect(seen).toEqual(context);
     expect(getTraceContextFromSlot()).toBeNull();
   });
 
-  it("nests and restores prior context", async () => {
+  it('nests and restores prior context', async () => {
     const outer: ITraceContext = {
-      traceId: "trc_outer",
-      parentSpanId: "spn_outer",
+      traceId: 'trc_outer',
+      parentSpanId: 'spn_outer',
     };
     const inner: ITraceContext = {
-      traceId: "trc_inner",
-      parentSpanId: "spn_inner",
+      traceId: 'trc_inner',
+      parentSpanId: 'spn_inner',
     };
     await runWithTraceContext(outer, async () => {
       expect(getTraceContextFromSlot()).toEqual(outer);
@@ -151,8 +156,8 @@ describe("traceContextSlot", () => {
 3. **Step 3: Implement**
 
 ```ts
-import { AsyncLocalStorage } from "node:async_hooks";
-import type { ITraceContext } from "./types.ts";
+import { AsyncLocalStorage } from 'node:async_hooks';
+import type { ITraceContext } from './types.ts';
 
 /*
  * Spike stand-in for wire-carried ITraceContext.
@@ -166,7 +171,8 @@ export const runWithTraceContext = <A>(
   fn: () => Promise<A>,
 ): Promise<A> => storage.run(context, fn);
 
-export const getTraceContextFromSlot = (): ITraceContext | null => storage.getStore() ?? null;
+export const getTraceContextFromSlot = (): ITraceContext | null =>
+  storage.getStore() ?? null;
 ```
 
 4. **Step 4: Run test — expect PASS**
@@ -190,46 +196,46 @@ export const getTraceContextFromSlot = (): ITraceContext | null => storage.getSt
 3. **Step 1: Failing test — named span + ALS parentage + Left keeps telemetry**
 
 ```ts
-import { Effect } from "effect";
-import { describe, expect, it } from "vitest";
-import { makeRpcHandler } from "./makeRpcHandler.ts";
-import { runWithTraceContext } from "./traceContextSlot.ts";
-import type { ITraceContext } from "./types.ts";
+import { Effect } from 'effect';
+import { describe, expect, it } from 'vitest';
+import { makeRpcHandler } from './makeRpcHandler.ts';
+import { runWithTraceContext } from './traceContextSlot.ts';
+import type { ITraceContext } from './types.ts';
 
-describe("makeRpcHandler", () => {
-  it("returns Right envelope with a named ok span", async () => {
-    const handle = makeRpcHandler("MockRpc.double")(function* (n: number) {
-      yield* Effect.logInfo("working");
+describe('makeRpcHandler', () => {
+  it('returns Right envelope with a named ok span', async () => {
+    const handle = makeRpcHandler('MockRpc.double')(function* (n: number) {
+      yield* Effect.logInfo('working');
       return n * 2;
     });
     const envelope = await handle(21);
-    expect(envelope.result).toEqual({ _tag: "Right", right: 42 });
-    expect(envelope.telemetry.spans[0]?.name).toBe("MockRpc.double");
-    expect(envelope.telemetry.spans[0]?.status).toBe("ok");
+    expect(envelope.result).toEqual({ _tag: 'Right', right: 42 });
+    expect(envelope.telemetry.spans[0]?.name).toBe('MockRpc.double');
+    expect(envelope.telemetry.spans[0]?.status).toBe('ok');
     expect(envelope.telemetry.spans[0]?.parentSpanId).toBeNull();
   });
 
-  it("parents under ALS trace context", async () => {
-    const handle = makeRpcHandler("MockRpc.double")(function* () {
+  it('parents under ALS trace context', async () => {
+    const handle = makeRpcHandler('MockRpc.double')(function* () {
       return 1;
     });
     const context: ITraceContext = {
-      traceId: "trc_parent",
-      parentSpanId: "spn_parent",
+      traceId: 'trc_parent',
+      parentSpanId: 'spn_parent',
     };
     const envelope = await runWithTraceContext(context, () => handle());
     const span = envelope.telemetry.spans[0]!;
-    expect(span.traceId).toBe("trc_parent");
-    expect(span.parentSpanId).toBe("spn_parent");
+    expect(span.traceId).toBe('trc_parent');
+    expect(span.parentSpanId).toBe('spn_parent');
   });
 
-  it("encodes domain failure as Left with error span", async () => {
-    const handle = makeRpcHandler("MockRpc.fail")(function* () {
-      return yield* Effect.fail("domain-error" as const);
+  it('encodes domain failure as Left with error span', async () => {
+    const handle = makeRpcHandler('MockRpc.fail')(function* () {
+      return yield* Effect.fail('domain-error' as const);
     });
     const envelope = await handle();
-    expect(envelope.result).toEqual({ _tag: "Left", left: "domain-error" });
-    expect(envelope.telemetry.spans[0]?.status).toBe("error");
+    expect(envelope.result).toEqual({ _tag: 'Left', left: 'domain-error' });
+    expect(envelope.telemetry.spans[0]?.status).toBe('error');
   });
 });
 ```
@@ -263,8 +269,8 @@ describe("makeRpcHandler", () => {
 
 ```ts
 const mockRpcTarget = {
-  double: makeRpcHandler("MockRpc.double")(function* (n: number) {
-    yield* Effect.logInfo("working");
+  double: makeRpcHandler('MockRpc.double')(function* (n: number) {
+    yield* Effect.logInfo('working');
     return n * 2;
   }),
 };
@@ -272,7 +278,7 @@ const wrappedMockRpcTarget = makeTraceableRpcTarget(mockRpcTarget);
 
 const program = Effect.gen(function* () {
   return yield* wrappedMockRpcTarget.double(21);
-}).pipe(Effect.withSpan("LocalOp.run"));
+}).pipe(Effect.withSpan('LocalOp.run'));
 
 // assert: same traceId, MockRpc.double.parentSpanId === LocalOp.run.spanId, log correlated
 
@@ -280,7 +286,7 @@ const program = Effect.gen(function* () {
 
 // 3) transport lost baked into Proxy
 const flakyMockRpcTarget = makeTraceableRpcTarget({
-  double: () => Promise.reject(new Error("socket died")),
+  double: () => Promise.reject(new Error('socket died')),
 });
 // under LocalOp.run + TelemetryCollector: expect lost span name 'double'
 ```
@@ -327,7 +333,7 @@ const flakyMockRpcTarget = makeTraceableRpcTarget({
 
 ```ts
 export const queuedJobs: Array<{
-  name: "drain" | "alarm";
+  name: 'drain' | 'alarm';
   delayMs: number;
   run: () => Promise<IRpcEnvelope<void, string>>;
 }> = [];
@@ -357,12 +363,14 @@ export const resetFinalizeHarness = (): void => {
 
 ```ts
 export const actorRepo = {
-  handleAccountBlocks: makeRpcHandler("ActorRepo.handleAccountBlocks")(function* () {
-    subscriberDeliveryAttempts += 1;
-    if (subscriberDeliveryAttempts === 1) {
-      return yield* Effect.fail("mock actor delivery failure");
-    }
-  }),
+  handleAccountBlocks: makeRpcHandler('ActorRepo.handleAccountBlocks')(
+    function* () {
+      subscriberDeliveryAttempts += 1;
+      if (subscriberDeliveryAttempts === 1) {
+        return yield* Effect.fail('mock actor delivery failure');
+      }
+    },
+  ),
 };
 ```
 

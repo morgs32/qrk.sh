@@ -16,7 +16,6 @@ import type {
   ISystemLogRow,
 } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { type IAnyErrorJson } from '@zerospin/error';
 import type {
@@ -32,6 +31,7 @@ import { assert, type Equals } from 'tsafe';
 import { makeRepo } from '../makeRepo/makeRepo.js';
 import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
 import { managedRuntime } from '../managedRuntime.js';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 import { appendLogRow } from './appendLogRow/appendLogRow.js';
 import { appendTelemetryBatch } from './appendTelemetryBatch/appendTelemetryBatch.js';

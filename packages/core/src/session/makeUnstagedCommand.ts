@@ -47,14 +47,8 @@ export const makeUnstagedCommand = Effect.fn('makeUnstagedCommand')(function* <
   IAnyError,
   CuidFactory
 > {
-  const {
-    accountId,
-    actorId,
-    commandName,
-    payload,
-    sessionId,
-    systemVersion,
-  } = props;
+  const { accountId, actorId, commandName, payload, sessionId, systemVersion } =
+    props;
   const { contracts, systemName, accountName, actorName, frontendName } =
     'frontend' in props ? props.frontend : props;
 

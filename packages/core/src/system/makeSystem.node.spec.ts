@@ -51,6 +51,32 @@ const makeTestContract = (commandName: string) =>
   });
 
 describe('makeSystem', () => {
+  it('rejects a missing version before controller-map validation', () => {
+    const props = {
+      accountControllers: {},
+      name: 'test',
+      version: '1.0.0',
+    };
+    Reflect.deleteProperty(props, 'version');
+
+    expect(() => makeSystem(props)).toThrow(
+      'makeSystem: version must be a non-empty string',
+    );
+  });
+
+  it('rejects an empty version before controller-map validation', () => {
+    const props = {
+      accountControllers: {},
+      name: 'test',
+      version: '1.0.0',
+    };
+    Reflect.set(props, 'version', '');
+
+    expect(() => makeSystem(props)).toThrow(
+      'makeSystem: version must be a non-empty string',
+    );
+  });
+
   it('keeps account contracts aligned with frontend frontend binding contracts', () => {
     const createUser = makeTestContract('createUser');
     const frontend = makeFrontendController({

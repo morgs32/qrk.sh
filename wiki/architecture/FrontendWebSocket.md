@@ -168,13 +168,13 @@ the hibernating room
 
 ## External response surface
 
-| Condition | Status | Public meaning |
-| --- | ---: | --- |
-| Not a WebSocket upgrade | 426 | Upgrade required |
-| Missing, repeated, empty, or malformed parameter | 400 | Invalid request shape |
-| Unknown, expired, replayed, wrong-deploy, or admission-rejected ticket | 401 | Ticket invalid or expired |
-| Hashing, storage, decoding, or final routing failure | 500 | Admission or forwarding failed |
-| FrontendBlockRepo accepts the upgrade | 101 | Native WebSocket established |
+| Condition                                                              | Status | Public meaning                 |
+| ---------------------------------------------------------------------- | -----: | ------------------------------ |
+| Not a WebSocket upgrade                                                |    426 | Upgrade required               |
+| Missing, repeated, empty, or malformed parameter                       |    400 | Invalid request shape          |
+| Unknown, expired, replayed, wrong-deploy, or admission-rejected ticket |    401 | Ticket invalid or expired      |
+| Hashing, storage, decoding, or final routing failure                   |    500 | Admission or forwarding failed |
+| FrontendBlockRepo accepts the upgrade                                  |    101 | Native WebSocket established   |
 
 The 401 surface deliberately does not reveal ticket existence, generation
 state, deploy identity, or repo name. The successful and error mappings occur

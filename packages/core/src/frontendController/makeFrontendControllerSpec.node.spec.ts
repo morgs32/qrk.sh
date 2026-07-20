@@ -34,6 +34,40 @@ const User = makeModel(
 );
 
 describe('makeFrontendControllerSpec', () => {
+  it('rejects a missing version before model and guard construction', () => {
+    const props = {
+      contracts: {},
+      accountName: 'user',
+      actorName: 'testFrontend',
+      frontendName: 'default',
+      version: '1.0.0',
+      systemName: 'test-system',
+      signature: Schema.Struct({}),
+    };
+    Reflect.deleteProperty(props, 'version');
+
+    expect(() => makeFrontendController(props)).toThrow(
+      'makeFrontendController: version must be a non-empty string',
+    );
+  });
+
+  it('rejects an empty version before model and guard construction', () => {
+    const props = {
+      contracts: {},
+      accountName: 'user',
+      actorName: 'testFrontend',
+      frontendName: 'default',
+      version: '1.0.0',
+      systemName: 'test-system',
+      signature: Schema.Struct({}),
+    };
+    Reflect.set(props, 'version', '');
+
+    expect(() => makeFrontendController(props)).toThrow(
+      'makeFrontendController: version must be a non-empty string',
+    );
+  });
+
   it('includes the frontend version', () => {
     const frontend = makeFrontendController({
       contracts: {},

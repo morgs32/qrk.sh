@@ -30,9 +30,7 @@ export const drainGeneration = Effect.fn('AccountBlockRepo.drainGeneration')(
         accountIndex: accountBlockDrizzleSchemas.finalizedBlocks.accountIndex,
       })
       .from(accountBlockDrizzleSchemas.finalizedBlocks)
-      .orderBy(
-        desc(accountBlockDrizzleSchemas.finalizedBlocks.accountIndex),
-      )
+      .orderBy(desc(accountBlockDrizzleSchemas.finalizedBlocks.accountIndex))
       .limit(1)
       .get();
     const pendingActorSubscriberCount =
@@ -55,9 +53,7 @@ export const drainGeneration = Effect.fn('AccountBlockRepo.drainGeneration')(
                 isNotNull(
                   accountBlockDrizzleSchemas.actorSubscribers.lastDeliveryError,
                 ),
-                isNotNull(
-                  accountBlockDrizzleSchemas.actorSubscribers.failedAt,
-                ),
+                isNotNull(accountBlockDrizzleSchemas.actorSubscribers.failedAt),
               ),
             )
             .all().length
@@ -88,9 +84,7 @@ export const drainGeneration = Effect.fn('AccountBlockRepo.drainGeneration')(
                 isNotNull(
                   accountBlockDrizzleSchemas.actorSubscribers.lastDeliveryError,
                 ),
-                isNotNull(
-                  accountBlockDrizzleSchemas.actorSubscribers.failedAt,
-                ),
+                isNotNull(accountBlockDrizzleSchemas.actorSubscribers.failedAt),
               ),
             )
             .all().length;

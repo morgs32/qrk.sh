@@ -15,8 +15,7 @@ declare module 'cloudflare:workers' {
       import('@zerospin/system-worker').ServiceBlockRepo
     >;
     SYSTEM_LOG_REPO: DurableObjectNamespace<
-      Rpc.DurableObjectBranded &
-        import('@zerospin/system-worker').SystemLogRepo
+      Rpc.DurableObjectBranded & import('@zerospin/system-worker').SystemLogRepo
     >;
     SYSTEM_LOG_AGENT: DurableObjectNamespace<
       Rpc.DurableObjectBranded &

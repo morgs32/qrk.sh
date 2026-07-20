@@ -8,9 +8,7 @@ import { accountBlockDrizzleSchemas } from '../accountBlockDrizzleSchemas.js';
 
 /** Reads the immutable terminal account-ledger watermark captured after drain. */
 export const getReplayBound = Effect.fn('AccountBlockRepo.getReplayBound')(
-  function* (props: {
-    db: IDb;
-  }): Effect.fn.Return<
+  function* (props: { db: IDb }): Effect.fn.Return<
     Readonly<{
       lastAccountCursor: IAccountCursor | null;
       accountIndex: number | null;
@@ -27,9 +25,7 @@ export const getReplayBound = Effect.fn('AccountBlockRepo.getReplayBound')(
         accountIndex: accountBlockDrizzleSchemas.finalizedBlocks.accountIndex,
       })
       .from(accountBlockDrizzleSchemas.finalizedBlocks)
-      .orderBy(
-        desc(accountBlockDrizzleSchemas.finalizedBlocks.accountIndex),
-      )
+      .orderBy(desc(accountBlockDrizzleSchemas.finalizedBlocks.accountIndex))
       .limit(1)
       .get();
 

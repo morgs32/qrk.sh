@@ -1,41 +1,41 @@
-import { createStore } from "zustand/vanilla";
+import { createStore } from 'zustand/vanilla';
 
 import type {
   IDevtoolsStore,
   IModifierKey,
   IZerospinDevtoolsConfig,
-} from "./types.js";
-import { tryParseJson } from "./utils/sanitize.js";
+} from './types.js';
+import { tryParseJson } from './utils/sanitize.js';
 import {
   getStorageItem,
   setStorageItem,
   ZEROSPIN_DEVTOOLS_SETTINGS,
   ZEROSPIN_DEVTOOLS_STATE,
-} from "./utils/storage.js";
+} from './utils/storage.js';
 
 export const keyboardModifiers: Array<IModifierKey> = [
-  "Alt",
-  "Control",
-  "Meta",
-  "Shift",
-  "CtrlOrMeta",
+  'Alt',
+  'Control',
+  'Meta',
+  'Shift',
+  'CtrlOrMeta',
 ];
 
 export const initialState: IDevtoolsStore = {
   settings: {
     defaultOpen: false,
     hideUntilHover: false,
-    position: "bottom-right",
-    panelLocation: "bottom",
-    openHotkey: ["Control", "~"],
+    position: 'bottom-right',
+    panelLocation: 'bottom',
+    openHotkey: ['Control', '~'],
     requireUrlFlag: false,
-    urlFlag: "zerospin-devtools",
+    urlFlag: 'zerospin-devtools',
     theme:
-      typeof window !== "undefined" &&
-      typeof window.matchMedia !== "undefined" &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light",
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia !== 'undefined' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light',
     triggerHidden: false,
   },
   state: {
@@ -47,10 +47,10 @@ export const initialState: IDevtoolsStore = {
 export function getExistingStateFromStorage(
   config?: IZerospinDevtoolsConfig,
 ): IDevtoolsStore {
-  const existingState = tryParseJson<IDevtoolsStore["state"]>(
+  const existingState = tryParseJson<IDevtoolsStore['state']>(
     getStorageItem(ZEROSPIN_DEVTOOLS_STATE),
   );
-  const savedSettings = tryParseJson<IDevtoolsStore["settings"]>(
+  const savedSettings = tryParseJson<IDevtoolsStore['settings']>(
     getStorageItem(ZEROSPIN_DEVTOOLS_SETTINGS),
   );
 
@@ -63,6 +63,10 @@ export function getExistingStateFromStorage(
       ...initialState.settings,
       ...config,
       ...savedSettings,
+      theme:
+        config?.theme ??
+        savedSettings?.theme ??
+        initialState.settings.theme,
     },
   };
 }
@@ -71,7 +75,7 @@ export const devtoolsStore = createStore<IDevtoolsStore>()(() =>
   getExistingStateFromStorage(),
 );
 
-devtoolsStore.subscribe((state) => {
+devtoolsStore.subscribe(state => {
   setStorageItem(ZEROSPIN_DEVTOOLS_SETTINGS, JSON.stringify(state.settings));
   setStorageItem(ZEROSPIN_DEVTOOLS_STATE, JSON.stringify(state.state));
 });

@@ -21,8 +21,7 @@ export const storeFrontendBlocks = Effect.fn(
   )) {
     const existing = db
       .select({
-        frontendIndex:
-          frontendBlockDrizzleSchemas.frontendBlocks.frontendIndex,
+        frontendIndex: frontendBlockDrizzleSchemas.frontendBlocks.frontendIndex,
       })
       .from(frontendBlockDrizzleSchemas.frontendBlocks)
       .where(

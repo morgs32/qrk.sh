@@ -24,7 +24,6 @@ import type {
   InferDecodedRow,
 } from '@zerospin/core/models/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import type { IAnyErrorJson } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
@@ -35,6 +34,7 @@ import { ActorDeltaSchema } from '../blockSchemas.js';
 import { makeRepo } from '../makeRepo/makeRepo.js';
 import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
 import { managedRuntime } from '../managedRuntime.js';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import type { IActorBlock } from '../types.js';
 
 import { drainFrontendSubscribers } from './drainFrontendSubscribers/drainFrontendSubscribers.js';

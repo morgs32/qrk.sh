@@ -27,10 +27,12 @@
 ### Task 1: `makeSelection` — optional `where`
 
 **Files:**
+
 - Modify: `packages/core/src/models/makeSelection.ts:301-310`
 - Test: `packages/core/src/models/makeSelection.node.spec.ts` (create or extend if it exists — check first with `ls packages/core/src/models/*.spec.ts`)
 
 **Interfaces:**
+
 - Produces: `makeSelection<MODEL>(props: { model: MODEL; where?: ISelectionWhereFn<MODEL> }): ISelection<MODEL>` — `where` defaults to `() => ({})`. Later tasks call `makeSelection({ model: Product })` with no `where`.
 
 - [ ] **Step 1: Write the failing test**
@@ -80,10 +82,12 @@ Run: `pnpm nx test core -- makeSelection.node.spec` → PASS. Then `pnpm nx type
 ### Task 2: `modelsFromSelections` helper
 
 **Files:**
+
 - Create: `packages/core/src/models/modelsFromSelections.ts`
 - Test: `packages/core/src/models/modelsFromSelections.node.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `ISelection` from `./makeSelection.ts`, `IModel` from `./types.ts`.
 - Produces: `modelsFromSelections<SELECTIONS extends Record<string, ISelection<IModel>>>(selections: SELECTIONS): { [K in keyof SELECTIONS]: SELECTIONS[K]['model'] }`. Used by Task 4 (makeActorController), Task 5+ (call-site boundaries such as `models: modelsFromSelections(mainActor.selections)`).
 
@@ -102,7 +106,10 @@ describe('modelsFromSelections', () => {
       user: makeSelection({ model: User }),
       list: makeSelection({ model: List }),
     };
-    expect(modelsFromSelections(selections)).toEqual({ user: User, list: List });
+    expect(modelsFromSelections(selections)).toEqual({
+      user: User,
+      list: List,
+    });
   });
 });
 ```
@@ -119,9 +126,7 @@ import type { IModel } from './types.ts';
 
 export function modelsFromSelections<
   SELECTIONS extends Record<string, ISelection<IModel>>,
->(
-  selections: SELECTIONS,
-): { [K in keyof SELECTIONS]: SELECTIONS[K]['model'] } {
+>(selections: SELECTIONS): { [K in keyof SELECTIONS]: SELECTIONS[K]['model'] } {
   return mapValues(selections, selection => selection.model) as {
     [K in keyof SELECTIONS]: SELECTIONS[K]['model'];
   };
@@ -137,10 +142,12 @@ export function modelsFromSelections<
 ### Task 3: `makeContractAdapter` factory
 
 **Files:**
+
 - Create: `packages/core/src/contracts/makeContractAdapter.ts`
 - Test: `packages/core/src/contracts/makeContractAdapter.node.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `IContract`, `InferCommandPayload` from `../models/types.ts` / `./types.ts` (match the imports used in the current `surfaceController/types.ts:161-170`).
 - Produces:
 
@@ -153,16 +160,25 @@ export type IContractAdapterEntry<
   adapt: (props: {
     contract: FRONTEND_CONTRACT;
     payload: InferCommandPayload<FRONTEND_CONTRACT['payload']>;
-  }) => Effect.Effect<InferCommandPayload<ACTOR_CONTRACT['payload']>, IAnyError>;
+  }) => Effect.Effect<
+    InferCommandPayload<ACTOR_CONTRACT['payload']>,
+    IAnyError
+  >;
 };
 
 export function makeContractAdapter<
   FRONTEND_CONTRACT extends IContract,
   ACTOR_CONTRACT extends IContract,
->(props: IContractAdapterEntry<FRONTEND_CONTRACT, ACTOR_CONTRACT>): IContractAdapterEntry<FRONTEND_CONTRACT, ACTOR_CONTRACT>;
+>(
+  props: IContractAdapterEntry<FRONTEND_CONTRACT, ACTOR_CONTRACT>,
+): IContractAdapterEntry<FRONTEND_CONTRACT, ACTOR_CONTRACT>;
 
-export const identityContractAdapt = ({ payload }: { contract: IContract; payload: unknown }) =>
-  Effect.succeed(payload);
+export const identityContractAdapt = ({
+  payload,
+}: {
+  contract: IContract;
+  payload: unknown;
+}) => Effect.succeed(payload);
 ```
 
 Task 4 consumes `IContractAdapterEntry` and `identityContractAdapt` for binding resolution.
@@ -180,6 +196,7 @@ Task 4 consumes `IContractAdapterEntry` and `identityContractAdapt` for binding 
 This is the atomic core change. The repo may be red mid-task; it must be green at the commit. All files below change together.
 
 **Files:**
+
 - Rewrite: `packages/core/src/actorController/makeActorController.ts`
 - Rewrite: `packages/core/src/actorController/types.ts` (actor types)
 - Rewrite: `packages/core/src/surfaceController/types.ts` → binding types (`IFrontendBinding`, `IAnyFrontendBinding`, `IFrontendBindingProps`, `IModelAdapters`, `IContractAdapters`) — file renamed in Task 8; content changes now
@@ -190,6 +207,7 @@ This is the atomic core change. The repo may be red mid-task; it must be green a
 - Modify: any other core file that reads `.surfaces` or `actorController.models` — find with `grep -rn "\.surfaces\b\|actorController.models" packages/core/src --include="*.ts"`
 
 **Interfaces:**
+
 - Consumes: `modelsFromSelections` (Task 2), `IContractAdapterEntry`/`identityContractAdapt` (Task 3), existing `makeSurfaceCommand` (renamed Task 8), `assertValidModels`, `IAuthenticate`.
 - Produces (relied on by Tasks 5–7):
   - `makeActorController({ name, api?, selections, frontends, authorize? })`
@@ -205,7 +223,10 @@ describe('makeActorController frontends resolution', () => {
   it('derives binding models from selections ∩ frontend model keys', () => {
     // fixture frontend has models { list, user }; give the actor selections
     // for { list, user } — binding.models must be { list: List, user: User }
-    expect(Object.keys(actor.frontends.main!.models).sort()).toEqual(['list', 'user']);
+    expect(Object.keys(actor.frontends.main!.models).sort()).toEqual([
+      'list',
+      'user',
+    ]);
   });
 
   it('excludes actor models absent from the frontend', () => {
@@ -225,11 +246,17 @@ describe('makeActorController frontends resolution', () => {
 
   it('throws when frontends key does not match frontendController name', () => {
     expect(() =>
-      makeActorController({ name: 'main', selections, frontends: { wrong: binding } }),
+      makeActorController({
+        name: 'main',
+        selections,
+        frontends: { wrong: binding },
+      }),
     ).toThrow(/frontends.wrong/);
   });
 
-  it('throws when a modelAdapter is present but modelNames match', () => { /* … */ });
+  it('throws when a modelAdapter is present but modelNames match', () => {
+    /* … */
+  });
   it('exposes no models field on the controller', () => {
     expect('models' in actor).toBe(false);
   });
@@ -258,7 +285,11 @@ import type {
   IFrontendBindingProps,
 } from '../surfaceController/types.ts';
 
-import type { IActorController, IAnyActorApi, IAnyServiceQuery } from './types.ts';
+import type {
+  IActorController,
+  IAnyActorApi,
+  IAnyServiceQuery,
+} from './types.ts';
 
 type ISelections = Record<string, ISelection<IModel>>;
 
@@ -269,7 +300,9 @@ type IProps<
 > = {
   name: NAME;
   selections: SELECTIONS &
-    (IAssertValidModels<{ [K in keyof SELECTIONS]: SELECTIONS[K]['model'] }> extends never
+    (IAssertValidModels<{
+      [K in keyof SELECTIONS]: SELECTIONS[K]['model'];
+    }> extends never
       ? never
       : SELECTIONS);
   frontends: FRONTENDS;
@@ -282,7 +315,13 @@ type IProps<
 // Keep the two overloads (api absent / api present) exactly as the current file does.
 
 export function makeActorController(props) {
-  const { name, api = {}, selections, frontends: frontendsProps, authorize = () => Effect.void } = props;
+  const {
+    name,
+    api = {},
+    selections,
+    frontends: frontendsProps,
+    authorize = () => Effect.void,
+  } = props;
 
   const models = modelsFromSelections(selections);
   assertValidModels({ models, context: 'makeActorController' });
@@ -347,8 +386,12 @@ export function makeActorController(props) {
 
     const contracts: Record<string, unknown> = {};
     const resolvedContractAdapters: Record<string, unknown> = {};
-    for (const [contractKey, frontendContract] of Object.entries(frontendController.contracts)) {
-      const override = (contractAdapters as Record<string, IContractAdapterEntry>)[contractKey];
+    for (const [contractKey, frontendContract] of Object.entries(
+      frontendController.contracts,
+    )) {
+      const override = (
+        contractAdapters as Record<string, IContractAdapterEntry>
+      )[contractKey];
       if (override !== undefined) {
         contracts[contractKey] = override.contract;
         resolvedContractAdapters[contractKey] = override.adapt;
@@ -409,7 +452,7 @@ export type IAnyFrontendBinding = { /* today's IAnySurfaceController shape */ };
 ```
 
 Threading `ACTOR_MODELS` from `selections` into `frontends` values requires the
-`FRONTENDS` generic to be constrained *after* `SELECTIONS` in the
+`FRONTENDS` generic to be constrained _after_ `SELECTIONS` in the
 `makeActorController` signature: `FRONTENDS extends Record<string, IFrontendBindingProps<DERIVED_MODELS>>`.
 Iterate against the typecheck fixtures in Step 5 until the fixture's
 `@ts-expect-error` lines behave.
@@ -474,6 +517,7 @@ Run: `pnpm nx run-many -t typecheck test -p core` → PASS (fix fallout inside c
 ### Task 5: system-worker — consume selections + frontends
 
 **Files:**
+
 - Modify: `packages/system-worker/src/fixtures/system.ts`
 - Modify: `packages/system-worker/src/ActorRepo/ActorRepo.ts:184`
 - Modify: `packages/system-worker/src/ActorRepo/bootstrap/bootstrap.ts:73,89`
@@ -482,6 +526,7 @@ Run: `pnpm nx run-many -t typecheck test -p core` → PASS (fix fallout inside c
 - Modify: every system-worker file matched by `grep -rln "\.surfaces\b\|surfaceController" packages/system-worker/src --include="*.ts"` — access-path change `.surfaces` → `.frontends` (identifier renames wait for Task 8)
 
 **Interfaces:**
+
 - Consumes: `actorController.selections`, `actorController.frontends`, `modelsFromSelections` from `@zerospin/core/models/modelsFromSelections`.
 
 - [ ] **Step 1: Update the fixture** — `packages/system-worker/src/fixtures/system.ts`: drop `models:` from `mainActor` (its selections already cover the four models); replace `surfaces: { main: makeSurfaceController({ name, frontendController, models, contracts, modelAdapters, contractAdapters, authenticate }) }` with `frontends: { main: { frontendController: main, authenticate: <existing fn> } }`. NOTE: this frontend carries a fifth model `product` and a `replicateProduct` contract; binding models resolve to the actor's four (product excluded automatically), and all six contracts resolve with identity adapters. Update the account controller lines analogous to core fixture (`modelsFromSelections`, `.frontends.main!.contracts`).
@@ -493,11 +538,13 @@ Run: `pnpm nx run-many -t typecheck test -p core` → PASS (fix fallout inside c
 - `bootstrap.ts:89` block: replace the `getByKeyOrThrow({ record: actorController.models, … })` with
 
 ```ts
-const selection = yield* getByKeyOrThrow({
-  record: actorController.selections,
-  key: modelName,
-  recordKind: 'actor selections',
-});
+const selection =
+  yield *
+  getByKeyOrThrow({
+    record: actorController.selections,
+    key: modelName,
+    recordKind: 'actor selections',
+  });
 const model = selection.model;
 ```
 
@@ -505,12 +552,18 @@ const model = selection.model;
 - `dumpActorModelResources.ts`: delete the `actorController.models` lookup; keep only
 
 ```ts
-const selection = yield* getByKeyOrThrow({
-  record: actorController.selections,
-  key: modelName,
-  recordKind: 'actor selections',
-});
-const rows = selectAllFromSelection({ db: db as never, selection, actorId }).all();
+const selection =
+  yield *
+  getByKeyOrThrow({
+    record: actorController.selections,
+    key: modelName,
+    recordKind: 'actor selections',
+  });
+const rows = selectAllFromSelection({
+  db: db as never,
+  selection,
+  actorId,
+}).all();
 ```
 
 - [ ] **Step 3: Sweep `.surfaces` access paths** — for each file from the grep in **Files**, change property access `.surfaces` → `.frontends` (e.g. `actorController.surfaces[surfaceName]` → `actorController.frontends[surfaceName]`). Variable/parameter renames happen in Task 8.
@@ -524,6 +577,7 @@ const rows = selectAllFromSelection({ db: db as never, selection, actorId }).all
 ### Task 6: system package, sdk, react, shared-worker
 
 **Files:**
+
 - Modify: `packages/system/src/system.ts` (drops `models:`, `modelAdapters: {}`, identity `contractAdapters`, `makeSurfaceController` → `frontends` binding — same pattern as Task 5 Step 1)
 - Modify: files found by `grep -rln "makeSurfaceController\|\.surfaces\b\|actorController.models" packages/sdk/src packages/react/src packages/shared-worker/src --include="*.ts"` — update imports/access paths; `packages/react/src/useApi.typecheck.ts` gets the new `makeActorController` shape (copy the pattern from Task 4 Step 5)
 - Modify: `packages/core/src/system/makeSystem.node.spec.ts:82,119,174` — `models: mainActor.models` → `models: modelsFromSelections(mainActor.selections)`; `packages/core/src/accountController/makeAccountController.node.spec.ts` + `makeAccountController.typecheck.ts` — same substitutions
@@ -538,6 +592,7 @@ const rows = selectAllFromSelection({ db: db as never, selection, actorId }).all
 ### Task 7: examples (shopping, parking)
 
 **Files:**
+
 - Modify: `examples/shopping/src/zerospin/system.ts`, `examples/parking/src/zerospin/system.ts` (fixture pattern from Task 5 Step 1; shopping's `product` selection becomes `makeSelection({ model: Product })` — where omitted)
 - Modify: example tests touching renamed access paths: `examples/shopping/tests/**`, `examples/parking/tests/**` (grep per file list in the survey; only access-path changes here)
 
@@ -553,20 +608,20 @@ No behavior change; identifiers, files, columns, routes, error codes.
 
 **Files:** repo-wide `*.ts` (excluding `dist/`, `node_modules/`), plus file/directory renames:
 
-| Rename | Kind |
-| --- | --- |
-| `surfaceName` → `frontendName` | identifier everywhere: props, fields, route patterns (`/:surfaceName`), drizzle columns (`sessionRepoTables.ts`, `accountBlockDrizzleSchemas.ts`, `shared-worker` user schema **and its `migrations.ts` SQL** — regenerate/hand-edit the CREATE TABLE statements; no ALTER migrations, DBs are wiped) |
-| `ISurfaceCommand` → `IActorCommand`, `commandType: 'surface'` → `'actor'` | `contracts/types.ts`, `CommandSchema.ts`, session command shapes, all consumers |
-| `makeSurfaceCommand` → `makeActorCommand` | file + identifier: `surfaceController/makeSurfaceCommand.ts` → `frontendBinding/makeActorCommand.ts` |
-| `packages/core/src/surfaceController/` → `packages/core/src/frontendBinding/` | `git mv`, update all import paths |
-| `ISurfaceController`/`IAnySurfaceController` → `IFrontendBinding`/`IAnyFrontendBinding` | already-reshaped types get final names |
-| `getSurfaceController.ts` → `getFrontendBinding.ts` | file + exported fn |
-| `pushSurfaceCommands` → `pushActorCommands` | ActorRepo dir + op + RPC method + all public callers (including react `pushStagedCommands.ts`) |
-| `IMergedActorSurfaceContracts` → `IMergedActorFrontendContracts`; `AccountContractsExtendSurface` → `AccountContractsExtendFrontend` | accountController types |
-| `getAuthorizedActorSurfaces` → `getAuthorizedActorFrontends` | AuthorizationRepo dir + fn + callers |
-| `surface-push-command-*` error codes → `actor-push-command-*` | `pushSurfaceCommands.ts` + any spec asserting the code |
-| `pushedSurfaceCommands1.zspec.ts` → `pushedActorCommands1.zspec.ts` | test file rename + internal strings |
-| remaining `surfaceController` variable names → `frontendBinding` | system-worker |
+| Rename                                                                                                                               | Kind                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `surfaceName` → `frontendName`                                                                                                       | identifier everywhere: props, fields, route patterns (`/:surfaceName`), drizzle columns (`sessionRepoTables.ts`, `accountBlockDrizzleSchemas.ts`, `shared-worker` user schema **and its `migrations.ts` SQL** — regenerate/hand-edit the CREATE TABLE statements; no ALTER migrations, DBs are wiped) |
+| `ISurfaceCommand` → `IActorCommand`, `commandType: 'surface'` → `'actor'`                                                            | `contracts/types.ts`, `CommandSchema.ts`, session command shapes, all consumers                                                                                                                                                                                                                       |
+| `makeSurfaceCommand` → `makeActorCommand`                                                                                            | file + identifier: `surfaceController/makeSurfaceCommand.ts` → `frontendBinding/makeActorCommand.ts`                                                                                                                                                                                                  |
+| `packages/core/src/surfaceController/` → `packages/core/src/frontendBinding/`                                                        | `git mv`, update all import paths                                                                                                                                                                                                                                                                     |
+| `ISurfaceController`/`IAnySurfaceController` → `IFrontendBinding`/`IAnyFrontendBinding`                                              | already-reshaped types get final names                                                                                                                                                                                                                                                                |
+| `getSurfaceController.ts` → `getFrontendBinding.ts`                                                                                  | file + exported fn                                                                                                                                                                                                                                                                                    |
+| `pushSurfaceCommands` → `pushActorCommands`                                                                                          | ActorRepo dir + op + RPC method + all public callers (including react `pushStagedCommands.ts`)                                                                                                                                                                                                        |
+| `IMergedActorSurfaceContracts` → `IMergedActorFrontendContracts`; `AccountContractsExtendSurface` → `AccountContractsExtendFrontend` | accountController types                                                                                                                                                                                                                                                                               |
+| `getAuthorizedActorSurfaces` → `getAuthorizedActorFrontends`                                                                         | AuthorizationRepo dir + fn + callers                                                                                                                                                                                                                                                                  |
+| `surface-push-command-*` error codes → `actor-push-command-*`                                                                        | `pushSurfaceCommands.ts` + any spec asserting the code                                                                                                                                                                                                                                                |
+| `pushedSurfaceCommands1.zspec.ts` → `pushedActorCommands1.zspec.ts`                                                                  | test file rename + internal strings                                                                                                                                                                                                                                                                   |
+| remaining `surfaceController` variable names → `frontendBinding`                                                                     | system-worker                                                                                                                                                                                                                                                                                         |
 
 - [ ] **Step 1: Mechanical sweep.** Use ordered, reviewable substitutions (longest-first to avoid partial matches), e.g.:
 
@@ -599,6 +654,7 @@ Expected: no output. `grep -rin "surface" …` may legitimately hit unrelated wo
 ### Task 9: Docs, wiki, and final verification
 
 **Files:**
+
 - Modify: `llm-wiki/**` files referencing `makeSurfaceController`, `surfaces:`, `models:` on actors, or `surfaceName` (find with grep); update code samples to the new API
 - Modify: `CLAUDE.md`/READMEs if they mention surfaces (grep)
 

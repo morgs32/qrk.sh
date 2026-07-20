@@ -22,8 +22,8 @@
 
 ## Explicit approvals carried by this plan
 
-1. Add `ILogId = \`lgr_${string}\`` in `packages/logger/src/types.ts` and add `logId` to `ILogRecord`.
-2. Add `ISpanLinkId = \`lnk_${string}\`` in `packages/logger/src/types.ts` and add `linkId` to `ISpanLinkRecord`.
+1. Add `ILogId = \`lgr\_${string}\``in`packages/logger/src/types.ts`and add`logId`to`ILogRecord`.
+2. Add `ISpanLinkId = \`lnk\_${string}\``in`packages/logger/src/types.ts`and add`linkId`to`ISpanLinkRecord`.
 3. Add synchronous `makeLogId()` and `makeSpanLinkId()` generation beside the existing trace/span ID generation.
 4. Add the three explicit insertion loops in `LogRepo.appendTelemetryBatch`: one over spans, one over logs, and one over links. Do not introduce a generic row-mapping helper.
 5. Add the internal RPC `SystemWorker.appendTelemetryBatch({ batch })` and the public LogRepo method `LogRepo.appendTelemetryBatch({ batch })`.

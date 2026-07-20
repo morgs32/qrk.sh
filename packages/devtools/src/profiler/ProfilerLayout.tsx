@@ -1,89 +1,90 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from 'react';
 
-import type { IProfilerProfile } from "../types";
-import { zerospinDevtoolsStore } from "../zerospinDevtoolsStore";
-import { Outlet, useMatch, useNavigate } from "react-router";
-import { useStore } from "zustand/react";
-import { useShallow } from "zustand/react/shallow";
+import { Outlet, useMatch, useNavigate } from 'react-router';
+import { useStore } from 'zustand/react';
+import { useShallow } from 'zustand/react/shallow';
+
+import type { IProfilerProfile } from '../types';
+import { zerospinDevtoolsStore } from '../zerospinDevtoolsStore';
 
 const styles = {
   root: {
-    fontFamily: "system-ui, sans-serif",
-    display: "flex",
-    alignItems: "stretch",
+    fontFamily: 'system-ui, sans-serif',
+    display: 'flex',
+    alignItems: 'stretch',
     minHeight: 200,
-    height: "100%",
-    boxSizing: "border-box",
+    height: '100%',
+    boxSizing: 'border-box',
   } satisfies CSSProperties,
   listPane: {
-    flex: "0 0 25%",
+    flex: '0 0 25%',
     minWidth: 0,
     minHeight: 0,
-    display: "flex",
-    flexDirection: "column",
-    borderRight: "1px solid #e5e7eb",
+    display: 'flex',
+    flexDirection: 'column',
+    borderRight: '1px solid #e5e7eb',
   } satisfies CSSProperties,
   tableScroll: {
     flex: 1,
     minHeight: 0,
-    overflowX: "auto",
-    overflowY: "auto",
+    overflowX: 'auto',
+    overflowY: 'auto',
   } satisfies CSSProperties,
   table: {
-    width: "100%",
-    tableLayout: "fixed",
+    width: '100%',
+    tableLayout: 'fixed',
     fontSize: 12,
-    borderCollapse: "collapse",
+    borderCollapse: 'collapse',
   } satisfies CSSProperties,
   tableHeader: {
-    backgroundColor: "#f3f4f6",
-    position: "sticky",
+    backgroundColor: '#f3f4f6',
+    position: 'sticky',
     top: 0,
     zIndex: 1,
   } satisfies CSSProperties,
   tr: {
-    borderBottom: "1px solid #f3f4f6",
-    cursor: "pointer",
+    borderBottom: '1px solid #f3f4f6',
+    cursor: 'pointer',
   } satisfies CSSProperties,
   td: {
-    padding: "4px 12px",
+    padding: '4px 12px',
   } satisfies CSSProperties,
   thTime: {
-    padding: "4px 12px",
+    padding: '4px 12px',
     fontWeight: 500,
-    textAlign: "left",
-    color: "#6b7280",
-    width: "30%",
+    textAlign: 'left',
+    color: '#6b7280',
+    width: '30%',
   } satisfies CSSProperties,
   thId: {
-    padding: "4px 12px",
+    padding: '4px 12px',
     fontWeight: 500,
-    textAlign: "left",
-    color: "#6b7280",
-    width: "auto",
+    textAlign: 'left',
+    color: '#6b7280',
+    width: 'auto',
   } satisfies CSSProperties,
   tdTime: {
-    padding: "4px 12px",
-    fontFamily: "ui-monospace, monospace",
-    color: "#374151",
-    verticalAlign: "middle",
-    width: "30%",
+    padding: '4px 12px',
+    fontFamily: 'ui-monospace, monospace',
+    color: '#374151',
+    verticalAlign: 'middle',
+    width: '30%',
   } satisfies CSSProperties,
   tdId: {
-    padding: "4px 12px",
-    fontFamily: "ui-monospace, monospace",
-    color: "#9333ea",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    verticalAlign: "middle",
+    padding: '4px 12px',
+    fontFamily: 'ui-monospace, monospace',
+    color: '#9333ea',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    verticalAlign: 'middle',
   } satisfies CSSProperties,
   detailPane: {
     flex: 1,
     minWidth: 0,
     minHeight: 0,
-    display: "flex",
-    flexDirection: "column",
+    display: 'flex',
+    flexDirection: 'column',
   } satisfies CSSProperties,
 } as const;
 
@@ -104,9 +105,9 @@ export function ProfilerLayout() {
     useShallow((s): ReadonlyArray<IProfilerProfile> => s.profiles),
   );
 
-  const profileMatch = useMatch("/profiler/:profileId/*");
+  const profileMatch = useMatch('/profiler/:profileId/*');
   const profileIdParam =
-    typeof profileMatch?.params.profileId === "string"
+    typeof profileMatch?.params.profileId === 'string'
       ? profileMatch.params.profileId
       : undefined;
 
@@ -116,7 +117,7 @@ export function ProfilerLayout() {
   useEffect(() => {
     if (profiles.length === 0) {
       if (profileIdParam !== undefined) {
-        void navigate("/profiler", { replace: true });
+        void navigate('/profiler', { replace: true });
       }
       return;
     }
@@ -131,7 +132,7 @@ export function ProfilerLayout() {
       return;
     }
 
-    const idIsValid = profiles.some((x) => x.id === profileIdParam);
+    const idIsValid = profiles.some(x => x.id === profileIdParam);
     if (!idIsValid) {
       void navigate(`/profiler/${first.id}/props`, { replace: true });
     }
@@ -143,7 +144,7 @@ export function ProfilerLayout() {
         <div style={styles.tableScroll}>
           <table style={styles.table}>
             <colgroup>
-              <col style={{ width: "30%" }} />
+              <col style={{ width: '30%' }} />
               <col />
             </colgroup>
             <thead style={styles.tableHeader}>
@@ -155,12 +156,12 @@ export function ProfilerLayout() {
             <tbody>
               {profiles.length === 0 ? (
                 <tr style={styles.tr}>
-                  <td colSpan={2} style={{ ...styles.td, color: "#6b7280" }}>
+                  <td colSpan={2} style={{ ...styles.td, color: '#6b7280' }}>
                     No profiles
                   </td>
                 </tr>
               ) : (
-                profiles.map((profile) => {
+                profiles.map(profile => {
                   const isSelected =
                     profileIdParam !== undefined &&
                     profile.id === profileIdParam;
@@ -177,10 +178,10 @@ export function ProfilerLayout() {
                       style={{
                         ...styles.tr,
                         backgroundColor: isSelected
-                          ? "#eff6ff"
+                          ? '#eff6ff'
                           : isRowHovered
-                            ? "#f3f4f6"
-                            : "transparent",
+                            ? '#f3f4f6'
+                            : 'transparent',
                       }}
                     >
                       <td style={styles.tdTime}>

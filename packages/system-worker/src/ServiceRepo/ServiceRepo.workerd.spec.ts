@@ -20,15 +20,15 @@ import { describe, expect } from 'vitest';
 
 import { AccountRepo } from '../AccountRepo/AccountRepo.js';
 import { getAccountRepo } from '../AccountRepo/getAccountRepo/getAccountRepo.js';
+import { ServiceBlockSchema } from '../blockSchemas.js';
 import { userAccount } from '../fixtures/system.js';
 import { managedRuntime } from '../managedRuntime.js';
-import { ServiceBlockSchema } from '../blockSchemas.js';
 import { getServiceBlockRepo } from '../ServiceBlockRepo/getServiceBlockRepo/getServiceBlockRepo.js';
 import { ServiceBlockRepo } from '../ServiceBlockRepo/ServiceBlockRepo.js';
 import { executeInRepo } from '../workerd-utils/executeInRepo.js';
 
-import { getServiceRepo } from './getServiceRepo/getServiceRepo.js';
 import { drainGeneration } from './drainGeneration/drainGeneration.js';
+import { getServiceRepo } from './getServiceRepo/getServiceRepo.js';
 import { ServiceRepo } from './ServiceRepo.js';
 
 const TestLayer = Layer.mergeAll(
@@ -92,10 +92,9 @@ describe('ServiceRepo', () => {
               const productTable = schema.product;
               const serviceCursorsTable = schema.serviceCursors;
               return {
-                foreignKeys:
-                  storage.sql.exec<{ foreign_keys: number }>(
-                    'PRAGMA foreign_keys',
-                  ).one().foreign_keys,
+                foreignKeys: storage.sql
+                  .exec<{ foreign_keys: number }>('PRAGMA foreign_keys')
+                  .one().foreign_keys,
                 products: db
                   .select({
                     id: productTable.id,
@@ -246,7 +245,9 @@ describe('ServiceRepo', () => {
         } else {
           expect(concurrentSnapshot.serviceIndex).toBe(3);
           if (concurrentFirstResource?.status !== 'found') {
-            throw new Error('Expected the grouped product snapshot to be found');
+            throw new Error(
+              'Expected the grouped product snapshot to be found',
+            );
           }
           expect(concurrentFirstResource.resource.name).toBe(
             'Service Snapshot Updated Product',
@@ -497,8 +498,7 @@ describe('ServiceRepo', () => {
                 generationId: 'gen_service_command_savepoint',
                 serviceName: 'app',
               },
-              fn: ({ db, schema }) =>
-                db.select().from(schema.product).all(),
+              fn: ({ db, schema }) => db.select().from(schema.product).all(),
             }),
           );
           expect(products).toEqual([
@@ -905,10 +905,7 @@ describe('ServiceRepo', () => {
                   .from(schema.product)
                   .where(eq(schema.product.id, 'prd_service_replay'))
                   .get(),
-                receipts: db
-                  .select()
-                  .from(schema.serviceReplayReceipts)
-                  .all(),
+                receipts: db.select().from(schema.serviceReplayReceipts).all(),
               }),
             }),
           );

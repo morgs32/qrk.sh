@@ -1,9 +1,9 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties } from 'react';
 
-import type { ISession } from "@zerospin/core/session/types";
-import { useStore } from "zustand/react";
+import type { ISession } from '@zerospin/core/session/types';
+import { useStore } from 'zustand/react';
 
-import { SessionsDataCell } from "./SessionsDataCell";
+import { SessionsDataCell } from './SessionsDataCell';
 
 export function SessionsActorIdCell(props: {
   readonly session: ISession;
@@ -13,7 +13,7 @@ export function SessionsActorIdCell(props: {
 
   const actorId = useStore(
     session.store,
-    (state) => state.actorId ?? "Initializing...",
+    state => state.actorId ?? 'Initializing...',
   );
 
   return (

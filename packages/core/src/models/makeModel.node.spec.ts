@@ -63,7 +63,10 @@ describe('makeModel', () => {
     assert<Equals<UserRow['id'], `usr_${string}`>>();
     assert<Equals<InferResource<typeof User>['id'], `usr_${string}`>>();
     assert<
-      Equals<'deletedAt' extends keyof InferResource<typeof User> ? true : false, false>
+      Equals<
+        'deletedAt' extends keyof InferResource<typeof User> ? true : false,
+        false
+      >
     >();
 
     // Drizzle `$inferSelect.id` stays `string`; typed row shape uses `InferResource` for prefix branding.

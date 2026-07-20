@@ -10,7 +10,7 @@ sources:
     sha: e537d9e7a4207032ea776802124cb3b21f743e3b
     lines: 539-722
   - path: packages/core/src/drizzle/makeDbConfig.ts
-    sha: 3366d6e746ddde1820ad19183e9836547e0fcdf1
+    sha: 7c06acfbb0427ca73e1331908204de66ea2be695
     lines: 13-61
   - path: packages/core/src/drizzle/makeDrizzleSchemas.ts
     sha: 7b9f236783a3ccfc3956b0cc7eb8f3562457ab28
@@ -34,11 +34,11 @@ sources:
     sha: 1946ceaaf532d5cbd65b13a5ef4be6551f2e8b5e
     lines: 1-120
   - path: packages/core/src/service/makeServiceController.ts
-    sha: bc375f32be4857b0b5c1c350f0ffa3f50b5b29ac
-    lines: 97-548
+    sha: b212a4bc08d33a8b21cc74ef239541d5abde566c
+    lines: 97-554
   - path: packages/core/src/actorController/makeActorController.ts
-    sha: 5a6d10eccd9696db279215e90f307d4618330a28
-    lines: 87-202
+    sha: 76481404fd9982e4211fc4a77c7e45da2f626bed
+    lines: 87-208
   - path: packages/core/src/models/makeSelection.ts
     sha: bff426e08a4ccead881115f13d69af9239658c23
     lines: 280-466
@@ -226,8 +226,8 @@ sources:
     sha: be8d4cda98b5ad8705ac5cf2dc5edc08027d955b
     lines: 98-123
   - path: packages/core/src/accountController/makeAccountController.ts
-    sha: d65d854b7b10ebcc0eecaa51dd19b596c6762729
-    lines: 228-517
+    sha: 226f6b680bd925626a6f8c4aab6bb78b1541699d
+    lines: 228-523
   - path: packages/core/src/contracts/makeContract.ts
     sha: c644a7796874d27fd1503ba9d48022631b0a05ab
     lines: 91-166
@@ -422,7 +422,7 @@ runtime (../../packages/core/src/models/makeServiceModel.ts:1-39,
 
 Actor controllers declare an explicit complete `models` registry. The type and
 runtime checks require one selection per model, under the same key, referencing
-the exact same model object (../../packages/core/src/actorController/makeActorController.ts:87-202).
+the exact same model object (../../packages/core/src/actorController/makeActorController.ts:87-213).
 Selection compilation receives that full registry, supports both forward refs
 and inverse relation names, and starts from a distinct root selection so
 inverse-many joins cannot duplicate root resources
@@ -470,7 +470,7 @@ tables into one graph, records each logical table identity, and resolves lazy
 Drizzle reference closures against that graph. Migration SQL emits concrete
 `FOREIGN KEY (...) REFERENCES ... (...)` clauses without cascade, set-null, or
 deferred options, leaving SQLite's default `NO ACTION` behavior
-(../../packages/core/src/drizzle/makeDbConfig.ts:26-61,
+(../../packages/core/src/drizzle/makeDbConfig.ts:26-63,
 ../../packages/core/src/drizzle/makeDrizzleSchemas.ts:16-53,
 ../../packages/core/src/drizzle/makeTableMigrationSQL.ts:43-60).
 
@@ -526,16 +526,16 @@ for the same operation and provide a requirement-free Effect callback. A
 `destination: null` edge omits the callback and deliberately retires that
 historical mutation. Destinations cannot point to historical versions, so
 adapter chains are not followed
-(../../packages/core/src/accountController/makeAccountController.ts:228-490,
-../../packages/core/src/service/makeServiceController.ts:240-508).
+(../../packages/core/src/accountController/makeAccountController.ts:228-496,
+../../packages/core/src/service/makeServiceController.ts:240-514).
 
 Removing a model requires exhaustive retirement coverage rather than dropping
 its table definition alone. An account model must cover `create`, `update`,
 `delete`, and `move` for the same historical version set; a service model must
 also cover `replicateResource`. Every edge may adapt into a current model or
 explicitly discard to `null`
-(../../packages/core/src/accountController/makeAccountController.ts:493-517,
-../../packages/core/src/service/makeServiceController.ts:511-548).
+(../../packages/core/src/accountController/makeAccountController.ts:499-523,
+../../packages/core/src/service/makeServiceController.ts:517-554).
 
 ```mermaid
 flowchart TD

@@ -115,6 +115,16 @@ const appService = makeServiceController({
   },
 });
 
+const serviceControllerVersion: '1.0.0' = appService.version;
+void serviceControllerVersion;
+
+// @ts-expect-error — version is required at the factory call site
+makeServiceController({
+  name: 'app',
+  models: { product: Product },
+  contracts: { createProduct },
+});
+
 void appService.queries.getProducts.query({
   db: null as never,
   params: {

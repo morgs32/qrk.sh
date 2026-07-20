@@ -39,7 +39,9 @@ export function makeSystemSpec<
           properties: encodeShape(model.propertiesShape),
           indexes: model.indexes,
           historicalDefinitions: model.historicalDefinitions
-            .toSorted((left, right) => left.version.localeCompare(right.version))
+            .toSorted((left, right) =>
+              left.version.localeCompare(right.version),
+            )
             .map(definition => ({
               modelName: definition.modelName,
               abbreviation: definition.abbreviation,
@@ -117,9 +119,7 @@ export function makeSystemSpec<
                   };
                 }
 
-                const destinationJsonSchema = JSONSchema.make(
-                  edge.destination,
-                );
+                const destinationJsonSchema = JSONSchema.make(edge.destination);
                 const destinationProperties = Reflect.get(
                   destinationJsonSchema,
                   'properties',
@@ -220,30 +220,27 @@ export function makeSystemSpec<
                 actorName: binding.frontendController.actorName,
                 frontendName: binding.frontendController.frontendName,
                 version: binding.frontendController.version,
-                models: mapValues(
-                  binding.frontendController.models,
-                  model => ({
-                    modelName: model.modelName,
-                    abbreviation: model.abbreviation,
-                    version: model.version,
-                    properties: encodeShape(model.propertiesShape),
-                    indexes: model.indexes,
-                    historicalDefinitions: model.historicalDefinitions
-                      .toSorted((left, right) =>
-                        left.version.localeCompare(right.version),
-                      )
-                      .map(definition => ({
-                        modelName: definition.modelName,
-                        abbreviation: definition.abbreviation,
-                        version: definition.version,
-                        properties: encodeShape({
-                          ...model.metadata,
-                          ...definition.attributes,
-                        }),
-                        indexes: definition.indexes,
-                      })),
-                  }),
-                ),
+                models: mapValues(binding.frontendController.models, model => ({
+                  modelName: model.modelName,
+                  abbreviation: model.abbreviation,
+                  version: model.version,
+                  properties: encodeShape(model.propertiesShape),
+                  indexes: model.indexes,
+                  historicalDefinitions: model.historicalDefinitions
+                    .toSorted((left, right) =>
+                      left.version.localeCompare(right.version),
+                    )
+                    .map(definition => ({
+                      modelName: definition.modelName,
+                      abbreviation: definition.abbreviation,
+                      version: definition.version,
+                      properties: encodeShape({
+                        ...model.metadata,
+                        ...definition.attributes,
+                      }),
+                      indexes: definition.indexes,
+                    })),
+                })),
                 contracts: mapValues(
                   binding.frontendController.contracts,
                   contract => ({
@@ -277,7 +274,9 @@ export function makeSystemSpec<
           properties: encodeShape(model.propertiesShape),
           indexes: model.indexes,
           historicalDefinitions: model.historicalDefinitions
-            .toSorted((left, right) => left.version.localeCompare(right.version))
+            .toSorted((left, right) =>
+              left.version.localeCompare(right.version),
+            )
             .map(definition => ({
               modelName: definition.modelName,
               abbreviation: definition.abbreviation,
@@ -355,9 +354,7 @@ export function makeSystemSpec<
                   };
                 }
 
-                const destinationJsonSchema = JSONSchema.make(
-                  edge.destination,
-                );
+                const destinationJsonSchema = JSONSchema.make(edge.destination);
                 const destinationProperties = Reflect.get(
                   destinationJsonSchema,
                   'properties',

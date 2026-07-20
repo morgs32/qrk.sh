@@ -6,7 +6,6 @@ import {
   createCarpark,
   createDestination,
   createGarage,
-  seedActor,
   updateCarpark,
 } from './contracts';
 import { Car, Carpark, Destination, Garage, ParkingActor } from './models';
@@ -17,7 +16,6 @@ const signature = Schema.Struct({
 
 export const providerAdminFrontend = makeFrontendController({
   contracts: {
-    seedActor,
     createDestination,
     createCarpark,
     updateCarpark,
@@ -37,7 +35,6 @@ export const providerAdminFrontend = makeFrontendController({
 
 export const ownerFrontend = makeFrontendController({
   contracts: {
-    seedActor,
     createGarage,
     createCar,
   },

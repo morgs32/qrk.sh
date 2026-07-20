@@ -541,6 +541,23 @@ describe('descriptorToEffectSchema', () => {
     });
   });
 
+  it('fills missing nullable text null defaults during shape decode', () => {
+    const schema = makeEffectSchema({
+      name: primitives.text({ nullable: true, defaultValue: null }),
+    });
+
+    expect(Schema.decodeUnknownSync(schema)({})).toEqual({ name: null });
+    expect(Schema.decodeUnknownSync(schema)({ name: null })).toEqual({
+      name: null,
+    });
+    expect(Schema.decodeUnknownSync(schema)({ name: 'provided' })).toEqual({
+      name: 'provided',
+    });
+    expect(() =>
+      Schema.decodeUnknownSync(schema)({ name: undefined }),
+    ).toThrow();
+  });
+
   it('fills missing nullable json null defaults during shape decode', () => {
     const row = JSON.stringify({ x: 'ok' });
     const schema = makeEffectSchema({
@@ -908,6 +925,12 @@ describe('generateMigrationSqlForDescriptor', () => {
         'name',
       ),
     ).toBe("name text NOT NULL DEFAULT 'it''s saved'");
+    expect(
+      generateMigrationSqlForDescriptor(
+        primitives.text({ nullable: true, defaultValue: null }),
+        'name',
+      ),
+    ).toBe('name text DEFAULT NULL');
     expect(
       generateMigrationSqlForDescriptor(
         primitives.date({ defaultValue: new Date(0) }),

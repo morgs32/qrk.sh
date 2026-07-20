@@ -6,7 +6,6 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { systemWorkerAbbreviations } from './systemWorkerAbbreviations.js';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { env, runInDurableObject } from 'cloudflare:test';
 import { Effect } from 'effect';
@@ -14,6 +13,7 @@ import { describe, expect } from 'vitest';
 
 import { getServiceRepo } from './ServiceRepo/getServiceRepo/getServiceRepo.js';
 import { SystemRepo } from './SystemRepo/SystemRepo.js';
+import { systemWorkerAbbreviations } from './systemWorkerAbbreviations.js';
 
 describe('RepoExplorer', () => {
   it.effect('registers repos and reads only registered tables', () =>

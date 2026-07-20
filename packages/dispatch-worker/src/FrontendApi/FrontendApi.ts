@@ -61,11 +61,7 @@ function makeApiHandler<ARGS extends Array<unknown>, A, R>(props: {
   argsSchema: Schema.Schema<ARGS>;
   handler: (
     ...args: ARGS
-  ) => Effect.Effect<
-    A,
-    IAnyError,
-    R | FrontendAuthResults | SystemWorkerApi
-  >;
+  ) => Effect.Effect<A, IAnyError, R | FrontendAuthResults | SystemWorkerApi>;
 }) {
   const { argsSchema, handler, name } = props;
 
@@ -220,9 +216,7 @@ const executeServiceQuery = Effect.fn('FrontendApi.executeServiceQuery', {
       queryName: props.queryName,
       serviceName: props.serviceName,
     }),
-  ).pipe(
-    Effect.flatMap(decodeRpc),
-  );
+  ).pipe(Effect.flatMap(decodeRpc));
 });
 
 const executeServiceQueryApiHandler = makeApiHandler({
@@ -382,9 +376,7 @@ export class FrontendApi extends RpcTarget {
     this.#runtime = props.runtime;
   }
 
-  async fetchActor(
-    request: IRpcRequest<[]>,
-  ): Promise<
+  async fetchActor(request: IRpcRequest<[]>): Promise<
     ILinkedRpcEnvelope<
       {
         actor: IActor;

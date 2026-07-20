@@ -9,9 +9,7 @@ import { accountRepoDrizzleSchemas } from '../AccountRepo.js';
 /** Reads active source subscriptions in deterministic repo-name order. */
 export const getReplaySubscriptions = Effect.fn(
   'AccountRepo.getReplaySubscriptions',
-)(function* (props: {
-  db: IDb;
-}): Effect.fn.Return<
+)(function* (props: { db: IDb }): Effect.fn.Return<
   readonly Readonly<{
     serviceRepoName: string;
     serviceName: string;

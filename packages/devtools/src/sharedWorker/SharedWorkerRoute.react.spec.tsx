@@ -1,18 +1,19 @@
-import { act } from "react";
+import { act } from 'react';
 
-import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { zerospinDevtoolsStore } from "../zerospinDevtoolsStore.js";
-import { SharedWorkerRoute } from "./SharedWorkerRoute.js";
+import { zerospinDevtoolsStore } from '../zerospinDevtoolsStore.js';
 
-describe("SharedWorkerRoute", () => {
+import { SharedWorkerRoute } from './SharedWorkerRoute.js';
+
+describe('SharedWorkerRoute', () => {
   let container: HTMLDivElement;
   let root: Root;
 
   beforeEach(() => {
     zerospinDevtoolsStore.getState().setSharedWorkerUserApi(null);
-    container = document.createElement("div");
+    container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
   });
@@ -26,13 +27,13 @@ describe("SharedWorkerRoute", () => {
     container.remove();
   });
 
-  it("renders disabled and enabled connection state", async () => {
+  it('renders disabled and enabled connection state', async () => {
     await act(async () => {
       root.render(<SharedWorkerRoute />);
       await Promise.resolve();
     });
 
-    expect(container.textContent).toBe("Shared Worker is disabled");
+    expect(container.textContent).toBe('Shared Worker is disabled');
 
     await act(async () => {
       zerospinDevtoolsStore.getState().setSharedWorkerUserApi({
@@ -41,6 +42,6 @@ describe("SharedWorkerRoute", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toBe("Shared Worker is enabled");
+    expect(container.textContent).toBe('Shared Worker is enabled');
   });
 });

@@ -80,8 +80,8 @@ describe('ProductList', () => {
 
   beforeEach(() => {
     vi.stubGlobal('WebSocket', undefined);
-    vi.mocked(mockFrontendApi.getFrontendState).mockImplementation(async () =>
-      ({
+    vi.mocked(mockFrontendApi.getFrontendState).mockImplementation(
+      async () => ({
         result: encodeRight({
           actorId,
           accountName: shopperFrontend.accountName,
@@ -98,40 +98,37 @@ describe('ProductList', () => {
         link: null,
       }),
     );
-    vi.mocked(mockFrontendApi.fetchActor).mockResolvedValue(
-      {
-        result: encodeRight({
-          actor: {
-            accountId: 'acct_1',
-            actorId,
-          },
-          deployId: 'dpl_test',
-          generationId: 'gen_test',
-          systemId: 'sys_1',
-          systemVersion: '1.0.0',
-          systemWorkerName: 'stub-deploy',
-          systemEnvironmentId: 'dev',
-        }),
-        link: null,
-      },
-    );
-    vi.mocked(mockFrontendApi.executeActorQuery).mockResolvedValue(
-      {
-        result: encodeRight([
-          {
-            createdAt: now,
-            description: 'Test product',
-            id: 'prd_1',
-            modelName: 'product',
-            name: 'Test Product',
-            price: 20,
-            updatedAt: now,
-            version: '1.0.0',
-          },
-        ]),
-        link: null,
-      },
-    );
+    vi.mocked(mockFrontendApi.fetchActor).mockResolvedValue({
+      result: encodeRight({
+        actor: {
+          accountId: 'acct_1',
+          actorId,
+        },
+        deployId: 'dpl_test',
+        generationId: 'gen_test',
+        systemId: 'sys_1',
+        systemVersion: '1.0.0',
+        systemWorkerName: 'stub-deploy',
+        systemEnvironmentId: 'dev',
+      }),
+      link: null,
+    });
+    vi.mocked(mockFrontendApi.executeActorQuery).mockResolvedValue({
+      result: encodeRight([
+        {
+          createdAt: now,
+          deletedAt: null,
+          description: 'Test product',
+          id: 'prd_1',
+          modelName: 'product',
+          name: 'Test Product',
+          price: 20,
+          updatedAt: now,
+          version: '1.0.0',
+        },
+      ]),
+      link: null,
+    });
     useUser.mockReturnValue({
       isLoaded: true,
       user: {

@@ -37,11 +37,13 @@ export const createFrontendWebSocketTicket = Effect.fn(
     }),
   );
 
-  return yield* frontendApi.createFrontendWebSocketTicket().pipe(
-    Effect.mapError(error =>
-      error instanceof Error
-        ? ZerospinError.catch({ code: 'async-failed' })(error)
-        : new ZerospinError(error),
-    ),
-  );
+  return yield* frontendApi
+    .createFrontendWebSocketTicket()
+    .pipe(
+      Effect.mapError(error =>
+        error instanceof Error
+          ? ZerospinError.catch({ code: 'async-failed' })(error)
+          : new ZerospinError(error),
+      ),
+    );
 }, annotateFunctionSpan);

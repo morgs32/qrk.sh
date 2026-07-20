@@ -26,6 +26,7 @@ const apiKeyTable = makeTable({
     useCount: primitives.integer({ defaultValue: 0 }),
     ratio: primitives.number({ defaultValue: 1.5 }),
     label: primitives.text({ defaultValue: 'ready' }),
+    nullableLabel: primitives.text({ nullable: true, defaultValue: null }),
     createdAt: primitives.date({ defaultValue: new Date(0) }),
     status: primitives.enum({
       values: ['ready', 'revoked'],
@@ -53,6 +54,8 @@ assert<Equals<Select['ratio'], number>>();
 assert<Equals<Insert['ratio'], number | undefined>>();
 assert<Equals<Select['label'], string>>();
 assert<Equals<Insert['label'], string | undefined>>();
+assert<Equals<Select['nullableLabel'], string | null>>();
+assert<Equals<Insert['nullableLabel'], string | null | undefined>>();
 assert<Equals<Select['createdAt'], Date>>();
 assert<Equals<Insert['createdAt'], Date | undefined>>();
 assert<Equals<Select['status'], 'ready' | 'revoked'>>();

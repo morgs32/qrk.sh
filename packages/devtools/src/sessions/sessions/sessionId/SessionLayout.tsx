@@ -1,16 +1,16 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties } from 'react';
 
-import type { ISessionId } from "@zerospin/core/session/types";
-import { Navigate, Outlet, useParams } from "react-router";
+import type { ISessionId } from '@zerospin/core/session/types';
+import { Navigate, Outlet, useParams } from 'react-router';
 
-import { useSession } from "./useSession";
+import { useSession } from './useSession';
 
 const styles = {
   root: {
     flex: 1,
     minHeight: 0,
-    display: "flex",
-    flexDirection: "column",
+    display: 'flex',
+    flexDirection: 'column',
   } satisfies CSSProperties,
 } as const;
 

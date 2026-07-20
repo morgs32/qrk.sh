@@ -131,8 +131,7 @@ export const processSubscriber = Effect.fn(
   );
   const claimedSubscriber = db
     .select({
-      actorRepoName:
-        accountBlockDrizzleSchemas.actorSubscribers.actorRepoName,
+      actorRepoName: accountBlockDrizzleSchemas.actorSubscribers.actorRepoName,
     })
     .from(accountBlockDrizzleSchemas.actorSubscribers)
     .where(claimedSubscriberMatch)

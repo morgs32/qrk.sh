@@ -36,9 +36,7 @@ import type {
 
 function buildDrizzleColumnsFromShape<SHAPE extends IAnyShape>(
   shape: SHAPE,
-  resolveReference?: (
-    descriptor: IAnyRefDescriptor,
-  ) => () => AnySQLiteColumn,
+  resolveReference?: (descriptor: IAnyRefDescriptor) => () => AnySQLiteColumn,
 ): InferDrizzleColumnBuildersFromShape<SHAPE> {
   return mapValues(shape, (descriptor, key) =>
     descriptorToDrizzleColumn({
@@ -268,8 +266,18 @@ export function descriptorToDrizzleColumn(props: {
         return descriptor.unique === true ? col.unique() : col;
       }
       case PrimitiveKind.Text: {
-        let col = nullable ? drizzleText(key) : drizzleText(key).notNull();
-        if (descriptor.defaultValue !== undefined) {
+        if (nullable) {
+          let col = drizzleText(key).$type<string | null>();
+          if (descriptor.defaultValue !== undefined) {
+            col = col.default(descriptor.defaultValue);
+          }
+          return descriptor.unique === true ? col.unique() : col;
+        }
+        let col = drizzleText(key).notNull();
+        if (
+          descriptor.defaultValue !== undefined &&
+          descriptor.defaultValue !== null
+        ) {
           col = col.default(descriptor.defaultValue);
         }
         return descriptor.unique === true ? col.unique() : col;
@@ -379,7 +387,9 @@ export function generateMigrationSqlForDescriptor(
       const defaultSql =
         descriptor.defaultValue === undefined
           ? ''
-          : ` DEFAULT '${descriptor.defaultValue.replaceAll("'", "''")}'`;
+          : descriptor.defaultValue === null
+            ? ' DEFAULT NULL'
+            : ` DEFAULT '${descriptor.defaultValue.replaceAll("'", "''")}'`;
       return nullable
         ? `${columnName} text${defaultSql}${uniqueSql}`
         : `${columnName} text NOT NULL${defaultSql}${uniqueSql}`;
@@ -469,9 +479,7 @@ export function makeDrizzleSchemaFromTable<
   SHAPE extends IAnyShape,
 >(
   table: ITable<TABLE_NAME, SHAPE>,
-  resolveReference?: (
-    descriptor: IAnyRefDescriptor,
-  ) => () => AnySQLiteColumn,
+  resolveReference?: (descriptor: IAnyRefDescriptor) => () => AnySQLiteColumn,
 ): IDrizzleSchema<TABLE_NAME, SHAPE> {
   const { indexes, name, shape } = table;
   const columns = buildDrizzleColumnsFromShape(shape, resolveReference);

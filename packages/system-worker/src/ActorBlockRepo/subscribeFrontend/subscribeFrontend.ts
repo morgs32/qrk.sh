@@ -1,11 +1,11 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { IAccountCursor } from '@zerospin/core/models/types';
-import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { mapParseError } from '@zerospin/error';
 import { sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { actorBlockDrizzleSchemas } from '../ActorBlockRepo.js';
 
 export const subscribeFrontend = Effect.fn('ActorBlockRepo.subscribeFrontend')(
@@ -34,8 +34,7 @@ export const subscribeFrontend = Effect.fn('ActorBlockRepo.subscribeFrontend')(
         lastDeliveryError: null,
       })
       .onConflictDoUpdate({
-        target:
-          actorBlockDrizzleSchemas.frontendSubscribers.frontendRepoName,
+        target: actorBlockDrizzleSchemas.frontendSubscribers.frontendRepoName,
         set: {
           frontendName: sql`excluded.frontendName`,
           currentAccountCursor: sql`excluded.currentAccountCursor`,

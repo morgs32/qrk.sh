@@ -1,7 +1,6 @@
 import '@zerospin/server-only';
 import type { IAnyError } from '@zerospin/error';
 import { JSONSchema, Schema, type Effect } from 'effect';
-
 /* oxlint-disable typescript/no-explicit-any -- adapter callbacks infer their decoded source and destination values from adjacent schemas */
 
 import type { AssertContractsMutationsInModels } from '../contracts/assertMutationsUseModels.ts';
@@ -66,9 +65,7 @@ type IService<
         readonly {
           source: Schema.Schema.AnyNoContext;
           destination: Schema.Schema.AnyNoContext | null;
-          adapter?: (
-            mutation: any,
-          ) => Effect.Effect<any, IAnyError, never>;
+          adapter?: (mutation: any) => Effect.Effect<any, IAnyError, never>;
         }[]
       >
     >
@@ -80,9 +77,7 @@ type IService<
         readonly {
           source: Schema.Schema.AnyNoContext;
           destination: Schema.Schema.AnyNoContext | null;
-          adapter?: (
-            mutation: any,
-          ) => Effect.Effect<any, IAnyError, never>;
+          adapter?: (mutation: any) => Effect.Effect<any, IAnyError, never>;
         }[]
       >
     >
@@ -142,9 +137,7 @@ export function makeServiceController<
         readonly {
           source: Schema.Schema.AnyNoContext;
           destination: Schema.Schema.AnyNoContext | null;
-          adapter?: (
-            mutation: any,
-          ) => Effect.Effect<any, IAnyError, never>;
+          adapter?: (mutation: any) => Effect.Effect<any, IAnyError, never>;
         }[]
       >
     >
@@ -174,9 +167,7 @@ export function makeServiceController<
         readonly {
           source: Schema.Schema.AnyNoContext;
           destination: Schema.Schema.AnyNoContext | null;
-          adapter?: (
-            mutation: any,
-          ) => Effect.Effect<any, IAnyError, never>;
+          adapter?: (mutation: any) => Effect.Effect<any, IAnyError, never>;
         }[]
       >
     >
@@ -207,9 +198,7 @@ export function makeServiceController<
         readonly {
           source: Schema.Schema.AnyNoContext;
           destination: Schema.Schema.AnyNoContext | null;
-          adapter?: (
-            mutation: any,
-          ) => Effect.Effect<any, IAnyError, never>;
+          adapter?: (mutation: any) => Effect.Effect<any, IAnyError, never>;
         }[]
       >
     >
@@ -243,6 +232,12 @@ export function makeServiceController<
     mutationAdapters,
     queries = {},
   } = props;
+
+  if (typeof version !== 'string' || version.length === 0) {
+    throw new Error(
+      'makeServiceController: version must be a non-empty string',
+    );
+  }
 
   assertValidModels({ models, context: 'makeServiceController' });
 

@@ -34,14 +34,8 @@ export const drainAccountOutboxes = Effect.fn(
   db: IDb;
   storage: DurableObjectStorage;
 }): Effect.fn.Return<void, IAnyError, Async> {
-  const {
-    accountId,
-    accountName,
-    accountRepoName,
-    db,
-    generationId,
-    storage,
-  } = props;
+  const { accountId, accountName, accountRepoName, db, generationId, storage } =
+    props;
   let needsAlarm = false;
 
   const pendingSubscriptions = db

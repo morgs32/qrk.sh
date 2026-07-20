@@ -11,11 +11,11 @@ description: >-
 
 One skill for Zerospin cleanup. **Pattern guidance lives in the `*-llm-wiki` subtrees** — treat them as the canonical good/bad reference, not ad-hoc prose in chat.
 
-| Subtree                                                                                                     | Scope                                                                                                             |
-| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| [`vendor/morgs32/llm-wiki/patterns/`](../../../vendor/morgs32/llm-wiki/patterns/index.md)                               | Repo-agnostic code shape — functions, naming, Effect, RPC, runtime, tooling, Next.js, Cloudflare, durable objects |
-| [`llm-wiki/patterns/`](../../../llm-wiki/patterns/index.md)             | Zerospin domain — system-worker, contracts, fanout, schemas, examples, TypeScript workspace wiring                |
-| [`llm-wiki/patterns/cases/`](../../../llm-wiki/patterns/cases/index.md) | Session evidence — before/after smells with links to mock `.ts` patterns                                          |
+| Subtree                                                                                   | Scope                                                                                                             |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| [`vendor/morgs32/llm-wiki/patterns/`](../../../vendor/morgs32/llm-wiki/patterns/index.md) | Repo-agnostic code shape — functions, naming, Effect, RPC, runtime, tooling, Next.js, Cloudflare, durable objects |
+| [`llm-wiki/patterns/`](../../../llm-wiki/patterns/index.md)                               | Zerospin domain — system-worker, contracts, fanout, schemas, examples, TypeScript workspace wiring                |
+| [`llm-wiki/patterns/cases/`](../../../llm-wiki/patterns/cases/index.md)                   | Session evidence — before/after smells with links to mock `.ts` patterns                                          |
 
 Each pattern is a mock `.ts` file: code shows the **good** shape; **`@bad` JSDoc tags** document anti-patterns. See [`vendor/morgs32/llm-wiki/patterns/README.md`](../../../vendor/morgs32/llm-wiki/patterns/README.md).
 

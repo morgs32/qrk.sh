@@ -1,5 +1,5 @@
-import { useSession } from "../../useSession";
-import { SessionsCommandsRowsTable } from "../SessionsCommandsRowsTable";
+import { useSession } from '../../useSession';
+import { SessionsCommandsRowsTable } from '../SessionsCommandsRowsTable';
 
 export function SessionsCommandsStagedRoute() {
   const session = useSession();

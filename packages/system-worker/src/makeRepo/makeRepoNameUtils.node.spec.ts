@@ -58,9 +58,7 @@ describe('makeRepoNameUtils', () => {
     'fails parseName with REPO_KEY_DECODE_FAILED when the prefix is missing',
     () =>
       Effect.gen(function* () {
-        const error = yield* Effect.flip(
-          parseName('gen_test/acct_test/main'),
-        );
+        const error = yield* Effect.flip(parseName('gen_test/acct_test/main'));
         expect(error.code).toBe(REPO_KEY_DECODE_FAILED);
       }),
   );

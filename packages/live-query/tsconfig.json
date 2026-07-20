@@ -31,9 +31,7 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": [
-    "**/*.spec.ts"
-  ],
+  "exclude": ["**/*.spec.ts"],
   "references": [
     {
       "path": "../core"

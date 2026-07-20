@@ -1,36 +1,36 @@
-import { AsyncLive } from "@zerospin/core/async/AsyncLive";
-import { makeResourceDbConfig } from "@zerospin/core/drizzle/makeDbConfig";
-import { makeMigratedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb";
-import { makeModel } from "@zerospin/core/models/makeModel";
-import { primitives } from "@zerospin/core/models/primitives";
-import { eq, sql } from "drizzle-orm";
-import { Effect } from "effect";
-import { describe, expect, it } from "vitest";
+import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
+import { makeMigratedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb';
+import { makeModel } from '@zerospin/core/models/makeModel';
+import { primitives } from '@zerospin/core/models/primitives';
+import { eq, sql } from 'drizzle-orm';
+import { Effect } from 'effect';
+import { describe, expect, it } from 'vitest';
 
-import { makeLiveQuery } from "./makeLiveQuery.js";
+import { makeLiveQuery } from './makeLiveQuery.js';
 
 const User = makeModel(
   {
-    abbreviation: "usr",
-    modelName: "user",
+    abbreviation: 'usr',
+    modelName: 'user',
     attributes: {
       name: primitives.text(),
     },
     indexes: [],
-    version: "1.0.0",
+    version: '1.0.0',
   },
   [],
 );
 
 const Product = makeModel(
   {
-    abbreviation: "prd",
-    modelName: "product",
+    abbreviation: 'prd',
+    modelName: 'product',
     attributes: {
       name: primitives.text(),
     },
     indexes: [],
-    version: "1.0.0",
+    version: '1.0.0',
   },
   [],
 );
@@ -42,10 +42,10 @@ const dbConfig = makeResourceDbConfig({
   },
 });
 
-const now = new Date("2026-01-01T00:00:00.000Z");
+const now = new Date('2026-01-01T00:00:00.000Z');
 
-describe("makeLiveQuery", () => {
-  it("tracks inferred tables, ignores unrelated writes, and stops after cleanup", async () => {
+describe('makeLiveQuery', () => {
+  it('tracks inferred tables, ignores unrelated writes, and stops after cleanup', async () => {
     const db = await Effect.runPromise(
       makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
@@ -74,11 +74,11 @@ describe("makeLiveQuery", () => {
       db.insert(dbConfig.schema.product)
         .values({
           createdAt: now,
-          id: "prd_1",
-          modelName: "product",
-          name: "Product 1",
+          id: 'prd_1',
+          modelName: 'product',
+          name: 'Product 1',
           updatedAt: now,
-          version: "1.0.0",
+          version: '1.0.0',
         })
         .run();
 
@@ -90,11 +90,11 @@ describe("makeLiveQuery", () => {
       db.insert(dbConfig.schema.user)
         .values({
           createdAt: now,
-          id: "usr_1",
-          modelName: "user",
-          name: "User 1",
+          id: 'usr_1',
+          modelName: 'user',
+          name: 'User 1',
           updatedAt: now,
-          version: "1.0.0",
+          version: '1.0.0',
         })
         .run();
 
@@ -108,11 +108,11 @@ describe("makeLiveQuery", () => {
       db.insert(dbConfig.schema.user)
         .values({
           createdAt: now,
-          id: "usr_2",
-          modelName: "user",
-          name: "User 2",
+          id: 'usr_2',
+          modelName: 'user',
+          name: 'User 2',
           updatedAt: now,
-          version: "1.0.0",
+          version: '1.0.0',
         })
         .run();
 
@@ -122,7 +122,7 @@ describe("makeLiveQuery", () => {
     }
   });
 
-  it("refreshes once after transaction commit and safely reruns after delete", async () => {
+  it('refreshes once after transaction commit and safely reruns after delete', async () => {
     const db = await Effect.runPromise(
       makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
@@ -133,11 +133,11 @@ describe("makeLiveQuery", () => {
       db.insert(dbConfig.schema.user)
         .values({
           createdAt: now,
-          id: "usr_1",
-          modelName: "user",
-          name: "User 1",
+          id: 'usr_1',
+          modelName: 'user',
+          name: 'User 1',
           updatedAt: now,
-          version: "1.0.0",
+          version: '1.0.0',
         })
         .run();
 
@@ -154,7 +154,7 @@ describe("makeLiveQuery", () => {
       const liveQuery = makeLiveQuery({
         client: db.$client,
         query,
-        tableNames: ["user", "product"],
+        tableNames: ['user', 'product'],
       });
       const unsubscribe = liveQuery.subscribe();
       rerunCount = 0;
@@ -163,26 +163,26 @@ describe("makeLiveQuery", () => {
         // The delete is the exact operation that previously invoked a nested
         // SELECT from update_hook while sqlite3_step was still active.
         tx.delete(dbConfig.schema.user)
-          .where(eq(dbConfig.schema.user.id, "usr_1"))
+          .where(eq(dbConfig.schema.user.id, 'usr_1'))
           .run();
         tx.insert(dbConfig.schema.product)
           .values({
             createdAt: now,
-            id: "prd_1",
-            modelName: "product",
-            name: "Product 1",
+            id: 'prd_1',
+            modelName: 'product',
+            name: 'Product 1',
             updatedAt: now,
-            version: "1.0.0",
+            version: '1.0.0',
           })
           .run();
         tx.insert(dbConfig.schema.user)
           .values({
             createdAt: now,
-            id: "usr_2",
-            modelName: "user",
-            name: "User 2",
+            id: 'usr_2',
+            modelName: 'user',
+            name: 'User 2',
             updatedAt: now,
-            version: "1.0.0",
+            version: '1.0.0',
           })
           .run();
 
@@ -200,7 +200,7 @@ describe("makeLiveQuery", () => {
     }
   });
 
-  it("discards outer rollback changes and defers savepoints to outer commit", async () => {
+  it('discards outer rollback changes and defers savepoints to outer commit', async () => {
     const db = await Effect.runPromise(
       makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
@@ -221,7 +221,7 @@ describe("makeLiveQuery", () => {
       const liveQuery = makeLiveQuery({
         client: db.$client,
         query,
-        tableNames: ["user"],
+        tableNames: ['user'],
       });
       const unsubscribe = liveQuery.subscribe();
       rerunCount = 0;
@@ -231,19 +231,19 @@ describe("makeLiveQuery", () => {
           tx.insert(dbConfig.schema.user)
             .values({
               createdAt: now,
-              id: "usr_rollback",
-              modelName: "user",
-              name: "Rolled Back User",
+              id: 'usr_rollback',
+              modelName: 'user',
+              name: 'Rolled Back User',
               updatedAt: now,
-              version: "1.0.0",
+              version: '1.0.0',
             })
             .run();
 
           expect(liveQuery.store.getState().data).toEqual([{ value: 0 }]);
           expect(rerunCount).toBe(0);
-          throw new Error("rollback outer transaction");
+          throw new Error('rollback outer transaction');
         }),
-      ).toThrow("rollback outer transaction");
+      ).toThrow('rollback outer transaction');
 
       expect(liveQuery.store.getState().data).toEqual([{ value: 0 }]);
       expect(rerunCount).toBe(0);
@@ -255,17 +255,17 @@ describe("makeLiveQuery", () => {
               .insert(dbConfig.schema.user)
               .values({
                 createdAt: now,
-                id: "usr_savepoint",
-                modelName: "user",
-                name: "Savepoint User",
+                id: 'usr_savepoint',
+                modelName: 'user',
+                name: 'Savepoint User',
                 updatedAt: now,
-                version: "1.0.0",
+                version: '1.0.0',
               })
               .run();
-            throw new Error("rollback savepoint");
+            throw new Error('rollback savepoint');
           });
         } catch (error) {
-          expect(error).toEqual(new Error("rollback savepoint"));
+          expect(error).toEqual(new Error('rollback savepoint'));
         }
 
         // Commit an unrelated table so SQLite reaches the outer commit hook.
@@ -274,11 +274,11 @@ describe("makeLiveQuery", () => {
         tx.insert(dbConfig.schema.product)
           .values({
             createdAt: now,
-            id: "prd_savepoint",
-            modelName: "product",
-            name: "Savepoint Product",
+            id: 'prd_savepoint',
+            modelName: 'product',
+            name: 'Savepoint Product',
             updatedAt: now,
-            version: "1.0.0",
+            version: '1.0.0',
           })
           .run();
 
@@ -295,7 +295,7 @@ describe("makeLiveQuery", () => {
     }
   });
 
-  it("discards invalidations from an aborted autocommit statement", async () => {
+  it('discards invalidations from an aborted autocommit statement', async () => {
     const db = await Effect.runPromise(
       makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
@@ -306,11 +306,11 @@ describe("makeLiveQuery", () => {
       db.insert(dbConfig.schema.user)
         .values({
           createdAt: now,
-          id: "usr_existing",
-          modelName: "user",
-          name: "Existing User",
+          id: 'usr_existing',
+          modelName: 'user',
+          name: 'Existing User',
           updatedAt: now,
-          version: "1.0.0",
+          version: '1.0.0',
         })
         .run();
 
@@ -340,19 +340,19 @@ describe("makeLiveQuery", () => {
           .values([
             {
               createdAt: now,
-              id: "usr_aborted",
-              modelName: "user",
-              name: "Aborted User",
+              id: 'usr_aborted',
+              modelName: 'user',
+              name: 'Aborted User',
               updatedAt: now,
-              version: "1.0.0",
+              version: '1.0.0',
             },
             {
               createdAt: now,
-              id: "usr_existing",
-              modelName: "user",
-              name: "Duplicate Existing User",
+              id: 'usr_existing',
+              modelName: 'user',
+              name: 'Duplicate Existing User',
               updatedAt: now,
-              version: "1.0.0",
+              version: '1.0.0',
             },
           ])
           .run(),
@@ -365,11 +365,11 @@ describe("makeLiveQuery", () => {
       db.insert(dbConfig.schema.product)
         .values({
           createdAt: now,
-          id: "prd_after_abort",
-          modelName: "product",
-          name: "Product After Abort",
+          id: 'prd_after_abort',
+          modelName: 'product',
+          name: 'Product After Abort',
           updatedAt: now,
-          version: "1.0.0",
+          version: '1.0.0',
         })
         .run();
 
@@ -379,11 +379,11 @@ describe("makeLiveQuery", () => {
       db.insert(dbConfig.schema.user)
         .values({
           createdAt: now,
-          id: "usr_after_abort",
-          modelName: "user",
-          name: "User After Abort",
+          id: 'usr_after_abort',
+          modelName: 'user',
+          name: 'User After Abort',
           updatedAt: now,
-          version: "1.0.0",
+          version: '1.0.0',
         })
         .run();
 
@@ -396,7 +396,7 @@ describe("makeLiveQuery", () => {
     }
   });
 
-  it("requires explicit table names for raw SQL sources", async () => {
+  it('requires explicit table names for raw SQL sources', async () => {
     const db = await Effect.runPromise(
       makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
@@ -417,7 +417,7 @@ describe("makeLiveQuery", () => {
 
       expect(liveQuery.store.getState().data).toEqual([{ value: 1 }]);
       expect(liveQuery.store.getState().error?.message).toContain(
-        "explicit tableNames",
+        'explicit tableNames',
       );
 
       unsubscribe();
@@ -426,7 +426,7 @@ describe("makeLiveQuery", () => {
     }
   });
 
-  it("uses explicit raw-query tables and recovers from rerun failures", async () => {
+  it('uses explicit raw-query tables and recovers from rerun failures', async () => {
     const db = await Effect.runPromise(
       makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
@@ -439,7 +439,7 @@ describe("makeLiveQuery", () => {
       let shouldFail = false;
       query.all = () => {
         if (shouldFail) {
-          throw new Error("query rerun failed");
+          throw new Error('query rerun failed');
         }
         return originalAll();
       };
@@ -447,13 +447,13 @@ describe("makeLiveQuery", () => {
       const liveQuery = makeLiveQuery({
         client: db.$client,
         query,
-        tableNames: ["user"],
+        tableNames: ['user'],
       });
       const unsubscribe = liveQuery.subscribe();
       const healthyLiveQuery = makeLiveQuery({
         client: db.$client,
         query: db.select({ value: sql<number>`count(*)` }).from(sql`user`),
-        tableNames: ["user"],
+        tableNames: ['user'],
       });
       const unsubscribeHealthyLiveQuery = healthyLiveQuery.subscribe();
 
@@ -461,16 +461,16 @@ describe("makeLiveQuery", () => {
       db.insert(dbConfig.schema.user)
         .values({
           createdAt: now,
-          id: "usr_1",
-          modelName: "user",
-          name: "User 1",
+          id: 'usr_1',
+          modelName: 'user',
+          name: 'User 1',
           updatedAt: now,
-          version: "1.0.0",
+          version: '1.0.0',
         })
         .run();
 
       expect(liveQuery.store.getState().error?.message).toBe(
-        "query rerun failed",
+        'query rerun failed',
       );
       expect(liveQuery.store.getState().data).toEqual([{ value: 0 }]);
       expect(healthyLiveQuery.store.getState().data).toEqual([{ value: 1 }]);
@@ -479,11 +479,11 @@ describe("makeLiveQuery", () => {
       db.insert(dbConfig.schema.user)
         .values({
           createdAt: now,
-          id: "usr_2",
-          modelName: "user",
-          name: "User 2",
+          id: 'usr_2',
+          modelName: 'user',
+          name: 'User 2',
           updatedAt: now,
-          version: "1.0.0",
+          version: '1.0.0',
         })
         .run();
 

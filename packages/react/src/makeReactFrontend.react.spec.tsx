@@ -221,23 +221,21 @@ describe('makeReactFrontend.Provider', () => {
         link: null,
       }),
     );
-    vi.mocked(mockFrontendApi.fetchActor).mockResolvedValue(
-      {
-        result: encodeRight({
-          actor: {
-            accountId: 'acct_1',
-            actorId: 'usr_1',
-          },
-          deployId: 'dpl_1',
-          generationId: 'gen_1',
-          systemId: 'sys_1',
-          systemVersion: '1.0.0',
-          systemWorkerName: 'stub-deploy',
-          systemEnvironmentId: 'dev',
-        }),
-        link: null,
-      },
-    );
+    vi.mocked(mockFrontendApi.fetchActor).mockResolvedValue({
+      result: encodeRight({
+        actor: {
+          accountId: 'acct_1',
+          actorId: 'usr_1',
+        },
+        deployId: 'dpl_1',
+        generationId: 'gen_1',
+        systemId: 'sys_1',
+        systemVersion: '1.0.0',
+        systemWorkerName: 'stub-deploy',
+        systemEnvironmentId: 'dev',
+      }),
+      link: null,
+    });
     getFrontendApi.mockImplementation(() => mockFrontendApi);
     newHttpBatchRpcSessionMock.mockReset();
     newHttpBatchRpcSessionMock.mockImplementation(() => ({
@@ -297,10 +295,7 @@ describe('makeReactFrontend.Provider', () => {
       .mockImplementation(callback => {
         scheduledMicrotasks.push(callback);
       });
-    const runtimeRunSync = vi.spyOn(
-      ReactSession.sessionRuntime,
-      'runSync',
-    );
+    const runtimeRunSync = vi.spyOn(ReactSession.sessionRuntime, 'runSync');
 
     await act(async () => {
       root.render(
@@ -353,23 +348,21 @@ describe('useLiveQuery', () => {
         link: null,
       }),
     );
-    vi.mocked(mockFrontendApi.fetchActor).mockResolvedValue(
-      {
-        result: encodeRight({
-          actor: {
-            accountId: 'acct_1',
-            actorId: 'usr_1',
-          },
-          deployId: 'dpl_1',
-          generationId: 'gen_1',
-          systemId: 'sys_1',
-          systemVersion: '1.0.0',
-          systemWorkerName: 'stub-deploy',
-          systemEnvironmentId: 'dev',
-        }),
-        link: null,
-      },
-    );
+    vi.mocked(mockFrontendApi.fetchActor).mockResolvedValue({
+      result: encodeRight({
+        actor: {
+          accountId: 'acct_1',
+          actorId: 'usr_1',
+        },
+        deployId: 'dpl_1',
+        generationId: 'gen_1',
+        systemId: 'sys_1',
+        systemVersion: '1.0.0',
+        systemWorkerName: 'stub-deploy',
+        systemEnvironmentId: 'dev',
+      }),
+      link: null,
+    });
     getFrontendApi.mockImplementation(() => mockFrontendApi);
     newHttpBatchRpcSessionMock.mockReset();
     newHttpBatchRpcSessionMock.mockImplementation(() => ({

@@ -19,7 +19,8 @@ const runtime = makeDispatchRuntime({
     get: getSystemWorker,
   }),
   apiKeyIdentityResolver: Layer.succeed(ApiKeyIdentityResolver, {
-    resolve: () => Effect.dieMessage('SystemApi leaf tests do not resolve API keys'),
+    resolve: () =>
+      Effect.dieMessage('SystemApi leaf tests do not resolve API keys'),
   }),
 });
 
@@ -220,7 +221,9 @@ describe('SystemApi', () => {
         parentSpanId: 'spn_admin_frontend_state',
       },
     });
-    const firstResult = await Effect.runPromise(decodeRpc(firstEnvelope.result));
+    const firstResult = await Effect.runPromise(
+      decodeRpc(firstEnvelope.result),
+    );
 
     // Step 3: The second valid call resolves a different stub and has no caller link.
     const secondEnvelope = await api.hello({
@@ -427,9 +430,9 @@ describe('SystemApi', () => {
       decodeRpc(repoFailureEnvelope.result).pipe(Effect.either),
     );
 
-    expect(await Effect.runPromise(decodeRpc(readSuccessEnvelope.result))).toEqual(
-      [{ id: 'product_1', name: 'Desk' }],
-    );
+    expect(
+      await Effect.runPromise(decodeRpc(readSuccessEnvelope.result)),
+    ).toEqual([{ id: 'product_1', name: 'Desk' }]);
     expect(Either.isLeft(readFailureResult)).toBe(true);
     if (Either.isLeft(readFailureResult)) {
       expect(readFailureResult.left.code).toBe('service-query-failed');
@@ -895,224 +898,216 @@ describe('SystemApi', () => {
     expect(systemSpecDispose).toHaveBeenCalledTimes(1);
   });
 
-  it(
-    'keeps retry inside each approved leaf and preserves whether decoding is inside that retry scope',
-    async () => {
-      const transientError = new ZerospinError({
-        code: 'durable-object-reset',
-        message: 'Durable Object reset because its code was updated',
-      });
+  it('keeps retry inside each approved leaf and preserves whether decoding is inside that retry scope', async () => {
+    const transientError = new ZerospinError({
+      code: 'durable-object-reset',
+      message: 'Durable Object reset because its code was updated',
+    });
 
-      // Step 1: Account finalization retries the decoded traced RPC failure.
-      const finalizeAccountBlock = vi
-        .fn()
-        .mockResolvedValueOnce({
-          result: encodeLeft(transientError),
-          telemetry: emptyTelemetryBatch(),
-        })
-        .mockResolvedValueOnce({
-          result: encodeRight({
-            pushedBlockId: null,
-            executedCommands: [],
-            failedCommands: [],
-            appliedMutations: [],
-            lastAccountCursor: 'acur_retry',
-            accountIndex: 1,
-            failure: null,
-            publishedAt: null,
-          }),
-          telemetry: emptyTelemetryBatch(),
-        });
-      const finalizeDispose = vi.fn();
-      getSystemWorker.mockReturnValueOnce({
-        finalizeAccountBlock,
-        appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
-        [Symbol.dispose]: finalizeDispose,
+    // Step 1: Account finalization retries the decoded traced RPC failure.
+    const finalizeAccountBlock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        result: encodeLeft(transientError),
+        telemetry: emptyTelemetryBatch(),
+      })
+      .mockResolvedValueOnce({
+        result: encodeRight({
+          pushedBlockId: null,
+          executedCommands: [],
+          failedCommands: [],
+          appliedMutations: [],
+          lastAccountCursor: 'acur_retry',
+          accountIndex: 1,
+          failure: null,
+          publishedAt: null,
+        }),
+        telemetry: emptyTelemetryBatch(),
       });
+    const finalizeDispose = vi.fn();
+    getSystemWorker.mockReturnValueOnce({
+      finalizeAccountBlock,
+      appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
+      [Symbol.dispose]: finalizeDispose,
+    });
 
-      // Step 2: Select-query retry surrounds the rejected call, before decodeRpc.
-      const executeSelectQuery = vi
-        .fn()
-        .mockRejectedValueOnce(
-          new Error('Durable Object reset because its code was updated'),
-        )
-        .mockResolvedValueOnce(encodeRight([{ value: 1 }]));
-      const selectDispose = vi.fn();
-      getSystemWorker.mockReturnValueOnce({
-        executeSelectQuery,
-        appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
-        [Symbol.dispose]: selectDispose,
-      });
+    // Step 2: Select-query retry surrounds the rejected call, before decodeRpc.
+    const executeSelectQuery = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new Error('Durable Object reset because its code was updated'),
+      )
+      .mockResolvedValueOnce(encodeRight([{ value: 1 }]));
+    const selectDispose = vi.fn();
+    getSystemWorker.mockReturnValueOnce({
+      executeSelectQuery,
+      appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
+      [Symbol.dispose]: selectDispose,
+    });
 
-      // Step 3: Service finalization retries after decoding its encoded failure.
-      const finalizeServiceCommands = vi
-        .fn()
-        .mockResolvedValueOnce(encodeLeft(transientError))
-        .mockResolvedValueOnce(
-          encodeRight({ executedCommands: [], failedCommands: [] }),
-        );
-      const serviceFinalizeDispose = vi.fn();
-      getSystemWorker.mockReturnValueOnce({
-        finalizeServiceCommands,
-        appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
-        [Symbol.dispose]: serviceFinalizeDispose,
-      });
-
-      // Step 4: Both RepoExplorer shapes retry a rejected call before decoding.
-      const getSystemRepos = vi
-        .fn()
-        .mockRejectedValueOnce(
-          new Error('Durable Object Namespace was deleted'),
-        )
-        .mockResolvedValueOnce(encodeRight([]));
-      const repoListDispose = vi.fn();
-      getSystemWorker.mockReturnValueOnce({
-        getSystemRepos,
-        appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
-        [Symbol.dispose]: repoListDispose,
-      });
-
-      const getSystemRepoTableRows = vi
-        .fn()
-        .mockRejectedValueOnce(
-          new Error('Durable Object Namespace was deleted'),
-        )
-        .mockResolvedValueOnce(encodeRight({ columns: [], rows: [] }));
-      const repoRowsDispose = vi.fn();
-      getSystemWorker.mockReturnValueOnce({
-        getSystemRepoTableRows,
-        appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
-        [Symbol.dispose]: repoRowsDispose,
-      });
-
-      // Step 5: Encoded select and RepoExplorer failures are decoded after retry.
-      const encodedFailureSelectQuery = vi.fn(async () =>
-        encodeLeft(transientError),
+    // Step 3: Service finalization retries after decoding its encoded failure.
+    const finalizeServiceCommands = vi
+      .fn()
+      .mockResolvedValueOnce(encodeLeft(transientError))
+      .mockResolvedValueOnce(
+        encodeRight({ executedCommands: [], failedCommands: [] }),
       );
-      const encodedFailureSelectDispose = vi.fn();
-      getSystemWorker.mockReturnValueOnce({
-        executeSelectQuery: encodedFailureSelectQuery,
-        appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
-        [Symbol.dispose]: encodedFailureSelectDispose,
-      });
+    const serviceFinalizeDispose = vi.fn();
+    getSystemWorker.mockReturnValueOnce({
+      finalizeServiceCommands,
+      appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
+      [Symbol.dispose]: serviceFinalizeDispose,
+    });
 
-      const encodedFailureGetSystemRepos = vi.fn(async () =>
-        encodeLeft(transientError),
-      );
-      const encodedFailureRepoDispose = vi.fn();
-      getSystemWorker.mockReturnValueOnce({
-        getSystemRepos: encodedFailureGetSystemRepos,
-        appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
-        [Symbol.dispose]: encodedFailureRepoDispose,
-      });
+    // Step 4: Both RepoExplorer shapes retry a rejected call before decoding.
+    const getSystemRepos = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Durable Object Namespace was deleted'))
+      .mockResolvedValueOnce(encodeRight([]));
+    const repoListDispose = vi.fn();
+    getSystemWorker.mockReturnValueOnce({
+      getSystemRepos,
+      appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
+      [Symbol.dispose]: repoListDispose,
+    });
 
-      const api = new SystemApi({
-        deployId: 'dpl_test',
-        generationId: 'gen_test',
-        systemId: 'sys_1',
-        systemWorkerName: 'sys_1:dev:user_1',
-        runtime,
-      });
+    const getSystemRepoTableRows = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Durable Object Namespace was deleted'))
+      .mockResolvedValueOnce(encodeRight({ columns: [], rows: [] }));
+    const repoRowsDispose = vi.fn();
+    getSystemWorker.mockReturnValueOnce({
+      getSystemRepoTableRows,
+      appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
+      [Symbol.dispose]: repoRowsDispose,
+    });
 
-      const finalizeEnvelope = await api.finalizeAccountCommands({
-        args: [
-          {
-            accountId: 'acct_1',
-            accountName: 'main',
-            commands: [],
+    // Step 5: Encoded select and RepoExplorer failures are decoded after retry.
+    const encodedFailureSelectQuery = vi.fn(async () =>
+      encodeLeft(transientError),
+    );
+    const encodedFailureSelectDispose = vi.fn();
+    getSystemWorker.mockReturnValueOnce({
+      executeSelectQuery: encodedFailureSelectQuery,
+      appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
+      [Symbol.dispose]: encodedFailureSelectDispose,
+    });
+
+    const encodedFailureGetSystemRepos = vi.fn(async () =>
+      encodeLeft(transientError),
+    );
+    const encodedFailureRepoDispose = vi.fn();
+    getSystemWorker.mockReturnValueOnce({
+      getSystemRepos: encodedFailureGetSystemRepos,
+      appendTelemetryBatch: vi.fn(async () => encodeRight(undefined)),
+      [Symbol.dispose]: encodedFailureRepoDispose,
+    });
+
+    const api = new SystemApi({
+      deployId: 'dpl_test',
+      generationId: 'gen_test',
+      systemId: 'sys_1',
+      systemWorkerName: 'sys_1:dev:user_1',
+      runtime,
+    });
+
+    const finalizeEnvelope = await api.finalizeAccountCommands({
+      args: [
+        {
+          accountId: 'acct_1',
+          accountName: 'main',
+          commands: [],
+        },
+      ],
+      traceContext: null,
+    });
+    const selectEnvelope = await api.executeSelectQuery({
+      args: [
+        {
+          accountId: 'acct_1',
+          accountName: 'main',
+          query: {
+            method: 'all',
+            params: [],
+            rawSql: 'select 1',
           },
-        ],
-        traceContext: null,
-      });
-      const selectEnvelope = await api.executeSelectQuery({
-        args: [
-          {
-            accountId: 'acct_1',
-            accountName: 'main',
-            query: {
-              method: 'all',
-              params: [],
-              rawSql: 'select 1',
-            },
+        },
+      ],
+      traceContext: null,
+    });
+    const serviceFinalizeEnvelope = await api.finalizeServiceCommands({
+      args: [{ serviceName: 'products', commands: [] }],
+      traceContext: null,
+    });
+    const repoListEnvelope = await api.getSystemRepos({
+      args: [],
+      traceContext: null,
+    });
+    const repoRowsEnvelope = await api.getSystemRepoTableRows({
+      args: [{ repoName: 'sys_1:dev:user_1', tableName: 'rows' }],
+      traceContext: null,
+    });
+    const encodedFailureSelectEnvelope = await api.executeSelectQuery({
+      args: [
+        {
+          accountId: 'acct_1',
+          accountName: 'main',
+          query: {
+            method: 'all',
+            params: [],
+            rawSql: 'select 2',
           },
-        ],
-        traceContext: null,
-      });
-      const serviceFinalizeEnvelope = await api.finalizeServiceCommands({
-        args: [{ serviceName: 'products', commands: [] }],
-        traceContext: null,
-      });
-      const repoListEnvelope = await api.getSystemRepos({
-        args: [],
-        traceContext: null,
-      });
-      const repoRowsEnvelope = await api.getSystemRepoTableRows({
-        args: [{ repoName: 'sys_1:dev:user_1', tableName: 'rows' }],
-        traceContext: null,
-      });
-      const encodedFailureSelectEnvelope = await api.executeSelectQuery({
-        args: [
-          {
-            accountId: 'acct_1',
-            accountName: 'main',
-            query: {
-              method: 'all',
-              params: [],
-              rawSql: 'select 2',
-            },
-          },
-        ],
-        traceContext: null,
-      });
-      const encodedFailureRepoEnvelope = await api.getSystemRepos({
-        args: [],
-        traceContext: null,
-      });
+        },
+      ],
+      traceContext: null,
+    });
+    const encodedFailureRepoEnvelope = await api.getSystemRepos({
+      args: [],
+      traceContext: null,
+    });
 
-      const encodedFailureSelectResult = await Effect.runPromise(
-        decodeRpc(encodedFailureSelectEnvelope.result).pipe(Effect.either),
-      );
-      const encodedFailureRepoResult = await Effect.runPromise(
-        decodeRpc(encodedFailureRepoEnvelope.result).pipe(Effect.either),
-      );
+    const encodedFailureSelectResult = await Effect.runPromise(
+      decodeRpc(encodedFailureSelectEnvelope.result).pipe(Effect.either),
+    );
+    const encodedFailureRepoResult = await Effect.runPromise(
+      decodeRpc(encodedFailureRepoEnvelope.result).pipe(Effect.either),
+    );
 
-      expect(
-        await Effect.runPromise(decodeRpc(finalizeEnvelope.result)),
-      ).toMatchObject({ lastAccountCursor: 'acur_retry', accountIndex: 1 });
-      expect(await Effect.runPromise(decodeRpc(selectEnvelope.result))).toEqual(
-        [{ value: 1 }],
-      );
-      expect(
-        await Effect.runPromise(decodeRpc(serviceFinalizeEnvelope.result)),
-      ).toEqual({ executed: [], failed: [] });
-      expect(
-        await Effect.runPromise(decodeRpc(repoListEnvelope.result)),
-      ).toEqual([]);
-      expect(
-        await Effect.runPromise(decodeRpc(repoRowsEnvelope.result)),
-      ).toEqual({ columns: [], rows: [] });
-      expect(Either.isLeft(encodedFailureSelectResult)).toBe(true);
-      expect(Either.isLeft(encodedFailureRepoResult)).toBe(true);
-      expect(finalizeAccountBlock).toHaveBeenCalledTimes(2);
-      expect(executeSelectQuery).toHaveBeenCalledTimes(2);
-      expect(finalizeServiceCommands).toHaveBeenCalledTimes(2);
-      expect(getSystemRepos).toHaveBeenCalledTimes(2);
-      expect(getSystemRepoTableRows).toHaveBeenCalledTimes(2);
-      expect(encodedFailureSelectQuery).toHaveBeenCalledTimes(1);
-      expect(encodedFailureGetSystemRepos).toHaveBeenCalledTimes(1);
+    expect(
+      await Effect.runPromise(decodeRpc(finalizeEnvelope.result)),
+    ).toMatchObject({ lastAccountCursor: 'acur_retry', accountIndex: 1 });
+    expect(await Effect.runPromise(decodeRpc(selectEnvelope.result))).toEqual([
+      { value: 1 },
+    ]);
+    expect(
+      await Effect.runPromise(decodeRpc(serviceFinalizeEnvelope.result)),
+    ).toEqual({ executed: [], failed: [] });
+    expect(await Effect.runPromise(decodeRpc(repoListEnvelope.result))).toEqual(
+      [],
+    );
+    expect(await Effect.runPromise(decodeRpc(repoRowsEnvelope.result))).toEqual(
+      { columns: [], rows: [] },
+    );
+    expect(Either.isLeft(encodedFailureSelectResult)).toBe(true);
+    expect(Either.isLeft(encodedFailureRepoResult)).toBe(true);
+    expect(finalizeAccountBlock).toHaveBeenCalledTimes(2);
+    expect(executeSelectQuery).toHaveBeenCalledTimes(2);
+    expect(finalizeServiceCommands).toHaveBeenCalledTimes(2);
+    expect(getSystemRepos).toHaveBeenCalledTimes(2);
+    expect(getSystemRepoTableRows).toHaveBeenCalledTimes(2);
+    expect(encodedFailureSelectQuery).toHaveBeenCalledTimes(1);
+    expect(encodedFailureGetSystemRepos).toHaveBeenCalledTimes(1);
 
-      // Step 6: Retry never reacquires a stub and every invocation still disposes.
-      expect(getSystemWorker).toHaveBeenCalledTimes(7);
-      expect(finalizeDispose).toHaveBeenCalledTimes(1);
-      expect(selectDispose).toHaveBeenCalledTimes(1);
-      expect(serviceFinalizeDispose).toHaveBeenCalledTimes(1);
-      expect(repoListDispose).toHaveBeenCalledTimes(1);
-      expect(repoRowsDispose).toHaveBeenCalledTimes(1);
-      expect(encodedFailureSelectDispose).toHaveBeenCalledTimes(1);
-      expect(encodedFailureRepoDispose).toHaveBeenCalledTimes(1);
-    },
-    10_000,
-  );
+    // Step 6: Retry never reacquires a stub and every invocation still disposes.
+    expect(getSystemWorker).toHaveBeenCalledTimes(7);
+    expect(finalizeDispose).toHaveBeenCalledTimes(1);
+    expect(selectDispose).toHaveBeenCalledTimes(1);
+    expect(serviceFinalizeDispose).toHaveBeenCalledTimes(1);
+    expect(repoListDispose).toHaveBeenCalledTimes(1);
+    expect(repoRowsDispose).toHaveBeenCalledTimes(1);
+    expect(encodedFailureSelectDispose).toHaveBeenCalledTimes(1);
+    expect(encodedFailureRepoDispose).toHaveBeenCalledTimes(1);
+  }, 10_000);
 
   it('returns the captured encoded error and null link from all twenty-nine SystemApiFailure leaves without resolver or append work', async () => {
     const capturedError = new ZerospinError({
@@ -1199,8 +1194,7 @@ describe('SystemApi', () => {
     const getServiceRepos = await api.getServiceRepos(emptyRequest);
     const getAccountBlockRepos = await api.getAccountBlockRepos(emptyRequest);
     const getActorBlockRepos = await api.getActorBlockRepos(emptyRequest);
-    const getFrontendBlockRepos =
-      await api.getFrontendBlockRepos(emptyRequest);
+    const getFrontendBlockRepos = await api.getFrontendBlockRepos(emptyRequest);
     const getServiceBlockRepos = await api.getServiceBlockRepos(emptyRequest);
     const getSystemLogRepos = await api.getSystemLogRepos(emptyRequest);
 

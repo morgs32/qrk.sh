@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   useCallback,
@@ -7,9 +7,9 @@ import {
   useState,
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
-} from "react";
+} from 'react';
 
-import { createPortal } from "react-dom";
+import { createPortal } from 'react-dom';
 import {
   MemoryRouter,
   Navigate,
@@ -17,34 +17,34 @@ import {
   Outlet,
   Route,
   Routes,
-} from "react-router";
-import { useStore } from "zustand/react";
+} from 'react-router';
+import { useStore } from 'zustand/react';
 
-import { ProfilePane } from "./profiler/profileId/ProfilePane.js";
-import { ProfilePropsTab } from "./profiler/profileId/ProfilePropsTab.js";
-import { ProfilerDetailEmpty } from "./profiler/ProfilerDetailEmpty.js";
-import { ProfilerLayout } from "./profiler/ProfilerLayout.js";
-import { SessionsCommandsLayout } from "./sessions/sessions/sessionId/commands/SessionsCommandsLayout.js";
-import { SessionsCommandsExecutedRoute } from "./sessions/sessions/sessionId/commands/executed/SessionsCommandsExecutedRoute.js";
-import { SessionsCommandsFailedRoute } from "./sessions/sessions/sessionId/commands/failed/SessionsCommandsFailedRoute.js";
-import { SessionsCommandsPushedRoute } from "./sessions/sessions/sessionId/commands/pushed/SessionsCommandsPushedRoute.js";
-import { SessionsCommandsStagedRoute } from "./sessions/sessions/sessionId/commands/staged/SessionsCommandsStagedRoute.js";
-import { SessionsDatabaseIndexRoute } from "./sessions/sessions/sessionId/database/SessionsDatabaseIndexRoute.js";
-import { SessionsDatabaseLayout } from "./sessions/sessions/sessionId/database/SessionsDatabaseLayout.js";
-import { SessionsDatabaseModelRoute } from "./sessions/sessions/sessionId/database/SessionsDatabaseModelRoute.js";
-import { SessionsLogsRoute } from "./sessions/sessions/sessionId/logs/SessionsLogsRoute.js";
-import { SessionLayout } from "./sessions/sessions/sessionId/SessionLayout.js";
-import { SessionPane } from "./sessions/sessions/sessionId/SessionPane.js";
-import { SessionsDetailEmpty } from "./sessions/sessions/SessionsDetailEmpty.js";
-import { SessionsLayout } from "./sessions/sessions/SessionsLayout.js";
-import { SettingsRoute } from "./SettingsRoute.js";
-import { SharedWorkerRoute } from "./sharedWorker/SharedWorkerRoute.js";
-import { tokens } from "./styles/tokens.js";
-import { devtoolsStore, getExistingStateFromStorage } from "./store.js";
-import type { IZerospinDevtoolsConfig } from "./types.js";
-import { isHotkeyCombinationPressed } from "./utils/hotkey.js";
-import { ZEROSPIN_DEVTOOLS } from "./utils/storage.js";
-import triggerLogo from "./components/triggerLogo.js";
+import triggerLogo from './components/triggerLogo.js';
+import { ProfilePane } from './profiler/profileId/ProfilePane.js';
+import { ProfilePropsTab } from './profiler/profileId/ProfilePropsTab.js';
+import { ProfilerDetailEmpty } from './profiler/ProfilerDetailEmpty.js';
+import { ProfilerLayout } from './profiler/ProfilerLayout.js';
+import { SessionsCommandsExecutedRoute } from './sessions/sessions/sessionId/commands/executed/SessionsCommandsExecutedRoute.js';
+import { SessionsCommandsFailedRoute } from './sessions/sessions/sessionId/commands/failed/SessionsCommandsFailedRoute.js';
+import { SessionsCommandsPushedRoute } from './sessions/sessions/sessionId/commands/pushed/SessionsCommandsPushedRoute.js';
+import { SessionsCommandsLayout } from './sessions/sessions/sessionId/commands/SessionsCommandsLayout.js';
+import { SessionsCommandsStagedRoute } from './sessions/sessions/sessionId/commands/staged/SessionsCommandsStagedRoute.js';
+import { SessionsDatabaseIndexRoute } from './sessions/sessions/sessionId/database/SessionsDatabaseIndexRoute.js';
+import { SessionsDatabaseLayout } from './sessions/sessions/sessionId/database/SessionsDatabaseLayout.js';
+import { SessionsDatabaseModelRoute } from './sessions/sessions/sessionId/database/SessionsDatabaseModelRoute.js';
+import { SessionsLogsRoute } from './sessions/sessions/sessionId/logs/SessionsLogsRoute.js';
+import { SessionLayout } from './sessions/sessions/sessionId/SessionLayout.js';
+import { SessionPane } from './sessions/sessions/sessionId/SessionPane.js';
+import { SessionsDetailEmpty } from './sessions/sessions/SessionsDetailEmpty.js';
+import { SessionsLayout } from './sessions/sessions/SessionsLayout.js';
+import { SettingsRoute } from './SettingsRoute.js';
+import { SharedWorkerRoute } from './sharedWorker/SharedWorkerRoute.js';
+import { devtoolsStore, getExistingStateFromStorage } from './store.js';
+import { tokens } from './styles/tokens.js';
+import type { IZerospinDevtoolsConfig } from './types.js';
+import { isHotkeyCombinationPressed } from './utils/hotkey.js';
+import { ZEROSPIN_DEVTOOLS } from './utils/storage.js';
 
 function DevtoolsNavigation(props: {
   isDetached: boolean;
@@ -52,8 +52,8 @@ function DevtoolsNavigation(props: {
   onDetach: () => void;
 }) {
   const { isDetached, onClose, onDetach } = props;
-  const settings = useStore(devtoolsStore, (state) => state.settings);
-  const isDark = settings.theme === "dark";
+  const settings = useStore(devtoolsStore, state => state.settings);
+  const isDark = settings.theme === 'dark';
   const foreground = isDark ? tokens.colors.gray[300] : tokens.colors.gray[600];
   const activeForeground = isDark
     ? tokens.colors.gray[100]
@@ -66,26 +66,26 @@ function DevtoolsNavigation(props: {
     : tokens.colors.gray[200];
 
   const textNavigationStyle: CSSProperties = {
-    display: "flex",
-    alignItems: "center",
+    display: 'flex',
+    alignItems: 'center',
     height: 32,
-    padding: "0 12px",
-    boxSizing: "border-box",
+    padding: '0 12px',
+    boxSizing: 'border-box',
     borderBottomWidth: 2,
-    borderBottomStyle: "solid",
-    borderBottomColor: "transparent",
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'transparent',
     color: foreground,
-    backgroundColor: "transparent",
-    fontFamily: "system-ui, sans-serif",
+    backgroundColor: 'transparent',
+    fontFamily: 'system-ui, sans-serif',
     fontSize: 11,
     fontWeight: 600,
-    textDecoration: "none",
+    textDecoration: 'none',
   };
 
   const iconControlStyle: CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     width: 32,
     height: 32,
     flexShrink: 0,
@@ -94,40 +94,40 @@ function DevtoolsNavigation(props: {
     borderRightWidth: 0,
     borderBottomWidth: 2,
     borderLeftWidth: 0,
-    borderBottomStyle: "solid",
-    borderBottomColor: "transparent",
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'transparent',
     color: foreground,
-    backgroundColor: "transparent",
-    cursor: "pointer",
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
   };
 
   return (
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        height: "100%",
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
         minHeight: 0,
       }}
     >
       <header
         data-testid="zerospin-devtools-toolbar"
         style={{
-          display: "flex",
-          alignItems: "stretch",
-          justifyContent: "space-between",
+          display: 'flex',
+          alignItems: 'stretch',
+          justifyContent: 'space-between',
           height: 32,
           flexShrink: 0,
           borderBottomWidth: 1,
-          borderBottomStyle: "solid",
+          borderBottomStyle: 'solid',
           borderBottomColor: borderColor,
           backgroundColor: isDark
             ? tokens.colors.darkGray[900]
             : tokens.colors.gray[50],
         }}
       >
-        <nav aria-label="Zerospin DevTools" style={{ display: "flex" }}>
+        <nav aria-label="Zerospin DevTools" style={{ display: 'flex' }}>
           <NavLink
             to="/sessions"
             style={({ isActive }) => ({
@@ -177,7 +177,7 @@ function DevtoolsNavigation(props: {
 
         <div
           data-testid="zerospin-devtools-native-controls"
-          style={{ display: "flex", marginLeft: "auto" }}
+          style={{ display: 'flex', marginLeft: 'auto' }}
         >
           <NavLink
             to="/settings"
@@ -280,7 +280,7 @@ function DevtoolsNavigation(props: {
         </div>
       </header>
 
-      <main style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+      <main style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <Outlet />
       </main>
     </div>
@@ -288,11 +288,12 @@ function DevtoolsNavigation(props: {
 }
 
 function DevtoolsRoutes(props: {
+  configuredTheme?: IZerospinDevtoolsConfig['theme'];
   isDetached: boolean;
   onClose: () => void;
   onDetach: () => void;
 }) {
-  const { isDetached, onClose, onDetach } = props;
+  const { configuredTheme, isDetached, onClose, onDetach } = props;
 
   return (
     <Routes>
@@ -361,7 +362,10 @@ function DevtoolsRoutes(props: {
         </Route>
 
         <Route path="/shared-worker" element={<SharedWorkerRoute />} />
-        <Route path="/settings" element={<SettingsRoute />} />
+        <Route
+          path="/settings"
+          element={<SettingsRoute configuredTheme={configuredTheme} />}
+        />
         <Route path="*" element={<Navigate to="/sessions" replace />} />
       </Route>
     </Routes>
@@ -394,8 +398,8 @@ export function ZerospinDevtools({
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const pipWindowRef = useRef<Window | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const settings = useStore(devtoolsStore, (state) => state.settings);
-  const height = useStore(devtoolsStore, (state) => state.state.height);
+  const settings = useStore(devtoolsStore, state => state.settings);
+  const height = useStore(devtoolsStore, state => state.state.height);
 
   // 1 — config remains fixed for the lifetime of this mounted shell.
   useEffect(() => {
@@ -407,10 +411,10 @@ export function ZerospinDevtools({
       pipWindowRef.current = null;
     };
 
-    window.addEventListener("beforeunload", closePopup);
+    window.addEventListener('beforeunload', closePopup);
 
     return () => {
-      window.removeEventListener("beforeunload", closePopup);
+      window.removeEventListener('beforeunload', closePopup);
       closePopup();
     };
   }, [initialStoreState]);
@@ -422,7 +426,7 @@ export function ZerospinDevtools({
   const toggleOpen = useCallback(() => {
     const nextIsOpen = !isOpen;
     setIsOpen(nextIsOpen);
-    devtoolsStore.setState((state) => ({
+    devtoolsStore.setState(state => ({
       ...state,
       state: {
         ...state.state,
@@ -434,7 +438,7 @@ export function ZerospinDevtools({
   // 3 — one document listener handles Escape and the configured shortcut.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isOpen) {
+      if (event.key === 'Escape' && isOpen) {
         toggleOpen();
         return;
       }
@@ -443,26 +447,26 @@ export function ZerospinDevtools({
       if (
         target instanceof HTMLElement &&
         (target.isContentEditable ||
-          target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.tagName === "SELECT" ||
-          target.getAttribute("role") === "textbox")
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.getAttribute('role') === 'textbox')
       ) {
         return;
       }
 
       const pressedKeys: Array<string> = [];
       if (event.altKey) {
-        pressedKeys.push("Alt");
+        pressedKeys.push('Alt');
       }
       if (event.ctrlKey) {
-        pressedKeys.push("Control");
+        pressedKeys.push('Control');
       }
       if (event.metaKey) {
-        pressedKeys.push("Meta");
+        pressedKeys.push('Meta');
       }
       if (event.shiftKey) {
-        pressedKeys.push("Shift");
+        pressedKeys.push('Shift');
       }
       pressedKeys.push(event.key);
 
@@ -472,8 +476,8 @@ export function ZerospinDevtools({
       }
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen, settings.openHotkey, toggleOpen]);
 
   // 4 — drag direction follows whether the panel is attached to the top or bottom.
@@ -491,11 +495,11 @@ export function ZerospinDevtools({
     const onMouseMove = (moveEvent: MouseEvent) => {
       const delta = startPageY - moveEvent.pageY;
       const nextHeight =
-        settings.panelLocation === "bottom"
+        settings.panelLocation === 'bottom'
           ? originalHeight + delta
           : originalHeight - delta;
 
-      devtoolsStore.setState((state) => ({
+      devtoolsStore.setState(state => ({
         ...state,
         state: { ...state.state, height: nextHeight },
       }));
@@ -509,12 +513,12 @@ export function ZerospinDevtools({
 
     const onMouseUp = () => {
       setIsResizing(false);
-      ownerWindow.removeEventListener("mousemove", onMouseMove);
-      ownerWindow.removeEventListener("mouseup", onMouseUp);
+      ownerWindow.removeEventListener('mousemove', onMouseMove);
+      ownerWindow.removeEventListener('mouseup', onMouseUp);
     };
 
-    ownerWindow.addEventListener("mousemove", onMouseMove);
-    ownerWindow.addEventListener("mouseup", onMouseUp);
+    ownerWindow.addEventListener('mousemove', onMouseMove);
+    ownerWindow.addEventListener('mouseup', onMouseUp);
   };
 
   // 5 — copy host styles before portaling the existing routed tree into the popup.
@@ -524,36 +528,36 @@ export function ZerospinDevtools({
     }
 
     const popup = window.open(
-      "",
-      "Zerospin-Devtools-Panel",
+      '',
+      'Zerospin-Devtools-Panel',
       `width=${window.innerWidth},height=${height},top=${window.screen.height},left=${window.screenLeft},popup`,
     );
 
     if (popup === null) {
       throw new Error(
-        "Failed to open popup. Please allow popups for this site to view Zerospin DevTools in picture-in-picture mode.",
+        'Failed to open popup. Please allow popups for this site to view Zerospin DevTools in picture-in-picture mode.',
       );
     }
 
-    popup.document.head.innerHTML = "";
-    popup.document.body.innerHTML = "";
-    popup.document.title = "Zerospin DevTools";
-    popup.document.body.style.margin = "0";
+    popup.document.head.innerHTML = '';
+    popup.document.body.innerHTML = '';
+    popup.document.title = 'Zerospin DevTools';
+    popup.document.body.style.margin = '0';
 
-    [...document.styleSheets].forEach((styleSheet) => {
+    [...document.styleSheets].forEach(styleSheet => {
       try {
         const cssRules = [...styleSheet.cssRules]
-          .map((rule) => rule.cssText)
-          .join("");
-        const style = popup.document.createElement("style");
+          .map(rule => rule.cssText)
+          .join('');
+        const style = popup.document.createElement('style');
         style.textContent = cssRules;
         popup.document.head.appendChild(style);
       } catch {
         if (styleSheet.href === null) {
           return;
         }
-        const link = popup.document.createElement("link");
-        link.rel = "stylesheet";
+        const link = popup.document.createElement('link');
+        link.rel = 'stylesheet';
         link.type = styleSheet.type;
         link.media = styleSheet.media.toString();
         link.href = styleSheet.href;
@@ -561,7 +565,7 @@ export function ZerospinDevtools({
       }
     });
 
-    popup.addEventListener("pagehide", () => {
+    popup.addEventListener('pagehide', () => {
       pipWindowRef.current = null;
       setPipWindow(null);
     });
@@ -577,46 +581,46 @@ export function ZerospinDevtools({
   const isAvailable = settings.requireUrlFlag
     ? window.location.search.includes(settings.urlFlag)
     : true;
-  const isDark = settings.theme === "dark";
+  const isDark = settings.theme === 'dark';
   const portalTarget = pipWindow?.document.body ?? document.body;
 
   const triggerPositionStyle: CSSProperties = {};
-  if (settings.position === "top-left") {
+  if (settings.position === 'top-left') {
     triggerPositionStyle.top = 16;
     triggerPositionStyle.left = 16;
   }
-  if (settings.position === "top-right") {
+  if (settings.position === 'top-right') {
     triggerPositionStyle.top = 16;
     triggerPositionStyle.right = 16;
   }
-  if (settings.position === "middle-left") {
-    triggerPositionStyle.top = "50%";
+  if (settings.position === 'middle-left') {
+    triggerPositionStyle.top = '50%';
     triggerPositionStyle.left = 16;
-    triggerPositionStyle.transform = "translateY(-50%)";
+    triggerPositionStyle.transform = 'translateY(-50%)';
   }
-  if (settings.position === "middle-right") {
-    triggerPositionStyle.top = "50%";
+  if (settings.position === 'middle-right') {
+    triggerPositionStyle.top = '50%';
     triggerPositionStyle.right = 16;
-    triggerPositionStyle.transform = "translateY(-50%)";
+    triggerPositionStyle.transform = 'translateY(-50%)';
   }
-  if (settings.position === "bottom-left") {
+  if (settings.position === 'bottom-left') {
     triggerPositionStyle.bottom = 16;
     triggerPositionStyle.left = 16;
   }
-  if (settings.position === "bottom-right") {
+  if (settings.position === 'bottom-right') {
     triggerPositionStyle.bottom = 16;
     triggerPositionStyle.right = 16;
   }
 
   const panelPositionStyle: CSSProperties = {};
-  if (settings.panelLocation === "top") {
+  if (settings.panelLocation === 'top') {
     panelPositionStyle.top = 0;
   } else {
     panelPositionStyle.bottom = 0;
   }
 
   return (
-    <MemoryRouter initialEntries={["/sessions"]}>
+    <MemoryRouter initialEntries={['/sessions']}>
       {createPortal(
         <div data-testid={ZEROSPIN_DEVTOOLS}>
           {isAvailable && !settings.triggerHidden && !isOpen ? (
@@ -628,17 +632,17 @@ export function ZerospinDevtools({
               onClick={toggleOpen}
               style={{
                 ...triggerPositionStyle,
-                position: "fixed",
+                position: 'fixed',
                 zIndex: 100000,
                 width: 36,
                 height: 36,
                 padding: 0,
-                border: "none",
-                borderRadius: "50%",
-                backgroundColor: "transparent",
-                cursor: "pointer",
+                border: 'none',
+                borderRadius: '50%',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
                 opacity: settings.hideUntilHover && !isTriggerHovered ? 0 : 1,
-                transition: "opacity 150ms ease",
+                transition: 'opacity 150ms ease',
               }}
             >
               <img
@@ -646,7 +650,7 @@ export function ZerospinDevtools({
                 alt=""
                 width={36}
                 height={36}
-                style={{ display: "block", borderRadius: "50%" }}
+                style={{ display: 'block', borderRadius: '50%' }}
               />
             </button>
           ) : null}
@@ -658,15 +662,15 @@ export function ZerospinDevtools({
               aria-label="Zerospin DevTools"
               style={{
                 ...panelPositionStyle,
-                position: pipWindow === null ? "fixed" : "relative",
+                position: pipWindow === null ? 'fixed' : 'relative',
                 right: 0,
                 zIndex: 99999,
-                display: "flex",
-                width: "100%",
-                height: pipWindow === null ? height : "100vh",
-                maxHeight: pipWindow === null ? "90vh" : "100vh",
-                boxSizing: "border-box",
-                overflow: "hidden",
+                display: 'flex',
+                width: '100%',
+                height: pipWindow === null ? height : '100vh',
+                maxHeight: pipWindow === null ? '90vh' : '100vh',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
                 color: isDark
                   ? tokens.colors.gray[100]
                   : tokens.colors.gray[900],
@@ -674,22 +678,22 @@ export function ZerospinDevtools({
                   ? tokens.colors.darkGray[800]
                   : tokens.colors.white,
                 borderTop:
-                  settings.panelLocation === "bottom"
+                  settings.panelLocation === 'bottom'
                     ? `1px solid ${isDark ? tokens.colors.gray[800] : tokens.colors.gray[200]}`
-                    : "none",
+                    : 'none',
                 borderBottom:
-                  settings.panelLocation === "top"
+                  settings.panelLocation === 'top'
                     ? `1px solid ${isDark ? tokens.colors.gray[800] : tokens.colors.gray[200]}`
-                    : "none",
+                    : 'none',
                 transform:
                   isOpen || pipWindow !== null
-                    ? "translateY(0)"
-                    : settings.panelLocation === "bottom"
-                      ? "translateY(100%)"
-                      : "translateY(-100%)",
-                visibility: isOpen || pipWindow !== null ? "visible" : "hidden",
-                pointerEvents: isOpen || pipWindow !== null ? "auto" : "none",
-                transition: isResizing ? "none" : "transform 400ms ease",
+                    ? 'translateY(0)'
+                    : settings.panelLocation === 'bottom'
+                      ? 'translateY(100%)'
+                      : 'translateY(-100%)',
+                visibility: isOpen || pipWindow !== null ? 'visible' : 'hidden',
+                pointerEvents: isOpen || pipWindow !== null ? 'auto' : 'none',
+                transition: isResizing ? 'none' : 'transform 400ms ease',
               }}
             >
               <div
@@ -698,17 +702,18 @@ export function ZerospinDevtools({
                 aria-orientation="horizontal"
                 onMouseDown={handleDragStart}
                 style={{
-                  position: "absolute",
+                  position: 'absolute',
                   left: 0,
                   right: 0,
-                  top: settings.panelLocation === "bottom" ? 0 : undefined,
-                  bottom: settings.panelLocation === "top" ? 0 : undefined,
+                  top: settings.panelLocation === 'bottom' ? 0 : undefined,
+                  bottom: settings.panelLocation === 'top' ? 0 : undefined,
                   zIndex: 2,
                   height: 4,
-                  cursor: "ns-resize",
+                  cursor: 'ns-resize',
                 }}
               />
               <DevtoolsRoutes
+                configuredTheme={config?.theme}
                 isDetached={pipWindow !== null}
                 onClose={toggleOpen}
                 onDetach={requestPipWindow}

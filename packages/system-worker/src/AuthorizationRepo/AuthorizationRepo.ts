@@ -13,7 +13,6 @@ import { makeDrizzleSchemasRecordFromTables } from '@zerospin/core/drizzle/makeD
 import { makeTable } from '@zerospin/core/models/makeTable';
 import { primitives } from '@zerospin/core/models/primitives';
 import type { IAnyTables, IShape } from '@zerospin/core/models/types';
-import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { type IAnyErrorJson } from '@zerospin/error';
@@ -24,6 +23,7 @@ import { system } from 'system';
 import { makeRepo } from '../makeRepo/makeRepo.js';
 import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
 import { managedRuntime } from '../managedRuntime.js';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import type { IAuthorizedActorFrontend } from '../types.js';
 
 import { authorize } from './authorize/authorize.js';

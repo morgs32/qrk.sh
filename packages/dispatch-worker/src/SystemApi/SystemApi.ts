@@ -14,12 +14,12 @@ import type {
   IFailedServiceCommand,
   IServiceCommand,
 } from '@zerospin/core/contracts/types';
+import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type {
   IAccountCursor,
   IAccountId,
   IActorId,
 } from '@zerospin/core/models/types';
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { IFrontendState } from '@zerospin/core/session/types';
 import type {
   IEncodedQuery,
@@ -162,9 +162,7 @@ const hello = Effect.fn('SystemApi.hello', { root: true })(function* () {
       deployId: authResults.deployId,
       generationId: authResults.generationId,
     }),
-  ).pipe(
-    Effect.flatMap(decodeRpc),
-  );
+  ).pipe(Effect.flatMap(decodeRpc));
 });
 
 const getFrontendState = Effect.fn('SystemApi.getFrontendState', {
@@ -210,15 +208,12 @@ const executeServiceQuery = Effect.fn('SystemApi.executeServiceQuery', {
       queryName: props.queryName,
       serviceName: props.serviceName,
     }),
-  ).pipe(
-    Effect.flatMap(decodeRpc),
-  );
+  ).pipe(Effect.flatMap(decodeRpc));
 });
 
-const finalizeAccountCommands = Effect.fn(
-  'SystemApi.finalizeAccountCommands',
-  { root: true },
-)(function* (props: {
+const finalizeAccountCommands = Effect.fn('SystemApi.finalizeAccountCommands', {
+  root: true,
+})(function* (props: {
   accountId: IAccountId;
   accountName: string;
   commands: readonly IAccountCommand[];
@@ -259,7 +254,8 @@ const finalizeAccountCommands = Effect.fn(
   )(block.executedCommands).pipe(
     mapParseError({
       code: 'system-api-account-finalize-executed-commands-invalid',
-      prefix: 'Direct account finalization returned non-account executed commands',
+      prefix:
+        'Direct account finalization returned non-account executed commands',
     }),
   );
   const failedCommands = yield* Schema.validate(
@@ -267,7 +263,8 @@ const finalizeAccountCommands = Effect.fn(
   )(block.failedCommands).pipe(
     mapParseError({
       code: 'system-api-account-finalize-failed-commands-invalid',
-      prefix: 'Direct account finalization returned non-account failed commands',
+      prefix:
+        'Direct account finalization returned non-account failed commands',
     }),
   );
 
@@ -302,10 +299,9 @@ const executeSelectQuery = Effect.fn('SystemApi.executeSelectQuery', {
   return yield* decodeRpc(encoded);
 });
 
-const finalizeServiceCommands = Effect.fn(
-  'SystemApi.finalizeServiceCommands',
-  { root: true },
-)(function* (props: {
+const finalizeServiceCommands = Effect.fn('SystemApi.finalizeServiceCommands', {
+  root: true,
+})(function* (props: {
   serviceName: string;
   commands: readonly IServiceCommand[];
 }) {
@@ -340,10 +336,9 @@ const getSystemRepos = Effect.fn('SystemApi.getSystemRepos', { root: true })(
   },
 );
 
-const getSystemRepoTableRows = Effect.fn(
-  'SystemApi.getSystemRepoTableRows',
-  { root: true },
-)(function* (props: { repoName: string; tableName: string }) {
+const getSystemRepoTableRows = Effect.fn('SystemApi.getSystemRepoTableRows', {
+  root: true,
+})(function* (props: { repoName: string; tableName: string }) {
   const authResults = yield* SystemApiAuthResults;
   const systemWorker = yield* SystemWorkerApi;
   const encoded = yield* makeAsync(() =>
@@ -371,10 +366,9 @@ const getAccountRepos = Effect.fn('SystemApi.getAccountRepos', {
   return yield* decodeRpc(encoded);
 });
 
-const getAccountRepoTableRows = Effect.fn(
-  'SystemApi.getAccountRepoTableRows',
-  { root: true },
-)(function* (props: { repoName: string; tableName: string }) {
+const getAccountRepoTableRows = Effect.fn('SystemApi.getAccountRepoTableRows', {
+  root: true,
+})(function* (props: { repoName: string; tableName: string }) {
   const authResults = yield* SystemApiAuthResults;
   const systemWorker = yield* SystemWorkerApi;
   const encoded = yield* makeAsync(() =>
@@ -433,10 +427,9 @@ const getActorRepos = Effect.fn('SystemApi.getActorRepos', { root: true })(
   },
 );
 
-const getActorRepoTableRows = Effect.fn(
-  'SystemApi.getActorRepoTableRows',
-  { root: true },
-)(function* (props: { repoName: string; tableName: string }) {
+const getActorRepoTableRows = Effect.fn('SystemApi.getActorRepoTableRows', {
+  root: true,
+})(function* (props: { repoName: string; tableName: string }) {
   const authResults = yield* SystemApiAuthResults;
   const systemWorker = yield* SystemWorkerApi;
   const encoded = yield* makeAsync(() =>
@@ -495,10 +488,9 @@ const getServiceRepos = Effect.fn('SystemApi.getServiceRepos', { root: true })(
   },
 );
 
-const getServiceRepoTableRows = Effect.fn(
-  'SystemApi.getServiceRepoTableRows',
-  { root: true },
-)(function* (props: { repoName: string; tableName: string }) {
+const getServiceRepoTableRows = Effect.fn('SystemApi.getServiceRepoTableRows', {
+  root: true,
+})(function* (props: { repoName: string; tableName: string }) {
   const authResults = yield* SystemApiAuthResults;
   const systemWorker = yield* SystemWorkerApi;
   const encoded = yield* makeAsync(() =>
@@ -636,19 +628,19 @@ const getServiceBlockRepoTableRows = Effect.fn(
   return yield* decodeRpc(encoded);
 });
 
-const getSystemLogRepos = Effect.fn('SystemApi.getSystemLogRepos', { root: true })(
-  function* () {
-    const authResults = yield* SystemApiAuthResults;
-    const systemWorker = yield* SystemWorkerApi;
-    const encoded = yield* makeAsync(() =>
-      systemWorker.getSystemLogRepos({
-        deployId: authResults.deployId,
-        generationId: authResults.generationId,
-      }),
-    ).pipe(retryTransientDoErrors);
-    return yield* decodeRpc(encoded);
-  },
-);
+const getSystemLogRepos = Effect.fn('SystemApi.getSystemLogRepos', {
+  root: true,
+})(function* () {
+  const authResults = yield* SystemApiAuthResults;
+  const systemWorker = yield* SystemWorkerApi;
+  const encoded = yield* makeAsync(() =>
+    systemWorker.getSystemLogRepos({
+      deployId: authResults.deployId,
+      generationId: authResults.generationId,
+    }),
+  ).pipe(retryTransientDoErrors);
+  return yield* decodeRpc(encoded);
+});
 
 const getSystemLogRepoTableRows = Effect.fn(
   'SystemApi.getSystemLogRepoTableRows',
@@ -676,9 +668,7 @@ const makeSystemSpec = Effect.fn('SystemApi.makeSystemSpec', { root: true })(
         deployId: authResults.deployId,
         generationId: authResults.generationId,
       }),
-    ).pipe(
-      Effect.flatMap(decodeRpc),
-    );
+    ).pipe(Effect.flatMap(decodeRpc));
   },
 );
 
@@ -835,15 +825,11 @@ export class SystemApi extends RpcTarget {
                   accountName: Schema.String,
                   systemName: Schema.String,
                   systemVersion: Schema.String,
-                  sessionId: Schema.NullOr(
-                    makeAbbreviationIdSchema('sesn'),
-                  ),
+                  sessionId: Schema.NullOr(makeAbbreviationIdSchema('sesn')),
                   actorId: Schema.NullOr(Schema.String),
                   actorName: Schema.NullOr(Schema.String),
                   frontendName: Schema.NullOr(Schema.String),
-                  pushedCursor: Schema.NullOr(
-                    makeAbbreviationIdSchema('pcur'),
-                  ),
+                  pushedCursor: Schema.NullOr(makeAbbreviationIdSchema('pcur')),
                 }),
               ),
             }),
@@ -929,9 +915,7 @@ export class SystemApi extends RpcTarget {
 
   async getSystemRepos(
     request: IRpcRequest<[]>,
-  ): Promise<
-    ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
-  > {
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getSystemRepos',
@@ -966,9 +950,7 @@ export class SystemApi extends RpcTarget {
 
   async getAccountRepos(
     request: IRpcRequest<[]>,
-  ): Promise<
-    ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
-  > {
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getAccountRepos',
@@ -1003,9 +985,7 @@ export class SystemApi extends RpcTarget {
 
   async getAuthorizationRepos(
     request: IRpcRequest<[]>,
-  ): Promise<
-    ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
-  > {
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getAuthorizationRepos',
@@ -1040,9 +1020,7 @@ export class SystemApi extends RpcTarget {
 
   async getActorRepos(
     request: IRpcRequest<[]>,
-  ): Promise<
-    ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
-  > {
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getActorRepos',
@@ -1077,9 +1055,7 @@ export class SystemApi extends RpcTarget {
 
   async getFrontendRepos(
     request: IRpcRequest<[]>,
-  ): Promise<
-    ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
-  > {
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getFrontendRepos',
@@ -1114,9 +1090,7 @@ export class SystemApi extends RpcTarget {
 
   async getServiceRepos(
     request: IRpcRequest<[]>,
-  ): Promise<
-    ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
-  > {
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getServiceRepos',
@@ -1151,9 +1125,7 @@ export class SystemApi extends RpcTarget {
 
   async getAccountBlockRepos(
     request: IRpcRequest<[]>,
-  ): Promise<
-    ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
-  > {
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getAccountBlockRepos',
@@ -1188,9 +1160,7 @@ export class SystemApi extends RpcTarget {
 
   async getActorBlockRepos(
     request: IRpcRequest<[]>,
-  ): Promise<
-    ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
-  > {
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getActorBlockRepos',
@@ -1225,9 +1195,7 @@ export class SystemApi extends RpcTarget {
 
   async getFrontendBlockRepos(
     request: IRpcRequest<[]>,
-  ): Promise<
-    ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
-  > {
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getFrontendBlockRepos',
@@ -1262,9 +1230,7 @@ export class SystemApi extends RpcTarget {
 
   async getServiceBlockRepos(
     request: IRpcRequest<[]>,
-  ): Promise<
-    ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
-  > {
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getServiceBlockRepos',
@@ -1299,9 +1265,7 @@ export class SystemApi extends RpcTarget {
 
   async getSystemLogRepos(
     request: IRpcRequest<[]>,
-  ): Promise<
-    ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
-  > {
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getSystemLogRepos',

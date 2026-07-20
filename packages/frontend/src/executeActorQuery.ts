@@ -14,69 +14,62 @@ import {
 } from '@zerospin/logger';
 import { Effect, Redacted, type Schema } from 'effect';
 
-export const executeActorQuery = Effect.fn('executeActorQuery')(
-  function* <
-    ACTOR extends {
-      name: string;
-      api: IAnyActorApi;
-    },
-    FRONTEND extends IFrontendController<string, ACTOR['name']>,
-    QUERY_NAME extends keyof ACTOR['api'] & string,
-  >(props: {
-    session: ISession<FRONTEND>;
-    queryName: QUERY_NAME;
-    params: Schema.Schema.Type<ACTOR['api'][QUERY_NAME]['paramsSchema']>;
-  }): Effect.fn.Return<
-    ReturnType<ACTOR['api'][QUERY_NAME]['query']> extends Effect.Effect<
-      infer SUCCESS,
-      infer _ERROR,
-      infer _CONTEXT
-    >
-      ? SUCCESS
-      : never,
-    IAnyError,
-    Async | PublishableKey | TelemetryCollector | ZerospinApisUrl
-  > {
-    const { params, queryName, session } = props;
-    const publishableKey = yield* PublishableKey;
-    const apiUrl = yield* ZerospinApisUrl;
-    const signature = yield* session.generateSignature();
-
-    using apis = newSyncRpcSession<ZerospinApis>(apiUrl);
-    const frontendApi = makeTraceableApiTarget(
-      apis.getFrontendApi({
-        publishableKey: Redacted.value(publishableKey),
-        accountName: session.frontend.accountName,
-        actorName: session.frontend.actorName,
-        frontendName: session.frontend.frontendName,
-        signature,
-      }),
-    );
-
-    return yield* frontendApi
-      .executeActorQuery({
-        queryName,
-        params,
-      })
-      .pipe(
-        Effect.map(
-          result =>
-            result as ReturnType<
-              ACTOR['api'][QUERY_NAME]['query']
-            > extends Effect.Effect<
-              infer SUCCESS,
-              infer _ERROR,
-              infer _CONTEXT
-            >
-              ? SUCCESS
-              : never,
-        ),
-        Effect.mapError(error =>
-          error instanceof Error
-            ? ZerospinError.catch({ code: 'async-failed' })(error)
-            : new ZerospinError(error),
-        ),
-      );
+export const executeActorQuery = Effect.fn('executeActorQuery')(function* <
+  ACTOR extends {
+    name: string;
+    api: IAnyActorApi;
   },
-  annotateFunctionSpan,
-);
+  FRONTEND extends IFrontendController<string, ACTOR['name']>,
+  QUERY_NAME extends keyof ACTOR['api'] & string,
+>(props: {
+  session: ISession<FRONTEND>;
+  queryName: QUERY_NAME;
+  params: Schema.Schema.Type<ACTOR['api'][QUERY_NAME]['paramsSchema']>;
+}): Effect.fn.Return<
+  ReturnType<ACTOR['api'][QUERY_NAME]['query']> extends Effect.Effect<
+    infer SUCCESS,
+    infer _ERROR,
+    infer _CONTEXT
+  >
+    ? SUCCESS
+    : never,
+  IAnyError,
+  Async | PublishableKey | TelemetryCollector | ZerospinApisUrl
+> {
+  const { params, queryName, session } = props;
+  const publishableKey = yield* PublishableKey;
+  const apiUrl = yield* ZerospinApisUrl;
+  const signature = yield* session.generateSignature();
+
+  using apis = newSyncRpcSession<ZerospinApis>(apiUrl);
+  const frontendApi = makeTraceableApiTarget(
+    apis.getFrontendApi({
+      publishableKey: Redacted.value(publishableKey),
+      accountName: session.frontend.accountName,
+      actorName: session.frontend.actorName,
+      frontendName: session.frontend.frontendName,
+      signature,
+    }),
+  );
+
+  return yield* frontendApi
+    .executeActorQuery({
+      queryName,
+      params,
+    })
+    .pipe(
+      Effect.map(
+        result =>
+          result as ReturnType<
+            ACTOR['api'][QUERY_NAME]['query']
+          > extends Effect.Effect<infer SUCCESS, infer _ERROR, infer _CONTEXT>
+            ? SUCCESS
+            : never,
+      ),
+      Effect.mapError(error =>
+        error instanceof Error
+          ? ZerospinError.catch({ code: 'async-failed' })(error)
+          : new ZerospinError(error),
+      ),
+    );
+}, annotateFunctionSpan);

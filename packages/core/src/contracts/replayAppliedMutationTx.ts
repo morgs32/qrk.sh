@@ -12,11 +12,7 @@
  *    state is recomputed from the new generation, then encode the result.
  */
 
-import {
-  mapParseError,
-  ZerospinError,
-  type IAnyError,
-} from '@zerospin/error';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, JSONSchema, Schema } from 'effect';
 
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
@@ -76,8 +72,7 @@ export const replayAppliedMutationTx = Effect.fn('replayAppliedMutationTx')(
     }
 
     const encodedMutationOperation =
-      mutation.operationName === 'create' ||
-      mutation.operationName === 'update'
+      mutation.operationName === 'create' || mutation.operationName === 'update'
         ? {
             attributes: Reflect.get(parsedOperation, 'encodedAttributes'),
           }

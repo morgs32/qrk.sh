@@ -16,10 +16,10 @@ import { makeTable } from '@zerospin/core/models/makeTable';
 import { primitives } from '@zerospin/core/models/primitives';
 import type { IAnyTables, InferDecodedRow } from '@zerospin/core/models/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import type { IAccountBlock } from '../types.js';
 
 const executedCommandShape = {

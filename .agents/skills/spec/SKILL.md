@@ -26,16 +26,16 @@ Interview relentlessly until you and the user share an understanding.
 
 Read these **before** inventing topology, trust boundaries, or domain names. Prefer wiki and patterns over stale WIP code.
 
-| Priority | Path                                                                                            | Use for                                                                   |
-| -------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| 1        | [`wiki/architecture/`](../../../wiki/architecture/)                                             | Intended subsystem topology, `*Api` gateways, finalize/ledger/block flows |
-| 2        | [`wiki/glossary.md`](../../../wiki/glossary.md)                                                 | Canonical domain terms                                                    |
-| 3        | [`wiki/index.md`](../../../wiki/index.md)                                                       | Catalog of wiki pages                                                     |
-| 4        | [`AGENTS.md` Docs lookup](../../../AGENTS.md)                                                   | Keyword → pattern / architecture routing                                  |
-| 5        | [`vendor/morgs32/llm-wiki/patterns/`](../../../vendor/morgs32/llm-wiki/patterns/index.md)                   | Generic code-shape patterns                                               |
-| 6        | [`llm-wiki/patterns/`](../../../llm-wiki/patterns/index.md) | Zerospin-specific patterns and case studies                               |
-| 7        | [`llm-wiki.md`](../../../llm-wiki.md)                                                           | How this repo's LLM wiki idea works (meta)                                |
-| 8        | [`TODOS.md`](../../../TODOS.md)                                                                 | Target-vs-current naming / topology audit                                 |
+| Priority | Path                                                                                      | Use for                                                                   |
+| -------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| 1        | [`wiki/architecture/`](../../../wiki/architecture/)                                       | Intended subsystem topology, `*Api` gateways, finalize/ledger/block flows |
+| 2        | [`wiki/glossary.md`](../../../wiki/glossary.md)                                           | Canonical domain terms                                                    |
+| 3        | [`wiki/index.md`](../../../wiki/index.md)                                                 | Catalog of wiki pages                                                     |
+| 4        | [`AGENTS.md` Docs lookup](../../../AGENTS.md)                                             | Keyword → pattern / architecture routing                                  |
+| 5        | [`vendor/morgs32/llm-wiki/patterns/`](../../../vendor/morgs32/llm-wiki/patterns/index.md) | Generic code-shape patterns                                               |
+| 6        | [`llm-wiki/patterns/`](../../../llm-wiki/patterns/index.md)                               | Zerospin-specific patterns and case studies                               |
+| 7        | [`llm-wiki.md`](../../../llm-wiki.md)                                                     | How this repo's LLM wiki idea works (meta)                                |
+| 8        | [`TODOS.md`](../../../TODOS.md)                                                           | Target-vs-current naming / topology audit                                 |
 
 Also read the relevant source under `packages/` / `apps/` when the wiki is thin or the question is about current behavior.
 
@@ -47,7 +47,6 @@ After the user confirms alignment:
 
 1. Sketch the **test seams** for the change. Prefer existing seams; prefer the highest seam; aim for as few as possible (ideally one). Confirm seams with the user before writing the file.
 2. Determine the new spec/plan pair's shared three-digit `XXX` prefix before writing:
-
    1. Inspect filenames recursively under `.plans/` for names beginning with three digits.
    2. Use one more than the highest prefix found anywhere under `.plans/`.
    3. Ignore legacy filenames without a three-digit prefix when calculating the next number.
@@ -63,7 +62,6 @@ Use the allocated zero-padded prefix and a kebab-case topic. Number every list (
 
 4. Do **not** publish to an issue tracker. Do **not** create implementation plans under `.plans/plans/` unless the user asks.
 5. When the user asks for an implementation plan from the spec:
-
    1. Read the completed spec as the source of truth.
    2. Create `.plans/plans/XXX-plan-<topic>.md` using the spec's exact `XXX` and topic.
    3. Do not allocate a second number for the implementation plan.

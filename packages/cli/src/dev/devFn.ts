@@ -23,11 +23,7 @@ const require = createRequire(import.meta.url);
 export const devFn = Effect.fn('devFn')(function* (props: {
   clean: boolean;
   port: number | undefined;
-}): Effect.fn.Return<
-  Readonly<{ port: number | undefined }>,
-  IAnyError,
-  Async
-> {
+}): Effect.fn.Return<Readonly<{ port: number | undefined }>, IAnyError, Async> {
   const { clean, port: portOption } = props;
   const cwd = process.cwd();
 
@@ -405,11 +401,7 @@ export const devFn = Effect.fn('devFn')(function* (props: {
             const readyMatch = wranglerOutput.match(
               /Ready on (http:\/\/[^/\s]+:\d+)/,
             );
-            if (
-              readyMatch?.[1] === undefined ||
-              checkingReadiness ||
-              settled
-            ) {
+            if (readyMatch?.[1] === undefined || checkingReadiness || settled) {
               return;
             }
 
@@ -482,6 +474,19 @@ export const devFn = Effect.fn('devFn')(function* (props: {
                   new ZerospinError({
                     code: 'zerospin-dev-wrangler-signaled',
                     message: `Wrangler exited from signal ${signal}.`,
+                  }),
+                ),
+              );
+              return;
+            }
+            if (code !== null && code !== 0) {
+              resume(
+                Effect.fail(
+                  new ZerospinError({
+                    code: 'zerospin-dev-wrangler-exited',
+                    message: `Wrangler exited with code ${code}.`,
+                    cause:
+                      wranglerOutput.length === 0 ? undefined : wranglerOutput,
                   }),
                 ),
               );

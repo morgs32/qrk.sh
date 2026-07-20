@@ -1,80 +1,83 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties } from 'react';
 
-import { useStore } from "zustand/react";
+import { useStore } from 'zustand/react';
 
-import { devtoolsStore } from "./store.js";
-import type { IKeyboardKey } from "./types.js";
-import { uppercaseFirstLetter } from "./utils/sanitize.js";
+import { devtoolsStore } from './store.js';
+import type {
+  IKeyboardKey,
+  IZerospinDevtoolsConfig,
+} from './types.js';
+import { uppercaseFirstLetter } from './utils/sanitize.js';
 
 const styles: Record<string, CSSProperties> = {
   root: {
-    height: "100%",
-    overflowY: "auto",
+    height: '100%',
+    overflowY: 'auto',
     padding: 16,
-    boxSizing: "border-box",
-    fontFamily: "system-ui, sans-serif",
+    boxSizing: 'border-box',
+    fontFamily: 'system-ui, sans-serif',
   },
   section: {
     maxWidth: 720,
     marginBottom: 24,
     paddingBottom: 20,
-    borderBottom: "1px solid #e5e7eb",
+    borderBottom: '1px solid #e5e7eb',
   },
   title: {
-    margin: "0 0 4px",
+    margin: '0 0 4px',
     fontSize: 15,
     fontWeight: 600,
   },
   description: {
-    margin: "0 0 12px",
+    margin: '0 0 12px',
     fontSize: 12,
-    color: "#6b7280",
+    color: '#6b7280',
   },
   field: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     gap: 4,
     marginBottom: 12,
     fontSize: 12,
   },
   checkbox: {
-    display: "flex",
-    alignItems: "flex-start",
+    display: 'flex',
+    alignItems: 'flex-start',
     gap: 8,
     marginBottom: 12,
     fontSize: 12,
   },
   fieldDescription: {
-    display: "block",
-    color: "#6b7280",
+    display: 'block',
+    color: '#6b7280',
     fontSize: 11,
   },
   control: {
     minWidth: 220,
     minHeight: 30,
-    padding: "4px 8px",
-    border: "1px solid #d1d5db",
+    padding: '4px 8px',
+    border: '1px solid #d1d5db',
     borderRadius: 4,
-    backgroundColor: "transparent",
-    color: "inherit",
-    fontFamily: "inherit",
+    backgroundColor: 'transparent',
+    color: 'inherit',
+    fontFamily: 'inherit',
     fontSize: 12,
   },
   modifierRow: {
-    display: "flex",
+    display: 'flex',
     gap: 6,
     marginBottom: 8,
   },
   modifier: {
     minHeight: 28,
-    padding: "3px 8px",
-    border: "1px solid #9ca3af",
+    padding: '3px 8px',
+    border: '1px solid #9ca3af',
     borderRadius: 4,
-    backgroundColor: "transparent",
-    color: "inherit",
-    cursor: "pointer",
-    fontFamily: "inherit",
+    backgroundColor: 'transparent',
+    color: 'inherit',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
     fontSize: 11,
   },
 };
@@ -83,34 +86,37 @@ const styles: Record<string, CSSProperties> = {
  * 1. Read the persisted shell settings directly from the vanilla store.
  * 2. Update each general, URL, keyboard, and position setting in place.
  * 3. Keep the existing modifier-plus-key hotkey editing behavior.
- * 4. Omit the removed Source Inspector configuration entirely.
+ * 4. Hide theme controls while the host application locks the theme.
+ * 5. Omit the removed Source Inspector configuration entirely.
  */
-export function SettingsRoute() {
-  const settings = useStore(devtoolsStore, (state) => state.settings);
-  const modifiers: Array<IKeyboardKey> = ["CtrlOrMeta", "Alt", "Shift"];
+export function SettingsRoute({
+  configuredTheme,
+}: {
+  configuredTheme?: IZerospinDevtoolsConfig['theme'];
+} = {}) {
+  const settings = useStore(devtoolsStore, state => state.settings);
+  const modifiers: Array<IKeyboardKey> = ['CtrlOrMeta', 'Alt', 'Shift'];
 
   // 3 — this policy is reused by the three explicit modifier buttons below.
   const toggleModifier = (modifier: IKeyboardKey) => {
     if (settings.openHotkey.includes(modifier)) {
-      devtoolsStore.setState((state) => ({
+      devtoolsStore.setState(state => ({
         ...state,
         settings: {
           ...state.settings,
-          openHotkey: state.settings.openHotkey.filter(
-            (key) => key !== modifier,
-          ),
+          openHotkey: state.settings.openHotkey.filter(key => key !== modifier),
         },
       }));
       return;
     }
 
-    const existingModifiers = settings.openHotkey.filter((key) =>
+    const existingModifiers = settings.openHotkey.filter(key =>
       modifiers.includes(key),
     );
     const otherKeys = settings.openHotkey.filter(
-      (key) => !modifiers.includes(key),
+      key => !modifiers.includes(key),
     );
-    devtoolsStore.setState((state) => ({
+    devtoolsStore.setState(state => ({
       ...state,
       settings: {
         ...state.settings,
@@ -120,12 +126,12 @@ export function SettingsRoute() {
   };
 
   const handleKeyInput = (input: string) => {
-    const hotkeyModifiers = settings.openHotkey.filter((key) =>
+    const hotkeyModifiers = settings.openHotkey.filter(key =>
       modifiers.includes(key),
     );
     const newKeys = input
-      .split("+")
-      .flatMap((key) => {
+      .split('+')
+      .flatMap(key => {
         if (key.length === 1) {
           return [uppercaseFirstLetter(key)];
         }
@@ -141,7 +147,7 @@ export function SettingsRoute() {
       })
       .filter(Boolean);
 
-    devtoolsStore.setState((state) => ({
+    devtoolsStore.setState(state => ({
       ...state,
       settings: {
         ...state.settings,
@@ -151,8 +157,8 @@ export function SettingsRoute() {
   };
 
   const nonModifierValue = settings.openHotkey
-    .filter((key) => !modifiers.includes(key))
-    .join("+");
+    .filter(key => !modifiers.includes(key))
+    .join('+');
 
   return (
     <div style={styles.root}>
@@ -167,7 +173,7 @@ export function SettingsRoute() {
             type="checkbox"
             checked={settings.defaultOpen}
             onChange={() =>
-              devtoolsStore.setState((state) => ({
+              devtoolsStore.setState(state => ({
                 ...state,
                 settings: {
                   ...state.settings,
@@ -189,7 +195,7 @@ export function SettingsRoute() {
             type="checkbox"
             checked={settings.hideUntilHover}
             onChange={() =>
-              devtoolsStore.setState((state) => ({
+              devtoolsStore.setState(state => ({
                 ...state,
                 settings: {
                   ...state.settings,
@@ -211,7 +217,7 @@ export function SettingsRoute() {
             type="checkbox"
             checked={settings.triggerHidden}
             onChange={() =>
-              devtoolsStore.setState((state) => ({
+              devtoolsStore.setState(state => ({
                 ...state,
                 settings: {
                   ...state.settings,
@@ -228,24 +234,26 @@ export function SettingsRoute() {
           </span>
         </label>
 
-        <label style={styles.field}>
-          Theme
-          <select
-            style={styles.control}
-            value={settings.theme}
-            onChange={(event) => {
-              const theme =
-                event.currentTarget.value === "dark" ? "dark" : "light";
-              devtoolsStore.setState((state) => ({
-                ...state,
-                settings: { ...state.settings, theme },
-              }));
-            }}
-          >
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-          </select>
-        </label>
+        {configuredTheme === undefined ? (
+          <label style={styles.field}>
+            Theme
+            <select
+              style={styles.control}
+              value={settings.theme}
+              onChange={event => {
+                const theme =
+                  event.currentTarget.value === 'dark' ? 'dark' : 'light';
+                devtoolsStore.setState(state => ({
+                  ...state,
+                  settings: { ...state.settings, theme },
+                }));
+              }}
+            >
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </label>
+        ) : null}
       </section>
 
       <section style={styles.section}>
@@ -258,8 +266,8 @@ export function SettingsRoute() {
           <input
             type="checkbox"
             checked={settings.requireUrlFlag}
-            onChange={(event) =>
-              devtoolsStore.setState((state) => ({
+            onChange={event =>
+              devtoolsStore.setState(state => ({
                 ...state,
                 settings: {
                   ...state.settings,
@@ -278,8 +286,8 @@ export function SettingsRoute() {
               style={styles.control}
               value={settings.urlFlag}
               placeholder="debug"
-              onChange={(event) =>
-                devtoolsStore.setState((state) => ({
+              onChange={event =>
+                devtoolsStore.setState(state => ({
                   ...state,
                   settings: {
                     ...state.settings,
@@ -301,11 +309,11 @@ export function SettingsRoute() {
             type="button"
             style={{
               ...styles.modifier,
-              backgroundColor: settings.openHotkey.includes("CtrlOrMeta")
-                ? "#dcfce7"
-                : "transparent",
+              backgroundColor: settings.openHotkey.includes('CtrlOrMeta')
+                ? '#dcfce7'
+                : 'transparent',
             }}
-            onClick={() => toggleModifier("CtrlOrMeta")}
+            onClick={() => toggleModifier('CtrlOrMeta')}
           >
             Ctrl Or Meta
           </button>
@@ -313,11 +321,11 @@ export function SettingsRoute() {
             type="button"
             style={{
               ...styles.modifier,
-              backgroundColor: settings.openHotkey.includes("Alt")
-                ? "#dcfce7"
-                : "transparent",
+              backgroundColor: settings.openHotkey.includes('Alt')
+                ? '#dcfce7'
+                : 'transparent',
             }}
-            onClick={() => toggleModifier("Alt")}
+            onClick={() => toggleModifier('Alt')}
           >
             Alt
           </button>
@@ -325,11 +333,11 @@ export function SettingsRoute() {
             type="button"
             style={{
               ...styles.modifier,
-              backgroundColor: settings.openHotkey.includes("Shift")
-                ? "#dcfce7"
-                : "transparent",
+              backgroundColor: settings.openHotkey.includes('Shift')
+                ? '#dcfce7'
+                : 'transparent',
             }}
-            onClick={() => toggleModifier("Shift")}
+            onClick={() => toggleModifier('Shift')}
           >
             Shift
           </button>
@@ -341,15 +349,15 @@ export function SettingsRoute() {
             style={styles.control}
             value={nonModifierValue}
             placeholder="~"
-            onChange={(event) => handleKeyInput(event.currentTarget.value)}
+            onChange={event => handleKeyInput(event.currentTarget.value)}
           />
           <span style={styles.fieldDescription}>
-            Final shortcut: {settings.openHotkey.join(" + ")}
+            Final shortcut: {settings.openHotkey.join(' + ')}
           </span>
         </label>
       </section>
 
-      <section style={{ ...styles.section, borderBottom: "none" }}>
+      <section style={{ ...styles.section, borderBottom: 'none' }}>
         <h2 style={styles.title}>Position</h2>
         <p style={styles.description}>
           Adjust the trigger and panel placement.
@@ -360,19 +368,19 @@ export function SettingsRoute() {
           <select
             style={styles.control}
             value={settings.position}
-            onChange={(event) => {
+            onChange={event => {
               const position = event.currentTarget.value;
               if (
-                position !== "top-left" &&
-                position !== "top-right" &&
-                position !== "bottom-left" &&
-                position !== "bottom-right" &&
-                position !== "middle-left" &&
-                position !== "middle-right"
+                position !== 'top-left' &&
+                position !== 'top-right' &&
+                position !== 'bottom-left' &&
+                position !== 'bottom-right' &&
+                position !== 'middle-left' &&
+                position !== 'middle-right'
               ) {
                 return;
               }
-              devtoolsStore.setState((state) => ({
+              devtoolsStore.setState(state => ({
                 ...state,
                 settings: { ...state.settings, position },
               }));
@@ -392,10 +400,10 @@ export function SettingsRoute() {
           <select
             style={styles.control}
             value={settings.panelLocation}
-            onChange={(event) => {
+            onChange={event => {
               const panelLocation =
-                event.currentTarget.value === "top" ? "top" : "bottom";
-              devtoolsStore.setState((state) => ({
+                event.currentTarget.value === 'top' ? 'top' : 'bottom';
+              devtoolsStore.setState(state => ({
                 ...state,
                 settings: { ...state.settings, panelLocation },
               }));

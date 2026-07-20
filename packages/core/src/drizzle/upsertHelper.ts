@@ -1,4 +1,4 @@
-import { getTableColumns, sql } from 'drizzle-orm';
+import { getTableColumns, sql, type InferInsertModel } from 'drizzle-orm';
 import type {
   BaseSQLiteDatabase,
   SQLiteUpdateSetSource,
@@ -41,7 +41,7 @@ export function upsertHelper<
 >(props: {
   table: IDrizzleSchema<TABLE_NAME, PROPERTIES>;
   tx: IUpsertTx<MODELS, OTHER_TABLES>;
-  values: IDrizzleSchema<TABLE_NAME, PROPERTIES>['$inferInsert'];
+  values: InferInsertModel<IDrizzleSchema<TABLE_NAME, PROPERTIES>>;
 }) {
   const { table, tx, values } = props;
   const { id: _id, ...updateColumns } = getTableColumns(table);
@@ -51,9 +51,9 @@ export function upsertHelper<
 
   return tx
     .insert(table)
-    .values(values)
+    .values([values])
     .onConflictDoUpdate({
-      target: table.id,
+      target: [table.id],
       set,
     })
     .run();

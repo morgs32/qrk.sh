@@ -199,10 +199,9 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                             tableName,
                           })
                           .pipe(
-                            Effect.withSpan(
-                              'Studio.getSystemRepoTableRows',
-                              { root: true },
-                            ),
+                            Effect.withSpan('Studio.getSystemRepoTableRows', {
+                              root: true,
+                            }),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
@@ -215,10 +214,9 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                             tableName,
                           })
                           .pipe(
-                            Effect.withSpan(
-                              'Studio.getAccountRepoTableRows',
-                              { root: true },
-                            ),
+                            Effect.withSpan('Studio.getAccountRepoTableRows', {
+                              root: true,
+                            }),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
@@ -247,10 +245,9 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                             tableName,
                           })
                           .pipe(
-                            Effect.withSpan(
-                              'Studio.getActorRepoTableRows',
-                              { root: true },
-                            ),
+                            Effect.withSpan('Studio.getActorRepoTableRows', {
+                              root: true,
+                            }),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
@@ -263,10 +260,9 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                             tableName,
                           })
                           .pipe(
-                            Effect.withSpan(
-                              'Studio.getFrontendRepoTableRows',
-                              { root: true },
-                            ),
+                            Effect.withSpan('Studio.getFrontendRepoTableRows', {
+                              root: true,
+                            }),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
@@ -279,10 +275,9 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                             tableName,
                           })
                           .pipe(
-                            Effect.withSpan(
-                              'Studio.getServiceRepoTableRows',
-                              { root: true },
-                            ),
+                            Effect.withSpan('Studio.getServiceRepoTableRows', {
+                              root: true,
+                            }),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );

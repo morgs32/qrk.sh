@@ -19,7 +19,6 @@ playwright/.cache/
 .cursor/
 .codex/
 .skills/
-.opencode/
 .playwright-mcp/
 
 # wrangler

@@ -47,13 +47,8 @@ const auth = Effect.fn('FrontendApi.auth')(function* (
     }),
   );
 
-  const {
-    publishableKey,
-    accountName,
-    actorName,
-    frontendName,
-    signature,
-  } = validated;
+  const { publishableKey, accountName, actorName, frontendName, signature } =
+    validated;
   const identityResolver = yield* ApiKeyIdentityResolver;
   const claims = yield* identityResolver.resolve({
     apiKey: publishableKey,
@@ -191,9 +186,7 @@ export class ZerospinApis extends RpcTarget {
           runtime,
         });
       }).pipe(
-        Effect.catchAll(error =>
-          Effect.succeed(new SystemApiFailure(error)),
-        ),
+        Effect.catchAll(error => Effect.succeed(new SystemApiFailure(error))),
       ),
     );
   }
@@ -222,9 +215,7 @@ export class ZerospinApis extends RpcTarget {
               runtime,
             }),
         ),
-        Effect.catchAll(error =>
-          Effect.succeed(new FrontendApiFailure(error)),
-        ),
+        Effect.catchAll(error => Effect.succeed(new FrontendApiFailure(error))),
       ),
     );
   }

@@ -22,9 +22,10 @@ describe('SystemLogRepo telemetry', () => {
   it.effect('assigns increasing log indexes and reads newest rows first', () =>
     Effect.gen(function* () {
       const generationId = 'gen_log_indexes';
-      const systemLogRepoName = yield* SystemLogRepo.repoUtils.nameUtils.makeName({
-        generationId,
-      });
+      const systemLogRepoName =
+        yield* SystemLogRepo.repoUtils.nameUtils.makeName({
+          generationId,
+        });
       expect(systemLogRepoName).toBe('syslogrepo_gen_log_indexes');
       const systemLogRepo = yield* getSystemLogRepo({ key: { generationId } });
 
@@ -129,14 +130,10 @@ describe('SystemLogRepo telemetry', () => {
 
       yield* Effect.promise(() =>
         systemLogRepo.appendTelemetryBatch({ batch, deployId }),
-      ).pipe(
-        Effect.flatMap(decodeRpc),
-      );
+      ).pipe(Effect.flatMap(decodeRpc));
       yield* Effect.promise(() =>
         systemLogRepo.appendTelemetryBatch({ batch, deployId }),
-      ).pipe(
-        Effect.flatMap(decodeRpc),
-      );
+      ).pipe(Effect.flatMap(decodeRpc));
 
       const rows = yield* Effect.promise(() =>
         executeInRepo({
@@ -247,7 +244,9 @@ describe('SystemLogRepo telemetry', () => {
         const deployId = 'dpl_telemetry_retention';
         const generationId = 'gen_telemetry_retention';
         const systemId = 'sys_local';
-        const systemLogRepo = yield* getSystemLogRepo({ key: { generationId } });
+        const systemLogRepo = yield* getSystemLogRepo({
+          key: { generationId },
+        });
 
         yield* Effect.promise(() =>
           executeInRepo({

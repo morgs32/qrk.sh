@@ -17,9 +17,9 @@
       "default": "./dist/__private__/contracts/makeSessionCommand.js"
     },
     "./accountController/makeAccountCommand": {
-      "types": "./dist/__private__/accountController/makeAccountCommand.d.ts",
-      "import": "./dist/__private__/accountController/makeAccountCommand.js",
-      "default": "./dist/__private__/accountController/makeAccountCommand.js"
+      "types": "./dist/accountController/makeAccountCommand.d.ts",
+      "import": "./dist/accountController/makeAccountCommand.js",
+      "default": "./dist/accountController/makeAccountCommand.js"
     },
     "./frontendBinding/makeActorCommand": {
       "types": "./dist/__private__/frontendBinding/makeActorCommand.d.ts",
@@ -95,7 +95,6 @@
     "react": "19.2.6",
     "rimraf": "^6.1.3",
     "tsx": "^4.21.0",
-    "typescript": "6.0.3",
     "vite": "^8.0.11",
     "vitest": "^4.1.5"
   },

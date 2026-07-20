@@ -61,7 +61,7 @@ export const providerAdmin = makeActorController({
           }
 
           const seedActorCommand = yield* props.makeAccountCommand({
-            contractName: 'seedActor',
+            contract: seedActor,
             payload: {
               id: actorId,
               name: props.signature.clerkUserId,
@@ -149,7 +149,7 @@ export const owner = makeActorController({
           }
 
           const seedActorCommand = yield* props.makeAccountCommand({
-            contractName: 'seedActor',
+            contract: seedActor,
             payload: {
               id: actorId,
               name: props.signature.clerkUserId,

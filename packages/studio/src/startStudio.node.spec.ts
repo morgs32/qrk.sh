@@ -63,13 +63,11 @@ describe('startStudio', () => {
         throw new Error('Expected the Studio Vite middleware plugin');
       }
 
-      studioPlugin.configureServer(
-        {
-          middlewares: {
-            use: middlewareUseMock,
-          },
+      studioPlugin.configureServer({
+        middlewares: {
+          use: middlewareUseMock,
         },
-      );
+      });
 
       return {
         listen: listenMock,
@@ -144,9 +142,7 @@ describe('startStudio', () => {
     );
     expect(response.end).toHaveBeenCalledOnce();
     expect(response.end).toHaveBeenCalledWith(
-      JSON.stringify([
-        { repoName: 'system-repo', tableNames: ['systems'] },
-      ]),
+      JSON.stringify([{ repoName: 'system-repo', tableNames: ['systems'] }]),
     );
     expect(response.end.mock.calls[0]![0]).not.toContain('secret-studio-key');
     expect(response.end.mock.calls[0]![0]).not.toContain(
@@ -341,9 +337,7 @@ describe('startStudio', () => {
     );
     expect(
       getSystemReposMock.mock.calls[0]![0].traceContext.parentSpanId,
-    ).not.toBe(
-      getSystemReposMock.mock.calls[1]![0].traceContext.parentSpanId,
-    );
+    ).not.toBe(getSystemReposMock.mock.calls[1]![0].traceContext.parentSpanId);
     expect(firstResponse.end.mock.calls[0]![0]).not.toContain('lnk_concurrent');
     expect(secondResponse.end.mock.calls[0]![0]).not.toContain(
       'lnk_concurrent',

@@ -43,15 +43,9 @@ describe('DevZerospinApis explicit-clean lifecycle', () => {
     //    distinct identity or lifecycle invariant instead of inferring state
     //    from a timestamp or from the deploy log.
     const stored = await runInDurableObject(devApis, instance => ({
-      instance: instance.db
-        .select()
-        .from(instance.schema.systemInstance)
-        .get(),
+      instance: instance.db.select().from(instance.schema.systemInstance).get(),
       deploy: instance.db.select().from(instance.schema.deploy).get(),
-      generation: instance.db
-        .select()
-        .from(instance.schema.generation)
-        .get(),
+      generation: instance.db.select().from(instance.schema.generation).get(),
       cleanRequest: instance.db
         .select()
         .from(instance.schema.cleanRequest)
@@ -211,10 +205,7 @@ describe('DevZerospinApis explicit-clean lifecycle', () => {
     const stored = await runInDurableObject(
       env.DEV_ZEROSPIN_APIS.getByName(SYSTEM_WORKER_NAME),
       instance => ({
-        active: instance.db
-          .select()
-          .from(instance.schema.systemInstance)
-          .get(),
+        active: instance.db.select().from(instance.schema.systemInstance).get(),
         secondDeploy: instance.db
           .select()
           .from(instance.schema.deploy)
@@ -314,9 +305,7 @@ describe('DevZerospinApis explicit-clean lifecycle', () => {
           firstGeneration: instance.db
             .select()
             .from(instance.schema.generation)
-            .where(
-              eq(instance.schema.generation.id, firstDeploy.generationId),
-            )
+            .where(eq(instance.schema.generation.id, firstDeploy.generationId))
             .get(),
           secondGeneration:
             secondDeploy === undefined
@@ -335,10 +324,7 @@ describe('DevZerospinApis explicit-clean lifecycle', () => {
             .select()
             .from(instance.schema.cleanRequest)
             .where(
-              eq(
-                instance.schema.cleanRequest.id,
-                'cln_prior_clean_process',
-              ),
+              eq(instance.schema.cleanRequest.id, 'cln_prior_clean_process'),
             )
             .get(),
           secondCleanRequest: instance.db
@@ -398,15 +384,9 @@ describe('DevZerospinApis explicit-clean lifecycle', () => {
     // 2. The failed candidate remains tied to this Worker version. The clean
     //    receipt is consumed, but no activeDeployId is published.
     const firstStored = await runInDurableObject(devApis, instance => ({
-      active: instance.db
-        .select()
-        .from(instance.schema.systemInstance)
-        .get(),
+      active: instance.db.select().from(instance.schema.systemInstance).get(),
       deploy: instance.db.select().from(instance.schema.deploy).get(),
-      generation: instance.db
-        .select()
-        .from(instance.schema.generation)
-        .get(),
+      generation: instance.db.select().from(instance.schema.generation).get(),
       cleanRequest: instance.db
         .select()
         .from(instance.schema.cleanRequest)

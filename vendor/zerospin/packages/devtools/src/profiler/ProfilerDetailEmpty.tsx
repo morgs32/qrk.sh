@@ -1,12 +1,12 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties } from 'react';
 
 const styles = {
   detailEmpty: {
     margin: 0,
     opacity: 0.7,
     padding: 8,
-    fontSize: "0.85rem",
-    color: "#6b7280",
+    fontSize: '0.85rem',
+    color: '#6b7280',
   } satisfies CSSProperties,
 } as const;
 

@@ -77,14 +77,16 @@ export function ProductCard(props: {
                     .then(encoded => Effect.runPromise(decodeRpc(encoded)));
                   cartId = payload.id;
                 }
-                await session.stageCommand({
-                  contractName: 'addToCart',
-                  payload: {
-                    cartId,
-                    product,
-                    quantity: 1,
-                  },
-                });
+                await session
+                  .stageCommand({
+                    contractName: 'addToCart',
+                    payload: {
+                      cartId,
+                      product,
+                      quantity: 1,
+                    },
+                  })
+                  .then(encoded => Effect.runPromise(decodeRpc(encoded)));
               })();
             }}
           >

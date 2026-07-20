@@ -7,12 +7,12 @@
 import { type IActor } from '@zerospin/core/actorController/types';
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { dutils } from '@zerospin/core/utils/dutils';
 import { makeCursor } from '@zerospin/core/utils/makeCursor';
 import { and, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { authorizationRepoDrizzleSchemas } from '../AuthorizationRepo.js';
 
 export const authorize = Effect.fn('AuthorizationRepo.authorize')(

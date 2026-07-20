@@ -117,6 +117,18 @@ describe('pushCommands1: FrontendRepo-owned push and websocket convergence', () 
           const db = yield* makeMigratedInMemoryWasmSqliteDb({
             dbConfig,
           });
+          db.insert(models.user.drizzleSchema)
+            .values({
+              actorId: E2E_ACTOR_ID_1,
+              createdAt: new Date('2026-01-01T00:00:00.000Z'),
+              id: userId,
+              modelName: 'user',
+              name: null,
+              pushedCursor: null,
+              updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+              version: '1.0.0',
+            })
+            .run();
           session.store.setState({
             sessionId,
             accountId: E2E_ACCOUNT_ID,
@@ -180,7 +192,7 @@ describe('pushCommands1: FrontendRepo-owned push and websocket convergence', () 
 
           const invalidTicketResponse = yield* Effect.promise(() =>
             SELF.fetch(
-              'http://zerospin-test-rpc.invalid/ws-frontend-blocks?publishableKey=pk_test&ticket=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+              'http://zerospin-test-rpc.invalid/ws-frontend-blocks?publishableKey=pk_test&ticket=gen_test.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
               { headers: { Upgrade: 'websocket' } },
             ),
           );

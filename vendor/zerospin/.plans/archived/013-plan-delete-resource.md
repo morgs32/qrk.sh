@@ -26,10 +26,12 @@
 ### Task 1: `deleteMutation` builder
 
 **Files:**
+
 - Create: `packages/core/src/contracts/deleteMutation.ts`
 - Test: `packages/core/src/contracts/deleteMutation.node.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `IModel`, `InferIdFromAbbreviation` from `../models/types.ts`; `List` fixture from `../fixtures/system.ts`.
 - Produces: `type IDeleteMutation<MODEL extends IModel>` and `deleteMutation({ model, resourceId })` returning `Effect<IDeleteMutation<MODEL>, IAnyError>`. Task 2 adds `IDeleteMutation` to the `IMutation` union; Tasks 4–5 call `deleteMutation` from contract programs.
 
@@ -124,6 +126,7 @@ git commit -m "feat(core): add deleteMutation builder"
 ### Task 2: `delete` across the core mutation pipeline
 
 **Files:**
+
 - Modify: `packages/core/src/contracts/types.ts:20-49` (import + `IOperationName` + `IMutation` union)
 - Modify: `packages/core/src/contracts/applyMutationTx.ts:47-173` (new switch case)
 - Modify: `packages/core/src/contracts/applyMutationInverseTx.ts:26-170` (new switch case)
@@ -134,6 +137,7 @@ git commit -m "feat(core): add deleteMutation builder"
 - Test (create): `packages/core/src/contracts/commitAppliedMutationTx.node.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `IDeleteMutation` / `deleteMutation` from Task 1.
 - Produces: `'delete'` as a member of `IOperationName`; every pipeline stage (apply, inverse, encode, decode, replica commit) handles it. Tasks 3–5 rely on `deleteMutation` being accepted by `applyMutationTx`, `applyFrontendMutationTx` (which delegates all non-replicate ops to `applyMutationTx` — needs no edit), `applyAccountMutationTx` (same delegation — needs no edit), and `commitAppliedMutationTx`.
 
@@ -150,113 +154,113 @@ import { deleteMutation } from './deleteMutation.ts';
 Append these two tests inside `describe('applyMutationTx + applyMutationInverseTx', () => { ... })`, after the existing tests (reuse the file's existing `testUserId`, `testActorId`, `now`, `appliedAt` constants):
 
 ```typescript
-  it.effect('delete removes the row and its inverse restores it', () =>
-    Effect.gen(function* () {
-      const schema = makeResourceDrizzleSchemas(mainModels);
-      const relations = makeDrizzleRelationsFromModels(mainModels);
-      const dbConfig = makeDbConfig({ schema, relations });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+it.effect('delete removes the row and its inverse restores it', () =>
+  Effect.gen(function* () {
+    const schema = makeResourceDrizzleSchemas(mainModels);
+    const relations = makeDrizzleRelationsFromModels(mainModels);
+    const dbConfig = makeDbConfig({ schema, relations });
+    const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
 
-      db.insert(User.drizzleSchema)
-        .values({
-          id: testUserId,
-          modelName: User.modelName,
-          createdAt: now,
-          updatedAt: now,
-          archivedAt: null,
-          version: User.version,
-          actorId: testActorId,
-          name: 'Alice',
-        })
-        .run();
+    db.insert(User.drizzleSchema)
+      .values({
+        id: testUserId,
+        modelName: User.modelName,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: null,
+        version: User.version,
+        actorId: testActorId,
+        name: 'Alice',
+      })
+      .run();
 
-      const mutation = yield* deleteMutation({
-        model: User,
-        resourceId: testUserId,
-      });
+    const mutation = yield* deleteMutation({
+      model: User,
+      resourceId: testUserId,
+    });
 
-      const applied = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.applyDelete.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation,
-              commandId: 'cmd_pushedinv001',
-              mutationIndex: 0,
-              appliedAt,
-            });
-          },
-        ),
-      });
+    const applied = yield* makeTx({
+      db,
+      program: Effect.fn('applyMutationTxSpec.applyDelete.transaction')(
+        function* ({ tx }) {
+          return yield* applyMutationTx({
+            tx,
+            mutation,
+            commandId: 'cmd_pushedinv001',
+            mutationIndex: 0,
+            appliedAt,
+          });
+        },
+      ),
+    });
 
-      const deletedRow = db
-        .select()
-        .from(User.drizzleSchema)
-        .where(eq(User.drizzleSchema.id, testUserId))
-        .get();
-      expect(deletedRow).toBeUndefined();
-      expect(applied.lastAppliedAt).toEqual(now);
-      expect(applied.inverseOperation).toEqual({
-        resource: expect.objectContaining({
-          id: testUserId,
-          name: 'Alice',
-        }),
-      });
+    const deletedRow = db
+      .select()
+      .from(User.drizzleSchema)
+      .where(eq(User.drizzleSchema.id, testUserId))
+      .get();
+    expect(deletedRow).toBeUndefined();
+    expect(applied.lastAppliedAt).toEqual(now);
+    expect(applied.inverseOperation).toEqual({
+      resource: expect.objectContaining({
+        id: testUserId,
+        name: 'Alice',
+      }),
+    });
 
-      yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.inverseDelete.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationInverseTx({ tx, mutation: applied });
-          },
-        ),
-      });
+    yield* makeTx({
+      db,
+      program: Effect.fn('applyMutationTxSpec.inverseDelete.transaction')(
+        function* ({ tx }) {
+          return yield* applyMutationInverseTx({ tx, mutation: applied });
+        },
+      ),
+    });
 
-      const restoredRow = db
-        .select()
-        .from(User.drizzleSchema)
-        .where(eq(User.drizzleSchema.id, testUserId))
-        .get();
-      expect(restoredRow).toEqual(
-        expect.objectContaining({
-          id: testUserId,
-          name: 'Alice',
-        }),
-      );
-    }).pipe(Effect.provide(AsyncLive)),
-  );
+    const restoredRow = db
+      .select()
+      .from(User.drizzleSchema)
+      .where(eq(User.drizzleSchema.id, testUserId))
+      .get();
+    expect(restoredRow).toEqual(
+      expect.objectContaining({
+        id: testUserId,
+        name: 'Alice',
+      }),
+    );
+  }).pipe(Effect.provide(AsyncLive)),
+);
 
-  it.effect('delete fails when the row is missing', () =>
-    Effect.gen(function* () {
-      const schema = makeResourceDrizzleSchemas(mainModels);
-      const relations = makeDrizzleRelationsFromModels(mainModels);
-      const dbConfig = makeDbConfig({ schema, relations });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+it.effect('delete fails when the row is missing', () =>
+  Effect.gen(function* () {
+    const schema = makeResourceDrizzleSchemas(mainModels);
+    const relations = makeDrizzleRelationsFromModels(mainModels);
+    const dbConfig = makeDbConfig({ schema, relations });
+    const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
 
-      const mutation = yield* deleteMutation({
-        model: User,
-        resourceId: testUserId,
-      });
+    const mutation = yield* deleteMutation({
+      model: User,
+      resourceId: testUserId,
+    });
 
-      const failure = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.deleteMissing.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation,
-              commandId: 'cmd_pushedinv001',
-              mutationIndex: 0,
-              appliedAt,
-            });
-          },
-        ),
-      }).pipe(Effect.flip);
+    const failure = yield* makeTx({
+      db,
+      program: Effect.fn('applyMutationTxSpec.deleteMissing.transaction')(
+        function* ({ tx }) {
+          return yield* applyMutationTx({
+            tx,
+            mutation,
+            commandId: 'cmd_pushedinv001',
+            mutationIndex: 0,
+            appliedAt,
+          });
+        },
+      ),
+    }).pipe(Effect.flip);
 
-      expect(failure).toMatchObject({ code: 'mutation-row-not-found' });
-    }).pipe(Effect.provide(AsyncLive)),
-  );
+    expect(failure).toMatchObject({ code: 'mutation-row-not-found' });
+  }).pipe(Effect.provide(AsyncLive)),
+);
 ```
 
 - [ ] **Step 2: Write the failing encode→decode→commit→replay spec**
@@ -316,17 +320,17 @@ describe('commitAppliedMutationTx delete', () => {
       });
       const applied = yield* makeTx({
         db: authorDb,
-        program: Effect.fn('commitDeleteSpec.apply.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation,
-              commandId: 'cmd_commitdel001',
-              mutationIndex: 0,
-              appliedAt,
-            });
-          },
-        ),
+        program: Effect.fn('commitDeleteSpec.apply.transaction')(function* ({
+          tx,
+        }) {
+          return yield* applyMutationTx({
+            tx,
+            mutation,
+            commandId: 'cmd_commitdel001',
+            mutationIndex: 0,
+            appliedAt,
+          });
+        }),
       });
 
       const encoded = yield* encodeAppliedMutation({ mutation: applied });
@@ -347,15 +351,15 @@ describe('commitAppliedMutationTx delete', () => {
 
       const committed = yield* makeTx({
         db: replicaDb,
-        program: Effect.fn('commitDeleteSpec.commit.transaction')(
-          function* ({ tx }) {
-            return yield* commitAppliedMutationTx({
-              tx,
-              models: mainModels,
-              mutation: encoded,
-            });
-          },
-        ),
+        program: Effect.fn('commitDeleteSpec.commit.transaction')(function* ({
+          tx,
+        }) {
+          return yield* commitAppliedMutationTx({
+            tx,
+            models: mainModels,
+            mutation: encoded,
+          });
+        }),
       });
       expect(committed).toBeNull();
 
@@ -368,15 +372,15 @@ describe('commitAppliedMutationTx delete', () => {
 
       const replayed = yield* makeTx({
         db: replicaDb,
-        program: Effect.fn('commitDeleteSpec.replay.transaction')(
-          function* ({ tx }) {
-            return yield* commitAppliedMutationTx({
-              tx,
-              models: mainModels,
-              mutation: encoded,
-            });
-          },
-        ),
+        program: Effect.fn('commitDeleteSpec.replay.transaction')(function* ({
+          tx,
+        }) {
+          return yield* commitAppliedMutationTx({
+            tx,
+            models: mainModels,
+            mutation: encoded,
+          });
+        }),
       });
       expect(replayed).toBeNull();
     }).pipe(Effect.provide(AsyncLive)),
@@ -632,9 +636,11 @@ git commit -m "feat(core): apply, encode, and replay delete mutations"
 ### Task 3: system-worker accepts `delete` in block schemas
 
 **Files:**
+
 - Modify: `packages/system-worker/src/AccountBlockRepo/accountBlockDrizzleSchemas.ts:110-112`
 
 **Interfaces:**
+
 - Consumes: `IOperationName` (now including `'delete'`) via the `assert<Equals<InferDecodedRow<typeof mutationShape>, IEncodedAppliedMutation>>()` guard directly below the shape.
 - Produces: system-worker compiles again after Task 2; Task 4 can persist delete mutations in account blocks.
 
@@ -673,11 +679,13 @@ git commit -m "feat(system-worker): accept delete in account block mutation sche
 ### Task 4: registration release on service delete + chain integration test
 
 **Files:**
+
 - Modify: `packages/system-worker/src/AccountRepo/handleServiceBlocks/handleServiceBlocks.ts:103-109`
 - Modify: `packages/system-worker/src/fixtures/system.ts` (add `deleteProduct` contract; register it on `appService`)
 - Test (modify): `packages/system-worker/src/FrontendRepo/FrontendRepo.workerd.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `deleteMutation` from `@zerospin/core/contracts/deleteMutation`; `commitAppliedMutationTx` behavior from Task 2; existing `accountRepoDrizzleSchemas.replicatedResources` table (`packages/system-worker/src/AccountRepo/AccountRepo.ts:132-150`).
 - Produces: applying a registered service `delete` mutation in AccountRepo also removes its `replicatedResources` row. Fixture contract `deleteProduct` (`payload: { id }`, service `'app'`) for this and future specs.
 
@@ -728,271 +736,265 @@ Register it on the service controller (line ~328):
 In `packages/system-worker/src/FrontendRepo/FrontendRepo.workerd.spec.ts`, add a second `it.effect` inside the existing `it.layer(TestLayer)(it => { ... })` block, after the first test. It reuses the first test's exact idioms (`executeInRepo`, `makeAsync(...).pipe(Effect.flatMap(decodeRpc))`, drain sequence):
 
 ```typescript
-    it.effect(
-      'deletes a replicated service resource and releases its registration',
-      () =>
-        Effect.gen(function* () {
-          const accountId = makeAccountId({ id: 'frontend-delete-resource' });
-          const actorId = yield* makeIdFromAbbreviation({
-            abbreviation: 'actr',
-          });
-          const userId = yield* makeIdFromAbbreviation({
-            abbreviation: mainModels.user.abbreviation,
-          });
-          const productId = yield* makeIdFromAbbreviation({
-            abbreviation: mainModels.product.abbreviation,
-          });
-          const actorKey = {
-            systemVersion: system.version,
-            accountId,
-            accountName: main.accountName,
-            actorName: main.actorName,
-            actorId,
-          };
-          const frontendKey = {
-            ...actorKey,
-            frontendName: main.frontendName,
-          };
-          const accountRepoKey = {
-            systemVersion: system.version,
-            accountId,
-            accountName: main.accountName,
-          };
+it.effect(
+  'deletes a replicated service resource and releases its registration',
+  () =>
+    Effect.gen(function* () {
+      const accountId = makeAccountId({ id: 'frontend-delete-resource' });
+      const actorId = yield* makeIdFromAbbreviation({
+        abbreviation: 'actr',
+      });
+      const userId = yield* makeIdFromAbbreviation({
+        abbreviation: mainModels.user.abbreviation,
+      });
+      const productId = yield* makeIdFromAbbreviation({
+        abbreviation: mainModels.product.abbreviation,
+      });
+      const actorKey = {
+        systemVersion: system.version,
+        accountId,
+        accountName: main.accountName,
+        actorName: main.actorName,
+        actorId,
+      };
+      const frontendKey = {
+        ...actorKey,
+        frontendName: main.frontendName,
+      };
+      const accountRepoKey = {
+        systemVersion: system.version,
+        accountId,
+        accountName: main.accountName,
+      };
 
-          const accountRepo = yield* getAccountRepo({ key: accountRepoKey });
-          yield* Effect.promise(() =>
-            executeInRepo({
-              managedRuntime,
-              getRepo: getAccountRepo,
-              repo: AccountRepo,
-              key: accountRepoKey,
-              fn: ({ db, schema }) => {
-                const now = new Date(0);
-                db.insert(schema.user)
-                  .values({
-                    id: userId,
-                    actorId,
-                    modelName: 'user',
-                    name: 'Frontend delete user',
-                    version: 1,
-                    archivedAt: null,
-                    createdAt: now,
-                    updatedAt: now,
-                  })
-                  .run();
-              },
-            }),
-          );
-          yield* Effect.promise(() =>
-            executeInRepo({
-              managedRuntime,
-              getRepo: getActorRepo,
-              repo: ActorRepo,
-              key: actorKey,
-              fn: () => undefined,
-            }),
-          );
-          const frontendRepo = yield* getFrontendRepo({ key: frontendKey });
-          yield* makeAsync(() =>
-            frontendRepo.getFrontendState({
-              accountId,
-              accountName: main.accountName,
-              actorId,
-              actorName: main.actorName,
-              frontendName: main.frontendName,
-              systemWorkerName: 'system-worker-test',
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-
-          const serviceRepo = yield* getServiceRepo({
-            key: { systemVersion: system.version, serviceName: 'app' },
-          });
-          const createServiceCommand: IServiceCommand = {
-            id: 'cmd_frontend_delete_create',
-            commandName: 'createProduct',
-            payload: {
-              id: productId,
-              name: 'Doomed service product',
-            },
-            version: '1.0.0',
-            commandType: 'service',
-            serviceName: 'app',
-          };
-          const createResult = yield* makeAsync(() =>
-            serviceRepo.finalizeServiceCommands({
-              serviceName: 'app',
-              commands: [createServiceCommand],
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-          expect(createResult.failedCommands).toEqual([]);
-          yield* makeAsync(() => serviceRepo.drainServiceBlockOutbox()).pipe(
-            Effect.flatMap(decodeRpc),
-          );
-
-          const seedTime = new Date(1);
-          const replicateCommand = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'replicateProduct',
-            accountId,
-            accountName: main.accountName,
-            actorId,
-            actorName: main.actorName,
-            frontendName: main.frontendName,
-            systemName: main.systemName,
-            payload: {
-              product: {
-                id: productId,
-                modelName: 'product',
-                name: 'Stale client seed',
+      const accountRepo = yield* getAccountRepo({ key: accountRepoKey });
+      yield* Effect.promise(() =>
+        executeInRepo({
+          managedRuntime,
+          getRepo: getAccountRepo,
+          repo: AccountRepo,
+          key: accountRepoKey,
+          fn: ({ db, schema }) => {
+            const now = new Date(0);
+            db.insert(schema.user)
+              .values({
+                id: userId,
+                actorId,
+                modelName: 'user',
+                name: 'Frontend delete user',
                 version: 1,
                 archivedAt: null,
-                createdAt: seedTime,
-                updatedAt: seedTime,
-              },
-            },
-          });
-          const replicateBlock = yield* makeAsync(() =>
-            accountRepo.finalizeAccountBlock({
-              accountId,
-              accountName: main.accountName,
-              commands: [replicateCommand],
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-          expect(replicateBlock.failedCommands).toEqual([]);
+                createdAt: now,
+                updatedAt: now,
+              })
+              .run();
+          },
+        }),
+      );
+      yield* Effect.promise(() =>
+        executeInRepo({
+          managedRuntime,
+          getRepo: getActorRepo,
+          repo: ActorRepo,
+          key: actorKey,
+          fn: () => undefined,
+        }),
+      );
+      const frontendRepo = yield* getFrontendRepo({ key: frontendKey });
+      yield* makeAsync(() =>
+        frontendRepo.getFrontendState({
+          accountId,
+          accountName: main.accountName,
+          actorId,
+          actorName: main.actorName,
+          frontendName: main.frontendName,
+          systemWorkerName: 'system-worker-test',
+        }),
+      ).pipe(Effect.flatMap(decodeRpc));
 
-          const accountBlockRepo = yield* getAccountBlockRepo({
-            key: accountRepoKey,
-          });
-          const actorBlockRepo = yield* getActorBlockRepo({ key: actorKey });
-          const serviceBlockRepo = yield* getServiceBlockRepo({
-            key: { systemVersion: system.version, serviceName: 'app' },
-          });
-          const drainChain = Effect.gen(function* () {
-            yield* makeAsync(() =>
-              serviceBlockRepo.drainAccountSubscribers(),
-            ).pipe(Effect.flatMap(decodeRpc));
-            yield* makeAsync(() => accountBlockRepo.drainActorOutbox()).pipe(
-              Effect.flatMap(decodeRpc),
-            );
-            yield* makeAsync(() =>
-              actorBlockRepo.drainFrontendSubscribers(),
-            ).pipe(Effect.flatMap(decodeRpc));
-            yield* makeAsync(() =>
-              frontendRepo.drainFrontendBlockOutbox(),
-            ).pipe(Effect.flatMap(decodeRpc));
-          });
-          yield* drainChain;
+      const serviceRepo = yield* getServiceRepo({
+        key: { systemVersion: system.version, serviceName: 'app' },
+      });
+      const createServiceCommand: IServiceCommand = {
+        id: 'cmd_frontend_delete_create',
+        commandName: 'createProduct',
+        payload: {
+          id: productId,
+          name: 'Doomed service product',
+        },
+        version: '1.0.0',
+        commandType: 'service',
+        serviceName: 'app',
+      };
+      const createResult = yield* makeAsync(() =>
+        serviceRepo.finalizeServiceCommands({
+          serviceName: 'app',
+          commands: [createServiceCommand],
+        }),
+      ).pipe(Effect.flatMap(decodeRpc));
+      expect(createResult.failedCommands).toEqual([]);
+      yield* makeAsync(() => serviceRepo.drainServiceBlockOutbox()).pipe(
+        Effect.flatMap(decodeRpc),
+      );
 
-          const replicatedState = yield* makeAsync(() =>
-            frontendRepo.getFrontendState({
-              accountId,
-              accountName: main.accountName,
-              actorId,
-              actorName: main.actorName,
-              frontendName: main.frontendName,
-              systemWorkerName: 'system-worker-test',
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-          expect(
-            replicatedState.resources.find(row => row.id === productId)?.name,
-          ).toBe('Doomed service product');
+      const seedTime = new Date(1);
+      const replicateCommand = yield* makeAccountCommand({
+        contracts: userAccount.contracts,
+        contractName: 'replicateProduct',
+        accountId,
+        accountName: main.accountName,
+        actorId,
+        actorName: main.actorName,
+        frontendName: main.frontendName,
+        systemName: main.systemName,
+        payload: {
+          product: {
+            id: productId,
+            modelName: 'product',
+            name: 'Stale client seed',
+            version: 1,
+            archivedAt: null,
+            createdAt: seedTime,
+            updatedAt: seedTime,
+          },
+        },
+      });
+      const replicateBlock = yield* makeAsync(() =>
+        accountRepo.finalizeAccountBlock({
+          accountId,
+          accountName: main.accountName,
+          commands: [replicateCommand],
+        }),
+      ).pipe(Effect.flatMap(decodeRpc));
+      expect(replicateBlock.failedCommands).toEqual([]);
 
-          const deleteServiceCommand: IServiceCommand = {
-            id: 'cmd_frontend_delete_delete',
-            commandName: 'deleteProduct',
-            payload: {
-              id: productId,
-            },
-            version: '1.0.0',
-            commandType: 'service',
-            serviceName: 'app',
-          };
-          const deleteResult = yield* makeAsync(() =>
-            serviceRepo.finalizeServiceCommands({
-              serviceName: 'app',
-              commands: [deleteServiceCommand],
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-          expect(deleteResult.failedCommands).toEqual([]);
-          yield* makeAsync(() => serviceRepo.drainServiceBlockOutbox()).pipe(
-            Effect.flatMap(decodeRpc),
-          );
-          yield* drainChain;
+      const accountBlockRepo = yield* getAccountBlockRepo({
+        key: accountRepoKey,
+      });
+      const actorBlockRepo = yield* getActorBlockRepo({ key: actorKey });
+      const serviceBlockRepo = yield* getServiceBlockRepo({
+        key: { systemVersion: system.version, serviceName: 'app' },
+      });
+      const drainChain = Effect.gen(function* () {
+        yield* makeAsync(() => serviceBlockRepo.drainAccountSubscribers()).pipe(
+          Effect.flatMap(decodeRpc),
+        );
+        yield* makeAsync(() => accountBlockRepo.drainActorOutbox()).pipe(
+          Effect.flatMap(decodeRpc),
+        );
+        yield* makeAsync(() => actorBlockRepo.drainFrontendSubscribers()).pipe(
+          Effect.flatMap(decodeRpc),
+        );
+        yield* makeAsync(() => frontendRepo.drainFrontendBlockOutbox()).pipe(
+          Effect.flatMap(decodeRpc),
+        );
+      });
+      yield* drainChain;
 
-          const accountDeleteState = yield* Effect.promise(() =>
-            executeInRepo({
-              managedRuntime,
-              getRepo: getAccountRepo,
-              repo: AccountRepo,
-              key: accountRepoKey,
-              fn: ({ db, schema }) => ({
-                products: db.select().from(schema.product).all(),
-                registrations: db
-                  .select()
-                  .from(schema.replicatedResources)
-                  .all(),
-                subscriptions: db
-                  .select()
-                  .from(schema.serviceSubscriptions)
-                  .all(),
-              }),
-            }),
-          );
-          expect(accountDeleteState.products).toEqual([]);
-          expect(accountDeleteState.registrations).toEqual([]);
-          expect(accountDeleteState.subscriptions).toEqual([
-            expect.objectContaining({
-              serviceName: 'app',
-              currentServiceIndex: 2,
-            }),
-          ]);
+      const replicatedState = yield* makeAsync(() =>
+        frontendRepo.getFrontendState({
+          accountId,
+          accountName: main.accountName,
+          actorId,
+          actorName: main.actorName,
+          frontendName: main.frontendName,
+          systemWorkerName: 'system-worker-test',
+        }),
+      ).pipe(Effect.flatMap(decodeRpc));
+      expect(
+        replicatedState.resources.find(row => row.id === productId)?.name,
+      ).toBe('Doomed service product');
 
-          const deletedState = yield* makeAsync(() =>
-            frontendRepo.getFrontendState({
-              accountId,
-              accountName: main.accountName,
-              actorId,
-              actorName: main.actorName,
-              frontendName: main.frontendName,
-              systemWorkerName: 'system-worker-test',
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-          expect(
-            deletedState.resources.find(row => row.id === productId),
-          ).toBeUndefined();
+      const deleteServiceCommand: IServiceCommand = {
+        id: 'cmd_frontend_delete_delete',
+        commandName: 'deleteProduct',
+        payload: {
+          id: productId,
+        },
+        version: '1.0.0',
+        commandType: 'service',
+        serviceName: 'app',
+      };
+      const deleteResult = yield* makeAsync(() =>
+        serviceRepo.finalizeServiceCommands({
+          serviceName: 'app',
+          commands: [deleteServiceCommand],
+        }),
+      ).pipe(Effect.flatMap(decodeRpc));
+      expect(deleteResult.failedCommands).toEqual([]);
+      yield* makeAsync(() => serviceRepo.drainServiceBlockOutbox()).pipe(
+        Effect.flatMap(decodeRpc),
+      );
+      yield* drainChain;
 
-          const rereplicateCommand = yield* makeAccountCommand({
-            contracts: userAccount.contracts,
-            contractName: 'replicateProduct',
-            accountId,
-            accountName: main.accountName,
-            actorId,
-            actorName: main.actorName,
-            frontendName: main.frontendName,
-            systemName: main.systemName,
-            payload: {
-              product: {
-                id: productId,
-                modelName: 'product',
-                name: 'Resurrection attempt',
-                version: 1,
-                archivedAt: null,
-                createdAt: seedTime,
-                updatedAt: seedTime,
-              },
-            },
-          });
-          const rereplicateBlock = yield* makeAsync(() =>
-            accountRepo.finalizeAccountBlock({
-              accountId,
-              accountName: main.accountName,
-              commands: [rereplicateCommand],
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-          expect(rereplicateBlock.failedCommands).toHaveLength(1);
-          expect(rereplicateBlock.executedCommands).toEqual([]);
-        }).pipe(Effect.provide(AsyncLive)),
-    );
+      const accountDeleteState = yield* Effect.promise(() =>
+        executeInRepo({
+          managedRuntime,
+          getRepo: getAccountRepo,
+          repo: AccountRepo,
+          key: accountRepoKey,
+          fn: ({ db, schema }) => ({
+            products: db.select().from(schema.product).all(),
+            registrations: db.select().from(schema.replicatedResources).all(),
+            subscriptions: db.select().from(schema.serviceSubscriptions).all(),
+          }),
+        }),
+      );
+      expect(accountDeleteState.products).toEqual([]);
+      expect(accountDeleteState.registrations).toEqual([]);
+      expect(accountDeleteState.subscriptions).toEqual([
+        expect.objectContaining({
+          serviceName: 'app',
+          currentServiceIndex: 2,
+        }),
+      ]);
+
+      const deletedState = yield* makeAsync(() =>
+        frontendRepo.getFrontendState({
+          accountId,
+          accountName: main.accountName,
+          actorId,
+          actorName: main.actorName,
+          frontendName: main.frontendName,
+          systemWorkerName: 'system-worker-test',
+        }),
+      ).pipe(Effect.flatMap(decodeRpc));
+      expect(
+        deletedState.resources.find(row => row.id === productId),
+      ).toBeUndefined();
+
+      const rereplicateCommand = yield* makeAccountCommand({
+        contracts: userAccount.contracts,
+        contractName: 'replicateProduct',
+        accountId,
+        accountName: main.accountName,
+        actorId,
+        actorName: main.actorName,
+        frontendName: main.frontendName,
+        systemName: main.systemName,
+        payload: {
+          product: {
+            id: productId,
+            modelName: 'product',
+            name: 'Resurrection attempt',
+            version: 1,
+            archivedAt: null,
+            createdAt: seedTime,
+            updatedAt: seedTime,
+          },
+        },
+      });
+      const rereplicateBlock = yield* makeAsync(() =>
+        accountRepo.finalizeAccountBlock({
+          accountId,
+          accountName: main.accountName,
+          commands: [rereplicateCommand],
+        }),
+      ).pipe(Effect.flatMap(decodeRpc));
+      expect(rereplicateBlock.failedCommands).toHaveLength(1);
+      expect(rereplicateBlock.executedCommands).toEqual([]);
+    }).pipe(Effect.provide(AsyncLive)),
+);
 ```
 
 Two notes for the implementer: (1) the first test in this file is the template — if a drain helper or `getFrontendState` param there differs from the above, follow the file, not this plan; (2) the `currentServiceIndex: 2` assertion holds because this test's service processed exactly two commands (create = index 1, delete = index 2) — service repos are keyed per test by `serviceName: 'app'`, shared with the first spec, so if index numbers collide across tests, key isolation has changed and the assertion should pivot to `expect.any(Number)` plus the registration/row emptiness checks, which are the real invariants.
@@ -1007,26 +1009,26 @@ Expected: FAIL — the new test's `accountDeleteState.registrations` assertion f
 In `packages/system-worker/src/AccountRepo/handleServiceBlocks/handleServiceBlocks.ts`, immediately after the `commitAppliedMutationTx` call (line 103-107) and before `relevantMutations.push(mutation);`:
 
 ```typescript
-            if (mutation.operationName === 'delete') {
-              tx.delete(accountRepoDrizzleSchemas.replicatedResources)
-                .where(
-                  and(
-                    eq(
-                      accountRepoDrizzleSchemas.replicatedResources.serviceName,
-                      serviceName,
-                    ),
-                    eq(
-                      accountRepoDrizzleSchemas.replicatedResources.modelName,
-                      mutation.modelName,
-                    ),
-                    eq(
-                      accountRepoDrizzleSchemas.replicatedResources.resourceId,
-                      mutation.resourceId,
-                    ),
-                  ),
-                )
-                .run();
-            }
+if (mutation.operationName === 'delete') {
+  tx.delete(accountRepoDrizzleSchemas.replicatedResources)
+    .where(
+      and(
+        eq(
+          accountRepoDrizzleSchemas.replicatedResources.serviceName,
+          serviceName,
+        ),
+        eq(
+          accountRepoDrizzleSchemas.replicatedResources.modelName,
+          mutation.modelName,
+        ),
+        eq(
+          accountRepoDrizzleSchemas.replicatedResources.resourceId,
+          mutation.resourceId,
+        ),
+      ),
+    )
+    .run();
+}
 ```
 
 `and`, `eq`, and `accountRepoDrizzleSchemas` are already imported in this file (the registration lookup at lines 77-96 uses all three).
@@ -1051,10 +1053,12 @@ git commit -m "feat(system-worker): release replica registration on service dele
 ### Task 5: optimistic delete staging in browser sessions
 
 **Files:**
+
 - Modify: `packages/core/src/fixtures/system.ts` (add `deleteList` contract; register on `main`)
 - Test (create): `packages/core/src/session/deleteList.node.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `deleteMutation` (Task 1), the `delete` pipeline (Task 2), existing session machinery (`makeSession`, `stageCommand`, `applyFrontendMutationTx` delegation — no session code changes needed).
 - Produces: fixture contract `deleteList` (`commandName: 'deleteList'`, `payload: { id }`) available to `main` frontend contracts for any future session/actor specs.
 
@@ -1294,9 +1298,11 @@ git commit -m "feat(core): stage optimistic delete commands in sessions"
 ### Task 6: document delete semantics in the wiki
 
 **Files:**
+
 - Modify: `wiki/architecture/Blockchain.md`
 
 **Interfaces:**
+
 - Consumes: final line numbers of the files changed in Tasks 1–4 (verify before writing refs).
 - Produces: architecture doc matching shipped behavior; the `updated:` frontmatter date bumped to the commit date.
 

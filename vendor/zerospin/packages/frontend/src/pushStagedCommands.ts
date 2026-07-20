@@ -3,16 +3,16 @@ import { applyFrontendMutationTx } from '@zerospin/core/contracts/applyFrontendM
 import { applyMutationInverseTx } from '@zerospin/core/contracts/applyMutationInverseTx';
 import { decodeAppliedMutation } from '@zerospin/core/contracts/decodeAppliedMutation';
 import { decodeCommand } from '@zerospin/core/contracts/decodeCommand';
-import type {
-  IEncodedCommand,
-  IFailedStagedCommand,
-  IPushedCommand,
-} from '@zerospin/core/contracts/types';
 import {
   encodeAppliedMutation,
   EncodedAppliedMutationSchema,
 } from '@zerospin/core/contracts/encodeAppliedMutation';
 import { makeMutations } from '@zerospin/core/contracts/makeMutations';
+import type {
+  IEncodedCommand,
+  IFailedStagedCommand,
+  IPushedCommand,
+} from '@zerospin/core/contracts/types';
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import { upsertHelper } from '@zerospin/core/drizzle/upsertHelper';
 import { withSavepoint } from '@zerospin/core/drizzle/withSavepoint';
@@ -52,11 +52,7 @@ export const pushStagedCommands = Effect.fn('pushStagedCommands')(function* <
     failedCommands: readonly IEncodedCommand<IFailedStagedCommand>[];
   }>,
   IAnyError,
-  | Async
-  | CuidFactory
-  | PublishableKey
-  | TelemetryCollector
-  | ZerospinApisUrl
+  Async | CuidFactory | PublishableKey | TelemetryCollector | ZerospinApisUrl
 > {
   const { session } = props;
 
@@ -91,18 +87,17 @@ export const pushStagedCommands = Effect.fn('pushStagedCommands')(function* <
     }),
   );
 
-  const { pendingCommands, pushedCommands, failedCommands } =
-    yield* frontendApi
-      .pushCommands({
-        commands: stagedRows,
-      })
-      .pipe(
-        Effect.mapError(error =>
-          error instanceof Error
-            ? ZerospinError.catch({ code: 'async-failed' })(error)
-            : new ZerospinError(error),
-        ),
-      );
+  const { pendingCommands, pushedCommands, failedCommands } = yield* frontendApi
+    .pushCommands({
+      commands: stagedRows,
+    })
+    .pipe(
+      Effect.mapError(error =>
+        error instanceof Error
+          ? ZerospinError.catch({ code: 'async-failed' })(error)
+          : new ZerospinError(error),
+      ),
+    );
   const { lastRebasedPushedCursor } = getInitializedStateOrThrow({ session });
 
   yield* makeTx({

@@ -118,33 +118,35 @@ const getFrontendStateEnvelope = systemApi.getFrontendState(
 const executeServiceQueryEnvelope = systemApi.executeServiceQuery(
   serviceQueryRequest,
 ) satisfies Promise<ILinkedRpcEnvelope<unknown, IAnyErrorJson>>;
-const finalizeAccountCommandsEnvelope =
-  systemApi.finalizeAccountCommands(accountFinalizeRequest) satisfies Promise<
-    ILinkedRpcEnvelope<
-      Readonly<{
-        executedCommands: readonly IEncodedCommand<IExecutedAccountCommand>[];
-        failedCommands: readonly IEncodedCommand<IFailedAccountCommand>[];
-        appliedMutations: readonly IEncodedAppliedMutation[];
-        lastAccountCursor: IAccountCursor;
-        accountIndex: number;
-        failure: IAnyError | null;
-      }>,
-      IAnyErrorJson
-    >
-  >;
+const finalizeAccountCommandsEnvelope = systemApi.finalizeAccountCommands(
+  accountFinalizeRequest,
+) satisfies Promise<
+  ILinkedRpcEnvelope<
+    Readonly<{
+      executedCommands: readonly IEncodedCommand<IExecutedAccountCommand>[];
+      failedCommands: readonly IEncodedCommand<IFailedAccountCommand>[];
+      appliedMutations: readonly IEncodedAppliedMutation[];
+      lastAccountCursor: IAccountCursor;
+      accountIndex: number;
+      failure: IAnyError | null;
+    }>,
+    IAnyErrorJson
+  >
+>;
 const executeSelectQueryEnvelope = systemApi.executeSelectQuery(
   selectQueryRequest,
 ) satisfies Promise<ILinkedRpcEnvelope<unknown, IAnyErrorJson>>;
-const finalizeServiceCommandsEnvelope =
-  systemApi.finalizeServiceCommands(serviceFinalizeRequest) satisfies Promise<
-    ILinkedRpcEnvelope<
-      {
-        executed: readonly IExecutedServiceCommand[];
-        failed: readonly IFailedServiceCommand[];
-      },
-      IAnyErrorJson
-    >
-  >;
+const finalizeServiceCommandsEnvelope = systemApi.finalizeServiceCommands(
+  serviceFinalizeRequest,
+) satisfies Promise<
+  ILinkedRpcEnvelope<
+    {
+      executed: readonly IExecutedServiceCommand[];
+      failed: readonly IFailedServiceCommand[];
+    },
+    IAnyErrorJson
+  >
+>;
 const getSystemReposEnvelope = systemApi.getSystemRepos(
   emptyRequest,
 ) satisfies Promise<
@@ -208,10 +210,9 @@ const getActorBlockReposEnvelope = systemApi.getActorBlockRepos(
 ) satisfies Promise<
   ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>
 >;
-const getActorBlockRepoTableRowsEnvelope =
-  systemApi.getActorBlockRepoTableRows(repoTableRequest) satisfies Promise<
-    ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>
-  >;
+const getActorBlockRepoTableRowsEnvelope = systemApi.getActorBlockRepoTableRows(
+  repoTableRequest,
+) satisfies Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>>;
 const getFrontendBlockReposEnvelope = systemApi.getFrontendBlockRepos(
   emptyRequest,
 ) satisfies Promise<

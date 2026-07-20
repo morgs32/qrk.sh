@@ -247,6 +247,11 @@ export function makeActorController<
     frontends,
     authorize = () => Effect.void,
   } = props;
+
+  if (typeof version !== 'string' || version.length === 0) {
+    throw new Error('makeActorController: version must be a non-empty string');
+  }
+
   const frontendProps = frontends as unknown as Record<
     string,
     IFrontendBindingInput

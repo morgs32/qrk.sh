@@ -425,9 +425,7 @@ describe('SystemWorker generation lifecycle', () => {
       }).pipe(Effect.either);
       expect(unpreparedDrain._tag).toBe('Left');
       if (unpreparedDrain._tag === 'Left') {
-        expect(unpreparedDrain.left.code).toBe(
-          'generation-drain-not-prepared',
-        );
+        expect(unpreparedDrain.left.code).toBe('generation-drain-not-prepared');
       }
 
       const missingState = yield* makeAsync(() =>

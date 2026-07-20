@@ -100,22 +100,22 @@
    11. Run the app-workspace API, system-worker, core, dispatch-worker, admin, and cloud checks affected by the import migration, then commit the app code and vendor gitlink together after verification.
 
 10. Synchronize architecture, glossary, and pattern documentation with implemented behavior.
-   1. Use the repository update-architecture workflow after source behavior is complete; do not document the ticket route as current before then.
-   2. Expand `wiki/architecture/DeploySystem.md` with the approved readiness/admission state diagram, admission matrix, normal drain order, retry semantics, and the distinction between `generationState.readiness` and the local `/__zerospin/ready` gate.
-   3. Add `wiki/architecture/FrontendWebSocket.md` for the authenticated ticket mint, hash-only SystemRepo storage, hosted/standalone fixed routing, one-use consume, direct hibernating FrontendBlockRepo ownership, error surface, and no-reconnect boundary.
-   4. Update `wiki/architecture/FrontendApi.md` and `wiki/architecture/Blockchain.md` to remove `/ws-subscriber`, caller-built repo-name, and stale core repo-prefix ownership claims while preserving command/block topology.
-   5. Update `wiki/glossary.md`, `wiki/index.md`, and any overview entry needed to define generation readiness, admission, WebSocket ticket, and the new architecture page; distinguish shared protocol prefixes from internal repo-name prefixes.
-   6. Update directly stale `llm-wiki/patterns` examples/stubs and pattern indexes that import repo-prefix values from core. Do not create a new pattern unless implementation reveals a genuinely reusable rule beyond this plan.
-   7. Refresh every affected wiki source path, line range, and `git hash-object` SHA; append the required wiki log entry; run freshness and Mermaid checks available in the workflow.
-   8. Keep the Worker-simplification item in `TODOS.md`; do not implement or predesign that abstraction in this pass.
+11. Use the repository update-architecture workflow after source behavior is complete; do not document the ticket route as current before then.
+12. Expand `wiki/architecture/DeploySystem.md` with the approved readiness/admission state diagram, admission matrix, normal drain order, retry semantics, and the distinction between `generationState.readiness` and the local `/__zerospin/ready` gate.
+13. Add `wiki/architecture/FrontendWebSocket.md` for the authenticated ticket mint, hash-only SystemRepo storage, hosted/standalone fixed routing, one-use consume, direct hibernating FrontendBlockRepo ownership, error surface, and no-reconnect boundary.
+14. Update `wiki/architecture/FrontendApi.md` and `wiki/architecture/Blockchain.md` to remove `/ws-subscriber`, caller-built repo-name, and stale core repo-prefix ownership claims while preserving command/block topology.
+15. Update `wiki/glossary.md`, `wiki/index.md`, and any overview entry needed to define generation readiness, admission, WebSocket ticket, and the new architecture page; distinguish shared protocol prefixes from internal repo-name prefixes.
+16. Update directly stale `llm-wiki/patterns` examples/stubs and pattern indexes that import repo-prefix values from core. Do not create a new pattern unless implementation reveals a genuinely reusable rule beyond this plan.
+17. Refresh every affected wiki source path, line range, and `git hash-object` SHA; append the required wiki log entry; run freshness and Mermaid checks available in the workflow.
+18. Keep the Worker-simplification item in `TODOS.md`; do not implement or predesign that abstraction in this pass.
 
-11. Perform the final atomic-removal audit.
-   1. Prove no production source in either current worktree imports the deleted core `cloudIdAbbreviations` module or references `systemRecord`, `defaultSession`, the four removed run-prefix fields, or core-owned system-worker repo prefixes.
-   2. Prove no browser code or public Worker accepts a frontend repo name, generation ID, account/actor identity, or signature in the WebSocket request.
-   3. Prove raw tickets appear only transiently in the mint response and browser URL construction, never in persisted rows, logs, telemetry, errors, fixtures, or documentation examples.
-   4. Prove mint fails outside `ready + open`; consume succeeds in `ready + open` and `ready + draining`; consume fails after expiry, replay, deploy mismatch, or `drained`; and existing connected sockets are not actively closed by drain.
-   5. Prove a failed final upgrade leaves its ticket spent and that bootstrap reports the failed handshake instead of an initialized live session.
-   6. Keep this plan active until both workspaces, the vendor revision, architecture freshness, and the highest Shopping seam are implemented and verified. Archive it only after all required checks are green.
+19. Perform the final atomic-removal audit.
+20. Prove no production source in either current worktree imports the deleted core `cloudIdAbbreviations` module or references `systemRecord`, `defaultSession`, the four removed run-prefix fields, or core-owned system-worker repo prefixes.
+21. Prove no browser code or public Worker accepts a frontend repo name, generation ID, account/actor identity, or signature in the WebSocket request.
+22. Prove raw tickets appear only transiently in the mint response and browser URL construction, never in persisted rows, logs, telemetry, errors, fixtures, or documentation examples.
+23. Prove mint fails outside `ready + open`; consume succeeds in `ready + open` and `ready + draining`; consume fails after expiry, replay, deploy mismatch, or `drained`; and existing connected sockets are not actively closed by drain.
+24. Prove a failed final upgrade leaves its ticket spent and that bootstrap reports the failed handshake instead of an initialized live session.
+25. Keep this plan active until both workspaces, the vendor revision, architecture freshness, and the highest Shopping seam are implemented and verified. Archive it only after all required checks are green.
 
 ## Testing and Verification
 

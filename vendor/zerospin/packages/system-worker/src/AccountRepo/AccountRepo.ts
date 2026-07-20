@@ -33,7 +33,6 @@ import type {
 } from '@zerospin/core/models/types';
 import type { IEncodedQuery } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
@@ -58,6 +57,7 @@ import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
 import { managedRuntime } from '../managedRuntime.js';
 import { ServiceRepo } from '../ServiceRepo/ServiceRepo.js';
 import { SystemRepo } from '../SystemRepo/SystemRepo.js';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import type {
   IAccountBlock,
   IAccountBlockOutboxRecord,
@@ -74,8 +74,8 @@ import { finalizeAccountBlock } from './finalizeAccountBlock/finalizeAccountBloc
 import { finalizePushedCommands } from './finalizePushedCommands/finalizePushedCommands.js';
 import { getReplaySubscriptions } from './getReplaySubscriptions/getReplaySubscriptions.js';
 import { handleServiceBlocks } from './handleServiceBlocks/handleServiceBlocks.js';
-import { restoreReplaySubscription } from './restoreReplaySubscription/restoreReplaySubscription.js';
 import { replayAccountBlock } from './replayAccountBlock/replayAccountBlock.js';
+import { restoreReplaySubscription } from './restoreReplaySubscription/restoreReplaySubscription.js';
 
 interface IAccountRepoRpcTarget {
   dumpAccountModelResources(props: {
@@ -516,11 +516,12 @@ export class AccountRepo
   }): Promise<Schema.EitherEncoded<void, IAnyErrorJson>> {
     return managedRuntime.runPromise(
       Effect.gen(this, function* () {
-        const serviceRepoName =
-          yield* ServiceRepo.repoUtils.nameUtils.makeName({
+        const serviceRepoName = yield* ServiceRepo.repoUtils.nameUtils.makeName(
+          {
             generationId: this.key.generationId,
             serviceName: props.serviceName,
-          });
+          },
+        );
         yield* handleServiceBlocks({
           ...props,
           accountName: this.key.accountName,

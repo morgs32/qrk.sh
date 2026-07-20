@@ -8,8 +8,6 @@ import { makeFrontendController } from '../frontendController/makeFrontendContro
 import { makeModel } from '../models/makeModel.ts';
 import { makeSelection } from '../models/makeSelection.ts';
 import { primitives } from '../models/primitives.ts';
-import type { IAssertValidModels } from '../models/types.ts';
-import type { ITypeError } from '../utils/types.ts';
 
 import { makeAccountController } from './makeAccountController.ts';
 
@@ -43,13 +41,6 @@ const List = makeModel(
   },
   [],
 );
-
-assert<
-  Equals<
-    IAssertValidModels<{ list: typeof List }>,
-    ITypeError<'ref "list.userId" target model "user" is not registered on controller models'>
-  >
->();
 
 const createList = makeContract({
   commandName: 'createList',
@@ -163,12 +154,23 @@ assert<
   >
 >();
 
-makeAccountController({
+const versionedAccountController = makeAccountController({
   name: 'user',
   version: '1.0.0',
   actorControllers: { main: actor },
   models: { list: List, user: User },
   contracts: { createList, createUser },
+});
+
+const accountControllerVersion: '1.0.0' = versionedAccountController.version;
+void accountControllerVersion;
+
+// @ts-expect-error — version is required at the factory call site
+makeAccountController({
+  name: 'user',
+  actorControllers: { main: actor },
+  models: { list: List, user: User },
+  contracts: actor.frontends.main.contracts,
 });
 
 makeAccountController({

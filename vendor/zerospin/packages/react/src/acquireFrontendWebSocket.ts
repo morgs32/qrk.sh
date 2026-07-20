@@ -20,11 +20,7 @@ export const acquireFrontendWebSocket = Effect.fn('acquireFrontendWebSocket')(
   }): Effect.fn.Return<
     Effect.Effect<void>,
     IAnyError,
-    | Async
-    | CuidFactory
-    | PublishableKey
-    | TelemetryCollector
-    | ZerospinApisUrl
+    Async | CuidFactory | PublishableKey | TelemetryCollector | ZerospinApisUrl
   > {
     const { session } = props;
 

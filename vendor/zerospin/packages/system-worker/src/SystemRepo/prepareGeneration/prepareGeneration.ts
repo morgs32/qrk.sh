@@ -15,11 +15,7 @@ import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
 import type { ISystemSpec } from '@zerospin/core/system/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import {
-  mapParseError,
-  ZerospinError,
-  type IAnyError,
-} from '@zerospin/error';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import {
   makeTelemetryCollector,
   makeTraceableRpcTarget,
@@ -36,10 +32,10 @@ import {
   type AccountRepo,
 } from '../../AccountRepo/AccountRepo.js';
 import { getAccountRepo } from '../../AccountRepo/getAccountRepo/getAccountRepo.js';
-import { ServiceBlockRepo } from '../../ServiceBlockRepo/ServiceBlockRepo.js';
 import { getServiceBlockRepo } from '../../ServiceBlockRepo/getServiceBlockRepo/getServiceBlockRepo.js';
-import { ServiceRepo } from '../../ServiceRepo/ServiceRepo.js';
+import { ServiceBlockRepo } from '../../ServiceBlockRepo/ServiceBlockRepo.js';
 import { getServiceRepo } from '../../ServiceRepo/getServiceRepo/getServiceRepo.js';
+import { ServiceRepo } from '../../ServiceRepo/ServiceRepo.js';
 import { getRepoRegistrations } from '../getRepoRegistrations/getRepoRegistrations.js';
 import { SystemRepo } from '../SystemRepo.js';
 
@@ -280,7 +276,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
         if (compatibility.missingAdapters.length !== 0) {
           return yield* new ZerospinError({
             code: 'generation-reuse-mutation-adapters-missing',
-            message: 'The candidate has unresolved mutation adapter requirements',
+            message:
+              'The candidate has unresolved mutation adapter requirements',
             extra: {
               deployId,
               generationId,
@@ -366,9 +363,10 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
                 accountName: seed.accountName,
               },
             });
-            const tracedTargetAccountRepo = makeTraceableRpcTarget<
-              Pick<AccountRepo, 'finalizeAccountBlock'>
-            >(targetAccountRepo);
+            const tracedTargetAccountRepo =
+              makeTraceableRpcTarget<Pick<AccountRepo, 'finalizeAccountBlock'>>(
+                targetAccountRepo,
+              );
             const finalized = yield* tracedTargetAccountRepo
               .finalizeAccountBlock({
                 accountId: seed.accountId,
@@ -392,7 +390,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
             ) {
               return yield* new ZerospinError({
                 code: 'generation-seed-account-finalization-failed',
-                message: 'An account seed command failed during clean preparation',
+                message:
+                  'An account seed command failed during clean preparation',
                 extra: {
                   deployId,
                   generationId,
@@ -421,7 +420,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
             if (finalized.failedCommands.length !== 0) {
               return yield* new ZerospinError({
                 code: 'generation-seed-service-finalization-failed',
-                message: 'A service seed command failed during clean preparation',
+                message:
+                  'A service seed command failed during clean preparation',
                 extra: {
                   deployId,
                   generationId,
@@ -505,7 +505,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
         if (compatibility.missingAdapters.length !== 0) {
           return yield* new ZerospinError({
             code: 'generation-migration-adapters-missing',
-            message: 'Generation migration is missing mutation adapter coverage',
+            message:
+              'Generation migration is missing mutation adapter coverage',
             extra: {
               deployId,
               generationId,
@@ -532,9 +533,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
               generationId: prevGenerationId,
               serviceName: sourceServiceKey.serviceName,
             });
-          let sourceBound:
-            | (typeof sourceState.drainBounds)[number]
-            | null = null;
+          let sourceBound: (typeof sourceState.drainBounds)[number] | null =
+            null;
           for (const candidateBound of sourceState.drainBounds) {
             if (candidateBound.repoName !== sourceServiceBlockRepoName) {
               continue;
@@ -575,7 +575,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
                 .get(),
             catch: ZerospinError.catch({
               code: 'generation-service-replay-completion-read-failed',
-              message: 'Failed to read the target ServiceRepo replay completion',
+              message:
+                'Failed to read the target ServiceRepo replay completion',
               extra: { deployId, generationId, targetServiceRepoName },
             }),
           });
@@ -598,12 +599,12 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
               completion.repoType !== 'ServiceRepo' ||
               completion.prevRepoName !== sourceServiceRegistration.repoName ||
               completion.targetRepoName !== targetServiceRepoName ||
-              completion.terminalIndex !==
-                (sourceBound?.terminalIndex ?? null)
+              completion.terminalIndex !== (sourceBound?.terminalIndex ?? null)
             ) {
               return yield* new ZerospinError({
                 code: 'generation-service-replay-completion-mismatch',
-                message: 'Stored service replay completion does not match retry',
+                message:
+                  'Stored service replay completion does not match retry',
                 extra: { deployId, generationId, targetServiceRepoName },
               });
             }
@@ -636,8 +637,13 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
               if (sourceBound.terminalCursor !== null) {
                 return yield* new ZerospinError({
                   code: 'generation-service-empty-bound-inconsistent',
-                  message: 'An empty service bound cannot have a terminal cursor',
-                  extra: { deployId, generationId, repoName: sourceBound.repoName },
+                  message:
+                    'An empty service bound cannot have a terminal cursor',
+                  extra: {
+                    deployId,
+                    generationId,
+                    repoName: sourceBound.repoName,
+                  },
                 });
               }
             } else {
@@ -718,7 +724,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
               if (lastServiceCursor !== sourceBound.terminalCursor) {
                 return yield* new ZerospinError({
                   code: 'generation-service-replay-terminal-cursor-mismatch',
-                  message: 'Target service replay did not reach the captured cursor',
+                  message:
+                    'Target service replay did not reach the captured cursor',
                   extra: {
                     deployId,
                     generationId,
@@ -796,7 +803,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
                 .run(),
             catch: ZerospinError.catch({
               code: 'generation-service-replay-completion-write-failed',
-              message: 'Failed to store the target ServiceRepo replay completion',
+              message:
+                'Failed to store the target ServiceRepo replay completion',
               extra: { deployId, generationId, targetServiceRepoName },
             }),
           });
@@ -874,9 +882,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
               accountId: sourceAccountKey.accountId,
               accountName: sourceAccountKey.accountName,
             });
-          let sourceBound:
-            | (typeof sourceState.drainBounds)[number]
-            | null = null;
+          let sourceBound: (typeof sourceState.drainBounds)[number] | null =
+            null;
           for (const candidateBound of sourceState.drainBounds) {
             if (candidateBound.repoName !== sourceAccountBlockRepoName) {
               continue;
@@ -918,7 +925,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
                 .get(),
             catch: ZerospinError.catch({
               code: 'generation-account-replay-completion-read-failed',
-              message: 'Failed to read the target AccountRepo replay completion',
+              message:
+                'Failed to read the target AccountRepo replay completion',
               extra: { deployId, generationId, targetAccountRepoName },
             }),
           });
@@ -941,12 +949,12 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
               completion.repoType !== 'AccountRepo' ||
               completion.prevRepoName !== sourceAccountRegistration.repoName ||
               completion.targetRepoName !== targetAccountRepoName ||
-              completion.terminalIndex !==
-                (sourceBound?.terminalIndex ?? null)
+              completion.terminalIndex !== (sourceBound?.terminalIndex ?? null)
             ) {
               return yield* new ZerospinError({
                 code: 'generation-account-replay-completion-mismatch',
-                message: 'Stored account replay completion does not match retry',
+                message:
+                  'Stored account replay completion does not match retry',
                 extra: { deployId, generationId, targetAccountRepoName },
               });
             }
@@ -980,8 +988,13 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
               if (sourceBound.terminalCursor !== null) {
                 return yield* new ZerospinError({
                   code: 'generation-account-empty-bound-inconsistent',
-                  message: 'An empty account bound cannot have a terminal cursor',
-                  extra: { deployId, generationId, repoName: sourceBound.repoName },
+                  message:
+                    'An empty account bound cannot have a terminal cursor',
+                  extra: {
+                    deployId,
+                    generationId,
+                    repoName: sourceBound.repoName,
+                  },
                 });
               }
             } else {
@@ -1063,7 +1076,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
               if (lastAccountCursor !== sourceBound.terminalCursor) {
                 return yield* new ZerospinError({
                   code: 'generation-account-replay-terminal-cursor-mismatch',
-                  message: 'Target account replay did not reach the captured cursor',
+                  message:
+                    'Target account replay did not reach the captured cursor',
                   extra: {
                     deployId,
                     generationId,
@@ -1222,7 +1236,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
                 .run(),
             catch: ZerospinError.catch({
               code: 'generation-account-replay-completion-write-failed',
-              message: 'Failed to store the target AccountRepo replay completion',
+              message:
+                'Failed to store the target AccountRepo replay completion',
               extra: { deployId, generationId, targetAccountRepoName },
             }),
           });
@@ -1300,7 +1315,8 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
         ) {
           return yield* new ZerospinError({
             code: 'generation-target-repo-count-mismatch',
-            message: 'Target data-owner repo counts do not match the predecessor',
+            message:
+              'Target data-owner repo counts do not match the predecessor',
             extra: {
               deployId,
               generationId,

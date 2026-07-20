@@ -9,15 +9,15 @@ import { Schema } from 'effect/Schema';
  * @bad Run `Schema.decodeUnknown` on signature inside a repo DO when the
  * FrontendApi capability already validated it.
  */
-export const getFrontendApi = Effect.fn('ZerospinApis.getFrontendApi')(function* (
-  props: unknown,
-) {
-  const validated = yield* Schema.validate(FrontendApiPropsSchema)(props, {
-    onExcessProperty: 'ignore',
-  }).pipe(mapParseError({ code: 'frontend-api-props-invalid' }));
+export const getFrontendApi = Effect.fn('ZerospinApis.getFrontendApi')(
+  function* (props: unknown) {
+    const validated = yield* Schema.validate(FrontendApiPropsSchema)(props, {
+      onExcessProperty: 'ignore',
+    }).pipe(mapParseError({ code: 'frontend-api-props-invalid' }));
 
-  return frontendApiFactory(validated);
-});
+    return frontendApiFactory(validated);
+  },
+);
 
 export class SystemWorker {
   getActorId(props: { actorName: string; signature: unknown }) {

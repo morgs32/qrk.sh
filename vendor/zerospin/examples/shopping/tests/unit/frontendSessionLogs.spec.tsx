@@ -12,8 +12,8 @@ import { encodeLeft } from '@zerospin/core/utils/encodeLeft';
 import { encodeRight } from '@zerospin/core/utils/encodeRight';
 import { ZerospinDevtools } from '@zerospin/devtools/ZerospinDevtools';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
-import { makeStaticApiKeyIdentityResolver } from '@zerospin/dispatch-worker/makeStaticApiKeyIdentityResolver';
 import { makeDispatchRuntime } from '@zerospin/dispatch-worker/makeDispatchRuntime';
+import { makeStaticApiKeyIdentityResolver } from '@zerospin/dispatch-worker/makeStaticApiKeyIdentityResolver';
 import { SystemWorkerResolver } from '@zerospin/dispatch-worker/SystemWorkerResolver/SystemWorkerResolver';
 import { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis/ZerospinApis';
 import { ZerospinError } from '@zerospin/error';
@@ -29,6 +29,7 @@ import type { SystemWorker } from 'system-worker';
 import { describe, expect, it, vi } from 'vitest';
 
 import { shopperFrontend } from '@/zerospin/frontend';
+import { User } from '@/zerospin/models';
 
 describe('frontend session logs integration', () => {
   it('links persisted server roots into one browser session and renders them in DevTools', async () => {
@@ -49,15 +50,14 @@ describe('frontend session logs integration', () => {
           services: {},
         }),
     );
-    systemWorker.executeActorQuery = vi.fn<
-      SystemWorker['executeActorQuery']
-    >(async () =>
-      encodeLeft(
-        new ZerospinError({
-          code: 'integration-query-failed',
-          message: 'Expected actor query failure',
-        }),
-      ),
+    systemWorker.executeActorQuery = vi.fn<SystemWorker['executeActorQuery']>(
+      async () =>
+        encodeLeft(
+          new ZerospinError({
+            code: 'integration-query-failed',
+            message: 'Expected actor query failure',
+          }),
+        ),
     );
     systemWorker.appendTelemetryBatch = vi.fn<
       SystemWorker['appendTelemetryBatch']
@@ -89,38 +89,31 @@ describe('frontend session logs integration', () => {
     });
     const session = makeSession({
       frontend: shopperFrontend,
-      generateSignature: () =>
-        Effect.succeed({ clerkUserId: 'user_logs' }),
+      generateSignature: () => Effect.succeed({ clerkUserId: 'user_logs' }),
       sessionId: 'sesn_frontend_logs',
     });
     const otherSession = makeSession({
       frontend: shopperFrontend,
-      generateSignature: () =>
-        Effect.succeed({ clerkUserId: 'user_logs' }),
+      generateSignature: () => Effect.succeed({ clerkUserId: 'user_logs' }),
       sessionId: 'sesn_other_frontend_logs',
     });
     const tracedFrontendApi = makeTraceableApiTarget(frontendApi);
 
     const outcome = await Effect.runPromise(
       Effect.gen(function* () {
-        const actor = yield* tracedFrontendApi.fetchActor().pipe(
-          Effect.withSpan('browser.fetchActor'),
-        );
+        const actor = yield* tracedFrontendApi
+          .fetchActor()
+          .pipe(Effect.withSpan('browser.fetchActor'));
         const failedQuery = yield* tracedFrontendApi
           .executeActorQuery({
             queryName: 'missing-query',
             params: {},
           })
-          .pipe(
-            Effect.withSpan('browser.executeActorQuery'),
-            Effect.either,
-          );
+          .pipe(Effect.withSpan('browser.executeActorQuery'), Effect.either);
         return { actor, failedQuery };
       }).pipe(
         Effect.provide(
-          makeTelemetryLayer(
-            session.store.getState().telemetryCollector,
-          ),
+          makeTelemetryLayer(session.store.getState().telemetryCollector),
         ),
       ),
     );
@@ -148,9 +141,7 @@ describe('frontend session logs integration', () => {
       .telemetry.spans.find(span => span.name === 'browser.fetchActor');
     const browserQuerySpan = session.store
       .getState()
-      .telemetry.spans.find(
-        span => span.name === 'browser.executeActorQuery',
-      );
+      .telemetry.spans.find(span => span.name === 'browser.executeActorQuery');
     const serverFetchRoot = persistedBatches[0]?.spans.find(
       span => span.name === 'FrontendApi.fetchActor',
     );
@@ -203,6 +194,18 @@ describe('frontend session logs integration', () => {
       lastRebasedPushedCursor: null,
       isPushPaused: true,
     });
+    const seededAt = new Date('2025-09-13T18:55:23.000Z');
+    db.insert(dbConfig.schema.user)
+      .values({
+        id: 'usr_logs',
+        modelName: User.modelName,
+        createdAt: seededAt,
+        updatedAt: seededAt,
+        version: User.version,
+        actorId: 'actr_logs',
+        name: null,
+      })
+      .run();
     const emptyPushResult = {
       pendingCommands: [],
       pushedCommands: [],
@@ -255,9 +258,7 @@ describe('frontend session logs integration', () => {
     });
 
     const logsTab = await vi.waitFor(() => {
-      const tab = document.querySelector<HTMLAnchorElement>(
-        'a[href$="/logs"]',
-      );
+      const tab = document.querySelector<HTMLAnchorElement>('a[href$="/logs"]');
       expect(tab).not.toBeNull();
       return tab;
     });

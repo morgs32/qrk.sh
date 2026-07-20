@@ -491,12 +491,10 @@ export function makeModelAndMetadata<
         );
       }
 
-      const attributeSchemas: Record<
-        string,
-        Schema.Schema.AnyNoContext
-      > = mapValues(definition.attributes, descriptor =>
-        descriptorToJsonEffectSchema(descriptor),
-      );
+      const attributeSchemas: Record<string, Schema.Schema.AnyNoContext> =
+        mapValues(definition.attributes, descriptor =>
+          descriptorToJsonEffectSchema(descriptor),
+        );
       const attributesSchema = Schema.Struct(attributeSchemas);
       const resourceIdSchema = descriptorToJsonEffectSchema(
         primitives.primaryKey({ abbreviation }),
@@ -580,12 +578,10 @@ export function makeModelAndMetadata<
         );
       }
 
-      const attributeSchemas: Record<
-        string,
-        Schema.Schema.AnyNoContext
-      > = mapValues(definition.attributes, descriptor =>
-        descriptorToJsonEffectSchema(descriptor),
-      );
+      const attributeSchemas: Record<string, Schema.Schema.AnyNoContext> =
+        mapValues(definition.attributes, descriptor =>
+          descriptorToJsonEffectSchema(descriptor),
+        );
       const attributesSchema = Schema.Struct(attributeSchemas);
       const partialAttributesSchema = Schema.partial(attributesSchema);
       const resourceIdSchema = descriptorToJsonEffectSchema(

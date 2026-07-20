@@ -96,10 +96,7 @@ describe('replayAppliedMutationTx', () => {
             .select()
             .from(DestinationTodo.drizzleSchema)
             .where(
-              eq(
-                DestinationTodo.drizzleSchema.id,
-                'todo_replaycompatible',
-              ),
+              eq(DestinationTodo.drizzleSchema.id, 'todo_replaycompatible'),
             )
             .get(),
         ).toMatchObject({
@@ -164,9 +161,7 @@ describe('replayAppliedMutationTx', () => {
             models: { todo: DestinationTodo },
           }),
         });
-        const targetPreviousUpdatedAt = new Date(
-          '2026-07-01T00:00:00.000Z',
-        );
+        const targetPreviousUpdatedAt = new Date('2026-07-01T00:00:00.000Z');
         db.insert(DestinationTodo.drizzleSchema)
           .values({
             id: 'todo_replayadapted',
@@ -181,36 +176,35 @@ describe('replayAppliedMutationTx', () => {
 
         const replayed = yield* makeTx({
           db,
-          program: Effect.fn(
-            'replayAppliedMutationTxSpec.adapter.transaction',
-          )(function* ({ tx }) {
-            return yield* replayAppliedMutationTx({
-              tx,
-              mutation: encodedSource,
-              controller: {
-                models: { todo: DestinationTodo },
-                mutationAdapters: {
-                  todo: {
-                    update: [
-                      {
-                        source: DestinationTodo.updateMutation('1.0.0'),
-                        destination:
-                          DestinationTodo.updateMutation('2.0.0'),
-                        adapter: mutation =>
-                          DestinationTodo.update('2.0.0', {
-                            resourceId: mutation.resourceId,
-                            attributes: {
-                              label: mutation.operation.attributes.title,
-                              completed: true,
-                            },
-                          }),
-                      },
-                    ],
+          program: Effect.fn('replayAppliedMutationTxSpec.adapter.transaction')(
+            function* ({ tx }) {
+              return yield* replayAppliedMutationTx({
+                tx,
+                mutation: encodedSource,
+                controller: {
+                  models: { todo: DestinationTodo },
+                  mutationAdapters: {
+                    todo: {
+                      update: [
+                        {
+                          source: DestinationTodo.updateMutation('1.0.0'),
+                          destination: DestinationTodo.updateMutation('2.0.0'),
+                          adapter: mutation =>
+                            DestinationTodo.update('2.0.0', {
+                              resourceId: mutation.resourceId,
+                              attributes: {
+                                label: mutation.operation.attributes.title,
+                                completed: true,
+                              },
+                            }),
+                        },
+                      ],
+                    },
                   },
                 },
-              },
-            });
-          }),
+              });
+            },
+          ),
         });
 
         expect(replayed).toMatchObject({
@@ -292,8 +286,7 @@ describe('replayAppliedMutationTx', () => {
                     create: [
                       {
                         source: SourceTodo.createMutation('1.0.0'),
-                        destination:
-                          DestinationTask.createMutation('2.0.0'),
+                        destination: DestinationTask.createMutation('2.0.0'),
                         adapter: mutation =>
                           DestinationTask.create('2.0.0', {
                             resourceId: 'task_replayrenamed',
@@ -434,8 +427,7 @@ describe('replayAppliedMutationTx', () => {
                     create: [
                       {
                         source: Schema.String,
-                        destination:
-                          DestinationTodo.createMutation('2.0.0'),
+                        destination: DestinationTodo.createMutation('2.0.0'),
                         adapter: () => Effect.succeed({}),
                       },
                     ],

@@ -1,8 +1,8 @@
-import { useParams } from "react-router";
+import { useParams } from 'react-router';
 
-import { useSession } from "../useSession";
+import { useSession } from '../useSession';
 
-import { SessionsDatabaseModelRowsTable } from "./SessionsDatabaseModelRowsTable";
+import { SessionsDatabaseModelRowsTable } from './SessionsDatabaseModelRowsTable';
 
 function decodeModelNameParam(modelName: string): string {
   try {

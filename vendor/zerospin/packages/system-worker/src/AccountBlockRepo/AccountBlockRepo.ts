@@ -10,7 +10,6 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import type { IAccountCursor } from '@zerospin/core/models/types';
-import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { ZerospinError, type IAnyErrorJson } from '@zerospin/error';
@@ -26,10 +25,11 @@ import { env } from 'cloudflare:workers';
 import { Cause, Effect, Schema } from 'effect';
 import { BrandTypeId } from 'effect/Brand';
 
-import { getSystemLogRepo } from '../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
 import { makeRepo } from '../makeRepo/makeRepo.js';
 import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
 import { managedRuntime } from '../managedRuntime.js';
+import { getSystemLogRepo } from '../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import type { IAccountBlock } from '../types.js';
 
 import { accountBlockTables } from './accountBlockDrizzleSchemas.js';
@@ -186,7 +186,9 @@ export class AccountBlockRepo extends makeRepo({
     const batch = collector.flush();
     await managedRuntime.runPromise(
       Effect.gen(function* () {
-        const systemLogRepo = yield* getSystemLogRepo({ key: { generationId } });
+        const systemLogRepo = yield* getSystemLogRepo({
+          key: { generationId },
+        });
         const encoded = yield* makeAsync(() =>
           systemLogRepo.appendTelemetryBatch({
             batch,
@@ -260,7 +262,9 @@ export class AccountBlockRepo extends makeRepo({
     const batch = collector.flush();
     await managedRuntime.runPromise(
       Effect.gen(function* () {
-        const systemLogRepo = yield* getSystemLogRepo({ key: { generationId } });
+        const systemLogRepo = yield* getSystemLogRepo({
+          key: { generationId },
+        });
         const encoded = yield* makeAsync(() =>
           systemLogRepo.appendTelemetryBatch({
             batch,

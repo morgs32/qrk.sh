@@ -96,9 +96,8 @@ export type IContract<
   COMMAND_NAME extends string = string,
   PAYLOAD extends IAnyShape = IAnyShape,
   VERSION extends string = string,
-  MUTATIONS_SCHEMA extends
-    | Schema.Schema.AnyNoContext
-    | null = Schema.Schema.AnyNoContext | null,
+  MUTATIONS_SCHEMA extends Schema.Schema.AnyNoContext | null =
+    Schema.Schema.AnyNoContext | null,
 > = {
   commandName: COMMAND_NAME;
   payload: PAYLOAD;

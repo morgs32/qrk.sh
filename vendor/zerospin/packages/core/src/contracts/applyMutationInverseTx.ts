@@ -33,8 +33,7 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
           });
         }
         yield* Effect.try({
-          try: () =>
-            tx.delete(table).where(eq(table.id, resourceId)).run(),
+          try: () => tx.delete(table).where(eq(table.id, resourceId)).run(),
           catch: cause => {
             const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
               cause instanceof Error && cause.cause !== undefined
@@ -229,8 +228,7 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
       case 'replicateResource': {
         if (mutation.inverseOperation === null) {
           yield* Effect.try({
-            try: () =>
-              tx.delete(table).where(eq(table.id, resourceId)).run(),
+            try: () => tx.delete(table).where(eq(table.id, resourceId)).run(),
             catch: cause => {
               const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
                 cause instanceof Error && cause.cause !== undefined
@@ -238,9 +236,7 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
                   : ''
               }`;
               if (
-                !failure
-                  .toLowerCase()
-                  .includes('foreign key constraint failed')
+                !failure.toLowerCase().includes('foreign key constraint failed')
               ) {
                 throw cause;
               }

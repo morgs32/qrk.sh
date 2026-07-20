@@ -8,9 +8,7 @@ import { serviceBlockDrizzleSchemas } from '../ServiceBlockRepo.js';
 
 /** Reads the immutable terminal service-ledger watermark captured after drain. */
 export const getReplayBound = Effect.fn('ServiceBlockRepo.getReplayBound')(
-  function* (props: {
-    db: IDb;
-  }): Effect.fn.Return<
+  function* (props: { db: IDb }): Effect.fn.Return<
     Readonly<{
       lastServiceCursor: IServiceCursorId | null;
       serviceIndex: number | null;

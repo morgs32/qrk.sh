@@ -183,7 +183,7 @@ export function makeRepo<
                * Register against the generation parsed from this repo's own
                * Durable Object name. A source-generation repo opened during
                * replay must never register itself in the destination
-              * generation's SystemRepo.
+               * generation's SystemRepo.
                */
               invariant(
                 'generationId' in key,

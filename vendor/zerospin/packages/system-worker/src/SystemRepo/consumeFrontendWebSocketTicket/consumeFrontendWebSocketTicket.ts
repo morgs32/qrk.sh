@@ -147,10 +147,7 @@ export const consumeFrontendWebSocketTicket = Effect.fn(
           and(
             eq(frontendWebSocketTicketColumns.ticketHash, ticketHash),
             eq(frontendWebSocketTicketColumns.deployId, ticketRow.deployId),
-            eq(
-              frontendWebSocketTicketColumns.expiresAt,
-              ticketRow.expiresAt,
-            ),
+            eq(frontendWebSocketTicketColumns.expiresAt, ticketRow.expiresAt),
           ),
         )
         .returning({ repoName: frontendWebSocketTicketColumns.repoName })

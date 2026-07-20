@@ -83,10 +83,12 @@ test('signed-in e2e user can query products through the standalone shopper api',
     );
 
     const actorResult = await Effect.runPromise(
-      actorFrontendApi.fetchActor().pipe(
-        Effect.withSpan('shoppingProducts.fetchActor', { root: true }),
-        Effect.provide(makeTelemetryLayer(telemetryCollector)),
-      ),
+      actorFrontendApi
+        .fetchActor()
+        .pipe(
+          Effect.withSpan('shoppingProducts.fetchActor', { root: true }),
+          Effect.provide(makeTelemetryLayer(telemetryCollector)),
+        ),
     );
 
     expect(actorResult.systemEnvironmentId).toBe('dev');

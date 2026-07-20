@@ -51,6 +51,22 @@ const withModels = makeFrontendController({
 });
 
 void withModels.models.user;
+const frontendControllerVersion: '1.0.0' = withModels.version;
+void frontendControllerVersion;
+
+// @ts-expect-error — version is required at the factory call site
+makeFrontendController({
+  accountName: 'user',
+  actorName: 'main',
+  frontendName: 'main',
+  systemName: 'test',
+  models: {
+    list: List,
+    user: User,
+  },
+  contracts: {},
+  signature: Schema.Struct({}),
+});
 
 makeFrontendController({
   accountName: 'user',

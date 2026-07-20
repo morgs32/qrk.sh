@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from 'react';
 
 import type {
   ILiveRelationalQuery,
   IWaSqliteClient,
-} from "@zerospin/core/drizzle/types";
-import { makeLiveQuery } from "@zerospin/live-query/makeLiveQuery";
-import { useStore } from "zustand/react";
+} from '@zerospin/core/drizzle/types';
+import { makeLiveQuery } from '@zerospin/live-query/makeLiveQuery';
+import { useStore } from 'zustand/react';
 
 /*
  * 1. Keep the latest caller callbacks without rebuilding for identity-only changes.
@@ -23,7 +23,7 @@ export function useLiveQueryOnDb<
   deps: readonly unknown[];
   tableNames: readonly string[];
 }): {
-  data: QUERY["_"]["result"];
+  data: QUERY['_']['result'];
   error: Error | undefined;
   updatedAt: Date | undefined;
 } {

@@ -1,23 +1,23 @@
-import { getInitializedStateOrThrow } from "@zerospin/core/session/getInitializedStateOrThrow";
-import type { ISession } from "@zerospin/core/session/types";
+import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
+import type { ISession } from '@zerospin/core/session/types';
 
-import { useLiveQueryOnDb } from "../../../../useLiveQueryOnDb";
+import { useLiveQueryOnDb } from '../../../../useLiveQueryOnDb';
 
-import { sessionsDatabaseTabStyles } from "./sessionsDatabaseTabStyles";
+import { sessionsDatabaseTabStyles } from './sessionsDatabaseTabStyles';
 
 function formatCellValue(value: unknown): string {
   if (value === null || value === undefined) {
-    return "";
+    return '';
   }
-  if (typeof value === "object") {
+  if (typeof value === 'object') {
     return JSON.stringify(value);
   }
   return String(value);
 }
 
 function orderedColumnKeys(keySet: ReadonlySet<string>): string[] {
-  const rest = [...keySet].filter((k) => k !== "id").sort();
-  return keySet.has("id") ? ["id", ...rest] : rest;
+  const rest = [...keySet].filter(k => k !== 'id').sort();
+  return keySet.has('id') ? ['id', ...rest] : rest;
 }
 
 function computeColumnsFromRows(
@@ -49,7 +49,7 @@ export function SessionsDatabaseModelRowsTable(props: {
   const { data, error, updatedAt } = useLiveQueryOnDb({
     db,
     deps: [modelKey],
-    query: (db) => {
+    query: db => {
       const modelQuery = db.query[modelKey];
       if (modelQuery === undefined) {
         throw new Error(`Unknown model key: ${modelKey}`);
@@ -72,14 +72,14 @@ export function SessionsDatabaseModelRowsTable(props: {
     : [];
 
   if (updatedAt === undefined && rows.length === 0) {
-    return <p style={{ margin: 0, fontSize: "0.85rem" }}>Loading rows…</p>;
+    return <p style={{ margin: 0, fontSize: '0.85rem' }}>Loading rows…</p>;
   }
 
   const models = session.frontend.models ?? {};
   const model = models[modelKey];
   if (model === undefined) {
     return (
-      <p style={{ margin: 0, fontSize: "0.85rem" }}>
+      <p style={{ margin: 0, fontSize: '0.85rem' }}>
         Unknown model key: {modelKey}
       </p>
     );
@@ -94,7 +94,7 @@ export function SessionsDatabaseModelRowsTable(props: {
     <table style={sessionsDatabaseTabStyles.table}>
       <thead>
         <tr>
-          {columns.map((col) => (
+          {columns.map(col => (
             <th key={col} style={sessionsDatabaseTabStyles.tableTh}>
               {col}
             </th>
@@ -104,7 +104,7 @@ export function SessionsDatabaseModelRowsTable(props: {
       <tbody>
         {rows.map((row, rowIdx) => (
           <tr key={String(row.id ?? rowIdx)}>
-            {columns.map((col) => (
+            {columns.map(col => (
               <td key={col} style={sessionsDatabaseTabStyles.tableTd}>
                 {formatCellValue(row[col])}
               </td>

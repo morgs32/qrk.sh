@@ -43,9 +43,7 @@ export function makeTableMigrationStatements(
   const foreignKeyLines: string[] = [];
   for (const foreignKey of tableConfig.foreignKeys) {
     const reference = foreignKey.reference();
-    const columnNames = reference.columns
-      .map(column => column.name)
-      .join(', ');
+    const columnNames = reference.columns.map(column => column.name).join(', ');
     const foreignColumnNames = reference.foreignColumns
       .map(column => column.name)
       .join(', ');

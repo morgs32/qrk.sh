@@ -35,8 +35,7 @@ describe('makeTraceableApiTarget', () => {
           link: {
             ...link,
             priorTraceId: request.traceContext?.traceId ?? link.priorTraceId,
-            priorSpanId:
-              request.traceContext?.parentSpanId ?? link.priorSpanId,
+            priorSpanId: request.traceContext?.parentSpanId ?? link.priorSpanId,
           },
         });
       },
@@ -48,10 +47,12 @@ describe('makeTraceableApiTarget', () => {
     const collector = makeTelemetryCollector();
 
     const value = await Effect.runPromise(
-      apiTarget.double(21).pipe(
-        Effect.withSpan('Browser.double'),
-        Effect.provide(makeTelemetryLayer(collector)),
-      ),
+      apiTarget
+        .double(21)
+        .pipe(
+          Effect.withSpan('Browser.double'),
+          Effect.provide(makeTelemetryLayer(collector)),
+        ),
     );
 
     expect(value).toBe(42);
@@ -97,10 +98,7 @@ describe('makeTraceableApiTarget', () => {
     const error = await Effect.runPromise(
       makeTraceableApiTarget(rawApiTarget)
         .fail()
-        .pipe(
-          Effect.flip,
-          Effect.provide(makeTelemetryLayer(collector)),
-        ),
+        .pipe(Effect.flip, Effect.provide(makeTelemetryLayer(collector))),
     );
 
     expect(error).toBe('domain-error');
@@ -139,10 +137,9 @@ describe('makeTraceableApiTarget', () => {
     const collector = makeTelemetryCollector();
 
     const error = await Effect.runPromise(
-      apiTarget.call().pipe(
-        Effect.flip,
-        Effect.provide(makeTelemetryLayer(collector)),
-      ),
+      apiTarget
+        .call()
+        .pipe(Effect.flip, Effect.provide(makeTelemetryLayer(collector))),
     );
 
     expect(error).toBeInstanceOf(Error);
@@ -169,10 +166,9 @@ describe('makeTraceableApiTarget', () => {
     const collector = makeTelemetryCollector();
 
     const error = await Effect.runPromise(
-      apiTarget.call().pipe(
-        Effect.flip,
-        Effect.provide(makeTelemetryLayer(collector)),
-      ),
+      apiTarget
+        .call()
+        .pipe(Effect.flip, Effect.provide(makeTelemetryLayer(collector))),
     );
 
     expect(error).toBeInstanceOf(Error);

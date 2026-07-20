@@ -1,28 +1,29 @@
-import { act } from "react";
+import { act } from 'react';
 
-import { AsyncLive } from "@zerospin/core/async/AsyncLive";
-import { makeResourceDbConfig } from "@zerospin/core/drizzle/makeDbConfig";
-import { makeMigratedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb";
-import { main, mainModels } from "@zerospin/core/fixtures/system";
-import { makeSession } from "@zerospin/core/session/makeSession";
-import { sessionRepoTables } from "@zerospin/core/session/sessionRepoTables";
-import type { ISessionId } from "@zerospin/core/session/types";
-import { Effect } from "effect";
-import { createRoot, type Root } from "react-dom/client";
-import { createMemoryRouter, RouterProvider } from "react-router";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
+import { makeMigratedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb';
+import { main, mainModels } from '@zerospin/core/fixtures/system';
+import { makeSession } from '@zerospin/core/session/makeSession';
+import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
+import type { ISessionId } from '@zerospin/core/session/types';
+import { Effect } from 'effect';
+import { createRoot, type Root } from 'react-dom/client';
+import { createMemoryRouter, RouterProvider } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SessionToolbar } from "./SessionToolbar";
-import { zerospinDevtoolsStore } from "../../../zerospinDevtoolsStore.js";
+import { zerospinDevtoolsStore } from '../../../zerospinDevtoolsStore.js';
 
-const sessionId = "sesn_toolbar" as ISessionId;
+import { SessionToolbar } from './SessionToolbar';
 
-describe("SessionToolbar", () => {
+const sessionId = 'sesn_toolbar' as ISessionId;
+
+describe('SessionToolbar', () => {
   let container: HTMLDivElement;
   let root: Root;
 
   beforeEach(() => {
-    container = document.createElement("div");
+    container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
   });
@@ -36,7 +37,7 @@ describe("SessionToolbar", () => {
     container.remove();
   });
 
-  it("renders push control from session state", async () => {
+  it('renders push control from session state', async () => {
     const dbConfig = makeResourceDbConfig({
       models: mainModels,
       otherTables: sessionRepoTables,
@@ -46,20 +47,32 @@ describe("SessionToolbar", () => {
         Effect.provide(AsyncLive),
       ),
     );
+    db.insert(mainModels.user.drizzleSchema)
+      .values({
+        actorId: 'actr_toolbar',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        id: 'usr_1',
+        modelName: 'user',
+        name: 'Toolbar user',
+        pushedCursor: null,
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        version: '1.0.0',
+      })
+      .run();
     const session = makeSession({
       frontend: main,
       sessionId,
       isPushPaused: true,
-      generateSignature: () => Effect.succeed({ userId: "usr_1" }),
+      generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({
       sessionId,
-      accountId: "acct_1",
+      accountId: 'acct_1',
       accountName: main.accountName,
-      actorId: "usr_1",
-      generationId: "generation_toolbar",
+      actorId: 'usr_1',
+      generationId: 'generation_toolbar',
       systemVersion: main.version,
-      systemWorkerName: "stub-deploy",
+      systemWorkerName: 'stub-deploy',
       db,
       schema: dbConfig.schema,
       models: mainModels,
@@ -69,11 +82,11 @@ describe("SessionToolbar", () => {
       lastRebasedPushedCursor: null,
     });
     await session.stageCommand({
-      contractName: "createList",
+      contractName: 'createList',
       payload: {
-        id: "lst_toolbar",
-        name: "Toolbar list",
-        userId: "usr_1",
+        id: 'lst_toolbar',
+        name: 'Toolbar list',
+        userId: 'usr_1',
       },
     });
 
@@ -83,12 +96,13 @@ describe("SessionToolbar", () => {
       failedCommands: [],
     };
     let completePush = () => {};
-    const pushStagedCommands = vi.fn(() =>
-      new Promise<typeof emptyPushResult>((resolve) => {
-        completePush = () => {
-          resolve(emptyPushResult);
-        };
-      }),
+    const pushStagedCommands = vi.fn(
+      () =>
+        new Promise<typeof emptyPushResult>(resolve => {
+          completePush = () => {
+            resolve(emptyPushResult);
+          };
+        }),
     );
     zerospinDevtoolsStore.getState().addSession({
       session,
@@ -98,7 +112,7 @@ describe("SessionToolbar", () => {
     const router = createMemoryRouter(
       [
         {
-          path: "/:sessionId",
+          path: '/:sessionId',
           element: <SessionToolbar />,
         },
       ],
@@ -114,13 +128,13 @@ describe("SessionToolbar", () => {
       'input[type="checkbox"]',
     );
 
-    expect(container.textContent).toContain("Pause push");
+    expect(container.textContent).toContain('Pause push');
     expect(inputs[0]?.checked).toBe(true);
     expect(inputs).toHaveLength(1);
 
     const pushButton = await vi.waitFor(() => {
-      const button = container.querySelector<HTMLButtonElement>("button");
-      expect(button?.textContent).toBe("Push");
+      const button = container.querySelector<HTMLButtonElement>('button');
+      expect(button?.textContent).toBe('Push');
       expect(button?.disabled).toBe(false);
       return button;
     });
@@ -130,7 +144,7 @@ describe("SessionToolbar", () => {
       await Promise.resolve();
     });
 
-    expect(pushButton?.textContent).toBe("Pushing…");
+    expect(pushButton?.textContent).toBe('Pushing…');
     expect(pushButton?.disabled).toBe(true);
     expect(pushStagedCommands).toHaveBeenCalledTimes(1);
 
@@ -139,41 +153,41 @@ describe("SessionToolbar", () => {
       await Promise.resolve();
     });
 
-    expect(pushButton?.textContent).toBe("Push");
+    expect(pushButton?.textContent).toBe('Push');
     expect(pushButton?.disabled).toBe(false);
 
     await act(async () => {
       session.store.setState({
         lastDevtoolsPush: {
-          traceId: "trc_toolbar_success",
+          traceId: 'trc_toolbar_success',
           completedAt: 1_757_789_723_456,
-          status: "ok",
+          status: 'ok',
         },
       });
       await Promise.resolve();
     });
 
-    const successLink = container.querySelector<HTMLAnchorElement>("a");
-    expect(successLink?.textContent).toContain("Pushed at ");
-    expect(successLink?.title).toBe("2025-09-13T18:55:23.456Z");
-    expect(successLink?.getAttribute("href")).toBe(
-      "/sessions/sesn_toolbar/logs?traceId=trc_toolbar_success",
+    const successLink = container.querySelector<HTMLAnchorElement>('a');
+    expect(successLink?.textContent).toContain('Pushed at ');
+    expect(successLink?.title).toBe('2025-09-13T18:55:23.456Z');
+    expect(successLink?.getAttribute('href')).toBe(
+      '/sessions/sesn_toolbar/logs?traceId=trc_toolbar_success',
     );
 
     await act(async () => {
       session.store.setState({
         lastDevtoolsPush: {
-          traceId: "trc_toolbar_failure",
+          traceId: 'trc_toolbar_failure',
           completedAt: 1_757_789_723_456,
-          status: "error",
+          status: 'error',
         },
       });
       await Promise.resolve();
     });
 
-    expect(successLink?.textContent).toContain("Push failed at ");
-    expect(successLink?.getAttribute("href")).toBe(
-      "/sessions/sesn_toolbar/logs?traceId=trc_toolbar_failure",
+    expect(successLink?.textContent).toContain('Push failed at ');
+    expect(successLink?.getAttribute('href')).toBe(
+      '/sessions/sesn_toolbar/logs?traceId=trc_toolbar_failure',
     );
   });
 });

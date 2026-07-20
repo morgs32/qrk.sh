@@ -98,6 +98,18 @@ async function makeInitializedBrowserSession(props: {
   const db = await sessionRuntime.runPromise(
     makeMigratedInMemoryWasmSqliteDb({ dbConfig }),
   );
+  db.insert(mainModels.user.drizzleSchema)
+    .values({
+      actorId: 'actr_1',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      id: 'usr_1',
+      modelName: 'user',
+      name: 'User 1',
+      pushedCursor: null,
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      version: '1.0.0',
+    })
+    .run();
   const coreSession = makeSession({
     frontend: main,
     generateSignature: () => Effect.succeed({ actorId: 'act_1' }),
@@ -310,9 +322,9 @@ describe('usePushQueue', () => {
       await Promise.resolve();
     });
 
-    await expect(
-      manuallyPushStagedCommands(),
-    ).rejects.toThrowError('Expected manual push failure');
+    await expect(manuallyPushStagedCommands()).rejects.toThrowError(
+      'Expected manual push failure',
+    );
 
     expect(pushStagedCommandsState.calls).toBe(1);
     expect(session.store.getState().lastDevtoolsPush).toEqual(

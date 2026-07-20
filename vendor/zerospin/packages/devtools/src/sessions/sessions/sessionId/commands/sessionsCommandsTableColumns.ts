@@ -1,27 +1,27 @@
-import type { ColumnDef, VisibilityState } from "@tanstack/react-table";
+import type { ColumnDef, VisibilityState } from '@tanstack/react-table';
 import {
   sessionCommandDevtoolsShape,
   type ISessionCommandStatus,
-} from "@zerospin/core/session/sessionCommandShape";
+} from '@zerospin/core/session/sessionCommandShape';
 
 export type IDevtoolsSessionCommandsStatus = ISessionCommandStatus;
 
 const COMMAND_COLUMN_IDS = [
-  "id",
+  'id',
   ...Object.keys(sessionCommandDevtoolsShape)
-    .filter((key) => key !== "id")
+    .filter(key => key !== 'id')
     .sort(),
 ] as const;
 
 type ICommandColumnId = (typeof COMMAND_COLUMN_IDS)[number];
 
 const COPY_CELL_COLUMN_IDS = new Set<ICommandColumnId>([
-  "id",
-  "actorId",
-  "sessionId",
-  "payload",
-  "failure",
-  "stagedCursor",
+  'id',
+  'actorId',
+  'sessionId',
+  'payload',
+  'failure',
+  'stagedCursor',
 ]);
 
 const COLUMN_SIZES: Partial<
@@ -44,9 +44,9 @@ const DISPLAY_TRUNCATE_CHARS = 80;
 
 export function formatCommandCellValue(value: unknown): string {
   if (value === null || value === undefined) {
-    return "";
+    return '';
   }
-  if (typeof value === "object") {
+  if (typeof value === 'object') {
     return JSON.stringify(value);
   }
   return String(value);
@@ -67,14 +67,14 @@ function statusTimestampColumnId(
   status: IDevtoolsSessionCommandsStatus,
 ): ICommandColumnId {
   switch (status) {
-    case "staged":
-      return "stagedAt";
-    case "pushed":
-      return "pushedAt";
-    case "executed":
-      return "executedAt";
-    case "failed":
-      return "pushedAt";
+    case 'staged':
+      return 'stagedAt';
+    case 'pushed':
+      return 'pushedAt';
+    case 'executed':
+      return 'executedAt';
+    case 'failed':
+      return 'pushedAt';
     default: {
       const exhaustive: never = status;
       throw new Error(`Unsupported command status: ${exhaustive}`);
@@ -99,7 +99,7 @@ export function defaultColumnVisibilityForStatus(
   visibility.payload = true;
   visibility[timestampColumn] = true;
 
-  if (status === "failed") {
+  if (status === 'failed') {
     visibility.failure = true;
   }
 
@@ -109,12 +109,12 @@ export function defaultColumnVisibilityForStatus(
 export function makeSessionsCommandsTableColumns(): ColumnDef<
   Record<string, unknown>
 >[] {
-  return COMMAND_COLUMN_IDS.map((columnId) => {
+  return COMMAND_COLUMN_IDS.map(columnId => {
     const sizing = COLUMN_SIZES[columnId];
 
     return {
       accessorKey: columnId,
-      enableHiding: columnId !== "id",
+      enableHiding: columnId !== 'id',
       header: columnId,
       id: columnId,
       maxSize: sizing?.maxSize ?? 320,

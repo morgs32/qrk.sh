@@ -51,9 +51,7 @@ describe('makeResourceDbConfig', () => {
         .sync();
 
       expect(storedList?.user?.id).toBe('usr_relation');
-      expect(storedUser?.lists.map(list => list.id)).toEqual([
-        'lst_relation',
-      ]);
+      expect(storedUser?.lists.map(list => list.id)).toEqual(['lst_relation']);
     } finally {
       await db.$client.sqlite3.close(db.$client.db);
     }

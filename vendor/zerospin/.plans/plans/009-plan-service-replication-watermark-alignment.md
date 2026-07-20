@@ -133,42 +133,42 @@
    6. Add no new retry behavior for replication snapshot or alignment failures.
 
 10. Add the required function-walkthrough annotations while implementing behavior.
-   1. Add a numbered overview and matching `// N — ...` checkpoints to `ServiceRepo.getReplicatedResources`.
-   2. Annotate `AccountRepo.prepareAccountCommands` with cross-command collection, service grouping, parallel RPC settlement, and per-command failure mapping.
-   3. Annotate the public `AccountRepo.finalizeAccountBlock` and `AccountRepo.finalizePushedCommands` boundaries with gate acquisition, gated finalization, gate release, and post-gate drain.
-   4. Annotate `finalizeCommandsTx` and the pushed transaction with intermediate ServiceBlock application, existing-row membership, snapshot insertion, AccountBlock ordering, and watermark commit.
-   5. Annotate `handleServiceBlocks` with row-existence membership, delete behavior, watermark advancement, and commandless AccountBlock creation.
-   6. Explain beside the code that ServiceRepo returns `(C, W]` because waiting ServiceBlockRepo delivery cannot be consumed inside the snapshot transaction.
-   7. Explain beside the code that the new snapshots must join only after the old projection reaches `W`.
-   8. Explain beside the code why outbox draining occurs after `blockConcurrencyWhile` releases.
-   9. Keep annotation numbers synchronized and preserve all still-relevant existing comments.
+11. Add a numbered overview and matching `// N — ...` checkpoints to `ServiceRepo.getReplicatedResources`.
+12. Annotate `AccountRepo.prepareAccountCommands` with cross-command collection, service grouping, parallel RPC settlement, and per-command failure mapping.
+13. Annotate the public `AccountRepo.finalizeAccountBlock` and `AccountRepo.finalizePushedCommands` boundaries with gate acquisition, gated finalization, gate release, and post-gate drain.
+14. Annotate `finalizeCommandsTx` and the pushed transaction with intermediate ServiceBlock application, existing-row membership, snapshot insertion, AccountBlock ordering, and watermark commit.
+15. Annotate `handleServiceBlocks` with row-existence membership, delete behavior, watermark advancement, and commandless AccountBlock creation.
+16. Explain beside the code that ServiceRepo returns `(C, W]` because waiting ServiceBlockRepo delivery cannot be consumed inside the snapshot transaction.
+17. Explain beside the code that the new snapshots must join only after the old projection reaches `W`.
+18. Explain beside the code why outbox draining occurs after `blockConcurrencyWhile` releases.
+19. Keep annotation numbers synchronized and preserve all still-relevant existing comments.
 
-11. Replace and extend focused workerd coverage.
-   1. Update `packages/system-worker/src/ServiceRepo/ServiceRepo.workerd.spec.ts` from `getServiceResource` to `getReplicatedResources`.
-   2. Prove multiple refs return in request order at one cursor/index `W`.
-   3. Prove `currentServiceIndex: null` returns snapshots without an intermediate range.
-   4. Prove a later request returns exactly full retained ServiceBlocks in `(C, W]`.
-   5. Prove a missing resource is reported for that ref while other refs in the grouped RPC remain found.
-   6. Preserve and extend the existing concurrent service-finalization test so a grouped snapshot is wholly before or wholly after the competing commit.
-   7. Update `packages/system-worker/src/AccountRepo/AccountRepo.workerd.spec.ts` with a grouped multi-command case where one command is entirely failed by one missing ref and another command succeeds.
-   8. Prove a command containing valid non-replication mutations plus one missing replication ref writes none of that command's mutations.
-   9. Prove an existing replicated row receives `(C, W]`, the new snapshot does not receive the suffix twice, and the subscription ends at `W`.
-   10. Start finalization and `handleServiceBlocks` concurrently through existing Durable Object RPCs and prove service delivery cannot interleave through the gated snapshot/transaction window.
-   11. Assert intermediate commandless AccountBlocks precede the final command AccountBlock and preserve source ServiceBlock boundaries.
-   12. Exercise both authoritative and pushed finalization in the existing AccountRepo suite.
-   13. Use at least two service groups to prove RPC completion does not alter first-appearance application order when the current fixtures support both services; extend fixture data directly if required, without adding a fixture helper abstraction.
-   14. Update `packages/system-worker/src/FrontendRepo/FrontendRepo.workerd.spec.ts` to remove registry-table assertions while preserving the full ServiceRepo to AccountRepo to ActorRepo to FrontendRepo replication path.
-   15. Assert membership through service-owned model-row existence and the one service-subscription watermark.
-   16. Assert browser-visible replicated resources contain no `serviceIndex`.
-   17. Add no new test harness, production delay hook, generic fixture builder, or test helper abstraction.
+20. Replace and extend focused workerd coverage.
+21. Update `packages/system-worker/src/ServiceRepo/ServiceRepo.workerd.spec.ts` from `getServiceResource` to `getReplicatedResources`.
+22. Prove multiple refs return in request order at one cursor/index `W`.
+23. Prove `currentServiceIndex: null` returns snapshots without an intermediate range.
+24. Prove a later request returns exactly full retained ServiceBlocks in `(C, W]`.
+25. Prove a missing resource is reported for that ref while other refs in the grouped RPC remain found.
+26. Preserve and extend the existing concurrent service-finalization test so a grouped snapshot is wholly before or wholly after the competing commit.
+27. Update `packages/system-worker/src/AccountRepo/AccountRepo.workerd.spec.ts` with a grouped multi-command case where one command is entirely failed by one missing ref and another command succeeds.
+28. Prove a command containing valid non-replication mutations plus one missing replication ref writes none of that command's mutations.
+29. Prove an existing replicated row receives `(C, W]`, the new snapshot does not receive the suffix twice, and the subscription ends at `W`.
+30. Start finalization and `handleServiceBlocks` concurrently through existing Durable Object RPCs and prove service delivery cannot interleave through the gated snapshot/transaction window.
+31. Assert intermediate commandless AccountBlocks precede the final command AccountBlock and preserve source ServiceBlock boundaries.
+32. Exercise both authoritative and pushed finalization in the existing AccountRepo suite.
+33. Use at least two service groups to prove RPC completion does not alter first-appearance application order when the current fixtures support both services; extend fixture data directly if required, without adding a fixture helper abstraction.
+34. Update `packages/system-worker/src/FrontendRepo/FrontendRepo.workerd.spec.ts` to remove registry-table assertions while preserving the full ServiceRepo to AccountRepo to ActorRepo to FrontendRepo replication path.
+35. Assert membership through service-owned model-row existence and the one service-subscription watermark.
+36. Assert browser-visible replicated resources contain no `serviceIndex`.
+37. Add no new test harness, production delay hook, generic fixture builder, or test helper abstraction.
 
-12. Synchronize architecture docs and remove obsolete terminology.
-   1. Update `wiki/architecture/Blockchain.md` for grouped snapshots, the coarse AccountRepo gate, `(C, W]` alignment, model-row membership, and ServiceBlockRepo queue ownership.
-   2. Update any other affected `wiki/architecture/` workflow page that still cites `getServiceResource`, `replicatedResources`, or per-resource watermarks.
-   3. Update `wiki/glossary.md` so AccountRepo service watermark and replicated-resource membership match the new behavior.
-   4. Refresh source paths, line citations, source hashes, diagrams, and the wiki log according to the repository wiki rules.
-   5. Remove stale test comments and source comments that describe registration rows or per-resource service indexes.
-   6. Do not add a static LLM-wiki pattern unless implementation reveals a reusable rule beyond this specific workflow.
+38. Synchronize architecture docs and remove obsolete terminology.
+39. Update `wiki/architecture/Blockchain.md` for grouped snapshots, the coarse AccountRepo gate, `(C, W]` alignment, model-row membership, and ServiceBlockRepo queue ownership.
+40. Update any other affected `wiki/architecture/` workflow page that still cites `getServiceResource`, `replicatedResources`, or per-resource watermarks.
+41. Update `wiki/glossary.md` so AccountRepo service watermark and replicated-resource membership match the new behavior.
+42. Refresh source paths, line citations, source hashes, diagrams, and the wiki log according to the repository wiki rules.
+43. Remove stale test comments and source comments that describe registration rows or per-resource service indexes.
+44. Do not add a static LLM-wiki pattern unless implementation reveals a reusable rule beyond this specific workflow.
 
 ## Testing and Verification
 

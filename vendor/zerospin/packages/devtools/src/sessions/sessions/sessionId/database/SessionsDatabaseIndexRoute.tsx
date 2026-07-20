@@ -1,6 +1,6 @@
-import { Navigate, useParams } from "react-router";
+import { Navigate, useParams } from 'react-router';
 
-import { useSession } from "../useSession";
+import { useSession } from '../useSession';
 
 export function SessionsDatabaseIndexRoute() {
   const session = useSession();

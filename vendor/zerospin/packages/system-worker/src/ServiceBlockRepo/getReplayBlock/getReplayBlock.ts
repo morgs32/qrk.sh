@@ -23,10 +23,7 @@ export const getReplayBlock = Effect.fn('ServiceBlockRepo.getReplayBlock')(
         message: `Service replay throughServiceIndex must be an integer, received ${throughServiceIndex}`,
       });
     }
-    if (
-      afterServiceIndex !== null &&
-      !Number.isInteger(afterServiceIndex)
-    ) {
+    if (afterServiceIndex !== null && !Number.isInteger(afterServiceIndex)) {
       return yield* new ZerospinError({
         code: 'service-replay-after-index-invalid',
         message: `Service replay afterServiceIndex must be null or an integer, received ${afterServiceIndex}`,
@@ -45,9 +42,7 @@ export const getReplayBlock = Effect.fn('ServiceBlockRepo.getReplayBlock')(
                 throughServiceIndex,
               ),
             )
-            .orderBy(
-              asc(serviceBlockDrizzleSchemas.serviceBlocks.serviceIndex),
-            )
+            .orderBy(asc(serviceBlockDrizzleSchemas.serviceBlocks.serviceIndex))
             .limit(1)
             .get()
         : db
@@ -65,9 +60,7 @@ export const getReplayBlock = Effect.fn('ServiceBlockRepo.getReplayBlock')(
                 ),
               ),
             )
-            .orderBy(
-              asc(serviceBlockDrizzleSchemas.serviceBlocks.serviceIndex),
-            )
+            .orderBy(asc(serviceBlockDrizzleSchemas.serviceBlocks.serviceIndex))
             .limit(1)
             .get();
     if (row === undefined) {

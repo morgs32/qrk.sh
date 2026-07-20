@@ -7,13 +7,13 @@
 import { getFrontendBinding } from '@zerospin/core/accountController/getFrontendBinding';
 import type { Async } from '@zerospin/core/async/Async';
 import { applyAccountMutationTx } from '@zerospin/core/contracts/applyAccountMutationTx';
-import { commitAppliedMutationTx } from '@zerospin/core/contracts/commitAppliedMutationTx';
 import {
   EncodedExecutedAccountCommandSchema,
   EncodedFailedAccountCommandSchema,
   ExecutedPushedCommandSchema,
   FailedPushedCommandSchema,
 } from '@zerospin/core/contracts/CommandSchema';
+import { commitAppliedMutationTx } from '@zerospin/core/contracts/commitAppliedMutationTx';
 import {
   encodeAppliedMutation,
   EncodedAppliedMutationSchema,
@@ -35,7 +35,6 @@ import type { IAccountCursor } from '@zerospin/core/models/types';
 import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { dutils } from '@zerospin/core/utils/dutils';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { makeCursor } from '@zerospin/core/utils/makeCursor';
@@ -50,6 +49,7 @@ import {
   setLastAccountCursor,
   setLastAccountIndex,
 } from '../../getLastAccountCursor/getLastAccountCursor.js';
+import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import type { IAccountBlockOutboxRecord } from '../../types.js';
 import { accountRepoDrizzleSchemas } from '../AccountRepo.js';
 import { makeAccountBlockTx } from '../finalizeAccountBlock/makeAccountBlockTx.js';
@@ -180,12 +180,10 @@ export const finalizePushedCommands = Effect.fn(
   }
 
   // 2 — adapter failures stay at their original pushed-command positions
-  const adaptedCommands: Array<
-    {
-      pushedCommand: IEncodedCommand<IPushedCommand>;
-      accountCommand: Either.Either<IAccountCommand, IAnyError>;
-    }
-  > = [];
+  const adaptedCommands: Array<{
+    pushedCommand: IEncodedCommand<IPushedCommand>;
+    accountCommand: Either.Either<IAccountCommand, IAnyError>;
+  }> = [];
 
   for (const pushedCommand of pushedBlock.commands) {
     const accountCommand = yield* Effect.gen(function* () {
@@ -259,14 +257,12 @@ export const finalizePushedCommands = Effect.fn(
     commands: accountCommands,
     db,
   });
-  const preparedCommands: Array<
-    {
-      pushedCommand: IEncodedCommand<IPushedCommand>;
-      preparation: Effect.Effect.Success<
-        ReturnType<typeof prepareAccountCommands>
-      >['preparedCommands'][number]['mutations'];
-    }
-  > = [];
+  const preparedCommands: Array<{
+    pushedCommand: IEncodedCommand<IPushedCommand>;
+    preparation: Effect.Effect.Success<
+      ReturnType<typeof prepareAccountCommands>
+    >['preparedCommands'][number]['mutations'];
+  }> = [];
   let preparedAccountCommandIndex = 0;
   for (const adaptedCommand of adaptedCommands) {
     if (Either.isLeft(adaptedCommand.accountCommand)) {
@@ -328,8 +324,7 @@ export const finalizePushedCommands = Effect.fn(
             .from(accountRepoDrizzleSchemas.serviceSubscriptions)
             .where(
               eq(
-                accountRepoDrizzleSchemas.serviceSubscriptions
-                  .serviceRepoName,
+                accountRepoDrizzleSchemas.serviceSubscriptions.serviceRepoName,
                 persistedServiceRepoName,
               ),
             )
@@ -352,8 +347,7 @@ export const finalizePushedCommands = Effect.fn(
               message: `Subscription ${serviceAlignment.serviceRepoName} changed after its grouped snapshot was prepared`,
             });
           }
-          let currentServiceIndex =
-            serviceAlignment.currentServiceIndex ?? 0;
+          let currentServiceIndex = serviceAlignment.currentServiceIndex ?? 0;
           const orderedBlocks = [...serviceAlignment.serviceBlocks].sort(
             (left, right) => left.serviceIndex - right.serviceIndex,
           );

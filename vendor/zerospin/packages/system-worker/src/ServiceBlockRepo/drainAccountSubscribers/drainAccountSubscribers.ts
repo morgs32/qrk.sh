@@ -7,8 +7,8 @@ import {
   type IAnyError,
   type IAnyErrorJson,
 } from '@zerospin/error';
-import { asc, eq, gt } from 'drizzle-orm';
 import { env } from 'cloudflare:workers';
+import { asc, eq, gt } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 import { ServiceBlockSchema } from '../../blockSchemas.js';
@@ -33,14 +33,8 @@ export const drainAccountSubscribers = Effect.fn(
   for (const subscriber of subscribers) {
     // A future retry remains durable work. Keep its exact deadline even though
     // this drain must not call the AccountRepo before that deadline is due.
-    if (
-      subscriber.nextRetryAt !== null &&
-      subscriber.nextRetryAt > now
-    ) {
-      if (
-        nextAlarmAt === null ||
-        subscriber.nextRetryAt < nextAlarmAt
-      ) {
+    if (subscriber.nextRetryAt !== null && subscriber.nextRetryAt > now) {
+      if (nextAlarmAt === null || subscriber.nextRetryAt < nextAlarmAt) {
         nextAlarmAt = subscriber.nextRetryAt;
       }
       continue;
@@ -72,9 +66,7 @@ export const drainAccountSubscribers = Effect.fn(
         ),
       );
     }
-    const accountRepo = env.ACCOUNT_REPO.getByName(
-      subscriber.accountRepoName,
-    );
+    const accountRepo = env.ACCOUNT_REPO.getByName(subscriber.accountRepoName);
     let failedRetryAt: number | null = null;
     const delivered = yield* makeAsync<
       Schema.EitherEncoded<void, IAnyErrorJson>

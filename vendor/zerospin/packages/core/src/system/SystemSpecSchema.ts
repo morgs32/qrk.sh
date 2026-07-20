@@ -61,9 +61,7 @@ export const SystemSpecSchema = Schema.Struct({
         key: Schema.String,
         value: Schema.Record({
           key: Schema.String.pipe(
-            Schema.pattern(
-              /^(create|delete|move|replicateResource|update)$/u,
-            ),
+            Schema.pattern(/^(create|delete|move|replicateResource|update)$/u),
           ),
           value: Schema.Array(
             Schema.Struct({
@@ -257,9 +255,7 @@ export const SystemSpecSchema = Schema.Struct({
         key: Schema.String,
         value: Schema.Record({
           key: Schema.String.pipe(
-            Schema.pattern(
-              /^(create|delete|move|replicateResource|update)$/u,
-            ),
+            Schema.pattern(/^(create|delete|move|replicateResource|update)$/u),
           ),
           value: Schema.Array(
             Schema.Struct({

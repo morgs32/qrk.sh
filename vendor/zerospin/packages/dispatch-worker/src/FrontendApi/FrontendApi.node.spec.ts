@@ -1,6 +1,6 @@
+import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeLeft } from '@zerospin/core/utils/encodeLeft';
 import { encodeRight } from '@zerospin/core/utils/encodeRight';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { ZerospinError } from '@zerospin/error';
 import type { ITelemetryBatch } from '@zerospin/logger';
 import { Effect, Either, Layer } from 'effect';
@@ -19,7 +19,8 @@ const runtime = makeDispatchRuntime({
     get: getSystemWorker,
   }),
   apiKeyIdentityResolver: Layer.succeed(ApiKeyIdentityResolver, {
-    resolve: () => Effect.dieMessage('FrontendApi leaf tests do not resolve API keys'),
+    resolve: () =>
+      Effect.dieMessage('FrontendApi leaf tests do not resolve API keys'),
   }),
 });
 
@@ -276,19 +277,17 @@ describe('FrontendApi', () => {
           services: {},
         }),
       ),
-      appendTelemetryBatch: vi.fn(
-        async (props: { batch: ITelemetryBatch }) => {
-          const rootSpan = props.batch.spans.at(-1);
-          expect(rootSpan).toBeDefined();
-          expect(rootSpan?.name).toBe('FrontendApi.fetchActor');
-          expect(rootSpan?.parentSpanId).toBe(null);
-          expect(rootSpan?.status).toBe('ok');
-          expect(rootSpan?.endedAt).toBeGreaterThanOrEqual(
-            rootSpan?.startedAt ?? Number.POSITIVE_INFINITY,
-          );
-          return encodeRight(undefined);
-        },
-      ),
+      appendTelemetryBatch: vi.fn(async (props: { batch: ITelemetryBatch }) => {
+        const rootSpan = props.batch.spans.at(-1);
+        expect(rootSpan).toBeDefined();
+        expect(rootSpan?.name).toBe('FrontendApi.fetchActor');
+        expect(rootSpan?.parentSpanId).toBe(null);
+        expect(rootSpan?.status).toBe('ok');
+        expect(rootSpan?.endedAt).toBeGreaterThanOrEqual(
+          rootSpan?.startedAt ?? Number.POSITIVE_INFINITY,
+        );
+        return encodeRight(undefined);
+      }),
       [Symbol.dispose]: firstDispose,
     };
     const secondDispose = vi.fn();
@@ -300,16 +299,14 @@ describe('FrontendApi', () => {
           services: {},
         }),
       ),
-      appendTelemetryBatch: vi.fn(
-        async (props: { batch: ITelemetryBatch }) => {
-          const rootSpan = props.batch.spans.at(-1);
-          expect(rootSpan).toBeDefined();
-          expect(rootSpan?.name).toBe('FrontendApi.fetchActor');
-          expect(rootSpan?.parentSpanId).toBe(null);
-          expect(rootSpan?.status).toBe('ok');
-          return encodeRight(undefined);
-        },
-      ),
+      appendTelemetryBatch: vi.fn(async (props: { batch: ITelemetryBatch }) => {
+        const rootSpan = props.batch.spans.at(-1);
+        expect(rootSpan).toBeDefined();
+        expect(rootSpan?.name).toBe('FrontendApi.fetchActor');
+        expect(rootSpan?.parentSpanId).toBe(null);
+        expect(rootSpan?.status).toBe('ok');
+        return encodeRight(undefined);
+      }),
       [Symbol.dispose]: secondDispose,
     };
     getSystemWorker
@@ -348,7 +345,9 @@ describe('FrontendApi', () => {
         parentSpanId: 'spn_browser_second',
       },
     });
-    const firstResult = await Effect.runPromise(decodeRpc(firstEnvelope.result));
+    const firstResult = await Effect.runPromise(
+      decodeRpc(firstEnvelope.result),
+    );
     const secondResult = await Effect.runPromise(
       decodeRpc(secondEnvelope.result),
     );

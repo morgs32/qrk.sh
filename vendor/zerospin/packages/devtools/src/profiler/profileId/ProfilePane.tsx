@@ -1,50 +1,50 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties } from 'react';
 
-import { NavLink, Outlet } from "react-router";
+import { NavLink, Outlet } from 'react-router';
 
-import { useProfileForRoute } from "./useProfileForRoute";
+import { useProfileForRoute } from './useProfileForRoute';
 
 const styles = {
   paneRoot: {
     flex: 1,
     minHeight: 0,
-    display: "flex",
-    flexDirection: "column",
+    display: 'flex',
+    flexDirection: 'column',
   } satisfies CSSProperties,
   tabsHeader: {
-    display: "flex",
-    alignItems: "center",
+    display: 'flex',
+    alignItems: 'center',
     flexShrink: 0,
-    backgroundColor: "#f3f4f6",
-    borderBottom: "1px solid #e5e7eb",
+    backgroundColor: '#f3f4f6',
+    borderBottom: '1px solid #e5e7eb',
   } satisfies CSSProperties,
   tab: {
-    display: "flex",
-    alignItems: "center",
+    display: 'flex',
+    alignItems: 'center',
     gap: 6,
-    padding: "6px 12px",
+    padding: '6px 12px',
     fontSize: 12,
     fontWeight: 500,
-    border: "none",
+    border: 'none',
     borderBottomWidth: 2,
-    borderBottomStyle: "solid",
-    borderBottomColor: "transparent",
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'transparent',
     marginBottom: -1,
-    backgroundColor: "transparent",
-    cursor: "pointer",
-    color: "#6b7280",
-    fontFamily: "inherit",
-    textDecoration: "none",
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+    color: '#6b7280',
+    fontFamily: 'inherit',
+    textDecoration: 'none',
   } satisfies CSSProperties,
   tabActive: {
-    borderBottomColor: "#3b82f6",
-    color: "#111827",
+    borderBottomColor: '#3b82f6',
+    color: '#111827',
   } satisfies CSSProperties,
   tabContent: {
     flex: 1,
     minHeight: 0,
-    display: "flex",
-    flexDirection: "column",
+    display: 'flex',
+    flexDirection: 'column',
   } satisfies CSSProperties,
 } as const;
 
@@ -80,8 +80,8 @@ export function ProfilePane() {
         style={{
           margin: 0,
           padding: 8,
-          fontSize: "0.85rem",
-          color: "#6b7280",
+          fontSize: '0.85rem',
+          color: '#6b7280',
         }}
       >
         Profile not found.

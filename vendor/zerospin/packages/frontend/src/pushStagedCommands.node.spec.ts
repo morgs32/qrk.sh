@@ -1,5 +1,4 @@
 import { it } from '@effect/vitest';
-
 // The non-React frontend package owns this transport and reconciliation program.
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
@@ -69,6 +68,18 @@ describe('pushStagedCommands', () => {
         });
         const { schema } = dbConfig;
         const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
+        db.insert(models.user.drizzleSchema)
+          .values({
+            actorId: 'actr_1',
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            id: 'usr_1',
+            modelName: 'user',
+            name: 'User 1',
+            pushedCursor: null,
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+            version: '1.0.0',
+          })
+          .run();
 
         const sessionId = 'sesn_1' as ISessionId;
         const session = makeSession({
@@ -218,6 +229,18 @@ describe('pushStagedCommands', () => {
         });
         const { schema } = dbConfig;
         const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
+        db.insert(models.user.drizzleSchema)
+          .values({
+            actorId: 'actr_1',
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            id: 'usr_1',
+            modelName: 'user',
+            name: 'User 1',
+            pushedCursor: null,
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+            version: '1.0.0',
+          })
+          .run();
 
         const sessionId = 'sesn_empty';
         const generateSignature = vi.fn(() =>
@@ -267,6 +290,18 @@ describe('pushStagedCommands', () => {
         });
         const { schema } = dbConfig;
         const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
+        db.insert(models.user.drizzleSchema)
+          .values({
+            actorId: 'actr_1',
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            id: 'usr_1',
+            modelName: 'user',
+            name: 'User 1',
+            pushedCursor: null,
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+            version: '1.0.0',
+          })
+          .run();
 
         const sessionId = 'sesn_request_failure';
         const session = makeSession({
@@ -332,6 +367,18 @@ describe('pushStagedCommands', () => {
         });
         const { schema } = dbConfig;
         const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
+        db.insert(models.user.drizzleSchema)
+          .values({
+            actorId: 'actr_1',
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            id: 'usr_1',
+            modelName: 'user',
+            name: 'User 1',
+            pushedCursor: null,
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+            version: '1.0.0',
+          })
+          .run();
 
         const sessionId = 'sesn_rebase_failure';
         const session = makeSession({
@@ -424,6 +471,18 @@ describe('pushStagedCommands', () => {
         });
         const { schema } = dbConfig;
         const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
+        db.insert(models.user.drizzleSchema)
+          .values({
+            actorId: 'actr_1',
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            id: 'usr_1',
+            modelName: 'user',
+            name: 'User 1',
+            pushedCursor: null,
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+            version: '1.0.0',
+          })
+          .run();
 
         const sessionId = 'sesn_in_flight';
         const session = makeSession({
@@ -460,41 +519,39 @@ describe('pushStagedCommands', () => {
         ).pipe(Effect.flatMap(encoded => decodeRpc(encoded)));
 
         const now = new Date('2026-01-01T00:00:00.000Z');
-        pushCommands.mockImplementation(
-          async request => {
-            await session.stageCommand({
-              contractName: 'createList',
-              payload: {
-                id: 'lst_during_push',
-                name: 'During push',
-                userId: 'usr_1',
-              },
-            });
-            const pushProps = request.args[0];
-            if (pushProps === undefined) {
-              throw new Error('Expected pushCommands props');
-            }
-            const command = pushProps.commands[0];
-            if (command === undefined) {
-              throw new Error('Expected the command captured for push');
-            }
-            return {
-              result: encodeRight({
-                pendingCommands: [],
-                pushedCommands: [
-                  {
-                    ...command,
-                    status: 'pushed',
-                    pushedAt: now,
-                    pushedCursor: 'pcur_in_flight',
-                  },
-                ],
-                failedCommands: [],
-              }),
-              link: null,
-            };
-          },
-        );
+        pushCommands.mockImplementation(async request => {
+          await session.stageCommand({
+            contractName: 'createList',
+            payload: {
+              id: 'lst_during_push',
+              name: 'During push',
+              userId: 'usr_1',
+            },
+          });
+          const pushProps = request.args[0];
+          if (pushProps === undefined) {
+            throw new Error('Expected pushCommands props');
+          }
+          const command = pushProps.commands[0];
+          if (command === undefined) {
+            throw new Error('Expected the command captured for push');
+          }
+          return {
+            result: encodeRight({
+              pendingCommands: [],
+              pushedCommands: [
+                {
+                  ...command,
+                  status: 'pushed',
+                  pushedAt: now,
+                  pushedCursor: 'pcur_in_flight',
+                },
+              ],
+              failedCommands: [],
+            }),
+            link: null,
+          };
+        });
 
         yield* pushStagedCommands({ session });
 

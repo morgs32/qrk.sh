@@ -90,15 +90,15 @@
    4. Do not add a shared release helper.
 
 10. Keep DevZerospinApis on the approved schema-only controller tables.
-   1. Convert DevZerospinApis through its existing `makeRepo({ repoUtils })` boundary, retain `/:systemRelease`, and omit `repoType` registration.
-   2. Preserve the seed receipt, command journal, readiness Promise, Cap'n Web fetch behavior, release equality check, and Wrangler migration.
-   3. Define only `accountControllers`, `frontendControllers`, `actorControllers`, and `systemControllers`, each with one non-null text primary-key `release` column using its controller release abbreviation.
-   4. Add no `serviceControllers` table, controller rows, timestamps, or population behavior.
+11. Convert DevZerospinApis through its existing `makeRepo({ repoUtils })` boundary, retain `/:systemRelease`, and omit `repoType` registration.
+12. Preserve the seed receipt, command journal, readiness Promise, Cap'n Web fetch behavior, release equality check, and Wrangler migration.
+13. Define only `accountControllers`, `frontendControllers`, `actorControllers`, and `systemControllers`, each with one non-null text primary-key `release` column using its controller release abbreviation.
+14. Add no `serviceControllers` table, controller rows, timestamps, or population behavior.
 
-11. Synchronize architecture and static patterns.
-   1. Update SystemApi, DeploySystem, Blockchain, FrontendApi/websocket, bootstrap-session, and model relation architecture citations after final source edits.
-   2. Update encoded-shape, table-shape, typecheck, naming, primary-key/ref/prefixed, and repo-name patterns; include no compatibility examples.
-   3. Refresh wiki source hashes, line citations, index/glossary entries when affected, and append the required wiki log entry.
+15. Synchronize architecture and static patterns.
+16. Update SystemApi, DeploySystem, Blockchain, FrontendApi/websocket, bootstrap-session, and model relation architecture citations after final source edits.
+17. Update encoded-shape, table-shape, typecheck, naming, primary-key/ref/prefixed, and repo-name patterns; include no compatibility examples.
+18. Refresh wiki source hashes, line citations, index/glossary entries when affected, and append the required wiki log entry.
 
 ## Testing and Verification
 

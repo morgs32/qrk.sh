@@ -36,9 +36,7 @@ import type {
 
 function buildDrizzleColumnsFromShape<SHAPE extends IAnyShape>(
   shape: SHAPE,
-  resolveReference?: (
-    descriptor: IAnyRefDescriptor,
-  ) => () => AnySQLiteColumn,
+  resolveReference?: (descriptor: IAnyRefDescriptor) => () => AnySQLiteColumn,
 ): InferDrizzleColumnBuildersFromShape<SHAPE> {
   return mapValues(shape, (descriptor, key) =>
     descriptorToDrizzleColumn({
@@ -481,9 +479,7 @@ export function makeDrizzleSchemaFromTable<
   SHAPE extends IAnyShape,
 >(
   table: ITable<TABLE_NAME, SHAPE>,
-  resolveReference?: (
-    descriptor: IAnyRefDescriptor,
-  ) => () => AnySQLiteColumn,
+  resolveReference?: (descriptor: IAnyRefDescriptor) => () => AnySQLiteColumn,
 ): IDrizzleSchema<TABLE_NAME, SHAPE> {
   const { indexes, name, shape } = table;
   const columns = buildDrizzleColumnsFromShape(shape, resolveReference);

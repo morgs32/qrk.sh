@@ -28,14 +28,13 @@ export type IMutations =
   | readonly IAnyMutation[]
   | IAnyMutation;
 
-export type MutationValues<MUTATIONS> =
-  MUTATIONS extends IAnyMutation
-    ? MUTATIONS
-    : MUTATIONS extends readonly (infer ITEM)[]
-      ? ITEM
-      : MUTATIONS extends object
-        ? MUTATIONS[keyof MUTATIONS]
-        : never;
+export type MutationValues<MUTATIONS> = MUTATIONS extends IAnyMutation
+  ? MUTATIONS
+  : MUTATIONS extends readonly (infer ITEM)[]
+    ? ITEM
+    : MUTATIONS extends object
+      ? MUTATIONS[keyof MUTATIONS]
+      : never;
 
 type IsErasedPayloadShape<PAYLOAD extends IAnyShape> = IAnyShape extends PAYLOAD
   ? true
@@ -89,10 +88,7 @@ type InferContractDecodePayload<PAYLOAD extends IAnyShape> = {
  * boundary. Raw table primary keys are deliberately excluded.
  */
 type IPayloadFieldDescriptor =
-  | Exclude<
-      IPrimitiveDescriptor,
-      IAnyRefDescriptor | IPrimaryKeyDescriptor
-    >
+  | Exclude<IPrimitiveDescriptor, IAnyRefDescriptor | IPrimaryKeyDescriptor>
   | (IPrimaryKeyDescriptor & {
       autogenerate: boolean;
       modelName: string;
@@ -117,10 +113,7 @@ export function makeContract<
           > extends IAnyMutation
         ? unknown
         : ITypeError<`Contract "${COMMAND_NAME}" mutations schema must contain mutations only`>);
-  program: IContractProgramFn<
-    PAYLOAD,
-    Schema.Schema.Type<MUTATIONS_SCHEMA>
-  >;
+  program: IContractProgramFn<PAYLOAD, Schema.Schema.Type<MUTATIONS_SCHEMA>>;
 }): IContract<COMMAND_NAME, PAYLOAD, VERSION, MUTATIONS_SCHEMA>;
 
 export function makeContract<

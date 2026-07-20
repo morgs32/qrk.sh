@@ -4,9 +4,9 @@
 
 `vendor/` contains external repositories vendored with `git subtree`:
 
-| Prefix | Upstream |
-| --- | --- |
-| `vendor/effect` | `https://github.com/Effect-TS/effect.git` |
+| Prefix                    | Upstream                                  |
+| ------------------------- | ----------------------------------------- |
+| `vendor/effect`           | `https://github.com/Effect-TS/effect.git` |
 | `vendor/morgs32/llm-wiki` | `https://github.com/morgs32/llm-wiki.git` |
 
 `llm-wiki/` is first-party Zerospin-domain guidance (not a subtree).

@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState } from 'react';
 
-import { Outlet, useNavigate, useParams } from "react-router";
+import { Outlet, useNavigate, useParams } from 'react-router';
 
-import { useSession } from "../useSession";
+import { useSession } from '../useSession';
 
-import { sessionsDatabaseTabStyles } from "./sessionsDatabaseTabStyles";
+import { sessionsDatabaseTabStyles } from './sessionsDatabaseTabStyles';
 
 function decodeModelNameParam(segment: string): string {
   try {
@@ -40,7 +40,7 @@ export function SessionsDatabaseLayout() {
     <div style={sessionsDatabaseTabStyles.dbRoot}>
       <aside style={sessionsDatabaseTabStyles.dbAside}>
         <div style={sessionsDatabaseTabStyles.dbList}>
-          {modelNames.map((name) => {
+          {modelNames.map(name => {
             const isSelected = decodedSelected === name;
             const isHovered = name === hoveredModelName;
             return (
@@ -57,10 +57,10 @@ export function SessionsDatabaseLayout() {
                 style={{
                   ...sessionsDatabaseTabStyles.dbRow,
                   backgroundColor: isSelected
-                    ? "#f3f4f6"
+                    ? '#f3f4f6'
                     : isHovered
-                      ? "#f9fafb"
-                      : "transparent",
+                      ? '#f9fafb'
+                      : 'transparent',
                 }}
               >
                 {name}

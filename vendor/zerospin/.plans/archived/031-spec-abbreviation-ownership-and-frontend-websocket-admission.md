@@ -136,14 +136,14 @@ sequenceDiagram
 1. Readiness and admission remain independent fields in `SystemRepo.generationState`. `ready + drained` is a valid persisted state; drained does not mean failed or deleted.
 2. The admission contract is:
 
-| State | Ordinary reads | Ordinary writes | Ticket mint | Ticket consume |
-| --- | ---: | ---: | ---: | ---: |
-| `initializing + closed` | No | No | No | No |
-| `ready + closed` | No | No | No | No |
-| `ready + open` | Yes | Yes | Yes | Yes |
-| `ready + draining` | Yes | No | No | Yes |
-| `ready + drained` | No | No | No | No |
-| `failed + closed` | No | No | No | No |
+| State                   | Ordinary reads | Ordinary writes | Ticket mint | Ticket consume |
+| ----------------------- | -------------: | --------------: | ----------: | -------------: |
+| `initializing + closed` |             No |              No |          No |             No |
+| `ready + closed`        |             No |              No |          No |             No |
+| `ready + open`          |            Yes |             Yes |         Yes |            Yes |
+| `ready + draining`      |            Yes |              No |          No |            Yes |
+| `ready + drained`       |             No |              No |          No |             No |
+| `failed + closed`       |             No |              No |          No |             No |
 
 3. Deploy mismatch rejects both mint and consume. The ticket's stored deploy is authoritative during consumption.
 4. Beginning drain changes admission from `open` to `draining` before draining registered work. Completion changes it to `drained` only after the outboxes are terminal and all service/account replay bounds are durable.

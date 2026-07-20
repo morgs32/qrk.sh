@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
-import type { Table } from "@tanstack/react-table";
+import type { Table } from '@tanstack/react-table';
 
-import { sessionsDatabaseTabStyles } from "../database/sessionsDatabaseTabStyles";
+import { sessionsDatabaseTabStyles } from '../database/sessionsDatabaseTabStyles';
 
 export function SessionsCommandsColumnPicker(props: {
   readonly table: Table<Record<string, unknown>>;
@@ -12,7 +12,7 @@ export function SessionsCommandsColumnPicker(props: {
   const rootRef = useRef<HTMLDivElement>(null);
 
   const leafColumns = table.getAllLeafColumns();
-  const visibleCount = leafColumns.filter((column) =>
+  const visibleCount = leafColumns.filter(column =>
     column.getIsVisible(),
   ).length;
   const totalCount = leafColumns.length;
@@ -30,17 +30,17 @@ export function SessionsCommandsColumnPicker(props: {
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         setOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleMouseDown);
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [open]);
 
@@ -52,21 +52,21 @@ export function SessionsCommandsColumnPicker(props: {
       <button
         type="button"
         aria-expanded={open}
-        aria-haspopup="listbox"
+        aria-haspopup="true"
         style={sessionsDatabaseTabStyles.tableToolbarButton}
         onClick={() => {
-          setOpen((previous) => !previous);
+          setOpen(previous => !previous);
         }}
       >
         Columns ({visibleCount}/{totalCount})
       </button>
       {open ? (
         <div
-          role="listbox"
+          role="group"
           aria-label="Table columns"
           style={sessionsDatabaseTabStyles.tableToolbarPopoverPanel}
         >
-          {leafColumns.map((column) => (
+          {leafColumns.map(column => (
             <label
               key={column.id}
               style={sessionsDatabaseTabStyles.tableToolbarCheckbox}

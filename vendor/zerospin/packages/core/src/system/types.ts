@@ -103,7 +103,9 @@ export type ISystemSpec = {
           modelName: string;
           abbreviation: string;
           version: string;
-          properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+          properties: Readonly<
+            Record<string, Readonly<Record<string, unknown>>>
+          >;
           indexes: readonly {
             name: string;
             columns: readonly string[];
@@ -113,7 +115,9 @@ export type ISystemSpec = {
             modelName: string;
             abbreviation: string;
             version: string;
-            properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+            properties: Readonly<
+              Record<string, Readonly<Record<string, unknown>>>
+            >;
             indexes: readonly {
               name: string;
               columns: readonly string[];
@@ -164,7 +168,9 @@ export type ISystemSpec = {
               modelName: string;
               abbreviation: string;
               version: string;
-              properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+              properties: Readonly<
+                Record<string, Readonly<Record<string, unknown>>>
+              >;
               indexes: readonly {
                 name: string;
                 columns: readonly string[];
@@ -174,7 +180,9 @@ export type ISystemSpec = {
                 modelName: string;
                 abbreviation: string;
                 version: string;
-                properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+                properties: Readonly<
+                  Record<string, Readonly<Record<string, unknown>>>
+                >;
                 indexes: readonly {
                   name: string;
                   columns: readonly string[];
@@ -207,7 +215,9 @@ export type ISystemSpec = {
                     modelName: string;
                     abbreviation: string;
                     version: string;
-                    properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+                    properties: Readonly<
+                      Record<string, Readonly<Record<string, unknown>>>
+                    >;
                     indexes: readonly {
                       name: string;
                       columns: readonly string[];
@@ -217,7 +227,9 @@ export type ISystemSpec = {
                       modelName: string;
                       abbreviation: string;
                       version: string;
-                      properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+                      properties: Readonly<
+                        Record<string, Readonly<Record<string, unknown>>>
+                      >;
                       indexes: readonly {
                         name: string;
                         columns: readonly string[];
@@ -254,7 +266,9 @@ export type ISystemSpec = {
           modelName: string;
           abbreviation: string;
           version: string;
-          properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+          properties: Readonly<
+            Record<string, Readonly<Record<string, unknown>>>
+          >;
           indexes: readonly {
             name: string;
             columns: readonly string[];
@@ -264,7 +278,9 @@ export type ISystemSpec = {
             modelName: string;
             abbreviation: string;
             version: string;
-            properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+            properties: Readonly<
+              Record<string, Readonly<Record<string, unknown>>>
+            >;
             indexes: readonly {
               name: string;
               columns: readonly string[];

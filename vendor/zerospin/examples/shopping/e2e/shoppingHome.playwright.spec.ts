@@ -179,16 +179,14 @@ test('manual push applies inverse deletes without reentering SQLite', async ({
   });
   await expect(pushStagedCommands).toBeEnabled();
   await pushStagedCommands.click();
-  await expect(
-    devtools.getByRole('link', { name: /^Pushed at / }),
-  ).toBeVisible({ timeout: 30_000 });
+  await expect(devtools.getByRole('link', { name: /^Pushed at / })).toBeVisible(
+    { timeout: 30_000 },
+  );
   await expect(pushStagedCommands).toBeDisabled();
 
   // 5 — Executed is populated by the authoritative websocket block, so this
   // is the completion barrier for the browser-side inverse transaction.
-  await devtools
-    .getByRole('button', { name: 'Executed', exact: true })
-    .click();
+  await devtools.getByRole('button', { name: 'Executed', exact: true }).click();
   await expect(
     devtools.getByRole('cell', {
       name: 'removeFromCart',
@@ -238,8 +236,8 @@ test('Zerospin DevTools uses one routed React shell', async ({ page }) => {
   await expect(profilerRoute).toBeVisible();
   await expect(sharedWorkerRoute).toBeVisible();
   await expect(
-    profilerRoute.evaluate(
-      element => element.nextElementSibling?.textContent?.trim(),
+    profilerRoute.evaluate(element =>
+      element.nextElementSibling?.textContent?.trim(),
     ),
   ).resolves.toBe('Shared Worker');
   await sharedWorkerRoute.click();

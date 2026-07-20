@@ -221,18 +221,19 @@ export function makeAccountController<
     > &
     AssertContractsMutationsInModels<CONTRACTS, MODELS>;
   mutationAdapters?: MUTATION_ADAPTERS & {
-    [MODEL_NAME in keyof MUTATION_ADAPTERS]: MUTATION_ADAPTERS[MODEL_NAME] extends infer OPERATIONS extends Record<
-      string,
-      unknown
-    >
+    [MODEL_NAME in keyof MUTATION_ADAPTERS]: MUTATION_ADAPTERS[MODEL_NAME] extends infer OPERATIONS extends
+      Record<string, unknown>
       ? {
-          [OPERATION_NAME in keyof OPERATIONS]: OPERATIONS[OPERATION_NAME] extends infer EDGES extends readonly unknown[]
+          [OPERATION_NAME in keyof OPERATIONS]: OPERATIONS[OPERATION_NAME] extends infer EDGES extends
+            readonly unknown[]
             ? {
-                readonly [INDEX in keyof EDGES]: EDGES[INDEX] extends infer EDGE extends {
-                  source: Schema.Schema.AnyNoContext;
-                  destination: Schema.Schema.AnyNoContext | null;
-                }
-                  ? EDGE['destination'] extends infer DESTINATION extends Schema.Schema.AnyNoContext
+                readonly [INDEX in keyof EDGES]: EDGES[INDEX] extends infer EDGE extends
+                  {
+                    source: Schema.Schema.AnyNoContext;
+                    destination: Schema.Schema.AnyNoContext | null;
+                  }
+                  ? EDGE['destination'] extends infer DESTINATION extends
+                      Schema.Schema.AnyNoContext
                     ? {
                         source: EDGE['source'];
                         destination: DESTINATION;
@@ -271,6 +272,12 @@ export function makeAccountController<
     contracts,
     mutationAdapters,
   } = props;
+
+  if (typeof version !== 'string' || version.length === 0) {
+    throw new Error(
+      'makeAccountController: version must be a non-empty string',
+    );
+  }
 
   assertValidModels({ models, context: 'makeAccountController' });
 
@@ -509,7 +516,10 @@ export function makeAccountController<
           );
         }
         const destinationModel = models[destinationModelName];
-        if (destinationModel === undefined || 'serviceName' in destinationModel) {
+        if (
+          destinationModel === undefined ||
+          'serviceName' in destinationModel
+        ) {
           throw new Error(
             `makeAccountController: mutationAdapters.${sourceModelName}.${operationName}[${edgeIndex}] destination model "${destinationModelName}" is not an account model on this controller`,
           );

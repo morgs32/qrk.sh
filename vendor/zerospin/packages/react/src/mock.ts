@@ -17,13 +17,13 @@ import type {
   IFrontendController,
   InferFrontendModels,
 } from '@zerospin/core/frontendController/types';
+import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type {
   IAccountId,
   IActorId,
   IEncodedResourceShape,
   InferResource,
 } from '@zerospin/core/models/types';
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import { applyFrontendState } from '@zerospin/core/session/applyFrontendState';
 import { makeSession } from '@zerospin/core/session/makeSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';

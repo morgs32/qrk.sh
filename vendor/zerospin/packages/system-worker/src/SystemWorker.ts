@@ -25,7 +25,10 @@ import type {
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import type { IFrontendControllerSpec } from '@zerospin/core/frontendController/types';
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
-import type { IActorId, InferIdFromAbbreviation } from '@zerospin/core/models/types';
+import type {
+  IActorId,
+  InferIdFromAbbreviation,
+} from '@zerospin/core/models/types';
 import type { IFrontendState } from '@zerospin/core/session/types';
 import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import type {
@@ -57,15 +60,15 @@ import type { AccountRepo } from './AccountRepo/AccountRepo.js';
 import { getAccountRepo } from './AccountRepo/getAccountRepo/getAccountRepo.js';
 import { getActorRepo } from './ActorRepo/getActorRepo/getActorRepo.js';
 import { getAuthorizationRepo } from './AuthorizationRepo/getAuthorizationRepo/getAuthorizationRepo.js';
-import { getFrontendRepo } from './FrontendRepo/getFrontendRepo/getFrontendRepo.js';
-import { getSystemLogRepo } from './SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
 import { createFrontendWebSocketTicket } from './createFrontendWebSocketTicket/createFrontendWebSocketTicket.js';
 import { drainGeneration } from './drainGeneration/drainGeneration.js';
+import { getFrontendRepo } from './FrontendRepo/getFrontendRepo/getFrontendRepo.js';
 import { getGenerationId } from './getGenerationId/getGenerationId.js';
 import { managedRuntime } from './managedRuntime.js';
 import { openGeneration } from './openGeneration/openGeneration.js';
 import { prepareGeneration } from './prepareGeneration/prepareGeneration.js';
 import { getServiceRepo } from './ServiceRepo/getServiceRepo/getServiceRepo.js';
+import { getSystemLogRepo } from './SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
 import { SystemRepo } from './SystemRepo/SystemRepo.js';
 import type {
   IAccountBlockOutboxRecord,
@@ -114,9 +117,7 @@ const recordSystemWorkerLog = Effect.fn('SystemWorker.recordSystemWorkerLog')(
       const row = yield* decodeRpc(
         encoded as Schema.EitherEncoded<ISystemLogRow, IAnyErrorJson>,
       );
-      const systemLogAgent = env.SYSTEM_LOG_AGENT.getByName(
-        props.generationId,
-      );
+      const systemLogAgent = env.SYSTEM_LOG_AGENT.getByName(props.generationId);
       yield* makeAsync(() => systemLogAgent.pushLogRows([row])).pipe(
         Effect.retry({ schedule: defaultRetrySchedule }),
       );
@@ -188,10 +189,7 @@ export class SystemWorker extends WorkerEntrypoint {
     );
   }
 
-  drainGeneration(props: {
-    deployId: string;
-    generationId: string;
-  }): Promise<
+  drainGeneration(props: { deployId: string; generationId: string }): Promise<
     Schema.EitherEncoded<
       {
         deployId: string;
@@ -228,10 +226,7 @@ export class SystemWorker extends WorkerEntrypoint {
     );
   }
 
-  openGeneration(props: {
-    deployId: string;
-    generationId: string;
-  }): Promise<
+  openGeneration(props: { deployId: string; generationId: string }): Promise<
     Schema.EitherEncoded<
       {
         deployId: string;
@@ -379,7 +374,10 @@ export class SystemWorker extends WorkerEntrypoint {
     );
   }
 
-  getAccountIds(props: { deployId: string; generationId: string }): Promise<
+  getAccountIds(props: {
+    deployId: string;
+    generationId: string;
+  }): Promise<
     Schema.EitherEncoded<Array<InferIdFromAbbreviation>, IAnyErrorJson>
   > {
     const source = 'SystemWorker.getAccountIds';
@@ -596,7 +594,10 @@ export class SystemWorker extends WorkerEntrypoint {
     );
   }
 
-  getSystemRepos(props: { deployId: string; generationId: string }): Promise<
+  getSystemRepos(props: {
+    deployId: string;
+    generationId: string;
+  }): Promise<
     Schema.EitherEncoded<readonly IRepoRegistration[], IAnyErrorJson>
   > {
     return managedRuntime.runPromise(
@@ -663,7 +664,10 @@ export class SystemWorker extends WorkerEntrypoint {
     );
   }
 
-  getAccountRepos(props: { deployId: string; generationId: string }): Promise<
+  getAccountRepos(props: {
+    deployId: string;
+    generationId: string;
+  }): Promise<
     Schema.EitherEncoded<readonly IRepoRegistration[], IAnyErrorJson>
   > {
     return managedRuntime.runPromise(
@@ -800,7 +804,10 @@ export class SystemWorker extends WorkerEntrypoint {
     );
   }
 
-  getActorRepos(props: { deployId: string; generationId: string }): Promise<
+  getActorRepos(props: {
+    deployId: string;
+    generationId: string;
+  }): Promise<
     Schema.EitherEncoded<readonly IRepoRegistration[], IAnyErrorJson>
   > {
     return managedRuntime.runPromise(
@@ -867,7 +874,10 @@ export class SystemWorker extends WorkerEntrypoint {
     );
   }
 
-  getFrontendRepos(props: { deployId: string; generationId: string }): Promise<
+  getFrontendRepos(props: {
+    deployId: string;
+    generationId: string;
+  }): Promise<
     Schema.EitherEncoded<readonly IRepoRegistration[], IAnyErrorJson>
   > {
     return managedRuntime.runPromise(
@@ -934,7 +944,10 @@ export class SystemWorker extends WorkerEntrypoint {
     );
   }
 
-  getServiceRepos(props: { deployId: string; generationId: string }): Promise<
+  getServiceRepos(props: {
+    deployId: string;
+    generationId: string;
+  }): Promise<
     Schema.EitherEncoded<readonly IRepoRegistration[], IAnyErrorJson>
   > {
     return managedRuntime.runPromise(

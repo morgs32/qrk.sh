@@ -50,6 +50,36 @@ const authenticate = () =>
   });
 
 describe('makeActorController frontends resolution', () => {
+  it('rejects a missing version before model and selection validation', () => {
+    const props = {
+      name: 'main',
+      version: '1.0.0',
+      models: {},
+      selections: {},
+      frontends: {},
+    };
+    Reflect.deleteProperty(props, 'version');
+
+    expect(() => makeActorController(props)).toThrow(
+      'makeActorController: version must be a non-empty string',
+    );
+  });
+
+  it('rejects an empty version before model and selection validation', () => {
+    const props = {
+      name: 'main',
+      version: '1.0.0',
+      models: {},
+      selections: {},
+      frontends: {},
+    };
+    Reflect.set(props, 'version', '');
+
+    expect(() => makeActorController(props)).toThrow(
+      'makeActorController: version must be a non-empty string',
+    );
+  });
+
   it('derives binding models from actor selections shared with frontend models', () => {
     const actor = makeActorController({
       name: 'main',

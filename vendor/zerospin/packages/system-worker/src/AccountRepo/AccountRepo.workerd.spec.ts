@@ -630,9 +630,10 @@ describe('AccountRepo', () => {
               stock: existingStock,
             },
           });
-          const tracedAccountRepo = makeTraceableRpcTarget<
-            Pick<AccountRepo, 'finalizeAccountBlock'>
-          >(accountRepo);
+          const tracedAccountRepo =
+            makeTraceableRpcTarget<Pick<AccountRepo, 'finalizeAccountBlock'>>(
+              accountRepo,
+            );
           const initialBlock = yield* tracedAccountRepo
             .finalizeAccountBlock({
               accountId,
@@ -784,10 +785,7 @@ describe('AccountRepo', () => {
                   .finalizeAccountBlock({
                     accountId,
                     accountName: main.accountName,
-                    commands: [
-                      missingResourceCommand,
-                      successfulReplication,
-                    ],
+                    commands: [missingResourceCommand, successfulReplication],
                   })
                   .pipe(
                     Effect.provideService(
@@ -1826,12 +1824,13 @@ describe('AccountRepo', () => {
             systemVersion: system.version,
             payload: { product: serviceRows.existingProduct },
           });
-          const tracedAccountRepo = makeTraceableRpcTarget<
-            Pick<
-              AccountRepo,
-              'finalizeAccountBlock' | 'finalizePushedCommands'
-            >
-          >(accountRepo);
+          const tracedAccountRepo =
+            makeTraceableRpcTarget<
+              Pick<
+                AccountRepo,
+                'finalizeAccountBlock' | 'finalizePushedCommands'
+              >
+            >(accountRepo);
           const initialBlock = yield* tracedAccountRepo
             .finalizeAccountBlock({
               accountId,

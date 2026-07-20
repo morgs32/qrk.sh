@@ -97,6 +97,36 @@ const authenticate = () =>
   });
 
 describe('makeAccountController', () => {
+  it('rejects a missing version before model validation', () => {
+    const props = {
+      name: 'user',
+      version: '1.0.0',
+      actorControllers: {},
+      models: {},
+      contracts: {},
+    };
+    Reflect.deleteProperty(props, 'version');
+
+    expect(() => makeAccountController(props)).toThrow(
+      'makeAccountController: version must be a non-empty string',
+    );
+  });
+
+  it('rejects an empty version before model validation', () => {
+    const props = {
+      name: 'user',
+      version: '1.0.0',
+      actorControllers: {},
+      models: {},
+      contracts: {},
+    };
+    Reflect.set(props, 'version', '');
+
+    expect(() => makeAccountController(props)).toThrow(
+      'makeAccountController: version must be a non-empty string',
+    );
+  });
+
   it('returns actorControllers map on the account and stamps accountName on commands', async () => {
     const createUser = makeContract({
       commandName: 'createUser',

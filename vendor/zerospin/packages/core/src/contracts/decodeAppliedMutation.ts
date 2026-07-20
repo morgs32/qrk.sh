@@ -81,9 +81,8 @@ export const decodeAppliedMutation = Effect.fn('decodeAppliedMutation')(
         };
       }
       case 'create': {
-        const attributes = (
-          decoded as { encodedAttributes: IDecodedRecord }
-        ).encodedAttributes;
+        const attributes = (decoded as { encodedAttributes: IDecodedRecord })
+          .encodedAttributes;
         return {
           model,
           resourceId,
@@ -94,9 +93,8 @@ export const decodeAppliedMutation = Effect.fn('decodeAppliedMutation')(
         };
       }
       case 'update': {
-        const attributes = (
-          decoded as { encodedAttributes: IDecodedRecord }
-        ).encodedAttributes;
+        const attributes = (decoded as { encodedAttributes: IDecodedRecord })
+          .encodedAttributes;
         const decodedInverseOperation = yield* Schema.decode(
           makeInverseOperationJsonSchema({
             model,

@@ -4,16 +4,12 @@
  * dependency order, and captures immutable service/account replay bounds.
  */
 
-import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { Async } from '@zerospin/core/async/Async';
+import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import {
-  mapParseError,
-  ZerospinError,
-  type IAnyError,
-} from '@zerospin/error';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { and, asc, eq, type AnyColumn } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
@@ -23,10 +19,10 @@ import { AccountRepo } from '../../AccountRepo/AccountRepo.js';
 import { getAccountRepo } from '../../AccountRepo/getAccountRepo/getAccountRepo.js';
 import { FrontendRepo } from '../../FrontendRepo/FrontendRepo.js';
 import { getFrontendRepo } from '../../FrontendRepo/getFrontendRepo/getFrontendRepo.js';
-import { ServiceBlockRepo } from '../../ServiceBlockRepo/ServiceBlockRepo.js';
 import { getServiceBlockRepo } from '../../ServiceBlockRepo/getServiceBlockRepo/getServiceBlockRepo.js';
-import { ServiceRepo } from '../../ServiceRepo/ServiceRepo.js';
+import { ServiceBlockRepo } from '../../ServiceBlockRepo/ServiceBlockRepo.js';
 import { getServiceRepo } from '../../ServiceRepo/getServiceRepo/getServiceRepo.js';
+import { ServiceRepo } from '../../ServiceRepo/ServiceRepo.js';
 import { getRepoRegistrations } from '../getRepoRegistrations/getRepoRegistrations.js';
 
 export const drainGeneration = Effect.fn('SystemRepo.drainGeneration')(
@@ -184,9 +180,7 @@ export const drainGeneration = Effect.fn('SystemRepo.drainGeneration')(
         registration.repoName,
       );
       const frontendRepo = yield* getFrontendRepo({ key });
-      const encoded = yield* makeAsync(() =>
-        frontendRepo.drainGeneration(),
-      );
+      const encoded = yield* makeAsync(() => frontendRepo.drainGeneration());
       const result = yield* decodeRpc(encoded);
       if (
         result.pendingPushedBlockCount !== 0 ||
@@ -210,9 +204,7 @@ export const drainGeneration = Effect.fn('SystemRepo.drainGeneration')(
         registration.repoName,
       );
       const serviceRepo = yield* getServiceRepo({ key });
-      const encoded = yield* makeAsync(() =>
-        serviceRepo.drainGeneration(),
-      );
+      const encoded = yield* makeAsync(() => serviceRepo.drainGeneration());
       const result = yield* decodeRpc(encoded);
       if (result.pendingServiceBlockCount !== 0) {
         return yield* new ZerospinError({
@@ -257,9 +249,7 @@ export const drainGeneration = Effect.fn('SystemRepo.drainGeneration')(
         registration.repoName,
       );
       const accountRepo = yield* getAccountRepo({ key });
-      const encoded = yield* makeAsync(() =>
-        accountRepo.drainGeneration(),
-      );
+      const encoded = yield* makeAsync(() => accountRepo.drainGeneration());
       const result = yield* decodeRpc(encoded);
       if (
         result.pendingServiceSubscriptionCount !== 0 ||
@@ -309,16 +299,16 @@ export const drainGeneration = Effect.fn('SystemRepo.drainGeneration')(
         registration.repoName,
       );
       const serviceBlockRepo = yield* getServiceBlockRepo({ key });
-      const encoded = yield* makeAsync(() =>
-        serviceBlockRepo.getReplayBound(),
-      );
+      const encoded = yield* makeAsync(() => serviceBlockRepo.getReplayBound());
       const bound = yield* decodeRpc(encoded);
       if (
-        (bound.lastServiceCursor === null) !== (bound.serviceIndex === null)
+        (bound.lastServiceCursor === null) !==
+        (bound.serviceIndex === null)
       ) {
         return yield* new ZerospinError({
           code: 'service-replay-bound-inconsistent',
-          message: 'Service replay cursor and index must both be null or present',
+          message:
+            'Service replay cursor and index must both be null or present',
           extra: { repoName: registration.repoName, ...bound },
         });
       }
@@ -399,16 +389,16 @@ export const drainGeneration = Effect.fn('SystemRepo.drainGeneration')(
         registration.repoName,
       );
       const accountBlockRepo = yield* getAccountBlockRepo({ key });
-      const encoded = yield* makeAsync(() =>
-        accountBlockRepo.getReplayBound(),
-      );
+      const encoded = yield* makeAsync(() => accountBlockRepo.getReplayBound());
       const bound = yield* decodeRpc(encoded);
       if (
-        (bound.lastAccountCursor === null) !== (bound.accountIndex === null)
+        (bound.lastAccountCursor === null) !==
+        (bound.accountIndex === null)
       ) {
         return yield* new ZerospinError({
           code: 'account-replay-bound-inconsistent',
-          message: 'Account replay cursor and index must both be null or present',
+          message:
+            'Account replay cursor and index must both be null or present',
           extra: { repoName: registration.repoName, ...bound },
         });
       }

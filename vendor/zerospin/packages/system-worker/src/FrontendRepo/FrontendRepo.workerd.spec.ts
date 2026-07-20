@@ -54,13 +54,13 @@ import { getActorRepo } from '../ActorRepo/getActorRepo/getActorRepo.js';
 import { main, mainModels, system, userAccount } from '../fixtures/system.js';
 import { FrontendBlockRepo } from '../FrontendBlockRepo/FrontendBlockRepo.js';
 import { getFrontendBlockRepo } from '../FrontendBlockRepo/getFrontendBlockRepo/getFrontendBlockRepo.js';
-import { getSystemLogRepo } from '../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
-import { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
 import { managedRuntime } from '../managedRuntime.js';
 import { getServiceBlockRepo } from '../ServiceBlockRepo/getServiceBlockRepo/getServiceBlockRepo.js';
 import { ServiceBlockRepo } from '../ServiceBlockRepo/ServiceBlockRepo.js';
 import { getServiceRepo } from '../ServiceRepo/getServiceRepo/getServiceRepo.js';
 import { ServiceRepo } from '../ServiceRepo/ServiceRepo.js';
+import { getSystemLogRepo } from '../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
+import { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
 import type { IActorBlock } from '../types.js';
 import { executeInRepo } from '../workerd-utils/executeInRepo.js';
 
@@ -115,9 +115,8 @@ describe('FrontendRepo', () => {
               accountId,
               accountName: main.accountName,
             });
-          const actorRepoName = yield* ActorRepo.repoUtils.nameUtils.makeName(
-            actorKey,
-          );
+          const actorRepoName =
+            yield* ActorRepo.repoUtils.nameUtils.makeName(actorKey);
           const frontendRepoName =
             yield* FrontendRepo.repoUtils.nameUtils.makeName(frontendKey);
           const serviceRepoName =

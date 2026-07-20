@@ -1,71 +1,71 @@
-import { useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from 'react';
 
-import { getInitializedStateOrThrow } from "@zerospin/core/session/getInitializedStateOrThrow";
-import type { ISessionId } from "@zerospin/core/session/types";
-import { Link, useParams } from "react-router";
-import { useStore } from "zustand/react";
+import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
+import type { ISessionId } from '@zerospin/core/session/types';
+import { Link, useParams } from 'react-router';
+import { useStore } from 'zustand/react';
 
-import { useLiveQueryOnDb } from "../../../useLiveQueryOnDb";
-import { zerospinDevtoolsStore } from "../../../zerospinDevtoolsStore.js";
+import { useLiveQueryOnDb } from '../../../useLiveQueryOnDb';
+import { zerospinDevtoolsStore } from '../../../zerospinDevtoolsStore.js';
 
 const styles = {
   toolbarRoot: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
-    padding: "4px 12px",
-    backgroundColor: "#f9fafb",
-    borderBottom: "1px solid #e5e7eb",
+    padding: '4px 12px',
+    backgroundColor: '#f9fafb',
+    borderBottom: '1px solid #e5e7eb',
     flexShrink: 0,
   } satisfies CSSProperties,
   label: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
     fontSize: 12,
-    color: "#374151",
-    cursor: "pointer",
+    color: '#374151',
+    cursor: 'pointer',
   } satisfies CSSProperties,
   pushButton: {
-    border: "1px solid #d1d5db",
+    border: '1px solid #d1d5db',
     borderRadius: 4,
-    padding: "2px 8px",
-    backgroundColor: "#ffffff",
-    color: "#374151",
-    fontFamily: "inherit",
+    padding: '2px 8px',
+    backgroundColor: '#ffffff',
+    color: '#374151',
+    fontFamily: 'inherit',
     fontSize: 12,
   } satisfies CSSProperties,
   traceLink: {
-    color: "#2563eb",
+    color: '#2563eb',
     fontSize: 12,
-    textDecoration: "underline",
+    textDecoration: 'underline',
   } satisfies CSSProperties,
 } as const;
 
 export function SessionToolbar() {
   const { sessionId } = useParams<{ sessionId: ISessionId }>();
-  const entry = useStore(zerospinDevtoolsStore, (state) =>
+  const entry = useStore(zerospinDevtoolsStore, state =>
     sessionId === undefined ? undefined : state.sessionsById.get(sessionId),
   );
   if (entry === undefined) {
-    throw new Error("Session not found");
+    throw new Error('Session not found');
   }
   const { pushStagedCommands, session } = entry;
   const [isPushing, setIsPushing] = useState(false);
-  const isPushPaused = useStore(session.store, (state) => state.isPushPaused);
+  const isPushPaused = useStore(session.store, state => state.isPushPaused);
   const lastDevtoolsPush = useStore(
     session.store,
-    (state) => state.lastDevtoolsPush,
+    state => state.lastDevtoolsPush,
   );
   const { db } = getInitializedStateOrThrow({ session });
 
   const { data: stagedCommands } = useLiveQueryOnDb({
     db,
     deps: [],
-    query: (db) => db.query.stagedCommands!.findMany(),
-    tableNames: ["stagedCommands"],
+    query: db => db.query.stagedCommands!.findMany(),
+    tableNames: ['stagedCommands'],
   });
 
   const pushDisabled =
@@ -77,7 +77,7 @@ export function SessionToolbar() {
         <input
           type="checkbox"
           checked={isPushPaused}
-          onChange={(event) => {
+          onChange={event => {
             session.store.setState({ isPushPaused: event.target.checked });
           }}
         />
@@ -100,11 +100,11 @@ export function SessionToolbar() {
         }}
         style={{
           ...styles.pushButton,
-          cursor: pushDisabled ? "not-allowed" : "pointer",
+          cursor: pushDisabled ? 'not-allowed' : 'pointer',
           opacity: pushDisabled ? 0.5 : 1,
         }}
       >
-        {isPushing ? "Pushing…" : "Push"}
+        {isPushing ? 'Pushing…' : 'Push'}
       </button>
       {lastDevtoolsPush === null ? null : (
         <Link
@@ -112,15 +112,15 @@ export function SessionToolbar() {
           title={new Date(lastDevtoolsPush.completedAt).toISOString()}
           style={styles.traceLink}
         >
-          {lastDevtoolsPush.status === "error"
-            ? "Push failed at "
-            : "Pushed at "}
+          {lastDevtoolsPush.status === 'error'
+            ? 'Push failed at '
+            : 'Pushed at '}
           {new Date(lastDevtoolsPush.completedAt).toLocaleTimeString(
             undefined,
             {
-              hour: "numeric",
-              minute: "2-digit",
-              second: "2-digit",
+              hour: 'numeric',
+              minute: '2-digit',
+              second: '2-digit',
               fractionalSecondDigits: 3,
             },
           )}

@@ -141,12 +141,10 @@ describe('bootstrapBrowserSession', () => {
       link: null,
     });
     vi.mocked(mockFrontendApi.createFrontendWebSocketTicket).mockReset();
-    vi.mocked(mockFrontendApi.createFrontendWebSocketTicket).mockResolvedValue(
-      {
-        result: encodeRight('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
-        link: null,
-      },
-    );
+    vi.mocked(mockFrontendApi.createFrontendWebSocketTicket).mockResolvedValue({
+      result: encodeRight('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
+      link: null,
+    });
     getFrontendApi.mockImplementation(() => mockFrontendApi);
     newHttpBatchRpcSessionMock.mockReset();
     newHttpBatchRpcSessionMock.mockImplementation(() => ({
@@ -244,135 +242,131 @@ describe('bootstrapBrowserSession', () => {
       }),
     );
 
-    it.effect('fails bootstrap when the frontend WebSocket errors before open', () =>
-      Effect.gen(function* () {
-        const closeMock = vi.fn();
-        const removeEventListenerMock = vi.fn();
-        const addEventListenerMock =
-          vi.fn<
-            (
-              type: string,
-              listener: (event: { data: unknown }) => void,
-            ) => void
+    it.effect(
+      'fails bootstrap when the frontend WebSocket errors before open',
+      () =>
+        Effect.gen(function* () {
+          const closeMock = vi.fn();
+          const removeEventListenerMock = vi.fn();
+          const addEventListenerMock = vi.fn<
+            (type: string, listener: (event: { data: unknown }) => void) => void
           >((type, listener) => {
             if (type === 'error') {
               queueMicrotask(() => listener({ data: undefined }));
             }
           });
-        const WebSocketMock = vi.fn(function (
-          this: {
-            addEventListener: typeof addEventListenerMock;
-            removeEventListener: typeof removeEventListenerMock;
-            close: typeof closeMock;
-          },
-          _url: string,
-        ) {
-          this.addEventListener = addEventListenerMock;
-          this.removeEventListener = removeEventListenerMock;
-          this.close = closeMock;
-        });
-        Object.defineProperty(globalThis, 'window', {
-          configurable: true,
-          value: { WebSocket: WebSocketMock },
-        });
-        const sessionId = yield* makeIdFromAbbreviation({
-          abbreviation: coreAbbreviations.session,
-        });
-        const session = makeSession({
-          frontend,
-          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
-          sessionId,
-        });
+          const WebSocketMock = vi.fn(function (
+            this: {
+              addEventListener: typeof addEventListenerMock;
+              removeEventListener: typeof removeEventListenerMock;
+              close: typeof closeMock;
+            },
+            _url: string,
+          ) {
+            this.addEventListener = addEventListenerMock;
+            this.removeEventListener = removeEventListenerMock;
+            this.close = closeMock;
+          });
+          Object.defineProperty(globalThis, 'window', {
+            configurable: true,
+            value: { WebSocket: WebSocketMock },
+          });
+          const sessionId = yield* makeIdFromAbbreviation({
+            abbreviation: coreAbbreviations.session,
+          });
+          const session = makeSession({
+            frontend,
+            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            sessionId,
+          });
 
-        const result = yield* bootstrapBrowserSession({
-          session,
-          browserUserController: makeBrowserUserController('user_1'),
-        }).pipe(Effect.either);
+          const result = yield* bootstrapBrowserSession({
+            session,
+            browserUserController: makeBrowserUserController('user_1'),
+          }).pipe(Effect.either);
 
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left.code).toBe('frontend-websocket-open-failed');
-        }
-        expect(closeMock).toHaveBeenCalledTimes(1);
-        expect(removeEventListenerMock).toHaveBeenCalledWith(
-          'open',
-          expect.any(Function),
-        );
-        expect(removeEventListenerMock).toHaveBeenCalledWith(
-          'error',
-          expect.any(Function),
-        );
-        expect(removeEventListenerMock).toHaveBeenCalledWith(
-          'close',
-          expect.any(Function),
-        );
-      }),
+          expect(Either.isLeft(result)).toBe(true);
+          if (Either.isLeft(result)) {
+            expect(result.left.code).toBe('frontend-websocket-open-failed');
+          }
+          expect(closeMock).toHaveBeenCalledTimes(1);
+          expect(removeEventListenerMock).toHaveBeenCalledWith(
+            'open',
+            expect.any(Function),
+          );
+          expect(removeEventListenerMock).toHaveBeenCalledWith(
+            'error',
+            expect.any(Function),
+          );
+          expect(removeEventListenerMock).toHaveBeenCalledWith(
+            'close',
+            expect.any(Function),
+          );
+        }),
     );
 
-    it.effect('fails bootstrap when the frontend WebSocket closes before open', () =>
-      Effect.gen(function* () {
-        const closeMock = vi.fn();
-        const removeEventListenerMock = vi.fn();
-        const addEventListenerMock =
-          vi.fn<
-            (
-              type: string,
-              listener: (event: { data: unknown }) => void,
-            ) => void
+    it.effect(
+      'fails bootstrap when the frontend WebSocket closes before open',
+      () =>
+        Effect.gen(function* () {
+          const closeMock = vi.fn();
+          const removeEventListenerMock = vi.fn();
+          const addEventListenerMock = vi.fn<
+            (type: string, listener: (event: { data: unknown }) => void) => void
           >((type, listener) => {
             if (type === 'close') {
               queueMicrotask(() => listener({ data: undefined }));
             }
           });
-        const WebSocketMock = vi.fn(function (
-          this: {
-            addEventListener: typeof addEventListenerMock;
-            removeEventListener: typeof removeEventListenerMock;
-            close: typeof closeMock;
-          },
-          _url: string,
-        ) {
-          this.addEventListener = addEventListenerMock;
-          this.removeEventListener = removeEventListenerMock;
-          this.close = closeMock;
-        });
-        Object.defineProperty(globalThis, 'window', {
-          configurable: true,
-          value: { WebSocket: WebSocketMock },
-        });
-        const sessionId = yield* makeIdFromAbbreviation({
-          abbreviation: coreAbbreviations.session,
-        });
-        const session = makeSession({
-          frontend,
-          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
-          sessionId,
-        });
+          const WebSocketMock = vi.fn(function (
+            this: {
+              addEventListener: typeof addEventListenerMock;
+              removeEventListener: typeof removeEventListenerMock;
+              close: typeof closeMock;
+            },
+            _url: string,
+          ) {
+            this.addEventListener = addEventListenerMock;
+            this.removeEventListener = removeEventListenerMock;
+            this.close = closeMock;
+          });
+          Object.defineProperty(globalThis, 'window', {
+            configurable: true,
+            value: { WebSocket: WebSocketMock },
+          });
+          const sessionId = yield* makeIdFromAbbreviation({
+            abbreviation: coreAbbreviations.session,
+          });
+          const session = makeSession({
+            frontend,
+            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            sessionId,
+          });
 
-        const result = yield* bootstrapBrowserSession({
-          session,
-          browserUserController: makeBrowserUserController('user_1'),
-        }).pipe(Effect.either);
+          const result = yield* bootstrapBrowserSession({
+            session,
+            browserUserController: makeBrowserUserController('user_1'),
+          }).pipe(Effect.either);
 
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left.code).toBe(
-            'frontend-websocket-closed-before-open',
+          expect(Either.isLeft(result)).toBe(true);
+          if (Either.isLeft(result)) {
+            expect(result.left.code).toBe(
+              'frontend-websocket-closed-before-open',
+            );
+          }
+          expect(removeEventListenerMock).toHaveBeenCalledWith(
+            'open',
+            expect.any(Function),
           );
-        }
-        expect(removeEventListenerMock).toHaveBeenCalledWith(
-          'open',
-          expect.any(Function),
-        );
-        expect(removeEventListenerMock).toHaveBeenCalledWith(
-          'error',
-          expect.any(Function),
-        );
-        expect(removeEventListenerMock).toHaveBeenCalledWith(
-          'close',
-          expect.any(Function),
-        );
-      }),
+          expect(removeEventListenerMock).toHaveBeenCalledWith(
+            'error',
+            expect.any(Function),
+          );
+          expect(removeEventListenerMock).toHaveBeenCalledWith(
+            'close',
+            expect.any(Function),
+          );
+        }),
     );
 
     it.effect(
@@ -381,17 +375,13 @@ describe('bootstrapBrowserSession', () => {
         Effect.gen(function* () {
           const closeMock = vi.fn();
           const removeEventListenerMock = vi.fn();
-          const addEventListenerMock =
-            vi.fn<
-              (
-                type: string,
-                listener: (event: { data: unknown }) => void,
-              ) => void
-            >((type, listener) => {
-              if (type === 'open') {
-                queueMicrotask(() => listener({ data: undefined }));
-              }
-            });
+          const addEventListenerMock = vi.fn<
+            (type: string, listener: (event: { data: unknown }) => void) => void
+          >((type, listener) => {
+            if (type === 'open') {
+              queueMicrotask(() => listener({ data: undefined }));
+            }
+          });
           const WebSocketMock = vi.fn(function (
             this: {
               addEventListener: typeof addEventListenerMock;
@@ -431,18 +421,17 @@ describe('bootstrapBrowserSession', () => {
 
           expect(WebSocketMock).toHaveBeenCalledTimes(1);
           expect(frontendWebSocketUrl.protocol).toBe('wss:');
-          expect(frontendWebSocketUrl.pathname).toBe(
-            '/ws-frontend-blocks',
-          );
+          expect(frontendWebSocketUrl.pathname).toBe('/ws-frontend-blocks');
           expect(frontendWebSocketUrl.searchParams.get('publishableKey')).toBe(
             'pk_test',
           );
           expect(frontendWebSocketUrl.searchParams.get('ticket')).toBe(
             'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
           );
-          expect(Array.from(frontendWebSocketUrl.searchParams.keys())).toEqual(
-            ['publishableKey', 'ticket'],
-          );
+          expect(Array.from(frontendWebSocketUrl.searchParams.keys())).toEqual([
+            'publishableKey',
+            'ticket',
+          ]);
           expect(
             mockFrontendApi.createFrontendWebSocketTicket,
           ).toHaveBeenCalledTimes(1);

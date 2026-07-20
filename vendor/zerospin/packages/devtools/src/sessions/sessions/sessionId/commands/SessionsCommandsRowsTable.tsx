@@ -1,19 +1,19 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from 'react';
 
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
   type VisibilityState,
-} from "@tanstack/react-table";
-import { getInitializedStateOrThrow } from "@zerospin/core/session/getInitializedStateOrThrow";
-import type { ISession } from "@zerospin/core/session/types";
+} from '@tanstack/react-table';
+import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
+import type { ISession } from '@zerospin/core/session/types';
 
-import { useLiveQueryOnDb } from "../../../../useLiveQueryOnDb";
-import { SessionsDataCell } from "../../../SessionsDataCell";
-import { sessionsDatabaseTabStyles } from "../database/sessionsDatabaseTabStyles";
+import { useLiveQueryOnDb } from '../../../../useLiveQueryOnDb';
+import { SessionsDataCell } from '../../../SessionsDataCell';
+import { sessionsDatabaseTabStyles } from '../database/sessionsDatabaseTabStyles';
 
-import { SessionsCommandsColumnPicker } from "./SessionsCommandsColumnPicker";
+import { SessionsCommandsColumnPicker } from './SessionsCommandsColumnPicker';
 import {
   defaultColumnVisibilityForStatus,
   formatCommandCellValue,
@@ -21,26 +21,26 @@ import {
   makeSessionsCommandsTableColumns,
   truncateCommandDisplayText,
   type IDevtoolsSessionCommandsStatus,
-} from "./sessionsCommandsTableColumns";
+} from './sessionsCommandsTableColumns';
 
 type ISessionsCommandsTableName =
-  | "stagedCommands"
-  | "pushedCommands"
-  | "executedPushedCommands"
-  | "failedCommands";
+  | 'stagedCommands'
+  | 'pushedCommands'
+  | 'executedPushedCommands'
+  | 'failedCommands';
 
 function devtoolsStatusToTableNames(
   status: IDevtoolsSessionCommandsStatus,
 ): readonly ISessionsCommandsTableName[] {
   switch (status) {
-    case "staged":
-      return ["stagedCommands"];
-    case "pushed":
-      return ["pushedCommands"];
-    case "executed":
-      return ["executedPushedCommands"];
-    case "failed":
-      return ["failedCommands"];
+    case 'staged':
+      return ['stagedCommands'];
+    case 'pushed':
+      return ['pushedCommands'];
+    case 'executed':
+      return ['executedPushedCommands'];
+    case 'failed':
+      return ['failedCommands'];
     default: {
       const exhaustive: never = status;
       throw new Error(`Unsupported command status: ${exhaustive}`);
@@ -75,7 +75,7 @@ const SessionsCommandsTableBody = memo(
         size: 120,
       },
       getCoreRowModel: getCoreRowModel(),
-      getRowId: (row) => String(row.id),
+      getRowId: row => String(row.id),
       onColumnVisibilityChange: setColumnVisibility,
       state: {
         columnVisibility,
@@ -94,9 +94,9 @@ const SessionsCommandsTableBody = memo(
           }}
         >
           <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
+            {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
+                {headerGroup.headers.map(header => (
                   <th
                     key={header.id}
                     style={{
@@ -116,9 +116,9 @@ const SessionsCommandsTableBody = memo(
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((row) => (
+            {table.getRowModel().rows.map(row => (
               <tr key={row.id}>
-                {row.getVisibleCells().map((cell) => {
+                {row.getVisibleCells().map(cell => {
                   const fullText = formatCommandCellValue(cell.getValue());
                   const displayText = truncateCommandDisplayText(fullText);
                   const tdStyle = {
@@ -162,15 +162,15 @@ export function SessionsCommandsRowsTable(props: {
   const { data: rows, error } = useLiveQueryOnDb({
     db,
     deps: [status],
-    query: (db) => {
+    query: db => {
       switch (status) {
-        case "staged":
+        case 'staged':
           return db.query.stagedCommands!.findMany();
-        case "pushed":
+        case 'pushed':
           return db.query.pushedCommands!.findMany();
-        case "executed":
+        case 'executed':
           return db.query.executedPushedCommands!.findMany();
-        case "failed":
+        case 'failed':
           return db.query.failedCommands!.findMany();
         default: {
           const exhaustive: never = status;
@@ -191,7 +191,7 @@ export function SessionsCommandsRowsTable(props: {
 
   if (rows.length === 0) {
     return (
-      <p style={{ margin: 0, fontSize: "0.85rem", padding: 8 }}>No rows.</p>
+      <p style={{ margin: 0, fontSize: '0.85rem', padding: 8 }}>No rows.</p>
     );
   }
 

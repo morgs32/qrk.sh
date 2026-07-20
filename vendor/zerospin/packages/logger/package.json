@@ -26,7 +26,6 @@
     "@zerospin/error": "workspace:*",
     "effect": "^3.21.4",
     "rimraf": "^6.1.3",
-    "typescript": "6.0.3",
     "vitest": "^4.1.5",
     "wrangler": "^4.90.0"
   },

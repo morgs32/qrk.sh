@@ -1,4 +1,4 @@
-import type { ISpanId, ISpanTreeNode } from "@zerospin/logger";
+import type { ISpanId, ISpanTreeNode } from '@zerospin/logger';
 
 export function SessionsLogsSpanNode(props: {
   readonly node: ISpanTreeNode;
@@ -31,26 +31,26 @@ export function SessionsLogsSpanNode(props: {
         aria-pressed={selectedSpanId === node.span.spanId}
         onClick={() => setSelectedSpanId(node.span.spanId)}
         style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(180px, 320px) minmax(260px, 1fr)",
-          alignItems: "center",
-          width: "100%",
+          display: 'grid',
+          gridTemplateColumns: 'minmax(180px, 320px) minmax(260px, 1fr)',
+          alignItems: 'center',
+          width: '100%',
           minHeight: 30,
           padding: 0,
-          border: "none",
-          borderBottom: "1px solid #f3f4f6",
+          border: 'none',
+          borderBottom: '1px solid #f3f4f6',
           backgroundColor:
-            selectedSpanId === node.span.spanId ? "#eff6ff" : "#ffffff",
-          color: "#111827",
-          cursor: "pointer",
-          fontFamily: "inherit",
-          textAlign: "left",
+            selectedSpanId === node.span.spanId ? '#eff6ff' : '#ffffff',
+          color: '#111827',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          textAlign: 'left',
         }}
       >
         <span
           style={{
-            display: "flex",
-            alignItems: "baseline",
+            display: 'flex',
+            alignItems: 'baseline',
             gap: 6,
             minWidth: 0,
             padding: `6px 8px 6px ${8 + depth * 16}px`,
@@ -59,15 +59,15 @@ export function SessionsLogsSpanNode(props: {
           <strong
             style={{
               minWidth: 0,
-              overflow: "hidden",
+              overflow: 'hidden',
               fontSize: 11,
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
             {node.span.name}
           </strong>
-          <span style={{ flexShrink: 0, color: "#6b7280", fontSize: 10 }}>
+          <span style={{ flexShrink: 0, color: '#6b7280', fontSize: 10 }}>
             {spanDuration} ms
           </span>
         </span>
@@ -77,19 +77,19 @@ export function SessionsLogsSpanNode(props: {
         <span
           aria-hidden="true"
           style={{
-            position: "relative",
+            position: 'relative',
             height: 20,
-            overflow: "hidden",
-            borderLeft: "1px solid #e5e7eb",
+            overflow: 'hidden',
+            borderLeft: '1px solid #e5e7eb',
             backgroundImage:
-              "linear-gradient(to right, #f3f4f6 1px, transparent 1px)",
-            backgroundSize: "10% 100%",
+              'linear-gradient(to right, #f3f4f6 1px, transparent 1px)',
+            backgroundSize: '10% 100%',
           }}
         >
           <span
             data-testid={`span-waterfall-bar-${node.span.spanId}`}
             style={{
-              position: "absolute",
+              position: 'absolute',
               top: 4,
               bottom: 4,
               left: `${startPercent}%`,
@@ -97,11 +97,11 @@ export function SessionsLogsSpanNode(props: {
               minWidth: 3,
               borderRadius: 2,
               backgroundColor:
-                node.span.status === "error"
-                  ? "#ef4444"
-                  : node.span.status === "lost"
-                    ? "#f59e0b"
-                    : "#3b82f6",
+                node.span.status === 'error'
+                  ? '#ef4444'
+                  : node.span.status === 'lost'
+                    ? '#f59e0b'
+                    : '#3b82f6',
             }}
           />
         </span>
@@ -109,7 +109,7 @@ export function SessionsLogsSpanNode(props: {
 
       {/* 3 — Tree recursion preserves execution hierarchy while every child
       receives the exact same timing range and selection state. */}
-      {node.children.map((child) => (
+      {node.children.map(child => (
         <SessionsLogsSpanNode
           key={child.span.spanId}
           node={child}

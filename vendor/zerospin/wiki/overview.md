@@ -55,15 +55,15 @@ The browser packages bootstrap and live-sync that projection through
 
 ## Key modules
 
-| Area          | Public modules                                                                                              |
-| ------------- | ----------------------------------------------------------------------------------------------------------- |
-| Core domain   | `packages/core` — contracts, models, sessions, and system specs                                             |
-| System worker | `packages/system-worker` — generation-scoped `*Repo` Durable Objects and block pipelines                   |
-| Gateways      | `packages/dispatch-worker` — `ZerospinApis`, `SystemApi`, `FrontendApi`, resolvers, and `DevZerospinApis`   |
-| Browser       | `packages/frontend`, `packages/react`, `packages/sdk`, `packages/shared-worker`, and `packages/devtools`    |
-| Tooling       | `packages/cli`, `packages/logger`, `packages/studio`, and supporting packages                               |
-| Docs          | `docs` and this generated `wiki`                                                                           |
-| Examples      | `examples/parking` and `examples/shopping`                                                                 |
+| Area          | Public modules                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------------- |
+| Core domain   | `packages/core` — contracts, models, sessions, and system specs                                           |
+| System worker | `packages/system-worker` — generation-scoped `*Repo` Durable Objects and block pipelines                  |
+| Gateways      | `packages/dispatch-worker` — `ZerospinApis`, `SystemApi`, `FrontendApi`, resolvers, and `DevZerospinApis` |
+| Browser       | `packages/frontend`, `packages/react`, `packages/sdk`, `packages/shared-worker`, and `packages/devtools`  |
+| Tooling       | `packages/cli`, `packages/logger`, `packages/studio`, and supporting packages                             |
+| Docs          | `docs` and this generated `wiki`                                                                          |
+| Examples      | `examples/parking` and `examples/shopping`                                                                |
 
 ## Data flow
 

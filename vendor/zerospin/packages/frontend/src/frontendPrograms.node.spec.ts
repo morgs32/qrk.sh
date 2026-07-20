@@ -1,12 +1,12 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
+import { makeServiceController } from '@zerospin/core/service/makeServiceController';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
-import { makeServiceController } from '@zerospin/core/service/makeServiceController';
 import { makeSession } from '@zerospin/core/session/makeSession';
-import type { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
 import { encodeLeft } from '@zerospin/core/utils/encodeLeft';
 import { encodeRight } from '@zerospin/core/utils/encodeRight';
+import type { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
 import type { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis';
 import { ZerospinError } from '@zerospin/error';
 import { makeTelemetryCollector, makeTelemetryLayer } from '@zerospin/logger';
@@ -21,8 +21,8 @@ import {
   vi,
 } from 'vitest';
 
-import { executeActorQuery } from './executeActorQuery';
 import { createFrontendWebSocketTicket } from './createFrontendWebSocketTicket';
+import { executeActorQuery } from './executeActorQuery';
 import { fetchActor } from './fetchActor';
 import { fetchFrontendState } from './fetchFrontendState';
 
@@ -190,14 +190,8 @@ describe('@zerospin/frontend programs', () => {
           Effect.provide(
             Layer.mergeAll(
               AsyncLive,
-              Layer.succeed(
-                PublishableKey,
-                Redacted.make('pk_frontend_test'),
-              ),
-              Layer.succeed(
-                ZerospinApisUrl,
-                'https://api.frontend.test/',
-              ),
+              Layer.succeed(PublishableKey, Redacted.make('pk_frontend_test')),
+              Layer.succeed(ZerospinApisUrl, 'https://api.frontend.test/'),
               makeTelemetryLayer(collector),
             ),
           ),
@@ -206,9 +200,7 @@ describe('@zerospin/frontend programs', () => {
 
       expect(Either.isLeft(result)).toBe(true);
       if (Either.isLeft(result)) {
-        expect(result.left.code).toBe(
-          'frontend-websocket-ticket-write-failed',
-        );
+        expect(result.left.code).toBe('frontend-websocket-ticket-write-failed');
       }
       expect(createFrontendWebSocketTicketLeaf).toHaveBeenCalledTimes(1);
     });
@@ -217,9 +209,7 @@ describe('@zerospin/frontend programs', () => {
   describe('fetchActor', () => {
     it('uses the concrete ZerospinApis target, wraps the leaf, and returns success', async () => {
       expectTypeOf<
-        ReturnType<
-          typeof newSyncRpcSession<ZerospinApis>
-        >['getFrontendApi']
+        ReturnType<typeof newSyncRpcSession<ZerospinApis>>['getFrontendApi']
       >().toBeFunction();
 
       fetchActorLeaf.mockResolvedValueOnce({
@@ -249,14 +239,8 @@ describe('@zerospin/frontend programs', () => {
           Effect.provide(
             Layer.mergeAll(
               AsyncLive,
-              Layer.succeed(
-                PublishableKey,
-                Redacted.make('pk_frontend_test'),
-              ),
-              Layer.succeed(
-                ZerospinApisUrl,
-                'https://api.frontend.test/',
-              ),
+              Layer.succeed(PublishableKey, Redacted.make('pk_frontend_test')),
+              Layer.succeed(ZerospinApisUrl, 'https://api.frontend.test/'),
               makeTelemetryLayer(collector),
             ),
           ),
@@ -317,14 +301,8 @@ describe('@zerospin/frontend programs', () => {
           Effect.provide(
             Layer.mergeAll(
               AsyncLive,
-              Layer.succeed(
-                PublishableKey,
-                Redacted.make('pk_frontend_test'),
-              ),
-              Layer.succeed(
-                ZerospinApisUrl,
-                'https://api.frontend.test/',
-              ),
+              Layer.succeed(PublishableKey, Redacted.make('pk_frontend_test')),
+              Layer.succeed(ZerospinApisUrl, 'https://api.frontend.test/'),
               makeTelemetryLayer(collector),
             ),
           ),
@@ -359,14 +337,8 @@ describe('@zerospin/frontend programs', () => {
           Effect.provide(
             Layer.mergeAll(
               AsyncLive,
-              Layer.succeed(
-                PublishableKey,
-                Redacted.make('pk_frontend_test'),
-              ),
-              Layer.succeed(
-                ZerospinApisUrl,
-                'https://api.frontend.test/',
-              ),
+              Layer.succeed(PublishableKey, Redacted.make('pk_frontend_test')),
+              Layer.succeed(ZerospinApisUrl, 'https://api.frontend.test/'),
               makeTelemetryLayer(collector),
             ),
           ),
@@ -415,14 +387,8 @@ describe('@zerospin/frontend programs', () => {
           Effect.provide(
             Layer.mergeAll(
               AsyncLive,
-              Layer.succeed(
-                PublishableKey,
-                Redacted.make('pk_frontend_test'),
-              ),
-              Layer.succeed(
-                ZerospinApisUrl,
-                'https://api.frontend.test/',
-              ),
+              Layer.succeed(PublishableKey, Redacted.make('pk_frontend_test')),
+              Layer.succeed(ZerospinApisUrl, 'https://api.frontend.test/'),
               makeTelemetryLayer(collector),
             ),
           ),
@@ -474,14 +440,8 @@ describe('@zerospin/frontend programs', () => {
           Effect.provide(
             Layer.mergeAll(
               AsyncLive,
-              Layer.succeed(
-                PublishableKey,
-                Redacted.make('pk_frontend_test'),
-              ),
-              Layer.succeed(
-                ZerospinApisUrl,
-                'https://api.frontend.test/',
-              ),
+              Layer.succeed(PublishableKey, Redacted.make('pk_frontend_test')),
+              Layer.succeed(ZerospinApisUrl, 'https://api.frontend.test/'),
               makeTelemetryLayer(collector),
             ),
           ),
@@ -516,14 +476,8 @@ describe('@zerospin/frontend programs', () => {
           Effect.provide(
             Layer.mergeAll(
               AsyncLive,
-              Layer.succeed(
-                PublishableKey,
-                Redacted.make('pk_frontend_test'),
-              ),
-              Layer.succeed(
-                ZerospinApisUrl,
-                'https://api.frontend.test/',
-              ),
+              Layer.succeed(PublishableKey, Redacted.make('pk_frontend_test')),
+              Layer.succeed(ZerospinApisUrl, 'https://api.frontend.test/'),
               makeTelemetryLayer(collector),
             ),
           ),
@@ -573,14 +527,8 @@ describe('@zerospin/frontend programs', () => {
           Effect.provide(
             Layer.mergeAll(
               AsyncLive,
-              Layer.succeed(
-                PublishableKey,
-                Redacted.make('pk_frontend_test'),
-              ),
-              Layer.succeed(
-                ZerospinApisUrl,
-                'https://api.frontend.test/',
-              ),
+              Layer.succeed(PublishableKey, Redacted.make('pk_frontend_test')),
+              Layer.succeed(ZerospinApisUrl, 'https://api.frontend.test/'),
               makeTelemetryLayer(collector),
             ),
           ),
@@ -627,11 +575,7 @@ describe('@zerospin/frontend programs', () => {
       const collector = makeTelemetryCollector();
 
       const result = await Effect.runPromise(
-        executeActorQuery<
-          typeof shopperActor,
-          typeof frontend,
-          'getProducts'
-        >({
+        executeActorQuery<typeof shopperActor, typeof frontend, 'getProducts'>({
           session,
           queryName: 'getProducts',
           params: { limit: 7 },
@@ -640,14 +584,8 @@ describe('@zerospin/frontend programs', () => {
           Effect.provide(
             Layer.mergeAll(
               AsyncLive,
-              Layer.succeed(
-                PublishableKey,
-                Redacted.make('pk_frontend_test'),
-              ),
-              Layer.succeed(
-                ZerospinApisUrl,
-                'https://api.frontend.test/',
-              ),
+              Layer.succeed(PublishableKey, Redacted.make('pk_frontend_test')),
+              Layer.succeed(ZerospinApisUrl, 'https://api.frontend.test/'),
               makeTelemetryLayer(collector),
             ),
           ),
@@ -677,11 +615,7 @@ describe('@zerospin/frontend programs', () => {
       const collector = makeTelemetryCollector();
 
       const result = await Effect.runPromise(
-        executeActorQuery<
-          typeof shopperActor,
-          typeof frontend,
-          'getProducts'
-        >({
+        executeActorQuery<typeof shopperActor, typeof frontend, 'getProducts'>({
           session,
           queryName: 'getProducts',
           params: { limit: 7 },
@@ -690,14 +624,8 @@ describe('@zerospin/frontend programs', () => {
           Effect.provide(
             Layer.mergeAll(
               AsyncLive,
-              Layer.succeed(
-                PublishableKey,
-                Redacted.make('pk_frontend_test'),
-              ),
-              Layer.succeed(
-                ZerospinApisUrl,
-                'https://api.frontend.test/',
-              ),
+              Layer.succeed(PublishableKey, Redacted.make('pk_frontend_test')),
+              Layer.succeed(ZerospinApisUrl, 'https://api.frontend.test/'),
               makeTelemetryLayer(collector),
             ),
           ),

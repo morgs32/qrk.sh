@@ -7,11 +7,7 @@ import {
 } from 'drizzle-orm';
 
 import { PrimitiveKind } from '../models/primitiveKind.ts';
-import type {
-  IAnyTable,
-  IAnyTables,
-  IModels,
-} from '../models/types.ts';
+import type { IAnyTable, IAnyTables, IModels } from '../models/types.ts';
 
 import { makeDrizzleSchemasRecordFromTables } from './makeDrizzleSchemas.ts';
 import type { IDrizzleRelationsFromModels } from './types.ts';
@@ -26,14 +22,8 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
   const tableKeys: (keyof TABLES & string)[] = [];
   const tableKeyByObject = new Map<IAnyTable, keyof TABLES & string>();
   const tableKeyByName = new Map<string, keyof TABLES & string>();
-  const primaryKeyColumnByTableKey = new Map<
-    keyof TABLES & string,
-    string
-  >();
-  const relationNamesByTableKey = new Map<
-    keyof TABLES & string,
-    Set<string>
-  >();
+  const primaryKeyColumnByTableKey = new Map<keyof TABLES & string, string>();
+  const relationNamesByTableKey = new Map<keyof TABLES & string, Set<string>>();
   const targetsBySourceTableKey = new Map<
     keyof TABLES & string,
     Set<keyof TABLES & string>
@@ -138,7 +128,10 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
 
       const sourceRelationNames = relationNamesByTableKey.get(sourceTableKey);
       const targetRelationNames = relationNamesByTableKey.get(targetTableKey);
-      if (sourceRelationNames === undefined || targetRelationNames === undefined) {
+      if (
+        sourceRelationNames === undefined ||
+        targetRelationNames === undefined
+      ) {
         throw new Error(
           `makeDrizzleRelationsFromTables: relation registry is missing for "${sourceTable.name}.${sourceColumnName}"`,
         );

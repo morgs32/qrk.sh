@@ -44,8 +44,7 @@ export const makeOperationJsonSchema = (props: {
     model.version === modelVersion
       ? model
       : model.historicalDefinitions.find(
-          historicalDefinition =>
-            historicalDefinition.version === modelVersion,
+          historicalDefinition => historicalDefinition.version === modelVersion,
         );
   if (definition === undefined) {
     throw new Error(
@@ -81,9 +80,7 @@ export const makeOperationJsonSchema = (props: {
             : Schema.Number;
         case PrimitiveKind.Json: {
           const jsonSchema = Schema.parseJson();
-          return descriptor.nullable
-            ? Schema.NullOr(jsonSchema)
-            : jsonSchema;
+          return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
         }
         case PrimitiveKind.PrimaryKey:
           return makeAbbreviationIdSchema(descriptor.abbreviation);
@@ -133,9 +130,7 @@ export const makeOperationJsonSchema = (props: {
               : Schema.Number;
           case PrimitiveKind.Json: {
             const jsonSchema = Schema.parseJson();
-            return descriptor.nullable
-              ? Schema.NullOr(jsonSchema)
-              : jsonSchema;
+            return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
           }
           case PrimitiveKind.PrimaryKey:
             return makeAbbreviationIdSchema(descriptor.abbreviation);
@@ -197,8 +192,7 @@ export const makeInverseOperationJsonSchema = (props: {
     model.version === modelVersion
       ? model
       : model.historicalDefinitions.find(
-          historicalDefinition =>
-            historicalDefinition.version === modelVersion,
+          historicalDefinition => historicalDefinition.version === modelVersion,
         );
   if (definition === undefined) {
     throw new Error(
@@ -234,9 +228,7 @@ export const makeInverseOperationJsonSchema = (props: {
             : Schema.Number;
         case PrimitiveKind.Json: {
           const jsonSchema = Schema.parseJson();
-          return descriptor.nullable
-            ? Schema.NullOr(jsonSchema)
-            : jsonSchema;
+          return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
         }
         case PrimitiveKind.PrimaryKey:
           return makeAbbreviationIdSchema(descriptor.abbreviation);
@@ -286,9 +278,7 @@ export const makeInverseOperationJsonSchema = (props: {
               : Schema.Number;
           case PrimitiveKind.Json: {
             const jsonSchema = Schema.parseJson();
-            return descriptor.nullable
-              ? Schema.NullOr(jsonSchema)
-              : jsonSchema;
+            return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
           }
           case PrimitiveKind.PrimaryKey:
             return makeAbbreviationIdSchema(descriptor.abbreviation);

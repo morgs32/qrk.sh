@@ -4,42 +4,42 @@ import {
   useState,
   type CSSProperties,
   type MouseEvent,
-} from "react";
+} from 'react';
 
 const styles = {
   tdCopyInner: {
-    display: "flex",
-    alignItems: "center",
+    display: 'flex',
+    alignItems: 'center',
     gap: 6,
     minWidth: 0,
   } satisfies CSSProperties,
   tdCopyText: {
     flex: 1,
     minWidth: 0,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   } satisfies CSSProperties,
   copyIconButton: {
     flexShrink: 0,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 2,
     margin: 0,
-    border: "none",
+    border: 'none',
     borderRadius: 4,
-    backgroundColor: "transparent",
-    cursor: "pointer",
-    color: "#6b7280",
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+    color: '#6b7280',
   } satisfies CSSProperties,
   copyIconSlot: {
     width: 22,
     minHeight: 18,
     flexShrink: 0,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   } satisfies CSSProperties,
 } as const;
 
@@ -126,7 +126,7 @@ export function SessionsDataCell(props: {
             <span
               style={{
                 ...styles.copyIconButton,
-                cursor: "default",
+                cursor: 'default',
               }}
             >
               <CheckmarkIcon />

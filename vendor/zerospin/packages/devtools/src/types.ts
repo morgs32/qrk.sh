@@ -2,26 +2,26 @@ import type {
   IEncodedCommand,
   IFailedStagedCommand,
   IPushedCommand,
-} from "@zerospin/core/contracts/types";
-import type { ISession, ISessionId } from "@zerospin/core/session/types";
+} from '@zerospin/core/contracts/types';
+import type { ISession, ISessionId } from '@zerospin/core/session/types';
 
-export type IModifierKey = "Alt" | "Control" | "Meta" | "Shift" | "CtrlOrMeta";
+export type IModifierKey = 'Alt' | 'Control' | 'Meta' | 'Shift' | 'CtrlOrMeta';
 export type IKeyboardKey = IModifierKey | (string & {});
-export type IZerospinDevtoolsTheme = "light" | "dark";
+export type IZerospinDevtoolsTheme = 'light' | 'dark';
 
 export type ITriggerPosition =
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right"
-  | "middle-left"
-  | "middle-right";
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right'
+  | 'middle-left'
+  | 'middle-right';
 
 export type IZerospinDevtoolsConfig = {
   defaultOpen?: boolean;
   hideUntilHover?: boolean;
   position?: ITriggerPosition;
-  panelLocation?: "top" | "bottom";
+  panelLocation?: 'top' | 'bottom';
   openHotkey?: Array<IKeyboardKey>;
   requireUrlFlag?: boolean;
   urlFlag?: string;
@@ -34,7 +34,7 @@ export type IDevtoolsStore = {
     defaultOpen: boolean;
     hideUntilHover: boolean;
     position: ITriggerPosition;
-    panelLocation: "top" | "bottom";
+    panelLocation: 'top' | 'bottom';
     openHotkey: Array<IKeyboardKey>;
     requireUrlFlag: boolean;
     urlFlag: string;

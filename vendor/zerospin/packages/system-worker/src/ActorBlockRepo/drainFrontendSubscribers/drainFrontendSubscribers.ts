@@ -14,8 +14,8 @@ import {
   type IAnyError,
   type IAnyErrorJson,
 } from '@zerospin/error';
-import { asc, eq, gt } from 'drizzle-orm';
 import { env } from 'cloudflare:workers';
+import { asc, eq, gt } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 import { ActorDeltaSchema } from '../../blockSchemas.js';
@@ -39,14 +39,8 @@ export const drainFrontendSubscribers = Effect.fn(
   for (const subscriber of subscribers) {
     // A future retry remains durable work. Keep its exact deadline even though
     // this drain must not call the FrontendRepo before that deadline is due.
-    if (
-      subscriber.nextRetryAt !== null &&
-      subscriber.nextRetryAt > now
-    ) {
-      if (
-        nextAlarmAt === null ||
-        subscriber.nextRetryAt < nextAlarmAt
-      ) {
+    if (subscriber.nextRetryAt !== null && subscriber.nextRetryAt > now) {
+      if (nextAlarmAt === null || subscriber.nextRetryAt < nextAlarmAt) {
         nextAlarmAt = subscriber.nextRetryAt;
       }
       continue;

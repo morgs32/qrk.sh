@@ -77,9 +77,7 @@ export const getReplicatedResources = Effect.fn(
         const watermark = tx
           .select()
           .from(serviceRepoDrizzleSchemas.serviceCursors)
-          .orderBy(
-            desc(serviceRepoDrizzleSchemas.serviceCursors.serviceIndex),
-          )
+          .orderBy(desc(serviceRepoDrizzleSchemas.serviceCursors.serviceIndex))
           .limit(1)
           .get();
         if (watermark === undefined) {
@@ -110,10 +108,7 @@ export const getReplicatedResources = Effect.fn(
             key: resourceRef.modelName,
             recordKind: `models owned by service ${serviceName}`,
           });
-          if (
-            !('serviceName' in model) ||
-            model.serviceName !== serviceName
-          ) {
+          if (!('serviceName' in model) || model.serviceName !== serviceName) {
             return yield* new ZerospinError({
               code: 'replication-service-model-mismatch',
               message: `Replication model "${resourceRef.modelName}" is not owned by service "${serviceName}"`,

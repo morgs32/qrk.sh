@@ -166,9 +166,7 @@ describe('reactAndSharedWorkerFlow1', () => {
           browserUserController: controller1,
         }).pipe(
           Effect.provide(
-            makeTelemetryLayer(
-              session1.store.getState().telemetryCollector,
-            ),
+            makeTelemetryLayer(session1.store.getState().telemetryCollector),
           ),
           Effect.provide(TestLayer),
           Effect.provide(AsyncLive),
@@ -178,9 +176,7 @@ describe('reactAndSharedWorkerFlow1', () => {
           browserUserController: controller2,
         }).pipe(
           Effect.provide(
-            makeTelemetryLayer(
-              session2.store.getState().telemetryCollector,
-            ),
+            makeTelemetryLayer(session2.store.getState().telemetryCollector),
           ),
           Effect.provide(TestLayer),
           Effect.provide(AsyncLive),
@@ -226,9 +222,7 @@ describe('reactAndSharedWorkerFlow1', () => {
           ),
         }).pipe(
           Effect.provide(
-            makeTelemetryLayer(
-              session1.store.getState().telemetryCollector,
-            ),
+            makeTelemetryLayer(session1.store.getState().telemetryCollector),
           ),
         );
 

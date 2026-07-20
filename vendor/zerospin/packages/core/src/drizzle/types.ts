@@ -74,7 +74,10 @@ type SourceModelKeysWithRefTo<
   TABLES extends IAnyTables,
   PARENT_KEY extends keyof TABLES & string,
 > = {
-  [SOURCE_KEY in Exclude<keyof TABLES, PARENT_KEY>]: InverseRecordForSourceModel<
+  [SOURCE_KEY in Exclude<
+    keyof TABLES,
+    PARENT_KEY
+  >]: InverseRecordForSourceModel<
     TABLES,
     PARENT_KEY,
     Extract<SOURCE_KEY, keyof TABLES & string>
@@ -135,7 +138,8 @@ export type IDrizzleRelationsFromModels<
         IAnyRefDescriptor
         ? One<
             {
-              [TARGET_TABLE_KEY in keyof TABLES & string]: TABLES[TARGET_TABLE_KEY]['name'] extends REF['targetTableName']
+              [TARGET_TABLE_KEY in keyof TABLES &
+                string]: TABLES[TARGET_TABLE_KEY]['name'] extends REF['targetTableName']
                 ? TARGET_TABLE_KEY
                 : never;
             }[keyof TABLES & string],

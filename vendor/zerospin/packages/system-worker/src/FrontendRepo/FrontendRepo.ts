@@ -21,7 +21,6 @@ import type { IActorId, IAnyTables, IShape } from '@zerospin/core/models/types';
 import { FrontendBlockSchema } from '@zerospin/core/session/FrontendBlockSchema';
 import type { IFrontendState } from '@zerospin/core/session/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { ZerospinError, type IAnyErrorJson } from '@zerospin/error';
 import { Effect, type Schema } from 'effect';
@@ -31,6 +30,7 @@ import { system } from 'system';
 import { makeRepo } from '../makeRepo/makeRepo.js';
 import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
 import { managedRuntime } from '../managedRuntime.js';
+import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import type { IActorBlock } from '../types.js';
 
 import { drainFrontendBlockOutbox } from './drainFrontendBlockOutbox/drainFrontendBlockOutbox.js';

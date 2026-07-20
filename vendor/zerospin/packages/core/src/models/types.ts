@@ -617,8 +617,7 @@ export type InferProperties<
   METADATA extends IResourceShape = Omit<IResourceShape, 'id'> & {
     id: IPrimaryKeyDescriptor<ABBREVIATION>;
   },
-> = ATTRIBUTES &
-  METADATA;
+> = ATTRIBUTES & METADATA;
 
 export type IDecodedResource = InferDecodedRow<IResourceShape>;
 
@@ -740,8 +739,7 @@ export type IModel<
       delete: (...args: any[]) => Effect.Effect<any, any, any>;
       moveMutation: (...args: any[]) => Schema.Schema.AnyNoContext;
       move: (...args: any[]) => Effect.Effect<any, any, any>;
-      replicateResourceMutation: (...args: any[]) =>
-        Schema.Schema.AnyNoContext;
+      replicateResourceMutation: (...args: any[]) => Schema.Schema.AnyNoContext;
       replicateResource: (...args: any[]) => Effect.Effect<any, any, any>;
     }
   : {
@@ -1066,7 +1064,7 @@ export type IModel<
                   : Extract<
                       HISTORICAL_DEFINITIONS[number],
                       { readonly version: MODEL_VERSION }
-                >['attributes'],
+                    >['attributes'],
                 ABBREVIATION,
                 METADATA
               >
@@ -1146,10 +1144,9 @@ export type InferResource<
   ATTRIBUTES extends IShape = MODEL['attributes'],
 > = IDecodedResource & InferDecodedRow<ATTRIBUTES & MODEL['metadata']>;
 
-export type InferEncodedResource<MODEL extends IModel> = InferEncodedRow<
-  IResourceShape
-> &
-  InferEncodedRow<MODEL['attributes'] & MODEL['metadata']>;
+export type InferEncodedResource<MODEL extends IModel> =
+  InferEncodedRow<IResourceShape> &
+    InferEncodedRow<MODEL['attributes'] & MODEL['metadata']>;
 
 export type InferPropertiesTable<MODEL extends IModel> = IDrizzleSchema<
   MODEL['modelName'],

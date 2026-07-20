@@ -763,6 +763,51 @@ describe('devFn', () => {
     );
   });
 
+  it('preserves an unchecked authored-system factory failure from Wrangler', async () => {
+    loadConfigMock.mockResolvedValueOnce({
+      config: {
+        name: 'zerospin-test',
+        main: './src/Worker.ts',
+        compatibility_date: '2026-01-20',
+        compatibility_flags: ['nodejs_compat'],
+        alias: {
+          system: './src/dev/fixtures/missingAccountControllerVersion.js',
+        },
+        migrations: [],
+        vars: {
+          ZEROSPIN_SYSTEM_ID: 'sys_test',
+        },
+      },
+      configFile: path.join(process.cwd(), 'wrangler.jsonc'),
+    });
+    const stdout = new PassThrough();
+    const child = Object.assign(new EventEmitter(), {
+      kill: vi.fn(),
+      killed: false,
+      stdout,
+    });
+    spawnMock.mockReturnValue(child);
+
+    const errorPromise = Effect.runPromise(
+      devFn({ clean: false, port: 3005 }).pipe(
+        Effect.provide(AsyncLive),
+        Effect.flip,
+      ),
+    );
+    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+
+    stdout.write('makeAccountController: version must be a non-empty string\n');
+    child.emit('close', 1, null);
+
+    await expect(errorPromise).resolves.toMatchObject({
+      code: 'zerospin-dev-wrangler-exited',
+      cause: expect.stringContaining(
+        'makeAccountController: version must be a non-empty string',
+      ),
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('fails when Wrangler exits from a signal', async () => {
     const child = Object.assign(new EventEmitter(), {
       kill: vi.fn(),
@@ -951,9 +996,10 @@ describe('devFn', () => {
 
   it('loads comments, trailing commas, and explicit nulls through real c12 JSONC parsing', async () => {
     const actualC12 = await vi.importActual<typeof import('c12')>('c12');
-    const actualFs = await vi.importActual<
-      typeof import('node:fs/promises')
-    >('node:fs/promises');
+    const actualFs =
+      await vi.importActual<typeof import('node:fs/promises')>(
+        'node:fs/promises',
+      );
     const tempCwd = await actualFs.mkdtemp(
       path.join(os.tmpdir(), 'zerospin-devFn-'),
     );
@@ -1058,9 +1104,7 @@ describe('devFn', () => {
   it('kills Wrangler and removes the generated config when interrupted', async () => {
     const child = Object.assign(new EventEmitter(), {
       kill: vi.fn(() => {
-        void Promise.resolve().then(() =>
-          child.emit('close', null, 'SIGTERM'),
-        );
+        void Promise.resolve().then(() => child.emit('close', null, 'SIGTERM'));
         return true;
       }),
       killed: false,

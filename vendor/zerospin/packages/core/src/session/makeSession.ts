@@ -276,9 +276,7 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
     sessionId,
     stageCommand(props) {
       const effect = stageCommandEffect(props).pipe(
-        Effect.provide(
-          makeTelemetryLayer(store.getState().telemetryCollector),
-        ),
+        Effect.provide(makeTelemetryLayer(store.getState().telemetryCollector)),
         encodeRpc,
       );
       if ('context' in runtime) {

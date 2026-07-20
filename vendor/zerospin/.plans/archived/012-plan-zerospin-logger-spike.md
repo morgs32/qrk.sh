@@ -9,6 +9,7 @@
 **Tech Stack:** Effect 3.21.4 only (`Tracer.make`, `Tracer.externalSpan`, `Effect.withParentSpan`, `Logger.make`), vitest, Nx + pnpm. **No** `@zerospin/core`, no capnweb, no drizzle, no OTel dependencies.
 
 **What this spike must prove (the risky claims):**
+
 1. `Effect.fn` / `Effect.withSpan` spans flow through a custom tracer with correct parentage and timing.
 2. `Effect.log*` records capture the current span's `traceId`/`spanId` plus `annotateLogs` annotations from inside a `Logger.make` logger.
 3. A callee runtime can parent its spans under a caller's span using only `{ traceId, parentSpanId }` reconstructed via `Tracer.externalSpan` — one trace across two runtimes.
@@ -54,6 +55,7 @@ packages/logger/
 ### Task 1: Scaffold the package
 
 **Files:**
+
 - Create: `packages/logger/package.json`
 - Create: `packages/logger/tsconfig.json`
 - Create: `packages/logger/tsconfig.etc.json`
@@ -62,6 +64,7 @@ packages/logger/
 - Test: `packages/logger/src/index.spec.ts`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: a workspace package Nx can run `test` / `ts` / `lint` targets on. All later tasks add files under `packages/logger/src/`.
 
@@ -182,6 +185,7 @@ git commit -m "chore(logger): scaffold @zerospin/logger spike package"
 ### Task 2: Wire types, ID makers, and TelemetryCollector
 
 **Files:**
+
 - Create: `packages/logger/src/types.ts`
 - Create: `packages/logger/src/makeTelemetryIds.ts`
 - Create: `packages/logger/src/TelemetryCollector.ts`
@@ -189,6 +193,7 @@ git commit -m "chore(logger): scaffold @zerospin/logger spike package"
 - Test: `packages/logger/src/TelemetryCollector.spec.ts`
 
 **Interfaces:**
+
 - Consumes: nothing outside `effect`.
 - Produces (exact names later tasks use): `ITraceId`, `ISpanId`, `ILogLevel`, `ISpanStatus`, `ISpanLinkKind`, `ITraceContext`, `ISpanRecord`, `ILogRecord`, `ISpanLinkRecord`, `ITelemetryBatch`, `emptyTelemetryBatch()`, `IEitherEncoded<A, E>`, `IRpcEnvelope<A, E>`, `makeTraceId()`, `makeSpanId()`, `TelemetryCollector` (Context.Tag), `ITelemetryCollector` (`addSpan` / `addLog` / `addLinks` / `merge` / `flush`), `makeTelemetryCollector()`.
 
@@ -201,7 +206,11 @@ import { describe, expect, it } from 'vitest';
 
 import { makeSpanId, makeTraceId } from './makeTelemetryIds.ts';
 import { makeTelemetryCollector } from './TelemetryCollector.ts';
-import { emptyTelemetryBatch, type ILogRecord, type ISpanRecord } from './types.ts';
+import {
+  emptyTelemetryBatch,
+  type ILogRecord,
+  type ISpanRecord,
+} from './types.ts';
 
 const spanRecord: ISpanRecord = {
   spanId: 'spn_a1',
@@ -459,11 +468,13 @@ git commit -m "feat(logger): wire types, id makers, and TelemetryCollector"
 ### Task 3: Collector-backed Effect tracer
 
 **Files:**
+
 - Create: `packages/logger/src/makeTelemetryTracer.ts`
 - Modify: `packages/logger/src/index.ts` (add `export * from './makeTelemetryTracer.ts';`)
 - Test: `packages/logger/src/makeTelemetryTracer.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Task 2 (`ITelemetryCollector`, `makeSpanId`/`makeTraceId`, record types); `Tracer.make`, `Tracer.Span`, `Tracer.SpanStatus`, `Tracer.SpanLink`, `Tracer.SpanKind`, `Tracer.AnySpan` from `effect` (all confirmed present in 3.21.4).
 - Produces: `makeTelemetryTracer(collector: ITelemetryCollector): Tracer.Tracer`. Used by Tasks 4–5.
 
@@ -658,7 +669,15 @@ export const makeTelemetryTracer = (
 ): Tracer.Tracer =>
   Tracer.make({
     span: (name, parent, context, links, startTime, kind) =>
-      new CollectorSpan(name, parent, context, links, startTime, kind, collector),
+      new CollectorSpan(
+        name,
+        parent,
+        context,
+        links,
+        startTime,
+        kind,
+        collector,
+      ),
     context: f => f(),
   });
 ```
@@ -680,11 +699,13 @@ git commit -m "feat(logger): collector-backed Effect tracer"
 ### Task 4: Collector-backed Effect logger
 
 **Files:**
+
 - Create: `packages/logger/src/makeTelemetryLogger.ts`
 - Modify: `packages/logger/src/index.ts` (add export)
 - Test: `packages/logger/src/makeTelemetryLogger.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Task 2; `Logger.make`, `FiberRef.currentContext`, `FiberRefs.getOrDefault`, `Tracer.ParentSpan` (`Context.Tag<ParentSpan, AnySpan>`), `Cause`, `Inspectable.toStringUnknown` from `effect`.
 - Produces: `makeTelemetryLogger(collector: ITelemetryCollector): Logger.Logger<unknown, void>`. Used by Task 5.
 
@@ -838,11 +859,13 @@ git commit -m "feat(logger): collector-backed Effect logger"
 ### Task 5: makeTelemetryLayer
 
 **Files:**
+
 - Create: `packages/logger/src/makeTelemetryLayer.ts`
 - Modify: `packages/logger/src/index.ts` (add export)
 - Test: `packages/logger/src/makeTelemetryLayer.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 2–4.
 - Produces: `makeTelemetryLayer(collector: ITelemetryCollector): Layer.Layer<TelemetryCollector>`. Task 6's `runBoundary` provides it; `decodeEnvelope` reads `TelemetryCollector` from it.
 
@@ -855,7 +878,10 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { makeTelemetryLayer } from './makeTelemetryLayer.ts';
-import { makeTelemetryCollector, TelemetryCollector } from './TelemetryCollector.ts';
+import {
+  makeTelemetryCollector,
+  TelemetryCollector,
+} from './TelemetryCollector.ts';
 
 describe('makeTelemetryLayer', () => {
   it('provides collector service and captures spans plus logs together', async () => {
@@ -928,11 +954,13 @@ git commit -m "feat(logger): makeTelemetryLayer combining tracer, logger, and co
 This task is the heart of the spike: two independent Effect runtimes ("caller" and "callee") connected only by a plain async function returning an `IRpcEnvelope`, producing one coherent trace.
 
 **Files:**
+
 - Create: `packages/logger/src/boundary.ts`
 - Modify: `packages/logger/src/index.ts` (add export)
 - Test: `packages/logger/src/boundary.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 2 and 5; `Tracer.externalSpan`, `Effect.withParentSpan`, `Effect.currentSpan`, `Effect.serviceOption` from `effect`.
 - Produces:
   - `runBoundary<A, E>(props: { program: Effect.Effect<A, E>; traceContext?: ITraceContext }): Promise<IRpcEnvelope<A, E>>` — the callee side.
@@ -947,10 +975,17 @@ Create `packages/logger/src/boundary.spec.ts`:
 import { Effect, Either } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { currentTraceContext, decodeEnvelope, runBoundary } from './boundary.ts';
+import {
+  currentTraceContext,
+  decodeEnvelope,
+  runBoundary,
+} from './boundary.ts';
 import { makeSpanId } from './makeTelemetryIds.ts';
 import { makeTelemetryLayer } from './makeTelemetryLayer.ts';
-import { makeTelemetryCollector, TelemetryCollector } from './TelemetryCollector.ts';
+import {
+  makeTelemetryCollector,
+  TelemetryCollector,
+} from './TelemetryCollector.ts';
 import type { IRpcEnvelope, ITraceContext } from './types.ts';
 
 /** Simulated remote repo: a separate Effect runtime reachable only via a Promise. */
@@ -1020,9 +1055,9 @@ describe('boundary', () => {
       ),
     );
     expect(exit._tag).toBe('Failure');
-    expect(
-      callerCollector.flush().spans.map(span => span.name),
-    ).toEqual(['Callee.failing']);
+    expect(callerCollector.flush().spans.map(span => span.name)).toEqual([
+      'Callee.failing',
+    ]);
   });
 
   it('records a lost span when the transport fails', async () => {
@@ -1112,10 +1147,7 @@ export const runBoundary = async <A, E>(props: {
         );
 
   const either = await Effect.runPromise(
-    parented.pipe(
-      Effect.either,
-      Effect.provide(makeTelemetryLayer(collector)),
-    ),
+    parented.pipe(Effect.either, Effect.provide(makeTelemetryLayer(collector))),
   );
 
   return {
@@ -1159,7 +1191,7 @@ export const currentTraceContext: Effect.Effect<ITraceContext | null> =
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pnpm nx test @zerospin/logger -- src/boundary.spec.ts`
-Expected: PASS (4 tests). If the cross-runtime parentage assertion fails because `Effect.withParentSpan` composes differently around `Effect.withSpan`, swap the composition in `calleeRpc` (apply `withParentSpan` *outside* the program that contains `withSpan`, which is what `runBoundary` already does) — the assertion itself is the spike finding, so record the outcome either way.
+Expected: PASS (4 tests). If the cross-runtime parentage assertion fails because `Effect.withParentSpan` composes differently around `Effect.withSpan`, swap the composition in `calleeRpc` (apply `withParentSpan` _outside_ the program that contains `withSpan`, which is what `runBoundary` already does) — the assertion itself is the spike finding, so record the outcome either way.
 
 - [ ] **Step 5: Commit**
 
@@ -1175,11 +1207,13 @@ git commit -m "feat(logger): RPC boundary simulation with envelope merge and los
 Proves the flat-table + adjacency-list claim: one store of spans/logs/links supports `getTrace`, infinite nesting, and forward/backward causal queries, entirely in application code.
 
 **Files:**
+
 - Create: `packages/logger/src/TraceStore.ts`
 - Modify: `packages/logger/src/index.ts` (add export)
 - Test: `packages/logger/src/TraceStore.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 2 and 6.
 - Produces:
   - `ITraceStore` with `append(batch)`, `getTrace(traceId): ITelemetryBatch`, `getCausedBy(traceId): readonly ISpanLinkRecord[]` (links whose `priorTraceId` matches — the forward/downstream query).
@@ -1194,7 +1228,11 @@ Create `packages/logger/src/TraceStore.spec.ts`:
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { currentTraceContext, decodeEnvelope, runBoundary } from './boundary.ts';
+import {
+  currentTraceContext,
+  decodeEnvelope,
+  runBoundary,
+} from './boundary.ts';
 import { makeTelemetryLayer } from './makeTelemetryLayer.ts';
 import { makeTelemetryCollector } from './TelemetryCollector.ts';
 import { buildTraceTree, makeTraceStore } from './TraceStore.ts';
@@ -1234,12 +1272,10 @@ describe('TraceStore', () => {
     expect(tree).toHaveLength(1);
     const root = tree[0]!;
     expect(root.span.name).toBe('Caller.root');
-    expect(root.children.map(node => node.span.name)).toEqual([
-      'Callee.outer',
+    expect(root.children.map(node => node.span.name)).toEqual(['Callee.outer']);
+    expect(root.children[0]!.children.map(node => node.span.name)).toEqual([
+      'Callee.inner',
     ]);
-    expect(
-      root.children[0]!.children.map(node => node.span.name),
-    ).toEqual(['Callee.inner']);
     // 'deep work' was logged in Callee.outer's span
     expect(root.children[0]!.logs.map(log => log.message)).toEqual([
       'deep work',
@@ -1359,8 +1395,7 @@ export const makeTraceStore = (): ITraceStore => {
         .toSorted((a, b) => a.createdAt - b.createdAt),
       links: links.filter(link => link.traceId === traceId),
     }),
-    getCausedBy: traceId =>
-      links.filter(link => link.priorTraceId === traceId),
+    getCausedBy: traceId => links.filter(link => link.priorTraceId === traceId),
   };
 };
 
@@ -1429,6 +1464,7 @@ The spike succeeds when all six "risky claims" at the top have a green test demo
 ## Graduation path (NOT part of this plan)
 
 When the spike proves out, production adoption means:
+
 - Move `types/ids/collector/tracer/logger/layer` into `@zerospin/core` (or keep `@zerospin/logger` as a real dependency), swapping `IEitherEncoded` for the existing `Schema.EitherEncoded` + `ZerospinError` encoding in `encodeRpc`/`decodeRpc`.
 - `runBoundary` logic folds into repo RPC methods via `encodeRpc(program, collector)`; `decodeEnvelope` logic folds into `decodeRpc`.
 - LogRepo gains `spans`/`spanLinks` tables + `appendTelemetry`/`getTrace` (requires making `migrateDb` idempotent/additive and running it on every DO construction — today it is bare `CREATE TABLE`, gated to run once by the `_isBootstrapped` flag).

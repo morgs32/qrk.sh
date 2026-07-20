@@ -55,4 +55,3 @@ The abstraction must earn its existence through multiple concrete call sites. It
 1. The final grill must decide the package and exact public name only after the frontend package's emitted artifacts show where the transport runtime actually belongs.
 2. The final grill must decide whether the existing `newSyncRpcSession` name survives or is replaced; compatibility aliases are not assumed.
 3. The final grill must inspect whether Cap’n Web's current type surface can express the transformation without a cast before approving implementation.
-

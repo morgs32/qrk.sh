@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 import {
   buildTraceTree,
@@ -8,19 +8,19 @@ import {
   type ISpanLinkRecord,
   type ISpanRecord,
   type ITraceId,
-} from "@zerospin/logger";
-import { useSearchParams } from "react-router";
-import { useStore } from "zustand/react";
+} from '@zerospin/logger';
+import { useSearchParams } from 'react-router';
+import { useStore } from 'zustand/react';
 
-import { useSessionOrThrow } from "../useSession";
+import { useSessionOrThrow } from '../useSession';
 
-import { SessionsLogsSpanNode } from "./SessionsLogsSpanNode";
+import { SessionsLogsSpanNode } from './SessionsLogsSpanNode';
 
 export function SessionsLogsRoute() {
   const session = useSessionOrThrow();
-  const telemetry = useStore(session.store, (state) => state.telemetry);
+  const telemetry = useStore(session.store, state => state.telemetry);
   const [searchParams, setSearchParams] = useSearchParams();
-  const requestedTraceId = searchParams.get("traceId");
+  const requestedTraceId = searchParams.get('traceId');
   const [selectedSpanId, setSelectedSpanId] = useState<ISpanId | null>(null);
 
   const spansByTraceId = new Map<ITraceId, ISpanRecord[]>();
@@ -216,34 +216,34 @@ export function SessionsLogsRoute() {
   return (
     <div
       style={{
-        display: "flex",
+        display: 'flex',
         flex: 1,
         minHeight: 0,
-        backgroundColor: "#ffffff",
+        backgroundColor: '#ffffff',
       }}
     >
       <aside
         aria-label="Browser traces"
         style={{
-          display: "flex",
-          flexDirection: "column",
+          display: 'flex',
+          flexDirection: 'column',
           width: 300,
           minWidth: 220,
-          borderRight: "1px solid #e5e7eb",
-          backgroundColor: "#f9fafb",
+          borderRight: '1px solid #e5e7eb',
+          backgroundColor: '#f9fafb',
         }}
       >
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             gap: 8,
-            padding: "8px 10px",
-            borderBottom: "1px solid #e5e7eb",
+            padding: '8px 10px',
+            borderBottom: '1px solid #e5e7eb',
           }}
         >
-          <strong style={{ color: "#111827", fontSize: 12 }}>
+          <strong style={{ color: '#111827', fontSize: 12 }}>
             Traces ({sortedTraceRows.length})
           </strong>
           <button
@@ -257,13 +257,13 @@ export function SessionsLogsRoute() {
               setSearchParams({});
             }}
             style={{
-              padding: "3px 7px",
-              border: "1px solid #d1d5db",
+              padding: '3px 7px',
+              border: '1px solid #d1d5db',
               borderRadius: 4,
-              backgroundColor: "#ffffff",
-              color: "#374151",
-              cursor: "pointer",
-              fontFamily: "inherit",
+              backgroundColor: '#ffffff',
+              color: '#374151',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
               fontSize: 10,
             }}
           >
@@ -271,13 +271,13 @@ export function SessionsLogsRoute() {
           </button>
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           {sortedTraceRows.length === 0 ? (
-            <div style={{ padding: 12, color: "#6b7280", fontSize: 11 }}>
+            <div style={{ padding: 12, color: '#6b7280', fontSize: 11 }}>
               No scoped traces.
             </div>
           ) : (
-            sortedTraceRows.map((row) => (
+            sortedTraceRows.map(row => (
               <button
                 key={row.traceId}
                 type="button"
@@ -287,25 +287,27 @@ export function SessionsLogsRoute() {
                   setSearchParams({ traceId: row.traceId });
                 }}
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
+                  display: 'flex',
+                  flexDirection: 'column',
                   gap: 3,
-                  width: "100%",
-                  padding: "8px 10px",
-                  border: "none",
-                  borderBottom: "1px solid #e5e7eb",
+                  width: '100%',
+                  padding: '8px 10px',
+                  border: 'none',
+                  borderBottom: '1px solid #e5e7eb',
                   backgroundColor:
-                    displayedTraceId === row.traceId ? "#dbeafe" : "transparent",
-                  color: "#111827",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  textAlign: "left",
+                    displayedTraceId === row.traceId
+                      ? '#dbeafe'
+                      : 'transparent',
+                  color: '#111827',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  textAlign: 'left',
                 }}
               >
                 <code style={{ fontSize: 10 }}>{row.traceId}</code>
-                <span style={{ color: "#6b7280", fontSize: 10 }}>
+                <span style={{ color: '#6b7280', fontSize: 10 }}>
                   {row.timestamp === null
-                    ? "No local timing"
+                    ? 'No local timing'
                     : new Date(row.timestamp).toISOString()}
                 </span>
               </button>
@@ -316,11 +318,11 @@ export function SessionsLogsRoute() {
 
       <main
         style={{
-          display: "flex",
+          display: 'flex',
           flex: 1,
           minWidth: 0,
           minHeight: 0,
-          overflow: "hidden",
+          overflow: 'hidden',
         }}
       >
         {displayedTraceId === null ? (
@@ -328,11 +330,11 @@ export function SessionsLogsRoute() {
             style={{
               flex: 1,
               minWidth: 0,
-              overflow: "auto",
+              overflow: 'auto',
               padding: 12,
             }}
           >
-            <div style={{ color: "#6b7280", fontSize: 12 }}>
+            <div style={{ color: '#6b7280', fontSize: 12 }}>
               No scoped trace selected.
             </div>
 
@@ -340,25 +342,25 @@ export function SessionsLogsRoute() {
               <section data-testid="unscoped-logs" style={{ marginTop: 14 }}>
                 <h3
                   style={{
-                    margin: "0 0 6px",
-                    color: "#111827",
+                    margin: '0 0 6px',
+                    color: '#111827',
                     fontSize: 12,
                   }}
                 >
                   Unscoped
                 </h3>
-                {sortedUnscopedLogs.map((log) => (
+                {sortedUnscopedLogs.map(log => (
                   <pre
                     key={log.logId}
                     data-testid={`unscoped-log-${log.logId}`}
                     style={{
-                      margin: "6px 0 0",
+                      margin: '6px 0 0',
                       padding: 8,
-                      overflow: "auto",
-                      border: "1px solid #e5e7eb",
+                      overflow: 'auto',
+                      border: '1px solid #e5e7eb',
                       borderRadius: 4,
-                      backgroundColor: "#f9fafb",
-                      color: "#374151",
+                      backgroundColor: '#f9fafb',
+                      color: '#374151',
                       fontSize: 10,
                     }}
                   >
@@ -372,7 +374,7 @@ export function SessionsLogsRoute() {
           <section
             data-testid="selected-trace"
             style={{
-              display: "flex",
+              display: 'flex',
               flex: 1,
               minWidth: 0,
               minHeight: 0,
@@ -386,14 +388,14 @@ export function SessionsLogsRoute() {
                 flex: 1,
                 minWidth: 0,
                 minHeight: 0,
-                overflow: "auto",
+                overflow: 'auto',
                 padding: 12,
               }}
             >
               <h2
                 style={{
-                  margin: "0 0 10px",
-                  color: "#111827",
+                  margin: '0 0 10px',
+                  color: '#111827',
                   fontSize: 13,
                 }}
               >
@@ -401,7 +403,7 @@ export function SessionsLogsRoute() {
               </h2>
 
               {traceTree.length === 0 ? (
-                <div style={{ color: "#6b7280", fontSize: 11 }}>
+                <div style={{ color: '#6b7280', fontSize: 11 }}>
                   No local spans.
                 </div>
               ) : (
@@ -409,32 +411,32 @@ export function SessionsLogsRoute() {
                   data-testid="span-waterfall"
                   style={{
                     minWidth: 560,
-                    overflow: "hidden",
-                    border: "1px solid #e5e7eb",
+                    overflow: 'hidden',
+                    border: '1px solid #e5e7eb',
                     borderRadius: 4,
                   }}
                 >
                   <div
                     aria-hidden="true"
                     style={{
-                      display: "grid",
+                      display: 'grid',
                       gridTemplateColumns:
-                        "minmax(180px, 320px) minmax(260px, 1fr)",
-                      alignItems: "center",
+                        'minmax(180px, 320px) minmax(260px, 1fr)',
+                      alignItems: 'center',
                       minHeight: 25,
-                      borderBottom: "1px solid #e5e7eb",
-                      backgroundColor: "#f9fafb",
-                      color: "#6b7280",
+                      borderBottom: '1px solid #e5e7eb',
+                      backgroundColor: '#f9fafb',
+                      color: '#6b7280',
                       fontSize: 9,
                     }}
                   >
-                    <span style={{ padding: "5px 8px" }}>Span</span>
+                    <span style={{ padding: '5px 8px' }}>Span</span>
                     <span
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        padding: "5px 8px",
-                        borderLeft: "1px solid #e5e7eb",
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        padding: '5px 8px',
+                        borderLeft: '1px solid #e5e7eb',
                       }}
                     >
                       <span>0 ms</span>
@@ -442,7 +444,7 @@ export function SessionsLogsRoute() {
                     </span>
                   </div>
 
-                  {traceTree.map((root) => (
+                  {traceTree.map(root => (
                     <SessionsLogsSpanNode
                       key={root.span.spanId}
                       node={root}
@@ -464,26 +466,26 @@ export function SessionsLogsRoute() {
                 >
                   <h3
                     style={{
-                      margin: "0 0 6px",
-                      color: "#111827",
+                      margin: '0 0 6px',
+                      color: '#111827',
                       fontSize: 12,
                     }}
                   >
                     Unattached
                   </h3>
 
-                  {unattachedLogs.map((log) => (
+                  {unattachedLogs.map(log => (
                     <pre
                       key={log.logId}
                       data-testid={`unattached-log-${log.logId}`}
                       style={{
-                        margin: "6px 0 0",
+                        margin: '6px 0 0',
                         padding: 8,
-                        overflow: "auto",
-                        border: "1px solid #fed7aa",
+                        overflow: 'auto',
+                        border: '1px solid #fed7aa',
                         borderRadius: 4,
-                        backgroundColor: "#fff7ed",
-                        color: "#9a3412",
+                        backgroundColor: '#fff7ed',
+                        color: '#9a3412',
                         fontSize: 10,
                       }}
                     >
@@ -491,27 +493,27 @@ export function SessionsLogsRoute() {
                     </pre>
                   ))}
 
-                  {unattachedLinks.map((link) => (
+                  {unattachedLinks.map(link => (
                     <div
                       key={link.linkId}
                       data-testid={`unattached-link-${link.linkId}`}
                       style={{
                         marginTop: 6,
                         padding: 8,
-                        border: "1px solid #fed7aa",
+                        border: '1px solid #fed7aa',
                         borderRadius: 4,
-                        backgroundColor: "#fff7ed",
+                        backgroundColor: '#fff7ed',
                       }}
                     >
                       <div
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
                           gap: 8,
                         }}
                       >
-                        <strong style={{ color: "#9a3412", fontSize: 11 }}>
+                        <strong style={{ color: '#9a3412', fontSize: 11 }}>
                           Server link without browser span
                         </strong>
                         <button
@@ -521,13 +523,13 @@ export function SessionsLogsRoute() {
                             void navigator.clipboard.writeText(link.traceId);
                           }}
                           style={{
-                            padding: "3px 7px",
-                            border: "1px solid #fdba74",
+                            padding: '3px 7px',
+                            border: '1px solid #fdba74',
                             borderRadius: 4,
-                            backgroundColor: "#ffffff",
-                            color: "#9a3412",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
+                            backgroundColor: '#ffffff',
+                            color: '#9a3412',
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
                             fontSize: 10,
                           }}
                         >
@@ -536,9 +538,9 @@ export function SessionsLogsRoute() {
                       </div>
                       <pre
                         style={{
-                          margin: "6px 0 0",
-                          overflow: "auto",
-                          color: "#9a3412",
+                          margin: '6px 0 0',
+                          overflow: 'auto',
+                          color: '#9a3412',
                           fontSize: 10,
                         }}
                       >
@@ -553,25 +555,25 @@ export function SessionsLogsRoute() {
                 <section data-testid="unscoped-logs" style={{ marginTop: 14 }}>
                   <h3
                     style={{
-                      margin: "0 0 6px",
-                      color: "#111827",
+                      margin: '0 0 6px',
+                      color: '#111827',
                       fontSize: 12,
                     }}
                   >
                     Unscoped
                   </h3>
-                  {sortedUnscopedLogs.map((log) => (
+                  {sortedUnscopedLogs.map(log => (
                     <pre
                       key={log.logId}
                       data-testid={`unscoped-log-${log.logId}`}
                       style={{
-                        margin: "6px 0 0",
+                        margin: '6px 0 0',
                         padding: 8,
-                        overflow: "auto",
-                        border: "1px solid #e5e7eb",
+                        overflow: 'auto',
+                        border: '1px solid #e5e7eb',
                         borderRadius: 4,
-                        backgroundColor: "#f9fafb",
-                        color: "#374151",
+                        backgroundColor: '#f9fafb',
+                        color: '#374151',
                         fontSize: 10,
                       }}
                     >
@@ -590,10 +592,10 @@ export function SessionsLogsRoute() {
                   width: 380,
                   flexShrink: 0,
                   minHeight: 0,
-                  overflow: "auto",
+                  overflow: 'auto',
                   padding: 14,
-                  borderLeft: "1px solid #e5e7eb",
-                  backgroundColor: "#f9fafb",
+                  borderLeft: '1px solid #e5e7eb',
+                  backgroundColor: '#f9fafb',
                 }}
               >
                 {/* 9 — Span identity and timing stay compact above the main
@@ -601,7 +603,7 @@ export function SessionsLogsRoute() {
                 <h2
                   style={{
                     margin: 0,
-                    color: "#111827",
+                    color: '#111827',
                     fontSize: 15,
                   }}
                 >
@@ -609,25 +611,25 @@ export function SessionsLogsRoute() {
                 </h2>
                 <dl
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "72px minmax(0, 1fr)",
-                    gap: "5px 8px",
-                    margin: "10px 0 0",
+                    display: 'grid',
+                    gridTemplateColumns: '72px minmax(0, 1fr)',
+                    gap: '5px 8px',
+                    margin: '10px 0 0',
                     fontSize: 10,
                   }}
                 >
-                  <dt style={{ color: "#6b7280" }}>Span ID</dt>
-                  <dd style={{ minWidth: 0, margin: 0, overflow: "auto" }}>
+                  <dt style={{ color: '#6b7280' }}>Span ID</dt>
+                  <dd style={{ minWidth: 0, margin: 0, overflow: 'auto' }}>
                     <code>{displayedSpan.spanId}</code>
                   </dd>
-                  <dt style={{ color: "#6b7280" }}>Status</dt>
+                  <dt style={{ color: '#6b7280' }}>Status</dt>
                   <dd style={{ margin: 0 }}>{displayedSpan.status}</dd>
-                  <dt style={{ color: "#6b7280" }}>Duration</dt>
+                  <dt style={{ color: '#6b7280' }}>Duration</dt>
                   <dd style={{ margin: 0 }}>
                     {Math.max(
                       displayedSpan.endedAt - displayedSpan.startedAt,
                       0,
-                    )} {" "}
+                    )}{' '}
                     ms
                   </dd>
                 </dl>
@@ -635,15 +637,15 @@ export function SessionsLogsRoute() {
                 <section style={{ marginTop: 16 }}>
                   <h3
                     style={{
-                      margin: "0 0 6px",
-                      color: "#111827",
+                      margin: '0 0 6px',
+                      color: '#111827',
                       fontSize: 12,
                     }}
                   >
                     Attributes
                   </h3>
                   {displayedSpan.attributes === null ? (
-                    <div style={{ color: "#6b7280", fontSize: 10 }}>
+                    <div style={{ color: '#6b7280', fontSize: 10 }}>
                       No attributes.
                     </div>
                   ) : (
@@ -652,14 +654,14 @@ export function SessionsLogsRoute() {
                       style={{
                         margin: 0,
                         padding: 8,
-                        overflow: "auto",
-                        border: "1px solid #e5e7eb",
+                        overflow: 'auto',
+                        border: '1px solid #e5e7eb',
                         borderRadius: 4,
-                        backgroundColor: "#ffffff",
-                        color: "#374151",
+                        backgroundColor: '#ffffff',
+                        color: '#374151',
                         fontSize: 10,
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-word",
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
                       }}
                     >
                       {JSON.stringify(displayedSpan.attributes, null, 2)}
@@ -674,25 +676,25 @@ export function SessionsLogsRoute() {
                   <section style={{ marginTop: 16 }}>
                     <h3
                       style={{
-                        margin: "0 0 6px",
-                        color: "#111827",
+                        margin: '0 0 6px',
+                        color: '#111827',
                         fontSize: 12,
                       }}
                     >
                       Logs
                     </h3>
-                    {displayedSpanLogs.map((log) => (
+                    {displayedSpanLogs.map(log => (
                       <pre
                         key={log.logId}
                         data-testid={`span-log-${log.logId}`}
                         style={{
-                          margin: "6px 0 0",
+                          margin: '6px 0 0',
                           padding: 8,
-                          overflow: "auto",
-                          border: "1px solid #e5e7eb",
+                          overflow: 'auto',
+                          border: '1px solid #e5e7eb',
                           borderRadius: 4,
-                          backgroundColor: "#ffffff",
-                          color: "#374151",
+                          backgroundColor: '#ffffff',
+                          color: '#374151',
                           fontSize: 10,
                         }}
                       >
@@ -702,27 +704,27 @@ export function SessionsLogsRoute() {
                   </section>
                 )}
 
-                {displayedSpanLinks.map((link) => (
+                {displayedSpanLinks.map(link => (
                   <div
                     key={link.linkId}
                     data-testid={`attached-link-${link.linkId}`}
                     style={{
                       marginTop: 16,
                       padding: 8,
-                      border: "1px solid #bfdbfe",
+                      border: '1px solid #bfdbfe',
                       borderRadius: 4,
-                      backgroundColor: "#eff6ff",
+                      backgroundColor: '#eff6ff',
                     }}
                   >
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                         gap: 8,
                       }}
                     >
-                      <strong style={{ color: "#1e3a8a", fontSize: 11 }}>
+                      <strong style={{ color: '#1e3a8a', fontSize: 11 }}>
                         Server link
                       </strong>
                       <button
@@ -732,13 +734,13 @@ export function SessionsLogsRoute() {
                           void navigator.clipboard.writeText(link.traceId);
                         }}
                         style={{
-                          padding: "3px 7px",
-                          border: "1px solid #93c5fd",
+                          padding: '3px 7px',
+                          border: '1px solid #93c5fd',
                           borderRadius: 4,
-                          backgroundColor: "#ffffff",
-                          color: "#1d4ed8",
-                          cursor: "pointer",
-                          fontFamily: "inherit",
+                          backgroundColor: '#ffffff',
+                          color: '#1d4ed8',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
                           fontSize: 10,
                         }}
                       >
@@ -747,9 +749,9 @@ export function SessionsLogsRoute() {
                     </div>
                     <pre
                       style={{
-                        margin: "6px 0 0",
-                        overflow: "auto",
-                        color: "#1e3a8a",
+                        margin: '6px 0 0',
+                        overflow: 'auto',
+                        color: '#1e3a8a',
                         fontSize: 10,
                       }}
                     >

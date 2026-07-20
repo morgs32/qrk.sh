@@ -104,18 +104,18 @@ export const addToCart = makeContract({
     quantity: primitives.integer(),
   },
   mutations: Schema.Struct({
-    cartItem: CartItem.createMutation('1.0.0'),
     product: Product.replicateResourceMutation('1.0.0'),
+    cartItem: CartItem.createMutation('1.0.0'),
   }),
   program: ({ payload }) => {
     const { id, cartId, product, quantity } = payload;
     return Effect.all({
+      product: Product.replicateResource('1.0.0', {
+        resource: product,
+      }),
       cartItem: CartItem.create('1.0.0', {
         resourceId: id,
         attributes: { cartId, productId: product.id, quantity },
-      }),
-      product: Product.replicateResource('1.0.0', {
-        resource: product,
       }),
     });
   },

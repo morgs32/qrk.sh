@@ -108,9 +108,25 @@ const selections = {
   user: makeSelection({ model: User }),
 };
 
-makeActorController({
+const versionedActorController = makeActorController({
   name: 'main',
   version: '1.0.0',
+  models: { list: List, user: User },
+  selections,
+  frontends: {
+    main: {
+      frontendController: frontend,
+      authenticate,
+    },
+  },
+});
+
+const actorControllerVersion: '1.0.0' = versionedActorController.version;
+void actorControllerVersion;
+
+// @ts-expect-error — version is required at the factory call site
+makeActorController({
+  name: 'main',
   models: { list: List, user: User },
   selections,
   frontends: {

@@ -103,11 +103,11 @@
    10. Preserve existing production bootstrap, online/offline, manual trace, live-query, and frontend-program assertions rather than weakening them to accommodate the migration.
 
 10. Synchronize architecture documentation and remove stale ownership descriptions.
-   1. Use the repository `update-architecture` workflow to update `wiki/architecture/bootstrapBrowserSession.md` after the source changes.
-   2. Document session-owned signature generation, provider-owned automatic push queue, browser-session successful-staging notification, DevTools capability registration, and the mock provider's local-only database lifecycle.
-   3. Update the architecture flow, trigger, annotated steps, callers, source paths, line ranges, source hashes, and wiki log entry according to the repository wiki rules.
-   4. Search wiki, patterns, comments, and tests for claims that core `makeSession` owns `pushQueue`, exposes `pushStagedCommands`, or receives signature generation separately from the session; update only directly stale references.
-   5. Do not add a new LLM-wiki pattern unless implementation reveals a reusable rule beyond this approved design.
+11. Use the repository `update-architecture` workflow to update `wiki/architecture/bootstrapBrowserSession.md` after the source changes.
+12. Document session-owned signature generation, provider-owned automatic push queue, browser-session successful-staging notification, DevTools capability registration, and the mock provider's local-only database lifecycle.
+13. Update the architecture flow, trigger, annotated steps, callers, source paths, line ranges, source hashes, and wiki log entry according to the repository wiki rules.
+14. Search wiki, patterns, comments, and tests for claims that core `makeSession` owns `pushQueue`, exposes `pushStagedCommands`, or receives signature generation separately from the session; update only directly stale references.
+15. Do not add a new LLM-wiki pattern unless implementation reveals a reusable rule beyond this approved design.
 
 ## Testing and Verification
 

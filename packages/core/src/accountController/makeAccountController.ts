@@ -193,21 +193,24 @@ export function makeAccountController<
       : ITypeError<`Bad actorController "${K}". The key in actorControllers should match actorController.name`>;
   };
   models: MODELS &
-    IAssertValidModels<MODELS> &
-    (keyof IMergedActorControllerModels<ACTOR_CONTROLLERS> extends keyof MODELS
-      ? IMergedActorControllerModels<ACTOR_CONTROLLERS> extends Pick<
-          MODELS,
-          keyof IMergedActorControllerModels<ACTOR_CONTROLLERS> & keyof MODELS
-        >
-        ? Pick<
-            MODELS,
-            keyof IMergedActorControllerModels<ACTOR_CONTROLLERS> & keyof MODELS
-          > extends IMergedActorControllerModels<ACTOR_CONTROLLERS>
-          ? MODELS
-          : ITypeError<'Account models must include every exact actor model'>
-        : ITypeError<'Account models must include every exact actor model'>
-      : ITypeError<'Account models must include every exact actor model'>) &
-    AssertModelConsistency<MODELS, ACTOR_CONTROLLERS>;
+    (IAssertValidModels<MODELS> extends MODELS
+      ? (keyof IMergedActorControllerModels<ACTOR_CONTROLLERS> extends keyof MODELS
+          ? IMergedActorControllerModels<ACTOR_CONTROLLERS> extends Pick<
+              MODELS,
+              keyof IMergedActorControllerModels<ACTOR_CONTROLLERS> &
+                keyof MODELS
+            >
+            ? Pick<
+                MODELS,
+                keyof IMergedActorControllerModels<ACTOR_CONTROLLERS> &
+                  keyof MODELS
+              > extends IMergedActorControllerModels<ACTOR_CONTROLLERS>
+              ? MODELS
+              : ITypeError<'Account models must include every exact actor model'>
+            : ITypeError<'Account models must include every exact actor model'>
+          : ITypeError<'Account models must include every exact actor model'>) &
+          AssertModelConsistency<MODELS, ACTOR_CONTROLLERS>
+      : IAssertValidModels<MODELS>);
   contracts: CONTRACTS &
     AccountContractsExtendActors<
       CONTRACTS,

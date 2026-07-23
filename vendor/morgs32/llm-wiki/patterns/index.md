@@ -50,61 +50,63 @@ See [README.md](./README.md) for format.
 | File                                               | Description |
 | -------------------------------------------------- | ----------- |
 | `functions/avoid-wrapped-yield-casts.ts`           | /\*\*       |
-| `functions/destructure-props-immediately.ts`       | /\*\*       |
+| `functions/destructure-props-immediately.ts`       | `props` arg then first-line `const { … } = props`; not parameter destructuring |
 | `functions/effect-fn-one-props-object.ts`          | /\*\*       |
 | `functions/entrypoint-export-only.ts`              | /\*\*       |
 | `functions/inline-effect-before-yield.ts`          | /\*\*       |
 | `functions/inline-one-off-props-types.ts`          | /\*\*       |
 | `functions/make-normalize-optional-collections.ts` | /\*\*       |
 | `functions/mapvalues-not-from-entries.ts`          | /\*\*       |
+| `functions/no-export-single-use-bindings.ts`       | Do not export a binding used only in the same module — inline it |
 | `functions/no-one-off-export-aliases.ts`           | /\*\*       |
 | `functions/separate-helpers-not-overloads.ts`      | /\*\*       |
 
 ## naming
 
-| File                                         | Description |
-| -------------------------------------------- | ----------- |
-| `naming/avoid-abbreviations.ts`              | /\*\*       |
-| `naming/dynamic-module-reads.ts`             | /\*\*       |
-| `naming/generic-type-parameters-all-caps.ts` | /\*\*       |
-| `naming/monorepo-cross-package-imports.ts`   | /\*\*       |
+| File                                         | Description                                                     |
+| -------------------------------------------- | --------------------------------------------------------------- |
+| `naming/avoid-abbreviations.ts`              | /\*\*                                                           |
+| `naming/dynamic-module-reads.ts`             | /\*\*                                                           |
+| `naming/generic-type-parameters-all-caps.ts` | /\*\*                                                           |
+| `naming/monorepo-cross-package-imports.ts`   | /\*\*                                                           |
 | `naming/no-re-exports-outside-barrels.ts`    | Import from the defining module; do not re-export from features |
-| `naming/package-barrels-index-ts.ts`         | Keep package aggregation in `index.ts` barrels                 |
-| `naming/relative-paths-with-extensions.ts`   | /\*\*       |
-| `naming/repo-table-shapes-inline.ts`         | /\*\*       |
-| `naming/type-aliases-use-i-prefix.ts`        | Prefix named type aliases with `I`                             |
-| `naming/types-live-in-types-ts.ts`           | /\*\*       |
+| `naming/package-barrels-index-ts.ts`         | Keep package aggregation in `index.ts` barrels                  |
+| `naming/relative-paths-with-extensions.ts`   | /\*\*                                                           |
+| `naming/repo-table-shapes-inline.ts`         | /\*\*                                                           |
+| `naming/type-aliases-use-i-prefix.ts`        | Prefix named type aliases with `I`                              |
+| `naming/types-live-in-types-ts.ts`           | /\*\*                                                           |
 
 ## nextjs
 
-| File                                            | Description |
-| ----------------------------------------------- | ----------- |
-| `nextjs/cached-loader-name-mirrors-rpc.ts`      | Name cached loaders after their RPC method       |
-| `nextjs/cached-loaders-one-per-file.ts`         | Keep one cached loader in each file              |
+| File                                            | Description                                       |
+| ----------------------------------------------- | ------------------------------------------------- |
+| `nextjs/cached-loader-name-mirrors-rpc.ts`      | Name cached loaders after their RPC method        |
+| `nextjs/cached-loaders-one-per-file.ts`         | Keep one cached loader in each file               |
 | `nextjs/either-in-shared-cached-loaders.ts`     | Let each RSC consumer choose how to unwrap Either |
-| `nextjs/inline-validate-params-sync.ts`         | /\*\*       |
-| `nextjs/redirect-notfound-outside-effect.ts`    | /\*\*       |
-| `nextjs/route-params-auth-in-default-export.ts` | /\*\*       |
-| `nextjs/routepattern-for-sidebar-is-active.ts`  | /\*\*       |
-| `nextjs/rsc-loader-shell-effect-fn.ts`          | /\*\*       |
+| `nextjs/inline-validate-params-sync.ts`         | /\*\*                                             |
+| `nextjs/navigation-uses-link.ts`                | Render navigation as a Next.js Link               |
+| `nextjs/redirect-notfound-outside-effect.ts`    | /\*\*                                             |
+| `nextjs/route-params-auth-in-default-export.ts` | /\*\*                                             |
+| `nextjs/routepattern-for-sidebar-is-active.ts`  | /\*\*                                             |
+| `nextjs/rsc-loader-shell-effect-fn.ts`          | /\*\*                                             |
 | `nextjs/validated-client-route-params.ts`       | Validate `useParams` with a colocated Effect schema |
 
 ## rpc
 
-| File                                             | Description |
-| ------------------------------------------------ | ----------- |
-| `rpc/avoid-second-yield-after-promise.ts`        | /\*\*       |
-| `rpc/decode-rpc-with-flatmap.ts`                 | /\*\*       |
-| `rpc/double-encode-or-plain-repo.ts`             | Encode once at the repo boundary                  |
-| `rpc/eitherencoded-vs-decoded-at-loader-exit.ts` | /\*\*       |
-| `rpc/error-on-failure-channel-not-success.ts`    | /\*\*       |
-| `rpc/factory-map-catchall-not-encoderpc.ts`      | Map API factories to success or failure targets   |
-| `rpc/gateway-type-and-success-type.ts`           | /\*\*       |
-| `rpc/nested-worker-rpc-flatmap-decode.ts`        | /\*\*       |
-| `rpc/no-blanket-catchall-on-rpc.ts`              | /\*\*       |
-| `rpc/non-rpc-runners-return-effects.ts`          | /\*\*       |
-| `rpc/promise-either-then-get-or-throw.ts`        | Unwrap Promise Either with `then`                  |
-| `rpc/return-either-from-loaders.ts`              | /\*\*       |
+| File                                             | Description                                     |
+| ------------------------------------------------ | ----------------------------------------------- |
+| `rpc/avoid-second-yield-after-promise.ts`        | /\*\*                                           |
+| `rpc/decode-rpc-with-flatmap.ts`                 | /\*\*                                           |
+| `rpc/double-encode-or-plain-repo.ts`             | Encode once at the repo boundary                |
+| `rpc/eitherencoded-vs-decoded-at-loader-exit.ts` | /\*\*                                           |
+| `rpc/error-on-failure-channel-not-success.ts`    | /\*\*                                           |
+| `rpc/factory-map-catchall-not-encoderpc.ts`      | Map API factories to success or failure targets |
+| `rpc/gateway-type-and-success-type.ts`           | /\*\*                                           |
+| `rpc/nested-worker-rpc-flatmap-decode.ts`        | /\*\*                                           |
+| `rpc/no-blanket-catchall-on-rpc.ts`              | /\*\*                                           |
+| `rpc/non-rpc-runners-return-effects.ts`          | /\*\*                                           |
+| `rpc/promise-either-then-get-or-throw.ts`        | Unwrap Promise Either with `then`               |
+| `rpc/return-either-from-loaders.ts`              | /\*\*                                           |
 
 ## react
 
@@ -114,21 +116,21 @@ See [README.md](./README.md) for format.
 
 ## runtime
 
-| File                                            | Description |
-| ----------------------------------------------- | ----------- |
-| `runtime/access-controls-check-reject-case.ts`  | /\*\*       |
-| `runtime/api-call-worker-rpcs-not-internals.ts` | /\*\*       |
-| `runtime/dont-remap-not-found-error.ts`         | /\*\*       |
-| `runtime/effect-fn-map-thrown-causes.ts`        | Map thrown causes and preserve typed failures    |
-| `runtime/get-by-key-or-throw.ts`                | /\*\*       |
-| `runtime/get-named-controller.ts`               | /\*\*       |
-| `runtime/no-provide-layers-inside-effect-fn.ts` | /\*\*       |
-| `runtime/no-rsc-api-helper-modules.ts`          | Keep one-consumer API calls in the owning RSC    |
-| `runtime/no-thread-secrets-through-props.ts`    | /\*\*       |
-| `runtime/pretty-unknown-failure-on-cause.ts`    | /\*\*       |
-| `runtime/rpc-client-module-public-env.ts`       | /\*\*       |
-| `runtime/rpc-server-module-secret-env.ts`       | /\*\*       |
-| `runtime/shiki-use-swr-immutable.ts`            | /\*\*       |
+| File                                            | Description                                   |
+| ----------------------------------------------- | --------------------------------------------- |
+| `runtime/access-controls-check-reject-case.ts`  | /\*\*                                         |
+| `runtime/api-call-worker-rpcs-not-internals.ts` | /\*\*                                         |
+| `runtime/dont-remap-not-found-error.ts`         | /\*\*                                         |
+| `runtime/effect-fn-map-thrown-causes.ts`        | Map thrown causes and preserve typed failures |
+| `runtime/get-by-key-or-throw.ts`                | /\*\*                                         |
+| `runtime/get-named-controller.ts`               | /\*\*                                         |
+| `runtime/no-provide-layers-inside-effect-fn.ts` | /\*\*                                         |
+| `runtime/no-rsc-api-helper-modules.ts`          | Keep one-consumer API calls in the owning RSC |
+| `runtime/no-thread-secrets-through-props.ts`    | /\*\*                                         |
+| `runtime/pretty-unknown-failure-on-cause.ts`    | /\*\*                                         |
+| `runtime/rpc-client-module-public-env.ts`       | /\*\*                                         |
+| `runtime/rpc-server-module-secret-env.ts`       | /\*\*                                         |
+| `runtime/shiki-use-swr-immutable.ts`            | /\*\*                                         |
 
 ## testing
 
@@ -161,8 +163,15 @@ See [README.md](./README.md) for format.
 | `tooling/partial-row-interfaces.ts`            | /\*\*       |
 | `tooling/prisma-db-push.md`                    | tooling     |
 | `tooling/read-before-casting.ts`               | /\*\*       |
+| `tooling/story-filename-mirrors-source.ts`     | Name stories after the source file basename |
 | `tooling/table-vs-drizzle-schema-naming.ts`    | /\*\*       |
 | `tooling/tsconfig-split-for-ide.md`            | tooling     |
 | `tooling/zerospin-dev-clean-until-production.ts` | Run local Zerospin development with a detached clean generation |
 | `tooling/validate-before-insert.ts`            | /\*\*       |
 | `tooling/vitest-setup-real-dependencies.ts`    | /\*\*       |
+
+## ui
+
+| File                                          | Description                                   |
+| --------------------------------------------- | --------------------------------------------- |
+| `ui/clickable-controls-use-pointer-cursor.ts` | Give every clickable control a pointer cursor |

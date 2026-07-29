@@ -50,6 +50,26 @@
       "import": "./dist/FrontendApi/FrontendApiFailure.js",
       "default": "./dist/FrontendApi/FrontendApiFailure.js"
     },
+    "./ServiceFrontendApi": {
+      "types": "./dist/ServiceFrontendApi/ServiceFrontendApi.d.ts",
+      "import": "./dist/ServiceFrontendApi/ServiceFrontendApi.js",
+      "default": "./dist/ServiceFrontendApi/ServiceFrontendApi.js"
+    },
+    "./ServiceFrontendApi/ServiceFrontendApi": {
+      "types": "./dist/ServiceFrontendApi/ServiceFrontendApi.d.ts",
+      "import": "./dist/ServiceFrontendApi/ServiceFrontendApi.js",
+      "default": "./dist/ServiceFrontendApi/ServiceFrontendApi.js"
+    },
+    "./ServiceFrontendApiFailure": {
+      "types": "./dist/ServiceFrontendApi/ServiceFrontendApiFailure.d.ts",
+      "import": "./dist/ServiceFrontendApi/ServiceFrontendApiFailure.js",
+      "default": "./dist/ServiceFrontendApi/ServiceFrontendApiFailure.js"
+    },
+    "./ServiceFrontendApi/ServiceFrontendApiFailure": {
+      "types": "./dist/ServiceFrontendApi/ServiceFrontendApiFailure.d.ts",
+      "import": "./dist/ServiceFrontendApi/ServiceFrontendApiFailure.js",
+      "default": "./dist/ServiceFrontendApi/ServiceFrontendApiFailure.js"
+    },
     "./ZerospinApis": {
       "types": "./dist/ZerospinApis/ZerospinApis.d.ts",
       "import": "./dist/ZerospinApis/ZerospinApis.js",
@@ -169,6 +189,7 @@
     "cloudflare": "^6.1.0",
     "drizzle-orm": "1.0.0-beta.17-67b1795",
     "effect": "^3.21.4",
+    "playwright": "1.59.1",
     "system": "workspace:*",
     "system-worker": "workspace:*",
     "vitest": "^4.1.5"

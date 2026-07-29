@@ -96,7 +96,14 @@ export const bootstrap = Effect.fn('ActorRepo.bootstrap')(function* (props: {
                 return;
               }
 
-              tx.insert(model.drizzleSchema).values(resources).run();
+              // Insert one snapshot row per SQLite statement while retaining
+              // the existing model-wide transaction. A multi-row Drizzle
+              // insert binds every column for every resource at once, which
+              // exceeds workerd SQLite's variable limit for ordinary actor
+              // snapshots with enough selected resources.
+              for (const resource of resources) {
+                tx.insert(model.drizzleSchema).values(resource).run();
+              }
             },
           ),
         });
@@ -117,7 +124,18 @@ export const bootstrap = Effect.fn('ActorRepo.bootstrap')(function* (props: {
   }));
 
   if (graphRows.length > 0) {
-    db.insert(actorRepoDrizzleSchemas.graph).values(graphRows).run();
+    yield* makeTx({
+      db,
+      program: Effect.fn('ActorRepo.bootstrap.applySnapshotGraph')(
+        function* ({ tx }) {
+          // Keep graph replacement atomic without compiling the complete
+          // actor graph into one statement with an unbounded bind count.
+          for (const graphRow of graphRows) {
+            tx.insert(actorRepoDrizzleSchemas.graph).values(graphRow).run();
+          }
+        },
+      ),
+    });
   }
 
   const accountBlockRepo = yield* getAccountBlockRepo({

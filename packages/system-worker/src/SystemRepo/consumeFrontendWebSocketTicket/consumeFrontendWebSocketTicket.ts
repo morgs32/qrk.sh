@@ -28,6 +28,7 @@ export const consumeFrontendWebSocketTicket = Effect.fn(
     deployId: AnyColumn;
     expiresAt: AnyColumn;
     repoName: AnyColumn;
+    frontendVersion: AnyColumn;
   }>;
 }) {
   const {
@@ -96,6 +97,7 @@ export const consumeFrontendWebSocketTicket = Effect.fn(
     Schema.Struct({
       deployId: Schema.String,
       repoName: Schema.String,
+      frontendVersion: Schema.String,
       expiresAt: Schema.DateFromSelf,
     }),
   )(rawTicketRow).pipe(
@@ -150,7 +152,10 @@ export const consumeFrontendWebSocketTicket = Effect.fn(
             eq(frontendWebSocketTicketColumns.expiresAt, ticketRow.expiresAt),
           ),
         )
-        .returning({ repoName: frontendWebSocketTicketColumns.repoName })
+        .returning({
+          repoName: frontendWebSocketTicketColumns.repoName,
+          frontendVersion: frontendWebSocketTicketColumns.frontendVersion,
+        })
         .get(),
     catch: ZerospinError.catch({
       code: 'frontend-websocket-ticket-consume-failed',
@@ -165,7 +170,10 @@ export const consumeFrontendWebSocketTicket = Effect.fn(
     });
   }
   const decodedDeletedTicketRow = yield* Schema.decodeUnknown(
-    Schema.Struct({ repoName: Schema.String }),
+    Schema.Struct({
+      repoName: Schema.String,
+      frontendVersion: Schema.String,
+    }),
   )(deletedTicketRow).pipe(
     mapParseError({
       code: 'frontend-websocket-ticket-consume-result-invalid',
@@ -173,7 +181,10 @@ export const consumeFrontendWebSocketTicket = Effect.fn(
       extra: { generationId },
     }),
   );
-  if (decodedDeletedTicketRow.repoName !== ticketRow.repoName) {
+  if (
+    decodedDeletedTicketRow.repoName !== ticketRow.repoName ||
+    decodedDeletedTicketRow.frontendVersion !== ticketRow.frontendVersion
+  ) {
     return yield* new ZerospinError({
       code: 'frontend-websocket-ticket-consume-target-mismatch',
       message: 'Consumed frontend WebSocket ticket target does not match',
@@ -181,5 +192,5 @@ export const consumeFrontendWebSocketTicket = Effect.fn(
     });
   }
 
-  return decodedDeletedTicketRow.repoName;
+  return decodedDeletedTicketRow;
 });

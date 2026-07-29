@@ -164,11 +164,11 @@ describe('makeMockProvider', () => {
           data-generation-id={state.generationId}
           data-session-id={session.sessionId}
           data-shared-worker={String(
-            session.browserUserController.isSharedWorkerEnabled,
+            session.browserPartitionController.isSharedWorkerEnabled,
           )}
           data-system-version={state.systemVersion}
           data-system-worker-name={state.systemWorkerName}
-          data-user-id={session.browserUserController.userId}
+          data-partition-key={session.browserPartitionController.partitionKey}
         >
           {JSON.stringify({
             accounts: accounts.data,
@@ -182,7 +182,7 @@ describe('makeMockProvider', () => {
     act(() => {
       root.render(
         <MockMainProvider
-          userId="browser_user_1"
+          partitionKey="browser_partition_1"
           accountId="acct_1"
           actorId="actr_1"
           generationId="gen_1"
@@ -236,7 +236,9 @@ describe('makeMockProvider', () => {
     expect(output?.getAttribute('data-shared-worker')).toBe('false');
     expect(output?.getAttribute('data-system-version')).toBe('1.0.0');
     expect(output?.getAttribute('data-system-worker-name')).toBe('worker_1');
-    expect(output?.getAttribute('data-user-id')).toBe('browser_user_1');
+    expect(output?.getAttribute('data-partition-key')).toBe(
+      'browser_partition_1',
+    );
     expect(output?.textContent).toContain('User 1');
     expect(output?.textContent).toContain('List 1');
     expect(output?.textContent).toContain('"items":[]');
@@ -283,7 +285,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          userId="browser_user_1"
+          partitionKey="browser_partition_1"
           accountId="acct_1"
           actorId="actr_1"
           generationId="gen_1"
@@ -298,6 +300,7 @@ describe('makeMockProvider', () => {
 
     await vi.waitFor(
       () => {
+        expect(uncaughtErrors).toEqual([]);
         expect(
           container.querySelector('[data-testid="empty-models"]')?.textContent,
         ).toBe('{"accountCount":0,"itemCount":0,"listCount":0,"userCount":0}');
@@ -322,7 +325,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockJsonFixtureProvider
-          userId="browser_user_1"
+          partitionKey="browser_partition_1"
           accountId="acct_1"
           actorId="actr_1"
           generationId="gen_1"
@@ -349,11 +352,15 @@ describe('makeMockProvider', () => {
       await Promise.resolve();
     });
 
-    await vi.waitFor(() => {
-      expect(
-        container.querySelector('[data-testid="json-fixture"]')?.textContent,
-      ).toBe('{"label":"Decoded JSON fixture"}');
-    });
+    await vi.waitFor(
+      () => {
+        expect(uncaughtErrors).toEqual([]);
+        expect(
+          container.querySelector('[data-testid="json-fixture"]')?.textContent,
+        ).toBe('{"label":"Decoded JSON fixture"}');
+      },
+      { timeout: 10_000 },
+    );
   });
 
   it('runs real optimistic staging, writes lifecycle rows, and invalidates a live query without RPC or push', async () => {
@@ -419,7 +426,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          userId="browser_user_1"
+          partitionKey="browser_partition_1"
           accountId="acct_1"
           actorId="actr_1"
           generationId="gen_1"
@@ -475,7 +482,9 @@ describe('makeMockProvider', () => {
           data-testid="identity"
           data-account-id={state.accountId}
           data-actor-id={state.actorId}
-          data-browser-user-id={session.browserUserController.userId}
+          data-browser-partition-key={
+            session.browserPartitionController.partitionKey
+          }
           data-generation-id={state.generationId}
           data-system-version={state.systemVersion}
           data-system-worker-name={state.systemWorkerName}
@@ -488,7 +497,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          userId="browser_user_1"
+          partitionKey="browser_partition_1"
           accountId="acct_1"
           actorId="actr_1"
           generationId="gen_1"
@@ -526,7 +535,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          userId="browser_user_2"
+          partitionKey="browser_partition_2"
           accountId="acct_2"
           actorId="actr_2"
           generationId="gen_2"
@@ -555,8 +564,8 @@ describe('makeMockProvider', () => {
     const unchangedOutput = container.querySelector('[data-testid="identity"]');
     expect(unchangedOutput?.getAttribute('data-account-id')).toBe('acct_1');
     expect(unchangedOutput?.getAttribute('data-actor-id')).toBe('actr_1');
-    expect(unchangedOutput?.getAttribute('data-browser-user-id')).toBe(
-      'browser_user_1',
+    expect(unchangedOutput?.getAttribute('data-browser-partition-key')).toBe(
+      'browser_partition_1',
     );
     expect(unchangedOutput?.getAttribute('data-generation-id')).toBe('gen_1');
     expect(unchangedOutput?.getAttribute('data-system-version')).toBe('1.0.0');
@@ -570,7 +579,7 @@ describe('makeMockProvider', () => {
       root.render(
         <MockMainProvider
           key="reset"
-          userId="browser_user_2"
+          partitionKey="browser_partition_2"
           accountId="acct_2"
           actorId="actr_2"
           generationId="gen_2"
@@ -601,8 +610,8 @@ describe('makeMockProvider', () => {
         const resetOutput = container.querySelector('[data-testid="identity"]');
         expect(resetOutput?.getAttribute('data-account-id')).toBe('acct_2');
         expect(resetOutput?.getAttribute('data-actor-id')).toBe('actr_2');
-        expect(resetOutput?.getAttribute('data-browser-user-id')).toBe(
-          'browser_user_2',
+        expect(resetOutput?.getAttribute('data-browser-partition-key')).toBe(
+          'browser_partition_2',
         );
         expect(resetOutput?.getAttribute('data-generation-id')).toBe('gen_2');
         expect(resetOutput?.getAttribute('data-system-version')).toBe('2.0.0');
@@ -662,7 +671,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          userId="browser_user_1"
+          partitionKey="browser_partition_1"
           accountId="acct_1"
           actorId="actr_1"
           generationId="gen_1"
@@ -690,7 +699,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          userId="browser_user_1"
+          partitionKey="browser_partition_1"
           accountId="acct_1"
           actorId="actr_1"
           generationId="gen_1"
@@ -750,7 +759,7 @@ describe('makeMockProvider', () => {
     act(() => {
       root.render(
         <MockMainProvider
-          userId="browser_user_1"
+          partitionKey="browser_partition_1"
           accountId="acct_1"
           actorId="actr_1"
           generationId="gen_1"

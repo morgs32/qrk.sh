@@ -13,7 +13,7 @@ const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
 
 MockMainProvider({
   children: null,
-  userId: 'user_1',
+  partitionKey: 'partition_1',
   accountId: 'acct_1',
   actorId: 'actr_1',
   generationId: 'gen_1',
@@ -47,7 +47,7 @@ MockMainProvider({
 
 MockMainProvider({
   children: null,
-  userId: 'user_1',
+  partitionKey: 'partition_1',
   accountId: 'acct_1',
   actorId: 'actr_1',
   generationId: 'gen_1',
@@ -57,7 +57,7 @@ MockMainProvider({
 
 MockMainProvider({
   children: null,
-  userId: 'user_1',
+  partitionKey: 'partition_1',
   accountId: 'acct_1',
   actorId: 'actr_1',
   generationId: 'gen_1',
@@ -71,7 +71,7 @@ MockMainProvider({
 
 MockMainProvider({
   children: null,
-  userId: 'user_1',
+  partitionKey: 'partition_1',
   accountId: 'acct_1',
   actorId: 'actr_1',
   generationId: 'gen_1',
@@ -96,7 +96,7 @@ MockMainProvider({
 // @ts-expect-error accountId is required for initialized mock session state.
 MockMainProvider({
   children: null,
-  userId: 'user_1',
+  partitionKey: 'partition_1',
   actorId: 'actr_1',
   generationId: 'gen_1',
   systemVersion: '1.0.0',
@@ -106,7 +106,7 @@ MockMainProvider({
 // @ts-expect-error systemWorkerName is required runtime identity.
 MockMainProvider({
   children: null,
-  userId: 'user_1',
+  partitionKey: 'partition_1',
   accountId: 'acct_1',
   actorId: 'actr_1',
   generationId: 'gen_1',

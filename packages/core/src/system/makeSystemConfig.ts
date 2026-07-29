@@ -11,6 +11,9 @@ export function makeSystemConfig(props: {
     entry,
     environmentId: environmentId ?? 'dev',
     env: env ?? null,
-    seeds: seeds ?? null,
+    seeds: seeds ?? {
+      dev: null,
+      production: null,
+    },
   };
 }

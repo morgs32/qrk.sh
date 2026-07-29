@@ -17,8 +17,8 @@ import { Effect, Layer, ManagedRuntime, Queue, Redacted } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { makeBrowserPartitionController } from './makeBrowserPartitionController';
 import { makeBrowserSession } from './makeBrowserSession';
-import { makeBrowserUserController } from './makeBrowserUserController';
 import type { IBrowserSession } from './types';
 import { usePushQueue } from './usePushQueue';
 
@@ -86,10 +86,10 @@ function HookProbe<FRONTEND extends IFrontendController>(props: {
 
 async function makeInitializedBrowserSession(props: {
   sessionId: ISessionId;
-  userId: string;
+  partitionKey: string;
   onCommandStaged?: () => void;
 }) {
-  const { onCommandStaged, sessionId, userId } = props;
+  const { onCommandStaged, partitionKey, sessionId } = props;
   const dbConfig = makeResourceDbConfig({
     models: mainModels,
     otherTables: sessionRepoTables,
@@ -118,7 +118,7 @@ async function makeInitializedBrowserSession(props: {
   });
   const session = makeBrowserSession({
     session: coreSession,
-    browserUserController: makeBrowserUserController(userId),
+    browserPartitionController: makeBrowserPartitionController(partitionKey),
     onCommandStaged,
   });
   session.store.setState({
@@ -179,7 +179,8 @@ describe('usePushQueue', () => {
     });
     const session = makeBrowserSession({
       session: coreSession,
-      browserUserController: makeBrowserUserController('user_paused'),
+      browserPartitionController:
+        makeBrowserPartitionController('partition_paused'),
     });
     session.store.setState({ isPushPaused: true });
     const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
@@ -211,7 +212,8 @@ describe('usePushQueue', () => {
     });
     const session = makeBrowserSession({
       session: coreSession,
-      browserUserController: makeBrowserUserController('user_resume'),
+      browserPartitionController:
+        makeBrowserPartitionController('partition_resume'),
     });
     session.store.setState({ isPushPaused: true });
     const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
@@ -246,7 +248,7 @@ describe('usePushQueue', () => {
   it('returned pushStagedCommands runs while isPushPaused is true', async () => {
     const session = await makeInitializedBrowserSession({
       sessionId: 'sesn_manual' as ISessionId,
-      userId: 'user_manual',
+      partitionKey: 'partition_manual',
     });
     session.store.setState({ isPushPaused: true });
     const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
@@ -300,7 +302,7 @@ describe('usePushQueue', () => {
   it('records and rethrows a failed manual push without enabling automatic push', async () => {
     const session = await makeInitializedBrowserSession({
       sessionId: 'sesn_manual_failure' as ISessionId,
-      userId: 'user_manual_failure',
+      partitionKey: 'partition_manual_failure',
     });
     session.store.setState({ isPushPaused: true });
     pushStagedCommandsState.shouldFail = true;
@@ -355,7 +357,8 @@ describe('usePushQueue', () => {
     });
     const session = makeBrowserSession({
       session: coreSession,
-      browserUserController: makeBrowserUserController('user_preinit'),
+      browserPartitionController:
+        makeBrowserPartitionController('partition_preinit'),
     });
     const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
     let manuallyPushStagedCommands: () => Promise<unknown> = () => {
@@ -388,7 +391,7 @@ describe('usePushQueue', () => {
     const onCommandStaged = vi.fn();
     const initializedSession = await makeInitializedBrowserSession({
       sessionId: 'sesn_stage_notification',
-      userId: 'user_stage_notification',
+      partitionKey: 'partition_stage_notification',
       onCommandStaged,
     });
 
@@ -412,7 +415,7 @@ describe('usePushQueue', () => {
     });
     const uninitializedSession = makeBrowserSession({
       session: uninitializedCoreSession,
-      browserUserController: makeBrowserUserController(
+      browserPartitionController: makeBrowserPartitionController(
         'user_failed_stage_notification',
       ),
       onCommandStaged,
@@ -441,7 +444,7 @@ describe('usePushQueue', () => {
     });
     const session = makeBrowserSession({
       session: coreSession,
-      browserUserController: makeBrowserUserController('user_1'),
+      browserPartitionController: makeBrowserPartitionController('partition_1'),
     });
     const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
 
@@ -476,7 +479,7 @@ describe('usePushQueue', () => {
     });
     const session = makeBrowserSession({
       session: coreSession,
-      browserUserController: makeBrowserUserController('user_2'),
+      browserPartitionController: makeBrowserPartitionController('partition_2'),
     });
     const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
 
@@ -511,7 +514,7 @@ describe('usePushQueue', () => {
     });
     const session = makeBrowserSession({
       session: coreSession,
-      browserUserController: makeBrowserUserController('user_3'),
+      browserPartitionController: makeBrowserPartitionController('partition_3'),
     });
     const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
 
@@ -546,7 +549,7 @@ describe('usePushQueue', () => {
     });
     const session = makeBrowserSession({
       session: coreSession,
-      browserUserController: makeBrowserUserController('user_4'),
+      browserPartitionController: makeBrowserPartitionController('partition_4'),
     });
     const pushQueue = sessionRuntime.runSync(Queue.bounded<number>(1));
 

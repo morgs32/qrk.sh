@@ -17,7 +17,10 @@ export const ZerospinConfigSchema = Schema.Struct({
     default: () => 'dev',
   }),
   env: Schema.NullOr(EnvRecord),
-  seeds: Schema.NullOr(Schema.String),
+  seeds: Schema.Struct({
+    dev: Schema.NullOr(Schema.String),
+    production: Schema.NullOr(Schema.String),
+  }),
 }) satisfies Schema.Schema<ISystemConfig, any>;
 
 export const DeployConfigSchema = Schema.Struct({

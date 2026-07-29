@@ -45,4 +45,11 @@ describe('DevTools theme configuration', () => {
 
     expect(state.settings.theme).toBe('dark');
   });
+
+  it('does not include URL-gate settings in the default settings contract', async () => {
+    const { initialState } = await import('./store.js');
+
+    expect(initialState.settings).not.toHaveProperty('requireUrlFlag');
+    expect(initialState.settings).not.toHaveProperty('urlFlag');
+  });
 });

@@ -1,8 +1,8 @@
-import { useSession } from '../../useSession';
+import { useAccountSession } from '../../useSession';
 import { SessionsCommandsRowsTable } from '../SessionsCommandsRowsTable';
 
 export function SessionsCommandsExecutedRoute() {
-  const session = useSession();
+  const session = useAccountSession();
 
   if (session === undefined) {
     return null;

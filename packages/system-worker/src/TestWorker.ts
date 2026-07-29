@@ -15,6 +15,8 @@ export { SystemLogAgent } from './SystemLogAgent/SystemLogAgent.js';
 export { SystemLogRepo } from './SystemLogRepo/SystemLogRepo.js';
 export { ServiceRepo } from './ServiceRepo/ServiceRepo.js';
 export { ServiceBlockRepo } from './ServiceBlockRepo/ServiceBlockRepo.js';
+export { ServiceFrontendRepo } from './ServiceFrontendRepo/ServiceFrontendRepo.js';
+export { ServiceFrontendBlockRepo } from './ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.js';
 export { SystemRepo } from './SystemRepo/SystemRepo.js';
 export { FixtureRepo } from './FixtureRepo/FixtureRepo.js';
 

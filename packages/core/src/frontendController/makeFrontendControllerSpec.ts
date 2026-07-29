@@ -1,8 +1,9 @@
-import type { Schema } from 'effect';
+import { JSONSchema, type Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
 import type { IContracts } from '../contracts/types.ts';
 import type { IGuards } from '../guards/types.ts';
+import { encodeShape } from '../models/encodeShape.ts';
 import type { IModels } from '../models/types.ts';
 
 import type { IFrontendControllerSpec } from './types.ts';
@@ -32,10 +33,27 @@ export function makeFrontendControllerSpec(
     modelNames: frontendController.modelNames,
     models: mapValues(frontendController.models ?? {}, model => ({
       modelName: model.modelName,
+      abbreviation: model.abbreviation,
+      version: model.version,
+      properties: encodeShape(model.propertiesShape),
+      indexes: model.indexes,
+      historicalDefinitions: model.historicalDefinitions
+        .toSorted((left, right) => left.version.localeCompare(right.version))
+        .map(definition => ({
+          modelName: definition.modelName,
+          abbreviation: definition.abbreviation,
+          version: definition.version,
+          properties: encodeShape({
+            ...model.metadata,
+            ...definition.attributes,
+          }),
+          indexes: definition.indexes,
+        })),
     })),
     contracts: mapValues(
       frontendController.contracts,
       contract => contract.spec,
     ),
+    signatureJsonSchema: JSONSchema.make(frontendController.signature),
   };
 }

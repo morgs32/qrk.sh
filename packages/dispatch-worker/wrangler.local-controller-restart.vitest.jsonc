@@ -1,0 +1,85 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "zerospin-dispatch-worker-local-controller-restart-test",
+  "main": "./tests/workerd/DevZerospinApis.restart.fixture.worker.ts",
+  "compatibility_date": "2026-01-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "alias": {
+    "@zerospin/dispatch-worker/DevZerospinApis/DevZerospinApis": "./src/DevZerospinApis/DevZerospinApis.ts",
+    "@zerospin/dispatch-worker/makeSystemWorkerName": "./src/makeSystemWorkerName.ts",
+    "seeds": "./src/emptySeeds.ts",
+    "system": "../system-worker/src/fixtures/system.ts",
+  },
+  "rules": [{ "type": "Text", "globs": ["**/*.sql"], "fallthrough": false }],
+  "durable_objects": {
+    "bindings": [
+      { "name": "ACTOR_REPO", "class_name": "ActorRepo" },
+      { "name": "SYSTEM_REPO", "class_name": "SystemRepo" },
+      { "name": "ACCOUNT_REPO", "class_name": "AccountRepo" },
+      { "name": "SERVICE_REPO", "class_name": "ServiceRepo" },
+      { "name": "ACCOUNT_BLOCK_REPO", "class_name": "AccountBlockRepo" },
+      { "name": "ACTOR_BLOCK_REPO", "class_name": "ActorBlockRepo" },
+      { "name": "FRONTEND_REPO", "class_name": "FrontendRepo" },
+      { "name": "FRONTEND_BLOCK_REPO", "class_name": "FrontendBlockRepo" },
+      { "name": "SERVICE_BLOCK_REPO", "class_name": "ServiceBlockRepo" },
+      {
+        "name": "SERVICE_FRONTEND_REPO",
+        "class_name": "ServiceFrontendRepo",
+      },
+      {
+        "name": "SERVICE_FRONTEND_BLOCK_REPO",
+        "class_name": "ServiceFrontendBlockRepo",
+      },
+      { "name": "AUTHORIZATION_REPO", "class_name": "AuthorizationRepo" },
+      { "name": "SYSTEM_LOG_REPO", "class_name": "SystemLogRepo" },
+      { "name": "SYSTEM_LOG_AGENT", "class_name": "SystemLogAgent" },
+      {
+        "name": "DEV_ZEROSPIN_APIS",
+        "class_name": "DevZerospinApis",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "ActorRepo",
+        "SystemRepo",
+        "AccountRepo",
+        "ServiceRepo",
+        "AccountBlockRepo",
+        "ActorBlockRepo",
+        "AuthorizationRepo",
+        "SystemLogRepo",
+        "SystemLogAgent",
+      ],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": [
+        "FrontendRepo",
+        "FrontendBlockRepo",
+        "ServiceBlockRepo",
+      ],
+    },
+    {
+      "tag": "zerospin-dev-v1",
+      "new_sqlite_classes": ["DevZerospinApis"],
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": ["ServiceFrontendRepo", "ServiceFrontendBlockRepo"],
+    },
+  ],
+  "version_metadata": {
+    "binding": "ZEROSPIN_VERSION_METADATA",
+  },
+  "vars": {
+    "DEV": "true",
+    "TESTING": true,
+    "ZEROSPIN_CLEAN_REQUEST_ID": "cln_local_controller_restart",
+    "ZEROSPIN_INSTANCE_ID": "local",
+    "ZEROSPIN_SELF_HOSTED": "true",
+    "ZEROSPIN_SYSTEM_ID": "sys_local",
+  },
+}

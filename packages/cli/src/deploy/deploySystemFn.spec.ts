@@ -69,7 +69,10 @@ function makeFileConfig(props?: {
     entry: 'src/system.ts',
     environmentId: props?.environmentId ?? 'dev',
     env: props?.env ?? null,
-    seeds: props?.seeds ?? null,
+    seeds: props?.seeds ?? {
+      dev: null,
+      production: null,
+    },
   };
 }
 
@@ -182,7 +185,10 @@ describe('deploySystemFn', () => {
         system: stubSystem,
         config: makeFileConfig({
           env: { FOO: 'bar' },
-          seeds: 'src/zerospin/seeds.ts',
+          seeds: {
+            dev: 'src/zerospin/seeds.ts',
+            production: null,
+          },
         }),
       }).pipe(Effect.provide(AsyncLive)),
     );

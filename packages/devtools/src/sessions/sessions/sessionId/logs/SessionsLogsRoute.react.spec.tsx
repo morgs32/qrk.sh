@@ -142,8 +142,8 @@ describe('SessionsLogsRoute', () => {
       root.unmount();
       await Promise.resolve();
     });
-    zerospinDevtoolsStore.getState().removeSession(sessionId);
-    zerospinDevtoolsStore.getState().removeSession(otherSessionId);
+    zerospinDevtoolsStore.getState().removeAccountSession(sessionId);
+    zerospinDevtoolsStore.getState().removeAccountSession(otherSessionId);
     container.remove();
     vi.clearAllMocks();
   });
@@ -155,7 +155,7 @@ describe('SessionsLogsRoute', () => {
       generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addSession({
+    zerospinDevtoolsStore.getState().addAccountSession({
       session,
       pushStagedCommands: () =>
         Promise.resolve({
@@ -417,7 +417,7 @@ describe('SessionsLogsRoute', () => {
         links: [],
       },
     });
-    zerospinDevtoolsStore.getState().addSession({
+    zerospinDevtoolsStore.getState().addAccountSession({
       session,
       pushStagedCommands: () =>
         Promise.resolve({
@@ -460,7 +460,7 @@ describe('SessionsLogsRoute', () => {
       generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addSession({
+    zerospinDevtoolsStore.getState().addAccountSession({
       session,
       pushStagedCommands: () =>
         Promise.resolve({
@@ -502,7 +502,7 @@ describe('SessionsLogsRoute', () => {
       generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addSession({
+    zerospinDevtoolsStore.getState().addAccountSession({
       session,
       pushStagedCommands: () =>
         Promise.resolve({
@@ -540,7 +540,7 @@ describe('SessionsLogsRoute', () => {
       generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addSession({
+    zerospinDevtoolsStore.getState().addAccountSession({
       session,
       pushStagedCommands: () =>
         Promise.resolve({
@@ -584,7 +584,7 @@ describe('SessionsLogsRoute', () => {
         status: 'ok',
       },
     });
-    zerospinDevtoolsStore.getState().addSession({
+    zerospinDevtoolsStore.getState().addAccountSession({
       session,
       pushStagedCommands: () =>
         Promise.resolve({
@@ -623,7 +623,7 @@ describe('SessionsLogsRoute', () => {
         status: 'ok',
       },
     });
-    zerospinDevtoolsStore.getState().addSession({
+    zerospinDevtoolsStore.getState().addAccountSession({
       session: otherSession,
       pushStagedCommands: () =>
         Promise.resolve({

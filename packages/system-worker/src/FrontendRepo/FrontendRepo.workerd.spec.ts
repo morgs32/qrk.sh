@@ -22,7 +22,8 @@ import type {
   IServiceCommand,
   IStagedCommand,
 } from '@zerospin/core/contracts/types';
-import { FrontendBlockSchema } from '@zerospin/core/session/FrontendBlockSchema';
+import { FrontendLineageBlockSchema } from '@zerospin/core/session/FrontendBlockSchema';
+import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { IncrementalMonotonicFactory } from '@zerospin/core/test-utils/IncrementalMonotonicFactory';
 import { makePrefixedIncrementalIdFactory } from '@zerospin/core/test-utils/makePrefixedIncrementalIdFactory';
 import { TraceLoggerLayer } from '@zerospin/core/test-utils/TraceLoggerLayer';
@@ -38,8 +39,9 @@ import {
   makeTraceableRpcTarget,
   TelemetryCollector,
 } from '@zerospin/logger';
+import { abortAllDurableObjects } from 'cloudflare:test';
 import { asc, eq, like } from 'drizzle-orm';
-import { Effect, Layer, Schema } from 'effect';
+import { Effect, Either, Layer, Schema } from 'effect';
 import { TestContext } from 'effect/TestContext';
 import { describe, expect } from 'vitest';
 
@@ -51,16 +53,26 @@ import { ActorBlockRepo } from '../ActorBlockRepo/ActorBlockRepo.js';
 import { getActorBlockRepo } from '../ActorBlockRepo/getActorBlockRepo/getActorBlockRepo.js';
 import { ActorRepo } from '../ActorRepo/ActorRepo.js';
 import { getActorRepo } from '../ActorRepo/getActorRepo/getActorRepo.js';
-import { main, mainModels, system, userAccount } from '../fixtures/system.js';
+import { createFrontendWebSocketTicket } from '../createFrontendWebSocketTicket/createFrontendWebSocketTicket.js';
+import {
+  main,
+  mainActor,
+  mainModels,
+  system,
+  userAccount,
+} from '../fixtures/system.js';
 import { FrontendBlockRepo } from '../FrontendBlockRepo/FrontendBlockRepo.js';
 import { getFrontendBlockRepo } from '../FrontendBlockRepo/getFrontendBlockRepo/getFrontendBlockRepo.js';
 import { managedRuntime } from '../managedRuntime.js';
+import { openGeneration } from '../openGeneration/openGeneration.js';
+import { prepareGeneration } from '../prepareGeneration/prepareGeneration.js';
 import { getServiceBlockRepo } from '../ServiceBlockRepo/getServiceBlockRepo/getServiceBlockRepo.js';
 import { ServiceBlockRepo } from '../ServiceBlockRepo/ServiceBlockRepo.js';
 import { getServiceRepo } from '../ServiceRepo/getServiceRepo/getServiceRepo.js';
 import { ServiceRepo } from '../ServiceRepo/ServiceRepo.js';
 import { getSystemLogRepo } from '../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
 import { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
+import { SystemRepo } from '../SystemRepo/SystemRepo.js';
 import type { IActorBlock } from '../types.js';
 import { executeInRepo } from '../workerd-utils/executeInRepo.js';
 
@@ -81,6 +93,302 @@ const TestLayer = Layer.mergeAll(
 
 describe('FrontendRepo', () => {
   it.layer(TestLayer)(it => {
+    it.effect(
+      'drains a bootstrapped frontend after its actor is removed without admitting a new invalid repo',
+      () =>
+        Effect.gen(function* () {
+          // 1 — Bootstrap one ordinary frontend while its authored actor and
+          // frontend are still present in the current system definition.
+          const accountId = makeAccountId({
+            id: 'retired-frontend-drain',
+          });
+          const actorId = yield* makeIdFromAbbreviation({
+            abbreviation: 'actr',
+          });
+          const userId = yield* makeIdFromAbbreviation({
+            abbreviation: mainModels.user.abbreviation,
+          });
+          const frontendKey = {
+            generationId: 'gen_retired_frontend_drain',
+            accountId,
+            accountName: userAccount.name,
+            actorId,
+            actorName: mainActor.name,
+            frontendName: main.frontendName,
+          };
+          const frontendRepo = yield* getFrontendRepo({ key: frontendKey });
+          const initialDrain = yield* makeAsync(() =>
+            frontendRepo.drainGeneration(),
+          ).pipe(Effect.flatMap(decodeRpc));
+          expect(initialDrain).toEqual({
+            pendingPushedBlockCount: 0,
+            pendingFrontendBlockCount: 0,
+          });
+
+          // 2 — Store one durable resource in that repo. Reading the private
+          // marker here proves this exact Durable Object finished the ordinary
+          // makeRepo migration/bootstrap boundary before its actor disappears.
+          const bootstrapped = yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getFrontendRepo,
+              repo: FrontendRepo,
+              key: frontendKey,
+              fn: ({ db, schema, storage }) => {
+                const now = new Date(0);
+                db.insert(schema.user)
+                  .values({
+                    id: userId,
+                    actorId,
+                    modelName: mainModels.user.modelName,
+                    name: 'Retained frontend user',
+                    version: mainModels.user.version,
+                    createdAt: now,
+                    updatedAt: now,
+                  })
+                  .run();
+                return storage.kv.get('_isBootstrapped');
+              },
+            }),
+          );
+          expect(bootstrapped).toBe('true');
+
+          // 3 — Simulate the next self-hosted Worker version removing this
+          // actor. The fixture is restored even if an assertion or RPC below
+          // fails, so no later workerd case inherits the synthetic system.
+          expect(
+            Reflect.deleteProperty(
+              userAccount.actorControllers,
+              mainActor.name,
+            ),
+          ).toBe(true);
+          yield* Effect.gen(function* () {
+            // 4 — Re-instantiation is essential: the new Worker code must open
+            // persisted storage without relying on the retired actor object.
+            yield* Effect.promise(() => abortAllDurableObjects());
+            const retiredFrontendRepo = yield* getFrontendRepo({
+              key: frontendKey,
+            });
+            const retiredDrain = yield* makeAsync(() =>
+              retiredFrontendRepo.drainGeneration(),
+            ).pipe(Effect.flatMap(decodeRpc));
+            expect(retiredDrain).toEqual({
+              pendingPushedBlockCount: 0,
+              pendingFrontendBlockCount: 0,
+            });
+
+            // 5 — Inspection-only drain does not recreate or clear the repo.
+            // The account-owned fallback schema exposes the original row.
+            const retainedUsers = yield* Effect.promise(() =>
+              executeInRepo({
+                managedRuntime,
+                getRepo: getFrontendRepo,
+                repo: FrontendRepo,
+                key: frontendKey,
+                fn: ({ db, schema }) =>
+                  db
+                    .select()
+                    .from(schema.user)
+                    .where(eq(schema.user.id, userId))
+                    .all(),
+              }),
+            );
+            expect(retainedUsers).toEqual([
+              expect.objectContaining({
+                id: userId,
+                actorId,
+                name: 'Retained frontend user',
+              }),
+            ]);
+
+            // 6 — The compatibility seam is storage-scoped, not a general
+            // bypass. A different never-bootstrapped repo still rejects the
+            // same removed actor through the original domain error.
+            const invalidFrontendKey = {
+              ...frontendKey,
+              accountId: makeAccountId({
+                id: 'unbootstrapped-retired-frontend',
+              }),
+            };
+            const invalidFrontendRepoName =
+              yield* FrontendRepo.repoUtils.nameUtils.makeName(
+                invalidFrontendKey,
+              );
+            const invalidConfig = yield* Effect.promise(() =>
+              executeInRepo({
+                managedRuntime,
+                getRepo: getFrontendRepo,
+                repo: FrontendRepo,
+                key: frontendKey,
+                fn: async ({ storage }) => {
+                  storage.kv.delete('_isBootstrapped');
+                  try {
+                    return await managedRuntime.runPromise(
+                      FrontendRepo.repoUtils
+                        .getDbConfig({
+                          key: invalidFrontendKey,
+                          name: invalidFrontendRepoName,
+                          storage,
+                        })
+                        .pipe(Effect.either, Effect.provide(AsyncLive)),
+                    );
+                  } finally {
+                    storage.kv.put('_isBootstrapped', 'true');
+                  }
+                },
+              }),
+            );
+            expect(Either.isLeft(invalidConfig)).toBe(true);
+            if (Either.isLeft(invalidConfig)) {
+              expect(invalidConfig.left.code).toBe(
+                'actorControllers-not-found',
+              );
+            }
+          }).pipe(
+            Effect.ensuring(
+              Effect.sync(() => {
+                expect(
+                  Reflect.set(
+                    userAccount.actorControllers,
+                    mainActor.name,
+                    mainActor,
+                  ),
+                ).toBe(true);
+              }),
+            ),
+          );
+        }).pipe(Effect.provide(AsyncLive)),
+    );
+
+    it.effect(
+      'keeps a post-freeze snapshot read-only and rejects WebSocket admission without a local segment',
+      () =>
+        Effect.gen(function* () {
+          const generationId = 'gen_frontend_no_local';
+          const accountId = makeAccountId({ id: 'frontend-no-local' });
+          const actorId = yield* makeIdFromAbbreviation({
+            abbreviation: coreAbbreviations.actor,
+          });
+          const actorKey = {
+            generationId,
+            accountId,
+            accountName: main.accountName,
+            actorName: main.actorName,
+            actorId,
+          };
+          const frontendKey = {
+            ...actorKey,
+            frontendName: main.frontendName,
+          };
+          const deployId = 'dpl_frontend_no_local';
+
+          yield* prepareGeneration({
+            deployId,
+            generationId,
+            prevGenerationId: null,
+            systemSpec: makeSystemSpec({ system }),
+            seeds: [],
+          });
+          yield* openGeneration({ deployId, generationId });
+
+          // 1. ActorRepo remains the snapshot source. This also creates the
+          // ordinary actor archive whose subscriber table must stay untouched
+          // by the later no-local frontend read.
+          yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getActorRepo,
+              repo: ActorRepo,
+              key: actorKey,
+              fn: () => undefined,
+            }),
+          );
+
+          // 2. The first frontend request after freeze materializes only its
+          // snapshot. It inherits the resolved watermark but has no local
+          // archive, subscription, registration, or writable projection.
+          const frontendRepo = yield* getFrontendRepo({ key: frontendKey });
+          const frontendState = yield* makeAsync(() =>
+            frontendRepo.getFrontendState({
+              accountId,
+              accountName: main.accountName,
+              actorId,
+              actorName: main.actorName,
+              frontendName: main.frontendName,
+              systemWorkerName: 'system-worker-no-local-test',
+              lineage: { mode: 'no-local-segment', predecessor: null },
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
+          expect(frontendState.frontendIndex).toBe(0);
+          expect(frontendState.resources).toEqual([]);
+
+          const frontendRepoName =
+            yield* FrontendRepo.repoUtils.nameUtils.makeName(frontendKey);
+          const frontendBlockRepoName =
+            yield* FrontendBlockRepo.repoUtils.nameUtils.makeName(frontendKey);
+          const systemRepo = SystemRepo.getRepo({ generationId });
+          const frontendRegistrations = yield* makeAsync(() =>
+            systemRepo.getRepoRegistrations({ repoType: 'FrontendRepo' }),
+          ).pipe(Effect.flatMap(decodeRpc));
+          const frontendBlockRegistrations = yield* makeAsync(() =>
+            systemRepo.getRepoRegistrations({ repoType: 'FrontendBlockRepo' }),
+          ).pipe(Effect.flatMap(decodeRpc));
+          expect(
+            frontendRegistrations.find(
+              registration => registration.repoName === frontendRepoName,
+            ),
+          ).toBeUndefined();
+          expect(
+            frontendBlockRegistrations.find(
+              registration => registration.repoName === frontendBlockRepoName,
+            ),
+          ).toBeUndefined();
+
+          const frontendSubscribers = yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getActorBlockRepo,
+              repo: ActorBlockRepo,
+              key: actorKey,
+              fn: ({ db, schema }) =>
+                db.select().from(schema.frontendSubscribers).all(),
+            }),
+          );
+          expect(
+            frontendSubscribers.find(
+              subscriber => subscriber.frontendRepoName === frontendRepoName,
+            ),
+          ).toBeUndefined();
+
+          // 3. Ticket creation checks discoverability before resolving either
+          // projection object. A snapshot-only state can therefore never
+          // instantiate an archive as a side effect of ticket minting.
+          const ticketResult = yield* createFrontendWebSocketTicket({
+            deployId,
+            generationId,
+            accountId,
+            accountName: main.accountName,
+            actorId,
+            actorName: main.actorName,
+            frontendName: main.frontendName,
+            configuredSystemId: system.id,
+          }).pipe(Effect.either);
+          expect(ticketResult._tag).toBe('Left');
+          if (ticketResult._tag === 'Left') {
+            expect(ticketResult.left.code).toBe('frontend-state-required');
+          }
+
+          const frontendBlockRegistrationsAfterTicket = yield* makeAsync(() =>
+            systemRepo.getRepoRegistrations({ repoType: 'FrontendBlockRepo' }),
+          ).pipe(Effect.flatMap(decodeRpc));
+          expect(
+            frontendBlockRegistrationsAfterTicket.find(
+              registration => registration.repoName === frontendBlockRepoName,
+            ),
+          ).toBeUndefined();
+        }).pipe(Effect.provide(AsyncLive)),
+    );
+
     it.effect(
       'stores a replicated service resource and applies later service blocks',
       () =>
@@ -178,6 +486,7 @@ describe('FrontendRepo', () => {
               actorName: main.actorName,
               frontendName: main.frontendName,
               systemWorkerName: 'system-worker-test',
+              lineage: { mode: 'live', predecessor: null },
             }),
           ).pipe(Effect.flatMap(decodeRpc));
           expect(initialState.frontendIndex).toBe(0);
@@ -508,6 +817,7 @@ describe('FrontendRepo', () => {
               actorName: main.actorName,
               frontendName: main.frontendName,
               systemWorkerName: 'system-worker-test',
+              lineage: { mode: 'live', predecessor: null },
             }),
           ).pipe(Effect.flatMap(decodeRpc));
           expect(
@@ -643,6 +953,7 @@ describe('FrontendRepo', () => {
               actorName: main.actorName,
               frontendName: main.frontendName,
               systemWorkerName: 'system-worker-test',
+              lineage: { mode: 'live', predecessor: null },
             }),
           ).pipe(Effect.flatMap(decodeRpc));
           expect(
@@ -790,6 +1101,7 @@ describe('FrontendRepo', () => {
               actorName: main.actorName,
               frontendName: main.frontendName,
               systemWorkerName: 'system-worker-test',
+              lineage: { mode: 'live', predecessor: null },
             }),
           ).pipe(Effect.flatMap(decodeRpc));
           const deletedFrontendResource = deletedState.resources.find(
@@ -921,18 +1233,33 @@ describe('FrontendRepo', () => {
           expect(frontendBlockRows[1]?.frontendIndex).toBe(2);
           expect(frontendBlockRows[2]?.frontendIndex).toBe(3);
           expect(frontendBlockRows[3]?.frontendIndex).toBe(4);
-          const replicationBlock = yield* Schema.decodeUnknown(
-            Schema.parseJson(FrontendBlockSchema),
-          )(frontendBlockRows[0]?.block);
-          const serviceUpdateBlock = yield* Schema.decodeUnknown(
-            Schema.parseJson(FrontendBlockSchema),
-          )(frontendBlockRows[1]?.block);
-          const repeatedReplicationFrontendBlock = yield* Schema.decodeUnknown(
-            Schema.parseJson(FrontendBlockSchema),
-          )(frontendBlockRows[2]?.block);
-          const serviceDeleteBlock = yield* Schema.decodeUnknown(
-            Schema.parseJson(FrontendBlockSchema),
-          )(frontendBlockRows[3]?.block);
+          const replicationLineageBlock = yield* Schema.decodeUnknown(
+            Schema.parseJson(FrontendLineageBlockSchema),
+          )(frontendBlockRows[0]?.lineageBlock);
+          const serviceUpdateLineageBlock = yield* Schema.decodeUnknown(
+            Schema.parseJson(FrontendLineageBlockSchema),
+          )(frontendBlockRows[1]?.lineageBlock);
+          const repeatedReplicationLineageBlock = yield* Schema.decodeUnknown(
+            Schema.parseJson(FrontendLineageBlockSchema),
+          )(frontendBlockRows[2]?.lineageBlock);
+          const serviceDeleteLineageBlock = yield* Schema.decodeUnknown(
+            Schema.parseJson(FrontendLineageBlockSchema),
+          )(frontendBlockRows[3]?.lineageBlock);
+          if (
+            replicationLineageBlock.kind !== 'frontend' ||
+            serviceUpdateLineageBlock.kind !== 'frontend' ||
+            repeatedReplicationLineageBlock.kind !== 'frontend' ||
+            serviceDeleteLineageBlock.kind !== 'frontend'
+          ) {
+            throw new Error(
+              'Expected ordinary frontend blocks in the root generation archive',
+            );
+          }
+          const replicationBlock = replicationLineageBlock.frontendBlock;
+          const serviceUpdateBlock = serviceUpdateLineageBlock.frontendBlock;
+          const repeatedReplicationFrontendBlock =
+            repeatedReplicationLineageBlock.frontendBlock;
+          const serviceDeleteBlock = serviceDeleteLineageBlock.frontendBlock;
           expect(replicationBlock.delta.inserted).toEqual([
             expect.objectContaining({
               id: productId,
@@ -1113,6 +1440,7 @@ describe('FrontendRepo', () => {
               actorName: main.actorName,
               frontendName: main.frontendName,
               systemWorkerName: 'system-worker-test',
+              lineage: { mode: 'live', predecessor: null },
             }),
           ).pipe(Effect.flatMap(decodeRpc));
           expect(frontendState.resources).toEqual(
@@ -1198,6 +1526,7 @@ describe('FrontendRepo', () => {
               actorName: main.actorName,
               frontendName: main.frontendName,
               systemWorkerName: 'system-worker-test',
+              lineage: { mode: 'live', predecessor: null },
             }),
           ).pipe(Effect.flatMap(decodeRpc));
 
@@ -1297,6 +1626,7 @@ describe('FrontendRepo', () => {
               actorName: main.actorName,
               frontendName: main.frontendName,
               systemWorkerName: 'system-worker-test',
+              lineage: { mode: 'live', predecessor: null },
             }),
           ).pipe(Effect.flatMap(decodeRpc));
           expect(
@@ -1364,6 +1694,7 @@ describe('FrontendRepo', () => {
               actorName: main.actorName,
               frontendName: main.frontendName,
               systemWorkerName: 'system-worker-test',
+              lineage: { mode: 'live', predecessor: null },
             }),
           ).pipe(Effect.flatMap(decodeRpc));
           expect(
@@ -1460,6 +1791,19 @@ describe('FrontendRepo', () => {
               fn: () => undefined,
             }),
           );
+
+          const frontendRepo = yield* getFrontendRepo({ key: frontendKey });
+          yield* makeAsync(() =>
+            frontendRepo.getFrontendState({
+              accountId,
+              accountName: main.accountName,
+              actorId,
+              actorName: main.actorName,
+              frontendName: main.frontendName,
+              systemWorkerName: 'system-worker-test',
+              lineage: { mode: 'live', predecessor: null },
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
 
           const validUnstaged = yield* main.makeUnstagedCommand({
             accountId,
@@ -1723,6 +2067,19 @@ describe('FrontendRepo', () => {
             }),
           );
 
+          const frontendRepo = yield* getFrontendRepo({ key: frontendKey });
+          yield* makeAsync(() =>
+            frontendRepo.getFrontendState({
+              accountId,
+              accountName: main.accountName,
+              actorId,
+              actorName: main.actorName,
+              frontendName: main.frontendName,
+              systemWorkerName: 'system-worker-test',
+              lineage: { mode: 'live', predecessor: null },
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
+
           const unstaged = yield* main.makeUnstagedCommand({
             accountId,
             actorId,
@@ -1761,6 +2118,7 @@ describe('FrontendRepo', () => {
                     name,
                     db,
                     storage,
+                    lineage: { mode: 'live', predecessor: null },
                   }),
                 );
                 await managedRuntime.runPromise(
@@ -1868,6 +2226,19 @@ describe('FrontendRepo', () => {
               fn: () => undefined,
             }),
           );
+
+          const frontendRepo = yield* getFrontendRepo({ key: frontendKey });
+          yield* makeAsync(() =>
+            frontendRepo.getFrontendState({
+              accountId,
+              accountName: main.accountName,
+              actorId,
+              actorName: main.actorName,
+              frontendName: main.frontendName,
+              systemWorkerName: 'system-worker-test',
+              lineage: { mode: 'live', predecessor: null },
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
 
           const createUnstaged = yield* main.makeUnstagedCommand({
             accountId,

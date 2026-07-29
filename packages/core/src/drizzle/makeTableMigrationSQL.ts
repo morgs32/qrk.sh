@@ -17,6 +17,9 @@ export function makeTableMigrationStatements(
     if (column.notNull) {
       constraints.push('NOT NULL');
     }
+    if (column.isUnique) {
+      constraints.push('UNIQUE');
+    }
     if (typeof column.default === 'number') {
       constraints.push(`DEFAULT ${column.default}`);
     } else if (typeof column.default === 'boolean') {

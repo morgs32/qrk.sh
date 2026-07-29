@@ -1,32 +1,17 @@
 'use client';
 
-import { useApi } from '@zerospin/react/useApi';
 import { useInitializedStateOrThrow } from '@zerospin/react/useInitializedStateOrThrow';
 import { useLiveQuery } from '@zerospin/react/useLiveQuery';
-import { useSession } from '@zerospin/react/useSession';
-import { Either } from 'effect';
-import useSWR from 'swr';
 
 import { ProductCard } from './ProductCard';
+import { ZerospinCatalog } from './ZerospinCatalog';
 import { ZerospinShopper } from './ZerospinShopper';
-
-import type { shopperActor } from '@/zerospin/system';
 
 export function ProductList() {
   const { actorId } = useInitializedStateOrThrow(ZerospinShopper);
-  const session = useSession(ZerospinShopper);
-  const api = useApi<typeof shopperActor>(ZerospinShopper);
-  const { data: products } = useSWR(
-    ['products', session.sessionId],
-    async () => {
-      return api
-        .executeActorQuery({
-          queryName: 'getProducts',
-          params: {},
-        })
-        .then(Either.getOrThrowWith(error => error));
-    },
-  );
+  const { data: products } = useLiveQuery(ZerospinCatalog, {
+    query: db => db.query.product.findMany(),
+  });
 
   const { data: user } = useLiveQuery(ZerospinShopper, {
     query: db =>

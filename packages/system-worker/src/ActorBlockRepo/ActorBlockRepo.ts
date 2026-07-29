@@ -168,12 +168,21 @@ export class ActorBlockRepo extends makeRepo({
     return encoded;
   }
 
-  async drainFrontendSubscribers(): Promise<
-    Schema.EitherEncoded<void, IAnyErrorJson>
+  async drainFrontendSubscribers(props?: {
+    forceRetryNow?: boolean;
+  }): Promise<
+    Schema.EitherEncoded<
+      Readonly<{ pendingFrontendSubscriberCount: number }>,
+      IAnyErrorJson
+    >
   > {
     return managedRuntime.runPromise(
       drainFrontendSubscribers({
         db: this.db,
+        forceRetryNow: props?.forceRetryNow ?? false,
+        inspectionOnly:
+          props?.forceRetryNow === true &&
+          this.env.ZEROSPIN_SELF_HOSTED === 'true',
         storage: this.ctx.storage,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );

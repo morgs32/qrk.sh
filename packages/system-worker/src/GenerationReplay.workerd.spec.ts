@@ -1,7 +1,7 @@
 /*
  * Generation replay acceptance coverage:
  *
- * 1. Drive the real prepareGeneration migration branch from a drained source.
+ * 1. Drive the real prepareGeneration migration branch from a frozen source.
  * 2. Preserve authoritative blocks, receipts, resource state, and watermarks.
  * 3. Rebuild AuthorizationRepo, ActorRepo, and FrontendRepo only on demand.
  * 4. Deliver only service blocks published after the restored watermark.
@@ -39,6 +39,7 @@ import { getActorRepo } from './ActorRepo/getActorRepo/getActorRepo.js';
 import { AuthorizationRepo } from './AuthorizationRepo/AuthorizationRepo.js';
 import { getAuthorizationRepo } from './AuthorizationRepo/getAuthorizationRepo/getAuthorizationRepo.js';
 import { ServiceBlockSchema } from './blockSchemas.js';
+import { createFrontendWebSocketTicket } from './createFrontendWebSocketTicket/createFrontendWebSocketTicket.js';
 import { drainGeneration } from './drainGeneration/drainGeneration.js';
 import { main, mainModels, system, userAccount } from './fixtures/system.js';
 import { getFrontendRepo } from './FrontendRepo/getFrontendRepo/getFrontendRepo.js';
@@ -265,15 +266,19 @@ const prepareReplaySource = Effect.fn('GenerationReplay.prepareReplaySource')(
           actorName: main.actorName,
           frontendName: main.frontendName,
           systemWorkerName: 'system-worker-generation-replay-source',
+          lineage: { mode: 'live', predecessor: null },
         }),
       ).pipe(Effect.flatMap(decodeRpc));
     }
 
-    // 4. Drain closes admission, empties every outbox, and captures immutable
-    //    ServiceBlockRepo and AccountBlockRepo replay bounds.
+    // 4. Freeze closes write admission, empties every outbox, and captures
+    //    immutable ServiceBlockRepo and AccountBlockRepo replay bounds while
+    //    preserving source read admission through target preparation.
     yield* drainGeneration({
       deployId: sourceDeployId,
       generationId: prevGenerationId,
+      mode: 'freeze',
+      successorGenerationId: null,
     });
     const sourceSystemRepo = SystemRepo.getRepo({
       generationId: prevGenerationId,
@@ -281,9 +286,26 @@ const prepareReplaySource = Effect.fn('GenerationReplay.prepareReplaySource')(
     const sourceState = yield* makeAsync(() =>
       sourceSystemRepo.getGenerationState(),
     ).pipe(Effect.flatMap(decodeRpc));
-    if (sourceState === null || sourceState.admission !== 'drained') {
+    if (
+      sourceState === null ||
+      sourceState.admission !== 'draining' ||
+      sourceState.drainFrozenAt === null
+    ) {
       return yield* Effect.die(
-        new Error('Expected the source generation to be drained'),
+        new Error('Expected the source generation to have frozen drain bounds'),
+      );
+    }
+    const sourceFrontendBound = sourceState.drainBounds.find(
+      bound => bound.repoType === 'FrontendRepo',
+    );
+    if (
+      createDerivedRepos &&
+      (sourceFrontendBound === undefined ||
+        sourceFrontendBound.frontendBlockRepoName === null ||
+        sourceFrontendBound.terminalFrontendIndex === null)
+    ) {
+      return yield* Effect.die(
+        new Error('Expected a complete source frontend lineage bound'),
       );
     }
 
@@ -384,6 +406,7 @@ const prepareReplaySource = Effect.fn('GenerationReplay.prepareReplaySource')(
       productId,
       sourceAccountBlock: sourceReplayAccountBlock,
       sourceAccountBound,
+      sourceFrontendBound,
       sourceProduct,
       sourceServiceBlock,
       sourceServiceBound,
@@ -476,8 +499,9 @@ describe('generation replay', () => {
             ]),
           );
 
-          // 3. Only authoritative data-owner repos exist immediately after
-          //    replay. Source Authorization/Actor/Frontend state was not copied.
+          // 3. Authoritative data-owner repos and the explicitly prepared
+          //    successor frontend exist immediately after replay. Source
+          //    Authorization and ActorRepo state were not copied.
           const targetSystemRepo = SystemRepo.getRepo({
             generationId: targetGenerationId,
           });
@@ -502,7 +526,10 @@ describe('generation replay', () => {
           expect(targetAccountRepos).toHaveLength(1);
           expect(targetAuthorizationsBefore).toEqual([]);
           expect(targetActorsBefore).toEqual([]);
-          expect(targetFrontendsBefore).toEqual([]);
+          expect(targetFrontendsBefore).toHaveLength(1);
+          expect(targetFrontendsBefore[0]?.repoName).toContain(
+            targetGenerationId,
+          );
 
           const targetAccountStateBefore = yield* Effect.promise(() =>
             executeInRepo({
@@ -672,6 +699,16 @@ describe('generation replay', () => {
               frontendName: main.frontendName,
             },
           });
+          const sourceFrontendBound = source.sourceFrontendBound;
+          if (
+            sourceFrontendBound === undefined ||
+            sourceFrontendBound.frontendBlockRepoName === null ||
+            sourceFrontendBound.terminalFrontendIndex === null
+          ) {
+            return yield* Effect.die(
+              new Error('Expected the source frontend lineage bound'),
+            );
+          }
           const targetFrontendState = yield* makeAsync(() =>
             targetFrontendRepo.getFrontendState({
               accountId: source.accountId,
@@ -679,7 +716,16 @@ describe('generation replay', () => {
               actorId: source.actorId,
               actorName: main.actorName,
               frontendName: main.frontendName,
-              systemWorkerName: 'system-worker-generation-replay-target',
+              systemWorkerName: 'system-worker-generation-replay-source',
+              lineage: {
+                mode: 'live',
+                predecessor: {
+                  generationId: source.prevGenerationId,
+                  repoName: sourceFrontendBound.frontendBlockRepoName,
+                  terminalFrontendIndex:
+                    sourceFrontendBound.terminalFrontendIndex,
+                },
+              },
             }),
           ).pipe(Effect.flatMap(decodeRpc));
           expect(targetFrontendState.resources).toEqual(
@@ -688,7 +734,116 @@ describe('generation replay', () => {
             ]),
           );
 
-          // 5. Historical service replay did not re-fanout. Publishing the next
+          // 5. Ticket authority follows two durable lifecycle hops while the
+          // target archive legitimately skips the physical generation that
+          // never owned a local frontend segment. The target generation, not
+          // the stale authenticated source, owns the returned ticket row.
+          const skippedGenerationId =
+            'gen_generation_replay_skipped_no_local_acceptance';
+          const skippedDeployId =
+            'dpl_generation_replay_skipped_no_local_acceptance';
+          yield* openGeneration({
+            deployId: targetDeployId,
+            generationId: targetGenerationId,
+          });
+          yield* drainGeneration({
+            deployId: 'dpl_generation_replay_source_acceptance',
+            generationId: source.prevGenerationId,
+            mode: 'complete',
+            successorGenerationId: skippedGenerationId,
+          });
+          yield* Effect.promise(() =>
+            runInDurableObject(
+              env.SYSTEM_REPO.getByName(`sysrepo_${skippedGenerationId}`),
+              (_instance, state) => {
+                const encodedSystemSpec = Schema.encodeUnknownSync(
+                  Schema.parseJson(SystemSpecSchema),
+                )(source.systemSpec);
+                state.storage.sql.exec(
+                  `INSERT INTO generationState (
+                    generationId, prevGenerationId, initialDeployId,
+                    activeDeployId, preparingDeployId, readiness, admission,
+                    activeSystemSpec, preparingSystemSpec, failure,
+                    createdAt, readyAt, openedAt, drainFrozenAt, drainedAt,
+                    successorGenerationId
+                  ) VALUES (?, ?, ?, ?, NULL, 'ready', 'drained', ?, NULL, NULL, ?, ?, ?, ?, ?, ?)`,
+                  skippedGenerationId,
+                  source.prevGenerationId,
+                  skippedDeployId,
+                  skippedDeployId,
+                  encodedSystemSpec,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  targetGenerationId,
+                );
+              },
+            ),
+          );
+          yield* Effect.promise(() =>
+            runInDurableObject(
+              env.SYSTEM_REPO.getByName(`sysrepo_${targetGenerationId}`),
+              (_instance, state) => {
+                state.storage.sql.exec(
+                  'UPDATE generationState SET prevGenerationId = ? WHERE generationId = ?',
+                  skippedGenerationId,
+                  targetGenerationId,
+                );
+              },
+            ),
+          );
+
+          const successorTicket = yield* createFrontendWebSocketTicket({
+            deployId: 'dpl_generation_replay_source_acceptance',
+            generationId: source.prevGenerationId,
+            accountId: source.accountId,
+            accountName: main.accountName,
+            actorId: source.actorId,
+            actorName: main.actorName,
+            frontendName: main.frontendName,
+            configuredSystemId: env.ZEROSPIN_SYSTEM_ID,
+          });
+          expect(successorTicket).toMatchObject({
+            systemId: env.ZEROSPIN_SYSTEM_ID,
+            generationId: targetGenerationId,
+            accountId: source.accountId,
+            accountName: main.accountName,
+            actorId: source.actorId,
+            actorName: main.actorName,
+            frontendName: main.frontendName,
+            frontendVersion: main.version,
+            ticket: expect.stringMatching(
+              /^gen_generation_replay_target_acceptance\.[A-Za-z0-9_-]{43}$/,
+            ),
+          });
+          const sourceTicketCount = yield* Effect.promise(() =>
+            runInDurableObject(
+              env.SYSTEM_REPO.getByName(`sysrepo_${source.prevGenerationId}`),
+              (_instance, state) =>
+                state.storage.sql
+                  .exec<{ count: number }>(
+                    'SELECT COUNT(*) AS count FROM frontendWebSocketTickets',
+                  )
+                  .one(),
+            ),
+          );
+          const targetTicketCount = yield* Effect.promise(() =>
+            runInDurableObject(
+              env.SYSTEM_REPO.getByName(`sysrepo_${targetGenerationId}`),
+              (_instance, state) =>
+                state.storage.sql
+                  .exec<{ count: number }>(
+                    'SELECT COUNT(*) AS count FROM frontendWebSocketTickets',
+                  )
+                  .one(),
+            ),
+          );
+          expect(sourceTicketCount.count).toBe(0);
+          expect(targetTicketCount.count).toBe(1);
+
+          // 6. Historical service replay did not re-fanout. Publishing the next
           //    target block starts strictly after W and creates one new,
           //    commandless AccountBlock for the subscribed product.
           const targetServiceRepo = yield* getServiceRepo({

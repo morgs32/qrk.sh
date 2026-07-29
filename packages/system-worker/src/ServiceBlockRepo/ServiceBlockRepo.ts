@@ -23,12 +23,15 @@ import { managedRuntime } from '../managedRuntime.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import type { IServiceBlock } from '../types.js';
 
+import { alarm } from './alarm/alarm.js';
 import { drainAccountSubscribers } from './drainAccountSubscribers/drainAccountSubscribers.js';
 import { drainGeneration } from './drainGeneration/drainGeneration.js';
+import { drainServiceFrontendSubscribers } from './drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.js';
 import { getReplayBlock } from './getReplayBlock/getReplayBlock.js';
 import { getReplayBound } from './getReplayBound/getReplayBound.js';
 import { publish } from './publish/publish.js';
 import { subscribeAccount } from './subscribeAccount/subscribeAccount.js';
+import { subscribeServiceFrontend } from './subscribeServiceFrontend/subscribeServiceFrontend.js';
 
 const serviceBlockTables = {
   serviceBlocks: makeTable({
@@ -55,6 +58,32 @@ const serviceBlockTables = {
       currentServiceIndex: primitives.integer(),
       deliveryAttempts: primitives.integer(),
       nextRetryAt: primitives.integer({ nullable: true }),
+      lastDeliveryError: primitives.text({ nullable: true }),
+    },
+  }),
+  serviceFrontendSubscribers: makeTable({
+    name: 'serviceFrontendSubscribers',
+    shape: {
+      serviceFrontendRepoName: primitives.primaryKey({
+        abbreviation: systemWorkerAbbreviations.serviceFrontendRepo,
+      }),
+      serviceName: primitives.text(),
+      actorName: primitives.text(),
+      actorId: primitives.opaqueId({
+        abbreviation: coreAbbreviations.actor,
+      }),
+      frontendName: primitives.text(),
+      currentServiceCursor: primitives.cursor({
+        abbreviation: coreAbbreviations.serviceCursor,
+        nullable: true,
+      }),
+      currentServiceIndex: primitives.integer({ nullable: true }),
+      catchupThroughServiceCursor: primitives.cursor({
+        abbreviation: coreAbbreviations.serviceCursor,
+        nullable: true,
+      }),
+      catchupThroughServiceIndex: primitives.integer({ nullable: true }),
+      status: primitives.enum({ values: ['catching-up', 'live'] }),
       lastDeliveryError: primitives.text({ nullable: true }),
     },
   }),
@@ -116,28 +145,180 @@ export class ServiceBlockRepo extends makeRepo({
     return encoded;
   }
 
+  async subscribeServiceFrontend(props: {
+    serviceFrontendRepoName: string;
+    serviceName: string;
+    actorName: string;
+    actorId: string;
+    frontendName: string;
+    currentServiceCursor: IServiceCursorId | null;
+    currentServiceIndex: number | null;
+  }): Promise<
+    Schema.EitherEncoded<
+      Readonly<{
+        throughServiceCursor: IServiceCursorId | null;
+        throughServiceIndex: number | null;
+      }>,
+      IAnyErrorJson
+    >
+  > {
+    const encoded = await managedRuntime.runPromise(
+      subscribeServiceFrontend({
+        ...props,
+        db: this.db,
+        key: this.key,
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+    this.ctx.waitUntil(
+      this.drainServiceFrontendSubscribers().then(
+        () => undefined,
+        () => undefined,
+      ),
+    );
+    return encoded;
+  }
+
   async drainAccountSubscribers(): Promise<
     Schema.EitherEncoded<void, IAnyErrorJson>
   > {
     return managedRuntime.runPromise(
-      drainAccountSubscribers({
-        db: this.db,
-        storage: this.ctx.storage,
-        serviceName: this.key.serviceName,
+      Effect.gen(this, function* () {
+        // Each drain claims a durable sequence before its first delivery await.
+        // Only the newest claimant may delete the shared alarm after success.
+        const drainSequence = yield* Effect.promise(() =>
+          this.ctx.storage.transaction(async transaction => {
+            const previousDrainSequence =
+              (await transaction.get<number>(
+                'serviceBlockSubscriberDrainSequence',
+              )) ?? 0;
+            const nextDrainSequence = previousDrainSequence + 1;
+            await transaction.put(
+              'serviceBlockSubscriberDrainSequence',
+              nextDrainSequence,
+            );
+            return nextDrainSequence;
+          }),
+        );
+        const accountNextRetryAt = yield* drainAccountSubscribers({
+          db: this.db,
+          serviceName: this.key.serviceName,
+        });
+        const serviceFrontendNextRetryAt =
+          yield* drainServiceFrontendSubscribers({
+            db: this.db,
+            key: this.key,
+            onlyServiceFrontendRepoName: null,
+            failFast: false,
+          });
+        const nextRetryAt =
+          accountNextRetryAt === null
+            ? serviceFrontendNextRetryAt
+            : serviceFrontendNextRetryAt === null
+              ? accountNextRetryAt
+              : Math.min(accountNextRetryAt, serviceFrontendNextRetryAt);
+        yield* Effect.promise(() =>
+          this.ctx.storage.transaction(async transaction => {
+            const currentDrainSequence = await transaction.get<number>(
+              'serviceBlockSubscriberDrainSequence',
+            );
+            const currentAlarm = await transaction.getAlarm();
+            if (nextRetryAt === null) {
+              if (currentDrainSequence === drainSequence) {
+                await transaction.deleteAlarm();
+              }
+              return;
+            }
+            if (
+              currentAlarm === null ||
+              currentAlarm <= Date.now() ||
+              nextRetryAt < currentAlarm
+            ) {
+              await transaction.setAlarm(nextRetryAt);
+            }
+          }),
+        );
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
+  async drainServiceFrontendSubscribers(): Promise<
+    Schema.EitherEncoded<void, IAnyErrorJson>
+  > {
+    return managedRuntime.runPromise(
+      Effect.gen(this, function* () {
+        // This method shares the alarm with account delivery and alarm().
+        // Claiming a new sequence prevents an older success from deleting a
+        // retry alarm scheduled by a newer overlapping drain.
+        const drainSequence = yield* Effect.promise(() =>
+          this.ctx.storage.transaction(async transaction => {
+            const previousDrainSequence =
+              (await transaction.get<number>(
+                'serviceBlockSubscriberDrainSequence',
+              )) ?? 0;
+            const nextDrainSequence = previousDrainSequence + 1;
+            await transaction.put(
+              'serviceBlockSubscriberDrainSequence',
+              nextDrainSequence,
+            );
+            return nextDrainSequence;
+          }),
+        );
+        const accountNextRetryAt = yield* drainAccountSubscribers({
+          db: this.db,
+          serviceName: this.key.serviceName,
+        });
+        const serviceFrontendNextRetryAt =
+          yield* drainServiceFrontendSubscribers({
+            db: this.db,
+            key: this.key,
+            onlyServiceFrontendRepoName: null,
+            failFast: false,
+          });
+        const nextRetryAt =
+          accountNextRetryAt === null
+            ? serviceFrontendNextRetryAt
+            : serviceFrontendNextRetryAt === null
+              ? accountNextRetryAt
+              : Math.min(accountNextRetryAt, serviceFrontendNextRetryAt);
+        yield* Effect.promise(() =>
+          this.ctx.storage.transaction(async transaction => {
+            const currentDrainSequence = await transaction.get<number>(
+              'serviceBlockSubscriberDrainSequence',
+            );
+            const currentAlarm = await transaction.getAlarm();
+            if (nextRetryAt === null) {
+              if (currentDrainSequence === drainSequence) {
+                await transaction.deleteAlarm();
+              }
+              return;
+            }
+            if (
+              currentAlarm === null ||
+              currentAlarm <= Date.now() ||
+              nextRetryAt < currentAlarm
+            ) {
+              await transaction.setAlarm(nextRetryAt);
+            }
+          }),
+        );
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }
 
   async drainGeneration(): Promise<
     Schema.EitherEncoded<
-      Readonly<{ pendingAccountSubscriberCount: number }>,
+      Readonly<{
+        pendingAccountSubscriberCount: number;
+        pendingServiceFrontendSubscriberCount: number;
+      }>,
       IAnyErrorJson
     >
   > {
     return managedRuntime.runPromise(
       drainGeneration({
         db: this.db,
-        local: this.env.ZEROSPIN_INSTANCE_ID === 'local',
+        generationId: this.key.generationId,
+        inspectionOnly: this.env.ZEROSPIN_SELF_HOSTED === 'true',
         serviceName: this.key.serviceName,
         storage: this.ctx.storage,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
@@ -168,6 +349,12 @@ export class ServiceBlockRepo extends makeRepo({
   }
 
   async alarm(): Promise<void> {
-    await this.drainAccountSubscribers();
+    await managedRuntime.runPromise(
+      alarm({
+        db: this.db,
+        key: this.key,
+        storage: this.ctx.storage,
+      }).pipe(Effect.provide(AsyncLive)),
+    );
   }
 }

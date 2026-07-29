@@ -1,10 +1,16 @@
-import { type CSSProperties } from 'react';
+import { useSyncExternalStore, type CSSProperties } from 'react';
 
+import type { ISession } from '@zerospin/core/session/types';
 import { NavLink, Outlet } from 'react-router';
 import { useStore } from 'zustand/react';
 
+import type {
+  IDevtoolsServiceSessionEntry,
+  IDevtoolsWorkerState,
+} from '../../../types.js';
+
 import { SessionToolbar } from './SessionToolbar';
-import { useSessionOrThrow } from './useSession';
+import { useAccountSession, useServiceSession } from './useSession';
 
 const styles = {
   paneRoot: {
@@ -74,16 +80,69 @@ function FileJsonIcon(props: { readonly color: string }) {
 }
 
 export function SessionPane() {
-  const session = useSessionOrThrow();
+  const accountSession = useAccountSession();
+  const serviceSession = useServiceSession();
+
+  if (accountSession !== undefined) {
+    return <AccountSessionPane session={accountSession} />;
+  }
+
+  if (serviceSession !== undefined) {
+    return <ServiceSessionPane session={serviceSession} />;
+  }
+
+  throw new Error('Session not found');
+}
+
+function SessionWorkerState(props: {
+  readonly workerState: IDevtoolsWorkerState;
+}) {
+  const { workerState } = props;
+
+  return (
+    <div
+      data-testid="session-worker-state"
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '4px 12px',
+        padding: '4px 12px',
+        borderBottom: '1px solid #e5e7eb',
+        color: '#4b5563',
+        backgroundColor: '#f9fafb',
+        fontFamily: 'ui-monospace, monospace',
+        fontSize: 10,
+      }}
+    >
+      <span>mode: {workerState.mode}</span>
+      <span>status: {workerState.status}</span>
+      <span>bootstrap: {workerState.bootstrapSource ?? 'none'}</span>
+      <span>frontend index: {workerState.frontendIndex ?? 'none'}</span>
+      <span>replica index: {workerState.replicaIndex ?? 'none'}</span>
+      <span>database: {workerState.databaseName ?? 'none'}</span>
+      <span>
+        failure:{' '}
+        {workerState.failure === null
+          ? 'none'
+          : JSON.stringify(workerState.failure)}
+      </span>
+    </div>
+  );
+}
+
+function AccountSessionPane(props: { readonly session: ISession }) {
+  const { session } = props;
 
   const isInitialized = useStore(session.store, state => state.isInitialized);
+  const workerState = useStore(session.store, state => state.workerState);
 
   if (!isInitialized) {
-    return null;
+    return <SessionWorkerState workerState={workerState} />;
   }
 
   return (
     <div style={styles.paneRoot}>
+      <SessionWorkerState workerState={workerState} />
       <SessionToolbar />
       <div style={styles.tabsHeader}>
         <NavLink
@@ -96,6 +155,57 @@ export function SessionPane() {
           <FileJsonIcon color="#3b82f6" />
           Commands
         </NavLink>
+        <NavLink
+          to="database"
+          style={({ isActive }) => ({
+            ...styles.tab,
+            ...(isActive ? styles.tabActive : {}),
+          })}
+        >
+          <FileJsonIcon color="#22c55e" />
+          Database
+        </NavLink>
+        <NavLink
+          to="logs"
+          style={({ isActive }) => ({
+            ...styles.tab,
+            ...(isActive ? styles.tabActive : {}),
+          })}
+        >
+          Logs
+        </NavLink>
+      </div>
+      <div style={styles.tabContent}>
+        <Outlet />
+      </div>
+    </div>
+  );
+}
+
+function ServiceSessionPane(props: {
+  readonly session: IDevtoolsServiceSessionEntry;
+}) {
+  const { session } = props;
+
+  const isInitialized = useSyncExternalStore(
+    session.subscribe,
+    session.getIsInitialized,
+    session.getIsInitialized,
+  );
+  const workerState = useSyncExternalStore(
+    session.subscribe,
+    session.getWorkerState,
+    session.getWorkerState,
+  );
+
+  if (!isInitialized) {
+    return <SessionWorkerState workerState={workerState} />;
+  }
+
+  return (
+    <div style={styles.paneRoot}>
+      <SessionWorkerState workerState={workerState} />
+      <div style={styles.tabsHeader}>
         <NavLink
           to="database"
           style={({ isActive }) => ({

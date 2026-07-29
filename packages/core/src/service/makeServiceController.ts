@@ -20,6 +20,8 @@ import type {
   IServiceModel,
 } from '../models/types.ts';
 import type { CuidFactory } from '../services/CuidFactory.ts';
+import type { IServiceActorController } from '../serviceActorController/types.ts';
+import type { ITypeError } from '../utils/types.ts';
 
 import { makeServiceCommand } from './makeServiceCommand.ts';
 
@@ -84,12 +86,17 @@ type IService<
   >,
   QUERIES extends IServiceQueries<MODELS> = IServiceQueries<MODELS>,
   VERSION extends string = string,
+  ACTOR_CONTROLLERS extends Record<string, IServiceActorController> = Record<
+    string,
+    IServiceActorController
+  >,
 > = {
   name: NAME;
   version: VERSION;
   models: MODELS;
   contracts: CONTRACTS;
   mutationAdapters: MUTATION_ADAPTERS | undefined;
+  actorControllers: ACTOR_CONTROLLERS;
   queries: {
     [K in keyof QUERIES & string]: QUERIES[K] extends IServiceQuery<
       MODELS,
@@ -143,6 +150,10 @@ export function makeServiceController<
     >
   >,
   VERSION extends string,
+  const ACTOR_CONTROLLERS extends Record<
+    string,
+    IServiceActorController
+  > = {},
 >(props: {
   name: NAME;
   version: VERSION;
@@ -153,8 +164,39 @@ export function makeServiceController<
   contracts: CONTRACTS &
     AssertContractsMutationsInModels<CONTRACTS, MODELS, 'service'>;
   mutationAdapters?: MUTATION_ADAPTERS;
+  actorControllers?: ACTOR_CONTROLLERS & {
+    [ACTOR_KEY in keyof ACTOR_CONTROLLERS & string]: ACTOR_CONTROLLERS[ACTOR_KEY] & {
+      name: ACTOR_KEY;
+      models: ACTOR_CONTROLLERS[ACTOR_KEY]['models'] & {
+        [MODEL_KEY in keyof ACTOR_CONTROLLERS[ACTOR_KEY]['models'] &
+          string]: MODEL_KEY extends keyof MODELS & string
+          ? MODELS[MODEL_KEY] extends ACTOR_CONTROLLERS[ACTOR_KEY]['models'][MODEL_KEY]
+            ? ACTOR_CONTROLLERS[ACTOR_KEY]['models'][MODEL_KEY] extends MODELS[MODEL_KEY]
+              ? ACTOR_CONTROLLERS[ACTOR_KEY]['models'][MODEL_KEY]
+              : ITypeError<`Service actor model "${ACTOR_KEY}.${MODEL_KEY}" must exactly match service model "${MODEL_KEY}"`>
+            : ITypeError<`Service actor model "${ACTOR_KEY}.${MODEL_KEY}" must exactly match service model "${MODEL_KEY}"`>
+          : ITypeError<`Service actor model "${ACTOR_KEY}.${MODEL_KEY}" is missing from service models`>;
+      };
+      frontends: ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'] & {
+        [FRONTEND_KEY in keyof ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'] &
+          string]: ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'][FRONTEND_KEY] & {
+          frontendController: ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'][FRONTEND_KEY]['frontendController'] & {
+            serviceName: NAME;
+          };
+        };
+      };
+    };
+  };
   queries?: undefined;
-}): IService<NAME, MODELS, CONTRACTS, MUTATION_ADAPTERS, {}, VERSION>;
+}): IService<
+  NAME,
+  MODELS,
+  CONTRACTS,
+  MUTATION_ADAPTERS,
+  {},
+  VERSION,
+  ACTOR_CONTROLLERS
+>;
 export function makeServiceController<
   NAME extends string,
   MODELS extends IModels,
@@ -174,6 +216,10 @@ export function makeServiceController<
   >,
   QUERIES extends IServiceQueries<MODELS>,
   VERSION extends string,
+  const ACTOR_CONTROLLERS extends Record<
+    string,
+    IServiceActorController
+  > = {},
 >(props: {
   name: NAME;
   version: VERSION;
@@ -184,8 +230,39 @@ export function makeServiceController<
   contracts: CONTRACTS &
     AssertContractsMutationsInModels<CONTRACTS, MODELS, 'service'>;
   mutationAdapters?: MUTATION_ADAPTERS;
+  actorControllers?: ACTOR_CONTROLLERS & {
+    [ACTOR_KEY in keyof ACTOR_CONTROLLERS & string]: ACTOR_CONTROLLERS[ACTOR_KEY] & {
+      name: ACTOR_KEY;
+      models: ACTOR_CONTROLLERS[ACTOR_KEY]['models'] & {
+        [MODEL_KEY in keyof ACTOR_CONTROLLERS[ACTOR_KEY]['models'] &
+          string]: MODEL_KEY extends keyof MODELS & string
+          ? MODELS[MODEL_KEY] extends ACTOR_CONTROLLERS[ACTOR_KEY]['models'][MODEL_KEY]
+            ? ACTOR_CONTROLLERS[ACTOR_KEY]['models'][MODEL_KEY] extends MODELS[MODEL_KEY]
+              ? ACTOR_CONTROLLERS[ACTOR_KEY]['models'][MODEL_KEY]
+              : ITypeError<`Service actor model "${ACTOR_KEY}.${MODEL_KEY}" must exactly match service model "${MODEL_KEY}"`>
+            : ITypeError<`Service actor model "${ACTOR_KEY}.${MODEL_KEY}" must exactly match service model "${MODEL_KEY}"`>
+          : ITypeError<`Service actor model "${ACTOR_KEY}.${MODEL_KEY}" is missing from service models`>;
+      };
+      frontends: ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'] & {
+        [FRONTEND_KEY in keyof ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'] &
+          string]: ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'][FRONTEND_KEY] & {
+          frontendController: ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'][FRONTEND_KEY]['frontendController'] & {
+            serviceName: NAME;
+          };
+        };
+      };
+    };
+  };
   queries: QUERIES & IServiceQueriesInput<MODELS, QUERIES>;
-}): IService<NAME, MODELS, CONTRACTS, MUTATION_ADAPTERS, QUERIES, VERSION>;
+}): IService<
+  NAME,
+  MODELS,
+  CONTRACTS,
+  MUTATION_ADAPTERS,
+  QUERIES,
+  VERSION,
+  ACTOR_CONTROLLERS
+>;
 export function makeServiceController<
   NAME extends string,
   MODELS extends IModels,
@@ -205,6 +282,10 @@ export function makeServiceController<
   >,
   QUERIES extends IServiceQueries<MODELS>,
   VERSION extends string,
+  const ACTOR_CONTROLLERS extends Record<
+    string,
+    IServiceActorController
+  > = {},
 >(props: {
   name: NAME;
   version: VERSION;
@@ -215,6 +296,29 @@ export function makeServiceController<
   contracts: CONTRACTS &
     AssertContractsMutationsInModels<CONTRACTS, MODELS, 'service'>;
   mutationAdapters?: MUTATION_ADAPTERS;
+  actorControllers?: ACTOR_CONTROLLERS & {
+    [ACTOR_KEY in keyof ACTOR_CONTROLLERS & string]: ACTOR_CONTROLLERS[ACTOR_KEY] & {
+      name: ACTOR_KEY;
+      models: ACTOR_CONTROLLERS[ACTOR_KEY]['models'] & {
+        [MODEL_KEY in keyof ACTOR_CONTROLLERS[ACTOR_KEY]['models'] &
+          string]: MODEL_KEY extends keyof MODELS & string
+          ? MODELS[MODEL_KEY] extends ACTOR_CONTROLLERS[ACTOR_KEY]['models'][MODEL_KEY]
+            ? ACTOR_CONTROLLERS[ACTOR_KEY]['models'][MODEL_KEY] extends MODELS[MODEL_KEY]
+              ? ACTOR_CONTROLLERS[ACTOR_KEY]['models'][MODEL_KEY]
+              : ITypeError<`Service actor model "${ACTOR_KEY}.${MODEL_KEY}" must exactly match service model "${MODEL_KEY}"`>
+            : ITypeError<`Service actor model "${ACTOR_KEY}.${MODEL_KEY}" must exactly match service model "${MODEL_KEY}"`>
+          : ITypeError<`Service actor model "${ACTOR_KEY}.${MODEL_KEY}" is missing from service models`>;
+      };
+      frontends: ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'] & {
+        [FRONTEND_KEY in keyof ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'] &
+          string]: ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'][FRONTEND_KEY] & {
+          frontendController: ACTOR_CONTROLLERS[ACTOR_KEY]['frontends'][FRONTEND_KEY]['frontendController'] & {
+            serviceName: NAME;
+          };
+        };
+      };
+    };
+  };
   queries?: QUERIES & IServiceQueriesInput<MODELS, QUERIES>;
 }): IService<
   NAME,
@@ -222,7 +326,8 @@ export function makeServiceController<
   CONTRACTS,
   MUTATION_ADAPTERS,
   QUERIES | {},
-  VERSION
+  VERSION,
+  ACTOR_CONTROLLERS | {}
 > {
   const {
     name,
@@ -230,6 +335,7 @@ export function makeServiceController<
     models,
     contracts,
     mutationAdapters,
+    actorControllers = {},
     queries = {},
   } = props;
 
@@ -246,6 +352,38 @@ export function makeServiceController<
       throw new Error(
         `makeServiceController: models.${modelName} must be created by makeServiceModel with serviceName "${name}"`,
       );
+    }
+  }
+
+  const providedActorControllers: Record<string, IServiceActorController> =
+    actorControllers;
+  for (const [actorControllerName, actorController] of Object.entries(
+    providedActorControllers,
+  )) {
+    if (actorController.name !== actorControllerName) {
+      throw new Error(
+        `makeServiceController: actorControllers.${actorControllerName} must have name "${actorControllerName}", received "${actorController.name}"`,
+      );
+    }
+
+    for (const [actorModelName, actorModel] of Object.entries(
+      actorController.models,
+    )) {
+      if (models[actorModelName] !== actorModel) {
+        throw new Error(
+          `makeServiceController: actorControllers.${actorControllerName}.models.${actorModelName} must be the same object as service models.${actorModelName}`,
+        );
+      }
+    }
+
+    for (const [frontendName, frontendBinding] of Object.entries(
+      actorController.frontends,
+    )) {
+      if (frontendBinding.frontendController.serviceName !== name) {
+        throw new Error(
+          `makeServiceController: actorControllers.${actorControllerName}.frontends.${frontendName}.frontendController must have serviceName "${name}", received "${frontendBinding.frontendController.serviceName}"`,
+        );
+      }
     }
   }
 
@@ -567,6 +705,7 @@ export function makeServiceController<
   return {
     name,
     version,
+    actorControllers,
     models,
     contracts,
     mutationAdapters,

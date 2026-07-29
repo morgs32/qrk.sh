@@ -1,4 +1,5 @@
 import { act } from 'react';
+
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -43,8 +44,16 @@ describe('SettingsRoute theme control', () => {
     });
 
     expect(container.textContent).not.toContain('Theme');
-    expect(
-      container.querySelector('select option[value="dark"]'),
-    ).toBeNull();
+    expect(container.querySelector('select option[value="dark"]')).toBeNull();
+  });
+
+  it('does not expose URL-gate configuration', async () => {
+    await act(async () => {
+      root.render(<SettingsRoute />);
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).not.toContain('URL Configuration');
+    expect(container.textContent).not.toContain('Require URL flag');
   });
 });

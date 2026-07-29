@@ -7,7 +7,7 @@ import { ZerospinApis } from './ZerospinApis/ZerospinApis';
 
 /**
  * The locally-wired gateway for workerd e2e tests: same-isolate SystemWorker
- * resolution, static dev identity from ZEROSPIN_E2E_* env vars.
+ * resolution, static dev identity from the exact configured worker bindings.
  */
 export function makeTestApis(): ZerospinApis {
   return new ZerospinApis({
@@ -15,7 +15,10 @@ export function makeTestApis(): ZerospinApis {
     generationId: env.ZEROSPIN_GENERATION_ID,
     runtime: makeDispatchRuntime({
       systemWorkerResolver: WorkerExportsSystemWorkerResolver,
-      apiKeyIdentityResolver: makeStaticApiKeyIdentityResolver(),
+      apiKeyIdentityResolver: makeStaticApiKeyIdentityResolver({
+        systemId: env.ZEROSPIN_SYSTEM_ID,
+        clerkUserId: env.ZEROSPIN_INSTANCE_ID,
+      }),
     }),
   });
 }

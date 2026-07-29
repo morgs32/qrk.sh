@@ -52,7 +52,10 @@ export const publishActorBlocks = Effect.fn('ActorRepo.publishActorBlocks')(
     );
 
     if (Either.isRight(published)) {
-      return records;
+      return records.map(record => ({
+        ...record,
+        failure: null,
+      }));
     }
 
     return records.map(record => ({

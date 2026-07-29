@@ -208,7 +208,7 @@ describe('pushCommands1: FrontendRepo-owned push and websocket convergence', () 
             'http://zerospin-test-rpc.invalid/ws-frontend-blocks',
           );
           frontendWebSocketUrl.searchParams.set('publishableKey', 'pk_test');
-          frontendWebSocketUrl.searchParams.set('ticket', ticket);
+          frontendWebSocketUrl.searchParams.set('ticket', ticket.ticket);
           const websocketResponse = yield* Effect.promise(() =>
             SELF.fetch(frontendWebSocketUrl, {
               headers: { Upgrade: 'websocket' },
@@ -220,6 +220,45 @@ describe('pushCommands1: FrontendRepo-owned push and websocket convergence', () 
           websocket.accept();
 
           try {
+            const replayCompletePromise = new Promise((resolve, reject) => {
+              const timeout = setTimeout(
+                () =>
+                  reject(
+                    new Error(
+                      'FrontendBlockRepo replay-complete message timeout',
+                    ),
+                  ),
+                30_000,
+              );
+              websocket.addEventListener(
+                'message',
+                event => {
+                  clearTimeout(timeout);
+                  if (typeof event.data !== 'string') {
+                    reject(
+                      new Error(
+                        'FrontendBlockRepo replay-complete message must be text',
+                      ),
+                    );
+                    return;
+                  }
+                  resolve(JSON.parse(event.data));
+                },
+                { once: true },
+              );
+            });
+            websocket.send(
+              JSON.stringify({
+                replicaGenerationId: frontendStateBeforePush.generationId,
+                frontendIndex: frontendStateBeforePush.frontendIndex,
+              }),
+            );
+            expect(yield* Effect.promise(() => replayCompletePromise)).toEqual({
+              type: 'replay-complete',
+              generationId: frontendStateBeforePush.generationId,
+              frontendIndex: frontendStateBeforePush.frontendIndex,
+            });
+
             const websocketMessagePromise = new Promise((resolve, reject) => {
               const timeout = setTimeout(
                 () =>
@@ -375,25 +414,29 @@ describe('pushCommands1: FrontendRepo-owned push and websocket convergence', () 
             )) as {
               type: string;
               sync: {
-                delta: {
-                  inserted: readonly { id: string; modelName: string }[];
+                frontendBlock: {
+                  delta: {
+                    inserted: readonly { id: string; modelName: string }[];
+                  };
+                  executedPushedCommands: readonly { id: string }[];
+                  lastRebasedPushedCursor: string | null;
                 };
-                executedPushedCommands: readonly { id: string }[];
-                lastRebasedPushedCursor: string | null;
               };
             };
 
             // 9 - websocket delivery carries the terminal outcome and final optimistic patch
             expect(websocketMessage.type).toBe('frontendBlock');
-            expect(websocketMessage.sync.lastRebasedPushedCursor).toBe(
-              pushedCommands[0]?.pushedCursor,
-            );
-            expect(websocketMessage.sync.executedPushedCommands).toEqual(
+            expect(
+              websocketMessage.sync.frontendBlock.lastRebasedPushedCursor,
+            ).toBe(pushedCommands[0]?.pushedCursor);
+            expect(
+              websocketMessage.sync.frontendBlock.executedPushedCommands,
+            ).toEqual(
               expect.arrayContaining([
                 expect.objectContaining({ id: stagedCreateCart.id }),
               ]),
             );
-            expect(websocketMessage.sync.delta.inserted).toEqual(
+            expect(websocketMessage.sync.frontendBlock.delta.inserted).toEqual(
               expect.arrayContaining([
                 expect.objectContaining({
                   id: cartId,

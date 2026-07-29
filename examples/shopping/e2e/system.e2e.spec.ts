@@ -38,7 +38,7 @@ test('standalone system api exposes its spec and app service query', async () =>
     );
 
     expect(systemSpec.systemName).toBe('shopping');
-    expect(systemSpec.version).toBe('1.0.2');
+    expect(systemSpec.version).toBe('1.1.0');
     expect(systemSpecEnvelope.link).toBeNull();
 
     // 2 — execute one read through the concrete traced SystemApi client.

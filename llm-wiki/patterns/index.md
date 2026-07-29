@@ -57,9 +57,9 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 ## react
 
-| Keywords                                                     | File                                                |
-| ------------------------------------------------------------ | --------------------------------------------------- |
-| stageCommand, local staging, optimistic UI, no pending state | `react/no-pending-ui-for-local-staging.tsx`         |
+| Keywords                                                     | File                                        |
+| ------------------------------------------------------------ | ------------------------------------------- |
+| stageCommand, local staging, optimistic UI, no pending state | `react/no-pending-ui-for-local-staging.tsx` |
 
 ## fanout
 

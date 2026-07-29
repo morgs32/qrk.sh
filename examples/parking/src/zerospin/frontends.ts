@@ -22,7 +22,7 @@ export const providerAdminFrontend = makeFrontendController({
   },
   accountName: 'provider',
   actorName: 'admin',
-  frontendName: 'backend',
+  frontendName: 'provider-admin',
   version: '1.0.0',
   systemName: 'parking',
   models: {
@@ -40,7 +40,7 @@ export const ownerFrontend = makeFrontendController({
   },
   accountName: 'driver',
   actorName: 'owner',
-  frontendName: 'backend',
+  frontendName: 'owner',
   version: '1.0.0',
   systemName: 'parking',
   models: {

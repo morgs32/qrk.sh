@@ -32,6 +32,23 @@ export const Product = makeServiceModel(
   [],
 );
 
+// This service-owned row is intentionally absent from catalogFrontend. The
+// workerd acceptance flow mutates it to prove an irrelevant service change
+// advances the source cursor without emitting a frontend block.
+export const CatalogMarker = makeServiceModel(
+  {
+    serviceName: 'app',
+    abbreviation: 'cmk',
+    modelName: 'catalogMarker',
+    attributes: {
+      label: primitives.text(),
+    },
+    indexes: [],
+    version: '1.0.0',
+  },
+  [],
+);
+
 export const Cart = makeModel(
   {
     abbreviation: 'crt',
@@ -74,6 +91,7 @@ export const CartItem = makeModel(
 );
 
 export const models = {
+  catalogMarker: CatalogMarker,
   cart: Cart,
   cartItem: CartItem,
   product: Product,

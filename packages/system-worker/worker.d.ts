@@ -14,6 +14,7 @@ declare global {
     interface Env {
       ZEROSPIN_DEPLOY_ID: string;
       ZEROSPIN_GENERATION_ID: string;
+      ZEROSPIN_SELF_HOSTED?: 'true';
       ACTOR_REPO: DurableObjectNamespace<ActorRepo>;
       SERVICE_REPO: DurableObjectNamespace<ServiceRepo>;
       SYSTEM_REPO: DurableObjectNamespace<SystemRepo>;

@@ -33,7 +33,7 @@ describe('SessionToolbar', () => {
       root.unmount();
       await Promise.resolve();
     });
-    zerospinDevtoolsStore.getState().removeSession(sessionId);
+    zerospinDevtoolsStore.getState().removeAccountSession(sessionId);
     container.remove();
   });
 
@@ -104,7 +104,7 @@ describe('SessionToolbar', () => {
           };
         }),
     );
-    zerospinDevtoolsStore.getState().addSession({
+    zerospinDevtoolsStore.getState().addAccountSession({
       session,
       pushStagedCommands,
     });

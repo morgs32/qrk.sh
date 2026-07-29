@@ -15,6 +15,16 @@
       "import": "./dist/fetchActor.js",
       "default": "./dist/fetchActor.js"
     },
+    "./authenticate": {
+      "types": "./dist/authenticate.d.ts",
+      "import": "./dist/authenticate.js",
+      "default": "./dist/authenticate.js"
+    },
+    "./fetchFrontend": {
+      "types": "./dist/fetchFrontend.d.ts",
+      "import": "./dist/fetchFrontend.js",
+      "default": "./dist/fetchFrontend.js"
+    },
     "./fetchFrontendState": {
       "types": "./dist/fetchFrontendState.d.ts",
       "import": "./dist/fetchFrontendState.js",
@@ -25,6 +35,11 @@
       "import": "./dist/pushStagedCommands.js",
       "default": "./dist/pushStagedCommands.js"
     },
+    "./pushFrontendCommands": {
+      "types": "./dist/pushFrontendCommands.d.ts",
+      "import": "./dist/pushFrontendCommands.js",
+      "default": "./dist/pushFrontendCommands.js"
+    },
     "./executeActorQuery": {
       "types": "./dist/executeActorQuery.d.ts",
       "import": "./dist/executeActorQuery.js",
@@ -34,6 +49,21 @@
       "types": "./dist/createFrontendWebSocketTicket.d.ts",
       "import": "./dist/createFrontendWebSocketTicket.js",
       "default": "./dist/createFrontendWebSocketTicket.js"
+    },
+    "./fetchServiceFrontend": {
+      "types": "./dist/fetchServiceFrontend.d.ts",
+      "import": "./dist/fetchServiceFrontend.js",
+      "default": "./dist/fetchServiceFrontend.js"
+    },
+    "./fetchServiceFrontendState": {
+      "types": "./dist/fetchServiceFrontendState.d.ts",
+      "import": "./dist/fetchServiceFrontendState.js",
+      "default": "./dist/fetchServiceFrontendState.js"
+    },
+    "./createServiceFrontendWebSocketTicket": {
+      "types": "./dist/createServiceFrontendWebSocketTicket.d.ts",
+      "import": "./dist/createServiceFrontendWebSocketTicket.js",
+      "default": "./dist/createServiceFrontendWebSocketTicket.js"
     }
   },
   "scripts": {
@@ -49,6 +79,7 @@
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
     "@zerospin/logger": "workspace:*",
+    "capnweb": "^0.7.0",
     "drizzle-orm": "1.0.0-beta.17-67b1795",
     "effect": "^3.21.4"
   },

@@ -7,7 +7,7 @@ import type {
   IFailedServiceCommand,
 } from '@zerospin/core/contracts/types';
 import type { IAccountCursor } from '@zerospin/core/models/types';
-import type { IFrontendState } from '@zerospin/core/session/types';
+import type { IFrontendSyncState } from '@zerospin/core/session/types';
 import type {
   IRepoRegistration,
   IRepoTableData,
@@ -114,7 +114,7 @@ const helloEnvelope = systemApi.hello(emptyRequest) satisfies Promise<
 >;
 const getFrontendStateEnvelope = systemApi.getFrontendState(
   frontendStateRequest,
-) satisfies Promise<ILinkedRpcEnvelope<IFrontendState, IAnyErrorJson>>;
+) satisfies Promise<ILinkedRpcEnvelope<IFrontendSyncState, IAnyErrorJson>>;
 const executeServiceQueryEnvelope = systemApi.executeServiceQuery(
   serviceQueryRequest,
 ) satisfies Promise<ILinkedRpcEnvelope<unknown, IAnyErrorJson>>;

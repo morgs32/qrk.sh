@@ -8,11 +8,12 @@ import { drainFrontendBlockOutbox } from '../drainFrontendBlockOutbox/drainFront
 import { drainPushedBlockOutbox } from '../drainPushedBlockOutbox/drainPushedBlockOutbox.js';
 import { frontendRepoDrizzleSchemas } from '../FrontendRepo.js';
 
-/** Finishes hosted frontend outboxes or only inspects them during local reload. */
+/** Finishes hosted frontend outboxes or only inspects them for self-hosted control. */
 export const drainGeneration = Effect.fn('FrontendRepo.drainGeneration')(
   function* (props: {
+    configuredSystemId: string;
     db: IDb;
-    local: boolean;
+    inspectionOnly: boolean;
     key: {
       generationId: string;
       accountId: string;
@@ -30,15 +31,23 @@ export const drainGeneration = Effect.fn('FrontendRepo.drainGeneration')(
     IAnyError,
     Async
   > {
-    const { db, local, key, storage } = props;
+    const { db, inspectionOnly, key, storage } = props;
 
-    // 1 — hosted activation is allowed to finish work accepted by old code.
-    if (!local) {
+    // 1 — a hosted Worker is pinned to the old generation and may finish work
+    // accepted by that same code. Self-hosted control has only the newly
+    // uploaded code, so its drain is inspection-only.
+    if (!inspectionOnly) {
       yield* drainPushedBlockOutbox({ db, key });
-      yield* drainFrontendBlockOutbox({ db, key, storage });
+      yield* drainFrontendBlockOutbox({
+        configuredSystemId: props.configuredSystemId,
+        db,
+        key,
+        storage,
+      });
     }
 
-    // 2 — local Wrangler reload only reaches these reads; it never executes old work with new code.
+    // 2 — self-hosted control only reaches these reads; it never executes old
+    // work with newly uploaded code.
     const pendingPushedBlockCount = db
       .select({ id: frontendRepoDrizzleSchemas.pushedBlockOutbox.id })
       .from(frontendRepoDrizzleSchemas.pushedBlockOutbox)
@@ -66,11 +75,11 @@ export const drainGeneration = Effect.fn('FrontendRepo.drainGeneration')(
     // 3 — both modes fail closed until every required frontend outbox is terminal.
     if (pendingPushedBlockCount > 0 || pendingFrontendBlockCount > 0) {
       return yield* new ZerospinError({
-        code: local
-          ? 'frontend-generation-local-drain-required'
+        code: inspectionOnly
+          ? 'frontend-generation-self-hosted-drain-required'
           : 'frontend-generation-drain-incomplete',
-        message: local
-          ? 'FrontendRepo has pending work that local hot reload must not finish with new code'
+        message: inspectionOnly
+          ? 'FrontendRepo has pending work that self-hosted control must not finish with newly uploaded code'
           : 'FrontendRepo still has pending work after hosted generation drain',
         extra: { pendingPushedBlockCount, pendingFrontendBlockCount },
       });

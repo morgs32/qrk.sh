@@ -17,12 +17,6 @@ import type { ITypeError } from '../utils/types.ts';
 
 import type { IAnyMutation, IContract } from './types.ts';
 
-type IAnyMutationProgramFn = (
-  // oxlint-disable-next-line typescript/no-explicit-any -- type-level inference across contract program variants
-  props: any,
-  // oxlint-disable-next-line typescript/no-explicit-any -- type-level inference across contract program variants
-) => Effect.Effect<any, any, any>;
-
 export type IMutations =
   | Readonly<Record<string, IAnyMutation>>
   | readonly IAnyMutation[]
@@ -96,11 +90,19 @@ type IPayloadFieldDescriptor =
 
 const noOpProgram = (_props: { payload: unknown }) => Effect.succeed({});
 
+const semVerPattern =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+
+/* oxlint-disable typescript/no-explicit-any -- historical adapter requirements stay generic across authored contracts */
 export function makeContract<
   COMMAND_NAME extends string,
   PAYLOAD extends Record<string, IPayloadFieldDescriptor>,
   VERSION extends string,
   MUTATIONS_SCHEMA extends Schema.Schema.AnyNoContext,
+  const HISTORICAL_PAYLOADS extends readonly Record<
+    string,
+    IPayloadFieldDescriptor
+  >[] = readonly [],
 >(props: {
   commandName: COMMAND_NAME;
   payload: PAYLOAD;
@@ -114,33 +116,243 @@ export function makeContract<
         ? unknown
         : ITypeError<`Contract "${COMMAND_NAME}" mutations schema must contain mutations only`>);
   program: IContractProgramFn<PAYLOAD, Schema.Schema.Type<MUTATIONS_SCHEMA>>;
-}): IContract<COMMAND_NAME, PAYLOAD, VERSION, MUTATIONS_SCHEMA>;
+}, historicalDefinitions?: {
+  readonly [INDEX in keyof HISTORICAL_PAYLOADS]: Readonly<{
+    commandName: COMMAND_NAME;
+    version: string;
+    payload: HISTORICAL_PAYLOADS[INDEX];
+    adaptPayload: (props: {
+      payload: InferCommandPayload<HISTORICAL_PAYLOADS[INDEX]>;
+    }) => Effect.Effect<InferPayloadInput<PAYLOAD>, IAnyError, any>;
+  }>;
+}): IContract<
+  COMMAND_NAME,
+  PAYLOAD,
+  VERSION,
+  MUTATIONS_SCHEMA,
+  {
+    readonly [INDEX in keyof HISTORICAL_PAYLOADS]: Readonly<{
+      commandName: COMMAND_NAME;
+      version: string;
+      payload: HISTORICAL_PAYLOADS[INDEX];
+      adaptPayload: (props: {
+        payload: InferCommandPayload<HISTORICAL_PAYLOADS[INDEX]>;
+      }) => Effect.Effect<InferPayloadInput<PAYLOAD>, IAnyError, any>;
+    }>;
+  }
+>;
 
 export function makeContract<
   COMMAND_NAME extends string,
   PAYLOAD extends Record<string, IPayloadFieldDescriptor>,
   VERSION extends string,
+  const HISTORICAL_PAYLOADS extends readonly Record<
+    string,
+    IPayloadFieldDescriptor
+  >[] = readonly [],
 >(props: {
   commandName: COMMAND_NAME;
   payload: PAYLOAD;
   version: VERSION;
   mutations: null;
   program?: never;
-}): IContract<COMMAND_NAME, PAYLOAD, VERSION, null>;
+}, historicalDefinitions?: {
+  readonly [INDEX in keyof HISTORICAL_PAYLOADS]: Readonly<{
+    commandName: COMMAND_NAME;
+    version: string;
+    payload: HISTORICAL_PAYLOADS[INDEX];
+    adaptPayload: (props: {
+      payload: InferCommandPayload<HISTORICAL_PAYLOADS[INDEX]>;
+    }) => Effect.Effect<InferPayloadInput<PAYLOAD>, IAnyError, any>;
+  }>;
+}): IContract<
+  COMMAND_NAME,
+  PAYLOAD,
+  VERSION,
+  null,
+  {
+    readonly [INDEX in keyof HISTORICAL_PAYLOADS]: Readonly<{
+      commandName: COMMAND_NAME;
+      version: string;
+      payload: HISTORICAL_PAYLOADS[INDEX];
+      adaptPayload: (props: {
+        payload: InferCommandPayload<HISTORICAL_PAYLOADS[INDEX]>;
+      }) => Effect.Effect<InferPayloadInput<PAYLOAD>, IAnyError, any>;
+    }>;
+  }
+>;
 
 export function makeContract<
-  COMMAND_NAME extends string,
   PAYLOAD extends Record<string, IPayloadFieldDescriptor>,
-  VERSION extends string,
   MUTATIONS_SCHEMA extends Schema.Schema.AnyNoContext | null,
->(props: {
-  commandName: COMMAND_NAME;
-  payload: PAYLOAD;
-  version: VERSION;
-  mutations: MUTATIONS_SCHEMA;
-  program?: IAnyMutationProgramFn;
-}): IContract<COMMAND_NAME, PAYLOAD, VERSION, MUTATIONS_SCHEMA> {
-  const { commandName, payload, version, mutations } = props;
+>(props: any, historicalDefinitions: readonly any[] = []): any {
+  /* oxlint-enable typescript/no-explicit-any */
+  const {
+    commandName,
+    payload,
+    version,
+    mutations,
+  }: {
+    commandName: string;
+    payload: Record<string, IPayloadFieldDescriptor>;
+    version: string;
+    mutations: Schema.Schema.AnyNoContext | null;
+  } = props;
+
+  const currentVersionMatch = semVerPattern.exec(version);
+  if (currentVersionMatch === null) {
+    throw new Error(
+      `Invalid contract version "${version}" for "${commandName}": expected SemVer`,
+    );
+  }
+
+  const currentMajor = Number(currentVersionMatch[1]);
+  const currentMinor = Number(currentVersionMatch[2]);
+  const currentPatch = Number(currentVersionMatch[3]);
+  if (
+    !Number.isSafeInteger(currentMajor) ||
+    !Number.isSafeInteger(currentMinor) ||
+    !Number.isSafeInteger(currentPatch)
+  ) {
+    throw new Error(
+      `Invalid contract version "${version}" for "${commandName}": expected SemVer`,
+    );
+  }
+
+  const historicalVersions = new Set<string>();
+  const historicalSpecs = historicalDefinitions.map(historicalDefinition => {
+    if (historicalDefinition.commandName !== commandName) {
+      throw new Error(
+        `Historical contract version "${historicalDefinition.version}" has commandName "${historicalDefinition.commandName}", not "${commandName}"`,
+      );
+    }
+    if (typeof historicalDefinition.adaptPayload !== 'function') {
+      throw new Error(
+        `Historical contract version "${historicalDefinition.version}" for "${commandName}" requires adaptPayload`,
+      );
+    }
+
+    const historicalVersionMatch = semVerPattern.exec(
+      historicalDefinition.version,
+    );
+    if (historicalVersionMatch === null) {
+      throw new Error(
+        `Invalid historical contract version "${historicalDefinition.version}" for "${commandName}": expected SemVer`,
+      );
+    }
+    if (historicalDefinition.version === version) {
+      throw new Error(
+        `Historical contract version "${historicalDefinition.version}" duplicates the current version for "${commandName}"`,
+      );
+    }
+    if (historicalVersions.has(historicalDefinition.version)) {
+      throw new Error(
+        `Duplicate historical contract version "${historicalDefinition.version}" for "${commandName}"`,
+      );
+    }
+    historicalVersions.add(historicalDefinition.version);
+
+    const historicalMajor = Number(historicalVersionMatch[1]);
+    const historicalMinor = Number(historicalVersionMatch[2]);
+    const historicalPatch = Number(historicalVersionMatch[3]);
+    if (
+      !Number.isSafeInteger(historicalMajor) ||
+      !Number.isSafeInteger(historicalMinor) ||
+      !Number.isSafeInteger(historicalPatch)
+    ) {
+      throw new Error(
+        `Invalid historical contract version "${historicalDefinition.version}" for "${commandName}": expected SemVer`,
+      );
+    }
+
+    let historicalIsOlder = historicalMajor < currentMajor;
+    let versionsHaveEqualPrecedence = historicalMajor === currentMajor;
+    if (versionsHaveEqualPrecedence) {
+      historicalIsOlder = historicalMinor < currentMinor;
+      versionsHaveEqualPrecedence = historicalMinor === currentMinor;
+    }
+    if (versionsHaveEqualPrecedence) {
+      historicalIsOlder = historicalPatch < currentPatch;
+      versionsHaveEqualPrecedence = historicalPatch === currentPatch;
+    }
+
+    if (versionsHaveEqualPrecedence) {
+      const historicalPrerelease = historicalVersionMatch[4];
+      const currentPrerelease = currentVersionMatch[4];
+      if (
+        historicalPrerelease !== undefined &&
+        currentPrerelease === undefined
+      ) {
+        historicalIsOlder = true;
+        versionsHaveEqualPrecedence = false;
+      } else if (
+        historicalPrerelease === undefined &&
+        currentPrerelease !== undefined
+      ) {
+        historicalIsOlder = false;
+        versionsHaveEqualPrecedence = false;
+      } else if (
+        historicalPrerelease !== undefined &&
+        currentPrerelease !== undefined
+      ) {
+        const historicalIdentifiers = historicalPrerelease.split('.');
+        const currentIdentifiers = currentPrerelease.split('.');
+        let identifierIndex = 0;
+        while (
+          identifierIndex < historicalIdentifiers.length &&
+          identifierIndex < currentIdentifiers.length &&
+          versionsHaveEqualPrecedence
+        ) {
+          const historicalIdentifier = historicalIdentifiers[identifierIndex];
+          const currentIdentifier = currentIdentifiers[identifierIndex];
+          if (
+            historicalIdentifier !== undefined &&
+            currentIdentifier !== undefined &&
+            historicalIdentifier !== currentIdentifier
+          ) {
+            const historicalIsNumeric = /^(0|[1-9]\d*)$/.test(
+              historicalIdentifier,
+            );
+            const currentIsNumeric = /^(0|[1-9]\d*)$/.test(currentIdentifier);
+            if (historicalIsNumeric && !currentIsNumeric) {
+              historicalIsOlder = true;
+            } else if (!historicalIsNumeric && currentIsNumeric) {
+              historicalIsOlder = false;
+            } else if (historicalIsNumeric && currentIsNumeric) {
+              historicalIsOlder =
+                historicalIdentifier.length < currentIdentifier.length ||
+                (historicalIdentifier.length === currentIdentifier.length &&
+                  historicalIdentifier < currentIdentifier);
+            } else {
+              historicalIsOlder = historicalIdentifier < currentIdentifier;
+            }
+            versionsHaveEqualPrecedence = false;
+          }
+          identifierIndex += 1;
+        }
+        if (versionsHaveEqualPrecedence) {
+          historicalIsOlder =
+            historicalIdentifiers.length < currentIdentifiers.length;
+          versionsHaveEqualPrecedence =
+            historicalIdentifiers.length === currentIdentifiers.length;
+        }
+      }
+    }
+
+    if (!historicalIsOlder || versionsHaveEqualPrecedence) {
+      throw new Error(
+        `Historical contract version "${historicalDefinition.version}" for "${commandName}" must be older than current version "${version}"`,
+      );
+    }
+
+    return {
+      commandName: historicalDefinition.commandName,
+      version: historicalDefinition.version,
+      payloadJsonSchema: JSONSchema.make(
+        makeEffectSchema(historicalDefinition.payload),
+      ),
+    };
+  });
 
   if (mutations === null && props.program !== undefined) {
     throw new Error(
@@ -238,11 +450,15 @@ export function makeContract<
     commandName,
     version,
     payloadJsonSchema: JSONSchema.make(payloadSchema),
+    historicalDefinitions: historicalSpecs.toSorted((left, right) =>
+      left.version.localeCompare(right.version),
+    ),
   };
 
   return {
     commandName,
     payload,
+    historicalDefinitions,
     decodePayload: decodePayload as InferContractDecodePayload<PAYLOAD>,
     encodePayload: encodePayload as InferContractEncodePayload<PAYLOAD>,
     validatePayload:

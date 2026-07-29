@@ -147,10 +147,20 @@ describe('FrontendApi', () => {
     expect(getSystemWorker).not.toHaveBeenCalled();
   });
 
-  it('forwards the full authenticated identity and returns a raw linked WebSocket ticket', async () => {
+  it('forwards the full authenticated identity and preserves the successor ticket envelope', async () => {
     const dispose = vi.fn();
     const createFrontendWebSocketTicket = vi.fn(async () =>
-      encodeRight('raw-frontend-websocket-ticket'),
+      encodeRight({
+        ticket: 'gen_successor.raw-frontend-websocket-ticket',
+        systemId: 'sys_1',
+        generationId: 'gen_successor',
+        accountId: 'acct_1',
+        accountName: 'main',
+        actorId: 'actr_1',
+        actorName: 'user',
+        frontendName: 'default',
+        frontendVersion: '2.0.0',
+      }),
     );
     const appendTelemetryBatch = vi.fn(
       async (props: { batch: ITelemetryBatch }) => {
@@ -193,9 +203,17 @@ describe('FrontendApi', () => {
       },
     });
 
-    expect(await Effect.runPromise(decodeRpc(envelope.result))).toBe(
-      'raw-frontend-websocket-ticket',
-    );
+    expect(await Effect.runPromise(decodeRpc(envelope.result))).toEqual({
+      ticket: 'gen_successor.raw-frontend-websocket-ticket',
+      systemId: 'sys_1',
+      generationId: 'gen_successor',
+      accountId: 'acct_1',
+      accountName: 'main',
+      actorId: 'actr_1',
+      actorName: 'user',
+      frontendName: 'default',
+      frontendVersion: '2.0.0',
+    });
     expect(createFrontendWebSocketTicket).toHaveBeenCalledWith({
       accountId: 'acct_1',
       accountName: 'main',

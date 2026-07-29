@@ -20,6 +20,7 @@ import type { IFrontendController } from './types.ts';
 export function makeFrontendController<
   SYSTEM_NAME extends string,
   CONTRACTS extends IContracts,
+  ACTOR_NAME extends string,
   FRONTEND_NAME extends string,
   VERSION extends string,
   SIGNATURE_SCHEMA extends Schema.Schema.AnyNoContext =
@@ -32,8 +33,8 @@ export function makeFrontendController<
         : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
     };
   accountName: string;
-  actorName: FRONTEND_NAME;
-  frontendName: string;
+  actorName: ACTOR_NAME;
+  frontendName: FRONTEND_NAME;
   version: VERSION;
   systemName: SYSTEM_NAME;
   models?: undefined;
@@ -49,15 +50,17 @@ export function makeFrontendController<
   };
 }): IFrontendController<
   SYSTEM_NAME,
-  FRONTEND_NAME,
+  ACTOR_NAME,
   CONTRACTS,
   {},
   SIGNATURE_SCHEMA,
-  VERSION
+  VERSION,
+  FRONTEND_NAME
 >;
 export function makeFrontendController<
   SYSTEM_NAME extends string,
   CONTRACTS extends IContracts,
+  ACTOR_NAME extends string,
   FRONTEND_NAME extends string,
   MODELS extends IModels,
   VERSION extends string,
@@ -80,8 +83,8 @@ export function makeFrontendController<
         : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
     };
   accountName: string;
-  actorName: FRONTEND_NAME;
-  frontendName: string;
+  actorName: ACTOR_NAME;
+  frontendName: FRONTEND_NAME;
   version: VERSION;
   systemName: SYSTEM_NAME;
   models: MODELS & IAssertValidModels<MODELS>;
@@ -93,15 +96,17 @@ export function makeFrontendController<
   };
 }): IFrontendController<
   SYSTEM_NAME,
-  FRONTEND_NAME,
+  ACTOR_NAME,
   CONTRACTS,
   MODELS,
   SIGNATURE_SCHEMA,
-  VERSION
+  VERSION,
+  FRONTEND_NAME
 >;
 export function makeFrontendController<
   SYSTEM_NAME extends string,
   CONTRACTS extends IContracts,
+  ACTOR_NAME extends string,
   FRONTEND_NAME extends string,
   MODELS extends IModels,
   VERSION extends string,
@@ -124,8 +129,8 @@ export function makeFrontendController<
         : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
     };
   accountName: string;
-  actorName: FRONTEND_NAME;
-  frontendName: string;
+  actorName: ACTOR_NAME;
+  frontendName: FRONTEND_NAME;
   version: VERSION;
   systemName: SYSTEM_NAME;
   models?: MODELS & IAssertValidModels<MODELS>;
@@ -137,11 +142,12 @@ export function makeFrontendController<
   };
 }): IFrontendController<
   SYSTEM_NAME,
-  FRONTEND_NAME,
+  ACTOR_NAME,
   CONTRACTS,
   MODELS | {},
   SIGNATURE_SCHEMA,
-  VERSION
+  VERSION,
+  FRONTEND_NAME
 > {
   const {
     contracts,
@@ -170,11 +176,12 @@ export function makeFrontendController<
 
   const makeFrontendUnstagedCommand: IFrontendController<
     SYSTEM_NAME,
-    FRONTEND_NAME,
+    ACTOR_NAME,
     CONTRACTS,
     MODELS | {},
     SIGNATURE_SCHEMA,
-    VERSION
+    VERSION,
+    FRONTEND_NAME
   >['makeUnstagedCommand'] = props =>
     makeUnstagedCommand({
       contracts,

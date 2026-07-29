@@ -1,9 +1,5 @@
-import type { Async } from '@zerospin/core/async/Async';
-import type { IFrontendController } from '@zerospin/core/frontendController/types';
-import { PublishableKey } from '@zerospin/core/services/PublishableKey';
-import { ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
-import type { ISession } from '@zerospin/core/session/types';
-import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
+import type { IAccountId, IActorId } from '@zerospin/core/models/types';
+import type { ISystemId } from '@zerospin/core/system/types';
 import type { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import {
@@ -11,33 +7,31 @@ import {
   makeTraceableApiTarget,
   type TelemetryCollector,
 } from '@zerospin/logger';
-import { Effect, Redacted } from 'effect';
+import type { newWebSocketRpcSession } from 'capnweb';
+import { Effect } from 'effect';
 
 export const createFrontendWebSocketTicket = Effect.fn(
   'createFrontendWebSocketTicket',
-)(function* <FRONTEND extends IFrontendController>(props: {
-  session: ISession<FRONTEND>;
+)(function* (props: {
+  frontendApi: ReturnType<
+    ReturnType<typeof newWebSocketRpcSession<ZerospinApis>>['getFrontendApi']
+  >;
 }): Effect.fn.Return<
-  string,
+  {
+    ticket: string;
+    systemId: ISystemId;
+    generationId: string;
+    accountId: IAccountId;
+    accountName: string;
+    actorId: IActorId;
+    actorName: string;
+    frontendName: string;
+    frontendVersion: string;
+  },
   IAnyError,
-  Async | PublishableKey | TelemetryCollector | ZerospinApisUrl
+  TelemetryCollector
 > {
-  const publishableKey = yield* PublishableKey;
-  const signature = yield* props.session.generateSignature();
-  const apiUrl = yield* ZerospinApisUrl;
-
-  using apis = newSyncRpcSession<ZerospinApis>(apiUrl);
-  const frontendApi = makeTraceableApiTarget(
-    apis.getFrontendApi({
-      publishableKey: Redacted.value(publishableKey),
-      accountName: props.session.frontend.accountName,
-      actorName: props.session.frontend.actorName,
-      frontendName: props.session.frontend.frontendName,
-      signature,
-    }),
-  );
-
-  return yield* frontendApi
+  return yield* makeTraceableApiTarget(props.frontendApi)
     .createFrontendWebSocketTicket()
     .pipe(
       Effect.mapError(error =>

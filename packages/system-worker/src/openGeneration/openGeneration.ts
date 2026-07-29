@@ -1,8 +1,8 @@
 /*
  * System-worker annotation:
  * Opens generation-local admission only after SystemRepo preparation. Hosted
- * calls must match this Worker's bound deploy/generation; local hot reload uses
- * its stable DevZerospinApis control state instead of candidate bindings.
+ * calls must match this Worker's bound deploy/generation; self-hosted control
+ * uses stable DevZerospinApis or SelfHostedZerospinApis state instead of candidate bindings.
  */
 
 import { makeAsync } from '@zerospin/core/async/makeAsync';
@@ -18,15 +18,16 @@ export const openGeneration = Effect.fn('SystemWorker.openGeneration')(
     const { deployId, generationId } = props;
 
     // Checkpoint 1: a hosted candidate may open only its upload-bound identity.
+    // Self-hosted control allocates the candidate identity after upload.
     if (
-      env.ZEROSPIN_INSTANCE_ID !== 'local' &&
+      env.ZEROSPIN_SELF_HOSTED !== 'true' &&
       (env.ZEROSPIN_DEPLOY_ID !== deployId ||
         env.ZEROSPIN_GENERATION_ID !== generationId)
     ) {
       return yield* new ZerospinError({
         code: 'system-worker-open-identity-mismatch',
         message:
-          'The requested generation identity does not match this Worker version',
+          'The requested hosted generation identity does not match this Worker version',
         extra: {
           deployId,
           generationId,

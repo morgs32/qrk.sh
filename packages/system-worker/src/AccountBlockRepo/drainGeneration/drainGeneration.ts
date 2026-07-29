@@ -6,25 +6,26 @@ import { Effect } from 'effect';
 
 import { accountBlockDrizzleSchemas } from '../accountBlockDrizzleSchemas.js';
 
-/** Finishes hosted actor fanout or only inspects subscriber work locally. */
+/** Finishes hosted actor fanout or only inspects it for self-hosted control. */
 export const drainGeneration = Effect.fn('AccountBlockRepo.drainGeneration')(
   function* (props: {
     db: IDb;
     hostedDrain: Effect.Effect<void, IAnyError, Async>;
-    local: boolean;
+    inspectionOnly: boolean;
   }): Effect.fn.Return<
     Readonly<{ pendingActorSubscriberCount: number }>,
     IAnyError,
     Async
   > {
-    const { db, hostedDrain, local } = props;
+    const { db, hostedDrain, inspectionOnly } = props;
 
-    // 1 — hosted activation may finish immutable account-block delivery.
-    if (!local) {
+    // 1 — a hosted Worker is pinned to the old generation and may finish its
+    // actor delivery. Self-hosted control has only the newly uploaded code.
+    if (!inspectionOnly) {
       yield* hostedDrain;
     }
 
-    // 2 — local Wrangler reload skips the drain and reaches only this inspection.
+    // 2 — self-hosted control skips the drain and reaches only this inspection.
     const terminalBlock = db
       .select({
         accountIndex: accountBlockDrizzleSchemas.finalizedBlocks.accountIndex,
@@ -92,11 +93,11 @@ export const drainGeneration = Effect.fn('AccountBlockRepo.drainGeneration')(
     // 3 — both modes fail closed until actor delivery has no durable work.
     if (pendingActorSubscriberCount > 0) {
       return yield* new ZerospinError({
-        code: local
-          ? 'account-block-generation-local-drain-required'
+        code: inspectionOnly
+          ? 'account-block-generation-self-hosted-drain-required'
           : 'account-block-generation-drain-incomplete',
-        message: local
-          ? 'AccountBlockRepo has pending subscriber work that local hot reload must not finish with new code'
+        message: inspectionOnly
+          ? 'AccountBlockRepo has pending subscriber work that self-hosted control must not finish with newly uploaded code'
           : 'AccountBlockRepo still has pending subscriber work after hosted generation drain',
         extra: { pendingActorSubscriberCount },
       });

@@ -3,6 +3,7 @@ import type { Effect, Schema } from 'effect';
 
 import type { IContracts, IOperationName } from '../contracts/types.ts';
 import type { IModels } from '../models/types.ts';
+import type { IServiceActorController } from '../serviceActorController/types.ts';
 
 type IAnyServiceQuery = {
   kind: 'service';
@@ -18,6 +19,7 @@ type IAnyServiceQueries = Record<string, IAnyServiceQuery>;
 export type IAnyService = {
   name: string;
   version: string;
+  actorControllers: Record<string, IServiceActorController>;
   models: IModels;
   contracts: IContracts;
   mutationAdapters:

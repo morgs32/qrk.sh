@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
+import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { makeModel } from '@zerospin/core/models/makeModel';
 import { primitives } from '@zerospin/core/models/primitives';
 import { mockFrontendApi } from '@zerospin/core/session/test-utils/mockFrontendApi';
@@ -15,7 +16,15 @@ import type * as Capnweb from 'capnweb';
 import { sql } from 'drizzle-orm';
 import { Effect, ManagedRuntime, Schema } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  vi,
+} from 'vitest';
 
 import {
   makeReactFrontend,
@@ -25,14 +34,14 @@ import { useLiveQuery } from './useLiveQuery';
 import { useSession } from './useSession';
 import { ZerospinConfig } from './ZerospinConfig';
 
-const newHttpBatchRpcSessionMock = vi.hoisted(() => vi.fn());
+const newWebSocketRpcSessionMock = vi.hoisted(() => vi.fn());
 const getFrontendApi = vi.hoisted(() => vi.fn());
 
 vi.mock('capnweb', async importOriginal => {
   const actual = await importOriginal<typeof Capnweb>();
   return {
     ...actual,
-    newHttpBatchRpcSession: newHttpBatchRpcSessionMock,
+    newWebSocketRpcSession: newWebSocketRpcSessionMock,
   };
 });
 
@@ -109,7 +118,9 @@ const frontend = makeFrontendController({
   frontendName: 'default',
   version: '1.0.0',
   systemName: 'reactSessionTestSystem',
-  signature: Schema.Struct({}),
+  signature: Schema.Struct({
+    actorId: Schema.String,
+  }),
 });
 
 const ReactSession = makeReactFrontend({
@@ -185,6 +196,65 @@ describe('makeReactFrontend.makeModelId', () => {
   });
 });
 
+describe('makeReactFrontend.authenticate', () => {
+  it('admits and releases the frontend without a Provider or ZerospinConfig', async () => {
+    const releaseFrontendApi = vi.fn();
+    const releaseRpcSession = vi.fn();
+    vi.mocked(mockFrontendApi.fetchActor).mockReset();
+    vi.mocked(mockFrontendApi.fetchActor).mockResolvedValueOnce({
+      result: encodeRight({
+        actor: {
+          accountId: 'acct_1',
+          actorId: 'usr_pre_provider',
+        },
+        deployId: 'dpl_1',
+        generationId: 'gen_1',
+        systemId: 'sys_1',
+        systemVersion: '1.0.0',
+        systemWorkerName: 'stub-deploy',
+        systemEnvironmentId: 'dev',
+      }),
+      link: null,
+    });
+    vi.mocked(mockFrontendApi.makeFrontendSpec).mockReset();
+    vi.mocked(mockFrontendApi.makeFrontendSpec).mockResolvedValueOnce({
+      result: encodeRight(makeFrontendControllerSpec(frontend)),
+      link: null,
+    });
+    getFrontendApi.mockReset();
+    getFrontendApi.mockReturnValue({
+      ...mockFrontendApi,
+      [Symbol.dispose]: releaseFrontendApi,
+    });
+    newWebSocketRpcSessionMock.mockReset();
+    newWebSocketRpcSessionMock.mockReturnValue({
+      getFrontendApi,
+      [Symbol.dispose]: releaseRpcSession,
+    });
+
+    expectTypeOf(ReactSession.authenticate).parameter(0).toEqualTypeOf<{
+      readonly actorId: string;
+    }>();
+
+    const result = await ReactSession.authenticate({
+      actorId: 'usr_pre_provider',
+    });
+
+    expect(result.actor.actorId).toBe('usr_pre_provider');
+    expect(getFrontendApi).toHaveBeenCalledWith({
+      publishableKey: 'pk_test_vitest',
+      accountName: frontend.accountName,
+      actorName: frontend.actorName,
+      frontendName: frontend.frontendName,
+      signature: { actorId: 'usr_pre_provider' },
+    });
+    expect(mockFrontendApi.fetchActor).toHaveBeenCalledTimes(1);
+    expect(mockFrontendApi.makeFrontendSpec).toHaveBeenCalledTimes(1);
+    expect(releaseFrontendApi).toHaveBeenCalledTimes(1);
+    expect(releaseRpcSession).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('makeReactFrontend.runtime', () => {
   it('uses a caller-provided session runtime', () => {
     const runtime = ManagedRuntime.make(sessionProviderDefaultLayer);
@@ -203,15 +273,25 @@ describe('makeReactFrontend.Provider', () => {
   let root: Root;
 
   beforeEach(() => {
+    vi.mocked(mockFrontendApi.makeFrontendSpec).mockImplementation(
+      async () => ({
+        result: encodeRight(makeFrontendControllerSpec(frontend)),
+        link: null,
+      }),
+    );
     vi.mocked(mockFrontendApi.getFrontendState).mockImplementation(
       async _request => ({
         result: encodeRight({
-          actorId: 'usr_1',
+          accountId: 'acct_1',
+          actorId: 'actr_1',
+          systemId: 'sys_1',
+          generationId: 'gen_1',
+          systemVersion: '1.0.0',
           accountName: frontend.accountName,
           actorName: frontend.actorName,
           frontendName: frontend.frontendName,
           systemWorkerName: 'stub-deploy',
-          frontendIndex: null,
+          frontendIndex: 0,
           lastRebasedPushedCursor: null,
           pushedCommands: [],
           resources: [],
@@ -225,7 +305,7 @@ describe('makeReactFrontend.Provider', () => {
       result: encodeRight({
         actor: {
           accountId: 'acct_1',
-          actorId: 'usr_1',
+          actorId: 'actr_1',
         },
         deployId: 'dpl_1',
         generationId: 'gen_1',
@@ -236,9 +316,14 @@ describe('makeReactFrontend.Provider', () => {
       }),
       link: null,
     });
-    getFrontendApi.mockImplementation(() => mockFrontendApi);
-    newHttpBatchRpcSessionMock.mockReset();
-    newHttpBatchRpcSessionMock.mockImplementation(() => ({
+    getFrontendApi.mockImplementation(() => ({
+      ...mockFrontendApi,
+      [Symbol.dispose]: () => {
+        /* Bound frontend capability dispose (no-op in tests). */
+      },
+    }));
+    newWebSocketRpcSessionMock.mockReset();
+    newWebSocketRpcSessionMock.mockImplementation(() => ({
       getFrontendApi,
       [Symbol.dispose]: () => {
         /* Rpc session dispose (no-op in tests). */
@@ -258,33 +343,50 @@ describe('makeReactFrontend.Provider', () => {
     container.remove();
   });
 
-  it('throws when the same ReactSession Provider mounts twice', async () => {
+  it('mounts sibling ReactSession Providers with separate session owners', async () => {
     const DuplicateReactSession = makeReactFrontend({
       frontend,
     });
+    const firstProviderRef = createRef<IProviderRef>();
+    const secondProviderRef = createRef<IProviderRef>();
 
-    await expect(
-      act(async () => {
-        root.render(
-          <ZerospinConfig userId="user_1">
-            <>
-              <DuplicateReactSession.Provider
-                generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-              >
-                <div />
-              </DuplicateReactSession.Provider>
-              <DuplicateReactSession.Provider
-                generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-              >
-                <div />
-              </DuplicateReactSession.Provider>
-            </>
-          </ZerospinConfig>,
-        );
-        await Promise.resolve();
-      }),
-    ).rejects.toThrow(
-      'The same ReactSession.Provider is already mounted on this page.',
+    await act(async () => {
+      root.render(
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: DuplicateReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <>
+            <DuplicateReactSession.Provider ref={firstProviderRef}>
+              <div />
+            </DuplicateReactSession.Provider>
+            <DuplicateReactSession.Provider ref={secondProviderRef}>
+              <div />
+            </DuplicateReactSession.Provider>
+          </>
+        </ZerospinConfig>,
+      );
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await Effect.runPromise(Effect.void);
+      await Promise.resolve();
+    });
+
+    const firstSession = await waitForSessionReady({
+      providerRef: firstProviderRef,
+    });
+    const secondSession = await waitForSessionReady({
+      providerRef: secondProviderRef,
+    });
+    expect(firstSession.sessionId).not.toBe(secondSession.sessionId);
+    expect(firstSession.store.getState().db).not.toBe(
+      secondSession.store.getState().db,
     );
   });
 
@@ -300,10 +402,16 @@ describe('makeReactFrontend.Provider', () => {
     await act(async () => {
       root.render(
         <StrictMode>
-          <ZerospinConfig userId="user_strict_mode">
-            <ReactSession.Provider
-              generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-            >
+          <ZerospinConfig
+            frontendAuthenticators={{
+              default: {
+                frontend: ReactSession,
+                generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+              },
+            }}
+            partitionKey="partition_strict_mode"
+          >
+            <ReactSession.Provider>
               <div />
             </ReactSession.Provider>
           </ZerospinConfig>
@@ -330,15 +438,25 @@ describe('useLiveQuery', () => {
   let root: Root;
 
   beforeEach(() => {
+    vi.mocked(mockFrontendApi.makeFrontendSpec).mockImplementation(
+      async () => ({
+        result: encodeRight(makeFrontendControllerSpec(frontend)),
+        link: null,
+      }),
+    );
     vi.mocked(mockFrontendApi.getFrontendState).mockImplementation(
       async _request => ({
         result: encodeRight({
-          actorId: 'usr_1',
+          accountId: 'acct_1',
+          actorId: 'actr_1',
+          systemId: 'sys_1',
+          generationId: 'gen_1',
+          systemVersion: '1.0.0',
           accountName: frontend.accountName,
           actorName: frontend.actorName,
           frontendName: frontend.frontendName,
           systemWorkerName: 'stub-deploy',
-          frontendIndex: null,
+          frontendIndex: 0,
           lastRebasedPushedCursor: null,
           pushedCommands: [],
           resources: [],
@@ -352,7 +470,7 @@ describe('useLiveQuery', () => {
       result: encodeRight({
         actor: {
           accountId: 'acct_1',
-          actorId: 'usr_1',
+          actorId: 'actr_1',
         },
         deployId: 'dpl_1',
         generationId: 'gen_1',
@@ -363,9 +481,14 @@ describe('useLiveQuery', () => {
       }),
       link: null,
     });
-    getFrontendApi.mockImplementation(() => mockFrontendApi);
-    newHttpBatchRpcSessionMock.mockReset();
-    newHttpBatchRpcSessionMock.mockImplementation(() => ({
+    getFrontendApi.mockImplementation(() => ({
+      ...mockFrontendApi,
+      [Symbol.dispose]: () => {
+        /* Bound frontend capability dispose (no-op in tests). */
+      },
+    }));
+    newWebSocketRpcSessionMock.mockReset();
+    newWebSocketRpcSessionMock.mockImplementation(() => ({
       getFrontendApi,
       [Symbol.dispose]: () => {
         /* Rpc session dispose (no-op in tests). */
@@ -396,11 +519,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            ref={providerRef}
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider ref={providerRef}>
             <SessionCapture
               onSession={session => {
                 capturedSession = session;
@@ -418,15 +546,22 @@ describe('useLiveQuery', () => {
     });
 
     capturedSession = await waitForSessionReady({ providerRef });
+    expect('generateSignature' in capturedSession).toBe(false);
 
     const db = capturedSession.store.getState().db;
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 capturedSession = session;
@@ -564,11 +699,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            ref={providerRef}
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider ref={providerRef}>
             <SessionCapture
               onSession={session => {
                 capturedSession = session;
@@ -602,10 +742,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 capturedSession = session;
@@ -670,11 +816,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            ref={providerRef}
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider ref={providerRef}>
             <SessionCapture
               onSession={session => {
                 capturedSession = session;
@@ -722,10 +873,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 capturedSession = session;
@@ -810,11 +967,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            ref={providerRef}
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider ref={providerRef}>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -835,10 +997,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -875,11 +1043,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            ref={providerRef}
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider ref={providerRef}>
             <SessionCapture
               onSession={session => {
                 capturedSession = session;
@@ -902,10 +1075,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 capturedSession = session;
@@ -963,11 +1142,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            ref={providerRef}
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider ref={providerRef}>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -988,10 +1172,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -1023,10 +1213,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -1069,11 +1265,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            ref={providerRef}
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider ref={providerRef}>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -1094,10 +1295,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -1130,10 +1337,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -1202,11 +1415,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            ref={providerRef}
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider ref={providerRef}>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -1227,10 +1445,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -1256,10 +1480,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -1294,11 +1524,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            ref={providerRef}
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider ref={providerRef}>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;
@@ -1319,10 +1554,16 @@ describe('useLiveQuery', () => {
 
     await act(async () => {
       root.render(
-        <ZerospinConfig userId="user_1">
-          <ReactSession.Provider
-            generateSignature={() => Effect.succeed({ actorId: 'usr_1' })}
-          >
+        <ZerospinConfig
+          frontendAuthenticators={{
+            default: {
+              frontend: ReactSession,
+              generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+            },
+          }}
+          partitionKey="partition_1"
+        >
+          <ReactSession.Provider>
             <SessionCapture
               onSession={session => {
                 _capturedSession = session;

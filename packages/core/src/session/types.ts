@@ -9,9 +9,11 @@ import type { Schema } from 'effect';
 import type { StoreApi } from 'zustand';
 
 import type {
+  IEncodedAppliedMutation,
   IEncodedCommand,
   IExecutedPushedCommand,
   IFailedPushedCommand,
+  IFailedStagedCommand,
   InferCommand,
   IPushedCommand,
   IStagedCommand,
@@ -39,10 +41,10 @@ import type {
   IPushedCursorId,
   IRef,
 } from '../models/types.ts';
+import type { ISystemId } from '../system/types.ts';
 import type { ISignatureFactory } from '../utils/types.ts';
 
 import type {
-  sessionFailedCommandShape,
   sessionPushedCommandShape,
   sessionStagedCommandShape,
 } from './sessionCommandShape.ts';
@@ -84,35 +86,143 @@ export type IFrontendBlock = Readonly<{
   frontendIndex: number;
 }>;
 
-export type IFrontendState = {
+/** Complete server-owned account frontend state used for creation and repair. */
+export type IFrontendSyncState = Readonly<{
+  accountId: IAccountId;
   actorId: IActorId;
+  systemId: ISystemId;
+  generationId: string;
+  systemVersion: string;
   systemWorkerName: string;
   accountName: string;
   actorName: string;
   frontendName: string;
-  frontendIndex: number | null;
+  frontendIndex: number;
   lastRebasedPushedCursor: IPushedCursorId | null;
   pushedCommands: readonly InferEncodedRow<typeof sessionPushedCommandShape>[];
   resources: readonly IEncodedResourceShape[];
   executedPushedCommands: readonly IEncodedCommand<IExecutedPushedCommand>[];
-  failedPushedCommands: readonly (
-    | IEncodedCommand<IFailedPushedCommand>
-    | InferEncodedRow<typeof sessionFailedCommandShape>
-  )[];
-};
+  failedPushedCommands: readonly IEncodedCommand<IFailedPushedCommand>[];
+}>;
 
-export type IFrontendReplicaState = IFrontendState & {
-  stagedCommands: readonly InferEncodedRow<typeof sessionStagedCommandShape>[];
-};
+/** Complete materialized account replica, including durable local intent. */
+export type IFrontendReplicaState = IFrontendSyncState &
+  Readonly<{
+    frontendVersion: string;
+    replicaIndex: number;
+    stagedCommands: readonly InferEncodedRow<
+      typeof sessionStagedCommandShape
+    >[];
+    failedStagedCommands: readonly IEncodedCommand<IFailedStagedCommand>[];
+    optimisticAppliedMutations: readonly Readonly<{
+      commandId: IEncodedCommand<IStagedCommand>['id'];
+      mutations: readonly IEncodedAppliedMutation[];
+    }>[];
+  }>;
+
+export type IFrontendGenerationBoundaryBlock = Readonly<{
+  kind: 'generation-boundary';
+  systemId: ISystemId;
+  prevGenerationId: string;
+  generationId: string;
+  accountId: IAccountId;
+  accountName: string;
+  actorId: IActorId;
+  actorName: string;
+  frontendName: string;
+  frontendIndex: number;
+}>;
+
+export type IFrontendLineageBlock =
+  | IFrontendGenerationBoundaryBlock
+  | Readonly<{
+      kind: 'frontend';
+      systemId: ISystemId;
+      generationId: string;
+      accountId: IAccountId;
+      accountName: string;
+      actorId: IActorId;
+      actorName: string;
+      frontendName: string;
+      frontendBlock: IFrontendBlock;
+    }>;
+
+/**
+ * One committed SharedWorker transaction. Server and local command commits
+ * share one contiguous replica index without conflating their payloads.
+ */
+export type IFrontendReplicaBlock =
+  | Readonly<{
+      kind: 'server';
+      systemId: ISystemId;
+      generationId: string;
+      accountId: IAccountId;
+      accountName: string;
+      actorId: IActorId;
+      actorName: string;
+      frontendName: string;
+      frontendVersion: string;
+      replicaIndex: number;
+      frontendIndex: number;
+      lineageBlock: IFrontendLineageBlock;
+    }>
+  | Readonly<{
+      kind: 'local-command';
+      systemId: ISystemId;
+      generationId: string;
+      accountId: IAccountId;
+      accountName: string;
+      actorId: IActorId;
+      actorName: string;
+      frontendName: string;
+      frontendVersion: string;
+      replicaIndex: number;
+      frontendIndex: number;
+      delta: IFrontendDelta;
+      stagedCommandsAdded: readonly IEncodedCommand<IStagedCommand>[];
+      stagedCommandIdsRemoved: readonly IEncodedCommand<IStagedCommand>['id'][];
+      pushedCommandsAdded: readonly IEncodedCommand<IPushedCommand>[];
+      pushedCommandIdsRemoved: readonly IEncodedCommand<IPushedCommand>['id'][];
+      executedPushedCommandsAdded: readonly IEncodedCommand<IExecutedPushedCommand>[];
+      executedPushedCommandIdsRemoved: readonly IEncodedCommand<IExecutedPushedCommand>['id'][];
+      failedStagedCommandsAdded: readonly IEncodedCommand<IFailedStagedCommand>[];
+      failedPushedCommandsAdded: readonly IEncodedCommand<IFailedPushedCommand>[];
+      failedCommandIdsRemoved: readonly (
+        | IEncodedCommand<IFailedStagedCommand>['id']
+        | IEncodedCommand<IFailedPushedCommand>['id']
+      )[];
+      optimisticAppliedMutationsAdded: readonly Readonly<{
+        commandId: IEncodedCommand<IStagedCommand>['id'];
+        mutations: readonly IEncodedAppliedMutation[];
+      }>[];
+      optimisticAppliedMutationCommandIdsRemoved: readonly IEncodedCommand<IStagedCommand>['id'][];
+    }>;
+
+export type IFrontendLineageTransitionRequired = Readonly<{
+  kind: 'lineage-transition-required';
+  systemId: ISystemId;
+  generationId: string;
+  accountId: IAccountId;
+  accountName: string;
+  actorId: IActorId;
+  actorName: string;
+  frontendName: string;
+  frontendVersion: string;
+  appliedBoundaryIndex: number;
+  remainingBoundaries: readonly IFrontendGenerationBoundaryBlock[];
+}>;
 
 export interface IInitializedSessionState<MODELS extends IModels = IModels> {
   sessionId: ISessionId;
   accountId: IAccountId;
   accountName: string;
   actorId: IActorId;
+  systemId: ISystemId;
   generationId: string;
   systemVersion: string;
   systemWorkerName: string;
+  frontendName: string;
+  frontendVersion: string;
   db: IWaSqliteDrizzleDb<
     IDbConfig<ISessionSchema<MODELS>, IDrizzleRelationsFromModels<MODELS>>
   >;
@@ -120,12 +230,33 @@ export interface IInitializedSessionState<MODELS extends IModels = IModels> {
   models: MODELS;
   vfsName: string | null;
   isInitialized: true;
-  /** FrontendRepo convergence index for the next frontend block. */
-  frontendIndex: number | null;
+  /** FrontendRepo convergence index already committed to this session. */
+  frontendIndex: number;
+  /** SharedWorker-local committed transaction index; null in direct mode. */
+  replicaIndex: number | null;
   /** FrontendRepo pushed cursor already represented in local resource rows. */
   lastRebasedPushedCursor: IPushedCursorId | null;
   isPushPaused: boolean;
   isSharedWorkerEnabled: boolean;
+  workerState: Readonly<{
+    mode: 'shared-worker' | 'direct';
+    status:
+      | 'authenticating'
+      | 'hydrating'
+      | 'offline'
+      | 'connecting'
+      | 'replaying'
+      | 'online'
+      | 'repairing'
+      | 'update-required'
+      | 'failed'
+      | 'released';
+    bootstrapSource: 'network' | 'replica' | null;
+    frontendIndex: number | null;
+    replicaIndex: number | null;
+    databaseName: string | null;
+    failure: IAnyErrorJson | null;
+  }>;
   lastDevtoolsPush: Readonly<{
     traceId: ITraceId;
     completedAt: number;
@@ -140,16 +271,41 @@ type IUninitializedSessionState = {
   accountId: null;
   accountName: null;
   actorId: null;
+  systemId: null;
   generationId: null;
   systemVersion: null;
   systemWorkerName: null;
+  frontendName: null;
+  frontendVersion: null;
   db: null;
   schema: null;
   models: null;
   vfsName: null;
   isInitialized: false;
+  frontendIndex: null;
+  replicaIndex: null;
+  lastRebasedPushedCursor: null;
   isPushPaused: boolean;
   isSharedWorkerEnabled: boolean;
+  workerState: Readonly<{
+    mode: 'shared-worker' | 'direct';
+    status:
+      | 'authenticating'
+      | 'hydrating'
+      | 'offline'
+      | 'connecting'
+      | 'replaying'
+      | 'online'
+      | 'repairing'
+      | 'update-required'
+      | 'failed'
+      | 'released';
+    bootstrapSource: null;
+    frontendIndex: null;
+    replicaIndex: null;
+    databaseName: null;
+    failure: IAnyErrorJson | null;
+  }>;
   lastDevtoolsPush: Readonly<{
     traceId: ITraceId;
     completedAt: number;

@@ -22,7 +22,10 @@ describe('loadSeedsFn', () => {
           entry: 'src/system.ts',
           environmentId: 'dev',
           env: null,
-          seeds: null,
+          seeds: {
+            dev: null,
+            production: null,
+          },
         });
 
         expect(seeds).toEqual([]);
@@ -50,7 +53,10 @@ export const seeds = Effect.succeed([{ id: 'cmd_from_effect' }]);
               entry: 'src/system.ts',
               environmentId: 'dev',
               env: null,
-              seeds: 'seeds-module.ts',
+              seeds: {
+                dev: 'seeds-module.ts',
+                production: null,
+              },
             },
             cwd,
           );
@@ -91,7 +97,10 @@ export const seeds = Effect.succeed([
               entry: 'src/system.ts',
               environmentId: 'dev',
               env: null,
-              seeds: 'seeds-module.ts',
+              seeds: {
+                dev: 'seeds-module.ts',
+                production: null,
+              },
             },
             cwd,
           );
@@ -107,6 +116,40 @@ export const seeds = Effect.succeed([
               serviceName: 'app',
             },
           ]);
+        }),
+      ),
+    );
+
+    it.effect('loads only the selected production seeds module', () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const pathApi = yield* Path.Path;
+          const fileSystem = yield* FileSystem.FileSystem;
+          const cwd = yield* fileSystem.makeTempDirectoryScoped({
+            prefix: 'load-production-seeds-test-',
+          });
+          yield* fileSystem.writeFileString(
+            pathApi.join(cwd, 'seeds.production.ts'),
+            `import { Effect } from 'effect';
+
+export const seeds = Effect.succeed([{ id: 'cmd_production' }]);
+`,
+          );
+
+          const seeds = yield* loadSeedsFn(
+            {
+              entry: 'src/system.ts',
+              environmentId: 'production',
+              env: null,
+              seeds: {
+                dev: 'missing-dev-seeds.ts',
+                production: 'seeds.production.ts',
+              },
+            },
+            cwd,
+          );
+
+          expect(seeds).toEqual([{ id: 'cmd_production' }]);
         }),
       ),
     );

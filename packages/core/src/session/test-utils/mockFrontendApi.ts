@@ -13,6 +13,7 @@ const stubFrontendSpec: IFrontendControllerSpec = {
   modelNames: [],
   models: {},
   contracts: {},
+  signatureJsonSchema: {},
 };
 
 /** Concrete FrontendApi-shaped test double; every raw leaf returns a linked envelope. */

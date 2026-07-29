@@ -47,7 +47,9 @@ const styles = {
 export function SessionToolbar() {
   const { sessionId } = useParams<{ sessionId: ISessionId }>();
   const entry = useStore(zerospinDevtoolsStore, state =>
-    sessionId === undefined ? undefined : state.sessionsById.get(sessionId),
+    sessionId === undefined
+      ? undefined
+      : state.accountSessionsById.get(sessionId),
   );
   if (entry === undefined) {
     throw new Error('Session not found');

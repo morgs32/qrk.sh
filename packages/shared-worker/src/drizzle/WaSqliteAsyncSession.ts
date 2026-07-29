@@ -230,6 +230,7 @@ export class WaSqliteAsyncSession<
 
   private readonly logger: Logger;
   private readonly sessionDialect: SQLiteAsyncDialect;
+  private operationTail: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly client: IAsyncWaSqliteClient,
@@ -241,6 +242,17 @@ export class WaSqliteAsyncSession<
     super(dialect);
     this.logger = options.logger ?? new NoopLogger();
     this.sessionDialect = dialect;
+  }
+
+  private serializeOperation<SUCCESS>(
+    operation: () => Promise<SUCCESS>,
+  ): Promise<SUCCESS> {
+    const result = this.operationTail.then(operation);
+    this.operationTail = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
   }
 
   override prepareQuery<T extends Omit<IPreparedQueryConfig, 'run'>>(
@@ -257,6 +269,7 @@ export class WaSqliteAsyncSession<
       fields,
       executeMethod,
       isResponseInArrayMode,
+      operation => this.serializeOperation(operation),
       customResultMapper as
         | ((rows: unknown[][] | Record<string, unknown>[]) => unknown)
         | undefined,
@@ -276,6 +289,7 @@ export class WaSqliteAsyncSession<
       fields,
       executeMethod,
       false,
+      operation => this.serializeOperation(operation),
       customResultMapper as
         | ((rows: unknown[][] | Record<string, unknown>[]) => unknown)
         | undefined,
@@ -295,31 +309,43 @@ export class WaSqliteAsyncSession<
     ) => Promise<T>,
     config: SQLiteTransactionConfig = {},
   ): Promise<T> {
-    const tx = new WaSqliteAsyncTransaction(
-      'async',
-      this.sessionDialect,
-      this,
-      this.relations,
-      this.schema,
-      undefined,
-      false,
-      true,
-    );
-    await this.run(
-      sql.raw(`begin${config.behavior ? ` ${config.behavior}` : ''}`),
-    );
+    return this.serializeOperation(async () => {
+      // The outer session queue owns the entire transaction. A private session
+      // gets its own inner queue so transaction statements remain serialized
+      // without waiting on the outer queue that cannot release before commit.
+      const transactionSession = new WaSqliteAsyncSession<
+        TFullSchema,
+        TRelations,
+        TSchema
+      >(this.client, this.sessionDialect, this.relations, this.schema, {
+        logger: this.logger,
+      });
+      const tx = new WaSqliteAsyncTransaction(
+        'async',
+        this.sessionDialect,
+        transactionSession,
+        this.relations,
+        this.schema,
+        undefined,
+        false,
+        true,
+      );
+      await transactionSession.run(
+        sql.raw(`begin${config.behavior ? ` ${config.behavior}` : ''}`),
+      );
 
-    let isCommitted = false;
-    try {
-      const result = await transaction(tx);
-      await this.run(sql`commit`);
-      isCommitted = true;
-      return result;
-    } finally {
-      if (!isCommitted) {
-        await this.run(sql`rollback`);
+      let isCommitted = false;
+      try {
+        const result = await transaction(tx);
+        await transactionSession.run(sql`commit`);
+        isCommitted = true;
+        return result;
+      } finally {
+        if (!isCommitted) {
+          await transactionSession.run(sql`rollback`);
+        }
       }
-    }
+    });
   }
 }
 
@@ -434,6 +460,9 @@ export class WaSqliteAsyncPreparedQuery<
     private readonly fields: SelectedFieldsOrdered | undefined,
     executeMethod: SQLiteExecuteMethod,
     private readonly responseInArrayMode: boolean,
+    private readonly serializeOperation: <SUCCESS>(
+      operation: () => Promise<SUCCESS>,
+    ) => Promise<SUCCESS>,
     private readonly customResultMapper?: (
       rows: unknown[][] | Record<string, unknown>[],
     ) => unknown,
@@ -445,20 +474,22 @@ export class WaSqliteAsyncPreparedQuery<
   override async run(
     placeholderValues?: Record<string, unknown>,
   ): Promise<IWaSqliteRunResult> {
-    const parameters = fillPlaceholders(
-      this.query.params,
-      placeholderValues ?? {},
-    );
-    this.logger.logQuery(this.query.sql, parameters);
-    await executeValuesRows({
-      client: this.client,
-      sql: this.query.sql,
-      parameters,
-    });
+    return this.serializeOperation(async () => {
+      const parameters = fillPlaceholders(
+        this.query.params,
+        placeholderValues ?? {},
+      );
+      this.logger.logQuery(this.query.sql, parameters);
+      await executeValuesRows({
+        client: this.client,
+        sql: this.query.sql,
+        parameters,
+      });
 
-    return {
-      changes: this.client.sqlite3.changes(this.client.db),
-    };
+      return {
+        changes: this.client.sqlite3.changes(this.client.db),
+      };
+    });
   }
 
   override async all(
@@ -482,11 +513,14 @@ export class WaSqliteAsyncPreparedQuery<
       );
       logger.logQuery(query.sql, parameters);
 
-      return (await executeObjectRows({
-        client: this.client,
-        sql: query.sql,
-        parameters,
-      })) as T['all'];
+      return this.serializeOperation(
+        async () =>
+          (await executeObjectRows({
+            client: this.client,
+            sql: query.sql,
+            parameters,
+          })) as T['all'],
+      );
     }
     const rows = (await this.values(placeholderValues)) as Array<unknown[]>;
     if (customResultMapper) {
@@ -519,13 +553,16 @@ export class WaSqliteAsyncPreparedQuery<
     const { fields, customResultMapper } = this;
 
     if (!fields && !customResultMapper) {
-      return (
-        await executeObjectRows({
-          client: this.client,
-          sql: this.query.sql,
-          parameters,
-        })
-      )[0] as T['get'];
+      return this.serializeOperation(
+        async () =>
+          (
+            await executeObjectRows({
+              client: this.client,
+              sql: this.query.sql,
+              parameters,
+            })
+          )[0] as T['get'],
+      );
     }
     const row = ((await this.values(placeholderValues)) as Array<unknown[]>)[0];
     if (!row) {
@@ -552,11 +589,14 @@ export class WaSqliteAsyncPreparedQuery<
     );
     this.logger.logQuery(this.query.sql, parameters);
 
-    return (await executeValuesRows({
-      client: this.client,
-      sql: this.query.sql,
-      parameters,
-    })) as T['values'];
+    return this.serializeOperation(
+      async () =>
+        (await executeValuesRows({
+          client: this.client,
+          sql: this.query.sql,
+          parameters,
+        })) as T['values'],
+    );
   }
 
   /** @internal */
@@ -573,13 +613,16 @@ export class WaSqliteAsyncPreparedQuery<
     );
     this.logger.logQuery(this.query.sql, parameters);
 
-    return this.customResultMapper!(
-      await executeObjectRows({
-        client: this.client,
-        sql: this.query.sql,
-        parameters,
-      }),
-    ) as T['all'];
+    return this.serializeOperation(
+      async () =>
+        this.customResultMapper!(
+          await executeObjectRows({
+            client: this.client,
+            sql: this.query.sql,
+            parameters,
+          }),
+        ) as T['all'],
+    );
   }
 
   private async getRqbV2(
@@ -591,13 +634,16 @@ export class WaSqliteAsyncPreparedQuery<
     );
     this.logger.logQuery(this.query.sql, parameters);
 
-    const row = (
-      await executeObjectRows({
-        client: this.client,
-        sql: this.query.sql,
-        parameters,
-      })
-    )[0];
+    const row = await this.serializeOperation(
+      async () =>
+        (
+          await executeObjectRows({
+            client: this.client,
+            sql: this.query.sql,
+            parameters,
+          })
+        )[0],
+    );
 
     if (row === undefined) {
       return row as T['get'];

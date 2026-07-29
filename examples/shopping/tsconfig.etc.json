@@ -3,6 +3,12 @@
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@zerospin/shared-worker/makeSharedWorkerSession": [
+        "../../packages/shared-worker/dist/makeSharedWorkerSession.d.ts"
+      ]
+    },
     "types": ["node", "vitest/globals", "./worker-configuration.d.ts"]
   },
   "include": [

@@ -2,7 +2,6 @@
   "compilerOptions": {
     "disableSourceOfProjectReferenceRedirect": true,
     "disableReferencedProjectLoad": true,
-    "stableTypeOrdering": true,
     "sourceMap": true
   }
 }

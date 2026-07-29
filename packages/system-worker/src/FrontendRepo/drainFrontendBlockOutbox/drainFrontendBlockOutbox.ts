@@ -1,8 +1,10 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { IDb } from '@zerospin/core/drizzle/types';
+import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import { FrontendBlockSchema } from '@zerospin/core/session/FrontendBlockSchema';
-import type { IFrontendBlock } from '@zerospin/core/session/types';
+import type { IFrontendLineageBlock } from '@zerospin/core/session/types';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import {
   mapParseError,
@@ -19,6 +21,7 @@ import { frontendRepoDrizzleSchemas } from '../FrontendRepo.js';
 export const drainFrontendBlockOutbox = Effect.fn(
   'FrontendRepo.drainFrontendBlockOutbox',
 )(function* (props: {
+  configuredSystemId: string;
   db: IDb;
   key: {
     generationId: string;
@@ -31,6 +34,38 @@ export const drainFrontendBlockOutbox = Effect.fn(
   storage: DurableObjectStorage;
 }): Effect.fn.Return<void, IAnyError, Async> {
   const { db, key, storage } = props;
+  const systemId = yield* Schema.decodeUnknown(
+    makeAbbreviationIdSchema(coreAbbreviations.system),
+  )(props.configuredSystemId).pipe(
+    mapParseError({
+      code: 'frontend-block-outbox-system-id-invalid',
+      prefix: 'Failed to decode FrontendRepo configured systemId',
+    }),
+  );
+  const generationId = yield* Schema.decodeUnknown(
+    makeAbbreviationIdSchema(coreAbbreviations.generation),
+  )(key.generationId).pipe(
+    mapParseError({
+      code: 'frontend-block-outbox-generation-id-invalid',
+      prefix: 'Failed to decode FrontendRepo generationId',
+    }),
+  );
+  const accountId = yield* Schema.decodeUnknown(
+    makeAbbreviationIdSchema(coreAbbreviations.account),
+  )(key.accountId).pipe(
+    mapParseError({
+      code: 'frontend-block-outbox-account-id-invalid',
+      prefix: 'Failed to decode FrontendRepo accountId',
+    }),
+  );
+  const actorId = yield* Schema.decodeUnknown(
+    makeAbbreviationIdSchema(coreAbbreviations.actor),
+  )(key.actorId).pipe(
+    mapParseError({
+      code: 'frontend-block-outbox-actor-id-invalid',
+      prefix: 'Failed to decode FrontendRepo actorId',
+    }),
+  );
   const pendingRows = db
     .select()
     .from(frontendRepoDrizzleSchemas.frontendBlockOutbox)
@@ -42,18 +77,27 @@ export const drainFrontendBlockOutbox = Effect.fn(
     return;
   }
   const frontendBlockRepo = yield* getFrontendBlockRepo({ key });
-  const blocks: IFrontendBlock[] = [];
+  const blocks: IFrontendLineageBlock[] = [];
   for (const row of pendingRows) {
-    blocks.push(
-      yield* Schema.decodeUnknown(Schema.parseJson(FrontendBlockSchema))(
-        row.block,
-      ).pipe(
-        mapParseError({
-          code: 'frontend-block-outbox-decode-failed',
-          prefix: 'Failed to decode frontend block outbox row',
-        }),
-      ),
+    const frontendBlock = yield* Schema.decodeUnknown(
+      Schema.parseJson(FrontendBlockSchema),
+    )(row.block).pipe(
+      mapParseError({
+        code: 'frontend-block-outbox-decode-failed',
+        prefix: 'Failed to decode frontend block outbox row',
+      }),
     );
+    blocks.push({
+      kind: 'frontend',
+      systemId,
+      generationId,
+      accountId,
+      accountName: key.accountName,
+      actorId,
+      actorName: key.actorName,
+      frontendName: key.frontendName,
+      frontendBlock,
+    });
   }
   const delivered = yield* makeAsync<Schema.EitherEncoded<void, IAnyErrorJson>>(
     () =>

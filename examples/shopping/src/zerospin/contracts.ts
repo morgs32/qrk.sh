@@ -3,7 +3,7 @@ import { primitives } from '@zerospin/core/models/primitives';
 import { prefixActorId } from '@zerospin/core/utils/prefixActorId';
 import { Effect, Schema } from 'effect';
 
-import { Cart, CartItem, Product, User } from './models';
+import { Cart, CartItem, CatalogMarker, Product, User } from './models';
 
 export const createUser = makeContract({
   commandName: 'createUser',
@@ -68,6 +68,27 @@ export const createProduct = makeContract({
       created: Product.create('1.0.0', {
         resourceId: id,
         attributes: { description, name, price },
+      }),
+    });
+  },
+  version: '1.0.0',
+});
+
+export const createCatalogMarker = makeContract({
+  commandName: 'createCatalogMarker',
+  payload: {
+    id: CatalogMarker.primaryKey({ autogenerate: true }),
+    label: primitives.text(),
+  },
+  mutations: Schema.Struct({
+    created: CatalogMarker.createMutation('1.0.0'),
+  }),
+  program: ({ payload }) => {
+    const { id, label } = payload;
+    return Effect.all({
+      created: CatalogMarker.create('1.0.0', {
+        resourceId: id,
+        attributes: { label },
       }),
     });
   },

@@ -21,6 +21,7 @@ import {
   vi,
 } from 'vitest';
 
+import { authenticate } from './authenticate';
 import { createFrontendWebSocketTicket } from './createFrontendWebSocketTicket';
 import { executeActorQuery } from './executeActorQuery';
 import { fetchActor } from './fetchActor';
@@ -28,13 +29,21 @@ import { fetchFrontendState } from './fetchFrontendState';
 
 const newSyncRpcSessionMock = vi.hoisted(() => vi.fn());
 const getFrontendApi = vi.hoisted(() => vi.fn());
+const fetchFrontendMock = vi.hoisted(() => vi.fn());
 const fetchActorLeaf = vi.hoisted(() => vi.fn());
+const makeFrontendSpecLeaf = vi.hoisted(() => vi.fn());
 const getFrontendStateLeaf = vi.hoisted(() => vi.fn());
 const executeActorQueryLeaf = vi.hoisted(() => vi.fn());
+const executeServiceQueryLeaf = vi.hoisted(() => vi.fn());
 const createFrontendWebSocketTicketLeaf = vi.hoisted(() => vi.fn());
+const pushCommandsLeaf = vi.hoisted(() => vi.fn());
 
 vi.mock('@zerospin/core/utils/newSyncRpcSession', () => ({
   newSyncRpcSession: newSyncRpcSessionMock,
+}));
+
+vi.mock('./fetchFrontend', () => ({
+  fetchFrontend: fetchFrontendMock,
 }));
 
 const frontend = makeFrontendController({
@@ -72,21 +81,30 @@ const shopperActor = {
   },
 };
 
+const mockFrontendApi = {
+  fetchActor: fetchActorLeaf,
+  makeFrontendSpec: makeFrontendSpecLeaf,
+  getFrontendState: getFrontendStateLeaf,
+  executeActorQuery: executeActorQueryLeaf,
+  executeServiceQuery: executeServiceQueryLeaf,
+  createFrontendWebSocketTicket: createFrontendWebSocketTicketLeaf,
+  pushCommands: pushCommandsLeaf,
+};
+
 describe('@zerospin/frontend programs', () => {
   beforeEach(() => {
     getFrontendApi.mockReset();
     fetchActorLeaf.mockReset();
+    makeFrontendSpecLeaf.mockReset();
     getFrontendStateLeaf.mockReset();
     executeActorQueryLeaf.mockReset();
+    executeServiceQueryLeaf.mockReset();
     createFrontendWebSocketTicketLeaf.mockReset();
+    pushCommandsLeaf.mockReset();
+    fetchFrontendMock.mockReset();
     newSyncRpcSessionMock.mockReset();
 
-    getFrontendApi.mockReturnValue({
-      fetchActor: fetchActorLeaf,
-      getFrontendState: getFrontendStateLeaf,
-      executeActorQuery: executeActorQueryLeaf,
-      createFrontendWebSocketTicket: createFrontendWebSocketTicketLeaf,
-    });
+    getFrontendApi.mockReturnValue(mockFrontendApi);
     newSyncRpcSessionMock.mockReturnValue({
       getFrontendApi,
       [Symbol.dispose]: () => {
@@ -100,25 +118,36 @@ describe('@zerospin/frontend programs', () => {
   });
 
   describe('createFrontendWebSocketTicket', () => {
-    it('generates a fresh signature for each authenticated ticket request and returns each raw string', async () => {
+    it('uses the admitted target for each fresh ticket request', async () => {
       createFrontendWebSocketTicketLeaf
         .mockResolvedValueOnce({
-          result: encodeRight('raw-ticket-one'),
+          result: encodeRight({
+            ticket: 'gen_1.raw-ticket-one',
+            systemId: 'sys_1',
+            generationId: 'gen_1',
+            accountId: 'acct_1',
+            accountName: 'user',
+            actorId: 'actr_1',
+            actorName: 'shopper',
+            frontendName: 'web',
+            frontendVersion: '1.0.0',
+          }),
           link: null,
         })
         .mockResolvedValueOnce({
-          result: encodeRight('raw-ticket-two'),
+          result: encodeRight({
+            ticket: 'gen_1.raw-ticket-two',
+            systemId: 'sys_1',
+            generationId: 'gen_1',
+            accountId: 'acct_1',
+            accountName: 'user',
+            actorId: 'actr_1',
+            actorName: 'shopper',
+            frontendName: 'web',
+            frontendVersion: '1.0.0',
+          }),
           link: null,
         });
-      const generateSignature = vi
-        .fn()
-        .mockReturnValueOnce(Effect.succeed({ userId: 'usr_first' }))
-        .mockReturnValueOnce(Effect.succeed({ userId: 'usr_second' }));
-      const session = makeSession({
-        frontend,
-        generateSignature,
-        sessionId: 'sesn_create_websocket_ticket_success',
-      });
       const collector = makeTelemetryCollector();
       const layer = Layer.mergeAll(
         AsyncLive,
@@ -128,29 +157,18 @@ describe('@zerospin/frontend programs', () => {
       );
 
       const first = await Effect.runPromise(
-        createFrontendWebSocketTicket({ session }).pipe(Effect.provide(layer)),
+        createFrontendWebSocketTicket({ frontendApi: mockFrontendApi }).pipe(
+          Effect.provide(layer),
+        ),
       );
       const second = await Effect.runPromise(
-        createFrontendWebSocketTicket({ session }).pipe(Effect.provide(layer)),
+        createFrontendWebSocketTicket({ frontendApi: mockFrontendApi }).pipe(
+          Effect.provide(layer),
+        ),
       );
 
-      expect(first).toBe('raw-ticket-one');
-      expect(second).toBe('raw-ticket-two');
-      expect(generateSignature).toHaveBeenCalledTimes(2);
-      expect(getFrontendApi).toHaveBeenNthCalledWith(1, {
-        publishableKey: 'pk_frontend_test',
-        accountName: 'user',
-        actorName: 'shopper',
-        frontendName: 'web',
-        signature: { userId: 'usr_first' },
-      });
-      expect(getFrontendApi).toHaveBeenNthCalledWith(2, {
-        publishableKey: 'pk_frontend_test',
-        accountName: 'user',
-        actorName: 'shopper',
-        frontendName: 'web',
-        signature: { userId: 'usr_second' },
-      });
+      expect(first.ticket).toBe('gen_1.raw-ticket-one');
+      expect(second.ticket).toBe('gen_1.raw-ticket-two');
       expect(createFrontendWebSocketTicketLeaf).toHaveBeenNthCalledWith(1, {
         args: [],
         traceContext: expect.objectContaining({
@@ -177,15 +195,10 @@ describe('@zerospin/frontend programs', () => {
         ),
         link: null,
       });
-      const session = makeSession({
-        frontend,
-        generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
-        sessionId: 'sesn_create_websocket_ticket_failure',
-      });
       const collector = makeTelemetryCollector();
 
       const result = await Effect.runPromise(
-        createFrontendWebSocketTicket({ session }).pipe(
+        createFrontendWebSocketTicket({ frontendApi: mockFrontendApi }).pipe(
           Effect.either,
           Effect.provide(
             Layer.mergeAll(
@@ -203,6 +216,76 @@ describe('@zerospin/frontend programs', () => {
         expect(result.left.code).toBe('frontend-websocket-ticket-write-failed');
       }
       expect(createFrontendWebSocketTicketLeaf).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('authenticate', () => {
+    it('returns admission metadata and immediately releases its capability', async () => {
+      const releaseFrontendApi = vi.fn();
+      fetchFrontendMock.mockReturnValueOnce(
+        Effect.succeed({
+          identity: {
+            actor: {
+              accountId: 'acct_1',
+              actorId: 'actr_1',
+            },
+            accountId: 'acct_1',
+            accountName: 'user',
+            actorId: 'actr_1',
+            actorName: 'shopper',
+            deployId: 'dpl_1',
+            frontendName: 'web',
+            frontendVersion: '1.0.0',
+            generationId: 'gen_1',
+            systemEnvironmentId: 'dev',
+            systemId: 'sys_1',
+            systemVersion: '1.0.1',
+            systemWorkerName: 'system-worker-stub',
+          },
+          frontendApi: mockFrontendApi,
+          frontendSpec: {},
+          releaseFrontendApi,
+        }),
+      );
+      const collector = makeTelemetryCollector();
+
+      const result = await Effect.runPromise(
+        authenticate({
+          frontend,
+          signature: { userId: 'usr_1' },
+        }).pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              AsyncLive,
+              Layer.succeed(PublishableKey, Redacted.make('pk_frontend_test')),
+              Layer.succeed(ZerospinApisUrl, 'https://api.frontend.test/'),
+              makeTelemetryLayer(collector),
+            ),
+          ),
+        ),
+      );
+
+      expect(result).toEqual({
+        actor: {
+          accountId: 'acct_1',
+          actorId: 'actr_1',
+        },
+        deployId: 'dpl_1',
+        generationId: 'gen_1',
+        systemEnvironmentId: 'dev',
+        systemId: 'sys_1',
+        systemVersion: '1.0.1',
+        systemWorkerName: 'system-worker-stub',
+      });
+      expect(fetchFrontendMock).toHaveBeenCalledWith({
+        frontend,
+        generateSignature: expect.any(Function),
+      });
+      const admissionProps = fetchFrontendMock.mock.calls[0]![0];
+      await expect(
+        Effect.runPromise(admissionProps.generateSignature()),
+      ).resolves.toEqual({ userId: 'usr_1' });
+      expect(releaseFrontendApi).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -375,15 +458,10 @@ describe('@zerospin/frontend programs', () => {
         }),
         link: null,
       });
-      const session = makeSession({
-        frontend,
-        generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
-        sessionId: 'sesn_fetch_frontend_state_success',
-      });
       const collector = makeTelemetryCollector();
 
       const result = await Effect.runPromise(
-        fetchFrontendState({ session }).pipe(
+        fetchFrontendState({ frontendApi: mockFrontendApi }).pipe(
           Effect.provide(
             Layer.mergeAll(
               AsyncLive,
@@ -427,15 +505,10 @@ describe('@zerospin/frontend programs', () => {
         ),
         link: null,
       });
-      const session = makeSession({
-        frontend,
-        generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
-        sessionId: 'sesn_fetch_frontend_state_domain_failure',
-      });
       const collector = makeTelemetryCollector();
 
       const result = await Effect.runPromise(
-        fetchFrontendState({ session }).pipe(
+        fetchFrontendState({ frontendApi: mockFrontendApi }).pipe(
           Effect.either,
           Effect.provide(
             Layer.mergeAll(
@@ -456,22 +529,16 @@ describe('@zerospin/frontend programs', () => {
         );
       }
       expect(getFrontendStateLeaf).toHaveBeenCalledTimes(1);
-      expect(getFrontendApi).toHaveBeenCalledTimes(1);
     });
 
     it('converts a transport rejection and does not retry', async () => {
       getFrontendStateLeaf.mockRejectedValueOnce(
         new Error('getFrontendState transport unavailable'),
       );
-      const session = makeSession({
-        frontend,
-        generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
-        sessionId: 'sesn_fetch_frontend_state_transport_failure',
-      });
       const collector = makeTelemetryCollector();
 
       const result = await Effect.runPromise(
-        fetchFrontendState({ session }).pipe(
+        fetchFrontendState({ frontendApi: mockFrontendApi }).pipe(
           Effect.either,
           Effect.provide(
             Layer.mergeAll(
@@ -492,7 +559,6 @@ describe('@zerospin/frontend programs', () => {
         );
       }
       expect(getFrontendStateLeaf).toHaveBeenCalledTimes(1);
-      expect(getFrontendApi).toHaveBeenCalledTimes(1);
     });
   });
 

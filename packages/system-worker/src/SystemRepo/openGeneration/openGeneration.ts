@@ -14,6 +14,7 @@ export const openGeneration = Effect.fn('SystemRepo.openGeneration')(
   function* (props: {
     db: IDb;
     deployId: string;
+    drainBoundsTable: IAnyDrizzleSchema;
     generationId: string;
     generationStateTable: IAnyDrizzleSchema;
     generationStateColumns: Readonly<{
@@ -25,6 +26,7 @@ export const openGeneration = Effect.fn('SystemRepo.openGeneration')(
     const {
       db,
       deployId,
+      drainBoundsTable,
       generationId,
       generationStateColumns,
       generationStateTable,
@@ -77,6 +79,19 @@ export const openGeneration = Effect.fn('SystemRepo.openGeneration')(
       generationState.readiness === 'ready' &&
       generationState.admission === 'open'
     ) {
+      // An idempotent retry also repairs receipts written by an older Worker
+      // before atomic deploy transfer existed. Every row belongs to this
+      // generation-local SystemRepo, and an open generation has no frozen
+      // terminal bounds to preserve under an older deploy identity.
+      yield* Effect.try({
+        try: () => db.update(drainBoundsTable).set({ deployId }).run(),
+        catch: ZerospinError.catch({
+          code: 'generation-open-projection-reservation-transfer-failed',
+          message:
+            'Failed to transfer generation projection reservations to the active deploy',
+          extra: { deployId, generationId },
+        }),
+      });
       return { deployId, generationId };
     }
 
@@ -111,28 +126,34 @@ export const openGeneration = Effect.fn('SystemRepo.openGeneration')(
       });
     }
 
-    // Checkpoint 3: the candidate SystemSpec and deploy admission move together.
+    // Checkpoint 3: the candidate SystemSpec, deploy admission, and every
+    // unfinished live-projection receipt move together. The synchronous SQLite
+    // transaction serializes with lineage reservation: an older deploy's row
+    // is transferred here, or its later reservation observes the new active
+    // deploy and is rejected.
     yield* Effect.try({
       try: () =>
-        db
-          .update(generationStateTable)
-          .set({
-            activeDeployId: deployId,
-            preparingDeployId: null,
-            admission: 'open',
-            activeSystemSpec: generationState.preparingSystemSpec,
-            preparingSystemSpec: null,
-            failure: null,
-            openedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(generationStateColumns.generationId, generationId),
-              eq(generationStateColumns.preparingDeployId, deployId),
-              eq(generationStateColumns.readiness, 'ready'),
-            ),
-          )
-          .run(),
+        db.transaction(tx => {
+          tx.update(drainBoundsTable).set({ deployId }).run();
+          tx.update(generationStateTable)
+            .set({
+              activeDeployId: deployId,
+              preparingDeployId: null,
+              admission: 'open',
+              activeSystemSpec: generationState.preparingSystemSpec,
+              preparingSystemSpec: null,
+              failure: null,
+              openedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(generationStateColumns.generationId, generationId),
+                eq(generationStateColumns.preparingDeployId, deployId),
+                eq(generationStateColumns.readiness, 'ready'),
+              ),
+            )
+            .run();
+        }),
       catch: ZerospinError.catch({
         code: 'generation-open-write-failed',
         message: 'Failed to open generation admission',

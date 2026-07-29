@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Outlet, useNavigate, useParams } from 'react-router';
 
-import { useSession } from '../useSession';
+import { useAccountSession, useServiceSession } from '../useSession';
 
 import { sessionsDatabaseTabStyles } from './sessionsDatabaseTabStyles';
 
@@ -15,18 +15,27 @@ function decodeModelNameParam(segment: string): string {
 }
 
 export function SessionsDatabaseLayout() {
-  const session = useSession();
+  const accountSession = useAccountSession();
+  const serviceSession = useServiceSession();
   const { sessionId, modelName } = useParams();
   const navigate = useNavigate();
   const decodedSelected =
     modelName === undefined ? null : decodeModelNameParam(modelName);
   const [hoveredModelName, setHoveredModelName] = useState<string | null>(null);
 
-  if (session === undefined || sessionId === undefined) {
+  if (
+    (accountSession === undefined && serviceSession === undefined) ||
+    sessionId === undefined
+  ) {
     return null;
   }
 
-  const modelNames = session.frontend.modelNames;
+  const modelNames =
+    accountSession?.frontend.modelNames ?? serviceSession?.modelNames;
+
+  if (modelNames === undefined) {
+    return null;
+  }
 
   if (modelNames.length === 0) {
     return (

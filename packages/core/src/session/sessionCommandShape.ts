@@ -105,7 +105,32 @@ export const sessionFailedCommandShape = {
   id: primitives.primaryKey({ abbreviation: 'cmd' }),
   commandName: primitives.text(),
   payload: primitives.text(),
+  systemName: primitives.text(),
+  systemVersion: primitives.text(),
   version: primitives.text(),
+  commandType: primitives.enum({
+    values: ['frontend'],
+  }),
+  accountId: primitives.text(),
+  accountName: primitives.text(),
+  frontendName: primitives.text(),
+  actorId: primitives.text(),
+  actorName: primitives.text(),
+  sessionId: primitives.opaqueId({ abbreviation: 'sesn' }),
+  stagedCursor: primitives.cursor({
+    abbreviation: coreAbbreviations.stagedCursor,
+  }),
+  stagedAt: primitives.date(),
+  pushedAt: primitives.date({ nullable: true }),
+  pushedCursor: primitives.cursor({
+    abbreviation: coreAbbreviations.pushedCursor,
+    nullable: true,
+  }),
+  accountCursor: primitives.cursor({
+    abbreviation: coreAbbreviations.accountCursor,
+    nullable: true,
+  }),
+  accountIndex: primitives.integer({ nullable: true }),
   status: primitives.enum({
     values: ['failed'],
   }),

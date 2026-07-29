@@ -14,6 +14,12 @@ declare module 'cloudflare:workers' {
     SERVICE_BLOCK_REPO: DurableObjectNamespace<
       import('@zerospin/system-worker').ServiceBlockRepo
     >;
+    SERVICE_FRONTEND_REPO: DurableObjectNamespace<
+      import('@zerospin/system-worker').ServiceFrontendRepo
+    >;
+    SERVICE_FRONTEND_BLOCK_REPO: DurableObjectNamespace<
+      import('@zerospin/system-worker').ServiceFrontendBlockRepo
+    >;
     SYSTEM_LOG_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded & import('@zerospin/system-worker').SystemLogRepo
     >;
@@ -21,14 +27,21 @@ declare module 'cloudflare:workers' {
       Rpc.DurableObjectBranded &
         import('@zerospin/system-worker').SystemLogAgent
     >;
+    SELF_HOSTED_ZEROSPIN_APIS: DurableObjectNamespace<
+      import('./SelfHostedZerospinApis/SelfHostedZerospinApis').SelfHostedZerospinApis
+    >;
     DEV_ZEROSPIN_APIS: DurableObjectNamespace<
       import('./DevZerospinApis/DevZerospinApis').DevZerospinApis
     >;
+    CLERK_JWT_KEY: string;
     DEV?: string;
     ZEROSPIN_CLEAN_REQUEST_ID?: string;
     ZEROSPIN_DEPLOY_ID: string;
     ZEROSPIN_GENERATION_ID: string;
     ZEROSPIN_INSTANCE_ID: string;
+    ZEROSPIN_PUBLISHABLE_KEY: string;
+    ZEROSPIN_SELF_HOSTED?: 'true';
+    ZEROSPIN_SECRET_KEY: string;
     ZEROSPIN_SYSTEM_ID: import('@zerospin/core/system/types').ISystemId;
     ZEROSPIN_VERSION_METADATA: {
       id: string;
@@ -39,7 +52,10 @@ declare module 'cloudflare:workers' {
     default: {
       fetch(request: Request): Promise<Response>;
     };
-    DevZerospinApis: DurableObjectNamespace<
+    SelfHostedZerospinApis?: DurableObjectNamespace<
+      import('./SelfHostedZerospinApis/SelfHostedZerospinApis').SelfHostedZerospinApis
+    >;
+    DevZerospinApis?: DurableObjectNamespace<
       import('./DevZerospinApis/DevZerospinApis').DevZerospinApis
     >;
     ServiceRepo: typeof import('system-worker').ServiceRepo;
@@ -51,6 +67,9 @@ declare module 'cloudflare:workers' {
       exports: {
         DevZerospinApis?: DurableObjectNamespace<
           import('./DevZerospinApis/DevZerospinApis').DevZerospinApis
+        >;
+        SelfHostedZerospinApis?: DurableObjectNamespace<
+          import('./SelfHostedZerospinApis/SelfHostedZerospinApis').SelfHostedZerospinApis
         >;
         SystemWorker?: import('system-worker').SystemWorker;
       };

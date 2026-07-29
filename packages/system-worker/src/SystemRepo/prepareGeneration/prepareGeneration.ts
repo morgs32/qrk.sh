@@ -9,11 +9,15 @@ import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { IDeploySeedCommand } from '@zerospin/core/contracts/types';
 import type { IDb } from '@zerospin/core/drizzle/types';
+import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
+import { ServiceFrontendStateSchema } from '@zerospin/core/serviceSession/ServiceFrontendBlockSchema';
+import { FrontendSyncStateSchema } from '@zerospin/core/session/FrontendBlockSchema';
 import { checkSystemCompatibility } from '@zerospin/core/system/checkSystemCompatibility';
 import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
 import type { ISystemSpec } from '@zerospin/core/system/types';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import {
@@ -32,8 +36,12 @@ import {
   type AccountRepo,
 } from '../../AccountRepo/AccountRepo.js';
 import { getAccountRepo } from '../../AccountRepo/getAccountRepo/getAccountRepo.js';
+import { FrontendRepo } from '../../FrontendRepo/FrontendRepo.js';
+import { getFrontendRepo } from '../../FrontendRepo/getFrontendRepo/getFrontendRepo.js';
 import { getServiceBlockRepo } from '../../ServiceBlockRepo/getServiceBlockRepo/getServiceBlockRepo.js';
 import { ServiceBlockRepo } from '../../ServiceBlockRepo/ServiceBlockRepo.js';
+import { getServiceFrontendRepo } from '../../ServiceFrontendRepo/getServiceFrontendRepo/getServiceFrontendRepo.js';
+import { ServiceFrontendRepo } from '../../ServiceFrontendRepo/ServiceFrontendRepo.js';
 import { getServiceRepo } from '../../ServiceRepo/getServiceRepo/getServiceRepo.js';
 import { ServiceRepo } from '../../ServiceRepo/ServiceRepo.js';
 import { getRepoRegistrations } from '../getRepoRegistrations/getRepoRegistrations.js';
@@ -42,6 +50,7 @@ import { SystemRepo } from '../SystemRepo.js';
 export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
   function* (props: {
     db: IDb;
+    configuredSystemId: string;
     deployId: string;
     generationId: string;
     prevGenerationId: string | null;
@@ -72,6 +81,7 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
   > {
     const {
       db,
+      configuredSystemId,
       deployId,
       generationId,
       generationStateColumns,
@@ -210,6 +220,18 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
       }
 
       if (storedGeneration.readiness === 'ready') {
+        if (storedGeneration.admission !== 'open') {
+          return yield* new ZerospinError({
+            code: 'generation-reuse-admission-not-open',
+            message:
+              'A generation with closed or frozen admission cannot be reused',
+            extra: {
+              deployId,
+              generationId,
+              admission: storedGeneration.admission,
+            },
+          });
+        }
         if (
           storedGeneration.preparingDeployId !== null &&
           storedGeneration.preparingDeployId !== deployId
@@ -337,6 +359,7 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
               createdAt: new Date(),
               readyAt: null,
               openedAt: null,
+              drainFrozenAt: null,
               drainedAt: null,
             })
             .run(),
@@ -468,19 +491,21 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
         }
         if (
           sourceState.readiness !== 'ready' ||
-          sourceState.admission !== 'drained' ||
+          sourceState.admission !== 'draining' ||
+          sourceState.drainFrozenAt === null ||
           sourceState.activeSystemSpec === null
         ) {
           return yield* new ZerospinError({
-            code: 'generation-source-not-drained',
+            code: 'generation-source-not-frozen',
             message:
-              'The predecessor must be ready and drained with an active SystemSpec',
+              'The predecessor must be ready with frozen drain bounds and an active SystemSpec',
             extra: {
               deployId,
               generationId,
               prevGenerationId,
               sourceReadiness: sourceState.readiness,
               sourceAdmission: sourceState.admission,
+              sourceDrainFrozenAt: sourceState.drainFrozenAt,
             },
           });
         }
@@ -1297,7 +1322,415 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
           }
         }
 
-        // Checkpoint 7: source and target data-owner repo counts must match before
+        // Checkpoint 7: every projection in the predecessor's finite freeze
+        // receipt is materialized against the already-replayed target owners.
+        for (const sourceBound of sourceState.drainBounds) {
+          if (sourceBound.repoType !== 'FrontendRepo') {
+            continue;
+          }
+          if (
+            sourceBound.systemWorkerName === null ||
+            sourceBound.frontendBlockRepoName === null ||
+            sourceBound.terminalFrontendIndex === null ||
+            sourceBound.segmentKind === null ||
+            sourceBound.segmentKind === 'no-local-segment'
+          ) {
+            return yield* new ZerospinError({
+              code: 'generation-account-frontend-bound-incomplete',
+              message:
+                'Frozen account frontend bounds require worker identity, archive identity, terminal index, and a real local segment',
+              extra: { deployId, generationId, repoName: sourceBound.repoName },
+            });
+          }
+          const sourceSystemWorkerName = sourceBound.systemWorkerName;
+          const sourceFrontendBlockRepoName = sourceBound.frontendBlockRepoName;
+          const sourceTerminalFrontendIndex = sourceBound.terminalFrontendIndex;
+          const sourceFrontendKey =
+            yield* FrontendRepo.repoUtils.nameUtils.parseName(
+              sourceBound.repoName,
+            );
+          const sourceActorId = yield* Schema.decodeUnknown(
+            makeAbbreviationIdSchema(coreAbbreviations.actor),
+          )(sourceFrontendKey.actorId).pipe(
+            mapParseError({
+              code: 'generation-account-frontend-actor-id-invalid',
+              prefix: 'Frozen account frontend actorId is invalid',
+              extra: { repoName: sourceBound.repoName },
+            }),
+          );
+          const lastAccountCursor =
+            sourceBound.terminalCursor === null
+              ? null
+              : yield* Schema.decodeUnknown(
+                  makeAbbreviationIdSchema(coreAbbreviations.accountCursor),
+                )(sourceBound.terminalCursor).pipe(
+                  mapParseError({
+                    code: 'generation-account-frontend-cursor-invalid',
+                    prefix: 'Frozen account frontend cursor is invalid',
+                    extra: {
+                      deployId,
+                      generationId,
+                      repoName: sourceBound.repoName,
+                    },
+                  }),
+                );
+          if (
+            (lastAccountCursor === null) !==
+              (sourceBound.terminalIndex === null) ||
+            !Number.isInteger(sourceTerminalFrontendIndex) ||
+            sourceTerminalFrontendIndex < 0
+          ) {
+            return yield* new ZerospinError({
+              code: 'generation-account-frontend-watermark-invalid',
+              message:
+                'Frozen account frontend causal and logical watermarks are invalid',
+              extra: { deployId, generationId, repoName: sourceBound.repoName },
+            });
+          }
+          if (
+            (sourceBound.segmentKind === 'root' &&
+              (sourceBound.predecessorGenerationId !== null ||
+                sourceBound.predecessorRepoName !== null ||
+                sourceBound.predecessorTerminalFrontendIndex !== null)) ||
+            (sourceBound.segmentKind === 'inherited' &&
+              (sourceBound.predecessorGenerationId === null ||
+                sourceBound.predecessorRepoName === null ||
+                sourceBound.predecessorTerminalFrontendIndex === null))
+          ) {
+            return yield* new ZerospinError({
+              code: 'generation-account-frontend-lineage-invalid',
+              message:
+                'Frozen account frontend lineage classification and predecessor are inconsistent',
+              extra: { deployId, generationId, repoName: sourceBound.repoName },
+            });
+          }
+          const sourceLineagePredecessor =
+            sourceBound.segmentKind === 'root' ||
+            sourceBound.predecessorGenerationId === null ||
+            sourceBound.predecessorRepoName === null ||
+            sourceBound.predecessorTerminalFrontendIndex === null
+              ? null
+              : {
+                  generationId: sourceBound.predecessorGenerationId,
+                  repoName: sourceBound.predecessorRepoName,
+                  terminalFrontendIndex:
+                    sourceBound.predecessorTerminalFrontendIndex,
+                };
+
+          const sourceFrontendRepo = yield* getFrontendRepo({
+            key: sourceFrontendKey,
+          });
+          const sourceStateUnknown = yield* makeAsync(() =>
+            sourceFrontendRepo.getFrontendState({
+              accountId: sourceFrontendKey.accountId,
+              accountName: sourceFrontendKey.accountName,
+              actorId: sourceActorId,
+              actorName: sourceFrontendKey.actorName,
+              frontendName: sourceFrontendKey.frontendName,
+              systemWorkerName: sourceSystemWorkerName,
+              lineage: {
+                mode: 'live',
+                predecessor: sourceLineagePredecessor,
+              },
+            }),
+          );
+          const sourceStateEncoded = yield* Schema.decodeUnknown(
+            Schema.Union(
+              Schema.Struct({
+                _tag: Schema.Literal('Right'),
+                right: Schema.typeSchema(FrontendSyncStateSchema),
+              }),
+              Schema.Struct({
+                _tag: Schema.Literal('Left'),
+                left: Schema.encodedSchema(ZerospinError.schema),
+              }),
+            ),
+          )(sourceStateUnknown).pipe(
+            mapParseError({
+              code: 'generation-account-frontend-state-rpc-invalid',
+              prefix: 'Failed to decode source FrontendRepo state RPC',
+              extra: { repoName: sourceBound.repoName },
+            }),
+          );
+          const sourceFrontendState = yield* decodeRpc(sourceStateEncoded);
+          if (
+            sourceFrontendState.generationId !== prevGenerationId ||
+            sourceFrontendState.frontendIndex !== sourceTerminalFrontendIndex ||
+            sourceFrontendState.systemWorkerName !== sourceSystemWorkerName
+          ) {
+            return yield* new ZerospinError({
+              code: 'generation-account-frontend-state-bound-mismatch',
+              message:
+                'Source account frontend state does not match its frozen bound',
+              extra: { deployId, generationId, repoName: sourceBound.repoName },
+            });
+          }
+
+          const targetFrontendKey = {
+            generationId,
+            accountId: sourceFrontendKey.accountId,
+            accountName: sourceFrontendKey.accountName,
+            actorId: sourceActorId,
+            actorName: sourceFrontendKey.actorName,
+            frontendName: sourceFrontendKey.frontendName,
+          };
+          const targetFrontendRepo = yield* getFrontendRepo({
+            key: targetFrontendKey,
+          });
+          const preparedEncoded = yield* makeAsync(() =>
+            targetFrontendRepo.prepareSuccessor({
+              sourceState: sourceFrontendState,
+              lastAccountCursor,
+              accountIndex: sourceBound.terminalIndex,
+              predecessor: {
+                generationId: prevGenerationId,
+                repoName: sourceFrontendBlockRepoName,
+                terminalFrontendIndex: sourceTerminalFrontendIndex,
+              },
+            }),
+          );
+          yield* decodeRpc(preparedEncoded);
+          const readinessEncoded = yield* makeAsync(() =>
+            targetFrontendRepo.getProjectionReadiness(),
+          );
+          const readiness = yield* decodeRpc(readinessEncoded);
+          if (
+            readiness.generationId !== generationId ||
+            readiness.frontendIndex !== sourceTerminalFrontendIndex + 1
+          ) {
+            return yield* new ZerospinError({
+              code: 'generation-account-frontend-successor-not-ready',
+              message:
+                'Target account frontend did not reach its inherited boundary',
+              extra: {
+                deployId,
+                generationId,
+                sourceRepoName: sourceBound.repoName,
+                targetFrontendIndex: readiness.frontendIndex,
+              },
+            });
+          }
+        }
+
+        for (const sourceBound of sourceState.drainBounds) {
+          if (sourceBound.repoType !== 'ServiceFrontendRepo') {
+            continue;
+          }
+          if (
+            sourceBound.systemWorkerName === null ||
+            sourceBound.frontendBlockRepoName === null ||
+            sourceBound.terminalFrontendIndex === null ||
+            sourceBound.segmentKind === null ||
+            sourceBound.segmentKind === 'no-local-segment'
+          ) {
+            return yield* new ZerospinError({
+              code: 'generation-service-frontend-bound-incomplete',
+              message:
+                'Frozen service frontend bounds require worker identity, archive identity, terminal index, and a real local segment',
+              extra: { deployId, generationId, repoName: sourceBound.repoName },
+            });
+          }
+          const sourceServiceFrontendKey =
+            yield* ServiceFrontendRepo.repoUtils.nameUtils.parseName(
+              sourceBound.repoName,
+            );
+          const lastServiceCursor =
+            sourceBound.terminalCursor === null
+              ? null
+              : yield* Schema.decodeUnknown(
+                  makeAbbreviationIdSchema(coreAbbreviations.serviceCursor),
+                )(sourceBound.terminalCursor).pipe(
+                  mapParseError({
+                    code: 'generation-service-frontend-cursor-invalid',
+                    prefix: 'Frozen service frontend cursor is invalid',
+                    extra: {
+                      deployId,
+                      generationId,
+                      repoName: sourceBound.repoName,
+                    },
+                  }),
+                );
+          if (
+            (lastServiceCursor === null) !==
+              (sourceBound.terminalIndex === null) ||
+            !Number.isInteger(sourceBound.terminalFrontendIndex) ||
+            sourceBound.terminalFrontendIndex < 0
+          ) {
+            return yield* new ZerospinError({
+              code: 'generation-service-frontend-watermark-invalid',
+              message:
+                'Frozen service frontend causal and logical watermarks are invalid',
+              extra: { deployId, generationId, repoName: sourceBound.repoName },
+            });
+          }
+          if (
+            (sourceBound.segmentKind === 'root' &&
+              (sourceBound.predecessorGenerationId !== null ||
+                sourceBound.predecessorRepoName !== null ||
+                sourceBound.predecessorTerminalFrontendIndex !== null)) ||
+            (sourceBound.segmentKind === 'inherited' &&
+              (sourceBound.predecessorGenerationId === null ||
+                sourceBound.predecessorRepoName === null ||
+                sourceBound.predecessorTerminalFrontendIndex === null))
+          ) {
+            return yield* new ZerospinError({
+              code: 'generation-service-frontend-lineage-invalid',
+              message:
+                'Frozen service frontend lineage classification and predecessor are inconsistent',
+              extra: { deployId, generationId, repoName: sourceBound.repoName },
+            });
+          }
+          const sourceServiceLineagePredecessor =
+            sourceBound.segmentKind === 'root' ||
+            sourceBound.predecessorGenerationId === null ||
+            sourceBound.predecessorRepoName === null ||
+            sourceBound.predecessorTerminalFrontendIndex === null
+              ? null
+              : {
+                  generationId: sourceBound.predecessorGenerationId,
+                  repoName: sourceBound.predecessorRepoName,
+                  terminalFrontendIndex:
+                    sourceBound.predecessorTerminalFrontendIndex,
+                };
+
+          const sourceServiceFrontendRepo = yield* getServiceFrontendRepo({
+            key: sourceServiceFrontendKey,
+          });
+          const sourceStateUnknown = yield* makeAsync(() =>
+            sourceServiceFrontendRepo.getFrontendState({
+              systemId: configuredSystemId,
+              systemWorkerName: sourceBound.systemWorkerName,
+              serviceName: sourceServiceFrontendKey.serviceName,
+              actorName: sourceServiceFrontendKey.actorName,
+              actorId: sourceServiceFrontendKey.actorId,
+              frontendName: sourceServiceFrontendKey.frontendName,
+              lineage: {
+                mode: 'live',
+                predecessor: sourceServiceLineagePredecessor,
+              },
+            }),
+          );
+          const sourceStateEncoded = yield* Schema.decodeUnknown(
+            Schema.Union(
+              Schema.Struct({
+                _tag: Schema.Literal('Right'),
+                right: Schema.typeSchema(ServiceFrontendStateSchema),
+              }),
+              Schema.Struct({
+                _tag: Schema.Literal('Left'),
+                left: Schema.encodedSchema(ZerospinError.schema),
+              }),
+            ),
+          )(sourceStateUnknown).pipe(
+            mapParseError({
+              code: 'generation-service-frontend-state-rpc-invalid',
+              prefix: 'Failed to decode source ServiceFrontendRepo state RPC',
+              extra: { repoName: sourceBound.repoName },
+            }),
+          );
+          const sourceServiceFrontendState =
+            yield* decodeRpc(sourceStateEncoded);
+          if (
+            sourceServiceFrontendState.generationId !== prevGenerationId ||
+            sourceServiceFrontendState.frontendIndex !==
+              sourceBound.terminalFrontendIndex ||
+            sourceServiceFrontendState.systemWorkerName !==
+              sourceBound.systemWorkerName
+          ) {
+            return yield* new ZerospinError({
+              code: 'generation-service-frontend-state-bound-mismatch',
+              message:
+                'Source service frontend state does not match its frozen bound',
+              extra: { deployId, generationId, repoName: sourceBound.repoName },
+            });
+          }
+
+          const targetServiceFrontendKey = {
+            generationId,
+            serviceName: sourceServiceFrontendKey.serviceName,
+            actorName: sourceServiceFrontendKey.actorName,
+            actorId: sourceServiceFrontendKey.actorId,
+            frontendName: sourceServiceFrontendKey.frontendName,
+          };
+          const targetServiceFrontendRepo = yield* getServiceFrontendRepo({
+            key: targetServiceFrontendKey,
+          });
+          const preparedUnknown = yield* makeAsync(() =>
+            targetServiceFrontendRepo.prepareSuccessor({
+              sourceState: sourceServiceFrontendState,
+              lastServiceCursor,
+              serviceIndex: sourceBound.terminalIndex,
+              predecessor: {
+                generationId: prevGenerationId,
+                repoName: sourceBound.frontendBlockRepoName,
+                terminalFrontendIndex: sourceBound.terminalFrontendIndex,
+              },
+            }),
+          );
+          const preparedEncoded = yield* Schema.decodeUnknown(
+            Schema.Union(
+              Schema.Struct({
+                _tag: Schema.Literal('Right'),
+                right: Schema.Undefined,
+              }),
+              Schema.Struct({
+                _tag: Schema.Literal('Left'),
+                left: Schema.encodedSchema(ZerospinError.schema),
+              }),
+            ),
+          )(preparedUnknown).pipe(
+            mapParseError({
+              code: 'generation-service-frontend-prepare-rpc-invalid',
+              prefix: 'Failed to decode target ServiceFrontendRepo prepare RPC',
+              extra: { repoName: sourceBound.repoName },
+            }),
+          );
+          yield* decodeRpc(preparedEncoded);
+          const readinessUnknown = yield* makeAsync(() =>
+            targetServiceFrontendRepo.getProjectionReadiness(),
+          );
+          const readinessEncoded = yield* Schema.decodeUnknown(
+            Schema.Union(
+              Schema.Struct({
+                _tag: Schema.Literal('Right'),
+                right: Schema.Struct({
+                  generationId: Schema.String,
+                  frontendIndex: Schema.Number,
+                }),
+              }),
+              Schema.Struct({
+                _tag: Schema.Literal('Left'),
+                left: Schema.encodedSchema(ZerospinError.schema),
+              }),
+            ),
+          )(readinessUnknown).pipe(
+            mapParseError({
+              code: 'generation-service-frontend-readiness-rpc-invalid',
+              prefix:
+                'Failed to decode target ServiceFrontendRepo readiness RPC',
+              extra: { repoName: sourceBound.repoName },
+            }),
+          );
+          const readiness = yield* decodeRpc(readinessEncoded);
+          if (
+            readiness.generationId !== generationId ||
+            readiness.frontendIndex !== sourceBound.terminalFrontendIndex + 1
+          ) {
+            return yield* new ZerospinError({
+              code: 'generation-service-frontend-successor-not-ready',
+              message:
+                'Target service frontend did not reach its inherited boundary',
+              extra: {
+                deployId,
+                generationId,
+                sourceRepoName: sourceBound.repoName,
+                targetFrontendIndex: readiness.frontendIndex,
+              },
+            });
+          }
+        }
+
+        // Checkpoint 8: source and target data-owner repo counts must match before
         // readiness. Block repos validate their own exact terminal bounds above.
         const targetServiceRepos = yield* getRepoRegistrations({
           db,

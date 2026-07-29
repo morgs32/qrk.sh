@@ -17,6 +17,7 @@ import { makeDrizzleSchemasRecordFromTables } from '@zerospin/core/drizzle/makeD
 import { makeTable } from '@zerospin/core/models/makeTable';
 import { primitives } from '@zerospin/core/models/primitives';
 import type {
+  IActorId,
   IAnyTables,
   IEncodedResourceShape,
   IServiceCursorId,
@@ -38,16 +39,24 @@ import { managedRuntime } from '../managedRuntime.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import type { IServiceBlock } from '../types.js';
 
+import { authenticateServiceFrontend } from './authenticateServiceFrontend/authenticateServiceFrontend.js';
 import { drainGeneration } from './drainGeneration/drainGeneration.js';
 import { drainServiceBlockOutbox } from './drainServiceBlockOutbox/drainServiceBlockOutbox.js';
 import { executeActorQuery } from './executeActorQuery/executeActorQuery.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
 import { finalizeServiceCommands } from './finalizeServiceCommands/finalizeServiceCommands.js';
 import { getReplicatedResources } from './getReplicatedResources/getReplicatedResources.js';
+import { getServiceFrontendSnapshot } from './getServiceFrontendSnapshot/getServiceFrontendSnapshot.js';
 import { replayServiceBlock } from './replayServiceBlock/replayServiceBlock.js';
 
 /** Exact direct-RPC surface returned by the SERVICE_REPO binding. */
 export interface IServiceRepoRpcTarget {
+  authenticateServiceFrontend(props: {
+    serviceName: string;
+    actorName: string;
+    frontendName: string;
+    signature: unknown;
+  }): IRpcEitherEncoded<IActorId>;
   finalizeServiceCommands(props: {
     serviceName: string;
     commands: readonly IServiceCommand[];
@@ -99,6 +108,17 @@ export interface IServiceRepoRpcTarget {
       serviceBlocks: readonly IServiceBlock[];
       lastServiceCursor: IServiceCursorId;
       serviceIndex: number;
+    }>
+  >;
+  getServiceFrontendSnapshot(props: {
+    serviceName: string;
+    actorName: string;
+    frontendName: string;
+  }): IRpcEitherEncoded<
+    Readonly<{
+      resources: readonly IEncodedResourceShape[];
+      lastServiceCursor: IServiceCursorId | null;
+      serviceIndex: number | null;
     }>
   >;
   replayServiceBlock(props: {
@@ -221,6 +241,20 @@ export class ServiceRepo
 
   static override readonly repoUtils = serviceRepoUtils;
 
+  async authenticateServiceFrontend(props: {
+    serviceName: string;
+    actorName: string;
+    frontendName: string;
+    signature: unknown;
+  }): Promise<Schema.EitherEncoded<IActorId, IAnyErrorJson>> {
+    return managedRuntime.runPromise(
+      authenticateServiceFrontend({
+        ...props,
+        db: this.db,
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
   async finalizeServiceCommands(props: {
     serviceName: string;
     commands: readonly IServiceCommand[];
@@ -270,7 +304,7 @@ export class ServiceRepo
     return managedRuntime.runPromise(
       drainGeneration({
         db: this.db,
-        local: this.env.ZEROSPIN_INSTANCE_ID === 'local',
+        inspectionOnly: this.env.ZEROSPIN_SELF_HOSTED === 'true',
         generationId: this.key.generationId,
         serviceName: this.key.serviceName,
         storage: this.ctx.storage,
@@ -342,6 +376,28 @@ export class ServiceRepo
       getReplicatedResources({
         ...props,
         serviceName: this.key.serviceName,
+        db: this.db,
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
+  async getServiceFrontendSnapshot(props: {
+    serviceName: string;
+    actorName: string;
+    frontendName: string;
+  }): Promise<
+    Schema.EitherEncoded<
+      Readonly<{
+        resources: readonly IEncodedResourceShape[];
+        lastServiceCursor: IServiceCursorId | null;
+        serviceIndex: number | null;
+      }>,
+      IAnyErrorJson
+    >
+  > {
+    return managedRuntime.runPromise(
+      getServiceFrontendSnapshot({
+        ...props,
         db: this.db,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );

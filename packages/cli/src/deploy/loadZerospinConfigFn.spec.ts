@@ -30,18 +30,24 @@ describe('loadZerospinConfigFn', () => {
             yield* fileSystem.writeFileString(
               pathApi.join(cwd, 'zerospin.config.ts'),
               `export default {
-  entry: 'src/system.ts',
-  environmentId: 'dev',
-  env: null,
-  seeds: 'src/zerospin/seeds.ts',
-};
+	  entry: 'src/system.ts',
+	  environmentId: 'dev',
+	  env: null,
+	  seeds: {
+	    dev: 'src/zerospin/seeds.ts',
+	    production: 'src/zerospin/seeds.production.ts',
+	  },
+	};
 `,
             );
 
             const config = yield* loadZerospinConfigFn(cwd);
 
             expect(config.entry).toBe('src/system.ts');
-            expect(config.seeds).toBe('src/zerospin/seeds.ts');
+            expect(config.seeds).toEqual({
+              dev: 'src/zerospin/seeds.ts',
+              production: 'src/zerospin/seeds.production.ts',
+            });
           }),
         ),
     );
@@ -69,8 +75,7 @@ describe('loadZerospinConfigFn', () => {
   entry: 'src/system.ts',
   environmentId: 'dev',
   env: null,
-  seeds: null,
-};
+	};
 `,
             );
 
@@ -109,8 +114,7 @@ describe('loadZerospinConfigFn', () => {
   entry: 'src/system.js',
   environmentId: 'dev',
   env: null,
-  seeds: null,
-};
+	};
 `,
           );
 
@@ -135,8 +139,7 @@ describe('loadZerospinConfigFn', () => {
   entry: 'src/system.ts',
   environmentId: 'dev',
   env: null,
-  seeds: null,
-};
+	};
 `,
           );
 
@@ -161,8 +164,7 @@ describe('loadZerospinConfigFn', () => {
   entry: 'src/system.mjs',
   environmentId: 'dev',
   env: null,
-  seeds: null,
-};
+	};
 `,
           );
 
@@ -187,8 +189,7 @@ describe('loadZerospinConfigFn', () => {
   entry: 'src/system.cjs',
   environmentId: 'dev',
   env: null,
-  seeds: null,
-};
+	};
 `,
           );
 
@@ -213,8 +214,7 @@ describe('loadZerospinConfigFn', () => {
   entry: 'src/system.mts',
   environmentId: 'dev',
   env: null,
-  seeds: null,
-};
+	};
 `,
           );
 
@@ -239,8 +239,7 @@ describe('loadZerospinConfigFn', () => {
   entry: 'src/system.cts',
   environmentId: 'dev',
   env: null,
-  seeds: null,
-};
+	};
 `,
           );
 
@@ -254,35 +253,47 @@ describe('loadZerospinConfigFn', () => {
 });
 
 describe('ZerospinConfigSchema', () => {
-  it.effect('accepts a seeds entry path string', () =>
+  it.effect('accepts environment-specific seed module paths', () =>
     Effect.gen(function* () {
       const config = yield* Schema.validate(ZerospinConfigSchema)(
         {
           entry: 'src/system.ts',
           environmentId: 'dev',
           env: null,
-          seeds: 'src/zerospin/seeds.ts',
+          seeds: {
+            dev: 'src/zerospin/seeds.ts',
+            production: 'src/zerospin/seeds.production.ts',
+          },
         },
         { onExcessProperty: 'ignore' },
       );
 
-      expect(config.seeds).toBe('src/zerospin/seeds.ts');
+      expect(config.seeds).toEqual({
+        dev: 'src/zerospin/seeds.ts',
+        production: 'src/zerospin/seeds.production.ts',
+      });
     }),
   );
 
-  it.effect('accepts null seeds', () =>
+  it.effect('accepts null paths for both seed environments', () =>
     Effect.gen(function* () {
       const config = yield* Schema.validate(ZerospinConfigSchema)(
         {
           entry: 'src/system.ts',
           environmentId: 'dev',
           env: null,
-          seeds: null,
+          seeds: {
+            dev: null,
+            production: null,
+          },
         },
         { onExcessProperty: 'ignore' },
       );
 
-      expect(config.seeds).toBeNull();
+      expect(config.seeds).toEqual({
+        dev: null,
+        production: null,
+      });
     }),
   );
 });

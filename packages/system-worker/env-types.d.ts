@@ -17,6 +17,7 @@ declare namespace Cloudflare {
     ZEROSPIN_DEPLOY_ID: string;
     ZEROSPIN_GENERATION_ID: string;
     ZEROSPIN_INSTANCE_ID: string;
+    ZEROSPIN_SELF_HOSTED?: 'true';
     ZEROSPIN_SYSTEM_ID: string;
     ZEROSPIN_VERSION_METADATA: WorkerVersionMetadata;
     OTEL_EXPORTER_OTLP_LOGS_ENDPOINT?: string;
@@ -45,6 +46,13 @@ declare namespace Cloudflare {
     >;
     SERVICE_BLOCK_REPO: DurableObjectNamespace<
       import('./src/SystemWorker').ServiceBlockRepo
+    >;
+    SERVICE_FRONTEND_REPO: DurableObjectNamespace<
+      import('./src/SystemWorker').ServiceFrontendRepo
+    >;
+    SERVICE_FRONTEND_BLOCK_REPO: DurableObjectNamespace<
+      Rpc.DurableObjectBranded &
+        import('./src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo').IServiceFrontendBlockRepoRpcTarget
     >;
     AUTHORIZATION_REPO: DurableObjectNamespace<
       import('./src/SystemWorker').AuthorizationRepo

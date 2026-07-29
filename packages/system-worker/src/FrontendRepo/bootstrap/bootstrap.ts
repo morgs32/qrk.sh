@@ -5,11 +5,14 @@ import type { IDb } from '@zerospin/core/drizzle/types';
 import { upsertHelper } from '@zerospin/core/drizzle/upsertHelper';
 import type { IEncodedResourceShape } from '@zerospin/core/models/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import type { IAnyError, IAnyErrorJson } from '@zerospin/error';
+import {
+  ZerospinError,
+  type IAnyError,
+  type IAnyErrorJson,
+} from '@zerospin/error';
 import { Effect, type Schema } from 'effect';
 import { system } from 'system';
 
-import { getActorBlockRepo } from '../../ActorBlockRepo/getActorBlockRepo/getActorBlockRepo.js';
 import { getActorRepo } from '../../ActorRepo/getActorRepo/getActorRepo.js';
 import {
   setLastAccountCursor,
@@ -32,10 +35,72 @@ export const bootstrap = Effect.fn('FrontendRepo.bootstrap')(function* (props: {
   name: string;
   db: IDb;
   storage: DurableObjectStorage;
+  lineage: Readonly<{
+    mode: 'live' | 'no-local-segment';
+    predecessor: Readonly<{
+      generationId: string;
+      repoName: string;
+      terminalFrontendIndex: number;
+    }> | null;
+  }>;
 }): Effect.fn.Return<void, IAnyError, Async> {
-  const { db, key, name, storage } = props;
-  if (storage.kv.get(INITIALIZED_KV_KEY) === true) {
+  const { db, key, lineage, storage } = props;
+  const expectedSegmentKind =
+    lineage.mode === 'no-local-segment'
+      ? 'no-local-segment'
+      : lineage.predecessor === null
+        ? 'root'
+        : 'inherited';
+  const initialized = storage.kv.get(INITIALIZED_KV_KEY);
+  if (initialized === true) {
+    const storedSegmentKind = storage.kv.get('segmentKind');
+    const storedPredecessorGenerationId =
+      storage.kv.get('predecessorGenerationId') ?? null;
+    const storedPredecessorRepoName =
+      storage.kv.get('predecessorRepoName') ?? null;
+    const storedPredecessorTerminalFrontendIndex =
+      storage.kv.get('predecessorTerminalFrontendIndex') ?? null;
+    if (
+      storedSegmentKind !== expectedSegmentKind ||
+      storedPredecessorGenerationId !==
+        (lineage.predecessor?.generationId ?? null) ||
+      storedPredecessorRepoName !== (lineage.predecessor?.repoName ?? null) ||
+      storedPredecessorTerminalFrontendIndex !==
+        (lineage.predecessor?.terminalFrontendIndex ?? null)
+    ) {
+      return yield* new ZerospinError({
+        code: 'frontend-bootstrap-lineage-conflict',
+        message: 'Stored FrontendRepo lineage does not match this state retry',
+        extra: {
+          generationId: key.generationId,
+          accountId: key.accountId,
+          actorId: key.actorId,
+          frontendName: key.frontendName,
+          expectedSegmentKind,
+          storedSegmentKind,
+        },
+      });
+    }
     return;
+  }
+  if (initialized !== undefined) {
+    return yield* new ZerospinError({
+      code: 'frontend-bootstrap-initialized-marker-invalid',
+      message: 'FrontendRepo initialized marker must be true when present',
+    });
+  }
+  if (
+    lineage.predecessor !== null &&
+    (lineage.predecessor.generationId === key.generationId ||
+      lineage.predecessor.repoName.length === 0 ||
+      !Number.isInteger(lineage.predecessor.terminalFrontendIndex) ||
+      lineage.predecessor.terminalFrontendIndex < 0)
+  ) {
+    return yield* new ZerospinError({
+      code: 'frontend-bootstrap-predecessor-invalid',
+      message:
+        'FrontendRepo predecessor must identify an older archive and non-negative terminal index',
+    });
   }
 
   const actorRepo = yield* getActorRepo({
@@ -100,24 +165,30 @@ export const bootstrap = Effect.fn('FrontendRepo.bootstrap')(function* (props: {
       accountIndex,
     });
   }
-  storage.kv.put(FRONTEND_INDEX_KV_KEY, 0);
+  storage.kv.put(
+    FRONTEND_INDEX_KV_KEY,
+    lineage.predecessor?.terminalFrontendIndex ?? 0,
+  );
+  storage.kv.put(
+    'emissionMode',
+    lineage.mode === 'no-local-segment'
+      ? 'read-only'
+      : lineage.predecessor === null
+        ? 'live'
+        : 'no-emission',
+  );
+  storage.kv.put('segmentKind', expectedSegmentKind);
+  if (lineage.predecessor === null) {
+    storage.kv.delete('predecessorGenerationId');
+    storage.kv.delete('predecessorRepoName');
+    storage.kv.delete('predecessorTerminalFrontendIndex');
+  } else {
+    storage.kv.put('predecessorGenerationId', lineage.predecessor.generationId);
+    storage.kv.put('predecessorRepoName', lineage.predecessor.repoName);
+    storage.kv.put(
+      'predecessorTerminalFrontendIndex',
+      lineage.predecessor.terminalFrontendIndex,
+    );
+  }
   storage.kv.put(INITIALIZED_KV_KEY, true);
-
-  const actorBlockRepo = yield* getActorBlockRepo({
-    key: {
-      generationId: key.generationId,
-      accountId: key.accountId,
-      accountName: key.accountName,
-      actorId: key.actorId,
-      actorName: key.actorName,
-    },
-  });
-  yield* makeAsync(() =>
-    actorBlockRepo.subscribeFrontend({
-      frontendRepoName: name,
-      frontendName: key.frontendName,
-      currentAccountCursor: accountCursor,
-      currentAccountIndex: accountIndex,
-    }),
-  ).pipe(Effect.flatMap(decodeRpc));
 });

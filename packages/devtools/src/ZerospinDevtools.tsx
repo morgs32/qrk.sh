@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -34,6 +35,7 @@ import { SessionsDatabaseIndexRoute } from './sessions/sessions/sessionId/databa
 import { SessionsDatabaseLayout } from './sessions/sessions/sessionId/database/SessionsDatabaseLayout.js';
 import { SessionsDatabaseModelRoute } from './sessions/sessions/sessionId/database/SessionsDatabaseModelRoute.js';
 import { SessionsLogsRoute } from './sessions/sessions/sessionId/logs/SessionsLogsRoute.js';
+import { SessionIndexRoute } from './sessions/sessions/sessionId/SessionIndexRoute.js';
 import { SessionLayout } from './sessions/sessions/sessionId/SessionLayout.js';
 import { SessionPane } from './sessions/sessions/sessionId/SessionPane.js';
 import { SessionsDetailEmpty } from './sessions/sessions/SessionsDetailEmpty.js';
@@ -45,6 +47,7 @@ import { tokens } from './styles/tokens.js';
 import type { IZerospinDevtoolsConfig } from './types.js';
 import { isHotkeyCombinationPressed } from './utils/hotkey.js';
 import { ZEROSPIN_DEVTOOLS } from './utils/storage.js';
+import { zerospinDevtoolsController } from './zerospinDevtoolsController.js';
 
 function DevtoolsNavigation(props: {
   isDetached: boolean;
@@ -309,10 +312,7 @@ function DevtoolsRoutes(props: {
         <Route path="/sessions" element={<SessionsLayout />}>
           <Route index element={<SessionsDetailEmpty />} />
           <Route path=":sessionId" element={<SessionLayout />}>
-            <Route
-              index
-              element={<Navigate to="commands" replace relative="path" />}
-            />
+            <Route index element={<SessionIndexRoute />} />
             <Route element={<SessionPane />}>
               <Route path="commands" element={<SessionsCommandsLayout />}>
                 <Route
@@ -375,7 +375,7 @@ function DevtoolsRoutes(props: {
 /*
  * 1. Hydrate the persisted shell settings after the client mount.
  * 2. Keep one memory router mounted for this component instance.
- * 3. Toggle the panel from the built-in trigger, Escape, or configured hotkey.
+ * 3. Control visibility from the console API, trigger, Escape, or configured hotkey.
  * 4. Resize the panel from the edge nearest the host application.
  * 5. Move the same routed React tree into a detached popup when requested.
  * 6. Preserve route memory while closed and reset to Sessions on remount.
@@ -393,6 +393,10 @@ export function ZerospinDevtools({
     initialStoreState.settings.defaultOpen ||
       initialStoreState.state.persistOpen,
   );
+  const isOpenRef = useRef(isOpen);
+  const isPanelVisibleRef = useRef(false);
+  const resolveOpenRef = useRef<(() => void) | null>(null);
+  const rejectOpenRef = useRef<((error: unknown) => void) | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [isTriggerHovered, setIsTriggerHovered] = useState(false);
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
@@ -423,8 +427,82 @@ export function ZerospinDevtools({
     document.documentElement.dataset.zerospinDevtoolsTheme = settings.theme;
   }, [settings.theme]);
 
+  /*
+   * 1. Resolve an imperative open only after React commits a visible panel.
+   * 2. Treat the detached window as visible even when the attached state is closed.
+   */
+  useLayoutEffect(() => {
+    const isPanelVisible = isMounted && (isOpen || pipWindow !== null);
+    isPanelVisibleRef.current = isPanelVisible;
+
+    if (!isPanelVisible) {
+      return;
+    }
+
+    const resolve = resolveOpenRef.current;
+    resolveOpenRef.current = null;
+    rejectOpenRef.current = null;
+    resolve?.();
+  }, [isMounted, isOpen, pipWindow]);
+
+  const openDevtools = useCallback(() => {
+    if (
+      isPanelVisibleRef.current &&
+      (isOpenRef.current || pipWindowRef.current !== null)
+    ) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const wasPanelVisible = isPanelVisibleRef.current;
+      resolveOpenRef.current = resolve;
+      rejectOpenRef.current = reject;
+
+      if (!isOpenRef.current) {
+        isOpenRef.current = true;
+        setIsOpen(true);
+        devtoolsStore.setState(state => ({
+          ...state,
+          state: {
+            ...state.state,
+            persistOpen: true,
+          },
+        }));
+      }
+
+      // A close and reopen issued in one event turn leave the committed panel
+      // visible. Cancel the pending close above and resolve that visible state.
+      if (wasPanelVisible) {
+        resolveOpenRef.current = null;
+        rejectOpenRef.current = null;
+        resolve();
+      }
+    });
+  }, []);
+
+  // The layout registration precedes ZerospinConfig's passive mount confirmation.
+  useLayoutEffect(() => {
+    const unregisterShell =
+      zerospinDevtoolsController.registerShell(openDevtools);
+
+    return () => {
+      unregisterShell();
+      isPanelVisibleRef.current = false;
+
+      const reject = rejectOpenRef.current;
+      resolveOpenRef.current = null;
+      rejectOpenRef.current = null;
+      reject?.(
+        new Error(
+          'Zerospin DevTools unmounted before its panel finished opening.',
+        ),
+      );
+    };
+  }, [openDevtools]);
+
   const toggleOpen = useCallback(() => {
     const nextIsOpen = !isOpen;
+    isOpenRef.current = nextIsOpen;
     setIsOpen(nextIsOpen);
     devtoolsStore.setState(state => ({
       ...state,
@@ -505,8 +583,10 @@ export function ZerospinDevtools({
       }));
 
       if (nextHeight < 70) {
+        isOpenRef.current = false;
         setIsOpen(false);
       } else {
+        isOpenRef.current = true;
         setIsOpen(true);
       }
     };
@@ -578,9 +658,6 @@ export function ZerospinDevtools({
     return null;
   }
 
-  const isAvailable = settings.requireUrlFlag
-    ? window.location.search.includes(settings.urlFlag)
-    : true;
   const isDark = settings.theme === 'dark';
   const portalTarget = pipWindow?.document.body ?? document.body;
 
@@ -623,7 +700,7 @@ export function ZerospinDevtools({
     <MemoryRouter initialEntries={['/sessions']}>
       {createPortal(
         <div data-testid={ZEROSPIN_DEVTOOLS}>
-          {isAvailable && !settings.triggerHidden && !isOpen ? (
+          {!settings.triggerHidden && !isOpen ? (
             <button
               type="button"
               aria-label="Open Zerospin DevTools"
@@ -655,71 +732,69 @@ export function ZerospinDevtools({
             </button>
           ) : null}
 
-          {isAvailable ? (
-            <section
-              id={ZEROSPIN_DEVTOOLS}
-              ref={panelRef}
-              aria-label="Zerospin DevTools"
+          <section
+            id={ZEROSPIN_DEVTOOLS}
+            ref={panelRef}
+            aria-label="Zerospin DevTools"
+            style={{
+              ...panelPositionStyle,
+              position: pipWindow === null ? 'fixed' : 'relative',
+              right: 0,
+              zIndex: 99999,
+              display: 'flex',
+              width: '100%',
+              height: pipWindow === null ? height : '100vh',
+              maxHeight: pipWindow === null ? '90vh' : '100vh',
+              boxSizing: 'border-box',
+              overflow: 'hidden',
+              color: isDark
+                ? tokens.colors.gray[100]
+                : tokens.colors.gray[900],
+              backgroundColor: isDark
+                ? tokens.colors.darkGray[800]
+                : tokens.colors.white,
+              borderTop:
+                settings.panelLocation === 'bottom'
+                  ? `1px solid ${isDark ? tokens.colors.gray[800] : tokens.colors.gray[200]}`
+                  : 'none',
+              borderBottom:
+                settings.panelLocation === 'top'
+                  ? `1px solid ${isDark ? tokens.colors.gray[800] : tokens.colors.gray[200]}`
+                  : 'none',
+              transform:
+                isOpen || pipWindow !== null
+                  ? 'translateY(0)'
+                  : settings.panelLocation === 'bottom'
+                    ? 'translateY(100%)'
+                    : 'translateY(-100%)',
+              visibility: isOpen || pipWindow !== null ? 'visible' : 'hidden',
+              pointerEvents: isOpen || pipWindow !== null ? 'auto' : 'none',
+              transition: isResizing ? 'none' : 'transform 400ms ease',
+            }}
+          >
+            <div
+              role="separator"
+              tabIndex={0}
+              aria-orientation="horizontal"
+              onMouseDown={handleDragStart}
               style={{
-                ...panelPositionStyle,
-                position: pipWindow === null ? 'fixed' : 'relative',
+                position: 'absolute',
+                left: 0,
                 right: 0,
-                zIndex: 99999,
-                display: 'flex',
-                width: '100%',
-                height: pipWindow === null ? height : '100vh',
-                maxHeight: pipWindow === null ? '90vh' : '100vh',
-                boxSizing: 'border-box',
-                overflow: 'hidden',
-                color: isDark
-                  ? tokens.colors.gray[100]
-                  : tokens.colors.gray[900],
-                backgroundColor: isDark
-                  ? tokens.colors.darkGray[800]
-                  : tokens.colors.white,
-                borderTop:
-                  settings.panelLocation === 'bottom'
-                    ? `1px solid ${isDark ? tokens.colors.gray[800] : tokens.colors.gray[200]}`
-                    : 'none',
-                borderBottom:
-                  settings.panelLocation === 'top'
-                    ? `1px solid ${isDark ? tokens.colors.gray[800] : tokens.colors.gray[200]}`
-                    : 'none',
-                transform:
-                  isOpen || pipWindow !== null
-                    ? 'translateY(0)'
-                    : settings.panelLocation === 'bottom'
-                      ? 'translateY(100%)'
-                      : 'translateY(-100%)',
-                visibility: isOpen || pipWindow !== null ? 'visible' : 'hidden',
-                pointerEvents: isOpen || pipWindow !== null ? 'auto' : 'none',
-                transition: isResizing ? 'none' : 'transform 400ms ease',
+                top: settings.panelLocation === 'bottom' ? 0 : undefined,
+                bottom: settings.panelLocation === 'top' ? 0 : undefined,
+                zIndex: 2,
+                height: 4,
+                cursor: 'ns-resize',
               }}
-            >
-              <div
-                role="separator"
-                tabIndex={0}
-                aria-orientation="horizontal"
-                onMouseDown={handleDragStart}
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  top: settings.panelLocation === 'bottom' ? 0 : undefined,
-                  bottom: settings.panelLocation === 'top' ? 0 : undefined,
-                  zIndex: 2,
-                  height: 4,
-                  cursor: 'ns-resize',
-                }}
-              />
-              <DevtoolsRoutes
-                configuredTheme={config?.theme}
-                isDetached={pipWindow !== null}
-                onClose={toggleOpen}
-                onDetach={requestPipWindow}
-              />
-            </section>
-          ) : null}
+            />
+            <DevtoolsRoutes
+              configuredTheme={config?.theme}
+              isDetached={pipWindow !== null}
+              onClose={toggleOpen}
+              onDetach={requestPipWindow}
+            />
+          </section>
         </div>,
         portalTarget,
       )}

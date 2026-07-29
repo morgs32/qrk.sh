@@ -28,8 +28,6 @@ export const initialState: IDevtoolsStore = {
     position: 'bottom-right',
     panelLocation: 'bottom',
     openHotkey: ['Control', '~'],
-    requireUrlFlag: false,
-    urlFlag: 'zerospin-devtools',
     theme:
       typeof window !== 'undefined' &&
       typeof window.matchMedia !== 'undefined' &&
@@ -64,9 +62,7 @@ export function getExistingStateFromStorage(
       ...config,
       ...savedSettings,
       theme:
-        config?.theme ??
-        savedSettings?.theme ??
-        initialState.settings.theme,
+        config?.theme ?? savedSettings?.theme ?? initialState.settings.theme,
     },
   };
 }

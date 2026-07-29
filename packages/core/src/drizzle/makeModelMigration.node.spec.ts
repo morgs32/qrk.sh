@@ -58,6 +58,7 @@ const Item = makeModel(
         table: User.table,
         relation: 'user',
         inverse: 'items',
+        unique: true,
       }),
       userIdNullable: primitives.ref({
         table: User.table,
@@ -92,6 +93,7 @@ describe('makeTableMigrationSQL (models from makeModel)', () => {
     expect(sql).toContain('version text NOT NULL');
     expect(sql).toContain('title text NOT NULL');
     expect(sql).toContain('userId text NOT NULL');
+    expect(sql).toContain('userId text NOT NULL UNIQUE');
   });
 
   it('migrationSQL uses strict CREATE TABLE and does not include IF NOT EXISTS', () => {

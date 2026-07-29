@@ -17,8 +17,8 @@ export const getFrontendBlockRepo = Effect.fn('getFrontendBlockRepo')(
     const name = yield* FrontendBlockRepo.repoUtils.nameUtils.makeName(
       props.key,
     );
-    return env.FRONTEND_BLOCK_REPO.getByName(name) as DurableObjectStub<
-      Rpc.DurableObjectBranded & FrontendBlockRepo
-    >;
+    return env.FRONTEND_BLOCK_REPO.get(
+      env.FRONTEND_BLOCK_REPO.idFromName(name),
+    );
   },
 );

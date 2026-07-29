@@ -27,14 +27,13 @@ import { Effect, Either, Schema } from 'effect';
 import { system } from 'system';
 
 import { getLastAccountCursor } from '../../getLastAccountCursor/getLastAccountCursor.js';
-import { bootstrap } from '../bootstrap/bootstrap.js';
 import { frontendRepoDrizzleSchemas } from '../FrontendRepo.js';
 
 const LAST_REBASED_PUSHED_CURSOR_KV_KEY = 'lastRebasedPushedCursor';
 
 /*
  * 1. Validate and order one session's staged command request.
- * 2. Bootstrap the projection and capture its authoritative account frontier.
+ * 2. Require a live initialized projection and capture its authoritative account frontier.
  * 3. Classify pending, terminal, processed, and newly admissible commands.
  * 4. Guard and apply each new optimistic command in its own savepoint.
  * 5. Persist successful commands in one immutable cursor-stamped pushed block.
@@ -55,7 +54,6 @@ export const pushCommands = Effect.fn('FrontendRepo.pushCommands')(
       actorName: string;
       frontendName: string;
     };
-    name: string;
     db: IDb;
     storage: DurableObjectStorage;
   }): Effect.fn.Return<
@@ -67,7 +65,7 @@ export const pushCommands = Effect.fn('FrontendRepo.pushCommands')(
     IAnyError,
     Async | CuidFactory | MonotonicFactory
   > {
-    const { commands, db, key, name, storage } = props;
+    const { commands, db, key, storage } = props;
     const pendingCommands: IEncodedCommand<IPushedCommand>[] = [];
     const pushedCommands: IEncodedCommand<IPushedCommand>[] = [];
     const failedCommands: IEncodedCommand<IFailedStagedCommand>[] = [];
@@ -118,8 +116,19 @@ export const pushCommands = Effect.fn('FrontendRepo.pushCommands')(
       }
     }
 
-    // 2 — bootstrap before reading the exact account cursor represented by the guard database
-    yield* bootstrap({ key, name, db, storage });
+    // 2 — command admission cannot create a projection or write through a
+    // post-freeze snapshot-only materialization.
+    if (
+      storage.kv.get('initialized') !== true ||
+      storage.kv.get('emissionMode') !== 'live' ||
+      storage.kv.get('subscribed') !== true
+    ) {
+      return yield* new ZerospinError({
+        code: 'frontend-push-state-required',
+        message:
+          'Frontend state must initialize a live subscribed projection before commands can be pushed',
+      });
+    }
     const frontendController = yield* getFrontendController({
       system,
       accountName: key.accountName,

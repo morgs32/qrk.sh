@@ -96,7 +96,7 @@ describe('getUpdatedResources', () => {
             createdAt: now,
             updatedAt: now,
             version: models.user.version,
-            actorId: 'actr_1',
+            actorId: 'actr_2',
             name: 'Outside',
           })
           .run();

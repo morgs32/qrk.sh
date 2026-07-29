@@ -84,6 +84,20 @@ export const handleActorBlocks = Effect.fn('FrontendRepo.handleActorBlocks')(
             });
           }
           let frontendIndex = currentFrontendIndex ?? 0;
+          const emissionMode = yield* Schema.decodeUnknown(
+            Schema.Literal('live', 'no-emission', 'read-only'),
+          )(storage.kv.get('emissionMode')).pipe(
+            mapParseError({
+              code: 'frontend-repo-emission-mode-invalid',
+              prefix: 'Failed to decode FrontendRepo emission mode',
+            }),
+          );
+          if (emissionMode === 'read-only' && blocks.length > 0) {
+            return yield* new ZerospinError({
+              code: 'frontend-repo-read-only',
+              message: 'A read-only FrontendRepo cannot accept actor blocks',
+            });
+          }
           const pushedCommands = new Map<
             string,
             IEncodedCommand<IPushedCommand>
@@ -213,6 +227,9 @@ export const handleActorBlocks = Effect.fn('FrontendRepo.handleActorBlocks')(
               ) {
                 continue;
               }
+              tx.insert(frontendRepoDrizzleSchemas.executedPushedCommands)
+                .values(command)
+                .run();
               executedPushedCommands.push(command);
             }
             for (const command of block.failedCommands) {
@@ -226,6 +243,9 @@ export const handleActorBlocks = Effect.fn('FrontendRepo.handleActorBlocks')(
               ) {
                 continue;
               }
+              tx.insert(frontendRepoDrizzleSchemas.failedPushedCommands)
+                .values(command)
+                .run();
               failedPushedCommands.push(command);
             }
             for (const command of [
@@ -460,6 +480,9 @@ export const handleActorBlocks = Effect.fn('FrontendRepo.handleActorBlocks')(
               tx,
               accountIndex: block.accountIndex,
             });
+            if (emissionMode === 'no-emission') {
+              continue;
+            }
             frontendIndex += 1;
             storage.kv.put(FRONTEND_INDEX_KV_KEY, frontendIndex);
             const lastRebasedPushedCursor = yield* Schema.decodeUnknown(

@@ -7,14 +7,14 @@ import { Effect } from 'effect';
 import { accountRepoDrizzleSchemas } from '../AccountRepo.js';
 import { drainAccountOutboxes } from '../drainAccountOutboxes/drainAccountOutboxes.js';
 
-/** Finishes hosted account outboxes or only inspects them during local reload. */
+/** Finishes hosted account outboxes or only inspects them for self-hosted control. */
 export const drainGeneration = Effect.fn('AccountRepo.drainGeneration')(
   function* (props: {
     accountId: string;
     accountName: string;
     accountRepoName: string;
     db: IDb;
-    local: boolean;
+    inspectionOnly: boolean;
     generationId: string;
     storage: DurableObjectStorage;
   }): Effect.fn.Return<
@@ -30,13 +30,14 @@ export const drainGeneration = Effect.fn('AccountRepo.drainGeneration')(
       accountName,
       accountRepoName,
       db,
-      local,
+      inspectionOnly,
       generationId,
       storage,
     } = props;
 
-    // 1 — hosted activation finishes subscription setup and account-block publication.
-    if (!local) {
+    // 1 — a hosted Worker is pinned to the old generation and may finish work
+    // accepted by that same code. Self-hosted control cannot.
+    if (!inspectionOnly) {
       yield* drainAccountOutboxes({
         accountRepoName,
         generationId,
@@ -47,7 +48,7 @@ export const drainGeneration = Effect.fn('AccountRepo.drainGeneration')(
       });
     }
 
-    // 2 — local Wrangler reload performs only these read-only inspections.
+    // 2 — self-hosted control performs only these read-only inspections.
     const pendingServiceSubscriptionCount = db
       .select({
         serviceRepoName:
@@ -77,11 +78,11 @@ export const drainGeneration = Effect.fn('AccountRepo.drainGeneration')(
     // 3 — source replay is unsafe while either durable account obligation remains.
     if (pendingServiceSubscriptionCount > 0 || pendingAccountBlockCount > 0) {
       return yield* new ZerospinError({
-        code: local
-          ? 'account-generation-local-drain-required'
+        code: inspectionOnly
+          ? 'account-generation-self-hosted-drain-required'
           : 'account-generation-drain-incomplete',
-        message: local
-          ? 'AccountRepo has pending work that local hot reload must not finish with new code'
+        message: inspectionOnly
+          ? 'AccountRepo has pending work that self-hosted control must not finish with newly uploaded code'
           : 'AccountRepo still has pending work after hosted generation drain',
         extra: { pendingServiceSubscriptionCount, pendingAccountBlockCount },
       });

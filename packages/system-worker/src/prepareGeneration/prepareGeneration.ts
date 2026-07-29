@@ -27,15 +27,17 @@ export const prepareGeneration = Effect.fn('SystemWorker.prepareGeneration')(
 
     // Checkpoint 1: hosted preparation is tied to the concrete uploaded Worker
     // whose code and Version Metadata are being considered for activation.
+    // Self-hosted control allocates the candidate identity durably after the
+    // Worker has already been uploaded, so it cannot provide static bindings.
     if (
-      env.ZEROSPIN_INSTANCE_ID !== 'local' &&
+      env.ZEROSPIN_SELF_HOSTED !== 'true' &&
       (env.ZEROSPIN_DEPLOY_ID !== deployId ||
         env.ZEROSPIN_GENERATION_ID !== generationId)
     ) {
       return yield* new ZerospinError({
         code: 'system-worker-prepare-identity-mismatch',
         message:
-          'The requested generation identity does not match this Worker version',
+          'The requested hosted generation identity does not match this Worker version',
         extra: {
           deployId,
           generationId,

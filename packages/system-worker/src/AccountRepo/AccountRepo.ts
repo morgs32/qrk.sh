@@ -571,7 +571,7 @@ export class AccountRepo
         accountName: this.key.accountName,
         accountRepoName: this.ctx.id.name ?? '',
         db: this.db,
-        local: this.env.ZEROSPIN_INSTANCE_ID === 'local',
+        inspectionOnly: this.env.ZEROSPIN_SELF_HOSTED === 'true',
         generationId: this.key.generationId,
         storage: this.ctx.storage,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),

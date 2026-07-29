@@ -118,6 +118,12 @@ const systemInstanceTable = makeTable({
       inverse: 'activatingSystemInstances',
       nullable: true,
     }),
+    transitionSourceDeployId: primitives.ref({
+      table: deployTable,
+      relation: 'transitionSourceDeploy',
+      inverse: 'transitionSourceSystemInstances',
+      nullable: true,
+    }),
   },
 });
 
@@ -302,6 +308,9 @@ export class DevZerospinApis extends DevZerospinApisRepo {
             }),
           });
 
+          const resolver = yield* SystemWorkerResolver;
+          using systemWorker = resolver.get({ systemWorkerName });
+
           // 2. A Worker version maps to exactly one deploy. A completed mapping
           //    can reopen its pinned API after DO reactivation; running or failed
           //    mappings are terminally fail-closed and never allocate another id.
@@ -413,6 +422,191 @@ export class DevZerospinApis extends DevZerospinApisRepo {
               });
             }
 
+            // A promoted deploy remains the routing authority even when source
+            // cleanup was interrupted. Retrying that cleanup must never mark
+            // the already-succeeded target deploy failed or repoint routing.
+            if (existingInstance.transitionSourceDeployId !== null) {
+              const transitionSourceDeployId =
+                existingInstance.transitionSourceDeployId;
+              const cleanup = yield* Effect.gen(function* () {
+                const sourceDeploy = yield* Effect.try({
+                  try: () => {
+                    const storedSourceDeploy = db
+                      .select()
+                      .from(deploy)
+                      .where(eq(deploy.id, transitionSourceDeployId))
+                      .get();
+                    if (storedSourceDeploy === undefined) {
+                      throw new ZerospinError({
+                        code: 'local-transition-source-deploy-not-found',
+                        message:
+                          'The pending transition source deploy does not exist',
+                        extra: {
+                          activeDeployId: existingDeploy.id,
+                          transitionSourceDeployId,
+                        },
+                      });
+                    }
+                    return Schema.decodeUnknownSync(deployRowSchema)(
+                      storedSourceDeploy,
+                    );
+                  },
+                  catch: cause =>
+                    ZerospinError.isZerospinError(cause)
+                      ? cause
+                      : new ZerospinError({
+                          code: 'local-transition-source-deploy-read-failed',
+                          message:
+                            'Failed to read the pending transition source deploy',
+                          cause: ZerospinError.prettyUnknownFailure(cause),
+                        }),
+                });
+                if (
+                  sourceDeploy.id === existingDeploy.id ||
+                  sourceDeploy.systemWorkerName !== systemWorkerName ||
+                  sourceDeploy.status !== 'succeeded' ||
+                  sourceDeploy.phase !== 'complete'
+                ) {
+                  return yield* new ZerospinError({
+                    code: 'local-transition-source-deploy-invalid',
+                    message:
+                      'The pending transition source is not a completed predecessor deploy',
+                    extra: {
+                      activeDeployId: existingDeploy.id,
+                      transitionSourceDeployId: sourceDeploy.id,
+                      sourceStatus: sourceDeploy.status,
+                      sourcePhase: sourceDeploy.phase,
+                    },
+                  });
+                }
+
+                const completed = yield* makeAsync(
+                  () =>
+                    systemWorker.drainGeneration({
+                      deployId: sourceDeploy.id,
+                      generationId: sourceDeploy.generationId,
+                      mode: 'complete',
+                      successorGenerationId: existingDeploy.generationId,
+                    }),
+                  ZerospinError.catch({
+                    code: 'local-generation-complete-rpc-failed',
+                    message:
+                      'SystemWorker failed to complete pending source cleanup',
+                  }),
+                ).pipe(Effect.flatMap(decodeRpc));
+                if (
+                  completed.deployId !== sourceDeploy.id ||
+                  completed.generationId !== sourceDeploy.generationId ||
+                  completed.admission !== 'drained'
+                ) {
+                  return yield* new ZerospinError({
+                    code: 'local-generation-complete-result-invalid',
+                    message:
+                      'SystemWorker returned an invalid source cleanup result',
+                    extra: {
+                      expectedDeployId: sourceDeploy.id,
+                      expectedGenerationId: sourceDeploy.generationId,
+                      result: completed,
+                    },
+                  });
+                }
+
+                yield* Effect.try({
+                  try: () =>
+                    db.transaction(tx => {
+                      const storedInstance = tx
+                        .select()
+                        .from(systemInstance)
+                        .where(
+                          eq(systemInstance.systemWorkerName, systemWorkerName),
+                        )
+                        .get();
+                      if (storedInstance === undefined) {
+                        throw new ZerospinError({
+                          code: 'local-instance-not-found',
+                          message:
+                            'Local instance disappeared while clearing source cleanup',
+                        });
+                      }
+                      const decodedInstance = Schema.decodeUnknownSync(
+                        systemInstanceRowSchema,
+                      )(storedInstance);
+                      if (
+                        decodedInstance.activeDeployId !== existingDeploy.id ||
+                        decodedInstance.activatingDeployId !== null ||
+                        decodedInstance.transitionSourceDeployId !==
+                          sourceDeploy.id
+                      ) {
+                        throw new ZerospinError({
+                          code: 'local-transition-source-clear-conflict',
+                          message:
+                            'Local routing changed while source cleanup was completing',
+                          extra: {
+                            expectedActiveDeployId: existingDeploy.id,
+                            activeDeployId: decodedInstance.activeDeployId,
+                            activatingDeployId:
+                              decodedInstance.activatingDeployId,
+                            expectedTransitionSourceDeployId: sourceDeploy.id,
+                            transitionSourceDeployId:
+                              decodedInstance.transitionSourceDeployId,
+                          },
+                        });
+                      }
+                      tx.update(systemInstance)
+                        .set({ transitionSourceDeployId: null })
+                        .where(
+                          eq(systemInstance.systemWorkerName, systemWorkerName),
+                        )
+                        .run();
+                    }),
+                  catch: cause =>
+                    ZerospinError.isZerospinError(cause)
+                      ? cause
+                      : new ZerospinError({
+                          code: 'local-transition-source-clear-failed',
+                          message:
+                            'Failed to clear completed source cleanup state',
+                          cause: ZerospinError.prettyUnknownFailure(cause),
+                        }),
+                });
+              }).pipe(Effect.either);
+
+              if (Either.isLeft(cleanup)) {
+                yield* Effect.try({
+                  try: () =>
+                    db.transaction(tx => {
+                      const eventIndexRow = tx
+                        .select({
+                          next: sql<number>`coalesce(max(${deployLog.eventIndex}), 0) + 1`.mapWith(
+                            Number,
+                          ),
+                        })
+                        .from(deployLog)
+                        .get();
+                      tx.insert(deployLog)
+                        .values(
+                          Schema.encodeUnknownSync(deployLogRowSchema)({
+                            eventIndex: eventIndexRow?.next ?? 1,
+                            systemWorkerName,
+                            deployId: existingDeploy.id,
+                            generationId: existingDeploy.generationId,
+                            phase: 'complete',
+                            level: 'warn',
+                            message:
+                              'Local deploy is active with pending source cleanup',
+                            payload: Schema.encodeUnknownSync(
+                              ZerospinError.schema,
+                            )(cleanup.left),
+                            createdAt: new Date(),
+                          }),
+                        )
+                        .run();
+                    }),
+                  catch: () => cleanup.left,
+                }).pipe(Effect.either);
+              }
+            }
+
             return new ZerospinApis({
               deployId: existingDeploy.id,
               generationId: existingDeploy.generationId,
@@ -466,6 +660,17 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                   });
                 }
                 if (instance.activeDeployId === null) {
+                  if (instance.transitionSourceDeployId !== null) {
+                    throw new ZerospinError({
+                      code: 'local-transition-source-without-active-deploy',
+                      message:
+                        'A local transition source requires an active target deploy',
+                      extra: {
+                        transitionSourceDeployId:
+                          instance.transitionSourceDeployId,
+                      },
+                    });
+                  }
                   return {
                     instance,
                     activeDeploy: null,
@@ -516,6 +721,159 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                     cause: ZerospinError.prettyUnknownFailure(cause),
                   }),
           });
+
+          // A source distinct from the active deploy is deferred post-switch
+          // cleanup. Finish it before allocating another candidate so this one
+          // scalar receipt can never be overwritten by a later transition.
+          if (
+            activeState.instance !== null &&
+            activeState.activeDeploy !== null &&
+            activeState.instance.transitionSourceDeployId !== null &&
+            activeState.instance.transitionSourceDeployId !==
+              activeState.activeDeploy.id
+          ) {
+            const transitionSourceDeployId =
+              activeState.instance.transitionSourceDeployId;
+            const transitionSourceDeploy = yield* Effect.try({
+              try: () => {
+                const storedTransitionSourceDeploy = db
+                  .select()
+                  .from(deploy)
+                  .where(eq(deploy.id, transitionSourceDeployId))
+                  .get();
+                if (storedTransitionSourceDeploy === undefined) {
+                  throw new ZerospinError({
+                    code: 'local-transition-source-deploy-not-found',
+                    message:
+                      'The pending transition source deploy does not exist',
+                    extra: {
+                      activeDeployId: activeState.activeDeploy.id,
+                      transitionSourceDeployId,
+                    },
+                  });
+                }
+                return Schema.decodeUnknownSync(deployRowSchema)(
+                  storedTransitionSourceDeploy,
+                );
+              },
+              catch: cause =>
+                ZerospinError.isZerospinError(cause)
+                  ? cause
+                  : new ZerospinError({
+                      code: 'local-transition-source-deploy-read-failed',
+                      message:
+                        'Failed to read the pending transition source deploy',
+                      cause: ZerospinError.prettyUnknownFailure(cause),
+                    }),
+            });
+            if (
+              transitionSourceDeploy.systemWorkerName !== systemWorkerName ||
+              transitionSourceDeploy.status !== 'succeeded' ||
+              transitionSourceDeploy.phase !== 'complete'
+            ) {
+              return yield* new ZerospinError({
+                code: 'local-transition-source-deploy-invalid',
+                message:
+                  'The pending transition source is not a completed predecessor deploy',
+                extra: {
+                  activeDeployId: activeState.activeDeploy.id,
+                  transitionSourceDeployId: transitionSourceDeploy.id,
+                  sourceStatus: transitionSourceDeploy.status,
+                  sourcePhase: transitionSourceDeploy.phase,
+                },
+              });
+            }
+
+            const completed = yield* makeAsync(
+              () =>
+                systemWorker.drainGeneration({
+                  deployId: transitionSourceDeploy.id,
+                  generationId: transitionSourceDeploy.generationId,
+                  mode: 'complete',
+                  successorGenerationId: activeState.activeDeploy.generationId,
+                }),
+              ZerospinError.catch({
+                code: 'local-generation-complete-rpc-failed',
+                message:
+                  'SystemWorker failed to complete pending source cleanup',
+              }),
+            ).pipe(Effect.flatMap(decodeRpc));
+            if (
+              completed.deployId !== transitionSourceDeploy.id ||
+              completed.generationId !== transitionSourceDeploy.generationId ||
+              completed.admission !== 'drained'
+            ) {
+              return yield* new ZerospinError({
+                code: 'local-generation-complete-result-invalid',
+                message:
+                  'SystemWorker returned an invalid source cleanup result',
+                extra: {
+                  expectedDeployId: transitionSourceDeploy.id,
+                  expectedGenerationId: transitionSourceDeploy.generationId,
+                  result: completed,
+                },
+              });
+            }
+
+            yield* Effect.try({
+              try: () =>
+                db.transaction(tx => {
+                  const storedInstance = tx
+                    .select()
+                    .from(systemInstance)
+                    .where(
+                      eq(systemInstance.systemWorkerName, systemWorkerName),
+                    )
+                    .get();
+                  if (storedInstance === undefined) {
+                    throw new ZerospinError({
+                      code: 'local-instance-not-found',
+                      message:
+                        'Local instance disappeared while clearing source cleanup',
+                    });
+                  }
+                  const decodedInstance = Schema.decodeUnknownSync(
+                    systemInstanceRowSchema,
+                  )(storedInstance);
+                  if (
+                    decodedInstance.activeDeployId !==
+                      activeState.activeDeploy.id ||
+                    decodedInstance.activatingDeployId !== null ||
+                    decodedInstance.transitionSourceDeployId !==
+                      transitionSourceDeploy.id
+                  ) {
+                    throw new ZerospinError({
+                      code: 'local-transition-source-clear-conflict',
+                      message:
+                        'Local routing changed while source cleanup was completing',
+                      extra: {
+                        expectedActiveDeployId: activeState.activeDeploy.id,
+                        activeDeployId: decodedInstance.activeDeployId,
+                        activatingDeployId: decodedInstance.activatingDeployId,
+                        expectedTransitionSourceDeployId:
+                          transitionSourceDeploy.id,
+                        transitionSourceDeployId:
+                          decodedInstance.transitionSourceDeployId,
+                      },
+                    });
+                  }
+                  tx.update(systemInstance)
+                    .set({ transitionSourceDeployId: null })
+                    .where(
+                      eq(systemInstance.systemWorkerName, systemWorkerName),
+                    )
+                    .run();
+                }),
+              catch: cause =>
+                ZerospinError.isZerospinError(cause)
+                  ? cause
+                  : new ZerospinError({
+                      code: 'local-transition-source-clear-failed',
+                      message: 'Failed to clear completed source cleanup state',
+                      cause: ZerospinError.prettyUnknownFailure(cause),
+                    }),
+            });
+          }
 
           const cleanRequestId =
             workerEnv.ZEROSPIN_CLEAN_REQUEST_ID === undefined
@@ -601,6 +959,23 @@ export class DevZerospinApis extends DevZerospinApisRepo {
             activeState.activeDeploy === null ||
             isClean ||
             compatibility?.requiresNewGeneration === true;
+          if (
+            activeState.instance !== null &&
+            activeState.activeDeploy !== null &&
+            activeState.instance.transitionSourceDeployId ===
+              activeState.activeDeploy.id &&
+            !createsGeneration
+          ) {
+            return yield* new ZerospinError({
+              code: 'local-frozen-generation-reuse-rejected',
+              message:
+                'A generation with frozen write admission cannot be reused',
+              extra: {
+                activeDeployId: activeState.activeDeploy.id,
+                generationId: activeState.activeDeploy.generationId,
+              },
+            });
+          }
           const deployId = yield* makeIdFromAbbreviation({
             abbreviation: coreAbbreviations.deploy,
           });
@@ -641,6 +1016,7 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                     instanceId: 'local',
                     activeDeployId: null,
                     activatingDeployId: null,
+                    transitionSourceDeployId: null,
                   });
                   tx.insert(systemInstance).values(encodedInstance).run();
                 } else {
@@ -650,7 +1026,10 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                   if (
                     currentInstance.activeDeployId !==
                       activeState.instance?.activeDeployId ||
-                    currentInstance.activatingDeployId !== null
+                    currentInstance.activatingDeployId !== null ||
+                    (currentInstance.transitionSourceDeployId !== null &&
+                      currentInstance.transitionSourceDeployId !==
+                        currentInstance.activeDeployId)
                   ) {
                     throw new ZerospinError({
                       code: 'local-deploy-allocation-stale',
@@ -661,6 +1040,8 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                           activeState.instance?.activeDeployId ?? null,
                         activeDeployId: currentInstance.activeDeployId,
                         activatingDeployId: currentInstance.activatingDeployId,
+                        transitionSourceDeployId:
+                          currentInstance.transitionSourceDeployId,
                       },
                     });
                   }
@@ -832,17 +1213,11 @@ export class DevZerospinApis extends DevZerospinApisRepo {
               });
             }
 
-            const resolver = yield* SystemWorkerResolver;
-            using systemWorker = resolver.get({ systemWorkerName });
-
-            // 7. Local drain is inspection-only and occurs only before replaying
-            //    an ordinary migration into a new generation. Exact reuse,
-            //    initial roots, and explicit clean roots deliberately skip it.
-            if (
-              activeState.activeDeploy !== null &&
-              !isClean &&
-              createsGeneration
-            ) {
+            // 7. Every replacement freezes the active source before target
+            //    preparation. A clean target remains a detached root because
+            //    prevGenerationId stays null; freezing only closes the source.
+            if (activeState.activeDeploy !== null && createsGeneration) {
+              const sourceDeploy = activeState.activeDeploy;
               const drainingAt = yield* dutils.date();
               yield* Effect.try({
                 try: () =>
@@ -860,10 +1235,27 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                         extra: { deployId: candidate.id },
                       });
                     }
+                    const storedInstance = tx
+                      .select()
+                      .from(systemInstance)
+                      .where(
+                        eq(systemInstance.systemWorkerName, systemWorkerName),
+                      )
+                      .get();
+                    if (storedInstance === undefined) {
+                      throw new ZerospinError({
+                        code: 'local-instance-not-found',
+                        message:
+                          'Local instance disappeared before generation freeze',
+                      });
+                    }
                     const decodedCandidate =
                       Schema.decodeUnknownSync(deployRowSchema)(
                         storedCandidate,
                       );
+                    const decodedInstance = Schema.decodeUnknownSync(
+                      systemInstanceRowSchema,
+                    )(storedInstance);
                     if (
                       decodedCandidate.status !== 'running' ||
                       decodedCandidate.phase !== 'checking'
@@ -879,9 +1271,36 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                         },
                       });
                     }
+                    if (
+                      decodedInstance.activeDeployId !== sourceDeploy.id ||
+                      decodedInstance.activatingDeployId !== null ||
+                      (decodedInstance.transitionSourceDeployId !== null &&
+                        decodedInstance.transitionSourceDeployId !==
+                          sourceDeploy.id)
+                    ) {
+                      throw new ZerospinError({
+                        code: 'local-generation-freeze-source-conflict',
+                        message:
+                          'Local routing changed before the source generation freeze',
+                        extra: {
+                          expectedActiveDeployId: sourceDeploy.id,
+                          activeDeployId: decodedInstance.activeDeployId,
+                          activatingDeployId:
+                            decodedInstance.activatingDeployId,
+                          transitionSourceDeployId:
+                            decodedInstance.transitionSourceDeployId,
+                        },
+                      });
+                    }
                     tx.update(deploy)
                       .set({ phase: 'draining' })
                       .where(eq(deploy.id, candidate.id))
+                      .run();
+                    tx.update(systemInstance)
+                      .set({ transitionSourceDeployId: sourceDeploy.id })
+                      .where(
+                        eq(systemInstance.systemWorkerName, systemWorkerName),
+                      )
                       .run();
 
                     const eventIndexRow = tx
@@ -901,12 +1320,11 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                       generationId: candidate.generationId,
                       phase: 'draining',
                       level: 'info',
-                      message:
-                        'Inspecting the prior generation before local migration',
+                      message: 'Freezing the prior local generation',
                       payload: {
-                        priorDeployId: activeState.activeDeploy.id,
-                        priorGenerationId:
-                          activeState.activeDeploy.generationId,
+                        priorDeployId: sourceDeploy.id,
+                        priorGenerationId: sourceDeploy.generationId,
+                        detachedTarget: isClean,
                       },
                       createdAt: drainingAt,
                     });
@@ -923,32 +1341,33 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                       }),
               });
 
-              const drained = yield* makeAsync(
+              const frozen = yield* makeAsync(
                 () =>
                   systemWorker.drainGeneration({
-                    deployId: activeState.activeDeploy.id,
-                    generationId: activeState.activeDeploy.generationId,
+                    deployId: sourceDeploy.id,
+                    generationId: sourceDeploy.generationId,
+                    mode: 'freeze',
+                    successorGenerationId: null,
                   }),
                 ZerospinError.catch({
-                  code: 'local-generation-drain-rpc-failed',
+                  code: 'local-generation-freeze-rpc-failed',
                   message:
-                    'SystemWorker failed to inspect the prior local generation',
+                    'SystemWorker failed to freeze the prior local generation',
                 }),
               ).pipe(Effect.flatMap(decodeRpc));
               if (
-                drained.deployId !== activeState.activeDeploy.id ||
-                drained.generationId !==
-                  activeState.activeDeploy.generationId ||
-                drained.admission !== 'drained'
+                frozen.deployId !== sourceDeploy.id ||
+                frozen.generationId !== sourceDeploy.generationId ||
+                frozen.admission !== 'draining'
               ) {
                 return yield* new ZerospinError({
-                  code: 'local-generation-drain-result-invalid',
+                  code: 'local-generation-freeze-result-invalid',
                   message:
-                    'SystemWorker returned an invalid local drain result',
+                    'SystemWorker returned an invalid local freeze result',
                   extra: {
-                    expectedDeployId: activeState.activeDeploy.id,
-                    expectedGenerationId: activeState.activeDeploy.generationId,
-                    result: drained,
+                    expectedDeployId: sourceDeploy.id,
+                    expectedGenerationId: sourceDeploy.generationId,
+                    result: frozen,
                   },
                 });
               }
@@ -1143,6 +1562,26 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                       },
                     });
                   }
+                  const expectedTransitionSourceDeployId =
+                    createsGeneration && decodedCandidate.prevDeployId !== null
+                      ? decodedCandidate.prevDeployId
+                      : null;
+                  if (
+                    decodedInstance.transitionSourceDeployId !==
+                    expectedTransitionSourceDeployId
+                  ) {
+                    throw new ZerospinError({
+                      code: 'local-transition-source-reservation-mismatch',
+                      message:
+                        'Activation requires the exact frozen source receipt',
+                      extra: {
+                        deployId: candidate.id,
+                        expectedTransitionSourceDeployId,
+                        transitionSourceDeployId:
+                          decodedInstance.transitionSourceDeployId,
+                      },
+                    });
+                  }
 
                   tx.update(deploy)
                     .set({ phase: 'activating' })
@@ -1250,12 +1689,18 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                   const decodedInstance = Schema.decodeUnknownSync(
                     systemInstanceRowSchema,
                   )(storedInstance);
+                  const expectedTransitionSourceDeployId =
+                    createsGeneration && decodedCandidate.prevDeployId !== null
+                      ? decodedCandidate.prevDeployId
+                      : null;
                   if (
                     decodedCandidate.status !== 'running' ||
                     decodedCandidate.phase !== 'activating' ||
                     decodedInstance.activeDeployId !==
                       decodedCandidate.prevDeployId ||
-                    decodedInstance.activatingDeployId !== candidate.id
+                    decodedInstance.activatingDeployId !== candidate.id ||
+                    decodedInstance.transitionSourceDeployId !==
+                      expectedTransitionSourceDeployId
                   ) {
                     throw new ZerospinError({
                       code: 'local-deploy-activation-reservation-lost',
@@ -1268,6 +1713,9 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                         prevDeployId: decodedCandidate.prevDeployId,
                         activeDeployId: decodedInstance.activeDeployId,
                         activatingDeployId: decodedInstance.activatingDeployId,
+                        expectedTransitionSourceDeployId,
+                        transitionSourceDeployId:
+                          decodedInstance.transitionSourceDeployId,
                       },
                     });
                   }
@@ -1334,6 +1782,139 @@ export class DevZerospinApis extends DevZerospinApisRepo {
                     }),
             });
 
+            // 11. Routing now selects the ready target. Source read admission
+            //     closes only after this point. Cleanup failure is durable in
+            //     transitionSourceDeployId and never rolls the target back.
+            if (activeState.activeDeploy !== null && createsGeneration) {
+              const sourceDeploy = activeState.activeDeploy;
+              const cleanup = yield* Effect.gen(function* () {
+                const drained = yield* makeAsync(
+                  () =>
+                    systemWorker.drainGeneration({
+                      deployId: sourceDeploy.id,
+                      generationId: sourceDeploy.generationId,
+                      mode: 'complete',
+                      successorGenerationId: candidate.generationId,
+                    }),
+                  ZerospinError.catch({
+                    code: 'local-generation-complete-rpc-failed',
+                    message:
+                      'SystemWorker failed to complete source generation cleanup',
+                  }),
+                ).pipe(Effect.flatMap(decodeRpc));
+                if (
+                  drained.deployId !== sourceDeploy.id ||
+                  drained.generationId !== sourceDeploy.generationId ||
+                  drained.admission !== 'drained'
+                ) {
+                  return yield* new ZerospinError({
+                    code: 'local-generation-complete-result-invalid',
+                    message:
+                      'SystemWorker returned an invalid source cleanup result',
+                    extra: {
+                      expectedDeployId: sourceDeploy.id,
+                      expectedGenerationId: sourceDeploy.generationId,
+                      result: drained,
+                    },
+                  });
+                }
+
+                yield* Effect.try({
+                  try: () =>
+                    db.transaction(tx => {
+                      const storedInstance = tx
+                        .select()
+                        .from(systemInstance)
+                        .where(
+                          eq(systemInstance.systemWorkerName, systemWorkerName),
+                        )
+                        .get();
+                      if (storedInstance === undefined) {
+                        throw new ZerospinError({
+                          code: 'local-instance-not-found',
+                          message:
+                            'Local instance disappeared while clearing source cleanup',
+                        });
+                      }
+                      const decodedInstance = Schema.decodeUnknownSync(
+                        systemInstanceRowSchema,
+                      )(storedInstance);
+                      if (
+                        decodedInstance.activeDeployId !== candidate.id ||
+                        decodedInstance.activatingDeployId !== null ||
+                        decodedInstance.transitionSourceDeployId !==
+                          sourceDeploy.id
+                      ) {
+                        throw new ZerospinError({
+                          code: 'local-transition-source-clear-conflict',
+                          message:
+                            'Local routing changed while source cleanup was completing',
+                          extra: {
+                            expectedActiveDeployId: candidate.id,
+                            activeDeployId: decodedInstance.activeDeployId,
+                            activatingDeployId:
+                              decodedInstance.activatingDeployId,
+                            expectedTransitionSourceDeployId: sourceDeploy.id,
+                            transitionSourceDeployId:
+                              decodedInstance.transitionSourceDeployId,
+                          },
+                        });
+                      }
+                      tx.update(systemInstance)
+                        .set({ transitionSourceDeployId: null })
+                        .where(
+                          eq(systemInstance.systemWorkerName, systemWorkerName),
+                        )
+                        .run();
+                    }),
+                  catch: cause =>
+                    ZerospinError.isZerospinError(cause)
+                      ? cause
+                      : new ZerospinError({
+                          code: 'local-transition-source-clear-failed',
+                          message:
+                            'Failed to clear completed source cleanup state',
+                          cause: ZerospinError.prettyUnknownFailure(cause),
+                        }),
+                });
+              }).pipe(Effect.either);
+
+              if (Either.isLeft(cleanup)) {
+                yield* Effect.try({
+                  try: () =>
+                    db.transaction(tx => {
+                      const eventIndexRow = tx
+                        .select({
+                          next: sql<number>`coalesce(max(${deployLog.eventIndex}), 0) + 1`.mapWith(
+                            Number,
+                          ),
+                        })
+                        .from(deployLog)
+                        .get();
+                      tx.insert(deployLog)
+                        .values(
+                          Schema.encodeUnknownSync(deployLogRowSchema)({
+                            eventIndex: eventIndexRow?.next ?? 1,
+                            systemWorkerName,
+                            deployId: candidate.id,
+                            generationId: candidate.generationId,
+                            phase: 'complete',
+                            level: 'warn',
+                            message:
+                              'Local deploy activated with pending source cleanup',
+                            payload: ZerospinError.prettyUnknownFailure(
+                              cleanup.left,
+                            ),
+                            createdAt: new Date(),
+                          }),
+                        )
+                        .run();
+                    }),
+                  catch: () => cleanup.left,
+                }).pipe(Effect.either);
+              }
+            }
+
             return new ZerospinApis({
               deployId: candidate.id,
               generationId: candidate.generationId,
@@ -1342,7 +1923,7 @@ export class DevZerospinApis extends DevZerospinApisRepo {
           }).pipe(
             Effect.catchAllCause(cause =>
               Effect.gen(function* () {
-                // 11. Any terminal failure stays at its current phase, releases
+                // 12. Any terminal failure stays at its current phase, releases
                 //     only this candidate's reservation, and remains permanently
                 //     associated with workerVersionId.
                 const squashed = Cause.squash(cause);

@@ -6,12 +6,18 @@
  */
 export default makeSystemConfig({
   entry: 'src/zerospin/system.ts',
-  seeds: 'src/zerospin/seeds.ts',
+  seeds: {
+    dev: 'src/zerospin/seeds.ts',
+    production: 'src/zerospin/seeds.production.ts',
+  },
 });
 
 declare function makeSystemConfig(props: {
   entry: string;
-  seeds: string;
+  seeds: {
+    dev: string;
+    production: string;
+  };
 }): unknown;
 
 // seeds.ts exports the Effect returned by makeSeeds:

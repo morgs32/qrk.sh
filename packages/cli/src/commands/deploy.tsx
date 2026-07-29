@@ -7,6 +7,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary.js';
 import { Header } from '../components/Header.js';
 import { CompileSystemWorker } from '../deploy/CompileSystemWorker.js';
 import { DeploySystem } from '../deploy/DeploySystem.js';
+import { DeployWrangler } from '../deploy/DeployWrangler.js';
 import { LoadConfig } from '../deploy/LoadConfig.js';
 import { LoadSystem } from '../deploy/LoadSystem.js';
 import { WriteLocalSystemWorker } from '../deploy/WriteLocalSystemWorker.js';
@@ -26,15 +27,32 @@ export const options = zod.object({
     .boolean()
     .default(false)
     .describe('Request a clean deploy (passed through to the API)'),
+  wrangler: zod
+    .boolean()
+    .default(false)
+    .describe('Deploy directly to the current Wrangler account'),
 });
 
 type IDeployOptions = zod.infer<typeof options>;
 
 export default function Deploy(props: { options: IDeployOptions }) {
   const { options } = props;
-  const { env, local, clean } = options;
+  const { env, local, clean, wrangler } = options;
   const environmentId = env ?? 'dev';
   const localOutputPath = typeof local === 'string' ? local : null;
+
+  // This branch occurs before LoadConfig is rendered. Self-hosted deployment
+  // therefore never loads a hosted API URL or hosted Zerospin credential.
+  if (wrangler) {
+    return (
+      <ErrorBoundary>
+        <Box flexDirection="column">
+          <Header />
+          <DeployWrangler clean={clean} />
+        </Box>
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary>

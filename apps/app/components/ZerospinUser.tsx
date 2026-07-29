@@ -33,7 +33,7 @@ export function ZerospinUserProvider({ children }: { children: React.ReactNode }
   return (
     <MockZerospinUserProvider
       key={user.id}
-      userId={user.id}
+      partitionKey={user.id}
       accountId="acct_mock_user"
       actorId={actorId}
       generationId="gen_mock_user"

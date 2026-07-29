@@ -19,10 +19,9 @@ export const drainAccountSubscribers = Effect.fn(
   'ServiceBlockRepo.drainAccountSubscribers',
 )(function* (props: {
   db: IDb;
-  storage: DurableObjectStorage;
   serviceName: string;
-}): Effect.fn.Return<void, IAnyError, Async> {
-  const { db, serviceName, storage } = props;
+}): Effect.fn.Return<number | null, IAnyError, Async> {
+  const { db, serviceName } = props;
   const now = Date.now();
   const subscribers = db
     .select()
@@ -127,9 +126,5 @@ export const drainAccountSubscribers = Effect.fn(
       .run();
   }
 
-  if (nextAlarmAt !== null) {
-    yield* Effect.promise(() => storage.setAlarm(nextAlarmAt));
-  } else {
-    yield* Effect.promise(() => storage.deleteAlarm());
-  }
+  return nextAlarmAt;
 });

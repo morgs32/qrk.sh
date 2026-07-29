@@ -6,8 +6,8 @@ import { useUser } from '@clerk/nextjs';
 import { ZerospinConfig } from '@zerospin/react/ZerospinConfig';
 import { Effect } from 'effect';
 
-import { AppDevtools } from './AppDevtools';
 import { RequiredUserProvider } from './RequiredUser';
+import { ZerospinCatalog } from './ZerospinCatalog';
 import { ZerospinShopper } from './ZerospinShopper';
 
 export default function AuthedLayout({ children }: { children: ReactNode }) {
@@ -23,12 +23,25 @@ export default function AuthedLayout({ children }: { children: ReactNode }) {
 
   return (
     <RequiredUserProvider user={user}>
-      <ZerospinConfig userId={user.id} isSharedWorkerEnabled>
-        <ZerospinShopper.Provider
-          generateSignature={() => Effect.succeed({ clerkUserId: user.id })}
-        >
-          {children}
-          <AppDevtools />
+      <ZerospinConfig
+        partitionKey={user.id}
+        isSharedWorkerEnabled
+        frontendAuthenticators={{
+          web: {
+            frontend: ZerospinShopper,
+            generateSignature: () =>
+              Effect.succeed({ clerkUserId: user.id }),
+          },
+          catalog: {
+            frontend: ZerospinCatalog,
+            generateSignature: () => Effect.succeed({ viewerId: user.id }),
+          },
+        }}
+      >
+        <ZerospinShopper.Provider>
+          <ZerospinCatalog.Provider>
+            {children}
+          </ZerospinCatalog.Provider>
         </ZerospinShopper.Provider>
       </ZerospinConfig>
     </RequiredUserProvider>

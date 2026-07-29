@@ -76,7 +76,23 @@ export type IContractSpec = {
   readonly commandName: string;
   readonly version: string;
   readonly payloadJsonSchema: JSONSchema.JsonSchema7Root;
+  readonly historicalDefinitions: readonly Readonly<{
+    commandName: string;
+    version: string;
+    payloadJsonSchema: JSONSchema.JsonSchema7Root;
+  }>[];
 };
+
+/** Encoded optimistic mutation before worker application adds apply metadata. */
+export type IEncodedFrontendMutation = Readonly<{
+  commandId: string;
+  mutationIndex: number;
+  modelName: string;
+  modelVersion: string;
+  resourceId: string;
+  operationName: IOperationName;
+  operation: string;
+}>;
 
 /** Encoded applied mutation at persistence, ledger, and rollback boundaries. */
 export type IEncodedAppliedMutation = Readonly<{
@@ -98,9 +114,25 @@ export type IContract<
   VERSION extends string = string,
   MUTATIONS_SCHEMA extends Schema.Schema.AnyNoContext | null =
     Schema.Schema.AnyNoContext | null,
+  HISTORICAL_DEFINITIONS extends readonly Readonly<{
+    commandName: string;
+    payload: IAnyShape;
+    version: string;
+    adaptPayload: (props: {
+      payload: any;
+    }) => Effect.Effect<any, IAnyError, any>;
+  }>[] = readonly Readonly<{
+    commandName: string;
+    payload: IAnyShape;
+    version: string;
+    adaptPayload: (props: {
+      payload: any;
+    }) => Effect.Effect<any, IAnyError, any>;
+  }>[],
 > = {
   commandName: COMMAND_NAME;
   payload: PAYLOAD;
+  historicalDefinitions: HISTORICAL_DEFINITIONS;
   decodePayload: {
     [BrandTypeId]: 'decodePayload';
   } & ((props: {

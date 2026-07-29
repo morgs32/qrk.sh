@@ -133,7 +133,10 @@ export const loadZerospinConfigFn = Effect.fn('loadZerospinConfigFn')(
       entry: raw['entry'],
       environmentId: raw['environmentId'] ?? null,
       env: raw['env'] ?? null,
-      seeds: raw['seeds'] ?? null,
+      seeds: raw['seeds'] ?? {
+        dev: null,
+        production: null,
+      },
     };
 
     return yield* Schema.validate(ZerospinConfigSchema)(

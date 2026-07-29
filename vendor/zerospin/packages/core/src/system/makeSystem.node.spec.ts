@@ -12,6 +12,8 @@ import { makeServiceModel } from '../models/makeServiceModel.ts';
 import { primitives } from '../models/primitives.ts';
 import { makeServiceController } from '../service/makeServiceController.ts';
 import type { IServiceControllers } from '../service/types.ts';
+import { makeServiceActorController } from '../serviceActorController/makeServiceActorController.ts';
+import { makeServiceFrontendController } from '../serviceFrontendController/makeServiceFrontendController.ts';
 
 import { makeSystem } from './makeSystem.ts';
 
@@ -190,6 +192,90 @@ describe('makeSystem', () => {
     });
 
     expect(system.serviceControllers.user).toBe(userService);
+  });
+
+  it('retains the nested service actor and frontend graph', () => {
+    const frontendController = makeServiceFrontendController({
+      systemName: 'test',
+      serviceName: 'user',
+      actorName: 'reader',
+      frontendName: 'profile',
+      version: '1.0.0',
+      models: { user: ServiceUser },
+      signature: Schema.Struct({ subject: Schema.String }),
+    });
+    const actorController = makeServiceActorController({
+      name: 'reader',
+      version: '1.0.0',
+      models: { user: ServiceUser },
+      frontends: {
+        profile: {
+          frontendController,
+          authenticate: () => Effect.succeed('actr_reader'),
+        },
+      },
+    });
+    const serviceController = makeServiceController({
+      name: 'user',
+      version: '1.0.0',
+      models: { user: ServiceUser },
+      contracts: {},
+      actorControllers: { reader: actorController },
+    });
+
+    const system = makeSystem({
+      accountControllers: {},
+      serviceControllers: { user: serviceController },
+      name: 'test',
+      version: '1.0.0',
+    });
+
+    expect(
+      system.serviceControllers.user.actorControllers.reader.frontends.profile
+        .frontendController,
+    ).toBe(frontendController);
+  });
+
+  it('rejects a nested service frontend owned by another system', () => {
+    const frontendController = makeServiceFrontendController({
+      systemName: 'test',
+      serviceName: 'user',
+      actorName: 'reader',
+      frontendName: 'profile',
+      version: '1.0.0',
+      models: { user: ServiceUser },
+      signature: Schema.Struct({}),
+    });
+    const actorController = makeServiceActorController({
+      name: 'reader',
+      version: '1.0.0',
+      models: { user: ServiceUser },
+      frontends: {
+        profile: {
+          frontendController,
+          authenticate: () => Effect.succeed('actr_reader'),
+        },
+      },
+    });
+    const serviceController = makeServiceController({
+      name: 'user',
+      version: '1.0.0',
+      models: { user: ServiceUser },
+      contracts: {},
+      actorControllers: { reader: actorController },
+    });
+    Reflect.set(frontendController, 'systemName', 'other');
+
+    expect(() =>
+      makeSystem({
+        accountControllers: {},
+        serviceControllers: { user: serviceController },
+        name: 'test',
+        version: '1.0.0',
+      }),
+    ).toThrow(
+      'makeSystem: serviceControllers.user.actorControllers.reader.frontends.profile.frontendController must have systemName "test", received "other"',
+    );
   });
 
   it('throws when an accountControllers key does not match the account name', () => {

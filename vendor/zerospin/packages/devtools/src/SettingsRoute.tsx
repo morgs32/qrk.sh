@@ -3,10 +3,7 @@ import type { CSSProperties } from 'react';
 import { useStore } from 'zustand/react';
 
 import { devtoolsStore } from './store.js';
-import type {
-  IKeyboardKey,
-  IZerospinDevtoolsConfig,
-} from './types.js';
+import type { IKeyboardKey, IZerospinDevtoolsConfig } from './types.js';
 import { uppercaseFirstLetter } from './utils/sanitize.js';
 
 const styles: Record<string, CSSProperties> = {
@@ -84,7 +81,7 @@ const styles: Record<string, CSSProperties> = {
 
 /*
  * 1. Read the persisted shell settings directly from the vanilla store.
- * 2. Update each general, URL, keyboard, and position setting in place.
+ * 2. Update each general, keyboard, and position setting in place.
  * 3. Keep the existing modifier-plus-key hotkey editing behavior.
  * 4. Hide theme controls while the host application locks the theme.
  * 5. Omit the removed Source Inspector configuration entirely.
@@ -252,50 +249,6 @@ export function SettingsRoute({
               <option value="dark">Dark</option>
               <option value="light">Light</option>
             </select>
-          </label>
-        ) : null}
-      </section>
-
-      <section style={styles.section}>
-        <h2 style={styles.title}>URL Configuration</h2>
-        <p style={styles.description}>
-          Control whether DevTools is available from a URL flag.
-        </p>
-
-        <label style={styles.checkbox}>
-          <input
-            type="checkbox"
-            checked={settings.requireUrlFlag}
-            onChange={event =>
-              devtoolsStore.setState(state => ({
-                ...state,
-                settings: {
-                  ...state.settings,
-                  requireUrlFlag: event.currentTarget.checked,
-                },
-              }))
-            }
-          />
-          Require URL flag
-        </label>
-
-        {settings.requireUrlFlag ? (
-          <label style={styles.field}>
-            URL flag
-            <input
-              style={styles.control}
-              value={settings.urlFlag}
-              placeholder="debug"
-              onChange={event =>
-                devtoolsStore.setState(state => ({
-                  ...state,
-                  settings: {
-                    ...state.settings,
-                    urlFlag: event.currentTarget.value,
-                  },
-                }))
-              }
-            />
           </label>
         ) : null}
       </section>

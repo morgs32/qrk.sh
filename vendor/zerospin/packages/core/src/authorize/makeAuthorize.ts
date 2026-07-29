@@ -19,7 +19,7 @@ export type IAuthorizeFn = (props: {
 
 export function makeAuthorize<
   SYSTEM_NAME extends string,
-  FRONTEND_NAME extends string,
+  ACTOR_NAME extends string,
   CONTRACTS extends IContracts,
   MODELS extends IModels = {},
   SIGNATURE_SCHEMA extends Schema.Schema.AnyNoContext =
@@ -27,7 +27,7 @@ export function makeAuthorize<
 >(props: {
   frontendController: IFrontendController<
     SYSTEM_NAME,
-    FRONTEND_NAME,
+    ACTOR_NAME,
     CONTRACTS,
     MODELS,
     SIGNATURE_SCHEMA

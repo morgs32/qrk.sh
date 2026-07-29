@@ -3,66 +3,72 @@
 import { act, useEffect } from 'react';
 
 import { waitFor } from '@testing-library/react';
+import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
+import { makeServiceFrontendControllerSpec } from '@zerospin/core/serviceFrontendController/makeServiceFrontendControllerSpec';
 import { sessionStagedCommandDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
-import { mockFrontendApi } from '@zerospin/core/session/test-utils/mockFrontendApi';
-import { ISession } from '@zerospin/core/session/types';
-import { encodeRight } from '@zerospin/core/utils/encodeRight';
+import type { IBrowserSession } from '@zerospin/react/types';
 import { useSession } from '@zerospin/react/useSession';
 import { ZerospinConfig } from '@zerospin/react/ZerospinConfig';
-import type * as Capnweb from 'capnweb';
 import { Effect } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProductList } from '@/app/(authed)/ProductList';
-import { RequiredUserProvider } from '@/app/(authed)/RequiredUser';
+import { ZerospinCatalog } from '@/app/(authed)/ZerospinCatalog';
 import { ZerospinShopper } from '@/app/(authed)/ZerospinShopper';
-import { shopperFrontend } from '@/zerospin/frontend';
+import { catalogFrontend, shopperFrontend } from '@/zerospin/frontend';
+import { Product, User } from '@/zerospin/models';
 
-const newHttpBatchRpcSessionMock = vi.hoisted(() => vi.fn());
-const getFrontendApi = vi.hoisted(() => vi.fn());
-const makeSharedWorkerSessionMock = vi.hoisted(() => vi.fn());
-const useUser = vi.hoisted(() => vi.fn());
+const fetchFrontend = vi.hoisted(() => vi.fn());
+const fetchFrontendState = vi.hoisted(() => vi.fn());
+const acquireFrontendWebSocket = vi.hoisted(() => vi.fn());
+const fetchServiceFrontend = vi.hoisted(() => vi.fn());
+const fetchServiceFrontendState = vi.hoisted(() => vi.fn());
+const acquireServiceFrontendWebSocket = vi.hoisted(() => vi.fn());
+
 vi.hoisted(() => {
   process.env.ZEROSPIN_PUBLISHABLE_KEY = 'pk_test';
 });
 
-vi.mock('@clerk/nextjs', () => ({
-  useUser,
+vi.mock('@zerospin/frontend/fetchFrontend', () => ({ fetchFrontend }));
+vi.mock('@zerospin/frontend/fetchFrontendState', () => ({
+  fetchFrontendState,
+}));
+vi.mock('@zerospin/react/acquireFrontendWebSocket', () => ({
+  acquireFrontendWebSocket,
+}));
+vi.mock('@zerospin/frontend/fetchServiceFrontend', () => ({
+  fetchServiceFrontend,
+}));
+vi.mock('@zerospin/frontend/fetchServiceFrontendState', () => ({
+  fetchServiceFrontendState,
+}));
+vi.mock('@zerospin/react/acquireServiceFrontendWebSocket', () => ({
+  acquireServiceFrontendWebSocket,
 }));
 
-vi.mock('@zerospin/shared-worker/makeSharedWorkerSession', () => ({
-  makeSharedWorkerSession: makeSharedWorkerSessionMock,
-}));
-
-vi.mock('capnweb', async importOriginal => {
-  const actual = await importOriginal<typeof Capnweb>();
-  return {
-    ...actual,
-    newHttpBatchRpcSession: newHttpBatchRpcSessionMock,
-  };
-});
-
-const clerkUserId = 'test' as const;
-const userId = 'usr_test' as const;
-const actorId = 'actr_test' as const;
+const clerkUserId = 'test';
+const userId = User.prefixId(clerkUserId);
+const actorId = 'actr_test';
 const now = new Date('2026-01-01T00:00:00.000Z');
 
 async function waitForSessionReady(props: {
-  getSession: () => ISession | null;
+  getSession: () => IBrowserSession<typeof shopperFrontend> | null;
 }) {
   const { getSession } = props;
   await waitFor(
     () => {
       const session = getSession();
       expect(session).not.toBeNull();
-      expect(session!.store.getState().db).not.toBeNull();
+      expect(session?.store.getState().isInitialized).toBe(true);
     },
     { timeout: 15_000 },
   );
 }
 
-function SessionCapture(props: { onSession: (session: unknown) => void }) {
+function SessionCapture(props: {
+  onSession: (session: IBrowserSession<typeof shopperFrontend>) => void;
+}) {
   const session = useSession(ZerospinShopper);
   const { onSession } = props;
 
@@ -76,83 +82,108 @@ function SessionCapture(props: { onSession: (session: unknown) => void }) {
 describe('ProductList', () => {
   let container: HTMLDivElement;
   let root: Root;
-  let capturedSession: ISession | null;
+  let capturedSession: IBrowserSession<typeof shopperFrontend> | null;
 
   beforeEach(() => {
-    vi.stubGlobal('WebSocket', undefined);
-    vi.mocked(mockFrontendApi.getFrontendState).mockImplementation(
-      async () => ({
-        result: encodeRight({
-          actorId,
+    fetchFrontend.mockReturnValue(
+      Effect.succeed({
+        identity: {
+          actor: { accountId: 'acct_1', actorId },
+          accountId: 'acct_1',
           accountName: shopperFrontend.accountName,
+          actorId,
           actorName: shopperFrontend.actorName,
+          deployId: 'dpl_test',
           frontendName: shopperFrontend.frontendName,
-          systemWorkerName: 'stub-deploy',
-          frontendIndex: null,
-          lastRebasedPushedCursor: null,
-          resources: [],
-          pushedCommands: [],
-          executedPushedCommands: [],
-          failedPushedCommands: [],
-        }),
-        link: null,
+          frontendVersion: shopperFrontend.version,
+          generationId: 'gen_test',
+          systemEnvironmentId: 'dev',
+          systemId: 'sys_test',
+          systemVersion: '1.1.0',
+          systemWorkerName: 'shopping-test-worker',
+        },
+        frontendSpec: makeFrontendControllerSpec(shopperFrontend),
+        frontendApi: {},
+        releaseFrontendApi: vi.fn(),
       }),
     );
-    vi.mocked(mockFrontendApi.fetchActor).mockResolvedValue({
-      result: encodeRight({
-        actor: {
-          accountId: 'acct_1',
-          actorId,
-        },
-        deployId: 'dpl_test',
-        generationId: 'gen_test',
-        systemId: 'sys_1',
-        systemVersion: '1.0.0',
-        systemWorkerName: 'stub-deploy',
-        systemEnvironmentId: 'dev',
-      }),
-      link: null,
-    });
-    vi.mocked(mockFrontendApi.executeActorQuery).mockResolvedValue({
-      result: encodeRight([
-        {
-          createdAt: now,
-          deletedAt: null,
-          description: 'Test product',
-          id: 'prd_1',
-          modelName: 'product',
-          name: 'Test Product',
-          price: 20,
-          updatedAt: now,
-          version: '1.0.0',
-        },
-      ]),
-      link: null,
-    });
-    useUser.mockReturnValue({
-      isLoaded: true,
-      user: {
-        id: clerkUserId,
-      },
-    });
-    getFrontendApi.mockImplementation(() => mockFrontendApi);
-    newHttpBatchRpcSessionMock.mockReset();
-    newHttpBatchRpcSessionMock.mockImplementation(() => ({
-      getFrontendApi,
-      [Symbol.dispose]: () => {
-        /* Rpc session dispose (no-op in tests). */
-      },
-    }));
-    makeSharedWorkerSessionMock.mockReset();
-    makeSharedWorkerSessionMock.mockImplementation(() =>
+    fetchFrontendState.mockReturnValue(
       Effect.succeed({
-        api: {
-          getUserApi: vi.fn(async () => ({
-            listFrontendReplicas: vi.fn(async () => []),
-          })),
-        },
-        release: Effect.void,
+        accountId: 'acct_1',
+        accountName: shopperFrontend.accountName,
+        actorId,
+        actorName: shopperFrontend.actorName,
+        frontendName: shopperFrontend.frontendName,
+        frontendIndex: 0,
+        generationId: 'gen_test',
+        systemId: 'sys_test',
+        systemVersion: '1.1.0',
+        systemWorkerName: 'shopping-test-worker',
+        lastRebasedPushedCursor: null,
+        resources: [
+          {
+            id: userId,
+            actorId,
+            modelName: User.modelName,
+            version: User.version,
+            createdAt: now,
+            updatedAt: now,
+            name: null,
+          },
+        ],
+        pushedCommands: [],
+        executedPushedCommands: [],
+        failedPushedCommands: [],
       }),
+    );
+    acquireFrontendWebSocket.mockReturnValue(Effect.succeed(Effect.void));
+
+    fetchServiceFrontend.mockReturnValue(
+      Effect.succeed({
+        identity: {
+          actorId,
+          actorName: catalogFrontend.actorName,
+          frontendName: catalogFrontend.frontendName,
+          frontendVersion: catalogFrontend.version,
+          generationId: 'gen_test',
+          serviceName: catalogFrontend.serviceName,
+          systemId: 'sys_test',
+          systemVersion: '1.1.0',
+          systemWorkerName: 'shopping-test-worker',
+        },
+        frontendSpec: makeServiceFrontendControllerSpec(catalogFrontend),
+        frontendApi: {},
+        releaseFrontendApi: vi.fn(),
+      }),
+    );
+    fetchServiceFrontendState.mockReturnValue(
+      Effect.succeed({
+        actorId,
+        actorName: catalogFrontend.actorName,
+        frontendName: catalogFrontend.frontendName,
+        frontendIndex: 0,
+        generationId: 'gen_test',
+        serviceName: catalogFrontend.serviceName,
+        systemId: 'sys_test',
+        systemVersion: '1.1.0',
+        systemWorkerName: 'shopping-test-worker',
+        resources: [
+          {
+            id: Product.prefixId('test'),
+            modelName: Product.modelName,
+            version: Product.version,
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: null,
+            description: 'Test product',
+            name: 'Test Product',
+            price: 20,
+          },
+        ],
+      }),
+    );
+    acquireServiceFrontendWebSocket.mockReturnValue(
+      Effect.succeed(Effect.void),
     );
 
     capturedSession = null;
@@ -167,120 +198,75 @@ describe('ProductList', () => {
       await Promise.resolve();
     });
     container.remove();
-    vi.unstubAllGlobals();
   });
 
-  it('stages createCart and addToCart on Add to cart click', async () => {
+  it('reads products from the service replica and stages account cart commands', async () => {
     await act(async () => {
       root.render(
-        <ZerospinConfig userId={clerkUserId}>
-          <ZerospinShopper.Provider
-            generateSignature={() => Effect.succeed({ clerkUserId })}
-          >
-            <SessionCapture
-              onSession={session => {
-                capturedSession = session as typeof capturedSession;
-              }}
-            />
+        <ZerospinConfig
+          partitionKey={clerkUserId}
+          frontendAuthenticators={{
+            web: {
+              frontend: ZerospinShopper,
+              generateSignature: () => Effect.succeed({ clerkUserId }),
+            },
+            catalog: {
+              frontend: ZerospinCatalog,
+              generateSignature: () =>
+                Effect.succeed({ viewerId: clerkUserId }),
+            },
+          }}
+        >
+          <ZerospinShopper.Provider>
+            <ZerospinCatalog.Provider>
+              <SessionCapture
+                onSession={session => {
+                  capturedSession = session;
+                }}
+              />
+              <ProductList />
+            </ZerospinCatalog.Provider>
           </ZerospinShopper.Provider>
         </ZerospinConfig>,
       );
-      await Promise.resolve();
-    });
-
-    await act(async () => {
-      await Effect.runPromise(Effect.void);
       await Promise.resolve();
     });
 
     await waitForSessionReady({ getSession: () => capturedSession });
 
-    const sessionState = capturedSession!.store.getState();
-    if (!sessionState.isInitialized) {
-      throw new Error('expected initialized session');
-    }
-    const db = sessionState.db as {
-      insert: (t: unknown) => {
-        values: (v: Record<string, unknown>) => { run: () => void };
-      };
-      select: () => {
-        from: (t: unknown) => { all: () => Array<Record<string, unknown>> };
-      };
-    };
-
-    await act(async () => {
-      db.insert(shopperFrontend.models.user.drizzleSchema)
-        .values({
-          actorId,
-          createdAt: now,
-          id: userId,
-          modelName: 'user',
-          name: null,
-          pushedCursor: null,
-          updatedAt: now,
-          version: '1.0.0',
-        })
-        .run();
-      await Promise.resolve();
-    });
-
-    await act(async () => {
-      root.render(
-        <ZerospinConfig userId={clerkUserId}>
-          <ZerospinShopper.Provider
-            generateSignature={() => Effect.succeed({ clerkUserId })}
-          >
-            <SessionCapture
-              onSession={session => {
-                capturedSession = session as typeof capturedSession;
-              }}
-            />
-            <RequiredUserProvider
-              user={
-                { id: clerkUserId } as NonNullable<
-                  ReturnType<typeof useUser>['user']
-                >
-              }
-            >
-              <ProductList />
-            </RequiredUserProvider>
-          </ZerospinShopper.Provider>
-        </ZerospinConfig>,
-      );
-      await Promise.resolve();
-    });
-
     const button = await waitFor(
       () => {
-        const el = container.querySelector('button');
-        expect(el).not.toBeNull();
-        return el as HTMLButtonElement;
+        const element = container.querySelector('button');
+        expect(element).not.toBeNull();
+        expect(container.textContent).toContain('Test Product');
+        return element;
       },
       { timeout: 15_000 },
     );
 
     await act(async () => {
-      button.click();
+      button?.click();
       await Promise.resolve();
     });
 
+    const sessionState = capturedSession?.store.getState();
+    if (sessionState?.isInitialized !== true) {
+      throw new Error('expected initialized account session');
+    }
     const stagedRows = await waitFor(() => {
-      const rows = (
-        db.select().from(sessionStagedCommandDrizzleSchema).all() as Array<{
-          commandName: string;
-          payload: string;
-          status: string | null;
-        }>
-      ).filter(row => row.status === 'staged');
+      const rows = sessionState.db
+        .select()
+        .from(sessionStagedCommandDrizzleSchema)
+        .all()
+        .filter(row => row.status === 'staged');
       expect(rows).toHaveLength(2);
       return rows;
     });
-    expect(stagedRows).toHaveLength(2);
-    expect(stagedRows.map(r => r.commandName).sort()).toEqual([
+
+    expect(stagedRows.map(row => row.commandName).sort()).toEqual([
       'addToCart',
       'createCart',
     ]);
-
     const createCartRow = stagedRows.find(
       row => row.commandName === 'createCart',
     );
@@ -289,25 +275,12 @@ describe('ProductList', () => {
     );
     expect(createCartRow).toBeDefined();
     expect(addToCartRow).toBeDefined();
-
-    const createCartPayload = JSON.parse(createCartRow!.payload) as {
-      id: string;
-      userId: string;
-    };
-    const addToCartPayload = JSON.parse(addToCartRow!.payload) as {
-      cartId: string;
-      product: string;
-      quantity: number;
-    };
-    expect(createCartPayload).toMatchObject({
+    expect(JSON.parse(createCartRow?.payload ?? '{}')).toMatchObject({
       userId,
     });
-    expect(addToCartPayload).toMatchObject({
-      cartId: createCartPayload.id,
+    expect(JSON.parse(addToCartRow?.payload ?? '{}')).toMatchObject({
       quantity: 1,
-    });
-    expect(JSON.parse(addToCartPayload.product)).toMatchObject({
-      id: 'prd_1',
+      product: expect.stringContaining('prd_test'),
     });
   });
 });

@@ -20,7 +20,6 @@ import type { ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
 import { makeSession } from '@zerospin/core/session/makeSession';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
-import type { ISignatureFactory } from '@zerospin/core/utils/types';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import { type IAnyError } from '@zerospin/error';
 import { makeTelemetryLayer } from '@zerospin/logger';
@@ -29,8 +28,8 @@ import useSWRImmutable from 'swr/immutable';
 import { useStore } from 'zustand/react';
 
 import { bootstrapBrowserSession } from './bootstrapBrowserSession';
+import { BrowserPartitionControllerContext } from './makeBrowserPartitionController';
 import { makeBrowserSession } from './makeBrowserSession';
-import { BrowserUserControllerContext } from './makeBrowserUserController';
 import type { IBrowserSession, IReactSessionContext } from './types';
 import { usePushQueue } from './usePushQueue';
 
@@ -39,14 +38,12 @@ type IBootstrapSessionData = {
   releaseBrowserSession: Effect.Effect<void>;
 };
 
-const activeReactSessionProviders = new WeakMap<object, object>();
-
 /*
  * 1. Capture ReactSession inputs and browser release state.
  * 2. Build a stable provider instance and reject nested providers.
  * 3. Create the browser session once for this mounted Provider.
  * 4. Bootstrap the session through the runtime and Effect services.
- * 5. Register the active Provider instance and clean it up.
+ * 5. Release only this mounted Provider's session and push queue.
  * 6. Register the initialized session with devtools.
  * 7. Report bootstrap failures with targeted errors.
  * 8. Render children only after initialization.
@@ -73,16 +70,17 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
     },
     {
       children: ReactNode;
-      generateSignature: ISignatureFactory;
     }
   >(function Provider(props, ref) {
-    const { children, generateSignature } = props;
+    const { children } = props;
     const parentContext = useContext(ReactContext);
-    const browserUserController = useContext(BrowserUserControllerContext);
+    const browserPartitionController = useContext(
+      BrowserPartitionControllerContext,
+    );
 
-    if (browserUserController === null) {
+    if (browserPartitionController === null) {
       throw new Error(
-        'ZerospinConfig with userId must be mounted above <Frontend>.Provider.',
+        'ZerospinConfig with partitionKey must be mounted above <Frontend>.Provider.',
       );
     }
 
@@ -94,16 +92,11 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
     }
 
     // Mount-time factory for one-shot bootstrap (`useSWRImmutable` runs once per session).
-    const generateSignatureRef = useRef(generateSignature);
     const isSharedWorkerEnabledRef = useRef(
-      browserUserController.isSharedWorkerEnabled,
+      browserPartitionController.isSharedWorkerEnabled,
     );
-    const providerInstanceRef = useRef<object | null>(null);
     const isUnmountedRef = useRef(false);
     const releaseBrowserSessionRef = useRef<Effect.Effect<void> | null>(null);
-    if (providerInstanceRef.current === null) {
-      providerInstanceRef.current = {};
-    }
 
     // A capacity-one dropping queue retains one pending wake while paused or
     // offline without parking one producer fiber for every staged command.
@@ -119,28 +112,45 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
           abbreviation: coreAbbreviations.session,
         }),
       );
+      if (isSharedWorkerEnabledRef.current) {
+        return makeSession({
+          frontend,
+          generateSignature: () =>
+            browserPartitionController.getAccountGenerateSignature(frontend)(),
+          sessionId,
+          stageFrontendCommand: stageProps =>
+            browserPartitionController.stageAccountFrontendCommand({
+              sessionId,
+              ...stageProps,
+            }),
+          isPushPaused,
+          isSharedWorkerEnabled: true,
+          runtime: sessionRuntime,
+        });
+      }
       return makeSession({
         frontend,
-        generateSignature: generateSignatureRef.current,
+        generateSignature: () =>
+          browserPartitionController.getAccountGenerateSignature(frontend)(),
         sessionId,
         isPushPaused,
-        isSharedWorkerEnabled: isSharedWorkerEnabledRef.current,
+        isSharedWorkerEnabled: false,
         runtime: sessionRuntime,
       });
-    }, []);
+    }, [browserPartitionController]);
 
     const session = useMemo(
       () =>
         makeBrowserSession({
-          browserUserController,
+          browserPartitionController,
           onCommandStaged: () => {
-            if (!isUnmountedRef.current) {
+            if (!isSharedWorkerEnabledRef.current && !isUnmountedRef.current) {
               sessionRuntime.runFork(Queue.offer(pushQueue, Date.now()));
             }
           },
           session: coreSession,
         }),
-      [browserUserController, coreSession, pushQueue],
+      [browserPartitionController, coreSession, pushQueue],
     );
 
     useImperativeHandle(ref, () => ({ session }), [session]);
@@ -156,7 +166,7 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
           .runPromise(
             bootstrapBrowserSession({
               session: browserSession.coreSession,
-              browserUserController,
+              browserPartitionController,
             }).pipe(
               Effect.provide(
                 makeTelemetryLayer(
@@ -170,7 +180,7 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
             releaseBrowserSessionRef.current = data.releaseBrowserSession;
             if (isUnmountedRef.current) {
               releaseBrowserSessionRef.current = null;
-              sessionRuntime.runSync(data.releaseBrowserSession);
+              sessionRuntime.runFork(data.releaseBrowserSession);
             }
             return data;
           });
@@ -189,35 +199,20 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
       pushQueue,
       session,
       sessionRuntime,
-      enabled: isInitialized,
+      enabled: isInitialized && !isSharedWorkerEnabledRef.current,
     });
 
     useEffect(() => {
-      // 5 — sibling same-ReactSession Provider would create a second browser session owner
+      // 5 — sibling Providers intentionally own separate main-thread sessions.
+      // Only nested Providers are rejected above because they shadow context.
       isUnmountedRef.current = false;
-      const providerInstance = providerInstanceRef.current;
-      if (providerInstance === null) {
-        return;
-      }
-      const activeProvider = activeReactSessionProviders.get(ReactContext);
-      if (activeProvider !== undefined && activeProvider !== providerInstance) {
-        throw new Error(
-          'The same ReactSession.Provider is already mounted on this page.',
-        );
-      }
-      activeReactSessionProviders.set(ReactContext, providerInstance);
 
       return () => {
-        if (
-          activeReactSessionProviders.get(ReactContext) === providerInstance
-        ) {
-          activeReactSessionProviders.delete(ReactContext);
-        }
         isUnmountedRef.current = true;
         const releaseBrowserSession = releaseBrowserSessionRef.current;
         if (releaseBrowserSession !== null) {
           releaseBrowserSessionRef.current = null;
-          sessionRuntime.runSync(releaseBrowserSession);
+          sessionRuntime.runFork(releaseBrowserSession);
         }
         // React StrictMode immediately replays this effect's setup after its
         // simulated cleanup. Defer the terminal shutdown so that replay can
@@ -233,13 +228,15 @@ export function makeProvider<FRONTEND extends IFrontendController>(props: {
     useEffect(() => {
       // 6 — devtools store tracks the concrete initialized session by sessionId
       // Register with devtools when mounted; session is stable for this provider instance.
-      zerospinDevtoolsStore.getState().addSession({
+      zerospinDevtoolsStore.getState().addAccountSession({
         pushStagedCommands,
         session: coreSession,
       });
 
       return () => {
-        zerospinDevtoolsStore.getState().removeSession(session.sessionId);
+        zerospinDevtoolsStore
+          .getState()
+          .removeAccountSession(session.sessionId);
       };
     }, [coreSession, pushStagedCommands, session]);
 

@@ -7,9 +7,10 @@ import {
   makeTelemetryLayer,
   makeTraceableApiTarget,
 } from '@zerospin/logger';
+import { newWebSocketRpcSession } from 'capnweb';
 import { Effect } from 'effect';
 
-test('signed-in e2e user can query products through the standalone shopper api', async ({
+test('signed-in e2e user can read products through the service-owned catalog frontend', async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -84,9 +85,9 @@ test('signed-in e2e user can query products through the standalone shopper api',
 
     const actorResult = await Effect.runPromise(
       actorFrontendApi
-        .fetchActor()
+        .authenticate()
         .pipe(
-          Effect.withSpan('shoppingProducts.fetchActor', { root: true }),
+          Effect.withSpan('shoppingProducts.authenticate', { root: true }),
           Effect.provide(makeTelemetryLayer(telemetryCollector)),
         ),
     );
@@ -94,34 +95,47 @@ test('signed-in e2e user can query products through the standalone shopper api',
     expect(actorResult.systemEnvironmentId).toBe('dev');
     expect(actorResult.actor.actorId).toBe(prefixActorId(clerkUserId));
 
-    using productApis = newSyncRpcSession<ZerospinApis>(apiUrl);
+    const productWebSocketUrl = new URL(apiUrl);
+    if (productWebSocketUrl.protocol === 'http:') {
+      productWebSocketUrl.protocol = 'ws:';
+    } else if (productWebSocketUrl.protocol === 'https:') {
+      productWebSocketUrl.protocol = 'wss:';
+    }
+    using productApis = newWebSocketRpcSession<ZerospinApis>(
+      productWebSocketUrl.toString(),
+    );
+    const catalogAdmission = await productApis.getServiceFrontendApi({
+      publishableKey,
+      serviceName: 'app',
+      actorName: 'catalogViewer',
+      frontendName: 'catalog',
+      signature: {
+        viewerId: clerkUserId,
+      },
+    });
+
+    expect(catalogAdmission._tag).toBe('Success');
+    if (catalogAdmission._tag === 'Failure') {
+      throw new Error(catalogAdmission.failure.message);
+    }
+
     const productFrontendApi = makeTraceableApiTarget(
-      productApis.getFrontendApi({
-        publishableKey,
-        accountName: 'user',
-        actorName: 'shopper',
-        frontendName: 'web',
-        signature: {
-          clerkUserId,
-        },
-      }),
+      catalogAdmission.frontendApi,
     );
 
     const productRows = await Effect.runPromise(
-      productFrontendApi
-        .executeActorQuery({
-          queryName: 'getProducts',
-          params: {},
-        })
-        .pipe(
-          Effect.withSpan('shoppingProducts.executeActorQuery', {
-            root: true,
-          }),
-          Effect.provide(makeTelemetryLayer(telemetryCollector)),
-        ),
+      productFrontendApi.getFrontendState().pipe(
+        Effect.withSpan('shoppingProducts.getServiceFrontendState', {
+          root: true,
+        }),
+        Effect.provide(makeTelemetryLayer(telemetryCollector)),
+      ),
     );
 
-    expect(productRows).toEqual(expect.any(Array));
+    expect(productRows.serviceName).toBe('app');
+    expect(productRows.actorName).toBe('catalogViewer');
+    expect(productRows.frontendName).toBe('catalog');
+    expect(productRows.resources).toEqual(expect.any(Array));
   }).toPass({
     intervals: [1_000, 2_000, 5_000],
     timeout: 30_000,

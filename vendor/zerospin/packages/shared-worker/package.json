@@ -14,7 +14,7 @@
   },
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
-    "drizzle:user": "drizzle-kit generate --config drizzle.user.config.ts && node scripts/writeUserMigrationManifest.mjs",
+    "drizzle:partition": "drizzle-kit generate --config drizzle.partition.config.ts && node scripts/writePartitionMigrationManifest.mjs",
     "lib": "pnpm run clean && tsc -b tsconfig.json && tsup && node -e \"const fs=require('node:fs'); const path=require('node:path'); const asyncJs=require.resolve('wa-sqlite/dist/wa-sqlite-async.mjs'); fs.copyFileSync(path.join(path.dirname(asyncJs), 'wa-sqlite-async.wasm'), 'dist/wa-sqlite-async.wasm');\"",
     "ts": "tsc -p tsconfig.etc.json --noEmit",
     "watch": "tsc -b tsconfig.json --watch",

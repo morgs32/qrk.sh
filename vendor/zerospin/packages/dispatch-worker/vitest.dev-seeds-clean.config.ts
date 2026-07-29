@@ -6,7 +6,7 @@ import { makeWorkerdVitestConfig } from '@zerospin/dispatch-worker/vitest/makeWo
 const packageRoot = path.dirname(fileURLToPath(import.meta.url));
 
 export default makeWorkerdVitestConfig({
-  include: ['tests/workerd/DevZerospinApis.clean.workerd.spec.ts'],
+  include: ['tests/workerd/SelfHostedZerospinApis.clean.workerd.spec.ts'],
   packageRoot,
   passWithNoTests: false,
   seedsModulePath: path.join(packageRoot, 'tests/workerd/devSeeds.fixture.ts'),
@@ -20,6 +20,6 @@ export default makeWorkerdVitestConfig({
   ),
   workerMainPath: path.join(
     packageRoot,
-    'tests/workerd/DevZerospinApis.fixture.worker.ts',
+    'tests/workerd/SelfHostedZerospinApis.fixture.worker.ts',
   ),
 });

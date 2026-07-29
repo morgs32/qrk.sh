@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import type { IFrontendController } from '@zerospin/core/frontendController/types';
 import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
+import { ZerospinError } from '@zerospin/error';
 import { pushStagedCommands } from '@zerospin/frontend/pushStagedCommands';
 import { makeTelemetryLayer } from '@zerospin/logger';
 import { Duration, Effect, Exit, Fiber, Queue, Ref, Schema } from 'effect';
@@ -20,7 +21,14 @@ export function usePushQueue<FRONTEND extends IFrontendController>(props: {
   const { enabled, pushQueue, session, sessionRuntime } = props;
 
   const isPushPaused = useStore(session.store, state => state.isPushPaused);
-  const pushEnabled = enabled && !isPushPaused;
+  const isFrontendStateUnsettled = useStore(
+    session.store,
+    state =>
+      state.isInitialized &&
+      (state.workerState.status === 'repairing' ||
+        state.workerState.status === 'update-required'),
+  );
+  const pushEnabled = enabled && !isPushPaused && !isFrontendStateUnsettled;
 
   const setOnlineRef = useRef<(online: boolean) => void>(() => {});
 
@@ -28,6 +36,15 @@ export function usePushQueue<FRONTEND extends IFrontendController>(props: {
     // Pre-initialization push is an ordering error: fail the caller
     // synchronously instead of leaving a hung or rejected orphan Promise.
     getInitializedStateOrThrow({ session: session.coreSession });
+    if (session.coreSession.store.getState().isSharedWorkerEnabled) {
+      return Promise.reject(
+        new ZerospinError({
+          code: 'shared-worker-owns-account-command-push',
+          message:
+            'Manual account command push is unavailable because SharedWorker owns batching and push',
+        }),
+      );
+    }
     return sessionRuntime.runPromise(
       Effect.gen(function* () {
         // 1 — This span exists only for an explicit DevTools push. Automatic
@@ -118,7 +135,15 @@ export function usePushQueue<FRONTEND extends IFrontendController>(props: {
       void sessionRuntime.runPromise(Fiber.interrupt(setupFiber));
       setOnlineRef.current = () => {};
     };
-  }, [enabled, isPushPaused, pushQueue, pushEnabled, session, sessionRuntime]);
+  }, [
+    enabled,
+    isPushPaused,
+    isFrontendStateUnsettled,
+    pushQueue,
+    pushEnabled,
+    session,
+    sessionRuntime,
+  ]);
 
   useEffect(() => {
     if (!pushEnabled || typeof window === 'undefined') {

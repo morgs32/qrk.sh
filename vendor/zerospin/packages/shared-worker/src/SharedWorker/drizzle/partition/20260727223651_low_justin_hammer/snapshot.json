@@ -1,0 +1,1099 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "7d43a60f-4e14-40bb-943a-df4f917447f7",
+  "prevIds": [
+    "1139ad85-390c-4bc4-a1a9-9cfddfcf7b46"
+  ],
+  "ddl": [
+    {
+      "name": "accountFrontendCommandJournal",
+      "entityType": "tables"
+    },
+    {
+      "name": "accountFrontendReplicas",
+      "entityType": "tables"
+    },
+    {
+      "name": "replicas",
+      "entityType": "tables"
+    },
+    {
+      "name": "serviceFrontendReplicas",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "commandId",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "sourceGenerationId",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "accountId",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "accountName",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "actorId",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "actorName",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendName",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendVersion",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "journalKind",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "command",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "sourceCommand",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "mutations",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "appliedMutations",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stagedCursor",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stagedAt",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "originalContractVersion",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "originalPayload",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "lifecycle",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "pushProvenance",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "terminalOutcome",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "targetGenerationId",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "targetFrontendVersion",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "materializedReplicaIndex",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "createdAt",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "updatedAt",
+      "entityType": "columns",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "accountId",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "accountName",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "actorId",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "actorName",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendName",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendVersion",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendSpecHash",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendSpec",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "sourceTargets",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "databaseName",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "previousDatabaseNames",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "status",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "role",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "replicaIndex",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendIndex",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "systemVersion",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "systemWorkerName",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "pendingTransition",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "socketState",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "reconnectAttempt",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "journalHealth",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "writeSuspended",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "lastFailure",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "createdAt",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "updatedAt",
+      "entityType": "columns",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "replicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "accountId",
+      "entityType": "columns",
+      "table": "replicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "accountName",
+      "entityType": "columns",
+      "table": "replicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "actorId",
+      "entityType": "columns",
+      "table": "replicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "actorName",
+      "entityType": "columns",
+      "table": "replicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendName",
+      "entityType": "columns",
+      "table": "replicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendVersion",
+      "entityType": "columns",
+      "table": "replicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "databaseName",
+      "entityType": "columns",
+      "table": "replicas"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "serviceName",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "actorId",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "actorName",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendName",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendVersion",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendSpecHash",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendSpec",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "databaseName",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "previousDatabaseNames",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "status",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "role",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "replicaIndex",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendIndex",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "systemVersion",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "systemWorkerName",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "pendingTransition",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "socketState",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "reconnectAttempt",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "lastFailure",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "createdAt",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "updatedAt",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "accountFrontendCommandJournal_pk",
+      "table": "accountFrontendCommandJournal",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "accountFrontendReplicas_pk",
+      "table": "accountFrontendReplicas",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "replicas_pk",
+      "table": "replicas",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "serviceFrontendReplicas_pk",
+      "table": "serviceFrontendReplicas",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        {
+          "value": "sourceGenerationId",
+          "isExpression": false
+        },
+        {
+          "value": "accountId",
+          "isExpression": false
+        },
+        {
+          "value": "accountName",
+          "isExpression": false
+        },
+        {
+          "value": "actorId",
+          "isExpression": false
+        },
+        {
+          "value": "actorName",
+          "isExpression": false
+        },
+        {
+          "value": "frontendName",
+          "isExpression": false
+        },
+        {
+          "value": "frontendVersion",
+          "isExpression": false
+        },
+        {
+          "value": "journalKind",
+          "isExpression": false
+        },
+        {
+          "value": "commandId",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "account_frontend_command_journal_source_command_idx",
+      "entityType": "indexes",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "columns": [
+        {
+          "value": "accountId",
+          "isExpression": false
+        },
+        {
+          "value": "actorId",
+          "isExpression": false
+        },
+        {
+          "value": "frontendName",
+          "isExpression": false
+        },
+        {
+          "value": "frontendVersion",
+          "isExpression": false
+        },
+        {
+          "value": "lifecycle",
+          "isExpression": false
+        },
+        {
+          "value": "stagedCursor",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "account_frontend_command_journal_lifecycle_idx",
+      "entityType": "indexes",
+      "table": "accountFrontendCommandJournal"
+    },
+    {
+      "columns": [
+        {
+          "value": "accountId",
+          "isExpression": false
+        },
+        {
+          "value": "accountName",
+          "isExpression": false
+        },
+        {
+          "value": "actorId",
+          "isExpression": false
+        },
+        {
+          "value": "actorName",
+          "isExpression": false
+        },
+        {
+          "value": "frontendName",
+          "isExpression": false
+        },
+        {
+          "value": "frontendVersion",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "account_frontend_replicas_target_version_idx",
+      "entityType": "indexes",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "columns": [
+        {
+          "value": "frontendName",
+          "isExpression": false
+        },
+        {
+          "value": "status",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "account_frontend_replicas_frontend_status_idx",
+      "entityType": "indexes",
+      "table": "accountFrontendReplicas"
+    },
+    {
+      "columns": [
+        {
+          "value": "actorId",
+          "isExpression": false
+        },
+        {
+          "value": "frontendName",
+          "isExpression": false
+        },
+        {
+          "value": "frontendVersion",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "replicas_actor_frontend_version_idx",
+      "entityType": "indexes",
+      "table": "replicas"
+    },
+    {
+      "columns": [
+        {
+          "value": "frontendName",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "replicas_frontend_idx",
+      "entityType": "indexes",
+      "table": "replicas"
+    },
+    {
+      "columns": [
+        {
+          "value": "serviceName",
+          "isExpression": false
+        },
+        {
+          "value": "actorId",
+          "isExpression": false
+        },
+        {
+          "value": "actorName",
+          "isExpression": false
+        },
+        {
+          "value": "frontendName",
+          "isExpression": false
+        },
+        {
+          "value": "frontendVersion",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "service_frontend_replicas_target_version_idx",
+      "entityType": "indexes",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "columns": [
+        {
+          "value": "frontendName",
+          "isExpression": false
+        },
+        {
+          "value": "status",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "service_frontend_replicas_frontend_status_idx",
+      "entityType": "indexes",
+      "table": "serviceFrontendReplicas"
+    }
+  ],
+  "renames": []
+}

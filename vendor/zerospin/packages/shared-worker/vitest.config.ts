@@ -13,11 +13,18 @@ export default defineConfig({
   },
   resolve: {
     conditions: ['node'],
-    alias: {
-      '@livestore/wa-sqlite/dist/wa-sqlite.mjs': path.resolve(
-        __dirname,
-        '../core/node_modules/@livestore/wa-sqlite/dist/wa-sqlite.node.mjs',
-      ),
-    },
+    alias: [
+      {
+        find: /^@zerospin\/core\/(.+)$/,
+        replacement: `${path.join(__dirname, '../core/src')}/$1`,
+      },
+      {
+        find: '@livestore/wa-sqlite/dist/wa-sqlite.mjs',
+        replacement: path.resolve(
+          __dirname,
+          '../core/node_modules/@livestore/wa-sqlite/dist/wa-sqlite.node.mjs',
+        ),
+      },
+    ],
   },
 });

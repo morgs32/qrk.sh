@@ -13,7 +13,7 @@
     "e2e-app": {
       "executor": "nx:run-script",
       "options": {
-        "script": "next:dev"
+        "script": "dev"
       },
       "continuous": true,
       "dependsOn": ["^lib", "zerospin:dev"]
@@ -40,8 +40,23 @@
     "test:vitest:browser": {
       "executor": "nx:run-script",
       "options": {
-        "script": "test:vitest:browser"
-      }
+        "script": "test:vitest:browser:transitions"
+      },
+      "dependsOn": ["^lib", "test:vitest:browser:main"]
+    },
+    "test:vitest:browser:main": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:vitest:browser:main"
+      },
+      "dependsOn": ["^lib"]
+    },
+    "test:vitest:browser:transitions": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:vitest:browser:transitions"
+      },
+      "dependsOn": ["^lib"]
     },
     "test:workerd": {
       "executor": "nx:run-script",

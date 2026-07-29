@@ -11,6 +11,8 @@ import type { IDb } from '@zerospin/core/drizzle/types';
 import { makeTable } from '@zerospin/core/models/makeTable';
 import { primitives } from '@zerospin/core/models/primitives';
 import type {
+  IAccountId,
+  IActorId,
   IAnyTables,
   InferIdFromAbbreviation,
 } from '@zerospin/core/models/types';
@@ -36,7 +38,9 @@ import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 import { assertGenerationAdmission } from './assertGenerationAdmission/assertGenerationAdmission.js';
 import { consumeFrontendWebSocketTicket } from './consumeFrontendWebSocketTicket/consumeFrontendWebSocketTicket.js';
+import { consumeServiceFrontendWebSocketTicket } from './consumeServiceFrontendWebSocketTicket/consumeServiceFrontendWebSocketTicket.js';
 import { createFrontendWebSocketTicket } from './createFrontendWebSocketTicket/createFrontendWebSocketTicket.js';
+import { createServiceFrontendWebSocketTicket } from './createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.js';
 import { drainGeneration } from './drainGeneration/drainGeneration.js';
 import { getAccountIds } from './getAccountIds/getAccountIds.js';
 import { getGenerationState } from './getGenerationState/getGenerationState.js';
@@ -46,6 +50,10 @@ import { migrateSystemRepo } from './migrateSystemRepo.js';
 import { openGeneration } from './openGeneration/openGeneration.js';
 import { prepareGeneration } from './prepareGeneration/prepareGeneration.js';
 import { registerRepo } from './registerRepo/registerRepo.js';
+import { registerRepos } from './registerRepos/registerRepos.js';
+import { releaseGenerationWrite } from './releaseGenerationWrite/releaseGenerationWrite.js';
+import { reserveGenerationWrite } from './reserveGenerationWrite/reserveGenerationWrite.js';
+import { resolveFrontendProjectionLineage } from './resolveFrontendProjectionLineage/resolveFrontendProjectionLineage.js';
 import { upsertAccount } from './upsertAccount/upsertAccount.js';
 
 const systemRepoTables = {
@@ -56,6 +64,10 @@ const systemRepoTables = {
         abbreviation: coreAbbreviations.generation,
       }),
       prevGenerationId: primitives.opaqueId({
+        abbreviation: coreAbbreviations.generation,
+        nullable: true,
+      }),
+      successorGenerationId: primitives.opaqueId({
         abbreviation: coreAbbreviations.generation,
         nullable: true,
       }),
@@ -88,6 +100,7 @@ const systemRepoTables = {
       createdAt: primitives.date(),
       readyAt: primitives.date({ nullable: true }),
       openedAt: primitives.date({ nullable: true }),
+      drainFrozenAt: primitives.date({ nullable: true }),
       drainedAt: primitives.date({ nullable: true }),
     },
   }),
@@ -98,11 +111,29 @@ const systemRepoTables = {
         abbreviation: coreAbbreviations.deploy,
       }),
       repoType: primitives.enum({
-        values: ['ServiceBlockRepo', 'AccountBlockRepo'],
+        values: [
+          'ServiceBlockRepo',
+          'AccountBlockRepo',
+          'FrontendRepo',
+          'ServiceFrontendRepo',
+        ],
       }),
       repoName: primitives.text(),
       terminalCursor: primitives.text({ nullable: true }),
       terminalIndex: primitives.integer({ nullable: true }),
+      systemWorkerName: primitives.text({ nullable: true }),
+      frontendBlockRepoName: primitives.text({ nullable: true }),
+      terminalFrontendIndex: primitives.integer({ nullable: true }),
+      segmentKind: primitives.enum({
+        values: ['root', 'inherited', 'no-local-segment'],
+        nullable: true,
+      }),
+      predecessorGenerationId: primitives.opaqueId({
+        abbreviation: coreAbbreviations.generation,
+        nullable: true,
+      }),
+      predecessorRepoName: primitives.text({ nullable: true }),
+      predecessorTerminalFrontendIndex: primitives.integer({ nullable: true }),
       capturedAt: primitives.date(),
     },
     indexes: [
@@ -144,6 +175,7 @@ const systemRepoTables = {
         abbreviation: coreAbbreviations.deploy,
       }),
       repoName: primitives.text(),
+      frontendVersion: primitives.text(),
       expiresAt: primitives.date(),
     },
     indexes: [
@@ -153,6 +185,41 @@ const systemRepoTables = {
         unique: true,
       },
     ],
+  }),
+  serviceFrontendWebSocketTickets: makeTable({
+    name: 'serviceFrontendWebSocketTickets',
+    shape: {
+      ticketHash: primitives.text(),
+      deployId: primitives.opaqueId({
+        abbreviation: coreAbbreviations.deploy,
+      }),
+      serviceName: primitives.text(),
+      actorName: primitives.text(),
+      actorId: primitives.opaqueId({
+        abbreviation: coreAbbreviations.actor,
+      }),
+      frontendName: primitives.text(),
+      frontendVersion: primitives.text(),
+      expiresAt: primitives.date(),
+    },
+    indexes: [
+      {
+        name: 'serviceFrontendWebSocketTickets_ticketHash_unique',
+        columns: ['ticketHash'],
+        unique: true,
+      },
+    ],
+  }),
+  generationWriteReservations: makeTable({
+    name: 'generationWriteReservations',
+    shape: {
+      reservationId: primitives.primaryKey({ abbreviation: 'gwr' }),
+      deployId: primitives.opaqueId({
+        abbreviation: coreAbbreviations.deploy,
+      }),
+      operationName: primitives.text(),
+      reservedAt: primitives.date(),
+    },
   }),
   accounts: makeTable({
     name: 'accounts',
@@ -236,6 +303,8 @@ export class SystemRepo extends DurableObject {
                 'drainBounds',
                 'replayCompletions',
                 'frontendWebSocketTickets',
+                'serviceFrontendWebSocketTickets',
+                'generationWriteReservations',
                 'accounts',
                 'repos',
               ],
@@ -296,9 +365,98 @@ export class SystemRepo extends DurableObject {
     );
   }
 
+  async reserveGenerationWrite(props: {
+    deployId: string;
+    operationName: string;
+  }): Promise<Schema.EitherEncoded<string, IAnyErrorJson>> {
+    return managedRuntime.runPromise(
+      reserveGenerationWrite({
+        db: this.#db,
+        deployId: props.deployId,
+        generationId: this.#generationId,
+        operationName: props.operationName,
+        generationStateTable: systemRepoDrizzleSchemas.generationState,
+        generationStateColumns: getTableColumns(
+          systemRepoDrizzleSchemas.generationState,
+        ),
+        generationWriteReservationTable:
+          systemRepoDrizzleSchemas.generationWriteReservations,
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
+  async releaseGenerationWrite(props: {
+    deployId: string;
+    reservationId: string;
+  }): Promise<Schema.EitherEncoded<void, IAnyErrorJson>> {
+    return managedRuntime.runPromise(
+      releaseGenerationWrite({
+        db: this.#db,
+        deployId: props.deployId,
+        generationId: this.#generationId,
+        reservationId: props.reservationId,
+        generationWriteReservationTable:
+          systemRepoDrizzleSchemas.generationWriteReservations,
+        generationWriteReservationColumns: getTableColumns(
+          systemRepoDrizzleSchemas.generationWriteReservations,
+        ),
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
+  async resolveFrontendProjectionLineage(props: {
+    deployId: string;
+    target:
+      | Readonly<{
+          kind: 'account';
+          accountId: IAccountId;
+          accountName: string;
+          actorId: IActorId;
+          actorName: string;
+          frontendName: string;
+        }>
+      | Readonly<{
+          kind: 'service';
+          serviceName: string;
+          actorName: string;
+          actorId: IActorId;
+          frontendName: string;
+        }>;
+  }): Promise<
+    Schema.EitherEncoded<
+      Readonly<{
+        mode: 'live' | 'no-local-segment';
+        predecessor: Readonly<{
+          generationId: string;
+          repoName: string;
+          terminalFrontendIndex: number;
+        }> | null;
+      }>,
+      IAnyErrorJson
+    >
+  > {
+    return managedRuntime.runPromise(
+      resolveFrontendProjectionLineage({
+        db: this.#db,
+        deployId: props.deployId,
+        generationId: this.#generationId,
+        target: props.target,
+        generationStateTable: systemRepoDrizzleSchemas.generationState,
+        generationStateColumns: getTableColumns(
+          systemRepoDrizzleSchemas.generationState,
+        ),
+        drainBoundsTable: systemRepoDrizzleSchemas.drainBounds,
+        drainBoundsColumns: getTableColumns(
+          systemRepoDrizzleSchemas.drainBounds,
+        ),
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
   async createFrontendWebSocketTicket(props: {
     deployId: string;
     repoName: string;
+    frontendVersion: string;
   }) {
     return managedRuntime.runPromise(
       createFrontendWebSocketTicket({
@@ -306,6 +464,7 @@ export class SystemRepo extends DurableObject {
         deployId: props.deployId,
         generationId: this.#generationId,
         repoName: props.repoName,
+        frontendVersion: props.frontendVersion,
         generationStateTable: systemRepoDrizzleSchemas.generationState,
         generationStateColumns: getTableColumns(
           systemRepoDrizzleSchemas.generationState,
@@ -338,11 +497,80 @@ export class SystemRepo extends DurableObject {
     );
   }
 
-  async drainGeneration(props: { deployId: string }) {
+  async createServiceFrontendWebSocketTicket(props: {
+    deployId: string;
+    serviceName: string;
+    actorName: string;
+    actorId: IActorId;
+    frontendName: string;
+    frontendVersion: string;
+  }): Promise<Schema.EitherEncoded<string, IAnyErrorJson>> {
+    return managedRuntime.runPromise(
+      createServiceFrontendWebSocketTicket({
+        db: this.#db,
+        deployId: props.deployId,
+        generationId: this.#generationId,
+        serviceName: props.serviceName,
+        actorName: props.actorName,
+        actorId: props.actorId,
+        frontendName: props.frontendName,
+        frontendVersion: props.frontendVersion,
+        generationStateTable: systemRepoDrizzleSchemas.generationState,
+        generationStateColumns: getTableColumns(
+          systemRepoDrizzleSchemas.generationState,
+        ),
+        serviceFrontendWebSocketTicketTable:
+          systemRepoDrizzleSchemas.serviceFrontendWebSocketTickets,
+        serviceFrontendWebSocketTicketColumns: getTableColumns(
+          systemRepoDrizzleSchemas.serviceFrontendWebSocketTickets,
+        ),
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
+  async consumeServiceFrontendWebSocketTicket(props: {
+    ticket: string;
+  }): Promise<
+    Schema.EitherEncoded<
+      Readonly<{
+        serviceName: string;
+        actorName: string;
+        actorId: IActorId;
+        frontendName: string;
+        frontendVersion: string;
+      }>,
+      IAnyErrorJson
+    >
+  > {
+    return managedRuntime.runPromise(
+      consumeServiceFrontendWebSocketTicket({
+        db: this.#db,
+        generationId: this.#generationId,
+        ticket: props.ticket,
+        generationStateTable: systemRepoDrizzleSchemas.generationState,
+        generationStateColumns: getTableColumns(
+          systemRepoDrizzleSchemas.generationState,
+        ),
+        serviceFrontendWebSocketTicketTable:
+          systemRepoDrizzleSchemas.serviceFrontendWebSocketTickets,
+        serviceFrontendWebSocketTicketColumns: getTableColumns(
+          systemRepoDrizzleSchemas.serviceFrontendWebSocketTickets,
+        ),
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
+  async drainGeneration(props: {
+    deployId: string;
+    mode: 'freeze' | 'complete';
+    successorGenerationId: string | null;
+  }) {
     return managedRuntime.runPromise(
       drainGeneration({
         db: this.#db,
         deployId: props.deployId,
+        mode: props.mode,
+        successorGenerationId: props.successorGenerationId,
         generationId: this.#generationId,
         generationStateTable: systemRepoDrizzleSchemas.generationState,
         generationStateColumns: getTableColumns(
@@ -355,6 +583,13 @@ export class SystemRepo extends DurableObject {
         repoTable: systemRepoDrizzleSchemas.repos,
         frontendWebSocketTicketTable:
           systemRepoDrizzleSchemas.frontendWebSocketTickets,
+        serviceFrontendWebSocketTicketTable:
+          systemRepoDrizzleSchemas.serviceFrontendWebSocketTickets,
+        generationWriteReservationTable:
+          systemRepoDrizzleSchemas.generationWriteReservations,
+        generationWriteReservationColumns: getTableColumns(
+          systemRepoDrizzleSchemas.generationWriteReservations,
+        ),
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }
@@ -368,6 +603,7 @@ export class SystemRepo extends DurableObject {
     return managedRuntime.runPromise(
       prepareGeneration({
         db: this.#db,
+        configuredSystemId: this.env.ZEROSPIN_SYSTEM_ID,
         deployId: props.deployId,
         generationId: this.#generationId,
         prevGenerationId: props.prevGenerationId,
@@ -391,6 +627,7 @@ export class SystemRepo extends DurableObject {
       openGeneration({
         db: this.#db,
         deployId: props.deployId,
+        drainBoundsTable: systemRepoDrizzleSchemas.drainBounds,
         generationId: this.#generationId,
         generationStateTable: systemRepoDrizzleSchemas.generationState,
         generationStateColumns: getTableColumns(
@@ -421,6 +658,26 @@ export class SystemRepo extends DurableObject {
         db: this.#db,
         repoTable: systemRepoDrizzleSchemas.repos,
         registration: props.registration,
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    );
+  }
+
+  async registerRepos(props: {
+    serviceFrontendRepo: {
+      repoName: string;
+      tableNames: readonly string[];
+    };
+    serviceFrontendBlockRepo: {
+      repoName: string;
+      tableNames: readonly string[];
+    };
+  }): Promise<Schema.EitherEncoded<void, IAnyErrorJson>> {
+    return managedRuntime.runPromise(
+      registerRepos({
+        db: this.#db,
+        repoTable: systemRepoDrizzleSchemas.repos,
+        serviceFrontendRepo: props.serviceFrontendRepo,
+        serviceFrontendBlockRepo: props.serviceFrontendBlockRepo,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }

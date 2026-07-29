@@ -12,6 +12,8 @@ import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviat
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { authenticate as authenticateFrontend } from '@zerospin/frontend/authenticate';
+import { makeTelemetryCollector, makeTelemetryLayer } from '@zerospin/logger';
 import { Effect, Layer, Logger, ManagedRuntime, Redacted } from 'effect';
 
 import { makeProvider } from './makeProvider';
@@ -98,7 +100,18 @@ export function makeReactFrontend<FRONTEND extends IFrontendController>(props: {
   }
 
   return {
+    kind: 'account',
     frontend,
+    authenticate: signature => {
+      // The pre-Provider handshake needs trace context for the linked RPC envelope,
+      // but it owns no browser session where that telemetry could be retained.
+      const telemetryCollector = makeTelemetryCollector();
+      return sessionRuntime.runPromise(
+        authenticateFrontend({ frontend, signature }).pipe(
+          Effect.provide(makeTelemetryLayer(telemetryCollector)),
+        ),
+      );
+    },
     Provider,
     ReactContext,
     makeId,

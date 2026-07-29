@@ -10,6 +10,8 @@ export const systemWorkerAbbreviations = {
   accountBlockRepo: 'acctbrepo',
   actorBlockRepo: 'actrbrepo',
   serviceBlockRepo: 'svcbrepo',
+  serviceFrontendRepo: 'svcfrtrepo',
+  serviceFrontendBlockRepo: 'svcfrtbrepo',
   systemLogRepo: 'syslogrepo',
   frontendBlockRepo: 'frtbrepo',
 };

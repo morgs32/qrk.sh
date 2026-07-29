@@ -2,6 +2,7 @@ import { JSONSchema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
 import { encodeShape } from '../models/encodeShape.ts';
+import { makeServiceFrontendControllerSpec } from '../serviceFrontendController/makeServiceFrontendControllerSpec.ts';
 
 import type { ISystem, ISystemSpec } from './types.ts';
 
@@ -15,6 +16,8 @@ import type { ISystem, ISystemSpec } from './types.ts';
  * 3. Every current model repeats its complete historical definitions.
  * 4. Mutation adapter functions are omitted, but both adjacent schemas and
  *    their identities remain available to compatibility and replay planning.
+ * 5. Contract mutation schemas remain runtime-only and are intentionally
+ *    omitted from the serialized specification.
  */
 export function makeSystemSpec<
   SYSTEM extends Pick<
@@ -57,10 +60,7 @@ export function makeSystemSpec<
           commandName: contract.commandName,
           version: contract.version,
           payloadJsonSchema: contract.spec.payloadJsonSchema,
-          mutationsJsonSchema:
-            contract.mutations === null
-              ? null
-              : JSONSchema.make(contract.mutations),
+          historicalDefinitions: contract.spec.historicalDefinitions,
         })),
         mutationAdapters: mapValues(
           accountController.mutationAdapters ?? {},
@@ -247,10 +247,8 @@ export function makeSystemSpec<
                     commandName: contract.commandName,
                     version: contract.version,
                     payloadJsonSchema: contract.spec.payloadJsonSchema,
-                    mutationsJsonSchema:
-                      contract.mutations === null
-                        ? null
-                        : JSONSchema.make(contract.mutations),
+                    historicalDefinitions:
+                      contract.spec.historicalDefinitions,
                   }),
                 ),
                 signatureJsonSchema: JSONSchema.make(
@@ -292,10 +290,7 @@ export function makeSystemSpec<
           commandName: contract.commandName,
           version: contract.version,
           payloadJsonSchema: contract.spec.payloadJsonSchema,
-          mutationsJsonSchema:
-            contract.mutations === null
-              ? null
-              : JSONSchema.make(contract.mutations),
+          historicalDefinitions: contract.spec.historicalDefinitions,
         })),
         mutationAdapters: mapValues(
           serviceController.mutationAdapters ?? {},
@@ -413,6 +408,40 @@ export function makeSystemSpec<
                 };
               });
             }),
+        ),
+        actorControllers: mapValues(
+          serviceController.actorControllers,
+          actorController => ({
+            name: actorController.name,
+            version: actorController.version,
+            models: mapValues(actorController.models, model => ({
+              modelName: model.modelName,
+              abbreviation: model.abbreviation,
+              version: model.version,
+              properties: encodeShape(model.propertiesShape),
+              indexes: model.indexes,
+              historicalDefinitions: model.historicalDefinitions
+                .toSorted((left, right) =>
+                  left.version.localeCompare(right.version),
+                )
+                .map(definition => ({
+                  modelName: definition.modelName,
+                  abbreviation: definition.abbreviation,
+                  version: definition.version,
+                  properties: encodeShape({
+                    ...model.metadata,
+                    ...definition.attributes,
+                  }),
+                  indexes: definition.indexes,
+                })),
+            })),
+            frontends: mapValues(actorController.frontends, binding => ({
+              name: binding.name,
+              frontendController: makeServiceFrontendControllerSpec(
+                binding.frontendController,
+              ),
+            })),
+          }),
         ),
         queries: mapValues(serviceController.queries, query => ({
           name: query.name,

@@ -200,9 +200,7 @@ describe('makeAccountController', () => {
           id: User.prefixId('user-1'),
         },
       }).pipe(
-        Effect.provide(
-          makePrefixedIncrementalIdFactory('makeAccountCommand'),
-        ),
+        Effect.provide(makePrefixedIncrementalIdFactory('makeAccountCommand')),
       ),
     );
 

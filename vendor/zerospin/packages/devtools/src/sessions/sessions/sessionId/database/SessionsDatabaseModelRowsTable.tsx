@@ -1,7 +1,11 @@
+import { useSyncExternalStore } from 'react';
+
 import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
 import type { ISession } from '@zerospin/core/session/types';
 
+import type { IDevtoolsServiceSessionEntry } from '../../../../types.js';
 import { useLiveQueryOnDb } from '../../../../useLiveQueryOnDb';
+import { useAccountSession, useServiceSession } from '../useSession';
 
 import { sessionsDatabaseTabStyles } from './sessionsDatabaseTabStyles';
 
@@ -38,26 +42,18 @@ function computeColumnsFromModelProperties(
   return orderedColumnKeys(new Set(Object.keys(properties)));
 }
 
-export function SessionsDatabaseModelRowsTable(props: {
-  readonly session: ISession;
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function DatabaseRowsTable(props: {
+  readonly rows: readonly Readonly<Record<string, unknown>>[];
+  readonly modelAttributes: Readonly<Record<string, unknown>> | undefined;
   readonly modelKey: string;
+  readonly error: Error | undefined;
+  readonly isLoading: boolean;
 }) {
-  const { session, modelKey } = props;
-
-  const { db } = getInitializedStateOrThrow({ session });
-
-  const { data, error, updatedAt } = useLiveQueryOnDb({
-    db,
-    deps: [modelKey],
-    query: db => {
-      const modelQuery = db.query[modelKey];
-      if (modelQuery === undefined) {
-        throw new Error(`Unknown model key: ${modelKey}`);
-      }
-      return modelQuery.findMany({});
-    },
-    tableNames: [],
-  });
+  const { rows, modelAttributes, modelKey, error, isLoading } = props;
 
   if (error !== undefined) {
     return (
@@ -67,17 +63,11 @@ export function SessionsDatabaseModelRowsTable(props: {
     );
   }
 
-  const rows = Array.isArray(data)
-    ? (data as readonly Readonly<Record<string, unknown>>[])
-    : [];
-
-  if (updatedAt === undefined && rows.length === 0) {
+  if (isLoading && rows.length === 0) {
     return <p style={{ margin: 0, fontSize: '0.85rem' }}>Loading rows…</p>;
   }
 
-  const models = session.frontend.models ?? {};
-  const model = models[modelKey];
-  if (model === undefined) {
+  if (modelAttributes === undefined) {
     return (
       <p style={{ margin: 0, fontSize: '0.85rem' }}>
         Unknown model key: {modelKey}
@@ -88,7 +78,7 @@ export function SessionsDatabaseModelRowsTable(props: {
   const columns =
     rows.length > 0
       ? computeColumnsFromRows(rows)
-      : computeColumnsFromModelProperties(model.attributes);
+      : computeColumnsFromModelProperties(modelAttributes);
 
   return (
     <table style={sessionsDatabaseTabStyles.table}>
@@ -114,4 +104,101 @@ export function SessionsDatabaseModelRowsTable(props: {
       </tbody>
     </table>
   );
+}
+
+function AccountDatabaseRowsTable(props: {
+  readonly session: ISession;
+  readonly modelKey: string;
+}) {
+  const { session, modelKey } = props;
+  const { db, models } = getInitializedStateOrThrow({ session });
+  const { data, error, updatedAt } = useLiveQueryOnDb({
+    db,
+    deps: [modelKey],
+    query: db => {
+      const modelQuery = db.query[modelKey];
+      if (modelQuery === undefined) {
+        throw new Error(`Unknown model key: ${modelKey}`);
+      }
+      return modelQuery.findMany({});
+    },
+    tableNames: [],
+  });
+  const rows = Array.isArray(data) ? data.filter(isRecord) : [];
+
+  return (
+    <DatabaseRowsTable
+      rows={rows}
+      modelAttributes={models[modelKey]?.attributes}
+      modelKey={modelKey}
+      error={error}
+      isLoading={updatedAt === undefined}
+    />
+  );
+}
+
+function ServiceDatabaseRowsTable(props: {
+  readonly session: IDevtoolsServiceSessionEntry;
+  readonly modelKey: string;
+}) {
+  const { session, modelKey } = props;
+  const isInitialized = useSyncExternalStore(
+    session.subscribe,
+    session.getIsInitialized,
+    session.getIsInitialized,
+  );
+  const frontendIndex = useSyncExternalStore(
+    session.subscribe,
+    session.getFrontendIndex,
+    session.getFrontendIndex,
+  );
+
+  if (!isInitialized) {
+    return <p style={{ margin: 0, fontSize: '0.85rem' }}>Loading rows…</p>;
+  }
+
+  let rows: readonly Readonly<Record<string, unknown>>[] = [];
+  let error: Error | undefined;
+
+  try {
+    // The subscribed frontend index makes each committed service block rerun
+    // the typed query closure retained by the registration adapter.
+    void frontendIndex;
+    const result = session.readModelRows(modelKey);
+    rows = Array.isArray(result) ? result.filter(isRecord) : [];
+  } catch (cause) {
+    error = cause instanceof Error ? cause : new Error(String(cause));
+  }
+
+  return (
+    <DatabaseRowsTable
+      rows={rows}
+      modelAttributes={session.getModelAttributes(modelKey)}
+      modelKey={modelKey}
+      error={error}
+      isLoading={false}
+    />
+  );
+}
+
+export function SessionsDatabaseModelRowsTable(props: {
+  readonly modelKey: string;
+}) {
+  const { modelKey } = props;
+  const accountSession = useAccountSession();
+  const serviceSession = useServiceSession();
+
+  if (accountSession !== undefined) {
+    return (
+      <AccountDatabaseRowsTable session={accountSession} modelKey={modelKey} />
+    );
+  }
+
+  if (serviceSession !== undefined) {
+    return (
+      <ServiceDatabaseRowsTable session={serviceSession} modelKey={modelKey} />
+    );
+  }
+
+  return null;
 }

@@ -60,7 +60,7 @@ The post-commit LLM Wiki ingest hook may also update these pages. When editing m
    1. Load and validate the project configuration.
    2. Generate the local Wrangler configuration and start the dispatch Worker.
 2. [`E2eWorker.fetch`](../../packages/dispatch-worker/src/Worker.ts)
-   1. Resolve `DevZerospinApis` by the stable local system-worker name.
+   1. Resolve `DevZerospinApis` for the stable local instance or `SelfHostedZerospinApis` for the stable production instance.
    2. Forward the request to that Durable Object.
 ```
 
@@ -69,8 +69,8 @@ The post-commit LLM Wiki ingest hook may also update these pages. When editing m
 ```markdown
 ## Annotated workflow steps
 
-1. [`DevZerospinApis`](../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts)
-   1. Validate the stable local instance key and Worker version.
+1. [`DevZerospinApis`](../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts) or [`SelfHostedZerospinApis`](../../packages/dispatch-worker/src/SelfHostedZerospinApis/SelfHostedZerospinApis.ts)
+   1. Validate the selected local or production instance key and Worker version.
    2. Select or allocate the deploy and generation.
    3. Drain, prepare, and open the selected SystemWorker generation.
    4. Promote the completed deploy or persist the terminal failure.
@@ -78,7 +78,7 @@ The post-commit LLM Wiki ingest hook may also update these pages. When editing m
 
 ## Mermaid conventions
 
-- **Sequence**: name participants after runtime boundaries (`CLI`, `Dispatch Worker`, `DevZerospinApis`, `SystemWorker`). Show `makeAsync` / `decodeRpc` where the source uses them. Use `alt` for missing-input failures and real branch gates.
+- **Sequence**: name participants after runtime boundaries (`CLI`, `Dispatch Worker`, `DevZerospinApis` or `SelfHostedZerospinApis`, `SystemWorker`). Show `makeAsync` / `decodeRpc` where the source uses them. Use `alt` for missing-input failures and real branch gates.
 - **Flowchart**: use one subgraph per public workflow or lifecycle. Node labels = method or phase names. Branch labels = `"yes"` / `"no"` on the condition that matches code.
 
 ## Checklist before finishing

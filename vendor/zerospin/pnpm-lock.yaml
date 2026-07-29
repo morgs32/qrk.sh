@@ -719,6 +719,9 @@ importers:
       effect:
         specifier: ^3.21.4
         version: 3.21.4
+      playwright:
+        specifier: 1.59.1
+        version: 1.59.1
       system:
         specifier: workspace:*
         version: link:../system
@@ -777,6 +780,9 @@ importers:
       '@zerospin/logger':
         specifier: workspace:*
         version: link:../logger
+      capnweb:
+        specifier: ^0.7.0
+        version: 0.7.0
       drizzle-orm:
         specifier: 1.0.0-beta.17-67b1795
         version: 1.0.0-beta.17-67b1795(@cloudflare/workers-types@4.20260426.1)(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.1(effect@3.21.4))(effect@3.21.4))(@opentelemetry/api@1.9.1)(@types/mssql@9.1.11)(@types/sql.js@1.4.11)(mssql@11.0.1)(sql.js@1.14.1)(zod@4.4.3)

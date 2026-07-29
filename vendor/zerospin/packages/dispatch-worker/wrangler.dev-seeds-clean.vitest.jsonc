@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "zerospin-dispatch-worker-dev-seeds-clean-test",
-  "main": "./tests/workerd/DevZerospinApis.fixture.worker.ts",
+  "main": "./tests/workerd/SelfHostedZerospinApis.fixture.worker.ts",
   "compatibility_date": "2026-01-20",
   "compatibility_flags": ["nodejs_compat"],
   "rules": [{ "type": "Text", "globs": ["**/*.sql"] }],
@@ -16,6 +16,14 @@
       { "name": "FRONTEND_REPO", "class_name": "FrontendRepo" },
       { "name": "FRONTEND_BLOCK_REPO", "class_name": "FrontendBlockRepo" },
       { "name": "SERVICE_BLOCK_REPO", "class_name": "ServiceBlockRepo" },
+      {
+        "name": "SERVICE_FRONTEND_REPO",
+        "class_name": "ServiceFrontendRepo",
+      },
+      {
+        "name": "SERVICE_FRONTEND_BLOCK_REPO",
+        "class_name": "ServiceFrontendBlockRepo",
+      },
       { "name": "AUTHORIZATION_REPO", "class_name": "AuthorizationRepo" },
       { "name": "SYSTEM_LOG_REPO", "class_name": "SystemLogRepo" },
       { "name": "SYSTEM_LOG_AGENT", "class_name": "SystemLogAgent" },
@@ -52,6 +60,10 @@
       "tag": "zerospin-dev-v1",
       "new_sqlite_classes": ["DevZerospinApis"],
     },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": ["ServiceFrontendRepo", "ServiceFrontendBlockRepo"],
+    },
   ],
   "version_metadata": {
     "binding": "ZEROSPIN_VERSION_METADATA",
@@ -61,6 +73,7 @@
     "TESTING": true,
     "ZEROSPIN_CLEAN_REQUEST_ID": "cln_test_clean_request",
     "ZEROSPIN_INSTANCE_ID": "local",
+    "ZEROSPIN_SELF_HOSTED": "true",
     "ZEROSPIN_SYSTEM_ID": "sys_local",
   },
 }

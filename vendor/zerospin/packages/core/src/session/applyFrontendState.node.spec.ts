@@ -21,8 +21,10 @@ import { makeUnstagedCommand } from './makeUnstagedCommand.ts';
 import {
   sessionExecutedPushedCommandDrizzleSchema,
   sessionExecutedPushedCommandShape,
+  sessionFailedCommandDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
   sessionPushedCommandDrizzleSchema,
+  sessionStagedCommandDrizzleSchema,
 } from './sessionCommandShape.ts';
 import { sessionRepoTables } from './sessionRepoTables.ts';
 
@@ -38,7 +40,7 @@ const now = new Date('2026-01-01T00:00:00.000Z');
 describe('applyFrontendState', () => {
   it.layer(TestLayer)(it => {
     it.effect(
-      'resets and seeds resources and frontend-repo command statuses into the session DB',
+      'resets and seeds resources and command statuses while preserving historical command provenance',
       () =>
         Effect.gen(function* () {
           const models = mainModels;
@@ -57,7 +59,7 @@ describe('applyFrontendState', () => {
 
           const pushedBase = yield* makeUnstagedCommand({
             accountId: 'acct_1',
-            actorId: 'usr_1',
+            actorId: 'actr_1',
             frontend: main,
             commandName: 'createList',
             payload: {
@@ -107,19 +109,61 @@ describe('applyFrontendState', () => {
             executedAt: now,
             status: 'executed',
           };
+          const failedPushedCommand = {
+            ...pushedCommand,
+            id: 'cmd_failed',
+            accountCursor: 'acur_failed',
+            accountIndex: 2,
+            failedAt: now,
+            failure: 'Rejected',
+            status: 'failed',
+          };
+
+          db.insert(sessionStagedCommandDrizzleSchema)
+            .values({
+              id: 'cmd_staged',
+              commandName: pushedCommand.commandName,
+              payload: pushedCommand.payload,
+              systemName: pushedCommand.systemName,
+              systemVersion: '0.9.0',
+              version: pushedCommand.version,
+              commandType: 'frontend',
+              accountId: pushedCommand.accountId,
+              accountName: pushedCommand.accountName,
+              frontendName: pushedCommand.frontendName,
+              actorId: pushedCommand.actorId,
+              actorName: pushedCommand.actorName,
+              sessionId: pushedCommand.sessionId,
+              status: 'staged',
+              stagedCursor: 'stcur_local',
+              stagedAt: now,
+              pushedCursor: null,
+            })
+            .run();
 
           yield* applyFrontendState({
             frontend: main,
+            frontendVersion: main.version,
+            accountId: 'acct_1',
+            actorId: 'actr_1',
+            systemId: 'sys_1',
+            generationId: 'gen_1',
+            systemVersion: '2.0.0',
+            systemWorkerName: 'stub-deploy',
             db,
             schema,
             models,
             frontendState: {
-              actorId: 'usr_1',
+              accountId: 'acct_1',
+              actorId: 'actr_1',
+              systemId: 'sys_1',
+              generationId: 'gen_1',
+              systemVersion: '2.0.0',
               accountName: main.accountName,
               actorName: main.actorName,
               frontendName: main.frontendName,
               systemWorkerName: 'stub-deploy',
-              frontendIndex: null,
+              frontendIndex: 0,
               lastRebasedPushedCursor: pushedCommand.pushedCursor,
               pushedCommands: [pushedCommand],
               resources: [
@@ -143,7 +187,7 @@ describe('applyFrontendState', () => {
                 },
               ],
               executedPushedCommands: [executedPushedCommand],
-              failedPushedCommands: [],
+              failedPushedCommands: [failedPushedCommand],
             },
           });
 
@@ -159,6 +203,14 @@ describe('applyFrontendState', () => {
             .select()
             .from(sessionOptimisticAppliedMutationDrizzleSchema)
             .all();
+          const failedRows = db
+            .select()
+            .from(sessionFailedCommandDrizzleSchema)
+            .all();
+          const stagedRows = db
+            .select()
+            .from(sessionStagedCommandDrizzleSchema)
+            .all();
 
           expect(pushedRows).toHaveLength(1);
           expect(pushedRows[0]?.id).toBe(pushedCommand.id);
@@ -166,6 +218,13 @@ describe('applyFrontendState', () => {
           expect(executedRows).toHaveLength(1);
           expect(optimisticRows).toHaveLength(0);
           expect(executedRows[0]?.id).toBe(executedPushedCommand.id);
+          expect(failedRows).toEqual([failedPushedCommand]);
+          expect(stagedRows).toEqual([
+            expect.objectContaining({
+              id: 'cmd_staged',
+              systemVersion: '0.9.0',
+            }),
+          ]);
           expect(
             [...pushedRows, ...executedRows].every(
               row => !('encodedOperations' in row),
@@ -208,16 +267,27 @@ describe('applyFrontendState', () => {
         }
         yield* applyFrontendState({
           frontend: main,
+          frontendVersion: main.version,
+          accountId: 'acct_1',
+          actorId: 'actr_1',
+          systemId: 'sys_1',
+          generationId: 'gen_1',
+          systemVersion: '1.0.0',
+          systemWorkerName: 'stub-deploy',
           db,
           schema,
           models,
           frontendState: {
-            actorId: 'usr_1',
+            accountId: 'acct_1',
+            actorId: 'actr_1',
+            systemId: 'sys_1',
+            generationId: 'gen_1',
+            systemVersion: '1.0.0',
             accountName: main.accountName,
             actorName: main.actorName,
             frontendName: main.frontendName,
             systemWorkerName: 'stub-deploy',
-            frontendIndex: null,
+            frontendIndex: 0,
             lastRebasedPushedCursor: null,
             pushedCommands: [],
             resources,

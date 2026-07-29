@@ -64,6 +64,7 @@ export const getGenerationState = Effect.fn('SystemRepo.getGenerationState')(
       Schema.Struct({
         generationId: Schema.String,
         prevGenerationId: Schema.NullOr(Schema.String),
+        successorGenerationId: Schema.NullOr(Schema.String),
         initialDeployId: Schema.String,
         activeDeployId: Schema.NullOr(Schema.String),
         preparingDeployId: Schema.NullOr(Schema.String),
@@ -75,6 +76,7 @@ export const getGenerationState = Effect.fn('SystemRepo.getGenerationState')(
         createdAt: Schema.DateFromSelf,
         readyAt: Schema.NullOr(Schema.DateFromSelf),
         openedAt: Schema.NullOr(Schema.DateFromSelf),
+        drainFrozenAt: Schema.NullOr(Schema.DateFromSelf),
         drainedAt: Schema.NullOr(Schema.DateFromSelf),
       }),
     )(rawGenerationState).pipe(
@@ -143,10 +145,24 @@ export const getGenerationState = Effect.fn('SystemRepo.getGenerationState')(
       Schema.Array(
         Schema.Struct({
           deployId: Schema.String,
-          repoType: Schema.Literal('ServiceBlockRepo', 'AccountBlockRepo'),
+          repoType: Schema.Literal(
+            'ServiceBlockRepo',
+            'AccountBlockRepo',
+            'FrontendRepo',
+            'ServiceFrontendRepo',
+          ),
           repoName: Schema.String,
           terminalCursor: Schema.NullOr(Schema.String),
           terminalIndex: Schema.NullOr(Schema.Number),
+          systemWorkerName: Schema.NullOr(Schema.String),
+          frontendBlockRepoName: Schema.NullOr(Schema.String),
+          terminalFrontendIndex: Schema.NullOr(Schema.Number),
+          segmentKind: Schema.NullOr(
+            Schema.Literal('root', 'inherited', 'no-local-segment'),
+          ),
+          predecessorGenerationId: Schema.NullOr(Schema.String),
+          predecessorRepoName: Schema.NullOr(Schema.String),
+          predecessorTerminalFrontendIndex: Schema.NullOr(Schema.Number),
           capturedAt: Schema.DateFromSelf,
         }),
       ),

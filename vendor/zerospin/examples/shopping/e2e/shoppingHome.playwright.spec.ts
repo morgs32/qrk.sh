@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import type {} from '@zerospin/react/ZerospinConfig';
+
 test('signed-in user can view the authed home page', async ({ page }) => {
   test.setTimeout(120_000);
   await page.goto('/');
@@ -55,7 +57,7 @@ test('signed-in user can view the authed home page', async ({ page }) => {
   expect(body.userId).toMatch(/^user_/);
 });
 
-test('manual push applies inverse deletes without reentering SQLite', async ({
+test('SharedWorker push applies inverse deletes without reentering SQLite', async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -64,18 +66,12 @@ test('manual push applies inverse deletes without reentering SQLite', async ({
   // 1 — Capture the thrown, logged, and rendered forms of the original fault.
   // Unrelated Clerk or Next development warnings do not fail this regression.
   page.on('pageerror', error => {
-    if (
-      /FiberFailure|drizzle-transaction-failed|database disk image is malformed/.test(
-        error.message,
-      )
-    ) {
-      targetedRuntimeFailures.push(error.message);
-    }
+    targetedRuntimeFailures.push(error.message);
   });
   page.on('console', message => {
     if (
       message.type() === 'error' &&
-      /FiberFailure|drizzle-transaction-failed|database disk image is malformed/.test(
+      /FiberFailure|drizzle-transaction-failed|database disk image is malformed|account-frontend|durable-stage/.test(
         message.text(),
       )
     ) {
@@ -88,6 +84,17 @@ test('manual push applies inverse deletes without reentering SQLite', async ({
     page.getByRole('heading', { level: 2, name: 'Products', exact: true }),
   ).toBeVisible({ timeout: 90_000 });
 
+  // DevTools is deliberately absent from the production application tree
+  // until this console-equivalent call loads and opens the shell.
+  await page.evaluate(async () => {
+    if (window.zerospin?.devtools === undefined) {
+      throw new Error(
+        'ZerospinConfig did not install the DevTools console API.',
+      );
+    }
+    await window.zerospin.devtools.open();
+  });
+
   const basicTShirtCard = page
     .locator('[data-slot="card"]')
     .filter({ hasText: 'Basic T-Shirt' });
@@ -97,14 +104,8 @@ test('manual push applies inverse deletes without reentering SQLite', async ({
   });
 
   // 2 — The authenticated actor persists between runs. Converge only this
-  // product to absent before starting the precise add/remove regression.
-  let devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
-  await expect(devtools).toBeVisible({ timeout: 90_000 });
-  await devtools.getByRole('checkbox', { name: 'Pause push' }).check();
-  await page
-    .getByRole('button', { name: 'Close Zerospin DevTools', exact: true })
-    .click();
-
+  // product to absent through the SharedWorker-owned push path before starting
+  // the precise add/remove regression.
   await expect
     .poll(
       async () =>
@@ -116,55 +117,68 @@ test('manual push applies inverse deletes without reentering SQLite', async ({
   if (!(await addBasicTShirt.isVisible())) {
     await basicTShirtCard.getByRole('button').last().click();
     await expect(addBasicTShirt).toBeVisible();
-
-    await page
-      .getByRole('button', { name: 'Open Zerospin DevTools', exact: true })
-      .click();
-    devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
-    const cleanupPush = devtools.getByRole('button', {
-      name: 'Push staged commands',
-    });
-    await expect(cleanupPush).toBeEnabled();
-    await cleanupPush.click();
-    await expect(
-      devtools.getByRole('link', { name: /^Pushed at / }),
-    ).toBeVisible({ timeout: 30_000 });
-    await devtools
-      .getByRole('button', { name: 'Executed', exact: true })
-      .click();
-    await expect(
-      devtools.getByRole('cell', {
-        name: 'removeFromCart',
-        exact: true,
-      }),
-    ).toBeVisible({ timeout: 30_000 });
   }
 
-  // 3 — Reload after convergence so executed rows and push feedback belong
-  // only to the regression batch below, not a cleanup push from a prior run.
+  // 3 — Reload after convergence so the regression starts from the
+  // authoritative empty state produced by the SharedWorker.
   await page.reload();
   await expect(
     page.getByRole('heading', { level: 2, name: 'Products', exact: true }),
   ).toBeVisible({ timeout: 90_000 });
   await expect(addBasicTShirt).toBeVisible();
 
-  const openDevtools = page.getByRole('button', {
-    name: 'Open Zerospin DevTools',
+  // A reload creates a new ZerospinConfig lifetime, so it also requires a new
+  // explicit console open before this test can manipulate DevTools again.
+  await page.evaluate(async () => {
+    if (window.zerospin?.devtools === undefined) {
+      throw new Error(
+        'ZerospinConfig did not install the DevTools console API.',
+      );
+    }
+    await window.zerospin.devtools.open();
+  });
+  let devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
+  await expect(devtools).toBeVisible();
+  const pushedRoute = devtools.getByRole('button', {
+    name: 'Pushed',
     exact: true,
   });
-  if (await openDevtools.isVisible()) {
-    await openDevtools.click();
-  }
-  devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
-  await expect(devtools).toBeVisible();
-  await devtools.getByRole('checkbox', { name: 'Pause push' }).check();
+  await pushedRoute.click();
+  await expect(pushedRoute).toHaveCSS(
+    'background-color',
+    'rgb(243, 244, 246)',
+  );
+  const baselinePushedRemoveCount = await devtools
+    .getByRole('cell', {
+      name: 'removeFromCart',
+      exact: true,
+    })
+    .count();
+  const executedRoute = devtools.getByRole('button', {
+    name: 'Executed',
+    exact: true,
+  });
+  await executedRoute.click();
+  await expect(executedRoute).toHaveCSS(
+    'background-color',
+    'rgb(243, 244, 246)',
+  );
+  const baselineExecutedRemoveCount = await devtools
+    .getByRole('cell', {
+      name: 'removeFromCart',
+      exact: true,
+    })
+    .count();
+  const baselineSettledRemoveCount =
+    baselinePushedRemoveCount + baselineExecutedRemoveCount;
   await page
     .getByRole('button', { name: 'Close Zerospin DevTools', exact: true })
     .click();
 
-  // 4 — Stage an optimistic insert and its removal in the same paused batch.
-  // Applying the authoritative frontend block must rewind that insert with a
-  // DELETE without running the live-query SELECT inside sqlite3_step.
+  // 4 — Stage an optimistic insert and its removal while the SharedWorker owns
+  // continuous journal push. Applying the authoritative frontend blocks must
+  // rewind the insert with a DELETE without running the live-query SELECT
+  // inside sqlite3_step.
   await addBasicTShirt.click();
   await expect(basicTShirtCard.getByRole('button')).toHaveCount(3);
   await basicTShirtCard.getByRole('button').last().click();
@@ -174,25 +188,42 @@ test('manual push applies inverse deletes without reentering SQLite', async ({
     .getByRole('button', { name: 'Open Zerospin DevTools', exact: true })
     .click();
   devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
-  const pushStagedCommands = devtools.getByRole('button', {
-    name: 'Push staged commands',
-  });
-  await expect(pushStagedCommands).toBeEnabled();
-  await pushStagedCommands.click();
-  await expect(devtools.getByRole('link', { name: /^Pushed at / })).toBeVisible(
-    { timeout: 30_000 },
-  );
-  await expect(pushStagedCommands).toBeDisabled();
 
-  // 5 — Executed is populated by the authoritative websocket block, so this
-  // is the completion barrier for the browser-side inverse transaction.
-  await devtools.getByRole('button', { name: 'Executed', exact: true }).click();
-  await expect(
-    devtools.getByRole('cell', {
-      name: 'removeFromCart',
-      exact: true,
-    }),
-  ).toBeVisible({ timeout: 30_000 });
+  // 5 — Pushed or Executed means the durable journal settlement block has
+  // rewound and reapplied the optimistic mutations. Count both terminal
+  // locations because the server may execute the command while this assertion
+  // is observing it.
+  await expect
+    .poll(
+      async () => {
+        expect(targetedRuntimeFailures).toEqual([]);
+        await pushedRoute.click();
+        await expect(pushedRoute).toHaveCSS(
+          'background-color',
+          'rgb(243, 244, 246)',
+        );
+        const pushedRemoveCount = await devtools
+          .getByRole('cell', {
+            name: 'removeFromCart',
+            exact: true,
+          })
+          .count();
+        await executedRoute.click();
+        await expect(executedRoute).toHaveCSS(
+          'background-color',
+          'rgb(243, 244, 246)',
+        );
+        const executedRemoveCount = await devtools
+          .getByRole('cell', {
+            name: 'removeFromCart',
+            exact: true,
+          })
+          .count();
+        return pushedRemoveCount + executedRemoveCount;
+      },
+      { timeout: 30_000 },
+    )
+    .toBeGreaterThan(baselineSettledRemoveCount);
   expect(targetedRuntimeFailures).toEqual([]);
   await expect(page.locator('body')).not.toContainText(
     'database disk image is malformed',
@@ -216,6 +247,47 @@ test('manual push applies inverse deletes without reentering SQLite', async ({
 test('Zerospin DevTools uses one routed React shell', async ({ page }) => {
   test.setTimeout(120_000);
   await page.goto('/');
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Products', exact: true }),
+  ).toBeVisible({ timeout: 90_000 });
+
+  const devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
+  const openDevtools = page.getByRole('button', {
+    name: 'Open Zerospin DevTools',
+    exact: true,
+  });
+
+  // The production application must expose no DevTools UI before the first
+  // console request, even though ZerospinConfig and the session are ready.
+  await expect(devtools).toHaveCount(0);
+  await expect(openDevtools).toHaveCount(0);
+
+  // This is the production escape hatch: it loads one shell into the existing
+  // ZerospinConfig React tree and resolves only after that shell is visible.
+  await page.evaluate(async () => {
+    if (window.zerospin?.devtools === undefined) {
+      throw new Error(
+        'ZerospinConfig did not install the DevTools console API.',
+      );
+    }
+    await window.zerospin.devtools.open();
+
+    const openedPanel = document.querySelector(
+      'section[aria-label="Zerospin DevTools"]',
+    );
+    if (
+      !(openedPanel instanceof HTMLElement) ||
+      window.getComputedStyle(openedPanel).visibility !== 'visible'
+    ) {
+      throw new Error(
+        'The DevTools console Promise resolved before its panel was visible.',
+      );
+    }
+  });
+  await expect(devtools).toBeVisible({ timeout: 90_000 });
+  await expect(
+    devtools.getByRole('cell', { name: 'shopper', exact: true }),
+  ).toBeVisible({ timeout: 90_000 });
 
   const sessionsRoute = page.getByRole('link', {
     name: 'Sessions',
@@ -241,8 +313,19 @@ test('Zerospin DevTools uses one routed React shell', async ({ page }) => {
     ),
   ).resolves.toBe('Shared Worker');
   await sharedWorkerRoute.click();
+  const sharedWorkerRoot = page.locator(
+    '[data-testid^="shared-worker-root-"]',
+  );
+  await expect(sharedWorkerRoot).toHaveCount(1);
   await expect(
-    page.getByText('Shared Worker is enabled', { exact: true }),
+    sharedWorkerRoot.getByRole('region', {
+      name: 'Account frontend replicas',
+    }),
+  ).toBeVisible();
+  await expect(
+    sharedWorkerRoot.getByRole('region', {
+      name: 'Service frontend replicas',
+    }),
   ).toBeVisible();
 
   const toolbar = page.getByTestId('zerospin-devtools-toolbar');
@@ -295,9 +378,13 @@ test('Zerospin DevTools uses one routed React shell', async ({ page }) => {
   await page
     .getByRole('button', { name: 'Close Zerospin DevTools', exact: true })
     .click();
-  await page
-    .getByRole('button', { name: 'Open Zerospin DevTools', exact: true })
-    .click();
+  await expect(devtools).toBeHidden();
+  await expect(openDevtools).toBeVisible();
+
+  // Once loaded, the ordinary trigger reopens the same routed shell rather
+  // than creating a second shell or resetting its in-memory Settings route.
+  await openDevtools.click();
+  await expect(devtools).toBeVisible();
   await expect(settingsRoute).toHaveAttribute('aria-current', 'page');
 });
 

@@ -1,13 +1,15 @@
+import { Effect } from 'effect';
+
 /**
- * Destructure props once at the top of the function.
+ * Keep `props` as the only function argument, then destructure on the first line of the body.
  *
+ * @bad Parameter destructuring: `function* ({ actorId, db })` — take `props`, then `const { … } = props`.
  * @bad Chain property access directly off `props` through the whole body.
  */
-export async function buildSessionName(props: {
+export const authenticate = Effect.fn('authenticate')(function* (props: {
   actorId: string;
-  frontendId: string;
-  systemName: string;
+  db: { query: unknown };
 }) {
-  const { actorId, frontendId, systemName } = props;
-  return `${actorId}/${frontendId}/${systemName}`;
-}
+  const { actorId, db } = props;
+  return { actorId, db };
+});

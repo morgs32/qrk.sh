@@ -17,16 +17,17 @@ export type InferFrontendModels<FRONTEND extends IFrontendController> =
 
 export type IFrontendController<
   SYSTEM_NAME extends string = string,
-  FRONTEND_NAME extends string = string,
+  ACTOR_NAME extends string = string,
   CONTRACTS extends IContracts = IContracts,
   MODELS extends IModels = IModels,
   SIGNATURE_SCHEMA extends Schema.Schema.AnyNoContext =
     Schema.Schema.AnyNoContext,
   VERSION extends string = string,
+  FRONTEND_NAME extends string = string,
 > = {
   accountName: string;
-  actorName: FRONTEND_NAME;
-  frontendName: string;
+  actorName: ACTOR_NAME;
+  frontendName: FRONTEND_NAME;
   version: VERSION;
   contracts: CONTRACTS;
   systemName: SYSTEM_NAME;
@@ -56,6 +57,31 @@ export type IFrontendControllerSpec = {
   name: string;
   version: string;
   modelNames: readonly string[];
-  models: Record<string, { modelName: string }>;
+  models: Record<
+    string,
+    {
+      modelName: string;
+      abbreviation: string;
+      version: string;
+      properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+      indexes: readonly {
+        name: string;
+        columns: readonly string[];
+        unique?: boolean;
+      }[];
+      historicalDefinitions: readonly {
+        modelName: string;
+        abbreviation: string;
+        version: string;
+        properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+        indexes: readonly {
+          name: string;
+          columns: readonly string[];
+          unique?: boolean;
+        }[];
+      }[];
+    }
+  >;
   contracts: Record<string, IContractSpec>;
+  signatureJsonSchema: unknown;
 };

@@ -118,10 +118,7 @@ export type ITextDescriptor<
   DEFAULT_VALUE extends
     | string
     | (true extends NULLABLE ? null : never)
-    | undefined =
-    | string
-    | (true extends NULLABLE ? null : never)
-    | undefined,
+    | undefined = string | (true extends NULLABLE ? null : never) | undefined,
 > = {
   kind: PrimitiveKind.Text;
   nullable: NULLABLE;

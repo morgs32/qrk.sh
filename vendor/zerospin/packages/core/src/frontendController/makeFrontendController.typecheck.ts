@@ -39,7 +39,7 @@ const List = makeModel(
 const withModels = makeFrontendController({
   accountName: 'user',
   actorName: 'main',
-  frontendName: 'main',
+  frontendName: 'web',
   version: '1.0.0',
   systemName: 'test',
   models: {
@@ -52,7 +52,11 @@ const withModels = makeFrontendController({
 
 void withModels.models.user;
 const frontendControllerVersion: '1.0.0' = withModels.version;
+const frontendControllerActorName: 'main' = withModels.actorName;
+const frontendControllerFrontendName: 'web' = withModels.frontendName;
 void frontendControllerVersion;
+void frontendControllerActorName;
+void frontendControllerFrontendName;
 
 // @ts-expect-error — version is required at the factory call site
 makeFrontendController({

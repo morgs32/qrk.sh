@@ -1,5 +1,5 @@
 import { it } from '@effect/vitest';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { User } from '../fixtures/system.ts';
@@ -7,9 +7,72 @@ import { makeModel } from '../models/makeModel.ts';
 import { primitives } from '../models/primitives.ts';
 
 import { decodeAppliedMutation } from './decodeAppliedMutation.ts';
-import { encodeAppliedMutation } from './encodeAppliedMutation.ts';
+import {
+  encodeAppliedMutation,
+  EncodedFrontendMutationSchema,
+  encodeFrontendMutation,
+} from './encodeAppliedMutation.ts';
 
 describe('encodeAppliedMutation + decodeAppliedMutation', () => {
+  it.effect(
+    'encodes a pre-application mutation without fabricated apply metadata',
+    () =>
+      Effect.gen(function* () {
+        const mutation = yield* User.update('1.0.0', {
+          resourceId: User.prefixId('frontend-mutation-001'),
+          attributes: { name: 'Prepared name' },
+        });
+
+        const encoded = yield* encodeFrontendMutation({
+          commandId: 'cmd_frontend-mutation-001',
+          mutationIndex: 3,
+          mutation,
+        });
+
+        expect(encoded).toEqual({
+          commandId: 'cmd_frontend-mutation-001',
+          mutationIndex: 3,
+          modelName: User.modelName,
+          modelVersion: User.version,
+          resourceId: User.prefixId('frontend-mutation-001'),
+          operationName: 'update',
+          operation: JSON.stringify({
+            encodedAttributes: { name: 'Prepared name' },
+          }),
+        });
+        expect('appliedAt' in encoded).toBe(false);
+        expect('inverseOperation' in encoded).toBe(false);
+      }),
+  );
+
+  it('decodes the exact pre-application frontend mutation envelope', () => {
+    const encodedFrontendMutation = {
+      commandId: 'cmd_frontend001',
+      mutationIndex: 0,
+      modelName: 'user',
+      modelVersion: '1.0.0',
+      resourceId: 'usr_frontend001',
+      operationName: 'update',
+      operation: '{"attributes":{"name":"Ada"}}',
+    };
+
+    expect(
+      Schema.decodeUnknownSync(EncodedFrontendMutationSchema)(
+        encodedFrontendMutation,
+        { onExcessProperty: 'error' },
+      ),
+    ).toEqual(encodedFrontendMutation);
+    expect(() =>
+      Schema.decodeUnknownSync(EncodedFrontendMutationSchema)(
+        {
+          ...encodedFrontendMutation,
+          appliedAt: new Date('2020-01-01T00:00:00.000Z'),
+        },
+        { onExcessProperty: 'error' },
+      ),
+    ).toThrow();
+  });
+
   it.effect('round-trips create with null inverse', () =>
     Effect.gen(function* () {
       const appliedAt = new Date('2020-01-01T00:00:00.000Z');

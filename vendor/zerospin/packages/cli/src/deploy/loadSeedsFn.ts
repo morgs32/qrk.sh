@@ -32,7 +32,8 @@ const SeedsModuleSchema = Schema.Struct({ seeds: Schema.Unknown }).pipe(
 );
 
 /**
- * Load config.seeds path via jiti and run `export const seeds`.
+ * Load the config.seeds path for config.environmentId via jiti and run
+ * `export const seeds`.
  * Module must export `export const seeds: Effect<readonly IDeploySeedCommand[], ...>`.
  */
 export const loadSeedsFn = Effect.fn('loadSeedsFn')(function* (
@@ -43,7 +44,7 @@ export const loadSeedsFn = Effect.fn('loadSeedsFn')(function* (
   IAnyError,
   Path.Path | FileSystem.FileSystem | Async
 > {
-  const { seeds: seedsEntry } = config;
+  const seedsEntry = config.seeds[config.environmentId];
   if (seedsEntry === null) {
     return [];
   }

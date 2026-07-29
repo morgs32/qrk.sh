@@ -13,10 +13,15 @@
  * Usage:
  *   node ci-poll-decide.mjs '<ci_info_json>' <poll_count> <verbosity> \
  *     [--wait-mode] [--prev-cipe-url <url>] [--expected-sha <sha>] \
- *     [--prev-status <status>] [--timeout <seconds>] [--new-cipe-timeout <seconds>] \
- *     [--env-rerun-count <n>] [--no-progress-count <n>] \
+ *     [--prev-status <status>] [--timeout <minutes>] [--new-cipe-timeout <minutes>] \
+ *     [--elapsed-seconds <n>] [--env-rerun-count <n>] [--no-progress-count <n>] \
  *     [--prev-cipe-status <status>] [--prev-sh-status <status>] \
  *     [--prev-verification-status <status>] [--prev-failure-classification <status>]
+ *
+ * Note: --timeout and --new-cipe-timeout are accepted in MINUTES (matching the
+ * skill's documented flags) and converted to seconds internally. --elapsed-seconds
+ * is the wall-clock time since monitoring began, carried across attempts by the
+ * orchestrator, and is the authoritative signal for the --timeout budget.
  */
 
 // --- Arg parsing ---
@@ -39,8 +44,14 @@ const waitMode = getFlag('--wait-mode');
 const prevCipeUrl = getArg('--prev-cipe-url');
 const expectedSha = getArg('--expected-sha');
 const prevStatus = getArg('--prev-status');
-const timeoutSeconds = parseInt(getArg('--timeout') || '0', 10);
-const newCipeTimeoutSeconds = parseInt(getArg('--new-cipe-timeout') || '0', 10);
+// Flags are documented in minutes; convert to seconds for internal comparison.
+const timeoutSeconds = parseInt(getArg('--timeout') || '0', 10) * 60;
+const newCipeTimeoutSeconds =
+  parseInt(getArg('--new-cipe-timeout') || '0', 10) * 60;
+// Wall-clock seconds since monitoring began (carried across attempts); null when
+// the orchestrator doesn't supply it (see isTimedOut for that fallback).
+const elapsedArg = getArg('--elapsed-seconds');
+const elapsedSeconds = elapsedArg !== null ? parseInt(elapsedArg, 10) : null;
 const envRerunCount = parseInt(getArg('--env-rerun-count') || '0', 10);
 const inputNoProgressCount = parseInt(getArg('--no-progress-count') || '0', 10);
 const prevCipeStatus = getArg('--prev-cipe-status');
@@ -61,7 +72,7 @@ try {
       message: 'Failed to parse ci_information JSON',
       noProgressCount: inputNoProgressCount + 1,
       envRerunCount,
-    }),
+    })
   );
   process.exit(0);
 }
@@ -89,16 +100,16 @@ const failureClassification = rawFailureClassification?.toLowerCase() ?? null;
 
 function categorizeTasks() {
   const verifiedSet = new Set(verifiedTaskIds);
-  const unverified = failedTaskIds.filter(t => !verifiedSet.has(t));
+  const unverified = failedTaskIds.filter((t) => !verifiedSet.has(t));
   if (unverified.length === 0) return { category: 'all_verified' };
 
-  const e2e = unverified.filter(t => {
+  const e2e = unverified.filter((t) => {
     const parts = t.split(':');
     return parts.length >= 2 && parts[1].includes('e2e');
   });
   if (e2e.length === unverified.length) return { category: 'e2e_only' };
 
-  const verifiable = unverified.filter(t => {
+  const verifiable = unverified.filter((t) => {
     const parts = t.split(':');
     return !(parts.length >= 2 && parts[1].includes('e2e'));
   });
@@ -125,6 +136,11 @@ function hasStateChanged() {
 
 function isTimedOut() {
   if (timeoutSeconds <= 0) return false;
+  // Prefer real wall-clock elapsed (carried across attempts) so --timeout caps
+  // total monitor duration, not a single invocation.
+  if (elapsedSeconds !== null && !Number.isNaN(elapsedSeconds))
+    return elapsedSeconds >= timeoutSeconds;
+  // Fallback: estimate elapsed from poll cadence within this invocation.
   const avgDelay = pollCount === 0 ? 0 : backoff(Math.floor(pollCount / 2));
   return pollCount * avgDelay >= timeoutSeconds;
 }
@@ -179,6 +195,10 @@ function classify() {
   // --- Wait mode ---
   if (waitMode) {
     if (isNewCipe()) return { action: 'poll', code: 'new_cipe_detected' };
+    // The total --timeout budget also caps time spent waiting for a new CI
+    // Attempt, so it must win over --new-cipe-timeout here; otherwise a long
+    // wait (or a sequence of apply→wait cycles) could run past --timeout.
+    if (isTimedOut()) return { action: 'done', code: 'polling_timeout' };
     if (isWaitTimedOut()) return { action: 'done', code: 'no_new_cipe' };
     return { action: 'wait', code: 'waiting_for_cipe' };
   }
@@ -328,7 +348,7 @@ const messages = {
 
   // actionable
   fix_auto_applying: () => 'Fix verified! Auto-applying...',
-  fix_auto_apply_skipped: extra =>
+  fix_auto_apply_skipped: (extra) =>
     `Fix verified but auto-apply was skipped. ${
       extra?.autoApplySkipReason
         ? `Reason: ${extra.autoApplySkipReason}`
@@ -339,7 +359,7 @@ const messages = {
       verificationStatus || 'N/A'
     }`,
   fix_apply_ready: () => 'Fix available and verified. Ready to apply.',
-  fix_needs_local_verify: extra =>
+  fix_needs_local_verify: (extra) =>
     `Fix available. ${extra.verifiableTaskIds.length} task(s) need local verification.`,
   fix_failed: () => 'Self-healing failed to generate a fix.',
   no_fix: () => 'CI failed, no fix available.',

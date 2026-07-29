@@ -942,7 +942,7 @@ describe('ServiceRepo', () => {
     );
 
     it.effect(
-      'inspects local pending service work without running it and drains it when hosted',
+      'inspects self-hosted pending service work without running it and drains it when hosted',
       () =>
         Effect.gen(function* () {
           const generationId = 'gen_service_drain_modes';
@@ -975,23 +975,23 @@ describe('ServiceRepo', () => {
                   })
                   .run();
 
-                const localResult = await managedRuntime.runPromise(
+                const selfHostedResult = await managedRuntime.runPromise(
                   drainGeneration({
                     db,
-                    local: true,
+                    inspectionOnly: true,
                     generationId,
                     serviceName: 'app',
                     storage,
                   }).pipe(Effect.provide(AsyncLive), Effect.either),
                 );
-                const afterLocal = db
+                const afterSelfHostedInspection = db
                   .select()
                   .from(schema.serviceBlockOutbox)
                   .get();
                 const hostedResult = await managedRuntime.runPromise(
                   drainGeneration({
                     db,
-                    local: false,
+                    inspectionOnly: false,
                     generationId,
                     serviceName: 'app',
                     storage,
@@ -1001,18 +1001,23 @@ describe('ServiceRepo', () => {
                   .select()
                   .from(schema.serviceBlockOutbox)
                   .get();
-                return { localResult, afterLocal, hostedResult, afterHosted };
+                return {
+                  selfHostedResult,
+                  afterSelfHostedInspection,
+                  hostedResult,
+                  afterHosted,
+                };
               },
             }),
           );
 
-          expect(state.localResult._tag).toBe('Left');
-          if (state.localResult._tag === 'Left') {
-            expect(state.localResult.left.code).toBe(
-              'service-generation-local-drain-required',
+          expect(state.selfHostedResult._tag).toBe('Left');
+          if (state.selfHostedResult._tag === 'Left') {
+            expect(state.selfHostedResult.left.code).toBe(
+              'service-generation-self-hosted-drain-required',
             );
           }
-          expect(state.afterLocal?.publishedAt).toBeNull();
+          expect(state.afterSelfHostedInspection?.publishedAt).toBeNull();
           expect(state.hostedResult).toEqual({ pendingServiceBlockCount: 0 });
           expect(state.afterHosted?.publishedAt).toEqual(expect.any(Date));
         }).pipe(Effect.provide(AsyncLive)),

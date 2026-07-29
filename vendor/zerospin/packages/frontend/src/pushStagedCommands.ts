@@ -56,7 +56,22 @@ export const pushStagedCommands = Effect.fn('pushStagedCommands')(function* <
 > {
   const { session } = props;
 
-  const { db, models } = getInitializedStateOrThrow({ session });
+  const initializedState = getInitializedStateOrThrow({ session });
+  if (initializedState.workerState.status === 'update-required') {
+    return yield* new ZerospinError({
+      code: 'frontend-update-required',
+      message:
+        'Account command push is suspended until matching frontend code is loaded',
+    });
+  }
+  if (initializedState.workerState.status === 'repairing') {
+    return yield* new ZerospinError({
+      code: 'frontend-repairing',
+      message:
+        'Account command push is suspended while authoritative frontend state is being repaired',
+    });
+  }
+  const { db, models } = initializedState;
 
   const stagedRows = db
     .select()
@@ -241,13 +256,10 @@ export const pushStagedCommands = Effect.fn('pushStagedCommands')(function* <
           table: sessionFailedCommandDrizzleSchema,
           tx,
           values: {
-            id: command.id,
-            commandName: command.commandName,
-            payload: command.payload,
-            version: command.version,
-            status: 'failed',
-            failedAt: command.failedAt,
-            failure: command.failure,
+            ...command,
+            pushedAt: null,
+            accountCursor: null,
+            accountIndex: null,
           },
         });
       }
@@ -338,11 +350,10 @@ export const pushStagedCommands = Effect.fn('pushStagedCommands')(function* <
             table: sessionFailedCommandDrizzleSchema,
             tx,
             values: {
-              id: commandRow.id,
-              commandName: commandRow.commandName,
-              payload: commandRow.payload,
-              version: commandRow.version,
+              ...commandRow,
               status: 'failed',
+              accountCursor: null,
+              accountIndex: null,
               failedAt: new Date(),
               failure: ZerospinError.stringify(replayed.left),
             },
@@ -423,11 +434,11 @@ export const pushStagedCommands = Effect.fn('pushStagedCommands')(function* <
             table: sessionFailedCommandDrizzleSchema,
             tx,
             values: {
-              id: commandRow.id,
-              commandName: commandRow.commandName,
-              payload: commandRow.payload,
-              version: commandRow.version,
+              ...commandRow,
               status: 'failed',
+              pushedAt: null,
+              accountCursor: null,
+              accountIndex: null,
               failedAt: new Date(),
               failure: ZerospinError.stringify(replayed.left),
             },

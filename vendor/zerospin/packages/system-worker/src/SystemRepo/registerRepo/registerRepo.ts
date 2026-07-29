@@ -3,13 +3,13 @@
  * Registers one concrete Durable Object repo and its local SQLite tables.
  */
 
-import type { IDb } from '@zerospin/core/drizzle/types';
+import type { IDb, ITx } from '@zerospin/core/drizzle/types';
 import type { IRepoRegistration } from '@zerospin/core/system/types';
 import { Effect } from 'effect';
 
 export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
   function* (props: {
-    db: IDb;
+    db: IDb | ITx;
     repoTable: unknown;
     registration: IRepoRegistration;
   }) {

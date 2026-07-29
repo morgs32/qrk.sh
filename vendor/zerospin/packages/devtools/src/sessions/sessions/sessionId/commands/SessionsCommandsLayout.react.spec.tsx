@@ -39,7 +39,7 @@ describe('SessionsCommandsLayout', () => {
       root.unmount();
       await Promise.resolve();
     });
-    zerospinDevtoolsStore.getState().removeSession(sessionId);
+    zerospinDevtoolsStore.getState().removeAccountSession(sessionId);
     container.remove();
     vi.clearAllMocks();
   });
@@ -80,7 +80,7 @@ describe('SessionsCommandsLayout', () => {
       lastRebasedPushedCursor: null,
       isPushPaused: false,
     });
-    zerospinDevtoolsStore.getState().addSession({
+    zerospinDevtoolsStore.getState().addAccountSession({
       session,
       pushStagedCommands: () =>
         Promise.resolve({

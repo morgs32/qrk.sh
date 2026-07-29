@@ -1,32 +1,32 @@
 ---
 title: Blockchain
 type: module
-updated: 2026-07-17
+updated: 2026-07-28
 sources:
   - path: packages/core/src/models/makeModel.ts
-    sha: 097e0f387ea5462ee008ec6df006b0ad69a01b29
-    lines: 186-967
+    sha: 651ff8ee8319c3eb98b20f2393c8b2fbc6ca3001
+    lines: 186-964
   - path: packages/core/src/models/primitives.ts
-    sha: e537d9e7a4207032ea776802124cb3b21f743e3b
+    sha: 3c5996547248325822411a0f25e41487df82e498
     lines: 539-722
   - path: packages/core/src/drizzle/makeDbConfig.ts
-    sha: 7c06acfbb0427ca73e1331908204de66ea2be695
-    lines: 13-61
+    sha: 42e7e9838889d5535b03548a76489f364eef22c6
+    lines: 13-60
   - path: packages/core/src/drizzle/makeDrizzleSchemas.ts
     sha: 7b9f236783a3ccfc3956b0cc7eb8f3562457ab28
     lines: 16-53
   - path: packages/core/src/drizzle/makeTableMigrationSQL.ts
-    sha: 62450bc2bb4d232e298f768ea61250485364cb18
-    lines: 4-82
+    sha: 14dbaaefc2f96cca25e57737aaec1bdec7794232
+    lines: 4-84
   - path: packages/core/src/drizzle/makeInMemorySqlJsDatabase.ts
     sha: 9bb417d8da941603c956150f074434647045cd08
     lines: 1-12
   - path: packages/core/src/drizzle/makeInMemorySQLite3.ts
-    sha: 91fb285cd4b5eaa1dde768166386ce0cb49e90b9
+    sha: 6893014732e11f4533f7310e0235c59d1feb1851
     lines: 1-25
   - path: packages/core/src/drizzle/makeDrizzleRelations.ts
-    sha: 63216eb0ded20f3d5ab9e02598dd8b96fc30404a
-    lines: 19-385
+    sha: 92be7906f8a1cc8d34e952c041e1f6056528d11a
+    lines: 19-379
   - path: packages/core/src/utils/coreAbbreviations.ts
     sha: 09f1c75ac7c25c3813d8d171f6c42e0f7a9e12a2
     lines: 1-15
@@ -34,31 +34,31 @@ sources:
     sha: 1946ceaaf532d5cbd65b13a5ef4be6551f2e8b5e
     lines: 1-120
   - path: packages/core/src/service/makeServiceController.ts
-    sha: b212a4bc08d33a8b21cc74ef239541d5abde566c
+    sha: 2d910b6875fe5a2d7560e0cf3c3fca259047ac26
     lines: 97-554
   - path: packages/core/src/actorController/makeActorController.ts
-    sha: 76481404fd9982e4211fc4a77c7e45da2f626bed
-    lines: 87-208
+    sha: 85b8c448f66bfb4800975285079cdb6f89dc245d
+    lines: 87-213
   - path: packages/core/src/models/makeSelection.ts
     sha: bff426e08a4ccead881115f13d69af9239658c23
     lines: 280-466
   - path: examples/shopping/src/zerospin/models.ts
-    sha: c1bfe80090f503a0decc63ca271a5328b18d3c00
+    sha: 760f7e7bd785a6f93e827803f37da74a8222547a
     lines: 5-65
   - path: examples/shopping/src/zerospin/system.ts
-    sha: 9bb7c05ff3a9adaed4766b2bd2f88f485282b2f8
+    sha: 5c976e776cbf472d0c94e606fb9590627f07166a
     lines: 33-68
   - path: packages/core/src/contracts/applyAccountMutationTx.ts
-    sha: b77bec02330e123ba0f44955d0b4d18745e1277b
+    sha: f474ce742db1388a7774ce64ddbb49289f1c8219
     lines: 10-91
   - path: packages/core/src/contracts/applyFrontendMutationTx.ts
-    sha: 480d1d5590fe30d6472d5f0232620d9dbad364ef
-    lines: 14-114
+    sha: b85cf3c002a882ee10f703f3782091d073e4cd30
+    lines: 14-111
   - path: packages/core/src/contracts/applyMutationInverseTx.ts
-    sha: 9a8f391977e1f73e54c021653caa24326dfe9425
-    lines: 1-306
+    sha: 828899f6837870f8e1e55833c021cfa563d02236
+    lines: 1-303
   - path: packages/core/src/contracts/types.ts
-    sha: 917543b8c93c44a0b977d1e2ad7685e0fb9c82a5
+    sha: 78f8862dbebb54ac49721f137581cf2961f1220d
     lines: 250-321
   - path: packages/core/src/contracts/CommandSchema.ts
     sha: 1e465fbd9c9da6520934c07f16272d8d97884126
@@ -67,38 +67,38 @@ sources:
     sha: 35d910653ccf5eba6f8da07f7c2cdb734ac516f6
     lines: 29-69
   - path: packages/core/src/contracts/applyMutationTx.ts
-    sha: 16894c304c1acc89f747ca5e1d5b7b166fea64af
+    sha: 2ad9af5b221bcb336520d308f0642f2c69164abb
     lines: 1-344
   - path: packages/core/src/contracts/commitAppliedMutationTx.ts
-    sha: d320d9f19c72d28f075537551d0173a67c75535a
-    lines: 1-338
+    sha: 58516332f9b15a05e752c84af3a6d7dad464a9d0
+    lines: 1-332
   - path: packages/core/src/models/EncodedResourceSchema.ts
     sha: 7eccf697153144bc0493b30bac80da5f4a0914da
-    lines: 1-20
+    lines: 1-19
   - path: packages/core/src/session/types.ts
-    sha: 0ec24ff5cdf3723b879d98c62c69179b5e156baf
-    lines: 68-102
+    sha: 7198ef0e0cf4f350e51ec075d8ce8e75a1ecc2d6
+    lines: 68-212
   - path: packages/core/src/session/FrontendBlockSchema.ts
-    sha: ff9cd074655165c9dc4630cfadf6fc60bd073289
-    lines: 17-35
+    sha: 1e89909f0ae513bf51d05deb2de18cbcee20fe0f
+    lines: 17-180
   - path: packages/core/src/session/applyFrontendBlock.ts
-    sha: 519f6ebc7c050acd1f0b243a263bdfb5f2e0bfa5
-    lines: 43-480
+    sha: 155bb05395e92601de35e194ee4a9a213211b5f9
+    lines: 43-892
   - path: packages/core/src/session/makeSession.ts
-    sha: 1f456d6389d271cc6f1cd093544f8a8728054896
-    lines: 163-269
+    sha: 226dd97453a95cc22ebb5bd542de3d306eb945cd
+    lines: 190-447
   - path: packages/system-worker/src/AccountRepo/finalizeAccountBlock/prepareAccountCommands.ts
-    sha: 27f2f4780540899e248e4d54200dc46d08312330
+    sha: 56c9896d7032db01dee1c0a9d2f9d860158302cb
     lines: 33-393
   - path: packages/system-worker/src/AccountRepo/finalizeAccountBlock/finalizeCommandsTx.ts
-    sha: 398d21443a01c5d69226a52f84f8b11c703c3a86
-    lines: 40-323
+    sha: 84224ed5d24ce59ddc7279c19d29f88d3dd4fc5e
+    lines: 40-319
   - path: packages/system-worker/src/AccountRepo/finalizeAccountBlock/finalizeAccountBlock.ts
     sha: 7884500e2efa0127bfee09c14bc9fe675cb9677a
     lines: 42-70
   - path: packages/system-worker/src/AccountRepo/finalizePushedCommands/finalizePushedCommands.ts
-    sha: 8f43b4a4f6fc922f7dd5466394af73232257d90a
-    lines: 83-619
+    sha: 0a69fe8aaaabd32b9665c9a2056087d0e61cdb95
+    lines: 83-615
   - path: packages/system-worker/src/ServiceRepo/finalizeServiceCommands/finalizeServiceCommands.ts
     sha: fdb0343437e08018f8486dbb33975d41384bbc1e
     lines: 34-306
@@ -106,34 +106,37 @@ sources:
     sha: c054653ea7259d2e27958d6f53054af29e5a01e1
     lines: 20-76
   - path: packages/system-worker/src/ServiceBlockRepo/ServiceBlockRepo.ts
-    sha: a8b24046d96ce11292de338928891ed0a9da4f49
-    lines: 29-130
+    sha: 8b196f8e385d4d13b1faaf3702eb34420316933b
+    lines: 29-336
   - path: packages/system-worker/src/ServiceBlockRepo/drainAccountSubscribers/drainAccountSubscribers.ts
-    sha: 97692c1cf6a76519228105f7d6129c44b8d28fb5
-    lines: 18-143
+    sha: 08fea7e354210ef9bfa022467396fa52e6e4263a
+    lines: 18-131
+  - path: packages/system-worker/src/ServiceBlockRepo/drainGeneration/drainGeneration.ts
+    sha: a5a801c9a915b17a6bc9e840e8fa67596451784c
+    lines: 11-222
   - path: packages/system-worker/src/AccountRepo/handleServiceBlocks/handleServiceBlocks.ts
-    sha: ce682657e12d7a969ee673834a213b3c2a60dd5c
+    sha: 56e6d22f03cccdf9d3f5d7d6362f385693b70d92
     lines: 21-171
   - path: packages/system-worker/src/AccountRepo/drainAccountOutboxes/drainAccountOutboxes.ts
-    sha: 8594b5f2dba63fbd1eea0ff4d1409dd35cb1a407
+    sha: 10c4c6d60e99bbf4b76bdfcb2a92d34c6a35e9c5
     lines: 25-148
   - path: packages/system-worker/src/AccountRepo/AccountRepo.ts
-    sha: d5e2b109a96af29b4fbabb5d494aaa666b703195
+    sha: 4f4aa1d9b55e102e83f28dbc857335b8d0f24e46
     lines: 103-469
   - path: packages/system-worker/src/ServiceRepo/getReplicatedResources/getReplicatedResources.ts
-    sha: fa08df82d8b5788fb1d85a1737c4b6c09e8e44ef
-    lines: 22-221
+    sha: 1224e23f6f234aa02e3254caaf92cdc07fd4d62c
+    lines: 22-217
   - path: packages/system-worker/src/ActorRepo/handleAccountBlocks/handleAccountBlocks.ts
-    sha: f16e02a25a6fad35a88b392cf8989b7b6d780c4d
+    sha: 2f91abf665f9a13d1fe82a9782bdc9e76002699e
     lines: 62-230
   - path: packages/system-worker/src/ActorRepo/ActorRepo.ts
-    sha: f5d1c1e23b534623b3d440bf5335bdd8bb7a05e7
+    sha: 66370625f844977d826e68d0c828ce6fac2e7fb9
     lines: 130-137
   - path: packages/system-worker/src/AccountBlockRepo/AccountBlockRepo.ts
-    sha: 0c619a5bec96f50b084b4032d0774be0b164a570
+    sha: 284ad1570ca65895c5e1aec25fc9b38be27c5710
     lines: 49-277
   - path: packages/system-worker/src/AccountBlockRepo/accountBlockDrizzleSchemas.ts
-    sha: 0ee534df62829865ffc7d1668f9653f5adeecb2c
+    sha: e6a81cc8432b0dc81679da214fade68e12309a7b
     lines: 184-214
   - path: packages/system-worker/src/AccountBlockRepo/publish/publish.ts
     sha: da7263c9a86a66cf81c67be158e2db9af23ae0ec
@@ -142,7 +145,7 @@ sources:
     sha: 05516472e02e24cc09d47b06fdb79b48a3c2c256
     lines: 11-207
   - path: packages/system-worker/src/AccountBlockRepo/processSubscriber/processSubscriber.ts
-    sha: 21e8b142c0ef85bcda69ebc07ad9bcda7b3583cc
+    sha: 9e380bff2b474b5a43ef315fdbc84c892480ea68
     lines: 122-190
   - path: packages/system-worker/src/AccountBlockRepo/alarm/alarm.ts
     sha: 16f4f0af32b2bb184b63309a170b10d32b19e2ce
@@ -154,138 +157,208 @@ sources:
     sha: 1c816b656fcea502d71b52643c0c78abc9856f34
     lines: 13-113
   - path: packages/logger/src/makeTraceableApiTarget.ts
-    sha: 98e7f3bc6f68c5a64b9f401979073114fac272dd
-    lines: 40-127
+    sha: f701a5c5168f0ddb9c8d6ba87eb164eb87e66d34
+    lines: 40-122
   - path: packages/system-worker/src/ActorBlockRepo/ActorBlockRepo.ts
-    sha: 25715c3f7bef9596bfb20a6a7391c156b0221ef7
-    lines: 78-124
+    sha: 97caae103e3856575f969c47bb4ccde0b11686ce
+    lines: 78-192
   - path: packages/system-worker/src/ActorBlockRepo/drainFrontendSubscribers/drainFrontendSubscribers.ts
-    sha: 36f24eece9f36c373a59fac88f801e0fb571bbf0
-    lines: 25-199
+    sha: 614f6e05ebce315126e2eb2e4697869a4b935a1e
+    lines: 12-145
   - path: packages/system-worker/src/FrontendRepo/FrontendRepo.ts
-    sha: 7c2ccca152cec0b79da550126c0f8b35994cfd5d
-    lines: 41-275
+    sha: 9312c62b6e61dffb65c85912fc1bd4a958e27409
+    lines: 41-500
+  - path: packages/system-worker/src/FrontendRepo/drainGeneration/drainGeneration.ts
+    sha: 4170f1e5f3a09d720fd85984fc50f753b02db835
+    lines: 11-90
   - path: packages/system-worker/src/FrontendRepo/bootstrap/bootstrap.ts
-    sha: 9ae3dff43643ff23e27bebe20b3a61986e7dddc1
+    sha: d4775f040e29354824fa318036d5bcbdec9ac03c
     lines: 23-123
   - path: packages/system-worker/src/FrontendRepo/handleActorBlocks/handleActorBlocks.ts
-    sha: 14192ce8266091e175616198cf2e00f60d32906d
+    sha: 151bd7037510505684502ee58b6557c1e7a1472d
     lines: 95-531
   - path: packages/system-worker/src/FrontendRepo/pushCommands/pushCommands.ts
-    sha: 297ba7a92cb968ceef6b259f1d505e63f32e65bd
+    sha: 219761e375d690f03e31aefc585f2ff9d19a7e50
     lines: 75-471
   - path: packages/system-worker/src/FrontendRepo/drainPushedBlockOutbox/drainPushedBlockOutbox.ts
     sha: 50d247819e91ff5887d0d32e2550eeee1b117f51
-    lines: 33-133
+    lines: 33-129
   - path: packages/system-worker/src/FrontendRepo/getFrontendState/getFrontendState.ts
-    sha: 7fc72bb5434f710476f781f6190cfe47ed8798e0
-    lines: 47-84
+    sha: 2505a7aaa93c6ffe993531759cc82338665fefbd
+    lines: 47-381
   - path: packages/system-worker/src/FrontendRepo/drainFrontendBlockOutbox/drainFrontendBlockOutbox.ts
-    sha: c71e0f2b54896d1ede9f51062721d000216fc7ab
+    sha: f9f70c4994716a54602551dcafcbd3757e50ed2f
     lines: 17-80
   - path: packages/system-worker/src/FrontendBlockRepo/FrontendBlockRepo.ts
-    sha: 3c44fd361688681314927055d1e502d278991065
-    lines: 23-78
+    sha: 7e3127e2df4ce291e97f9d4ea49f0a8781e2fa16
+    lines: 20-270
   - path: packages/system-worker/src/FrontendBlockRepo/storeFrontendBlocks/storeFrontendBlocks.ts
-    sha: 354ffdbcac993cccd9907ad25ce5489becb3241a
-    lines: 10-49
+    sha: d5fc5e101c16f048b1b9f6569e6d7672a833b8e5
+    lines: 10-280
   - path: packages/system-worker/src/SystemWorker.ts
-    sha: 635b5321cfdd30d05bb423874df3c49561e40a32
-    lines: 246-2170
+    sha: 86ec0244f0688ea6dd2bc4d97bda74a8ce055a16
+    lines: 282-2814
   - path: packages/system-worker/src/makeDurableDb.ts
     sha: d992bea35148f50ee8ca7fadaa966ca8c011c4a0
     lines: 1-20
   - path: packages/system-worker/src/SystemRepo/SystemRepo.ts
-    sha: 7064d1caef9da512bd027d0273a4c0d8f84cdac7
-    lines: 139-246
+    sha: 8d571d959494ca8a39510f20bb0ed1d1079613e2
+    lines: 252-710
   - path: packages/system-worker/src/makeRepo/makeRepoNameUtils.ts
     sha: 91b16507aa924ce42db97b7e1666fa3b015ea9e8
     lines: 33-79
   - path: packages/dispatch-worker/src/SystemApi/SystemApi.ts
-    sha: 40d25de070114e85ace1365af2a1d1eceb719d07
+    sha: c54223d45368499b2b347073e43e2560c0361ea8
     lines: 72-282
   - path: examples/shopping/e2e/system.e2e.spec.ts
-    sha: 9e7371a42ade2c26c06de8165da3e9d6c2e7d151
+    sha: 9a0beb1b82abcc2444665b1688f6d66c922ab612
     lines: 25-199
   - path: packages/system-worker/src/types.ts
     sha: 9346bac82cc92c94713ace366066bdd787ad848e
     lines: 117-164
   - path: packages/react/src/acquireFrontendWebSocket.ts
-    sha: 4eea39c3a926bc94014e1c006d040254a72a6d9e
-    lines: 17-194
+    sha: af08d68747ba61629b37af6e0c12057c44cf42b3
+    lines: 62-877
+  - path: packages/system-worker/src/createFrontendWebSocketTicket/createFrontendWebSocketTicket.ts
+    sha: e412e8734eb3e77a19930016f10516ed148e3521
+    lines: 25-418
+  - path: packages/system-worker/src/createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.ts
+    sha: 7c5d036a67378072550af1a57d7afa0611b89e32
+    lines: 28-452
   - path: packages/frontend/src/pushStagedCommands.ts
-    sha: 26531afd3b096043ffa9631a05e9821f67ea088b
+    sha: 77fba7e4cf486c810f20058efb9b74333e2b686c
     lines: 44-105
   - path: packages/dispatch-worker/src/FrontendApi/FrontendApi.ts
-    sha: b0cb96df80fa967717868bdb82091b5dcf21dca2
-    lines: 171-431
+    sha: 975dc13fa5ed087305560787b0d55e060301856a
+    lines: 167-431
   - path: packages/dispatch-worker/src/Worker.ts
-    sha: 1eca022f6fdd5fd643f3f0cbb1f3c3a773ec7d3b
-    lines: 21-55
+    sha: f65a437ebbc271f9f00bdfb01b4cb725c6374d9f
+    lines: 21-92
   - path: examples/shopping/src/zerospin/contracts.ts
-    sha: be8d4cda98b5ad8705ac5cf2dc5edc08027d955b
+    sha: fcbe7d457ac53fc213c79655fdc3d200d2513db3
     lines: 98-123
   - path: packages/core/src/accountController/makeAccountController.ts
-    sha: 226f6b680bd925626a6f8c4aab6bb78b1541699d
+    sha: 86f3b5b284b2ef79a5b818e4a67e926ce15d8362
     lines: 228-523
   - path: packages/core/src/contracts/makeContract.ts
-    sha: c644a7796874d27fd1503ba9d48022631b0a05ab
+    sha: 7b0e69ef1da04f1d5bf8d82bbfd319104779bc19
     lines: 91-166
   - path: packages/core/src/contracts/makeMutations.ts
     sha: 387f29b456a3777bb75078cb0efee0e4cde1987c
     lines: 10-64
   - path: packages/core/src/contracts/replayAppliedMutationTx.ts
-    sha: 7a7534533fad42659c813c08a592b5d0de7df417
-    lines: 33-399
+    sha: a5d5df3b4625ac10d6a18d600b3afeca0b7114da
+    lines: 33-397
   - path: packages/system-worker/src/AccountBlockRepo/getReplayBound/getReplayBound.ts
-    sha: af09b8827fc43dc5713df5191a036f8ef686aac6
-    lines: 9-55
+    sha: eb8dab1fcfb04a5f034d6999080592fffe52551b
+    lines: 9-53
   - path: packages/system-worker/src/AccountRepo/replayAccountBlock/replayAccountBlock.ts
-    sha: 57fb18a326a3fd81fb402227d5543d627b67132d
-    lines: 85-438
+    sha: 085546462164e01bfff25c6ec85e6a089f1ac616
+    lines: 85-437
   - path: packages/system-worker/src/AuthorizationRepo/AuthorizationRepo.ts
-    sha: dce16cc1051282ac028fd4d9548b92218973487b
+    sha: 66a1273138de8f1b64bebf0ef635d0ec6ee804f0
     lines: 79-84
   - path: packages/system-worker/src/ServiceBlockRepo/getReplayBound/getReplayBound.ts
-    sha: 75d2488588b9c13bbfbd54f51d569e6703afdb3a
+    sha: 3ee3bace5144945392d8967b5499868acf70b0ab
     lines: 9-53
   - path: packages/system-worker/src/ServiceRepo/ServiceRepo.ts
-    sha: 0f143124a50f6d96081a502adc800138a35566a0
+    sha: d4d791840bd9d00942a9f9c3db19209602b7ce67
     lines: 191-196
   - path: packages/system-worker/src/ServiceRepo/replayServiceBlock/replayServiceBlock.ts
-    sha: e25551587408408fdd424e03eae4e34d1690d91f
-    lines: 27-354
+    sha: 4c97366d37a646cc3243e3802e9c2e383f31ec71
+    lines: 27-353
   - path: packages/system-worker/src/SystemLogRepo/SystemLogRepo.ts
-    sha: ca52cf79a8126f57ac2d0155db005036d72f0362
+    sha: c859a25a69a74421459fe2f9cc36b3b0b7d05d6b
     lines: 263-279
   - path: packages/system-worker/src/SystemLogRepo/appendTelemetryBatch/appendTelemetryBatch.ts
-    sha: dcc909f7b275ffae3bf2749acaf8a0c4ab55fd50
-    lines: 21-155
+    sha: a67304fe51e10a0880fcf2069ad10db27976610c
+    lines: 21-154
   - path: packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts
-    sha: 1deef6dd44fcd28c8a0a2699efe030bbeeaddfb4
-    lines: 69-525
+    sha: 6976de7c19ea26659199baa289d688973128066c
+    lines: 39-1689
   - path: packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts
-    sha: 7e1352d1f5b40ced689ef915fc0a2825b0623fad
-    lines: 91-1421
+    sha: f397bf94edc70075ee9799c0b243cf28170bb226
+    lines: 91-1870
   - path: packages/system-worker/src/makeRepo/makeRepo.ts
-    sha: eef7a24e8162f9e01f9bc1a51f9520a0388ef7d1
+    sha: ca625f09c80f8fba40d7b35d19011e91105f54a5
     lines: 180-207
   - path: packages/system-worker/src/prepareGeneration/prepareGeneration.ts
-    sha: 3dbc9652291d97eebbea2418a4c17a4c15e4334b
-    lines: 17-82
+    sha: e866d63b61bf8adfa6584c7501178d37b222d725
+    lines: 17-92
+  - path: packages/system-worker/src/ServiceBlockRepo/drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.ts
+    sha: fdb084437e04cc54c9fab033ef0c54b888eff8b5
+    lines: 15-275
+  - path: packages/system-worker/src/ServiceFrontendRepo/handleServiceBlocks/handleServiceBlocks.ts
+    sha: a01cf052cd60bc1a19ce4a4ca2c2d737c65cf769
+    lines: 18-298
+  - path: packages/system-worker/src/systemWorkerAbbreviations.ts
+    sha: 4cdddf0eb7a82a031365fd701eed9df145b2e69e
+    lines: 1-17
+  - path: packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts
+    sha: 365b12f0ef26b8a27aabf6a209b2d84035ca3741
+    lines: 95-334
+  - path: packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts
+    sha: 0c7aff28b20709526ff7825b74726de91473e113
+    lines: 143-329
+  - path: packages/core/src/serviceSession/types.ts
+    sha: fb75ac2e4d3403492656f4ef66b5245af49eb60f
+    lines: 16-104
+  - path: packages/core/src/serviceSession/ServiceFrontendBlockSchema.ts
+    sha: 6030e7a47e3f51d660784bfb4bb7b65e40b57911
+    lines: 20-112
+  - path: packages/system-worker/src/ServiceFrontendBlockRepo/storeServiceFrontendBlocks/storeServiceFrontendBlocks.ts
+    sha: 4a371e26ec1ab5a14c8e576f5c8846bd13d9ffc6
+    lines: 13-286
+  - path: packages/system-worker/src/FrontendBlockRepo/onMessage/onMessage.ts
+    sha: 4c123a504431c4eb63b68400b209c6b882f7dfa5
+    lines: 19-377
+  - path: packages/system-worker/src/ServiceFrontendBlockRepo/onMessage/onMessage.ts
+    sha: dc3e51a8e39ebfd5284791e0f2f50e2b74a9a7ec
+    lines: 19-371
+  - path: packages/react/src/acquireServiceFrontendWebSocket.ts
+    sha: 672893661d59941da2e047707f13b4bb9d5a299f
+    lines: 85-903
+  - path: packages/shared-worker/src/SharedWorker/partitionSchemas.ts
+    sha: 6a67722b0d866bfd019f7363612b5df4d571f030
+    lines: 181-464
+  - path: packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts
+    sha: 491f7e4055485cd66fe9ff63449190be2fcba395
+    lines: 825-9200
+  - path: packages/system-worker/src/SystemRepo/resolveFrontendProjectionLineage/resolveFrontendProjectionLineage.ts
+    sha: 2ddbda8d656f64bd4c205dbfa3e34cfa6ce4f92f
+    lines: 161-640
+  - path: packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts
+    sha: d2577f0318c280ca03103ab99dcf37562c282adf
+    lines: 139-672
+  - path: packages/system-worker/src/ServiceFrontendRepo/prepareSuccessor/prepareSuccessor.ts
+    sha: 77e32719456329012493e2441ef95ae1c9d9c474
+    lines: 333-394
+  - path: packages/system-worker/src/SystemRepo/registerRepos/registerRepos.ts
+    sha: 69f44b23cf83526b55752a361f5bd0ee0d1fb54f
+    lines: 12-54
 ---
 
 # Blockchain
 
-Zerospin has two authoritative durable block chains that converge in AccountRepo before continuing through the ordinary actor/frontend projection, plus a FrontendRepo-owned admission path that feeds frontend pushes into the account chain:
+Zerospin has account and service authoritative ledgers plus two distinct browser
+projection chains. Service blocks continue to subscribed AccountRepos as before,
+and independently fan out to actor-specific read-only service frontend
+projections:
 
 1. Account changes flow `AccountRepo` → `AccountBlockRepo` → `ActorRepo` →
    `ActorBlockRepo` → `FrontendRepo`.
 2. Service changes flow `ServiceRepo` → the singleton `ServiceBlockRepo` for
    that service → every subscribed `AccountRepo` → `AccountBlockRepo` and the
    same actor chain.
-3. Frontend pushes flow `Browser session` → `FrontendApi` → `FrontendRepo`, where admission updates an optimistic frontend projection and creates an immutable pushed block; FrontendRepo then drains that block to `AccountRepo.finalizePushedCommands` (../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:171-203, ../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:382-405, ../../packages/system-worker/src/FrontendRepo/pushCommands/pushCommands.ts:301-461, ../../packages/system-worker/src/FrontendRepo/drainPushedBlockOutbox/drainPushedBlockOutbox.ts:33-133).
-4. `FrontendRepo` receives authoritative convergence only from ActorBlockRepo delivery, converts actor deltas into one monotonic `frontendIndex`, then publishes `IFrontendBlock` values through its one-to-one `FrontendBlockRepo` websocket/archive (../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:166-187,
+3. The same singleton ServiceBlockRepo separately delivers relevant blocks to
+   `ServiceFrontendRepo`, which materializes only the bound service actor's
+   declared models and archives target-bound lineage blocks in
+   `ServiceFrontendBlockRepo`. Irrelevant service blocks advance only the source
+   watermark and emit no frontend block
+   (../../packages/system-worker/src/ServiceBlockRepo/drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.ts:15-275,
+   ../../packages/system-worker/src/ServiceFrontendRepo/handleServiceBlocks/handleServiceBlocks.ts:18-298).
+4. Frontend pushes flow `Browser session` → `FrontendApi` → `FrontendRepo`, where admission updates an optimistic frontend projection and creates an immutable pushed block; FrontendRepo then drains that block to `AccountRepo.finalizePushedCommands` (../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:167-199, ../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:400-423, ../../packages/system-worker/src/FrontendRepo/pushCommands/pushCommands.ts:301-471, ../../packages/system-worker/src/FrontendRepo/drainPushedBlockOutbox/drainPushedBlockOutbox.ts:33-129).
+5. `FrontendRepo` receives authoritative convergence only from ActorBlockRepo delivery, converts actor deltas into one monotonic logical `frontendIndex`, then publishes account lineage blocks through its one-to-one `FrontendBlockRepo` websocket/archive (../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:166-187,
    ../../packages/system-worker/src/FrontendBlockRepo/FrontendBlockRepo.ts:20-76).
 
 AccountRepo owns canonical service replicas, including retained deleted rows,
@@ -307,6 +380,8 @@ flowchart LR
 
   subgraph ServiceChain["Service-owned chain"]
     SR["ServiceRepo finalizeServiceCommands"] --> SBR["ServiceBlockRepo singleton per service"]
+    SBR --> SFR["ServiceFrontendRepo actor-specific projection"]
+    SFR --> SFBR["ServiceFrontendBlockRepo lineage archive"]
   end
 
   subgraph FrontendAdmission["Frontend-owned admission"]
@@ -319,7 +394,9 @@ flowchart LR
   XBR --> FR
   FR --> FBR["FrontendBlockRepo one actor and frontend"]
   FBR --> WS["Browser websocket"]
+  SFBR --> SWS["Read-only service browser websocket"]
   WS --> Session
+  SWS --> Session
 ```
 
 Every Durable Object database belongs to one explicit data lineage. The locked
@@ -332,29 +409,41 @@ names are `sysrepo_{generationId}`,
 `acctbrepo_{generationId}/{accountId}/{accountName}`,
 `actrbrepo_{generationId}/{accountId}/{accountName}/{actorName}/{actorId}`,
 `frtbrepo_{generationId}/{accountId}/{accountName}/{actorName}/{actorId}/{frontendName}`,
-`svcbrepo_{generationId}/{serviceName}`, and `syslogrepo_{generationId}`.
+`svcbrepo_{generationId}/{serviceName}`,
+`svcfrtrepo_{generationId}/{serviceName}/{actorName}/{actorId}/{frontendName}`,
+`svcfrtbrepo_{generationId}/{serviceName}/{actorName}/{actorId}/{frontendName}`,
+and `syslogrepo_{generationId}`. The account and service projection archives
+therefore have different target identities even though both use a monotonic
+`frontendIndex`
+(../../packages/system-worker/src/systemWorkerAbbreviations.ts:1-17,
+../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts:164-190,
+../../packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts:143-153).
 `makeRepoNameUtils` rejects a missing or wrong exact prefix before matching the
-route, and repo bootstrap registers against the `generationId` parsed from its
-own name so reading a predecessor during replay cannot register that source
-repo into the target SystemRepo
-(../../packages/core/src/utils/coreAbbreviations.ts:5-24,
+route. `makeRepo` auto-registers only repositories whose `repoUtils` declares a
+`repoType`, using the `generationId` parsed from that repository's own name so
+reading a predecessor during replay cannot register the source into the target
+SystemRepo. Account `FrontendRepo`, `ServiceFrontendRepo`, and
+`ServiceFrontendBlockRepo` deliberately omit automatic registration. A live
+account projection registers explicitly only after lineage, archive, and
+subscriber setup; a snapshot-only `no-local-segment` never registers. Service
+projection state and archive repositories become discoverable together through
+one transactional `SystemRepo.registerRepos` call only after catch-up and
+archive coverage are ready
+(../../packages/core/src/utils/coreAbbreviations.ts:1-15,
 ../../packages/system-worker/src/makeRepo/makeRepoNameUtils.ts:33-79,
 ../../packages/system-worker/src/makeRepo/makeRepo.ts:180-207,
-../../packages/system-worker/src/SystemRepo/SystemRepo.ts:167-223,
-../../packages/system-worker/src/AccountRepo/AccountRepo.ts:218-223,
-../../packages/system-worker/src/AuthorizationRepo/AuthorizationRepo.ts:79-84,
-../../packages/system-worker/src/ActorRepo/ActorRepo.ts:130-137,
-../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:143-150,
-../../packages/system-worker/src/ServiceRepo/ServiceRepo.ts:191-196,
-../../packages/system-worker/src/AccountBlockRepo/AccountBlockRepo.ts:49-54,
-../../packages/system-worker/src/ActorBlockRepo/ActorBlockRepo.ts:112-119,
-../../packages/system-worker/src/FrontendBlockRepo/FrontendBlockRepo.ts:36-43,
-../../packages/system-worker/src/ServiceBlockRepo/ServiceBlockRepo.ts:65-70,
-../../packages/system-worker/src/SystemLogRepo/SystemLogRepo.ts:263-279).
+../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:221-244,
+../../packages/system-worker/src/FrontendRepo/getFrontendState/getFrontendState.ts:148-179,
+../../packages/system-worker/src/FrontendRepo/getFrontendState/getFrontendState.ts:292-330,
+../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts:162-202,
+../../packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts:146-171,
+../../packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts:623-672,
+../../packages/system-worker/src/ServiceFrontendRepo/prepareSuccessor/prepareSuccessor.ts:333-393,
+../../packages/system-worker/src/SystemRepo/registerRepos/registerRepos.ts:12-54).
 
 ## Telemetry continuity
 
-The account-finalize request trace starts with a caller-owned root. `makeTraceableApiTarget` captures that root and sends its identity in the linked SystemApi request; `SystemApi.finalizeAccountCommands` runs as a separate server root, while its inner `makeTraceableRpcTarget` / `makeRpcHandler` calls merge the SystemWorker and AccountRepo child telemetry into that server batch (../../packages/logger/src/makeTraceableApiTarget.ts:40-127, ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:218-282, ../../packages/logger/src/makeTraceableRpcTarget.ts:13-113, ../../packages/logger/src/makeRpcHandler.ts:11-75).
+The account-finalize request trace starts with a caller-owned root. `makeTraceableApiTarget` captures that root and sends its identity in the linked SystemApi request; `SystemApi.finalizeAccountCommands` runs as a separate server root, while its inner `makeTraceableRpcTarget` / `makeRpcHandler` calls merge the SystemWorker and AccountRepo child telemetry into that server batch (../../packages/logger/src/makeTraceableApiTarget.ts:40-122, ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:218-282, ../../packages/logger/src/makeTraceableRpcTarget.ts:13-113, ../../packages/logger/src/makeRpcHandler.ts:11-75).
 
 After account finalization settles, the common SystemApi boundary completes and flushes the server root, persists that batch through the same unwrapped SystemWorker stub used by the leaf, and can return a server-owned `causedBy` link pointing to the caller span. Persistence failure preserves the finalization result and returns `link: null` (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:72-154).
 
@@ -398,7 +487,7 @@ The shopping SystemApi e2e uses one explicit HTTP-batch session per sequential l
 
 `AccountBlockRepo.publish` stores only the completed publish span identity needed to link the separate `waitUntil` drain root with `kind: causedBy`. The drain reads and removes that durable context best-effort, captures the current Effect runtime once, and uses it for the existing concurrent queue so refresh and subscriber Effects retain the drain span without a raw context argument (../../packages/system-worker/src/AccountBlockRepo/publish/publish.ts:90-96, ../../packages/system-worker/src/AccountBlockRepo/drainActorOutbox/drainActorOutbox.ts:11-66, ../../packages/system-worker/src/AccountBlockRepo/drainActorOutbox/drainActorOutbox.ts:68-181).
 
-Failed ActorRepo delivery stores the failing span identity as `retryOf`, records the subscriber's next retry deadline, and returns that deadline to the queue. The queue schedules the earliest deadline across the completed concurrent wave; the alarm consumes the stored identity and links its new root before re-entering the same drain Effect (../../packages/system-worker/src/AccountBlockRepo/processSubscriber/processSubscriber.ts:138-190, ../../packages/system-worker/src/AccountBlockRepo/drainActorOutbox/drainActorOutbox.ts:124-207, ../../packages/system-worker/src/AccountBlockRepo/alarm/alarm.ts:9-36). Request, drain, and alarm collectors flush separately into the generation-scoped SystemLogRepo; stable record ids make retries idempotent and retention deletes span, log, and link rows for traces beyond the newest 1,000 (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:72-154, ../../packages/system-worker/src/SystemWorker.ts:246-273, ../../packages/system-worker/src/AccountBlockRepo/AccountBlockRepo.ts:153-203, ../../packages/system-worker/src/AccountBlockRepo/AccountBlockRepo.ts:223-277, ../../packages/system-worker/src/SystemLogRepo/appendTelemetryBatch/appendTelemetryBatch.ts:21-155).
+Failed ActorRepo delivery stores the failing span identity as `retryOf`, records the subscriber's next retry deadline, and returns that deadline to the queue. The queue schedules the earliest deadline across the completed concurrent wave; the alarm consumes the stored identity and links its new root before re-entering the same drain Effect (../../packages/system-worker/src/AccountBlockRepo/processSubscriber/processSubscriber.ts:138-190, ../../packages/system-worker/src/AccountBlockRepo/drainActorOutbox/drainActorOutbox.ts:124-207, ../../packages/system-worker/src/AccountBlockRepo/alarm/alarm.ts:9-36). Request, drain, and alarm collectors flush separately into the generation-scoped SystemLogRepo; stable record ids make retries idempotent and retention deletes span, log, and link rows for traces beyond the newest 1,000 (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:72-154, ../../packages/system-worker/src/SystemWorker.ts:391-433, ../../packages/system-worker/src/AccountBlockRepo/AccountBlockRepo.ts:153-203, ../../packages/system-worker/src/AccountBlockRepo/AccountBlockRepo.ts:223-277, ../../packages/system-worker/src/SystemLogRepo/appendTelemetryBatch/appendTelemetryBatch.ts:21-154).
 
 ## Block and delta types
 
@@ -409,7 +498,31 @@ Failed ActorRepo delivery stores the failing span identity as `retryOf`, records
    `serviceIndex` (../../packages/system-worker/src/types.ts:140-147,
    ../../packages/system-worker/src/ServiceRepo/finalizeServiceCommands/finalizeServiceCommands.ts:202-248).
 4. `IPushedBlock` is one FrontendRepo-assigned `pblk_*` containing a session id, a required nullable `admissionLastAccountCursor`, and full encoded pushed commands. `null` represents the initial account frontier. `IPushedCommand` retains the frontend payload/version, command type, staged cursor/time, and adds pushed time/cursor (../../packages/core/src/contracts/types.ts:250-321, ../../packages/core/src/contracts/CommandSchema.ts:155-162).
-5. `IFrontendBlock` is the browser-facing convergence stream. Its delta has ordinary `inserted`, `updated`, and `deleted` entries plus a complete pending pushed snapshot, pushed terminal outcomes, and `lastRebasedPushedCursor`; service replicas use the same ordinary delta paths (../../packages/core/src/session/types.ts:70-87, ../../packages/core/src/session/FrontendBlockSchema.ts:17-35).
+5. `IFrontendBlock` is the account-browser convergence payload. Its delta has
+   ordinary `inserted`, `updated`, and `deleted` entries plus the complete
+   pending pushed snapshot, pushed terminal outcomes, and
+   `lastRebasedPushedCursor`. `IFrontendLineageBlock` wraps that payload with
+   the exact account/actor/frontend identity or carries an explicit
+   generation-boundary receipt. The SharedWorker commits server and local
+   command changes to one contiguous `replicaIndex` through
+   `IFrontendReplicaBlock`
+   (../../packages/core/src/session/types.ts:68-212,
+   ../../packages/core/src/session/FrontendBlockSchema.ts:31-180).
+6. `IServiceFrontendBlock` is a separate read-only service-browser payload. It
+   carries the service/actor/frontend identity, the source service cursor, and
+   only ordinary resource deltas—never account pending, pushed, or terminal
+   command state. Its lineage boundary, replica state, replica block, and
+   transition-required control all preserve the same exact service target and
+   give the worker a separate contiguous `replicaIndex`
+   (../../packages/core/src/serviceSession/types.ts:16-104,
+   ../../packages/core/src/serviceSession/ServiceFrontendBlockSchema.ts:20-112).
+7. `frontendIndex` is the logical lineage index archived by the server. A
+   worker `replicaIndex` is the physical local commit sequence. Generation
+   boundaries consume a frontend index even when successor catch-up emits no
+   resource block, so resume can distinguish a fully applied predecessor from
+   a required lineage transition
+   (../../packages/core/src/session/types.ts:109-212,
+   ../../packages/core/src/serviceSession/types.ts:35-104).
 
 ## Client-safe service models and actor selections
 
@@ -439,8 +552,8 @@ forward `one`; a unique ref produces an inverse `one`, while a non-unique ref
 produces an inverse `many`
 (../../packages/core/src/models/makeModel.ts:186-305,
 ../../packages/core/src/models/primitives.ts:539-722,
-../../packages/core/src/drizzle/makeDbConfig.ts:13-61,
-../../packages/core/src/drizzle/makeDrizzleRelations.ts:19-385).
+../../packages/core/src/drizzle/makeDbConfig.ts:13-60,
+../../packages/core/src/drizzle/makeDrizzleRelations.ts:19-379).
 
 Shopping declares models in dependency order: Cart references `User.table`, and
 CartItem references `Cart.table` and `Product.table`. The Product selection can
@@ -467,12 +580,15 @@ owner (../../packages/core/src/models/makeModel.ts:230-340,
 Every persisted `primitives.ref` is both a Drizzle relation and an immediate
 SQLite foreign key. Database configuration combines resource-model and other
 tables into one graph, records each logical table identity, and resolves lazy
-Drizzle reference closures against that graph. Migration SQL emits concrete
-`FOREIGN KEY (...) REFERENCES ... (...)` clauses without cascade, set-null, or
+Drizzle reference closures against that graph. Migration SQL preserves
+column-level primary-key, autoincrement, not-null, unique, and default
+constraints before emitting concrete `FOREIGN KEY (...) REFERENCES ... (...)`
+clauses and configured indexes. Foreign keys have no cascade, set-null, or
 deferred options, leaving SQLite's default `NO ACTION` behavior
-(../../packages/core/src/drizzle/makeDbConfig.ts:26-63,
+(../../packages/core/src/drizzle/makeDbConfig.ts:26-60,
 ../../packages/core/src/drizzle/makeDrizzleSchemas.ts:16-53,
-../../packages/core/src/drizzle/makeTableMigrationSQL.ts:43-60).
+../../packages/core/src/drizzle/makeTableMigrationSQL.ts:7-36,
+../../packages/core/src/drizzle/makeTableMigrationSQL.ts:39-75).
 
 Every database-opening boundary explicitly enables `PRAGMA foreign_keys = ON`
 before transactions begin. A create, update, delete, move, or replicated-row
@@ -564,7 +680,7 @@ mutation; a non-null adapter result is validated before application. The target
 application preserves the source command id, mutation index, and timestamp but
 recomputes inverse state from the new generation's rows
 (../../packages/core/src/contracts/replayAppliedMutationTx.ts:33-174,
-../../packages/core/src/contracts/replayAppliedMutationTx.ts:176-399).
+../../packages/core/src/contracts/replayAppliedMutationTx.ts:176-397).
 
 ## Model-owned `replicateResource`
 
@@ -580,7 +696,7 @@ The same mutation has runtime-specific write behavior:
 1. Browser sessions and FrontendRepo use
    [`applyFrontendMutationTx`](../../packages/core/src/contracts/applyFrontendMutationTx.ts).
    It immediately upserts the complete resource and captures the prior complete
-   row for optimistic rollback (../../packages/core/src/contracts/applyFrontendMutationTx.ts:14-114).
+   row for optimistic rollback (../../packages/core/src/contracts/applyFrontendMutationTx.ts:14-111).
 2. AccountRepo and ActorRepo use
    [`applyAccountMutationTx`](../../packages/core/src/contracts/applyAccountMutationTx.ts).
    It upserts the complete canonical service row into the account/actor model
@@ -590,7 +706,7 @@ The same mutation has runtime-specific write behavior:
    inserted or updated rows; a service delete is an update carrying
    `deletedAt`. A failed optimistic command still
    restores or deletes its previous local replica through the saved inverse
-   (../../packages/core/src/session/applyFrontendBlock.ts:43-153,
+   (../../packages/core/src/session/applyFrontendBlock.ts:607-797,
    ../../packages/core/src/contracts/applyMutationInverseTx.ts:20-92).
 
 AccountRepo has no per-resource registry or watermark. A service-model row joins
@@ -618,7 +734,7 @@ the same delete preserves every attribute and sets both `deletedAt` and
 `updatedAt` to the mutation's `appliedAt`. The applied mutation still stores the
 complete prior resource as its `{ resource }` inverse
 (../../packages/core/src/contracts/applyMutationTx.ts:48-119,
-../../packages/core/src/contracts/applyMutationInverseTx.ts:1-306).
+../../packages/core/src/contracts/applyMutationInverseTx.ts:1-303).
 
 Deletion is terminal. An exact same-timestamp service-delete replay succeeds as
 a no-op; a differently timestamped delete, create, update, move, or replication
@@ -651,7 +767,7 @@ SQLite transaction; preparation maps missing or failed results back to their
 owning commands and replaces successful client seeds with decoded canonical
 rows
 (../../packages/system-worker/src/AccountRepo/finalizeAccountBlock/prepareAccountCommands.ts:33-393,
-../../packages/system-worker/src/ServiceRepo/getReplicatedResources/getReplicatedResources.ts:22-221).
+../../packages/system-worker/src/ServiceRepo/getReplicatedResources/getReplicatedResources.ts:22-217).
 
 Both ordinary and pushed finalization run grouped snapshot preparation and the
 local AccountRepo transaction inside one coarse `blockConcurrencyWhile` gate,
@@ -749,6 +865,7 @@ sequenceDiagram
   participant ServiceBlockRepo
   participant AccountRepo
   participant AccountBlockRepo
+  participant ServiceFrontendRepo
 
   Caller->>ServiceRepo: finalizeServiceCommands batch
   ServiceRepo->>ServiceRepo: tx apply commands and write one serviceBlockOutbox row
@@ -758,6 +875,10 @@ sequenceDiagram
     ServiceBlockRepo->>AccountRepo: handleServiceBlocks ordered suffix
     AccountRepo->>AccountRepo: apply mutations for existing rows and advance watermark
     AccountRepo->>AccountBlockRepo: publish one commandless block when relevant
+  end
+  loop each subscribed ServiceFrontendRepo
+    ServiceBlockRepo->>ServiceFrontendRepo: handleServiceBlocks ordered suffix
+    ServiceFrontendRepo->>ServiceFrontendRepo: apply selected resources and advance watermark
   end
 ```
 
@@ -772,21 +893,23 @@ single ServiceBlockRepo named by `{ generationId, serviceName }`, records
 publish failures durably, and uses a Durable Object alarm for retry
 (../../packages/system-worker/src/ServiceRepo/drainServiceBlockOutbox/drainServiceBlockOutbox.ts:20-76).
 
-ServiceBlockRepo remains the only durable subscriber-delivery queue. The
+ServiceBlockRepo remains the only durable subscriber-delivery queue for both
+account and service-frontend subscribers. The
 grouped replication snapshot reads retained blocks from ServiceRepo's source
 outbox in `(C, W]`; it does not consume, acknowledge, or replace the
 ServiceBlockRepo delivery path
 (../../packages/system-worker/src/ServiceRepo/getReplicatedResources/getReplicatedResources.ts:71-196,
 ../../packages/system-worker/src/ServiceBlockRepo/ServiceBlockRepo.ts:29-130).
 
-ServiceBlockRepo archives every service block and identifies each subscriber by
-its exact prefixed `accountRepoName`, while keeping account id/name separately.
-Its drain calls `ACCOUNT_REPO.getByName(accountRepoName)` directly, advances the
-service cursor/index on success, and on failure persists exponential retry
-metadata plus the exact earliest future alarm deadline so a premature wake does
-not discard pending work
+ServiceBlockRepo archives every service block and retains exact prefixed repo
+names for both subscriber classes. Account delivery calls
+`ACCOUNT_REPO.getByName(accountRepoName)` directly; service-frontend delivery
+calls `SERVICE_FRONTEND_REPO.getByName(serviceFrontendRepoName)` directly. Each
+path advances its service cursor/index on success and persists retry state plus
+the exact earliest future alarm deadline on failure
 (../../packages/system-worker/src/ServiceBlockRepo/ServiceBlockRepo.ts:29-130,
-../../packages/system-worker/src/ServiceBlockRepo/drainAccountSubscribers/drainAccountSubscribers.ts:18-143).
+../../packages/system-worker/src/ServiceBlockRepo/drainAccountSubscribers/drainAccountSubscribers.ts:18-131,
+../../packages/system-worker/src/ServiceBlockRepo/drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.ts:15-275).
 
 AccountRepo likewise identifies each service subscription by the exact
 prefixed `serviceRepoName` while retaining `serviceName` as a separate routing
@@ -816,16 +939,54 @@ retry; account finalization, service handling, and `alarm` all invoke this drain
 ## Generation ledger replay and watermarks
 
 A migrated generation is rebuilt from the predecessor's immutable service and
-account block ledgers, not by re-running historical contract programs. Before
-preparation, `SystemRepo.drainGeneration` closes writes, drains FrontendRepo,
-ServiceRepo, ServiceBlockRepo, AccountRepo, and AccountBlockRepo in dependency
-order, then captures a paired terminal cursor/index for every registered
-ServiceBlockRepo and AccountBlockRepo. A drain retry must observe the same
-bounds, and the generation becomes `drained` only after every registered block
-repo has one durable bound (../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:69-288,
-../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:290-525,
-../../packages/system-worker/src/ServiceBlockRepo/getReplayBound/getReplayBound.ts:9-53,
-../../packages/system-worker/src/AccountBlockRepo/getReplayBound/getReplayBound.ts:9-55).
+account block ledgers, not by re-running historical contract programs. Drain is
+two phase. `mode: 'freeze'` atomically changes admission from `open` to
+`draining`, waits only for the finite set of already committed write
+reservations, drains every dependency level, and persists immutable owner-ledger
+and projection bounds plus `drainFrozenAt`. It does not mark the source
+`drained`. A reservation that remains for 30 seconds is reported as abandoned
+and is retained for diagnosis rather than silently expired
+(../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:39-117,
+../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:384-585,
+../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:587-834,
+../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:836-1689).
+
+Hosted predecessor code may finish its retry/outbox work during that dependency
+walk. A self-hosted upload cannot execute predecessor behavior, so repo drain
+boundaries perform inspection only and fail if any old work remains.
+`ServiceBlockRepo` checks both its account and service-frontend subscriber
+watermarks against the terminal service block. The narrow retired
+actor/frontend FrontendRepo seam is limited to an already-bootstrapped
+self-hosted repo and retained account models; it does not make new invalid repo
+keys or removed accounts inspectable
+(../../packages/system-worker/src/ServiceBlockRepo/drainGeneration/drainGeneration.ts:11-220,
+../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:223-274,
+../../packages/system-worker/src/FrontendRepo/drainGeneration/drainGeneration.ts:11-90).
+
+A projection first resolved after `drainFrozenAt` is a snapshot-only
+`no-local-segment`. It materializes readable owner state at the nearest real
+predecessor bound but creates no subscriber, local archive, registration, or
+ticket path and therefore does not extend the finite frozen projection set.
+Only a pre-freeze reservation becomes a live physical segment and successor
+handoff input
+(../../packages/system-worker/src/SystemRepo/resolveFrontendProjectionLineage/resolveFrontendProjectionLineage.ts:161-275,
+../../packages/system-worker/src/SystemRepo/resolveFrontendProjectionLineage/resolveFrontendProjectionLineage.ts:278-408,
+../../packages/system-worker/src/SystemRepo/resolveFrontendProjectionLineage/resolveFrontendProjectionLineage.ts:589-640,
+../../packages/system-worker/src/FrontendRepo/getFrontendState/getFrontendState.ts:139-179,
+../../packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts:239-364).
+
+Migration preparation requires that ready, draining, frozen predecessor. It
+replays authoritative service ledgers first and account ledgers second, then
+prepares every frozen account and service frontend projection against the
+already replayed target owners. Each successor projection catches up in
+`no-emission` mode, records its predecessor archive, emits exactly one
+generation-boundary lineage block, and becomes live. Only after candidate
+opening and routing promotion does `mode: 'complete'` mark the predecessor
+drained, purge both kinds of unused websocket ticket, and close predecessor
+archive rooms with a superseded signal
+(../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:469-541,
+../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:1325-1731,
+../../packages/system-worker/src/SystemRepo/drainGeneration/drainGeneration.ts:176-381).
 
 ```mermaid
 sequenceDiagram
@@ -842,7 +1003,7 @@ sequenceDiagram
 
   Caller->>Worker: prepareGeneration(deployId, generationId, prevGenerationId, systemSpec, seeds=[])
   Worker->>TargetSystem: prepareGeneration
-  TargetSystem->>SourceSystem: require ready + drained; read immutable bounds
+  TargetSystem->>SourceSystem: require ready + draining + frozen; read immutable bounds
   loop each source ServiceRepo, then each serviceIndex through captured bound
     TargetSystem->>SourceServiceLedger: getReplayBlock(after, through)
     TargetSystem->>TargetService: replayServiceBlock(full source block)
@@ -858,6 +1019,14 @@ sequenceDiagram
     TargetAccountLedger-->>TargetAccount: verify accountIndex + lastAccountCursor
   end
   TargetSystem->>TargetAccount: restore each service subscription cursor/index
+  loop each frozen account frontend projection
+    TargetSystem->>TargetSystem: install target-owner snapshot without emission
+    TargetSystem->>TargetSystem: archive one account generation boundary; become live
+  end
+  loop each frozen service frontend projection
+    TargetSystem->>TargetSystem: install target ServiceRepo snapshot without emission
+    TargetSystem->>TargetSystem: archive one service generation boundary; become live
+  end
   TargetSystem->>TargetSystem: verify source/target owner-repo counts; mark ready
   TargetSystem-->>Worker: readiness = ready
   Worker-->>Caller: prepared identity
@@ -869,9 +1038,9 @@ instantiated even when its source ledger is empty. Each replay receipt is keyed
 to the deploy, predecessor, source index, and cursor; publication is blocking,
 and the target ServiceBlockRepo must contain the exact terminal watermark before
 the repo completion is stored
-(../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:518-857,
+(../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:544-857,
 ../../packages/system-worker/src/ServiceRepo/replayServiceBlock/replayServiceBlock.ts:27-198,
-../../packages/system-worker/src/ServiceRepo/replayServiceBlock/replayServiceBlock.ts:200-354).
+../../packages/system-worker/src/ServiceRepo/replayServiceBlock/replayServiceBlock.ts:200-353).
 
 Account ledgers replay only after all service completions. Account mutation
 ownership remains split: service-origin and replica mutations use the owning
@@ -883,41 +1052,66 @@ the exact target AccountBlockRepo block
 (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:859-1132,
 ../../packages/system-worker/src/AccountRepo/replayAccountBlock/replayAccountBlock.ts:85-194,
 ../../packages/system-worker/src/AccountRepo/replayAccountBlock/replayAccountBlock.ts:195-370,
-../../packages/system-worker/src/AccountRepo/replayAccountBlock/replayAccountBlock.ts:375-438).
+../../packages/system-worker/src/AccountRepo/replayAccountBlock/replayAccountBlock.ts:375-437).
 
 After one account ledger reaches its bound, preparation copies each source
 service subscription's exact `currentServiceCursor` and `currentServiceIndex`
 into the target AccountRepo, but only after proving that watermark is not beyond
 the captured service-ledger bound. This preserves the account's position in the
-service chain without copying ActorRepo or FrontendRepo projection databases.
-Preparation finally requires equal source/target ServiceRepo and AccountRepo
-counts before committing target readiness
-(../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:1134-1283,
-../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:1285-1393).
+service chain. Frozen account projection receipts then install successor state
+from the replayed target account owner and frozen service projection receipts
+install successor state from the replayed target ServiceRepo; neither copies a
+predecessor projection database as the new authority. Both preserve archive
+lineage through an explicit boundary. Preparation finally requires equal
+source/target ServiceRepo and AccountRepo counts before committing target
+readiness
+(../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:1134-1323,
+../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:1325-1731,
+../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:1733-1790).
 
 ## Generation replay trigger
 
 1. [`SystemWorker.prepareGeneration`](../../packages/system-worker/src/prepareGeneration/prepareGeneration.ts) receives the candidate `deployId`, target `generationId`, nullable `prevGenerationId`, complete `systemSpec`, and seeds.
-   1. It delegates to the target generation's SystemRepo and returns only an exact `{ deployId, generationId, readiness: 'ready' }` result (../../packages/system-worker/src/prepareGeneration/prepareGeneration.ts:17-82).
+   1. It delegates to the target generation's SystemRepo and returns only an exact `{ deployId, generationId, readiness: 'ready' }` result (../../packages/system-worker/src/prepareGeneration/prepareGeneration.ts:17-80).
 2. Preparation is blocking but is not activation. It builds or validates a closed target lineage; opening generation admission happens later.
 
 ## Annotated generation replay steps
 
 1. [`SystemRepo.prepareGeneration`](../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts) verifies that the supplied SystemSpec encodes identically to the candidate Worker's runtime system and establishes exclusive preparation ownership (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:91-214).
 2. A compatible reuse has `prevGenerationId: null`, no seeds, and no ledger replay. It rechecks compatibility against the generation's active SystemSpec and records the candidate as the preparing deploy (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:216-320).
-3. A detached initial or clean generation has `prevGenerationId: null`; its ordered seeds run through ordinary account/service finalization so it begins with normal authoritative ledgers (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:323-445).
-4. A migration has a non-null predecessor, forbids seeds, and requires the predecessor to be ready and drained with an active SystemSpec. It must actually require a new generation and have complete adapter coverage (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:446-516).
-5. Services replay to their captured bounds before accounts. Every target block is published and verified, and per-repo completion rows make a same-deploy retry idempotent (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:518-857).
+3. A detached initial or clean generation has `prevGenerationId: null`; its ordered seeds run through ordinary account/service finalization so it begins with normal authoritative ledgers (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:341-468).
+4. A migration has a non-null predecessor, forbids seeds, and requires the
+   predecessor to be ready, `draining`, and frozen with an active SystemSpec.
+   It must actually require a new generation and have complete adapter coverage
+   (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:469-541).
+5. Services replay to their captured bounds before accounts. Every target block is published and verified, and per-repo completion rows make a same-deploy retry idempotent (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:544-857).
 6. Accounts then replay to their bounds, restore exact service-subscription watermarks, and store verified per-repo completions (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:859-1283).
-7. Readiness commits only after clean seeding or all migration postconditions. Any failure permanently marks the target generation `failed` and keeps admission closed (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:1316-1421).
+7. Every account and service projection named by a frozen drain receipt is
+   prepared at its exact causal and logical watermark, backed by an exactly
+   matching archive descriptor, and advanced through one boundary before
+   target readiness
+   (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:1325-1731).
+8. Readiness commits only after clean seeding or all migration postconditions.
+   Any failure permanently marks the target generation `failed` and keeps
+   admission closed
+   (../../packages/system-worker/src/SystemRepo/prepareGeneration/prepareGeneration.ts:1733-1870).
 
 ## Pushed commands and optimistic replication
 
-Browser staging runs the frontend contract immediately with frontend models,
-so `replicateResource` inserts the whole service row optimistically and saves
-its inverse before any network request (../../packages/core/src/session/makeSession.ts:163-269).
+Browser staging runs the frontend contract immediately with frontend models.
+In direct mode, the session applies each mutation optimistically and persists
+its inverse before any network request. In SharedWorker mode, the session sends
+the complete encoded command and unapplied mutations with its current replica
+index to the worker; the worker checks that causal base, durably journals and
+materializes the command, and fans the resulting replica block back. A
+causal-behind stale-base response waits for the missing replica index and then
+reruns the complete contract preparation, while repair, update, release, and
+non-stale failures remain terminal
+(../../packages/core/src/session/makeSession.ts:190-447,
+../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:3884-4265,
+../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:7648-7723).
 
-For nonempty staging, the browser obtains a signature from the session and sends the full encoded staged rows through one linked `FrontendApi.pushCommands` call. The gateway validates that wire shape, binds account/actor/frontend scope plus its pinned deploy/generation pair, and SystemWorker write-admits that pair before delegating to the corresponding generation-scoped FrontendRepo (../../packages/frontend/src/pushStagedCommands.ts:63-105, ../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:171-203, ../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:408-431, ../../packages/system-worker/src/SystemWorker.ts:1581-1653).
+For nonempty direct-mode staging, the browser obtains a signature from the session and sends the full encoded staged rows through one linked `FrontendApi.pushCommands` call. The gateway validates that wire shape, binds account/actor/frontend scope plus its pinned deploy/generation pair, and SystemWorker verifies that exact generation and frontend binding before write admission and delegation to the corresponding FrontendRepo (../../packages/frontend/src/pushStagedCommands.ts:63-105, ../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:171-203, ../../packages/dispatch-worker/src/FrontendApi/FrontendApi.ts:408-431, ../../packages/system-worker/src/SystemWorker.ts:1960-2186).
 
 FrontendRepo classifies each session in staged-cursor order. An exact command still in an open pushed block returns as pending; a reused cursor with different command content fails as a conflict; cursors at or below the terminal and processed SQLite-KV watermarks fail with distinct terminal/processed codes; only higher cursors enter new admission (../../packages/system-worker/src/FrontendRepo/pushCommands/pushCommands.ts:75-299).
 
@@ -925,7 +1119,7 @@ After bootstrap, FrontendRepo reads its repo-local last account cursor once at t
 
 All successes from one RPC form one immutable FrontendRepo-assigned pushed block stamped with that single `admissionLastAccountCursor`. The transaction commits optimistic resource rows, pushed lifecycle rows, mutation inverses, the pushed-block outbox row, staged-cursor watermarks, and `lastRebasedPushedCursor` before returning. Acceptance is visible immediately only through the origin response and later `getFrontendState`; it does not emit a frontend block (../../packages/core/src/contracts/types.ts:282-297, ../../packages/core/src/contracts/CommandSchema.ts:155-162, ../../packages/system-worker/src/FrontendRepo/pushCommands/pushCommands.ts:395-471, ../../packages/system-worker/src/FrontendRepo/getFrontendState/getFrontendState.ts:47-84).
 
-Pushed-block delivery selects unfinalized rows by first pushed cursor. Each row gets three total attempts using an exponential schedule; a failed row stores its failure and ends the drain before later blocks can overtake it. There is no pushed-block retry alarm: `pushCommands`, `getFrontendState`, and actor-block handling start a later drain. A successful row is marked finalized but retained until the matching actor block returns (../../packages/system-worker/src/FrontendRepo/drainPushedBlockOutbox/drainPushedBlockOutbox.ts:33-133, ../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:166-247, ../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:262-275).
+Pushed-block delivery selects unfinalized rows by first pushed cursor. Each row gets three total attempts using an exponential schedule; a failed row stores its failure and ends the drain before later blocks can overtake it. There is no pushed-block retry alarm: `pushCommands`, `getFrontendState`, and actor-block handling start a later drain. A successful row is marked finalized but retained until the matching actor block returns (../../packages/system-worker/src/FrontendRepo/drainPushedBlockOutbox/drainPushedBlockOutbox.ts:33-129, ../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:166-247, ../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:262-275).
 
 `AccountRepo.finalizePushedCommands` checks command scope and first looks up the account-block outbox by the unique nullable `pushedBlockId`; a duplicate returns the stored result before reading a cursor or resolving a guard. A new block always re-runs frontend-to-account adaptation and authoritative preparation from the full pushed commands, then applies retained ServiceBlocks and tracks the cursor of each relevant intermediate AccountBlock. Only after alignment does it compare the current cursor once with the block's admission cursor (../../packages/system-worker/src/AccountRepo/AccountRepo.ts:103-165, ../../packages/system-worker/src/AccountRepo/finalizePushedCommands/finalizePushedCommands.ts:85-292, ../../packages/system-worker/src/AccountRepo/finalizePushedCommands/finalizePushedCommands.ts:294-472).
 
@@ -935,35 +1129,86 @@ The resulting immutable account block preserves full pushed-command provenance i
 
 ## Frontend block archive and websocket
 
-FrontendRepo drains unpublished frontend outbox rows in `frontendIndex` order to
-the matching FrontendBlockRepo, marks them published on success, and records a
-failure plus alarm on delivery error
-(../../packages/system-worker/src/FrontendRepo/drainFrontendBlockOutbox/drainFrontendBlockOutbox.ts:17-80).
+FrontendRepo and ServiceFrontendRepo drain unpublished lineage rows in strict
+`frontendIndex` order to their distinct matching archives. Each archive checks
+the complete target identity, accepts an existing index only when its canonical
+bytes are identical, rejects gaps or conflicts, and requires an inherited
+segment's first local row to be the recorded generation boundary. Broadcast
+happens only after the atomic archive append commits
+(../../packages/system-worker/src/FrontendBlockRepo/storeFrontendBlocks/storeFrontendBlocks.ts:13-280,
+../../packages/system-worker/src/ServiceFrontendBlockRepo/storeServiceFrontendBlocks/storeServiceFrontendBlocks.ts:13-286).
 
-FrontendBlockRepo is a hibernating PartyServer with one archive and websocket
-room per actor/frontend key. `storeFrontendBlocks` ignores an already archived
-frontend index, stores the encoded block, and broadcasts
-`{ type: "frontendBlock", sync }` to every socket in that room
-(../../packages/system-worker/src/FrontendBlockRepo/FrontendBlockRepo.ts:20-76,
-../../packages/system-worker/src/FrontendBlockRepo/storeFrontendBlocks/storeFrontendBlocks.ts:10-49).
+The account and service websocket routes mint and consume different one-use
+tickets and resolve the server-owned archive name; the browser never supplies a
+Durable Object name. Once connected, the first and only client-authored frame is
+the current replica generation and `frontendIndex`. A target-generation resume
+receives the exact local suffix and `replay-complete`. A cross-generation resume
+receives the source suffix through its terminal bound, exactly the first
+successor boundary, a validated `lineage-transition-required` control carrying
+the remaining boundary chain, and close code 4002
+(../../packages/system-worker/src/FrontendBlockRepo/onMessage/onMessage.ts:19-377,
+../../packages/system-worker/src/ServiceFrontendBlockRepo/onMessage/onMessage.ts:19-371,
+../../packages/system-worker/src/SystemWorker.ts:2584-2807).
 
-React obtains a one-use ticket through the authenticated FrontendApi and opens
-the fixed `/ws-frontend-blocks` route with only `publishableKey` and `ticket`.
-The browser never constructs or transmits the FrontendBlockRepo name. Duplicate
-or older frontend indexes are ignored. A newer block is applied with the
-session's prior `lastRebasedPushedCursor`, then the store advances both the
-frontend index and pushed watermark
-(../../packages/react/src/acquireFrontendWebSocket.ts:38-117).
+Ticket authority stays on a ready source generation while its read admission is
+`open` or `draining`, so a frozen pre-switch archive can mint fresh reconnect
+tickets even though command writes are closed. Only after the source is
+`drained` may authority move by walking complete recorded successor links and
+verifying every target's inverse predecessor. The final generation must be
+ready with `open` or `draining` read admission, and its projection/archive pair
+must exist and prove archive coverage before its SystemRepo stores the one-use
+ticket. State reads and account pushes remain source-bound instead of following
+that chain
+(../../packages/system-worker/src/createFrontendWebSocketTicket/createFrontendWebSocketTicket.ts:38-240,
+../../packages/system-worker/src/createFrontendWebSocketTicket/createFrontendWebSocketTicket.ts:243-418,
+../../packages/system-worker/src/createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.ts:82-265,
+../../packages/system-worker/src/createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.ts:268-452).
 
-Session block application rewinds staged overlays and only pushed overlays newer than the prior watermark, applies the convergence patch, reconciles pending and terminal lifecycle rows at the new watermark, then replays newer pushed commands before staged commands. A staged replay failure becomes a local failed command; a pushed replay failure also stays locally failed. A later authoritative execution is suppressed by that local failure, while a later authoritative failure replaces its details (../../packages/core/src/session/applyFrontendBlock.ts:50-165, ../../packages/core/src/session/applyFrontendBlock.ts:167-299, ../../packages/core/src/session/applyFrontendBlock.ts:301-480).
+Direct browser mode reacts to that control by reauthenticating the exact target,
+repairing from its bound full state, applying the already received boundary as
+the transition receipt, and reconnecting with a fresh ticket and changing resume
+watermark. State-required gaps also repair before reconnect. Ordinary reconnect
+uses exponential delay capped at 30 seconds and never reuses a spent ticket
+(../../packages/react/src/acquireFrontendWebSocket.ts:62-874,
+../../packages/react/src/acquireServiceFrontendWebSocket.ts:85-900).
 
-The public dispatch Worker validates the fixed request shape and forwards the
-unchanged upgrade to SystemWorker. SystemWorker consumes the generation-local
-ticket, receives its server-derived repo name, and only then forwards directly
-to `FRONTEND_BLOCK_REPO`. The spent ticket is not restored if the final forward
-fails (../../packages/dispatch-worker/src/Worker.ts:21-55,
-../../packages/system-worker/src/SystemWorker.ts:2086-2162). See
-[[FrontendWebSocket]] for the admission and hibernation boundary.
+A same-generation frontend-version change preserves the old account and service
+replicas as readable archive consumers and reports `update-required`. Service is
+already read-only. Account writes are suspended and its unfinished journal rows
+become dormant until matching code acquires or commissions the authoritative
+version; the source replica, physical database, and command bytes are retained
+(../../packages/react/src/acquireFrontendWebSocket.ts:274-417,
+../../packages/react/src/acquireServiceFrontendWebSocket.ts:290-433,
+../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:1992-2060,
+../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:2198-2305,
+../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:3170-3369,
+../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:4739-4934).
+
+Session block application first validates the exact target and contiguous
+`replicaIndex`; an equal index is accepted only when the canonical encoding
+equals the supplied previous block. Local-command replica blocks apply their
+already-computed resource, lifecycle, and optimistic-mutation rows directly in
+one transaction. Ordinary server blocks rewind local overlays, apply
+authoritative resources, reconcile pending commands, persist full executed or
+failed authority, remove local intent, then replay stored encoded mutations and
+recompute inverses without rerunning authored contracts. A replay error aborts
+block application for repair rather than inventing a local failed command. An
+existing local failure still suppresses an authoritative execution row, while
+an authoritative failure replaces its details
+(../../packages/core/src/session/applyFrontendBlock.ts:83-166,
+../../packages/core/src/session/applyFrontendBlock.ts:168-452,
+../../packages/core/src/session/applyFrontendBlock.ts:455-605,
+../../packages/core/src/session/applyFrontendBlock.ts:607-797,
+../../packages/core/src/session/applyFrontendBlock.ts:799-891).
+
+The public dispatch Worker validates the two fixed request shapes and forwards
+the unchanged upgrade to SystemWorker. SystemWorker consumes the appropriate
+generation-local ticket, receives its server-derived repo name, and only then
+forwards to the account or service archive binding. A spent ticket is not
+restored if the final forward fails
+(../../packages/dispatch-worker/src/Worker.ts:21-92,
+../../packages/system-worker/src/SystemWorker.ts:2584-2807). See
+[[FrontendWebSocket]] for the full admission, replay, and hibernation boundary.
 
 ## Recovery guarantees
 
@@ -975,10 +1220,62 @@ fails (../../packages/dispatch-worker/src/Worker.ts:21-55,
    memory (../../packages/system-worker/src/AccountBlockRepo/accountBlockDrizzleSchemas.ts:184-214,
    ../../packages/system-worker/src/ActorBlockRepo/ActorBlockRepo.ts:90-106,
    ../../packages/system-worker/src/ServiceBlockRepo/ServiceBlockRepo.ts:40-56).
-3. AccountRepo owns each service cursor; FrontendRepo exposes its account cursor, browser `frontendIndex`, and pushed rebase watermark, so the browser receives one ordinary convergence stream without replaying optimistic commands already represented by server state (../../packages/system-worker/src/FrontendRepo/getFrontendState/getFrontendState.ts:58-84, ../../packages/core/src/session/types.ts:76-104).
+3. AccountRepo owns each service cursor. Full FrontendRepo state exposes the
+   logical `frontendIndex`, `lastRebasedPushedCursor`, resources, pending pushed
+   commands, and complete executed and failed pushed terminal rows. Ordinary
+   convergence blocks separately carry `lastAccountCursor` plus the pending,
+   terminal, and rebase metadata, preventing optimistic commands already
+   represented by server state from being replayed. FrontendRepo defines
+   separate pending, executed, and failed command tables and reruns its
+   idempotent schema migration on every cold start so additive terminal tables
+   exist before any RPC reads or writes them
+   (../../packages/system-worker/src/FrontendRepo/getFrontendState/getFrontendState.ts:332-379,
+   ../../packages/core/src/session/types.ts:76-106,
+   ../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:91-162,
+   ../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:246-276).
 4. Canonical snapshot insertion creates the replicated row; the owning
    service's delete mutation terminally marks and retains it. There is no
    account-initiated release or undelete API
    (../../packages/system-worker/src/AccountRepo/finalizeAccountBlock/finalizeCommandsTx.ts:137-169,
    ../../packages/system-worker/src/AccountRepo/handleServiceBlocks/handleServiceBlocks.ts:112-171).
-5. FrontendRepo pushed-block failures remain durable on the first failed row, preserve strict pushed-cursor order, and resume only when later FrontendRepo activity starts another drain; the pushed-block path deliberately has no retry alarm (../../packages/system-worker/src/FrontendRepo/drainPushedBlockOutbox/drainPushedBlockOutbox.ts:47-133, ../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:166-275).
+5. FrontendRepo pushed-block failures remain durable on the first failed row, preserve strict pushed-cursor order, and resume only when later FrontendRepo activity starts another drain; the pushed-block path deliberately has no retry alarm (../../packages/system-worker/src/FrontendRepo/drainPushedBlockOutbox/drainPushedBlockOutbox.ts:47-129, ../../packages/system-worker/src/FrontendRepo/FrontendRepo.ts:166-275).
+6. ServiceFrontendRepo independently stores source-block receipts, projection
+   state, and an archive outbox. Irrelevant source blocks advance its causal
+   service watermark without inventing a frontend delta; relevant blocks and
+   generation boundaries remain exactly target-bound
+   (../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts:95-159,
+   ../../packages/system-worker/src/ServiceFrontendRepo/handleServiceBlocks/handleServiceBlocks.ts:89-298).
+7. The SharedWorker partition catalog persists separate account and service
+   replica rows, database history, commissioning/ready/failed state, role,
+   logical and physical indexes, pending transition, socket state, and failure.
+   Acquisition returns a captured snapshot before opening its buffered-block
+   gate, so concurrent socket delivery cannot race ahead of initial hydration
+   (../../packages/shared-worker/src/SharedWorker/partitionSchemas.ts:212-333,
+   ../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:1758-1883,
+   ../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:4568-4712).
+8. Account local intent is partition-owned journal data, not replica-database
+   data. Repair builds a replacement database, rematerializes eligible journal
+   commands, and atomically repoints the catalog while retaining previous
+   database names. Legacy replica rows and old physical databases are
+   quarantined or retained; normal acquisition does not delete the only copy of
+   unpushed commands
+   (../../packages/shared-worker/src/SharedWorker/partitionSchemas.ts:181-210,
+   ../../packages/shared-worker/src/SharedWorker/partitionSchemas.ts:335-453,
+   ../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:825-1756).
+9. A worker transition control is not authority by itself. Account and service
+   runtimes prove that the persisted previous block is the exact applied
+   source-to-successor generation boundary, then validate an ordered acyclic
+   descriptor chain through the target. Acquisition repeats that proof before
+   trusting a persisted transition; failure leaves the source catalog,
+   database, and account journal available for diagnosis or retry
+   (../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:2481-2607,
+   ../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:5104-5226,
+   ../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:5982-6130,
+   ../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:7275-7419).
+10. A same-generation frontend-version change preserves archive read continuity
+    but not account write authority. Both replica kinds remain readable under
+    `update-required`; account journal work is suspended and made dormant, while
+    the service replica remains read-only
+    (../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:1992-2060,
+    ../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:3170-3369,
+    ../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:4739-4934).

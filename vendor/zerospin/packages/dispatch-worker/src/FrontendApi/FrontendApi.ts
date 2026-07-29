@@ -8,7 +8,7 @@ import type {
   IStagedCommand,
 } from '@zerospin/core/contracts/types';
 import type { IFrontendControllerSpec } from '@zerospin/core/frontendController/types';
-import type { IFrontendState } from '@zerospin/core/session/types';
+import type { IFrontendSyncState } from '@zerospin/core/session/types';
 import type {
   ISystemEnvironmentId,
   ISystemId,
@@ -462,7 +462,7 @@ export class FrontendApi extends RpcTarget {
 
   async getFrontendState(
     request: IRpcRequest<[]>,
-  ): Promise<ILinkedRpcEnvelope<IFrontendState, IAnyErrorJson>> {
+  ): Promise<ILinkedRpcEnvelope<IFrontendSyncState, IAnyErrorJson>> {
     return this.#runtime.runPromise(
       getFrontendStateApiHandler(request).pipe(
         Effect.provideService(FrontendAuthResults, this.#authResults),
@@ -470,9 +470,22 @@ export class FrontendApi extends RpcTarget {
     );
   }
 
-  async createFrontendWebSocketTicket(
-    request: IRpcRequest<[]>,
-  ): Promise<ILinkedRpcEnvelope<string, IAnyErrorJson>> {
+  async createFrontendWebSocketTicket(request: IRpcRequest<[]>): Promise<
+    ILinkedRpcEnvelope<
+      Readonly<{
+        ticket: string;
+        systemId: ISystemId;
+        generationId: string;
+        accountId: IActor['accountId'];
+        accountName: string;
+        actorId: IActor['actorId'];
+        actorName: string;
+        frontendName: string;
+        frontendVersion: string;
+      }>,
+      IAnyErrorJson
+    >
+  > {
     return this.#runtime.runPromise(
       createFrontendWebSocketTicketApiHandler(request).pipe(
         Effect.provideService(FrontendAuthResults, this.#authResults),

@@ -281,21 +281,210 @@ describe('checkSystemCompatibility', () => {
     }),
   );
 
-  it.effect('treats mutating-to-null and removed surfaces as major', () =>
-    Effect.gen(function* () {
-      const nullContract = structuredClone(baseSpec);
-      nullContract.version = '2.0.0';
-      nullContract.serviceControllers.app!.version = '2.0.0';
-      nullContract.serviceControllers.app!.contracts.createProduct!.version =
-        '2.0.0';
-      nullContract.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
-        null;
-      const contractResult = yield* checkSystemCompatibility({
-        prior: baseSpec,
-        next: nullContract,
-      });
-      expect(contractResult.requiredBump).toBe('major');
+  it.effect(
+    'classifies historical contract payload additions, removals, and schema direction without a generation',
+    () =>
+      Effect.gen(function* () {
+        const added = structuredClone(baseSpec);
+        added.version = '1.1.0';
+        added.serviceControllers.app!.version = '1.1.0';
+        added.serviceControllers.app!.contracts.createProduct!.version =
+          '1.1.0';
+        added.serviceControllers.app!.contracts.createProduct!.historicalDefinitions =
+          [
+            {
+              commandName: 'createProduct',
+              version: '0.9.0',
+              payloadJsonSchema: JSONSchema.make(
+                Schema.Struct({ name: Schema.String }),
+              ),
+            },
+          ];
+        const addedResult = yield* checkSystemCompatibility({
+          prior: baseSpec,
+          next: added,
+        });
+        expect(addedResult.requiredBump).toBe('minor');
+        expect(addedResult.requiresNewGeneration).toBe(false);
+        expect(addedResult.diffs).toContainEqual(
+          expect.objectContaining({
+            path: 'serviceControllers.app.contracts.createProduct.historicalDefinitions.0.9.0',
+            kind: 'historical-definition-added',
+          }),
+        );
 
+        const widened = structuredClone(added);
+        widened.version = '1.2.0';
+        widened.serviceControllers.app!.version = '1.2.0';
+        widened.serviceControllers.app!.contracts.createProduct!.version =
+          '1.2.0';
+        widened.serviceControllers.app!.contracts.createProduct!.historicalDefinitions[0]!.payloadJsonSchema =
+          JSONSchema.make(
+            Schema.Struct({
+              name: Schema.String,
+              note: Schema.optional(Schema.String),
+            }),
+          );
+        const widenedResult = yield* checkSystemCompatibility({
+          prior: added,
+          next: widened,
+        });
+        expect(widenedResult.requiredBump).toBe('minor');
+        expect(widenedResult.requiresNewGeneration).toBe(false);
+        expect(widenedResult.diffs).toContainEqual(
+          expect.objectContaining({
+            path: 'serviceControllers.app.contracts.createProduct.historicalDefinitions.0.9.0.payloadJsonSchema',
+            kind: 'schema-widened',
+          }),
+        );
+
+        const removed = structuredClone(added);
+        removed.version = '2.0.0';
+        removed.serviceControllers.app!.version = '2.0.0';
+        removed.serviceControllers.app!.contracts.createProduct!.version =
+          '2.0.0';
+        removed.serviceControllers.app!.contracts.createProduct!.historicalDefinitions =
+          [];
+        const removedResult = yield* checkSystemCompatibility({
+          prior: added,
+          next: removed,
+        });
+        expect(removedResult.requiredBump).toBe('major');
+        expect(removedResult.requiresNewGeneration).toBe(false);
+        expect(removedResult.diffs).toContainEqual(
+          expect.objectContaining({
+            path: 'serviceControllers.app.contracts.createProduct.historicalDefinitions.0.9.0',
+            kind: 'historical-definition-removed',
+          }),
+        );
+      }),
+  );
+
+  it.effect(
+    'classifies service actor authentication models separately from projected frontend models',
+    () =>
+      Effect.gen(function* () {
+        const authenticationActor = structuredClone(baseSpec);
+        authenticationActor.version = '1.1.0';
+        authenticationActor.serviceControllers.app!.version = '1.1.0';
+        authenticationActor.serviceControllers.app!.actorControllers.shopper =
+          {
+            name: 'shopper',
+            version: '1.0.0',
+            models: {
+              product: structuredClone(
+                authenticationActor.serviceControllers.app!.models.product!,
+              ),
+            },
+            frontends: {},
+          };
+        const authenticationActorResult =
+          yield* checkSystemCompatibility({
+            prior: baseSpec,
+            next: authenticationActor,
+          });
+        expect(authenticationActorResult.requiredBump).toBe('minor');
+        expect(authenticationActorResult.requiresNewGeneration).toBe(false);
+
+        const projectedFrontend = structuredClone(authenticationActor);
+        projectedFrontend.version = '1.2.0';
+        projectedFrontend.serviceControllers.app!.version = '1.2.0';
+        projectedFrontend.serviceControllers.app!.actorControllers.shopper!.version =
+          '1.1.0';
+        projectedFrontend.serviceControllers.app!.actorControllers.shopper!.frontends.catalog =
+          {
+            name: 'catalog',
+            frontendController: {
+              serviceName: 'app',
+              actorName: 'shopper',
+              frontendName: 'catalog',
+              version: '1.0.0',
+              models: {
+                product: structuredClone(
+                  projectedFrontend.serviceControllers.app!.models.product!,
+                ),
+              },
+              signatureJsonSchema: JSONSchema.make(
+                Schema.Struct({ subject: Schema.String }),
+              ),
+            },
+          };
+        const projectedFrontendResult = yield* checkSystemCompatibility({
+          prior: authenticationActor,
+          next: projectedFrontend,
+        });
+        expect(projectedFrontendResult.requiredBump).toBe('minor');
+        expect(projectedFrontendResult.requiresNewGeneration).toBe(true);
+
+        const widenedSignature = structuredClone(projectedFrontend);
+        widenedSignature.version = '1.3.0';
+        widenedSignature.serviceControllers.app!.version = '1.3.0';
+        widenedSignature.serviceControllers.app!.actorControllers.shopper!.version =
+          '1.2.0';
+        widenedSignature.serviceControllers.app!.actorControllers.shopper!.frontends.catalog!.frontendController.version =
+          '1.1.0';
+        widenedSignature.serviceControllers.app!.actorControllers.shopper!.frontends.catalog!.frontendController.signatureJsonSchema =
+          JSONSchema.make(
+            Schema.Struct({
+              subject: Schema.String,
+              tenant: Schema.optional(Schema.String),
+            }),
+          );
+        const widenedSignatureResult = yield* checkSystemCompatibility({
+          prior: projectedFrontend,
+          next: widenedSignature,
+        });
+        expect(widenedSignatureResult.requiredBump).toBe('minor');
+        expect(widenedSignatureResult.requiresNewGeneration).toBe(false);
+        expect(widenedSignatureResult.diffs).toContainEqual(
+          expect.objectContaining({
+            path: 'serviceControllers.app.actorControllers.shopper.frontends.catalog.frontendController.signatureJsonSchema',
+            kind: 'schema-widened',
+          }),
+        );
+
+        const changedIdentity = structuredClone(projectedFrontend);
+        changedIdentity.version = '2.0.0';
+        changedIdentity.serviceControllers.app!.version = '2.0.0';
+        changedIdentity.serviceControllers.app!.actorControllers.shopper!.version =
+          '2.0.0';
+        changedIdentity.serviceControllers.app!.actorControllers.shopper!.frontends.catalog!.frontendController.version =
+          '2.0.0';
+        changedIdentity.serviceControllers.app!.actorControllers.shopper!.frontends.catalog!.frontendController.serviceName =
+          'other';
+        const changedIdentityResult = yield* checkSystemCompatibility({
+          prior: projectedFrontend,
+          next: changedIdentity,
+        });
+        expect(changedIdentityResult.requiredBump).toBe('major');
+        expect(changedIdentityResult.diffs).toContainEqual(
+          expect.objectContaining({
+            path: 'serviceControllers.app.actorControllers.shopper.frontends.catalog',
+            kind: 'identity-changed',
+          }),
+        );
+
+        const removedProjectionModel = structuredClone(projectedFrontend);
+        removedProjectionModel.version = '2.0.0';
+        removedProjectionModel.serviceControllers.app!.version = '2.0.0';
+        removedProjectionModel.serviceControllers.app!.actorControllers.shopper!.version =
+          '2.0.0';
+        removedProjectionModel.serviceControllers.app!.actorControllers.shopper!.frontends.catalog!.frontendController.version =
+          '2.0.0';
+        delete removedProjectionModel.serviceControllers.app!.actorControllers
+          .shopper!.frontends.catalog!.frontendController.models.product;
+        const removedProjectionModelResult =
+          yield* checkSystemCompatibility({
+            prior: projectedFrontend,
+            next: removedProjectionModel,
+          });
+        expect(removedProjectionModelResult.requiredBump).toBe('major');
+        expect(removedProjectionModelResult.requiresNewGeneration).toBe(true);
+      }),
+  );
+
+  it.effect('treats removed surfaces as major', () =>
+    Effect.gen(function* () {
       const removed = structuredClone(baseSpec);
       removed.version = '2.0.0';
       delete removed.serviceControllers.app;
@@ -602,255 +791,6 @@ describe('checkSystemCompatibility', () => {
           'accountControllers.user.version',
           'version',
         ]),
-      );
-    }),
-  );
-
-  it.effect(
-    'treats every structural contract mutation-slot change as major',
-    () =>
-      Effect.gen(function* () {
-        const prior = structuredClone(baseSpec);
-        prior.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
-          JSONSchema.make(
-            Schema.Struct({
-              created: Product.createMutation('1.0.0'),
-              deleted: Product.deleteMutation('1.0.0'),
-            }),
-          );
-
-        const added = structuredClone(prior);
-        added.version = '2.0.0';
-        added.serviceControllers.app!.version = '2.0.0';
-        added.serviceControllers.app!.contracts.createProduct!.version =
-          '2.0.0';
-        added.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
-          JSONSchema.make(
-            Schema.Struct({
-              created: Product.createMutation('1.0.0'),
-              deleted: Product.deleteMutation('1.0.0'),
-              updated: Product.updateMutation('1.0.0'),
-            }),
-          );
-        const addedResult = yield* checkSystemCompatibility({
-          prior,
-          next: added,
-        });
-        expect(addedResult.diffs).toContainEqual(
-          expect.objectContaining({
-            path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
-            kind: 'mutation-membership-changed',
-            requiredBump: 'major',
-          }),
-        );
-
-        const removed = structuredClone(prior);
-        removed.version = '2.0.0';
-        removed.serviceControllers.app!.version = '2.0.0';
-        removed.serviceControllers.app!.contracts.createProduct!.version =
-          '2.0.0';
-        removed.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
-          JSONSchema.make(
-            Schema.Struct({
-              created: Product.createMutation('1.0.0'),
-            }),
-          );
-        const removedResult = yield* checkSystemCompatibility({
-          prior,
-          next: removed,
-        });
-        expect(removedResult.diffs).toContainEqual(
-          expect.objectContaining({
-            path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
-            kind: 'mutation-membership-changed',
-            requiredBump: 'major',
-          }),
-        );
-
-        const reordered = structuredClone(prior);
-        reordered.version = '2.0.0';
-        reordered.serviceControllers.app!.version = '2.0.0';
-        reordered.serviceControllers.app!.contracts.createProduct!.version =
-          '2.0.0';
-        reordered.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
-          JSONSchema.make(
-            Schema.Struct({
-              deleted: Product.deleteMutation('1.0.0'),
-              created: Product.createMutation('1.0.0'),
-            }),
-          );
-        const reorderedResult = yield* checkSystemCompatibility({
-          prior,
-          next: reordered,
-        });
-        expect(reorderedResult.diffs).toContainEqual(
-          expect.objectContaining({
-            path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
-            kind: 'mutation-membership-changed',
-            requiredBump: 'major',
-          }),
-        );
-
-        const changed = structuredClone(prior);
-        changed.version = '2.0.0';
-        changed.serviceControllers.app!.version = '2.0.0';
-        changed.serviceControllers.app!.contracts.createProduct!.version =
-          '2.0.0';
-        changed.serviceControllers.app!.contracts.createProduct!.mutationsJsonSchema =
-          JSONSchema.make(
-            Schema.Struct({
-              created: Product.updateMutation('1.0.0'),
-              deleted: Product.deleteMutation('1.0.0'),
-            }),
-          );
-        const changedResult = yield* checkSystemCompatibility({
-          prior,
-          next: changed,
-        });
-        expect(changedResult.diffs).toContainEqual(
-          expect.objectContaining({
-            path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
-            kind: 'mutation-membership-changed',
-            requiredBump: 'major',
-          }),
-        );
-      }),
-  );
-
-  it.effect('inherits model severity for a mutation slot version advance', () =>
-    Effect.gen(function* () {
-      const ProductMinor = makeServiceModel(
-        {
-          serviceName: 'app',
-          abbreviation: 'prd',
-          modelName: 'product',
-          attributes: {
-            name: primitives.text(),
-            note: primitives.text({ nullable: true }),
-          },
-          indexes: [],
-          version: '1.1.0',
-        },
-        [
-          {
-            abbreviation: 'prd',
-            modelName: 'product',
-            attributes: { name: primitives.text() },
-            indexes: [],
-            version: '1.0.0',
-          },
-        ],
-      );
-      const createProductMinor = makeContract({
-        commandName: 'createProduct',
-        payload: {
-          id: ProductMinor.primaryKey({ autogenerate: false }),
-          name: primitives.text(),
-        },
-        mutations: Schema.Struct({
-          created: ProductMinor.createMutation('1.1.0'),
-        }),
-        program: ({ payload }) =>
-          Effect.all({
-            created: ProductMinor.create('1.1.0', {
-              resourceId: payload.id,
-              attributes: { name: payload.name, note: null },
-            }),
-          }),
-        version: '1.1.0',
-      });
-      const minorSpec = makeSystemSpec({
-        system: makeSystem({
-          name: 'shopping',
-          version: '1.1.0',
-          accountControllers: {},
-          serviceControllers: {
-            app: makeServiceController({
-              name: 'app',
-              version: '1.1.0',
-              models: { product: ProductMinor },
-              contracts: { createProduct: createProductMinor },
-            }),
-          },
-        }),
-      });
-      const minorResult = yield* checkSystemCompatibility({
-        prior: baseSpec,
-        next: minorSpec,
-      });
-      expect(minorResult.diffs).toContainEqual(
-        expect.objectContaining({
-          path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
-          kind: 'mutation-model-version-changed',
-          requiredBump: 'minor',
-        }),
-      );
-
-      const ProductMajor = makeServiceModel(
-        {
-          serviceName: 'app',
-          abbreviation: 'prd',
-          modelName: 'product',
-          attributes: {
-            name: primitives.text(),
-            sku: primitives.text(),
-          },
-          indexes: [],
-          version: '2.0.0',
-        },
-        [
-          {
-            abbreviation: 'prd',
-            modelName: 'product',
-            attributes: { name: primitives.text() },
-            indexes: [],
-            version: '1.0.0',
-          },
-        ],
-      );
-      const createProductMajor = makeContract({
-        commandName: 'createProduct',
-        payload: {
-          id: ProductMajor.primaryKey({ autogenerate: false }),
-          name: primitives.text(),
-        },
-        mutations: Schema.Struct({
-          created: ProductMajor.createMutation('2.0.0'),
-        }),
-        program: ({ payload }) =>
-          Effect.all({
-            created: ProductMajor.create('2.0.0', {
-              resourceId: payload.id,
-              attributes: { name: payload.name, sku: 'migrated' },
-            }),
-          }),
-        version: '2.0.0',
-      });
-      const majorSpec = makeSystemSpec({
-        system: makeSystem({
-          name: 'shopping',
-          version: '2.0.0',
-          accountControllers: {},
-          serviceControllers: {
-            app: makeServiceController({
-              name: 'app',
-              version: '2.0.0',
-              models: { product: ProductMajor },
-              contracts: { createProduct: createProductMajor },
-            }),
-          },
-        }),
-      });
-      const majorResult = yield* checkSystemCompatibility({
-        prior: baseSpec,
-        next: majorSpec,
-      });
-      expect(majorResult.diffs).toContainEqual(
-        expect.objectContaining({
-          path: 'serviceControllers.app.contracts.createProduct.mutationsJsonSchema',
-          kind: 'mutation-membership-changed',
-          requiredBump: 'major',
-        }),
       );
     }),
   );

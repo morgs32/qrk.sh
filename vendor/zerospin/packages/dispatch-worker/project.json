@@ -21,6 +21,14 @@
         "cwd": "{projectRoot}"
       },
       "dependsOn": ["lib", "^lib"]
+    },
+    "test:workerd:local-controller-restart": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --config vitest.local-controller-restart.config.ts",
+        "cwd": "{projectRoot}"
+      },
+      "dependsOn": ["lib", "^lib"]
     }
   }
 }

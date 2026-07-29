@@ -54,7 +54,13 @@ export const SystemSpecSchema = Schema.Struct({
           commandName: Schema.String,
           version: Schema.String,
           payloadJsonSchema: Schema.Unknown,
-          mutationsJsonSchema: Schema.NullOr(Schema.Unknown),
+          historicalDefinitions: Schema.Array(
+            Schema.Struct({
+              commandName: Schema.String,
+              version: Schema.String,
+              payloadJsonSchema: Schema.Unknown,
+            }),
+          ),
         }),
       }),
       mutationAdapters: Schema.Record({
@@ -195,7 +201,13 @@ export const SystemSpecSchema = Schema.Struct({
                     commandName: Schema.String,
                     version: Schema.String,
                     payloadJsonSchema: Schema.Unknown,
-                    mutationsJsonSchema: Schema.NullOr(Schema.Unknown),
+                    historicalDefinitions: Schema.Array(
+                      Schema.Struct({
+                        commandName: Schema.String,
+                        version: Schema.String,
+                        payloadJsonSchema: Schema.Unknown,
+                      }),
+                    ),
                   }),
                 }),
                 signatureJsonSchema: Schema.Unknown,
@@ -248,7 +260,13 @@ export const SystemSpecSchema = Schema.Struct({
           commandName: Schema.String,
           version: Schema.String,
           payloadJsonSchema: Schema.Unknown,
-          mutationsJsonSchema: Schema.NullOr(Schema.Unknown),
+          historicalDefinitions: Schema.Array(
+            Schema.Struct({
+              commandName: Schema.String,
+              version: Schema.String,
+              payloadJsonSchema: Schema.Unknown,
+            }),
+          ),
         }),
       }),
       mutationAdapters: Schema.Record({
@@ -287,6 +305,94 @@ export const SystemSpecSchema = Schema.Struct({
               ),
             }),
           ),
+        }),
+      }),
+      actorControllers: Schema.Record({
+        key: Schema.String,
+        value: Schema.Struct({
+          name: Schema.String,
+          version: Schema.String,
+          models: Schema.Record({
+            key: Schema.String,
+            value: Schema.Struct({
+              modelName: Schema.String,
+              abbreviation: Schema.String,
+              version: Schema.String,
+              properties: encodedShapeSchema,
+              indexes: Schema.Array(
+                Schema.Struct({
+                  name: Schema.String,
+                  columns: Schema.Array(Schema.String),
+                  unique: Schema.optionalWith(Schema.Boolean, { exact: true }),
+                }),
+              ),
+              historicalDefinitions: Schema.Array(
+                Schema.Struct({
+                  modelName: Schema.String,
+                  abbreviation: Schema.String,
+                  version: Schema.String,
+                  properties: encodedShapeSchema,
+                  indexes: Schema.Array(
+                    Schema.Struct({
+                      name: Schema.String,
+                      columns: Schema.Array(Schema.String),
+                      unique: Schema.optionalWith(Schema.Boolean, {
+                        exact: true,
+                      }),
+                    }),
+                  ),
+                }),
+              ),
+            }),
+          }),
+          frontends: Schema.Record({
+            key: Schema.String,
+            value: Schema.Struct({
+              name: Schema.String,
+              frontendController: Schema.Struct({
+                serviceName: Schema.String,
+                actorName: Schema.String,
+                frontendName: Schema.String,
+                version: Schema.String,
+                models: Schema.Record({
+                  key: Schema.String,
+                  value: Schema.Struct({
+                    modelName: Schema.String,
+                    abbreviation: Schema.String,
+                    version: Schema.String,
+                    properties: encodedShapeSchema,
+                    indexes: Schema.Array(
+                      Schema.Struct({
+                        name: Schema.String,
+                        columns: Schema.Array(Schema.String),
+                        unique: Schema.optionalWith(Schema.Boolean, {
+                          exact: true,
+                        }),
+                      }),
+                    ),
+                    historicalDefinitions: Schema.Array(
+                      Schema.Struct({
+                        modelName: Schema.String,
+                        abbreviation: Schema.String,
+                        version: Schema.String,
+                        properties: encodedShapeSchema,
+                        indexes: Schema.Array(
+                          Schema.Struct({
+                            name: Schema.String,
+                            columns: Schema.Array(Schema.String),
+                            unique: Schema.optionalWith(Schema.Boolean, {
+                              exact: true,
+                            }),
+                          }),
+                        ),
+                      }),
+                    ),
+                  }),
+                }),
+                signatureJsonSchema: Schema.Unknown,
+              }),
+            }),
+          }),
         }),
       }),
       queries: Schema.Record({

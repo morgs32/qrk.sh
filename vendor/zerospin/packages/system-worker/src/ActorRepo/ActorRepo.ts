@@ -54,6 +54,7 @@ import type { IAccountBlock, IActorBlockOutboxRecord } from '../types.js';
 
 import { authorize } from './authorize/authorize.js';
 import { bootstrap } from './bootstrap/bootstrap.js';
+import { drainGeneration } from './drainGeneration/drainGeneration.js';
 import { dumpActorModelResources } from './dumpActorModelResources/dumpActorModelResources.js';
 import { handleAccountBlocks } from './handleAccountBlocks/handleAccountBlocks.js';
 
@@ -257,6 +258,28 @@ export class ActorRepo extends makeRepo({
           ),
         );
       })(request),
+    );
+  }
+
+  async drainGeneration(): Promise<
+    Schema.EitherEncoded<
+      Readonly<{ pendingActorBlockCount: number }>,
+      IAnyErrorJson
+    >
+  > {
+    return managedRuntime.runPromise(
+      drainGeneration({
+        db: this.db,
+        inspectionOnly: this.env.ZEROSPIN_SELF_HOSTED === 'true',
+        key: {
+          generationId: this.key.generationId,
+          accountId: this.key.accountId,
+          accountName: this.key.accountName,
+          actorId: this.key.actorId,
+          actorName: this.key.actorName,
+        },
+        storage: this.ctx.storage,
+      }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }
 }

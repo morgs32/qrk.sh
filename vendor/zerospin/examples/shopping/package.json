@@ -16,7 +16,9 @@
     "test:e2e": "playwright test --config system.e2e.playwright.config.ts",
     "test:playwright": "playwright test --config e2e.playwright.config.ts",
     "test:playwright:ui": "playwright test --config e2e.playwright.config.ts --ui",
-    "test:vitest:browser": "vitest run --config vitest.playwright.config.ts",
+    "test:vitest:browser": "nx run shopping:test:vitest:browser",
+    "test:vitest:browser:main": "vitest run --config vitest.playwright.config.ts",
+    "test:vitest:browser:transitions": "vitest run --config vitest.transitions.playwright.config.ts",
     "test:workerd": "vitest run --config vitest.zerospin.config.ts",
     "start": "next start"
   },

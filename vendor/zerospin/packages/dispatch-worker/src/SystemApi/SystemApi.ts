@@ -20,7 +20,7 @@ import type {
   IAccountId,
   IActorId,
 } from '@zerospin/core/models/types';
-import type { IFrontendState } from '@zerospin/core/session/types';
+import type { IFrontendSyncState } from '@zerospin/core/session/types';
 import type {
   IEncodedQuery,
   IRepoRegistration,
@@ -730,7 +730,7 @@ export class SystemApi extends RpcTarget {
         },
       ]
     >,
-  ): Promise<ILinkedRpcEnvelope<IFrontendState, IAnyErrorJson>> {
+  ): Promise<ILinkedRpcEnvelope<IFrontendSyncState, IAnyErrorJson>> {
     return this.#runtime.runPromise(
       makeApiHandler({
         name: 'SystemApi.getFrontendState',

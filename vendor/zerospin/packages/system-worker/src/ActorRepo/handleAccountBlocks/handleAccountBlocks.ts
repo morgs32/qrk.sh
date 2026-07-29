@@ -34,9 +34,8 @@ import type {
   IActorDelta,
 } from '../../types.js';
 import { actorRepoDrizzleSchemas } from '../ActorRepo.js';
+import { drainGeneration } from '../drainGeneration/drainGeneration.js';
 
-import { publishActorBlocks } from './publishActorBlocks.js';
-import { upsertActorBlockOutbox } from './upsertActorBlockOutbox.js';
 import { upsertActorBlockOutboxTx } from './upsertActorBlockOutboxTx.js';
 
 export const handleAccountBlocks = Effect.fn('ActorRepo.handleAccountBlocks')(
@@ -59,7 +58,7 @@ export const handleAccountBlocks = Effect.fn('ActorRepo.handleAccountBlocks')(
       actorName: key.actorName,
     });
 
-    const outboxRecords = yield* makeTx({
+    yield* makeTx({
       db,
       program: Effect.fn('ActorRepo.handleAccountBlocks.transaction')(
         function* ({ tx }) {
@@ -214,19 +213,32 @@ export const handleAccountBlocks = Effect.fn('ActorRepo.handleAccountBlocks')(
       ),
     });
 
-    if (outboxRecords.length === 0) {
-      return;
-    }
-
-    const publishedRecords = yield* publishActorBlocks({
-      key,
-      records: outboxRecords,
-    });
-    for (const record of publishedRecords) {
-      yield* upsertActorBlockOutbox({
-        record,
+    // Publish only the exact oldest unacknowledged suffix. A crash before the
+    // acknowledgement may leave an older row behind; it must reach
+    // ActorBlockRepo before any newly applied account block can fan out.
+    let priorPublishedAccountIndex = yield* Effect.promise(() =>
+      storage.get<number>('lastPublishedActorBlockAccountIndex'),
+    );
+    let pendingActorBlockCount = 1;
+    while (pendingActorBlockCount > 0) {
+      const drained = yield* drainGeneration({
         db,
+        inspectionOnly: false,
+        key,
+        storage,
       });
+      pendingActorBlockCount = drained.pendingActorBlockCount;
+      if (pendingActorBlockCount === 0) {
+        return;
+      }
+
+      const currentPublishedAccountIndex = yield* Effect.promise(() =>
+        storage.get<number>('lastPublishedActorBlockAccountIndex'),
+      );
+      if (currentPublishedAccountIndex === priorPublishedAccountIndex) {
+        return;
+      }
+      priorPublishedAccountIndex = currentPublishedAccountIndex;
     }
   },
 );

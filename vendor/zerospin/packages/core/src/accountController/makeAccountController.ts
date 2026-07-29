@@ -35,7 +35,9 @@ type IMergedActorControllerModels<ACTOR_CONTROLLERS extends IActorControllers> =
   UnionToIntersection<ACTOR_CONTROLLERS[keyof ACTOR_CONTROLLERS]['models']>;
 
 type IActorFrontendContracts<ACTOR extends IAnyActorController> =
-  ACTOR['frontends'][keyof ACTOR['frontends']]['contracts'];
+  ACTOR extends IAnyActorController
+    ? ACTOR['frontends'][keyof ACTOR['frontends']]['contracts']
+    : never;
 
 type InferAuthenticationContracts<ACTOR extends IAnyActorController> =
   ACTOR extends IAnyActorController
@@ -215,9 +217,7 @@ export function makeAccountController<
     AccountContractsExtendActors<
       CONTRACTS,
       IMergedActorFrontendContracts<ACTOR_CONTROLLERS>,
-      InferAuthenticationContracts<
-        ACTOR_CONTROLLERS[keyof ACTOR_CONTROLLERS]
-      >
+      InferAuthenticationContracts<ACTOR_CONTROLLERS[keyof ACTOR_CONTROLLERS]>
     > &
     AssertContractsMutationsInModels<CONTRACTS, MODELS>;
   mutationAdapters?: MUTATION_ADAPTERS & {

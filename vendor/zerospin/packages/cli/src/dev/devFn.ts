@@ -36,6 +36,14 @@ export const devFn = Effect.fn('devFn')(function* (props: {
     loadEnv({ path: path.join(cwd, '.env') });
   });
 
+  const clerkJwtKey = process.env['CLERK_JWT_KEY'];
+  if (clerkJwtKey === undefined || clerkJwtKey.trim().length === 0) {
+    return yield* new ZerospinError({
+      code: 'zerospin-dev-clerk-jwt-key-missing',
+      message: `Missing CLERK_JWT_KEY. Add the Clerk JWT verification public key to ${path.join(cwd, '.env.local')} before running zerospin dev.`,
+    });
+  }
+
   // CLI --port wins; otherwise ZEROSPIN_PORT from .env.local / .env / process env.
   let port = portOption;
   if (port === undefined) {
@@ -56,10 +64,20 @@ export const devFn = Effect.fn('devFn')(function* (props: {
   //    In particular, a missing local Wrangler installation must not turn a
   //    requested clean into a state deletion followed by no dev server.
   const wranglerBinPath = yield* Effect.try({
-    try: () =>
-      require.resolve('wrangler/bin/wrangler.js', {
+    try: () => {
+      // Wrangler exports its package metadata, but it deliberately does not
+      // export the executable as a package subpath. Resolve the installed
+      // package first, then point Node at the package's declared bin location.
+      const wranglerPackageJsonPath = require.resolve('wrangler/package.json', {
         paths: [cwd],
-      }),
+      });
+
+      return path.join(
+        path.dirname(wranglerPackageJsonPath),
+        'bin',
+        'wrangler.js',
+      );
+    },
     catch: cause =>
       new ZerospinError({
         code: 'zerospin-dev-wrangler-not-found',
@@ -130,13 +148,17 @@ export const devFn = Effect.fn('devFn')(function* (props: {
   });
   const cleanRequestId = clean ? `cln_${randomUUID()}` : undefined;
   const generatedVars = { ...rawVars };
+  Reflect.deleteProperty(generatedVars, 'CLERK_JWT_KEY');
   Reflect.deleteProperty(generatedVars, 'DEV');
   Reflect.deleteProperty(generatedVars, 'ZEROSPIN_CLEAN_REQUEST_ID');
   Reflect.deleteProperty(generatedVars, 'ZEROSPIN_DEPLOY_ID');
   Reflect.deleteProperty(generatedVars, 'ZEROSPIN_GENERATION_ID');
   Reflect.deleteProperty(generatedVars, 'ZEROSPIN_INSTANCE_ID');
+  Reflect.deleteProperty(generatedVars, 'ZEROSPIN_SELF_HOSTED');
   Reflect.deleteProperty(generatedVars, 'ZEROSPIN_SYSTEM_RELEASE');
+  Reflect.set(generatedVars, 'CLERK_JWT_KEY', clerkJwtKey);
   Reflect.set(generatedVars, 'ZEROSPIN_SYSTEM_ID', systemId);
+  Reflect.set(generatedVars, 'ZEROSPIN_SELF_HOSTED', 'true');
 
   const dispatchWorkerPath = yield* Effect.try({
     // Resolve from @zerospin/cli itself. Projects do not need to expose the
@@ -150,11 +172,28 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         cause: ZerospinError.prettyUnknownFailure(cause),
       }),
   });
+  const localDispatchWorkerPath = yield* Effect.try({
+    // LocalWorker deliberately is not a package export. It ships beside the
+    // resolved production Worker and exports the dedicated local
+    // DevZerospinApis controller for Miniflare storage.
+    try: () =>
+      require.resolve(
+        path.join(path.dirname(dispatchWorkerPath), 'LocalWorker.js'),
+      ),
+    catch: cause =>
+      new ZerospinError({
+        code: 'zerospin-dev-local-dispatch-worker-not-found',
+        message:
+          'Could not resolve the local Zerospin dispatch Worker entrypoint.',
+        cause: ZerospinError.prettyUnknownFailure(cause),
+      }),
+  });
 
+  const devSeedsEntry = zerospinConfig.seeds.dev;
   const seedModulePath = yield* Effect.try({
     try: () => {
-      if (zerospinConfig.seeds !== null) {
-        return require.resolve(path.resolve(cwd, zerospinConfig.seeds));
+      if (devSeedsEntry !== null) {
+        return require.resolve(path.resolve(cwd, devSeedsEntry));
       }
 
       // The empty module is deliberately not a package export. It is a
@@ -167,9 +206,9 @@ export const devFn = Effect.fn('devFn')(function* (props: {
       new ZerospinError({
         code: 'zerospin-dev-seeds-not-found',
         message:
-          zerospinConfig.seeds === null
+          devSeedsEntry === null
             ? 'Could not resolve the built-in empty dev seed module.'
-            : `Could not resolve the configured dev seed module ${zerospinConfig.seeds}.`,
+            : `Could not resolve the configured dev seed module ${devSeedsEntry}.`,
         cause: ZerospinError.prettyUnknownFailure(cause),
       }),
   });
@@ -237,13 +276,74 @@ export const devFn = Effect.fn('devFn')(function* (props: {
     return yield* new ZerospinError({
       code: 'zerospin-dev-migration-conflict',
       message:
-        'wrangler.jsonc already contains migration tag zerospin-dev-v1. That tag is reserved for zerospin dev.',
+        'wrangler.jsonc already contains a migration tag reserved for the Zerospin local DevZerospinApis lifecycle.',
+    });
+  }
+
+  // The local controller migration has already been applied after every
+  // authored migration that existed on the first local development run. Persist that
+  // exact array boundary beside this instance's stable Wrangler state so later
+  // authored migrations remain after the already-applied local controller tag
+  // instead of being inserted before it and silently skipped.
+  const persistenceRoot = path.join(
+    cwd,
+    '.wrangler',
+    'zerospin',
+    'dev',
+    encodeURIComponent(systemWorkerName),
+  );
+  const migrationBoundaryPath = `${persistenceRoot}.authored-migration-boundary`;
+  const storedMigrationBoundary = yield* Effect.tryPromise({
+    try: async () => {
+      try {
+        return await fs.readFile(migrationBoundaryPath, 'utf8');
+      } catch (cause) {
+        if (
+          cause instanceof Error &&
+          'code' in cause &&
+          cause.code === 'ENOENT'
+        ) {
+          return null;
+        }
+        throw cause;
+      }
+    },
+    catch: cause =>
+      new ZerospinError({
+        code: 'zerospin-dev-migration-boundary-read-failed',
+        message:
+          'Failed to read the persisted local authored-migration boundary.',
+        cause: ZerospinError.prettyUnknownFailure(cause),
+        extra: { migrationBoundaryPath },
+      }),
+  });
+  const shouldWriteMigrationBoundary = storedMigrationBoundary === null;
+  const migrationBoundary =
+    storedMigrationBoundary === null
+      ? migrations.length
+      : Number(storedMigrationBoundary.trim());
+  if (
+    !Number.isSafeInteger(migrationBoundary) ||
+    migrationBoundary < 0 ||
+    migrationBoundary > migrations.length ||
+    (storedMigrationBoundary !== null &&
+      !/^(0|[1-9][0-9]*)$/.test(storedMigrationBoundary.trim()))
+  ) {
+    return yield* new ZerospinError({
+      code: 'zerospin-dev-migration-boundary-invalid',
+      message:
+        'The persisted local authored-migration boundary must be an integer within the current Wrangler migrations array.',
+      extra: {
+        migrationBoundaryPath,
+        migrationsLength: migrations.length,
+        storedMigrationBoundary,
+      },
     });
   }
 
   const generatedConfig = {
     ...wranglerConfig,
-    main: dispatchWorkerPath,
+    main: localDispatchWorkerPath,
     alias: {
       ...rawAlias,
       seeds: seedModulePath,
@@ -258,11 +358,12 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         ? [...compatibilityFlagsWithoutCtxExports, 'enable_ctx_exports']
         : compatibilityFlagsWithoutCtxExports,
     migrations: [
-      ...migrations,
+      ...migrations.slice(0, migrationBoundary),
       {
         tag: 'zerospin-dev-v1',
         new_sqlite_classes: ['DevZerospinApis'],
       },
+      ...migrations.slice(migrationBoundary),
     ],
     vars: generatedVars,
     version_metadata: {
@@ -272,13 +373,6 @@ export const devFn = Effect.fn('devFn')(function* (props: {
 
   const generatedConfigName = `wrangler.zerospin-dev.${process.pid}.local.json`;
   const generatedConfigPath = path.join(cwd, generatedConfigName);
-  const persistenceRoot = path.join(
-    cwd,
-    '.wrangler',
-    'zerospin',
-    'dev',
-    encodeURIComponent(systemWorkerName),
-  );
 
   const wranglerArgs = [
     wranglerBinPath,
@@ -352,6 +446,31 @@ export const devFn = Effect.fn('devFn')(function* (props: {
           cause: ZerospinError.prettyUnknownFailure(cause),
         }),
     });
+
+    if (shouldWriteMigrationBoundary) {
+      yield* Effect.tryPromise({
+        try: () =>
+          fs.mkdir(path.dirname(migrationBoundaryPath), { recursive: true }),
+        catch: cause =>
+          new ZerospinError({
+            code: 'zerospin-dev-migration-boundary-write-failed',
+            message: 'Failed to create the local migration-boundary directory.',
+            cause: ZerospinError.prettyUnknownFailure(cause),
+            extra: { migrationBoundaryPath },
+          }),
+      });
+      yield* Effect.tryPromise({
+        try: () =>
+          fs.writeFile(migrationBoundaryPath, `${migrationBoundary}\n`, 'utf8'),
+        catch: cause =>
+          new ZerospinError({
+            code: 'zerospin-dev-migration-boundary-write-failed',
+            message: 'Failed to persist the local authored-migration boundary.',
+            cause: ZerospinError.prettyUnknownFailure(cause),
+            extra: { migrationBoundaryPath },
+          }),
+      });
+    }
 
     return yield* Effect.async<number, ZerospinError<string>>(
       (resume, abortSignal) => {

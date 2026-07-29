@@ -2,8 +2,8 @@ import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
 import { makeContract } from '../contracts/makeContract.ts';
-import type { IContract } from '../contracts/types.ts';
 import { makeContractAdapter } from '../contracts/makeContractAdapter.ts';
+import type { IContract } from '../contracts/types.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { makeModel } from '../models/makeModel.ts';
 import { makeSelection } from '../models/makeSelection.ts';

@@ -43,7 +43,7 @@ export const providerAdmin = makeActorController({
     }),
   },
   frontends: {
-    backend: {
+    'provider-admin': {
       frontendController: providerAdminFrontend,
       authenticate: props =>
         Effect.gen(function* () {
@@ -131,7 +131,7 @@ export const owner = makeActorController({
     }),
   },
   frontends: {
-    backend: {
+    owner: {
       frontendController: ownerFrontend,
       authenticate: props =>
         Effect.gen(function* () {

@@ -5,7 +5,7 @@ import { PassThrough } from 'node:stream';
 
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { Effect, Fiber } from 'effect';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { devFn } from './devFn.js';
 
@@ -14,7 +14,9 @@ const {
   loadEnvMock,
   loadConfigMock,
   loadZerospinConfigMock,
+  mkdirMock,
   randomUUIDMock,
+  readFileMock,
   resolveMock,
   rmMock,
   spawnMock,
@@ -24,7 +26,9 @@ const {
   loadEnvMock: vi.fn(),
   loadConfigMock: vi.fn(),
   loadZerospinConfigMock: vi.fn(),
+  mkdirMock: vi.fn(),
   randomUUIDMock: vi.fn(),
+  readFileMock: vi.fn(),
   resolveMock: vi.fn(),
   rmMock: vi.fn(),
   spawnMock: vi.fn(),
@@ -48,6 +52,8 @@ vi.mock('node:fs/promises', async importOriginal => {
     ...actual,
     default: {
       ...actual,
+      mkdir: mkdirMock,
+      readFile: readFileMock,
       rm: rmMock,
       writeFile: writeFileMock,
     },
@@ -73,7 +79,10 @@ vi.mock('../deploy/loadZerospinConfigFn.js', () => ({
 }));
 
 describe('devFn', () => {
+  const originalClerkJwtKey = process.env['CLERK_JWT_KEY'];
+
   beforeEach(() => {
+    process.env['CLERK_JWT_KEY'] = 'local-clerk-jwt-public-key';
     fetchMock.mockReset();
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     loadEnvMock.mockReset();
@@ -94,11 +103,13 @@ describe('devFn', () => {
           },
         ],
         vars: {
+          CLERK_JWT_KEY: 'authored-stale-clerk-key',
           DEV: 'stale',
           ZEROSPIN_CLEAN_REQUEST_ID: 'cln_stale',
           ZEROSPIN_DEPLOY_ID: 'dpl_stale',
           ZEROSPIN_GENERATION_ID: 'gen_stale',
           ZEROSPIN_INSTANCE_ID: 'stale',
+          ZEROSPIN_SELF_HOSTED: 'stale',
           ZEROSPIN_SYSTEM_RELEASE: 'stale',
           ZEROSPIN_SYSTEM_ID: 'sys_test',
         },
@@ -112,13 +123,18 @@ describe('devFn', () => {
         entry: 'src/system.ts',
         environmentId: 'dev',
         env: null,
-        seeds: 'src/seeds.ts',
+        seeds: {
+          dev: 'src/seeds.ts',
+          production: null,
+        },
       }),
     );
+    mkdirMock.mockReset();
+    mkdirMock.mockResolvedValue(undefined);
     resolveMock.mockReset();
     resolveMock.mockImplementation((specifier: string) => {
-      if (specifier === 'wrangler/bin/wrangler.js') {
-        return '/project/node_modules/wrangler/bin/wrangler.js';
+      if (specifier === 'wrangler/package.json') {
+        return '/project/node_modules/wrangler/package.json';
       }
       if (specifier === '@zerospin/dispatch-worker/Worker') {
         return '/project/node_modules/@zerospin/dispatch-worker/dist/Worker.js';
@@ -129,10 +145,45 @@ describe('devFn', () => {
     rmMock.mockResolvedValue(undefined);
     randomUUIDMock.mockReset();
     randomUUIDMock.mockReturnValue('test-clean-request');
+    readFileMock.mockReset();
+    readFileMock.mockResolvedValue('0\n');
     spawnMock.mockReset();
     writeFileMock.mockReset();
     writeFileMock.mockResolvedValue(undefined);
     delete process.env['ZEROSPIN_PORT'];
+  });
+
+  afterEach(() => {
+    if (originalClerkJwtKey === undefined) {
+      delete process.env['CLERK_JWT_KEY'];
+    } else {
+      process.env['CLERK_JWT_KEY'] = originalClerkJwtKey;
+    }
+  });
+
+  it('requires the Clerk JWT verification key after loading local environment files', async () => {
+    delete process.env['CLERK_JWT_KEY'];
+
+    const error = await Effect.runPromise(
+      devFn({ clean: false, port: 3005 }).pipe(
+        Effect.provide(AsyncLive),
+        Effect.flip,
+      ),
+    );
+
+    expect(error).toMatchObject({
+      code: 'zerospin-dev-clerk-jwt-key-missing',
+      message: expect.stringContaining(path.join(process.cwd(), '.env.local')),
+    });
+    expect(loadEnvMock.mock.calls).toEqual([
+      [{ path: path.join(process.cwd(), '.env.local') }],
+      [{ path: path.join(process.cwd(), '.env') }],
+    ]);
+    expect(resolveMock).not.toHaveBeenCalled();
+    expect(loadZerospinConfigMock).not.toHaveBeenCalled();
+    expect(loadConfigMock).not.toHaveBeenCalled();
+    expect(writeFileMock).not.toHaveBeenCalled();
+    expect(spawnMock).not.toHaveBeenCalled();
   });
 
   it('loads .env.local and .env before loading zerospin.config', async () => {
@@ -148,7 +199,10 @@ describe('devFn', () => {
         entry: 'src/system.ts',
         environmentId: 'dev',
         env: null,
-        seeds: 'src/seeds.ts',
+        seeds: {
+          dev: 'src/seeds.ts',
+          production: null,
+        },
       });
     });
     writeFileMock.mockRejectedValue(new Error('stop after config loading'));
@@ -312,11 +366,14 @@ describe('devFn', () => {
       ),
     );
 
-    expect(resolveMock).toHaveBeenCalledWith('wrangler/bin/wrangler.js', {
+    expect(resolveMock).toHaveBeenCalledWith('wrangler/package.json', {
       paths: [process.cwd()],
     });
     expect(resolveMock).toHaveBeenCalledWith(
       '@zerospin/dispatch-worker/Worker',
+    );
+    expect(resolveMock).toHaveBeenCalledWith(
+      '/project/node_modules/@zerospin/dispatch-worker/dist/LocalWorker.js',
     );
     expect(resolveMock).toHaveBeenCalledWith(
       path.join(process.cwd(), 'src/seeds.ts'),
@@ -326,7 +383,7 @@ describe('devFn', () => {
     const generatedConfig = JSON.parse(writeFileMock.mock.calls[0]?.[1]);
     expect(generatedConfig).toEqual({
       name: 'zerospin-test',
-      main: '/project/node_modules/@zerospin/dispatch-worker/dist/Worker.js',
+      main: '/project/node_modules/@zerospin/dispatch-worker/dist/LocalWorker.js',
       compatibility_date: '2026-01-20',
       compatibility_flags: ['nodejs_compat'],
       alias: {
@@ -335,15 +392,17 @@ describe('devFn', () => {
       },
       migrations: [
         {
-          tag: 'v1',
-          new_sqlite_classes: ['SystemRepo'],
-        },
-        {
           tag: 'zerospin-dev-v1',
           new_sqlite_classes: ['DevZerospinApis'],
         },
+        {
+          tag: 'v1',
+          new_sqlite_classes: ['SystemRepo'],
+        },
       ],
       vars: {
+        CLERK_JWT_KEY: 'local-clerk-jwt-public-key',
+        ZEROSPIN_SELF_HOSTED: 'true',
         ZEROSPIN_SYSTEM_ID: 'sys_test',
       },
       preserved_null: null,
@@ -369,7 +428,10 @@ describe('devFn', () => {
         entry: 'src/system.ts',
         environmentId: 'dev',
         env: null,
-        seeds: null,
+        seeds: {
+          dev: null,
+          production: null,
+        },
       }),
     );
     const child = Object.assign(new EventEmitter(), {
@@ -422,6 +484,142 @@ describe('devFn', () => {
     child.emit('close', 0, null);
     await expect(resultPromise).resolves.toEqual({ port: undefined });
     expect(rmMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('records the current authored migration boundary before the local controller migration', async () => {
+    readFileMock.mockRejectedValue(
+      Object.assign(new Error('missing migration boundary'), {
+        code: 'ENOENT',
+      }),
+    );
+    loadConfigMock.mockResolvedValue({
+      config: {
+        compatibility_date: '2026-01-20',
+        migrations: [
+          { tag: 'authored-v1', new_sqlite_classes: ['FirstRepo'] },
+          { tag: 'authored-v2', new_sqlite_classes: ['SecondRepo'] },
+        ],
+        vars: {
+          ZEROSPIN_SYSTEM_ID: 'sys_test',
+        },
+      },
+    });
+    const child = Object.assign(new EventEmitter(), {
+      kill: vi.fn(),
+      killed: false,
+    });
+    spawnMock.mockReturnValue(child);
+
+    const resultPromise = Effect.runPromise(
+      devFn({ clean: false, port: 3005 }).pipe(Effect.provide(AsyncLive)),
+    );
+    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+
+    const generatedConfig = JSON.parse(writeFileMock.mock.calls[0]?.[1]);
+    expect(generatedConfig.migrations).toEqual([
+      { tag: 'authored-v1', new_sqlite_classes: ['FirstRepo'] },
+      { tag: 'authored-v2', new_sqlite_classes: ['SecondRepo'] },
+      {
+        tag: 'zerospin-dev-v1',
+        new_sqlite_classes: ['DevZerospinApis'],
+      },
+    ]);
+
+    const persistenceRoot = path.join(
+      process.cwd(),
+      '.wrangler',
+      'zerospin',
+      'dev',
+      'sys_test%3Alocal',
+    );
+    const migrationBoundaryPath = `${persistenceRoot}.authored-migration-boundary`;
+    expect(readFileMock).toHaveBeenCalledWith(migrationBoundaryPath, 'utf8');
+    expect(mkdirMock).toHaveBeenCalledWith(
+      path.dirname(migrationBoundaryPath),
+      {
+        recursive: true,
+      },
+    );
+    expect(writeFileMock).toHaveBeenCalledWith(
+      migrationBoundaryPath,
+      '2\n',
+      'utf8',
+    );
+
+    child.emit('close', 0, null);
+    await expect(resultPromise).resolves.toEqual({ port: 3005 });
+  });
+
+  it('places later authored migrations after the persisted local controller boundary', async () => {
+    readFileMock.mockResolvedValue('2\n');
+    loadConfigMock.mockResolvedValue({
+      config: {
+        compatibility_date: '2026-01-20',
+        migrations: [
+          { tag: 'authored-v1', new_sqlite_classes: ['FirstRepo'] },
+          { tag: 'authored-v2', new_sqlite_classes: ['SecondRepo'] },
+          { tag: 'authored-v3', new_sqlite_classes: ['ThirdRepo'] },
+        ],
+        vars: {
+          ZEROSPIN_SYSTEM_ID: 'sys_test',
+        },
+      },
+    });
+    const child = Object.assign(new EventEmitter(), {
+      kill: vi.fn(),
+      killed: false,
+    });
+    spawnMock.mockReturnValue(child);
+
+    const resultPromise = Effect.runPromise(
+      devFn({ clean: false, port: 3005 }).pipe(Effect.provide(AsyncLive)),
+    );
+    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+
+    const generatedConfig = JSON.parse(writeFileMock.mock.calls[0]?.[1]);
+    expect(generatedConfig.migrations).toEqual([
+      { tag: 'authored-v1', new_sqlite_classes: ['FirstRepo'] },
+      { tag: 'authored-v2', new_sqlite_classes: ['SecondRepo'] },
+      {
+        tag: 'zerospin-dev-v1',
+        new_sqlite_classes: ['DevZerospinApis'],
+      },
+      { tag: 'authored-v3', new_sqlite_classes: ['ThirdRepo'] },
+    ]);
+    expect(writeFileMock).toHaveBeenCalledTimes(1);
+    expect(mkdirMock).not.toHaveBeenCalled();
+
+    child.emit('close', 0, null);
+    await expect(resultPromise).resolves.toEqual({ port: 3005 });
+  });
+
+  it('rejects a local migration boundary beyond the authored migration list', async () => {
+    readFileMock.mockResolvedValue('2\n');
+    loadConfigMock.mockResolvedValue({
+      config: {
+        migrations: [{ tag: 'authored-v1' }],
+        vars: {
+          ZEROSPIN_SYSTEM_ID: 'sys_test',
+        },
+      },
+    });
+
+    const error = await Effect.runPromise(
+      devFn({ clean: false, port: 3005 }).pipe(
+        Effect.provide(AsyncLive),
+        Effect.flip,
+      ),
+    );
+
+    expect(error).toMatchObject({
+      code: 'zerospin-dev-migration-boundary-invalid',
+      extra: {
+        migrationsLength: 1,
+        storedMigrationBoundary: '2\n',
+      },
+    });
+    expect(writeFileMock).not.toHaveBeenCalled();
+    expect(spawnMock).not.toHaveBeenCalled();
   });
 
   it('enables ctx.exports for a pre-default compatibility date', async () => {
@@ -536,8 +734,8 @@ describe('devFn', () => {
 
   it('fails when the CLI-owned dispatch Worker cannot be resolved', async () => {
     resolveMock.mockImplementation((specifier: string) => {
-      if (specifier === 'wrangler/bin/wrangler.js') {
-        return '/project/node_modules/wrangler/bin/wrangler.js';
+      if (specifier === 'wrangler/package.json') {
+        return '/project/node_modules/wrangler/package.json';
       }
       if (specifier === '@zerospin/dispatch-worker/Worker') {
         throw new Error('missing dispatch Worker');
@@ -561,8 +759,8 @@ describe('devFn', () => {
 
   it('fails when the configured seed module cannot be resolved', async () => {
     resolveMock.mockImplementation((specifier: string) => {
-      if (specifier === 'wrangler/bin/wrangler.js') {
-        return '/project/node_modules/wrangler/bin/wrangler.js';
+      if (specifier === 'wrangler/package.json') {
+        return '/project/node_modules/wrangler/package.json';
       }
       if (specifier === '@zerospin/dispatch-worker/Worker') {
         return '/project/node_modules/@zerospin/dispatch-worker/dist/Worker.js';
@@ -594,12 +792,15 @@ describe('devFn', () => {
         entry: 'src/system.ts',
         environmentId: 'dev',
         env: null,
-        seeds: null,
+        seeds: {
+          dev: null,
+          production: null,
+        },
       }),
     );
     resolveMock.mockImplementation((specifier: string) => {
-      if (specifier === 'wrangler/bin/wrangler.js') {
-        return '/project/node_modules/wrangler/bin/wrangler.js';
+      if (specifier === 'wrangler/package.json') {
+        return '/project/node_modules/wrangler/package.json';
       }
       if (specifier === '@zerospin/dispatch-worker/Worker') {
         return '/project/node_modules/@zerospin/dispatch-worker/dist/Worker.js';
@@ -771,7 +972,7 @@ describe('devFn', () => {
         compatibility_date: '2026-01-20',
         compatibility_flags: ['nodejs_compat'],
         alias: {
-          system: './src/dev/fixtures/missingAccountControllerVersion.js',
+          system: './test-fixtures/missingAccountControllerVersion.js',
         },
         migrations: [],
         vars: {

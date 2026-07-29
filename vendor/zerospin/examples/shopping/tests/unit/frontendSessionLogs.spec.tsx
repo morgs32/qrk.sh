@@ -102,8 +102,8 @@ describe('frontend session logs integration', () => {
     const outcome = await Effect.runPromise(
       Effect.gen(function* () {
         const actor = yield* tracedFrontendApi
-          .fetchActor()
-          .pipe(Effect.withSpan('browser.fetchActor'));
+          .authenticate()
+          .pipe(Effect.withSpan('browser.authenticate'));
         const failedQuery = yield* tracedFrontendApi
           .executeActorQuery({
             queryName: 'missing-query',
@@ -129,31 +129,31 @@ describe('frontend session logs integration', () => {
     expect(session.store.getState().telemetry.links).toHaveLength(2);
     expect(session.store.getState().telemetry.spans).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ name: 'browser.fetchActor' }),
+        expect.objectContaining({ name: 'browser.authenticate' }),
         expect.objectContaining({
           name: 'browser.executeActorQuery',
           status: 'error',
         }),
       ]),
     );
-    const browserFetchSpan = session.store
+    const browserAuthenticateSpan = session.store
       .getState()
-      .telemetry.spans.find(span => span.name === 'browser.fetchActor');
+      .telemetry.spans.find(span => span.name === 'browser.authenticate');
     const browserQuerySpan = session.store
       .getState()
       .telemetry.spans.find(span => span.name === 'browser.executeActorQuery');
-    const serverFetchRoot = persistedBatches[0]?.spans.find(
-      span => span.name === 'FrontendApi.fetchActor',
+    const serverAuthenticateRoot = persistedBatches[0]?.spans.find(
+      span => span.name === 'FrontendApi.authenticate',
     );
     const serverQueryRoot = persistedBatches[1]?.spans.find(
       span => span.name === 'FrontendApi.executeActorQuery',
     );
     expect(session.store.getState().telemetry.links[0]).toEqual(
       expect.objectContaining({
-        traceId: serverFetchRoot?.traceId,
-        spanId: serverFetchRoot?.spanId,
-        priorTraceId: browserFetchSpan?.traceId,
-        priorSpanId: browserFetchSpan?.spanId,
+        traceId: serverAuthenticateRoot?.traceId,
+        spanId: serverAuthenticateRoot?.spanId,
+        priorTraceId: browserAuthenticateSpan?.traceId,
+        priorSpanId: browserAuthenticateSpan?.spanId,
       }),
     );
     expect(session.store.getState().telemetry.links[1]).toEqual(
@@ -190,7 +190,7 @@ describe('frontend session logs integration', () => {
       models,
       vfsName: null,
       isInitialized: true,
-      frontendIndex: null,
+      frontendIndex: 0,
       lastRebasedPushedCursor: null,
       isPushPaused: true,
     });
@@ -237,7 +237,7 @@ describe('frontend session logs integration', () => {
           };
         }),
     );
-    Reflect.apply(zerospinDevtoolsStore.getState().addSession, null, [
+    Reflect.apply(zerospinDevtoolsStore.getState().addAccountSession, null, [
       { session, pushStagedCommands },
     ]);
 
@@ -249,7 +249,6 @@ describe('frontend session logs integration', () => {
         <ZerospinDevtools
           config={{
             defaultOpen: true,
-            requireUrlFlag: false,
             triggerHidden: true,
           }}
         />,
@@ -343,7 +342,7 @@ describe('frontend session logs integration', () => {
       await Promise.resolve();
     });
     container.remove();
-    zerospinDevtoolsStore.getState().removeSession(session.sessionId);
+    zerospinDevtoolsStore.getState().removeAccountSession(session.sessionId);
     await runtime.dispose();
   });
 });

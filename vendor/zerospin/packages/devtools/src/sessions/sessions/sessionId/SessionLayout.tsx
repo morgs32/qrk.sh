@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 import type { ISessionId } from '@zerospin/core/session/types';
 import { Navigate, Outlet, useParams } from 'react-router';
 
-import { useSession } from './useSession';
+import { useAccountSession, useServiceSession } from './useSession';
 
 const styles = {
   root: {
@@ -15,11 +15,16 @@ const styles = {
 } as const;
 
 export function SessionLayout() {
-  const session = useSession();
+  const accountSession = useAccountSession();
+  const serviceSession = useServiceSession();
 
   const { sessionId } = useParams<{ sessionId: ISessionId }>();
 
-  if (!session && sessionId) {
+  if (
+    accountSession === undefined &&
+    serviceSession === undefined &&
+    sessionId
+  ) {
     return <Navigate to="/sessions" replace />;
   }
 

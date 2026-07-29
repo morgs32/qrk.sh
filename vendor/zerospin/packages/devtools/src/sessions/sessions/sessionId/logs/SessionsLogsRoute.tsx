@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
+import type { ISession } from '@zerospin/core/session/types';
 import {
   buildTraceTree,
   emptyTelemetryBatch,
@@ -7,18 +8,72 @@ import {
   type ISpanId,
   type ISpanLinkRecord,
   type ISpanRecord,
+  type ITelemetryBatch,
   type ITraceId,
 } from '@zerospin/logger';
 import { useSearchParams } from 'react-router';
 import { useStore } from 'zustand/react';
 
-import { useSessionOrThrow } from '../useSession';
+import type { IDevtoolsServiceSessionEntry } from '../../../../types.js';
+import { useAccountSession, useServiceSession } from '../useSession';
 
 import { SessionsLogsSpanNode } from './SessionsLogsSpanNode';
 
-export function SessionsLogsRoute() {
-  const session = useSessionOrThrow();
+function AccountSessionsLogsRouteBody(props: { readonly session: ISession }) {
+  const { session } = props;
   const telemetry = useStore(session.store, state => state.telemetry);
+
+  return (
+    <SessionsLogsRouteBody
+      telemetry={telemetry}
+      onClear={() => {
+        session.store.setState({
+          telemetry: emptyTelemetryBatch(),
+          lastDevtoolsPush: null,
+        });
+      }}
+    />
+  );
+}
+
+function ServiceSessionsLogsRouteBody(props: {
+  readonly session: IDevtoolsServiceSessionEntry;
+}) {
+  const { session } = props;
+  const telemetry = useSyncExternalStore(
+    session.subscribe,
+    session.getTelemetry,
+    session.getTelemetry,
+  );
+
+  return (
+    <SessionsLogsRouteBody
+      telemetry={telemetry}
+      onClear={session.clearTelemetry}
+    />
+  );
+}
+
+export function SessionsLogsRoute() {
+  const accountSession = useAccountSession();
+  const serviceSession = useServiceSession();
+
+  if (accountSession !== undefined) {
+    return <AccountSessionsLogsRouteBody session={accountSession} />;
+  }
+
+  if (serviceSession !== undefined) {
+    return <ServiceSessionsLogsRouteBody session={serviceSession} />;
+  }
+
+  return null;
+}
+
+function SessionsLogsRouteBody(props: {
+  readonly telemetry: ITelemetryBatch;
+  readonly onClear: () => void;
+}) {
+  const { telemetry, onClear } = props;
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTraceId = searchParams.get('traceId');
   const [selectedSpanId, setSelectedSpanId] = useState<ISpanId | null>(null);
@@ -250,10 +305,7 @@ export function SessionsLogsRoute() {
             type="button"
             data-testid="clear-session-telemetry"
             onClick={() => {
-              session.store.setState({
-                telemetry: emptyTelemetryBatch(),
-                lastDevtoolsPush: null,
-              });
+              onClear();
               setSearchParams({});
             }}
             style={{

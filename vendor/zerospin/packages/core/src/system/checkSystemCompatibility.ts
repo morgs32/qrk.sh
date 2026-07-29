@@ -16,11 +16,9 @@ const semVerPattern =
  * 2. Compare model properties and indexes directionally and record the exact
  *    path of each structural addition, removal, or change.
  * 3. Compare payload/query/signature JSON Schemas directionally.
- * 4. Compare contract mutation-slot membership and inherit model severity when
- *    only a slot's model version advances.
- * 5. Report each incompatible persisted mutation variant that lacks one direct
+ * 4. Report each incompatible persisted mutation variant that lacks one direct
  *    controller-owned adapter edge.
- * 6. Propagate structural severity through model, contract, controller, and
+ * 5. Propagate structural severity through model, contract, controller, and
  *    system SemVers while leaving patch-only logic changes authored.
  */
 export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
@@ -44,7 +42,6 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
     }[] = [];
     const modelComparisons: {
       path: string;
-      bumpKey: string;
       prior:
         | ISystemSpec['accountControllers'][string]['models'][string]
         | undefined;
@@ -59,10 +56,10 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
           | undefined;
         operations: readonly IOperationName[];
       } | null;
+      requiresNewGeneration: boolean;
     }[] = [];
     const contractComparisons: {
       path: string;
-      modelBumpPrefix: string;
       prior:
         | ISystemSpec['accountControllers'][string]['contracts'][string]
         | undefined;
@@ -80,7 +77,6 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
       priorVersion: string;
       nextVersion: string;
     }[] = [];
-    const modelBumps: Record<string, 'none' | 'minor' | 'major'> = {};
     let requiresNewGeneration = false;
 
     if (prior.systemName !== next.systemName) {
@@ -196,7 +192,6 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
       ])) {
         modelComparisons.push({
           path: `${servicePath}.models.${modelKey}`,
-          bumpKey: `service:${serviceName}:${priorModels[modelKey]?.modelName ?? nextModels[modelKey]?.modelName ?? modelKey}`,
           prior: priorModels[modelKey],
           next: nextModels[modelKey],
           adapterOwner: {
@@ -211,6 +206,7 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
               'update',
             ],
           },
+          requiresNewGeneration: true,
         });
       }
 
@@ -222,7 +218,6 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
       ])) {
         contractComparisons.push({
           path: `${servicePath}.contracts.${contractKey}`,
-          modelBumpPrefix: `service:${serviceName}:`,
           prior: priorContracts[contractKey],
           next: nextContracts[contractKey],
         });
@@ -277,6 +272,167 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
             prior: priorQuery.paramsJsonSchema,
             next: nextQuery.paramsJsonSchema,
           });
+        }
+      }
+
+      const priorActors = priorService?.actorControllers ?? {};
+      const nextActors = nextService?.actorControllers ?? {};
+      for (const actorName of new Set([
+        ...Object.keys(priorActors),
+        ...Object.keys(nextActors),
+      ])) {
+        const priorActor = priorActors[actorName];
+        const nextActor = nextActors[actorName];
+        const actorPath = `${servicePath}.actorControllers.${actorName}`;
+        if (priorActor === undefined && nextActor !== undefined) {
+          diffs.push({
+            path: actorPath,
+            kind: 'surface-added',
+            requiredBump: 'minor',
+            prior: undefined,
+            next: nextActor,
+          });
+        } else if (priorActor !== undefined && nextActor === undefined) {
+          diffs.push({
+            path: actorPath,
+            kind: 'surface-removed',
+            requiredBump: 'major',
+            prior: priorActor,
+            next: undefined,
+          });
+        } else if (priorActor !== undefined && nextActor !== undefined) {
+          componentVersions.push({
+            path: actorPath,
+            priorVersion: priorActor.version,
+            nextVersion: nextActor.version,
+          });
+          if (priorActor.name !== nextActor.name) {
+            diffs.push({
+              path: `${actorPath}.name`,
+              kind: 'identity-changed',
+              requiredBump: 'major',
+              prior: priorActor.name,
+              next: nextActor.name,
+            });
+          }
+          if (priorActor.version !== nextActor.version) {
+            diffs.push({
+              path: `${actorPath}.version`,
+              kind: 'authored-version-changed',
+              requiredBump: 'none',
+              prior: priorActor.version,
+              next: nextActor.version,
+            });
+          }
+        }
+
+        const priorActorModels = priorActor?.models ?? {};
+        const nextActorModels = nextActor?.models ?? {};
+        for (const modelKey of new Set([
+          ...Object.keys(priorActorModels),
+          ...Object.keys(nextActorModels),
+        ])) {
+          modelComparisons.push({
+            path: `${actorPath}.models.${modelKey}`,
+            prior: priorActorModels[modelKey],
+            next: nextActorModels[modelKey],
+            adapterOwner: null,
+            requiresNewGeneration: false,
+          });
+        }
+
+        const priorFrontends = priorActor?.frontends ?? {};
+        const nextFrontends = nextActor?.frontends ?? {};
+        for (const frontendName of new Set([
+          ...Object.keys(priorFrontends),
+          ...Object.keys(nextFrontends),
+        ])) {
+          const priorBinding = priorFrontends[frontendName];
+          const nextBinding = nextFrontends[frontendName];
+          const frontendPath = `${actorPath}.frontends.${frontendName}`;
+          if (priorBinding === undefined && nextBinding !== undefined) {
+            diffs.push({
+              path: frontendPath,
+              kind: 'surface-added',
+              requiredBump: 'minor',
+              prior: undefined,
+              next: nextBinding,
+            });
+          } else if (
+            priorBinding !== undefined &&
+            nextBinding === undefined
+          ) {
+            diffs.push({
+              path: frontendPath,
+              kind: 'surface-removed',
+              requiredBump: 'major',
+              prior: priorBinding,
+              next: undefined,
+            });
+          }
+
+          const priorFrontend = priorBinding?.frontendController;
+          const nextFrontend = nextBinding?.frontendController;
+          if (priorFrontend !== undefined && nextFrontend !== undefined) {
+            componentVersions.push({
+              path: `${frontendPath}.frontendController`,
+              priorVersion: priorFrontend.version,
+              nextVersion: nextFrontend.version,
+            });
+            if (
+              priorBinding?.name !== nextBinding?.name ||
+              priorFrontend.serviceName !== nextFrontend.serviceName ||
+              priorFrontend.actorName !== nextFrontend.actorName ||
+              priorFrontend.frontendName !== nextFrontend.frontendName
+            ) {
+              diffs.push({
+                path: frontendPath,
+                kind: 'identity-changed',
+                requiredBump: 'major',
+                prior: {
+                  bindingName: priorBinding?.name,
+                  serviceName: priorFrontend.serviceName,
+                  actorName: priorFrontend.actorName,
+                  frontendName: priorFrontend.frontendName,
+                },
+                next: {
+                  bindingName: nextBinding?.name,
+                  serviceName: nextFrontend.serviceName,
+                  actorName: nextFrontend.actorName,
+                  frontendName: nextFrontend.frontendName,
+                },
+              });
+            }
+            if (priorFrontend.version !== nextFrontend.version) {
+              diffs.push({
+                path: `${frontendPath}.frontendController.version`,
+                kind: 'authored-version-changed',
+                requiredBump: 'none',
+                prior: priorFrontend.version,
+                next: nextFrontend.version,
+              });
+            }
+            schemaComparisons.push({
+              path: `${frontendPath}.frontendController.signatureJsonSchema`,
+              prior: priorFrontend.signatureJsonSchema,
+              next: nextFrontend.signatureJsonSchema,
+            });
+          }
+
+          const priorFrontendModels = priorFrontend?.models ?? {};
+          const nextFrontendModels = nextFrontend?.models ?? {};
+          for (const modelKey of new Set([
+            ...Object.keys(priorFrontendModels),
+            ...Object.keys(nextFrontendModels),
+          ])) {
+            modelComparisons.push({
+              path: `${frontendPath}.frontendController.models.${modelKey}`,
+              prior: priorFrontendModels[modelKey],
+              next: nextFrontendModels[modelKey],
+              adapterOwner: null,
+              requiresNewGeneration: true,
+            });
+          }
         }
       }
     }
@@ -384,7 +540,6 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
       ])) {
         modelComparisons.push({
           path: `${accountPath}.models.${modelKey}`,
-          bumpKey: `account:${accountName}:${priorModels[modelKey]?.modelName ?? nextModels[modelKey]?.modelName ?? modelKey}`,
           prior: priorModels[modelKey],
           next: nextModels[modelKey],
           adapterOwner: {
@@ -393,6 +548,7 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
             mutationAdapters: nextAccount?.mutationAdapters,
             operations: ['create', 'delete', 'move', 'update'],
           },
+          requiresNewGeneration: true,
         });
       }
 
@@ -404,7 +560,6 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
       ])) {
         contractComparisons.push({
           path: `${accountPath}.contracts.${contractKey}`,
-          modelBumpPrefix: `account:${accountName}:`,
           prior: priorContracts[contractKey],
           next: nextContracts[contractKey],
         });
@@ -469,10 +624,10 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
         ])) {
           modelComparisons.push({
             path: `${actorPath}.models.${modelKey}`,
-            bumpKey: `actor:${accountName}:${actorName}:${priorActorModels[modelKey]?.modelName ?? nextActorModels[modelKey]?.modelName ?? modelKey}`,
             prior: priorActorModels[modelKey],
             next: nextActorModels[modelKey],
             adapterOwner: null,
+            requiresNewGeneration: true,
           });
         }
 
@@ -654,10 +809,10 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
           ])) {
             modelComparisons.push({
               path: `${frontendPath}.frontendController.models.${modelKey}`,
-              bumpKey: `frontend:${accountName}:${actorName}:${frontendName}:${priorFrontendModels[modelKey]?.modelName ?? nextFrontendModels[modelKey]?.modelName ?? modelKey}`,
               prior: priorFrontendModels[modelKey],
               next: nextFrontendModels[modelKey],
               adapterOwner: null,
+              requiresNewGeneration: true,
             });
           }
 
@@ -669,7 +824,6 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
           ])) {
             contractComparisons.push({
               path: `${frontendPath}.frontendController.contracts.${contractKey}`,
-              modelBumpPrefix: `frontend:${accountName}:${actorName}:${frontendName}:`,
               prior: priorFrontendContracts[contractKey],
               next: nextFrontendContracts[contractKey],
             });
@@ -685,8 +839,9 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
       const priorModel = comparison.prior;
       const nextModel = comparison.next;
       if (priorModel === undefined && nextModel !== undefined) {
-        requiresNewGeneration = true;
-        modelBumps[comparison.bumpKey] = 'minor';
+        if (comparison.requiresNewGeneration) {
+          requiresNewGeneration = true;
+        }
         diffs.push({
           path: comparison.path,
           kind: 'surface-added',
@@ -697,8 +852,9 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
         continue;
       }
       if (priorModel !== undefined && nextModel === undefined) {
-        requiresNewGeneration = true;
-        modelBumps[comparison.bumpKey] = 'major';
+        if (comparison.requiresNewGeneration) {
+          requiresNewGeneration = true;
+        }
         diffs.push({
           path: comparison.path,
           kind: 'surface-removed',
@@ -739,7 +895,10 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
         priorVersion: priorModel.version,
         nextVersion: nextModel.version,
       });
-      if (!isEqual(priorModel, nextModel)) {
+      if (
+        comparison.requiresNewGeneration &&
+        !isEqual(priorModel, nextModel)
+      ) {
         requiresNewGeneration = true;
       }
       if (priorModel.version !== nextModel.version) {
@@ -976,8 +1135,6 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
           });
         }
       }
-      modelBumps[comparison.bumpKey] = modelBump;
-
       if (comparison.adapterOwner !== null) {
         for (const operationName of comparison.adapterOwner.operations) {
           const requiresAdapter =
@@ -1011,9 +1168,8 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
       }
     }
 
-    // 3 and 4 — Contracts keep payload directionality separate from mutation
-    // slot membership. Mutation slot paths include Struct keys, Tuple indexes, or
-    // Array item positions so additions and reorderings are exact major diffs.
+    // 3 — Contracts compare identity and payload directionality. Mutation result
+    // schemas remain runtime validation declarations and are not deploy metadata.
     for (const comparison of contractComparisons) {
       const priorContract = comparison.prior;
       const nextContract = comparison.next;
@@ -1070,177 +1226,78 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
         next: nextContract.payloadJsonSchema,
       });
 
-      if (
-        (priorContract.mutationsJsonSchema === null) !==
-        (nextContract.mutationsJsonSchema === null)
-      ) {
-        diffs.push({
-          path: `${comparison.path}.mutationsJsonSchema`,
-          kind: 'mutation-membership-changed',
-          requiredBump: 'major',
-          prior: priorContract.mutationsJsonSchema,
-          next: nextContract.mutationsJsonSchema,
-        });
-      } else if (
-        priorContract.mutationsJsonSchema !== null &&
-        nextContract.mutationsJsonSchema !== null &&
-        !isEqual(
-          priorContract.mutationsJsonSchema,
-          nextContract.mutationsJsonSchema,
-        )
-      ) {
-        const priorSlots: {
-          path: string;
-          modelName: string;
-          modelVersion: string;
-          operationName: string;
-        }[] = [];
-        const nextSlots: {
-          path: string;
-          modelName: string;
-          modelVersion: string;
-          operationName: string;
-        }[] = [];
-        const priorStack: { path: string; value: unknown }[] = [
-          { path: '$', value: priorContract.mutationsJsonSchema },
-        ];
-        while (priorStack.length > 0) {
-          const entry = priorStack.pop();
+      const priorHistoricalDefinitions = new Map(
+        priorContract.historicalDefinitions.map(definition => [
+          definition.version,
+          definition,
+        ]),
+      );
+      const nextHistoricalDefinitions = new Map(
+        nextContract.historicalDefinitions.map(definition => [
+          definition.version,
+          definition,
+        ]),
+      );
+      for (const historicalVersion of new Set([
+        ...priorHistoricalDefinitions.keys(),
+        ...nextHistoricalDefinitions.keys(),
+      ])) {
+        const priorHistoricalDefinition =
+          priorHistoricalDefinitions.get(historicalVersion);
+        const nextHistoricalDefinition =
+          nextHistoricalDefinitions.get(historicalVersion);
+        const historicalPath = `${comparison.path}.historicalDefinitions.${historicalVersion}`;
+        if (
+          priorHistoricalDefinition === undefined &&
+          nextHistoricalDefinition !== undefined
+        ) {
+          diffs.push({
+            path: historicalPath,
+            kind: 'historical-definition-added',
+            requiredBump: 'minor',
+            prior: undefined,
+            next: nextHistoricalDefinition,
+          });
+        } else if (
+          priorHistoricalDefinition !== undefined &&
+          nextHistoricalDefinition === undefined
+        ) {
+          diffs.push({
+            path: historicalPath,
+            kind: 'historical-definition-removed',
+            requiredBump: 'major',
+            prior: priorHistoricalDefinition,
+            next: undefined,
+          });
+        } else if (
+          priorHistoricalDefinition !== undefined &&
+          nextHistoricalDefinition !== undefined
+        ) {
           if (
-            entry === undefined ||
-            typeof entry.value !== 'object' ||
-            entry.value === null
+            priorHistoricalDefinition.commandName !==
+            nextHistoricalDefinition.commandName
           ) {
-            continue;
+            diffs.push({
+              path: `${historicalPath}.commandName`,
+              kind: 'identity-changed',
+              requiredBump: 'major',
+              prior: priorHistoricalDefinition.commandName,
+              next: nextHistoricalDefinition.commandName,
+            });
           }
-          const properties = Reflect.get(entry.value, 'properties');
-          if (typeof properties === 'object' && properties !== null) {
-            const modelNames = Reflect.get(
-              Reflect.get(properties, 'modelName') ?? {},
-              'enum',
-            );
-            const modelVersions = Reflect.get(
-              Reflect.get(properties, 'modelVersion') ?? {},
-              'enum',
-            );
-            const operationNames = Reflect.get(
-              Reflect.get(properties, 'operationName') ?? {},
-              'enum',
-            );
-            if (
-              Array.isArray(modelNames) &&
-              typeof modelNames[0] === 'string' &&
-              Array.isArray(modelVersions) &&
-              typeof modelVersions[0] === 'string' &&
-              Array.isArray(operationNames) &&
-              typeof operationNames[0] === 'string'
-            ) {
-              priorSlots.push({
-                path: entry.path,
-                modelName: modelNames[0],
-                modelVersion: modelVersions[0],
-                operationName: operationNames[0],
-              });
-            }
-          }
-          for (const [key, value] of Object.entries(entry.value)) {
-            priorStack.push({ path: `${entry.path}.${key}`, value });
-          }
+          schemaComparisons.push({
+            path: `${historicalPath}.payloadJsonSchema`,
+            prior: priorHistoricalDefinition.payloadJsonSchema,
+            next: nextHistoricalDefinition.payloadJsonSchema,
+          });
         }
-        const nextStack: { path: string; value: unknown }[] = [
-          { path: '$', value: nextContract.mutationsJsonSchema },
-        ];
-        while (nextStack.length > 0) {
-          const entry = nextStack.pop();
-          if (
-            entry === undefined ||
-            typeof entry.value !== 'object' ||
-            entry.value === null
-          ) {
-            continue;
-          }
-          const properties = Reflect.get(entry.value, 'properties');
-          if (typeof properties === 'object' && properties !== null) {
-            const modelNames = Reflect.get(
-              Reflect.get(properties, 'modelName') ?? {},
-              'enum',
-            );
-            const modelVersions = Reflect.get(
-              Reflect.get(properties, 'modelVersion') ?? {},
-              'enum',
-            );
-            const operationNames = Reflect.get(
-              Reflect.get(properties, 'operationName') ?? {},
-              'enum',
-            );
-            if (
-              Array.isArray(modelNames) &&
-              typeof modelNames[0] === 'string' &&
-              Array.isArray(modelVersions) &&
-              typeof modelVersions[0] === 'string' &&
-              Array.isArray(operationNames) &&
-              typeof operationNames[0] === 'string'
-            ) {
-              nextSlots.push({
-                path: entry.path,
-                modelName: modelNames[0],
-                modelVersion: modelVersions[0],
-                operationName: operationNames[0],
-              });
-            }
-          }
-          for (const [key, value] of Object.entries(entry.value)) {
-            nextStack.push({ path: `${entry.path}.${key}`, value });
-          }
-        }
-        let mutationBump: 'none' | 'minor' | 'major' = 'none';
-        if (priorSlots.length !== nextSlots.length) {
-          mutationBump = 'major';
-        } else {
-          for (const [slotIndex, priorSlot] of priorSlots.entries()) {
-            const nextSlot = nextSlots[slotIndex];
-            if (
-              nextSlot === undefined ||
-              priorSlot.path !== nextSlot.path ||
-              priorSlot.modelName !== nextSlot.modelName ||
-              priorSlot.operationName !== nextSlot.operationName
-            ) {
-              mutationBump = 'major';
-              break;
-            }
-            if (priorSlot.modelVersion !== nextSlot.modelVersion) {
-              const inheritedBump =
-                modelBumps[
-                  `${comparison.modelBumpPrefix}${priorSlot.modelName}`
-                ] ?? 'none';
-              if (inheritedBump === 'major') {
-                mutationBump = 'major';
-              } else if (inheritedBump === 'minor' && mutationBump === 'none') {
-                mutationBump = 'minor';
-              }
-            }
-          }
-        }
-        if (priorSlots.length === 0 || nextSlots.length === 0) {
-          mutationBump = 'major';
-        }
-        diffs.push({
-          path: `${comparison.path}.mutationsJsonSchema`,
-          kind:
-            mutationBump === 'major'
-              ? 'mutation-membership-changed'
-              : 'mutation-model-version-changed',
-          requiredBump: mutationBump,
-          prior: priorSlots,
-          next: nextSlots,
-        });
       }
     }
 
-    // 3 — Directional JSON Schema compatibility. This covers the Effect JSON
-    // Schema shapes emitted for payloads, query params, and signatures: object
-    // property membership, required fields, enum widening, nullable anyOf
-    // widening, and exact primitive constraints.
+    // 3 continued — Directional JSON Schema compatibility. This covers the
+    // Effect JSON Schema shapes emitted for payloads, query params, and
+    // signatures: object property membership, required fields, enum widening,
+    // nullable anyOf widening, and exact primitive constraints.
     for (const comparison of schemaComparisons) {
       if (isEqual(comparison.prior, comparison.next)) {
         continue;
@@ -1412,7 +1469,7 @@ export const checkSystemCompatibility = Effect.fn('checkSystemCompatibility')(
       });
     }
 
-    // 6 — Structural severity propagates to every existing owning component.
+    // 5 — Structural severity propagates to every existing owning component.
     // Version-only diffs remain `none`, so a patch bump can represent logic that
     // the comparator cannot infer. Under-bump entries are data for production;
     // development callers can report structural compatibility without enforcing

@@ -135,6 +135,53 @@ describe('pushStagedCommands', () => {
           }),
         ).pipe(Effect.flatMap(encoded => decodeRpc(encoded)));
 
+        const initializedState = session.store.getState();
+        if (!initializedState.isInitialized) {
+          return yield* Effect.fail(
+            new Error('Expected the staged session to remain initialized'),
+          );
+        }
+        session.store.setState({
+          workerState: {
+            ...initializedState.workerState,
+            status: 'update-required',
+          },
+        });
+        const blockedPush = yield* pushStagedCommands({ session }).pipe(
+          Effect.either,
+        );
+        expect(blockedPush._tag).toBe('Left');
+        if (blockedPush._tag === 'Left') {
+          expect(blockedPush.left.code).toBe('frontend-update-required');
+        }
+        expect(newHttpBatchRpcSessionMock).not.toHaveBeenCalled();
+        expect(
+          db.select().from(sessionStagedCommandDrizzleSchema).all(),
+        ).toHaveLength(3);
+        session.store.setState({
+          workerState: {
+            ...initializedState.workerState,
+            status: 'repairing',
+          },
+        });
+        const repairingPush = yield* pushStagedCommands({ session }).pipe(
+          Effect.either,
+        );
+        expect(repairingPush._tag).toBe('Left');
+        if (repairingPush._tag === 'Left') {
+          expect(repairingPush.left.code).toBe('frontend-repairing');
+        }
+        expect(newHttpBatchRpcSessionMock).not.toHaveBeenCalled();
+        expect(
+          db.select().from(sessionStagedCommandDrizzleSchema).all(),
+        ).toHaveLength(3);
+        session.store.setState({
+          workerState: {
+            ...initializedState.workerState,
+            status: 'online',
+          },
+        });
+
         const encodedStagedRows = db
           .select()
           .from(sessionStagedCommandDrizzleSchema)

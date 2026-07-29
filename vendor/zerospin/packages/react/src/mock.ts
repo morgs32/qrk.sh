@@ -11,7 +11,7 @@ import {
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { makeInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeInMemoryWasmSqliteDb';
+import { makeMigratedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb';
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
 import type {
   IFrontendController,
@@ -27,6 +27,7 @@ import type {
 import { applyFrontendState } from '@zerospin/core/session/applyFrontendState';
 import { makeSession } from '@zerospin/core/session/makeSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
+import type { ISystemId } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
@@ -34,8 +35,8 @@ import { Effect, Schema } from 'effect';
 import useSWRImmutable from 'swr/immutable';
 import { useStore } from 'zustand/react';
 
+import { makeBrowserPartitionController } from './makeBrowserPartitionController';
 import { makeBrowserSession } from './makeBrowserSession';
-import { makeBrowserUserController } from './makeBrowserUserController';
 import type { IBrowserSession, IReactFrontend } from './types';
 
 /*
@@ -56,7 +57,7 @@ export function makeMockProvider<FRONTEND extends IFrontendController>(props: {
 
   return function MockProvider(providerProps: {
     children: ReactNode;
-    userId: string;
+    partitionKey: string;
     accountId: IAccountId;
     actorId: IActorId;
     generationId: string;
@@ -79,9 +80,12 @@ export function makeMockProvider<FRONTEND extends IFrontendController>(props: {
 
     // 2 — the mock keeps the normal browser-session hook surface, but creates
     // no config context, queue, websocket, SharedWorker, RPC, or DevTools entry.
-    const browserUserController = useMemo(
+    const browserPartitionController = useMemo(
       () =>
-        makeBrowserUserController(initializationPropsRef.current.userId, false),
+        makeBrowserPartitionController(
+          initializationPropsRef.current.partitionKey,
+          false,
+        ),
       [],
     );
     const coreSession = useMemo(() => {
@@ -107,10 +111,10 @@ export function makeMockProvider<FRONTEND extends IFrontendController>(props: {
     const session = useMemo(
       () =>
         makeBrowserSession({
-          browserUserController,
+          browserPartitionController,
           session: coreSession,
         }),
-      [browserUserController, coreSession],
+      [browserPartitionController, coreSession],
     );
 
     // 3 — applyFrontendState owns the one migration and the production insert
@@ -118,6 +122,7 @@ export function makeMockProvider<FRONTEND extends IFrontendController>(props: {
     const { error: initializationError } = useSWRImmutable<
       {
         releaseMockSession: Effect.Effect<void, never, Async>;
+        systemId: ISystemId;
       },
       IAnyError,
       IBrowserSession<FRONTEND>
@@ -134,7 +139,10 @@ export function makeMockProvider<FRONTEND extends IFrontendController>(props: {
                 otherTables: sessionRepoTables,
               });
               const schema = dbConfig.schema;
-              const db = yield* makeInMemoryWasmSqliteDb({ dbConfig });
+              const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
+              const systemId = yield* makeIdFromAbbreviation({
+                abbreviation: coreAbbreviations.system,
+              });
               const releaseMockSession = makeAsync(
                 () => db.$client.sqlite3.close(db.$client.db),
                 ZerospinError.catch({
@@ -186,17 +194,28 @@ export function makeMockProvider<FRONTEND extends IFrontendController>(props: {
                 yield* applyFrontendState({
                   db,
                   frontend: reactFrontend.frontend,
+                  frontendVersion: reactFrontend.frontend.version,
+                  accountId: initializationProps.accountId,
+                  actorId: initializationProps.actorId,
+                  systemId,
+                  generationId: initializationProps.generationId,
+                  systemVersion: initializationProps.systemVersion,
+                  systemWorkerName: initializationProps.systemWorkerName,
                   frontendState: {
+                    accountId: initializationProps.accountId,
                     accountName: reactFrontend.frontend.accountName,
                     actorId: initializationProps.actorId,
                     actorName: reactFrontend.frontend.actorName,
                     executedPushedCommands: [],
                     failedPushedCommands: [],
-                    frontendIndex: null,
+                    frontendIndex: 0,
                     frontendName: reactFrontend.frontend.frontendName,
+                    generationId: initializationProps.generationId,
                     lastRebasedPushedCursor: null,
                     pushedCommands: [],
                     resources,
+                    systemId,
+                    systemVersion: initializationProps.systemVersion,
                     systemWorkerName: initializationProps.systemWorkerName,
                   },
                   models,
@@ -208,6 +227,7 @@ export function makeMockProvider<FRONTEND extends IFrontendController>(props: {
                   models,
                   releaseMockSession,
                   schema,
+                  systemId,
                 };
               }).pipe(Effect.tapError(() => releaseMockSession));
             }),
@@ -226,16 +246,29 @@ export function makeMockProvider<FRONTEND extends IFrontendController>(props: {
               accountName: reactFrontend.frontend.accountName,
               actorId: initializationProps.actorId,
               db: data.db,
-              frontendIndex: null,
+              frontendIndex: 0,
+              frontendName: reactFrontend.frontend.frontendName,
+              frontendVersion: reactFrontend.frontend.version,
               generationId: initializationProps.generationId,
               isInitialized: true,
               lastRebasedPushedCursor: null,
               models: data.models,
               schema: data.schema,
               sessionId: coreSession.sessionId,
+              systemId: data.systemId,
               systemVersion: initializationProps.systemVersion,
               systemWorkerName: initializationProps.systemWorkerName,
               vfsName: null,
+              replicaIndex: null,
+              workerState: {
+                mode: 'direct',
+                status: 'online',
+                bootstrapSource: null,
+                frontendIndex: 0,
+                replicaIndex: null,
+                databaseName: null,
+                failure: null,
+              },
             });
             return data;
           });

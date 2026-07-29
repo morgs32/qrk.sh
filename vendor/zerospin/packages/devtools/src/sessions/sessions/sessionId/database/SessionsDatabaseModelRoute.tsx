@@ -1,6 +1,6 @@
 import { useParams } from 'react-router';
 
-import { useSession } from '../useSession';
+import { useAccountSession, useServiceSession } from '../useSession';
 
 import { SessionsDatabaseModelRowsTable } from './SessionsDatabaseModelRowsTable';
 
@@ -13,20 +13,29 @@ function decodeModelNameParam(modelName: string): string {
 }
 
 export function SessionsDatabaseModelRoute() {
-  const session = useSession();
+  const accountSession = useAccountSession();
+  const serviceSession = useServiceSession();
   const { modelName } = useParams();
 
-  if (session === undefined || modelName === undefined) {
+  if (
+    (accountSession === undefined && serviceSession === undefined) ||
+    modelName === undefined
+  ) {
     return null;
   }
 
   const decoded = decodeModelNameParam(modelName);
 
-  if (!Object.hasOwn(session.frontend.models ?? {}, decoded)) {
+  const isDeclaredAccountModel =
+    accountSession !== undefined &&
+    Object.hasOwn(accountSession.frontend.models, decoded);
+  const isDeclaredServiceModel =
+    serviceSession !== undefined &&
+    serviceSession.getModelAttributes(decoded) !== undefined;
+
+  if (!isDeclaredAccountModel && !isDeclaredServiceModel) {
     return <span>Unknown model key: {decoded}</span>;
   }
 
-  return (
-    <SessionsDatabaseModelRowsTable session={session} modelKey={decoded} />
-  );
+  return <SessionsDatabaseModelRowsTable modelKey={decoded} />;
 }

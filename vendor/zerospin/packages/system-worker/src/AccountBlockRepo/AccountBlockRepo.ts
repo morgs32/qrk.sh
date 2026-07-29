@@ -217,7 +217,7 @@ export class AccountBlockRepo extends makeRepo({
         hostedDrain: makeAsync(() => this.drainActorOutbox()).pipe(
           Effect.flatMap(decodeRpc),
         ),
-        local: this.env.ZEROSPIN_INSTANCE_ID === 'local',
+        inspectionOnly: this.env.ZEROSPIN_SELF_HOSTED === 'true',
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }

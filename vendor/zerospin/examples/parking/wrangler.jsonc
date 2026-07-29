@@ -19,6 +19,14 @@
       { "name": "FRONTEND_REPO", "class_name": "FrontendRepo" },
       { "name": "FRONTEND_BLOCK_REPO", "class_name": "FrontendBlockRepo" },
       { "name": "SERVICE_BLOCK_REPO", "class_name": "ServiceBlockRepo" },
+      {
+        "name": "SERVICE_FRONTEND_REPO",
+        "class_name": "ServiceFrontendRepo",
+      },
+      {
+        "name": "SERVICE_FRONTEND_BLOCK_REPO",
+        "class_name": "ServiceFrontendBlockRepo",
+      },
       { "name": "AUTHORIZATION_REPO", "class_name": "AuthorizationRepo" },
       { "name": "SYSTEM_LOG_REPO", "class_name": "SystemLogRepo" },
       { "name": "SYSTEM_LOG_AGENT", "class_name": "SystemLogAgent" },
@@ -46,6 +54,10 @@
         "FrontendBlockRepo",
         "ServiceBlockRepo",
       ],
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": ["ServiceFrontendRepo", "ServiceFrontendBlockRepo"],
     },
   ],
   "observability": {

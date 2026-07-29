@@ -23,13 +23,23 @@ export default function AuthedLayout({ children }: { children: ReactNode }) {
 
   return (
     <RequiredUserProvider user={user}>
-      <ZerospinConfig userId={user.id}>
-        <ZerospinProviderAdmin.Provider
-          generateSignature={() => Effect.succeed({ clerkUserId: user.id })}
-        >
-          <ZerospinOwner.Provider
-            generateSignature={() => Effect.succeed({ clerkUserId: user.id })}
-          >
+      <ZerospinConfig
+        partitionKey={user.id}
+        frontendAuthenticators={{
+          'provider-admin': {
+            frontend: ZerospinProviderAdmin,
+            generateSignature: () =>
+              Effect.succeed({ clerkUserId: user.id }),
+          },
+          owner: {
+            frontend: ZerospinOwner,
+            generateSignature: () =>
+              Effect.succeed({ clerkUserId: user.id }),
+          },
+        }}
+      >
+        <ZerospinProviderAdmin.Provider>
+          <ZerospinOwner.Provider>
             {children}
             <AppDevtools />
           </ZerospinOwner.Provider>

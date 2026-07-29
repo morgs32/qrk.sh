@@ -1,14 +1,14 @@
 ---
 title: SystemApi
 type: module
-updated: 2026-07-15
+updated: 2026-07-28
 sources:
   - path: packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts
-    sha: 5fbd6cb4a8df630a48ec18b3357b2df87fc0a63a
-    lines: 129-199
+    sha: 1a7bbb43c173bdd8967ab6d09f85f1eb2e907002
+    lines: 129-410
   - path: packages/dispatch-worker/src/SystemApi/SystemApi.ts
-    sha: 40d25de070114e85ace1365af2a1d1eceb719d07
-    lines: 57-1351
+    sha: c54223d45368499b2b347073e43e2560c0361ea8
+    lines: 57-1316
   - path: packages/dispatch-worker/src/SystemWorkerResolver/SystemWorkerResolver.ts
     sha: 5701b2f09937c342c53a60d3e400a16cf512eb23
     lines: 1-18
@@ -19,13 +19,13 @@ sources:
     sha: 6edc44830ff21a47443c533b6c50d637759eed76
     lines: 12-35
   - path: packages/system-worker/src/SystemWorker.ts
-    sha: 635b5321cfdd30d05bb423874df3c49561e40a32
-    lines: 246-2170
+    sha: 86ec0244f0688ea6dd2bc4d97bda74a8ce055a16
+    lines: 391-433
   - path: packages/system-worker/src/SystemLogRepo/appendTelemetryBatch/appendTelemetryBatch.ts
-    sha: dcc909f7b275ffae3bf2749acaf8a0c4ab55fd50
-    lines: 21-155
+    sha: a67304fe51e10a0880fcf2069ad10db27976610c
+    lines: 21-154
   - path: examples/shopping/src/Worker.ts
-    sha: fce5a09dc4e9b4ce13c1cd46b36e7d645504b63b
+    sha: 3f3493229f0e869d7144ad62cbc0eb2b02eda200
     lines: 9-84
 ---
 
@@ -37,7 +37,13 @@ the request, resolves the supplied key through the configured identity
 resolver, rejects non-secret identities, derives `systemWorkerName`, and
 constructs `SystemApi` with the root's pinned `deployId` and `generationId`.
 Failures are returned as `SystemApiFailure`
-(../../packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts:154-199).
+(../../packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts:161-203).
+
+Service-owned browser admission is not a `SystemApi` operation. It enters
+through `ZerospinApis.getServiceFrontendApi` and returns the separate
+actor-bound `ServiceFrontendApi`; the secret-key capability remains an
+operator/tooling surface
+(../../packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts:235-410).
 
 ## Resolver-owned runtime
 
@@ -91,36 +97,36 @@ caller trace receives a `causedBy` link only when persistence succeeds
 The class keeps only the immutable auth result and dispatch runtime. Every
 public Promise method is boundary glue that invokes the named Effect through
 the common handler
-(../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:679-1351).
+(../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:679-1316).
 
 ## Operational leaves
 
 1. `hello` checks the bound generation through `SystemWorker.hello`
    (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:157-168,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:714-730).
+   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:704-716).
 2. `getFrontendState` reads one account/actor/frontend projection while adding
    the pinned deployment identity and system-worker name
    (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:170-194,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:731-764).
+   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:721-753).
 3. `executeServiceQuery` delegates a named service query and unknown parameters
    (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:196-216,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:765-795).
+   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:755-784).
 4. `finalizeAccountCommands` forwards full account commands through a traced
    SystemWorker call with transient Durable Object retries. It rejects a pushed
    block result on this direct path and validates the account-specific terminal
    command shapes before returning the block result
    (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:218-282,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:796-858).
+   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:786-844).
 5. `executeSelectQuery` delegates an encoded select-only query with transient
    retries (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:284-303,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:859-893).
+   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:846-878).
 6. `finalizeServiceCommands` forwards full service commands and returns the
    executed and failed terminal command arrays
    (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:305-327,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:894-929).
+   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:880-914).
 7. `makeSystemSpec` returns the deployed system specification snapshot
-   (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:659-677,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:1337-1350).
+   (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:662-673,
+   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:1302-1316).
 
 ## Repository explorer leaves
 
@@ -130,8 +136,14 @@ The remaining 22 leaves form eleven registration/table-read pairs. Each
 table's data. The categories are SystemRepo, AccountRepo, AuthorizationRepo,
 ActorRepo, FrontendRepo, ServiceRepo, AccountBlockRepo, ActorBlockRepo,
 FrontendBlockRepo, ServiceBlockRepo, and SystemLogRepo
-(../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:329-657,
-../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:930-1335).
+(../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:329-659,
+../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:916-1299).
+
+`ServiceFrontendRepo` and `ServiceFrontendBlockRepo` are deliberately absent
+from these explorer pairs. They are actor-specific browser projection/archive
+bindings reached through the service frontend admission path, not a merged
+account/service explorer surface
+(../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:916-1299).
 
 ```mermaid
 flowchart LR
@@ -161,8 +173,8 @@ by the domain leaf. The Worker delegates to the generation-scoped SystemLogRepo,
 whose append program validates the batch, stores spans/logs/links, and preserves
 the supplied identity on the rows
 (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:124-131,
-../../packages/system-worker/src/SystemWorker.ts:246-273,
-../../packages/system-worker/src/SystemLogRepo/appendTelemetryBatch/appendTelemetryBatch.ts:21-155).
+../../packages/system-worker/src/SystemWorker.ts:391-433,
+../../packages/system-worker/src/SystemLogRepo/appendTelemetryBatch/appendTelemetryBatch.ts:21-154).
 
 ## Callers
 

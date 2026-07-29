@@ -40,8 +40,11 @@ export type ISystemConfig = {
   entry: string;
   environmentId: ISystemEnvironmentId;
   env: Record<string, string> | null;
-  /** Path to a module that exports `seeds` (Effect), relative to project cwd. `null` = no seeds. */
-  seeds: string | null;
+  /** Environment-specific module paths that export `seeds` Effects, relative to project cwd. */
+  seeds: {
+    dev: string | null;
+    production: string | null;
+  };
 };
 
 /** Resolved deploy payload sent over CLI RPC (not the on-disk zerospin.config shape). */
@@ -64,10 +67,12 @@ export type IRepoType =
   | 'AuthorizationRepo'
   | 'ActorRepo'
   | 'FrontendRepo'
+  | 'ServiceFrontendRepo'
   | 'ServiceRepo'
   | 'AccountBlockRepo'
   | 'ActorBlockRepo'
   | 'FrontendBlockRepo'
+  | 'ServiceFrontendBlockRepo'
   | 'ServiceBlockRepo'
   | 'SystemLogRepo';
 
@@ -132,7 +137,11 @@ export type ISystemSpec = {
           commandName: string;
           version: string;
           payloadJsonSchema: unknown;
-          mutationsJsonSchema: unknown | null;
+          historicalDefinitions: readonly {
+            commandName: string;
+            version: string;
+            payloadJsonSchema: unknown;
+          }[];
         }
       >;
       mutationAdapters: Record<
@@ -244,7 +253,11 @@ export type ISystemSpec = {
                     commandName: string;
                     version: string;
                     payloadJsonSchema: unknown;
-                    mutationsJsonSchema: unknown | null;
+                    historicalDefinitions: readonly {
+                      commandName: string;
+                      version: string;
+                      payloadJsonSchema: unknown;
+                    }[];
                   }
                 >;
                 signatureJsonSchema: unknown;
@@ -295,7 +308,11 @@ export type ISystemSpec = {
           commandName: string;
           version: string;
           payloadJsonSchema: unknown;
-          mutationsJsonSchema: unknown | null;
+          historicalDefinitions: readonly {
+            commandName: string;
+            version: string;
+            payloadJsonSchema: unknown;
+          }[];
         }
       >;
       mutationAdapters: Record<
@@ -319,6 +336,84 @@ export type ISystemSpec = {
             }[]
           >
         >
+      >;
+      actorControllers: Record<
+        string,
+        {
+          name: string;
+          version: string;
+          models: Record<
+            string,
+            {
+              modelName: string;
+              abbreviation: string;
+              version: string;
+              properties: Readonly<
+                Record<string, Readonly<Record<string, unknown>>>
+              >;
+              indexes: readonly {
+                name: string;
+                columns: readonly string[];
+                unique?: boolean;
+              }[];
+              historicalDefinitions: readonly {
+                modelName: string;
+                abbreviation: string;
+                version: string;
+                properties: Readonly<
+                  Record<string, Readonly<Record<string, unknown>>>
+                >;
+                indexes: readonly {
+                  name: string;
+                  columns: readonly string[];
+                  unique?: boolean;
+                }[];
+              }[];
+            }
+          >;
+          frontends: Record<
+            string,
+            {
+              name: string;
+              frontendController: {
+                serviceName: string;
+                actorName: string;
+                frontendName: string;
+                version: string;
+                models: Record<
+                  string,
+                  {
+                    modelName: string;
+                    abbreviation: string;
+                    version: string;
+                    properties: Readonly<
+                      Record<string, Readonly<Record<string, unknown>>>
+                    >;
+                    indexes: readonly {
+                      name: string;
+                      columns: readonly string[];
+                      unique?: boolean;
+                    }[];
+                    historicalDefinitions: readonly {
+                      modelName: string;
+                      abbreviation: string;
+                      version: string;
+                      properties: Readonly<
+                        Record<string, Readonly<Record<string, unknown>>>
+                      >;
+                      indexes: readonly {
+                        name: string;
+                        columns: readonly string[];
+                        unique?: boolean;
+                      }[];
+                    }[];
+                  }
+                >;
+                signatureJsonSchema: unknown;
+              };
+            }
+          >;
+        }
       >;
       queries: Record<
         string,
@@ -372,7 +467,9 @@ type IAuthenticateFinalizeAccountCommands = (props: {
   CuidFactory | MonotonicFactory
 >;
 
-export type IAuthenticateMakeAccountCommand = <CONTRACT extends IContract>(props: {
+export type IAuthenticateMakeAccountCommand = <
+  CONTRACT extends IContract,
+>(props: {
   contract: CONTRACT;
   payload: InferPayloadInput<CONTRACT['payload']>;
 }) => Effect.Effect<

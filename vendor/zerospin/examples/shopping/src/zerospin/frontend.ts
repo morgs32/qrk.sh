@@ -1,4 +1,5 @@
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
+import { makeServiceFrontendController } from '@zerospin/core/serviceFrontendController/makeServiceFrontendController';
 import { Schema } from 'effect';
 
 import {
@@ -34,6 +35,21 @@ export const shopperFrontend = makeFrontendController({
   }),
 });
 
+export const catalogFrontend = makeServiceFrontendController({
+  systemName: 'shopping',
+  serviceName: 'app',
+  actorName: 'catalogViewer',
+  frontendName: 'catalog',
+  version: '1.0.0',
+  models: {
+    product: Product,
+  },
+  signature: Schema.Struct({
+    viewerId: Schema.String,
+  }),
+});
+
 export const frontends = {
   shopper: shopperFrontend,
+  catalog: catalogFrontend,
 };

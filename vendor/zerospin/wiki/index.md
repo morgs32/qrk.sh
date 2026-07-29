@@ -1,7 +1,7 @@
 ---
 title: Index
 type: meta
-updated: 2026-07-17
+updated: 2026-07-28
 ---
 
 # Index
@@ -23,16 +23,23 @@ Organised by category. Pages are `[[wiki-links]]` without the `.md` extension.
 
 ## Architecture
 
-- [[architecture/FrontendApi]] — per-frontend linked RPCs, persisted server roots, and actor query routing
-- [[architecture/FrontendWebSocket]] — one-use admission tickets and hibernating frontend-block connections
+- [[architecture/FrontendApi]] — account-bound state/write authority, successor-resolving tickets, and seven leaves
+- [[architecture/ServiceFrontendApi]] — read-only service state authority and successor-resolving ticket capability
+- [[architecture/FrontendWebSocket]] — exact resume, lineage transitions, same-generation update-required, and repair
 - [[architecture/SystemApi]] — concrete secret-key linked gateway, twenty-nine leaves, and RepoExplorer/service routing
-- [[architecture/Blockchain]] — account and service block chains converging on frontend projections
-- [[architecture/bootstrapBrowserSession]] — browser bootstrap, session telemetry, Logs, SharedWorker
-- [[architecture/DeploySystem]] — local CLI lifecycle, generation preparation, activation, and readiness
+- [[architecture/Blockchain]] — authoritative ledgers plus account and service browser lineage archives
+- [[architecture/ServiceFrontendProjection]] — actor-scoped read-only service materialization and migration lineage
+- [[architecture/bootstrapBrowserSession]] — pre-Provider auth, lazy DevTools, direct/SharedWorker replicas, and commissioning
+- [[architecture/DeploySystem]] — distinct local/production control, Wrangler deploy/seed, finite freeze, and completion
 
 ## API
 
-_No pages yet. Gateway `*Api` docs will appear here or under Architecture as ingest runs._
+- [[api/CoreFrontendReplicas]] — account/service wire schemas and replica-application Effects
+- [[api/CoreServiceControllers]] — authored service actor/frontend graph and authentication callback surface
+- [[api/FrontendPrograms]] — one-shot auth plus account/service admission, state, command, and ticket Effects
+- [[api/ReactFrontends]] — account pre-auth, lazy DevTools, Config authenticators, Providers, and commissioning
+- [[api/SharedWorkerSession]] — partition capability, replica catalogs, command journal, migration, and repair
+- [[api/SystemWorkerServiceFrontends]] — service projection Durable Object and SystemWorker RPC bindings
 
 ## Decisions
 

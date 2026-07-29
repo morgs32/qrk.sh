@@ -19,7 +19,8 @@
     "ts": "nx run-many -t ts --all --nxBail",
     "knip": "knip --reporter compact",
     "knip:production": "knip --production --include-entry-exports --reporter compact",
-    "knip:deps": "knip --reporter compact --dependencies"
+    "knip:deps": "knip --reporter compact --dependencies",
+    "scc": "scc --by-file -s complexity packages/*"
   },
   "dependencies": {},
   "devDependencies": {

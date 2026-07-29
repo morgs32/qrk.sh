@@ -56,9 +56,15 @@ Treat the codebase as partially authored by whoever is iterating in the IDE.
 - Do not change component props or function arguments outside the requested change.
 - If another change would be useful, mention it after completing the requested work instead of bundling it into the diff.
 
-### Ask before abstractions
+### Vendored subtrees are read-only
 
-I am afraid of abstractions. Before adding any new helper, function, wrapper, utility, service, loop over data, barrel, re-export, or other abstraction, ask me first and get explicit confirmation.
+- Treat every Git subtree under `vendor/**` as read-only in this repository.
+- Do not author source changes in a vendored subtree and do not use `git subtree push` from this repository.
+- When vendored code must change, make the change in that vendor's source repository, commit and push it there, then pull the resulting upstream commit into this repository through the configured vendor workflow.
+- Files under `vendor/**` may change here only through that pull workflow, including verbatim restoration of existing consumer-owned subtree metadata when the workflow requires it.
+- Keep repository-specific integrations and adaptations outside `vendor/**`.
+
+### Ask before abstractions
 
 - If you think an abstraction is better, stop and provide its proposed name, purpose, and exact call sites.
 - Do not make code more concise without approval. Implement it explicitly and verbosely, with annotations where they clarify the behavior.

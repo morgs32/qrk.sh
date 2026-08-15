@@ -28,7 +28,7 @@ export default function E2e() {
               <Text>E2E passed</Text>
             </ProcedureStepSuccess>
           )}
-          <ProcedureStepLoading message="Running zspec e2e..." />
+          <ProcedureStepLoading message="Running Zerospin e2e..." />
         </ProcedureStep>
       </Box>
     </ErrorBoundary>

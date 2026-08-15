@@ -10,7 +10,7 @@ import type { IAnyMutation, ICommand, IContract } from './types.ts';
 export const makeMutations = Effect.fn('makeMutations')(function* (props: {
   contract: IContract;
   models: IModels;
-  owner: { kind: 'account' } | { kind: 'service'; serviceName: string };
+  owner: { kind: 'aggregate' } | { kind: 'service'; serviceName: string };
   command: ICommand;
 }): Effect.fn.Return<
   Readonly<{

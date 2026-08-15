@@ -1,7 +1,7 @@
 /**
  * Do not alias a Drizzle table binding used in only one select chain.
  *
- * @bad Assign `const executedCommands = schema.finalizedAccountCommands` for a single query.
+ * @bad Assign `const executedCommands = schema.finalizedAggregateCommands` for a single query.
  */
 export function loadRecentExecutedCommands(props: {
   db: {
@@ -11,16 +11,16 @@ export function loadRecentExecutedCommands(props: {
       };
     };
   };
-  accountRepoDrizzleSchemas: { finalizedAccountCommands: unknown };
-  accountName: string;
+  aggregateRepoDrizzleSchemas: { finalizedAggregateCommands: unknown };
+  aggregateName: string;
 }) {
-  const { db, accountRepoDrizzleSchemas, accountName } = props;
+  const { aggregateName, aggregateRepoDrizzleSchemas, db } = props;
 
   return db
     .select()
-    .from(accountRepoDrizzleSchemas.finalizedAccountCommands)
-    .where(eqAccountName(accountName))
+    .from(aggregateRepoDrizzleSchemas.finalizedAggregateCommands)
+    .where(eqAggregateName(aggregateName))
     .all();
 }
 
-declare function eqAccountName(accountName: string): unknown;
+declare function eqAggregateName(aggregateName: string): unknown;

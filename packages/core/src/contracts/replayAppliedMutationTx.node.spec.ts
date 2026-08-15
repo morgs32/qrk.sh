@@ -45,6 +45,15 @@ describe('replayAppliedMutationTx', () => {
               version: '1.0.0',
               attributes: { title: primitives.text() },
               indexes: [],
+              adaptResource: ({ resource }) =>
+                Effect.succeed({
+                  id: resource.id,
+                  modelName: resource.modelName,
+                  createdAt: resource.createdAt,
+                  updatedAt: resource.updatedAt,
+                  version: '1.0.0',
+                  title: resource.title,
+                }),
             },
           ],
         );
@@ -139,6 +148,15 @@ describe('replayAppliedMutationTx', () => {
               version: '1.0.0',
               attributes: { title: primitives.text() },
               indexes: [],
+              adaptResource: ({ resource }) =>
+                Effect.succeed({
+                  id: resource.id,
+                  modelName: resource.modelName,
+                  createdAt: resource.createdAt,
+                  updatedAt: resource.updatedAt,
+                  version: '1.0.0',
+                  title: resource.label,
+                }),
             },
           ],
         );
@@ -370,6 +388,15 @@ describe('replayAppliedMutationTx', () => {
             version: '1.0.0',
             attributes: { title: primitives.text() },
             indexes: [],
+            adaptResource: ({ resource }) =>
+              Effect.succeed({
+                id: resource.id,
+                modelName: resource.modelName,
+                createdAt: resource.createdAt,
+                updatedAt: resource.updatedAt,
+                version: '1.0.0',
+                title: resource.title,
+              }),
           },
         ],
       );

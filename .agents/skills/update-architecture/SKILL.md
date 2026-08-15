@@ -11,7 +11,7 @@ description: >-
 
 Keep `wiki/architecture/*.md` workflow docs aligned with the code they describe.
 
-The post-commit LLM Wiki ingest hook may also update these pages. When editing manually or via an agent pass, preserve YAML frontmatter `sources[]` blocks (path, sha, lines) and refresh SHAs when cited files change.
+The post-commit LLM Wiki ingest hook may also update these pages.
 
 ## When to apply
 
@@ -47,21 +47,24 @@ The post-commit LLM Wiki ingest hook may also update these pages. When editing m
    Update only the sections that drifted. Do not rewrite unrelated architecture docs or fix root-absolute links elsewhere unless asked.
 
 8. **Frontmatter**  
-   After substantive edits, update `sources[].sha` via `git hash-object <path>` for each cited file and bump `updated`.
+   After substantive edits, bump `updated`.
 
 ## Section templates
 
-### Trigger (CLI → dispatch boundary)
+### Trigger (CLI → conventional Worker boundary)
 
 ```markdown
 ## Trigger
 
-1. [`devFn`](../../packages/cli/src/dev/devFn.ts)
+1. [`devFn`](../../../packages/cli/src/dev/devFn.ts)
    1. Load and validate the project configuration.
-   2. Generate the local Wrangler configuration and start the dispatch Worker.
-2. [`E2eWorker.fetch`](../../packages/dispatch-worker/src/Worker.ts)
-   1. Resolve `DevZerospinApis` for the stable local instance or `SelfHostedZerospinApis` for the stable production instance.
-   2. Forward the request to that Durable Object.
+   2. Generate the local Wrangler configuration, start `DevWorker`, and start or resume each observed Worker version in its requested clean mode.
+2. [`DevWorker.fetch`](../../../packages/dev-worker/src/DevWorker.ts)
+   1. Resolve singleton `SystemRepo` by exact `systemId`.
+   2. Forward every development control-plane and data-plane request to that Durable Object.
+3. [`ProductionWorker.fetch`](../../../packages/production-worker/src/ProductionWorker.ts)
+   1. Reject malformed frontend WebSocket upgrade syntax at the entrypoint.
+   2. Resolve the same singleton `SystemRepo` by exact `systemId` and forward the request.
 ```
 
 ### Annotated workflow steps (lifecycle implementation)
@@ -69,16 +72,17 @@ The post-commit LLM Wiki ingest hook may also update these pages. When editing m
 ```markdown
 ## Annotated workflow steps
 
-1. [`DevZerospinApis`](../../packages/dispatch-worker/src/DevZerospinApis/DevZerospinApis.ts) or [`SelfHostedZerospinApis`](../../packages/dispatch-worker/src/SelfHostedZerospinApis/SelfHostedZerospinApis.ts)
-   1. Validate the selected local or production instance key and Worker version.
-   2. Select or allocate the deploy and generation.
-   3. Drain, prepare, and open the selected SystemWorker generation.
-   4. Promote the completed deploy or persist the terminal failure.
+1. [`SystemRepo`](../../../packages/system-worker/src/SystemRepo/SystemRepo.ts)
+   1. Validate the exact `systemId` and initialize the consolidated deploy, generation, drain, replay, ticket, reservation, and registration schema.
+   2. Allocate or resume the deploy keyed by `{ workerVersionId, clean }`, with Worker-version identity supplied by Worker metadata inside lifecycle coordination.
+   3. Run freeze, prepare, open, retire, and state inspection as local named Effects that invoke generation-keyed child Repos directly.
+   4. Promote in one short transaction only after the persisted remote postconditions and final activation checkpoint are proven.
+   5. Route generation-specific reads by their acquired `generationId`, while ordinary mutations reserve the singleton's current ready open generation internally.
 ```
 
 ## Mermaid conventions
 
-- **Sequence**: name participants after runtime boundaries (`CLI`, `Dispatch Worker`, `DevZerospinApis` or `SelfHostedZerospinApis`, `SystemWorker`). Show `makeAsync` / `decodeRpc` where the source uses them. Use `alt` for missing-input failures and real branch gates.
+- **Sequence**: name participants after runtime boundaries (`CLI`, `DevWorker` or `ProductionWorker`, hosted `Dispatch Worker` when present, stable Worker-hosted `GatewayApi`, `SystemRepo(systemId)`, `AuthenticatedApi` or another child capability, generation-keyed child Repos, `SystemWorker`). Show `makeAsync` / `decodeRpc` where the source uses them. Use `alt` for missing-input failures and real branch gates.
 - **Flowchart**: use one subgraph per public workflow or lifecycle. Node labels = method or phase names. Branch labels = `"yes"` / `"no"` on the condition that matches code.
 
 ## Checklist before finishing
@@ -88,8 +92,8 @@ The post-commit LLM Wiki ingest hook may also update these pages. When editing m
 - [ ] Trigger and Annotated sections are separate and numbered consistently.
 - [ ] Every ``[`…`](…)`` link uses a relative path from the doc file.
 - [ ] No behavior invented — each step traceable to a line in source.
-- [ ] Frontmatter `sources` SHAs refreshed when cited files changed.
+- [ ] Frontmatter `updated` date reflects substantive edits.
 
 ## Example
 
-Canonical reference after a pass: [`wiki/architecture/DeploySystem.md`](../../../wiki/architecture/DeploySystem.md).
+Canonical reference after a pass: [System Lifecycle](../../../wiki/architecture/SystemLifecycle.md).

@@ -5,12 +5,10 @@ import zod from 'zod';
 
 import { ErrorBoundary } from '../components/ErrorBoundary.js';
 import { Header } from '../components/Header.js';
-import { CompileSystemWorker } from '../deploy/CompileSystemWorker.js';
+import { CompileWorkerBundle } from '../deploy/CompileWorkerBundle.js';
 import { DeploySystem } from '../deploy/DeploySystem.js';
 import { DeployWrangler } from '../deploy/DeployWrangler.js';
 import { LoadConfig } from '../deploy/LoadConfig.js';
-import { LoadSystem } from '../deploy/LoadSystem.js';
-import { WriteLocalSystemWorker } from '../deploy/WriteLocalSystemWorker.js';
 
 export const isDefault = true;
 
@@ -19,10 +17,6 @@ export const options = zod.object({
     .enum(['dev', 'production'])
     .optional()
     .describe('Deploy namespace/environment (dev or prod, defaults to dev)'),
-  local: zod
-    .union([zod.boolean(), zod.string()])
-    .optional()
-    .describe('Write compiled worker locally, optionally to a custom path'),
   clean: zod
     .boolean()
     .default(false)
@@ -37,11 +31,10 @@ type IDeployOptions = zod.infer<typeof options>;
 
 export default function Deploy(props: { options: IDeployOptions }) {
   const { options } = props;
-  const { env, local, clean, wrangler } = options;
+  const { env, clean, wrangler } = options;
   const environmentId = env ?? 'dev';
-  const localOutputPath = typeof local === 'string' ? local : null;
 
-  // This branch occurs before LoadConfig is rendered. Self-hosted deployment
+  // This branch occurs before LoadConfig is rendered. Production deployment
   // therefore never loads a hosted API URL or hosted Zerospin credential.
   if (wrangler) {
     return (
@@ -62,30 +55,19 @@ export default function Deploy(props: { options: IDeployOptions }) {
           {({ zerospinSecretKey, zerospinApiUrl, config: loadedConfig }) => {
             const config = { ...loadedConfig, environmentId };
             return (
-              <CompileSystemWorker config={config}>
-                {({ compiledSystemWorker }) => (
-                  <LoadSystem config={config}>
-                    {({ system }) =>
-                      local ? (
-                        <WriteLocalSystemWorker
-                          compiledSystemWorker={compiledSystemWorker}
-                          outputPath={localOutputPath}
-                        />
-                      ) : (
-                        <DeploySystem
-                          clean={clean}
-                          compiledSystemWorker={compiledSystemWorker}
-                          environmentId={environmentId}
-                          zerospinSecretKey={zerospinSecretKey}
-                          zerospinApiUrl={zerospinApiUrl}
-                          system={system}
-                          config={config}
-                        />
-                      )
-                    }
-                  </LoadSystem>
+              <CompileWorkerBundle config={config}>
+                {({ workerBundle, systemSpec }) => (
+                  <DeploySystem
+                    clean={clean}
+                    workerBundle={workerBundle}
+                    environmentId={environmentId}
+                    zerospinSecretKey={zerospinSecretKey}
+                    zerospinApiUrl={zerospinApiUrl}
+                    systemSpec={systemSpec}
+                    config={config}
+                  />
                 )}
-              </CompileSystemWorker>
+              </CompileWorkerBundle>
             );
           }}
         </LoadConfig>

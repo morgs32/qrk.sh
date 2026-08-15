@@ -10,7 +10,6 @@ import { makeResourceDbConfig } from './makeDbConfig.ts';
 import { makeMigratedInMemorySqljsDb } from './makeMigratedInMemorySqljsDb.ts';
 
 const testUserId = 'usr_testsqljsadapter01' as const;
-const testActorId = 'actr_testsqljsadapter' as const;
 
 describe('makeInMemorySqljsDb', () => {
   it.effect('migrates and supports sync run/get APIs', () =>
@@ -46,7 +45,6 @@ describe('makeInMemorySqljsDb', () => {
           createdAt: now,
           updatedAt: now,
           version: User.version,
-          actorId: testActorId,
           name: 'Alice',
         })
         .run();
@@ -63,7 +61,6 @@ describe('makeInMemorySqljsDb', () => {
         createdAt: now,
         updatedAt: now,
         version: User.version,
-        actorId: testActorId,
         name: 'Alice',
       });
     }).pipe(Effect.provide(AsyncLive)),

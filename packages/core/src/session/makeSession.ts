@@ -2,29 +2,31 @@ import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import {
   emptyTelemetryBatch,
   makeTelemetryLayer,
+  makeTelemetryTracer,
+  TelemetryCollector,
   type ITelemetryCollector,
 } from '@zerospin/logger';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { Effect, Layer, ManagedRuntime, Runtime, Schema } from 'effect';
 import { createStore } from 'zustand/vanilla';
 
-import { applyFrontendMutationTx } from '../contracts/applyFrontendMutationTx.ts';
+import { applyAggregateFrontendMutationTx } from '../contracts/applyAggregateFrontendMutationTx.ts';
 import {
+  encodeAggregateFrontendMutation,
   encodeAppliedMutation,
   EncodedAppliedMutationSchema,
-  encodeFrontendMutation,
 } from '../contracts/encodeAppliedMutation.ts';
 import { encodeCommand } from '../contracts/encodeCommand.ts';
 import { makeMutations } from '../contracts/makeMutations.ts';
 import type {
+  IEncodedAggregateFrontendMutation,
   IEncodedCommand,
-  IEncodedFrontendMutation,
   InferCommand,
-  IStagedCommand,
+  IStagedSessionCommand,
 } from '../contracts/types.ts';
 import { makeTx } from '../drizzle/makeTx.ts';
 import type {
-  IFrontendController,
+  IAggregateFrontendController,
   InferFrontendModels,
 } from '../frontendController/types.ts';
 import type { InferPayloadInput } from '../models/types.ts';
@@ -36,10 +38,10 @@ import { encodeRpc } from '../utils/encodeRpc.ts';
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 import { makeCursor } from '../utils/makeCursor.ts';
 import { NanoIdFactory } from '../utils/NanoIdFactory.ts';
-import type { ISignatureFactory } from '../utils/types.ts';
 import { UlidMonotonicFactory } from '../utils/UlidMonotonicFactory.ts';
 
 import {
+  sessionFailedCommandDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
   sessionStagedCommandDrizzleSchema,
 } from './sessionCommandShape.ts';
@@ -54,30 +56,27 @@ export const defaultSessionRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
 );
 
-export function makeSession<FRONTEND extends IFrontendController>(props: {
+export function makeSession<
+  FRONTEND extends IAggregateFrontendController,
+>(props: {
   frontend: FRONTEND;
-  generateSignature: ISignatureFactory;
   sessionId: ISessionId;
-  stageFrontendCommand?: (props: {
-    baseReplicaIndex: number;
-    command: IEncodedCommand<IStagedCommand>;
-    mutations: readonly IEncodedFrontendMutation[];
-  }) => Effect.Effect<void, IAnyError>;
-  isPushPaused?: boolean;
-  isSharedWorkerEnabled?: boolean;
+  stageAggregateFrontendCommand?: (props: {
+    sessionIndex: number;
+    command: IEncodedCommand<IStagedSessionCommand>;
+    mutations: readonly IEncodedAggregateFrontendMutation[];
+  }) => Effect.Effect<Readonly<{ commandId: string }>, IAnyError>;
   runtime?:
     | ManagedRuntime.ManagedRuntime<CuidFactory | MonotonicFactory, IAnyError>
     | Runtime.Runtime<CuidFactory | MonotonicFactory>;
 }): ISession<FRONTEND> {
   const {
     frontend,
-    generateSignature,
     sessionId,
-    stageFrontendCommand,
-    isPushPaused = false,
-    isSharedWorkerEnabled = false,
+    stageAggregateFrontendCommand,
     runtime = defaultSessionRuntime,
   } = props;
+  let nextSessionIndex = 1;
 
   const store = createStore<ISessionState<InferFrontendModels<FRONTEND>>>(
     (set, get) => {
@@ -128,15 +127,13 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
 
       return {
         sessionId,
-        accountId: null,
-        accountName: null,
-        actorId: null,
+        aggregateId: null,
+        aggregateName: null,
+        userId: null,
         systemId: null,
-        generationId: null,
         systemVersion: null,
-        systemWorkerName: null,
         frontendName: null,
-        frontendVersion: null,
+        aggregateFrontendLockKey: null,
         db: null,
         schema: null,
         models: null,
@@ -144,11 +141,8 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
         isInitialized: false,
         frontendIndex: null,
         replicaIndex: null,
-        lastRebasedPushedCursor: null,
-        isPushPaused,
-        isSharedWorkerEnabled,
         workerState: {
-          mode: isSharedWorkerEnabled ? 'shared-worker' : 'direct',
+          mode: 'shared-worker',
           status: 'authenticating',
           bootstrapSource: null,
           frontendIndex: null,
@@ -156,7 +150,6 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
           databaseName: null,
           failure: null,
         },
-        lastDevtoolsPush: null,
         telemetry: emptyTelemetryBatch(),
         telemetryCollector,
       };
@@ -193,7 +186,18 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
     contractName: CONTRACT_NAME;
     payload: InferPayloadInput<FRONTEND['contracts'][CONTRACT_NAME]['payload']>;
   }): Effect.fn.Return<
-    IStagedCommand<InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>>,
+    Readonly<{
+      stagedCommand: IStagedSessionCommand<
+        InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>
+      >;
+      encodedCommand: IEncodedCommand<
+        IStagedSessionCommand<
+          InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>
+        >
+      >;
+      encodedMutations: readonly IEncodedAggregateFrontendMutation[];
+      sessionIndex: number;
+    }>,
     IAnyError,
     CuidFactory | MonotonicFactory
   > {
@@ -206,18 +210,11 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
         message: 'Session store is not initialized',
       });
     }
-    if (state.workerState.status === 'update-required') {
-      return yield* new ZerospinError({
-        code: 'frontend-update-required',
-        message:
-          'Account command staging is suspended until matching frontend code is loaded',
-      });
-    }
     if (state.workerState.status === 'repairing') {
       return yield* new ZerospinError({
-        code: 'frontend-repairing',
+        code: 'aggregate-frontend-repairing',
         message:
-          'Account command staging is suspended while authoritative frontend state is being repaired',
+          'Aggregate command staging is suspended while authoritative frontend state is being repaired',
       });
     }
     if (state.workerState.status === 'failed') {
@@ -225,9 +222,9 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
         return yield* new ZerospinError(state.workerState.failure);
       }
       return yield* new ZerospinError({
-        code: 'frontend-session-repair-failed',
+        code: 'aggregate-frontend-session-repair-failed',
         message:
-          'Account command staging is suspended after frontend session repair failed',
+          'Aggregate command staging is suspended after frontend session repair failed',
       });
     }
     if (state.workerState.status === 'released') {
@@ -236,7 +233,7 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
         message: 'Session store has been released',
       });
     }
-    const { accountId, actorId, db, systemVersion } = state;
+    const { aggregateId, userId, db } = state;
 
     const contract = yield* getByKeyOrThrow({
       record: frontend.contracts,
@@ -244,12 +241,11 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
       recordKind: 'contracts',
     });
     const unstagedCommand = yield* frontend.makeUnstagedCommand({
-      accountId,
-      actorId,
+      aggregateId,
+      userId,
       commandName: contractName,
       payload,
       sessionId,
-      systemVersion,
     });
 
     const stagedCursor = yield* makeCursor({
@@ -257,7 +253,7 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
     });
     const now = yield* dutils.date();
 
-    const stagedCommand: IStagedCommand<
+    const stagedCommand: IStagedSessionCommand<
       InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>
     > = {
       ...unstagedCommand,
@@ -269,57 +265,37 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
     const { mutations } = yield* makeMutations({
       contract,
       models: frontend.models,
-      owner: { kind: 'account' },
+      owner: { kind: 'aggregate' },
       command: stagedCommand,
     });
 
-    // SharedWorker mode evaluates authored code against the mounted session
-    // snapshot, but the worker is the only durable mutation owner. Submit the
-    // complete prepared intent and wait for its fan-out callback to commit the
-    // resulting replica transaction into this database.
-    if (stageFrontendCommand !== undefined) {
-      if (state.replicaIndex === null) {
-        return yield* new ZerospinError({
-          code: 'session-replica-index-not-initialized',
-          message:
-            'SharedWorker command staging requires an initialized replica index',
-        });
-      }
-      const encodedCommand = yield* encodeCommand({
-        contract,
-        command: stagedCommand,
-      });
-      const encodedMutations: IEncodedFrontendMutation[] = [];
-      for (const [mutationIndex, mutation] of mutations.entries()) {
-        encodedMutations.push(
-          yield* encodeFrontendMutation({
-            commandId: stagedCommand.id,
-            mutationIndex,
-            mutation,
-          }),
-        );
-      }
-      yield* stageFrontendCommand({
-        baseReplicaIndex: state.replicaIndex,
-        command: encodedCommand,
-        mutations: encodedMutations,
-      });
-      return stagedCommand;
+    const encodedCommand = yield* encodeCommand({
+      contract,
+      command: stagedCommand,
+    });
+    const encodedMutations: IEncodedAggregateFrontendMutation[] = [];
+    for (const [mutationIndex, mutation] of mutations.entries()) {
+      encodedMutations.push(
+        yield* encodeAggregateFrontendMutation({
+          commandId: stagedCommand.id,
+          mutationIndex,
+          mutation,
+        }),
+      );
     }
 
-    const staged = yield* makeTx({
+    const sessionIndex = nextSessionIndex;
+
+    yield* makeTx({
       db,
       program: Effect.fn('transaction')(function* ({ tx }) {
-        const encoded = yield* encodeCommand({
-          contract,
-          command: stagedCommand,
-        });
-
-        tx.insert(sessionStagedCommandDrizzleSchema).values(encoded).run();
+        tx.insert(sessionStagedCommandDrizzleSchema)
+          .values(encodedCommand)
+          .run();
 
         const encodedAppliedMutations = [];
         for (const [mutationIndex, mutation] of mutations.entries()) {
-          const appliedMutation = yield* applyFrontendMutationTx({
+          const appliedMutation = yield* applyAggregateFrontendMutationTx({
             tx,
             mutation,
             commandId: stagedCommand.id,
@@ -352,106 +328,157 @@ export function makeSession<FRONTEND extends IFrontendController>(props: {
             },
           })
           .run();
-
-        return stagedCommand;
       }),
     });
+    nextSessionIndex += 1;
 
-    return staged;
+    return { stagedCommand, encodedCommand, encodedMutations, sessionIndex };
   });
 
   const session: ISession<FRONTEND> = {
     frontend,
-    generateSignature,
     onInitialized,
     sessionId,
     stageCommand(props) {
-      let attemptedReplicaIndex = store.getState().replicaIndex;
-      const effect = Effect.suspend(() => {
-        attemptedReplicaIndex = store.getState().replicaIndex;
-        return stageCommandEffect(props);
-      }).pipe(
-        Effect.catchIf(
-          error =>
-            stageFrontendCommand !== undefined &&
-            error.code === 'account-frontend-replica-base-index-stale' &&
-            typeof error.extra?.expectedReplicaIndex === 'number' &&
-            typeof error.extra.receivedReplicaIndex === 'number' &&
-            error.extra.expectedReplicaIndex >
-              error.extra.receivedReplicaIndex &&
-            error.extra.receivedReplicaIndex === attemptedReplicaIndex,
-          error => {
-            const expectedReplicaIndex =
-              typeof error.extra?.expectedReplicaIndex === 'number'
-                ? error.extra.expectedReplicaIndex
-                : null;
-            if (expectedReplicaIndex === null) {
-              return Effect.fail(error);
-            }
-            return Effect.async<void>(resume => {
-              let isWaiting = true;
-              const unsubscribe = store.subscribe(state => {
-                if (
-                  isWaiting &&
-                  ((state.replicaIndex !== null &&
-                    state.replicaIndex >= expectedReplicaIndex) ||
-                    !state.isInitialized ||
-                    state.workerState.status === 'repairing' ||
-                    state.workerState.status === 'update-required' ||
-                    state.workerState.status === 'failed' ||
-                    state.workerState.status === 'released')
-                ) {
-                  isWaiting = false;
-                  unsubscribe();
-                  resume(Effect.void);
-                }
-              });
-              const state = store.getState();
-              if (
-                isWaiting &&
-                ((state.replicaIndex !== null &&
-                  state.replicaIndex >= expectedReplicaIndex) ||
-                  !state.isInitialized ||
-                  state.workerState.status === 'repairing' ||
-                  state.workerState.status === 'update-required' ||
-                  state.workerState.status === 'failed' ||
-                  state.workerState.status === 'released')
-              ) {
-                isWaiting = false;
-                unsubscribe();
-                resume(Effect.void);
-              }
-              return Effect.sync(() => {
-                isWaiting = false;
-                unsubscribe();
-              });
-            }).pipe(Effect.zipRight(Effect.fail(error)));
-          },
-        ),
-        // A worker-owned push may commit and fan out between two dependent
-        // public stage calls. A stale response waits for this session to
-        // consume the missing replica block before retrying the whole contract
-        // program against the current database. A repair/update gate wakes the
-        // retry so stageCommandEffect returns that terminal state instead of
-        // waiting forever. Every non-stale failure, especially a post-commit
-        // local-application failure, remains final.
-        Effect.retry({
-          while: error =>
-            stageFrontendCommand !== undefined &&
-            error.code === 'account-frontend-replica-base-index-stale' &&
-            typeof error.extra?.expectedReplicaIndex === 'number' &&
-            typeof error.extra.receivedReplicaIndex === 'number' &&
-            error.extra.expectedReplicaIndex >
-              error.extra.receivedReplicaIndex &&
-            error.extra.receivedReplicaIndex === attemptedReplicaIndex,
+      let committedHandoff:
+        | Readonly<{
+            command: IEncodedCommand<IStagedSessionCommand>;
+            mutations: readonly IEncodedAggregateFrontendMutation[];
+            sessionIndex: number;
+          }>
+        | undefined;
+      const telemetryCollector = store.getState().telemetryCollector;
+      const effect = stageCommandEffect(props).pipe(
+        Effect.map(result => {
+          committedHandoff = {
+            command: result.encodedCommand,
+            mutations: result.encodedMutations,
+            sessionIndex: result.sessionIndex,
+          };
+          return result.stagedCommand;
         }),
-        Effect.provide(makeTelemetryLayer(store.getState().telemetryCollector)),
+        Effect.provideService(TelemetryCollector, telemetryCollector),
+        Effect.withTracer(makeTelemetryTracer(telemetryCollector)),
         encodeRpc,
       );
-      if ('context' in runtime) {
-        return Runtime.runPromise(runtime, effect);
+      const result =
+        'context' in runtime
+          ? Runtime.runSync(runtime)(effect)
+          : runtime.runSync(effect);
+
+      if (
+        stageAggregateFrontendCommand !== undefined &&
+        committedHandoff !== undefined
+      ) {
+        const handoff = committedHandoff;
+        const program = stageAggregateFrontendCommand(handoff).pipe(
+          Effect.flatMap(receipt =>
+            receipt.commandId === handoff.command.id
+              ? Effect.void
+              : Effect.fail(
+                  new ZerospinError({
+                    code: 'shared-worker-command-receipt-invalid',
+                    message:
+                      'SharedWorker durable command receipt does not match the committed command',
+                  }),
+                ),
+          ),
+          Effect.catchAll(error =>
+            Effect.gen(function* () {
+              const state = store.getState();
+              if (
+                !state.isInitialized ||
+                state.db === null ||
+                state.workerState.status === 'released'
+              ) {
+                return;
+              }
+              const failedAt = yield* dutils.date();
+              yield* makeTx({
+                db: state.db,
+                program: Effect.fn('stageCommand.handoffFailure')(function* ({
+                  tx,
+                }) {
+                  const command = tx
+                    .select()
+                    .from(sessionStagedCommandDrizzleSchema)
+                    .where(
+                      eq(
+                        sessionStagedCommandDrizzleSchema.id,
+                        handoff.command.id,
+                      ),
+                    )
+                    .get();
+                  if (command === undefined) return;
+                  tx.delete(sessionStagedCommandDrizzleSchema)
+                    .where(
+                      eq(
+                        sessionStagedCommandDrizzleSchema.id,
+                        handoff.command.id,
+                      ),
+                    )
+                    .run();
+                  tx.insert(sessionFailedCommandDrizzleSchema)
+                    .values({
+                      ...command,
+                      pushedAt: null,
+                      aggregateCursor: null,
+                      aggregateIndex: null,
+                      failedAt,
+                      failure: ZerospinError.stringify(error),
+                      status: 'failed',
+                    })
+                    .run();
+                }),
+              });
+              const current = store.getState();
+              if (
+                current.isInitialized &&
+                current.workerState.status !== 'released'
+              ) {
+                store.setState({
+                  workerState: {
+                    ...current.workerState,
+                    status: 'failed',
+                    failure: Schema.encodeUnknownSync(ZerospinError.schema)(
+                      error,
+                    ),
+                  },
+                });
+              }
+            }),
+          ),
+          Effect.catchAll(error =>
+            Effect.sync(() => {
+              const current = store.getState();
+              if (
+                current.isInitialized &&
+                current.workerState.status !== 'released'
+              ) {
+                store.setState({
+                  workerState: {
+                    ...current.workerState,
+                    status: 'failed',
+                    failure: Schema.encodeUnknownSync(ZerospinError.schema)(
+                      error,
+                    ),
+                  },
+                });
+              }
+            }),
+          ),
+          Effect.provide(
+            makeTelemetryLayer(store.getState().telemetryCollector),
+          ),
+        );
+        if ('context' in runtime) {
+          Runtime.runFork(runtime)(program);
+        } else {
+          runtime.runFork(program);
+        }
       }
-      return runtime.runPromise(effect);
+
+      return result;
     },
     store,
   };

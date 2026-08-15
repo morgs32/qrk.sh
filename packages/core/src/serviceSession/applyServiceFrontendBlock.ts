@@ -1,13 +1,13 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 import { makeTx } from '../drizzle/makeTx.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
 import { upsertHelper } from '../drizzle/upsertHelper.ts';
+import type { IServiceFrontendController } from '../frontendController/types.ts';
 import { makeAbbreviationIdSchema } from '../models/makeIdSchema.ts';
 import { makeEffectSchema } from '../models/primitiveMaps.ts';
-import type { IServiceFrontendController } from '../serviceFrontendController/types.ts';
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 
 import { ServiceFrontendBlockSchema } from './ServiceFrontendBlockSchema.ts';
@@ -21,14 +21,14 @@ import type { IServiceFrontendBlock } from './types.ts';
 export const applyServiceFrontendBlock = Effect.fn('applyServiceFrontendBlock')(
   function* <FRONTEND extends IServiceFrontendController>(props: {
     frontend: FRONTEND;
-    actorId: IServiceFrontendBlock['actorId'];
+    userId: IServiceFrontendBlock['userId'];
     currentFrontendIndex: number;
     db: IDb<IResourceDbConfig<FRONTEND['models'], Record<never, never>>>;
     models: FRONTEND['models'];
     frontendBlock: IServiceFrontendBlock;
   }): Effect.fn.Return<void, IAnyError> {
     const {
-      actorId,
+      userId,
       currentFrontendIndex,
       db,
       frontend,
@@ -46,22 +46,19 @@ export const applyServiceFrontendBlock = Effect.fn('applyServiceFrontendBlock')(
     );
 
     if (
-      frontendBlock.actorId !== actorId ||
+      frontendBlock.userId !== userId ||
       frontendBlock.serviceName !== frontend.serviceName ||
-      frontendBlock.actorName !== frontend.actorName ||
       frontendBlock.frontendName !== frontend.frontendName
     ) {
       return yield* new ZerospinError({
         code: 'service-frontend-block-target-mismatch',
         message: 'Service frontend block does not match the bound target',
         extra: {
-          expectedActorId: actorId,
+          expectedUserId: userId,
           expectedServiceName: frontend.serviceName,
-          expectedActorName: frontend.actorName,
           expectedFrontendName: frontend.frontendName,
-          actualActorId: frontendBlock.actorId,
+          actualUserId: frontendBlock.userId,
           actualServiceName: frontendBlock.serviceName,
-          actualActorName: frontendBlock.actorName,
           actualFrontendName: frontendBlock.frontendName,
         },
       });
@@ -125,6 +122,10 @@ export const applyServiceFrontendBlock = Effect.fn('applyServiceFrontendBlock')(
       program: Effect.fn('applyServiceFrontendBlock.applyDelta')(function* ({
         tx,
       }) {
+        yield* Effect.sync(() => {
+          tx.run(sql.raw('PRAGMA defer_foreign_keys = ON;'));
+        });
+
         for (const resource of resourceRows) {
           const model = yield* getByKeyOrThrow({
             record: models,

@@ -16,15 +16,10 @@
       "import": "./dist/__private__/contracts/makeSessionCommand.js",
       "default": "./dist/__private__/contracts/makeSessionCommand.js"
     },
-    "./accountController/makeAccountCommand": {
-      "types": "./dist/accountController/makeAccountCommand.d.ts",
-      "import": "./dist/accountController/makeAccountCommand.js",
-      "default": "./dist/accountController/makeAccountCommand.js"
-    },
-    "./frontendBinding/makeActorCommand": {
-      "types": "./dist/__private__/frontendBinding/makeActorCommand.d.ts",
-      "import": "./dist/__private__/frontendBinding/makeActorCommand.js",
-      "default": "./dist/__private__/frontendBinding/makeActorCommand.js"
+    "./aggregate/makeAggregateCommand": {
+      "types": "./dist/aggregate/makeAggregateCommand.d.ts",
+      "import": "./dist/aggregate/makeAggregateCommand.js",
+      "default": "./dist/aggregate/makeAggregateCommand.js"
     },
     "./service/makeServiceCommand": {
       "types": "./dist/__private__/service/makeServiceCommand.d.ts",
@@ -92,7 +87,7 @@
     "jsdom": "^29.1.1",
     "knip": "^6.12.2",
     "msw": "^2.14.5",
-    "react": "19.2.6",
+    "react": "19.2.7",
     "rimraf": "^6.1.3",
     "tsx": "^4.21.0",
     "vite": "^8.0.11",
@@ -105,7 +100,6 @@
     "@opentelemetry/sdk-trace-base": "^2.0.1",
     "@opentelemetry/sdk-trace-node": "^2.0.1",
     "effect": "^3.17.11",
-    "next": ">=14",
     "react": ">=18",
     "react-dom": ">=18",
     "solid-js": ">=1.9.7"

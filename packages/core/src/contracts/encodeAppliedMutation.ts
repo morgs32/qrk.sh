@@ -9,12 +9,12 @@ import type { IModel } from '../models/types.ts';
 import type {
   IAnyMutation,
   IAppliedMutation,
+  IEncodedAggregateFrontendMutation,
   IEncodedAppliedMutation,
-  IEncodedFrontendMutation,
   IOperationName,
 } from './types.ts';
 
-export const EncodedFrontendMutationSchema = Schema.Struct({
+export const EncodedAggregateFrontendMutationSchema = Schema.Struct({
   commandId: Schema.String,
   mutationIndex: Schema.Number,
   modelName: Schema.String,
@@ -29,7 +29,7 @@ export const EncodedFrontendMutationSchema = Schema.Struct({
   ),
   operation: Schema.String,
 }) satisfies Schema.Schema<
-  IEncodedFrontendMutation,
+  IEncodedAggregateFrontendMutation,
   Schema.Schema.Encoded<Schema.Schema.Any>
 >;
 
@@ -360,118 +360,118 @@ export const makeInverseOperationJsonSchema = (props: {
 };
 
 /** Encodes a contract-produced mutation before any database applies it. */
-export const encodeFrontendMutation = Effect.fn('encodeFrontendMutation')(
-  function* (props: {
-    commandId: string;
-    mutationIndex: number;
-    mutation: IAnyMutation;
-  }): Effect.fn.Return<IEncodedFrontendMutation, IAnyError> {
-    const { commandId, mutation, mutationIndex } = props;
-    const { model, modelVersion, operationName, resourceId } = mutation;
-    const encodedBase = {
-      commandId,
-      mutationIndex,
-      modelName: model.modelName,
-      modelVersion,
-      resourceId,
-      operationName,
-    };
+export const encodeAggregateFrontendMutation = Effect.fn(
+  'encodeAggregateFrontendMutation',
+)(function* (props: {
+  commandId: string;
+  mutationIndex: number;
+  mutation: IAnyMutation;
+}): Effect.fn.Return<IEncodedAggregateFrontendMutation, IAnyError> {
+  const { commandId, mutation, mutationIndex } = props;
+  const { model, modelVersion, operationName, resourceId } = mutation;
+  const encodedBase = {
+    commandId,
+    mutationIndex,
+    modelName: model.modelName,
+    modelVersion,
+    resourceId,
+    operationName,
+  };
 
-    switch (operationName) {
-      case 'delete':
-        return {
-          ...encodedBase,
-          operation: yield* Schema.encode(
-            makeOperationJsonSchema({
-              model,
-              modelVersion,
-              operationName: 'delete',
-            }),
-          )({}).pipe(
-            mapParseError({
-              code: 'failed-to-encode-frontend-mutation-operation',
-              prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
-            }),
-          ),
-        };
-      case 'create':
-        return {
-          ...encodedBase,
-          operation: yield* Schema.encode(
-            makeOperationJsonSchema({
-              model,
-              modelVersion,
-              operationName: 'create',
-            }),
-          )({ encodedAttributes: mutation.operation.attributes }).pipe(
-            mapParseError({
-              code: 'failed-to-encode-frontend-mutation-operation',
-              prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
-            }),
-          ),
-        };
-      case 'update': {
-        const filtered = mutation.operation.mask
-          ? pick(mutation.operation.attributes, mutation.operation.mask)
-          : mutation.operation.attributes;
-        return {
-          ...encodedBase,
-          operation: yield* Schema.encode(
-            makeOperationJsonSchema({
-              model,
-              modelVersion,
-              operationName: 'update',
-            }),
-          )({ encodedAttributes: filtered }).pipe(
-            mapParseError({
-              code: 'failed-to-encode-frontend-mutation-operation',
-              prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
-            }),
-          ),
-        };
-      }
-      case 'move':
-        return {
-          ...encodedBase,
-          operation: yield* Schema.encode(
-            makeOperationJsonSchema({
-              model,
-              modelVersion,
-              operationName: 'move',
-            }),
-          )(mutation.operation).pipe(
-            mapParseError({
-              code: 'failed-to-encode-frontend-mutation-operation',
-              prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
-            }),
-          ),
-        };
-      case 'replicateResource':
-        return {
-          ...encodedBase,
-          operation: yield* Schema.encode(
-            makeOperationJsonSchema({
-              model,
-              modelVersion,
-              operationName: 'replicateResource',
-            }),
-          )(mutation.operation).pipe(
-            mapParseError({
-              code: 'failed-to-encode-frontend-mutation-operation',
-              prefix: `Failed to encode replication mutation operation for model "${model.modelName}"`,
-            }),
-          ),
-        };
-      default: {
-        const _exhaustive: never = operationName;
-        return yield* new ZerospinError({
-          code: 'unsupported-mutation-operation',
-          message: `encodeFrontendMutation: unsupported operationName "${String(_exhaustive)}"`,
-        });
-      }
+  switch (operationName) {
+    case 'delete':
+      return {
+        ...encodedBase,
+        operation: yield* Schema.encode(
+          makeOperationJsonSchema({
+            model,
+            modelVersion,
+            operationName: 'delete',
+          }),
+        )({}).pipe(
+          mapParseError({
+            code: 'failed-to-encode-aggregate-frontend-mutation-operation',
+            prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
+          }),
+        ),
+      };
+    case 'create':
+      return {
+        ...encodedBase,
+        operation: yield* Schema.encode(
+          makeOperationJsonSchema({
+            model,
+            modelVersion,
+            operationName: 'create',
+          }),
+        )({ encodedAttributes: mutation.operation.attributes }).pipe(
+          mapParseError({
+            code: 'failed-to-encode-aggregate-frontend-mutation-operation',
+            prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
+          }),
+        ),
+      };
+    case 'update': {
+      const filtered = mutation.operation.mask
+        ? pick(mutation.operation.attributes, mutation.operation.mask)
+        : mutation.operation.attributes;
+      return {
+        ...encodedBase,
+        operation: yield* Schema.encode(
+          makeOperationJsonSchema({
+            model,
+            modelVersion,
+            operationName: 'update',
+          }),
+        )({ encodedAttributes: filtered }).pipe(
+          mapParseError({
+            code: 'failed-to-encode-aggregate-frontend-mutation-operation',
+            prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
+          }),
+        ),
+      };
     }
-  },
-);
+    case 'move':
+      return {
+        ...encodedBase,
+        operation: yield* Schema.encode(
+          makeOperationJsonSchema({
+            model,
+            modelVersion,
+            operationName: 'move',
+          }),
+        )(mutation.operation).pipe(
+          mapParseError({
+            code: 'failed-to-encode-aggregate-frontend-mutation-operation',
+            prefix: `Failed to encode mutation operation JSON for model "${model.modelName}"`,
+          }),
+        ),
+      };
+    case 'replicateResource':
+      return {
+        ...encodedBase,
+        operation: yield* Schema.encode(
+          makeOperationJsonSchema({
+            model,
+            modelVersion,
+            operationName: 'replicateResource',
+          }),
+        )(mutation.operation).pipe(
+          mapParseError({
+            code: 'failed-to-encode-aggregate-frontend-mutation-operation',
+            prefix: `Failed to encode replication mutation operation for model "${model.modelName}"`,
+          }),
+        ),
+      };
+    default: {
+      const _exhaustive: never = operationName;
+      return yield* new ZerospinError({
+        code: 'unsupported-mutation-operation',
+        message: `encodeAggregateFrontendMutation: unsupported operationName "${String(_exhaustive)}"`,
+      });
+    }
+  }
+});
 
 /** Encodes an applied mutation for ledger, persistence, or rollback storage. */
 export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(

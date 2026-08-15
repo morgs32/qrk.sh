@@ -23,7 +23,7 @@ describe('SystemLogRepo telemetry', () => {
     Effect.gen(function* () {
       const generationId = 'gen_log_indexes';
       const systemLogRepoName =
-        yield* SystemLogRepo.repoUtils.nameUtils.makeName({
+        yield* SystemLogRepo.boundDORepoConfig.nameUtils.makeName({
           generationId,
         });
       expect(systemLogRepoName).toBe('syslogrepo_gen_log_indexes');
@@ -31,7 +31,6 @@ describe('SystemLogRepo telemetry', () => {
 
       const first = yield* Effect.promise(() =>
         systemLogRepo.appendLogRow({
-          deployId: 'dpl_log_indexes',
           level: 'info',
           message: 'first',
           payload: null,
@@ -40,7 +39,6 @@ describe('SystemLogRepo telemetry', () => {
       ).pipe(Effect.flatMap(decodeRpc));
       const second = yield* Effect.promise(() =>
         systemLogRepo.appendLogRow({
-          deployId: 'dpl_log_indexes',
           level: 'info',
           message: 'second',
           payload: null,
@@ -49,7 +47,6 @@ describe('SystemLogRepo telemetry', () => {
       ).pipe(Effect.flatMap(decodeRpc));
       const third = yield* Effect.promise(() =>
         systemLogRepo.appendLogRow({
-          deployId: 'dpl_log_indexes',
           level: 'info',
           message: 'third',
           payload: null,
@@ -72,7 +69,8 @@ describe('SystemLogRepo telemetry', () => {
       expect(rows[2]?.id).toBe(first.id);
       expect(rows[2]?.logIndex).toBe(1);
       const registrations = yield* Effect.promise(() =>
-        SystemRepo.getRepo({ generationId }).getRepoRegistrations({
+        SystemRepo.getRepo({ systemId: 'sys_local' }).getRepoRegistrations({
+          generationId,
           repoType: 'SystemLogRepo',
         }),
       ).pipe(Effect.flatMap(decodeRpc));
@@ -87,7 +85,6 @@ describe('SystemLogRepo telemetry', () => {
 
   it.effect('stores one row per stable ID when a batch is retried', () =>
     Effect.gen(function* () {
-      const deployId = 'dpl_telemetry_idempotent';
       const generationId = 'gen_telemetry_idempotent';
       const systemId = 'sys_local';
       const systemLogRepo = yield* getSystemLogRepo({ key: { generationId } });
@@ -129,10 +126,10 @@ describe('SystemLogRepo telemetry', () => {
       } satisfies ITelemetryBatch;
 
       yield* Effect.promise(() =>
-        systemLogRepo.appendTelemetryBatch({ batch, deployId }),
+        systemLogRepo.appendTelemetryBatch({ batch }),
       ).pipe(Effect.flatMap(decodeRpc));
       yield* Effect.promise(() =>
-        systemLogRepo.appendTelemetryBatch({ batch, deployId }),
+        systemLogRepo.appendTelemetryBatch({ batch }),
       ).pipe(Effect.flatMap(decodeRpc));
 
       const rows = yield* Effect.promise(() =>
@@ -157,7 +154,6 @@ describe('SystemLogRepo telemetry', () => {
           spanId: 'spn_idempotent',
           systemId,
           generationId,
-          deployId,
         }),
       );
       expect(rows.logs[0]).toEqual(
@@ -165,7 +161,6 @@ describe('SystemLogRepo telemetry', () => {
           logId: 'lgr_idempotent',
           systemId,
           generationId,
-          deployId,
         }),
       );
       expect(rows.links[0]).toEqual(
@@ -173,7 +168,6 @@ describe('SystemLogRepo telemetry', () => {
           linkId: 'lnk_idempotent',
           systemId,
           generationId,
-          deployId,
         }),
       );
     }),
@@ -181,12 +175,10 @@ describe('SystemLogRepo telemetry', () => {
 
   it.effect('rolls back the entire batch when one encoded row fails', () =>
     Effect.gen(function* () {
-      const deployId = 'dpl_telemetry_rollback';
       const generationId = 'gen_telemetry_rollback';
       const systemLogRepo = yield* getSystemLogRepo({ key: { generationId } });
       const result = yield* Effect.promise(() =>
         systemLogRepo.appendTelemetryBatch({
-          deployId,
           batch: {
             spans: [
               {
@@ -241,7 +233,6 @@ describe('SystemLogRepo telemetry', () => {
     'keeps every row kind for only the newest one thousand traces',
     () =>
       Effect.gen(function* () {
-        const deployId = 'dpl_telemetry_retention';
         const generationId = 'gen_telemetry_retention';
         const systemId = 'sys_local';
         const systemLogRepo = yield* getSystemLogRepo({
@@ -263,7 +254,7 @@ describe('SystemLogRepo telemetry', () => {
               )
               INSERT INTO ${schema.telemetrySpans} (
                 spanId, traceId, parentSpanId, name, status,
-                startedAt, endedAt, attributes, systemId, generationId, deployId
+                startedAt, endedAt, attributes, systemId, generationId
               )
               SELECT
                 printf('spn_retention_%04d', value),
@@ -275,8 +266,7 @@ describe('SystemLogRepo telemetry', () => {
                 value,
                 NULL,
                 ${systemId},
-                ${generationId},
-                ${deployId}
+                ${generationId}
               FROM sequence
             `);
               db.run(sql`
@@ -287,7 +277,7 @@ describe('SystemLogRepo telemetry', () => {
               )
               INSERT INTO ${schema.telemetryLogs} (
                 logId, traceId, spanId, createdAt, level,
-                message, source, payload, systemId, generationId, deployId
+                message, source, payload, systemId, generationId
               )
               SELECT
                 printf('lgr_retention_%04d', value),
@@ -299,8 +289,7 @@ describe('SystemLogRepo telemetry', () => {
                 'test.retention',
                 NULL,
                 ${systemId},
-                ${generationId},
-                ${deployId}
+                ${generationId}
               FROM sequence
             `);
               db.run(sql`
@@ -311,7 +300,7 @@ describe('SystemLogRepo telemetry', () => {
               )
               INSERT INTO ${schema.telemetryLinks} (
                 linkId, traceId, spanId, priorTraceId, priorSpanId,
-                kind, systemId, generationId, deployId
+                kind, systemId, generationId
               )
               SELECT
                 printf('lnk_retention_%04d', value),
@@ -321,8 +310,7 @@ describe('SystemLogRepo telemetry', () => {
                 'spn_prior',
                 'causedBy',
                 ${systemId},
-                ${generationId},
-                ${deployId}
+                ${generationId}
               FROM sequence
             `);
             },
@@ -332,7 +320,6 @@ describe('SystemLogRepo telemetry', () => {
         yield* Effect.promise(() =>
           systemLogRepo.appendTelemetryBatch({
             batch: { spans: [], logs: [], links: [] },
-            deployId,
           }),
         ).pipe(Effect.flatMap(decodeRpc));
 

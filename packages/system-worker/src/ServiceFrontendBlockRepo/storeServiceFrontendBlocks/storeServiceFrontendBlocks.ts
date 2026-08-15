@@ -1,133 +1,315 @@
+import type { Async } from '@zerospin/core/async/Async';
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
+import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
-import { ServiceFrontendLineageBlockSchema } from '@zerospin/core/serviceSession/ServiceFrontendBlockSchema';
-import type { IServiceFrontendLineageBlock } from '@zerospin/core/serviceSession/types';
+import { ServiceFrontendBlockSchema } from '@zerospin/core/serviceSession/ServiceFrontendBlockSchema';
+import type { IServiceFrontendBlock } from '@zerospin/core/serviceSession/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
+import { system } from 'system';
 
+import { adaptFrontendResource } from '../../StaticSystem/adaptFrontendResource/adaptFrontendResource.js';
 import { serviceFrontendBlockDrizzleSchemas } from '../ServiceFrontendBlockRepo.js';
 
-/*
- * 1. Validate the complete target and canonicalize every proposed archive row.
- * 2. Append the whole request atomically in caller order.
- * 3. Accept an old index only when its canonical bytes are identical.
- * 4. Require every new index to be exactly terminal + 1.
- * 5. Broadcast only rows that committed for the first time.
- */
 export const storeServiceFrontendBlocks = Effect.fn(
   'ServiceFrontendBlockRepo.storeServiceFrontendBlocks',
 )(function* (props: {
-  blocks: readonly IServiceFrontendLineageBlock[];
+  blocks: readonly IServiceFrontendBlock[];
   db: IDb;
   key: {
     generationId: string;
     serviceName: string;
-    actorName: string;
-    actorId: string;
+    userId: string;
     frontendName: string;
   };
-  broadcast: (message: string) => void;
-}): Effect.fn.Return<void, IAnyError> {
-  const { blocks, broadcast, db, key } = props;
-
+  broadcast: (block: IServiceFrontendBlock) => Promise<void>;
+}): Effect.fn.Return<void, IAnyError, Async> {
   const generationId = yield* Schema.decodeUnknown(
     makeAbbreviationIdSchema(coreAbbreviations.generation),
-  )(key.generationId).pipe(
+  )(props.key.generationId).pipe(
     mapParseError({
       code: 'service-frontend-archive-generation-id-invalid',
       prefix: 'Failed to decode ServiceFrontendBlockRepo generationId',
     }),
   );
-  const actorId = yield* Schema.decodeUnknown(
-    makeAbbreviationIdSchema(coreAbbreviations.actor),
-  )(key.actorId).pipe(
+  const userId = yield* Schema.decodeUnknown(Schema.NonEmptyString)(
+    props.key.userId,
+  ).pipe(
     mapParseError({
-      code: 'service-frontend-archive-actor-id-invalid',
-      prefix: 'Failed to decode ServiceFrontendBlockRepo actorId',
+      code: 'service-frontend-archive-user-id-invalid',
+      prefix: 'Failed to decode ServiceFrontendBlockRepo userId',
     }),
   );
 
-  // 1 — canonical bytes are computed before opening the synchronous SQL tx.
+  const service = system.services[props.key.serviceName];
+  const frontend = service?.frontends[props.key.frontendName];
+  if (
+    service === undefined ||
+    frontend === undefined ||
+    frontend.controller.kind !== 'service' ||
+    frontend.controller.serviceName !== props.key.serviceName ||
+    frontend.controller.frontendName !== props.key.frontendName
+  ) {
+    return yield* new ZerospinError({
+      code: 'service-frontend-archive-controller-missing',
+      message:
+        'The owning generation SystemSpec does not contain the service frontend controller required by this archive',
+      extra: {
+        serviceName: props.key.serviceName,
+        frontendName: props.key.frontendName,
+      },
+    });
+  }
+  const modelVersions: Array<{
+    modelName: string;
+    modelVersion: string;
+  }> = [];
+  for (const model of Object.values(frontend.controller.models)) {
+    modelVersions.push({
+      modelName: model.modelName,
+      modelVersion: model.version,
+    });
+    for (const historicalDefinition of model.historicalDefinitions) {
+      modelVersions.push({
+        modelName: model.modelName,
+        modelVersion: historicalDefinition.version,
+      });
+    }
+  }
+
   const encodedBlocks: Array<{
-    block: IServiceFrontendLineageBlock;
+    block: IServiceFrontendBlock;
     canonicalBytes: string;
     frontendIndex: number;
+    materializations: Array<{
+      deltaKind: 'inserted' | 'updated';
+      canonicalOrdinal: number;
+      modelName: string;
+      modelVersion: string;
+      canonicalResourceBytes: string;
+    }>;
   }> = [];
-  for (const block of blocks) {
-    const frontendIndex =
-      block.kind === 'generation-boundary'
-        ? block.frontendIndex
-        : block.frontendBlock.frontendIndex;
-    if (!Number.isInteger(frontendIndex) || frontendIndex < 1) {
+  for (const block of props.blocks) {
+    if (!Number.isInteger(block.frontendIndex) || block.frontendIndex < 1) {
       return yield* new ZerospinError({
         code: 'service-frontend-archive-index-invalid',
-        message: `Service frontend archive index must be a positive integer, received ${frontendIndex}`,
+        message: `Service service frontend archive index must be a positive integer, received ${block.frontendIndex}`,
       });
     }
     if (
-      block.generationId !== key.generationId ||
-      block.serviceName !== key.serviceName ||
-      block.actorName !== key.actorName ||
-      block.actorId !== key.actorId ||
-      block.frontendName !== key.frontendName
+      block.serviceName !== props.key.serviceName ||
+      block.userId !== userId ||
+      block.frontendName !== props.key.frontendName
     ) {
       return yield* new ZerospinError({
         code: 'service-frontend-archive-target-mismatch',
-        message:
-          'Service frontend lineage block does not match its archive target',
+        message: 'Frontend block does not match its archive target',
         extra: {
-          expected: key,
-          received: {
-            generationId: block.generationId,
-            serviceName: block.serviceName,
-            actorName: block.actorName,
-            actorId: block.actorId,
-            frontendName: block.frontendName,
-          },
+          expectedServiceName: props.key.serviceName,
+          receivedServiceName: block.serviceName,
+          expectedUserId: userId,
+          receivedUserId: block.userId,
+          expectedFrontendName: props.key.frontendName,
+          receivedFrontendName: block.frontendName,
         },
       });
     }
-    if (
-      block.kind === 'service-frontend' &&
-      (block.frontendBlock.serviceName !== key.serviceName ||
-        block.frontendBlock.actorName !== key.actorName ||
-        block.frontendBlock.actorId !== key.actorId ||
-        block.frontendBlock.frontendName !== key.frontendName ||
-        block.frontendBlock.frontendIndex !== frontendIndex)
-    ) {
-      return yield* new ZerospinError({
-        code: 'service-frontend-archive-inner-target-mismatch',
-        message:
-          'Wrapped service frontend block does not match its lineage envelope',
-      });
-    }
-    if (
-      block.kind === 'generation-boundary' &&
-      block.prevGenerationId === block.generationId
-    ) {
-      return yield* new ZerospinError({
-        code: 'service-frontend-boundary-self-reference',
-        message:
-          'Service frontend generation boundary cannot reference its own generation as predecessor',
-      });
-    }
     const canonicalBytes = yield* Schema.encode(
-      Schema.parseJson(ServiceFrontendLineageBlockSchema),
+      Schema.parseJson(ServiceFrontendBlockSchema),
     )(block).pipe(
       mapParseError({
-        code: 'service-frontend-lineage-block-encode-failed',
-        prefix: `Failed to encode service frontend lineage block ${frontendIndex}`,
+        code: 'service-frontend-block-encode-failed',
+        prefix: `Failed to encode frontend block ${block.frontendIndex}`,
       }),
     );
-    encodedBlocks.push({ block, canonicalBytes, frontendIndex });
+    const materializations: Array<{
+      deltaKind: 'inserted' | 'updated';
+      canonicalOrdinal: number;
+      modelName: string;
+      modelVersion: string;
+      canonicalResourceBytes: string;
+    }> = [];
+    for (
+      let canonicalOrdinal = 0;
+      canonicalOrdinal < block.delta.inserted.length;
+      canonicalOrdinal += 1
+    ) {
+      const resource = block.delta.inserted[canonicalOrdinal];
+      if (resource === undefined) {
+        return yield* new ZerospinError({
+          code: 'service-frontend-archive-materialization-resource-missing',
+          message: `Service frontend block ${block.frontendIndex} inserted resource ${canonicalOrdinal} is missing`,
+        });
+      }
+      const model = Object.values(frontend.controller.models).find(
+        candidate => candidate.modelName === resource.modelName,
+      );
+      if (model === undefined) {
+        return yield* new ZerospinError({
+          code: 'service-frontend-archive-materialization-model-missing',
+          message: `Service frontend block ${block.frontendIndex} contains unknown model ${resource.modelName}`,
+        });
+      }
+      for (const modelVersion of [
+        model.version,
+        ...model.historicalDefinitions.map(
+          historicalDefinition => historicalDefinition.version,
+        ),
+      ]) {
+        const adaptedUnknown = yield* adaptFrontendResource({
+          owner: {
+            kind: 'service',
+            serviceName: props.key.serviceName,
+          },
+          frontendName: props.key.frontendName,
+          modelName: resource.modelName,
+          modelVersion,
+          resource,
+        });
+        const adapted = yield* Schema.decodeUnknown(
+          Schema.Struct({
+            modelName: Schema.String,
+            resource: EncodedResourceSchema,
+          }),
+        )(adaptedUnknown, { onExcessProperty: 'error' }).pipe(
+          mapParseError({
+            code: 'service-frontend-archive-materialization-adapter-result-invalid',
+            prefix:
+              'The owning generation runtime returned an invalid materialized service frontend resource',
+          }),
+        );
+        if (
+          adapted.modelName !== resource.modelName ||
+          adapted.resource.modelName !== resource.modelName ||
+          adapted.resource.version !== modelVersion
+        ) {
+          return yield* new ZerospinError({
+            code: 'service-frontend-archive-materialization-adapter-identity-mismatch',
+            message:
+              'The owning generation runtime changed the model identity of a materialized service frontend resource',
+            extra: {
+              expectedModelName: resource.modelName,
+              expectedModelVersion: modelVersion,
+              receivedModelName: adapted.modelName,
+              receivedResourceModelName: adapted.resource.modelName,
+              receivedModelVersion: adapted.resource.version,
+            },
+          });
+        }
+        const canonicalResourceBytes = yield* Schema.encode(
+          Schema.parseJson(EncodedResourceSchema),
+        )(adapted.resource).pipe(
+          mapParseError({
+            code: 'service-frontend-archive-materialization-encode-failed',
+            prefix: `Failed to encode service frontend resource ${resource.modelName}@${modelVersion}`,
+          }),
+        );
+        materializations.push({
+          deltaKind: 'inserted',
+          canonicalOrdinal,
+          modelName: resource.modelName,
+          modelVersion,
+          canonicalResourceBytes,
+        });
+      }
+    }
+    for (
+      let canonicalOrdinal = 0;
+      canonicalOrdinal < block.delta.updated.length;
+      canonicalOrdinal += 1
+    ) {
+      const resource = block.delta.updated[canonicalOrdinal];
+      if (resource === undefined) {
+        return yield* new ZerospinError({
+          code: 'service-frontend-archive-materialization-resource-missing',
+          message: `Service frontend block ${block.frontendIndex} updated resource ${canonicalOrdinal} is missing`,
+        });
+      }
+      const model = Object.values(frontend.controller.models).find(
+        candidate => candidate.modelName === resource.modelName,
+      );
+      if (model === undefined) {
+        return yield* new ZerospinError({
+          code: 'service-frontend-archive-materialization-model-missing',
+          message: `Service frontend block ${block.frontendIndex} contains unknown model ${resource.modelName}`,
+        });
+      }
+      for (const modelVersion of [
+        model.version,
+        ...model.historicalDefinitions.map(
+          historicalDefinition => historicalDefinition.version,
+        ),
+      ]) {
+        const adaptedUnknown = yield* adaptFrontendResource({
+          owner: {
+            kind: 'service',
+            serviceName: props.key.serviceName,
+          },
+          frontendName: props.key.frontendName,
+          modelName: resource.modelName,
+          modelVersion,
+          resource,
+        });
+        const adapted = yield* Schema.decodeUnknown(
+          Schema.Struct({
+            modelName: Schema.String,
+            resource: EncodedResourceSchema,
+          }),
+        )(adaptedUnknown, { onExcessProperty: 'error' }).pipe(
+          mapParseError({
+            code: 'service-frontend-archive-materialization-adapter-result-invalid',
+            prefix:
+              'The owning generation runtime returned an invalid materialized service frontend resource',
+          }),
+        );
+        if (
+          adapted.modelName !== resource.modelName ||
+          adapted.resource.modelName !== resource.modelName ||
+          adapted.resource.version !== modelVersion
+        ) {
+          return yield* new ZerospinError({
+            code: 'service-frontend-archive-materialization-adapter-identity-mismatch',
+            message:
+              'The owning generation runtime changed the model identity of a materialized service frontend resource',
+            extra: {
+              expectedModelName: resource.modelName,
+              expectedModelVersion: modelVersion,
+              receivedModelName: adapted.modelName,
+              receivedResourceModelName: adapted.resource.modelName,
+              receivedModelVersion: adapted.resource.version,
+            },
+          });
+        }
+        const canonicalResourceBytes = yield* Schema.encode(
+          Schema.parseJson(EncodedResourceSchema),
+        )(adapted.resource).pipe(
+          mapParseError({
+            code: 'service-frontend-archive-materialization-encode-failed',
+            prefix: `Failed to encode service frontend resource ${resource.modelName}@${modelVersion}`,
+          }),
+        );
+        materializations.push({
+          deltaKind: 'updated',
+          canonicalOrdinal,
+          modelName: resource.modelName,
+          modelVersion,
+          canonicalResourceBytes,
+        });
+      }
+    }
+    encodedBlocks.push({
+      block,
+      canonicalBytes,
+      frontendIndex: block.frontendIndex,
+      materializations,
+    });
   }
 
-  // 2 — either every new row is contiguous and commits or no row commits.
   const insertedBlocks = yield* makeTx({
-    db,
+    db: props.db,
     program: Effect.fn(
       'ServiceFrontendBlockRepo.storeServiceFrontendBlocks.transaction',
     )(function* ({ tx }) {
@@ -136,19 +318,12 @@ export const storeServiceFrontendBlocks = Effect.fn(
         .from(serviceFrontendBlockDrizzleSchemas.lineage)
         .where(eq(serviceFrontendBlockDrizzleSchemas.lineage.id, 'lineage'))
         .get();
-      if (lineage === undefined) {
-        return yield* new ZerospinError({
-          code: 'service-frontend-lineage-not-configured',
-          message:
-            'ServiceFrontendBlockRepo must record immutable lineage before appending blocks',
-        });
-      }
       if (
-        lineage.generationId !== key.generationId ||
-        lineage.serviceName !== key.serviceName ||
-        lineage.actorName !== key.actorName ||
-        lineage.actorId !== actorId ||
-        lineage.frontendName !== key.frontendName
+        lineage === undefined ||
+        lineage.generationId !== generationId ||
+        lineage.serviceName !== props.key.serviceName ||
+        lineage.userId !== userId ||
+        lineage.frontendName !== props.key.frontendName
       ) {
         return yield* new ZerospinError({
           code: 'service-frontend-lineage-target-mismatch',
@@ -156,7 +331,6 @@ export const storeServiceFrontendBlocks = Effect.fn(
             'ServiceFrontendBlockRepo stored lineage does not match its repository target',
         });
       }
-
       const terminalRow = tx
         .select({
           frontendIndex:
@@ -176,16 +350,48 @@ export const storeServiceFrontendBlocks = Effect.fn(
         terminalRow?.frontendIndex ??
         lineage.predecessorTerminalFrontendIndex ??
         0;
-      const newlyInserted: IServiceFrontendLineageBlock[] = [];
-
-      for (const encoded of encodedBlocks) {
-        if (encoded.block.systemId !== lineage.systemId) {
+      for (const modelVersion of modelVersions) {
+        const existingCoverage = tx
+          .select()
+          .from(
+            serviceFrontendBlockDrizzleSchemas.serviceFrontendModelVersionCoverage,
+          )
+          .where(
+            and(
+              eq(
+                serviceFrontendBlockDrizzleSchemas
+                  .serviceFrontendModelVersionCoverage.modelName,
+                modelVersion.modelName,
+              ),
+              eq(
+                serviceFrontendBlockDrizzleSchemas
+                  .serviceFrontendModelVersionCoverage.modelVersion,
+                modelVersion.modelVersion,
+              ),
+            ),
+          )
+          .get();
+        if (existingCoverage === undefined) {
+          tx.insert(
+            serviceFrontendBlockDrizzleSchemas.serviceFrontendModelVersionCoverage,
+          )
+            .values({
+              modelName: modelVersion.modelName,
+              modelVersion: modelVersion.modelVersion,
+              replayFloorFrontendIndex: terminalFrontendIndex,
+            })
+            .run();
+          continue;
+        }
+        if (existingCoverage.replayFloorFrontendIndex > terminalFrontendIndex) {
           return yield* new ZerospinError({
-            code: 'service-frontend-archive-system-mismatch',
-            message:
-              'Service frontend lineage block systemId does not match immutable lineage',
+            code: 'service-frontend-archive-materialization-coverage-invalid',
+            message: `Service frontend archive coverage for ${modelVersion.modelName}@${modelVersion.modelVersion} begins after its terminal index`,
           });
         }
+      }
+      const newlyInserted: IServiceFrontendBlock[] = [];
+      for (const encoded of encodedBlocks) {
         const existing = tx
           .select({
             canonicalBytes:
@@ -201,86 +407,54 @@ export const storeServiceFrontendBlocks = Effect.fn(
             ),
           )
           .get();
-
-        // 3 — exact encoded equality is the only duplicate success case.
         if (existing !== undefined) {
           if (existing.canonicalBytes === encoded.canonicalBytes) {
             continue;
           }
           return yield* new ZerospinError({
             code: 'service-frontend-archive-conflicting-duplicate',
-            message: `Service frontend archive index ${encoded.frontendIndex} already exists with different canonical bytes`,
+            message: `Service service frontend archive index ${encoded.frontendIndex} already exists with different canonical bytes`,
           });
         }
-
-        // 4 — a missing or out-of-order index is corruption, never a skip.
         if (encoded.frontendIndex !== terminalFrontendIndex + 1) {
           return yield* new ZerospinError({
             code: 'service-frontend-archive-index-gap',
-            message: `Service frontend archive expected index ${terminalFrontendIndex + 1}, received ${encoded.frontendIndex}`,
+            message: `Service service frontend archive expected index ${terminalFrontendIndex + 1}, received ${encoded.frontendIndex}`,
             extra: {
               terminalFrontendIndex,
               receivedFrontendIndex: encoded.frontendIndex,
             },
           });
         }
-        if (
-          terminalFrontendIndex ===
-            (lineage.predecessorTerminalFrontendIndex ?? 0) &&
-          lineage.predecessorGenerationId !== null &&
-          (lineage.predecessorTerminalFrontendIndex === null ||
-            encoded.block.kind !== 'generation-boundary' ||
-            encoded.block.prevGenerationId !==
-              lineage.predecessorGenerationId ||
-            encoded.frontendIndex !==
-              lineage.predecessorTerminalFrontendIndex + 1)
-        ) {
-          return yield* new ZerospinError({
-            code: 'service-frontend-boundary-required',
-            message:
-              'A successor ServiceFrontendBlockRepo must begin with its recorded generation boundary',
-          });
-        }
-        if (
-          encoded.block.kind === 'generation-boundary' &&
-          (lineage.predecessorGenerationId === null ||
-            encoded.block.prevGenerationId !==
-              lineage.predecessorGenerationId ||
-            lineage.predecessorTerminalFrontendIndex === null ||
-            encoded.frontendIndex !==
-              lineage.predecessorTerminalFrontendIndex + 1)
-        ) {
-          return yield* new ZerospinError({
-            code: 'service-frontend-boundary-predecessor-mismatch',
-            message:
-              'Service frontend generation boundary does not match the immutable predecessor descriptor',
-          });
-        }
-
         tx.insert(serviceFrontendBlockDrizzleSchemas.serviceFrontendBlocks)
           .values({
             frontendIndex: encoded.frontendIndex,
-            systemId: encoded.block.systemId,
-            generationId,
-            serviceName: encoded.block.serviceName,
-            actorName: encoded.block.actorName,
-            actorId,
-            frontendName: encoded.block.frontendName,
-            kind: encoded.block.kind,
             canonicalBytes: encoded.canonicalBytes,
-            lineageBlock: encoded.canonicalBytes,
+            serviceFrontendBlock: encoded.canonicalBytes,
           })
           .run();
+        for (const materialization of encoded.materializations) {
+          tx.insert(
+            serviceFrontendBlockDrizzleSchemas.serviceFrontendResourceMaterializations,
+          )
+            .values({
+              frontendIndex: encoded.frontendIndex,
+              deltaKind: materialization.deltaKind,
+              canonicalOrdinal: materialization.canonicalOrdinal,
+              modelName: materialization.modelName,
+              modelVersion: materialization.modelVersion,
+              canonicalResourceBytes: materialization.canonicalResourceBytes,
+            })
+            .run();
+        }
         terminalFrontendIndex = encoded.frontendIndex;
         newlyInserted.push(encoded.block);
       }
-
       return newlyInserted;
     }),
   });
 
-  // 5 — no client sees a block until its immutable row has committed.
   for (const block of insertedBlocks) {
-    broadcast(JSON.stringify({ type: 'serviceFrontendBlock', sync: block }));
+    yield* Effect.promise(() => props.broadcast(block).catch(() => undefined));
   }
 });

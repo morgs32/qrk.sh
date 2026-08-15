@@ -1,86 +1,67 @@
 ---
-title: Core Service Controllers
+title: Core System and Frontend Controllers
 type: api
-updated: 2026-07-27
-sources:
-  - path: packages/core/package.json
-    sha: ff68dfce824266c8cdea060f7a2509e9eacca27b
-    lines: 8-43
-  - path: packages/core/src/serviceFrontendController/makeServiceFrontendController.ts
-    sha: f1127d4f98a2b4ed95d7c3dc55732877101991e8
-    lines: 12-78
-  - path: packages/core/src/serviceFrontendController/makeServiceFrontendControllerSpec.ts
-    sha: 470fdce5b8faed5c663af5d69f7777e39da9a6c3
-    lines: 8-36
-  - path: packages/core/src/serviceActorController/makeServiceActorController.ts
-    sha: 768a5c265d2e3dd9869ceeb438da6bcad2d68548
-    lines: 20-131
-  - path: packages/core/src/service/makeServiceController.ts
-    sha: 2d910b6875fe5a2d7560e0cf3c3fca259047ac26
-    lines: 58-388
-  - path: packages/core/src/system/makeSystem.ts
-    sha: da0a9ce26c7efb074b1c61859a94ce063e06407b
-    lines: 19-157
-  - path: packages/core/src/system/makeSystemSpec.ts
-    sha: 3268ae3bcc3ea4002784efe7b7cb11d3c400fe9e
-    lines: 263-453
-  - path: packages/core/src/serviceActorController/types.ts
-    sha: aa546726eb8f9a49540c7f52140a666f99f03ebc
-    lines: 8-20
-  - path: packages/system-worker/src/ServiceRepo/authenticateServiceFrontend/authenticateServiceFrontend.ts
-    sha: 564c16c99c5f5a0d023a81e4b856ab1798e7708a
-    lines: 25-74
+updated: 2026-08-11
 ---
 
-# Core Service Controllers
+# Core System and Frontend Controllers
 
-`@zerospin/core` exposes deep modules through its `./*` package export; the
-service-owned controller graph is consumed from the modules that define each
-symbol rather than through a feature barrel
-(../../packages/core/package.json:8-43).
+The core authoring surface separates universal authentication, owner
+authorization, and frontend representation definitions.
 
-## Exported factories
+## Public surface
 
-| Import path                                                                  | Surface                                                                                                                                                                                                                                                                                                                                           |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@zerospin/core/serviceFrontendController/makeServiceFrontendController`     | Constructs a client-safe service frontend identity, version, declared service models, model names, and signature schema; it validates a nonempty version and exact service ownership of every model (../../packages/core/src/serviceFrontendController/makeServiceFrontendController.ts:12-78).                                                   |
-| `@zerospin/core/serviceFrontendController/makeServiceFrontendControllerSpec` | Encodes the service/actor/frontend identity, version, current and historical model definitions, indexes, and signature JSON Schema for transport and compatibility checks (../../packages/core/src/serviceFrontendController/makeServiceFrontendControllerSpec.ts:8-36).                                                                          |
-| `@zerospin/core/serviceActorController/makeServiceActorController`           | Binds named service frontends and their authentication callbacks to one service actor; each frontend key, actor name, and model object must match the actor controller (../../packages/core/src/serviceActorController/makeServiceActorController.ts:20-69, ../../packages/core/src/serviceActorController/makeServiceActorController.ts:92-131). |
-| `@zerospin/core/service/makeServiceController`                               | Retains an `actorControllers` registry on every service controller, defaulting the authored input to an empty registry while validating actor names, model identity, and owning service names (../../packages/core/src/service/makeServiceController.ts:58-133, ../../packages/core/src/service/makeServiceController.ts:332-388).                |
-| `@zerospin/core/system/makeSystem`                                           | Validates service registry keys and every nested service frontend's owning system name before retaining the complete account and service controller graph (../../packages/core/src/system/makeSystem.ts:36-72, ../../packages/core/src/system/makeSystem.ts:125-157).                                                                             |
+| Module                                         | Responsibility                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authentication/makeSignature`                 | Defines the current signature schema, retained historical schemas, and direct historical-to-current adapters. Versions must be stable `major.minor.patch` SemVer ([`makeSignature.ts:4-35`](../../packages/core/src/authentication/makeSignature.ts#L4-L35), [`makeSignature.ts:38-75`](../../packages/core/src/authentication/makeSignature.ts#L38-L75)). |
+| `authentication/makeAuthenticationLock`        | Encodes only the selected authentication signature version and JSON Schema ([`makeAuthenticationLock.ts:6-33`](../../packages/core/src/authentication/makeAuthenticationLock.ts#L6-L33)).                                                                                                                                                                  |
+| `system/makeSystem`                            | Requires top-level `{ authentication: { signature, authenticate } }`; `authenticate` returns `userId` ([`makeSystem.ts:460-469`](../../packages/core/src/system/makeSystem.ts#L460-L469), [`makeSystem.ts:581-627`](../../packages/core/src/system/makeSystem.ts#L581-L627)).                                                                              |
+| `frontendController/makeFrontendController`    | Defines aggregate/service representation, target names, models, contracts, and guards; it carries no authentication schema or callback ([`types.ts:17-66`](../../packages/core/src/frontendController/types.ts#L17-L66)).                                                                                                                                  |
+| `frontendController/makeAggregateFrontendLock` | Encodes `{ systemName, frontendName, models, contracts }` for an aggregate frontend ([`makeAggregateFrontendLock.ts:6-33`](../../packages/core/src/frontendController/makeAggregateFrontendLock.ts#L6-L33), [`makeAggregateFrontendLock.ts:93-107`](../../packages/core/src/frontendController/makeAggregateFrontendLock.ts#L93-L107)).                    |
+| `frontendController/makeServiceFrontendLock`   | Encodes `{ systemName, frontendName, models }` for a read-only service frontend ([`makeServiceFrontendLock.ts:6-25`](../../packages/core/src/frontendController/makeServiceFrontendLock.ts#L6-L25), [`makeServiceFrontendLock.ts:67-80`](../../packages/core/src/frontendController/makeServiceFrontendLock.ts#L67-L80)).                                  |
 
-## Authored graph
+## Owner authorization
 
-```text
-makeSystem
-  serviceControllers[serviceName]
-    actorControllers[actorName]
-      frontends[frontendName]
-        frontendController
-        authenticate
-```
+An aggregate with frontends must define `authorize`. Its generation-keyed
+`AggregateRepo` already binds `aggregateName`, and the callback receives exactly
+`{ db: { query }, aggregateId, userId, frontendName }`. The parallel
+generation-keyed `ServiceRepo` binds `serviceName`, and its callback receives
+`{ db: { query }, userId, frontendName }`. Root authentication supplies
+`userId`; owner admission supplies the remaining target fields. Each database
+exposes only that owner's declared model queries, and owners without frontends
+cannot declare the callback
+([`makeSystem.ts:499-511`](../../packages/core/src/system/makeSystem.ts#L499-L511),
+[`makeSystem.ts:531-549`](../../packages/core/src/system/makeSystem.ts#L531-L549),
+[`frontendBinding/types.ts:195-232`](../../packages/core/src/frontendBinding/types.ts#L195-L232),
+[`AggregateRepo/authorizeAggregateFrontend.ts:51-73`](../../packages/system-worker/src/AggregateRepo/authorizeAggregateFrontend/authorizeAggregateFrontend.ts#L51-L73),
+[`ServiceRepo/authorizeServiceFrontend.ts:40-61`](../../packages/system-worker/src/ServiceRepo/authorizeServiceFrontend/authorizeServiceFrontend.ts#L40-L61)).
 
-The service frontend controller is safe to serialize, but the executable
-authentication callback remains on the server-owned service actor binding
-(../../packages/core/src/serviceFrontendController/makeServiceFrontendController.ts:69-78,
-../../packages/core/src/serviceActorController/makeServiceActorController.ts:118-130).
-That callback receives the decoded frontend signature and only a read-only
-`db.query` facade typed from the service actor's declared models; the runtime
-ServiceRepo narrows the registry again to those exact model queries
-(../../packages/core/src/serviceActorController/makeServiceActorController.ts:31-55,
-../../packages/core/src/serviceActorController/types.ts:8-20,
-../../packages/system-worker/src/ServiceRepo/authenticateServiceFrontend/authenticateServiceFrontend.ts:25-74).
-`makeSystemSpec` preserves the nested service actor/frontend graph while
-serializing each frontend through `makeServiceFrontendControllerSpec`; it does
-not serialize the authentication callback
-(../../packages/core/src/system/makeSystemSpec.ts:412-453).
+Normalized guards retain their concrete declared `models`, and `makeSystem`
+requires each declared model to be the identical controller and authoritative
+aggregate binding. The public database type rejects undeclared query keys,
+writes, raw SQL, transactions, and the underlying client. At runtime both
+speculative `AggregateFrontendRepo` preparation and cursor-stale authoritative
+`AggregateRepo` revalidation construct a synchronous query record from exactly
+those keys and fail if a binding is missing; a payload-only guard therefore
+receives an empty query record
+([`makeSystem.ts:1539-1553`](../../packages/core/src/system/makeSystem.ts#L1539-L1553),
+[`makeFrontendController.typecheck.ts:106-139`](../../packages/core/src/frontendController/makeFrontendController.typecheck.ts#L106-L139),
+[`prepareAggregateFrontendCommand.ts:62-84`](../../packages/system-worker/src/AggregateFrontendRepo/prepareAggregateFrontendCommand/prepareAggregateFrontendCommand.ts#L62-L84),
+[`runAggregateFrontendGuards.ts:49-68`](../../packages/system-worker/src/AggregateRepo/runAggregateFrontendGuards/runAggregateFrontendGuards.ts#L49-L68),
+[`finalizePushedCommands.ts:437-478`](../../packages/system-worker/src/AggregateRepo/finalizePushedCommands/finalizePushedCommands.ts#L437-L478),
+[`aggregateFrontendGuardFlow.workerd.spec.ts:51-296`](../../packages/system-worker/src/aggregateFrontendGuardFlow.workerd.spec.ts#L51-L296)).
 
-## Related types
+## Version selection
 
-The defining deep modules also expose `serviceFrontendController/types` and
-`serviceActorController/types` through the package wildcard; consumers should
-import those definitions directly rather than from a runtime module re-export
-(../../packages/core/package.json:39-43).
+Authentication version selection is root-wide. Model and contract selections
+remain per frontend. A frontend lock is the complete canonical result of the
+representation selection and therefore contains no signature/user identity
+fields
+([`makeZerospinApp.tsx:97-137`](../../packages/react/src/makeZerospinApp.tsx#L97-L137),
+[`resolveFrontendSourceSelection.ts:209-347`](../../packages/react/src/resolveFrontendSourceSelection.ts#L209-L347),
+[`makeAggregateFrontendLock.ts:6-33`](../../packages/core/src/frontendController/makeAggregateFrontendLock.ts#L6-L33)).
 
-See [[ServiceFrontendApi]] for the runtime admission boundary built from this
-authored graph.
+## Related pages
+
+- [[../architecture/Authentication|Universal Authentication]]
+- [[../architecture/SourceSelectedFrontends|Source-Selected Frontends]]

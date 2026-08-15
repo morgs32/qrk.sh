@@ -1,22 +1,22 @@
-/*
- * One immutable lineage archive and WebSocket room per service-owned actor
- * frontend. The repository is intentionally not auto-registered: its paired
- * projection publishes both registrations only after bootstrap is complete.
- */
+/* One frontend block archive and websocket room per service actor/frontend projection. */
 
 import { RoutePattern } from '@remix-run/route-pattern';
 import { makeDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
+import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import { makeTable } from '@zerospin/core/models/makeTable';
 import { primitives } from '@zerospin/core/models/primitives';
-import type { IActorId, IAnyTables } from '@zerospin/core/models/types';
-import { ServiceFrontendLineageBlockSchema } from '@zerospin/core/serviceSession/ServiceFrontendBlockSchema';
-import type { IServiceFrontendLineageBlock } from '@zerospin/core/serviceSession/types';
+import type { IAnyTables } from '@zerospin/core/models/types';
+import { ServiceFrontendBlockSchema } from '@zerospin/core/serviceSession/ServiceFrontendBlockSchema';
+import type { IServiceFrontendBlock } from '@zerospin/core/serviceSession/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import type { IRpcEitherEncoded } from '@zerospin/core/utils/types';
-import type { IAnyErrorJson } from '@zerospin/error';
-import { Effect, type Schema } from 'effect';
+import {
+  mapParseError,
+  ZerospinError,
+  type IAnyErrorJson,
+} from '@zerospin/error';
+import { Effect, Schema } from 'effect';
 import { BrandTypeId } from 'effect/Brand';
 import {
   Server,
@@ -25,13 +25,13 @@ import {
   type WSMessage,
 } from 'partyserver';
 
-import { makeRepo } from '../makeRepo/makeRepo.js';
-import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
+import { makeBoundDORepo } from '../makeBoundDORepo/makeBoundDORepo.js';
+import { makeBoundDORepoConfig } from '../makeBoundDORepo/makeBoundDORepoConfig.js';
 import { managedRuntime } from '../managedRuntime.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 import { assertArchiveThrough } from './assertArchiveThrough/assertArchiveThrough.js';
-import { generationSuperseded } from './generationSuperseded/generationSuperseded.js';
+import { drainGeneration } from './drainGeneration/drainGeneration.js';
 import { getArchiveBound } from './getArchiveBound/getArchiveBound.js';
 import { getArchivedBlocks } from './getArchivedBlocks/getArchivedBlocks.js';
 import { getPredecessor } from './getPredecessor/getPredecessor.js';
@@ -39,50 +39,6 @@ import { onConnect } from './onConnect/onConnect.js';
 import { onMessage } from './onMessage/onMessage.js';
 import { recordPredecessor } from './recordPredecessor/recordPredecessor.js';
 import { storeServiceFrontendBlocks } from './storeServiceFrontendBlocks/storeServiceFrontendBlocks.js';
-
-/** Exact direct-RPC surface returned by the SERVICE_FRONTEND_BLOCK_REPO binding. */
-export interface IServiceFrontendBlockRepoRpcTarget {
-  recordPredecessor(props: {
-    systemId: string;
-    predecessor: Readonly<{
-      generationId: string;
-      repoName: string;
-      terminalFrontendIndex: number;
-    }> | null;
-  }): IRpcEitherEncoded<void>;
-  storeServiceFrontendBlocks(props: {
-    blocks: readonly IServiceFrontendLineageBlock[];
-  }): IRpcEitherEncoded<void>;
-  getArchiveBound(): IRpcEitherEncoded<
-    Readonly<{ generationId: string; frontendIndex: number }>
-  >;
-  assertArchiveThrough(props: {
-    frontendIndex: number;
-  }): IRpcEitherEncoded<void>;
-  getArchivedBlocks(props: {
-    afterFrontendIndex: number;
-    throughFrontendIndex: number;
-  }): IRpcEitherEncoded<readonly IServiceFrontendLineageBlock[]>;
-  getPredecessor(): IRpcEitherEncoded<
-    Readonly<{
-      systemId: ISystemId;
-      generationId: string;
-      serviceName: string;
-      actorName: string;
-      actorId: IActorId;
-      frontendName: string;
-      terminalFrontendIndex: number;
-      predecessor: Readonly<{
-        generationId: string;
-        repoName: string;
-        terminalFrontendIndex: number;
-      }> | null;
-    }>
-  >;
-  generationSuperseded(props: {
-    successorGenerationId: string;
-  }): IRpcEitherEncoded<void>;
-}
 
 const serviceFrontendBlockTables = {
   lineage: makeTable({
@@ -96,10 +52,7 @@ const serviceFrontendBlockTables = {
         abbreviation: coreAbbreviations.generation,
       }),
       serviceName: primitives.text(),
-      actorName: primitives.text(),
-      actorId: primitives.opaqueId({
-        abbreviation: coreAbbreviations.actor,
-      }),
+      userId: primitives.text(),
       frontendName: primitives.text(),
       predecessorGenerationId: primitives.opaqueId({
         abbreviation: coreAbbreviations.generation,
@@ -107,32 +60,57 @@ const serviceFrontendBlockTables = {
       }),
       predecessorRepoName: primitives.text({ nullable: true }),
       predecessorTerminalFrontendIndex: primitives.integer({ nullable: true }),
+      replayFloorFrontendIndex: primitives.integer(),
     },
   }),
   serviceFrontendBlocks: makeTable({
     name: 'serviceFrontendBlocks',
     shape: {
       frontendIndex: primitives.integer({ unique: true }),
-      systemId: primitives.opaqueId({
-        abbreviation: coreAbbreviations.system,
-      }),
-      generationId: primitives.opaqueId({
-        abbreviation: coreAbbreviations.generation,
-      }),
-      serviceName: primitives.text(),
-      actorName: primitives.text(),
-      actorId: primitives.opaqueId({
-        abbreviation: coreAbbreviations.actor,
-      }),
-      frontendName: primitives.text(),
-      kind: primitives.enum({
-        values: ['generation-boundary', 'service-frontend'],
-      }),
       canonicalBytes: primitives.text(),
-      lineageBlock: primitives.json({
-        schema: ServiceFrontendLineageBlockSchema,
+      serviceFrontendBlock: primitives.json({
+        schema: ServiceFrontendBlockSchema,
       }),
     },
+  }),
+  serviceFrontendResourceMaterializations: makeTable({
+    name: 'serviceFrontendResourceMaterializations',
+    shape: {
+      frontendIndex: primitives.integer(),
+      deltaKind: primitives.enum({ values: ['inserted', 'updated'] }),
+      canonicalOrdinal: primitives.integer(),
+      modelName: primitives.text(),
+      modelVersion: primitives.text(),
+      canonicalResourceBytes: primitives.text(),
+    },
+    indexes: [
+      {
+        name: 'serviceFrontendResourceMaterializations_identity_unique',
+        columns: [
+          'frontendIndex',
+          'deltaKind',
+          'canonicalOrdinal',
+          'modelName',
+          'modelVersion',
+        ],
+        unique: true,
+      },
+    ],
+  }),
+  serviceFrontendModelVersionCoverage: makeTable({
+    name: 'serviceFrontendModelVersionCoverage',
+    shape: {
+      modelName: primitives.text(),
+      modelVersion: primitives.text(),
+      replayFloorFrontendIndex: primitives.integer(),
+    },
+    indexes: [
+      {
+        name: 'serviceFrontendModelVersionCoverage_identity_unique',
+        columns: ['modelName', 'modelVersion'],
+        unique: true,
+      },
+    ],
   }),
 } satisfies IAnyTables;
 
@@ -143,10 +121,10 @@ const serviceFrontendBlockDbConfig = makeDbConfig({
 export const serviceFrontendBlockDrizzleSchemas =
   serviceFrontendBlockDbConfig.schema;
 
-const serviceFrontendBlockRepoUtils = makeRepoUtils({
+const serviceFrontendBlockBoundDORepoConfig = makeBoundDORepoConfig({
   abbreviation: systemWorkerAbbreviations.serviceFrontendBlockRepo,
   namePattern: RoutePattern.parse(
-    '/:generationId/:serviceName/:actorName/:actorId/:frontendName',
+    '/:generationId/:serviceName/:userId/:frontendName',
   ),
   managedRuntime,
   getDbConfig: Effect.fn('ServiceFrontendBlockRepo.getDbConfig')(function* () {
@@ -155,20 +133,18 @@ const serviceFrontendBlockRepoUtils = makeRepoUtils({
   }),
 });
 
-export class ServiceFrontendBlockRepo
-  extends makeRepo({
-    baseClass: Server,
-    repoUtils: serviceFrontendBlockRepoUtils,
-  })
-  implements IServiceFrontendBlockRepoRpcTarget
-{
+export class ServiceFrontendBlockRepo extends makeBoundDORepo({
+  baseClass: Server,
+  boundDORepoConfig: serviceFrontendBlockBoundDORepoConfig,
+}) {
   static options = { hibernate: true };
 
   declare readonly getConnections: Server['getConnections'];
 
   declare [BrandTypeId]: { readonly TargetApi: 'TargetApi' };
 
-  static override readonly repoUtils = serviceFrontendBlockRepoUtils;
+  static override readonly boundDORepoConfig =
+    serviceFrontendBlockBoundDORepoConfig;
 
   async recordPredecessor(props: {
     systemId: string;
@@ -188,26 +164,98 @@ export class ServiceFrontendBlockRepo
   }
 
   async storeServiceFrontendBlocks(props: {
-    blocks: readonly IServiceFrontendLineageBlock[];
+    blocks: readonly IServiceFrontendBlock[];
   }): Promise<Schema.EitherEncoded<void, IAnyErrorJson>> {
     return managedRuntime.runPromise(
       storeServiceFrontendBlocks({
         blocks: props.blocks,
         db: this.db,
         key: this.key,
-        broadcast: message => {
+        broadcast: async block => {
+          const deliveries: Promise<void>[] = [];
           for (const socket of this.getConnections<{
             phase: 'awaiting-resume' | 'replaying' | 'live';
+            serviceName: string;
+            userId: string;
+            frontendName: string;
+            serviceFrontendLock: Schema.Schema.Type<
+              typeof ServiceFrontendLockSchema
+            >;
           }>()) {
-            if (socket.state?.phase !== 'live') {
+            const socketState = socket.state;
+            if (socketState?.phase === 'replaying') {
+              socket.close(1012, 'service-frontend-delivery-replay-raced');
               continue;
             }
-            try {
-              socket.send(message);
-            } catch (error) {
-              void error;
+            if (socketState?.phase !== 'live') {
+              continue;
             }
+            deliveries.push(
+              managedRuntime
+                .runPromise(
+                  Effect.gen(this, function* () {
+                    const archivedBlocks = yield* getArchivedBlocks({
+                      afterFrontendIndex: block.frontendIndex - 1,
+                      throughFrontendIndex: block.frontendIndex,
+                      serviceFrontendLock: socketState.serviceFrontendLock,
+                      db: this.db,
+                      key: this.key,
+                    });
+                    const archivedBlock = archivedBlocks[0];
+                    if (
+                      archivedBlocks.length !== 1 ||
+                      archivedBlock === undefined ||
+                      archivedBlock.frontendIndex !== block.frontendIndex
+                    ) {
+                      return yield* new ZerospinError({
+                        code: 'service-frontend-delivery-archive-read-invalid',
+                        message:
+                          'Live service frontend delivery did not resolve one persisted shaped block',
+                      });
+                    }
+                    const encodedBlock = yield* Schema.encode(
+                      ServiceFrontendBlockSchema,
+                    )(archivedBlock).pipe(
+                      mapParseError({
+                        code: 'service-frontend-delivery-block-encode-failed',
+                        prefix:
+                          'Failed to encode a persisted connection-specific service frontend block',
+                      }),
+                    );
+                    yield* Effect.try({
+                      try: () =>
+                        socket.send(
+                          JSON.stringify({
+                            type: 'serviceFrontendBlock',
+                            sync: encodedBlock,
+                          }),
+                        ),
+                      catch: ZerospinError.catch({
+                        code: 'service-frontend-delivery-block-send-failed',
+                        message:
+                          'Failed to send a persisted connection-specific service frontend block',
+                      }),
+                    });
+                  }).pipe(
+                    Effect.catchAll(() =>
+                      Effect.sync(() =>
+                        socket.close(
+                          1011,
+                          'service-frontend-delivery-archive-read-failed',
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .catch(() => {
+                  socket.close(
+                    1011,
+                    'service-frontend-delivery-archive-read-failed',
+                  );
+                }),
+            );
           }
+          await Promise.all(deliveries);
         },
       }).pipe(encodeRpc),
     );
@@ -239,8 +287,9 @@ export class ServiceFrontendBlockRepo
   async getArchivedBlocks(props: {
     afterFrontendIndex: number;
     throughFrontendIndex: number;
+    serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
   }): Promise<
-    Schema.EitherEncoded<readonly IServiceFrontendLineageBlock[], IAnyErrorJson>
+    Schema.EitherEncoded<readonly IServiceFrontendBlock[], IAnyErrorJson>
   > {
     return managedRuntime.runPromise(
       getArchivedBlocks({
@@ -251,30 +300,13 @@ export class ServiceFrontendBlockRepo
     );
   }
 
-  async generationSuperseded(props: {
-    successorGenerationId: string;
-  }): Promise<Schema.EitherEncoded<void, IAnyErrorJson>> {
-    return managedRuntime.runPromise(
-      generationSuperseded({
-        successorGenerationId: props.successorGenerationId,
-        key: this.key,
-        close: (code, reason) => {
-          for (const socket of this.getConnections()) {
-            socket.close(code, reason);
-          }
-        },
-      }).pipe(encodeRpc),
-    );
-  }
-
   async getPredecessor(): Promise<
     Schema.EitherEncoded<
       Readonly<{
         systemId: ISystemId;
         generationId: string;
         serviceName: string;
-        actorName: string;
-        actorId: IActorId;
+        userId: string;
         frontendName: string;
         terminalFrontendIndex: number;
         predecessor: Readonly<{
@@ -291,10 +323,44 @@ export class ServiceFrontendBlockRepo
     );
   }
 
+  async drainGeneration(): Promise<Schema.EitherEncoded<void, IAnyErrorJson>> {
+    return managedRuntime.runPromise(
+      drainGeneration({
+        close: (code, reason) => {
+          for (const socket of this.getConnections()) {
+            socket.close(code, reason);
+          }
+        },
+      }).pipe(encodeRpc),
+    );
+  }
+
+  async onConnect(
+    connection: Connection<{
+      phase: 'awaiting-resume' | 'replaying' | 'live';
+      serviceName: string;
+      userId: string;
+      frontendName: string;
+      serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
+    }>,
+    context: ConnectionContext,
+  ): Promise<void> {
+    await managedRuntime.runPromise(
+      onConnect({
+        connection,
+        request: context.request,
+        key: this.key,
+      }),
+    );
+  }
+
   async onMessage(
     connection: Connection<{
       phase: 'awaiting-resume' | 'replaying' | 'live';
-      frontendVersion: string;
+      serviceName: string;
+      userId: string;
+      frontendName: string;
+      serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
     }>,
     message: WSMessage,
   ): Promise<void> {
@@ -305,25 +371,21 @@ export class ServiceFrontendBlockRepo
         db: this.db,
         key: this.key,
         parseRepoName: repoName =>
-          ServiceFrontendBlockRepo.repoUtils.nameUtils.parseName(repoName),
+          ServiceFrontendBlockRepo.boundDORepoConfig.nameUtils.parseName(
+            repoName,
+          ),
         getPredecessorRepo: repoName =>
           this.env.SERVICE_FRONTEND_BLOCK_REPO.getByName(repoName),
-      }),
-    );
-  }
-
-  async onConnect(
-    connection: Connection<{
-      phase: 'awaiting-resume' | 'replaying' | 'live';
-      frontendVersion: string;
-    }>,
-    context: ConnectionContext,
-  ): Promise<void> {
-    await managedRuntime.runPromise(
-      onConnect({
-        connection,
-        request: context.request,
-      }),
+      }).pipe(
+        Effect.catchAll(() =>
+          Effect.sync(() =>
+            connection.close(
+              1011,
+              'service-frontend-delivery-adaptation-failed',
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

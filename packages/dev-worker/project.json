@@ -1,0 +1,17 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@zerospin/dev-worker",
+  "targets": {
+    "lib": {
+      "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "test:workerd": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:workerd"
+      },
+      "dependsOn": ["lib", "^lib"]
+    }
+  }
+}

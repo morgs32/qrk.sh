@@ -15,7 +15,6 @@ import { applyMutationInverseTx } from './applyMutationInverseTx.ts';
 import { applyMutationTx } from './applyMutationTx.ts';
 
 const testUserId = 'usr_pushedinv001' as const;
-const testActorId = 'actr_pushedinv001' as const;
 const testListId = 'lst_pushedinv001' as const;
 const testItemId = 'tsk_pushedinv001' as const;
 const now = new Date('2020-01-01T00:00:00.000Z');
@@ -40,7 +39,7 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
       const mutation = yield* User.create('1.0.0', {
         resourceId: testUserId,
-        attributes: { actorId: testActorId, name: 'Alice' },
+        attributes: { name: 'Alice' },
       });
 
       const applied = yield* makeTx({
@@ -90,14 +89,13 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
           createdAt: now,
           updatedAt: now,
           version: User.version,
-          actorId: testActorId,
           name: 'Alice',
         })
         .run();
 
       const mutation = yield* User.create('1.0.0', {
         resourceId: testUserId,
-        attributes: { actorId: testActorId, name: 'Bob' },
+        attributes: { name: 'Bob' },
       });
 
       const exit = yield* makeTx({
@@ -163,7 +161,6 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
           createdAt: now,
           updatedAt: now,
           version: User.version,
-          actorId: testActorId,
           name: 'Alice',
         })
         .run();
@@ -205,7 +202,7 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
       expect(row?.name).toBe('Alice');
       expect(row?.updatedAt).toEqual(now);
       expect(applied.inverseOperation).toEqual({
-        attributes: { actorId: testActorId, name: 'Alice' },
+        attributes: { name: 'Alice' },
       });
       expect(applied.lastAppliedAt).toEqual(now);
     }).pipe(Effect.provide(AsyncLive)),
@@ -223,7 +220,6 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
           createdAt: now,
           updatedAt: now,
           version: User.version,
-          actorId: testActorId,
           name: 'Alice',
         })
         .run();
@@ -319,7 +315,6 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
           createdAt: now,
           updatedAt: now,
           version: User.version,
-          actorId: testActorId,
           name: 'Alice',
         })
         .run();
@@ -643,7 +638,7 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
       const referencedUser = yield* User.create('1.0.0', {
         resourceId: testUserId,
-        attributes: { actorId: testActorId, name: 'Referenced' },
+        attributes: { name: 'Referenced' },
       });
       const appliedReferencedUser = yield* makeTx({
         db,

@@ -1,13 +1,6 @@
-import type {
-  IEncodedCommand,
-  IFailedStagedCommand,
-  IPushedCommand,
-} from '@zerospin/core/contracts/types';
-import type { IServiceFrontendController } from '@zerospin/core/serviceFrontendController/types';
-import type {
-  IServiceFrontendLineageTransitionRequired,
-  IServiceSession,
-} from '@zerospin/core/serviceSession/types';
+import type { IServiceFrontendController } from '@zerospin/core/frontendController/types';
+import type { IAggregateId } from '@zerospin/core/models/types';
+import type { IServiceSession } from '@zerospin/core/serviceSession/types';
 import type { ISession, ISessionId } from '@zerospin/core/session/types';
 import type { IAnyErrorJson } from '@zerospin/error';
 import type { ITelemetryBatch } from '@zerospin/logger';
@@ -58,15 +51,8 @@ export interface IProfilerProfile {
   readonly props: Readonly<Record<string, unknown>>;
 }
 
-export interface IDevtoolsAccountSessionEntry {
+export interface IDevtoolsAggregateSessionEntry {
   readonly session: ISession;
-  readonly pushStagedCommands: () => Promise<
-    Readonly<{
-      pendingCommands: readonly IEncodedCommand<IPushedCommand>[];
-      pushedCommands: readonly IEncodedCommand<IPushedCommand>[];
-      failedCommands: readonly IEncodedCommand<IFailedStagedCommand>[];
-    }>
-  >;
 }
 
 export interface IDevtoolsWorkerState {
@@ -79,7 +65,6 @@ export interface IDevtoolsWorkerState {
     | 'replaying'
     | 'online'
     | 'repairing'
-    | 'update-required'
     | 'failed'
     | 'released';
   readonly bootstrapSource: 'network' | 'replica' | null;
@@ -97,11 +82,10 @@ export interface IDevtoolsWorkerState {
 export interface IDevtoolsServiceSessionEntry {
   readonly sessionId: ISessionId;
   readonly serviceName: string;
-  readonly actorName: string;
   readonly frontendName: string;
   readonly modelNames: readonly string[];
   readonly subscribe: (listener: () => void) => () => void;
-  readonly getActorId: () => string | null;
+  readonly getUserId: () => string | null;
   readonly getIsInitialized: () => boolean;
   readonly getWorkerState: () => IDevtoolsWorkerState;
   readonly getTelemetry: () => ITelemetryBatch;
@@ -113,57 +97,53 @@ export interface IDevtoolsServiceSessionEntry {
   readonly clearTelemetry: () => void;
 }
 
-export interface IDevtoolsAccountFrontendReplicaDiagnostic {
-  readonly accountId: string;
-  readonly accountName: string;
-  readonly actorId: string;
-  readonly actorName: string;
+export interface IDevtoolsAggregateFrontendReplicaDiagnostic {
+  readonly aggregateId: IAggregateId;
+  readonly aggregateName: string;
+  readonly userId: string;
   readonly frontendName: string;
-  readonly frontendVersion: string;
+  readonly aggregateFrontendLockKey: string;
+  readonly systemVersion: string;
   readonly databaseName: string;
-  readonly status: 'commissioning' | 'ready' | 'failed';
-  readonly role: 'active' | 'commissioned';
+  readonly status: 'activating' | 'ready' | 'repairing' | 'failed';
   readonly frontendIndex: number;
   readonly replicaIndex: number;
-  readonly activeProviderCount: number;
+  readonly activeRegistrationCount: number;
   readonly socketState: 'disconnected' | 'connecting' | 'replaying' | 'online';
   readonly reconnectAttempt: number;
-  readonly journalHealth: 'healthy' | 'unverified' | 'corrupt';
-  readonly hasPendingTransition: boolean;
+  readonly pushInFlight: boolean;
   readonly lastFailure: IAnyErrorJson | null;
 }
 
 export interface IDevtoolsServiceFrontendReplicaDiagnostic {
   readonly serviceName: string;
-  readonly actorId: string;
-  readonly actorName: string;
+  readonly userId: string;
   readonly frontendName: string;
-  readonly frontendVersion: string;
+  readonly serviceFrontendLockKey: string;
+  readonly systemVersion: string;
   readonly databaseName: string;
-  readonly status: 'commissioning' | 'ready' | 'failed';
-  readonly role: 'active' | 'commissioned';
+  readonly status: 'activating' | 'ready' | 'failed';
   readonly frontendIndex: number;
   readonly replicaIndex: number;
-  readonly activeProviderCount: number;
+  readonly activeRegistrationCount: number;
   readonly socketState: 'disconnected' | 'connecting' | 'replaying' | 'online';
   readonly reconnectAttempt: number;
-  readonly pendingTransition: IServiceFrontendLineageTransitionRequired | null;
   readonly lastFailure: IAnyErrorJson | null;
 }
 
 /**
  * Safe Config-owned diagnostic facade. It deliberately omits every mutation,
  * command, credential, ticket, database-handle, and raw-journal capability
- * exposed by the owning SharedWorker PartitionApi.
+ * exposed by the owning SharedWorker UserPartitionRepo.
  */
 export interface IDevtoolsSharedWorkerRootDiagnostics {
   readonly id: string;
   readonly systemId: string;
-  readonly generationId: string;
-  readonly partitionKey: string;
-  readonly listAccountFrontendReplicas: () => Promise<
+  readonly userId: string;
+  readonly mode: 'online' | 'existing-only';
+  readonly listAggregateFrontendReplicas: () => Promise<
     Schema.EitherEncoded<
-      readonly IDevtoolsAccountFrontendReplicaDiagnostic[],
+      readonly IDevtoolsAggregateFrontendReplicaDiagnostic[],
       IAnyErrorJson
     >
   >;
@@ -173,12 +153,41 @@ export interface IDevtoolsSharedWorkerRootDiagnostics {
       IAnyErrorJson
     >
   >;
+  readonly getPushPaused: (props: {
+    aggregateId: IAggregateId;
+    aggregateName: string;
+    frontendName: string;
+    aggregateFrontendLockKey: string;
+  }) => Promise<Schema.EitherEncoded<boolean, IAnyErrorJson>>;
+  readonly setPushPaused: (props: {
+    aggregateId: IAggregateId;
+    aggregateName: string;
+    frontendName: string;
+    aggregateFrontendLockKey: string;
+    pushPaused: boolean;
+  }) => Promise<Schema.EitherEncoded<void, IAnyErrorJson>>;
+  readonly pushNow: (props: {
+    aggregateId: IAggregateId;
+    aggregateName: string;
+    frontendName: string;
+    aggregateFrontendLockKey: string;
+  }) => Promise<
+    Schema.EitherEncoded<
+      | Readonly<{ status: 'empty' }>
+      | Readonly<{ status: 'pushed' }>
+      | Readonly<{
+          status: 'retry-exhausted';
+          failure: IAnyErrorJson;
+        }>,
+      IAnyErrorJson
+    >
+  >;
 }
 
 export type IZerospinDevtoolsStoreState = {
-  readonly accountSessionsById: ReadonlyMap<
+  readonly aggregateSessionsById: ReadonlyMap<
     ISessionId,
-    IDevtoolsAccountSessionEntry
+    IDevtoolsAggregateSessionEntry
   >;
   readonly serviceSessionsById: ReadonlyMap<
     ISessionId,
@@ -189,8 +198,8 @@ export type IZerospinDevtoolsStoreState = {
     string,
     IDevtoolsSharedWorkerRootDiagnostics
   >;
-  addAccountSession: (entry: IDevtoolsAccountSessionEntry) => void;
-  removeAccountSession: (sessionId: ISessionId) => void;
+  addAggregateSession: (entry: IDevtoolsAggregateSessionEntry) => void;
+  removeAggregateSession: (sessionId: ISessionId) => void;
   addServiceSession: <FRONTEND extends IServiceFrontendController>(entry: {
     readonly session: IServiceSession<FRONTEND>;
   }) => void;

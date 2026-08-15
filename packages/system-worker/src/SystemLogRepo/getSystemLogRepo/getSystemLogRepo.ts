@@ -9,7 +9,9 @@ export const getSystemLogRepo = Effect.fn('getSystemLogRepo')(
       generationId: string;
     };
   }) {
-    const name = yield* SystemLogRepo.repoUtils.nameUtils.makeName(props.key);
+    const name = yield* SystemLogRepo.boundDORepoConfig.nameUtils.makeName(
+      props.key,
+    );
     const systemLogRepo: DurableObjectStub<
       Rpc.DurableObjectBranded & SystemLogRepo
     > = env.SYSTEM_LOG_REPO.getByName(name);

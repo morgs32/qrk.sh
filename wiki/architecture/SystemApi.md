@@ -1,188 +1,155 @@
 ---
 title: SystemApi
 type: module
-updated: 2026-07-28
-sources:
-  - path: packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts
-    sha: 1a7bbb43c173bdd8967ab6d09f85f1eb2e907002
-    lines: 129-410
-  - path: packages/dispatch-worker/src/SystemApi/SystemApi.ts
-    sha: c54223d45368499b2b347073e43e2560c0361ea8
-    lines: 57-1316
-  - path: packages/dispatch-worker/src/SystemWorkerResolver/SystemWorkerResolver.ts
-    sha: 5701b2f09937c342c53a60d3e400a16cf512eb23
-    lines: 1-18
-  - path: packages/dispatch-worker/src/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.ts
-    sha: 5dd6bd7f35ef32bfe2d111bbf216c6933217d2b0
-    lines: 7-30
-  - path: packages/dispatch-worker/src/makeDispatchRuntime.ts
-    sha: 6edc44830ff21a47443c533b6c50d637759eed76
-    lines: 12-35
-  - path: packages/system-worker/src/SystemWorker.ts
-    sha: 86ec0244f0688ea6dd2bc4d97bda74a8ce055a16
-    lines: 391-433
-  - path: packages/system-worker/src/SystemLogRepo/appendTelemetryBatch/appendTelemetryBatch.ts
-    sha: a67304fe51e10a0880fcf2069ad10db27976610c
-    lines: 21-154
-  - path: examples/shopping/src/Worker.ts
-    sha: 3f3493229f0e869d7144ad62cbc0eb2b02eda200
-    lines: 9-84
+updated: 2026-08-13
 ---
 
 # SystemApi
 
-`SystemApi` is the secret-key capability for imperative system operations and
-generation-scoped repository inspection. `ZerospinApis.getSystemApi` validates
-the request, resolves the supplied key through the configured identity
-resolver, rejects non-secret identities, derives `systemWorkerName`, and
-constructs `SystemApi` with the root's pinned `deployId` and `generationId`.
-Failures are returned as `SystemApiFailure`
-(../../packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts:161-203).
-
-Service-owned browser admission is not a `SystemApi` operation. It enters
-through `ZerospinApis.getServiceFrontendApi` and returns the separate
-actor-bound `ServiceFrontendApi`; the secret-key capability remains an
-operator/tooling surface
-(../../packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts:235-410).
-
-## Resolver-owned runtime
-
-The gateway does not own an environment-specific dispatch implementation.
-`makeDispatchRuntime` combines the public identity and SystemWorker resolver
-layers with the shared async/id services. `ISystemWorkerResolver.get` is the
-portable boundary: every leaf resolves a fresh disposable stub by
-`systemWorkerName`, so an RPC target does not retain a stub across Durable
-Object redeploys
-(../../packages/dispatch-worker/src/makeDispatchRuntime.ts:12-35,
-../../packages/dispatch-worker/src/SystemWorkerResolver/SystemWorkerResolver.ts:4-17).
-
-Standalone Workers use `WorkerExportsSystemWorkerResolver`; it ignores the
-logical dispatch name and returns the co-located `exports.SystemWorker` loopback
-binding. The shopping example supplies that resolver and deployment-bound
-identity to one concrete `ZerospinApis` root
-(../../packages/dispatch-worker/src/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.ts:7-30,
-../../examples/shopping/src/Worker.ts:26-41).
+`SystemApi` is the secret-key administrative capability acquired from the
+stable Worker-hosted `GatewayApi`. Its private state is exactly
+`{ generationId, systemId, systemWorkerName }`: the acquisition-time active
+generation routes reads, while `systemId` routes current writes through the
+singleton `SystemRepo`
+([`getSystemApi.ts:12-57`](../../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L12-L57),
+[`SystemApi.ts:61-85`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L61-L85)).
 
 ```mermaid
 sequenceDiagram
-  participant Client
-  participant Root as ZerospinApis
-  participant Identity as ApiKeyIdentityResolver
+  participant Caller as admin or tooling caller
+  participant Gateway as GatewayApi
+  participant SystemRepo as SystemRepo(systemId)
+  participant Resolver as ApiKeyIdentityResolver
   participant Api as SystemApi
-  participant Resolver as SystemWorkerResolver
   participant Worker as SystemWorker
-
-  Client->>Root: getSystemApi(secret key)
-  Root->>Identity: resolve(secret key)
-  Identity-->>Root: system identity
-  Root-->>Client: SystemApi or SystemApiFailure
-  Client->>Api: linked leaf request
-  Api->>Resolver: get(systemWorkerName)
-  Resolver-->>Api: fresh disposable stub
-  Api->>Worker: operation(pinned deploy/generation)
-  Worker-->>Api: encoded result
-  Api-->>Client: linked result envelope
+  autonumber 1
+  Caller->>Gateway: getSystemApi(zerospinSecretKey)
+  autonumber 2
+  Gateway->>SystemRepo: getActiveGenerationId()
+  autonumber 3
+  Gateway->>Resolver: resolve(secret key)
+  autonumber 4
+  Resolver-->>Gateway: secret-key system and Worker claims
+  autonumber 5
+  Gateway-->>Caller: SystemApi
+  autonumber 6
+  Caller->>Api: invoke one public leaf
+  alt current mutation
+    autonumber 7
+    Api->>SystemRepo: atomically journal and drain aggregate or service finalization
+    autonumber 8
+    SystemRepo-->>Api: persisted complete terminal receipt
+  else generation-specific read or query
+    autonumber 9
+    Api->>Worker: read or query with acquired generation
+    autonumber 10
+    Worker-->>Api: generation-specific result
+  end
+  autonumber 11
+  Api-->>Caller: linked encoded envelope
 ```
 
-## Common leaf boundary
+## Annotated workflow steps
 
-All 29 leaves use the same handler boundary. It validates the exact argument
-tuple, returns schema failures as an encoded result with `link: null`, resolves
-one fresh SystemWorker, annotates the server span with system/deploy/generation
-identity, and runs the named Effect. After the domain operation settles, it
-flushes and persists the telemetry batch with the same pinned pair; a valid
-caller trace receives a `causedBy` link only when persistence succeeds
-(../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:72-155).
-
-The class keeps only the immutable auth result and dispatch runtime. Every
-public Promise method is boundary glue that invokes the named Effect through
-the common handler
-(../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:679-1316).
+1. The caller sends exactly `{ zerospinSecretKey }` to
+   `GatewayApi.getSystemApi`
+   ([`GatewayApi.ts:86-97`](../../packages/system-worker/src/GatewayApi/GatewayApi.ts#L86-L97)).
+2. The gateway acquires the current active `generationId`; this is a private
+   read route, not part of the key claims
+   ([`getSystemApi.ts:29-39`](../../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L29-L39)).
+3. The deployment identity resolver receives the supplied key
+   ([`getSystemApi.ts:40-42`](../../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L40-L42)).
+4. Acquisition requires `keyType: 'secret'` and retains the resolved
+   `systemId` and `systemWorkerName`
+   ([`getSystemApi.ts:43-54`](../../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L43-L54)).
+5. Failure returns `SystemApiFailure`, whose same-shaped public methods replay
+   the captured acquisition error
+   ([`getSystemApi.ts:55-57`](../../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L55-L57),
+   [`SystemApiFailure.ts:36-52`](../../packages/system-worker/src/SystemApi/SystemApiFailure/SystemApiFailure.ts#L36-L52)).
+6. Every public method delegates immediately to its same-named Effect and
+   returns one linked encoded envelope
+   ([`SystemApi.ts:87-202`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L87-L202)).
+7. `finalizeAggregateCommands` and `finalizeServiceCommands` set
+   `generationReadRoute: false`, resolve `SystemRepo(systemId)`, and send no
+   acquired generation to the mutation owner
+   ([`finalizeAggregateCommands.ts:19-49`](../../packages/system-worker/src/SystemApi/finalizeAggregateCommands/finalizeAggregateCommands.ts#L19-L49),
+   [`finalizeServiceCommands.ts:18-46`](../../packages/system-worker/src/SystemApi/finalizeServiceCommands/finalizeServiceCommands.ts#L18-L46)).
+8. `SystemRepo` atomically selects the writable generation, advances
+   `writeIndex`, and inserts the complete finalization request before child
+   delivery. Its exact-target FIFO calls
+   `AggregateRepo.finalizeAggregateCommands` or
+   `ServiceRepo.finalizeServiceCommands`, stores the terminal `Either`, and
+   returns that persisted complete receipt
+   ([`finalizeAggregateCommands.ts:87-221`](../../packages/system-worker/src/SystemRepo/finalizeAggregateCommands/finalizeAggregateCommands.ts#L87-L221),
+   [`drainSystemWrites.ts:418-548`](../../packages/system-worker/src/SystemRepo/drainSystemWrites/drainSystemWrites.ts#L418-L548),
+   [`finalizeServiceCommands.ts:212-265`](../../packages/system-worker/src/SystemRepo/finalizeServiceCommands/finalizeServiceCommands.ts#L212-L265)).
+9. Read/query leaves resolve `SystemWorker(systemWorkerName)` and carry the
+   acquisition-time `generationId`
+   ([`getAggregateFrontendState.ts:20-78`](../../packages/system-worker/src/SystemApi/getAggregateFrontendState/getAggregateFrontendState.ts#L20-L78),
+   [`executeSelectQuery.ts:19-51`](../../packages/system-worker/src/SystemApi/executeSelectQuery/executeSelectQuery.ts#L19-L51)).
+10. `SystemWorker` resolves generation-keyed Repos and returns encoded domain
+    success or failure
+    ([`SystemWorker.ts:119-145`](../../packages/system-worker/src/SystemWorker.ts#L119-L145),
+    [`SystemWorker.ts:178-216`](../../packages/system-worker/src/SystemWorker.ts#L178-L216)).
+11. `makeApiHandler` settles every operation. Generation-read leaves append
+    telemetry to the acquisition-time `SystemWorker` and may return a causal
+    link; current-write leaves return the same envelope with `link: null`, while
+    `SystemRepo` retains the accepted generation, `writeIndex`, request, and
+    terminal business result in `systemWrites`
+    ([`makeApiHandler.ts:42-120`](../../packages/system-worker/src/SystemApi/makeApiHandler/makeApiHandler.ts#L42-L120),
+    [`SystemRepo.ts:314-349`](../../packages/system-worker/src/SystemRepo/SystemRepo.ts#L314-L349)).
 
 ## Operational leaves
 
-1. `hello` checks the bound generation through `SystemWorker.hello`
-   (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:157-168,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:704-716).
-2. `getFrontendState` reads one account/actor/frontend projection while adding
-   the pinned deployment identity and system-worker name
-   (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:170-194,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:721-753).
-3. `executeServiceQuery` delegates a named service query and unknown parameters
-   (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:196-216,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:755-784).
-4. `finalizeAccountCommands` forwards full account commands through a traced
-   SystemWorker call with transient Durable Object retries. It rejects a pushed
-   block result on this direct path and validates the account-specific terminal
-   command shapes before returning the block result
-   (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:218-282,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:786-844).
-5. `executeSelectQuery` delegates an encoded select-only query with transient
-   retries (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:284-303,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:846-878).
-6. `finalizeServiceCommands` forwards full service commands and returns the
-   executed and failed terminal command arrays
-   (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:305-327,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:880-914).
-7. `makeSystemSpec` returns the deployed system specification snapshot
-   (../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:662-673,
-   ../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:1302-1316).
+1. `hello`, `getAggregateFrontendState`, `executeServiceQuery`,
+   `executeSelectQuery`, and `makeSystemSpec` are generation-specific
+   read/query operations
+   ([`SystemApi.ts:87-130`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L87-L130),
+   [`SystemApi.ts:164-179`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L164-L179),
+   [`SystemApi.ts:394-401`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L394-L401)).
+2. `finalizeAggregateCommands` accepts `{ aggregateId, aggregateName,
+commands }` and returns executed/failed complete commands, applied mutations,
+   `lastAggregateCursor`, and `aggregateIndex`
+   ([`SystemApi.ts:132-161`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L132-L161),
+   [`blockSchemas.ts:25-33`](../../packages/system-worker/src/blockSchemas.ts#L25-L33)).
+3. `finalizeServiceCommands` accepts `{ serviceName, commands }` and returns
+   complete executed and failed command arrays
+   ([`SystemApi.ts:180-201`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L180-L201),
+   [`blockSchemas.ts:35-38`](../../packages/system-worker/src/blockSchemas.ts#L35-L38)).
+4. `getAggregateFrontendState` is aggregate-qualified because `SystemApi` owns
+   many Repo families. Receiver-local aggregate/service child APIs instead use
+   the leaf name `getState()`
+   ([`SystemApi.ts:95-114`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L95-L114),
+   [`AggregateFrontendApi.ts:125-131`](../../packages/system-worker/src/AggregateFrontendApi/AggregateFrontendApi.ts#L125-L131),
+   [`ServiceFrontendApi.ts:77-83`](../../packages/system-worker/src/ServiceFrontendApi/ServiceFrontendApi.ts#L77-L83)).
 
-## Repository explorer leaves
+## Repository explorer
 
-The remaining 22 leaves form eleven registration/table-read pairs. Each
-`get*Repos` call returns the registered repos for one category, and each matching
-`get*RepoTableRows` call accepts `{ repoName, tableName }` and returns that
-table's data. The categories are SystemRepo, AccountRepo, AuthorizationRepo,
-ActorRepo, FrontendRepo, ServiceRepo, AccountBlockRepo, ActorBlockRepo,
-FrontendBlockRepo, ServiceBlockRepo, and SystemLogRepo
-(../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:329-659,
-../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:916-1299).
+`SystemApi` exposes paired registration/table-row methods for System,
+Aggregate, AggregateFrontend, Service, AggregateBlock,
+AggregateFrontendBlock, ServiceFrontendBlock, ServiceBlock, and SystemLog Repo
+families. Aggregate-only names remain explicitly aggregate-qualified
+([`SystemApi.ts:204-291`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L204-L291),
+[`SystemApi.ts:293-392`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L293-L392)).
 
-`ServiceFrontendRepo` and `ServiceFrontendBlockRepo` are deliberately absent
-from these explorer pairs. They are actor-specific browser projection/archive
-bindings reached through the service frontend admission path, not a merged
-account/service explorer surface
-(../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:916-1299).
+Table-row methods validate the requested Repo name against the matching
+generation-qualified registration before reading its declared table; they do
+not turn a caller-supplied Repo name into ambient authority
+([`getAggregateFrontendRepoTableRows.ts:18-48`](../../packages/system-worker/src/SystemApi/getAggregateFrontendRepoTableRows/getAggregateFrontendRepoTableRows.ts#L18-L48),
+[`getAggregateFrontendBlockRepoTableRows.ts:18-48`](../../packages/system-worker/src/SystemApi/getAggregateFrontendBlockRepoTableRows/getAggregateFrontendBlockRepoTableRows.ts#L18-L48)).
 
-```mermaid
-flowchart LR
-  SystemApi --> SystemWorker
-  SystemWorker --> SystemRepo
-  SystemWorker --> AccountRepo
-  SystemWorker --> AuthorizationRepo
-  SystemWorker --> ActorRepo
-  SystemWorker --> FrontendRepo
-  SystemWorker --> ServiceRepo
-  SystemWorker --> AccountBlockRepo
-  SystemWorker --> ActorBlockRepo
-  SystemWorker --> FrontendBlockRepo
-  SystemWorker --> ServiceBlockRepo
-  SystemWorker --> SystemLogRepo
-```
+## Trigger
 
-Every delegated leaf includes the capability's `deployId` and `generationId`;
-the client cannot select another generation through repository-explorer input
-(../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:329-657).
-
-## Telemetry storage
-
-`SystemApi` persists each completed server batch through
-`SystemWorker.appendTelemetryBatch` using the same deploy/generation pair used
-by the domain leaf. The Worker delegates to the generation-scoped SystemLogRepo,
-whose append program validates the batch, stores spans/logs/links, and preserves
-the supplied identity on the rows
-(../../packages/dispatch-worker/src/SystemApi/SystemApi.ts:124-131,
-../../packages/system-worker/src/SystemWorker.ts:391-433,
-../../packages/system-worker/src/SystemLogRepo/appendTelemetryBatch/appendTelemetryBatch.ts:21-154).
+1. Admin and tooling clients open the Worker root and call
+   `GatewayApi.getSystemApi` with a secret key
+   ([`GatewayApi.ts:86-97`](../../packages/system-worker/src/GatewayApi/GatewayApi.ts#L86-L97)).
+2. The resulting capability is pinned to one acquired generation for reads but
+   uses SystemRepo current-write selection for direct finalization
+   ([`SystemApi.ts:65-85`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L65-L85),
+   [`finalizeAggregateCommands.ts:37-49`](../../packages/system-worker/src/SystemApi/finalizeAggregateCommands/finalizeAggregateCommands.ts#L37-L49)).
 
 ## Callers
 
-1. A public Worker may expose `ZerospinApis` directly through Cap'n Web, as the
-   standalone shopping example does for requests outside its fixed frontend
-   WebSocket route (../../examples/shopping/src/Worker.ts:43-84).
-2. Tooling clients request `SystemApi` from the concrete root and consume the
-   linked envelopes; environment-specific key verification and SystemWorker
-   lookup remain resolver responsibilities
-   (../../packages/dispatch-worker/src/ZerospinApis/ZerospinApis.ts:129-199,
-   ../../packages/dispatch-worker/src/SystemWorkerResolver/SystemWorkerResolver.ts:4-17).
+- CLI and administrative tooling
+- [`System Lifecycle`](./SystemLifecycle.md)
+- [`Block and Replication Flow`](./Blockchain.md)

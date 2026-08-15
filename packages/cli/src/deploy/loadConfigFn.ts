@@ -36,9 +36,7 @@ export const loadConfigFn = Effect.fn('loadConfigFn')(
       });
     }
     const zerospinApiUrl =
-      process.env['ZEROSPIN_API_URL'] ??
-      process.env['NEXT_PUBLIC_ZEROSPIN_API_URL'] ??
-      'https://api.zerospin.dev';
+      process.env['ZEROSPIN_API_URL'] ?? 'https://api.zerospin.dev';
 
     const config = yield* loadZerospinConfigFn(cwd);
 

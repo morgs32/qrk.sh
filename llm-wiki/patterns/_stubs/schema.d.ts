@@ -35,9 +35,7 @@ declare function mapParseError(props: {
 }): (effect: unknown) => unknown;
 
 declare const coreAbbreviations: {
-  actorDeltaCursor: string;
-  accountCursor: string;
-  sessionCursor: string;
+  aggregateCursor: string;
 };
 
 declare function makeCursor(props: { abbreviation: string }): unknown;

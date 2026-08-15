@@ -2,16 +2,16 @@ import '@zerospin/server-only';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
-import type { IAccountControllers } from '../accountController/types.ts';
+import type { IAggregates } from '../aggregate/types.ts';
 import { DeploySeedCommandSchema } from '../contracts/CommandSchema.ts';
 import type {
-  IAccountCommand,
+  IAggregateCommand,
   ICommand,
   IDeploySeedCommand,
   IServiceCommand,
 } from '../contracts/types.ts';
 import type { InferCommandPayload } from '../models/types.ts';
-import type { IServiceControllers } from '../service/types.ts';
+import type { IServices } from '../service/types.ts';
 import type { CuidFactory } from '../services/CuidFactory.ts';
 
 import type { ISystem } from './types.ts';
@@ -19,60 +19,60 @@ import type { ISystem } from './types.ts';
 /**
  * Builds the flat command list consumed by clean deploy and clean local dev.
  *
- * 1. Account groups are resolved first, in their declared property order.
+ * 1. Aggregate groups are resolved first, in their declared property order.
  * 2. Service groups are resolved second, in their declared property order.
  * 3. Every resolved command is checked against its group and owning contract.
  * 4. The original command object is appended without rebuilding its payload.
  */
 export const makeSeeds = Effect.fn('makeSeeds')(function* <
-  ACCOUNT_CONTROLLERS extends IAccountControllers,
-  SERVICE_CONTROLLERS extends IServiceControllers,
+  AGGREGATES extends IAggregates,
+  SERVICES extends IServices,
   SYSTEM_NAME extends string,
 >(props: {
-  system: ISystem<ACCOUNT_CONTROLLERS, SERVICE_CONTROLLERS, SYSTEM_NAME>;
-  accounts: {
-    readonly [ACCOUNT_NAME in keyof ACCOUNT_CONTROLLERS]?: readonly Effect.Effect<
+  system: ISystem<AGGREGATES, SERVICES, SYSTEM_NAME>;
+  aggregates: {
+    readonly [AGGREGATE_NAME in keyof AGGREGATES]?: readonly Effect.Effect<
       {
-        [CONTRACT_NAME in keyof ACCOUNT_CONTROLLERS[ACCOUNT_NAME]['contracts'] &
-          string]: IAccountCommand<
+        [CONTRACT_NAME in keyof AGGREGATES[AGGREGATE_NAME]['contracts'] &
+          string]: IAggregateCommand<
           ICommand<
-            ACCOUNT_CONTROLLERS[ACCOUNT_NAME]['contracts'][CONTRACT_NAME]['commandName'],
-            ACCOUNT_CONTROLLERS[ACCOUNT_NAME]['contracts'][CONTRACT_NAME]['version'],
+            AGGREGATES[AGGREGATE_NAME]['contracts'][CONTRACT_NAME]['commandName'],
+            AGGREGATES[AGGREGATE_NAME]['contracts'][CONTRACT_NAME]['version'],
             InferCommandPayload<
-              ACCOUNT_CONTROLLERS[ACCOUNT_NAME]['contracts'][CONTRACT_NAME]['payload']
+              AGGREGATES[AGGREGATE_NAME]['contracts'][CONTRACT_NAME]['payload']
             >
           >
         >;
-      }[keyof ACCOUNT_CONTROLLERS[ACCOUNT_NAME]['contracts'] & string],
+      }[keyof AGGREGATES[AGGREGATE_NAME]['contracts'] & string],
       IAnyError,
       CuidFactory
     >[];
   };
   services: {
-    readonly [SERVICE_NAME in keyof SERVICE_CONTROLLERS]?: readonly Effect.Effect<
+    readonly [SERVICE_NAME in keyof SERVICES]?: readonly Effect.Effect<
       {
-        [CONTRACT_NAME in keyof SERVICE_CONTROLLERS[SERVICE_NAME]['contracts'] &
+        [CONTRACT_NAME in keyof SERVICES[SERVICE_NAME]['contracts'] &
           string]: IServiceCommand<
           ICommand<
-            SERVICE_CONTROLLERS[SERVICE_NAME]['contracts'][CONTRACT_NAME]['commandName'],
-            SERVICE_CONTROLLERS[SERVICE_NAME]['contracts'][CONTRACT_NAME]['version'],
+            SERVICES[SERVICE_NAME]['contracts'][CONTRACT_NAME]['commandName'],
+            SERVICES[SERVICE_NAME]['contracts'][CONTRACT_NAME]['version'],
             InferCommandPayload<
-              SERVICE_CONTROLLERS[SERVICE_NAME]['contracts'][CONTRACT_NAME]['payload']
+              SERVICES[SERVICE_NAME]['contracts'][CONTRACT_NAME]['payload']
             >
           >
         >;
-      }[keyof SERVICE_CONTROLLERS[SERVICE_NAME]['contracts'] & string],
+      }[keyof SERVICES[SERVICE_NAME]['contracts'] & string],
       IAnyError,
       CuidFactory
     >[];
   };
 }): Effect.fn.Return<readonly IDeploySeedCommand[], IAnyError, CuidFactory> {
-  const { accounts, services, system } = props;
+  const { aggregates, services, system } = props;
   const resolvedSeeds: IDeploySeedCommand[] = [];
 
-  // Checkpoint 1: account commands always occupy the first part of the flat list.
-  for (const accountName of Object.keys(accounts)) {
-    const commandEffects = accounts[accountName];
+  // Checkpoint 1: aggregate commands always occupy the first part of the flat list.
+  for (const aggregateName of Object.keys(aggregates)) {
+    const commandEffects = aggregates[aggregateName];
     if (commandEffects === undefined) {
       continue;
     }
@@ -80,15 +80,15 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
     if (commandEffects.length === 0) {
       return yield* new ZerospinError({
         code: 'invalid-seeds',
-        message: `Seed account group "${accountName}" must contain at least one command`,
+        message: `Seed aggregate group "${aggregateName}" must contain at least one command`,
       });
     }
 
-    const accountController = system.accountControllers[accountName];
-    if (accountController === undefined) {
+    const aggregate = system.aggregates[aggregateName];
+    if (aggregate === undefined) {
       return yield* new ZerospinError({
         code: 'invalid-seeds',
-        message: `Seed account group "${accountName}" does not exist in system "${system.name}"`,
+        message: `Seed aggregate group "${aggregateName}" does not exist in system "${system.name}"`,
       });
     }
 
@@ -103,44 +103,37 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
           parseError =>
             new ZerospinError({
               code: 'invalid-seeds',
-              message: `Invalid command in seed account group "${accountName}": ${parseError.message}`,
+              message: `Invalid command in seed aggregate group "${aggregateName}": ${parseError.message}`,
             }),
         ),
       );
 
-      if (command.commandType !== 'account') {
+      if (command.commandType !== 'aggregate') {
         return yield* new ZerospinError({
           code: 'invalid-seeds',
-          message: `Seed account group "${accountName}" received command type "${command.commandType}"`,
+          message: `Seed aggregate group "${aggregateName}" received command type "${command.commandType}"`,
         });
       }
 
-      if (command.accountName !== accountName) {
+      if (command.aggregateName !== aggregateName) {
         return yield* new ZerospinError({
           code: 'invalid-seeds',
-          message: `Seed account group "${accountName}" received accountName "${command.accountName}"`,
+          message: `Seed aggregate group "${aggregateName}" received aggregateName "${command.aggregateName}"`,
         });
       }
 
       if (command.systemName !== system.name) {
         return yield* new ZerospinError({
           code: 'invalid-seeds',
-          message: `Seed account group "${accountName}" received systemName "${command.systemName}" instead of "${system.name}"`,
-        });
-      }
-
-      if (command.systemVersion !== system.version) {
-        return yield* new ZerospinError({
-          code: 'invalid-seeds',
-          message: `Seed account group "${accountName}" received systemVersion "${command.systemVersion}" instead of "${system.version}"`,
+          message: `Seed aggregate group "${aggregateName}" received systemName "${command.systemName}" instead of "${system.name}"`,
         });
       }
 
       let ownsCommandContract = false;
-      for (const contract of Object.values(accountController.contracts)) {
+      for (const contract of Object.values(aggregate.contracts)) {
         if (
           contract.commandName === command.commandName &&
-          contract.version === command.version
+          contract.version === command.contractVersion
         ) {
           ownsCommandContract = true;
           break;
@@ -150,7 +143,7 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
       if (!ownsCommandContract) {
         return yield* new ZerospinError({
           code: 'invalid-seeds',
-          message: `Seed account group "${accountName}" has no contract for command "${command.commandName}" version "${command.version}"`,
+          message: `Seed aggregate group "${aggregateName}" has no contract for command "${command.commandName}" version "${command.contractVersion}"`,
         });
       }
 
@@ -158,7 +151,7 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
     }
   }
 
-  // Checkpoint 3: service commands follow every account command in the flat list.
+  // Checkpoint 3: service commands follow every aggregate command in the flat list.
   for (const serviceName of Object.keys(services)) {
     const commandEffects = services[serviceName];
     if (commandEffects === undefined) {
@@ -172,8 +165,8 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
       });
     }
 
-    const serviceController = system.serviceControllers[serviceName];
-    if (serviceController === undefined) {
+    const service = system.services[serviceName];
+    if (service === undefined) {
       return yield* new ZerospinError({
         code: 'invalid-seeds',
         message: `Seed service group "${serviceName}" does not exist in system "${system.name}"`,
@@ -208,18 +201,11 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
         });
       }
 
-      if (command.systemVersion !== system.version) {
-        return yield* new ZerospinError({
-          code: 'invalid-seeds',
-          message: `Seed service group "${serviceName}" received systemVersion "${command.systemVersion}" instead of "${system.version}"`,
-        });
-      }
-
       let ownsCommandContract = false;
-      for (const contract of Object.values(serviceController.contracts)) {
+      for (const contract of Object.values(service.contracts)) {
         if (
           contract.commandName === command.commandName &&
-          contract.version === command.version
+          contract.version === command.contractVersion
         ) {
           ownsCommandContract = true;
           break;
@@ -229,7 +215,7 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
       if (!ownsCommandContract) {
         return yield* new ZerospinError({
           code: 'invalid-seeds',
-          message: `Seed service group "${serviceName}" has no contract for command "${command.commandName}" version "${command.version}"`,
+          message: `Seed service group "${serviceName}" has no contract for command "${command.commandName}" version "${command.contractVersion}"`,
         });
       }
 

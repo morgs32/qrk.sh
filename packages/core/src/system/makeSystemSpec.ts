@@ -1,28 +1,15 @@
 import { JSONSchema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
+import { makeFrontendControllerSpec } from '../frontendController/makeFrontendControllerSpec.ts';
 import { encodeShape } from '../models/encodeShape.ts';
-import { makeServiceFrontendControllerSpec } from '../serviceFrontendController/makeServiceFrontendControllerSpec.ts';
 
 import type { ISystem, ISystemSpec } from './types.ts';
 
-/**
- * Serializes the complete authored system definition used by deploy
- * compatibility and generation selection.
- *
- * The repetition below is deliberate:
- * 1. Account and service controllers own independent complete definitions.
- * 2. Actor controllers repeat their bound models and frontend controllers.
- * 3. Every current model repeats its complete historical definitions.
- * 4. Mutation adapter functions are omitted, but both adjacent schemas and
- *    their identities remain available to compatibility and replay planning.
- * 5. Contract mutation schemas remain runtime-only and are intentionally
- *    omitted from the serialized specification.
- */
 export function makeSystemSpec<
   SYSTEM extends Pick<
     ISystem,
-    'name' | 'version' | 'accountControllers' | 'serviceControllers'
+    'name' | 'version' | 'authentication' | 'aggregates' | 'services'
   >,
 >(props: { system: SYSTEM }): ISystemSpec {
   const { system } = props;
@@ -30,138 +17,98 @@ export function makeSystemSpec<
   return {
     systemName: system.name,
     version: system.version,
-    accountControllers: mapValues(
-      system.accountControllers,
-      accountController => ({
-        name: accountController.name,
-        version: accountController.version,
-        models: mapValues(accountController.models, model => ({
-          modelName: model.modelName,
-          abbreviation: model.abbreviation,
-          version: model.version,
-          properties: encodeShape(model.propertiesShape),
-          indexes: model.indexes,
-          historicalDefinitions: model.historicalDefinitions
-            .toSorted((left, right) =>
-              left.version.localeCompare(right.version),
-            )
-            .map(definition => ({
-              modelName: definition.modelName,
-              abbreviation: definition.abbreviation,
-              version: definition.version,
-              properties: encodeShape({
-                ...model.metadata,
-                ...definition.attributes,
-              }),
-              indexes: definition.indexes,
-            })),
-        })),
-        contracts: mapValues(accountController.contracts, contract => ({
-          commandName: contract.commandName,
-          version: contract.version,
-          payloadJsonSchema: contract.spec.payloadJsonSchema,
-          historicalDefinitions: contract.spec.historicalDefinitions,
-        })),
-        mutationAdapters: mapValues(
-          accountController.mutationAdapters ?? {},
-          (operationAdapters, sourceModelName) =>
-            mapValues(operationAdapters, (edges, operationName) => {
-              if (
-                operationName !== 'create' &&
-                operationName !== 'delete' &&
-                operationName !== 'move' &&
-                operationName !== 'replicateResource' &&
-                operationName !== 'update'
-              ) {
+    authentication: {
+      signature: {
+        ...system.authentication.signature.spec,
+        historicalDefinitions:
+          system.authentication.signature.spec.historicalDefinitions.map(
+            definition => ({ ...definition, hasDirectAdapter: true }),
+          ),
+      },
+    },
+    aggregates: mapValues(system.aggregates, aggregate => ({
+      name: aggregate.name,
+      models: mapValues(aggregate.models, model => ({
+        modelName: model.modelName,
+        abbreviation: model.abbreviation,
+        version: model.version,
+        properties: encodeShape(model.propertiesShape),
+        indexes: model.indexes,
+        historicalDefinitions: model.historicalDefinitions
+          .toSorted((left, right) => left.version.localeCompare(right.version))
+          .map(definition => ({
+            modelName: definition.modelName,
+            abbreviation: definition.abbreviation,
+            version: definition.version,
+            hasDirectAdapter: typeof definition.adaptResource === 'function',
+            properties: encodeShape({
+              ...model.metadata,
+              ...definition.attributes,
+            }),
+            indexes: definition.indexes,
+          })),
+      })),
+      contracts: mapValues(aggregate.contracts, contract => ({
+        commandName: contract.commandName,
+        version: contract.version,
+        payloadJsonSchema: contract.spec.payloadJsonSchema,
+        historicalDefinitions: contract.spec.historicalDefinitions.map(
+          definition => ({
+            ...definition,
+            hasDirectAdapter: contract.historicalDefinitions.some(
+              historicalDefinition =>
+                historicalDefinition.version === definition.version &&
+                typeof historicalDefinition.adaptPayload === 'function',
+            ),
+          }),
+        ),
+      })),
+      mutationAdapters: mapValues(
+        aggregate.mutationAdapters ?? {},
+        (operationAdapters, sourceModelName) =>
+          mapValues(operationAdapters, (edges, operationName) => {
+            if (
+              operationName !== 'create' &&
+              operationName !== 'delete' &&
+              operationName !== 'move' &&
+              operationName !== 'replicateResource' &&
+              operationName !== 'update'
+            ) {
+              throw new Error(
+                `makeSystemSpec: unsupported aggregate mutation adapter operation "${String(operationName)}"`,
+              );
+            }
+            if (edges === undefined) {
+              throw new Error(
+                `makeSystemSpec: aggregate mutation adapter ${String(sourceModelName)}.${operationName} is undefined`,
+              );
+            }
+            return edges.map((edge, edgeIndex) => {
+              const sourceJsonSchema = JSONSchema.make(edge.source);
+              const sourceProperties = Reflect.get(
+                sourceJsonSchema,
+                'properties',
+              );
+              const sourceModelVersionProperty =
+                typeof sourceProperties === 'object' &&
+                sourceProperties !== null
+                  ? Reflect.get(sourceProperties, 'modelVersion')
+                  : undefined;
+              const sourceModelVersions =
+                typeof sourceModelVersionProperty === 'object' &&
+                sourceModelVersionProperty !== null
+                  ? Reflect.get(sourceModelVersionProperty, 'enum')
+                  : undefined;
+              const sourceModelVersion = Array.isArray(sourceModelVersions)
+                ? sourceModelVersions[0]
+                : undefined;
+              if (typeof sourceModelVersion !== 'string') {
                 throw new Error(
-                  `makeSystemSpec: unsupported account mutation adapter operation "${String(operationName)}"`,
+                  `makeSystemSpec: aggregate mutation adapter ${String(sourceModelName)}.${operationName}[${edgeIndex}] has no source modelVersion`,
                 );
               }
-              if (edges === undefined) {
-                throw new Error(
-                  `makeSystemSpec: account mutation adapter ${String(sourceModelName)}.${operationName} is undefined`,
-                );
-              }
-              return edges.map((edge, edgeIndex) => {
-                const sourceJsonSchema = JSONSchema.make(edge.source);
-                const sourceProperties = Reflect.get(
-                  sourceJsonSchema,
-                  'properties',
-                );
-                const sourceModelVersionProperty =
-                  typeof sourceProperties === 'object' &&
-                  sourceProperties !== null
-                    ? Reflect.get(sourceProperties, 'modelVersion')
-                    : undefined;
-                const sourceModelVersions =
-                  typeof sourceModelVersionProperty === 'object' &&
-                  sourceModelVersionProperty !== null
-                    ? Reflect.get(sourceModelVersionProperty, 'enum')
-                    : undefined;
-                const sourceModelVersion = Array.isArray(sourceModelVersions)
-                  ? sourceModelVersions[0]
-                  : undefined;
-                if (typeof sourceModelVersion !== 'string') {
-                  throw new Error(
-                    `makeSystemSpec: account mutation adapter ${String(sourceModelName)}.${operationName}[${edgeIndex}] has no source modelVersion`,
-                  );
-                }
 
-                if (edge.destination === null) {
-                  return {
-                    source: {
-                      modelName: String(sourceModelName),
-                      modelVersion: sourceModelVersion,
-                      operationName,
-                      jsonSchema: sourceJsonSchema,
-                    },
-                    destination: null,
-                  };
-                }
-
-                const destinationJsonSchema = JSONSchema.make(edge.destination);
-                const destinationProperties = Reflect.get(
-                  destinationJsonSchema,
-                  'properties',
-                );
-                const destinationModelNameProperty =
-                  typeof destinationProperties === 'object' &&
-                  destinationProperties !== null
-                    ? Reflect.get(destinationProperties, 'modelName')
-                    : undefined;
-                const destinationModelVersionProperty =
-                  typeof destinationProperties === 'object' &&
-                  destinationProperties !== null
-                    ? Reflect.get(destinationProperties, 'modelVersion')
-                    : undefined;
-                const destinationModelNames =
-                  typeof destinationModelNameProperty === 'object' &&
-                  destinationModelNameProperty !== null
-                    ? Reflect.get(destinationModelNameProperty, 'enum')
-                    : undefined;
-                const destinationModelVersions =
-                  typeof destinationModelVersionProperty === 'object' &&
-                  destinationModelVersionProperty !== null
-                    ? Reflect.get(destinationModelVersionProperty, 'enum')
-                    : undefined;
-                const destinationModelName = Array.isArray(
-                  destinationModelNames,
-                )
-                  ? destinationModelNames[0]
-                  : undefined;
-                const destinationModelVersion = Array.isArray(
-                  destinationModelVersions,
-                )
-                  ? destinationModelVersions[0]
-                  : undefined;
-                if (
-                  typeof destinationModelName !== 'string' ||
-                  typeof destinationModelVersion !== 'string'
-                ) {
-                  throw new Error(
-                    `makeSystemSpec: account mutation adapter ${String(sourceModelName)}.${operationName}[${edgeIndex}] has no destination identity`,
-                  );
-                }
+              if (edge.destination === null) {
                 return {
                   source: {
                     modelName: String(sourceModelName),
@@ -169,229 +116,175 @@ export function makeSystemSpec<
                     operationName,
                     jsonSchema: sourceJsonSchema,
                   },
-                  destination: {
-                    modelName: destinationModelName,
-                    modelVersion: destinationModelVersion,
-                    operationName,
-                    jsonSchema: destinationJsonSchema,
-                  },
+                  destination: null,
                 };
-              });
-            }),
-        ),
-        actorControllers: mapValues(
-          accountController.actorControllers,
-          actorController => ({
-            name: actorController.name,
-            version: actorController.version,
-            models: mapValues(actorController.models, model => ({
-              modelName: model.modelName,
-              abbreviation: model.abbreviation,
-              version: model.version,
-              properties: encodeShape(model.propertiesShape),
-              indexes: model.indexes,
-              historicalDefinitions: model.historicalDefinitions
-                .toSorted((left, right) =>
-                  left.version.localeCompare(right.version),
-                )
-                .map(definition => ({
-                  modelName: definition.modelName,
-                  abbreviation: definition.abbreviation,
-                  version: definition.version,
-                  properties: encodeShape({
-                    ...model.metadata,
-                    ...definition.attributes,
-                  }),
-                  indexes: definition.indexes,
-                })),
-            })),
-            selections: mapValues(actorController.selections, selection => ({
-              modelName: selection.model.modelName,
-            })),
-            queries: mapValues(actorController.api, query => ({
-              name: query.name,
-              serviceName: query.serviceName,
-              paramsJsonSchema: JSONSchema.make(query.paramsSchema),
-            })),
-            frontends: mapValues(actorController.frontends, binding => ({
-              name: binding.name,
-              frontendController: {
-                accountName: binding.frontendController.accountName,
-                actorName: binding.frontendController.actorName,
-                frontendName: binding.frontendController.frontendName,
-                version: binding.frontendController.version,
-                models: mapValues(binding.frontendController.models, model => ({
-                  modelName: model.modelName,
-                  abbreviation: model.abbreviation,
-                  version: model.version,
-                  properties: encodeShape(model.propertiesShape),
-                  indexes: model.indexes,
-                  historicalDefinitions: model.historicalDefinitions
-                    .toSorted((left, right) =>
-                      left.version.localeCompare(right.version),
-                    )
-                    .map(definition => ({
-                      modelName: definition.modelName,
-                      abbreviation: definition.abbreviation,
-                      version: definition.version,
-                      properties: encodeShape({
-                        ...model.metadata,
-                        ...definition.attributes,
-                      }),
-                      indexes: definition.indexes,
-                    })),
-                })),
-                contracts: mapValues(
-                  binding.frontendController.contracts,
-                  contract => ({
-                    commandName: contract.commandName,
-                    version: contract.version,
-                    payloadJsonSchema: contract.spec.payloadJsonSchema,
-                    historicalDefinitions:
-                      contract.spec.historicalDefinitions,
-                  }),
-                ),
-                signatureJsonSchema: JSONSchema.make(
-                  binding.frontendController.signature,
-                ),
-              },
-            })),
-          }),
-        ),
-      }),
-    ),
-    serviceControllers: mapValues(
-      system.serviceControllers,
-      serviceController => ({
-        name: serviceController.name,
-        version: serviceController.version,
-        models: mapValues(serviceController.models, model => ({
-          modelName: model.modelName,
-          abbreviation: model.abbreviation,
-          version: model.version,
-          properties: encodeShape(model.propertiesShape),
-          indexes: model.indexes,
-          historicalDefinitions: model.historicalDefinitions
-            .toSorted((left, right) =>
-              left.version.localeCompare(right.version),
-            )
-            .map(definition => ({
-              modelName: definition.modelName,
-              abbreviation: definition.abbreviation,
-              version: definition.version,
-              properties: encodeShape({
-                ...model.metadata,
-                ...definition.attributes,
-              }),
-              indexes: definition.indexes,
-            })),
-        })),
-        contracts: mapValues(serviceController.contracts, contract => ({
-          commandName: contract.commandName,
-          version: contract.version,
-          payloadJsonSchema: contract.spec.payloadJsonSchema,
-          historicalDefinitions: contract.spec.historicalDefinitions,
-        })),
-        mutationAdapters: mapValues(
-          serviceController.mutationAdapters ?? {},
-          (operationAdapters, sourceModelName) =>
-            mapValues(operationAdapters, (edges, operationName) => {
+              }
+
+              const destinationJsonSchema = JSONSchema.make(edge.destination);
+              const destinationProperties = Reflect.get(
+                destinationJsonSchema,
+                'properties',
+              );
+              const destinationModelNameProperty =
+                typeof destinationProperties === 'object' &&
+                destinationProperties !== null
+                  ? Reflect.get(destinationProperties, 'modelName')
+                  : undefined;
+              const destinationModelVersionProperty =
+                typeof destinationProperties === 'object' &&
+                destinationProperties !== null
+                  ? Reflect.get(destinationProperties, 'modelVersion')
+                  : undefined;
+              const destinationModelNames =
+                typeof destinationModelNameProperty === 'object' &&
+                destinationModelNameProperty !== null
+                  ? Reflect.get(destinationModelNameProperty, 'enum')
+                  : undefined;
+              const destinationModelVersions =
+                typeof destinationModelVersionProperty === 'object' &&
+                destinationModelVersionProperty !== null
+                  ? Reflect.get(destinationModelVersionProperty, 'enum')
+                  : undefined;
+              const destinationModelName = Array.isArray(destinationModelNames)
+                ? destinationModelNames[0]
+                : undefined;
+              const destinationModelVersion = Array.isArray(
+                destinationModelVersions,
+              )
+                ? destinationModelVersions[0]
+                : undefined;
               if (
-                operationName !== 'create' &&
-                operationName !== 'delete' &&
-                operationName !== 'move' &&
-                operationName !== 'replicateResource' &&
-                operationName !== 'update'
+                typeof destinationModelName !== 'string' ||
+                typeof destinationModelVersion !== 'string'
               ) {
                 throw new Error(
-                  `makeSystemSpec: unsupported service mutation adapter operation "${String(operationName)}"`,
+                  `makeSystemSpec: aggregate mutation adapter ${String(sourceModelName)}.${operationName}[${edgeIndex}] has no destination identity`,
                 );
               }
-              if (edges === undefined) {
+              return {
+                source: {
+                  modelName: String(sourceModelName),
+                  modelVersion: sourceModelVersion,
+                  operationName,
+                  jsonSchema: sourceJsonSchema,
+                },
+                destination: {
+                  modelName: destinationModelName,
+                  modelVersion: destinationModelVersion,
+                  operationName,
+                  jsonSchema: destinationJsonSchema,
+                },
+              };
+            });
+          }),
+      ),
+      selections: mapValues(aggregate.selections, selection => ({
+        modelName: selection.model.modelName,
+      })),
+      queries: mapValues(aggregate.queries, query => ({
+        name: query.name,
+        serviceName: query.serviceName,
+        paramsJsonSchema: JSONSchema.make(query.paramsSchema),
+      })),
+      frontends: mapValues(aggregate.frontends, binding => ({
+        name: binding.name,
+        models: mapValues(binding.models, (model, modelKey) => ({
+          modelName: model.modelName,
+          hasProjectionAdapter:
+            binding.projectionAdapters[modelKey] !== undefined,
+        })),
+        contracts: mapValues(binding.contracts, (contract, contractKey) => ({
+          commandName: contract.commandName,
+          version: contract.version,
+          hasAuthoritativeAdapter:
+            binding.contractAdapters[contractKey] !== undefined,
+        })),
+        controller: makeFrontendControllerSpec(binding.controller),
+      })),
+    })),
+    services: mapValues(system.services, service => ({
+      name: service.name,
+      models: mapValues(service.models, model => ({
+        modelName: model.modelName,
+        abbreviation: model.abbreviation,
+        version: model.version,
+        properties: encodeShape(model.propertiesShape),
+        indexes: model.indexes,
+        historicalDefinitions: model.historicalDefinitions
+          .toSorted((left, right) => left.version.localeCompare(right.version))
+          .map(definition => ({
+            modelName: definition.modelName,
+            abbreviation: definition.abbreviation,
+            version: definition.version,
+            hasDirectAdapter: typeof definition.adaptResource === 'function',
+            properties: encodeShape({
+              ...model.metadata,
+              ...definition.attributes,
+            }),
+            indexes: definition.indexes,
+          })),
+      })),
+      contracts: mapValues(service.contracts, contract => ({
+        commandName: contract.commandName,
+        version: contract.version,
+        payloadJsonSchema: contract.spec.payloadJsonSchema,
+        historicalDefinitions: contract.spec.historicalDefinitions.map(
+          definition => ({
+            ...definition,
+            hasDirectAdapter: contract.historicalDefinitions.some(
+              historicalDefinition =>
+                historicalDefinition.version === definition.version &&
+                typeof historicalDefinition.adaptPayload === 'function',
+            ),
+          }),
+        ),
+      })),
+      mutationAdapters: mapValues(
+        service.mutationAdapters ?? {},
+        (operationAdapters, sourceModelName) =>
+          mapValues(operationAdapters, (edges, operationName) => {
+            if (
+              operationName !== 'create' &&
+              operationName !== 'delete' &&
+              operationName !== 'move' &&
+              operationName !== 'replicateResource' &&
+              operationName !== 'update'
+            ) {
+              throw new Error(
+                `makeSystemSpec: unsupported service mutation adapter operation "${String(operationName)}"`,
+              );
+            }
+            if (edges === undefined) {
+              throw new Error(
+                `makeSystemSpec: service mutation adapter ${String(sourceModelName)}.${operationName} is undefined`,
+              );
+            }
+            return edges.map((edge, edgeIndex) => {
+              const sourceJsonSchema = JSONSchema.make(edge.source);
+              const sourceProperties = Reflect.get(
+                sourceJsonSchema,
+                'properties',
+              );
+              const sourceModelVersionProperty =
+                typeof sourceProperties === 'object' &&
+                sourceProperties !== null
+                  ? Reflect.get(sourceProperties, 'modelVersion')
+                  : undefined;
+              const sourceModelVersions =
+                typeof sourceModelVersionProperty === 'object' &&
+                sourceModelVersionProperty !== null
+                  ? Reflect.get(sourceModelVersionProperty, 'enum')
+                  : undefined;
+              const sourceModelVersion = Array.isArray(sourceModelVersions)
+                ? sourceModelVersions[0]
+                : undefined;
+              if (typeof sourceModelVersion !== 'string') {
                 throw new Error(
-                  `makeSystemSpec: service mutation adapter ${String(sourceModelName)}.${operationName} is undefined`,
+                  `makeSystemSpec: service mutation adapter ${String(sourceModelName)}.${operationName}[${edgeIndex}] has no source modelVersion`,
                 );
               }
-              return edges.map((edge, edgeIndex) => {
-                const sourceJsonSchema = JSONSchema.make(edge.source);
-                const sourceProperties = Reflect.get(
-                  sourceJsonSchema,
-                  'properties',
-                );
-                const sourceModelVersionProperty =
-                  typeof sourceProperties === 'object' &&
-                  sourceProperties !== null
-                    ? Reflect.get(sourceProperties, 'modelVersion')
-                    : undefined;
-                const sourceModelVersions =
-                  typeof sourceModelVersionProperty === 'object' &&
-                  sourceModelVersionProperty !== null
-                    ? Reflect.get(sourceModelVersionProperty, 'enum')
-                    : undefined;
-                const sourceModelVersion = Array.isArray(sourceModelVersions)
-                  ? sourceModelVersions[0]
-                  : undefined;
-                if (typeof sourceModelVersion !== 'string') {
-                  throw new Error(
-                    `makeSystemSpec: service mutation adapter ${String(sourceModelName)}.${operationName}[${edgeIndex}] has no source modelVersion`,
-                  );
-                }
 
-                if (edge.destination === null) {
-                  return {
-                    source: {
-                      modelName: String(sourceModelName),
-                      modelVersion: sourceModelVersion,
-                      operationName,
-                      jsonSchema: sourceJsonSchema,
-                    },
-                    destination: null,
-                  };
-                }
-
-                const destinationJsonSchema = JSONSchema.make(edge.destination);
-                const destinationProperties = Reflect.get(
-                  destinationJsonSchema,
-                  'properties',
-                );
-                const destinationModelNameProperty =
-                  typeof destinationProperties === 'object' &&
-                  destinationProperties !== null
-                    ? Reflect.get(destinationProperties, 'modelName')
-                    : undefined;
-                const destinationModelVersionProperty =
-                  typeof destinationProperties === 'object' &&
-                  destinationProperties !== null
-                    ? Reflect.get(destinationProperties, 'modelVersion')
-                    : undefined;
-                const destinationModelNames =
-                  typeof destinationModelNameProperty === 'object' &&
-                  destinationModelNameProperty !== null
-                    ? Reflect.get(destinationModelNameProperty, 'enum')
-                    : undefined;
-                const destinationModelVersions =
-                  typeof destinationModelVersionProperty === 'object' &&
-                  destinationModelVersionProperty !== null
-                    ? Reflect.get(destinationModelVersionProperty, 'enum')
-                    : undefined;
-                const destinationModelName = Array.isArray(
-                  destinationModelNames,
-                )
-                  ? destinationModelNames[0]
-                  : undefined;
-                const destinationModelVersion = Array.isArray(
-                  destinationModelVersions,
-                )
-                  ? destinationModelVersions[0]
-                  : undefined;
-                if (
-                  typeof destinationModelName !== 'string' ||
-                  typeof destinationModelVersion !== 'string'
-                ) {
-                  throw new Error(
-                    `makeSystemSpec: service mutation adapter ${String(sourceModelName)}.${operationName}[${edgeIndex}] has no destination identity`,
-                  );
-                }
+              if (edge.destination === null) {
                 return {
                   source: {
                     modelName: String(sourceModelName),
@@ -399,56 +292,83 @@ export function makeSystemSpec<
                     operationName,
                     jsonSchema: sourceJsonSchema,
                   },
-                  destination: {
-                    modelName: destinationModelName,
-                    modelVersion: destinationModelVersion,
-                    operationName,
-                    jsonSchema: destinationJsonSchema,
-                  },
+                  destination: null,
                 };
-              });
-            }),
-        ),
-        actorControllers: mapValues(
-          serviceController.actorControllers,
-          actorController => ({
-            name: actorController.name,
-            version: actorController.version,
-            models: mapValues(actorController.models, model => ({
-              modelName: model.modelName,
-              abbreviation: model.abbreviation,
-              version: model.version,
-              properties: encodeShape(model.propertiesShape),
-              indexes: model.indexes,
-              historicalDefinitions: model.historicalDefinitions
-                .toSorted((left, right) =>
-                  left.version.localeCompare(right.version),
-                )
-                .map(definition => ({
-                  modelName: definition.modelName,
-                  abbreviation: definition.abbreviation,
-                  version: definition.version,
-                  properties: encodeShape({
-                    ...model.metadata,
-                    ...definition.attributes,
-                  }),
-                  indexes: definition.indexes,
-                })),
-            })),
-            frontends: mapValues(actorController.frontends, binding => ({
-              name: binding.name,
-              frontendController: makeServiceFrontendControllerSpec(
-                binding.frontendController,
-              ),
-            })),
+              }
+
+              const destinationJsonSchema = JSONSchema.make(edge.destination);
+              const destinationProperties = Reflect.get(
+                destinationJsonSchema,
+                'properties',
+              );
+              const destinationModelNameProperty =
+                typeof destinationProperties === 'object' &&
+                destinationProperties !== null
+                  ? Reflect.get(destinationProperties, 'modelName')
+                  : undefined;
+              const destinationModelVersionProperty =
+                typeof destinationProperties === 'object' &&
+                destinationProperties !== null
+                  ? Reflect.get(destinationProperties, 'modelVersion')
+                  : undefined;
+              const destinationModelNames =
+                typeof destinationModelNameProperty === 'object' &&
+                destinationModelNameProperty !== null
+                  ? Reflect.get(destinationModelNameProperty, 'enum')
+                  : undefined;
+              const destinationModelVersions =
+                typeof destinationModelVersionProperty === 'object' &&
+                destinationModelVersionProperty !== null
+                  ? Reflect.get(destinationModelVersionProperty, 'enum')
+                  : undefined;
+              const destinationModelName = Array.isArray(destinationModelNames)
+                ? destinationModelNames[0]
+                : undefined;
+              const destinationModelVersion = Array.isArray(
+                destinationModelVersions,
+              )
+                ? destinationModelVersions[0]
+                : undefined;
+              if (
+                typeof destinationModelName !== 'string' ||
+                typeof destinationModelVersion !== 'string'
+              ) {
+                throw new Error(
+                  `makeSystemSpec: service mutation adapter ${String(sourceModelName)}.${operationName}[${edgeIndex}] has no destination identity`,
+                );
+              }
+              return {
+                source: {
+                  modelName: String(sourceModelName),
+                  modelVersion: sourceModelVersion,
+                  operationName,
+                  jsonSchema: sourceJsonSchema,
+                },
+                destination: {
+                  modelName: destinationModelName,
+                  modelVersion: destinationModelVersion,
+                  operationName,
+                  jsonSchema: destinationJsonSchema,
+                },
+              };
+            });
           }),
-        ),
-        queries: mapValues(serviceController.queries, query => ({
-          name: query.name,
-          serviceName: query.serviceName,
-          paramsJsonSchema: JSONSchema.make(query.paramsSchema),
+      ),
+      queries: mapValues(service.queries, query => ({
+        name: query.name,
+        serviceName: query.serviceName,
+        paramsJsonSchema: JSONSchema.make(query.paramsSchema),
+      })),
+      frontends: mapValues(service.frontends, binding => ({
+        name: binding.name,
+        models: mapValues(binding.models, (model, modelKey) => ({
+          modelName: model.modelName,
+          hasProjectionAdapter:
+            binding.projectionAdapters[modelKey] !== undefined,
         })),
-      }),
-    ),
+        contracts: {},
+        controller: makeFrontendControllerSpec(binding.controller),
+      })),
+    })),
   };
 }

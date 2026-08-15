@@ -1,4 +1,4 @@
-import { Cause, Runtime, Schema } from 'effect';
+import { Cause, Effect, Runtime, Schema } from 'effect';
 
 import { ZerospinError } from './ZerospinError.js';
 
@@ -46,6 +46,97 @@ describe('ZerospinError', () => {
     it('has _tag ZerospinError', () => {
       const err = new ZerospinError('TAGGED');
       expect(err._tag).toBe('ZerospinError');
+    });
+  });
+
+  describe('makeClass', () => {
+    class MachineFailedError extends ZerospinError.makeClass({
+      code: 'zmachine-machine-failed',
+      message: 'Cannot update or transition a failed machine',
+    }) {}
+
+    class MachineDisposedError extends ZerospinError.makeClass({
+      code: 'zmachine-runtime-disposed',
+    }) {}
+
+    it('fixes the code and default message', () => {
+      const err = new MachineFailedError();
+      const code: 'zmachine-machine-failed' = err.code;
+
+      expect(code).toBe('zmachine-machine-failed');
+      expect(err.rawMessage).toBe(
+        'Cannot update or transition a failed machine',
+      );
+      expect(err.message).toBe(
+        'zmachine-machine-failed: Cannot update or transition a failed machine',
+      );
+      expect(err._tag).toBe('ZerospinError');
+      expect(err).toBeInstanceOf(MachineFailedError);
+      expect(err).toBeInstanceOf(ZerospinError);
+      expect(ZerospinError.isZerospinError(err)).toBe(true);
+    });
+
+    it('defaults the message to the code', () => {
+      const err = new MachineDisposedError();
+
+      expect(err.rawMessage).toBe('zmachine-runtime-disposed');
+      expect(err.message).toBe('zmachine-runtime-disposed');
+    });
+
+    it('accepts an instance message and metadata', () => {
+      const err = new MachineFailedError({
+        cause: 'original failure',
+        extra: { phase: 'mount' },
+        message: 'Mount failed',
+        status: 500,
+      });
+
+      expect(err.rawMessage).toBe('Mount failed');
+      expect(err.message).toBe('zmachine-machine-failed: Mount failed');
+      expect(err.cause).toBe('original failure');
+      expect(err.extra).toEqual({ phase: 'mount' });
+      expect(err.status).toBe(500);
+    });
+
+    it('does not allow the fixed code to be overridden', () => {
+      // @ts-expect-error makeClass fixes the error code
+      const err = new MachineFailedError({ code: 'different-code' });
+
+      expect(err.code).toBe('zmachine-machine-failed');
+    });
+
+    it('remains directly yieldable', async () => {
+      const err = new MachineFailedError();
+      const failure = await err.pipe(Effect.flip, Effect.runPromise);
+
+      expect(failure).toBe(err);
+    });
+
+    it('decodes through the canonical schema as a base ZerospinError', () => {
+      const encode = Schema.encodeSync(ZerospinError.schema);
+      const decode = Schema.decodeUnknownSync(ZerospinError.schema);
+      const encoded = encode(
+        new MachineFailedError({
+          cause: 'original failure',
+          extra: { phase: 'mount' },
+          status: 500,
+        }),
+      );
+      const decoded = decode(encoded);
+
+      expect(encoded).toEqual({
+        cause: 'original failure',
+        code: 'zmachine-machine-failed',
+        extra: { phase: 'mount' },
+        message: 'Cannot update or transition a failed machine',
+        status: 500,
+      });
+      expect(decoded).toBeInstanceOf(ZerospinError);
+      expect(decoded).not.toBeInstanceOf(MachineFailedError);
+      expect(decoded.code).toBe('zmachine-machine-failed');
+      expect(decoded.rawMessage).toBe(
+        'Cannot update or transition a failed machine',
+      );
     });
   });
 

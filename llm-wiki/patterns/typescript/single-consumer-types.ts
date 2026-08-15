@@ -5,10 +5,10 @@
  * @bad Create a one-off `types.ts` alias only to avoid naming a local helper.
  * @bad Leave ad-hoc composition helpers public when they are internal assertions.
  */
-import type { AccountId, MutationShape } from '../../models/types.ts';
+import type { AggregateId, MutationShape } from '../../models/types.ts';
 
 type ContractMutationRow = {
-  accountId: AccountId;
+  aggregateId: AggregateId;
   mutation: MutationShape;
 };
 

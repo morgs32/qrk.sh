@@ -21,12 +21,12 @@ export const getGenerationState = Effect.fn('SystemRepo.getGenerationState')(
     }>;
     drainBoundsTable: IAnyDrizzleSchema;
     drainBoundsColumns: Readonly<{
-      deployId: AnyColumn;
-      repoName: AnyColumn;
+      generationId: AnyColumn;
+      sourceRepoName: AnyColumn;
     }>;
     replayCompletionsTable: IAnyDrizzleSchema;
     replayCompletionsColumns: Readonly<{
-      deployId: AnyColumn;
+      generationId: AnyColumn;
       targetRepoName: AnyColumn;
     }>;
   }) {
@@ -41,7 +41,7 @@ export const getGenerationState = Effect.fn('SystemRepo.getGenerationState')(
       replayCompletionsTable,
     } = props;
 
-    // Checkpoint 1: one generation-scoped SystemRepo may own at most one state row.
+    // Checkpoint 1: select exactly the requested generation from the singleton SystemRepo.
     const rawGenerationState = yield* Effect.try({
       try: () =>
         db
@@ -68,8 +68,14 @@ export const getGenerationState = Effect.fn('SystemRepo.getGenerationState')(
         initialDeployId: Schema.String,
         activeDeployId: Schema.NullOr(Schema.String),
         preparingDeployId: Schema.NullOr(Schema.String),
-        readiness: Schema.Literal('initializing', 'ready', 'failed'),
-        admission: Schema.Literal('closed', 'open', 'draining', 'drained'),
+        phase: Schema.Literal(
+          'closed',
+          'migrating',
+          'open',
+          'draining',
+          'retired',
+        ),
+        lastWriteIndex: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
         activeSystemSpec: Schema.NullOr(Schema.String),
         preparingSystemSpec: Schema.NullOr(Schema.String),
         failure: Schema.NullOr(Schema.String),
@@ -77,7 +83,8 @@ export const getGenerationState = Effect.fn('SystemRepo.getGenerationState')(
         readyAt: Schema.NullOr(Schema.DateFromSelf),
         openedAt: Schema.NullOr(Schema.DateFromSelf),
         drainFrozenAt: Schema.NullOr(Schema.DateFromSelf),
-        drainedAt: Schema.NullOr(Schema.DateFromSelf),
+        retirementCompletedAt: Schema.NullOr(Schema.DateFromSelf),
+        retiredAt: Schema.NullOr(Schema.DateFromSelf),
       }),
     )(rawGenerationState).pipe(
       mapParseError({
@@ -116,53 +123,33 @@ export const getGenerationState = Effect.fn('SystemRepo.getGenerationState')(
 
     // Checkpoint 4: bounds and summaries are ordered for deterministic status
     // output and deterministic preparation retries.
-    const rawDrainBounds =
-      generationState.activeDeployId === null
-        ? []
-        : yield* Effect.try({
-            try: () =>
-              db
-                .select()
-                .from(drainBoundsTable)
-                .where(
-                  eq(
-                    drainBoundsColumns.deployId,
-                    generationState.activeDeployId,
-                  ),
-                )
-                .orderBy(asc(drainBoundsColumns.repoName))
-                .all(),
-            catch: ZerospinError.catch({
-              code: 'generation-drain-bounds-read-failed',
-              message: 'Failed to read generation drain bounds',
-              extra: {
-                generationId,
-                deployId: generationState.activeDeployId,
-              },
-            }),
-          });
+    const rawDrainBounds = yield* Effect.try({
+      try: () =>
+        db
+          .select()
+          .from(drainBoundsTable)
+          .where(eq(drainBoundsColumns.generationId, generationId))
+          .orderBy(asc(drainBoundsColumns.sourceRepoName))
+          .all(),
+      catch: ZerospinError.catch({
+        code: 'generation-drain-bounds-read-failed',
+        message: 'Failed to read generation drain bounds',
+        extra: { generationId },
+      }),
+    });
     const drainBounds = yield* Schema.decodeUnknown(
       Schema.Array(
         Schema.Struct({
-          deployId: Schema.String,
+          generationId: Schema.String,
           repoType: Schema.Literal(
             'ServiceBlockRepo',
-            'AccountBlockRepo',
-            'FrontendRepo',
-            'ServiceFrontendRepo',
+            'AggregateBlockRepo',
+            'ServiceBlockSubscriber',
           ),
-          repoName: Schema.String,
+          sourceRepoName: Schema.String,
+          targetRepoName: Schema.NullOr(Schema.String),
           terminalCursor: Schema.NullOr(Schema.String),
           terminalIndex: Schema.NullOr(Schema.Number),
-          systemWorkerName: Schema.NullOr(Schema.String),
-          frontendBlockRepoName: Schema.NullOr(Schema.String),
-          terminalFrontendIndex: Schema.NullOr(Schema.Number),
-          segmentKind: Schema.NullOr(
-            Schema.Literal('root', 'inherited', 'no-local-segment'),
-          ),
-          predecessorGenerationId: Schema.NullOr(Schema.String),
-          predecessorRepoName: Schema.NullOr(Schema.String),
-          predecessorTerminalFrontendIndex: Schema.NullOr(Schema.Number),
           capturedAt: Schema.DateFromSelf,
         }),
       ),
@@ -174,38 +161,28 @@ export const getGenerationState = Effect.fn('SystemRepo.getGenerationState')(
       }),
     );
 
-    const rawReplayCompletions =
-      generationState.preparingDeployId === null
-        ? []
-        : yield* Effect.try({
-            try: () =>
-              db
-                .select()
-                .from(replayCompletionsTable)
-                .where(
-                  eq(
-                    replayCompletionsColumns.deployId,
-                    generationState.preparingDeployId,
-                  ),
-                )
-                .orderBy(asc(replayCompletionsColumns.targetRepoName))
-                .all(),
-            catch: ZerospinError.catch({
-              code: 'generation-replay-completions-read-failed',
-              message: 'Failed to read generation replay completions',
-              extra: {
-                generationId,
-                deployId: generationState.preparingDeployId,
-              },
-            }),
-          });
+    const rawReplayCompletions = yield* Effect.try({
+      try: () =>
+        db
+          .select()
+          .from(replayCompletionsTable)
+          .where(eq(replayCompletionsColumns.generationId, generationId))
+          .orderBy(asc(replayCompletionsColumns.targetRepoName))
+          .all(),
+      catch: ZerospinError.catch({
+        code: 'generation-replay-completions-read-failed',
+        message: 'Failed to read generation replay completions',
+        extra: { generationId },
+      }),
+    });
     const replayCompletions = yield* Schema.decodeUnknown(
       Schema.Array(
         Schema.Struct({
-          deployId: Schema.String,
-          repoType: Schema.Literal('ServiceRepo', 'AccountRepo'),
+          generationId: Schema.String,
+          repoType: Schema.Literal('ServiceRepo', 'AggregateRepo'),
           prevRepoName: Schema.String,
           targetRepoName: Schema.String,
+          terminalCursor: Schema.NullOr(Schema.String),
           terminalIndex: Schema.NullOr(Schema.Number),
           blockCount: Schema.Number,
           completedAt: Schema.DateFromSelf,

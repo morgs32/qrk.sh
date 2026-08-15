@@ -13,10 +13,19 @@ const EnvRecord = Schema.Record({
 
 export const ZerospinConfigSchema = Schema.Struct({
   entry: Schema.String,
+  supportedPredecessors: Schema.Array(
+    Schema.String.pipe(
+      Schema.pattern(/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/),
+    ),
+  ),
   environmentId: Schema.optionalWith(SystemEnvironmentIdSchema, {
     default: () => 'dev',
   }),
   env: Schema.NullOr(EnvRecord),
+  retention: Schema.Struct({
+    clientLeaseSeconds: Schema.Number.pipe(Schema.int(), Schema.positive()),
+    stagedJournalDays: Schema.Number.pipe(Schema.int(), Schema.positive()),
+  }),
   seeds: Schema.Struct({
     dev: Schema.NullOr(Schema.String),
     production: Schema.NullOr(Schema.String),

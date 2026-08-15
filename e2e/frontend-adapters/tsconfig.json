@@ -1,0 +1,55 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": ".",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "target": "es2022",
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "lib": ["dom", "dom.iterable", "esnext", "es2021"],
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noEmit": true,
+    "plugins": [
+      {
+        "name": "@effect/language-service"
+      }
+    ],
+    "types": [
+      "@cloudflare/vitest-pool-workers/types",
+      "node",
+      "vitest/globals"
+    ],
+    "paths": {
+      "@zerospin/core/*": ["../../packages/core/src/*"],
+      "@zerospin/dev-worker/*": ["../../packages/dev-worker/src/*"],
+      "system-worker/*": ["../../packages/system-worker/src/*"],
+      "system-worker": ["../../packages/system-worker/src/SystemWorker.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.workerd.config.ts"],
+  "references": [
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/dev-worker"
+    },
+    {
+      "path": "../../packages/system-worker"
+    }
+  ]
+}

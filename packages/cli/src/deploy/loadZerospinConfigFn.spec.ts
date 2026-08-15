@@ -31,8 +31,10 @@ describe('loadZerospinConfigFn', () => {
               pathApi.join(cwd, 'zerospin.config.ts'),
               `export default {
 	  entry: 'src/system.ts',
+	  supportedPredecessors: [],
 	  environmentId: 'dev',
 	  env: null,
+	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
 	  seeds: {
 	    dev: 'src/zerospin/seeds.ts',
 	    production: 'src/zerospin/seeds.production.ts',
@@ -73,8 +75,10 @@ describe('loadZerospinConfigFn', () => {
               pathApi.join(cwd, 'zerospin.config.ts'),
               `export default {
   entry: 'src/system.ts',
+  supportedPredecessors: [],
   environmentId: 'dev',
   env: null,
+	retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
 	};
 `,
             );
@@ -111,9 +115,11 @@ describe('loadZerospinConfigFn', () => {
           yield* fileSystem.writeFileString(
             pathApi.join(cwd, 'zerospin.config.js'),
             `export default {
-  entry: 'src/system.js',
-  environmentId: 'dev',
-  env: null,
+	  entry: 'src/system.js',
+	  supportedPredecessors: [],
+	  environmentId: 'dev',
+	  env: null,
+	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
 	};
 `,
           );
@@ -136,9 +142,11 @@ describe('loadZerospinConfigFn', () => {
           yield* fileSystem.writeFileString(
             pathApi.join(cwd, 'zerospin.config.ts'),
             `export default {
-  entry: 'src/system.ts',
-  environmentId: 'dev',
-  env: null,
+	  entry: 'src/system.ts',
+	  supportedPredecessors: [],
+	  environmentId: 'dev',
+	  env: null,
+	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
 	};
 `,
           );
@@ -161,9 +169,11 @@ describe('loadZerospinConfigFn', () => {
           yield* fileSystem.writeFileString(
             pathApi.join(cwd, 'zerospin.config.mjs'),
             `export default {
-  entry: 'src/system.mjs',
-  environmentId: 'dev',
-  env: null,
+	  entry: 'src/system.mjs',
+	  supportedPredecessors: [],
+	  environmentId: 'dev',
+	  env: null,
+	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
 	};
 `,
           );
@@ -186,9 +196,11 @@ describe('loadZerospinConfigFn', () => {
           yield* fileSystem.writeFileString(
             pathApi.join(cwd, 'zerospin.config.cjs'),
             `module.exports = {
-  entry: 'src/system.cjs',
-  environmentId: 'dev',
-  env: null,
+	  entry: 'src/system.cjs',
+	  supportedPredecessors: [],
+	  environmentId: 'dev',
+	  env: null,
+	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
 	};
 `,
           );
@@ -211,9 +223,11 @@ describe('loadZerospinConfigFn', () => {
           yield* fileSystem.writeFileString(
             pathApi.join(cwd, 'zerospin.config.mts'),
             `export default {
-  entry: 'src/system.mts',
-  environmentId: 'dev',
-  env: null,
+	  entry: 'src/system.mts',
+	  supportedPredecessors: [],
+	  environmentId: 'dev',
+	  env: null,
+	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
 	};
 `,
           );
@@ -236,9 +250,11 @@ describe('loadZerospinConfigFn', () => {
           yield* fileSystem.writeFileString(
             pathApi.join(cwd, 'zerospin.config.cts'),
             `module.exports = {
-  entry: 'src/system.cts',
-  environmentId: 'dev',
-  env: null,
+	  entry: 'src/system.cts',
+	  supportedPredecessors: [],
+	  environmentId: 'dev',
+	  env: null,
+	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
 	};
 `,
           );
@@ -258,8 +274,10 @@ describe('ZerospinConfigSchema', () => {
       const config = yield* Schema.validate(ZerospinConfigSchema)(
         {
           entry: 'src/system.ts',
+          supportedPredecessors: [],
           environmentId: 'dev',
           env: null,
+          retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
           seeds: {
             dev: 'src/zerospin/seeds.ts',
             production: 'src/zerospin/seeds.production.ts',
@@ -280,8 +298,10 @@ describe('ZerospinConfigSchema', () => {
       const config = yield* Schema.validate(ZerospinConfigSchema)(
         {
           entry: 'src/system.ts',
+          supportedPredecessors: [],
           environmentId: 'dev',
           env: null,
+          retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
           seeds: {
             dev: null,
             production: null,

@@ -14,7 +14,7 @@ import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory'
 import { Layer, ManagedRuntime } from 'effect';
 
 // Do not attach makePostHogLogsLayer here: OtlpLogger is Scope/async and DO
-// constructors use managedRuntime.runSync (initialize / wireRepoInternals).
+// constructors use managedRuntime.runSync during initialization.
 export const managedRuntime: ManagedRuntime.ManagedRuntime<
   Async | CuidFactory | MonotonicFactory,
   never

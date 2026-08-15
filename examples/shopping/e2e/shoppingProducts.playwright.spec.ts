@@ -1,7 +1,8 @@
+import { clerk } from '@clerk/testing/playwright';
 import { expect, test } from '@playwright/test';
-import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
-import { prefixActorId } from '@zerospin/core/utils/prefixActorId';
-import type { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis';
+import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
+import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
+import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import {
   makeTelemetryCollector,
   makeTelemetryLayer,
@@ -9,6 +10,18 @@ import {
 } from '@zerospin/logger';
 import { newWebSocketRpcSession } from 'capnweb';
 import { Effect } from 'effect';
+import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
+
+import { authenticationSignature } from '@/zerospin/authentication';
+import { catalogFrontend, shopperFrontend } from '@/zerospin/frontend';
+
+const shopperAggregateFrontendLock =
+  makeFrontendControllerSpec(shopperFrontend).aggregateFrontendLock;
+const catalogServiceFrontendLock =
+  makeFrontendControllerSpec(catalogFrontend).serviceFrontendLock;
+const authenticationLock = Effect.runSync(
+  makeAuthenticationLock({ signature: authenticationSignature }),
+);
 
 test('signed-in e2e user can read products through the service-owned catalog frontend', async ({
   page,
@@ -16,115 +29,74 @@ test('signed-in e2e user can read products through the service-owned catalog fro
   test.setTimeout(120_000);
 
   await page.goto('/');
+  await clerk.loaded({ page });
   await expect(page).not.toHaveURL(/\/signin/);
 
-  const sessionInspectionResponse = await page.request.get(
-    '/api/e2e/session-inspection',
-  );
-
-  expect(
-    sessionInspectionResponse.status(),
-    'session-inspection must be enabled by PLAYWRIGHT_CLAIM_INSPECTION',
-  ).not.toBe(404);
-  expect(
-    sessionInspectionResponse.ok(),
-    `session-inspection status ${sessionInspectionResponse.status()}`,
-  ).toBe(true);
-
-  const sessionInspectionBody: unknown = await sessionInspectionResponse.json();
-  expect(
-    typeof sessionInspectionBody === 'object' &&
-      sessionInspectionBody !== null &&
-      'userId' in sessionInspectionBody,
-    'session-inspection response must include userId',
-  ).toBe(true);
-
-  if (
-    typeof sessionInspectionBody !== 'object' ||
-    sessionInspectionBody === null ||
-    !('userId' in sessionInspectionBody)
-  ) {
-    throw new Error('session-inspection response did not include userId');
+  const clerkUserId = await page.evaluate(() => window.Clerk?.user?.id ?? null);
+  if (clerkUserId === null) {
+    throw new Error('The authenticated browser did not expose a Clerk user ID');
   }
 
-  const clerkUserId = sessionInspectionBody.userId;
-  expect(typeof clerkUserId, 'session-inspection userId must be a string').toBe(
-    'string',
-  );
-
-  if (typeof clerkUserId !== 'string') {
-    throw new Error('session-inspection userId was not a string');
-  }
-
-  const apiUrl = process.env.NEXT_PUBLIC_ZEROSPIN_API_URL;
+  const apiUrl = process.env.ZEROSPIN_API_URL;
   if (!apiUrl) {
-    throw new Error('Set NEXT_PUBLIC_ZEROSPIN_API_URL for shopping e2e.');
+    throw new Error('Set ZEROSPIN_API_URL for shopping e2e.');
+  }
+  const apiWebSocketUrl = new URL(apiUrl);
+  if (apiWebSocketUrl.protocol === 'http:') {
+    apiWebSocketUrl.protocol = 'ws:';
+  } else if (apiWebSocketUrl.protocol === 'https:') {
+    apiWebSocketUrl.protocol = 'wss:';
+  } else {
+    throw new Error(
+      `Unsupported Zerospin API URL protocol: ${apiWebSocketUrl.protocol}`,
+    );
   }
 
-  const publishableKey = process.env.NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY;
+  const publishableKey = process.env.ZEROSPIN_PUBLISHABLE_KEY;
   if (!publishableKey) {
-    throw new Error(
-      'Set NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY for shopping e2e.',
-    );
+    throw new Error('Set ZEROSPIN_PUBLISHABLE_KEY for shopping e2e.');
   }
 
   await expect(async () => {
     const telemetryCollector = makeTelemetryCollector();
-    using actorApis = newSyncRpcSession<ZerospinApis>(apiUrl);
-    const actorFrontendApi = makeTraceableApiTarget(
-      actorApis.getFrontendApi({
-        publishableKey,
-        accountName: 'user',
-        actorName: 'shopper',
-        frontendName: 'web',
-        signature: {
-          clerkUserId,
-        },
-      }),
-    );
-
-    const actorResult = await Effect.runPromise(
-      actorFrontendApi
-        .authenticate()
-        .pipe(
-          Effect.withSpan('shoppingProducts.authenticate', { root: true }),
-          Effect.provide(makeTelemetryLayer(telemetryCollector)),
-        ),
-    );
-
-    expect(actorResult.systemEnvironmentId).toBe('dev');
-    expect(actorResult.actor.actorId).toBe(prefixActorId(clerkUserId));
-
-    const productWebSocketUrl = new URL(apiUrl);
-    if (productWebSocketUrl.protocol === 'http:') {
-      productWebSocketUrl.protocol = 'ws:';
-    } else if (productWebSocketUrl.protocol === 'https:') {
-      productWebSocketUrl.protocol = 'wss:';
-    }
-    using productApis = newWebSocketRpcSession<ZerospinApis>(
-      productWebSocketUrl.toString(),
-    );
-    const catalogAdmission = await productApis.getServiceFrontendApi({
+    using gatewayApi = newWebSocketRpcSession<GatewayApi>(apiWebSocketUrl.href);
+    const authenticatedApi = await gatewayApi.getAuthenticatedApi({
       publishableKey,
-      serviceName: 'app',
-      actorName: 'catalogViewer',
-      frontendName: 'catalog',
-      signature: {
-        viewerId: clerkUserId,
-      },
+      authenticationLock,
+      signature: { clerkUserId },
     });
-
-    expect(catalogAdmission._tag).toBe('Success');
-    if (catalogAdmission._tag === 'Failure') {
-      throw new Error(catalogAdmission.failure.message);
-    }
-
-    const productFrontendApi = makeTraceableApiTarget(
-      catalogAdmission.frontendApi,
+    const authentication = await Effect.runPromise(
+      decodeRpc(await authenticatedApi.getAuthentication()),
     );
+    expect(authentication.userId).toBe(clerkUserId);
+
+    const aggregateFrontendApi = await authenticatedApi.getAggregateFrontendApi(
+      {
+        aggregateId: 'acct_1',
+        aggregateName: shopperFrontend.aggregateName,
+        frontendName: 'web',
+        aggregateFrontendLock: shopperAggregateFrontendLock,
+      },
+    );
+    const aggregateAdmission = await Effect.runPromise(
+      decodeRpc(await aggregateFrontendApi.getAdmission()),
+    );
+    expect(aggregateAdmission.actorRef.userId).toBe(clerkUserId);
+
+    const serviceFrontendApi = await authenticatedApi.getServiceFrontendApi({
+      serviceName: 'app',
+      frontendName: 'catalog',
+      serviceFrontendLock: catalogServiceFrontendLock,
+    });
+    const catalogAdmission = await Effect.runPromise(
+      decodeRpc(await serviceFrontendApi.getAdmission()),
+    );
+    expect(catalogAdmission.userId).toBe(clerkUserId);
+
+    const productFrontendApi = makeTraceableApiTarget(serviceFrontendApi);
 
     const productRows = await Effect.runPromise(
-      productFrontendApi.getFrontendState().pipe(
+      productFrontendApi.getState().pipe(
         Effect.withSpan('shoppingProducts.getServiceFrontendState', {
           root: true,
         }),
@@ -133,7 +105,7 @@ test('signed-in e2e user can read products through the service-owned catalog fro
     );
 
     expect(productRows.serviceName).toBe('app');
-    expect(productRows.actorName).toBe('catalogViewer');
+    expect(productRows.userId).toBe(clerkUserId);
     expect(productRows.frontendName).toBe('catalog');
     expect(productRows.resources).toEqual(expect.any(Array));
   }).toPass({

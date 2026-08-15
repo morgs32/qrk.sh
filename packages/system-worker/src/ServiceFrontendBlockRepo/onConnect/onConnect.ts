@@ -1,32 +1,56 @@
+import { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
+import { Effect, Either, Schema } from 'effect';
 import type { Connection } from 'partyserver';
-import { Effect } from 'effect';
 
-/*
- * The public worker spends the service ticket before forwarding this request.
- * Its private header binds this connection to the authenticated frontend code
- * while the service archive remains shared by compatible same-generation code.
- */
 export const onConnect = Effect.fn('ServiceFrontendBlockRepo.onConnect')(
   function* (props: {
     connection: Connection<{
       phase: 'awaiting-resume' | 'replaying' | 'live';
-      frontendVersion: string;
+      serviceName: string;
+      userId: string;
+      frontendName: string;
+      serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
     }>;
     request: Request;
+    key: {
+      generationId: string;
+      serviceName: string;
+      userId: string;
+      frontendName: string;
+    };
   }) {
     yield* Effect.void;
 
-    const frontendVersion = props.request.headers.get(
-      'x-zerospin-frontend-version',
+    const serviceName = props.request.headers.get('x-zerospin-service-name');
+    const userId = props.request.headers.get('x-zerospin-user-id');
+    const frontendName = props.request.headers.get('x-zerospin-frontend-name');
+    const encodedServiceFrontendLock = props.request.headers.get(
+      'x-zerospin-service-frontend-lock',
     );
-    if (frontendVersion === null || frontendVersion.length === 0) {
-      props.connection.close(4004, 'frontend-version-required');
+    if (
+      serviceName !== props.key.serviceName ||
+      userId !== props.key.userId ||
+      frontendName !== props.key.frontendName ||
+      encodedServiceFrontendLock === null
+    ) {
+      props.connection.close(4004, 'service-frontend-target-invalid');
       return;
     }
-
+    const serviceFrontendLockResult = yield* Schema.decodeUnknown(
+      Schema.parseJson(ServiceFrontendLockSchema),
+    )(encodedServiceFrontendLock, {
+      onExcessProperty: 'error',
+    }).pipe(Effect.either);
+    if (Either.isLeft(serviceFrontendLockResult)) {
+      props.connection.close(4004, 'service-frontend-lock-invalid');
+      return;
+    }
     props.connection.setState({
       phase: 'awaiting-resume',
-      frontendVersion,
+      serviceName,
+      userId,
+      frontendName,
+      serviceFrontendLock: serviceFrontendLockResult.right,
     });
   },
 );

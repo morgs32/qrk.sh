@@ -1,214 +1,162 @@
 /*
- * System-worker annotation:
- * Atomically promotes one prepared deploy to generation-local admission. The
- * caller owns the external activation reservation and final stable promotion.
+ * Applies the destination-generation portion of atomic deploy promotion. The
+ * caller supplies the same local transaction that moves system selection.
  */
 
-import type { IDb } from '@zerospin/core/drizzle/types';
+import type { IDb, ITx } from '@zerospin/core/drizzle/types';
 import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
 import { mapParseError, ZerospinError } from '@zerospin/error';
-import { and, eq, type AnyColumn } from 'drizzle-orm';
+import { and, eq, ne, type AnyColumn } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 export const openGeneration = Effect.fn('SystemRepo.openGeneration')(
   function* (props: {
-    db: IDb;
+    db: IDb | ITx;
     deployId: string;
-    drainBoundsTable: IAnyDrizzleSchema;
     generationId: string;
     generationStateTable: IAnyDrizzleSchema;
     generationStateColumns: Readonly<{
+      phase: AnyColumn;
       generationId: AnyColumn;
       preparingDeployId: AnyColumn;
-      readiness: AnyColumn;
     }>;
   }) {
-    const {
-      db,
-      deployId,
-      drainBoundsTable,
-      generationId,
-      generationStateColumns,
-      generationStateTable,
-    } = props;
-
-    // Checkpoint 1: opening never creates or repairs preparation state.
     const rawGenerationState = yield* Effect.try({
       try: () =>
-        db
+        props.db
           .select()
-          .from(generationStateTable)
-          .where(eq(generationStateColumns.generationId, generationId))
+          .from(props.generationStateTable)
+          .where(
+            eq(props.generationStateColumns.generationId, props.generationId),
+          )
           .get(),
       catch: ZerospinError.catch({
         code: 'generation-open-state-read-failed',
-        message: 'Failed to read generation state before opening admission',
-        extra: { deployId, generationId },
+        message: 'Failed to read prepared generation state before promotion',
+        extra: {
+          deployId: props.deployId,
+          generationId: props.generationId,
+        },
       }),
     });
     if (rawGenerationState === undefined) {
       return yield* new ZerospinError({
         code: 'generation-open-not-prepared',
         message: 'The generation cannot open before it is prepared',
-        extra: { deployId, generationId },
+        extra: {
+          deployId: props.deployId,
+          generationId: props.generationId,
+        },
       });
     }
-
     const generationState = yield* Schema.decodeUnknown(
       Schema.Struct({
-        generationId: Schema.String,
         activeDeployId: Schema.NullOr(Schema.String),
         preparingDeployId: Schema.NullOr(Schema.String),
-        readiness: Schema.Literal('initializing', 'ready', 'failed'),
-        admission: Schema.Literal('closed', 'open', 'draining', 'drained'),
+        phase: Schema.Literal(
+          'closed',
+          'migrating',
+          'open',
+          'draining',
+          'retired',
+        ),
+        readyAt: Schema.NullOr(Schema.DateFromSelf),
         preparingSystemSpec: Schema.NullOr(Schema.String),
       }),
     )(rawGenerationState).pipe(
       mapParseError({
         code: 'generation-open-state-invalid',
-        prefix: 'Stored generation state is invalid before opening admission',
-        extra: { deployId, generationId },
+        prefix: 'Stored generation state is invalid before promotion',
+        extra: {
+          deployId: props.deployId,
+          generationId: props.generationId,
+        },
       }),
     );
 
-    // Checkpoint 2: a repeated in-flight call for the same already-open deploy
-    // is idempotent. A different deploy can never borrow that result.
     if (
-      generationState.activeDeployId === deployId &&
-      generationState.preparingDeployId === null &&
-      generationState.readiness === 'ready' &&
-      generationState.admission === 'open'
+      generationState.phase === 'open' &&
+      generationState.activeDeployId === props.deployId &&
+      generationState.preparingDeployId === null
     ) {
-      // An idempotent retry also repairs receipts written by an older Worker
-      // before atomic deploy transfer existed. Every row belongs to this
-      // generation-local SystemRepo, and an open generation has no frozen
-      // terminal bounds to preserve under an older deploy identity.
-      yield* Effect.try({
-        try: () => db.update(drainBoundsTable).set({ deployId }).run(),
-        catch: ZerospinError.catch({
-          code: 'generation-open-projection-reservation-transfer-failed',
-          message:
-            'Failed to transfer generation projection reservations to the active deploy',
-          extra: { deployId, generationId },
-        }),
-      });
-      return { deployId, generationId };
+      return { deployId: props.deployId, generationId: props.generationId };
     }
-
-    if (generationState.readiness !== 'ready') {
+    if (
+      generationState.readyAt === null ||
+      (generationState.phase !== 'closed' &&
+        generationState.phase !== 'migrating' &&
+        generationState.phase !== 'open') ||
+      generationState.preparingDeployId !== props.deployId ||
+      generationState.preparingSystemSpec === null
+    ) {
       return yield* new ZerospinError({
         code: 'generation-open-not-ready',
-        message: 'The generation cannot open until preparation is ready',
+        message:
+          'Only the exact ready preparing deploy may open its destination generation',
         extra: {
-          deployId,
-          generationId,
-          readiness: generationState.readiness,
-        },
-      });
-    }
-    if (generationState.preparingDeployId !== deployId) {
-      return yield* new ZerospinError({
-        code: 'generation-open-deploy-mismatch',
-        message: 'The deploy does not own this generation preparation',
-        extra: {
-          deployId,
-          generationId,
+          deployId: props.deployId,
+          generationId: props.generationId,
           preparingDeployId: generationState.preparingDeployId,
-          activeDeployId: generationState.activeDeployId,
+          readyAt: generationState.readyAt,
+          phase: generationState.phase,
         },
       });
     }
-    if (generationState.preparingSystemSpec === null) {
-      return yield* new ZerospinError({
-        code: 'generation-open-system-spec-missing',
-        message: 'The prepared generation has no candidate SystemSpec',
-        extra: { deployId, generationId },
-      });
-    }
 
-    // Checkpoint 3: the candidate SystemSpec, deploy admission, and every
-    // unfinished live-projection receipt move together. The synchronous SQLite
-    // transaction serializes with lineage reservation: an older deploy's row
-    // is transferred here, or its later reservation observes the new active
-    // deploy and is rejected.
-    yield* Effect.try({
-      try: () =>
-        db.transaction(tx => {
-          tx.update(drainBoundsTable).set({ deployId }).run();
-          tx.update(generationStateTable)
-            .set({
-              activeDeployId: deployId,
-              preparingDeployId: null,
-              admission: 'open',
-              activeSystemSpec: generationState.preparingSystemSpec,
-              preparingSystemSpec: null,
-              failure: null,
-              openedAt: new Date(),
-            })
-            .where(
-              and(
-                eq(generationStateColumns.generationId, generationId),
-                eq(generationStateColumns.preparingDeployId, deployId),
-                eq(generationStateColumns.readiness, 'ready'),
-              ),
-            )
-            .run();
-        }),
-      catch: ZerospinError.catch({
-        code: 'generation-open-write-failed',
-        message: 'Failed to open generation admission',
-        extra: { deployId, generationId },
-      }),
-    });
-
-    // Checkpoint 4: verify the postcondition rather than trusting a stale update.
-    const openedGenerationState = yield* Effect.try({
-      try: () =>
-        db
-          .select()
-          .from(generationStateTable)
-          .where(eq(generationStateColumns.generationId, generationId))
-          .get(),
-      catch: ZerospinError.catch({
-        code: 'generation-open-verification-read-failed',
-        message: 'Failed to verify opened generation admission',
-        extra: { deployId, generationId },
-      }),
-    });
-    const opened = yield* Schema.decodeUnknown(
-      Schema.Struct({
-        activeDeployId: Schema.NullOr(Schema.String),
-        preparingDeployId: Schema.NullOr(Schema.String),
-        readiness: Schema.Literal('initializing', 'ready', 'failed'),
-        admission: Schema.Literal('closed', 'open', 'draining', 'drained'),
-      }),
-    )(openedGenerationState).pipe(
-      mapParseError({
-        code: 'generation-open-verification-invalid',
-        prefix: 'Opened generation state is invalid',
-        extra: { deployId, generationId },
-      }),
-    );
-    if (
-      opened.activeDeployId !== deployId ||
-      opened.preparingDeployId !== null ||
-      opened.readiness !== 'ready' ||
-      opened.admission !== 'open'
-    ) {
+    const unrelatedOpen = props.db
+      .select({ generationId: props.generationStateColumns.generationId })
+      .from(props.generationStateTable)
+      .where(
+        and(
+          eq(props.generationStateColumns.phase, 'open'),
+          ne(props.generationStateColumns.generationId, props.generationId),
+        ),
+      )
+      .get();
+    if (unrelatedOpen !== undefined && generationState.phase !== 'open') {
       return yield* new ZerospinError({
         code: 'generation-open-conflict',
-        message: 'Generation admission changed while the deploy was opening',
+        message: 'Another generation is already open for this System',
         extra: {
-          deployId,
-          generationId,
-          activeDeployId: opened.activeDeployId,
-          preparingDeployId: opened.preparingDeployId,
-          readiness: opened.readiness,
-          admission: opened.admission,
+          deployId: props.deployId,
+          generationId: props.generationId,
+          openGenerationId: unrelatedOpen.generationId,
         },
       });
     }
 
-    return { deployId, generationId };
+    yield* Effect.try({
+      try: () =>
+        props.db
+          .update(props.generationStateTable)
+          .set({
+            activeDeployId: props.deployId,
+            preparingDeployId: null,
+            activeSystemSpec: generationState.preparingSystemSpec,
+            preparingSystemSpec: null,
+            phase: 'open',
+            openedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(props.generationStateColumns.generationId, props.generationId),
+              eq(
+                props.generationStateColumns.preparingDeployId,
+                props.deployId,
+              ),
+            ),
+          )
+          .run(),
+      catch: ZerospinError.catch({
+        code: 'generation-open-write-failed',
+        message: 'Failed to open the prepared generation during promotion',
+        extra: {
+          deployId: props.deployId,
+          generationId: props.generationId,
+        },
+      }),
+    });
+
+    return { deployId: props.deployId, generationId: props.generationId };
   },
 );

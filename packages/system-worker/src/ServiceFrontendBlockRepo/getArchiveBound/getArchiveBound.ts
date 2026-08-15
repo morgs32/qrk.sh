@@ -12,8 +12,7 @@ export const getArchiveBound = Effect.fn(
   key: {
     generationId: string;
     serviceName: string;
-    actorName: string;
-    actorId: string;
+    userId: string;
     frontendName: string;
   };
 }): Effect.fn.Return<
@@ -30,8 +29,7 @@ export const getArchiveBound = Effect.fn(
     lineage === undefined ||
     lineage.generationId !== key.generationId ||
     lineage.serviceName !== key.serviceName ||
-    lineage.actorName !== key.actorName ||
-    lineage.actorId !== key.actorId ||
+    lineage.userId !== key.userId ||
     lineage.frontendName !== key.frontendName
   ) {
     return yield* new ZerospinError({

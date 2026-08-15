@@ -15,7 +15,6 @@ import { decodeAppliedMutation } from './decodeAppliedMutation.ts';
 import { encodeAppliedMutation } from './encodeAppliedMutation.ts';
 
 const testUserId = 'usr_commitdel001' as const;
-const testActorId = 'actr_commitdel001' as const;
 const now = new Date('2020-01-01T00:00:00.000Z');
 const appliedAt = new Date('2020-01-02T00:00:00.000Z');
 
@@ -25,7 +24,6 @@ const userRow = {
   createdAt: now,
   updatedAt: now,
   version: User.version,
-  actorId: testActorId,
   name: 'Alice',
 };
 

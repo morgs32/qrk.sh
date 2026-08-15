@@ -6,9 +6,9 @@ import { describe, expect } from 'vitest';
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
+import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { makeServiceModel } from '../models/makeServiceModel.ts';
 import { primitives } from '../models/primitives.ts';
-import { makeServiceFrontendController } from '../serviceFrontendController/makeServiceFrontendController.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
@@ -52,12 +52,11 @@ const models = {
   product: Product,
 };
 
-const frontend = makeServiceFrontendController({
+const frontend = makeFrontendController({
   systemName: 'shop',
   serviceName: 'catalog',
-  actorName: 'viewer',
   frontendName: 'catalog',
-  version: '1.0.0',
+  userId: Schema.NonEmptyString,
   models,
   signature: Schema.Struct({ subject: Schema.String }),
 });
@@ -84,21 +83,15 @@ describe('applyServiceFrontendState', () => {
           // 2 — install a valid baseline snapshot.
           yield* applyServiceFrontendState({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
-            systemVersion: '1.0.0',
-            systemWorkerName: 'shop-worker-1',
             db,
             models,
             frontendState: {
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               systemVersion: '1.0.0',
-              systemWorkerName: 'shop-worker-1',
               serviceName: 'catalog',
-              actorName: 'viewer',
               frontendName: 'catalog',
               frontendIndex: 4,
               resources: [
@@ -128,21 +121,15 @@ describe('applyServiceFrontendState', () => {
           // 3 — reject a validly encoded state for another actor before deletion.
           const wrongTarget = yield* applyServiceFrontendState({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
-            systemVersion: '1.0.0',
-            systemWorkerName: 'shop-worker-1',
             db,
             models,
             frontendState: {
-              actorId: 'actr_other',
+              userId: 'user_other',
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               systemVersion: '1.0.0',
-              systemWorkerName: 'shop-worker-1',
               serviceName: 'catalog',
-              actorName: 'viewer',
               frontendName: 'catalog',
               frontendIndex: 5,
               resources: [],
@@ -156,21 +143,15 @@ describe('applyServiceFrontendState', () => {
           // 4 — force a deferred foreign-key failure after replacement starts.
           const failedReplacement = yield* applyServiceFrontendState({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
-            systemVersion: '1.0.0',
-            systemWorkerName: 'shop-worker-1',
             db,
             models,
             frontendState: {
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               systemVersion: '1.0.0',
-              systemWorkerName: 'shop-worker-1',
               serviceName: 'catalog',
-              actorName: 'viewer',
               frontendName: 'catalog',
               frontendIndex: 5,
               resources: [
@@ -197,17 +178,15 @@ describe('applyServiceFrontendState', () => {
             },
           }).pipe(Effect.either);
           expect(failedReplacement._tag).toBe('Left');
-          expect(
-            db.select().from(models.category.drizzleSchema).all(),
-          ).toEqual([
-            expect.objectContaining({
-              id: 'cat_original',
-              name: 'Original category',
-            }),
-          ]);
-          expect(
-            db.select().from(models.product.drizzleSchema).all(),
-          ).toEqual([
+          expect(db.select().from(models.category.drizzleSchema).all()).toEqual(
+            [
+              expect.objectContaining({
+                id: 'cat_original',
+                name: 'Original category',
+              }),
+            ],
+          );
+          expect(db.select().from(models.product.drizzleSchema).all()).toEqual([
             expect.objectContaining({
               id: 'prd_original',
               categoryId: 'cat_original',
@@ -218,21 +197,15 @@ describe('applyServiceFrontendState', () => {
           // 5 — a later valid snapshot replaces both tables on that same db.
           yield* applyServiceFrontendState({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
-            systemVersion: '1.0.0',
-            systemWorkerName: 'shop-worker-1',
             db,
             models,
             frontendState: {
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               systemVersion: '1.0.0',
-              systemWorkerName: 'shop-worker-1',
               serviceName: 'catalog',
-              actorName: 'viewer',
               frontendName: 'catalog',
               frontendIndex: 5,
               resources: [

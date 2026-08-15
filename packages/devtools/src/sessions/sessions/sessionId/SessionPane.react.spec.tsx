@@ -34,7 +34,7 @@ describe('SessionPane service surface', () => {
     container.remove();
   });
 
-  it('shows worker state, Database, and Logs without account command or push controls', async () => {
+  it('shows worker state, Database, and Logs without aggregate command or push controls', async () => {
     const models = {};
     const dbConfig = makeResourceDbConfig({ models, otherTables: {} });
     const db = await Effect.runPromise(
@@ -46,9 +46,10 @@ describe('SessionPane service surface', () => {
       frontend: {
         systemName: 'shopping',
         serviceName: 'catalog',
-        actorName: 'product',
         frontendName: 'browse',
-        version: '1.0.0',
+        kind: 'service',
+        contracts: {},
+        guards: {},
         models,
         modelNames: [],
         signature: Schema.Struct({ userId: Schema.String }),
@@ -58,15 +59,12 @@ describe('SessionPane service surface', () => {
     });
     session.store.setState({
       sessionId: serviceSessionId,
-      actorId: 'actr_service_pane',
+      userId: 'user_service_pane',
       systemId: 'sys_service_pane',
-      generationId: 'generation_service_pane',
       systemVersion: '1.0.0',
-      systemWorkerName: 'shopping-worker',
       serviceName: 'catalog',
-      actorName: 'product',
       frontendName: 'browse',
-      frontendVersion: '1.0.0',
+      serviceFrontendLockKey: 'b'.repeat(64),
       db,
       schema: dbConfig.schema,
       models,

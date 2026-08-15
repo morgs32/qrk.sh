@@ -141,21 +141,31 @@ function boolean(props?: {
 function integer<const DEFAULT_VALUE extends number>(props: {
   nullable: true;
   unique?: boolean;
+  primaryKey?: false | undefined;
   defaultValue: DEFAULT_VALUE;
 }): IIntegerDescriptor<true, DEFAULT_VALUE>;
 function integer(props: {
   nullable: true;
   unique?: boolean;
+  primaryKey?: false | undefined;
   defaultValue?: undefined;
 }): IIntegerDescriptor<true, undefined>;
 function integer<const DEFAULT_VALUE extends number>(props: {
   nullable?: false | undefined;
   unique?: boolean;
+  primaryKey?: false | undefined;
   defaultValue: DEFAULT_VALUE;
 }): IIntegerDescriptor<false, DEFAULT_VALUE>;
+function integer(props: {
+  nullable?: false | undefined;
+  unique?: false | undefined;
+  primaryKey: true;
+  defaultValue?: undefined;
+}): IIntegerDescriptor<false, undefined>;
 function integer(props?: {
   nullable?: false | undefined;
   unique?: boolean;
+  primaryKey?: false | undefined;
   defaultValue?: undefined;
 }): IIntegerDescriptor<false, undefined>;
 function integer<
@@ -164,19 +174,40 @@ function integer<
 >(props: {
   nullable?: NULLABLE;
   unique?: boolean;
+  primaryKey?: false | undefined;
   defaultValue: DEFAULT_VALUE;
 }): IIntegerDescriptor<NULLABLE, DEFAULT_VALUE>;
 function integer<NULLABLE extends boolean = false>(props?: {
   nullable?: NULLABLE;
   unique?: boolean;
+  primaryKey?: false | undefined;
   defaultValue?: undefined;
 }): IIntegerDescriptor<NULLABLE, undefined>;
 function integer(props?: {
   nullable?: boolean | undefined;
   unique?: boolean | undefined;
+  primaryKey?: boolean | undefined;
   defaultValue?: number | undefined;
 }): IIntegerDescriptor<boolean, number | undefined> {
-  const { nullable = false, unique = false, defaultValue } = props ?? {};
+  const {
+    nullable = false,
+    unique = false,
+    primaryKey = false,
+    defaultValue,
+  } = props ?? {};
+  if (primaryKey && (nullable || unique || defaultValue !== undefined)) {
+    throw new Error(
+      'primitives.integer primaryKey cannot be nullable, unique, or defaulted',
+    );
+  }
+  if (primaryKey) {
+    return {
+      kind: PrimitiveKind.Integer,
+      nullable,
+      unique,
+      primaryKey,
+    };
+  }
   if (defaultValue === undefined) {
     return {
       kind: PrimitiveKind.Integer,

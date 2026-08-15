@@ -1,7 +1,7 @@
 import type {
-  ISystem,
   ISystemConfig,
   ISystemEnvironmentId,
+  ISystemSpec,
 } from '@zerospin/core/system/types';
 import { Box, Text } from 'ink';
 
@@ -41,18 +41,18 @@ export function DeploySystem(props: {
   clean: boolean;
   zerospinSecretKey: string;
   zerospinApiUrl: string;
-  compiledSystemWorker: string;
+  workerBundle: string;
   environmentId: ISystemEnvironmentId;
-  system: ISystem;
+  systemSpec: ISystemSpec;
   config: ISystemConfig;
 }) {
   const {
     clean,
     zerospinSecretKey,
     zerospinApiUrl,
-    compiledSystemWorker,
+    workerBundle,
     environmentId,
-    system,
+    systemSpec,
     config,
   } = props;
 
@@ -62,9 +62,9 @@ export function DeploySystem(props: {
         clean,
         zerospinSecretKey,
         zerospinApiUrl,
-        compiledSystemWorker,
+        systemSpec,
+        workerBundle,
         environmentId,
-        system,
         config,
       }),
   });
@@ -102,7 +102,7 @@ export function DeploySystem(props: {
                 {JSON.stringify(
                   {
                     zerospinApiUrl: data.zerospinApiUrl,
-                    compiledLength: data.compiledLength,
+                    bundleLength: data.bundleLength,
                     environmentId: data.environmentId,
                     cloudflareDeploymentId: data.cloudflareDeploymentId,
                     seedCommandsFinalized: data.seedCommandsFinalized,

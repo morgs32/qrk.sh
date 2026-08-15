@@ -44,6 +44,9 @@
       "path": "../logger"
     },
     {
+      "path": "../frontend"
+    },
+    {
       "path": "../error"
     },
     {

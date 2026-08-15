@@ -1,15 +1,28 @@
 /**
- * Stable Workers for Platforms dispatch script name for one system instance.
+ * Stable Workers for Platforms dispatch script name for one authenticated
+ * system environment.
  */
-import type { ISystemId } from '@zerospin/core/system/types';
+import type { ICloudApiKeyIdentity } from 'system-worker/ApiKeyIdentityResolver/ApiKeyIdentityResolver';
 
-export function makeSystemWorkerName(props: {
-  systemId: ISystemId;
-  instanceId: string;
-}): string {
-  const { systemId, instanceId } = props;
-  if (instanceId.length === 0) {
-    throw new Error('System worker name requires a non-empty instanceId.');
+export function makeSystemWorkerName(
+  props:
+    | {
+        systemId: ICloudApiKeyIdentity['systemId'];
+        systemEnvironmentId: 'dev';
+        clerkUserId: string;
+      }
+    | {
+        systemId: ICloudApiKeyIdentity['systemId'];
+        systemEnvironmentId: 'production';
+      },
+): ICloudApiKeyIdentity['systemWorkerName'] {
+  if (props.systemEnvironmentId === 'dev') {
+    if (props.clerkUserId.length === 0) {
+      throw new Error(
+        'Hosted development system worker name requires a non-empty clerkUserId.',
+      );
+    }
+    return `${props.systemId}:${props.clerkUserId}`;
   }
-  return `${systemId}:${instanceId}`;
+  return props.systemId;
 }

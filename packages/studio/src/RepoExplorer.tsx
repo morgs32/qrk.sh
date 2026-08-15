@@ -33,14 +33,13 @@ import {
 
 const repoTypes = [
   'SystemRepo',
-  'AccountRepo',
-  'AuthorizationRepo',
-  'ActorRepo',
-  'FrontendRepo',
+  'AggregateRepo',
+  'AggregateFrontendRepo',
+  'ServiceFrontendRepo',
   'ServiceRepo',
-  'AccountBlockRepo',
-  'ActorBlockRepo',
-  'FrontendBlockRepo',
+  'AggregateBlockRepo',
+  'AggregateFrontendBlockRepo',
+  'ServiceFrontendBlockRepo',
   'ServiceBlockRepo',
   'SystemLogRepo',
 ] satisfies readonly IRepoType[];

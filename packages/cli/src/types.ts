@@ -6,7 +6,7 @@ import type {
 import type { IAnyErrorJson } from '@zerospin/error';
 import type { Brand, Schema } from 'effect';
 
-/** Success payload decoded from `CliApi.deploySystemWorker` RPC. */
+/** Success payload decoded from `CliApi.deployWorkerBundle` RPC. */
 export type IDeployWorkerResponse = {
   readonly id: string;
   readonly cloudflareDeploymentId: string;
@@ -17,9 +17,9 @@ export type IDeployWorkerResponse = {
 /** RPC client shape returned from `getCliApi` over the batch gateway. */
 export type ICliClientApi = {
   [Brand.BrandTypeId]: 'TargetApi';
-  deploySystemWorker(props: {
+  deployWorkerBundle(props: {
     readonly clean: boolean;
-    readonly script: string;
+    readonly workerBundle: string;
     readonly config: IDeployConfig;
     readonly systemSpec: ISystemSpec;
   }): Promise<Schema.EitherEncoded<IDeployWorkerResponse, IAnyErrorJson>>;
@@ -33,15 +33,10 @@ export type ICliApis = {
 
 export type IDeploySystemResult = {
   zerospinApiUrl: string;
-  compiledLength: number;
+  bundleLength: number;
   environmentId: ISystemEnvironmentId;
   cloudflareDeploymentId: string;
   seedCommandsFinalized: number;
   seedsLoadedCount: number;
   response: unknown;
-};
-
-export type IWriteLocalSystemWorkerResult = {
-  compiledLength: number;
-  outputPath: string;
 };

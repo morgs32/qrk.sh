@@ -5,30 +5,6 @@
     "lib": {
       "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
       "outputs": ["{projectRoot}/dist"]
-    },
-    "test:workerd:dev-seeds-clean": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "vitest run --config vitest.dev-seeds-clean.config.ts",
-        "cwd": "{projectRoot}"
-      },
-      "dependsOn": ["lib", "^lib"]
-    },
-    "test:workerd:dev-seeds-non-clean": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "vitest run --config vitest.dev-seeds-non-clean.config.ts",
-        "cwd": "{projectRoot}"
-      },
-      "dependsOn": ["lib", "^lib"]
-    },
-    "test:workerd:local-controller-restart": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "vitest run --config vitest.local-controller-restart.config.ts",
-        "cwd": "{projectRoot}"
-      },
-      "dependsOn": ["lib", "^lib"]
     }
   }
 }

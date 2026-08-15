@@ -5,19 +5,19 @@ import { useStore } from 'zustand/react';
 import type { IDevtoolsServiceSessionEntry } from '../../../types.js';
 import { zerospinDevtoolsStore } from '../../../zerospinDevtoolsStore.js';
 
-export function useAccountSession(): ISession | undefined {
+export function useAggregateSession(): ISession | undefined {
   const { sessionId } = useParams<{ sessionId: ISessionId }>();
   return useStore(zerospinDevtoolsStore, state =>
     sessionId === undefined
       ? undefined
-      : state.accountSessionsById.get(sessionId)?.session,
+      : state.aggregateSessionsById.get(sessionId)?.session,
   );
 }
 
-export function useAccountSessionOrThrow(): ISession {
-  const session = useAccountSession();
+export function useAggregateSessionOrThrow(): ISession {
+  const session = useAggregateSession();
   if (!session) {
-    throw new Error('Account session not found');
+    throw new Error('Aggregate session not found');
   }
   return session;
 }

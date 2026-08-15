@@ -1,97 +1,174 @@
 import type { IAnyError } from '@zerospin/error';
-import type { Effect, Schema } from 'effect';
+import type { Effect } from 'effect';
 
 import type { IContractAdapterEntry } from '../contracts/makeContractAdapter.ts';
+import type { IContract, IContracts } from '../contracts/types.ts';
+import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
 import type {
-  IActorCommand,
-  ICommand,
-  IContract,
-  IContracts,
-} from '../contracts/types.ts';
-import type { IFrontendController } from '../frontendController/types.ts';
-import type { IGuards } from '../guards/types.ts';
+  IAnyAggregateFrontendController,
+  IAnyServiceFrontendController,
+} from '../frontendController/types.ts';
 import type {
+  IAggregateId,
   IModel,
   IModels,
   InferCommandPayload,
-  InferPayloadInput,
   InferResource,
 } from '../models/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
-import type { IAnyAuthentication, IAuthenticate } from '../system/types.ts';
 
-type IFrontendControllerBindingSource = Pick<
-  IFrontendController,
-  | 'accountName'
-  | 'actorName'
-  | 'frontendName'
-  | 'version'
-  | 'contracts'
-  | 'systemName'
-  | 'models'
-  | 'signature'
->;
-
-type IBindingModels<
+export type IFrontendModelBindings<
   FRONTEND_MODELS extends IModels,
-  ACTOR_MODELS extends IModels,
-> = Pick<ACTOR_MODELS, keyof ACTOR_MODELS & keyof FRONTEND_MODELS>;
+  SOURCE_MODELS extends IModels,
+> = Partial<{
+  [K in keyof FRONTEND_MODELS & string]: keyof SOURCE_MODELS & string;
+}>;
 
-type IModelAdapter<
-  ACTOR_MODEL extends IModel,
+type IDefaultFrontendModelBindings<
+  FRONTEND_MODELS extends IModels,
+  SOURCE_MODELS extends IModels,
+> = {
+  [K in keyof FRONTEND_MODELS & keyof SOURCE_MODELS & string]: K;
+};
+
+type IResolvedFrontendModelBindings<
+  FRONTEND_MODELS extends IModels,
+  SOURCE_MODELS extends IModels,
+  MODEL_BINDINGS extends
+    | IFrontendModelBindings<FRONTEND_MODELS, SOURCE_MODELS>
+    | undefined,
+> = [MODEL_BINDINGS] extends [undefined]
+  ? IDefaultFrontendModelBindings<FRONTEND_MODELS, SOURCE_MODELS>
+  : MODEL_BINDINGS;
+
+export type IResolvedFrontendModels<
+  FRONTEND_MODELS extends IModels,
+  SOURCE_MODELS extends IModels,
+  MODEL_BINDINGS extends
+    | IFrontendModelBindings<FRONTEND_MODELS, SOURCE_MODELS>
+    | undefined,
+> = {
+  [K in keyof IResolvedFrontendModelBindings<
+    FRONTEND_MODELS,
+    SOURCE_MODELS,
+    MODEL_BINDINGS
+  > &
+    keyof FRONTEND_MODELS]: IResolvedFrontendModelBindings<
+    FRONTEND_MODELS,
+    SOURCE_MODELS,
+    MODEL_BINDINGS
+  >[K] extends keyof SOURCE_MODELS
+    ? SOURCE_MODELS[IResolvedFrontendModelBindings<
+        FRONTEND_MODELS,
+        SOURCE_MODELS,
+        MODEL_BINDINGS
+      >[K]]
+    : never;
+};
+
+type IProjectionAdapter<
+  SOURCE_MODEL extends IModel,
   FRONTEND_MODEL extends IModel,
 > = (
-  actorResource: InferResource<ACTOR_MODEL>,
+  sourceResource: InferResource<SOURCE_MODEL>,
 ) => Effect.Effect<InferResource<FRONTEND_MODEL>, IAnyError>;
 
-type IModelAdapterRequiredKeys<
+type IProjectionAdapterRequiredKeys<
   FRONTEND_MODELS extends IModels,
-  ACTOR_MODELS extends IModels,
+  SOURCE_MODELS extends IModels,
+  MODEL_BINDINGS extends
+    | IFrontendModelBindings<FRONTEND_MODELS, SOURCE_MODELS>
+    | undefined,
 > = {
-  [K in keyof FRONTEND_MODELS &
-    keyof ACTOR_MODELS &
+  [K in keyof IResolvedFrontendModels<
+    FRONTEND_MODELS,
+    SOURCE_MODELS,
+    MODEL_BINDINGS
+  > &
+    keyof FRONTEND_MODELS &
     string]: FRONTEND_MODELS[K] extends {
     modelName: infer FRONTEND_NAME extends string;
   }
-    ? ACTOR_MODELS[K] extends { modelName: infer ACTOR_NAME extends string }
-      ? FRONTEND_NAME extends ACTOR_NAME
-        ? ACTOR_NAME extends FRONTEND_NAME
+    ? IResolvedFrontendModels<
+        FRONTEND_MODELS,
+        SOURCE_MODELS,
+        MODEL_BINDINGS
+      >[K] extends {
+        modelName: infer SOURCE_NAME extends string;
+      }
+      ? FRONTEND_NAME extends SOURCE_NAME
+        ? SOURCE_NAME extends FRONTEND_NAME
           ? never
           : K
         : K
       : K
     : never;
-}[keyof FRONTEND_MODELS & keyof ACTOR_MODELS & string];
+}[keyof IResolvedFrontendModels<
+  FRONTEND_MODELS,
+  SOURCE_MODELS,
+  MODEL_BINDINGS
+> &
+  keyof FRONTEND_MODELS &
+  string];
 
-type IModelAdapterForbiddenKeys<
+type IProjectionAdapterForbiddenKeys<
   FRONTEND_MODELS extends IModels,
-  ACTOR_MODELS extends IModels,
+  SOURCE_MODELS extends IModels,
+  MODEL_BINDINGS extends
+    | IFrontendModelBindings<FRONTEND_MODELS, SOURCE_MODELS>
+    | undefined,
 > = {
-  [K in keyof FRONTEND_MODELS &
-    keyof ACTOR_MODELS &
+  [K in keyof IResolvedFrontendModels<
+    FRONTEND_MODELS,
+    SOURCE_MODELS,
+    MODEL_BINDINGS
+  > &
+    keyof FRONTEND_MODELS &
     string]: FRONTEND_MODELS[K] extends {
     modelName: infer FRONTEND_NAME extends string;
   }
-    ? ACTOR_MODELS[K] extends { modelName: infer ACTOR_NAME extends string }
-      ? FRONTEND_NAME extends ACTOR_NAME
-        ? ACTOR_NAME extends FRONTEND_NAME
+    ? IResolvedFrontendModels<
+        FRONTEND_MODELS,
+        SOURCE_MODELS,
+        MODEL_BINDINGS
+      >[K] extends {
+        modelName: infer SOURCE_NAME extends string;
+      }
+      ? FRONTEND_NAME extends SOURCE_NAME
+        ? SOURCE_NAME extends FRONTEND_NAME
           ? K
           : never
         : never
       : never
     : never;
-}[keyof FRONTEND_MODELS & keyof ACTOR_MODELS & string];
+}[keyof IResolvedFrontendModels<
+  FRONTEND_MODELS,
+  SOURCE_MODELS,
+  MODEL_BINDINGS
+> &
+  keyof FRONTEND_MODELS &
+  string];
 
-export type IModelAdapters<
+export type IProjectionAdapters<
   FRONTEND_MODELS extends IModels,
-  ACTOR_MODELS extends IModels,
+  SOURCE_MODELS extends IModels,
+  MODEL_BINDINGS extends
+    | IFrontendModelBindings<FRONTEND_MODELS, SOURCE_MODELS>
+    | undefined = undefined,
 > = {
-  [K in IModelAdapterRequiredKeys<
+  [K in IProjectionAdapterRequiredKeys<
     FRONTEND_MODELS,
-    ACTOR_MODELS
-  >]: IModelAdapter<ACTOR_MODELS[K], FRONTEND_MODELS[K]>;
+    SOURCE_MODELS,
+    MODEL_BINDINGS
+  >]: IProjectionAdapter<
+    IResolvedFrontendModels<FRONTEND_MODELS, SOURCE_MODELS, MODEL_BINDINGS>[K],
+    FRONTEND_MODELS[K]
+  >;
 } & {
-  [K in IModelAdapterForbiddenKeys<FRONTEND_MODELS, ACTOR_MODELS>]?: never;
+  [K in IProjectionAdapterForbiddenKeys<
+    FRONTEND_MODELS,
+    SOURCE_MODELS,
+    MODEL_BINDINGS
+  >]?: never;
 };
 
 export type IContractAdapters<FRONTEND_CONTRACTS extends IContracts> = Partial<{
@@ -101,73 +178,101 @@ export type IContractAdapters<FRONTEND_CONTRACTS extends IContracts> = Partial<{
   >;
 }>;
 
-type IResolvedContracts<
+export type IResolvedContracts<
   FRONTEND_CONTRACTS extends IContracts,
   CONTRACT_ADAPTERS extends IContractAdapters<FRONTEND_CONTRACTS>,
 > = {
   [K in keyof FRONTEND_CONTRACTS]: K extends keyof CONTRACT_ADAPTERS
     ? CONTRACT_ADAPTERS[K] extends IContractAdapterEntry<
         FRONTEND_CONTRACTS[K],
-        infer ACTOR_CONTRACT
+        infer AGGREGATE_CONTRACT
       >
-      ? ACTOR_CONTRACT
+      ? AGGREGATE_CONTRACT
       : FRONTEND_CONTRACTS[K]
     : FRONTEND_CONTRACTS[K];
 };
 
-export type IFrontendBindingProps<
-  ACTOR_MODELS extends IModels = IModels,
-  FRONTEND_CONTROLLER extends IFrontendControllerBindingSource =
-    IFrontendControllerBindingSource,
+export type IAggregateAuthorization<
+  FRONTENDS extends Record<string, IAnyAggregateFrontendBinding>,
+  MODELS extends IModels,
+  AUTHORIZATION_CONTEXT = never,
+> = (
+  props: {
+    [FRONTEND_NAME in keyof FRONTENDS & string]: {
+      frontendName: FRONTEND_NAME;
+      userId: string;
+      aggregateId: IAggregateId;
+      db: Readonly<
+        Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
+      >;
+    };
+  }[keyof FRONTENDS & string],
+) => Effect.Effect<void, IAnyError, AUTHORIZATION_CONTEXT>;
+
+export type IServiceAuthorization<
+  FRONTENDS extends Record<string, IAnyServiceFrontendBinding>,
+  MODELS extends IModels,
+  AUTHORIZATION_CONTEXT = never,
+> = (
+  props: {
+    [FRONTEND_NAME in keyof FRONTENDS & string]: {
+      frontendName: FRONTEND_NAME;
+      userId: string;
+      db: Readonly<
+        Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
+      >;
+    };
+  }[keyof FRONTENDS & string],
+) => Effect.Effect<void, IAnyError, AUTHORIZATION_CONTEXT>;
+
+export type IAggregateFrontendBindingProps<
+  AGGREGATE_MODELS extends IModels,
+  FRONTEND_CONTROLLER extends IAnyAggregateFrontendController,
   CONTRACT_ADAPTERS extends IContractAdapters<
     FRONTEND_CONTROLLER['contracts']
   > = {},
-  AUTHENTICATE extends IAuthenticate<
-    IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS>,
-    keyof IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS> & string,
-    keyof IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS> & string,
-    FRONTEND_CONTROLLER['signature'],
-    unknown
-  > = IAuthenticate<
-    IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS>,
-    keyof IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS> & string,
-    keyof IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS> & string,
-    FRONTEND_CONTROLLER['signature'],
-    unknown
-  >,
+  MODEL_BINDINGS extends
+    | IFrontendModelBindings<FRONTEND_CONTROLLER['models'], AGGREGATE_MODELS>
+    | undefined = undefined,
 > = {
-  frontendController: FRONTEND_CONTROLLER;
-  authenticate: AUTHENTICATE;
-  modelAdapters?: IModelAdapters<FRONTEND_CONTROLLER['models'], ACTOR_MODELS>;
+  controller: FRONTEND_CONTROLLER;
+  models?: MODEL_BINDINGS;
+  projectionAdapters?: IProjectionAdapters<
+    FRONTEND_CONTROLLER['models'],
+    AGGREGATE_MODELS,
+    MODEL_BINDINGS
+  >;
   contractAdapters?: CONTRACT_ADAPTERS;
 };
 
-export type IFrontendBinding<
+export type IAggregateFrontendBinding<
   NAME extends string = string,
-  ACTOR_MODELS extends IModels = IModels,
-  FRONTEND_CONTROLLER extends IFrontendControllerBindingSource =
-    IFrontendControllerBindingSource,
+  AGGREGATE_MODELS extends IModels = IModels,
+  FRONTEND_CONTROLLER extends IAnyAggregateFrontendController =
+    IAnyAggregateFrontendController,
   CONTRACT_ADAPTERS extends IContractAdapters<
     FRONTEND_CONTROLLER['contracts']
   > = {},
-  AUTHENTICATE extends IFrontendBindingProps<
-    ACTOR_MODELS,
-    FRONTEND_CONTROLLER,
-    CONTRACT_ADAPTERS
-  >['authenticate'] = IFrontendBindingProps<
-    ACTOR_MODELS,
-    FRONTEND_CONTROLLER,
-    CONTRACT_ADAPTERS
-  >['authenticate'],
+  MODEL_BINDINGS extends
+    | IFrontendModelBindings<FRONTEND_CONTROLLER['models'], AGGREGATE_MODELS>
+    | undefined = undefined,
 > = {
   name: NAME;
-  frontendController: FRONTEND_CONTROLLER;
-  models: IBindingModels<FRONTEND_CONTROLLER['models'], ACTOR_MODELS>;
+  controller: FRONTEND_CONTROLLER;
+  models: IResolvedFrontendModels<
+    FRONTEND_CONTROLLER['models'],
+    AGGREGATE_MODELS,
+    MODEL_BINDINGS
+  >;
   contracts: IResolvedContracts<
     FRONTEND_CONTROLLER['contracts'],
     CONTRACT_ADAPTERS
   >;
-  modelAdapters: IModelAdapters<FRONTEND_CONTROLLER['models'], ACTOR_MODELS>;
+  projectionAdapters: IProjectionAdapters<
+    FRONTEND_CONTROLLER['models'],
+    AGGREGATE_MODELS,
+    MODEL_BINDINGS
+  >;
   contractAdapters: {
     [K in keyof FRONTEND_CONTROLLER['contracts']]: (props: {
       contract: FRONTEND_CONTROLLER['contracts'][K];
@@ -184,83 +289,100 @@ export type IFrontendBinding<
       IAnyError
     >;
   };
-  authenticate: AUTHENTICATE;
-  makeCommand: <
-    CONTRACT_NAME extends keyof IResolvedContracts<
-      FRONTEND_CONTROLLER['contracts'],
-      CONTRACT_ADAPTERS
-    > &
-      string,
-  >(props: {
-    contractName: CONTRACT_NAME;
-    accountId: string;
-    actorId: string;
-    systemVersion: string;
-    payload: InferPayloadInput<
-      IResolvedContracts<
-        FRONTEND_CONTROLLER['contracts'],
-        CONTRACT_ADAPTERS
-      >[CONTRACT_NAME]['payload']
-    >;
-  }) => Effect.Effect<
-    IActorCommand<
-      ICommand<
-        IResolvedContracts<
-          FRONTEND_CONTROLLER['contracts'],
-          CONTRACT_ADAPTERS
-        >[CONTRACT_NAME]['commandName'],
-        IResolvedContracts<
-          FRONTEND_CONTROLLER['contracts'],
-          CONTRACT_ADAPTERS
-        >[CONTRACT_NAME]['version'],
-        InferCommandPayload<
-          IResolvedContracts<
-            FRONTEND_CONTROLLER['contracts'],
-            CONTRACT_ADAPTERS
-          >[CONTRACT_NAME]['payload']
-        >
-      >
-    >,
-    IAnyError,
-    CuidFactory
+};
+
+export type IServiceFrontendBindingProps<
+  SERVICE_MODELS extends IModels,
+  FRONTEND_CONTROLLER extends IAnyServiceFrontendController,
+  MODEL_BINDINGS extends
+    | IFrontendModelBindings<FRONTEND_CONTROLLER['models'], SERVICE_MODELS>
+    | undefined = undefined,
+> = {
+  controller: FRONTEND_CONTROLLER;
+  models?: MODEL_BINDINGS;
+  projectionAdapters?: IProjectionAdapters<
+    FRONTEND_CONTROLLER['models'],
+    SERVICE_MODELS,
+    MODEL_BINDINGS
   >;
 };
 
-type IAnyFrontendController = {
-  accountName: string;
-  actorName: string;
-  frontendName: string;
-  version: string;
-  contracts: IContracts;
-  systemName: string;
-  models: IModels;
-  modelNames: readonly string[];
-  guards: IGuards<IContracts>;
-  signature: Schema.Schema.AnyNoContext;
+export type IServiceFrontendBinding<
+  NAME extends string = string,
+  SERVICE_MODELS extends IModels = IModels,
+  FRONTEND_CONTROLLER extends IAnyServiceFrontendController =
+    IAnyServiceFrontendController,
+  MODEL_BINDINGS extends
+    | IFrontendModelBindings<FRONTEND_CONTROLLER['models'], SERVICE_MODELS>
+    | undefined = undefined,
+> = {
+  name: NAME;
+  controller: FRONTEND_CONTROLLER;
+  models: IResolvedFrontendModels<
+    FRONTEND_CONTROLLER['models'],
+    SERVICE_MODELS,
+    MODEL_BINDINGS
+  >;
+  projectionAdapters: IProjectionAdapters<
+    FRONTEND_CONTROLLER['models'],
+    SERVICE_MODELS,
+    MODEL_BINDINGS
+  >;
 };
 
-export type IAnyFrontendBindingProps = {
-  frontendController: IAnyFrontendController;
-  modelAdapters?: Record<string, unknown>;
+export type IAnyAggregateFrontendBindingProps = {
+  controller: IAnyAggregateFrontendController;
+  models?: Record<string, string>;
+  projectionAdapters?: Record<string, unknown>;
   contractAdapters?: Record<string, IContractAdapterEntry>;
-  authenticate: IAnyAuthentication['authenticate'];
 };
 
-/** Erased frontend binding stored on heterogeneous actor maps. */
-export type IAnyFrontendBinding = {
+export type IAnyServiceFrontendBindingProps = {
+  controller: IAnyServiceFrontendController;
+  models?: Record<string, string>;
+  projectionAdapters?: Record<string, unknown>;
+};
+
+export type IAnyAggregateFrontendBinding = {
   name: string;
-  frontendController: IAnyFrontendController;
+  controller: IAnyAggregateFrontendController;
   models: IModels;
   contracts: IContracts;
-  modelAdapters: Record<string, unknown>;
-  contractAdapters: Record<
-    string,
-    {
-      bivarianceHack(props: {
-        contract: IContract;
-        payload: unknown;
-      }): Effect.Effect<unknown, IAnyError>;
-    }['bivarianceHack']
+  projectionAdapters: Partial<
+    Record<
+      string,
+      {
+        bivarianceHack(
+          sourceResource: unknown,
+        ): Effect.Effect<unknown, IAnyError>;
+      }['bivarianceHack']
+    >
   >;
-  authenticate: IAnyAuthentication['authenticate'];
+  contractAdapters: Partial<
+    Record<
+      string,
+      {
+        bivarianceHack(props: {
+          contract: IContract;
+          payload: unknown;
+        }): Effect.Effect<unknown, IAnyError>;
+      }['bivarianceHack']
+    >
+  >;
+};
+
+export type IAnyServiceFrontendBinding = {
+  name: string;
+  controller: IAnyServiceFrontendController;
+  models: IModels;
+  projectionAdapters: Partial<
+    Record<
+      string,
+      {
+        bivarianceHack(
+          sourceResource: unknown,
+        ): Effect.Effect<unknown, IAnyError>;
+      }['bivarianceHack']
+    >
+  >;
 };

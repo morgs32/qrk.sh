@@ -7,15 +7,8 @@ each fix.
 ## Steps
 
 1. Read `AGENTS.md` ([LLM Wiki ingest](../../AGENTS.md#llm-wiki-ingest)) and `.llmwiki/config.yml`.
-2. Run the freshness report:
-
-   ```bash
-   bash .llmwiki/freshness.sh --json
-   ```
-
-   This gives you the stale and ungrounded pages.
-
-3. Walk `wiki/**/*.md` yourself and additionally check for:
+2. Walk `wiki/**/*.md`, excluding the human-authored `wiki/dev/**` tree, and
+   check for:
    - **Orphan pages** — no inbound `[[wiki-link]]` from any other page.
    - **Stale `TODO-VERIFY` blocks** — blocks older than 30 days that are still unresolved.
    - **Unresolved `CONTRADICTION` blocks** — ever flagged, never cleaned up.
@@ -31,10 +24,6 @@ Produce a report in this shape:
 
 ```
 # Lint report — YYYY-MM-DD
-
-## Stale pages (from freshness.sh)
-- wiki/architecture/auth.md — src/auth/login.ts sha changed
-- ...
 
 ## Orphan pages
 - ...

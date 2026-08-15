@@ -2,13 +2,13 @@ import { fileURLToPath } from 'node:url';
 
 import type { IRepoType } from '@zerospin/core/system/types';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
-import type { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis';
 import {
   makeTelemetryCollector,
   makeTelemetryLayer,
   makeTraceableApiTarget,
 } from '@zerospin/logger';
 import { Effect } from 'effect';
+import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { createServer } from 'vite';
 
 /*
@@ -57,9 +57,10 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
 
               try {
                 // 2 — keep the concrete capability and secret-key exchange inside this request
-                using apis = newSyncRpcSession<ZerospinApis>(zerospinApiUrl);
+                using gatewayApi =
+                  newSyncRpcSession<GatewayApi>(zerospinApiUrl);
                 const systemApi = makeTraceableApiTarget(
-                  apis.getSystemApi({
+                  gatewayApi.getSystemApi({
                     zerospinSecretKey,
                   }),
                 );
@@ -78,40 +79,30 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                         ),
                       );
                       break;
-                    case 'AccountRepo':
+                    case 'AggregateRepo':
                       data = await Effect.runPromise(
-                        systemApi.getAccountRepos().pipe(
-                          Effect.withSpan('Studio.getAccountRepos', {
+                        systemApi.getAggregateRepos().pipe(
+                          Effect.withSpan('Studio.getAggregateRepos', {
                             root: true,
                           }),
                           Effect.provide(makeTelemetryLayer(collector)),
                         ),
                       );
                       break;
-                    case 'AuthorizationRepo':
+                    case 'AggregateFrontendRepo':
                       data = await Effect.runPromise(
-                        systemApi.getAuthorizationRepos().pipe(
-                          Effect.withSpan('Studio.getAuthorizationRepos', {
+                        systemApi.getAggregateFrontendRepos().pipe(
+                          Effect.withSpan('Studio.getAggregateFrontendRepos', {
                             root: true,
                           }),
                           Effect.provide(makeTelemetryLayer(collector)),
                         ),
                       );
                       break;
-                    case 'ActorRepo':
+                    case 'ServiceFrontendRepo':
                       data = await Effect.runPromise(
-                        systemApi.getActorRepos().pipe(
-                          Effect.withSpan('Studio.getActorRepos', {
-                            root: true,
-                          }),
-                          Effect.provide(makeTelemetryLayer(collector)),
-                        ),
-                      );
-                      break;
-                    case 'FrontendRepo':
-                      data = await Effect.runPromise(
-                        systemApi.getFrontendRepos().pipe(
-                          Effect.withSpan('Studio.getFrontendRepos', {
+                        systemApi.getServiceFrontendRepos().pipe(
+                          Effect.withSpan('Studio.getServiceFrontendRepos', {
                             root: true,
                           }),
                           Effect.provide(makeTelemetryLayer(collector)),
@@ -128,34 +119,40 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                         ),
                       );
                       break;
-                    case 'AccountBlockRepo':
+                    case 'AggregateBlockRepo':
                       data = await Effect.runPromise(
-                        systemApi.getAccountBlockRepos().pipe(
-                          Effect.withSpan('Studio.getAccountBlockRepos', {
+                        systemApi.getAggregateBlockRepos().pipe(
+                          Effect.withSpan('Studio.getAggregateBlockRepos', {
                             root: true,
                           }),
                           Effect.provide(makeTelemetryLayer(collector)),
                         ),
                       );
                       break;
-                    case 'ActorBlockRepo':
+                    case 'AggregateFrontendBlockRepo':
                       data = await Effect.runPromise(
-                        systemApi.getActorBlockRepos().pipe(
-                          Effect.withSpan('Studio.getActorBlockRepos', {
-                            root: true,
-                          }),
+                        systemApi.getAggregateFrontendBlockRepos().pipe(
+                          Effect.withSpan(
+                            'Studio.getAggregateFrontendBlockRepos',
+                            {
+                              root: true,
+                            },
+                          ),
                           Effect.provide(makeTelemetryLayer(collector)),
                         ),
                       );
                       break;
-                    case 'FrontendBlockRepo':
+                    case 'ServiceFrontendBlockRepo':
                       data = await Effect.runPromise(
-                        systemApi.getFrontendBlockRepos().pipe(
-                          Effect.withSpan('Studio.getFrontendBlockRepos', {
-                            root: true,
-                          }),
-                          Effect.provide(makeTelemetryLayer(collector)),
-                        ),
+                        systemApi
+                          .getServiceFrontendBlockRepos()
+                          .pipe(
+                            Effect.withSpan(
+                              'Studio.getServiceFrontendBlockRepos',
+                              { root: true },
+                            ),
+                            Effect.provide(makeTelemetryLayer(collector)),
+                          ),
                       );
                       break;
                     case 'ServiceBlockRepo':
@@ -206,63 +203,52 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                           ),
                       );
                       break;
-                    case 'AccountRepo':
+                    case 'AggregateRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getAccountRepoTableRows({
-                            repoName,
-                            tableName,
-                          })
-                          .pipe(
-                            Effect.withSpan('Studio.getAccountRepoTableRows', {
-                              root: true,
-                            }),
-                            Effect.provide(makeTelemetryLayer(collector)),
-                          ),
-                      );
-                      break;
-                    case 'AuthorizationRepo':
-                      data = await Effect.runPromise(
-                        systemApi
-                          .getAuthorizationRepoTableRows({
+                          .getAggregateRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getAuthorizationRepoTableRows',
+                              'Studio.getAggregateRepoTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'ActorRepo':
+                    case 'AggregateFrontendRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getActorRepoTableRows({
+                          .getAggregateFrontendRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
-                            Effect.withSpan('Studio.getActorRepoTableRows', {
-                              root: true,
-                            }),
+                            Effect.withSpan(
+                              'Studio.getAggregateFrontendRepoTableRows',
+                              {
+                                root: true,
+                              },
+                            ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'FrontendRepo':
+                    case 'ServiceFrontendRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getFrontendRepoTableRows({
+                          .getServiceFrontendRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
-                            Effect.withSpan('Studio.getFrontendRepoTableRows', {
-                              root: true,
-                            }),
+                            Effect.withSpan(
+                              'Studio.getServiceFrontendRepoTableRows',
+                              { root: true },
+                            ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
@@ -282,48 +268,48 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                           ),
                       );
                       break;
-                    case 'AccountBlockRepo':
+                    case 'AggregateBlockRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getAccountBlockRepoTableRows({
+                          .getAggregateBlockRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getAccountBlockRepoTableRows',
+                              'Studio.getAggregateBlockRepoTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'ActorBlockRepo':
+                    case 'AggregateFrontendBlockRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getActorBlockRepoTableRows({
+                          .getAggregateFrontendBlockRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getActorBlockRepoTableRows',
+                              'Studio.getAggregateFrontendBlockRepoTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'FrontendBlockRepo':
+                    case 'ServiceFrontendBlockRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getFrontendBlockRepoTableRows({
+                          .getServiceFrontendBlockRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getFrontendBlockRepoTableRows',
+                              'Studio.getServiceFrontendBlockRepoTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),

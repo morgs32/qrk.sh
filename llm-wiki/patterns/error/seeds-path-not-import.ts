@@ -6,6 +6,7 @@
  */
 export default makeSystemConfig({
   entry: 'src/zerospin/system.ts',
+  supportedPredecessors: [],
   seeds: {
     dev: 'src/zerospin/seeds.ts',
     production: 'src/zerospin/seeds.production.ts',
@@ -14,6 +15,7 @@ export default makeSystemConfig({
 
 declare function makeSystemConfig(props: {
   entry: string;
+  supportedPredecessors: readonly string[];
   seeds: {
     dev: string;
     production: string;
@@ -23,7 +25,7 @@ declare function makeSystemConfig(props: {
 // seeds.ts exports the Effect returned by makeSeeds:
 export const seeds = makeSeeds({
   system,
-  accounts: {},
+  aggregates: {},
   services: {
     catalog: [
       catalogService.makeCommand({

@@ -1,9 +1,7 @@
-import { Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeEffectSchema } from '../models/primitiveMaps.ts';
 import { primitives } from '../models/primitives.ts';
-import { CuidFactory } from '../services/CuidFactory.ts';
 
 import { makeContract } from './makeContract.ts';
 
@@ -98,35 +96,142 @@ describe('makeContract', () => {
         },
       ],
     );
-    const historicalDefinition = contract.historicalDefinitions[0];
-    if (historicalDefinition === undefined) {
-      throw new Error('Expected one historical definition');
-    }
-
-    const decodedHistoricalPayload = await Effect.runPromise(
-      Schema.decodeUnknown(makeEffectSchema(historicalDefinition.payload))({
-        name: 'Current title',
-      }),
-    );
-    const currentPayloadInput = await Effect.runPromise(
-      historicalDefinition.adaptPayload({
-        payload: decodedHistoricalPayload,
-      }),
-    );
     const currentPayload = await Effect.runPromise(
-      contract
-        .validatePayload({ payload: currentPayloadInput })
-        .pipe(
-          Effect.provideService(CuidFactory, () =>
-            Effect.succeed('unused-cuid'),
-          ),
-        ),
+      contract.decodeAndAdaptPayload({
+        command: {
+          id: 'cmd_historical',
+          commandName: 'renameItem',
+          contractVersion: '1.0.0',
+          payload: '{"name":"Current title"}',
+        },
+      }),
     );
     const encodedPayload = await Effect.runPromise(
       contract.encodePayload({ payload: currentPayload }),
     );
 
     expect(encodedPayload).toBe('{"title":"Current title"}');
+  });
+
+  it('decodes current payloads through the same contract-owned operation', async () => {
+    const contract = makeContract({
+      commandName: 'renameItem',
+      version: '2.0.0',
+      payload: { title: primitives.text() },
+      mutations: null,
+    });
+
+    await expect(
+      Effect.runPromise(
+        contract.decodeAndAdaptPayload({
+          command: {
+            id: 'cmd_current',
+            commandName: 'renameItem',
+            contractVersion: '2.0.0',
+            payload: '{"title":"Current title"}',
+          },
+        }),
+      ),
+    ).resolves.toEqual({ title: 'Current title' });
+  });
+
+  it('fails malformed history before adaptation and maps adapter defects or invalid output to invariants', async () => {
+    let adapterCalls = 0;
+    const contract = makeContract(
+      {
+        commandName: 'renameItem',
+        version: '2.0.0',
+        payload: { title: primitives.text() },
+        mutations: null,
+      },
+      [
+        {
+          commandName: 'renameItem',
+          version: '1.0.0',
+          payload: { name: primitives.text() },
+          adaptPayload: ({ payload }) =>
+            Effect.sync(() => {
+              adapterCalls += 1;
+              return { title: payload.name };
+            }),
+        },
+      ],
+    );
+
+    await expect(
+      Effect.runPromise(
+        contract.decodeAndAdaptPayload({
+          command: {
+            id: 'cmd_malformed',
+            commandName: 'renameItem',
+            contractVersion: '1.0.0',
+            payload: '{"wrong":"value"}',
+          },
+        }),
+      ),
+    ).rejects.toThrow(/decode-historical-command-payload-failed/);
+    expect(adapterCalls).toBe(0);
+
+    const throwing = makeContract(
+      {
+        commandName: 'renameItem',
+        version: '2.0.0',
+        payload: { title: primitives.text() },
+        mutations: null,
+      },
+      [
+        {
+          commandName: 'renameItem',
+          version: '1.0.0',
+          payload: { name: primitives.text() },
+          adaptPayload: () => {
+            throw new Error('adapter exploded');
+          },
+        },
+      ],
+    );
+    await expect(
+      Effect.runPromise(
+        throwing.decodeAndAdaptPayload({
+          command: {
+            id: 'cmd_throwing',
+            commandName: 'renameItem',
+            contractVersion: '1.0.0',
+            payload: '{"name":"Old title"}',
+          },
+        }),
+      ),
+    ).rejects.toThrow(/contract-payload-adapter-invariant-failed/);
+
+    const invalid = makeContract(
+      {
+        commandName: 'renameItem',
+        version: '2.0.0',
+        payload: { title: primitives.text() },
+        mutations: null,
+      },
+      [
+        {
+          commandName: 'renameItem',
+          version: '1.0.0',
+          payload: { name: primitives.text() },
+          adaptPayload: ({ payload }) =>
+            Effect.succeed({ title: Reflect.get(payload, 'missing') }),
+        },
+      ],
+    );
+    await expect(
+      Effect.runPromise(
+        invalid.decodeAndAdaptPayload({
+          command: {
+            id: 'cmd_invalid',
+            commandName: 'renameItem',
+            contractVersion: '1.0.0',
+            payload: '{"name":"Old title"}',
+          },
+        }),
+      ),
+    ).rejects.toThrow(/contract-payload-adapter-output-invariant-failed/);
   });
 
   it('rejects invalid, duplicate, mismatched, current, and non-older historical definitions', () => {
@@ -149,10 +254,9 @@ describe('makeContract', () => {
     };
 
     expect(() =>
-      makeContract(
-        { ...currentContract, version: 'invalid' },
-        [historicalDefinition],
-      ),
+      makeContract({ ...currentContract, version: 'invalid' }, [
+        historicalDefinition,
+      ]),
     ).toThrow('expected SemVer');
     expect(() =>
       makeContract(currentContract, [

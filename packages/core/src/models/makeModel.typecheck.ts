@@ -1,8 +1,9 @@
-import type { Schema } from 'effect';
+import { Effect, type Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
 import { makeModel } from './makeModel.ts';
 import { primitives } from './primitives.ts';
+import type { InferResource } from './types.ts';
 
 const User = makeModel(
   {
@@ -51,9 +52,35 @@ const Todo = makeModel(
       },
       indexes: [],
       version: '1.0.0',
+      adaptResource: ({ resource }) =>
+        Effect.succeed({
+          id: resource.id,
+          modelName: resource.modelName,
+          createdAt: resource.createdAt,
+          updatedAt: resource.updatedAt,
+          version: '1.0.0',
+          title: resource.title,
+        }),
     },
   ],
 );
+
+declare const currentTodoResource: InferResource<typeof Todo>;
+const historicalTodoResource = Todo.adaptResource({
+  version: '1.0.0',
+  resource: currentTodoResource,
+});
+assert<
+  Equals<Effect.Success<typeof historicalTodoResource>['title'], string>
+>();
+assert<
+  Equals<
+    'completed' extends keyof Effect.Success<typeof historicalTodoResource>
+      ? true
+      : false,
+    false
+  >
+>();
 
 const historicalCreateSchema = Todo.createMutation('1.0.0');
 assert<

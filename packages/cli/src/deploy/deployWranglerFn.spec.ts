@@ -10,30 +10,44 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deployWranglerFn } from './deployWranglerFn.js';
 
 const {
-  fetchMock,
+  compileSystemArtifactsMock,
+  disposeGatewayMock,
+  getProductionDeployApiMock,
+  getReadinessMock,
   loadConfigMock,
   loadEnvMock,
+  loadSystemFnMock,
   loadZerospinConfigMock,
   mkdtempMock,
+  newSyncRpcSessionMock,
   randomBytesMock,
+  randomUUIDMock,
   resolveMock,
   rmMock,
   spawnMock,
   writeFileMock,
 } = vi.hoisted(() => ({
-  fetchMock: vi.fn(),
+  compileSystemArtifactsMock: vi.fn(),
+  disposeGatewayMock: vi.fn(),
+  getProductionDeployApiMock: vi.fn(),
+  getReadinessMock: vi.fn(),
   loadConfigMock: vi.fn(),
   loadEnvMock: vi.fn(),
+  loadSystemFnMock: vi.fn(),
   loadZerospinConfigMock: vi.fn(),
   mkdtempMock: vi.fn(),
+  newSyncRpcSessionMock: vi.fn(),
   randomBytesMock: vi.fn(),
+  randomUUIDMock: vi.fn(),
   resolveMock: vi.fn(),
   rmMock: vi.fn(),
   spawnMock: vi.fn(),
   writeFileMock: vi.fn(),
 }));
 
-vi.stubGlobal('fetch', fetchMock);
+vi.mock('@zerospin/core/utils/newSyncRpcSession', () => ({
+  newSyncRpcSession: newSyncRpcSessionMock,
+}));
 
 vi.mock('node:child_process', () => ({
   spawn: spawnMock,
@@ -41,7 +55,7 @@ vi.mock('node:child_process', () => ({
 
 vi.mock('node:crypto', () => ({
   randomBytes: randomBytesMock,
-  randomUUID: vi.fn(),
+  randomUUID: randomUUIDMock,
 }));
 
 vi.mock('node:fs/promises', async importOriginal => {
@@ -76,29 +90,86 @@ vi.mock('./loadZerospinConfigFn.js', () => ({
   loadZerospinConfigFn: loadZerospinConfigMock,
 }));
 
+vi.mock('./loadSystemFn.js', () => ({
+  loadSystemFn: loadSystemFnMock,
+}));
+
+vi.mock('../artifacts/compileSystemArtifactsFn.js', () => ({
+  compileSystemArtifactsFn: compileSystemArtifactsMock,
+}));
+
 describe('deployWranglerFn', () => {
   const originalPublishableKey = process.env['ZEROSPIN_PUBLISHABLE_KEY'];
   const originalSecretKey = process.env['ZEROSPIN_SECRET_KEY'];
-  const originalClerkJwtKey = process.env['CLERK_JWT_KEY'];
   const originalApiUrl = process.env['ZEROSPIN_API_URL'];
+  const originalNextPublicApiUrl = process.env['NEXT_PUBLIC_ZEROSPIN_API_URL'];
 
   beforeEach(() => {
     delete process.env['ZEROSPIN_PUBLISHABLE_KEY'];
     delete process.env['ZEROSPIN_SECRET_KEY'];
-    delete process.env['CLERK_JWT_KEY'];
     process.env['ZEROSPIN_API_URL'] = 'https://api.zerospin.dev';
-    fetchMock.mockReset();
-    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    process.env['NEXT_PUBLIC_ZEROSPIN_API_URL'] =
+      'https://framework-specific.example.com';
+    compileSystemArtifactsMock.mockReset();
+    loadSystemFnMock.mockReset();
+    loadSystemFnMock.mockReturnValue(Effect.succeed({}));
+    compileSystemArtifactsMock.mockReturnValue(
+      Effect.succeed({
+        buildHash: 'b'.repeat(64),
+        systemVersion: '1.0.0',
+      }),
+    );
+    disposeGatewayMock.mockReset();
+    getProductionDeployApiMock.mockReset();
+    getProductionDeployApiMock.mockReturnValue({
+      getReadiness: getReadinessMock,
+    });
+    getReadinessMock.mockReset();
+    getReadinessMock.mockResolvedValue({ _tag: 'Right', right: undefined });
     loadConfigMock.mockReset();
+    loadConfigMock.mockResolvedValue({
+      config: {
+        compatibility_date: '2026-07-22',
+        name: 'production-test',
+        vars: { ZEROSPIN_SYSTEM_ID: 'sys_production_test' },
+      },
+    });
     loadEnvMock.mockReset();
     loadZerospinConfigMock.mockReset();
+    loadZerospinConfigMock.mockReturnValue(
+      Effect.succeed({
+        entry: 'src/system.ts',
+        environmentId: 'dev',
+        env: null,
+        seeds: { dev: null, production: null },
+      }),
+    );
     mkdtempMock.mockReset();
     mkdtempMock.mockResolvedValue('/tmp/zerospin-wrangler-test');
+    newSyncRpcSessionMock.mockReset();
+    newSyncRpcSessionMock.mockReturnValue({
+      getProductionDeployApi: getProductionDeployApiMock,
+      [Symbol.dispose]: disposeGatewayMock,
+    });
     randomBytesMock.mockReset();
     randomBytesMock
       .mockReturnValueOnce(Buffer.from('project-publishable-key'))
       .mockReturnValueOnce(Buffer.from('project-secret-key'));
+    randomUUIDMock.mockReset();
+    randomUUIDMock.mockReturnValue('clean-request-1');
     resolveMock.mockReset();
+    resolveMock.mockImplementation((specifier: string) => {
+      if (specifier === 'wrangler/package.json') {
+        return '/project/node_modules/wrangler/package.json';
+      }
+      if (specifier === '@zerospin/production-worker/ProductionWorker') {
+        return '/project/node_modules/@zerospin/production-worker/dist/ProductionWorker.js';
+      }
+      if (specifier.endsWith('/emptySeeds.js')) {
+        return '/project/node_modules/@zerospin/production-worker/dist/emptySeeds.js';
+      }
+      return specifier;
+    });
     rmMock.mockReset();
     rmMock.mockResolvedValue(undefined);
     spawnMock.mockReset();
@@ -117,15 +188,15 @@ describe('deployWranglerFn', () => {
     } else {
       process.env['ZEROSPIN_SECRET_KEY'] = originalSecretKey;
     }
-    if (originalClerkJwtKey === undefined) {
-      delete process.env['CLERK_JWT_KEY'];
-    } else {
-      process.env['CLERK_JWT_KEY'] = originalClerkJwtKey;
-    }
     if (originalApiUrl === undefined) {
       delete process.env['ZEROSPIN_API_URL'];
     } else {
       process.env['ZEROSPIN_API_URL'] = originalApiUrl;
+    }
+    if (originalNextPublicApiUrl === undefined) {
+      delete process.env['NEXT_PUBLIC_ZEROSPIN_API_URL'];
+    } else {
+      process.env['NEXT_PUBLIC_ZEROSPIN_API_URL'] = originalNextPublicApiUrl;
     }
   });
 
@@ -152,33 +223,12 @@ describe('deployWranglerFn', () => {
     expect(loadConfigMock).not.toHaveBeenCalled();
     expect(resolveMock).not.toHaveBeenCalled();
     expect(spawnMock).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('requires the operator-provided Clerk JWT key before loading Wrangler', async () => {
-    process.env['ZEROSPIN_PUBLISHABLE_KEY'] = 'pk_live_existing';
-    process.env['ZEROSPIN_SECRET_KEY'] = 'sk_live_existing';
-
-    const error = await Effect.runPromise(
-      deployWranglerFn({ clean: false }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-wrangler-clerk-jwt-key-missing',
-    });
-    expect(loadZerospinConfigMock).not.toHaveBeenCalled();
-    expect(loadConfigMock).not.toHaveBeenCalled();
-    expect(resolveMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
+    expect(newSyncRpcSessionMock).not.toHaveBeenCalled();
   });
 
   it('deploys an existing project key pair through local Wrangler and waits for readiness', async () => {
     process.env['ZEROSPIN_PUBLISHABLE_KEY'] = 'pk_live_existing';
     process.env['ZEROSPIN_SECRET_KEY'] = 'sk_live_existing';
-    process.env['CLERK_JWT_KEY'] = 'clerk-jwt-public-key';
 
     // 1. The project config remains the source for the system entry and the
     //    authored Wrangler fields. The deployment path owns only its aliases,
@@ -196,7 +246,7 @@ describe('deployWranglerFn', () => {
     );
     loadConfigMock.mockResolvedValue({
       config: {
-        name: 'self-hosted-test',
+        name: 'production-test',
         compatibility_date: '2026-07-22',
         compatibility_flags: ['nodejs_compat'],
         alias: {
@@ -208,15 +258,21 @@ describe('deployWranglerFn', () => {
             new_sqlite_classes: ['AuthoredRepo'],
           },
         ],
+        rules: [
+          {
+            type: 'Text',
+            globs: ['**/*.txt'],
+            fallthrough: false,
+          },
+        ],
         vars: {
           AUTHORED_VAR: 'preserved',
-          NEXT_PUBLIC_ZEROSPIN_API_URL: 'https://api.zerospin.dev',
+          CLERK_JWT_KEY: 'authored-stale-clerk-key',
+          NEXT_PUBLIC_ZEROSPIN_API_URL:
+            'https://framework-specific.example.com',
           ZEROSPIN_API_URL: 'https://api.zerospin.dev',
-          ZEROSPIN_SYSTEM_ID: 'sys_self_hosted_test',
-          ZEROSPIN_DEPLOY_ID: 'dpl_hosted_poison',
-          ZEROSPIN_GENERATION_ID: 'gen_hosted_poison',
-          ZEROSPIN_INSTANCE_ID: 'hosted-poison',
-          ZEROSPIN_SELF_HOSTED: 'hosted-poison',
+          ZEROSPIN_ENVIRONMENT: 'dev',
+          ZEROSPIN_SYSTEM_ID: 'sys_production_test',
         },
       },
     });
@@ -224,11 +280,11 @@ describe('deployWranglerFn', () => {
       if (specifier === 'wrangler/package.json') {
         return '/project/node_modules/wrangler/package.json';
       }
-      if (specifier === '@zerospin/dispatch-worker/Worker') {
-        return '/project/node_modules/@zerospin/dispatch-worker/dist/Worker.js';
+      if (specifier === '@zerospin/production-worker/ProductionWorker') {
+        return '/project/node_modules/@zerospin/production-worker/dist/ProductionWorker.js';
       }
       if (specifier.endsWith('/emptySeeds.js')) {
-        return '/project/node_modules/@zerospin/dispatch-worker/dist/emptySeeds.js';
+        return '/project/node_modules/@zerospin/production-worker/dist/emptySeeds.js';
       }
       return specifier;
     });
@@ -246,24 +302,24 @@ describe('deployWranglerFn', () => {
     spawnMock.mockReturnValue(child);
 
     const resultPromise = Effect.runPromise(
-      deployWranglerFn({ clean: false }).pipe(Effect.provide(AsyncLive)),
+      deployWranglerFn({ clean: true }).pipe(Effect.provide(AsyncLive)),
     );
     await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
 
     stdout.write(
-      'Uploaded self-hosted-test\nhttps://self-hosted-test.account.workers.dev\n',
+      'Uploaded production-test\nhttps://production-test.account.workers.dev\n',
     );
     child.emit('close', 0, null);
 
     await expect(resultPromise).resolves.toEqual({
       status: 'deployed',
-      workerUrl: 'https://self-hosted-test.account.workers.dev',
+      workerUrl: 'https://production-test.account.workers.dev',
       zerospinPublishableKey: 'pk_live_existing',
     });
 
-    // 3. The generated production configuration preserves authored fields,
-    //    discards hosted generation pins, and installs the first production DO
-    //    migration directly on SelfHostedZerospinApis.
+    // 3. The generated production configuration preserves authored fields and
+    //    installs the first production DO SystemRepo binding and migration
+    //    authored by the project.
     const generatedConfigPath = path.join(
       '/tmp/zerospin-wrangler-test',
       'wrangler.json',
@@ -289,8 +345,9 @@ describe('deployWranglerFn', () => {
     );
     const wranglerEnvironment = spawnMock.mock.calls[0]?.[2]?.env;
     expect(wranglerEnvironment).not.toHaveProperty('ZEROSPIN_API_URL');
-    expect(wranglerEnvironment).not.toHaveProperty(
+    expect(wranglerEnvironment).toHaveProperty(
       'NEXT_PUBLIC_ZEROSPIN_API_URL',
+      'https://framework-specific.example.com',
     );
     expect(wranglerEnvironment).not.toHaveProperty('ZEROSPIN_PUBLISHABLE_KEY');
     expect(wranglerEnvironment).not.toHaveProperty('ZEROSPIN_SECRET_KEY');
@@ -305,49 +362,56 @@ describe('deployWranglerFn', () => {
     expect(secretsWrite).toBeDefined();
     const generatedConfig = JSON.parse(String(generatedConfigWrite?.[1]));
     const secrets = JSON.parse(String(secretsWrite?.[1]));
+    expect(JSON.stringify(generatedConfig)).not.toContain(
+      'SelfHostedZerospinApis',
+    );
+    expect(JSON.stringify(generatedConfig)).not.toContain('renamed_classes');
     expect(generatedConfig).toMatchObject({
-      name: 'self-hosted-test',
-      main: '/project/node_modules/@zerospin/dispatch-worker/dist/Worker.js',
+      name: 'production-test',
+      main: '/project/node_modules/@zerospin/production-worker/dist/ProductionWorker.js',
       compatibility_date: '2026-07-22',
       compatibility_flags: ['nodejs_compat'],
       alias: {
         authored: './src/authored.ts',
         system: path.resolve(process.cwd(), 'src/system.ts'),
         seeds:
-          '/project/node_modules/@zerospin/dispatch-worker/dist/emptySeeds.js',
+          '/project/node_modules/@zerospin/production-worker/dist/emptySeeds.js',
       },
       migrations: [
-        {
-          tag: 'zerospin-self-hosted-v1',
-          new_sqlite_classes: ['SelfHostedZerospinApis'],
-        },
         {
           tag: 'authored-v1',
           new_sqlite_classes: ['AuthoredRepo'],
         },
       ],
+      rules: [
+        {
+          type: 'Text',
+          globs: ['**/*.txt', '**/*.sql'],
+          fallthrough: false,
+        },
+      ],
       vars: {
         AUTHORED_VAR: 'preserved',
-        ZEROSPIN_SYSTEM_ID: 'sys_self_hosted_test',
-        ZEROSPIN_INSTANCE_ID: 'production',
-        ZEROSPIN_SELF_HOSTED: 'true',
+        ZEROSPIN_CLEAN_REQUEST_ID: 'cln_clean-request-1',
+        ZEROSPIN_ENVIRONMENT: 'production',
+        ZEROSPIN_SYSTEM_ID: 'sys_production_test',
       },
       version_metadata: {
-        binding: 'ZEROSPIN_VERSION_METADATA',
+        binding: 'WORKER_VERSION_METADATA',
       },
     });
-    expect(generatedConfig.vars).not.toHaveProperty('ZEROSPIN_DEPLOY_ID');
-    expect(generatedConfig.vars).not.toHaveProperty('ZEROSPIN_GENERATION_ID');
-    expect(generatedConfig.vars).not.toHaveProperty(
+    expect(generatedConfig.vars).toHaveProperty(
       'NEXT_PUBLIC_ZEROSPIN_API_URL',
+      'https://framework-specific.example.com',
     );
     expect(generatedConfig.vars).not.toHaveProperty('ZEROSPIN_API_URL');
+    expect(generatedConfig.vars).not.toHaveProperty('CLERK_JWT_KEY');
     expect(secrets).toEqual({
       ZEROSPIN_PUBLISHABLE_KEY: 'pk_live_existing',
       ZEROSPIN_SECRET_KEY: 'sk_live_existing',
-      CLERK_JWT_KEY: 'clerk-jwt-public-key',
     });
     expect(randomBytesMock).not.toHaveBeenCalled();
+    expect(randomUUIDMock).toHaveBeenCalledOnce();
 
     // 4. No hosted Zerospin URL reaches the generated files or the Wrangler
     //    process even when a poison hosted URL exists in the ambient process.
@@ -361,12 +425,174 @@ describe('deployWranglerFn', () => {
       process.env['ZEROSPIN_API_URL'],
     );
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://self-hosted-test.account.workers.dev/__zerospin/ready',
+    expect(newSyncRpcSessionMock).toHaveBeenCalledWith(
+      'https://production-test.account.workers.dev',
     );
+    expect(getProductionDeployApiMock).toHaveBeenCalledOnce();
+    expect(getReadinessMock).toHaveBeenCalledOnce();
+    expect(disposeGatewayMock).toHaveBeenCalledOnce();
     expect(rmMock).toHaveBeenCalledWith('/tmp/zerospin-wrangler-test', {
       recursive: true,
       force: true,
     });
+  });
+
+  it('retries only the locked readiness failures with a fresh Gateway session', async () => {
+    process.env['ZEROSPIN_PUBLISHABLE_KEY'] = 'pk_live_existing';
+    process.env['ZEROSPIN_SECRET_KEY'] = 'sk_live_existing';
+    getReadinessMock
+      .mockRejectedValueOnce(new TypeError('connection reset'))
+      .mockResolvedValueOnce({
+        _tag: 'Left',
+        left: {
+          cause: 'transient SystemRepo transport rejection',
+          code: 'failed-to-get-readiness-rpc',
+          extra: null,
+          message: 'Failed to get readiness over SystemRepo RPC.',
+          status: null,
+        },
+      })
+      .mockResolvedValueOnce({
+        _tag: 'Left',
+        left: {
+          cause: null,
+          code: 'system-deploy-activating',
+          extra: null,
+          message: 'The selected deploy is still activating.',
+          status: null,
+        },
+      })
+      .mockResolvedValueOnce({
+        _tag: 'Left',
+        left: {
+          cause: null,
+          code: 'system-worker-not-active',
+          extra: null,
+          message: 'The executing Worker is not active.',
+          status: null,
+        },
+      })
+      .mockResolvedValueOnce({ _tag: 'Right', right: undefined });
+    const stdout = new PassThrough();
+    const child = Object.assign(new EventEmitter(), {
+      kill: vi.fn(),
+      killed: false,
+      stderr: new PassThrough(),
+      stdout,
+    });
+    spawnMock.mockReturnValue(child);
+
+    const resultPromise = Effect.runPromise(
+      deployWranglerFn({ clean: false }).pipe(Effect.provide(AsyncLive)),
+    );
+    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledOnce());
+    vi.useFakeTimers();
+    try {
+      stdout.write('https://production-test.account.workers.dev\n');
+      child.emit('close', 0, null);
+      await vi.advanceTimersByTimeAsync(4_000);
+      await expect(resultPromise).resolves.toMatchObject({
+        status: 'deployed',
+        workerUrl: 'https://production-test.account.workers.dev',
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(getReadinessMock).toHaveBeenCalledTimes(5);
+    expect(newSyncRpcSessionMock).toHaveBeenCalledTimes(5);
+    expect(getProductionDeployApiMock).toHaveBeenCalledTimes(5);
+    expect(disposeGatewayMock).toHaveBeenCalledTimes(5);
+  });
+
+  it('stops after exactly 60 retryable readiness failures', async () => {
+    process.env['ZEROSPIN_PUBLISHABLE_KEY'] = 'pk_live_existing';
+    process.env['ZEROSPIN_SECRET_KEY'] = 'sk_live_existing';
+    getReadinessMock.mockResolvedValue({
+      _tag: 'Left',
+      left: {
+        cause: null,
+        code: 'system-deploy-activating',
+        extra: null,
+        message: 'The selected deploy is still activating.',
+        status: null,
+      },
+    });
+    const stdout = new PassThrough();
+    const child = Object.assign(new EventEmitter(), {
+      kill: vi.fn(),
+      killed: false,
+      stderr: new PassThrough(),
+      stdout,
+    });
+    spawnMock.mockReturnValue(child);
+
+    const resultPromise = Effect.runPromise(
+      deployWranglerFn({ clean: false }).pipe(
+        Effect.provide(AsyncLive),
+        Effect.either,
+      ),
+    );
+    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledOnce());
+    vi.useFakeTimers();
+    try {
+      stdout.write('https://production-test.account.workers.dev\n');
+      child.emit('close', 0, null);
+      await vi.advanceTimersByTimeAsync(59_000);
+      await expect(resultPromise).resolves.toMatchObject({
+        _tag: 'Left',
+        left: { code: 'zerospin-wrangler-worker-not-ready' },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(getReadinessMock).toHaveBeenCalledTimes(60);
+    expect(newSyncRpcSessionMock).toHaveBeenCalledTimes(60);
+    expect(disposeGatewayMock).toHaveBeenCalledTimes(60);
+  });
+
+  it('propagates a terminal readiness error without retrying', async () => {
+    process.env['ZEROSPIN_PUBLISHABLE_KEY'] = 'pk_live_existing';
+    process.env['ZEROSPIN_SECRET_KEY'] = 'sk_live_existing';
+    getReadinessMock.mockResolvedValueOnce({
+      _tag: 'Left',
+      left: {
+        cause: 'persisted deployment failure',
+        code: 'system-deploy-failed',
+        extra: null,
+        message: 'The selected deploy failed.',
+        status: null,
+      },
+    });
+    const stdout = new PassThrough();
+    const child = Object.assign(new EventEmitter(), {
+      kill: vi.fn(),
+      killed: false,
+      stderr: new PassThrough(),
+      stdout,
+    });
+    spawnMock.mockReturnValue(child);
+
+    const resultPromise = Effect.runPromise(
+      deployWranglerFn({ clean: false }).pipe(
+        Effect.provide(AsyncLive),
+        Effect.either,
+      ),
+    );
+    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledOnce());
+    stdout.write('https://production-test.account.workers.dev\n');
+    child.emit('close', 0, null);
+
+    await expect(resultPromise).resolves.toMatchObject({
+      _tag: 'Left',
+      left: {
+        cause: 'persisted deployment failure',
+        code: 'system-deploy-failed',
+      },
+    });
+    expect(getReadinessMock).toHaveBeenCalledOnce();
+    expect(newSyncRpcSessionMock).toHaveBeenCalledOnce();
+    expect(disposeGatewayMock).toHaveBeenCalledOnce();
   });
 });

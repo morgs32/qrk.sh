@@ -20,13 +20,13 @@ const ModuleSchema = Schema.Struct({ system: Schema.Unknown }).pipe(
  */
 export const loadSystemFn = Effect.fn('loadSystemFn')(function* (
   config: ISystemConfig,
+  cwd: string = process.cwd(),
 ): Effect.fn.Return<
   ISystem,
   IAnyError,
   Path.Path | FileSystem.FileSystem | Async
 > {
   const { entry } = config;
-  const cwd = process.cwd();
   const pathApi = yield* Path.Path;
   const systemPath = pathApi.resolve(cwd, entry);
   const jitiAliases = yield* jitiAliasesFromTsconfigPaths(cwd).pipe(
@@ -48,7 +48,11 @@ export const loadSystemFn = Effect.fn('loadSystemFn')(function* (
         }),
     ),
   );
-  const jiti = createJiti(systemFileUrl, { alias: jitiAliases });
+  const jiti = createJiti(systemFileUrl, {
+    alias: jitiAliases,
+    moduleCache: false,
+    tryNative: false,
+  });
 
   const loadedModule = yield* makeAsync(
     () => jiti.import(systemPath),

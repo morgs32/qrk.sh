@@ -24,10 +24,6 @@ export type ICloudApiKeyJwtClaims =
   | IUserDevKeyJwtClaims
   | ISystemProductionKeyJwtClaims;
 
-export type ICloudApiKeyIdentity = ICloudApiKeyJwtClaims & {
-  readonly organizationId: string;
-};
-
 const cloudApiKeyJwtClaimsBase = {
   systemId: makeAbbreviationIdSchema(coreAbbreviations.system),
   keyType: Schema.Literal('secret', 'publishable'),

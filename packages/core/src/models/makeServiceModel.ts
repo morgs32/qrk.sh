@@ -1,3 +1,6 @@
+import type { IAnyError } from '@zerospin/error';
+import type { Effect } from 'effect';
+
 import type { InferProps } from '../utils/types.ts';
 
 import { makeModelAndMetadata, type makeModel } from './makeModel.ts';
@@ -6,6 +9,8 @@ import type {
   IDateDescriptor,
   IDrizzleIndexConfig,
   IModel,
+  InferDecodedRow,
+  InferProperties,
   IPrimaryKeyDescriptor,
   IServiceModel,
   IShape,
@@ -28,6 +33,9 @@ export function makeServiceModel<
   const HISTORICAL_DEFINITIONS extends readonly {
     readonly abbreviation: string;
     readonly attributes: IShape;
+    readonly adaptResource: (props: {
+      resource: never;
+    }) => Effect.Effect<unknown, IAnyError>;
     readonly indexes: readonly IDrizzleIndexConfig<string>[];
     readonly modelName: string;
     readonly version: string;
@@ -44,7 +52,47 @@ export function makeServiceModel<
   > & {
     serviceName: SERVICE_NAME;
   },
-  historicalDefinitions: HISTORICAL_DEFINITIONS,
+  historicalDefinitions: HISTORICAL_DEFINITIONS & {
+    readonly [INDEX in keyof HISTORICAL_DEFINITIONS]: Readonly<{
+      abbreviation: ABBREVIATION;
+      attributes: HISTORICAL_DEFINITIONS[INDEX]['attributes'];
+      adaptResource: (props: {
+        resource: InferDecodedRow<
+          InferProperties<
+            ATTRIBUTES,
+            ABBREVIATION,
+            {
+              id: IPrimaryKeyDescriptor<ABBREVIATION>;
+              modelName: ITextDescriptor<false>;
+              createdAt: IDateDescriptor<false>;
+              updatedAt: IDateDescriptor<false>;
+              version: ITextDescriptor<false>;
+              deletedAt: IDateDescriptor<true>;
+            }
+          >
+        >;
+      }) => Effect.Effect<
+        InferDecodedRow<
+          InferProperties<
+            HISTORICAL_DEFINITIONS[INDEX]['attributes'],
+            ABBREVIATION,
+            {
+              id: IPrimaryKeyDescriptor<ABBREVIATION>;
+              modelName: ITextDescriptor<false>;
+              createdAt: IDateDescriptor<false>;
+              updatedAt: IDateDescriptor<false>;
+              version: ITextDescriptor<false>;
+              deletedAt: IDateDescriptor<true>;
+            }
+          >
+        >,
+        IAnyError
+      >;
+      indexes: HISTORICAL_DEFINITIONS[INDEX]['indexes'];
+      modelName: MODEL_NAME;
+      version: HISTORICAL_DEFINITIONS[INDEX]['version'];
+    }>;
+  },
 ): IServiceModel<
   IModel<
     ATTRIBUTES,
@@ -108,7 +156,7 @@ export function makeServiceModel<
   // 3 — attach ownership tag; TypeScript readonly alone does not lock this field
   const serviceModel = Object.assign(model, { serviceName });
 
-  // 4 — freeze ownership for makeServiceController's model.serviceName === name gate
+  // 4 — freeze ownership for makeSystem's service model.serviceName === service key gate
   Object.defineProperty(serviceModel, 'serviceName', {
     configurable: false,
     enumerable: true,

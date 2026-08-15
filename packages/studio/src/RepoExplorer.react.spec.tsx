@@ -70,12 +70,12 @@ describe('RepoExplorer JSON inspector', () => {
       vi.fn((input: string | URL | Request) => {
         const url = input instanceof Request ? input.url : String(input);
 
-        if (url === '/api/repos/AccountRepo') {
+        if (url === '/api/repos/AggregateRepo') {
           return Promise.resolve(
             new Response(
               JSON.stringify([
                 {
-                  repoType: 'AccountRepo',
+                  repoType: 'AggregateRepo',
                   repoName: 'acct_1/user',
                   tableNames: ['commands', 'metadata'],
                 },
@@ -88,7 +88,7 @@ describe('RepoExplorer JSON inspector', () => {
           );
         }
 
-        if (url === '/api/repos/AccountRepo/acct_1%2Fuser/commands') {
+        if (url === '/api/repos/AggregateRepo/acct_1%2Fuser/commands') {
           return Promise.resolve(
             new Response(
               JSON.stringify({
@@ -144,7 +144,7 @@ describe('RepoExplorer JSON inspector', () => {
           );
         }
 
-        if (url === '/api/repos/AccountRepo/acct_1%2Fuser/metadata') {
+        if (url === '/api/repos/AggregateRepo/acct_1%2Fuser/metadata') {
           return Promise.resolve(
             new Response(
               JSON.stringify({
@@ -193,7 +193,7 @@ describe('RepoExplorer JSON inspector', () => {
           element: <RepoExplorer />,
         },
       ],
-      { initialEntries: ['/AccountRepo/acct_1%2Fuser'] },
+      { initialEntries: ['/AggregateRepo/acct_1%2Fuser'] },
     );
 
     await act(async () => {
@@ -381,7 +381,7 @@ describe('RepoExplorer JSON inspector', () => {
           element: <RepoExplorer />,
         },
       ],
-      { initialEntries: ['/AccountRepo/acct_1%2Fuser'] },
+      { initialEntries: ['/AggregateRepo/acct_1%2Fuser'] },
     );
 
     await act(async () => {

@@ -1,29 +1,48 @@
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import { mapValues } from 'es-toolkit';
 
 import { makeDrizzleSchemaFromTable } from '../models/primitiveMaps.ts';
 import type {
   IAnyDrizzleSchemas,
   IAnyTable,
   IAnyTables,
-  IModels,
 } from '../models/types.ts';
 
-import type {
-  InferDrizzleSchemaFromTables,
-  IResourceDrizzleSchemasFromModels,
-} from './types.ts';
+import type { InferDrizzleSchemaFromTables } from './types.ts';
 
 export function makeDrizzleSchemasRecordFromTables<TABLES extends IAnyTables>(
   tables: TABLES,
+  physicalTableNames: Partial<Record<keyof TABLES & string, string>> = {},
 ): InferDrizzleSchemaFromTables<TABLES> {
   const tableKeysByIdentity = new Map<IAnyTable, string>();
   const drizzleSchemas: IAnyDrizzleSchemas = {};
+  const registeredPhysicalTableNames = new Map<string, string>();
 
   for (const [tableKey, table] of Object.entries(tables)) {
+    const physicalTableName = physicalTableNames[tableKey] ?? table.name;
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(physicalTableName)) {
+      throw new Error(
+        `makeDrizzleSchemasRecordFromTables: invalid physical table name "${physicalTableName}" at key "${tableKey}"`,
+      );
+    }
+    const priorTableKey = registeredPhysicalTableNames.get(physicalTableName);
+    if (priorTableKey !== undefined) {
+      throw new Error(
+        `makeDrizzleSchemasRecordFromTables: duplicate physical table name "${physicalTableName}" at keys "${priorTableKey}" and "${tableKey}"`,
+      );
+    }
+    registeredPhysicalTableNames.set(physicalTableName, tableKey);
     tableKeysByIdentity.set(table, tableKey);
     drizzleSchemas[tableKey] = makeDrizzleSchemaFromTable(
-      table,
+      physicalTableName === table.name
+        ? table
+        : {
+            ...table,
+            name: physicalTableName,
+            indexes: table.indexes.map(indexConfig => ({
+              ...indexConfig,
+              name: `${physicalTableName}_${indexConfig.name}`,
+            })),
+          },
       descriptor => () => {
         const targetTableKey = tableKeysByIdentity.get(descriptor.table);
         if (targetTableKey === undefined) {
@@ -51,12 +70,4 @@ export function makeDrizzleSchemasRecordFromTables<TABLES extends IAnyTables>(
   }
 
   return drizzleSchemas as InferDrizzleSchemaFromTables<TABLES>;
-}
-
-export function makeResourceDrizzleSchemas<MODELS extends IModels>(
-  models: MODELS,
-): IResourceDrizzleSchemasFromModels<MODELS> {
-  return makeDrizzleSchemasRecordFromTables(
-    mapValues(models, model => model.table),
-  ) as IResourceDrizzleSchemasFromModels<MODELS>;
 }

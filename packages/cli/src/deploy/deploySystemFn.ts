@@ -2,13 +2,12 @@ import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
 import * as NodePath from '@effect/platform-node/NodePath';
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
 import type {
   IDeployConfig,
-  ISystem,
   ISystemConfig,
   ISystemEnvironmentId,
+  ISystemSpec,
 } from '@zerospin/core/system/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
@@ -27,18 +26,18 @@ export const deploySystemFn = Effect.fn('deploySystemFn')(function* (props: {
   clean: boolean;
   zerospinSecretKey: string;
   zerospinApiUrl: string;
-  compiledSystemWorker: string;
+  workerBundle: string;
+  systemSpec: ISystemSpec;
   environmentId: ISystemEnvironmentId;
-  system: ISystem;
   config: ISystemConfig;
 }): Effect.fn.Return<IResult, IAnyError, Async> {
   const {
     clean,
     zerospinSecretKey,
     zerospinApiUrl,
-    compiledSystemWorker,
+    workerBundle,
+    systemSpec,
     environmentId,
-    system,
     config: loadedConfig,
   } = props;
   const config = { ...loadedConfig, environmentId };
@@ -54,13 +53,11 @@ export const deploySystemFn = Effect.fn('deploySystemFn')(function* (props: {
     const cliApi = apis.getCliApi({ zerospinSecretKey });
     return yield* makeAsync(
       () =>
-        cliApi.deploySystemWorker({
+        cliApi.deployWorkerBundle({
           clean,
-          script: compiledSystemWorker,
+          workerBundle,
           config: deployConfig,
-          systemSpec: Schema.decodeUnknownSync(SystemSpecSchema)(
-            makeSystemSpec({ system }),
-          ),
+          systemSpec: Schema.decodeUnknownSync(SystemSpecSchema)(systemSpec),
         }),
       cause => makeApiUnreachableError({ zerospinApiUrl, cause }),
     ).pipe(Effect.flatMap(decodeRpc));
@@ -68,7 +65,7 @@ export const deploySystemFn = Effect.fn('deploySystemFn')(function* (props: {
 
   return {
     zerospinApiUrl,
-    compiledLength: compiledSystemWorker.length,
+    bundleLength: workerBundle.length,
     environmentId,
     cloudflareDeploymentId: result.cloudflareDeploymentId,
     seedCommandsFinalized: result.seedCommandsFinalized,

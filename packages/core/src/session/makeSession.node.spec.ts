@@ -18,64 +18,24 @@ import {
   type ISpanRecord,
 } from '@zerospin/logger';
 import { Effect } from 'effect';
-import { describe, expect, vi } from 'vitest';
+import { describe, expect } from 'vitest';
 
 const frontend = makeFrontendController({
   contracts: {},
   models: {},
-  accountName: 'user',
-  actorName: 'shopper',
+  aggregateName: 'user',
   frontendName: 'web',
-  version: '1.0.0',
   systemName: 'make-session-push-queue-test',
-  signature: {},
-});
-
-describe('makeSession configuration', () => {
-  it('initializes push and shared worker flags', () => {
-    const defaultSession = makeSession({
-      frontend,
-      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
-      sessionId: 'sesn_1' as ISessionId,
-    });
-    const configuredSession = makeSession({
-      frontend,
-      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
-      sessionId: 'sesn_2' as ISessionId,
-      isPushPaused: true,
-      isSharedWorkerEnabled: true,
-    });
-
-    expect(defaultSession.store.getState().isPushPaused).toBe(false);
-    expect(defaultSession.store.getState().isSharedWorkerEnabled).toBe(false);
-    expect(defaultSession.store.getState().lastDevtoolsPush).toBeNull();
-    expect(configuredSession.store.getState().isPushPaused).toBe(true);
-    expect(configuredSession.store.getState().isSharedWorkerEnabled).toBe(true);
-  });
-
-  it('stores the exact signature factory without invoking it', () => {
-    const generateSignature = vi.fn(() => Effect.succeed({ actorId: 'usr_1' }));
-    const session = makeSession({
-      frontend,
-      generateSignature,
-      sessionId: 'sesn_signature_factory',
-    });
-
-    expect(session.generateSignature).toBe(generateSignature);
-    expect(generateSignature).not.toHaveBeenCalled();
-  });
 });
 
 describe('makeSession telemetry', () => {
   it('keeps ordered telemetry isolated per session without deduplication', () => {
     const first = makeSession({
       frontend,
-      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_telemetry_1',
     });
     const second = makeSession({
       frontend,
-      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_telemetry_2',
     });
     const span: ISpanRecord = {
@@ -111,7 +71,6 @@ describe('makeSession telemetry', () => {
   it('clears the current batch and accepts later in-flight completion', () => {
     const session = makeSession({
       frontend,
-      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_telemetry_clear',
     });
     const collector = session.store.getState().telemetryCollector;
@@ -166,19 +125,20 @@ function publishInitializedState(props: {
   const { deps, session } = props;
   session.store.setState({
     sessionId: session.sessionId,
-    accountId: 'acct_1',
-    accountName: main.accountName,
-    actorId: 'usr_1',
-    generationId: 'gen_test',
-    systemWorkerName: 'stub-deploy',
+    aggregateId: 'acct_1',
+    aggregateName: main.aggregateName,
+    userId: 'usr_1',
+    systemId: 'sys_test',
     systemVersion: '1.0.0',
+    frontendName: main.frontendName,
+    aggregateFrontendLockKey: 'aggregate-lock-key',
     db: deps.db,
     schema: deps.schema,
     models: mainModels,
     vfsName: null,
     isInitialized: true,
-    frontendIndex: null,
-    lastRebasedPushedCursor: null,
+    frontendIndex: 0,
+    replicaIndex: null,
   });
 }
 
@@ -187,7 +147,6 @@ describe('makeSession onInitialized', () => {
     const deps = await makeInitializedSessionDeps();
     const session = makeSession({
       frontend: main,
-      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_1' as ISessionId,
     });
     const deliveries: IInitializedSessionState<
@@ -206,7 +165,7 @@ describe('makeSession onInitialized', () => {
     expect(deliveries[0]?.isInitialized).toBe(true);
     expect(deliveries[0]?.db).toBe(deps.db);
 
-    session.store.setState({ isPushPaused: true });
+    session.store.setState({ frontendIndex: 1 });
     await Promise.resolve();
     expect(deliveries).toHaveLength(1);
   });
@@ -215,7 +174,6 @@ describe('makeSession onInitialized', () => {
     const deps = await makeInitializedSessionDeps();
     const session = makeSession({
       frontend: main,
-      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_2' as ISessionId,
     });
     publishInitializedState({ session, deps });
@@ -235,7 +193,6 @@ describe('makeSession onInitialized', () => {
     const deps = await makeInitializedSessionDeps();
     const session = makeSession({
       frontend: main,
-      generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
       sessionId: 'sesn_3' as ISessionId,
     });
     const deliveries: IInitializedSessionState<

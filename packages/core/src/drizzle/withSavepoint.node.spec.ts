@@ -36,7 +36,7 @@ describe('withSavepoint', () => {
                     createdAt: now,
                     updatedAt: now,
                     version: User.version,
-                    actorId: 'actr_savepoint_failed',
+                    userId: 'user_savepoint_failed',
                     name: 'Rolled back',
                   })
                   .run();
@@ -66,7 +66,7 @@ describe('withSavepoint', () => {
                     createdAt: now,
                     updatedAt: now,
                     version: User.version,
-                    actorId: 'actr_savepoint_success',
+                    userId: 'user_savepoint_success',
                     name: 'Committed',
                   })
                   .run();

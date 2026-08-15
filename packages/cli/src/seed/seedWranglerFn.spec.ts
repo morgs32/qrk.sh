@@ -74,7 +74,7 @@ describe('seedWranglerFn', () => {
           id: 'cmd_metro_1',
           commandName: 'createMetro',
           payload: { id: 'mtr_1', name: 'Chicago' },
-          version: '1.0.0',
+          contractVersion: '1.0.0',
           systemVersion: '1.0.0',
           commandType: 'service',
           serviceName: 'app',
@@ -83,7 +83,7 @@ describe('seedWranglerFn', () => {
           id: 'cmd_metro_2',
           commandName: 'createMetro',
           payload: { id: 'mtr_2', name: 'Dallas' },
-          version: '1.0.0',
+          contractVersion: '1.0.0',
           systemVersion: '1.0.0',
           commandType: 'service',
           serviceName: 'app',
@@ -122,8 +122,8 @@ describe('seedWranglerFn', () => {
     finalizeServiceCommandsMock.mockResolvedValue({
       result: Schema.encodeUnknownSync(EitherSchema)(
         Either.right({
-          executed: [{ id: 'cmd_metro_1' }, { id: 'cmd_metro_2' }],
-          failed: [],
+          executedCommands: [{ id: 'cmd_metro_1' }, { id: 'cmd_metro_2' }],
+          failedCommands: [],
         }),
       ),
       link: null,
@@ -149,8 +149,14 @@ describe('seedWranglerFn', () => {
         {
           serviceName: 'app',
           commands: expect.arrayContaining([
-            expect.objectContaining({ id: 'cmd_metro_1' }),
-            expect.objectContaining({ id: 'cmd_metro_2' }),
+            expect.objectContaining({
+              id: 'cmd_metro_1',
+              payload: JSON.stringify({ id: 'mtr_1', name: 'Chicago' }),
+            }),
+            expect.objectContaining({
+              id: 'cmd_metro_2',
+              payload: JSON.stringify({ id: 'mtr_2', name: 'Dallas' }),
+            }),
           ]),
         },
       ],
@@ -167,8 +173,8 @@ describe('seedWranglerFn', () => {
     finalizeServiceCommandsMock.mockResolvedValue({
       result: Schema.encodeUnknownSync(EitherSchema)(
         Either.right({
-          executed: [{ id: 'cmd_metro_1' }],
-          failed: [{ id: 'cmd_metro_2' }],
+          executedCommands: [{ id: 'cmd_metro_1' }],
+          failedCommands: [{ id: 'cmd_metro_2' }],
         }),
       ),
       link: null,

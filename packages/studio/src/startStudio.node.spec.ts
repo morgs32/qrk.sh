@@ -159,19 +159,19 @@ describe('startStudio', () => {
   });
 
   it('runs a table-row request with the decoded route arguments', async () => {
-    const getAccountRepoTableRowsMock = vi.fn().mockResolvedValue({
+    const getAggregateRepoTableRowsMock = vi.fn().mockResolvedValue({
       result: {
         _tag: 'Right',
         right: {
           columns: [{ name: 'id', type: 'text' }],
-          rows: [{ id: 'account-1' }],
+          rows: [{ id: 'aggregate-1' }],
         },
       },
       link: null,
     });
     newSyncRpcSessionMock.mockReturnValue({
       getSystemApi: vi.fn().mockReturnValue({
-        getAccountRepoTableRows: getAccountRepoTableRowsMock,
+        getAggregateRepoTableRows: getAggregateRepoTableRowsMock,
       }),
       [Symbol.dispose]: vi.fn(),
     });
@@ -195,18 +195,18 @@ describe('startStudio', () => {
     await middleware(
       {
         method: 'GET',
-        url: '/api/repos/AccountRepo/account%2Frepo/accounts%20table',
+        url: '/api/repos/AggregateRepo/aggregate%2Frepo/aggregates%20table',
       },
       response,
       vi.fn(),
     );
 
-    expect(getAccountRepoTableRowsMock).toHaveBeenCalledTimes(1);
-    expect(getAccountRepoTableRowsMock.mock.calls[0]![0]).toMatchObject({
+    expect(getAggregateRepoTableRowsMock).toHaveBeenCalledTimes(1);
+    expect(getAggregateRepoTableRowsMock.mock.calls[0]![0]).toMatchObject({
       args: [
         {
-          repoName: 'account/repo',
-          tableName: 'accounts table',
+          repoName: 'aggregate/repo',
+          tableName: 'aggregates table',
         },
       ],
       traceContext: {
@@ -218,7 +218,7 @@ describe('startStudio', () => {
     expect(response.end).toHaveBeenCalledWith(
       JSON.stringify({
         columns: [{ name: 'id', type: 'text' }],
-        rows: [{ id: 'account-1' }],
+        rows: [{ id: 'aggregate-1' }],
       }),
     );
   });

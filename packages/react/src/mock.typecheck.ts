@@ -1,28 +1,43 @@
-import { List, main, User } from '@zerospin/core/fixtures/system';
+import {
+  authenticationSignature,
+  List,
+  main,
+  User,
+} from '@zerospin/core/fixtures/system';
+import { Effect } from 'effect';
 
-import { makeReactFrontend } from './makeReactFrontend';
+import { makeZerospinApp } from './makeZerospinApp';
 import { makeMockProvider } from './mock';
+import type { ISessionProviderRuntime } from './types';
 
-const ReactMain = makeReactFrontend({
-  frontend: main,
+declare const sessionRuntime: ISessionProviderRuntime;
+
+const ZerospinApp = makeZerospinApp({
+  systemName: 'system-worker',
+  authentication: { signature: authenticationSignature },
+  frontends: {
+    main: {
+      controller: main,
+    },
+  },
+  runtime: sessionRuntime,
 });
 const MockMainProvider = makeMockProvider({
-  reactFrontend: ReactMain,
+  frontend: ZerospinApp.frontends.main,
+  runtime: sessionRuntime,
 });
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
 
 MockMainProvider({
   children: null,
-  partitionKey: 'partition_1',
-  accountId: 'acct_1',
-  actorId: 'actr_1',
-  generationId: 'gen_1',
+  generateSignature: () => Effect.succeed({ userId: 'user_1' }),
+  aggregateIds: { user: 'acct_1' },
+  userId: 'user_1',
   systemVersion: '1.0.0',
-  systemWorkerName: 'worker_1',
   resources: {
     user: [
       {
-        actorId: 'actr_1',
+        userId: 'user_1',
         createdAt: fixtureDate,
         id: 'usr_1',
         modelName: User.modelName,
@@ -47,22 +62,18 @@ MockMainProvider({
 
 MockMainProvider({
   children: null,
-  partitionKey: 'partition_1',
-  accountId: 'acct_1',
-  actorId: 'actr_1',
-  generationId: 'gen_1',
+  generateSignature: () => Effect.succeed({ userId: 'user_1' }),
+  aggregateIds: { user: 'acct_1' },
+  userId: 'user_1',
   systemVersion: '1.0.0',
-  systemWorkerName: 'worker_1',
 });
 
 MockMainProvider({
   children: null,
-  partitionKey: 'partition_1',
-  accountId: 'acct_1',
-  actorId: 'actr_1',
-  generationId: 'gen_1',
+  generateSignature: () => Effect.succeed({ userId: 'user_1' }),
+  aggregateIds: { user: 'acct_1' },
+  userId: 'user_1',
   systemVersion: '1.0.0',
-  systemWorkerName: 'worker_1',
   resources: {
     // @ts-expect-error Mock resources only accept the frontend's model keys.
     missing: [],
@@ -71,12 +82,10 @@ MockMainProvider({
 
 MockMainProvider({
   children: null,
-  partitionKey: 'partition_1',
-  accountId: 'acct_1',
-  actorId: 'actr_1',
-  generationId: 'gen_1',
+  generateSignature: () => Effect.succeed({ userId: 'user_1' }),
+  aggregateIds: { user: 'acct_1' },
+  userId: 'user_1',
   systemVersion: '1.0.0',
-  systemWorkerName: 'worker_1',
   resources: {
     user: [
       {
@@ -93,22 +102,19 @@ MockMainProvider({
   },
 });
 
-// @ts-expect-error accountId is required for initialized mock session state.
 MockMainProvider({
   children: null,
-  partitionKey: 'partition_1',
-  actorId: 'actr_1',
-  generationId: 'gen_1',
+  generateSignature: () => Effect.succeed({ userId: 'user_1' }),
+  // @ts-expect-error aggregateIds must contain the configured aggregate name.
+  aggregateIds: {},
+  userId: 'user_1',
   systemVersion: '1.0.0',
-  systemWorkerName: 'worker_1',
 });
 
-// @ts-expect-error systemWorkerName is required runtime identity.
+// @ts-expect-error systemVersion is required observed metadata.
 MockMainProvider({
   children: null,
-  partitionKey: 'partition_1',
-  accountId: 'acct_1',
-  actorId: 'actr_1',
-  generationId: 'gen_1',
-  systemVersion: '1.0.0',
+  generateSignature: () => Effect.succeed({ userId: 'user_1' }),
+  aggregateIds: { user: 'acct_1' },
+  userId: 'user_1',
 });

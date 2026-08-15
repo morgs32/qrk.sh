@@ -29,35 +29,26 @@
     "incremental": true,
     "composite": false,
     "rootDir": "./src",
-    "types": ["node", "./worker-configuration.d.ts"],
+    "types": [
+      "vite/client",
+      "node",
+      "./worker-configuration.d.ts",
+      "./src/cloudflare-workers.d.ts",
+      "vite-plugin-pwa/react"
+    ],
     "paths": {
-      "@/*": ["./src/*"]
-    },
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ]
+      "*": ["./*"],
+      "@/*": ["./src/*"],
+      "virtual:pwa-register/react": [
+        "./node_modules/vite-plugin-pwa/react.d.ts"
+      ]
+    }
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "next-env.d.ts",
-    "worker-configuration.d.ts"
-  ],
-  "exclude": [
-    "dist",
-    "node_modules",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "**/*.zspec.ts"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "worker-configuration.d.ts"],
+  "exclude": ["dist", "node_modules", "**/*.spec.ts", "**/*.spec.tsx"],
   "references": [
     {
       "path": "../../packages/sdk"
-    },
-    {
-      "path": "../../packages/react"
     },
     {
       "path": "../../packages/error"
@@ -66,19 +57,22 @@
       "path": "../../packages/devtools"
     },
     {
-      "path": "../../packages/system-worker"
+      "path": "../../packages/shared-worker"
     },
     {
-      "path": "../../packages/frontend"
+      "path": "../../packages/dev-worker"
     },
     {
       "path": "../../packages/cli"
     },
     {
-      "path": "../../packages/logger"
+      "path": "../../packages/system-worker"
     },
     {
-      "path": "../../packages/dispatch-worker"
+      "path": "../../packages/react"
+    },
+    {
+      "path": "../../packages/logger"
     },
     {
       "path": "../../packages/core"

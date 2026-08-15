@@ -480,7 +480,7 @@ export function ZerospinDevtools({
     });
   }, []);
 
-  // The layout registration precedes ZerospinConfig's passive mount confirmation.
+  // The layout registration precedes ZerospinApp.Provider's passive mount confirmation.
   useLayoutEffect(() => {
     const unregisterShell =
       zerospinDevtoolsController.registerShell(openDevtools);
@@ -747,9 +747,7 @@ export function ZerospinDevtools({
               maxHeight: pipWindow === null ? '90vh' : '100vh',
               boxSizing: 'border-box',
               overflow: 'hidden',
-              color: isDark
-                ? tokens.colors.gray[100]
-                : tokens.colors.gray[900],
+              color: isDark ? tokens.colors.gray[100] : tokens.colors.gray[900],
               backgroundColor: isDark
                 ? tokens.colors.darkGray[800]
                 : tokens.colors.white,

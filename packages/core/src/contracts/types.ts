@@ -4,7 +4,7 @@ import type { Effect, JSONSchema, Schema } from 'effect';
 import { type BrandTypeId } from 'effect/Brand';
 
 import type {
-  IAccountCursor,
+  IAggregateCursor,
   IAnyShape,
   IModel,
   InferCommandPayload,
@@ -84,7 +84,7 @@ export type IContractSpec = {
 };
 
 /** Encoded optimistic mutation before worker application adds apply metadata. */
-export type IEncodedFrontendMutation = Readonly<{
+export type IEncodedAggregateFrontendMutation = Readonly<{
   commandId: string;
   mutationIndex: number;
   modelName: string;
@@ -118,30 +118,27 @@ export type IContract<
     commandName: string;
     payload: IAnyShape;
     version: string;
-    adaptPayload: (props: {
-      payload: any;
-    }) => Effect.Effect<any, IAnyError, any>;
+    adaptPayload: (props: { payload: any }) => Effect.Effect<any, IAnyError>;
   }>[] = readonly Readonly<{
     commandName: string;
     payload: IAnyShape;
     version: string;
-    adaptPayload: (props: {
-      payload: any;
-    }) => Effect.Effect<any, IAnyError, any>;
+    adaptPayload: (props: { payload: any }) => Effect.Effect<any, IAnyError>;
   }>[],
 > = {
   commandName: COMMAND_NAME;
   payload: PAYLOAD;
   historicalDefinitions: HISTORICAL_DEFINITIONS;
-  decodePayload: {
-    [BrandTypeId]: 'decodePayload';
+  decodeAndAdaptPayload: {
+    [BrandTypeId]: 'decodeAndAdaptPayload';
   } & ((props: {
     command: {
       readonly commandName: string;
+      readonly contractVersion: string;
       readonly id: string;
       readonly payload: string;
     };
-  }) => Effect.Effect<any, IAnyError>);
+  }) => Effect.Effect<InferCommandPayload<PAYLOAD>, IAnyError>);
   encodePayload: {
     [BrandTypeId]: 'encodePayload';
   } & ((props: { payload: any }) => Effect.Effect<string, IAnyError>);
@@ -166,13 +163,13 @@ export type IContract<
 
 export type ICommand<
   COMMAND_NAME extends string = string,
-  VERSION extends string = string,
+  CONTRACT_VERSION extends string = string,
   PAYLOAD = unknown,
 > = Readonly<{
   id: InferIdFromAbbreviation<'cmd'>;
   commandName: COMMAND_NAME;
+  contractVersion: CONTRACT_VERSION;
   payload: PAYLOAD;
-  version: VERSION;
 }>;
 
 export type ISessionId = InferIdFromAbbreviation<'sesn'>;
@@ -194,16 +191,14 @@ export type InferCommand<CONTRACT extends IContract> = ISessionCommand<
   >
 >;
 
-export type IAccountCommand<COMMAND extends ICommand = ICommand> = COMMAND &
+export type IAggregateCommand<COMMAND extends ICommand = ICommand> = COMMAND &
   Readonly<{
-    commandType: 'account';
-    accountId: string;
-    accountName: string;
+    commandType: 'aggregate';
+    aggregateId: string;
+    aggregateName: string;
     systemName: string;
-    systemVersion: string;
     sessionId: ISessionId | null;
-    actorId: string | null;
-    actorName: string | null;
+    userId: string | null;
     frontendName: string | null;
     pushedCursor: IPushedCursorId | null;
   }>;
@@ -212,36 +207,26 @@ export type IServiceCommand<COMMAND extends ICommand = ICommand> = COMMAND &
   Readonly<{
     commandType: 'service';
     serviceName: string;
-    systemVersion: string;
   }>;
 
-export type IDeploySeedCommand = IAccountCommand | IServiceCommand;
-
-export type IActorCommand<COMMAND extends ICommand = ICommand> = Omit<
-  IAccountCommand<COMMAND>,
-  'commandType'
-> &
-  Readonly<{
-    commandType: 'actor';
-    actorId: string;
-    actorName: string;
-    frontendName: string;
-  }>;
+export type IDeploySeedCommand = IAggregateCommand | IServiceCommand;
 
 export type ISessionCommand<COMMAND extends ICommand = ICommand> = Omit<
-  IActorCommand<COMMAND>,
-  'commandType'
+  IAggregateCommand<COMMAND>,
+  'userId' | 'commandType' | 'frontendName' | 'sessionId'
 > &
   Readonly<{
+    userId: string;
+    frontendName: string;
     sessionId: ISessionId;
   }>;
 
-export type IExecutedAccountCommand<COMMAND extends ICommand = ICommand> =
-  IAccountCommand<COMMAND> &
+export type IExecutedAggregateCommand<COMMAND extends ICommand = ICommand> =
+  IAggregateCommand<COMMAND> &
     Readonly<{
       mode: ICommandFinalizationMode;
-      accountCursor: IAccountCursor;
-      accountIndex: number;
+      aggregateCursor: IAggregateCursor;
+      aggregateIndex: number;
       executedAt: Date;
       status: 'executed';
     }>;
@@ -256,11 +241,11 @@ export type IExecutedServiceCommand<COMMAND extends ICommand = ICommand> =
       status: 'executed';
     }>;
 
-export type IFailedAccountCommand<COMMAND extends ICommand = ICommand> =
-  IAccountCommand<COMMAND> &
+export type IFailedAggregateCommand<COMMAND extends ICommand = ICommand> =
+  IAggregateCommand<COMMAND> &
     Readonly<{
-      accountCursor: IAccountCursor;
-      accountIndex: number;
+      aggregateCursor: IAggregateCursor;
+      aggregateIndex: number;
       failedAt: Date;
       failure: string;
       status: 'failed';
@@ -280,18 +265,12 @@ export type IUnstagedCommand<COMMAND extends ICommand = ICommand> =
   ISessionCommand<COMMAND> &
     Readonly<{
       commandType: 'frontend';
-      accountId: string;
-      accountName: string;
-      frontendName: string;
-      actorId: string;
-      actorName: string;
-      sessionId: ISessionId;
       stagedCursor: null;
       stagedAt: null;
       status: null;
     }>;
 
-export type IStagedCommand<COMMAND extends ICommand = ICommand> =
+export type IStagedSessionCommand<COMMAND extends ICommand = ICommand> =
   ISessionCommand<COMMAND> &
     Readonly<{
       commandType: 'frontend';
@@ -300,18 +279,30 @@ export type IStagedCommand<COMMAND extends ICommand = ICommand> =
       status: 'staged';
     }>;
 
-export type IFailedStagedCommand<COMMAND extends ICommand = ICommand> = Omit<
-  IStagedCommand<COMMAND>,
-  'status'
-> &
+export type IStagedReplicaCommand<COMMAND extends ICommand = ICommand> =
+  IStagedSessionCommand<COMMAND> &
+    Readonly<{
+      replicaIndex: number;
+    }>;
+
+export type IFailedStagedReplicaCommand<COMMAND extends ICommand = ICommand> =
+  Omit<IStagedReplicaCommand<COMMAND>, 'status'> &
+    Readonly<{
+      failedAt: Date;
+      failure: string;
+      status: 'failed';
+    }>;
+
+export type IFinalizedFailedStagedReplicaCommand<
+  COMMAND extends ICommand = ICommand,
+> = IFailedStagedReplicaCommand<COMMAND> &
   Readonly<{
-    failedAt: Date;
-    failure: string;
-    status: 'failed';
+    aggregateCursor: IAggregateCursor;
+    aggregateIndex: number;
   }>;
 
 export type IPushedCommand<COMMAND extends ICommand = ICommand> = Omit<
-  IStagedCommand<COMMAND>,
+  IStagedReplicaCommand<COMMAND>,
   'status'
 > &
   Readonly<{
@@ -320,21 +311,14 @@ export type IPushedCommand<COMMAND extends ICommand = ICommand> = Omit<
     status: 'pushed';
   }>;
 
-export type IPushedBlock = Readonly<{
-  id: InferIdFromAbbreviation<'pblk'>;
-  sessionId: ISessionId;
-  admissionLastAccountCursor: IAccountCursor | null;
-  commands: readonly IEncodedCommand<IPushedCommand>[];
-}>;
-
 export type IExecutedPushedCommand<COMMAND extends ICommand = ICommand> = Omit<
   IPushedCommand<COMMAND>,
   'status'
 > &
   Readonly<{
     mode: ICommandFinalizationMode;
-    accountCursor: IAccountCursor;
-    accountIndex: number;
+    aggregateCursor: IAggregateCursor;
+    aggregateIndex: number;
     executedAt: Date;
     status: 'executed';
   }>;
@@ -344,9 +328,22 @@ export type IFailedPushedCommand<COMMAND extends ICommand = ICommand> = Omit<
   'status'
 > &
   Readonly<{
-    accountCursor: IAccountCursor;
-    accountIndex: number;
+    aggregateCursor: IAggregateCursor;
+    aggregateIndex: number;
     failedAt: Date;
     failure: string;
     status: 'failed';
   }>;
+
+export type IPushBlock = Readonly<{
+  writeIndex: number;
+  guardedAtAggregateCursor: IAggregateCursor | null;
+  pendingCommands: readonly IEncodedCommand<IPushedCommand>[];
+  pushedCommands: readonly IEncodedCommand<IPushedCommand>[];
+  executedCommands: readonly IEncodedCommand<IExecutedPushedCommand>[];
+  failedStagedCommands: readonly (
+    | IEncodedCommand<IFailedStagedReplicaCommand>
+    | IEncodedCommand<IFinalizedFailedStagedReplicaCommand>
+  )[];
+  failedPushedCommands: readonly IEncodedCommand<IFailedPushedCommand>[];
+}>;

@@ -6,7 +6,7 @@ Fanout events carry raw mutation fields; subscribers re-parse JSON; ledger rows 
 
 ## Pattern
 
-See `system-worker/fanout-inline-payload-shape.ts`, `contracts/iencoded-command-at-boundary-only.ts`.
+See `system-worker/aggregate-repo-finalization-fanout.ts` and `contracts/iencoded-command-at-boundary-only.ts` for the current aggregate block guidance.
 
 ## When to apply
 

@@ -1,9 +1,8 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
-import { makeTx } from '../drizzle/makeTx.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
-import type { IServiceFrontendController } from '../serviceFrontendController/types.ts';
+import type { IServiceFrontendController } from '../frontendController/types.ts';
 
 import { applyServiceFrontendBlock } from './applyServiceFrontendBlock.ts';
 import { ServiceFrontendReplicaBlockSchema } from './ServiceFrontendBlockSchema.ts';
@@ -11,16 +10,16 @@ import type { IServiceFrontendReplicaBlock } from './types.ts';
 
 /*
  * 1. Validate the complete replica envelope and prove equal-index duplicates.
- * 2. Validate nested lineage identity and index coherence before mutation.
- * 3. Apply an ordinary service delta or commit a data-free generation boundary.
+ * 2. Reject the wrong lock key before local mutation.
+ * 3. Validate the ordinary nested block and its index coherence.
  */
 export const applyServiceFrontendReplicaBlock = Effect.fn(
   'applyServiceFrontendReplicaBlock',
 )(function* <FRONTEND extends IServiceFrontendController>(props: {
   frontend: FRONTEND;
-  actorId: IServiceFrontendReplicaBlock['actorId'];
+  userId: IServiceFrontendReplicaBlock['userId'];
   systemId: IServiceFrontendReplicaBlock['systemId'];
-  generationId: string;
+  serviceFrontendLockKey: string;
   currentFrontendIndex: number;
   currentReplicaIndex: number;
   previousReplicaBlock: IServiceFrontendReplicaBlock | null;
@@ -29,16 +28,16 @@ export const applyServiceFrontendReplicaBlock = Effect.fn(
   frontendReplicaBlock: IServiceFrontendReplicaBlock;
 }): Effect.fn.Return<'applied' | 'duplicate', IAnyError> {
   const {
-    actorId,
+    userId,
     currentFrontendIndex,
     currentReplicaIndex,
     db,
     frontend,
     frontendReplicaBlock,
-    generationId,
     models,
     previousReplicaBlock,
     systemId,
+    serviceFrontendLockKey,
   } = props;
 
   const encodedReplicaBlock = yield* Schema.encode(
@@ -52,31 +51,29 @@ export const applyServiceFrontendReplicaBlock = Effect.fn(
 
   if (
     frontendReplicaBlock.systemId !== systemId ||
-    frontendReplicaBlock.generationId !== generationId ||
     frontendReplicaBlock.serviceName !== frontend.serviceName ||
-    frontendReplicaBlock.actorId !== actorId ||
-    frontendReplicaBlock.actorName !== frontend.actorName ||
+    frontendReplicaBlock.userId !== userId ||
     frontendReplicaBlock.frontendName !== frontend.frontendName ||
-    frontendReplicaBlock.frontendVersion !== frontend.version
+    frontendReplicaBlock.serviceFrontendLockKey !== serviceFrontendLockKey ||
+    frontendReplicaBlock.frontendBlock.serviceName !== frontend.serviceName ||
+    frontendReplicaBlock.frontendBlock.userId !== userId ||
+    frontendReplicaBlock.frontendBlock.frontendName !== frontend.frontendName
   ) {
     return yield* new ZerospinError({
       code: 'service-frontend-replica-block-target-mismatch',
       message: 'Service frontend replica block does not match the bound target',
       extra: {
         expectedSystemId: systemId,
-        expectedGenerationId: generationId,
         expectedServiceName: frontend.serviceName,
-        expectedActorId: actorId,
-        expectedActorName: frontend.actorName,
+        expectedUserId: userId,
         expectedFrontendName: frontend.frontendName,
-        expectedFrontendVersion: frontend.version,
+        expectedServiceFrontendLockKey: serviceFrontendLockKey,
         actualSystemId: frontendReplicaBlock.systemId,
-        actualGenerationId: frontendReplicaBlock.generationId,
         actualServiceName: frontendReplicaBlock.serviceName,
-        actualActorId: frontendReplicaBlock.actorId,
-        actualActorName: frontendReplicaBlock.actorName,
+        actualUserId: frontendReplicaBlock.userId,
         actualFrontendName: frontendReplicaBlock.frontendName,
-        actualFrontendVersion: frontendReplicaBlock.frontendVersion,
+        actualServiceFrontendLockKey:
+          frontendReplicaBlock.serviceFrontendLockKey,
       },
     });
   }
@@ -123,73 +120,28 @@ export const applyServiceFrontendReplicaBlock = Effect.fn(
     });
   }
 
-  const lineageBlock = frontendReplicaBlock.lineageBlock;
-  const lineageFrontendIndex =
-    lineageBlock.kind === 'generation-boundary'
-      ? lineageBlock.frontendIndex
-      : lineageBlock.frontendBlock.frontendIndex;
+  const frontendBlock = frontendReplicaBlock.frontendBlock;
   if (
-    lineageBlock.systemId !== systemId ||
-    lineageBlock.serviceName !== frontend.serviceName ||
-    lineageBlock.actorId !== actorId ||
-    lineageBlock.actorName !== frontend.actorName ||
-    lineageBlock.frontendName !== frontend.frontendName ||
-    lineageFrontendIndex !== frontendReplicaBlock.frontendIndex ||
+    frontendBlock.serviceName !== frontend.serviceName ||
+    frontendBlock.userId !== userId ||
+    frontendBlock.frontendName !== frontend.frontendName ||
+    frontendBlock.frontendIndex !== frontendReplicaBlock.frontendIndex ||
     frontendReplicaBlock.frontendIndex !== currentFrontendIndex + 1
   ) {
     return yield* new ZerospinError({
-      code: 'service-frontend-replica-lineage-target-mismatch',
+      code: 'service-frontend-replica-server-block-target-mismatch',
       message:
-        'Service frontend lineage block does not match its replica envelope',
-    });
-  }
-
-  if (lineageBlock.kind === 'generation-boundary') {
-    if (
-      lineageBlock.prevGenerationId !== generationId ||
-      lineageBlock.generationId === generationId
-    ) {
-      return yield* new ZerospinError({
-        code: 'service-frontend-replica-generation-boundary-lineage-mismatch',
-        message:
-          'Service frontend generation boundary does not continue this replica',
-      });
-    }
-
-    yield* makeTx({
-      db,
-      program: Effect.fn('applyServiceFrontendReplicaBlock.generationBoundary')(
-        function* () {
-          yield* Effect.void;
-        },
-      ),
-    });
-    return 'applied';
-  }
-
-  if (
-    lineageBlock.generationId !== generationId ||
-    lineageBlock.frontendBlock.serviceName !== frontend.serviceName ||
-    lineageBlock.frontendBlock.actorId !== actorId ||
-    lineageBlock.frontendBlock.actorName !== frontend.actorName ||
-    lineageBlock.frontendBlock.frontendName !== frontend.frontendName ||
-    lineageBlock.frontendBlock.frontendIndex !==
-      frontendReplicaBlock.frontendIndex
-  ) {
-    return yield* new ZerospinError({
-      code: 'service-frontend-replica-resource-lineage-mismatch',
-      message:
-        'Service frontend resource lineage block does not match this replica',
+        'Service frontend server block does not match its replica envelope',
     });
   }
 
   yield* applyServiceFrontendBlock({
     frontend,
-    actorId,
+    userId,
     currentFrontendIndex,
     db,
     models,
-    frontendBlock: lineageBlock.frontendBlock,
+    frontendBlock,
   });
   return 'applied';
 });

@@ -1,6 +1,6 @@
 /*
  * ServiceBlockRepo is the singleton durable service-block archive and the
- * delivery owner for every AccountRepo that permanently replicates from one service.
+ * delivery owner for every AggregateRepo that permanently replicates from one service.
  */
 
 import { RoutePattern } from '@remix-run/route-pattern';
@@ -13,24 +13,26 @@ import type { IAnyTables, IServiceCursorId } from '@zerospin/core/models/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import type { IAnyErrorJson } from '@zerospin/error';
+import { desc } from 'drizzle-orm';
 import { Effect, type Schema } from 'effect';
 import { BrandTypeId } from 'effect/Brand';
 
 import { ServiceBlockSchema } from '../blockSchemas.js';
-import { makeRepo } from '../makeRepo/makeRepo.js';
-import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
+import { makeBoundDORepo } from '../makeBoundDORepo/makeBoundDORepo.js';
+import { makeBoundDORepoConfig } from '../makeBoundDORepo/makeBoundDORepoConfig.js';
+import { makeDeliveryQueue } from '../makeDeliveryQueue/makeDeliveryQueue.js';
 import { managedRuntime } from '../managedRuntime.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import type { IServiceBlock } from '../types.js';
 
 import { alarm } from './alarm/alarm.js';
-import { drainAccountSubscribers } from './drainAccountSubscribers/drainAccountSubscribers.js';
+import { drainAggregateSubscribers } from './drainAggregateSubscribers/drainAggregateSubscribers.js';
 import { drainGeneration } from './drainGeneration/drainGeneration.js';
 import { drainServiceFrontendSubscribers } from './drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.js';
 import { getReplayBlock } from './getReplayBlock/getReplayBlock.js';
 import { getReplayBound } from './getReplayBound/getReplayBound.js';
 import { publish } from './publish/publish.js';
-import { subscribeAccount } from './subscribeAccount/subscribeAccount.js';
+import { subscribeAggregate } from './subscribeAggregate/subscribeAggregate.js';
 import { subscribeServiceFrontend } from './subscribeServiceFrontend/subscribeServiceFrontend.js';
 
 const serviceBlockTables = {
@@ -44,20 +46,18 @@ const serviceBlockTables = {
       block: primitives.json({ schema: ServiceBlockSchema }),
     },
   }),
-  accountSubscribers: makeTable({
-    name: 'accountSubscribers',
+  aggregateSubscribers: makeTable({
+    name: 'aggregateSubscribers',
     shape: {
-      accountRepoName: primitives.primaryKey({
-        abbreviation: systemWorkerAbbreviations.accountRepo,
+      aggregateRepoName: primitives.primaryKey({
+        abbreviation: systemWorkerAbbreviations.aggregateRepo,
       }),
-      accountId: primitives.text(),
-      accountName: primitives.text(),
+      aggregateId: primitives.text(),
+      aggregateName: primitives.text(),
       currentServiceCursor: primitives.cursor({
         abbreviation: coreAbbreviations.serviceCursor,
       }),
       currentServiceIndex: primitives.integer(),
-      deliveryAttempts: primitives.integer(),
-      nextRetryAt: primitives.integer({ nullable: true }),
       lastDeliveryError: primitives.text({ nullable: true }),
     },
   }),
@@ -68,10 +68,7 @@ const serviceBlockTables = {
         abbreviation: systemWorkerAbbreviations.serviceFrontendRepo,
       }),
       serviceName: primitives.text(),
-      actorName: primitives.text(),
-      actorId: primitives.opaqueId({
-        abbreviation: coreAbbreviations.actor,
-      }),
+      userId: primitives.text(),
       frontendName: primitives.text(),
       currentServiceCursor: primitives.cursor({
         abbreviation: coreAbbreviations.serviceCursor,
@@ -93,7 +90,7 @@ const serviceBlockDbConfig = makeDbConfig({ tables: serviceBlockTables });
 
 export const serviceBlockDrizzleSchemas = serviceBlockDbConfig.schema;
 
-const serviceBlockRepoUtils = makeRepoUtils({
+const serviceBlockBoundDORepoConfig = makeBoundDORepoConfig({
   abbreviation: systemWorkerAbbreviations.serviceBlockRepo,
   repoType: 'ServiceBlockRepo',
   namePattern: RoutePattern.parse('/:generationId/:serviceName'),
@@ -104,12 +101,49 @@ const serviceBlockRepoUtils = makeRepoUtils({
   }),
 });
 
-export class ServiceBlockRepo extends makeRepo({
-  repoUtils: serviceBlockRepoUtils,
+export class ServiceBlockRepo extends makeBoundDORepo({
+  boundDORepoConfig: serviceBlockBoundDORepoConfig,
 }) {
   declare [BrandTypeId]: { readonly TargetApi: 'TargetApi' };
 
-  static override readonly repoUtils = serviceBlockRepoUtils;
+  static override readonly boundDORepoConfig = serviceBlockBoundDORepoConfig;
+
+  private readonly deliveryQueue = makeDeliveryQueue({
+    storage: this.ctx.storage,
+    hasPending: () =>
+      Effect.sync(() => {
+        const terminal = this.db
+          .select({
+            serviceIndex: serviceBlockDrizzleSchemas.serviceBlocks.serviceIndex,
+          })
+          .from(serviceBlockDrizzleSchemas.serviceBlocks)
+          .orderBy(desc(serviceBlockDrizzleSchemas.serviceBlocks.serviceIndex))
+          .limit(1)
+          .get();
+        return (
+          this.db
+            .select()
+            .from(serviceBlockDrizzleSchemas.aggregateSubscribers)
+            .all()
+            .some(
+              subscriber =>
+                terminal !== undefined &&
+                subscriber.currentServiceIndex < terminal.serviceIndex,
+            ) ||
+          this.db
+            .select()
+            .from(serviceBlockDrizzleSchemas.serviceFrontendSubscribers)
+            .all()
+            .some(
+              subscriber =>
+                subscriber.status === 'catching-up' ||
+                (terminal !== undefined &&
+                  (subscriber.currentServiceIndex ?? 0) <
+                    terminal.serviceIndex),
+            )
+        );
+      }),
+  });
 
   async publish(
     block: IServiceBlock,
@@ -118,7 +152,10 @@ export class ServiceBlockRepo extends makeRepo({
       publish({ block, db: this.db }).pipe(encodeRpc),
     );
     this.ctx.waitUntil(
-      this.drainAccountSubscribers().then(
+      Promise.all([
+        this.drainAggregateSubscribers(),
+        this.drainServiceFrontendSubscribers(),
+      ]).then(
         () => undefined,
         () => undefined,
       ),
@@ -126,18 +163,18 @@ export class ServiceBlockRepo extends makeRepo({
     return encoded;
   }
 
-  async subscribeAccount(props: {
-    accountRepoName: string;
-    accountId: string;
-    accountName: string;
+  async subscribeAggregate(props: {
+    aggregateRepoName: string;
+    aggregateId: string;
+    aggregateName: string;
     currentServiceCursor: IServiceCursorId;
     currentServiceIndex: number;
   }): Promise<Schema.EitherEncoded<void, IAnyErrorJson>> {
     const encoded = await managedRuntime.runPromise(
-      subscribeAccount({ ...props, db: this.db }).pipe(encodeRpc),
+      subscribeAggregate({ ...props, db: this.db }).pipe(encodeRpc),
     );
     this.ctx.waitUntil(
-      this.drainAccountSubscribers().then(
+      this.drainAggregateSubscribers().then(
         () => undefined,
         () => undefined,
       ),
@@ -148,8 +185,7 @@ export class ServiceBlockRepo extends makeRepo({
   async subscribeServiceFrontend(props: {
     serviceFrontendRepoName: string;
     serviceName: string;
-    actorName: string;
-    actorId: string;
+    userId: string;
     frontendName: string;
     currentServiceCursor: IServiceCursorId | null;
     currentServiceIndex: number | null;
@@ -166,6 +202,7 @@ export class ServiceBlockRepo extends makeRepo({
       subscribeServiceFrontend({
         ...props,
         db: this.db,
+        deliveryQueue: this.deliveryQueue,
         key: this.key,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
@@ -178,65 +215,14 @@ export class ServiceBlockRepo extends makeRepo({
     return encoded;
   }
 
-  async drainAccountSubscribers(): Promise<
+  async drainAggregateSubscribers(): Promise<
     Schema.EitherEncoded<void, IAnyErrorJson>
   > {
     return managedRuntime.runPromise(
-      Effect.gen(this, function* () {
-        // Each drain claims a durable sequence before its first delivery await.
-        // Only the newest claimant may delete the shared alarm after success.
-        const drainSequence = yield* Effect.promise(() =>
-          this.ctx.storage.transaction(async transaction => {
-            const previousDrainSequence =
-              (await transaction.get<number>(
-                'serviceBlockSubscriberDrainSequence',
-              )) ?? 0;
-            const nextDrainSequence = previousDrainSequence + 1;
-            await transaction.put(
-              'serviceBlockSubscriberDrainSequence',
-              nextDrainSequence,
-            );
-            return nextDrainSequence;
-          }),
-        );
-        const accountNextRetryAt = yield* drainAccountSubscribers({
-          db: this.db,
-          serviceName: this.key.serviceName,
-        });
-        const serviceFrontendNextRetryAt =
-          yield* drainServiceFrontendSubscribers({
-            db: this.db,
-            key: this.key,
-            onlyServiceFrontendRepoName: null,
-            failFast: false,
-          });
-        const nextRetryAt =
-          accountNextRetryAt === null
-            ? serviceFrontendNextRetryAt
-            : serviceFrontendNextRetryAt === null
-              ? accountNextRetryAt
-              : Math.min(accountNextRetryAt, serviceFrontendNextRetryAt);
-        yield* Effect.promise(() =>
-          this.ctx.storage.transaction(async transaction => {
-            const currentDrainSequence = await transaction.get<number>(
-              'serviceBlockSubscriberDrainSequence',
-            );
-            const currentAlarm = await transaction.getAlarm();
-            if (nextRetryAt === null) {
-              if (currentDrainSequence === drainSequence) {
-                await transaction.deleteAlarm();
-              }
-              return;
-            }
-            if (
-              currentAlarm === null ||
-              currentAlarm <= Date.now() ||
-              nextRetryAt < currentAlarm
-            ) {
-              await transaction.setAlarm(nextRetryAt);
-            }
-          }),
-        );
+      drainAggregateSubscribers({
+        db: this.db,
+        deliveryQueue: this.deliveryQueue,
+        serviceName: this.key.serviceName,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }
@@ -245,62 +231,11 @@ export class ServiceBlockRepo extends makeRepo({
     Schema.EitherEncoded<void, IAnyErrorJson>
   > {
     return managedRuntime.runPromise(
-      Effect.gen(this, function* () {
-        // This method shares the alarm with account delivery and alarm().
-        // Claiming a new sequence prevents an older success from deleting a
-        // retry alarm scheduled by a newer overlapping drain.
-        const drainSequence = yield* Effect.promise(() =>
-          this.ctx.storage.transaction(async transaction => {
-            const previousDrainSequence =
-              (await transaction.get<number>(
-                'serviceBlockSubscriberDrainSequence',
-              )) ?? 0;
-            const nextDrainSequence = previousDrainSequence + 1;
-            await transaction.put(
-              'serviceBlockSubscriberDrainSequence',
-              nextDrainSequence,
-            );
-            return nextDrainSequence;
-          }),
-        );
-        const accountNextRetryAt = yield* drainAccountSubscribers({
-          db: this.db,
-          serviceName: this.key.serviceName,
-        });
-        const serviceFrontendNextRetryAt =
-          yield* drainServiceFrontendSubscribers({
-            db: this.db,
-            key: this.key,
-            onlyServiceFrontendRepoName: null,
-            failFast: false,
-          });
-        const nextRetryAt =
-          accountNextRetryAt === null
-            ? serviceFrontendNextRetryAt
-            : serviceFrontendNextRetryAt === null
-              ? accountNextRetryAt
-              : Math.min(accountNextRetryAt, serviceFrontendNextRetryAt);
-        yield* Effect.promise(() =>
-          this.ctx.storage.transaction(async transaction => {
-            const currentDrainSequence = await transaction.get<number>(
-              'serviceBlockSubscriberDrainSequence',
-            );
-            const currentAlarm = await transaction.getAlarm();
-            if (nextRetryAt === null) {
-              if (currentDrainSequence === drainSequence) {
-                await transaction.deleteAlarm();
-              }
-              return;
-            }
-            if (
-              currentAlarm === null ||
-              currentAlarm <= Date.now() ||
-              nextRetryAt < currentAlarm
-            ) {
-              await transaction.setAlarm(nextRetryAt);
-            }
-          }),
-        );
+      drainServiceFrontendSubscribers({
+        db: this.db,
+        deliveryQueue: this.deliveryQueue,
+        key: this.key,
+        onlyServiceFrontendRepoName: null,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }
@@ -308,7 +243,7 @@ export class ServiceBlockRepo extends makeRepo({
   async drainGeneration(): Promise<
     Schema.EitherEncoded<
       Readonly<{
-        pendingAccountSubscriberCount: number;
+        pendingAggregateSubscriberCount: number;
         pendingServiceFrontendSubscriberCount: number;
       }>,
       IAnyErrorJson
@@ -317,10 +252,9 @@ export class ServiceBlockRepo extends makeRepo({
     return managedRuntime.runPromise(
       drainGeneration({
         db: this.db,
+        deliveryQueue: this.deliveryQueue,
         generationId: this.key.generationId,
-        inspectionOnly: this.env.ZEROSPIN_SELF_HOSTED === 'true',
         serviceName: this.key.serviceName,
-        storage: this.ctx.storage,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }
@@ -352,8 +286,8 @@ export class ServiceBlockRepo extends makeRepo({
     await managedRuntime.runPromise(
       alarm({
         db: this.db,
+        deliveryQueue: this.deliveryQueue,
         key: this.key,
-        storage: this.ctx.storage,
       }).pipe(Effect.provide(AsyncLive)),
     );
   }

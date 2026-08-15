@@ -22,7 +22,6 @@ export const getServiceFrontendSnapshot = Effect.fn(
   'ServiceRepo.getServiceFrontendSnapshot',
 )(function* (props: {
   serviceName: string;
-  actorName: string;
   frontendName: string;
   db: IDb;
 }): Effect.fn.Return<
@@ -33,23 +32,18 @@ export const getServiceFrontendSnapshot = Effect.fn(
   }>,
   IAnyError
 > {
-  const { actorName, db, frontendName, serviceName } = props;
+  const { db, frontendName, serviceName } = props;
 
   // 1 — model membership comes from the trusted compiled controller graph.
-  const serviceController = yield* getByKeyOrThrow({
-    record: system.serviceControllers,
+  const service = yield* getByKeyOrThrow({
+    record: system.services,
     key: serviceName,
-    recordKind: 'service controllers',
+    recordKind: 'services',
   });
-  const actorController = yield* getByKeyOrThrow({
-    record: serviceController.actorControllers,
-    key: actorName,
-    recordKind: `actor controllers owned by service ${serviceName}`,
-  });
-  const frontendBinding = yield* getByKeyOrThrow({
-    record: actorController.frontends,
+  yield* getByKeyOrThrow({
+    record: service.frontends,
     key: frontendName,
-    recordKind: `frontends owned by service actor ${serviceName}.${actorName}`,
+    recordKind: `frontends owned by service ${serviceName}`,
   });
 
   // 2 — no service block may split the resource snapshot from its source
@@ -60,24 +54,21 @@ export const getServiceFrontendSnapshot = Effect.fn(
       function* ({ tx }) {
         const watermark = tx
           .select()
-          .from(serviceRepoDrizzleSchemas.serviceCursors)
-          .orderBy(desc(serviceRepoDrizzleSchemas.serviceCursors.serviceIndex))
+          .from(serviceRepoDrizzleSchemas.serviceCommandOutcomes)
+          .orderBy(
+            desc(serviceRepoDrizzleSchemas.serviceCommandOutcomes.serviceIndex),
+          )
           .limit(1)
           .get();
 
         const resources: IEncodedResourceShape[] = [];
-        for (const [modelName, model] of Object.entries(
-          frontendBinding.frontendController.models,
-        )) {
-          if (model.modelName !== modelName) {
-            continue;
-          }
+        for (const model of Object.values(service.models)) {
           for (const row of tx.select().from(model.drizzleSchema).all()) {
             resources.push(
               yield* Schema.validate(EncodedResourceSchema)(row).pipe(
                 mapParseError({
                   code: 'service-frontend-snapshot-resource-invalid',
-                  prefix: `Failed to decode service frontend resource ${serviceName}.${actorName}.${frontendName}.${modelName}`,
+                  prefix: `Failed to decode service frontend resource ${serviceName}.${frontendName}.${model.modelName}`,
                 }),
               ),
             );

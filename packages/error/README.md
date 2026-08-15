@@ -39,6 +39,30 @@ const error = new ZerospinError({
 
 `cause` is **`null | string`** (diagnostic text for logs/RPC). Format unknown failures with **`ZerospinError.prettyUnknownFailure`** before assigning.
 
+### Defining Fixed-Code Error Classes
+
+Use `ZerospinError.makeClass` when a named error class always has the same
+code and optionally the same default message:
+
+```typescript
+class StaleMachineStateError extends ZerospinError.makeClass({
+  code: 'zmachine-state-stale',
+  message: 'Cannot update or transition an unmounted machine state',
+}) {}
+
+const stale = new StaleMachineStateError();
+const contextual = new StaleMachineStateError({
+  cause: 'State revision 4 is no longer mounted',
+  message: 'Cannot update state revision 4',
+});
+```
+
+The class code cannot be overridden. An instance message overrides the class
+default; when both are omitted, the code is used as the message. Instances keep
+the common `_tag: 'ZerospinError'`. Named subclass identity is local to the
+current process: decoding through the schema, RPC, or persistence path
+reconstructs the base `ZerospinError` while preserving its canonical fields.
+
 ## Using ZerospinError in Effect Contexts
 
 ### 1. Throwing Errors in Effect.gen
@@ -425,7 +449,7 @@ Serialize errors for transmission over networks or storage:
 const error = new ZerospinError({
   code: 'my-error',
   message: 'Something went wrong',
-  extra: { actorId: '123' },
+  extra: { userId: '123' },
   status: 400,
 });
 
@@ -453,9 +477,9 @@ const jsonWithoutExtra = error.serialize(['extra']);
 3. **Use typed extra data**: Leverage TypeScript generics for type-safe metadata:
 
    ```typescript
-   new ZerospinError<ErrorCode, { actorId: string; action: string }>({
+   new ZerospinError<ErrorCode, { userId: string; action: string }>({
      code: 'permission-denied',
-     extra: { actorId: '123', action: 'delete' },
+     extra: { userId: '123', action: 'delete' },
    });
    ```
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scan llm-wiki Vendors"
+  short_description: "Sync and update sibling llm-wiki vendors"
+  default_prompt: "Use $scan to sync remotes, find sibling repositories vendoring this llm-wiki, and update stale copies."

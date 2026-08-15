@@ -15,9 +15,11 @@ import type { IDrizzleRelationsFromModels } from './types.ts';
 /** Derives and validates all Drizzle relations from one concrete table graph. */
 export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
   tables: TABLES,
+  physicalTableNames?: Partial<Record<keyof TABLES & string, string>>,
 ): IDrizzleRelationsFromModels<IModels, TABLES>;
 export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
   tables: TABLES,
+  physicalTableNames: Partial<Record<keyof TABLES & string, string>> = {},
 ): AnyRelations {
   const tableKeys: (keyof TABLES & string)[] = [];
   const tableKeyByObject = new Map<IAnyTable, keyof TABLES & string>();
@@ -43,14 +45,15 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
     if (table === undefined) {
       continue;
     }
-    const priorTableKey = tableKeyByName.get(table.name);
+    const physicalTableName = physicalTableNames[tableKey] ?? table.name;
+    const priorTableKey = tableKeyByName.get(physicalTableName);
     if (priorTableKey !== undefined) {
       throw new Error(
-        `makeDrizzleRelationsFromTables: duplicate table name "${table.name}" at keys "${priorTableKey}" and "${tableKey}"`,
+        `makeDrizzleRelationsFromTables: duplicate physical table name "${physicalTableName}" at keys "${priorTableKey}" and "${tableKey}"`,
       );
     }
     tableKeyByObject.set(table, tableKey);
-    tableKeyByName.set(table.name, tableKey);
+    tableKeyByName.set(physicalTableName, tableKey);
     relationNamesByTableKey.set(tableKey, new Set());
     targetsBySourceTableKey.set(tableKey, new Set());
   }
@@ -210,7 +213,7 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
     }
   }
 
-  const schema = makeDrizzleSchemasRecordFromTables(tables);
+  const schema = makeDrizzleSchemasRecordFromTables(tables, physicalTableNames);
 
   // Step 5: construct one forward relation and one inverse relation for every
   // ref. Unique refs produce inverse one relations; all other refs produce

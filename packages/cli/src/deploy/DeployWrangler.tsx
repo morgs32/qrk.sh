@@ -22,7 +22,7 @@ export function DeployWrangler(props: { clean: boolean }) {
       {data?.status === 'keys-generated' && (
         <ProcedureStepSuccess>
           <Box flexDirection="column">
-            <Text>Self-hosted Zerospin keys generated; nothing deployed.</Text>
+            <Text>Production Zerospin keys generated; nothing deployed.</Text>
             <Text>
               Copy these values into {data.envFilePath}, then rerun `zerospin
               deploy --wrangler`:
@@ -30,9 +30,8 @@ export function DeployWrangler(props: { clean: boolean }) {
             <Text>ZEROSPIN_PUBLISHABLE_KEY={data.zerospinPublishableKey}</Text>
             <Text>ZEROSPIN_SECRET_KEY={data.zerospinSecretKey}</Text>
             <Text>
-              Keep ZEROSPIN_SECRET_KEY private. Configure the browser with
-              NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY using the same publishable
-              value.
+              Keep ZEROSPIN_SECRET_KEY private. Expose only
+              ZEROSPIN_PUBLISHABLE_KEY to clients.
             </Text>
           </Box>
         </ProcedureStepSuccess>
@@ -40,16 +39,11 @@ export function DeployWrangler(props: { clean: boolean }) {
       {data?.status === 'deployed' && (
         <ProcedureStepSuccess>
           <Box flexDirection="column">
-            <Text>Self-hosted Zerospin deploy succeeded.</Text>
+            <Text>Production Zerospin deploy succeeded.</Text>
             <Text>Worker: {data.workerUrl}</Text>
-            <Text>Local production seed variable:</Text>
-            <Text>ZEROSPIN_WRANGLER_API_URL={data.workerUrl}</Text>
-            <Text>Vercel production variables:</Text>
-            <Text>NEXT_PUBLIC_ZEROSPIN_API_URL={data.workerUrl}</Text>
-            <Text>
-              NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY=
-              {data.zerospinPublishableKey}
-            </Text>
+            <Text>Application variables:</Text>
+            <Text>ZEROSPIN_API_URL={data.workerUrl}</Text>
+            <Text>ZEROSPIN_PUBLISHABLE_KEY={data.zerospinPublishableKey}</Text>
           </Box>
         </ProcedureStepSuccess>
       )}

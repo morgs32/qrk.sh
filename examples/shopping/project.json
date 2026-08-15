@@ -2,12 +2,33 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "shopping",
   "targets": {
+    "build": {
+      "dependsOn": ["^lib"]
+    },
+    "preview": {
+      "continuous": true,
+      "dependsOn": ["build"]
+    },
     "dev": {
       "continuous": true,
       "dependsOn": ["^lib", "zerospin:dev"]
     },
     "zerospin:dev": {
       "continuous": true,
+      "dependsOn": ["^lib"]
+    },
+    "deploy:app": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "deploy:app"
+      },
+      "dependsOn": ["build"]
+    },
+    "deploy:zerospin": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "deploy:zerospin"
+      },
       "dependsOn": ["^lib"]
     },
     "e2e-app": {
@@ -22,6 +43,12 @@
       "executor": "nx:run-script",
       "options": {
         "script": "test:playwright"
+      }
+    },
+    "test:playwright:preview": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:playwright:preview"
       }
     },
     "test:e2e": {
@@ -40,21 +67,14 @@
     "test:vitest:browser": {
       "executor": "nx:run-script",
       "options": {
-        "script": "test:vitest:browser:transitions"
+        "script": "test:vitest:browser:main"
       },
-      "dependsOn": ["^lib", "test:vitest:browser:main"]
+      "dependsOn": ["^lib"]
     },
     "test:vitest:browser:main": {
       "executor": "nx:run-script",
       "options": {
         "script": "test:vitest:browser:main"
-      },
-      "dependsOn": ["^lib"]
-    },
-    "test:vitest:browser:transitions": {
-      "executor": "nx:run-script",
-      "options": {
-        "script": "test:vitest:browser:transitions"
       },
       "dependsOn": ["^lib"]
     },

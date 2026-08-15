@@ -6,7 +6,7 @@ Public system-worker Repo RPC/lifecycle method bodies kept inline in the class, 
 
 ## Pattern
 
-See `system-worker/do-method-calling-same-named-effect-fn.ts`; use `system-worker/inline-small-repo-logic-into-do-method.ts` only for non-public one-consumer helpers inside those method files.
+See `rpc/rpc-target-method-folders.ts`; use `system-worker/inline-small-repo-logic-into-do-method.ts` only for non-public one-consumer helpers inside those method files. The convention now applies to every production `RpcTarget`, not only system-worker Repos.
 
 ## When to apply
 

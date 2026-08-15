@@ -1,5 +1,5 @@
 /*
- * Actor-specific, read-only projection of one service frontend's declared
+ * Actor-scoped, read-only projection of one service frontend's declared
  * models. This repo and its archive are registered only after snapshot,
  * catch-up, and archive acknowledgement have all completed.
  */
@@ -7,13 +7,15 @@
 import { RoutePattern } from '@remix-run/route-pattern';
 import type {} from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
+import { makeDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeDrizzleSchemasRecordFromTables } from '@zerospin/core/drizzle/makeDrizzleSchemas';
 import { makeTable } from '@zerospin/core/models/makeTable';
+import { PrimitiveKind } from '@zerospin/core/models/primitiveKind';
 import { primitives } from '@zerospin/core/models/primitives';
 import type {
-  IActorId,
+  IAnyShape,
   IAnyTables,
+  IModels,
   IServiceCursorId,
 } from '@zerospin/core/models/types';
 import { ServiceFrontendBlockSchema } from '@zerospin/core/serviceSession/ServiceFrontendBlockSchema';
@@ -28,8 +30,9 @@ import { BrandTypeId } from 'effect/Brand';
 import { system } from 'system';
 
 import { ServiceBlockSchema } from '../blockSchemas.js';
-import { makeRepo } from '../makeRepo/makeRepo.js';
-import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
+import { makeBoundDORepo } from '../makeBoundDORepo/makeBoundDORepo.js';
+import { makeBoundDORepoConfig } from '../makeBoundDORepo/makeBoundDORepoConfig.js';
+import { makeDeliveryQueue } from '../makeDeliveryQueue/makeDeliveryQueue.js';
 import { managedRuntime } from '../managedRuntime.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import type { IServiceBlock } from '../types.js';
@@ -37,22 +40,19 @@ import type { IServiceBlock } from '../types.js';
 import { alarm } from './alarm/alarm.js';
 import { drainGeneration } from './drainGeneration/drainGeneration.js';
 import { drainServiceFrontendBlockOutbox } from './drainServiceFrontendBlockOutbox/drainServiceFrontendBlockOutbox.js';
-import { getFrontendState } from './getFrontendState/getFrontendState.js';
 import { getProjectionReadiness } from './getProjectionReadiness/getProjectionReadiness.js';
+import { getState } from './getState/getState.js';
 import { handleServiceBlocks } from './handleServiceBlocks/handleServiceBlocks.js';
 import { prepareSuccessor } from './prepareSuccessor/prepareSuccessor.js';
 
 /** Exact direct-RPC surface returned by the SERVICE_FRONTEND_REPO binding. */
 export interface IServiceFrontendRepoRpcTarget {
-  getFrontendState(props: {
+  getState(props: {
     systemId: string;
-    systemWorkerName: string;
     serviceName: string;
-    actorName: string;
-    actorId: IActorId;
+    userId: string;
     frontendName: string;
     lineage: Readonly<{
-      mode: 'live' | 'no-local-segment';
       predecessor: Readonly<{
         generationId: string;
         repoName: string;
@@ -68,11 +68,10 @@ export interface IServiceFrontendRepoRpcTarget {
   getProjectionReadiness(): IRpcEitherEncoded<
     Readonly<{
       generationId: string;
-      systemWorkerName: string;
       lastServiceCursor: string | null;
       serviceIndex: number | null;
       frontendIndex: number;
-      segmentKind: 'root' | 'inherited' | 'no-local-segment';
+      segmentKind: 'root' | 'inherited';
       predecessorGenerationId: string | null;
       predecessorRepoName: string | null;
       predecessorTerminalFrontendIndex: number | null;
@@ -101,22 +100,18 @@ const serviceFrontendRepoTables = {
       systemId: primitives.opaqueId({
         abbreviation: coreAbbreviations.system,
       }),
-      systemWorkerName: primitives.text(),
       generationId: primitives.opaqueId({
         abbreviation: coreAbbreviations.generation,
       }),
       serviceName: primitives.text(),
-      actorName: primitives.text(),
-      actorId: primitives.opaqueId({
-        abbreviation: coreAbbreviations.actor,
-      }),
+      userId: primitives.text(),
       frontendName: primitives.text(),
       status: primitives.enum({ values: ['initializing', 'ready'] }),
       segmentKind: primitives.enum({
-        values: ['root', 'inherited', 'no-local-segment'],
+        values: ['root', 'inherited'],
       }),
       emissionMode: primitives.enum({
-        values: ['live', 'no-emission', 'read-only'],
+        values: ['live', 'no-emission'],
       }),
       lastServiceCursor: primitives.cursor({
         abbreviation: coreAbbreviations.serviceCursor,
@@ -160,57 +155,110 @@ const serviceFrontendRepoTables = {
 export const serviceFrontendRepoDrizzleSchemas =
   makeDrizzleSchemasRecordFromTables(serviceFrontendRepoTables);
 
-const serviceFrontendRepoUtils = makeRepoUtils({
+const serviceFrontendBoundDORepoConfig = makeBoundDORepoConfig({
   abbreviation: systemWorkerAbbreviations.serviceFrontendRepo,
   namePattern: RoutePattern.parse(
-    '/:generationId/:serviceName/:actorName/:actorId/:frontendName',
+    '/:generationId/:serviceName/:userId/:frontendName',
   ),
   managedRuntime,
   getDbConfig: Effect.fn('ServiceFrontendRepo.getDbConfig')(function* ({
     key,
   }) {
-    const serviceController = yield* getByKeyOrThrow({
-      record: system.serviceControllers,
+    const service = yield* getByKeyOrThrow({
+      record: system.services,
       key: key.serviceName,
-      recordKind: 'service controllers',
-    });
-    const actorController = yield* getByKeyOrThrow({
-      record: serviceController.actorControllers,
-      key: key.actorName,
-      recordKind: `actor controllers owned by service ${key.serviceName}`,
+      recordKind: 'services',
     });
     const frontendBinding = yield* getByKeyOrThrow({
-      record: actorController.frontends,
+      record: service.frontends,
       key: key.frontendName,
-      recordKind: `frontends owned by service actor ${key.serviceName}.${key.actorName}`,
+      recordKind: `frontends owned by service ${key.serviceName}`,
     });
 
-    return makeResourceDbConfig({
-      models: frontendBinding.frontendController.models,
-      otherTables: serviceFrontendRepoTables,
+    const projectionTables: IAnyTables = {};
+    for (const model of Object.values(frontendBinding.controller.models)) {
+      projectionTables[model.modelName] = model.table;
+    }
+
+    const serviceModels: IModels = service.models;
+    const serviceSourceTables: IAnyTables = {};
+    const serviceSourceShapes: Record<string, IAnyShape> = {};
+    const physicalTableNames: Record<string, string> = {};
+    for (const model of Object.values(serviceModels)) {
+      const sourceTableKey = `serviceSource_${model.modelName}`;
+      const sourceShape: IAnyShape = {};
+      serviceSourceShapes[model.modelName] = sourceShape;
+      serviceSourceTables[sourceTableKey] = {
+        ...model.table,
+        shape: sourceShape,
+      };
+      physicalTableNames[sourceTableKey] = sourceTableKey;
+    }
+    for (const model of Object.values(serviceModels)) {
+      const sourceShape = serviceSourceShapes[model.modelName];
+      if (sourceShape === undefined) {
+        return yield* new ZerospinError({
+          code: 'service-frontend-source-shape-missing',
+          message: `ServiceFrontendRepo source shape for service model "${model.modelName}" is missing`,
+        });
+      }
+      const modelShape: IAnyShape = model.table.shape;
+      for (const [propertyName, descriptor] of Object.entries(modelShape)) {
+        if (descriptor.kind !== PrimitiveKind.Ref) {
+          sourceShape[propertyName] = descriptor;
+          continue;
+        }
+        const targetModel = serviceModels[descriptor.targetTableName];
+        const targetSourceTable =
+          serviceSourceTables[`serviceSource_${descriptor.targetTableName}`];
+        if (
+          targetModel === undefined ||
+          targetModel.table !== descriptor.table ||
+          targetSourceTable === undefined
+        ) {
+          return yield* new ZerospinError({
+            code: 'service-frontend-source-ref-target-missing',
+            message: `ServiceFrontendRepo source ref ${model.modelName}.${propertyName} targets an unregistered service model table`,
+          });
+        }
+        sourceShape[propertyName] = {
+          ...descriptor,
+          table: targetSourceTable,
+        };
+      }
+    }
+
+    return makeDbConfig({
+      tables: {
+        ...projectionTables,
+        ...serviceFrontendRepoTables,
+        ...serviceSourceTables,
+      },
+      physicalTableNames,
     });
   }),
 });
 
 export class ServiceFrontendRepo
-  extends makeRepo({
-    repoUtils: serviceFrontendRepoUtils,
+  extends makeBoundDORepo({
+    boundDORepoConfig: serviceFrontendBoundDORepoConfig,
   })
   implements IServiceFrontendRepoRpcTarget
 {
   declare [BrandTypeId]: { readonly TargetApi: 'TargetApi' };
 
-  static override readonly repoUtils = serviceFrontendRepoUtils;
+  static override readonly boundDORepoConfig = serviceFrontendBoundDORepoConfig;
 
-  async getFrontendState(props: {
+  private readonly deliveryQueue = makeDeliveryQueue({
+    storage: this.ctx.storage,
+  });
+
+  async getState(props: {
     systemId: string;
-    systemWorkerName: string;
     serviceName: string;
-    actorName: string;
-    actorId: IActorId;
+    userId: string;
     frontendName: string;
     lineage: Readonly<{
-      mode: 'live' | 'no-local-segment';
       predecessor: Readonly<{
         generationId: string;
         repoName: string;
@@ -219,10 +267,11 @@ export class ServiceFrontendRepo
     }>;
   }): Promise<Schema.EitherEncoded<IServiceFrontendState, IAnyErrorJson>> {
     return managedRuntime.runPromise(
-      getFrontendState({
+      getState({
         ...props,
         configuredSystemId: this.env.ZEROSPIN_SYSTEM_ID,
         db: this.db,
+        deliveryQueue: this.deliveryQueue,
         key: this.key,
         name: this.ctx.id.name ?? '',
         serviceFrontendRepoSchema: this.schema,
@@ -241,9 +290,12 @@ export class ServiceFrontendRepo
           ...props,
           db: this.db,
           key: this.key,
+          serviceFrontendRepoSchema: this.schema,
+          storage: this.ctx.storage,
         });
         yield* drainServiceFrontendBlockOutbox({
           db: this.db,
+          deliveryQueue: this.deliveryQueue,
           key: this.key,
           storage: this.ctx.storage,
         });
@@ -257,6 +309,7 @@ export class ServiceFrontendRepo
     return managedRuntime.runPromise(
       drainServiceFrontendBlockOutbox({
         db: this.db,
+        deliveryQueue: this.deliveryQueue,
         key: this.key,
         storage: this.ctx.storage,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
@@ -267,11 +320,10 @@ export class ServiceFrontendRepo
     Schema.EitherEncoded<
       Readonly<{
         generationId: string;
-        systemWorkerName: string;
         lastServiceCursor: string | null;
         serviceIndex: number | null;
         frontendIndex: number;
-        segmentKind: 'root' | 'inherited' | 'no-local-segment';
+        segmentKind: 'root' | 'inherited';
         predecessorGenerationId: string | null;
         predecessorRepoName: string | null;
         predecessorTerminalFrontendIndex: number | null;
@@ -315,7 +367,7 @@ export class ServiceFrontendRepo
     return managedRuntime.runPromise(
       drainGeneration({
         db: this.db,
-        inspectionOnly: this.env.ZEROSPIN_SELF_HOSTED === 'true',
+        deliveryQueue: this.deliveryQueue,
         key: this.key,
         storage: this.ctx.storage,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
@@ -326,6 +378,7 @@ export class ServiceFrontendRepo
     await managedRuntime.runPromise(
       alarm({
         db: this.db,
+        deliveryQueue: this.deliveryQueue,
         key: this.key,
         storage: this.ctx.storage,
       }).pipe(Effect.provide(AsyncLive)),

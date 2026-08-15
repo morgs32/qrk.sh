@@ -2,10 +2,9 @@ import { Effect } from 'effect';
 
 export const makeVfsName = Effect.fn('makeVfsName')(function* (props: {
   systemId: string;
-  generationId: string;
-  partitionKey: string;
+  userId: string;
 }) {
-  const { systemId, generationId, partitionKey } = props;
+  const { systemId, userId } = props;
   yield* Effect.void;
-  return `zerospin/${systemId}/${generationId}/partitions/${partitionKey}`;
+  return `zerospin/056/${systemId}/users/${userId}`;
 });

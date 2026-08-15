@@ -6,9 +6,9 @@ import { describe, expect } from 'vitest';
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
+import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { makeServiceModel } from '../models/makeServiceModel.ts';
 import { primitives } from '../models/primitives.ts';
-import { makeServiceFrontendController } from '../serviceFrontendController/makeServiceFrontendController.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
@@ -34,12 +34,11 @@ const models = {
   category: Category,
 };
 
-const frontend = makeServiceFrontendController({
+const frontend = makeFrontendController({
   systemName: 'shop',
   serviceName: 'catalog',
-  actorName: 'viewer',
   frontendName: 'catalog',
-  version: '1.0.0',
+  userId: Schema.NonEmptyString,
   models,
   signature: Schema.Struct({ subject: Schema.String }),
 });
@@ -56,7 +55,7 @@ const now = new Date('2026-01-01T00:00:00.000Z');
 describe('applyServiceFrontendReplicaBlock', () => {
   it.layer(TestLayer)(it => {
     it.effect(
-      'proves duplicates and rejects incoherent lineage before mutation',
+      'proves duplicates and rejects incoherent target, lock, and index envelopes before mutation',
       () =>
         Effect.gen(function* () {
           const dbConfig = makeResourceDbConfig({ models });
@@ -64,23 +63,18 @@ describe('applyServiceFrontendReplicaBlock', () => {
 
           yield* applyServiceFrontendReplicaState({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
-            systemVersion: '1.0.0',
-            systemWorkerName: 'shop-worker-1',
+            serviceFrontendLockKey: 'service-lock-key',
             db,
             models,
             frontendReplicaState: {
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               systemVersion: '1.0.0',
-              systemWorkerName: 'shop-worker-1',
               serviceName: 'catalog',
-              actorName: 'viewer',
               frontendName: 'catalog',
-              frontendVersion: '1.0.0',
+              serviceFrontendLockKey: 'service-lock-key',
               frontendIndex: 4,
               replicaIndex: 7,
               resources: [
@@ -99,53 +93,41 @@ describe('applyServiceFrontendReplicaBlock', () => {
 
           const firstBlock: IServiceFrontendReplicaBlock = {
             systemId: 'sys_shop',
-            generationId: 'gen_1',
             serviceName: 'catalog',
-            actorId: 'actr_viewer',
-            actorName: 'viewer',
+            userId: 'user_viewer',
             frontendName: 'catalog',
-            frontendVersion: '1.0.0',
+            serviceFrontendLockKey: 'service-lock-key',
             replicaIndex: 8,
             frontendIndex: 5,
-            lineageBlock: {
-              kind: 'service-frontend',
-              systemId: 'sys_shop',
-              generationId: 'gen_1',
+            frontendBlock: {
               serviceName: 'catalog',
-              actorId: 'actr_viewer',
-              actorName: 'viewer',
+              userId: 'user_viewer',
               frontendName: 'catalog',
-              frontendBlock: {
-                serviceName: 'catalog',
-                actorName: 'viewer',
-                actorId: 'actr_viewer',
-                frontendName: 'catalog',
-                frontendIndex: 5,
-                lastServiceCursor: 'svcur_5',
-                delta: {
-                  inserted: [],
-                  updated: [
-                    {
-                      id: 'cat_original',
-                      modelName: 'category',
-                      version: '1.0.0',
-                      createdAt: now,
-                      updatedAt: now,
-                      deletedAt: null,
-                      name: 'Updated category',
-                    },
-                  ],
-                  deleted: [],
-                },
+              frontendIndex: 5,
+              lastServiceCursor: 'svcur_5',
+              delta: {
+                inserted: [],
+                updated: [
+                  {
+                    id: 'cat_original',
+                    modelName: 'category',
+                    version: '1.0.0',
+                    createdAt: now,
+                    updatedAt: now,
+                    deletedAt: null,
+                    name: 'Updated category',
+                  },
+                ],
+                deleted: [],
               },
             },
           };
 
           const applied = yield* applyServiceFrontendReplicaBlock({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
+            serviceFrontendLockKey: 'service-lock-key',
             currentFrontendIndex: 4,
             currentReplicaIndex: 7,
             previousReplicaBlock: null,
@@ -165,9 +147,9 @@ describe('applyServiceFrontendReplicaBlock', () => {
 
           const duplicate = yield* applyServiceFrontendReplicaBlock({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
+            serviceFrontendLockKey: 'service-lock-key',
             currentFrontendIndex: 5,
             currentReplicaIndex: 8,
             previousReplicaBlock: firstBlock,
@@ -179,9 +161,9 @@ describe('applyServiceFrontendReplicaBlock', () => {
 
           const conflictingDuplicate = yield* applyServiceFrontendReplicaBlock({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
+            serviceFrontendLockKey: 'service-lock-key',
             currentFrontendIndex: 5,
             currentReplicaIndex: 8,
             previousReplicaBlock: firstBlock,
@@ -189,31 +171,19 @@ describe('applyServiceFrontendReplicaBlock', () => {
             models,
             frontendReplicaBlock: {
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               serviceName: 'catalog',
-              actorId: 'actr_viewer',
-              actorName: 'viewer',
+              userId: 'user_viewer',
               frontendName: 'catalog',
-              frontendVersion: '1.0.0',
+              serviceFrontendLockKey: 'service-lock-key',
               replicaIndex: 8,
               frontendIndex: 5,
-              lineageBlock: {
-                kind: 'service-frontend',
-                systemId: 'sys_shop',
-                generationId: 'gen_1',
+              frontendBlock: {
                 serviceName: 'catalog',
-                actorId: 'actr_viewer',
-                actorName: 'viewer',
+                userId: 'user_viewer',
                 frontendName: 'catalog',
-                frontendBlock: {
-                  serviceName: 'catalog',
-                  actorName: 'viewer',
-                  actorId: 'actr_viewer',
-                  frontendName: 'catalog',
-                  frontendIndex: 5,
-                  lastServiceCursor: 'svcur_5',
-                  delta: { inserted: [], updated: [], deleted: [] },
-                },
+                frontendIndex: 5,
+                lastServiceCursor: 'svcur_5',
+                delta: { inserted: [], updated: [], deleted: [] },
               },
             },
           }).pipe(Effect.either);
@@ -221,9 +191,9 @@ describe('applyServiceFrontendReplicaBlock', () => {
 
           const incoherentEnvelope = yield* applyServiceFrontendReplicaBlock({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
+            serviceFrontendLockKey: 'service-lock-key',
             currentFrontendIndex: 5,
             currentReplicaIndex: 8,
             previousReplicaBlock: firstBlock,
@@ -231,41 +201,29 @@ describe('applyServiceFrontendReplicaBlock', () => {
             models,
             frontendReplicaBlock: {
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               serviceName: 'catalog',
-              actorId: 'actr_viewer',
-              actorName: 'viewer',
+              userId: 'user_viewer',
               frontendName: 'catalog',
-              frontendVersion: '1.0.0',
+              serviceFrontendLockKey: 'service-lock-key',
               replicaIndex: 9,
               frontendIndex: 7,
-              lineageBlock: {
-                kind: 'service-frontend',
-                systemId: 'sys_shop',
-                generationId: 'gen_1',
+              frontendBlock: {
                 serviceName: 'catalog',
-                actorId: 'actr_viewer',
-                actorName: 'viewer',
+                userId: 'user_viewer',
                 frontendName: 'catalog',
-                frontendBlock: {
-                  serviceName: 'catalog',
-                  actorName: 'viewer',
-                  actorId: 'actr_viewer',
-                  frontendName: 'catalog',
-                  frontendIndex: 6,
-                  lastServiceCursor: 'svcur_6',
-                  delta: { inserted: [], updated: [], deleted: [] },
-                },
+                frontendIndex: 6,
+                lastServiceCursor: 'svcur_6',
+                delta: { inserted: [], updated: [], deleted: [] },
               },
             },
           }).pipe(Effect.either);
           expect(incoherentEnvelope._tag).toBe('Left');
 
-          const wrongGeneration = yield* applyServiceFrontendReplicaBlock({
+          const wrongLockKey = yield* applyServiceFrontendReplicaBlock({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
+            serviceFrontendLockKey: 'service-lock-key',
             currentFrontendIndex: 5,
             currentReplicaIndex: 8,
             previousReplicaBlock: firstBlock,
@@ -273,106 +231,23 @@ describe('applyServiceFrontendReplicaBlock', () => {
             models,
             frontendReplicaBlock: {
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               serviceName: 'catalog',
-              actorId: 'actr_viewer',
-              actorName: 'viewer',
+              userId: 'user_viewer',
               frontendName: 'catalog',
-              frontendVersion: '1.0.0',
+              serviceFrontendLockKey: 'other-service-lock-key',
               replicaIndex: 9,
               frontendIndex: 6,
-              lineageBlock: {
-                kind: 'service-frontend',
-                systemId: 'sys_shop',
-                generationId: 'gen_other',
+              frontendBlock: {
                 serviceName: 'catalog',
-                actorId: 'actr_viewer',
-                actorName: 'viewer',
-                frontendName: 'catalog',
-                frontendBlock: {
-                  serviceName: 'catalog',
-                  actorName: 'viewer',
-                  actorId: 'actr_viewer',
-                  frontendName: 'catalog',
-                  frontendIndex: 6,
-                  lastServiceCursor: 'svcur_6',
-                  delta: { inserted: [], updated: [], deleted: [] },
-                },
-              },
-            },
-          }).pipe(Effect.either);
-          expect(wrongGeneration._tag).toBe('Left');
-
-          const wrongPredecessor = yield* applyServiceFrontendReplicaBlock({
-            frontend,
-            actorId: 'actr_viewer',
-            systemId: 'sys_shop',
-            generationId: 'gen_1',
-            currentFrontendIndex: 5,
-            currentReplicaIndex: 8,
-            previousReplicaBlock: firstBlock,
-            db,
-            models,
-            frontendReplicaBlock: {
-              systemId: 'sys_shop',
-              generationId: 'gen_1',
-              serviceName: 'catalog',
-              actorId: 'actr_viewer',
-              actorName: 'viewer',
-              frontendName: 'catalog',
-              frontendVersion: '1.0.0',
-              replicaIndex: 9,
-              frontendIndex: 6,
-              lineageBlock: {
-                kind: 'generation-boundary',
-                systemId: 'sys_shop',
-                prevGenerationId: 'gen_other',
-                generationId: 'gen_2',
-                serviceName: 'catalog',
-                actorId: 'actr_viewer',
-                actorName: 'viewer',
+                userId: 'user_viewer',
                 frontendName: 'catalog',
                 frontendIndex: 6,
+                lastServiceCursor: 'svcur_6',
+                delta: { inserted: [], updated: [], deleted: [] },
               },
             },
           }).pipe(Effect.either);
-          expect(wrongPredecessor._tag).toBe('Left');
-
-          const boundary: IServiceFrontendReplicaBlock = {
-            systemId: 'sys_shop',
-            generationId: 'gen_1',
-            serviceName: 'catalog',
-            actorId: 'actr_viewer',
-            actorName: 'viewer',
-            frontendName: 'catalog',
-            frontendVersion: '1.0.0',
-            replicaIndex: 9,
-            frontendIndex: 6,
-            lineageBlock: {
-              kind: 'generation-boundary',
-              systemId: 'sys_shop',
-              prevGenerationId: 'gen_1',
-              generationId: 'gen_2',
-              serviceName: 'catalog',
-              actorId: 'actr_viewer',
-              actorName: 'viewer',
-              frontendName: 'catalog',
-              frontendIndex: 6,
-            },
-          };
-          const appliedBoundary = yield* applyServiceFrontendReplicaBlock({
-            frontend,
-            actorId: 'actr_viewer',
-            systemId: 'sys_shop',
-            generationId: 'gen_1',
-            currentFrontendIndex: 5,
-            currentReplicaIndex: 8,
-            previousReplicaBlock: firstBlock,
-            db,
-            models,
-            frontendReplicaBlock: boundary,
-          });
-          expect(appliedBoundary).toBe('applied');
+          expect(wrongLockKey._tag).toBe('Left');
           expect(db.select().from(models.category.drizzleSchema).all()).toEqual(
             [
               expect.objectContaining({

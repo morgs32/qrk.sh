@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Outlet, useNavigate, useParams } from 'react-router';
 
-import { useAccountSession, useServiceSession } from '../useSession';
+import { useAggregateSession, useServiceSession } from '../useSession';
 
 import { sessionsDatabaseTabStyles } from './sessionsDatabaseTabStyles';
 
@@ -15,7 +15,7 @@ function decodeModelNameParam(segment: string): string {
 }
 
 export function SessionsDatabaseLayout() {
-  const accountSession = useAccountSession();
+  const aggregateSession = useAggregateSession();
   const serviceSession = useServiceSession();
   const { sessionId, modelName } = useParams();
   const navigate = useNavigate();
@@ -24,14 +24,14 @@ export function SessionsDatabaseLayout() {
   const [hoveredModelName, setHoveredModelName] = useState<string | null>(null);
 
   if (
-    (accountSession === undefined && serviceSession === undefined) ||
+    (aggregateSession === undefined && serviceSession === undefined) ||
     sessionId === undefined
   ) {
     return null;
   }
 
   const modelNames =
-    accountSession?.frontend.modelNames ?? serviceSession?.modelNames;
+    aggregateSession?.frontend.modelNames ?? serviceSession?.modelNames;
 
   if (modelNames === undefined) {
     return null;

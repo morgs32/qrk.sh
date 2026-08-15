@@ -1,15 +1,9 @@
-import { makeAccountController } from '@zerospin/core/accountController/makeAccountController';
-import { makeActorApi } from '@zerospin/core/actorController/makeActorApi';
-import { makeActorController } from '@zerospin/core/actorController/makeActorController';
-import { makeSelection } from '@zerospin/core/models/makeSelection';
-import { makeServiceController } from '@zerospin/core/service/makeServiceController';
-import { makeServiceActorController } from '@zerospin/core/serviceActorController/makeServiceActorController';
-import { makeSystem } from '@zerospin/core/system/makeSystem';
-import { makeAccountId } from '@zerospin/core/utils/makeAccountId';
-import { prefixActorId } from '@zerospin/core/utils/prefixActorId';
-import { ZerospinError } from '@zerospin/error';
+import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
+import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
+import { makeSelection, makeSystem, ZerospinError } from '@zerospin/sdk';
 import { Effect, Schema } from 'effect';
 
+import { authenticationSignature } from './authentication';
 import {
   addToCart,
   createCart,
@@ -20,230 +14,206 @@ import {
   updateCartItemQuantity,
   updateUser,
 } from './contracts';
-import { catalogFrontend, shopperFrontend } from './frontend';
-import { Cart, CartItem, CatalogMarker, Product, User } from './models';
+import { catalog } from './frontends/catalog';
+import { web } from './frontends/web';
+import {
+  Cart,
+  CartItem,
+  CatalogMarker,
+  Product,
+  User,
+  type IClerkUserId,
+} from './models';
 
-export const catalogViewerActor = makeServiceActorController({
-  name: 'catalogViewer',
-  version: '1.0.0',
-  models: {
-    product: Product,
-  },
-  frontends: {
-    catalog: {
-      frontendController: catalogFrontend,
-      authenticate: ({ db, signature }) =>
-        Effect.gen(function* () {
-          // The service-owned authentication boundary must pass a new query-only
-          // object, not the source ServiceRepo database with its writable API.
-          if (Reflect.has(db, '$client')) {
-            return yield* new ZerospinError({
-              code: 'service-frontend-auth-writable-surface-leaked',
-              message:
-                'Service frontend authentication received the database client',
-            });
-          }
-          if (Reflect.has(db, 'insert')) {
-            return yield* new ZerospinError({
-              code: 'service-frontend-auth-writable-surface-leaked',
-              message:
-                'Service frontend authentication received the database insert API',
-            });
-          }
-          if (Reflect.has(db, 'update')) {
-            return yield* new ZerospinError({
-              code: 'service-frontend-auth-writable-surface-leaked',
-              message:
-                'Service frontend authentication received the database update API',
-            });
-          }
-          if (Reflect.has(db, 'delete')) {
-            return yield* new ZerospinError({
-              code: 'service-frontend-auth-writable-surface-leaked',
-              message:
-                'Service frontend authentication received the database delete API',
-            });
-          }
-          if (Reflect.has(db, 'transaction')) {
-            return yield* new ZerospinError({
-              code: 'service-frontend-auth-writable-surface-leaked',
-              message:
-                'Service frontend authentication received the database transaction API',
-            });
-          }
-
-          // Authentication may inspect only the actor-readable service view.
-          // The runtime registry must omit service-owned models that this actor
-          // cannot read, even when code probes by a dynamically supplied name.
-          if (Reflect.has(db.query, 'catalogMarker')) {
-            return yield* new ZerospinError({
-              code: 'service-frontend-auth-query-leaked',
-              message:
-                'Service frontend authentication received the hidden catalogMarker model',
-            });
-          }
-
-          // Reading the approved model proves that filtering retained the
-          // intended query without coupling identity to the product count.
-          db.query.product.findMany().sync();
-          return prefixActorId(signature.viewerId);
-        }),
-    },
-  },
-});
-
-export const appService = makeServiceController({
-  name: 'app',
-  version: '1.1.0',
-  models: {
-    catalogMarker: CatalogMarker,
-    product: Product,
-  },
-  contracts: {
-    createCatalogMarker,
-    createProduct,
-  },
-  actorControllers: {
-    catalogViewer: catalogViewerActor,
-  },
-  queries: {
-    getProducts: {
-      paramsSchema: Schema.Struct({}),
-      query: Effect.fn('getProducts')(function* ({ db }) {
-        return db.query.product.findMany().sync();
-      }),
-    },
-  },
-});
-
-export const shopperApi = makeActorApi({
-  getProducts: appService.queries.getProducts,
-});
-
-export const shopperActor = makeActorController({
-  name: 'shopper',
-  version: '1.0.0',
-  api: shopperApi,
-  models: {
-    user: User,
-    cart: Cart,
-    cartItem: CartItem,
-    product: Product,
-  },
-  selections: {
-    user: makeSelection({
-      model: User,
-      where: ({ actorId }) => ({ actorId }),
-    }),
-    cart: makeSelection({
-      model: Cart,
-      where: ({ actorId }) => ({
-        user: { actorId },
-      }),
-    }),
-    cartItem: makeSelection({
-      model: CartItem,
-      where: ({ actorId }) => ({
-        cart: { user: { actorId } },
-      }),
-    }),
-    product: makeSelection({
-      model: Product,
-      where: ({ actorId }) => ({
-        cartItems: {
-          cart: { user: { actorId } },
-        },
-      }),
-    }),
-  },
-  frontends: {
-    web: {
-      frontendController: shopperFrontend,
-      authenticate: ({
-        signature,
-        db,
-        makeAccountCommand,
-        finalizeAccountCommands,
-      }) =>
-        Effect.gen(function* () {
-          const accountId = makeAccountId({ id: '1' });
-          const userId = User.prefixId(signature.clerkUserId);
-          const user = db.query.user
-            .findFirst({
-              where: { id: { eq: userId } },
-            })
-            .sync();
-          if (user !== undefined) {
-            return {
-              actorId: user.actorId,
-              accountId,
-            };
-          }
-
-          const createUserCommand = yield* makeAccountCommand({
-            contract: createUser,
-            payload: {
-              id: userId,
-              clerkUserId: signature.clerkUserId,
-            },
-          });
-
-          yield* finalizeAccountCommands({
-            commands: [createUserCommand],
-          });
-
-          const createdUser = db.query.user
-            .findFirst({
-              where: { id: { eq: userId } },
-            })
-            .sync();
-
-          if (createdUser === undefined) {
-            return yield* new ZerospinError({
-              code: 'user-create-failed',
-              message: `User ${userId} was not created`,
-              status: 500,
-            });
-          }
-
-          return {
-            actorId: createdUser.actorId,
-            accountId,
-          };
-        }),
-    },
-  },
-});
-
-export const userAccount = makeAccountController({
-  name: 'user',
-  version: '1.0.0',
-  actorControllers: {
-    shopper: shopperActor,
-  },
-  models: {
-    user: User,
-    cart: Cart,
-    cartItem: CartItem,
-    product: Product,
-  },
-  contracts: {
-    addToCart,
-    createCart,
-    createUser,
-    removeFromCart,
-    updateCartItemQuantity,
-    updateUser,
-  },
-});
+const catalogModels = getFrontendDbModels(catalog);
 
 export const system = makeSystem({
-  accountControllers: {
-    user: userAccount,
-  },
-  serviceControllers: {
-    app: appService,
-  },
   name: 'shopping',
-  version: '1.1.0',
+  version: '2.0.2',
+  authentication: {
+    signature: authenticationSignature,
+    authenticate: ({ signature }) => Effect.succeed(signature.clerkUserId),
+  },
+  aggregates: {
+    shopper: {
+      authorize: () => Effect.void,
+      models: {
+        user: User,
+        cart: Cart,
+        cartItem: CartItem,
+        product: Product,
+      },
+      contracts: {
+        addToCart,
+        createCart,
+        createUser,
+        removeFromCart,
+        updateCartItemQuantity,
+        updateUser,
+      },
+      mutationAdapters: {
+        cartItem: {
+          create: [
+            {
+              source: CartItem.createMutation('1.0.0'),
+              destination: CartItem.createMutation('2.0.0'),
+              adapter: mutation =>
+                CartItem.create('2.0.0', {
+                  resourceId: mutation.resourceId,
+                  attributes: {
+                    amount: mutation.operation.attributes.quantity,
+                    cartId: mutation.operation.attributes.cartId,
+                    productId: mutation.operation.attributes.productId,
+                    unit: 'item',
+                  },
+                }),
+            },
+          ],
+          update: [
+            {
+              source: CartItem.updateMutation('1.0.0'),
+              destination: CartItem.updateMutation('2.0.0'),
+              adapter: mutation => {
+                const quantity = mutation.operation.attributes.quantity;
+                return CartItem.update('2.0.0', {
+                  resourceId: mutation.resourceId,
+                  attributes: {
+                    ...(mutation.operation.attributes.cartId === undefined
+                      ? {}
+                      : { cartId: mutation.operation.attributes.cartId }),
+                    ...(mutation.operation.attributes.productId === undefined
+                      ? {}
+                      : {
+                          productId: mutation.operation.attributes.productId,
+                        }),
+                    ...(quantity === undefined
+                      ? {}
+                      : { amount: quantity, unit: 'item' }),
+                  },
+                  ...(mutation.operation.mask === undefined
+                    ? {}
+                    : {
+                        mask: mutation.operation.mask.flatMap(attribute => {
+                          switch (attribute) {
+                            case 'cartId':
+                            case 'productId':
+                              return [attribute];
+                            case 'quantity':
+                              return ['amount', 'unit'];
+                            default:
+                              return [];
+                          }
+                        }),
+                      }),
+                });
+              },
+            },
+          ],
+          delete: [
+            {
+              source: CartItem.deleteMutation('1.0.0'),
+              destination: CartItem.deleteMutation('2.0.0'),
+              adapter: mutation =>
+                CartItem.delete('2.0.0', {
+                  resourceId: mutation.resourceId,
+                }),
+            },
+          ],
+          move: [
+            {
+              source: CartItem.moveMutation('1.0.0'),
+              destination: CartItem.moveMutation('2.0.0'),
+              adapter: mutation =>
+                CartItem.move('2.0.0', {
+                  resourceId: mutation.resourceId,
+                  property: mutation.operation.property,
+                  prevId: mutation.operation.prevId,
+                  nextId: mutation.operation.nextId,
+                }),
+            },
+          ],
+        },
+      },
+      selections: {
+        user: makeSelection({
+          model: User,
+          where: ({ userId }: { userId: IClerkUserId }) => ({
+            clerkUserId: userId,
+          }),
+        }),
+        cart: makeSelection({
+          model: Cart,
+          where: ({ userId }: { userId: IClerkUserId }) => ({
+            user: { clerkUserId: userId },
+          }),
+        }),
+        cartItem: makeSelection({
+          model: CartItem,
+          where: ({ userId }: { userId: IClerkUserId }) => ({
+            cart: { user: { clerkUserId: userId } },
+          }),
+        }),
+        product: makeSelection({
+          model: Product,
+          where: ({ userId }: { userId: IClerkUserId }) => ({
+            cartItems: {
+              cart: { user: { clerkUserId: userId } },
+            },
+          }),
+        }),
+      },
+      queries: {
+        getProducts: { service: 'app', query: 'getProducts' },
+      },
+      frontends: {
+        web: {
+          controller: web,
+        },
+      },
+    },
+  },
+  services: {
+    app: {
+      authorize: () => Effect.void,
+      models: {
+        catalogMarker: CatalogMarker,
+        product: Product,
+      },
+      contracts: {
+        createCatalogMarker,
+        createProduct,
+      },
+      queries: {
+        getProducts: {
+          paramsSchema: Schema.Struct({}),
+          query: Effect.fn('getProducts')(function* ({
+            db,
+          }: {
+            db: Readonly<
+              Pick<
+                IDb<
+                  IResourceDbConfig<typeof catalogModels, Record<never, never>>
+                >,
+                'query'
+              >
+            >;
+            params: {};
+          }) {
+            return yield* Effect.try({
+              try: () => db.query.product.findMany().sync(),
+              catch: ZerospinError.catch({
+                code: 'catalog-products-query-failed',
+                message: 'Failed to query catalog products',
+              }),
+            });
+          }),
+        },
+      },
+      frontends: {
+        catalog: {
+          controller: catalog,
+        },
+      },
+    },
+  },
 });

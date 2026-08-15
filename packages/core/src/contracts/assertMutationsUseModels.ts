@@ -26,7 +26,7 @@ export const assertMutationsUseModels = Effect.fn('assertMutationsUseModels')(
   function* (props: {
     mutations: readonly IAnyMutation[];
     models: IModels;
-    owner: { kind: 'account' } | { kind: 'service'; serviceName: string };
+    owner: { kind: 'aggregate' } | { kind: 'service'; serviceName: string };
     commandName: string;
   }): Effect.fn.Return<void, IAnyError> {
     const { mutations, models, owner, commandName } = props;
@@ -46,7 +46,7 @@ export const assertMutationsUseModels = Effect.fn('assertMutationsUseModels')(
       }
 
       const serviceName = Reflect.get(mutation.model, 'serviceName');
-      if (owner.kind === 'account') {
+      if (owner.kind === 'aggregate') {
         if (
           mutation.operationName === 'replicateResource' &&
           typeof serviceName === 'string'
@@ -78,7 +78,7 @@ export const assertMutationsUseModels = Effect.fn('assertMutationsUseModels')(
 export type AssertMutationModelInModels<
   MUTATION,
   MODELS extends IModels,
-  OWNER extends 'account' | 'service' = 'account',
+  OWNER extends 'aggregate' | 'service' = 'aggregate',
 > = [MUTATION] extends [never]
   ? MODELS
   : MUTATION extends {
@@ -95,9 +95,9 @@ export type AssertMutationModelInModels<
           >
         : ITypeError<'replicateResource requires a service model'>
     : MUTATION extends { readonly model: infer MODEL extends IModel }
-      ? OWNER extends 'account'
+      ? OWNER extends 'aggregate'
         ? MODEL extends IServiceModel
-          ? ITypeError<`service model "${MODEL['modelName']}" can only use replicateResource in account contracts`>
+          ? ITypeError<`service model "${MODEL['modelName']}" can only use replicateResource in aggregate contracts`>
           : string extends MODEL['modelName']
             ? MODELS
             : MODEL['modelName'] extends keyof MODELS & string
@@ -119,7 +119,7 @@ export type AssertMutationModelInModels<
 export type AssertContractMutationsInModels<
   CONTRACT extends IContract,
   MODELS extends IModels,
-  OWNER extends 'account' | 'service' = 'account',
+  OWNER extends 'aggregate' | 'service' = 'aggregate',
 > =
   AssertMutationModelInModels<
     InferContractReturnedMutations<CONTRACT>,
@@ -136,7 +136,7 @@ export type AssertContractMutationsInModels<
 export type AssertContractsMutationsInModels<
   CONTRACTS extends IContracts,
   MODELS extends IModels,
-  OWNER extends 'account' | 'service' = 'account',
+  OWNER extends 'aggregate' | 'service' = 'aggregate',
 > = [keyof CONTRACTS & string] extends [never]
   ? CONTRACTS
   : {

@@ -1,208 +1,160 @@
-import type { IAnyError } from '@zerospin/error';
-import { type Effect, type Schema } from 'effect';
-
 import type { AssertContractsMutationsInModels } from '../contracts/assertMutationsUseModels.ts';
 import type { IContracts } from '../contracts/types.ts';
-import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
+import type { IGuard } from '../guards/makeGuard.ts';
 import { makeGuards } from '../guards/makeGuards.ts';
 import { assertValidModels } from '../models/assertValidModels.ts';
 import type {
-  IActorId,
   IAssertValidModels,
   IModels,
   InferCommandPayload,
+  IServiceModel,
 } from '../models/types.ts';
 import { makeUnstagedCommand } from '../session/makeUnstagedCommand.ts';
 import type { ITypeError } from '../utils/types.ts';
 
-import type { IFrontendController } from './types.ts';
+import type {
+  IAggregateFrontendController,
+  IFrontendController,
+  IServiceFrontendController,
+} from './types.ts';
 
 export function makeFrontendController<
   SYSTEM_NAME extends string,
-  CONTRACTS extends IContracts,
-  ACTOR_NAME extends string,
+  AGGREGATE_NAME extends string,
   FRONTEND_NAME extends string,
-  VERSION extends string,
-  SIGNATURE_SCHEMA extends Schema.Schema.AnyNoContext =
-    Schema.Schema.AnyNoContext,
->(props: {
-  contracts: CONTRACTS &
-    AssertContractsMutationsInModels<CONTRACTS, {}> & {
-      [K in keyof CONTRACTS & string]: K extends CONTRACTS[K]['commandName']
-        ? CONTRACTS[K]
-        : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
-    };
-  accountName: string;
-  actorName: ACTOR_NAME;
-  frontendName: FRONTEND_NAME;
-  version: VERSION;
-  systemName: SYSTEM_NAME;
-  models?: undefined;
-  signature: SIGNATURE_SCHEMA;
-  guards?: {
-    [K in keyof CONTRACTS & string]?: ReadonlyArray<
-      (props: {
-        actorId: IActorId;
-        db: IDb<IResourceDbConfig<{}>>;
-        payload: InferCommandPayload<CONTRACTS[K]['payload']>;
-      }) => Effect.Effect<void, IAnyError>
-    >;
-  };
-}): IFrontendController<
-  SYSTEM_NAME,
-  ACTOR_NAME,
-  CONTRACTS,
-  {},
-  SIGNATURE_SCHEMA,
-  VERSION,
-  FRONTEND_NAME
->;
-export function makeFrontendController<
-  SYSTEM_NAME extends string,
   CONTRACTS extends IContracts,
-  ACTOR_NAME extends string,
-  FRONTEND_NAME extends string,
   MODELS extends IModels,
-  VERSION extends string,
-  SIGNATURE_SCHEMA extends Schema.Schema.AnyNoContext =
-    Schema.Schema.AnyNoContext,
   GUARDS extends {
     [K in keyof CONTRACTS & string]?: ReadonlyArray<
-      (props: {
-        actorId: IActorId;
-        db: IDb<IResourceDbConfig<MODELS>>;
-        payload: InferCommandPayload<CONTRACTS[K]['payload']>;
-      }) => Effect.Effect<void, IAnyError>
+      IGuard<string, IModels, InferCommandPayload<CONTRACTS[K]['payload']>>
     >;
   } = {},
 >(props: {
+  systemName: SYSTEM_NAME;
+  aggregateName: AGGREGATE_NAME;
+  frontendName: FRONTEND_NAME;
   contracts: CONTRACTS &
     AssertContractsMutationsInModels<CONTRACTS, MODELS> & {
       [K in keyof CONTRACTS & string]: K extends CONTRACTS[K]['commandName']
         ? CONTRACTS[K]
         : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
     };
-  accountName: string;
-  actorName: ACTOR_NAME;
-  frontendName: FRONTEND_NAME;
-  version: VERSION;
-  systemName: SYSTEM_NAME;
   models: MODELS & IAssertValidModels<MODELS>;
-  signature: SIGNATURE_SCHEMA;
   guards?: GUARDS & {
     [K in keyof GUARDS & string]: K extends keyof CONTRACTS & string
       ? GUARDS[K]
       : ITypeError<`Bad guard "${K}". Keys in guards must be contract command names`>;
   };
-}): IFrontendController<
+}): IAggregateFrontendController<
   SYSTEM_NAME,
-  ACTOR_NAME,
+  AGGREGATE_NAME,
+  FRONTEND_NAME,
   CONTRACTS,
   MODELS,
-  SIGNATURE_SCHEMA,
-  VERSION,
-  FRONTEND_NAME
+  {
+    [K in keyof CONTRACTS & string]: K extends keyof GUARDS
+      ? NonNullable<GUARDS[K]>
+      : readonly [];
+  }
 >;
+
 export function makeFrontendController<
   SYSTEM_NAME extends string,
-  CONTRACTS extends IContracts,
-  ACTOR_NAME extends string,
+  SERVICE_NAME extends string,
   FRONTEND_NAME extends string,
   MODELS extends IModels,
-  VERSION extends string,
-  SIGNATURE_SCHEMA extends Schema.Schema.AnyNoContext =
-    Schema.Schema.AnyNoContext,
-  GUARDS extends {
-    [K in keyof CONTRACTS & string]?: ReadonlyArray<
-      (props: {
-        actorId: IActorId;
-        db: IDb<IResourceDbConfig<MODELS>>;
-        payload: InferCommandPayload<CONTRACTS[K]['payload']>;
-      }) => Effect.Effect<void, IAnyError>
-    >;
-  } = {},
 >(props: {
-  contracts: CONTRACTS &
-    AssertContractsMutationsInModels<CONTRACTS, MODELS> & {
-      [K in keyof CONTRACTS & string]: K extends CONTRACTS[K]['commandName']
-        ? CONTRACTS[K]
-        : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
-    };
-  accountName: string;
-  actorName: ACTOR_NAME;
-  frontendName: FRONTEND_NAME;
-  version: VERSION;
   systemName: SYSTEM_NAME;
-  models?: MODELS & IAssertValidModels<MODELS>;
-  signature: SIGNATURE_SCHEMA;
-  guards?: GUARDS & {
-    [K in keyof GUARDS & string]: K extends keyof CONTRACTS & string
-      ? GUARDS[K]
-      : ITypeError<`Bad guard "${K}". Keys in guards must be contract command names`>;
-  };
-}): IFrontendController<
+  serviceName: SERVICE_NAME;
+  frontendName: FRONTEND_NAME;
+  models: MODELS &
+    IAssertValidModels<MODELS> & {
+      [K in keyof MODELS]: IServiceModel<MODELS[K], SERVICE_NAME>;
+    };
+  contracts?: never;
+  guards?: never;
+}): IServiceFrontendController<
   SYSTEM_NAME,
-  ACTOR_NAME,
-  CONTRACTS,
-  MODELS | {},
-  SIGNATURE_SCHEMA,
-  VERSION,
-  FRONTEND_NAME
-> {
-  const {
-    contracts,
-    accountName,
-    actorName,
-    frontendName,
-    version,
-    systemName,
-    models = {},
-    signature,
-    guards: guardsInput = {},
-  } = props;
+  SERVICE_NAME,
+  FRONTEND_NAME,
+  MODELS
+>;
 
-  if (typeof version !== 'string' || version.length === 0) {
-    throw new Error(
-      'makeFrontendController: version must be a non-empty string',
-    );
-  }
-
-  assertValidModels({ models, context: 'makeFrontendController' });
-
-  const guards = makeGuards({
-    contracts,
-    guards: guardsInput,
+export function makeFrontendController(
+  props:
+    | {
+        systemName: string;
+        aggregateName: string;
+        frontendName: string;
+        contracts: IContracts;
+        models: IModels;
+        guards?: Partial<{
+          [K in keyof IContracts & string]: readonly IGuard[];
+        }>;
+      }
+    | {
+        systemName: string;
+        serviceName: string;
+        frontendName: string;
+        models: IModels;
+        contracts?: never;
+        guards?: never;
+      },
+): IFrontendController {
+  assertValidModels({
+    models: props.models,
+    context: 'makeFrontendController',
   });
 
-  const makeFrontendUnstagedCommand: IFrontendController<
-    SYSTEM_NAME,
-    ACTOR_NAME,
-    CONTRACTS,
-    MODELS | {},
-    SIGNATURE_SCHEMA,
-    VERSION,
-    FRONTEND_NAME
-  >['makeUnstagedCommand'] = props =>
-    makeUnstagedCommand({
-      contracts,
-      systemName,
-      accountName,
-      actorName,
-      frontendName,
-      ...props,
-    });
+  if ('serviceName' in props) {
+    for (const [modelKey, model] of Object.entries(props.models)) {
+      if (
+        !('serviceName' in model) ||
+        model.serviceName !== props.serviceName
+      ) {
+        throw new Error(
+          `makeFrontendController: models.${modelKey} must be created by makeServiceModel with serviceName "${props.serviceName}"`,
+        );
+      }
+    }
+
+    return {
+      kind: 'service',
+      systemName: props.systemName,
+      serviceName: props.serviceName,
+      frontendName: props.frontendName,
+      contracts: {},
+      models: props.models,
+      modelNames: Object.keys(props.models),
+      guards: {},
+    };
+  }
+
+  const guards = makeGuards({
+    contracts: props.contracts,
+    guards: props.guards ?? {},
+  });
 
   return {
-    contracts,
-    accountName,
-    actorName,
-    frontendName,
-    version,
-    systemName,
-    modelNames: Object.keys(models),
-    models,
-    signature,
+    kind: 'aggregate',
+    systemName: props.systemName,
+    aggregateName: props.aggregateName,
+    frontendName: props.frontendName,
+    contracts: props.contracts,
+    models: props.models,
+    modelNames: Object.keys(props.models),
     guards,
-    makeUnstagedCommand: makeFrontendUnstagedCommand,
+    makeUnstagedCommand: (
+      commandProps: Parameters<
+        IAggregateFrontendController['makeUnstagedCommand']
+      >[0],
+    ) =>
+      makeUnstagedCommand({
+        contracts: props.contracts,
+        systemName: props.systemName,
+        aggregateName: props.aggregateName,
+        frontendName: props.frontendName,
+        ...commandProps,
+      }),
   };
 }

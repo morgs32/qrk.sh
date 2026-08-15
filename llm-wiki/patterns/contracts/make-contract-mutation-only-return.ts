@@ -1,7 +1,7 @@
 /**
  * `makeContract` enforces mutation-only program return at definition time.
  *
- * @bad Duplicate mutation-only type checks in `makeActorController` frontend binding resolution.
+ * @bad Duplicate mutation-only type checks while normalizing a `makeSystem` frontend binding.
  */
 export const updateListContract = makeContract({
   commandName: 'updateList',

@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 
 /**
- * SystemWorker and repo DOs stay thin after FrontendApi / SystemApi validation.
+ * SystemWorker and repo DOs stay thin after AggregateFrontendApi / SystemApi validation.
  *
  * @bad Repeat `Schema.validate` on RPC props inside SystemWorker when the
  * public API capability already decoded the wire shape.

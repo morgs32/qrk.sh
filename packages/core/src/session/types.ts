@@ -1,9 +1,5 @@
 import type { IAnyErrorJson } from '@zerospin/error';
-import type {
-  ITelemetryBatch,
-  ITelemetryCollector,
-  ITraceId,
-} from '@zerospin/logger';
+import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
 import type { AnyRelations } from 'drizzle-orm';
 import type { Schema } from 'effect';
 import type { StoreApi } from 'zustand';
@@ -13,10 +9,12 @@ import type {
   IEncodedCommand,
   IExecutedPushedCommand,
   IFailedPushedCommand,
-  IFailedStagedCommand,
+  IFailedStagedReplicaCommand,
+  IFinalizedFailedStagedReplicaCommand,
   InferCommand,
   IPushedCommand,
-  IStagedCommand,
+  IStagedReplicaCommand,
+  IStagedSessionCommand,
 } from '../contracts/types.ts';
 import type {
   IDb,
@@ -26,28 +24,22 @@ import type {
   IWaSqliteDrizzleDb,
 } from '../drizzle/types.ts';
 import type {
-  IFrontendController,
+  IAggregateFrontendController,
   InferFrontendModels,
 } from '../frontendController/types.ts';
 import type {
-  IAccountCursor,
-  IAccountId,
-  IActorId,
+  IAggregateCursor,
+  IAggregateId,
   IEncodedResourceShape,
   IModels,
   InferEncodedRow,
   InferIdFromAbbreviation,
   InferPayloadInput,
-  IPushedCursorId,
   IRef,
 } from '../models/types.ts';
 import type { ISystemId } from '../system/types.ts';
-import type { ISignatureFactory } from '../utils/types.ts';
 
-import type {
-  sessionPushedCommandShape,
-  sessionStagedCommandShape,
-} from './sessionCommandShape.ts';
+import type { sessionPushedCommandShape } from './sessionCommandShape.ts';
 import { type sessionRepoSchema } from './sessionRepoTables.ts';
 
 export type ISessionRepoSchema = typeof sessionRepoSchema;
@@ -73,156 +65,107 @@ export type IFrontendDelta = Readonly<{
   deleted: readonly IRef[];
 }>;
 
-export type IFrontendBlock = Readonly<{
+export type IAggregateFrontendBlock = Readonly<{
   frontendName: string;
-  lastAccountCursor: IAccountCursor;
+  lastAggregateCursor: IAggregateCursor;
   delta: IFrontendDelta;
   pendingPushedCommands: readonly IEncodedCommand<IPushedCommand>[];
   executedPushedCommands: readonly IEncodedCommand<IExecutedPushedCommand>[];
   failedPushedCommands: readonly IEncodedCommand<IFailedPushedCommand>[];
-  /** Latest FrontendRepo pushed cursor already represented in `delta`. */
-  lastRebasedPushedCursor: IPushedCursorId | null;
-  /** Latest FrontendRepo convergence index applied by this session. */
+  /** Latest AggregateFrontendRepo convergence index applied by this session. */
   frontendIndex: number;
 }>;
 
-/** Complete server-owned account frontend state used for creation and repair. */
-export type IFrontendSyncState = Readonly<{
-  accountId: IAccountId;
-  actorId: IActorId;
+/** Complete server-owned aggregate frontend state used for creation and repair. */
+export type IAggregateFrontendSyncState = Readonly<{
+  aggregateId: IAggregateId;
+  userId: string;
   systemId: ISystemId;
-  generationId: string;
   systemVersion: string;
-  systemWorkerName: string;
-  accountName: string;
-  actorName: string;
+  aggregateName: string;
   frontendName: string;
   frontendIndex: number;
-  lastRebasedPushedCursor: IPushedCursorId | null;
   pushedCommands: readonly InferEncodedRow<typeof sessionPushedCommandShape>[];
   resources: readonly IEncodedResourceShape[];
   executedPushedCommands: readonly IEncodedCommand<IExecutedPushedCommand>[];
   failedPushedCommands: readonly IEncodedCommand<IFailedPushedCommand>[];
 }>;
 
-/** Complete materialized account replica, including durable local intent. */
-export type IFrontendReplicaState = IFrontendSyncState &
+/** Complete materialized aggregate replica, including durable local intent. */
+export type IAggregateFrontendReplicaState = IAggregateFrontendSyncState &
   Readonly<{
-    frontendVersion: string;
+    aggregateFrontendLockKey: string;
     replicaIndex: number;
-    stagedCommands: readonly InferEncodedRow<
-      typeof sessionStagedCommandShape
-    >[];
-    failedStagedCommands: readonly IEncodedCommand<IFailedStagedCommand>[];
+    stagedCommands: readonly IEncodedCommand<IStagedReplicaCommand>[];
+    failedStagedCommands: readonly (
+      | IEncodedCommand<IFailedStagedReplicaCommand>
+      | IEncodedCommand<IFinalizedFailedStagedReplicaCommand>
+    )[];
     optimisticAppliedMutations: readonly Readonly<{
-      commandId: IEncodedCommand<IStagedCommand>['id'];
+      commandId: IEncodedCommand<IStagedReplicaCommand>['id'];
       mutations: readonly IEncodedAppliedMutation[];
     }>[];
   }>;
-
-export type IFrontendGenerationBoundaryBlock = Readonly<{
-  kind: 'generation-boundary';
-  systemId: ISystemId;
-  prevGenerationId: string;
-  generationId: string;
-  accountId: IAccountId;
-  accountName: string;
-  actorId: IActorId;
-  actorName: string;
-  frontendName: string;
-  frontendIndex: number;
-}>;
-
-export type IFrontendLineageBlock =
-  | IFrontendGenerationBoundaryBlock
-  | Readonly<{
-      kind: 'frontend';
-      systemId: ISystemId;
-      generationId: string;
-      accountId: IAccountId;
-      accountName: string;
-      actorId: IActorId;
-      actorName: string;
-      frontendName: string;
-      frontendBlock: IFrontendBlock;
-    }>;
 
 /**
  * One committed SharedWorker transaction. Server and local command commits
  * share one contiguous replica index without conflating their payloads.
  */
-export type IFrontendReplicaBlock =
+export type IAggregateFrontendReplicaBlock =
   | Readonly<{
       kind: 'server';
       systemId: ISystemId;
-      generationId: string;
-      accountId: IAccountId;
-      accountName: string;
-      actorId: IActorId;
-      actorName: string;
+      aggregateId: IAggregateId;
+      aggregateName: string;
+      userId: string;
       frontendName: string;
-      frontendVersion: string;
+      aggregateFrontendLockKey: string;
       replicaIndex: number;
       frontendIndex: number;
-      lineageBlock: IFrontendLineageBlock;
+      frontendBlock: IAggregateFrontendBlock;
     }>
   | Readonly<{
       kind: 'local-command';
       systemId: ISystemId;
-      generationId: string;
-      accountId: IAccountId;
-      accountName: string;
-      actorId: IActorId;
-      actorName: string;
+      aggregateId: IAggregateId;
+      aggregateName: string;
+      userId: string;
       frontendName: string;
-      frontendVersion: string;
+      aggregateFrontendLockKey: string;
       replicaIndex: number;
       frontendIndex: number;
       delta: IFrontendDelta;
-      stagedCommandsAdded: readonly IEncodedCommand<IStagedCommand>[];
-      stagedCommandIdsRemoved: readonly IEncodedCommand<IStagedCommand>['id'][];
+      stagedCommandsAdded: readonly IEncodedCommand<IStagedReplicaCommand>[];
+      stagedCommandIdsRemoved: readonly IEncodedCommand<IStagedReplicaCommand>['id'][];
       pushedCommandsAdded: readonly IEncodedCommand<IPushedCommand>[];
       pushedCommandIdsRemoved: readonly IEncodedCommand<IPushedCommand>['id'][];
       executedPushedCommandsAdded: readonly IEncodedCommand<IExecutedPushedCommand>[];
       executedPushedCommandIdsRemoved: readonly IEncodedCommand<IExecutedPushedCommand>['id'][];
-      failedStagedCommandsAdded: readonly IEncodedCommand<IFailedStagedCommand>[];
+      failedStagedCommandsAdded: readonly (
+        | IEncodedCommand<IFailedStagedReplicaCommand>
+        | IEncodedCommand<IFinalizedFailedStagedReplicaCommand>
+      )[];
       failedPushedCommandsAdded: readonly IEncodedCommand<IFailedPushedCommand>[];
       failedCommandIdsRemoved: readonly (
-        | IEncodedCommand<IFailedStagedCommand>['id']
+        | IEncodedCommand<IFailedStagedReplicaCommand>['id']
         | IEncodedCommand<IFailedPushedCommand>['id']
       )[];
       optimisticAppliedMutationsAdded: readonly Readonly<{
-        commandId: IEncodedCommand<IStagedCommand>['id'];
+        commandId: IEncodedCommand<IStagedReplicaCommand>['id'];
         mutations: readonly IEncodedAppliedMutation[];
       }>[];
-      optimisticAppliedMutationCommandIdsRemoved: readonly IEncodedCommand<IStagedCommand>['id'][];
+      optimisticAppliedMutationCommandIdsRemoved: readonly IEncodedCommand<IStagedReplicaCommand>['id'][];
     }>;
-
-export type IFrontendLineageTransitionRequired = Readonly<{
-  kind: 'lineage-transition-required';
-  systemId: ISystemId;
-  generationId: string;
-  accountId: IAccountId;
-  accountName: string;
-  actorId: IActorId;
-  actorName: string;
-  frontendName: string;
-  frontendVersion: string;
-  appliedBoundaryIndex: number;
-  remainingBoundaries: readonly IFrontendGenerationBoundaryBlock[];
-}>;
 
 export interface IInitializedSessionState<MODELS extends IModels = IModels> {
   sessionId: ISessionId;
-  accountId: IAccountId;
-  accountName: string;
-  actorId: IActorId;
+  aggregateId: IAggregateId;
+  aggregateName: string;
+  userId: string;
   systemId: ISystemId;
-  generationId: string;
   systemVersion: string;
-  systemWorkerName: string;
   frontendName: string;
-  frontendVersion: string;
+  aggregateFrontendLockKey: string;
   db: IWaSqliteDrizzleDb<
     IDbConfig<ISessionSchema<MODELS>, IDrizzleRelationsFromModels<MODELS>>
   >;
@@ -230,16 +173,12 @@ export interface IInitializedSessionState<MODELS extends IModels = IModels> {
   models: MODELS;
   vfsName: string | null;
   isInitialized: true;
-  /** FrontendRepo convergence index already committed to this session. */
+  /** AggregateFrontendRepo convergence index already committed to this session. */
   frontendIndex: number;
-  /** SharedWorker-local committed transaction index; null in direct mode. */
+  /** SharedWorker-local committed transaction index. */
   replicaIndex: number | null;
-  /** FrontendRepo pushed cursor already represented in local resource rows. */
-  lastRebasedPushedCursor: IPushedCursorId | null;
-  isPushPaused: boolean;
-  isSharedWorkerEnabled: boolean;
   workerState: Readonly<{
-    mode: 'shared-worker' | 'direct';
+    mode: 'shared-worker';
     status:
       | 'authenticating'
       | 'hydrating'
@@ -248,7 +187,6 @@ export interface IInitializedSessionState<MODELS extends IModels = IModels> {
       | 'replaying'
       | 'online'
       | 'repairing'
-      | 'update-required'
       | 'failed'
       | 'released';
     bootstrapSource: 'network' | 'replica' | null;
@@ -257,26 +195,19 @@ export interface IInitializedSessionState<MODELS extends IModels = IModels> {
     databaseName: string | null;
     failure: IAnyErrorJson | null;
   }>;
-  lastDevtoolsPush: Readonly<{
-    traceId: ITraceId;
-    completedAt: number;
-    status: 'ok' | 'error';
-  }> | null;
   telemetry: ITelemetryBatch;
   telemetryCollector: ITelemetryCollector;
 }
 
 type IUninitializedSessionState = {
   sessionId: ISessionId;
-  accountId: null;
-  accountName: null;
-  actorId: null;
+  aggregateId: null;
+  aggregateName: null;
+  userId: null;
   systemId: null;
-  generationId: null;
   systemVersion: null;
-  systemWorkerName: null;
   frontendName: null;
-  frontendVersion: null;
+  aggregateFrontendLockKey: null;
   db: null;
   schema: null;
   models: null;
@@ -284,11 +215,8 @@ type IUninitializedSessionState = {
   isInitialized: false;
   frontendIndex: null;
   replicaIndex: null;
-  lastRebasedPushedCursor: null;
-  isPushPaused: boolean;
-  isSharedWorkerEnabled: boolean;
   workerState: Readonly<{
-    mode: 'shared-worker' | 'direct';
+    mode: 'shared-worker';
     status:
       | 'authenticating'
       | 'hydrating'
@@ -297,7 +225,6 @@ type IUninitializedSessionState = {
       | 'replaying'
       | 'online'
       | 'repairing'
-      | 'update-required'
       | 'failed'
       | 'released';
     bootstrapSource: null;
@@ -306,11 +233,6 @@ type IUninitializedSessionState = {
     databaseName: null;
     failure: IAnyErrorJson | null;
   }>;
-  lastDevtoolsPush: Readonly<{
-    traceId: ITraceId;
-    completedAt: number;
-    status: 'ok' | 'error';
-  }> | null;
   telemetry: ITelemetryBatch;
   telemetryCollector: ITelemetryCollector;
 };
@@ -324,10 +246,9 @@ type ISessionStoreApi<MODELS extends IModels = IModels> = StoreApi<
 >;
 
 export type ISession<
-  FRONTEND extends IFrontendController = IFrontendController,
+  FRONTEND extends IAggregateFrontendController = IAggregateFrontendController,
 > = {
   frontend: FRONTEND;
-  generateSignature: ISignatureFactory;
   /**
    * One-shot readiness callback. Registration after initialization invokes
    * the handler synchronously; registration before it fires once in the next
@@ -345,11 +266,9 @@ export type ISession<
   >(props: {
     contractName: CONTRACT_NAME;
     payload: InferPayloadInput<FRONTEND['contracts'][CONTRACT_NAME]['payload']>;
-  }): Promise<
-    Schema.EitherEncoded<
-      IStagedCommand<InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>>,
-      IAnyErrorJson
-    >
+  }): Schema.EitherEncoded<
+    IStagedSessionCommand<InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>>,
+    IAnyErrorJson
   >;
   store: ISessionStoreApi<InferFrontendModels<FRONTEND>>;
 };

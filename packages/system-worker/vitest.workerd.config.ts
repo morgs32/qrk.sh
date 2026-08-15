@@ -42,6 +42,10 @@ export default defineConfig({
         find: 'system',
         replacement: path.resolve(__dirname, 'src/fixtures/system.ts'),
       },
+      {
+        find: 'seeds',
+        replacement: path.resolve(__dirname, 'src/workerd-utils/emptySeeds.ts'),
+      },
     ],
   },
   plugins: [

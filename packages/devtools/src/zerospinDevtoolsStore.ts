@@ -1,11 +1,11 @@
-import type { IServiceFrontendController } from '@zerospin/core/serviceFrontendController/types';
+import type { IServiceFrontendController } from '@zerospin/core/frontendController/types';
 import type { IServiceSession } from '@zerospin/core/serviceSession/types';
 import type { ISessionId } from '@zerospin/core/session/types';
 import { emptyTelemetryBatch } from '@zerospin/logger';
 import { createStore } from 'zustand/vanilla';
 
 import type {
-  IDevtoolsAccountSessionEntry,
+  IDevtoolsAggregateSessionEntry,
   IDevtoolsServiceSessionEntry,
   IDevtoolsSharedWorkerRootDiagnostics,
   IZerospinDevtoolsStoreState,
@@ -13,27 +13,27 @@ import type {
 
 export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
   set => ({
-    accountSessionsById: new Map(),
+    aggregateSessionsById: new Map(),
     serviceSessionsById: new Map(),
     profiles: [],
     sharedWorkerRootsById: new Map(),
-    addAccountSession: (entry: IDevtoolsAccountSessionEntry) =>
+    addAggregateSession: (entry: IDevtoolsAggregateSessionEntry) =>
       set(state => {
-        if (state.accountSessionsById.has(entry.session.sessionId)) {
+        if (state.aggregateSessionsById.has(entry.session.sessionId)) {
           return state;
         }
-        const nextAccountSessionsById = new Map(state.accountSessionsById);
-        nextAccountSessionsById.set(entry.session.sessionId, entry);
-        return { accountSessionsById: nextAccountSessionsById };
+        const nextAggregateSessionsById = new Map(state.aggregateSessionsById);
+        nextAggregateSessionsById.set(entry.session.sessionId, entry);
+        return { aggregateSessionsById: nextAggregateSessionsById };
       }),
-    removeAccountSession: (sessionId: ISessionId) =>
+    removeAggregateSession: (sessionId: ISessionId) =>
       set(state => {
-        if (!state.accountSessionsById.has(sessionId)) {
+        if (!state.aggregateSessionsById.has(sessionId)) {
           return state;
         }
-        const nextAccountSessionsById = new Map(state.accountSessionsById);
-        nextAccountSessionsById.delete(sessionId);
-        return { accountSessionsById: nextAccountSessionsById };
+        const nextAggregateSessionsById = new Map(state.aggregateSessionsById);
+        nextAggregateSessionsById.delete(sessionId);
+        return { aggregateSessionsById: nextAggregateSessionsById };
       }),
     addServiceSession: <FRONTEND extends IServiceFrontendController>(entry: {
       readonly session: IServiceSession<FRONTEND>;
@@ -47,14 +47,13 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
         const devtoolsEntry: IDevtoolsServiceSessionEntry = {
           sessionId: session.sessionId,
           serviceName: session.frontend.serviceName,
-          actorName: session.frontend.actorName,
           frontendName: session.frontend.frontendName,
           modelNames: session.frontend.modelNames,
           subscribe: listener =>
             session.store.subscribe(() => {
               listener();
             }),
-          getActorId: () => session.store.getState().actorId,
+          getUserId: () => session.store.getState().userId,
           getIsInitialized: () => session.store.getState().isInitialized,
           getWorkerState: () => session.store.getState().workerState,
           getTelemetry: () => session.store.getState().telemetry,

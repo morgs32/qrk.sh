@@ -1,8 +1,3 @@
-/*
- * System-worker annotation:
- * Verifies Studio repo registration and safe table reads through real Durable Objects.
- */
-
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
@@ -14,114 +9,129 @@ import { describe, expect } from 'vitest';
 import { getServiceRepo } from './ServiceRepo/getServiceRepo/getServiceRepo.js';
 import { SystemRepo } from './SystemRepo/SystemRepo.js';
 import { systemWorkerAbbreviations } from './systemWorkerAbbreviations.js';
+import { prepareGenerationStateFixture } from './workerd-utils/prepareGenerationStateFixture.js';
 
 describe('RepoExplorer', () => {
-  it.effect('registers repos and reads only registered tables', () =>
-    Effect.gen(function* () {
-      const serviceRepo = yield* getServiceRepo({
-        key: {
-          generationId: 'gen_test',
-          serviceName: 'app',
-        },
-      });
-      const fixedSystemRepoName = `${systemWorkerAbbreviations.systemRepo}_gen_test`;
-      const openedSystemRepoName = yield* Effect.promise(() =>
-        runInDurableObject(
-          env.SYSTEM_REPO.getByName(fixedSystemRepoName),
-          (_instance, state) => state.id.name,
-        ),
-      );
-      expect(openedSystemRepoName).toBe(fixedSystemRepoName);
+  it.effect(
+    'enumerates generation-qualified rows from the singleton SystemRepo',
+    () =>
+      Effect.gen(function* () {
+        const active = yield* prepareGenerationStateFixture({
+          clean: false,
+          workerVersionId: 'repo-explorer-active',
+        });
+        const otherGenerationId = 'gen_repo_explorer_other';
+        const serviceRepo = yield* getServiceRepo({
+          key: {
+            generationId: active.generationId,
+            serviceName: 'app',
+          },
+        });
+        const otherServiceRepo = yield* getServiceRepo({
+          key: {
+            generationId: otherGenerationId,
+            serviceName: 'app',
+          },
+        });
+        const productTable = yield* makeAsync(() =>
+          serviceRepo.getRepoTableRows({ tableName: 'product' }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        yield* makeAsync(() =>
+          otherServiceRepo.getRepoTableRows({ tableName: 'product' }),
+        ).pipe(Effect.flatMap(decodeRpc));
 
-      const productTable = yield* makeAsync(() =>
-        serviceRepo.getRepoTableRows({ tableName: 'product' }),
-      ).pipe(Effect.flatMap(decodeRpc));
+        const systemRepo = SystemRepo.getRepo({
+          systemId: env.ZEROSPIN_SYSTEM_ID,
+        });
+        const openedSystemRepoName = yield* Effect.promise(() =>
+          runInDurableObject(systemRepo, (_instance, state) => state.id.name),
+        );
+        expect(openedSystemRepoName).toBe(env.ZEROSPIN_SYSTEM_ID);
 
-      const otherServiceRepo = yield* getServiceRepo({
-        key: {
-          generationId: 'gen_other',
-          serviceName: 'app',
-        },
-      });
-      yield* makeAsync(() =>
-        otherServiceRepo.getRepoTableRows({ tableName: 'product' }),
-      ).pipe(Effect.flatMap(decodeRpc));
-
-      const registrations = yield* makeAsync(() =>
-        SystemRepo.getRepo({ generationId: 'gen_test' }).getRepoRegistrations({
-          repoType: 'ServiceRepo',
-        }),
-      ).pipe(Effect.flatMap(decodeRpc));
-      const systemRepoRegistrations = yield* makeAsync(() =>
-        SystemRepo.getRepo({ generationId: 'gen_test' }).getRepoRegistrations({
-          repoType: 'SystemRepo',
-        }),
-      ).pipe(Effect.flatMap(decodeRpc));
-      const otherRegistrations = yield* makeAsync(() =>
-        SystemRepo.getRepo({
-          generationId: 'gen_other',
-        }).getRepoRegistrations({ repoType: 'ServiceRepo' }),
-      ).pipe(Effect.flatMap(decodeRpc));
-
-      expect(registrations).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
+        const registrations = yield* makeAsync(() =>
+          systemRepo.getRepoRegistrations({
+            generationId: active.generationId,
             repoType: 'ServiceRepo',
-            repoName: `${systemWorkerAbbreviations.serviceRepo}_gen_test/app`,
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        const otherRegistrations = yield* makeAsync(() =>
+          systemRepo.getRepoRegistrations({
+            generationId: otherGenerationId,
+            repoType: 'ServiceRepo',
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        const systemRegistrations = yield* makeAsync(() =>
+          systemRepo.getRepoRegistrations({
+            generationId: active.generationId,
+            repoType: 'SystemRepo',
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+
+        expect(registrations).toEqual([
+          expect.objectContaining({
+            generationId: active.generationId,
+            repoType: 'ServiceRepo',
+            repoName: `${systemWorkerAbbreviations.serviceRepo}_${active.generationId}/app`,
             tableNames: expect.arrayContaining([
+              'catalogSettings',
               'product',
-              'serviceCursors',
+              'serviceCommandOutcomes',
               'serviceBlockOutbox',
+              'serviceReplayReceipts',
             ]),
           }),
-        ]),
-      );
-      expect(systemRepoRegistrations).toEqual([
-        expect.objectContaining({
-          repoType: 'SystemRepo',
-          repoName: fixedSystemRepoName,
-          tableNames: expect.arrayContaining(['accounts', 'repos']),
-        }),
-      ]);
-      expect(otherRegistrations).toEqual(
-        expect.arrayContaining([
+        ]);
+        expect(otherRegistrations).toEqual([
           expect.objectContaining({
-            repoType: 'ServiceRepo',
-            repoName: `${systemWorkerAbbreviations.serviceRepo}_gen_other/app`,
+            generationId: otherGenerationId,
+            repoName: `${systemWorkerAbbreviations.serviceRepo}_${otherGenerationId}/app`,
           }),
-        ]),
-      );
-      expect(registrations).not.toEqual(
-        expect.arrayContaining([
+        ]);
+        expect(systemRegistrations).toEqual([
           expect.objectContaining({
-            repoName: `${systemWorkerAbbreviations.serviceRepo}_gen_other/app`,
+            generationId: active.generationId,
+            repoType: 'SystemRepo',
+            repoName: env.ZEROSPIN_SYSTEM_ID,
+            tableNames: expect.arrayContaining([
+              'deploy',
+              'generationState',
+              'repos',
+            ]),
           }),
-        ]),
-      );
-      expect(otherRegistrations).not.toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            repoName: `${systemWorkerAbbreviations.serviceRepo}_gen_test/app`,
+        ]);
+
+        const activeRepoRows = yield* makeAsync(() =>
+          systemRepo.getRepoTableRows({
+            generationId: active.generationId,
+            tableName: 'repos',
           }),
-        ]),
-      );
+        ).pipe(Effect.flatMap(decodeRpc));
+        expect(activeRepoRows.rows.length).toBeGreaterThan(0);
+        expect(
+          activeRepoRows.rows.every(
+            row => row.generationId === active.generationId,
+          ),
+        ).toBe(true);
+        expect(
+          activeRepoRows.rows.some(
+            row => row.generationId === otherGenerationId,
+          ),
+        ).toBe(false);
 
-      expect(productTable.columns.map(column => column.name)).toEqual([
-        'id',
-        'modelName',
-        'createdAt',
-        'updatedAt',
-        'version',
-        'deletedAt',
-        'name',
-      ]);
-      expect(productTable.rows).toEqual([]);
-
-      const missingTable = yield* makeAsync(() =>
-        serviceRepo.getRepoTableRows({ tableName: 'sqlite_master' }),
-      ).pipe(Effect.flatMap(decodeRpc), Effect.either);
-
-      expect(missingTable._tag).toBe('Left');
-    }).pipe(Effect.provide(AsyncLive)),
+        expect(productTable.columns.map(column => column.name)).toEqual([
+          'id',
+          'modelName',
+          'createdAt',
+          'updatedAt',
+          'version',
+          'deletedAt',
+          'name',
+        ]);
+        expect(productTable.rows).toEqual([]);
+        const missingTable = yield* makeAsync(() =>
+          serviceRepo.getRepoTableRows({ tableName: 'sqlite_master' }),
+        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+        expect(missingTable._tag).toBe('Left');
+      }).pipe(Effect.provide(AsyncLive)),
   );
 });

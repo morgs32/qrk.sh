@@ -10,7 +10,7 @@ export const getServiceBlockRepo = Effect.fn('getServiceBlockRepo')(
       serviceName: string;
     };
   }) {
-    const name = yield* ServiceBlockRepo.repoUtils.nameUtils.makeName(
+    const name = yield* ServiceBlockRepo.boundDORepoConfig.nameUtils.makeName(
       props.key,
     );
     return env.SERVICE_BLOCK_REPO.getByName(name) as DurableObjectStub<

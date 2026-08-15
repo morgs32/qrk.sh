@@ -5,12 +5,6 @@ import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
 const dispatchUrl = process.env.ZEROSPIN_SYNC_DISPATCH_URL?.trim();
-if (dispatchUrl === undefined || dispatchUrl === '') {
-  throw new Error(
-    'Missing ZEROSPIN_SYNC_DISPATCH_URL. Deploy sync-dispatch and sync-fixture (see packages/sync/README.md), then export the dispatch worker URL.',
-  );
-}
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, '../..');
 
@@ -40,7 +34,9 @@ export default defineConfig({
     ],
   },
   define: {
-    __TEST_WORKER_URL__: JSON.stringify(dispatchUrl.replace(/\/$/, '')),
+    __TEST_WORKER_URL__: JSON.stringify(
+      dispatchUrl ? dispatchUrl.replace(/\/$/, '') : '',
+    ),
     'globalThis.IS_REACT_ACT_ENVIRONMENT': true,
   },
   test: {
@@ -59,5 +55,6 @@ export default defineConfig({
     clearMocks: true,
     testTimeout: 30_000,
     hookTimeout: 120_000,
+    globalSetup: [path.join(__dirname, 'vitest.playwright.platform.setup.ts')],
   },
 });

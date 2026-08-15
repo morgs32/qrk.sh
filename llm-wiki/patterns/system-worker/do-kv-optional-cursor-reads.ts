@@ -8,36 +8,25 @@ import {
 } from '../_stubs/schema';
 
 /**
- * Parse optional DO KV cursor watermarks: `UndefinedOr` input, `NullOr` output.
+ * Decode a repo-local cursor as `undefined | null | cursor` so bootstrap absence and an empty upstream remain distinct.
  *
  * @bad Cast `storage.kv.get(...)` to a cursor union.
- * @bad Branch on `raw === undefined` before decode outside the schema.
- * @bad Decode with `UndefinedOr` then `?? null` at the call site.
- * @bad Use `Schema.optionalWith({ default: () => null })` for standalone KV reads.
+ * @bad Collapse `undefined` and `null` before callers apply their explicit default policy.
+ * @bad Decode the raw KV value with a cursor-only schema.
  */
-export const readLastFinalizationEventFanoutCursor = Effect.fn(
-  'readLastFinalizationEventFanoutCursor',
-)(function* (props: { storage: { kv: { get: (key: string) => unknown } } }) {
-  const { storage } = props;
-  const accountCursorIdSchema = makeAbbreviationIdSchema(
-    coreAbbreviations.accountCursor,
-  );
+export const getLastAggregateCursor = Effect.fn('getLastAggregateCursor')(
+  function* (props: { storage: { kv: { get: (key: string) => unknown } } }) {
+    const aggregateCursorSchema = makeAbbreviationIdSchema(
+      coreAbbreviations.aggregateCursor,
+    );
 
-  const prevCursor = yield* Schema.decodeUnknown(
-    Schema.transform(
-      Schema.UndefinedOr(accountCursorIdSchema),
-      Schema.NullOr(accountCursorIdSchema),
-      {
-        decode: cursor => cursor ?? null,
-        encode: (_encoded, cursor) => cursor ?? undefined,
-      },
-    ),
-  )(storage.kv.get('lastFinalizationEventFanoutCursor')).pipe(
-    mapParseError({
-      code: 'account-delta-cursor-kv-decode-failed',
-      prefix: 'Failed to decode last account fanout cursor from KV',
-    }),
-  );
-
-  return prevCursor;
-});
+    return yield* Schema.decodeUnknown(
+      Schema.UndefinedOr(Schema.NullOr(aggregateCursorSchema)),
+    )(props.storage.kv.get('lastAggregateCursor')).pipe(
+      mapParseError({
+        code: 'getLastAggregateCursor-invalid-lastAggregateCursor',
+        prefix: 'Failed to decode the last aggregate cursor from KV',
+      }),
+    );
+  },
+);

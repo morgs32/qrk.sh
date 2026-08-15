@@ -1,6 +1,25 @@
 import { expect, test } from '@playwright/test';
+import '@zerospin/react/makeZerospinApp';
 
-import type {} from '@zerospin/react/ZerospinConfig';
+test('signed-out user is redirected to sign in', async ({ browser }) => {
+  const context = await browser.newContext({
+    storageState: { cookies: [], origins: [] },
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/signin/);
+    await expect(
+      page.getByRole('heading', {
+        level: 1,
+        name: 'Sign in to Zerospin Shopping',
+        exact: true,
+      }),
+    ).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
 
 test('signed-in user can view the authed home page', async ({ page }) => {
   test.setTimeout(120_000);
@@ -12,49 +31,33 @@ test('signed-in user can view the authed home page', async ({ page }) => {
   await expect(
     page.getByRole('heading', { level: 2, name: 'Products', exact: true }),
   ).toBeVisible({ timeout: 90_000 });
-  await expect(page.getByText('Basic T-Shirt', { exact: true })).toBeVisible();
+  const main = page.getByRole('main');
+  await expect(main.getByText('Basic T-Shirt', { exact: true })).toBeVisible();
   await expect(
-    page.getByText('Canvas Backpack', { exact: true }),
+    main.getByText('Canvas Backpack', { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText('Wireless Headphones', { exact: true }),
+    main.getByText('Wireless Headphones', { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText('Water Bottle', { exact: true })).toBeVisible();
-  await expect(page.getByText('Lined Notebook', { exact: true })).toBeVisible();
+  await expect(main.getByText('Water Bottle', { exact: true })).toBeVisible();
+  await expect(main.getByText('Lined Notebook', { exact: true })).toBeVisible();
   await expect(
-    page.getByText('Ceramic Coffee Mug', { exact: true }),
+    main.getByText('Ceramic Coffee Mug', { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText('LED Desk Lamp', { exact: true })).toBeVisible();
-  await expect(page.getByText('Mouse Pad', { exact: true })).toBeVisible();
+  await expect(main.getByText('LED Desk Lamp', { exact: true })).toBeVisible();
+  await expect(main.getByText('Mouse Pad', { exact: true })).toBeVisible();
   await expect(
-    page.getByText('USB-C Cable (2m)', { exact: true }),
+    main.getByText('USB-C Cable (2m)', { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText('Fleece Hoodie', { exact: true })).toBeVisible();
+  await expect(main.getByText('Fleece Hoodie', { exact: true })).toBeVisible();
   await expect(
-    page.getByText('Polarized Sunglasses', { exact: true }),
+    main.getByText('Polarized Sunglasses', { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText('Yoga Mat', { exact: true })).toBeVisible();
+  await expect(main.getByText('Yoga Mat', { exact: true })).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Open cart', exact: true }),
   ).toBeVisible();
   await expect(page.getByText('Cart', { exact: true })).toBeVisible();
-
-  const res = await page.request.get('/api/e2e/session-inspection');
-  if (res.status() === 404) {
-    test.skip(
-      true,
-      'Session inspection disabled (PLAYWRIGHT_CLAIM_INSPECTION not set on server)',
-    );
-    return;
-  }
-
-  expect(res.ok(), `session-inspection status ${res.status()}`).toBe(true);
-  const body = (await res.json()) as {
-    userId: string;
-  };
-
-  expect(body.userId).toBeTruthy();
-  expect(body.userId).toMatch(/^user_/);
 });
 
 test('SharedWorker push applies inverse deletes without reentering SQLite', async ({
@@ -64,7 +67,7 @@ test('SharedWorker push applies inverse deletes without reentering SQLite', asyn
   const targetedRuntimeFailures: string[] = [];
 
   // 1 — Capture the thrown, logged, and rendered forms of the original fault.
-  // Unrelated Clerk or Next development warnings do not fail this regression.
+  // Unrelated Clerk or Vite development warnings do not fail this regression.
   page.on('pageerror', error => {
     targetedRuntimeFailures.push(error.message);
   });
@@ -89,7 +92,7 @@ test('SharedWorker push applies inverse deletes without reentering SQLite', asyn
   await page.evaluate(async () => {
     if (window.zerospin?.devtools === undefined) {
       throw new Error(
-        'ZerospinConfig did not install the DevTools console API.',
+        'ZerospinApp.Provider did not install the DevTools console API.',
       );
     }
     await window.zerospin.devtools.open();
@@ -127,12 +130,12 @@ test('SharedWorker push applies inverse deletes without reentering SQLite', asyn
   ).toBeVisible({ timeout: 90_000 });
   await expect(addBasicTShirt).toBeVisible();
 
-  // A reload creates a new ZerospinConfig lifetime, so it also requires a new
+  // A reload creates a new ZerospinApp.Provider lifetime, so it also requires a new
   // explicit console open before this test can manipulate DevTools again.
   await page.evaluate(async () => {
     if (window.zerospin?.devtools === undefined) {
       throw new Error(
-        'ZerospinConfig did not install the DevTools console API.',
+        'ZerospinApp.Provider did not install the DevTools console API.',
       );
     }
     await window.zerospin.devtools.open();
@@ -144,10 +147,7 @@ test('SharedWorker push applies inverse deletes without reentering SQLite', asyn
     exact: true,
   });
   await pushedRoute.click();
-  await expect(pushedRoute).toHaveCSS(
-    'background-color',
-    'rgb(243, 244, 246)',
-  );
+  await expect(pushedRoute).toHaveCSS('background-color', 'rgb(243, 244, 246)');
   const baselinePushedRemoveCount = await devtools
     .getByRole('cell', {
       name: 'removeFromCart',
@@ -258,16 +258,16 @@ test('Zerospin DevTools uses one routed React shell', async ({ page }) => {
   });
 
   // The production application must expose no DevTools UI before the first
-  // console request, even though ZerospinConfig and the session are ready.
+  // console request, even though ZerospinApp.Provider and the session are ready.
   await expect(devtools).toHaveCount(0);
   await expect(openDevtools).toHaveCount(0);
 
   // This is the production escape hatch: it loads one shell into the existing
-  // ZerospinConfig React tree and resolves only after that shell is visible.
+  // ZerospinApp.Provider React tree and resolves only after that shell is visible.
   await page.evaluate(async () => {
     if (window.zerospin?.devtools === undefined) {
       throw new Error(
-        'ZerospinConfig did not install the DevTools console API.',
+        'ZerospinApp.Provider did not install the DevTools console API.',
       );
     }
     await window.zerospin.devtools.open();
@@ -286,7 +286,7 @@ test('Zerospin DevTools uses one routed React shell', async ({ page }) => {
   });
   await expect(devtools).toBeVisible({ timeout: 90_000 });
   await expect(
-    devtools.getByRole('cell', { name: 'shopper', exact: true }),
+    devtools.getByRole('cell', { name: 'shopper/web', exact: true }),
   ).toBeVisible({ timeout: 90_000 });
 
   const sessionsRoute = page.getByRole('link', {
@@ -313,13 +313,11 @@ test('Zerospin DevTools uses one routed React shell', async ({ page }) => {
     ),
   ).resolves.toBe('Shared Worker');
   await sharedWorkerRoute.click();
-  const sharedWorkerRoot = page.locator(
-    '[data-testid^="shared-worker-root-"]',
-  );
+  const sharedWorkerRoot = page.locator('[data-testid^="shared-worker-root-"]');
   await expect(sharedWorkerRoot).toHaveCount(1);
   await expect(
     sharedWorkerRoot.getByRole('region', {
-      name: 'Account frontend replicas',
+      name: 'Aggregate frontend replicas',
     }),
   ).toBeVisible();
   await expect(

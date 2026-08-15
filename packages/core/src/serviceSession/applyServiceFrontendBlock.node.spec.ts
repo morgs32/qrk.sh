@@ -1,4 +1,5 @@
 import { it } from '@effect/vitest';
+import { eq } from 'drizzle-orm';
 import { Effect, Layer, Schema } from 'effect';
 import { TestContext } from 'effect/TestContext';
 import { describe, expect } from 'vitest';
@@ -6,9 +7,9 @@ import { describe, expect } from 'vitest';
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
+import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { makeServiceModel } from '../models/makeServiceModel.ts';
 import { primitives } from '../models/primitives.ts';
-import { makeServiceFrontendController } from '../serviceFrontendController/makeServiceFrontendController.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
@@ -53,12 +54,11 @@ const models = {
   product: Product,
 };
 
-const frontend = makeServiceFrontendController({
+const frontend = makeFrontendController({
   systemName: 'shop',
   serviceName: 'catalog',
-  actorName: 'viewer',
   frontendName: 'catalog',
-  version: '1.0.0',
+  userId: Schema.NonEmptyString,
   models,
   signature: Schema.Struct({ subject: Schema.String }),
 });
@@ -75,7 +75,7 @@ const now = new Date('2026-01-01T00:00:00.000Z');
 describe('applyServiceFrontendBlock', () => {
   it.layer(TestLayer)(it => {
     it.effect(
-      'enforces target and index identity and rolls a failed delta back',
+      'accepts atomic FK reordering, enforces identity, and rolls a failed delta back',
       () =>
         Effect.gen(function* () {
           // 1 — seed the exact database object the live blocks will mutate.
@@ -83,21 +83,15 @@ describe('applyServiceFrontendBlock', () => {
           const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
           yield* applyServiceFrontendState({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
-            systemVersion: '1.0.0',
-            systemWorkerName: 'shop-worker-1',
             db,
             models,
             frontendState: {
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               systemVersion: '1.0.0',
-              systemWorkerName: 'shop-worker-1',
               serviceName: 'catalog',
-              actorName: 'viewer',
               frontendName: 'catalog',
               frontendIndex: 4,
               resources: [
@@ -124,17 +118,16 @@ describe('applyServiceFrontendBlock', () => {
             },
           });
 
-          // 2 — commit the exact-next block.
+          // 2 — commit the exact-next block with its child before its parent.
           yield* applyServiceFrontendBlock({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             currentFrontendIndex: 4,
             db,
             models,
             frontendBlock: {
               serviceName: 'catalog',
-              actorName: 'viewer',
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               frontendName: 'catalog',
               frontendIndex: 5,
               lastServiceCursor: 'svcur_5',
@@ -147,8 +140,17 @@ describe('applyServiceFrontendBlock', () => {
                     createdAt: now,
                     updatedAt: now,
                     deletedAt: null,
-                    categoryId: 'cat_original',
+                    categoryId: 'cat_inserted',
                     name: 'Inserted product',
+                  },
+                  {
+                    id: 'cat_inserted',
+                    modelName: 'category',
+                    version: '1.0.0',
+                    createdAt: now,
+                    updatedAt: now,
+                    deletedAt: null,
+                    name: 'Inserted category',
                   },
                 ],
                 updated: [
@@ -167,13 +169,24 @@ describe('applyServiceFrontendBlock', () => {
             },
           });
           expect(
-            db.select().from(models.category.drizzleSchema).all(),
-          ).toEqual([
+            db
+              .select()
+              .from(models.category.drizzleSchema)
+              .all()
+              .map(row => row.id),
+          ).toEqual(['cat_original', 'cat_inserted']);
+          expect(
+            db
+              .select()
+              .from(models.category.drizzleSchema)
+              .where(eq(models.category.drizzleSchema.id, 'cat_original'))
+              .get(),
+          ).toEqual(
             expect.objectContaining({
               id: 'cat_original',
               name: 'Updated category',
             }),
-          ]);
+          );
           expect(
             db
               .select()
@@ -185,14 +198,13 @@ describe('applyServiceFrontendBlock', () => {
           // 3 — reject a valid block for another actor and an index gap.
           const wrongTarget = yield* applyServiceFrontendBlock({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             currentFrontendIndex: 5,
             db,
             models,
             frontendBlock: {
               serviceName: 'catalog',
-              actorName: 'viewer',
-              actorId: 'actr_other',
+              userId: 'user_other',
               frontendName: 'catalog',
               frontendIndex: 6,
               lastServiceCursor: 'svcur_6',
@@ -203,14 +215,13 @@ describe('applyServiceFrontendBlock', () => {
 
           const gap = yield* applyServiceFrontendBlock({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             currentFrontendIndex: 5,
             db,
             models,
             frontendBlock: {
               serviceName: 'catalog',
-              actorName: 'viewer',
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               frontendName: 'catalog',
               frontendIndex: 7,
               lastServiceCursor: 'svcur_7',
@@ -222,14 +233,13 @@ describe('applyServiceFrontendBlock', () => {
           // 4 — fail at commit after one upsert, retaining the prior rows.
           const failedDelta = yield* applyServiceFrontendBlock({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             currentFrontendIndex: 5,
             db,
             models,
             frontendBlock: {
               serviceName: 'catalog',
-              actorName: 'viewer',
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               frontendName: 'catalog',
               frontendIndex: 6,
               lastServiceCursor: 'svcur_6',
@@ -267,19 +277,25 @@ describe('applyServiceFrontendBlock', () => {
               .from(models.category.drizzleSchema)
               .all()
               .map(row => row.id),
-          ).toEqual(['cat_original']);
+          ).toEqual(['cat_original', 'cat_inserted']);
+          expect(
+            db
+              .select()
+              .from(models.product.drizzleSchema)
+              .all()
+              .map(row => row.id),
+          ).toEqual(['prd_original', 'prd_inserted']);
 
-          // 5 — the same index is still available after rollback.
+          // 5 — the same index accepts a parent delete before its child.
           yield* applyServiceFrontendBlock({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             currentFrontendIndex: 5,
             db,
             models,
             frontendBlock: {
               serviceName: 'catalog',
-              actorName: 'viewer',
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               frontendName: 'catalog',
               frontendIndex: 6,
               lastServiceCursor: 'svcur_6',
@@ -287,7 +303,8 @@ describe('applyServiceFrontendBlock', () => {
                 inserted: [],
                 updated: [],
                 deleted: [
-                  { id: 'prd_inserted', modelName: 'product' },
+                  { id: 'cat_original', modelName: 'category' },
+                  { id: 'prd_original', modelName: 'product' },
                 ],
               },
             },
@@ -295,10 +312,17 @@ describe('applyServiceFrontendBlock', () => {
           expect(
             db
               .select()
+              .from(models.category.drizzleSchema)
+              .all()
+              .map(row => row.id),
+          ).toEqual(['cat_inserted']);
+          expect(
+            db
+              .select()
               .from(models.product.drizzleSchema)
               .all()
               .map(row => row.id),
-          ).toEqual(['prd_original']);
+          ).toEqual(['prd_inserted']);
         }),
     );
   });

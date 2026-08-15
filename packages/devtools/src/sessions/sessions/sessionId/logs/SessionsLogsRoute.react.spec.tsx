@@ -39,7 +39,7 @@ const initialTelemetry: ITelemetryBatch = {
       attributes: {
         operation: 'fetch',
         'function.arguments': [{ actorName: 'shopper' }],
-        'function.result': { actorId: 'actor_one' },
+        'function.result': { userId: 'actor_one' },
       },
     },
     {
@@ -142,8 +142,8 @@ describe('SessionsLogsRoute', () => {
       root.unmount();
       await Promise.resolve();
     });
-    zerospinDevtoolsStore.getState().removeAccountSession(sessionId);
-    zerospinDevtoolsStore.getState().removeAccountSession(otherSessionId);
+    zerospinDevtoolsStore.getState().removeAggregateSession(sessionId);
+    zerospinDevtoolsStore.getState().removeAggregateSession(otherSessionId);
     container.remove();
     vi.clearAllMocks();
   });
@@ -155,14 +155,8 @@ describe('SessionsLogsRoute', () => {
       generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addAccountSession({
+    zerospinDevtoolsStore.getState().addAggregateSession({
       session,
-      pushStagedCommands: () =>
-        Promise.resolve({
-          pendingCommands: [],
-          pushedCommands: [],
-          failedCommands: [],
-        }),
     });
 
     const router = createMemoryRouter(
@@ -417,14 +411,8 @@ describe('SessionsLogsRoute', () => {
         links: [],
       },
     });
-    zerospinDevtoolsStore.getState().addAccountSession({
+    zerospinDevtoolsStore.getState().addAggregateSession({
       session,
-      pushStagedCommands: () =>
-        Promise.resolve({
-          pendingCommands: [],
-          pushedCommands: [],
-          failedCommands: [],
-        }),
     });
 
     const router = createMemoryRouter(
@@ -460,14 +448,8 @@ describe('SessionsLogsRoute', () => {
       generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addAccountSession({
+    zerospinDevtoolsStore.getState().addAggregateSession({
       session,
-      pushStagedCommands: () =>
-        Promise.resolve({
-          pendingCommands: [],
-          pushedCommands: [],
-          failedCommands: [],
-        }),
     });
 
     const router = createMemoryRouter(
@@ -502,14 +484,8 @@ describe('SessionsLogsRoute', () => {
       generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addAccountSession({
+    zerospinDevtoolsStore.getState().addAggregateSession({
       session,
-      pushStagedCommands: () =>
-        Promise.resolve({
-          pendingCommands: [],
-          pushedCommands: [],
-          failedCommands: [],
-        }),
     });
 
     const router = createMemoryRouter(
@@ -540,14 +516,8 @@ describe('SessionsLogsRoute', () => {
       generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
-    zerospinDevtoolsStore.getState().addAccountSession({
+    zerospinDevtoolsStore.getState().addAggregateSession({
       session,
-      pushStagedCommands: () =>
-        Promise.resolve({
-          pendingCommands: [],
-          pushedCommands: [],
-          failedCommands: [],
-        }),
     });
 
     const router = createMemoryRouter(
@@ -570,28 +540,15 @@ describe('SessionsLogsRoute', () => {
     ).toContain('trc_new');
   });
 
-  it('clears only the selected session telemetry, push pointer, and trace query', async () => {
+  it('clears only the selected session telemetry and trace query', async () => {
     const session = makeSession({
       frontend: main,
       sessionId,
       generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
-    session.store.setState({
-      telemetry: initialTelemetry,
-      lastDevtoolsPush: {
-        traceId: 'trc_new',
-        completedAt: 280,
-        status: 'ok',
-      },
-    });
-    zerospinDevtoolsStore.getState().addAccountSession({
+    session.store.setState({ telemetry: initialTelemetry });
+    zerospinDevtoolsStore.getState().addAggregateSession({
       session,
-      pushStagedCommands: () =>
-        Promise.resolve({
-          pendingCommands: [],
-          pushedCommands: [],
-          failedCommands: [],
-        }),
     });
 
     const otherTelemetry: ITelemetryBatch = {
@@ -615,22 +572,9 @@ describe('SessionsLogsRoute', () => {
       sessionId: otherSessionId,
       generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
-    otherSession.store.setState({
-      telemetry: otherTelemetry,
-      lastDevtoolsPush: {
-        traceId: 'trc_other',
-        completedAt: 2,
-        status: 'ok',
-      },
-    });
-    zerospinDevtoolsStore.getState().addAccountSession({
+    otherSession.store.setState({ telemetry: otherTelemetry });
+    zerospinDevtoolsStore.getState().addAggregateSession({
       session: otherSession,
-      pushStagedCommands: () =>
-        Promise.resolve({
-          pendingCommands: [],
-          pushedCommands: [],
-          failedCommands: [],
-        }),
     });
 
     const router = createMemoryRouter(
@@ -663,13 +607,7 @@ describe('SessionsLogsRoute', () => {
       logs: [],
       links: [],
     });
-    expect(session.store.getState().lastDevtoolsPush).toBeNull();
     expect(otherSession.store.getState().telemetry).toEqual(otherTelemetry);
-    expect(otherSession.store.getState().lastDevtoolsPush).toEqual({
-      traceId: 'trc_other',
-      completedAt: 2,
-      status: 'ok',
-    });
     expect(router.state.location.search).toBe('');
     expect(container.textContent).toContain('No scoped traces.');
     expect(container.querySelector('[data-testid="unscoped-logs"]')).toBeNull();

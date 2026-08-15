@@ -253,6 +253,9 @@ export function descriptorToDrizzleColumn(props: {
         let col = nullable
           ? drizzleInteger(key)
           : drizzleInteger(key).notNull();
+        if (descriptor.primaryKey === true) {
+          return col.primaryKey();
+        }
         if (descriptor.defaultValue !== undefined) {
           col = col.default(descriptor.defaultValue);
         }
@@ -366,6 +369,9 @@ export function generateMigrationSqlForDescriptor(
         : `${columnName} integer NOT NULL${defaultSql}${uniqueSql}`;
     }
     case PrimitiveKind.Integer: {
+      if (descriptor.primaryKey === true) {
+        return `${columnName} integer PRIMARY KEY`;
+      }
       const defaultSql =
         descriptor.defaultValue === undefined
           ? ''

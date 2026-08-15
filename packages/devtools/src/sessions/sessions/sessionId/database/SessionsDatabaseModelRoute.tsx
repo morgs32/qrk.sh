@@ -1,6 +1,6 @@
 import { useParams } from 'react-router';
 
-import { useAccountSession, useServiceSession } from '../useSession';
+import { useAggregateSession, useServiceSession } from '../useSession';
 
 import { SessionsDatabaseModelRowsTable } from './SessionsDatabaseModelRowsTable';
 
@@ -13,12 +13,12 @@ function decodeModelNameParam(modelName: string): string {
 }
 
 export function SessionsDatabaseModelRoute() {
-  const accountSession = useAccountSession();
+  const aggregateSession = useAggregateSession();
   const serviceSession = useServiceSession();
   const { modelName } = useParams();
 
   if (
-    (accountSession === undefined && serviceSession === undefined) ||
+    (aggregateSession === undefined && serviceSession === undefined) ||
     modelName === undefined
   ) {
     return null;
@@ -26,14 +26,14 @@ export function SessionsDatabaseModelRoute() {
 
   const decoded = decodeModelNameParam(modelName);
 
-  const isDeclaredAccountModel =
-    accountSession !== undefined &&
-    Object.hasOwn(accountSession.frontend.models, decoded);
+  const isDeclaredAggregateModel =
+    aggregateSession !== undefined &&
+    Object.hasOwn(aggregateSession.frontend.models, decoded);
   const isDeclaredServiceModel =
     serviceSession !== undefined &&
     serviceSession.getModelAttributes(decoded) !== undefined;
 
-  if (!isDeclaredAccountModel && !isDeclaredServiceModel) {
+  if (!isDeclaredAggregateModel && !isDeclaredServiceModel) {
     return <span>Unknown model key: {decoded}</span>;
   }
 

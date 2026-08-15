@@ -3,20 +3,20 @@
  *
  * @bad Change delegation chain without updating method JSDoc or architecture doc links.
  */
-export class AccountRepo {
+export class AggregateRepo {
   /**
-   * API-authenticated finalization path: finalize account commands into an
-   * account block.
+   * Secret-key finalization path: finalize aggregate commands into an
+   * aggregate block.
    *
-   * FrontendApi / SystemApi → SystemWorker → AccountRepo.finalizeAccountBlock →
-   * FanoutFlow (account block fanout).
+   * SystemApi → SystemRepo.finalizeAggregateCommands → AggregateRepo.finalizeAggregateBlock →
+   * AggregateBlockRepo → AggregateFrontendRepo.
    */
-  async finalizeAccountBlock(props: {
-    accountName: string;
+  async finalizeAggregateBlock(props: {
+    aggregateName: string;
     commands: readonly unknown[];
   }) {
     return managedRuntime.runPromise(
-      finalizeAccountBlock(props).pipe(encodeRpc),
+      finalizeAggregateBlock(props).pipe(encodeRpc),
     );
   }
 }
@@ -25,5 +25,5 @@ declare const managedRuntime: {
   runPromise: (effect: unknown) => Promise<unknown>;
 };
 declare const encodeRpc: (effect: unknown) => unknown;
-declare const finalizeAccountBlock: (props: unknown) => unknown;
+declare const finalizeAggregateBlock: (props: unknown) => unknown;
 declare const Effect: { void: unknown };

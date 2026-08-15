@@ -4,11 +4,9 @@
  * Fixture changes should preserve the domain relationships that repo and API tests rely on.
  */
 
-import { makeAccountController } from '@zerospin/core/accountController/makeAccountController';
-import { makeActorApi } from '@zerospin/core/actorController/makeActorApi';
-import { makeActorController } from '@zerospin/core/actorController/makeActorController';
-import { makeAuthorize } from '@zerospin/core/authorize/makeAuthorize';
+import { makeSignature } from '@zerospin/core/authentication/makeSignature';
 import { makeContract } from '@zerospin/core/contracts/makeContract';
+import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeGuard } from '@zerospin/core/guards/makeGuard';
@@ -17,11 +15,9 @@ import { makeModel } from '@zerospin/core/models/makeModel';
 import { makeSelection } from '@zerospin/core/models/makeSelection';
 import { makeServiceModel } from '@zerospin/core/models/makeServiceModel';
 import { primitives } from '@zerospin/core/models/primitives';
-import { makeServiceController } from '@zerospin/core/service/makeServiceController';
+import type { IAggregateId } from '@zerospin/core/models/types';
 import { makeSystem } from '@zerospin/core/system/makeSystem';
-import { makeAccountId } from '@zerospin/core/utils/makeAccountId';
-import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
-import { ZerospinError } from '@zerospin/error';
+import { mapParseError, ZerospinError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
 const User = makeModel(
@@ -29,7 +25,6 @@ const User = makeModel(
     abbreviation: 'usr',
     modelName: 'user',
     attributes: {
-      actorId: primitives.opaqueId({ abbreviation: 'actr', unique: true }),
       name: primitives.text(),
     },
     indexes: [],
@@ -115,11 +110,58 @@ const Stock = makeServiceModel(
   [],
 );
 
+const Preference = makeModel(
+  {
+    abbreviation: 'pref',
+    modelName: 'preference',
+    attributes: {
+      settings: primitives.json({
+        schema: Schema.Struct({ theme: Schema.String }),
+      }),
+    },
+    indexes: [],
+    version: '2.0.0',
+  },
+  [
+    {
+      abbreviation: 'pref',
+      modelName: 'preference',
+      attributes: { theme: primitives.text() },
+      indexes: [],
+      version: '1.0.0',
+      adaptResource: ({ resource }) =>
+        Effect.succeed({
+          id: resource.id,
+          modelName: resource.modelName,
+          createdAt: resource.createdAt,
+          updatedAt: resource.updatedAt,
+          version: '1.0.0',
+          theme: resource.settings.theme,
+        }),
+    },
+  ],
+);
+
+const CatalogSettings = makeServiceModel(
+  {
+    serviceName: 'app',
+    abbreviation: 'scfg',
+    modelName: 'catalogSettings',
+    attributes: {
+      settings: primitives.json({
+        schema: Schema.Struct({ currency: Schema.String }),
+      }),
+    },
+    indexes: [],
+    version: '1.0.0',
+  },
+  [],
+);
+
 const createUser = makeContract({
   commandName: 'createUser',
   payload: {
     id: User.primaryKey({ autogenerate: false }),
-    actorId: primitives.opaqueId({ abbreviation: 'actr' }),
     name: primitives.text(),
   },
   mutations: Schema.Struct({
@@ -130,7 +172,6 @@ const createUser = makeContract({
       created: User.create('1.0.0', {
         resourceId: payload.id,
         attributes: {
-          actorId: payload.actorId,
           name: payload.name,
         },
       }),
@@ -210,6 +251,45 @@ export const updateList = makeContract({
   version: '1.0.0',
 });
 
+export const renameList = makeContract(
+  {
+    commandName: 'renameList',
+    payload: {
+      id: List.primaryKey({ autogenerate: false }),
+      name: primitives.text(),
+      userId: User.primaryKey({ autogenerate: false }),
+    },
+    mutations: Schema.Struct({
+      updated: List.updateMutation('1.0.0'),
+    }),
+    program: ({ payload }) =>
+      Effect.all({
+        updated: List.update('1.0.0', {
+          resourceId: payload.id,
+          attributes: { name: payload.name, userId: payload.userId },
+        }),
+      }),
+    version: '1.1.0',
+  },
+  [
+    {
+      commandName: 'renameList',
+      payload: {
+        id: List.primaryKey({ autogenerate: false }),
+        label: primitives.text(),
+        userId: User.primaryKey({ autogenerate: false }),
+      },
+      adaptPayload: ({ payload }) =>
+        Effect.succeed({
+          id: payload.id,
+          name: payload.label,
+          userId: payload.userId,
+        }),
+      version: '1.0.0',
+    },
+  ],
+);
+
 const createProduct = makeContract({
   commandName: 'createProduct',
   payload: {
@@ -231,26 +311,40 @@ const createProduct = makeContract({
   version: '1.0.0',
 });
 
-const updateProduct = makeContract({
-  commandName: 'updateProduct',
-  payload: {
-    id: Product.primaryKey({ autogenerate: false }),
-    name: primitives.text(),
+const updateProduct = makeContract(
+  {
+    commandName: 'updateProduct',
+    payload: {
+      id: Product.primaryKey({ autogenerate: false }),
+      name: primitives.text(),
+    },
+    mutations: Schema.Struct({
+      updated: Product.updateMutation('1.0.0'),
+    }),
+    program: ({ payload }) => {
+      const { id, name } = payload;
+      return Effect.all({
+        updated: Product.update('1.0.0', {
+          resourceId: id,
+          attributes: { name },
+        }),
+      });
+    },
+    version: '1.1.0',
   },
-  mutations: Schema.Struct({
-    updated: Product.updateMutation('1.0.0'),
-  }),
-  program: ({ payload }) => {
-    const { id, name } = payload;
-    return Effect.all({
-      updated: Product.update('1.0.0', {
-        resourceId: id,
-        attributes: { name },
-      }),
-    });
-  },
-  version: '1.0.0',
-});
+  [
+    {
+      commandName: 'updateProduct',
+      payload: {
+        id: Product.primaryKey({ autogenerate: false }),
+        label: primitives.text(),
+      },
+      adaptPayload: ({ payload }) =>
+        Effect.succeed({ id: payload.id, name: payload.label }),
+      version: '1.0.0',
+    },
+  ],
+);
 
 const deleteProduct = makeContract({
   commandName: 'deleteProduct',
@@ -417,6 +511,16 @@ export const deleteList = makeContract({
   version: '1.0.0',
 });
 
+export const authenticationSignature = makeSignature(
+  {
+    version: '1.0.0',
+    schema: Schema.Struct({
+      userId: makeModelIdSchema(User),
+    }),
+  },
+  [],
+);
+
 export const main = makeFrontendController({
   contracts: {
     createList,
@@ -426,24 +530,21 @@ export const main = makeFrontendController({
     replicateProductAndStock,
     deleteList,
     moveItem,
+    renameList,
     updateList,
   },
-  accountName: 'user',
-  actorName: 'main',
+  aggregateName: 'user',
   frontendName: 'main',
-  version: '1.0.0',
   systemName: 'system-worker',
   models: {
     account: Account,
     list: List,
     item: Item,
     product: Product,
+    preference: Preference,
     stock: Stock,
     user: User,
   },
-  signature: Schema.Struct({
-    userId: makeModelIdSchema(User),
-  }),
   guards: {
     createList: [
       makeGuard({
@@ -452,7 +553,6 @@ export const main = makeFrontendController({
           list: List,
           user: User,
         },
-        actor: 'user',
         program: Effect.fn('createListGuard')(function* ({ payload }) {
           if (payload.name === 'invalid-name') {
             return yield* new ZerospinError({
@@ -470,18 +570,29 @@ export const main = makeFrontendController({
           list: List,
           user: User,
         },
-        actor: 'user',
         program: Effect.fn('updateListGuard')(function* ({ db, payload }) {
-          const list = db.query.list
-            .findFirst({
-              where: { id: { eq: payload.id } },
-            })
-            .sync();
+          const list = yield* Effect.try({
+            try: () =>
+              db.query.list
+                .findFirst({
+                  where: { id: { eq: payload.id } },
+                })
+                .sync(),
+            catch: cause =>
+              new ZerospinError({
+                code: 'fixture-list-query-failed',
+                message: `Failed to query list ${payload.id} during guard evaluation.`,
+                cause: ZerospinError.prettyUnknownFailure(cause),
+              }),
+          });
           if (list === undefined) {
             return yield* new ZerospinError({
               code: 'list-not-found',
               message: `List ${payload.id} was not found`,
             });
+          }
+          if (payload.name === 'stale-at-commit') {
+            yield* Effect.sleep('500 millis');
           }
         }),
       }),
@@ -491,193 +602,198 @@ export const main = makeFrontendController({
 
 export const mainModels = getFrontendDbModels(main);
 
-const mainAuthorize = makeAuthorize({
-  frontendController: main,
-  authorize: Effect.fn('mainAuthorize')(function* ({ actorId, db }) {
-    const user = db.query.user
-      .findFirst({
-        where: { actorId: { eq: actorId } },
-      })
-      .sync();
-    if (user === undefined) {
-      return yield* new ZerospinError({
-        code: 'user-not-found',
-        message: `User ${actorId} was not found`,
-      });
-    }
-  }),
-});
-
-const appService = makeServiceController({
-  name: 'app',
-  version: '1.0.0',
-  models: {
-    product: Product,
-  },
-  contracts: {
-    createProduct,
-    deleteProduct,
-    updateProduct,
-  },
-  queries: {
-    getProducts: {
-      paramsSchema: Schema.Struct({}),
-      query: Effect.fn('getProducts')(function* ({ db }) {
-        yield* Effect.void;
-
-        return db.query.product
-          .findMany({
-            columns: {
-              id: true,
-              name: true,
-            },
-          })
-          .sync();
-      }),
-    },
-  },
-});
-
-const inventoryService = makeServiceController({
-  name: 'inventory',
-  version: '1.0.0',
-  models: {
-    stock: Stock,
-  },
-  contracts: {
-    createStock,
-    updateStock,
-  },
-  queries: {},
-});
-
-const mainApi = makeActorApi({
-  getProducts: appService.queries.getProducts,
-});
-
-export const mainActor = makeActorController({
-  name: 'main',
-  version: '1.0.0',
-  api: mainApi,
-  models: {
-    user: User,
-    list: List,
-    item: Item,
-    account: Account,
-    product: Product,
-    stock: Stock,
-  },
-  selections: {
-    user: makeSelection({
-      model: User,
-      where: ({ actorId }) => ({ actorId }),
-    }),
-    list: makeSelection({
-      model: List,
-      where: ({ actorId }) => ({
-        user: { actorId },
-      }),
-    }),
-    item: makeSelection({
-      model: Item,
-      where: ({ actorId }) => ({
-        list: { user: { actorId } },
-      }),
-    }),
-    account: makeSelection({
-      model: Account,
-      where: () => ({}),
-    }),
-    product: makeSelection({
-      model: Product,
-      where: () => ({}),
-    }),
-    stock: makeSelection({
-      model: Stock,
-      where: () => ({}),
-    }),
-  },
-  frontends: {
-    main: {
-      frontendController: main,
-      authenticate: props =>
-        Effect.gen(function* () {
-          const user = props.db.query.user
-            .findFirst({
-              where: { id: { eq: props.signature.userId } },
-            })
-            .sync();
-          if (user !== undefined) {
-            return {
-              actorId: user.actorId,
-              accountId: makeAccountId({ id: '1' }),
-            };
-          }
-
-          const actorId = yield* makeIdFromAbbreviation({
-            abbreviation: 'actr',
-          });
-          const createUserCommand = yield* props.makeAccountCommand({
-            contract: createUser,
-            payload: {
-              id: props.signature.userId,
-              actorId,
-              name: 'AccountRepo bootstrapped user',
-            },
-          });
-          yield* props.finalizeAccountCommands({
-            commands: [createUserCommand],
-          });
-
-          const createdUser = props.db.query.user
-            .findFirst({
-              where: { id: { eq: props.signature.userId } },
-            })
-            .sync();
-          if (createdUser === undefined) {
-            return yield* new ZerospinError({
-              code: 'user-create-failed',
-              message: `User ${props.signature.userId} was not created`,
-            });
-          }
-
-          return {
-            actorId: createdUser.actorId,
-            accountId: makeAccountId({ id: '1' }),
-          };
-        }),
-    },
-  },
-  authorize: mainAuthorize,
-});
-
-export const userAccount = makeAccountController({
-  name: 'user',
-  version: '1.0.0',
-  actorControllers: {
-    main: mainActor,
-  },
-  models: {
-    user: User,
-    list: List,
-    item: Item,
-    account: Account,
-    product: Product,
-    stock: Stock,
-  },
-  contracts: {
-    createUser,
-    ...mainActor.frontends.main!.contracts,
-  },
+const products = makeFrontendController({
+  systemName: 'system-worker',
+  serviceName: 'app',
+  frontendName: 'products',
+  models: { catalogSettings: CatalogSettings, product: Product },
 });
 
 export const system = makeSystem({
-  accountControllers: {
-    user: userAccount,
+  authentication: {
+    signature: authenticationSignature,
+    authenticate: ({ signature }) => Effect.succeed(signature.userId),
   },
-  serviceControllers: {
-    app: appService,
-    inventory: inventoryService,
+  aggregates: {
+    user: {
+      authorize: (props: {
+        frontendName: 'main';
+        userId: string;
+        aggregateId: IAggregateId;
+        db: Readonly<
+          Pick<
+            IDb<IResourceDbConfig<typeof mainModels, Record<never, never>>>,
+            'query'
+          >
+        >;
+      }) =>
+        Effect.gen(function* () {
+          const userId = yield* Schema.decodeUnknown(makeModelIdSchema(User))(
+            props.userId,
+          ).pipe(
+            mapParseError({
+              code: 'fixture-user-id-invalid',
+              prefix: 'Failed to decode the fixture authorization userId',
+            }),
+          );
+          const user = yield* Effect.try({
+            try: () =>
+              props.db.query.user
+                .findFirst({
+                  where: { id: { eq: userId } },
+                })
+                .sync(),
+            catch: cause =>
+              new ZerospinError({
+                code: 'fixture-user-query-failed',
+                message:
+                  'Failed to query the fixture user during authentication.',
+                cause: ZerospinError.prettyUnknownFailure(cause),
+              }),
+          });
+          if (user === undefined) {
+            return yield* new ZerospinError({
+              code: 'user-not-found',
+              message: `User ${props.userId} was not found`,
+            });
+          }
+          return yield* Effect.void;
+        }),
+      models: {
+        user: User,
+        list: List,
+        item: Item,
+        account: Account,
+        preference: Preference,
+        product: Product,
+        stock: Stock,
+      },
+      contracts: {
+        createUser,
+        ...main.contracts,
+      },
+      selections: {
+        user: makeSelection({
+          model: User,
+          where: ({ userId }) => ({ id: userId }),
+        }),
+        list: makeSelection({
+          model: List,
+          where: ({ userId }) => ({
+            user: { id: userId },
+          }),
+        }),
+        item: makeSelection({
+          model: Item,
+          where: ({ userId }) => ({
+            list: { user: { id: userId } },
+          }),
+        }),
+        account: makeSelection({
+          model: Account,
+          where: () => ({}),
+        }),
+        preference: makeSelection({
+          model: Preference,
+          where: () => ({}),
+        }),
+        product: makeSelection({
+          model: Product,
+          where: () => ({}),
+        }),
+        stock: makeSelection({
+          model: Stock,
+          where: () => ({}),
+        }),
+      },
+      queries: {
+        getProducts: { service: 'app', query: 'getProducts' },
+      },
+      frontends: {
+        main: {
+          controller: main,
+        },
+      },
+    },
+  },
+  services: {
+    app: {
+      authorize: (props: {
+        frontendName: 'products';
+        userId: string;
+        db: Readonly<
+          Pick<
+            IDb<
+              IResourceDbConfig<
+                { product: typeof Product },
+                Record<never, never>
+              >
+            >,
+            'query'
+          >
+        >;
+      }) =>
+        Effect.try({
+          try: () => props.db.query.product.findMany().sync(),
+          catch: cause =>
+            new ZerospinError({
+              code: 'fixture-products-authorization-query-failed',
+              message: 'Failed to query products during authorization.',
+              cause: ZerospinError.prettyUnknownFailure(cause),
+            }),
+        }).pipe(Effect.asVoid),
+      models: { catalogSettings: CatalogSettings, product: Product },
+      contracts: { createProduct, deleteProduct, updateProduct },
+      queries: {
+        getProducts: {
+          paramsSchema: Schema.Struct({}),
+          query: Effect.fn('getProducts')(function* ({
+            db,
+          }: {
+            db: Readonly<
+              Pick<
+                IDb<
+                  IResourceDbConfig<
+                    { product: typeof Product },
+                    Record<never, never>
+                  >
+                >,
+                'query'
+              >
+            >;
+          }) {
+            return yield* Effect.try({
+              try: () =>
+                db.query.product
+                  .findMany({
+                    columns: {
+                      id: true,
+                      name: true,
+                    },
+                  })
+                  .sync(),
+              catch: cause =>
+                new ZerospinError({
+                  code: 'fixture-products-query-failed',
+                  message: 'Failed to query fixture products.',
+                  cause: ZerospinError.prettyUnknownFailure(cause),
+                }),
+            });
+          }),
+        },
+      },
+      frontends: {
+        products: {
+          controller: products,
+        },
+      },
+    },
+    inventory: {
+      models: { stock: Stock },
+      contracts: { createStock, updateStock },
+      queries: {},
+      frontends: {},
+    },
   },
   name: 'system-worker',
   version: '1.0.1',

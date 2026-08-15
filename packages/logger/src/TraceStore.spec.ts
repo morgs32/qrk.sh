@@ -62,7 +62,7 @@ describe('TraceStore', () => {
           spanId: 'spn_api',
           traceId: 'trc_api',
           parentSpanId: null,
-          name: 'FrontendApi.push',
+          name: 'AggregateFrontendApi.push',
           status: 'ok',
           startedAt: 0,
           endedAt: 10,

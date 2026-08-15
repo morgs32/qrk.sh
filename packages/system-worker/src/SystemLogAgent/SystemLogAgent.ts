@@ -5,7 +5,6 @@ import type {
   ISystemLogState,
 } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { defaultRetrySchedule } from '@zerospin/core/utils/defaultRetrySchedule';
 import { mapParseError, ZerospinError } from '@zerospin/error';
 import { Agent, type Connection, type ConnectionContext } from 'agents';
 import { Effect, Either, Schema } from 'effect';
@@ -24,9 +23,8 @@ export class SystemLogAgent extends Agent<Env, ISystemLogState> {
    * 1. Read the Agent instance name.
    * 2. Validate the name as a generation id.
    * 3. Resolve the authoritative SystemLogRepo.
-   * 4. Retry the latest-row RPC and decode its wire result.
-   * 5. Fail after retry exhaustion.
-   * 6. Replace the persisted Agent projection.
+   * 4. Call the latest-row RPC once and decode its wire result.
+   * 5. Replace the persisted Agent projection.
    */
   override async onStart(): Promise<void> {
     // 1 — Agent names stay aligned with the generation-scoped repo name
@@ -47,7 +45,7 @@ export class SystemLogAgent extends Agent<Env, ISystemLogState> {
         const systemLogRepo = yield* getSystemLogRepo({
           key: { generationId },
         });
-        // 4 — retry both transport failures and encoded SystemLogRepo failures three times total
+        // 4 — activation performs one SystemLogRepo read
         return yield* makeAsync(() =>
           systemLogRepo.getSystemLogRows({ limit: 100 }),
         ).pipe(
@@ -67,12 +65,10 @@ export class SystemLogAgent extends Agent<Env, ISystemLogState> {
           Effect.flatMap(result =>
             Either.isLeft(result) ? result.left : Effect.succeed(result.right),
           ),
-          // 5 — leave the exhausted error in the failure channel so activation fails
-          Effect.retry({ schedule: defaultRetrySchedule }),
         );
       }),
     );
-    // 6 — authoritative startup always replaces, rather than merges with, persisted state
+    // 5 — authoritative startup always replaces, rather than merges with, persisted state
     this.setState({ rows, syncedAt: Date.now() });
   }
 

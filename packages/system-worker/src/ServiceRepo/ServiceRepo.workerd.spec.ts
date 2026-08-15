@@ -1,27 +1,39 @@
 /*
- * System-worker annotation:
- * Exercises the Service Repo.workerd.spec behavior through the local test/runtime harness.
- * The assertions document expected integration behavior; avoid broad rewrites while changing production code.
+ * ServiceRepo durable integration coverage below authored Dynamic execution:
+ *
+ * 1. Read one coherent resource snapshot and retained block suffix.
+ * 2. Retry a persisted AggregateRepo subscriber and resume at its exact cursor.
+ * 3. Drain pending generation publication before reporting terminal state.
+ *
+ * Shopping workerd coverage owns service contracts, replay adapters, and
+ * command encoding through the statically bundled System.
  */
 
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import type { IServiceCommand } from '@zerospin/core/contracts/types';
+import {
+  EncodedFailedServiceCommandSchema,
+  EncodedServiceCommandSchema,
+} from '@zerospin/core/contracts/CommandSchema';
 import { IncrementalMonotonicFactory } from '@zerospin/core/test-utils/IncrementalMonotonicFactory';
 import { makePrefixedIncrementalIdFactory } from '@zerospin/core/test-utils/makePrefixedIncrementalIdFactory';
 import { TraceLoggerLayer } from '@zerospin/core/test-utils/TraceLoggerLayer';
+import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { ErrorLayer } from '@zerospin/core/utils/ErrorLayer';
+import { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
+import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
 import { eq } from 'drizzle-orm';
 import { Effect, Layer, Schema } from 'effect';
 import { TestContext } from 'effect/TestContext';
 import { describe, expect } from 'vitest';
 
-import { AccountRepo } from '../AccountRepo/AccountRepo.js';
-import { getAccountRepo } from '../AccountRepo/getAccountRepo/getAccountRepo.js';
+import { AggregateRepo } from '../AggregateRepo/AggregateRepo.js';
+import { getAggregateRepo } from '../AggregateRepo/getAggregateRepo/getAggregateRepo.js';
 import { ServiceBlockSchema } from '../blockSchemas.js';
-import { userAccount } from '../fixtures/system.js';
+import { mainModels } from '../fixtures/system.js';
+import { makeDeliveryQueue } from '../makeDeliveryQueue/makeDeliveryQueue.js';
 import { managedRuntime } from '../managedRuntime.js';
 import { getServiceBlockRepo } from '../ServiceBlockRepo/getServiceBlockRepo/getServiceBlockRepo.js';
 import { ServiceBlockRepo } from '../ServiceBlockRepo/ServiceBlockRepo.js';
@@ -42,567 +54,463 @@ const TestLayer = Layer.mergeAll(
 
 describe('ServiceRepo', () => {
   it.layer(TestLayer)(it => {
-    it.effect('finalizes service commands into service-owned storage', () =>
-      Effect.gen(function* () {
-        const serviceRepo = yield* getServiceRepo({
-          key: {
-            generationId: 'gen_test',
-            serviceName: 'app',
-          },
-        });
-        const command: IServiceCommand = {
-          id: 'cmd_service_finalize',
-          commandName: 'createProduct',
-          payload: {
-            id: 'prd_service_finalize',
-            name: 'Service Finalized Product',
-          },
-          version: '1.0.0',
-          systemVersion: '1.0.0',
-          commandType: 'service',
-          serviceName: 'app',
-        };
-        const secondCommand: IServiceCommand = {
-          id: 'cmd_service_finalize_second',
-          commandName: 'createProduct',
-          payload: {
-            id: 'prd_service_finalize_second',
-            name: 'Second Service Finalized Product',
-          },
-          version: '1.0.0',
-          systemVersion: '1.0.0',
-          commandType: 'service',
-          serviceName: 'app',
-        };
-
-        const result = yield* makeAsync(() =>
-          serviceRepo.finalizeServiceCommands({
-            serviceName: 'app',
-            commands: [command, secondCommand],
-          }),
-        ).pipe(Effect.flatMap(decodeRpc));
-
-        const rows = yield* Effect.promise(() =>
-          executeInRepo({
-            managedRuntime,
-            getRepo: getServiceRepo,
-            repo: ServiceRepo,
-            key: { generationId: 'gen_test', serviceName: 'app' },
-            fn: ({ db, schema, storage }) => {
-              const productTable = schema.product;
-              const serviceCursorsTable = schema.serviceCursors;
-              return {
-                foreignKeys: storage.sql
-                  .exec<{ foreign_keys: number }>('PRAGMA foreign_keys')
-                  .one().foreign_keys,
-                products: db
-                  .select({
-                    id: productTable.id,
-                    name: productTable.name,
-                  })
-                  .from(productTable)
-                  .all(),
-                serviceCursors: db
-                  .select({
-                    commandId: serviceCursorsTable.commandId,
-                    serviceCursor: serviceCursorsTable.serviceCursor,
-                  })
-                  .from(serviceCursorsTable)
-                  .all(),
-              };
-            },
-          }),
-        );
-
-        expect(result.failedCommands).toEqual([]);
-        expect(result.executedCommands).toHaveLength(2);
-        expect(result.executedCommands[0]?.serviceCursor).toMatch(/^svcur_/);
-        expect(rows.foreignKeys).toBe(1);
-        expect(rows.products).toEqual([
-          {
-            id: 'prd_service_finalize',
-            name: 'Service Finalized Product',
-          },
-          {
-            id: 'prd_service_finalize_second',
-            name: 'Second Service Finalized Product',
-          },
-        ]);
-        expect(rows.serviceCursors).toEqual([
-          {
-            commandId: 'cmd_service_finalize',
-            serviceCursor: result.executedCommands[0]?.serviceCursor,
-          },
-          {
-            commandId: 'cmd_service_finalize_second',
-            serviceCursor: result.executedCommands[1]?.serviceCursor,
-          },
-        ]);
-
-        const initialSnapshot = yield* makeAsync(() =>
-          serviceRepo.getReplicatedResources({
-            currentServiceIndex: null,
-            resources: [
-              {
-                modelName: 'product',
-                resourceId: 'prd_service_finalize',
-              },
-              {
-                modelName: 'product',
-                resourceId: 'prd_service_missing',
-              },
-              {
-                modelName: 'product',
-                resourceId: 'prd_service_finalize_second',
-              },
-            ],
-          }),
-        ).pipe(Effect.flatMap(decodeRpc));
-        expect(initialSnapshot.resources).toEqual([
-          {
-            status: 'found',
-            modelName: 'product',
-            resourceId: 'prd_service_finalize',
-            resource: expect.objectContaining({
-              id: 'prd_service_finalize',
-              name: 'Service Finalized Product',
-            }),
-          },
-          {
-            status: 'missing',
-            modelName: 'product',
-            resourceId: 'prd_service_missing',
-            failure: expect.objectContaining({
-              code: 'replicated-service-resource-not-found',
-            }),
-          },
-          {
-            status: 'found',
-            modelName: 'product',
-            resourceId: 'prd_service_finalize_second',
-            resource: expect.objectContaining({
-              id: 'prd_service_finalize_second',
-              name: 'Second Service Finalized Product',
-            }),
-          },
-        ]);
-        expect(initialSnapshot.serviceBlocks).toEqual([]);
-        expect(initialSnapshot.lastServiceCursor).toBe(
-          result.executedCommands[1]?.serviceCursor,
-        );
-        expect(initialSnapshot.serviceIndex).toBe(2);
-
-        const updateCommand: IServiceCommand = {
-          id: 'cmd_service_snapshot_update',
-          commandName: 'updateProduct',
-          payload: {
-            id: 'prd_service_finalize',
-            name: 'Service Snapshot Updated Product',
-          },
-          version: '1.0.0',
-          systemVersion: '1.0.0',
-          commandType: 'service',
-          serviceName: 'app',
-        };
-        const [concurrentUpdateEncoded, concurrentSnapshotEncoded] =
-          yield* Effect.promise(() =>
-            Promise.all([
-              serviceRepo.finalizeServiceCommands({
-                serviceName: 'app',
-                commands: [updateCommand],
-              }),
-              serviceRepo.getReplicatedResources({
-                currentServiceIndex: 2,
-                resources: [
-                  {
-                    modelName: 'product',
-                    resourceId: 'prd_service_finalize',
-                  },
-                  {
-                    modelName: 'product',
-                    resourceId: 'prd_service_finalize_second',
-                  },
-                ],
-              }),
-            ]),
-          );
-        const concurrentUpdate = yield* decodeRpc(concurrentUpdateEncoded);
-        const concurrentSnapshot = yield* decodeRpc(concurrentSnapshotEncoded);
-        expect(concurrentUpdate.failedCommands).toEqual([]);
-        const concurrentFirstResource = concurrentSnapshot.resources[0];
-        expect(concurrentFirstResource?.status).toBe('found');
-        if (
-          concurrentSnapshot.serviceIndex === 2 &&
-          concurrentFirstResource?.status === 'found'
-        ) {
-          expect(concurrentFirstResource.resource.name).toBe(
-            'Service Finalized Product',
-          );
-          expect(concurrentSnapshot.lastServiceCursor).toBe(
-            result.executedCommands[1]?.serviceCursor,
-          );
-          expect(concurrentSnapshot.serviceBlocks).toEqual([]);
-        } else {
-          expect(concurrentSnapshot.serviceIndex).toBe(3);
-          if (concurrentFirstResource?.status !== 'found') {
-            throw new Error(
-              'Expected the grouped product snapshot to be found',
-            );
-          }
-          expect(concurrentFirstResource.resource.name).toBe(
-            'Service Snapshot Updated Product',
-          );
-          expect(concurrentSnapshot.lastServiceCursor).toBe(
-            concurrentUpdate.executedCommands[0]?.serviceCursor,
-          );
-          expect(concurrentSnapshot.serviceBlocks).toHaveLength(1);
-          expect(concurrentSnapshot.serviceBlocks[0]).toEqual(
-            expect.objectContaining({
-              executedCommands: [
-                expect.objectContaining({
-                  id: 'cmd_service_snapshot_update',
-                  commandName: 'updateProduct',
-                  status: 'executed',
-                }),
-              ],
-              failedCommands: [],
-              serviceIndex: 3,
-            }),
-          );
-        }
-
-        const retainedSuffix = yield* makeAsync(() =>
-          serviceRepo.getReplicatedResources({
-            currentServiceIndex: 2,
-            resources: [
-              {
-                modelName: 'product',
-                resourceId: 'prd_service_finalize',
-              },
-            ],
-          }),
-        ).pipe(Effect.flatMap(decodeRpc));
-        expect(retainedSuffix.serviceIndex).toBe(3);
-        expect(retainedSuffix.lastServiceCursor).toBe(
-          concurrentUpdate.executedCommands[0]?.serviceCursor,
-        );
-        expect(retainedSuffix.serviceBlocks).toHaveLength(1);
-        expect(retainedSuffix.serviceBlocks[0]).toEqual(
-          expect.objectContaining({
-            executedCommands: [
-              expect.objectContaining({
-                id: 'cmd_service_snapshot_update',
-                commandName: 'updateProduct',
-                status: 'executed',
-              }),
-            ],
-            failedCommands: [],
-            serviceIndex: 3,
-          }),
-        );
-
-        const queryResult = yield* makeAsync(() =>
-          serviceRepo.executeServiceQuery({
-            serviceName: 'app',
-            queryName: 'getProducts',
-            params: {},
-          }),
-        ).pipe(Effect.flatMap(decodeRpc));
-
-        expect(queryResult).toEqual([
-          {
-            id: 'prd_service_finalize',
-            name: 'Service Snapshot Updated Product',
-          },
-          {
-            id: 'prd_service_finalize_second',
-            name: 'Second Service Finalized Product',
-          },
-        ]);
-
-        const deleteResult = yield* makeAsync(() =>
-          serviceRepo.finalizeServiceCommands({
-            serviceName: 'app',
-            commands: [
-              {
-                id: 'cmd_service_snapshot_delete',
-                commandName: 'deleteProduct',
-                payload: { id: 'prd_service_finalize' },
-                version: '1.0.0',
-                systemVersion: '1.0.0',
-                commandType: 'service',
-                serviceName: 'app',
-              },
-            ],
-          }),
-        ).pipe(Effect.flatMap(decodeRpc));
-        expect(deleteResult.failedCommands).toEqual([]);
-
-        const deletedRow = yield* Effect.promise(() =>
-          executeInRepo({
-            managedRuntime,
-            getRepo: getServiceRepo,
-            repo: ServiceRepo,
-            key: { generationId: 'gen_test', serviceName: 'app' },
-            fn: ({ db, schema }) =>
-              db
-                .select()
-                .from(schema.product)
-                .where(eq(schema.product.id, 'prd_service_finalize'))
-                .get(),
-          }),
-        );
-        expect(deletedRow).toEqual(
-          expect.objectContaining({
-            id: 'prd_service_finalize',
-            name: 'Service Snapshot Updated Product',
-            deletedAt: expect.any(Date),
-            updatedAt: expect.any(Date),
-          }),
-        );
-        expect(deletedRow?.deletedAt).toEqual(deletedRow?.updatedAt);
-
-        const deletedSnapshot = yield* makeAsync(() =>
-          serviceRepo.getReplicatedResources({
-            currentServiceIndex: null,
-            resources: [
-              {
-                modelName: 'product',
-                resourceId: 'prd_service_finalize',
-              },
-            ],
-          }),
-        ).pipe(Effect.flatMap(decodeRpc));
-        expect(deletedSnapshot.resources).toEqual([
-          expect.objectContaining({
-            status: 'missing',
-            modelName: 'product',
-            resourceId: 'prd_service_finalize',
-            failure: expect.objectContaining({
-              code: 'service-resource-deleted',
-            }),
-          }),
-        ]);
-
-        const unfilteredDeletedQuery = yield* makeAsync(() =>
-          serviceRepo.executeServiceQuery({
-            serviceName: 'app',
-            queryName: 'getProducts',
-            params: {},
-          }),
-        ).pipe(Effect.flatMap(decodeRpc));
-        expect(unfilteredDeletedQuery).toEqual([
-          {
-            id: 'prd_service_finalize',
-            name: 'Service Snapshot Updated Product',
-          },
-          {
-            id: 'prd_service_finalize_second',
-            name: 'Second Service Finalized Product',
-          },
-        ]);
-      }),
-    );
-
     it.effect(
-      'rolls back one terminal-deletion failure and continues its sibling command',
+      'retains terminal outcomes across overlap, conflict, and missing services',
       () =>
         Effect.gen(function* () {
-          const serviceRepo = yield* getServiceRepo({
-            key: {
-              generationId: 'gen_service_command_savepoint',
-              serviceName: 'app',
-            },
+          const generationId = 'gen_service_command_outcomes';
+          const serviceKey = { generationId, serviceName: 'app' };
+          const serviceRepo = yield* getServiceRepo({ key: serviceKey });
+          const firstProductId = yield* makeIdFromAbbreviation({
+            abbreviation: mainModels.product.abbreviation,
           });
-          const seedResult = yield* makeAsync(() =>
+          const secondProductId = yield* makeIdFromAbbreviation({
+            abbreviation: mainModels.product.abbreviation,
+          });
+          const unseenConflictProductId = yield* makeIdFromAbbreviation({
+            abbreviation: mainModels.product.abbreviation,
+          });
+          const firstCommand = yield* Schema.validate(
+            EncodedServiceCommandSchema,
+          )({
+            id: 'cmd_service_outcome_first',
+            commandName: 'createProduct',
+            payload: JSON.stringify({
+              id: firstProductId,
+              name: 'First product',
+            }),
+            contractVersion: '1.0.0',
+            commandType: 'service',
+            serviceName: 'app',
+          });
+          const failedCommand = yield* Schema.validate(
+            EncodedServiceCommandSchema,
+          )({
+            id: 'cmd_service_outcome_failed',
+            commandName: 'missingContract',
+            payload: '{}',
+            contractVersion: '1.0.0',
+            commandType: 'service',
+            serviceName: 'app',
+          });
+          const secondCommand = yield* Schema.validate(
+            EncodedServiceCommandSchema,
+          )({
+            id: 'cmd_service_outcome_second',
+            commandName: 'createProduct',
+            payload: JSON.stringify({
+              id: secondProductId,
+              name: 'Second product',
+            }),
+            contractVersion: '1.0.0',
+            commandType: 'service',
+            serviceName: 'app',
+          });
+
+          const first = yield* makeAsync(() =>
             serviceRepo.finalizeServiceCommands({
+              writeIndex: 10,
               serviceName: 'app',
-              commands: [
-                {
-                  id: 'cmd_service_savepoint_seed',
-                  commandName: 'createProduct',
-                  payload: {
-                    id: 'prd_service_savepoint_deleted',
-                    name: 'Deleted seed product',
-                  },
-                  version: '1.0.0',
-                  systemVersion: '1.0.0',
-                  commandType: 'service',
-                  serviceName: 'app',
-                },
-                {
-                  id: 'cmd_service_savepoint_delete',
-                  commandName: 'deleteProduct',
-                  payload: { id: 'prd_service_savepoint_deleted' },
-                  version: '1.0.0',
-                  systemVersion: '1.0.0',
-                  commandType: 'service',
-                  serviceName: 'app',
-                },
-              ],
+              commands: [firstCommand, failedCommand],
             }),
           ).pipe(Effect.flatMap(decodeRpc));
-          expect(seedResult.failedCommands).toEqual([]);
-
-          const siblingResult = yield* makeAsync(() =>
-            serviceRepo.finalizeServiceCommands({
-              serviceName: 'app',
-              commands: [
-                {
-                  id: 'cmd_service_savepoint_terminal_failure',
-                  commandName: 'updateProduct',
-                  payload: {
-                    id: 'prd_service_savepoint_deleted',
-                    name: 'Forbidden resurrection',
-                  },
-                  version: '1.0.0',
-                  systemVersion: '1.0.0',
-                  commandType: 'service',
-                  serviceName: 'app',
-                },
-                {
-                  id: 'cmd_service_savepoint_sibling_success',
-                  commandName: 'createProduct',
-                  payload: {
-                    id: 'prd_service_savepoint_sibling',
-                    name: 'Successful sibling product',
-                  },
-                  version: '1.0.0',
-                  systemVersion: '1.0.0',
-                  commandType: 'service',
-                  serviceName: 'app',
-                },
-              ],
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-
-          expect(siblingResult.failedCommands).toHaveLength(1);
-          expect(siblingResult.failedCommands[0]).toEqual(
-            expect.objectContaining({
-              id: 'cmd_service_savepoint_terminal_failure',
-              failure: expect.stringContaining('service-resource-deleted'),
-            }),
-          );
-          expect(siblingResult.executedCommands).toEqual([
-            expect.objectContaining({
-              id: 'cmd_service_savepoint_sibling_success',
-            }),
+          expect(first.executedCommands.map(command => command.id)).toEqual([
+            firstCommand.id,
+          ]);
+          expect(first.failedCommands.map(command => command.id)).toEqual([
+            failedCommand.id,
           ]);
 
-          const products = yield* Effect.promise(() =>
+          const mixed = yield* makeAsync(() =>
+            serviceRepo.finalizeServiceCommands({
+              writeIndex: 11,
+              serviceName: 'app',
+              commands: [failedCommand, secondCommand, firstCommand],
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
+          expect(mixed.executedCommands.map(command => command.id)).toEqual([
+            secondCommand.id,
+            firstCommand.id,
+          ]);
+          expect(mixed.failedCommands.map(command => command.id)).toEqual([
+            failedCommand.id,
+          ]);
+
+          yield* makeAsync(() =>
+            serviceRepo.finalizeServiceCommands({
+              writeIndex: 12,
+              serviceName: 'app',
+              commands: [firstCommand, failedCommand],
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
+
+          const unseenConflictCommand = yield* Schema.validate(
+            EncodedServiceCommandSchema,
+          )({
+            id: 'cmd_service_outcome_conflict_unseen',
+            commandName: 'createProduct',
+            payload: JSON.stringify({
+              id: unseenConflictProductId,
+              name: 'Must not execute',
+            }),
+            contractVersion: '1.0.0',
+            commandType: 'service',
+            serviceName: 'app',
+          });
+          const conflict = yield* makeAsync(() =>
+            serviceRepo.finalizeServiceCommands({
+              writeIndex: 13,
+              serviceName: 'app',
+              commands: [
+                { ...firstCommand, payload: JSON.stringify({ bad: true }) },
+                unseenConflictCommand,
+              ],
+            }),
+          ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+          expect(conflict).toMatchObject({
+            _tag: 'Left',
+            left: { code: 'service-command-outcome-conflict' },
+          });
+
+          const retainedState = yield* Effect.promise(() =>
             executeInRepo({
               managedRuntime,
               getRepo: getServiceRepo,
               repo: ServiceRepo,
-              key: {
-                generationId: 'gen_service_command_savepoint',
-                serviceName: 'app',
-              },
-              fn: ({ db, schema }) => db.select().from(schema.product).all(),
+              key: serviceKey,
+              fn: ({ db, schema }) => ({
+                outcomes: db.select().from(schema.serviceCommandOutcomes).all(),
+                blocks: db.select().from(schema.serviceBlockOutbox).all(),
+                conflictResource: db
+                  .select()
+                  .from(schema.product)
+                  .where(eq(schema.product.id, unseenConflictProductId))
+                  .get(),
+              }),
             }),
           );
-          expect(products).toEqual([
-            expect.objectContaining({
-              id: 'prd_service_savepoint_deleted',
-              name: 'Deleted seed product',
-              deletedAt: expect.any(Date),
+          expect(retainedState.outcomes).toHaveLength(3);
+          expect(retainedState.blocks).toHaveLength(2);
+          expect(retainedState.conflictResource).toBeUndefined();
+
+          const missingServiceRepo = yield* getServiceRepo({
+            key: {
+              generationId,
+              serviceName: 'missing-service',
+            },
+          });
+          const missingServiceCommand = yield* Schema.validate(
+            EncodedServiceCommandSchema,
+          )({
+            id: 'cmd_service_outcome_missing_service',
+            commandName: 'anything',
+            payload: '{}',
+            contractVersion: '1.0.0',
+            commandType: 'service',
+            serviceName: 'missing-service',
+          });
+          const missingService = yield* makeAsync(() =>
+            missingServiceRepo.finalizeServiceCommands({
+              writeIndex: 14,
+              serviceName: 'missing-service',
+              commands: [missingServiceCommand],
             }),
+          ).pipe(Effect.flatMap(decodeRpc));
+          expect(missingService.executedCommands).toEqual([]);
+          expect(missingService.failedCommands).toEqual([
             expect.objectContaining({
-              id: 'prd_service_savepoint_sibling',
-              name: 'Successful sibling product',
-              deletedAt: null,
+              id: missingServiceCommand.id,
+              failure: expect.stringContaining('service-not-found'),
             }),
           ]);
-        }).pipe(Effect.provide(AsyncLive)),
-    );
-
-    it.effect('returns failed commands for unknown services', () =>
-      Effect.gen(function* () {
-        const serviceRepo = yield* getServiceRepo({
-          key: {
-            generationId: 'gen_test',
-            serviceName: 'missing',
-          },
-        });
-        const command: IServiceCommand = {
-          id: 'cmd_missing_service',
-          commandName: 'createProduct',
-          payload: {
-            id: 'prd_missing_service',
-            name: 'Missing Service Product',
-          },
-          version: '1.0.0',
-          systemVersion: '1.0.0',
-          commandType: 'service',
-          serviceName: 'missing',
-        };
-
-        const result = yield* makeAsync(() =>
-          serviceRepo.finalizeServiceCommands({
-            serviceName: 'missing',
-            commands: [command],
-          }),
-        ).pipe(Effect.flatMap(decodeRpc));
-
-        expect(result.executedCommands).toEqual([]);
-        expect(result.failedCommands).toHaveLength(1);
-        expect(result.failedCommands[0]?.id).toBe('cmd_missing_service');
-        expect(result.failedCommands[0]?.failure).toContain(
-          'service-not-found',
-        );
-      }),
+          const missingState = yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getServiceRepo,
+              repo: ServiceRepo,
+              key: { generationId, serviceName: 'missing-service' },
+              fn: ({ db, schema }) => ({
+                outcomes: db.select().from(schema.serviceCommandOutcomes).all(),
+                blocks: db.select().from(schema.serviceBlockOutbox).all(),
+              }),
+            }),
+          );
+          expect(missingState.outcomes).toHaveLength(1);
+          expect(missingState.blocks).toHaveLength(1);
+        }),
     );
 
     it.effect(
-      'retries the persisted account repo name and resumes delivery after the retry becomes due',
+      'returns a coherent resource snapshot and retained service-block suffix',
       () =>
         Effect.gen(function* () {
-          const serviceKey = {
-            generationId: 'gen_test',
-            serviceName: 'app',
-          };
-          const accountKey = {
-            generationId: 'gen_test',
-            accountId: 'acct_service_delivery_retry',
-            accountName: userAccount.name,
-          };
-          const accountRepoName =
-            yield* AccountRepo.repoUtils.nameUtils.makeName(accountKey);
-          const serviceRepoName =
-            yield* ServiceRepo.repoUtils.nameUtils.makeName(serviceKey);
+          const generationId = 'gen_service_static_snapshot';
+          const serviceKey = { generationId, serviceName: 'app' };
           const serviceRepo = yield* getServiceRepo({ key: serviceKey });
-          const command: IServiceCommand = {
-            id: 'cmd_service_delivery_retry',
-            commandName: 'createProduct',
-            payload: {
-              id: 'prd_service_delivery_retry',
-              name: 'Service Delivery Retry Product',
-            },
-            version: '1.0.0',
-            systemVersion: '1.0.0',
-            commandType: 'service',
-            serviceName: 'app',
+          const productId = yield* makeIdFromAbbreviation({
+            abbreviation: mainModels.product.abbreviation,
+          });
+          const deletedProductId = yield* makeIdFromAbbreviation({
+            abbreviation: mainModels.product.abbreviation,
+          });
+          const missingProductId = yield* makeIdFromAbbreviation({
+            abbreviation: mainModels.product.abbreviation,
+          });
+          const firstCursor = yield* makeIdFromAbbreviation({
+            abbreviation: coreAbbreviations.serviceCursor,
+          });
+          const secondCursor = yield* makeIdFromAbbreviation({
+            abbreviation: coreAbbreviations.serviceCursor,
+          });
+          const thirdCursor = yield* makeIdFromAbbreviation({
+            abbreviation: coreAbbreviations.serviceCursor,
+          });
+          const createdAt = new Date(0);
+          const deletedAt = new Date(1);
+          const blockAtCurrentWatermark = {
+            writeIndex: 1,
+            executedCommands: [],
+            failedCommands: [],
+            appliedMutations: [],
+            lastServiceCursor: firstCursor,
+            serviceIndex: 1,
           };
-
-          const result = yield* makeAsync(() =>
-            serviceRepo.finalizeServiceCommands({
+          const firstRetainedBlock = {
+            writeIndex: 2,
+            executedCommands: [],
+            failedCommands: [],
+            appliedMutations: [],
+            lastServiceCursor: secondCursor,
+            serviceIndex: 2,
+          };
+          const secondRetainedBlock = {
+            writeIndex: 3,
+            executedCommands: [],
+            failedCommands: [],
+            appliedMutations: [],
+            lastServiceCursor: thirdCursor,
+            serviceIndex: 3,
+          };
+          const encodedBlockAtCurrentWatermark = yield* Schema.encode(
+            Schema.parseJson(ServiceBlockSchema),
+          )(blockAtCurrentWatermark);
+          const encodedFirstRetainedBlock = yield* Schema.encode(
+            Schema.parseJson(ServiceBlockSchema),
+          )(firstRetainedBlock);
+          const encodedSecondRetainedBlock = yield* Schema.encode(
+            Schema.parseJson(ServiceBlockSchema),
+          )(secondRetainedBlock);
+          const outcomeRows = [];
+          for (const { index, serviceCursor, appliedAt } of [
+            { index: 1, serviceCursor: firstCursor, appliedAt: createdAt },
+            { index: 2, serviceCursor: secondCursor, appliedAt: deletedAt },
+            { index: 3, serviceCursor: thirdCursor, appliedAt: deletedAt },
+          ]) {
+            const terminalCommand = yield* Schema.validate(
+              EncodedFailedServiceCommandSchema,
+            )({
+              id:
+                index === 1
+                  ? 'cmd_service_static_snapshot_1'
+                  : index === 2
+                    ? 'cmd_service_static_snapshot_2'
+                    : 'cmd_service_static_snapshot_3',
+              commandName: 'missingContract',
+              payload: '{}',
+              contractVersion: '1.0.0',
+              commandType: 'service',
               serviceName: 'app',
-              commands: [command],
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-          const executedCommand = result.executedCommands[0];
-          if (executedCommand === undefined) {
-            return yield* Effect.die(
-              new Error('Expected the service retry command to execute'),
-            );
+              serviceCursor,
+              serviceIndex: index,
+              failedAt: appliedAt,
+              failure: 'retained test failure',
+              status: 'failed',
+            });
+            outcomeRows.push({
+              commandId: terminalCommand.id,
+              commandBytes: yield* Schema.encode(
+                Schema.parseJson(EncodedServiceCommandSchema),
+              )(terminalCommand),
+              command: yield* Schema.encode(
+                Schema.parseJson(EncodedFailedServiceCommandSchema),
+              )(terminalCommand),
+              serviceCursor,
+              serviceIndex: index,
+              appliedMutations: '[]',
+              writeIndex: index,
+            });
           }
-          yield* makeAsync(() => serviceRepo.drainServiceBlockOutbox()).pipe(
-            Effect.flatMap(decodeRpc),
+
+          yield* Effect.promise(() =>
+            executeInRepo({
+              managedRuntime,
+              getRepo: getServiceRepo,
+              repo: ServiceRepo,
+              key: serviceKey,
+              fn: ({ db, schema }) => {
+                db.insert(schema.product)
+                  .values([
+                    {
+                      id: productId,
+                      modelName: mainModels.product.modelName,
+                      name: 'Canonical product',
+                      version: mainModels.product.version,
+                      createdAt,
+                      updatedAt: createdAt,
+                      deletedAt: null,
+                    },
+                    {
+                      id: deletedProductId,
+                      modelName: mainModels.product.modelName,
+                      name: 'Deleted canonical product',
+                      version: mainModels.product.version,
+                      createdAt,
+                      updatedAt: deletedAt,
+                      deletedAt,
+                    },
+                  ])
+                  .run();
+                db.insert(schema.serviceCommandOutcomes)
+                  .values(outcomeRows)
+                  .run();
+                db.insert(schema.serviceBlockOutbox)
+                  .values([
+                    {
+                      lastServiceCursor: firstCursor,
+                      serviceIndex: 1,
+                      block: encodedBlockAtCurrentWatermark,
+                      publishedAt: deletedAt,
+                      failure: null,
+                    },
+                    {
+                      lastServiceCursor: secondCursor,
+                      serviceIndex: 2,
+                      block: encodedFirstRetainedBlock,
+                      publishedAt: deletedAt,
+                      failure: null,
+                    },
+                    {
+                      lastServiceCursor: thirdCursor,
+                      serviceIndex: 3,
+                      block: encodedSecondRetainedBlock,
+                      publishedAt: deletedAt,
+                      failure: null,
+                    },
+                  ])
+                  .run();
+              },
+            }),
           );
 
+          const snapshot = yield* makeAsync(() =>
+            serviceRepo.getReplicatedResources({
+              currentServiceIndex: 1,
+              resources: [
+                { modelName: 'product', resourceId: productId },
+                { modelName: 'product', resourceId: missingProductId },
+                { modelName: 'product', resourceId: deletedProductId },
+                { modelName: 'product', resourceId: productId },
+              ],
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
+
+          expect(snapshot.lastServiceCursor).toBe(thirdCursor);
+          expect(snapshot.serviceIndex).toBe(3);
+          expect(snapshot.serviceBlocks).toEqual([
+            firstRetainedBlock,
+            secondRetainedBlock,
+          ]);
+          expect(snapshot.resources).toEqual([
+            expect.objectContaining({
+              status: 'found',
+              modelName: mainModels.product.modelName,
+              resourceId: productId,
+              resource: expect.objectContaining({
+                id: productId,
+                name: 'Canonical product',
+              }),
+            }),
+            expect.objectContaining({
+              status: 'missing',
+              modelName: mainModels.product.modelName,
+              resourceId: missingProductId,
+              failure: expect.objectContaining({
+                code: 'replicated-service-resource-not-found',
+              }),
+            }),
+            expect.objectContaining({
+              status: 'missing',
+              modelName: mainModels.product.modelName,
+              resourceId: deletedProductId,
+              failure: expect.objectContaining({
+                code: 'service-resource-deleted',
+              }),
+            }),
+            expect.objectContaining({
+              status: 'found',
+              modelName: mainModels.product.modelName,
+              resourceId: productId,
+            }),
+          ]);
+
+          const firstSubscriptionSnapshot = yield* makeAsync(() =>
+            serviceRepo.getReplicatedResources({
+              currentServiceIndex: null,
+              resources: [
+                { modelName: 'product', resourceId: productId },
+                { modelName: 'product', resourceId: productId },
+              ],
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
+
+          expect(firstSubscriptionSnapshot).toEqual({
+            lastServiceCursor: thirdCursor,
+            serviceIndex: 3,
+            serviceBlocks: [],
+            resources: [snapshot.resources[0], snapshot.resources[3]],
+          });
+        }),
+    );
+
+    it.effect(
+      'retries one persisted aggregate subscriber and resumes at its exact cursor',
+      () =>
+        Effect.gen(function* () {
+          const generationId = 'gen_service_static_delivery_retry';
+          const serviceKey = { generationId, serviceName: 'app' };
+          const aggregateKey = {
+            generationId,
+            aggregateId: makeAggregateId({
+              id: 'service-static-delivery-retry',
+            }),
+            aggregateName: 'user',
+          };
+          const aggregateRepoName =
+            yield* AggregateRepo.boundDORepoConfig.nameUtils.makeName(
+              aggregateKey,
+            );
+          const serviceRepoName =
+            yield* ServiceRepo.boundDORepoConfig.nameUtils.makeName(serviceKey);
+          const initialCursor = yield* makeIdFromAbbreviation({
+            abbreviation: coreAbbreviations.serviceCursor,
+          });
+          const blockCursor = yield* makeIdFromAbbreviation({
+            abbreviation: coreAbbreviations.serviceCursor,
+          });
+          const block = {
+            writeIndex: 1,
+            executedCommands: [],
+            failedCommands: [],
+            appliedMutations: [],
+            lastServiceCursor: blockCursor,
+            serviceIndex: 1,
+          };
           const serviceBlockRepo = yield* getServiceBlockRepo({
             key: serviceKey,
           });
+          yield* makeAsync(() => serviceBlockRepo.publish(block)).pipe(
+            Effect.flatMap(decodeRpc),
+          );
           yield* Effect.promise(() =>
             executeInRepo({
               managedRuntime,
@@ -610,15 +518,13 @@ describe('ServiceRepo', () => {
               repo: ServiceBlockRepo,
               key: serviceKey,
               fn: ({ db, schema }) => {
-                db.insert(schema.accountSubscribers)
+                db.insert(schema.aggregateSubscribers)
                   .values({
-                    accountRepoName,
-                    accountId: accountKey.accountId,
-                    accountName: accountKey.accountName,
-                    currentServiceCursor: executedCommand.serviceCursor,
+                    aggregateRepoName,
+                    aggregateId: aggregateKey.aggregateId,
+                    aggregateName: aggregateKey.aggregateName,
+                    currentServiceCursor: initialCursor,
                     currentServiceIndex: 0,
-                    deliveryAttempts: 0,
-                    nextRetryAt: null,
                     lastDeliveryError: null,
                   })
                   .run();
@@ -627,7 +533,7 @@ describe('ServiceRepo', () => {
           );
 
           yield* makeAsync(() =>
-            serviceBlockRepo.drainAccountSubscribers(),
+            serviceBlockRepo.drainAggregateSubscribers(),
           ).pipe(Effect.flatMap(decodeRpc));
           const failedDelivery = yield* Effect.promise(() =>
             executeInRepo({
@@ -635,77 +541,52 @@ describe('ServiceRepo', () => {
               getRepo: getServiceBlockRepo,
               repo: ServiceBlockRepo,
               key: serviceKey,
-              fn: async ({ db, schema, storage }) => ({
+              fn: async ({ db, schema, state }) => ({
                 subscriber: db
                   .select()
-                  .from(schema.accountSubscribers)
+                  .from(schema.aggregateSubscribers)
                   .where(
                     eq(
-                      schema.accountSubscribers.accountRepoName,
-                      accountRepoName,
+                      schema.aggregateSubscribers.aggregateRepoName,
+                      aggregateRepoName,
                     ),
                   )
                   .get(),
-                alarm: await storage.getAlarm(),
+                alarm: await state.storage.getAlarm(),
               }),
             }),
           );
           expect(failedDelivery.subscriber).toEqual(
             expect.objectContaining({
-              accountRepoName,
-              deliveryAttempts: 1,
-              nextRetryAt: expect.any(Number),
               lastDeliveryError: expect.stringContaining(
                 'not subscribed to service',
               ),
             }),
           );
-          expect(failedDelivery.alarm).toBe(
-            failedDelivery.subscriber?.nextRetryAt,
-          );
+          expect(failedDelivery.alarm).toEqual(expect.any(Number));
 
           yield* Effect.promise(() =>
             executeInRepo({
               managedRuntime,
-              getRepo: getAccountRepo,
-              repo: AccountRepo,
-              key: accountKey,
+              getRepo: getAggregateRepo,
+              repo: AggregateRepo,
+              key: aggregateKey,
               fn: ({ db, schema }) => {
                 db.insert(schema.serviceSubscriptions)
                   .values({
                     serviceRepoName,
                     serviceName: serviceKey.serviceName,
-                    currentServiceCursor: executedCommand.serviceCursor,
+                    currentServiceCursor: initialCursor,
                     currentServiceIndex: 0,
-                    subscribedAt: new Date(),
+                    subscribedAt: new Date(0),
                     failure: null,
                   })
                   .run();
               },
             }),
           );
-          yield* Effect.promise(() =>
-            executeInRepo({
-              managedRuntime,
-              getRepo: getServiceBlockRepo,
-              repo: ServiceBlockRepo,
-              key: serviceKey,
-              fn: ({ db, schema }) => {
-                db.update(schema.accountSubscribers)
-                  .set({ nextRetryAt: 0 })
-                  .where(
-                    eq(
-                      schema.accountSubscribers.accountRepoName,
-                      accountRepoName,
-                    ),
-                  )
-                  .run();
-              },
-            }),
-          );
-
           yield* makeAsync(() =>
-            serviceBlockRepo.drainAccountSubscribers(),
+            serviceBlockRepo.drainAggregateSubscribers(),
           ).pipe(Effect.flatMap(decodeRpc));
           const resumedDelivery = yield* Effect.promise(() =>
             executeInRepo({
@@ -713,241 +594,42 @@ describe('ServiceRepo', () => {
               getRepo: getServiceBlockRepo,
               repo: ServiceBlockRepo,
               key: serviceKey,
-              fn: async ({ db, schema, storage }) => ({
+              fn: async ({ db, schema, state }) => ({
                 subscriber: db
                   .select()
-                  .from(schema.accountSubscribers)
+                  .from(schema.aggregateSubscribers)
                   .where(
                     eq(
-                      schema.accountSubscribers.accountRepoName,
-                      accountRepoName,
+                      schema.aggregateSubscribers.aggregateRepoName,
+                      aggregateRepoName,
                     ),
                   )
                   .get(),
-                alarm: await storage.getAlarm(),
+                alarm: await state.storage.getAlarm(),
               }),
             }),
           );
           expect(resumedDelivery.subscriber).toEqual(
             expect.objectContaining({
-              accountRepoName,
-              currentServiceCursor: executedCommand.serviceCursor,
-              currentServiceIndex: executedCommand.serviceIndex,
-              deliveryAttempts: 0,
-              nextRetryAt: null,
+              currentServiceCursor: blockCursor,
+              currentServiceIndex: 1,
               lastDeliveryError: null,
             }),
           );
           expect(resumedDelivery.alarm).toBeNull();
-
-          const accountSubscription = yield* Effect.promise(() =>
-            executeInRepo({
-              managedRuntime,
-              getRepo: getAccountRepo,
-              repo: AccountRepo,
-              key: accountKey,
-              fn: ({ db, schema }) =>
-                db
-                  .select()
-                  .from(schema.serviceSubscriptions)
-                  .where(
-                    eq(
-                      schema.serviceSubscriptions.serviceRepoName,
-                      serviceRepoName,
-                    ),
-                  )
-                  .get(),
-            }),
-          );
-          expect(accountSubscription).toEqual(
-            expect.objectContaining({
-              serviceRepoName,
-              serviceName: serviceKey.serviceName,
-              currentServiceCursor: executedCommand.serviceCursor,
-              currentServiceIndex: executedCommand.serviceIndex,
-            }),
-          );
         }),
     );
 
-    it.effect('fails unknown service queries', () =>
-      Effect.gen(function* () {
-        const serviceRepo = yield* getServiceRepo({
-          key: {
-            generationId: 'gen_test',
-            serviceName: 'app',
-          },
-        });
-
-        const maybeResult = yield* makeAsync(() =>
-          serviceRepo.executeServiceQuery({
-            serviceName: 'app',
-            queryName: 'missing',
-            params: {},
-          }),
-        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
-
-        expect(maybeResult._tag).toBe('Left');
-        if (maybeResult._tag === 'Left') {
-          expect(maybeResult.left.code).toBe('service-query-not-found');
-        }
-      }),
-    );
-
     it.effect(
-      'replays exact service blocks with deleted rows, idempotent receipts, and bounded reads',
+      'drains pending service work before reporting terminal state',
       () =>
         Effect.gen(function* () {
-          const prevGenerationId = 'gen_service_replay_source';
-          const targetGenerationId = 'gen_service_replay_target';
-          const sourceServiceRepo = yield* getServiceRepo({
-            key: { generationId: prevGenerationId, serviceName: 'app' },
+          const generationId = 'gen_service_static_drain_modes';
+          const lastServiceCursor = yield* makeIdFromAbbreviation({
+            abbreviation: coreAbbreviations.serviceCursor,
           });
-          const sourceResult = yield* makeAsync(() =>
-            sourceServiceRepo.finalizeServiceCommands({
-              serviceName: 'app',
-              commands: [
-                {
-                  id: 'cmd_service_replay',
-                  commandName: 'createProduct',
-                  payload: {
-                    id: 'prd_service_replay',
-                    name: 'Replayed product',
-                  },
-                  version: '1.0.0',
-                  commandType: 'service',
-                  serviceName: 'app',
-                  systemVersion: '1.0.0',
-                },
-                {
-                  id: 'cmd_service_replay_delete',
-                  commandName: 'deleteProduct',
-                  payload: {
-                    id: 'prd_service_replay',
-                  },
-                  version: '1.0.0',
-                  commandType: 'service',
-                  serviceName: 'app',
-                  systemVersion: '1.0.0',
-                },
-              ],
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-          expect(sourceResult.executedCommands).toHaveLength(2);
-          yield* makeAsync(() =>
-            sourceServiceRepo.drainServiceBlockOutbox(),
-          ).pipe(Effect.flatMap(decodeRpc));
-
-          const sourceServiceBlockRepo = yield* getServiceBlockRepo({
-            key: { generationId: prevGenerationId, serviceName: 'app' },
-          });
-          const sourceBound = yield* makeAsync(() =>
-            sourceServiceBlockRepo.getReplayBound(),
-          ).pipe(Effect.flatMap(decodeRpc));
-          expect(sourceBound.lastServiceCursor).not.toBeNull();
-          expect(sourceBound.serviceIndex).not.toBeNull();
-          if (sourceBound.serviceIndex === null) {
-            return;
-          }
-          const sourceBlock = yield* makeAsync(() =>
-            sourceServiceBlockRepo.getReplayBlock({
-              afterServiceIndex: null,
-              throughServiceIndex: sourceBound.serviceIndex,
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-          expect(sourceBlock).not.toBeNull();
-          if (sourceBlock === null) {
-            return;
-          }
-
-          const targetServiceRepo = yield* getServiceRepo({
-            key: { generationId: targetGenerationId, serviceName: 'app' },
-          });
-          const firstReplay = yield* makeAsync(() =>
-            targetServiceRepo.replayServiceBlock({
-              deployId: 'dpl_service_replay',
-              prevGenerationId,
-              block: sourceBlock,
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-          const secondReplay = yield* makeAsync(() =>
-            targetServiceRepo.replayServiceBlock({
-              deployId: 'dpl_service_replay',
-              prevGenerationId,
-              block: sourceBlock,
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-
-          expect(firstReplay).toEqual({
-            replayed: true,
-            lastServiceCursor: sourceBlock.lastServiceCursor,
-            serviceIndex: sourceBlock.serviceIndex,
-            appliedMutationCount: sourceBlock.appliedMutations.length,
-            discardedMutationCount: 0,
-          });
-          expect(secondReplay).toEqual({
-            ...firstReplay,
-            replayed: false,
-          });
-
-          const targetState = yield* Effect.promise(() =>
-            executeInRepo({
-              managedRuntime,
-              getRepo: getServiceRepo,
-              repo: ServiceRepo,
-              key: {
-                generationId: targetGenerationId,
-                serviceName: 'app',
-              },
-              fn: ({ db, schema }) => ({
-                product: db
-                  .select()
-                  .from(schema.product)
-                  .where(eq(schema.product.id, 'prd_service_replay'))
-                  .get(),
-                receipts: db.select().from(schema.serviceReplayReceipts).all(),
-              }),
-            }),
-          );
-          expect(targetState.product).toEqual(
-            expect.objectContaining({
-              id: 'prd_service_replay',
-              name: 'Replayed product',
-              deletedAt: expect.any(Date),
-            }),
-          );
-          expect(targetState.product?.deletedAt).toEqual(
-            targetState.product?.updatedAt,
-          );
-          expect(targetState.receipts).toHaveLength(1);
-
-          const targetServiceBlockRepo = yield* getServiceBlockRepo({
-            key: { generationId: targetGenerationId, serviceName: 'app' },
-          });
-          const targetBlock = yield* makeAsync(() =>
-            targetServiceBlockRepo.getReplayBlock({
-              afterServiceIndex: sourceBlock.serviceIndex - 1,
-              throughServiceIndex: sourceBlock.serviceIndex,
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-          expect(targetBlock).toEqual(
-            expect.objectContaining({
-              lastServiceCursor: sourceBlock.lastServiceCursor,
-              serviceIndex: sourceBlock.serviceIndex,
-              executedCommands: sourceBlock.executedCommands,
-              failedCommands: sourceBlock.failedCommands,
-            }),
-          );
-        }).pipe(Effect.provide(AsyncLive)),
-    );
-
-    it.effect(
-      'inspects self-hosted pending service work without running it and drains it when hosted',
-      () =>
-        Effect.gen(function* () {
-          const generationId = 'gen_service_drain_modes';
-          const lastServiceCursor = 'svcur_service_drain_modes';
           const block = {
+            writeIndex: 1,
             executedCommands: [],
             failedCommands: [],
             appliedMutations: [],
@@ -964,7 +646,7 @@ describe('ServiceRepo', () => {
               getRepo: getServiceRepo,
               repo: ServiceRepo,
               key: { generationId, serviceName: 'app' },
-              fn: async ({ db, schema, storage }) => {
+              fn: async ({ db, schema, state }) => {
                 db.insert(schema.serviceBlockOutbox)
                   .values({
                     lastServiceCursor,
@@ -975,52 +657,32 @@ describe('ServiceRepo', () => {
                   })
                   .run();
 
-                const selfHostedResult = await managedRuntime.runPromise(
+                const result = await managedRuntime.runPromise(
                   drainGeneration({
                     db,
-                    inspectionOnly: true,
+                    deliveryQueue: makeDeliveryQueue({
+                      storage: state.storage,
+                    }),
                     generationId,
                     serviceName: 'app',
-                    storage,
-                  }).pipe(Effect.provide(AsyncLive), Effect.either),
-                );
-                const afterSelfHostedInspection = db
-                  .select()
-                  .from(schema.serviceBlockOutbox)
-                  .get();
-                const hostedResult = await managedRuntime.runPromise(
-                  drainGeneration({
-                    db,
-                    inspectionOnly: false,
-                    generationId,
-                    serviceName: 'app',
-                    storage,
+                    storage: state.storage,
                   }).pipe(Effect.provide(AsyncLive)),
                 );
-                const afterHosted = db
+                const afterDrain = db
                   .select()
                   .from(schema.serviceBlockOutbox)
                   .get();
                 return {
-                  selfHostedResult,
-                  afterSelfHostedInspection,
-                  hostedResult,
-                  afterHosted,
+                  result,
+                  afterDrain,
                 };
               },
             }),
           );
 
-          expect(state.selfHostedResult._tag).toBe('Left');
-          if (state.selfHostedResult._tag === 'Left') {
-            expect(state.selfHostedResult.left.code).toBe(
-              'service-generation-self-hosted-drain-required',
-            );
-          }
-          expect(state.afterSelfHostedInspection?.publishedAt).toBeNull();
-          expect(state.hostedResult).toEqual({ pendingServiceBlockCount: 0 });
-          expect(state.afterHosted?.publishedAt).toEqual(expect.any(Date));
-        }).pipe(Effect.provide(AsyncLive)),
+          expect(state.result).toEqual({ pendingServiceBlockCount: 0 });
+          expect(state.afterDrain?.publishedAt).toEqual(expect.any(Date));
+        }),
     );
   });
 });

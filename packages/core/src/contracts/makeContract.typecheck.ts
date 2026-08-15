@@ -16,8 +16,7 @@ makeContract(
       commandName: 'renameItem',
       version: '1.0.0',
       payload: { name: primitives.text() },
-      adaptPayload: ({ payload }) =>
-        Effect.succeed({ title: payload.name }),
+      adaptPayload: ({ payload }) => Effect.succeed({ title: payload.name }),
     },
   ],
 );
@@ -35,8 +34,7 @@ makeContract(
       commandName: 'renameSomethingElse',
       version: '1.0.0',
       payload: { name: primitives.text() },
-      adaptPayload: ({ payload }) =>
-        Effect.succeed({ title: payload.name }),
+      adaptPayload: ({ payload }) => Effect.succeed({ title: payload.name }),
     },
   ],
 );

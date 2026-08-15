@@ -1,24 +1,25 @@
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect } from 'effect';
 
-import type { ICloudApiKeyIdentity } from './CloudApiKeyJwtClaimsSchema';
+import type { ICloudApiKeyJwtClaims } from './CloudApiKeyJwtClaimsSchema';
 import { makeSystemWorkerName } from './makeSystemWorkerName';
 
 export const getSystemWorkerNameFromClaims = Effect.fn(
   'getSystemWorkerNameFromClaims',
 )(function* (
-  claims: ICloudApiKeyIdentity,
+  claims: ICloudApiKeyJwtClaims,
 ): Effect.fn.Return<string, IAnyError> {
   switch (claims.systemEnvironmentId) {
     case 'dev':
       return makeSystemWorkerName({
         systemId: claims.systemId,
-        instanceId: claims.clerkUserId,
+        systemEnvironmentId: claims.systemEnvironmentId,
+        clerkUserId: claims.clerkUserId,
       });
     case 'production':
       return makeSystemWorkerName({
         systemId: claims.systemId,
-        instanceId: 'production',
+        systemEnvironmentId: claims.systemEnvironmentId,
       });
     default:
       return yield* new ZerospinError({

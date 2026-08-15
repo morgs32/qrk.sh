@@ -48,7 +48,7 @@
       "path": "../core"
     },
     {
-      "path": "../dispatch-worker"
+      "path": "../system-worker"
     }
   ]
 }

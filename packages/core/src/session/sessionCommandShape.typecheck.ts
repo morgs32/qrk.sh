@@ -4,12 +4,13 @@ import type {
   IEncodedCommand,
   IExecutedPushedCommand,
   IPushedCommand,
-  IStagedCommand,
+  IStagedSessionCommand,
 } from '../contracts/types.ts';
-import type { InferEncodedRow } from '../models/types.ts';
+import type { InferEncodedRow, Prettify } from '../models/types.ts';
 
 import {
   type sessionExecutedPushedCommandShape,
+  type sessionFailedCommandShape,
   type sessionPushedCommandShape,
   type sessionStagedCommandShape,
 } from './sessionCommandShape.ts';
@@ -17,7 +18,10 @@ import {
 assert<
   Equals<
     InferEncodedRow<typeof sessionStagedCommandShape>,
-    IEncodedCommand<IStagedCommand>
+    Prettify<
+      IEncodedCommand<IStagedSessionCommand> &
+        Readonly<{ replicaIndex: number | null }>
+    >
   >
 >();
 assert<
@@ -30,5 +34,11 @@ assert<
   Equals<
     InferEncodedRow<typeof sessionExecutedPushedCommandShape>,
     IEncodedCommand<IExecutedPushedCommand>
+  >
+>();
+assert<
+  Equals<
+    InferEncodedRow<typeof sessionFailedCommandShape>['replicaIndex'],
+    number | null
   >
 >();

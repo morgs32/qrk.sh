@@ -25,7 +25,7 @@ const executedCommandShape = {
   id: primitives.primaryKey({ abbreviation: 'cmd' }),
   commandName: primitives.text(),
   payload: primitives.text(),
-  version: primitives.text(),
+  contractVersion: primitives.text(),
   status: primitives.enum({
     values: ['executed'],
   }),

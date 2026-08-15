@@ -36,8 +36,8 @@ export const makeCommand = Effect.fn('makeCommand')(function* <
 
   return {
     commandName: contract.commandName,
+    contractVersion: contract.version,
     id: commandId,
     payload: decodedPayload,
-    version: contract.version,
   };
 });

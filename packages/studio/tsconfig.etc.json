@@ -19,7 +19,7 @@
       "path": "../logger"
     },
     {
-      "path": "../dispatch-worker"
+      "path": "../system-worker"
     }
   ]
 }

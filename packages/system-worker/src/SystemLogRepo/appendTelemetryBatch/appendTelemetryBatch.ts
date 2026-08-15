@@ -22,7 +22,6 @@ export const appendTelemetryBatch = Effect.fn(
 )(function* (props: {
   batch: ITelemetryBatch;
   db: IDb;
-  deployId: string;
   generationId: string;
   systemId: string;
 }): Effect.fn.Return<void, IAnyError> {
@@ -45,16 +44,6 @@ export const appendTelemetryBatch = Effect.fn(
       extra: { generationId: props.generationId },
     }),
   );
-  const deployId = yield* Schema.validate(
-    makeAbbreviationIdSchema(coreAbbreviations.deploy),
-  )(props.deployId).pipe(
-    mapParseError({
-      code: 'failed-to-decode-telemetry-batch-deploy-id',
-      prefix: 'Failed to decode SystemLogRepo telemetry deployId',
-      extra: { deployId: props.deployId },
-    }),
-  );
-
   yield* makeTx({
     db,
     program: Effect.fn('SystemLogRepo.appendTelemetryBatch.transaction')(
@@ -78,7 +67,6 @@ export const appendTelemetryBatch = Effect.fn(
                     )(span.attributes),
               systemId,
               generationId,
-              deployId,
             })
             .onConflictDoNothing()
             .run();
@@ -96,7 +84,6 @@ export const appendTelemetryBatch = Effect.fn(
                     ),
               systemId,
               generationId,
-              deployId,
             })
             .onConflictDoNothing()
             .run();
@@ -108,7 +95,6 @@ export const appendTelemetryBatch = Effect.fn(
               ...link,
               systemId,
               generationId,
-              deployId,
             })
             .onConflictDoNothing()
             .run();

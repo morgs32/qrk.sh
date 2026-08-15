@@ -2,7 +2,7 @@
 name: spec
 description: >-
   Grill a fuzzy plan one question at a time (chat only), then synthesize a
-  numbered design spec under .plans/specs/. Use when the user says /spec, wants
+  numbered design spec under wiki/dev/specs/. Use when the user says /spec, wants
   a design spec, or wants grill + to-spec before implementation.
 disable-model-invocation: true
 ---
@@ -47,25 +47,26 @@ After the user confirms alignment:
 
 1. Sketch the **test seams** for the change. Prefer existing seams; prefer the highest seam; aim for as few as possible (ideally one). Confirm seams with the user before writing the file.
 2. Determine the new spec/plan pair's shared three-digit `XXX` prefix before writing:
-   1. Inspect filenames recursively under `.plans/` for names beginning with three digits.
-   2. Use one more than the highest prefix found anywhere under `.plans/`.
+   1. Inspect filenames recursively under `wiki/dev/` for names beginning with
+      three digits.
+   2. Use one more than the highest prefix found anywhere under `wiki/dev/`.
    3. Ignore legacy filenames without a three-digit prefix when calculating the next number.
    4. Reuse this number if the spec is later turned into an implementation plan.
 
 3. Write **one** design spec:
 
 ```text
-.plans/specs/XXX-spec-<topic>.md
+wiki/dev/specs/XXX-spec-<topic>.md
 ```
 
 Use the allocated zero-padded prefix and a kebab-case topic. Number every list (no unordered `-` bullets in plan/spec docs).
 
-4. Do **not** publish to an issue tracker. Do **not** create implementation plans under `.plans/plans/` unless the user asks.
+4. Do **not** publish to an issue tracker. Do **not** create implementation plans under `wiki/dev/plans/` unless the user asks.
 5. When the user asks for an implementation plan from the spec:
    1. Read the completed spec as the source of truth.
-   2. Create `.plans/plans/XXX-plan-<topic>.md` using the spec's exact `XXX` and topic.
+   2. Create `wiki/dev/plans/XXX-plan-<topic>.md` using the spec's exact `XXX` and topic.
    3. Do not allocate a second number for the implementation plan.
-   4. Move the source spec to `.plans/archived/` without changing its filename after the implementation plan exists.
+   4. Move the source spec to `wiki/dev/archived/` without changing its filename after the implementation plan exists.
 
 ### Spec template
 
@@ -116,7 +117,7 @@ Anything else worth carrying forward (open questions only if the user deferred t
 2. Codebase/wiki answered factual questions without bothering the user.
 3. User confirmed shared understanding.
 4. Seams were checked with the user.
-5. Exactly one new file exists at `.plans/specs/XXX-spec-<topic>.md` with numbered lists and project vocabulary, or at the same-named archived path after its same-numbered implementation plan is written.
+5. Exactly one new file exists at `wiki/dev/specs/XXX-spec-<topic>.md` with numbered lists and project vocabulary, or at the same-named archived path after its same-numbered implementation plan is written.
 
 ## Anti-patterns
 
@@ -124,5 +125,5 @@ Anything else worth carrying forward (open questions only if the user deferred t
 2. Re-interviewing during Phase 2 — synthesize what was already decided.
 3. Inferring architecture from WIP repo glue when `wiki/architecture/` says otherwise.
 4. Dumping a questionnaire or writing the spec before the user confirms.
-5. Creating `.plans/plans/*` or tickets unless asked.
+5. Creating `wiki/dev/plans/*` or tickets unless asked.
 6. Giving a derived implementation plan a different numeric prefix or topic from its source spec.

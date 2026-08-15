@@ -6,7 +6,7 @@ Account finalize scans service contracts, uses wrong command mode branch, or tre
 
 ## Pattern
 
-See `system-worker/account-repo-contract-lookup.ts`, `system-worker/effect-partition-batch-finalization.ts`.
+See `system-worker/aggregate-repo-contract-lookup.ts`, `system-worker/effect-partition-batch-finalization.ts` for the current aggregate-named guidance.
 
 ## When to apply
 

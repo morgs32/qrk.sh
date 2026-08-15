@@ -1,4 +1,4 @@
-import { mapParseError, type IAnyError } from '@zerospin/error';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, JSONSchema, Schema } from 'effect';
 import { type BrandTypeId } from 'effect/Brand';
 
@@ -62,16 +62,6 @@ type InferContractEncodePayload<PAYLOAD extends IAnyShape> = {
   payload: InferCommandPayload<PAYLOAD>;
 }) => Effect.Effect<string, IAnyError>);
 
-type InferContractDecodePayload<PAYLOAD extends IAnyShape> = {
-  [BrandTypeId]: 'decodePayload';
-} & ((props: {
-  command: {
-    readonly commandName: string;
-    readonly id: string;
-    readonly payload: string;
-  };
-}) => Effect.Effect<InferCommandPayload<PAYLOAD>, IAnyError>);
-
 /**
  * Contract payload fields only — excludes {@link IAnyRefDescriptor}.
  *
@@ -103,29 +93,32 @@ export function makeContract<
     string,
     IPayloadFieldDescriptor
   >[] = readonly [],
->(props: {
-  commandName: COMMAND_NAME;
-  payload: PAYLOAD;
-  version: VERSION;
-  mutations: MUTATIONS_SCHEMA &
-    ([MutationValues<Schema.Schema.Type<MUTATIONS_SCHEMA>>] extends [never]
-      ? ITypeError<`Contract "${COMMAND_NAME}" mutations schema must contain mutations`>
-      : MutationValues<
-            Schema.Schema.Type<MUTATIONS_SCHEMA>
-          > extends IAnyMutation
-        ? unknown
-        : ITypeError<`Contract "${COMMAND_NAME}" mutations schema must contain mutations only`>);
-  program: IContractProgramFn<PAYLOAD, Schema.Schema.Type<MUTATIONS_SCHEMA>>;
-}, historicalDefinitions?: {
-  readonly [INDEX in keyof HISTORICAL_PAYLOADS]: Readonly<{
+>(
+  props: {
     commandName: COMMAND_NAME;
-    version: string;
-    payload: HISTORICAL_PAYLOADS[INDEX];
-    adaptPayload: (props: {
-      payload: InferCommandPayload<HISTORICAL_PAYLOADS[INDEX]>;
-    }) => Effect.Effect<InferPayloadInput<PAYLOAD>, IAnyError, any>;
-  }>;
-}): IContract<
+    payload: PAYLOAD;
+    version: VERSION;
+    mutations: MUTATIONS_SCHEMA &
+      ([MutationValues<Schema.Schema.Type<MUTATIONS_SCHEMA>>] extends [never]
+        ? ITypeError<`Contract "${COMMAND_NAME}" mutations schema must contain mutations`>
+        : MutationValues<
+              Schema.Schema.Type<MUTATIONS_SCHEMA>
+            > extends IAnyMutation
+          ? unknown
+          : ITypeError<`Contract "${COMMAND_NAME}" mutations schema must contain mutations only`>);
+    program: IContractProgramFn<PAYLOAD, Schema.Schema.Type<MUTATIONS_SCHEMA>>;
+  },
+  historicalDefinitions?: {
+    readonly [INDEX in keyof HISTORICAL_PAYLOADS]: Readonly<{
+      commandName: COMMAND_NAME;
+      version: string;
+      payload: HISTORICAL_PAYLOADS[INDEX];
+      adaptPayload: (props: {
+        payload: InferCommandPayload<HISTORICAL_PAYLOADS[INDEX]>;
+      }) => Effect.Effect<InferCommandPayload<PAYLOAD>, IAnyError>;
+    }>;
+  },
+): IContract<
   COMMAND_NAME,
   PAYLOAD,
   VERSION,
@@ -137,7 +130,7 @@ export function makeContract<
       payload: HISTORICAL_PAYLOADS[INDEX];
       adaptPayload: (props: {
         payload: InferCommandPayload<HISTORICAL_PAYLOADS[INDEX]>;
-      }) => Effect.Effect<InferPayloadInput<PAYLOAD>, IAnyError, any>;
+      }) => Effect.Effect<InferCommandPayload<PAYLOAD>, IAnyError>;
     }>;
   }
 >;
@@ -150,22 +143,25 @@ export function makeContract<
     string,
     IPayloadFieldDescriptor
   >[] = readonly [],
->(props: {
-  commandName: COMMAND_NAME;
-  payload: PAYLOAD;
-  version: VERSION;
-  mutations: null;
-  program?: never;
-}, historicalDefinitions?: {
-  readonly [INDEX in keyof HISTORICAL_PAYLOADS]: Readonly<{
+>(
+  props: {
     commandName: COMMAND_NAME;
-    version: string;
-    payload: HISTORICAL_PAYLOADS[INDEX];
-    adaptPayload: (props: {
-      payload: InferCommandPayload<HISTORICAL_PAYLOADS[INDEX]>;
-    }) => Effect.Effect<InferPayloadInput<PAYLOAD>, IAnyError, any>;
-  }>;
-}): IContract<
+    payload: PAYLOAD;
+    version: VERSION;
+    mutations: null;
+    program?: never;
+  },
+  historicalDefinitions?: {
+    readonly [INDEX in keyof HISTORICAL_PAYLOADS]: Readonly<{
+      commandName: COMMAND_NAME;
+      version: string;
+      payload: HISTORICAL_PAYLOADS[INDEX];
+      adaptPayload: (props: {
+        payload: InferCommandPayload<HISTORICAL_PAYLOADS[INDEX]>;
+      }) => Effect.Effect<InferCommandPayload<PAYLOAD>, IAnyError>;
+    }>;
+  },
+): IContract<
   COMMAND_NAME,
   PAYLOAD,
   VERSION,
@@ -177,7 +173,7 @@ export function makeContract<
       payload: HISTORICAL_PAYLOADS[INDEX];
       adaptPayload: (props: {
         payload: InferCommandPayload<HISTORICAL_PAYLOADS[INDEX]>;
-      }) => Effect.Effect<InferPayloadInput<PAYLOAD>, IAnyError, any>;
+      }) => Effect.Effect<InferCommandPayload<PAYLOAD>, IAnyError>;
     }>;
   }
 >;
@@ -374,6 +370,15 @@ export function makeContract<
     any,
     string
   >;
+  const payloadSchemasByVersion = new Map<string, Schema.Schema.AnyNoContext>([
+    [version, payloadJsonSchema],
+  ]);
+  for (const historicalDefinition of historicalDefinitions) {
+    payloadSchemasByVersion.set(
+      historicalDefinition.version,
+      Schema.parseJson(makeEffectSchema(historicalDefinition.payload)),
+    );
+  }
 
   const validatePayload = Effect.fn(`validatePayload/${commandName}`)(
     function* (props: { payload: InferPayloadInput<PAYLOAD> }) {
@@ -424,27 +429,118 @@ export function makeContract<
     },
   );
 
-  const decodePayload = Effect.fn(`decodePayload/${commandName}`)(
-    function* (props: {
-      command: {
-        readonly commandName: string;
-        readonly id: string;
-        readonly payload: string;
-      };
-    }) {
-      const { command } = props;
+  const decodeAndAdaptPayload = Effect.fn(
+    `decodeAndAdaptPayload/${commandName}`,
+  )(function* (props: {
+    command: {
+      readonly commandName: string;
+      readonly contractVersion: string;
+      readonly id: string;
+      readonly payload: string;
+    };
+  }) {
+    const { command } = props;
 
-      return yield* Schema.decode(payloadJsonSchema)(command.payload, {
-        onExcessProperty: 'error',
-      }).pipe(
-        mapParseError({
-          code: 'decode-command-payload-failed',
-          extra: { commandId: command.id, commandName: command.commandName },
-          prefix: `Failed to decode payload for command "${command.commandName}"`,
-        }),
-      );
-    },
-  );
+    if (command.commandName !== commandName) {
+      return yield* new ZerospinError({
+        code: 'contract-command-name-mismatch',
+        message: `Contract "${commandName}" cannot decode command "${command.commandName}"`,
+        extra: {
+          commandId: command.id,
+          commandName: command.commandName,
+          contractName: commandName,
+        },
+      });
+    }
+
+    const sourcePayloadSchema = payloadSchemasByVersion.get(
+      command.contractVersion,
+    );
+    if (sourcePayloadSchema === undefined) {
+      return yield* new ZerospinError({
+        code: 'contract-payload-version-unsupported',
+        message: `Contract "${commandName}" does not support payload version "${command.contractVersion}"`,
+        extra: {
+          commandId: command.id,
+          commandName,
+          currentVersion: version,
+          sourceVersion: command.contractVersion,
+        },
+      });
+    }
+
+    const sourcePayload = yield* Schema.decode(sourcePayloadSchema)(
+      command.payload,
+      { onExcessProperty: 'error' },
+    ).pipe(
+      mapParseError({
+        code:
+          command.contractVersion === version
+            ? 'decode-command-payload-failed'
+            : 'decode-historical-command-payload-failed',
+        extra: {
+          commandId: command.id,
+          commandName,
+          sourceVersion: command.contractVersion,
+        },
+        prefix: `Failed to decode payload for command "${commandName}" at version "${command.contractVersion}"`,
+      }),
+    );
+
+    if (command.contractVersion === version) {
+      return sourcePayload;
+    }
+
+    const historicalDefinition = historicalDefinitions.find(
+      definition => definition.version === command.contractVersion,
+    );
+    if (historicalDefinition === undefined) {
+      return yield* new ZerospinError({
+        code: 'contract-payload-adapter-missing',
+        message: `Contract "${commandName}" has no direct payload adapter from version "${command.contractVersion}" to current version "${version}"`,
+        extra: {
+          commandId: command.id,
+          commandName,
+          currentVersion: version,
+          sourceVersion: command.contractVersion,
+        },
+      });
+    }
+
+    const currentPayload = yield* Effect.suspend(() =>
+      historicalDefinition.adaptPayload({ payload: sourcePayload }),
+    ).pipe(
+      Effect.catchAllCause(
+        cause =>
+          new ZerospinError({
+            code: 'contract-payload-adapter-invariant-failed',
+            message: `Direct payload adapter from ${commandName}@${command.contractVersion} to ${commandName}@${version} failed`,
+            cause: ZerospinError.prettyUnknownFailure(cause),
+            extra: {
+              commandId: command.id,
+              commandName,
+              currentVersion: version,
+              sourceVersion: command.contractVersion,
+            },
+          }),
+      ),
+    );
+
+    return yield* Schema.validate(payloadSchema)(currentPayload, {
+      onExcessProperty: 'error',
+    }).pipe(
+      mapParseError({
+        code: 'contract-payload-adapter-output-invariant-failed',
+        prefix: `Payload adapter output did not match ${commandName}@${version}`,
+        extra: {
+          commandId: command.id,
+          commandName,
+          currentVersion: version,
+          sourceVersion: command.contractVersion,
+        },
+      }),
+    );
+  });
 
   const spec = {
     commandName,
@@ -459,7 +555,7 @@ export function makeContract<
     commandName,
     payload,
     historicalDefinitions,
-    decodePayload: decodePayload as InferContractDecodePayload<PAYLOAD>,
+    decodeAndAdaptPayload,
     encodePayload: encodePayload as InferContractEncodePayload<PAYLOAD>,
     validatePayload:
       validatePayload as unknown as InferContractValidatePayload<PAYLOAD>,

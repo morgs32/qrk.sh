@@ -4,18 +4,18 @@ import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { IServiceCursorId } from '@zerospin/core/models/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { desc, eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
-import { makeRepoNameUtils } from '../../makeRepo/makeRepoNameUtils.js';
+import { makeRepoNameUtils } from '../../makeBoundDORepo/makeRepoNameUtils.js';
+import type { makeDeliveryQueue } from '../../makeDeliveryQueue/makeDeliveryQueue.js';
 import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
 import { drainServiceFrontendSubscribers } from '../drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.js';
 import { serviceBlockDrizzleSchemas } from '../ServiceBlockRepo.js';
 
 /*
- * 1. Validate the exact actor/frontend subscriber identity and source watermark.
+ * 1. Validate the exact service actor/frontend subscriber identity and source watermark.
  * 2. In one SQL transaction, register at N and capture terminal T.
  * 3. Preserve any already-acknowledged watermark on an idempotent retry.
  * 4. Synchronously deliver through T and verify that the subscriber is live.
@@ -25,12 +25,12 @@ export const subscribeServiceFrontend = Effect.fn(
 )(function* (props: {
   serviceFrontendRepoName: string;
   serviceName: string;
-  actorName: string;
-  actorId: string;
+  userId: string;
   frontendName: string;
   currentServiceCursor: IServiceCursorId | null;
   currentServiceIndex: number | null;
   db: IDb;
+  deliveryQueue: ReturnType<typeof makeDeliveryQueue>;
   key: {
     generationId: string;
     serviceName: string;
@@ -44,7 +44,6 @@ export const subscribeServiceFrontend = Effect.fn(
   Async
 > {
   const {
-    actorName,
     currentServiceCursor,
     currentServiceIndex,
     db,
@@ -62,18 +61,18 @@ export const subscribeServiceFrontend = Effect.fn(
       prefix: 'Failed to decode ServiceBlockRepo serviceFrontendRepoName',
     }),
   );
-  const actorId = yield* Schema.decodeUnknown(
-    makeAbbreviationIdSchema(coreAbbreviations.actor),
-  )(props.actorId).pipe(
+  const userId = yield* Schema.decodeUnknown(Schema.NonEmptyString)(
+    props.userId,
+  ).pipe(
     mapParseError({
-      code: 'service-block-service-frontend-actor-id-invalid',
-      prefix: 'Failed to decode ServiceBlockRepo service frontend actorId',
+      code: 'service-block-service-frontend-user-id-invalid',
+      prefix: 'Failed to decode ServiceBlockRepo service frontend userId',
     }),
   );
   const serviceFrontendRepoKey = yield* makeRepoNameUtils({
     abbreviation: systemWorkerAbbreviations.serviceFrontendRepo,
     namePattern: RoutePattern.parse(
-      '/:generationId/:serviceName/:actorName/:actorId/:frontendName',
+      '/:generationId/:serviceName/:userId/:frontendName',
     ),
   })
     .parseName(serviceFrontendRepoName)
@@ -107,8 +106,7 @@ export const subscribeServiceFrontend = Effect.fn(
     });
   }
   if (
-    serviceFrontendRepoKey.actorName !== actorName ||
-    serviceFrontendRepoKey.actorId !== actorId ||
+    serviceFrontendRepoKey.userId !== userId ||
     serviceFrontendRepoKey.frontendName !== frontendName
   ) {
     return yield* new ZerospinError({
@@ -117,13 +115,11 @@ export const subscribeServiceFrontend = Effect.fn(
         'Service frontend subscription repo name does not encode the supplied actor and frontend target',
       extra: {
         expected: {
-          actorName,
-          actorId,
+          userId,
           frontendName,
         },
         received: {
-          actorName: serviceFrontendRepoKey.actorName,
-          actorId: serviceFrontendRepoKey.actorId,
+          userId: serviceFrontendRepoKey.userId,
           frontendName: serviceFrontendRepoKey.frontendName,
         },
       },
@@ -131,8 +127,7 @@ export const subscribeServiceFrontend = Effect.fn(
   }
   if (
     serviceName.length === 0 ||
-    actorName.length === 0 ||
-    actorId.length === 0 ||
+    userId.length === 0 ||
     frontendName.length === 0 ||
     (currentServiceCursor === null) !== (currentServiceIndex === null) ||
     (currentServiceIndex !== null &&
@@ -177,8 +172,7 @@ export const subscribeServiceFrontend = Effect.fn(
         if (existing !== undefined) {
           if (
             existing.serviceName !== serviceName ||
-            existing.actorName !== actorName ||
-            existing.actorId !== actorId ||
+            existing.userId !== userId ||
             existing.frontendName !== frontendName
           ) {
             return yield* new ZerospinError({
@@ -229,8 +223,7 @@ export const subscribeServiceFrontend = Effect.fn(
         const row = {
           serviceFrontendRepoName,
           serviceName,
-          actorName,
-          actorId,
+          userId,
           frontendName,
           currentServiceCursor: persistedServiceCursor,
           currentServiceIndex: persistedServiceIndex,
@@ -267,9 +260,9 @@ export const subscribeServiceFrontend = Effect.fn(
   // 4 — this is deliberately not a waitUntil-only initialization launch.
   yield* drainServiceFrontendSubscribers({
     db,
+    deliveryQueue: props.deliveryQueue,
     key,
     onlyServiceFrontendRepoName: serviceFrontendRepoName,
-    failFast: true,
   });
   const caughtUp = db
     .select()

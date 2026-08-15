@@ -9,7 +9,7 @@ import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
 import { main, mainModels, User } from '../fixtures/system.ts';
 import { PublishableKey } from '../services/PublishableKey.ts';
-import { ZerospinApisUrl } from '../services/ZerospinApisUrl.ts';
+import { ZerospinApiUrl } from '../services/ZerospinApiUrl.ts';
 import { IncrementalMonotonicFactory } from '../test-utils/IncrementalMonotonicFactory.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
@@ -19,6 +19,7 @@ import { ErrorLayer } from '../utils/ErrorLayer.ts';
 import { makeSession } from './makeSession.ts';
 import { makeUnstagedCommand } from './makeUnstagedCommand.ts';
 import {
+  sessionFailedCommandDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
   sessionStagedCommandDrizzleSchema,
 } from './sessionCommandShape.ts';
@@ -32,7 +33,7 @@ const TestLayer = Layer.mergeAll(
   TraceLoggerLayer,
   TestContext,
   AsyncLive,
-  Layer.succeed(ZerospinApisUrl, 'https://api.example.com/'),
+  Layer.succeed(ZerospinApiUrl, 'https://api.example.com/'),
   Layer.succeed(PublishableKey, Redacted.make('pk_test')),
 );
 
@@ -71,7 +72,7 @@ describe('createList', () => {
             createdAt: now,
             updatedAt: now,
             version: User.version,
-            actorId: 'actr_1',
+            userId: 'user_1',
             name: 'User',
           })
           .run();
@@ -79,27 +80,27 @@ describe('createList', () => {
         const sessionId = 'sesn_1' as ISessionId;
         const session = makeSession({
           frontend: main,
-          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
           sessionId,
         });
         session.store.setState({
           sessionId,
-          accountId: 'acct_1',
-          accountName: main.accountName,
-          actorId: 'usr_1',
-          generationId: 'gen_test',
-          systemWorkerName: 'stub-deploy',
+          aggregateId: 'acct_1',
+          aggregateName: main.aggregateName,
+          userId: 'usr_1',
+          systemId: 'sys_test',
           systemVersion: '1.0.0',
+          frontendName: main.frontendName,
+          aggregateFrontendLockKey: 'aggregate-lock-key',
           db,
           schema,
           models,
           vfsName: null,
           isInitialized: true,
-          frontendIndex: null,
-          lastRebasedPushedCursor: null,
+          frontendIndex: 0,
+          replicaIndex: null,
         });
 
-        const staged = yield* Effect.promise(() =>
+        const staged = yield* decodeRpc(
           session.stageCommand({
             contractName: 'createList',
             payload: {
@@ -108,7 +109,7 @@ describe('createList', () => {
               userId: 'usr_1',
             },
           }),
-        ).pipe(Effect.flatMap(encoded => decodeRpc(encoded)));
+        );
 
         const stagedRows = db
           .select()
@@ -146,10 +147,14 @@ describe('createList', () => {
         session.store.setState({
           workerState: {
             ...initializedState.workerState,
-            status: 'update-required',
+            status: 'failed',
+            failure: {
+              code: 'aggregate-frontend-lock-unsupported',
+              message: 'The active System cannot support this frontend lock',
+            },
           },
         });
-        const blockedStage = yield* Effect.promise(() =>
+        const blockedStage = yield* decodeRpc(
           session.stageCommand({
             contractName: 'createList',
             payload: {
@@ -158,10 +163,12 @@ describe('createList', () => {
               userId: 'usr_1',
             },
           }),
-        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+        ).pipe(Effect.either);
         expect(Either.isLeft(blockedStage)).toBe(true);
         if (Either.isLeft(blockedStage)) {
-          expect(blockedStage.left.code).toBe('frontend-update-required');
+          expect(blockedStage.left.code).toBe(
+            'aggregate-frontend-lock-unsupported',
+          );
         }
         expect(
           db.select().from(sessionStagedCommandDrizzleSchema).all(),
@@ -172,7 +179,7 @@ describe('createList', () => {
             status: 'repairing',
           },
         });
-        const repairingStage = yield* Effect.promise(() =>
+        const repairingStage = yield* decodeRpc(
           session.stageCommand({
             contractName: 'createList',
             payload: {
@@ -181,10 +188,10 @@ describe('createList', () => {
               userId: 'usr_1',
             },
           }),
-        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+        ).pipe(Effect.either);
         expect(Either.isLeft(repairingStage)).toBe(true);
         if (Either.isLeft(repairingStage)) {
-          expect(repairingStage.left.code).toBe('frontend-repairing');
+          expect(repairingStage.left.code).toBe('aggregate-frontend-repairing');
         }
         expect(
           db.select().from(sessionStagedCommandDrizzleSchema).all(),
@@ -209,27 +216,27 @@ describe('createList', () => {
           const sessionId = 'sesn_1' as ISessionId;
           const session = makeSession({
             frontend: main,
-            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
             sessionId,
           });
           session.store.setState({
             sessionId,
-            accountId: 'acct_1',
-            accountName: main.accountName,
-            actorId: 'usr_1',
-            generationId: 'gen_test',
-            systemWorkerName: 'stub-deploy',
+            aggregateId: 'acct_1',
+            aggregateName: main.aggregateName,
+            userId: 'usr_1',
+            systemId: 'sys_test',
             systemVersion: '1.0.0',
+            frontendName: main.frontendName,
+            aggregateFrontendLockKey: 'aggregate-lock-key',
             db,
             schema,
             models,
             vfsName: null,
             isInitialized: true,
-            frontendIndex: null,
-            lastRebasedPushedCursor: null,
+            frontendIndex: 0,
+            replicaIndex: null,
           });
 
-          const maybeStaged = yield* Effect.promise(() =>
+          const maybeStaged = yield* decodeRpc(
             session.stageCommand({
               contractName: 'updateList',
               payload: {
@@ -238,10 +245,7 @@ describe('createList', () => {
                 userId: 'usr_1',
               },
             }),
-          ).pipe(
-            Effect.flatMap(encoded => decodeRpc(encoded)),
-            Effect.either,
-          );
+          ).pipe(Effect.either);
 
           const stagedRows = db
             .select()
@@ -262,7 +266,7 @@ describe('createList', () => {
     );
 
     it.effect(
-      'prepares worker intent without applying it in the main-thread database',
+      'commits synchronously before one durable handoff and advances session order',
       () =>
         Effect.gen(function* () {
           const models = mainModels;
@@ -272,35 +276,51 @@ describe('createList', () => {
           });
           const { schema } = dbConfig;
           const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
-          let submittedCommandId: string | null = null;
-          let submittedBaseReplicaIndex: number | null = null;
-          let submittedMutationCount = 0;
-          let submittedOperation: string | null = null;
-
+          const now = new Date('2026-01-01T00:00:00.000Z');
+          db.insert(User.drizzleSchema)
+            .values({
+              id: 'usr_1',
+              modelName: User.modelName,
+              createdAt: now,
+              updatedAt: now,
+              version: User.version,
+              userId: 'user_1',
+              name: 'User',
+            })
+            .run();
+          const submitted: Array<
+            Readonly<{
+              commandId: string;
+              sessionIndex: number;
+              mutationCount: number;
+              handoffHasReplicaIndex: boolean;
+            }>
+          > = [];
           const session = makeSession({
             frontend: main,
-            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
             sessionId: 'sesn_worker-stage',
-            isSharedWorkerEnabled: true,
-            stageFrontendCommand: props =>
+            stageAggregateFrontendCommand: props =>
               Effect.sync(() => {
-                submittedCommandId = props.command.id;
-                submittedBaseReplicaIndex = props.baseReplicaIndex;
-                submittedMutationCount = props.mutations.length;
-                submittedOperation = props.mutations[0]?.operation ?? null;
+                submitted.push({
+                  commandId: props.command.id,
+                  sessionIndex: props.sessionIndex,
+                  mutationCount: props.mutations.length,
+                  handoffHasReplicaIndex: 'replicaIndex' in props.command,
+                });
+                return {
+                  commandId: props.command.id,
+                };
               }),
           });
           session.store.setState({
             sessionId: 'sesn_worker-stage',
-            accountId: 'acct_1',
-            accountName: main.accountName,
-            actorId: 'usr_1',
+            aggregateId: 'acct_1',
+            aggregateName: main.aggregateName,
+            userId: 'usr_1',
             systemId: 'sys_test',
-            generationId: 'gen_test',
-            systemWorkerName: 'stub-deploy',
             systemVersion: '1.0.0',
             frontendName: main.frontendName,
-            frontendVersion: main.version,
+            aggregateFrontendLockKey: 'aggregate-lock-key',
             db,
             schema,
             models,
@@ -308,7 +328,6 @@ describe('createList', () => {
             isInitialized: true,
             frontendIndex: 4,
             replicaIndex: 7,
-            lastRebasedPushedCursor: null,
             workerState: {
               mode: 'shared-worker',
               status: 'offline',
@@ -320,45 +339,65 @@ describe('createList', () => {
             },
           });
 
-          const staged = yield* Effect.promise(() =>
+          const first = yield* decodeRpc(
             session.stageCommand({
               contractName: 'createList',
               payload: {
-                id: 'lst_worker',
-                name: 'Worker list',
-                userId: 'usr_1',
-              },
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
-
-          expect(submittedCommandId).toBe(staged.id);
-          expect(submittedBaseReplicaIndex).toBe(7);
-          expect(submittedMutationCount).toBe(1);
-          expect(submittedOperation).toBe(
-            JSON.stringify({
-              encodedAttributes: {
-                name: 'Worker list',
+                id: 'lst_worker-1',
+                name: 'Worker list 1',
                 userId: 'usr_1',
               },
             }),
           );
-          expect(
-            db.select().from(sessionStagedCommandDrizzleSchema).all(),
-          ).toHaveLength(0);
+          const second = yield* decodeRpc(
+            session.stageCommand({
+              contractName: 'createList',
+              payload: {
+                id: 'lst_worker-2',
+                name: 'Worker list 2',
+                userId: 'usr_1',
+              },
+            }),
+          );
+
+          const stagedRows = db
+            .select()
+            .from(sessionStagedCommandDrizzleSchema)
+            .all();
+          expect(stagedRows).toHaveLength(2);
+          expect(stagedRows.every(row => row.replicaIndex === null)).toBe(true);
           expect(
             db.select().from(models.list.drizzleSchema).all(),
-          ).toHaveLength(0);
+          ).toHaveLength(2);
           expect(
             db
               .select()
               .from(sessionOptimisticAppliedMutationDrizzleSchema)
               .all(),
-          ).toHaveLength(0);
+          ).toHaveLength(2);
+
+          yield* Effect.promise(
+            () => new Promise<void>(resolve => setTimeout(resolve, 25)),
+          );
+          expect(submitted).toEqual([
+            {
+              commandId: first.id,
+              sessionIndex: 1,
+              mutationCount: 1,
+              handoffHasReplicaIndex: false,
+            },
+            {
+              commandId: second.id,
+              sessionIndex: 2,
+              mutationCount: 1,
+              handoffHasReplicaIndex: false,
+            },
+          ]);
         }),
     );
 
     it.effect(
-      'reprepares worker intent after consuming a stale replica index',
+      'keeps local optimism and fails the session after a one-attempt handoff failure',
       () =>
         Effect.gen(function* () {
           const models = mainModels;
@@ -368,72 +407,45 @@ describe('createList', () => {
           });
           const { schema } = dbConfig;
           const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
+          const now = new Date('2026-01-01T00:00:00.000Z');
+          db.insert(User.drizzleSchema)
+            .values({
+              id: 'usr_1',
+              modelName: User.modelName,
+              createdAt: now,
+              updatedAt: now,
+              version: User.version,
+              userId: 'user_1',
+              name: 'User',
+            })
+            .run();
           let attemptCount = 0;
-          let firstCommandId: string | null = null;
-          let firstBaseReplicaIndex: number | null = null;
-          let firstMutationCommandId: string | null = null;
-          let secondCommandId: string | null = null;
-          let secondBaseReplicaIndex: number | null = null;
-          let secondMutationCommandId: string | null = null;
-
           const session = makeSession({
             frontend: main,
-            generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
-            sessionId: 'sesn_worker-stale-stage',
-            isSharedWorkerEnabled: true,
-            stageFrontendCommand: props =>
-              Effect.gen(function* () {
+            sessionId: 'sesn_worker-handoff-failed',
+            stageAggregateFrontendCommand: () =>
+              Effect.sync(() => {
                 attemptCount += 1;
-                if (attemptCount === 1) {
-                  firstCommandId = props.command.id;
-                  firstBaseReplicaIndex = props.baseReplicaIndex;
-                  firstMutationCommandId =
-                    props.mutations[0]?.commandId ?? null;
-                  setTimeout(() => {
-                    session.store.setState(state => ({
-                      replicaIndex: 8,
-                      workerState: {
-                        ...state.workerState,
-                        replicaIndex: 8,
-                      },
-                    }));
-                    setTimeout(() => {
-                      session.store.setState(state => ({
-                        replicaIndex: 9,
-                        workerState: {
-                          ...state.workerState,
-                          replicaIndex: 9,
-                        },
-                      }));
-                    }, 0);
-                  }, 0);
-                  return yield* new ZerospinError({
-                    code: 'account-frontend-replica-base-index-stale',
-                    message:
-                      'The command was prepared against a stale replica index',
-                    extra: {
-                      expectedReplicaIndex: 9,
-                      receivedReplicaIndex: 7,
-                    },
-                  });
-                }
-                secondCommandId = props.command.id;
-                secondBaseReplicaIndex = props.baseReplicaIndex;
-                secondMutationCommandId =
-                  props.mutations[0]?.commandId ?? null;
-              }),
+              }).pipe(
+                Effect.zipRight(
+                  Effect.fail(
+                    new ZerospinError({
+                      code: 'shared-worker-handoff-failed',
+                      message: 'The single browser handoff failed',
+                    }),
+                  ),
+                ),
+              ),
           });
           session.store.setState({
-            sessionId: 'sesn_worker-stale-stage',
-            accountId: 'acct_1',
-            accountName: main.accountName,
-            actorId: 'usr_1',
+            sessionId: 'sesn_worker-handoff-failed',
+            aggregateId: 'acct_1',
+            aggregateName: main.aggregateName,
+            userId: 'usr_1',
             systemId: 'sys_test',
-            generationId: 'gen_test',
-            systemWorkerName: 'stub-deploy',
             systemVersion: '1.0.0',
             frontendName: main.frontendName,
-            frontendVersion: main.version,
+            aggregateFrontendLockKey: 'aggregate-lock-key',
             db,
             schema,
             models,
@@ -441,7 +453,6 @@ describe('createList', () => {
             isInitialized: true,
             frontendIndex: 4,
             replicaIndex: 7,
-            lastRebasedPushedCursor: null,
             workerState: {
               mode: 'shared-worker',
               status: 'online',
@@ -453,226 +464,67 @@ describe('createList', () => {
             },
           });
 
-          const staged = yield* Effect.promise(() =>
+          const staged = yield* decodeRpc(
             session.stageCommand({
               contractName: 'createList',
               payload: {
-                id: 'lst_worker-reprepared',
-                name: 'Worker reprepared list',
+                id: 'lst_worker-failed',
+                name: 'Worker failed list',
                 userId: 'usr_1',
               },
             }),
-          ).pipe(Effect.flatMap(decodeRpc));
+          );
+          expect(staged.id).toBeTruthy();
+          expect(
+            db.select().from(models.list.drizzleSchema).all(),
+          ).toHaveLength(1);
+          expect(
+            db
+              .select()
+              .from(sessionOptimisticAppliedMutationDrizzleSchema)
+              .all(),
+          ).toHaveLength(1);
 
-          expect(attemptCount).toBe(2);
-          expect(firstBaseReplicaIndex).toBe(7);
-          expect(secondBaseReplicaIndex).toBe(9);
-          expect(firstCommandId).not.toBeNull();
-          expect(secondCommandId).not.toBeNull();
-          expect(secondCommandId).not.toBe(firstCommandId);
-          expect(firstMutationCommandId).toBe(firstCommandId);
-          expect(secondMutationCommandId).toBe(secondCommandId);
-          expect(secondMutationCommandId).not.toBe(firstMutationCommandId);
-          expect(staged.id).toBe(secondCommandId);
+          yield* Effect.promise(
+            () => new Promise<void>(resolve => setTimeout(resolve, 25)),
+          );
+          expect(attemptCount).toBe(1);
           expect(
             db.select().from(sessionStagedCommandDrizzleSchema).all(),
           ).toHaveLength(0);
           expect(
+            db.select().from(sessionFailedCommandDrizzleSchema).all(),
+          ).toHaveLength(1);
+          expect(
             db.select().from(models.list.drizzleSchema).all(),
-          ).toHaveLength(0);
+          ).toHaveLength(1);
+          expect(
+            db
+              .select()
+              .from(sessionOptimisticAppliedMutationDrizzleSchema)
+              .all(),
+          ).toHaveLength(1);
+          expect(session.store.getState().workerState.status).toBe('failed');
+
+          const blocked = yield* decodeRpc(
+            session.stageCommand({
+              contractName: 'createList',
+              payload: {
+                id: 'lst_after-failure',
+                name: 'After failure',
+                userId: 'usr_1',
+              },
+            }),
+          ).pipe(Effect.either);
+          expect(Either.isLeft(blocked)).toBe(true);
+          expect(attemptCount).toBe(1);
         }),
     );
-
-    it.effect('surfaces repair failure while waiting on a stale replica', () =>
-      Effect.gen(function* () {
-        const models = mainModels;
-        const dbConfig = makeResourceDbConfig({
-          models,
-          otherTables: sessionRepoTables,
-        });
-        const { schema } = dbConfig;
-        const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
-        let attemptCount = 0;
-
-        const session = makeSession({
-          frontend: main,
-          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
-          sessionId: 'sesn_worker-stale-repair-failed',
-          isSharedWorkerEnabled: true,
-          stageFrontendCommand: () =>
-            Effect.gen(function* () {
-              attemptCount += 1;
-              setTimeout(() => {
-                session.store.setState(state => ({
-                  workerState: {
-                    ...state.workerState,
-                    status: 'failed',
-                    failure: {
-                      cause: null,
-                      code: 'frontend-session-repair-failed',
-                      extra: null,
-                      message: 'Account frontend main-thread repair failed',
-                      status: null,
-                    },
-                  },
-                }));
-              }, 0);
-              return yield* new ZerospinError({
-                code: 'account-frontend-replica-base-index-stale',
-                message:
-                  'The command was prepared against a stale replica index',
-                extra: {
-                  expectedReplicaIndex: 8,
-                  receivedReplicaIndex: 7,
-                },
-              });
-            }),
-        });
-        session.store.setState({
-          sessionId: 'sesn_worker-stale-repair-failed',
-          accountId: 'acct_1',
-          accountName: main.accountName,
-          actorId: 'usr_1',
-          systemId: 'sys_test',
-          generationId: 'gen_test',
-          systemWorkerName: 'stub-deploy',
-          systemVersion: '1.0.0',
-          frontendName: main.frontendName,
-          frontendVersion: main.version,
-          db,
-          schema,
-          models,
-          vfsName: null,
-          isInitialized: true,
-          frontendIndex: 4,
-          replicaIndex: 7,
-          lastRebasedPushedCursor: null,
-          workerState: {
-            mode: 'shared-worker',
-            status: 'online',
-            bootstrapSource: 'replica',
-            frontendIndex: 4,
-            replicaIndex: 7,
-            databaseName: 'worker-replica',
-            failure: null,
-          },
-        });
-
-        const failedStage = yield* Effect.promise(() =>
-          session.stageCommand({
-            contractName: 'createList',
-            payload: {
-              id: 'lst_worker-stale-repair-failed',
-              name: 'Worker stale repair failed list',
-              userId: 'usr_1',
-            },
-          }),
-        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
-
-        expect(attemptCount).toBe(1);
-        expect(Either.isLeft(failedStage)).toBe(true);
-        if (Either.isLeft(failedStage)) {
-          expect(failedStage.left.code).toBe(
-            'frontend-session-repair-failed',
-          );
-        }
-        expect(
-          db.select().from(sessionStagedCommandDrizzleSchema).all(),
-        ).toHaveLength(0);
-        expect(
-          db.select().from(models.list.drizzleSchema).all(),
-        ).toHaveLength(0);
-      }),
-    );
-
-    it.effect('does not retry a non-stale worker staging failure', () =>
-      Effect.gen(function* () {
-        const models = mainModels;
-        const dbConfig = makeResourceDbConfig({
-          models,
-          otherTables: sessionRepoTables,
-        });
-        const { schema } = dbConfig;
-        const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
-        let attemptCount = 0;
-
-        const session = makeSession({
-          frontend: main,
-          generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
-          sessionId: 'sesn_worker-failed-stage',
-          isSharedWorkerEnabled: true,
-          stageFrontendCommand: () =>
-            Effect.gen(function* () {
-              attemptCount += 1;
-              return yield* new ZerospinError({
-                code: 'durable-stage-main-thread-application-failed',
-                message:
-                  'The durable command committed but its local application failed',
-              });
-            }),
-        });
-        session.store.setState({
-          sessionId: 'sesn_worker-failed-stage',
-          accountId: 'acct_1',
-          accountName: main.accountName,
-          actorId: 'usr_1',
-          systemId: 'sys_test',
-          generationId: 'gen_test',
-          systemWorkerName: 'stub-deploy',
-          systemVersion: '1.0.0',
-          frontendName: main.frontendName,
-          frontendVersion: main.version,
-          db,
-          schema,
-          models,
-          vfsName: null,
-          isInitialized: true,
-          frontendIndex: 4,
-          replicaIndex: 7,
-          lastRebasedPushedCursor: null,
-          workerState: {
-            mode: 'shared-worker',
-            status: 'online',
-            bootstrapSource: 'replica',
-            frontendIndex: 4,
-            replicaIndex: 7,
-            databaseName: 'worker-replica',
-            failure: null,
-          },
-        });
-
-        const failedStage = yield* Effect.promise(() =>
-          session.stageCommand({
-            contractName: 'createList',
-            payload: {
-              id: 'lst_worker-failed',
-              name: 'Worker failed list',
-              userId: 'usr_1',
-            },
-          }),
-        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
-
-        expect(attemptCount).toBe(1);
-        expect(Either.isLeft(failedStage)).toBe(true);
-        if (Either.isLeft(failedStage)) {
-          expect(failedStage.left.code).toBe(
-            'durable-stage-main-thread-application-failed',
-          );
-        }
-        expect(
-          db.select().from(sessionStagedCommandDrizzleSchema).all(),
-        ).toHaveLength(0);
-        expect(
-          db.select().from(models.list.drizzleSchema).all(),
-        ).toHaveLength(0);
-      }),
-    );
-
     it.effect('makeUnstagedCommand', () => {
       return Effect.gen(function* () {
         const createList1 = yield* makeUnstagedCommand({
-          accountId: 'acct_1',
-          actorId: 'usr_1',
+          aggregateId: 'acct_1',
+          userId: 'usr_1',
           frontend: main,
           commandName: 'createList',
           payload: {
@@ -681,7 +533,6 @@ describe('createList', () => {
             userId: 'usr_1',
           },
           sessionId: 'sesn_1',
-          systemVersion: '1.0.0',
         });
 
         expect(createList1.commandName).toBe('createList');

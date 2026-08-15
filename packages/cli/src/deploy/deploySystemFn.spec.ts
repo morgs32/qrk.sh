@@ -1,10 +1,9 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { makeSignature } from '@zerospin/core/authentication/makeSignature';
 import type { IDeploySeedCommand } from '@zerospin/core/contracts/types';
-import type {
-  IDeployConfig,
-  ISystem,
-  ISystemConfig,
-} from '@zerospin/core/system/types';
+import { makeSystem } from '@zerospin/core/system/makeSystem';
+import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
+import type { IDeployConfig, ISystemConfig } from '@zerospin/core/system/types';
 import { EitherSchema } from '@zerospin/core/utils/encodeRpc';
 import { ZerospinError } from '@zerospin/error';
 import type * as Capnweb from 'capnweb';
@@ -14,26 +13,33 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { deploySystemFn } from './deploySystemFn.js';
 
 const zerospinApiUrl = 'https://api.example.com/';
-const stubSystem = {
+const stubSystem = makeSystem({
   name: 'test',
   version: '1.0.0',
-  accountControllers: {},
-  serviceControllers: {},
-} as ISystem;
+  authentication: {
+    signature: makeSignature(
+      { version: '1.0.0', schema: Schema.Struct({}) },
+      [],
+    ),
+    authenticate: () => Effect.succeed('usr_test'),
+  },
+  aggregates: {},
+  services: {},
+});
 
-const { deploySystemWorker, dispose, getCliApi, newHttpBatchRpcSessionMock } =
+const { deployWorkerBundle, dispose, getCliApi, newHttpBatchRpcSessionMock } =
   vi.hoisted(() => {
-    const deploySystemWorker = vi.fn();
+    const deployWorkerBundle = vi.fn();
     const dispose = vi.fn();
     const getCliApi = vi.fn(() => ({
-      deploySystemWorker,
+      deployWorkerBundle,
     }));
     const newHttpBatchRpcSessionMock = vi.fn(() => ({
       getCliApi,
       [Symbol.dispose]: dispose,
     }));
     return {
-      deploySystemWorker,
+      deployWorkerBundle,
       dispose,
       getCliApi,
       newHttpBatchRpcSessionMock,
@@ -101,22 +107,17 @@ describe('deploySystemFn', () => {
   });
 
   it('rejects a malformed SystemSpec before calling the deploy API', async () => {
-    const system = {
-      name: 'test',
-      version: '1.0.0',
-      accountControllers: {},
-      serviceControllers: {},
-    };
-    Reflect.deleteProperty(system, 'version');
+    const systemSpec = { ...makeSystemSpec({ system: stubSystem }) };
+    Reflect.deleteProperty(systemSpec, 'version');
 
     const error = await Effect.runPromise(
       deploySystemFn({
         clean: false,
         zerospinSecretKey: 'api_key_test_123',
         zerospinApiUrl,
-        compiledSystemWorker: 'export default {};',
+        workerBundle: 'export default {};',
         environmentId: 'dev',
-        system,
+        systemSpec,
         config: makeFileConfig(),
       }).pipe(Effect.provide(AsyncLive), Effect.flip),
     );
@@ -125,11 +126,11 @@ describe('deploySystemFn', () => {
       code: 'deploy-api-threw-exception',
       cause: expect.stringContaining('version'),
     });
-    expect(deploySystemWorker).not.toHaveBeenCalled();
+    expect(deployWorkerBundle).not.toHaveBeenCalled();
   });
 
   it('sends the API key in the deploy RPC payload', async () => {
-    deploySystemWorker.mockResolvedValue(
+    deployWorkerBundle.mockResolvedValue(
       Schema.encodeUnknownSync(EitherSchema)(
         Either.right(deployWorkerResponse),
       ),
@@ -140,9 +141,9 @@ describe('deploySystemFn', () => {
         clean: false,
         zerospinSecretKey: 'api_key_test_123',
         zerospinApiUrl,
-        compiledSystemWorker: 'export default {};',
+        workerBundle: 'export default {};',
         environmentId: 'dev',
-        system: stubSystem,
+        systemSpec: makeSystemSpec({ system: stubSystem }),
         config: makeFileConfig(),
       }).pipe(Effect.provide(AsyncLive)),
     );
@@ -151,15 +152,16 @@ describe('deploySystemFn', () => {
     expect(getCliApi).toHaveBeenCalledWith({
       zerospinSecretKey: 'api_key_test_123',
     });
-    expect(deploySystemWorker).toHaveBeenCalledWith({
+    expect(deployWorkerBundle).toHaveBeenCalledWith({
       clean: false,
-      script: 'export default {};',
+      workerBundle: 'export default {};',
       config: makeDeployConfig({ environmentId: 'dev' }),
       systemSpec: {
         systemName: 'test',
         version: '1.0.0',
-        accountControllers: {},
-        serviceControllers: {},
+        authentication: makeSystemSpec({ system: stubSystem }).authentication,
+        aggregates: {},
+        services: {},
       },
     });
     expect(dispose).toHaveBeenCalledOnce();
@@ -169,7 +171,7 @@ describe('deploySystemFn', () => {
     loadSeedsFnMock.mockReturnValueOnce(
       Effect.succeed([{ id: 'cmd_seed' }] as readonly IDeploySeedCommand[]),
     );
-    deploySystemWorker.mockResolvedValue(
+    deployWorkerBundle.mockResolvedValue(
       Schema.encodeUnknownSync(EitherSchema)(
         Either.right(deployWorkerResponse),
       ),
@@ -180,9 +182,9 @@ describe('deploySystemFn', () => {
         clean: false,
         zerospinSecretKey: 'api_key_test_123',
         zerospinApiUrl,
-        compiledSystemWorker: 'export default {};',
+        workerBundle: 'export default {};',
         environmentId: 'dev',
-        system: stubSystem,
+        systemSpec: makeSystemSpec({ system: stubSystem }),
         config: makeFileConfig({
           env: { FOO: 'bar' },
           seeds: {
@@ -193,9 +195,9 @@ describe('deploySystemFn', () => {
       }).pipe(Effect.provide(AsyncLive)),
     );
 
-    expect(deploySystemWorker).toHaveBeenCalledWith({
+    expect(deployWorkerBundle).toHaveBeenCalledWith({
       clean: false,
-      script: 'export default {};',
+      workerBundle: 'export default {};',
       config: makeDeployConfig({
         environmentId: 'dev',
         env: { FOO: 'bar' },
@@ -204,14 +206,15 @@ describe('deploySystemFn', () => {
       systemSpec: {
         systemName: 'test',
         version: '1.0.0',
-        accountControllers: {},
-        serviceControllers: {},
+        authentication: makeSystemSpec({ system: stubSystem }).authentication,
+        aggregates: {},
+        services: {},
       },
     });
   });
 
   it('includes clean in the deploy RPC payload when true', async () => {
-    deploySystemWorker.mockResolvedValue(
+    deployWorkerBundle.mockResolvedValue(
       Schema.encodeUnknownSync(EitherSchema)(
         Either.right(deployWorkerResponse),
       ),
@@ -222,22 +225,23 @@ describe('deploySystemFn', () => {
         clean: true,
         zerospinSecretKey: 'api_key_test_123',
         zerospinApiUrl,
-        compiledSystemWorker: 'export default {};',
+        workerBundle: 'export default {};',
         environmentId: 'dev',
-        system: stubSystem,
+        systemSpec: makeSystemSpec({ system: stubSystem }),
         config: makeFileConfig(),
       }).pipe(Effect.provide(AsyncLive)),
     );
 
-    expect(deploySystemWorker).toHaveBeenCalledWith({
+    expect(deployWorkerBundle).toHaveBeenCalledWith({
       clean: true,
-      script: 'export default {};',
+      workerBundle: 'export default {};',
       config: makeDeployConfig({ environmentId: 'dev' }),
       systemSpec: {
         systemName: 'test',
         version: '1.0.0',
-        accountControllers: {},
-        serviceControllers: {},
+        authentication: makeSystemSpec({ system: stubSystem }).authentication,
+        aggregates: {},
+        services: {},
       },
     });
   });
@@ -248,16 +252,16 @@ describe('deploySystemFn', () => {
         code: 'ECONNREFUSED',
       }),
     });
-    deploySystemWorker.mockRejectedValue(fetchError);
+    deployWorkerBundle.mockRejectedValue(fetchError);
 
     const exit = await Effect.runPromiseExit(
       deploySystemFn({
         clean: false,
         zerospinSecretKey: 'api_key_test_123',
         zerospinApiUrl: 'http://localhost:3004',
-        compiledSystemWorker: 'export default {};',
+        workerBundle: 'export default {};',
         environmentId: 'dev',
-        system: stubSystem,
+        systemSpec: makeSystemSpec({ system: stubSystem }),
         config: makeFileConfig(),
       }).pipe(Effect.provide(AsyncLive)),
     );
@@ -280,7 +284,7 @@ describe('deploySystemFn', () => {
   });
 
   it('returns deploy results from the API response', async () => {
-    deploySystemWorker.mockResolvedValue(
+    deployWorkerBundle.mockResolvedValue(
       Schema.encodeUnknownSync(EitherSchema)(
         Either.right(deployWorkerResponse),
       ),
@@ -291,9 +295,9 @@ describe('deploySystemFn', () => {
         clean: false,
         zerospinSecretKey: 'api_key_test_123',
         zerospinApiUrl,
-        compiledSystemWorker: 'export default {};',
+        workerBundle: 'export default {};',
         environmentId: 'dev',
-        system: stubSystem,
+        systemSpec: makeSystemSpec({ system: stubSystem }),
         config: makeFileConfig(),
       }).pipe(Effect.provide(AsyncLive)),
     );

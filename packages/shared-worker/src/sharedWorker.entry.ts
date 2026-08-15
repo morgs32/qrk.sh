@@ -1,3 +1,3 @@
-import { makeSharedWorkerHost } from './SharedWorker/makeSharedWorkerHost.ts';
+import { startSharedWorker } from './SharedWorker/startSharedWorker.ts';
 
-makeSharedWorkerHost();
+startSharedWorker();

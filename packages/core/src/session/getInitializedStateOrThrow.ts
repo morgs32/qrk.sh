@@ -1,14 +1,14 @@
 import { ZerospinError } from '@zerospin/error';
 
 import type {
-  IFrontendController,
+  IAggregateFrontendController,
   InferFrontendModels,
 } from '../frontendController/types.ts';
 
 import type { IInitializedSessionState, ISession } from './types.ts';
 
 export function getInitializedStateOrThrow<
-  FRONTEND extends IFrontendController,
+  FRONTEND extends IAggregateFrontendController,
 >(props: {
   session: ISession<FRONTEND>;
 }): IInitializedSessionState<InferFrontendModels<FRONTEND>> {

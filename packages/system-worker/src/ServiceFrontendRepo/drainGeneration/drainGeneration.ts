@@ -4,30 +4,33 @@ import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { isNotNull, isNull, or } from 'drizzle-orm';
 import { Effect } from 'effect';
 
+import type { makeDeliveryQueue } from '../../makeDeliveryQueue/makeDeliveryQueue.js';
 import { drainServiceFrontendBlockOutbox } from '../drainServiceFrontendBlockOutbox/drainServiceFrontendBlockOutbox.js';
 import { serviceFrontendRepoDrizzleSchemas } from '../ServiceFrontendRepo.js';
 
 export const drainGeneration = Effect.fn('ServiceFrontendRepo.drainGeneration')(
   function* (props: {
     db: IDb;
+    deliveryQueue: ReturnType<typeof makeDeliveryQueue>;
     key: {
       generationId: string;
       serviceName: string;
-      actorName: string;
-      actorId: string;
+      userId: string;
       frontendName: string;
     };
-    inspectionOnly: boolean;
     storage: DurableObjectStorage;
   }): Effect.fn.Return<
     Readonly<{ pendingServiceFrontendBlockCount: number }>,
     IAnyError,
     Async
   > {
-    const { db, inspectionOnly, key, storage } = props;
-    if (!inspectionOnly) {
-      yield* drainServiceFrontendBlockOutbox({ db, key, storage });
-    }
+    const { db, deliveryQueue, key, storage } = props;
+    yield* drainServiceFrontendBlockOutbox({
+      db,
+      deliveryQueue,
+      key,
+      storage,
+    });
 
     const pendingServiceFrontendBlockCount = db
       .select({
@@ -51,12 +54,9 @@ export const drainGeneration = Effect.fn('ServiceFrontendRepo.drainGeneration')(
       .all().length;
     if (pendingServiceFrontendBlockCount > 0) {
       return yield* new ZerospinError({
-        code: inspectionOnly
-          ? 'service-frontend-generation-self-hosted-drain-required'
-          : 'service-frontend-generation-drain-incomplete',
-        message: inspectionOnly
-          ? 'ServiceFrontendRepo has pending archive work that self-hosted generation control must not finish with newly uploaded code'
-          : 'ServiceFrontendRepo still has pending archive work after hosted generation drain',
+        code: 'service-frontend-generation-drain-incomplete',
+        message:
+          'ServiceFrontendRepo still has pending archive work after generation drain',
         extra: { pendingServiceFrontendBlockCount },
       });
     }

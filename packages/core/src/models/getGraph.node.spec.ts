@@ -16,7 +16,6 @@ const User = makeModel(
     abbreviation: 'usr',
     modelName: 'user',
     attributes: {
-      actorId: primitives.opaqueId({ abbreviation: 'actr', unique: true }),
       name: primitives.text({ nullable: true }),
     },
     indexes: [],
@@ -25,13 +24,11 @@ const User = makeModel(
   [],
 );
 
-const testActorId = 'actr_getgraphspec01' as const;
-const otherActorId = 'actr_getgraphspec02' as const;
-const inScopeUserId = 'usr_getgraphspec001' as const;
-const outOfScopeUserId = 'usr_getgraphspec002' as const;
+const testUserId = 'usr_getgraphspec001' as const;
+const otherUserId = 'usr_getgraphspec002' as const;
 
 describe('getGraph', () => {
-  it.effect('returns only resources matching actor selections', () =>
+  it.effect('returns only resources matching user selections', () =>
     Effect.gen(function* () {
       const models = { user: User };
       const dbConfig = makeResourceDbConfig({ models });
@@ -41,44 +38,42 @@ describe('getGraph', () => {
 
       db.insert(User.drizzleSchema)
         .values({
-          id: inScopeUserId,
+          id: testUserId,
           modelName: User.modelName,
           createdAt: now,
           updatedAt: now,
           version: User.version,
-          actorId: testActorId,
           name: 'In scope',
         })
         .run();
 
       db.insert(User.drizzleSchema)
         .values({
-          id: outOfScopeUserId,
+          id: otherUserId,
           modelName: User.modelName,
           createdAt: now,
           updatedAt: now,
           version: User.version,
-          actorId: otherActorId,
-          name: 'Other actor',
+          name: 'Other user',
         })
         .run();
 
       const selections = {
         user: makeSelection({
           model: User,
-          where: ({ actorId }) => ({ actorId }),
+          where: ({ userId }) => ({ id: userId }),
         }),
       };
 
       const graph = getGraph({
         db,
-        actorId: testActorId,
+        userId: testUserId,
         models,
         selections,
       });
 
-      expect(Object.keys(graph)).toEqual([inScopeUserId]);
-      expect(graph[inScopeUserId]?.name).toBe('In scope');
+      expect(Object.keys(graph)).toEqual([testUserId]);
+      expect(graph[testUserId]?.name).toBe('In scope');
     }).pipe(Effect.provide(AsyncLive)),
   );
 });

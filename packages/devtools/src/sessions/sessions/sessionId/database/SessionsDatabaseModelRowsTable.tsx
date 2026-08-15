@@ -5,7 +5,7 @@ import type { ISession } from '@zerospin/core/session/types';
 
 import type { IDevtoolsServiceSessionEntry } from '../../../../types.js';
 import { useLiveQueryOnDb } from '../../../../useLiveQueryOnDb';
-import { useAccountSession, useServiceSession } from '../useSession';
+import { useAggregateSession, useServiceSession } from '../useSession';
 
 import { sessionsDatabaseTabStyles } from './sessionsDatabaseTabStyles';
 
@@ -106,7 +106,7 @@ function DatabaseRowsTable(props: {
   );
 }
 
-function AccountDatabaseRowsTable(props: {
+function AggregateDatabaseRowsTable(props: {
   readonly session: ISession;
   readonly modelKey: string;
 }) {
@@ -185,12 +185,15 @@ export function SessionsDatabaseModelRowsTable(props: {
   readonly modelKey: string;
 }) {
   const { modelKey } = props;
-  const accountSession = useAccountSession();
+  const aggregateSession = useAggregateSession();
   const serviceSession = useServiceSession();
 
-  if (accountSession !== undefined) {
+  if (aggregateSession !== undefined) {
     return (
-      <AccountDatabaseRowsTable session={accountSession} modelKey={modelKey} />
+      <AggregateDatabaseRowsTable
+        session={aggregateSession}
+        modelKey={modelKey}
+      />
     );
   }
 

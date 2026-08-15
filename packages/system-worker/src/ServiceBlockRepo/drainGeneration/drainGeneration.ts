@@ -1,89 +1,43 @@
 import type { Async } from '@zerospin/core/async/Async';
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
-import { desc, gt, isNotNull, lt, ne, or } from 'drizzle-orm';
+import { desc, isNotNull, isNull, lt, ne, or } from 'drizzle-orm';
 import { Effect } from 'effect';
 
-import { drainAccountSubscribers } from '../drainAccountSubscribers/drainAccountSubscribers.js';
+import type { makeDeliveryQueue } from '../../makeDeliveryQueue/makeDeliveryQueue.js';
+import { drainAggregateSubscribers } from '../drainAggregateSubscribers/drainAggregateSubscribers.js';
 import { drainServiceFrontendSubscribers } from '../drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.js';
 import { serviceBlockDrizzleSchemas } from '../ServiceBlockRepo.js';
 
-/** Finishes hosted service fanout or only inspects it for self-hosted control. */
+/** Finishes service fanout and verifies that no subscriber remains behind. */
 export const drainGeneration = Effect.fn('ServiceBlockRepo.drainGeneration')(
   function* (props: {
     db: IDb;
+    deliveryQueue: ReturnType<typeof makeDeliveryQueue>;
     generationId: string;
-    inspectionOnly: boolean;
     serviceName: string;
-    storage: DurableObjectStorage;
   }): Effect.fn.Return<
     Readonly<{
-      pendingAccountSubscriberCount: number;
+      pendingAggregateSubscriberCount: number;
       pendingServiceFrontendSubscriberCount: number;
     }>,
     IAnyError,
     Async
   > {
-    const { db, generationId, inspectionOnly, serviceName, storage } = props;
+    const { db, deliveryQueue, generationId, serviceName } = props;
 
-    // 1 — a hosted Worker is pinned to the old generation and may finish its
-    // account and service-frontend delivery. Self-hosted control has only the
-    // newly uploaded code, so it performs only the inspection below.
-    if (!inspectionOnly) {
-      const drainSequence = yield* Effect.promise(() =>
-        storage.transaction(async transaction => {
-          const previousDrainSequence =
-            (await transaction.get<number>(
-              'serviceBlockSubscriberDrainSequence',
-            )) ?? 0;
-          const nextDrainSequence = previousDrainSequence + 1;
-          await transaction.put(
-            'serviceBlockSubscriberDrainSequence',
-            nextDrainSequence,
-          );
-          return nextDrainSequence;
-        }),
-      );
-      const accountNextRetryAt = yield* drainAccountSubscribers({
-        db,
-        serviceName,
-      });
-      const serviceFrontendNextRetryAt = yield* drainServiceFrontendSubscribers(
-        {
-          db,
-          key: { generationId, serviceName },
-          onlyServiceFrontendRepoName: null,
-          failFast: false,
-        },
-      );
-      const nextRetryAt =
-        accountNextRetryAt === null
-          ? serviceFrontendNextRetryAt
-          : serviceFrontendNextRetryAt === null
-            ? accountNextRetryAt
-            : Math.min(accountNextRetryAt, serviceFrontendNextRetryAt);
-      yield* Effect.promise(() =>
-        storage.transaction(async transaction => {
-          const currentDrainSequence = await transaction.get<number>(
-            'serviceBlockSubscriberDrainSequence',
-          );
-          const currentAlarm = await transaction.getAlarm();
-          if (nextRetryAt === null) {
-            if (currentDrainSequence === drainSequence) {
-              await transaction.deleteAlarm();
-            }
-            return;
-          }
-          if (
-            currentAlarm === null ||
-            currentAlarm <= Date.now() ||
-            nextRetryAt < currentAlarm
-          ) {
-            await transaction.setAlarm(nextRetryAt);
-          }
-        }),
-      );
-    }
+    // 1 — the compatible Worker finishes predecessor subscriber delivery.
+    yield* drainAggregateSubscribers({
+      db,
+      deliveryQueue,
+      serviceName,
+    });
+    yield* drainServiceFrontendSubscribers({
+      db,
+      deliveryQueue,
+      key: { generationId, serviceName },
+      onlyServiceFrontendRepoName: null,
+    });
 
     // 2 — compare every subscriber against the immutable terminal service block.
     const terminalBlock = db
@@ -94,54 +48,38 @@ export const drainGeneration = Effect.fn('ServiceBlockRepo.drainGeneration')(
       .orderBy(desc(serviceBlockDrizzleSchemas.serviceBlocks.serviceIndex))
       .limit(1)
       .get();
-    const pendingAccountSubscriberCount =
+    const pendingAggregateSubscriberCount =
       terminalBlock === undefined
         ? db
             .select({
-              accountRepoName:
-                serviceBlockDrizzleSchemas.accountSubscribers.accountRepoName,
+              aggregateRepoName:
+                serviceBlockDrizzleSchemas.aggregateSubscribers
+                  .aggregateRepoName,
             })
-            .from(serviceBlockDrizzleSchemas.accountSubscribers)
+            .from(serviceBlockDrizzleSchemas.aggregateSubscribers)
             .where(
-              or(
-                gt(
-                  serviceBlockDrizzleSchemas.accountSubscribers
-                    .deliveryAttempts,
-                  0,
-                ),
-                isNotNull(
-                  serviceBlockDrizzleSchemas.accountSubscribers.nextRetryAt,
-                ),
-                isNotNull(
-                  serviceBlockDrizzleSchemas.accountSubscribers
-                    .lastDeliveryError,
-                ),
+              isNotNull(
+                serviceBlockDrizzleSchemas.aggregateSubscribers
+                  .lastDeliveryError,
               ),
             )
             .all().length
         : db
             .select({
-              accountRepoName:
-                serviceBlockDrizzleSchemas.accountSubscribers.accountRepoName,
+              aggregateRepoName:
+                serviceBlockDrizzleSchemas.aggregateSubscribers
+                  .aggregateRepoName,
             })
-            .from(serviceBlockDrizzleSchemas.accountSubscribers)
+            .from(serviceBlockDrizzleSchemas.aggregateSubscribers)
             .where(
               or(
                 lt(
-                  serviceBlockDrizzleSchemas.accountSubscribers
+                  serviceBlockDrizzleSchemas.aggregateSubscribers
                     .currentServiceIndex,
                   terminalBlock.serviceIndex,
                 ),
-                gt(
-                  serviceBlockDrizzleSchemas.accountSubscribers
-                    .deliveryAttempts,
-                  0,
-                ),
                 isNotNull(
-                  serviceBlockDrizzleSchemas.accountSubscribers.nextRetryAt,
-                ),
-                isNotNull(
-                  serviceBlockDrizzleSchemas.accountSubscribers
+                  serviceBlockDrizzleSchemas.aggregateSubscribers
                     .lastDeliveryError,
                 ),
               ),
@@ -178,6 +116,10 @@ export const drainGeneration = Effect.fn('ServiceBlockRepo.drainGeneration')(
             .from(serviceBlockDrizzleSchemas.serviceFrontendSubscribers)
             .where(
               or(
+                isNull(
+                  serviceBlockDrizzleSchemas.serviceFrontendSubscribers
+                    .currentServiceIndex,
+                ),
                 lt(
                   serviceBlockDrizzleSchemas.serviceFrontendSubscribers
                     .currentServiceIndex,
@@ -195,27 +137,24 @@ export const drainGeneration = Effect.fn('ServiceBlockRepo.drainGeneration')(
             )
             .all().length;
 
-    // 3 — account replay cannot start until service effects exist in every account ledger.
+    // 3 — aggregate replay cannot start until service effects exist in every aggregate ledger.
     if (
-      pendingAccountSubscriberCount > 0 ||
+      pendingAggregateSubscriberCount > 0 ||
       pendingServiceFrontendSubscriberCount > 0
     ) {
       return yield* new ZerospinError({
-        code: inspectionOnly
-          ? 'service-block-generation-self-hosted-drain-required'
-          : 'service-block-generation-drain-incomplete',
-        message: inspectionOnly
-          ? 'ServiceBlockRepo has pending subscriber work that self-hosted control must not finish with newly uploaded code'
-          : 'ServiceBlockRepo still has pending subscriber work after hosted generation drain',
+        code: 'service-block-generation-drain-incomplete',
+        message:
+          'ServiceBlockRepo still has pending subscriber work after generation drain',
         extra: {
-          pendingAccountSubscriberCount,
+          pendingAggregateSubscriberCount,
           pendingServiceFrontendSubscriberCount,
         },
       });
     }
 
     return {
-      pendingAccountSubscriberCount,
+      pendingAggregateSubscriberCount,
       pendingServiceFrontendSubscriberCount,
     };
   },

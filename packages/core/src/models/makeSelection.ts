@@ -13,11 +13,13 @@ import {
   type SQLWrapper,
   type Table,
 } from 'drizzle-orm';
+import type { AnySQLiteSelect, SelectedFields } from 'drizzle-orm/sqlite-core';
 import type { UnionToIntersection } from 'type-fest';
+
+import type { IDb } from '../drizzle/types.ts';
 
 import { PrimitiveKind } from './primitiveKind.ts';
 import type {
-  IActorId,
   IAnyPrimitiveDescriptor,
   IAnyRefDescriptor,
   IAnyShape,
@@ -96,7 +98,15 @@ type SelectionRelationWhere<MODEL extends IModel, MODELS extends IModels> = {
         ? DESCRIPTOR['targetTableName'] extends MODEL['modelName']
           ? DESCRIPTOR['inverse']
           : never
-        : never]?: ISelectionWhere<MODELS[MODEL_KEY], MODELS>;
+        : never]?:
+        | ISelectionWhere<MODELS[MODEL_KEY], MODELS>
+        | (string extends keyof MODELS
+            ? SelectionScalarWhere<
+                InferProperties<MODEL['attributes'], MODEL['abbreviation']>
+              >[keyof SelectionScalarWhere<
+                InferProperties<MODEL['attributes'], MODEL['abbreviation']>
+              >]
+            : never);
     };
   }[keyof MODELS]
 >;
@@ -117,18 +127,21 @@ export type ISelectionWhere<
 > &
   SelectionRelationWhere<MODEL, MODELS>;
 
-export type ISelectionWhereProps = {
-  actorId: IActorId;
+export type ISelectionWhereProps<USER_ID extends string = string> = {
+  userId: USER_ID;
 };
 
 export type ISelectionWhereFn<
   MODEL extends IModel,
   MODELS extends IModels = IModels,
-> = (props: ISelectionWhereProps) => ISelectionWhere<MODEL, MODELS>;
+  USER_ID extends string = string,
+> = (props: ISelectionWhereProps<USER_ID>) => ISelectionWhere<MODEL, MODELS>;
 
 export type ISelection<
   MODEL extends IModel,
-  WHERE extends (props: ISelectionWhereProps) => Record<string, unknown> = (
+  WHERE extends (
+    props: ISelectionWhereProps<never>,
+  ) => Record<string, unknown> = (
     props: ISelectionWhereProps,
   ) => Record<string, unknown>,
 > = {
@@ -136,28 +149,18 @@ export type ISelection<
   where: WHERE;
 };
 
-type ISelectionDb = {
-  selectDistinct: (fields: Record<string, unknown>) => {
-    from: (table: unknown) => IFlatSelectBuilder;
-  };
-};
+type ISelectionDb = Pick<IDb, 'selectDistinct'>;
 
 export type { ISelectionDb };
 
-type IFlatSelectBuilder = {
-  innerJoin: (table: unknown, condition: SQL) => IFlatSelectBuilder;
-  leftJoin: (table: unknown, condition: SQL) => IFlatSelectBuilder;
-  where: (condition: SQL | undefined) => IFlatSelectBuilder;
-  toSQL: () => { sql: string; params: unknown[] };
-  all: () => unknown[];
-};
+type IFlatSelectBuilder = AnySQLiteSelect;
 
 function asSqlColumn(column: unknown): SQLWrapper {
   return column as SQLWrapper;
 }
 
-function asTableColumns(table: unknown): Record<string, unknown> {
-  return getTableColumns(table as Table) as Record<string, unknown>;
+function asTableColumns(table: unknown): SelectedFields {
+  return getTableColumns(table as Table) as SelectedFields;
 }
 
 function isRefDescriptor(
@@ -380,18 +383,24 @@ function compileWhereForModel(props: {
   }
 }
 
-function buildSelectFields(props: { model: IModel }): Record<string, unknown> {
+function buildSelectFields(props: { model: IModel }): SelectedFields {
   const { model } = props;
   return asTableColumns(model.drizzleSchema);
 }
 
 export function makeSelection<
   MODEL extends IModel,
-  WHERE extends (props: ISelectionWhereProps) => Record<string, unknown>,
+  USER_ID extends string = string,
+  WHERE extends (
+    props: ISelectionWhereProps<USER_ID>,
+  ) => Record<string, unknown> = ISelectionWhereFn<MODEL, IModels, USER_ID>,
 >(props: { model: MODEL; where: WHERE }): ISelection<MODEL, WHERE>;
-export function makeSelection<MODEL extends IModel>(props: {
+export function makeSelection<
+  MODEL extends IModel,
+  USER_ID extends string = string,
+>(props: {
   model: MODEL;
-  where?: ISelectionWhereFn<MODEL>;
+  where?: ISelectionWhereFn<MODEL, IModels, USER_ID>;
 }): ISelection<MODEL>;
 export function makeSelection<MODEL extends IModel>(props: {
   model: MODEL;
@@ -408,10 +417,11 @@ export function applySelection<MODEL extends IModel>(props: {
   db: ISelectionDb;
   models: IModels;
   selection: ISelection<MODEL>;
-  actorId: IActorId;
+  userId: string;
+  where?: Record<string, unknown>;
   extraPredicates?: readonly SQL[];
 }): IFlatSelectBuilder {
-  const { db, models, selection, actorId, extraPredicates = [] } = props;
+  const { db, models, selection, userId, extraPredicates = [], where } = props;
 
   const rootModel = selection.model;
   const rootTable = rootModel.drizzleSchema;
@@ -428,11 +438,11 @@ export function applySelection<MODEL extends IModel>(props: {
     model: rootModel,
     models,
     table: rootTable,
-    where: selection.where({ actorId }) as Record<string, unknown>,
+    where: where ?? (selection.where({ userId }) as Record<string, unknown>),
     context,
   });
 
-  let query = db.selectDistinct(selectFields).from(rootTable);
+  let query = db.selectDistinct(selectFields).from(rootTable).$dynamic();
 
   const appliedJoins = new Set<string>();
 
@@ -470,9 +480,10 @@ export function selectAllFromSelection<MODEL extends IModel>(props: {
   db: ISelectionDb;
   models: IModels;
   selection: ISelection<MODEL>;
-  actorId: IActorId;
+  userId: string;
+  where?: Record<string, unknown>;
 }): IFlatSelectBuilder {
-  const { db, models, selection, actorId } = props;
+  const { db, models, selection, userId, where } = props;
   return applySelection({
     db,
     models,
@@ -480,6 +491,7 @@ export function selectAllFromSelection<MODEL extends IModel>(props: {
       model: selection.model,
       where: selection.where,
     },
-    actorId,
+    userId,
+    ...(where === undefined ? {} : { where }),
   });
 }

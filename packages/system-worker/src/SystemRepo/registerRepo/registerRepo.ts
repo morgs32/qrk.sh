@@ -4,28 +4,36 @@
  */
 
 import type { IDb, ITx } from '@zerospin/core/drizzle/types';
+import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
 import type { IRepoRegistration } from '@zerospin/core/system/types';
+import type { AnyColumn } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
   function* (props: {
     db: IDb | ITx;
-    repoTable: unknown;
+    repoTable: IAnyDrizzleSchema & {
+      generationId: AnyColumn;
+      repoType: AnyColumn;
+      repoName: AnyColumn;
+      tableNames: AnyColumn;
+    };
     registration: IRepoRegistration;
   }) {
     const { db, registration, repoTable } = props;
     yield* Effect.void;
-    db.insert(repoTable as never)
+    db.insert(repoTable)
       .values({
         ...registration,
         tableNames: JSON.stringify(registration.tableNames),
-      } as never)
+      })
       .onConflictDoUpdate({
         target: [
-          (repoTable as { repoType: unknown }).repoType,
-          (repoTable as { repoName: unknown }).repoName,
-        ] as never,
-        set: { tableNames: JSON.stringify(registration.tableNames) } as never,
+          repoTable.generationId,
+          repoTable.repoType,
+          repoTable.repoName,
+        ],
+        set: { tableNames: JSON.stringify(registration.tableNames) },
       })
       .run();
   },

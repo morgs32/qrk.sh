@@ -1,59 +1,111 @@
-import { JSONSchema, type Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
-import type { IContracts } from '../contracts/types.ts';
-import type { IGuards } from '../guards/types.ts';
 import { encodeShape } from '../models/encodeShape.ts';
-import type { IModels } from '../models/types.ts';
 
-import type { IFrontendControllerSpec } from './types.ts';
+import type {
+  IAggregateFrontendController,
+  IAnyFrontendController,
+  IFrontendControllerSpec,
+  IServiceFrontendController,
+} from './types.ts';
 
-type IAnyFrontendController = {
-  accountName: string;
-  actorName: string;
-  frontendName: string;
-  version: string;
-  contracts: IContracts;
-  systemName: string;
-  models: IModels;
-  modelNames: readonly string[];
-  guards: IGuards<IContracts>;
-  signature: Schema.Schema.AnyNoContext;
-};
-
+export function makeFrontendControllerSpec(
+  frontendController: IAggregateFrontendController,
+): Extract<IFrontendControllerSpec, { kind: 'aggregate' }>;
+export function makeFrontendControllerSpec(
+  frontendController: IServiceFrontendController,
+): Extract<IFrontendControllerSpec, { kind: 'service' }>;
+export function makeFrontendControllerSpec(
+  frontendController: IAnyFrontendController,
+): IFrontendControllerSpec;
 export function makeFrontendControllerSpec(
   frontendController: IAnyFrontendController,
 ): IFrontendControllerSpec {
-  return {
-    accountName: frontendController.accountName,
-    actorName: frontendController.actorName,
-    frontendName: frontendController.frontendName,
-    name: frontendController.actorName,
-    version: frontendController.version,
-    modelNames: frontendController.modelNames,
-    models: mapValues(frontendController.models ?? {}, model => ({
-      modelName: model.modelName,
-      abbreviation: model.abbreviation,
-      version: model.version,
-      properties: encodeShape(model.propertiesShape),
-      indexes: model.indexes,
-      historicalDefinitions: model.historicalDefinitions
-        .toSorted((left, right) => left.version.localeCompare(right.version))
-        .map(definition => ({
-          modelName: definition.modelName,
-          abbreviation: definition.abbreviation,
-          version: definition.version,
-          properties: encodeShape({
-            ...model.metadata,
-            ...definition.attributes,
-          }),
-          indexes: definition.indexes,
-        })),
-    })),
-    contracts: mapValues(
-      frontendController.contracts,
-      contract => contract.spec,
+  const models = mapValues(frontendController.models, model => ({
+    modelName: model.modelName,
+    abbreviation: model.abbreviation,
+    version: model.version,
+    properties: encodeShape(model.propertiesShape),
+    indexes: model.indexes.toSorted((left, right) =>
+      left.name.localeCompare(right.name),
     ),
-    signatureJsonSchema: JSONSchema.make(frontendController.signature),
+    historicalDefinitions: model.historicalDefinitions
+      .toSorted((left, right) => left.version.localeCompare(right.version))
+      .map(definition => ({
+        modelName: definition.modelName,
+        abbreviation: definition.abbreviation,
+        version: definition.version,
+        hasDirectAdapter: typeof definition.adaptResource === 'function',
+        properties: encodeShape({
+          ...model.metadata,
+          ...definition.attributes,
+        }),
+        indexes: definition.indexes.toSorted((left, right) =>
+          left.name.localeCompare(right.name),
+        ),
+      })),
+  }));
+  const lockedModels = mapValues(frontendController.models, model => ({
+    modelName: model.modelName,
+    abbreviation: model.abbreviation,
+    version: model.version,
+    propertiesJsonSchema: model.spec.propertiesJsonSchema,
+    indexes: model.indexes
+      .toSorted((left, right) => left.name.localeCompare(right.name))
+      .map(index => ({
+        name: index.name,
+        columns: [...index.columns],
+        unique: index.unique ?? false,
+      })),
+  }));
+  if (frontendController.kind === 'service') {
+    return {
+      kind: 'service',
+      systemName: frontendController.systemName,
+      serviceName: frontendController.serviceName,
+      frontendName: frontendController.frontendName,
+      modelNames: frontendController.modelNames.toSorted(),
+      models,
+      contracts: {},
+      serviceFrontendLock: {
+        systemName: frontendController.systemName,
+        frontendName: frontendController.frontendName,
+        models: lockedModels,
+      },
+    };
+  }
+
+  const contracts = mapValues(frontendController.contracts, contract => ({
+    ...contract.spec,
+    historicalDefinitions: contract.spec.historicalDefinitions.map(
+      definition => ({
+        ...definition,
+        hasDirectAdapter: contract.historicalDefinitions.some(
+          historicalDefinition =>
+            historicalDefinition.version === definition.version &&
+            typeof historicalDefinition.adaptPayload === 'function',
+        ),
+      }),
+    ),
+  }));
+
+  return {
+    kind: 'aggregate',
+    systemName: frontendController.systemName,
+    aggregateName: frontendController.aggregateName,
+    frontendName: frontendController.frontendName,
+    modelNames: frontendController.modelNames.toSorted(),
+    models,
+    contracts,
+    aggregateFrontendLock: {
+      systemName: frontendController.systemName,
+      frontendName: frontendController.frontendName,
+      models: lockedModels,
+      contracts: mapValues(frontendController.contracts, contract => ({
+        commandName: contract.commandName,
+        version: contract.version,
+        payloadJsonSchema: contract.spec.payloadJsonSchema,
+      })),
+    },
   };
 }

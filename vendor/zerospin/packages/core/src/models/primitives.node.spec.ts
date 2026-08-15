@@ -1005,7 +1005,7 @@ describe('primitive type inference', () => {
     } as const;
 
     const nullableOpaqueIdShape = {
-      actorId: primitives.opaqueId({ nullable: true, abbreviation: 'act' }),
+      userId: primitives.opaqueId({ nullable: true, abbreviation: 'act' }),
     } as const;
 
     const primaryKeyShape = {
@@ -1118,13 +1118,13 @@ describe('primitive type inference', () => {
     assert<
       Equals<
         InferEncodedRow<typeof nullableOpaqueIdShape>,
-        { readonly actorId: `act_${string}` | null }
+        { readonly userId: `act_${string}` | null }
       >
     >();
     assert<
       Equals<
         InferDecodedRow<typeof nullableOpaqueIdShape>,
-        { readonly actorId: `act_${string}` | null }
+        { readonly userId: `act_${string}` | null }
       >
     >();
 

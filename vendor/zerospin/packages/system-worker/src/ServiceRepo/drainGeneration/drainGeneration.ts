@@ -4,14 +4,15 @@ import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { isNotNull, isNull, or } from 'drizzle-orm';
 import { Effect } from 'effect';
 
+import type { makeDeliveryQueue } from '../../makeDeliveryQueue/makeDeliveryQueue.js';
 import { drainServiceBlockOutbox } from '../drainServiceBlockOutbox/drainServiceBlockOutbox.js';
 import { serviceRepoDrizzleSchemas } from '../ServiceRepo.js';
 
-/** Finishes hosted service publication or only inspects it for self-hosted control. */
+/** Finishes service publication and verifies that no block remains. */
 export const drainGeneration = Effect.fn('ServiceRepo.drainGeneration')(
   function* (props: {
     db: IDb;
-    inspectionOnly: boolean;
+    deliveryQueue: ReturnType<typeof makeDeliveryQueue>;
     generationId: string;
     serviceName: string;
     storage: DurableObjectStorage;
@@ -20,20 +21,18 @@ export const drainGeneration = Effect.fn('ServiceRepo.drainGeneration')(
     IAnyError,
     Async
   > {
-    const { db, inspectionOnly, generationId, serviceName, storage } = props;
+    const { db, deliveryQueue, generationId, serviceName, storage } = props;
 
-    // 1 — a hosted Worker is pinned to the old generation and may finish
-    // publication accepted by that same code. Self-hosted control cannot.
-    if (!inspectionOnly) {
-      yield* drainServiceBlockOutbox({
-        db,
-        storage,
-        generationId,
-        serviceName,
-      });
-    }
+    // 1 — the compatible Worker finishes predecessor service publication.
+    yield* drainServiceBlockOutbox({
+      db,
+      deliveryQueue,
+      storage,
+      generationId,
+      serviceName,
+    });
 
-    // 2 — self-hosted control performs only this read-only inspection.
+    // 2 — verify every predecessor service block is published.
     const pendingServiceBlockCount = db
       .select({
         serviceIndex: serviceRepoDrizzleSchemas.serviceBlockOutbox.serviceIndex,
@@ -50,12 +49,8 @@ export const drainGeneration = Effect.fn('ServiceRepo.drainGeneration')(
     // 3 — a failed or unpublished block cannot be omitted from the source replay bound.
     if (pendingServiceBlockCount > 0) {
       return yield* new ZerospinError({
-        code: inspectionOnly
-          ? 'service-generation-self-hosted-drain-required'
-          : 'service-generation-drain-incomplete',
-        message: inspectionOnly
-          ? 'ServiceRepo has pending work that self-hosted control must not finish with newly uploaded code'
-          : 'ServiceRepo still has pending work after hosted generation drain',
+        code: 'service-generation-drain-incomplete',
+        message: 'ServiceRepo still has pending work after generation drain',
         extra: { pendingServiceBlockCount },
       });
     }

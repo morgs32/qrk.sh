@@ -49,13 +49,13 @@
       "path": "../shared-worker"
     },
     {
+      "path": "../sdk"
+    },
+    {
       "path": "../logger"
     },
     {
       "path": "../live-query"
-    },
-    {
-      "path": "../frontend"
     },
     {
       "path": "../error"

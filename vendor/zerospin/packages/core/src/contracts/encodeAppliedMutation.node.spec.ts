@@ -8,9 +8,9 @@ import { primitives } from '../models/primitives.ts';
 
 import { decodeAppliedMutation } from './decodeAppliedMutation.ts';
 import {
+  encodeAggregateFrontendMutation,
   encodeAppliedMutation,
-  EncodedFrontendMutationSchema,
-  encodeFrontendMutation,
+  EncodedAggregateFrontendMutationSchema,
 } from './encodeAppliedMutation.ts';
 
 describe('encodeAppliedMutation + decodeAppliedMutation', () => {
@@ -19,22 +19,22 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
     () =>
       Effect.gen(function* () {
         const mutation = yield* User.update('1.0.0', {
-          resourceId: User.prefixId('frontend-mutation-001'),
+          resourceId: User.prefixId('aggregate-frontend-mutation-001'),
           attributes: { name: 'Prepared name' },
         });
 
-        const encoded = yield* encodeFrontendMutation({
-          commandId: 'cmd_frontend-mutation-001',
+        const encoded = yield* encodeAggregateFrontendMutation({
+          commandId: 'cmd_aggregate-frontend-mutation-001',
           mutationIndex: 3,
           mutation,
         });
 
         expect(encoded).toEqual({
-          commandId: 'cmd_frontend-mutation-001',
+          commandId: 'cmd_aggregate-frontend-mutation-001',
           mutationIndex: 3,
           modelName: User.modelName,
           modelVersion: User.version,
-          resourceId: User.prefixId('frontend-mutation-001'),
+          resourceId: User.prefixId('aggregate-frontend-mutation-001'),
           operationName: 'update',
           operation: JSON.stringify({
             encodedAttributes: { name: 'Prepared name' },
@@ -57,13 +57,13 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
     };
 
     expect(
-      Schema.decodeUnknownSync(EncodedFrontendMutationSchema)(
+      Schema.decodeUnknownSync(EncodedAggregateFrontendMutationSchema)(
         encodedFrontendMutation,
         { onExcessProperty: 'error' },
       ),
     ).toEqual(encodedFrontendMutation);
     expect(() =>
-      Schema.decodeUnknownSync(EncodedFrontendMutationSchema)(
+      Schema.decodeUnknownSync(EncodedAggregateFrontendMutationSchema)(
         {
           ...encodedFrontendMutation,
           appliedAt: new Date('2020-01-01T00:00:00.000Z'),
@@ -78,7 +78,7 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
       const appliedAt = new Date('2020-01-01T00:00:00.000Z');
       const mutation = yield* User.create('1.0.0', {
         resourceId: 'usr_encode001' as const,
-        attributes: { actorId: 'actr_encode001' as const, name: 'Alice' },
+        attributes: { name: 'Alice' },
       });
 
       const encoded = yield* encodeAppliedMutation({
@@ -173,6 +173,15 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
               },
               indexes: [],
               version: '1.0.0',
+              adaptResource: ({ resource }) =>
+                Effect.succeed({
+                  id: resource.id,
+                  modelName: resource.modelName,
+                  createdAt: resource.createdAt,
+                  updatedAt: resource.updatedAt,
+                  version: '1.0.0',
+                  name: resource.displayName,
+                }),
             },
           ],
         );

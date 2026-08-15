@@ -6,7 +6,7 @@ import { Effect, Either } from 'effect';
  * @bad `return yield* Effect.fail(either.left)` after decodeRpc.
  */
 export const callFrontendApi = Effect.fn('callFrontendApi')(function* () {
-  const either = yield* makeAsync(() => frontendApi.getFrontendState()).pipe(
+  const either = yield* makeAsync(() => frontendApi.getState()).pipe(
     Effect.flatMap(decodeRpc),
   );
 
@@ -24,6 +24,6 @@ declare function decodeRpc<A>(
   effect: Effect.Effect<A, unknown, unknown>,
 ): Effect.Effect<Either.Either<A, ZerospinError>, unknown, unknown>;
 declare const frontendApi: {
-  getFrontendState: () => Promise<unknown>;
+  getState: () => Promise<unknown>;
 };
 declare class ZerospinError {}

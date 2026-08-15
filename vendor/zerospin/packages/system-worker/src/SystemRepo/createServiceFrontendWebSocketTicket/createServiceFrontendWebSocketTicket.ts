@@ -5,47 +5,45 @@
  */
 
 import type { IDb } from '@zerospin/core/drizzle/types';
-import type { IActorId, IAnyDrizzleSchema } from '@zerospin/core/models/types';
-import { ZerospinError, type IAnyError } from '@zerospin/error';
-import { eq, lte, type AnyColumn } from 'drizzle-orm';
-import { Effect } from 'effect';
+import { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
+import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import { and, eq, lte, type AnyColumn } from 'drizzle-orm';
+import { Effect, Schema } from 'effect';
 
 export const createServiceFrontendWebSocketTicket = Effect.fn(
   'SystemRepo.createServiceFrontendWebSocketTicket',
 )(function* (props: {
   db: IDb;
-  deployId: string;
   generationId: string;
+  repoName: string;
   serviceName: string;
-  actorName: string;
-  actorId: IActorId;
+  userId: string;
   frontendName: string;
-  frontendVersion: string;
+  serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
   generationStateTable: IAnyDrizzleSchema;
   generationStateColumns: Readonly<{
-    activeDeployId: AnyColumn;
-    admission: AnyColumn;
     generationId: AnyColumn;
-    readiness: AnyColumn;
+    phase: AnyColumn;
   }>;
   serviceFrontendWebSocketTicketTable: IAnyDrizzleSchema;
   serviceFrontendWebSocketTicketColumns: Readonly<{
     expiresAt: AnyColumn;
+    generationId: AnyColumn;
   }>;
 }) {
   const {
-    actorId,
-    actorName,
     db,
-    deployId,
+    serviceFrontendLock,
+    serviceName,
+    userId,
     frontendName,
-    frontendVersion,
     generationId,
     generationStateColumns,
     generationStateTable,
     serviceFrontendWebSocketTicketColumns,
     serviceFrontendWebSocketTicketTable,
-    serviceName,
+    repoName,
   } = props;
 
   // Checkpoint 1: the prefix is the only public routing hint. The random
@@ -64,7 +62,7 @@ export const createServiceFrontendWebSocketTicket = Effect.fn(
     catch: ZerospinError.catch({
       code: 'service-frontend-websocket-ticket-hash-failed',
       message: 'Failed to hash service frontend WebSocket ticket',
-      extra: { deployId, generationId },
+      extra: { generationId },
     }),
   });
   const ticketHash = btoa(
@@ -75,20 +73,26 @@ export const createServiceFrontendWebSocketTicket = Effect.fn(
     .replaceAll('=', '');
 
   const now = new Date();
+  const encodedServiceFrontendLock = yield* Schema.encode(
+    Schema.parseJson(ServiceFrontendLockSchema),
+  )(serviceFrontendLock).pipe(
+    mapParseError({
+      code: 'service-frontend-websocket-ticket-lock-encode-failed',
+      prefix: 'Failed to encode service frontend lock',
+      extra: { generationId },
+    }),
+  );
 
   // Checkpoint 2: hash first, then synchronously recheck read admission and
-  // insert the exact actor-bound target. A draining source remains readable,
-  // so reconnect tickets continue until completion closes reads and purges
-  // ticket rows. Lifecycle state and tickets share this SystemRepo owner.
+  // insert the exact actor-bound target. Source generations remain readable
+  // while draining, but retirement fences every ticket path.
   const ticketWriteFailure = yield* Effect.try({
     try: (): IAnyError | null =>
       db.transaction(tx => {
         const generationState = tx
           .select({
             generationId: generationStateColumns.generationId,
-            activeDeployId: generationStateColumns.activeDeployId,
-            readiness: generationStateColumns.readiness,
-            admission: generationStateColumns.admission,
+            phase: generationStateColumns.phase,
           })
           .from(generationStateTable)
           .where(eq(generationStateColumns.generationId, generationId))
@@ -98,72 +102,55 @@ export const createServiceFrontendWebSocketTicket = Effect.fn(
           return new ZerospinError({
             code: 'generation-not-prepared',
             message: 'The requested generation has not been prepared',
-            extra: { deployId, generationId, mode: 'read' },
+            extra: { generationId, mode: 'read' },
           });
         }
         if (generationState.generationId !== generationId) {
           return new ZerospinError({
             code: 'generation-admission-identity-mismatch',
-            message: 'Stored generation state does not match this SystemRepo',
+            message:
+              'Stored generation state does not match the requested generation',
             extra: {
-              deployId,
               generationId,
               storedGenerationId: generationState.generationId,
               mode: 'read',
             },
           });
         }
-        if (generationState.readiness !== 'ready') {
-          return new ZerospinError({
-            code: 'generation-not-ready',
-            message: 'The requested generation is not ready',
-            extra: {
-              deployId,
-              generationId,
-              readiness: generationState.readiness,
-              mode: 'read',
-            },
-          });
-        }
-        if (generationState.activeDeployId !== deployId) {
-          return new ZerospinError({
-            code: 'generation-deploy-not-active',
-            message: 'The capability deploy is not active for this generation',
-            extra: {
-              deployId,
-              generationId,
-              activeDeployId: generationState.activeDeployId,
-              mode: 'read',
-            },
-          });
-        }
         if (
-          generationState.admission !== 'open' &&
-          generationState.admission !== 'draining'
+          generationState.phase !== 'open' &&
+          generationState.phase !== 'draining'
         ) {
           return new ZerospinError({
             code: 'generation-read-admission-closed',
             message: 'Read admission is closed for this generation',
             extra: {
-              deployId,
               generationId,
-              admission: generationState.admission,
+              phase: generationState.phase,
             },
           });
         }
 
         tx.delete(serviceFrontendWebSocketTicketTable)
-          .where(lte(serviceFrontendWebSocketTicketColumns.expiresAt, now))
+          .where(
+            and(
+              eq(
+                serviceFrontendWebSocketTicketColumns.generationId,
+                generationId,
+              ),
+              lte(serviceFrontendWebSocketTicketColumns.expiresAt, now),
+            ),
+          )
           .run();
         tx.insert(serviceFrontendWebSocketTicketTable)
           .values({
             ticketHash,
-            deployId,
+            generationId,
+            repoName,
             serviceName,
-            actorName,
-            actorId,
+            userId,
             frontendName,
-            frontendVersion,
+            serviceFrontendLock: encodedServiceFrontendLock,
             expiresAt: new Date(now.getTime() + 30_000),
           })
           .run();
@@ -174,13 +161,8 @@ export const createServiceFrontendWebSocketTicket = Effect.fn(
       code: 'service-frontend-websocket-ticket-write-failed',
       message: 'Failed to persist service frontend WebSocket ticket',
       extra: {
-        deployId,
         generationId,
-        serviceName,
-        actorName,
-        actorId,
-        frontendName,
-        frontendVersion,
+        repoName,
       },
     }),
   });

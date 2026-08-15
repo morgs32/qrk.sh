@@ -9,14 +9,18 @@ import type { IDbConfig, IResourceDbConfig } from './types.ts';
 
 export function makeDbConfig<TABLES extends IAnyTables>(props: {
   tables: TABLES;
+  physicalTableNames?: Partial<Record<keyof TABLES & string, string>>;
 }): IDbConfig<
   ReturnType<typeof makeDrizzleSchemasRecordFromTables<TABLES>>,
   ReturnType<typeof makeDrizzleRelationsFromTables<TABLES>>
 > {
   const { tables } = props;
   return {
-    schema: makeDrizzleSchemasRecordFromTables(tables),
-    relations: makeDrizzleRelationsFromTables(tables),
+    schema: makeDrizzleSchemasRecordFromTables(
+      tables,
+      props.physicalTableNames,
+    ),
+    relations: makeDrizzleRelationsFromTables(tables, props.physicalTableNames),
   };
 }
 

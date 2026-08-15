@@ -18,16 +18,15 @@ update the wiki so it reflects the code at HEAD.
 - For UI code, do not describe runtime behavior unless a test file confirms it.
 - When the diff contradicts an existing page, add a `> CONTRADICTION:` blockquote,
   fix the page, and note both sides in `log.md`.
-- Record real `git hash-object` SHAs in each page's `sources[]` frontmatter. These
-  power the freshness check — faking them breaks it.
-- Do NOT commit anything. The hook commits `wiki/` for you.
+- Do NOT commit anything. The hook commits generated pages outside `wiki/dev/**`
+  for you.
 
 ## What to produce
 
 For this commit:
 
 1. For every file in the diff that is inside `include` and not in `exclude`:
-   - Find wiki pages whose `sources[]` mentions the file. Update them.
+   - Find wiki pages that document the file. Update them.
    - If the file introduces new public surface area (exported symbol, new CLI command,
      new module) AND the matching doc type is enabled, create a new page.
 2. Update `wiki/glossary.md` with any new identifiers, CLI flags, or domain terms.

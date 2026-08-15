@@ -1,32 +1,16 @@
 import type { IAnyError } from '@zerospin/error';
 import type { Brand, Effect, Schema } from 'effect';
 
-import type { IAccountControllers } from '../accountController/types.ts';
-import type { IActor } from '../actorController/types.ts';
+import type { IAggregates } from '../aggregate/types.ts';
+import type { IAuthenticationSignature } from '../authentication/types.ts';
+import type { IDeploySeedCommand, IOperationName } from '../contracts/types.ts';
+import type { IFrontendControllerSpec } from '../frontendController/types.ts';
 import type {
-  IAccountCommand,
-  ICommand,
-  IContract,
-  IDeploySeedCommand,
-  IEncodedAppliedMutation,
-  IEncodedCommand,
-  IExecutedAccountCommand,
-  IFailedAccountCommand,
-  IOperationName,
-} from '../contracts/types.ts';
-import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
-import type {
-  IAccountCursor,
   IEncodedResourceShape,
-  IModels,
-  InferCommandPayload,
   InferIdFromAbbreviation,
-  InferPayloadInput,
   IRef,
 } from '../models/types.ts';
-import type { IServiceControllers } from '../service/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
-import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
+import type { IServices } from '../service/types.ts';
 
 export type IRefRecord = Record<string, IRef>;
 
@@ -38,16 +22,19 @@ export type ISystemEnvironmentId = 'dev' | 'production';
 
 export type ISystemConfig = {
   entry: string;
+  supportedPredecessors: readonly string[];
   environmentId: ISystemEnvironmentId;
   env: Record<string, string> | null;
-  /** Environment-specific module paths that export `seeds` Effects, relative to project cwd. */
+  retention: {
+    clientLeaseSeconds: number;
+    stagedJournalDays: number;
+  };
   seeds: {
     dev: string | null;
     production: string | null;
   };
 };
 
-/** Resolved deploy payload sent over CLI RPC (not the on-disk zerospin.config shape). */
 export type IDeployConfig = {
   environmentId: ISystemEnvironmentId;
   env: Record<string, string> | null;
@@ -63,20 +50,18 @@ export type IEncodedQuery = {
 
 export type IRepoType =
   | 'SystemRepo'
-  | 'AccountRepo'
-  | 'AuthorizationRepo'
-  | 'ActorRepo'
-  | 'FrontendRepo'
+  | 'AggregateRepo'
+  | 'AggregateFrontendRepo'
   | 'ServiceFrontendRepo'
   | 'ServiceRepo'
-  | 'AccountBlockRepo'
-  | 'ActorBlockRepo'
-  | 'FrontendBlockRepo'
+  | 'AggregateBlockRepo'
+  | 'AggregateFrontendBlockRepo'
   | 'ServiceFrontendBlockRepo'
   | 'ServiceBlockRepo'
   | 'SystemLogRepo';
 
 export type IRepoRegistration = Readonly<{
+  generationId: string;
   repoType: IRepoType;
   repoName: string;
   tableNames: readonly string[];
@@ -94,333 +79,148 @@ export type IRepoTableData = Readonly<{
 
 export type ISystemId = InferIdFromAbbreviation<'sys'>;
 
+type ISystemModelSpec = {
+  modelName: string;
+  abbreviation: string;
+  version: string;
+  properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  indexes: readonly {
+    name: string;
+    columns: readonly string[];
+    unique?: boolean;
+  }[];
+  historicalDefinitions: readonly {
+    modelName: string;
+    abbreviation: string;
+    version: string;
+    hasDirectAdapter: boolean;
+    properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    indexes: readonly {
+      name: string;
+      columns: readonly string[];
+      unique?: boolean;
+    }[];
+  }[];
+};
+
+type ISystemContractSpec = {
+  commandName: string;
+  version: string;
+  payloadJsonSchema: unknown;
+  historicalDefinitions: readonly {
+    commandName: string;
+    version: string;
+    hasDirectAdapter: boolean;
+    payloadJsonSchema: unknown;
+  }[];
+};
+
+type ISystemMutationAdaptersSpec = Record<
+  string,
+  Partial<
+    Record<
+      IOperationName,
+      readonly {
+        source: {
+          modelName: string;
+          modelVersion: string;
+          operationName: IOperationName;
+          jsonSchema: unknown;
+        };
+        destination: {
+          modelName: string;
+          modelVersion: string;
+          operationName: IOperationName;
+          jsonSchema: unknown;
+        } | null;
+      }[]
+    >
+  >
+>;
+
 export type ISystemSpec = {
   systemName: string;
   version: string;
-  accountControllers: Record<
+  authentication: {
+    signature: {
+      version: string;
+      schemaJsonSchema: unknown;
+      historicalDefinitions: readonly {
+        version: string;
+        schemaJsonSchema: unknown;
+        hasDirectAdapter: boolean;
+      }[];
+    };
+  };
+  aggregates: Record<
     string,
     {
       name: string;
-      version: string;
-      models: Record<
-        string,
-        {
-          modelName: string;
-          abbreviation: string;
-          version: string;
-          properties: Readonly<
-            Record<string, Readonly<Record<string, unknown>>>
-          >;
-          indexes: readonly {
-            name: string;
-            columns: readonly string[];
-            unique?: boolean;
-          }[];
-          historicalDefinitions: readonly {
-            modelName: string;
-            abbreviation: string;
-            version: string;
-            properties: Readonly<
-              Record<string, Readonly<Record<string, unknown>>>
-            >;
-            indexes: readonly {
-              name: string;
-              columns: readonly string[];
-              unique?: boolean;
-            }[];
-          }[];
-        }
-      >;
-      contracts: Record<
-        string,
-        {
-          commandName: string;
-          version: string;
-          payloadJsonSchema: unknown;
-          historicalDefinitions: readonly {
-            commandName: string;
-            version: string;
-            payloadJsonSchema: unknown;
-          }[];
-        }
-      >;
-      mutationAdapters: Record<
-        string,
-        Partial<
-          Record<
-            IOperationName,
-            readonly {
-              source: {
-                modelName: string;
-                modelVersion: string;
-                operationName: IOperationName;
-                jsonSchema: unknown;
-              };
-              destination: {
-                modelName: string;
-                modelVersion: string;
-                operationName: IOperationName;
-                jsonSchema: unknown;
-              } | null;
-            }[]
-          >
-        >
-      >;
-      actorControllers: Record<
-        string,
-        {
-          name: string;
-          version: string;
-          models: Record<
-            string,
-            {
-              modelName: string;
-              abbreviation: string;
-              version: string;
-              properties: Readonly<
-                Record<string, Readonly<Record<string, unknown>>>
-              >;
-              indexes: readonly {
-                name: string;
-                columns: readonly string[];
-                unique?: boolean;
-              }[];
-              historicalDefinitions: readonly {
-                modelName: string;
-                abbreviation: string;
-                version: string;
-                properties: Readonly<
-                  Record<string, Readonly<Record<string, unknown>>>
-                >;
-                indexes: readonly {
-                  name: string;
-                  columns: readonly string[];
-                  unique?: boolean;
-                }[];
-              }[];
-            }
-          >;
-          selections: Record<string, { modelName: string }>;
-          queries: Record<
-            string,
-            {
-              name: string;
-              serviceName: string;
-              paramsJsonSchema: unknown;
-            }
-          >;
-          frontends: Record<
-            string,
-            {
-              name: string;
-              frontendController: {
-                accountName: string;
-                actorName: string;
-                frontendName: string;
-                version: string;
-                models: Record<
-                  string,
-                  {
-                    modelName: string;
-                    abbreviation: string;
-                    version: string;
-                    properties: Readonly<
-                      Record<string, Readonly<Record<string, unknown>>>
-                    >;
-                    indexes: readonly {
-                      name: string;
-                      columns: readonly string[];
-                      unique?: boolean;
-                    }[];
-                    historicalDefinitions: readonly {
-                      modelName: string;
-                      abbreviation: string;
-                      version: string;
-                      properties: Readonly<
-                        Record<string, Readonly<Record<string, unknown>>>
-                      >;
-                      indexes: readonly {
-                        name: string;
-                        columns: readonly string[];
-                        unique?: boolean;
-                      }[];
-                    }[];
-                  }
-                >;
-                contracts: Record<
-                  string,
-                  {
-                    commandName: string;
-                    version: string;
-                    payloadJsonSchema: unknown;
-                    historicalDefinitions: readonly {
-                      commandName: string;
-                      version: string;
-                      payloadJsonSchema: unknown;
-                    }[];
-                  }
-                >;
-                signatureJsonSchema: unknown;
-              };
-            }
-          >;
-        }
-      >;
-    }
-  >;
-  serviceControllers: Record<
-    string,
-    {
-      name: string;
-      version: string;
-      models: Record<
-        string,
-        {
-          modelName: string;
-          abbreviation: string;
-          version: string;
-          properties: Readonly<
-            Record<string, Readonly<Record<string, unknown>>>
-          >;
-          indexes: readonly {
-            name: string;
-            columns: readonly string[];
-            unique?: boolean;
-          }[];
-          historicalDefinitions: readonly {
-            modelName: string;
-            abbreviation: string;
-            version: string;
-            properties: Readonly<
-              Record<string, Readonly<Record<string, unknown>>>
-            >;
-            indexes: readonly {
-              name: string;
-              columns: readonly string[];
-              unique?: boolean;
-            }[];
-          }[];
-        }
-      >;
-      contracts: Record<
-        string,
-        {
-          commandName: string;
-          version: string;
-          payloadJsonSchema: unknown;
-          historicalDefinitions: readonly {
-            commandName: string;
-            version: string;
-            payloadJsonSchema: unknown;
-          }[];
-        }
-      >;
-      mutationAdapters: Record<
-        string,
-        Partial<
-          Record<
-            IOperationName,
-            readonly {
-              source: {
-                modelName: string;
-                modelVersion: string;
-                operationName: IOperationName;
-                jsonSchema: unknown;
-              };
-              destination: {
-                modelName: string;
-                modelVersion: string;
-                operationName: IOperationName;
-                jsonSchema: unknown;
-              } | null;
-            }[]
-          >
-        >
-      >;
-      actorControllers: Record<
-        string,
-        {
-          name: string;
-          version: string;
-          models: Record<
-            string,
-            {
-              modelName: string;
-              abbreviation: string;
-              version: string;
-              properties: Readonly<
-                Record<string, Readonly<Record<string, unknown>>>
-              >;
-              indexes: readonly {
-                name: string;
-                columns: readonly string[];
-                unique?: boolean;
-              }[];
-              historicalDefinitions: readonly {
-                modelName: string;
-                abbreviation: string;
-                version: string;
-                properties: Readonly<
-                  Record<string, Readonly<Record<string, unknown>>>
-                >;
-                indexes: readonly {
-                  name: string;
-                  columns: readonly string[];
-                  unique?: boolean;
-                }[];
-              }[];
-            }
-          >;
-          frontends: Record<
-            string,
-            {
-              name: string;
-              frontendController: {
-                serviceName: string;
-                actorName: string;
-                frontendName: string;
-                version: string;
-                models: Record<
-                  string,
-                  {
-                    modelName: string;
-                    abbreviation: string;
-                    version: string;
-                    properties: Readonly<
-                      Record<string, Readonly<Record<string, unknown>>>
-                    >;
-                    indexes: readonly {
-                      name: string;
-                      columns: readonly string[];
-                      unique?: boolean;
-                    }[];
-                    historicalDefinitions: readonly {
-                      modelName: string;
-                      abbreviation: string;
-                      version: string;
-                      properties: Readonly<
-                        Record<string, Readonly<Record<string, unknown>>>
-                      >;
-                      indexes: readonly {
-                        name: string;
-                        columns: readonly string[];
-                        unique?: boolean;
-                      }[];
-                    }[];
-                  }
-                >;
-                signatureJsonSchema: unknown;
-              };
-            }
-          >;
-        }
-      >;
+      models: Record<string, ISystemModelSpec>;
+      contracts: Record<string, ISystemContractSpec>;
+      mutationAdapters: ISystemMutationAdaptersSpec;
+      selections: Record<string, { modelName: string }>;
       queries: Record<
         string,
         {
           name: string;
           serviceName: string;
           paramsJsonSchema: unknown;
+        }
+      >;
+      frontends: Record<
+        string,
+        {
+          name: string;
+          models: Record<
+            string,
+            { modelName: string; hasProjectionAdapter: boolean }
+          >;
+          contracts: Record<
+            string,
+            {
+              commandName: string;
+              version: string;
+              hasAuthoritativeAdapter: boolean;
+            }
+          >;
+          controller: IFrontendControllerSpec;
+        }
+      >;
+    }
+  >;
+  services: Record<
+    string,
+    {
+      name: string;
+      models: Record<string, ISystemModelSpec>;
+      contracts: Record<string, ISystemContractSpec>;
+      mutationAdapters: ISystemMutationAdaptersSpec;
+      queries: Record<
+        string,
+        {
+          name: string;
+          serviceName: string;
+          paramsJsonSchema: unknown;
+        }
+      >;
+      frontends: Record<
+        string,
+        {
+          name: string;
+          models: Record<
+            string,
+            { modelName: string; hasProjectionAdapter: boolean }
+          >;
+          contracts: Record<
+            string,
+            {
+              commandName: string;
+              version: string;
+              hasAuthoritativeAdapter: boolean;
+            }
+          >;
+          controller: IFrontendControllerSpec;
         }
       >;
     }
@@ -438,7 +238,6 @@ export type ISystemLogRow = Readonly<{
   level: ISystemLogLevel;
   systemId: ISystemId;
   generationId: InferIdFromAbbreviation<'gen'>;
-  deployId: InferIdFromAbbreviation<'dpl'>;
   payload: unknown | null;
 }>;
 
@@ -447,76 +246,25 @@ export type ISystemLogState = Readonly<{
   syncedAt: number;
 }>;
 
-/** Decoded authentication payload; pairs with a frontend binding `frontendController` `signature` schema. */
-type IAuthenticationSignature<
-  SIGNATURE_SCHEMA extends Schema.Schema.AnyNoContext,
-> = Schema.Schema.Type<SIGNATURE_SCHEMA>;
-
-type IAuthenticateFinalizeAccountCommands = (props: {
-  commands: readonly IAccountCommand[];
-}) => Effect.Effect<
-  Readonly<{
-    executedCommands: readonly IEncodedCommand<IExecutedAccountCommand>[];
-    failedCommands: readonly IEncodedCommand<IFailedAccountCommand>[];
-    appliedMutations: readonly IEncodedAppliedMutation[];
-    lastAccountCursor: IAccountCursor;
-    accountIndex: number;
-    failure: IAnyError | null;
-  }>,
-  IAnyError,
-  CuidFactory | MonotonicFactory
->;
-
-export type IAuthenticateMakeAccountCommand = <
-  CONTRACT extends IContract,
->(props: {
-  contract: CONTRACT;
-  payload: InferPayloadInput<CONTRACT['payload']>;
-}) => Effect.Effect<
-  IAccountCommand<
-    ICommand<
-      CONTRACT['commandName'],
-      CONTRACT['version'],
-      InferCommandPayload<CONTRACT['payload']>
-    >
-  >,
-  IAnyError,
-  CuidFactory | CONTRACT
->;
-
-export type IAuthenticate<
-  MODELS extends IModels,
-  _ACTOR_MODEL_KEY extends keyof MODELS & string,
-  _ACCOUNT_MODEL_KEY extends keyof MODELS & string,
-  SIGNATURE_SCHEMA extends Schema.Schema.AnyNoContext,
-  AUTHENTICATION_CONTEXT = never,
-> = (props: {
-  signature: IAuthenticationSignature<SIGNATURE_SCHEMA>;
-  db: IDb<IResourceDbConfig<MODELS>>;
-  makeAccountCommand: IAuthenticateMakeAccountCommand;
-  finalizeAccountCommands: IAuthenticateFinalizeAccountCommands;
-}) => Effect.Effect<
-  IActor,
-  IAnyError,
-  CuidFactory | MonotonicFactory | AUTHENTICATION_CONTEXT
->;
-
-/** Erased authentication on heterogeneous actor frontends. */
-export type IAnyAuthentication = {
-  signature: Schema.Schema.AnyNoContext;
-  /* oxlint-disable typescript/no-explicit-any -- heterogeneous actor authentication */
-  authenticate: (props: any) => Effect.Effect<IActor, IAnyError, any>;
-  /* oxlint-enable typescript/no-explicit-any */
-};
-
 export type ISystem<
-  ACCOUNT_CONTROLLERS extends IAccountControllers = IAccountControllers,
-  SERVICE_CONTROLLERS extends IServiceControllers = IServiceControllers,
+  AGGREGATES extends IAggregates = IAggregates,
+  SERVICES extends IServices = IServices,
   SYSTEM_NAME extends string = string,
   VERSION extends string = string,
+  AUTHENTICATION_SIGNATURE extends IAuthenticationSignature =
+    IAuthenticationSignature,
+  AUTHENTICATE extends (props: {
+    signature: Schema.Schema.Type<AUTHENTICATION_SIGNATURE['schema']>;
+  }) => Effect.Effect<string, IAnyError> = (props: {
+    signature: Schema.Schema.Type<AUTHENTICATION_SIGNATURE['schema']>;
+  }) => Effect.Effect<string, IAnyError>,
 > = {
   name: SYSTEM_NAME;
-  accountControllers: ACCOUNT_CONTROLLERS;
-  serviceControllers: SERVICE_CONTROLLERS;
+  authentication: {
+    signature: AUTHENTICATION_SIGNATURE;
+    authenticate: AUTHENTICATE;
+  };
+  aggregates: AGGREGATES & IAggregates;
+  services: SERVICES & IServices;
   version: VERSION;
 };

@@ -7,9 +7,9 @@ import { describe, expect } from 'vitest';
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
+import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { makeServiceModel } from '../models/makeServiceModel.ts';
 import { primitives } from '../models/primitives.ts';
-import { makeServiceFrontendController } from '../serviceFrontendController/makeServiceFrontendController.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
@@ -33,12 +33,11 @@ const models = {
   category: Category,
 };
 
-const frontend = makeServiceFrontendController({
+const frontend = makeFrontendController({
   systemName: 'shop',
   serviceName: 'catalog',
-  actorName: 'viewer',
   frontendName: 'catalog',
-  version: '1.0.0',
+  userId: Schema.NonEmptyString,
   models,
   signature: Schema.Struct({ subject: Schema.String }),
 });
@@ -63,23 +62,18 @@ describe('applyServiceFrontendReplicaState', () => {
 
           yield* applyServiceFrontendReplicaState({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
-            systemVersion: '2.0.0',
-            systemWorkerName: 'shop-worker-1',
+            serviceFrontendLockKey: 'service-lock-key',
             db,
             models,
             frontendReplicaState: {
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               systemVersion: '1.0.0',
-              systemWorkerName: 'shop-worker-1',
               serviceName: 'catalog',
-              actorName: 'viewer',
               frontendName: 'catalog',
-              frontendVersion: '1.0.0',
+              serviceFrontendLockKey: 'service-lock-key',
               frontendIndex: 4,
               replicaIndex: 7,
               resources: [
@@ -105,32 +99,27 @@ describe('applyServiceFrontendReplicaState', () => {
             ],
           );
 
-          const wrongFrontendVersion = yield* applyServiceFrontendReplicaState({
+          const wrongLockKey = yield* applyServiceFrontendReplicaState({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
-            systemVersion: '2.0.0',
-            systemWorkerName: 'shop-worker-1',
+            serviceFrontendLockKey: 'service-lock-key',
             db,
             models,
             frontendReplicaState: {
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               systemVersion: '1.0.0',
-              systemWorkerName: 'shop-worker-1',
               serviceName: 'catalog',
-              actorName: 'viewer',
               frontendName: 'catalog',
-              frontendVersion: '2.0.0',
+              serviceFrontendLockKey: 'other-service-lock-key',
               frontendIndex: 5,
               replicaIndex: 8,
               resources: [],
             },
           }).pipe(Effect.either);
 
-          expect(wrongFrontendVersion._tag).toBe('Left');
+          expect(wrongLockKey._tag).toBe('Left');
           expect(db.select().from(models.category.drizzleSchema).all()).toEqual(
             [
               expect.objectContaining({
@@ -153,23 +142,18 @@ describe('applyServiceFrontendReplicaState', () => {
 
           yield* applyServiceFrontendReplicaState({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
-            systemVersion: '1.0.0',
-            systemWorkerName: 'shop-worker-1',
+            serviceFrontendLockKey: 'service-lock-key',
             db,
             models,
             frontendReplicaState: {
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               systemVersion: '1.0.0',
-              systemWorkerName: 'shop-worker-1',
               serviceName: 'catalog',
-              actorName: 'viewer',
               frontendName: 'catalog',
-              frontendVersion: '1.0.0',
+              serviceFrontendLockKey: 'service-lock-key',
               frontendIndex: priorFrontendIndex,
               replicaIndex: priorReplicaIndex,
               resources: [
@@ -199,23 +183,18 @@ describe('applyServiceFrontendReplicaState', () => {
 
           const replacement = yield* applyServiceFrontendReplicaState({
             frontend,
-            actorId: 'actr_viewer',
+            userId: 'user_viewer',
             systemId: 'sys_shop',
-            generationId: 'gen_1',
-            systemVersion: '1.0.0',
-            systemWorkerName: 'shop-worker-1',
+            serviceFrontendLockKey: 'service-lock-key',
             db,
             models,
             frontendReplicaState: {
-              actorId: 'actr_viewer',
+              userId: 'user_viewer',
               systemId: 'sys_shop',
-              generationId: 'gen_1',
               systemVersion: '1.0.0',
-              systemWorkerName: 'shop-worker-1',
               serviceName: 'catalog',
-              actorName: 'viewer',
               frontendName: 'catalog',
-              frontendVersion: '1.0.0',
+              serviceFrontendLockKey: 'service-lock-key',
               frontendIndex: 12,
               replicaIndex: 18,
               resources: [

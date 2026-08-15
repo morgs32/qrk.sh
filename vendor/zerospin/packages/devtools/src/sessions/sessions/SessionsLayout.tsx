@@ -7,11 +7,11 @@ import { useShallow } from 'zustand/react/shallow';
 
 import type { IDevtoolsServiceSessionEntry } from '../../types.js';
 import { zerospinDevtoolsStore } from '../../zerospinDevtoolsStore';
-import {
-  ServiceSessionsActorIdCell,
-  SessionsActorIdCell,
-} from '../SessionsActorIdCell';
 import { SessionsDataCell } from '../SessionsDataCell';
+import {
+  ServiceSessionsUserIdCell,
+  SessionsUserIdCell,
+} from '../SessionsUserIdCell';
 
 const styles = {
   root: {
@@ -129,11 +129,14 @@ const styles = {
 } as const;
 
 export function SessionsLayout() {
-  const accountSessions = useStore(
+  const aggregateSessions = useStore(
     zerospinDevtoolsStore,
     useShallow(
       (state): Array<ISession> =>
-        Array.from(state.accountSessionsById.values(), entry => entry.session),
+        Array.from(
+          state.aggregateSessionsById.values(),
+          entry => entry.session,
+        ),
     ),
   );
   const serviceSessions = useStore(
@@ -155,7 +158,7 @@ export function SessionsLayout() {
     useState<ISessionId | null>(null);
 
   useEffect(() => {
-    if (accountSessions.length === 0 && serviceSessions.length === 0) {
+    if (aggregateSessions.length === 0 && serviceSessions.length === 0) {
       if (sessionIdParam !== undefined) {
         void navigate('/sessions', { replace: true });
       }
@@ -163,10 +166,10 @@ export function SessionsLayout() {
     }
 
     if (sessionIdParam === undefined) {
-      const firstAccountSession = accountSessions[0];
-      if (firstAccountSession !== undefined) {
+      const firstAggregateSession = aggregateSessions[0];
+      if (firstAggregateSession !== undefined) {
         void navigate(
-          `/sessions/${firstAccountSession.sessionId}/commands/staged`,
+          `/sessions/${firstAggregateSession.sessionId}/commands/staged`,
           { replace: true },
         );
         return;
@@ -182,13 +185,13 @@ export function SessionsLayout() {
     }
 
     const idIsValid =
-      accountSessions.some(x => x.sessionId === sessionIdParam) ||
+      aggregateSessions.some(x => x.sessionId === sessionIdParam) ||
       serviceSessions.some(x => x.sessionId === sessionIdParam);
     if (!idIsValid) {
-      const firstAccountSession = accountSessions[0];
-      if (firstAccountSession !== undefined) {
+      const firstAggregateSession = aggregateSessions[0];
+      if (firstAggregateSession !== undefined) {
         void navigate(
-          `/sessions/${firstAccountSession.sessionId}/commands/staged`,
+          `/sessions/${firstAggregateSession.sessionId}/commands/staged`,
           { replace: true },
         );
         return;
@@ -201,7 +204,7 @@ export function SessionsLayout() {
         });
       }
     }
-  }, [accountSessions, serviceSessions, sessionIdParam, navigate]);
+  }, [aggregateSessions, serviceSessions, sessionIdParam, navigate]);
 
   return (
     <div style={styles.root}>
@@ -223,7 +226,8 @@ export function SessionsLayout() {
               </tr>
             </thead>
             <tbody>
-              {accountSessions.length === 0 && serviceSessions.length === 0 ? (
+              {aggregateSessions.length === 0 &&
+              serviceSessions.length === 0 ? (
                 <tr style={styles.tr}>
                   <td colSpan={4} style={{ ...styles.td, color: '#6b7280' }}>
                     No sessions
@@ -231,7 +235,7 @@ export function SessionsLayout() {
                 </tr>
               ) : (
                 <>
-                  {accountSessions.map(session => {
+                  {aggregateSessions.map(session => {
                     const isSelected =
                       sessionIdParam !== undefined &&
                       session.sessionId === sessionIdParam;
@@ -240,7 +244,7 @@ export function SessionsLayout() {
                       hoveredRowSessionId === session.sessionId;
                     return (
                       <tr
-                        key={`account:${session.sessionId}`}
+                        key={`aggregate:${session.sessionId}`}
                         onClick={() => {
                           void navigate(
                             `/sessions/${session.sessionId}/commands/staged`,
@@ -259,19 +263,20 @@ export function SessionsLayout() {
                               : 'transparent',
                         }}
                       >
-                        <td style={styles.tdKind}>account</td>
+                        <td style={styles.tdKind}>aggregate</td>
                         <td
                           style={styles.tdFrontend}
-                          title={session.frontend.actorName}
+                          title={`${session.frontend.aggregateName}/${session.frontend.frontendName}`}
                         >
-                          {session.frontend.actorName}
+                          {session.frontend.aggregateName}/
+                          {session.frontend.frontendName}
                         </td>
                         <SessionsDataCell
                           text={session.sessionId}
                           ariaLabel="Copy session id"
                           tdStyle={styles.tdCopyCell}
                         />
-                        <SessionsActorIdCell
+                        <SessionsUserIdCell
                           session={session}
                           tdStyle={styles.tdActorCell}
                         />
@@ -309,16 +314,16 @@ export function SessionsLayout() {
                         <td style={styles.tdKind}>service</td>
                         <td
                           style={styles.tdFrontend}
-                          title={session.frontendName}
+                          title={`${session.serviceName}/${session.frontendName}`}
                         >
-                          {session.frontendName}
+                          {session.serviceName}/{session.frontendName}
                         </td>
                         <SessionsDataCell
                           text={session.sessionId}
                           ariaLabel="Copy session id"
                           tdStyle={styles.tdCopyCell}
                         />
-                        <ServiceSessionsActorIdCell
+                        <ServiceSessionsUserIdCell
                           session={session}
                           tdStyle={styles.tdActorCell}
                         />

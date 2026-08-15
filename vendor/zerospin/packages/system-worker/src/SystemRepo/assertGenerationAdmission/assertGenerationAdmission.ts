@@ -1,7 +1,7 @@
 /*
  * System-worker annotation:
- * Enforces generation-local deploy admission before an ordinary SystemWorker
- * RPC is allowed to resolve any generation-scoped repo.
+ * Enforces generation read or write admission before an ordinary SystemWorker
+ * RPC resolves a generation-scoped Repo.
  */
 
 import type { IDb } from '@zerospin/core/drizzle/types';
@@ -19,12 +19,10 @@ export const assertGenerationAdmission = Effect.fn(
   generationStateColumns: Readonly<{
     generationId: AnyColumn;
   }>;
-  deployId: string;
   mode: 'read' | 'write';
 }) {
   const {
     db,
-    deployId,
     generationId,
     generationStateColumns,
     generationStateTable,
@@ -42,14 +40,14 @@ export const assertGenerationAdmission = Effect.fn(
     catch: ZerospinError.catch({
       code: 'generation-admission-read-failed',
       message: 'Failed to read generation admission state',
-      extra: { deployId, generationId, mode },
+      extra: { generationId, mode },
     }),
   });
   if (rawGenerationState === undefined) {
     return yield* new ZerospinError({
       code: 'generation-not-prepared',
       message: 'The requested generation has not been prepared',
-      extra: { deployId, generationId, mode },
+      extra: { generationId, mode },
     });
   }
 
@@ -57,81 +55,57 @@ export const assertGenerationAdmission = Effect.fn(
   const generationState = yield* Schema.decodeUnknown(
     Schema.Struct({
       generationId: Schema.String,
-      activeDeployId: Schema.NullOr(Schema.String),
-      readiness: Schema.Literal('initializing', 'ready', 'failed'),
-      admission: Schema.Literal('closed', 'open', 'draining', 'drained'),
+      phase: Schema.Literal(
+        'closed',
+        'migrating',
+        'open',
+        'draining',
+        'retired',
+      ),
     }),
   )(rawGenerationState).pipe(
     mapParseError({
       code: 'generation-admission-state-invalid',
       prefix: 'Stored generation admission state is invalid',
-      extra: { deployId, generationId, mode },
+      extra: { generationId, mode },
     }),
   );
 
   if (generationState.generationId !== generationId) {
     return yield* new ZerospinError({
       code: 'generation-admission-identity-mismatch',
-      message: 'Stored generation state does not match this SystemRepo',
+      message:
+        'Stored generation state does not match the requested generation',
       extra: {
-        deployId,
         generationId,
         storedGenerationId: generationState.generationId,
         mode,
       },
     });
   }
-  if (generationState.readiness !== 'ready') {
-    return yield* new ZerospinError({
-      code: 'generation-not-ready',
-      message: 'The requested generation is not ready',
-      extra: {
-        deployId,
-        generationId,
-        readiness: generationState.readiness,
-        mode,
-      },
-    });
-  }
-  if (generationState.activeDeployId !== deployId) {
-    return yield* new ZerospinError({
-      code: 'generation-deploy-not-active',
-      message: 'The capability deploy is not active for this generation',
-      extra: {
-        deployId,
-        generationId,
-        activeDeployId: generationState.activeDeployId,
-        mode,
-      },
-    });
-  }
-
-  // Checkpoint 3: draining admits existing reads only while accepted writes and
-  // outboxes finish. Once drained, ordinary data-plane capabilities are closed;
-  // replay and lifecycle reads use their explicit RPCs instead.
+  // Checkpoint 3: source reads remain admitted through the finite drain. The
+  // atomic retired transition is the stale-capability fence.
   if (
     mode === 'read' &&
-    generationState.admission !== 'open' &&
-    generationState.admission !== 'draining'
+    generationState.phase !== 'open' &&
+    generationState.phase !== 'draining'
   ) {
     return yield* new ZerospinError({
       code: 'generation-read-admission-closed',
       message: 'Read admission is closed for this generation',
       extra: {
-        deployId,
         generationId,
-        admission: generationState.admission,
+        phase: generationState.phase,
       },
     });
   }
-  if (mode === 'write' && generationState.admission !== 'open') {
+  if (mode === 'write' && generationState.phase !== 'open') {
     return yield* new ZerospinError({
       code: 'generation-write-admission-closed',
       message: 'Write admission is closed for this generation',
       extra: {
-        deployId,
         generationId,
-        admission: generationState.admission,
+        phase: generationState.phase,
       },
     });
   }

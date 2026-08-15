@@ -20,7 +20,6 @@ export const makeServiceCommand = Effect.fn('makeServiceCommand')(function* <
 >(props: {
   contracts: CONTRACTS;
   serviceName: string;
-  systemVersion: string;
   contractName: CONTRACT_NAME;
   payload: InferPayloadInput<CONTRACTS[CONTRACT_NAME]['payload']>;
 }): Effect.fn.Return<
@@ -34,8 +33,7 @@ export const makeServiceCommand = Effect.fn('makeServiceCommand')(function* <
   IAnyError,
   CuidFactory
 > {
-  const { contracts, serviceName, systemVersion, contractName, payload } =
-    props;
+  const { contracts, serviceName, contractName, payload } = props;
 
   const contract = yield* getByKeyOrThrow({
     record: contracts,
@@ -51,6 +49,5 @@ export const makeServiceCommand = Effect.fn('makeServiceCommand')(function* <
     ...command,
     commandType: 'service',
     serviceName,
-    systemVersion,
   };
 });

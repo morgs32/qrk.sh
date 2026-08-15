@@ -7,25 +7,25 @@ import { Effect } from 'effect';
  * @bad Add a module-level helper above the public method file when its only caller is that method.
  * @bad Use this rule to inline a public system-worker Repo RPC method back into the class file.
  */
-export const applyActorPushBatch = Effect.fn('ActorRepo.applyActorPushBatch')(
-  function* (props: { db: unknown; mutations: readonly unknown[] }) {
-    return yield* makeTx({
-      db: props.db,
-      program: Effect.fn('ActorRepo.applyActorPushBatch.transaction')(
-        function* ({ tx }) {
-          for (const mutation of props.mutations) {
-            yield* applyMutationTx({ tx, mutation, appliedAt: Date.now() });
-          }
-        },
-      ),
-    });
-  },
-);
+export const handleAggregateBlocks = Effect.fn(
+  'AggregateFrontendRepo.handleAggregateBlocks',
+)(function* (props: { db: unknown; mutations: readonly unknown[] }) {
+  return yield* makeTx({
+    db: props.db,
+    program: Effect.fn(
+      'AggregateFrontendRepo.handleAggregateBlocks.transaction',
+    )(function* ({ tx }) {
+      for (const mutation of props.mutations) {
+        yield* applyMutationTx({ tx, mutation, appliedAt: Date.now() });
+      }
+    }),
+  });
+});
 
-export class ActorRepo {
-  async applyActorPushBatch(props: { mutations: readonly unknown[] }) {
+export class AggregateFrontendRepo {
+  async handleAggregateBlocks(props: { mutations: readonly unknown[] }) {
     return managedRuntime.runPromise(
-      applyActorPushBatch({
+      handleAggregateBlocks({
         db: this.db,
         mutations: props.mutations,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),

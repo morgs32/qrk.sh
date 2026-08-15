@@ -1,11 +1,11 @@
 import { Effect } from 'effect';
 
 /**
- * Finalize each account command independently inside one transaction block.
+ * Finalize each aggregate command independently inside one transaction block.
  *
  * @bad Use `Effect.validateAll` so one failure rejects the whole batch.
- * @bad Run partition with `concurrency: 'unbounded'` on one account DB.
- * @bad Let one command throw and abort the entire account delta run.
+ * @bad Run partition with `concurrency: 'unbounded'` on one aggregate DB.
+ * @bad Let one command throw and abort the entire aggregate block run.
  */
 export const finalizeCommandsTx = Effect.fn('finalizeCommandsTx')(
   function* (props: { commands: readonly { id: string }[]; tx: unknown }) {

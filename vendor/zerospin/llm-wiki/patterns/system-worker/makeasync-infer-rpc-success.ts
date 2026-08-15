@@ -3,37 +3,26 @@ import { Effect } from 'effect';
 /**
  * Let `makeAsync` infer RPC success shapes from the promise-returning repo method.
  *
- * @bad Do not write `makeAsync<Schema.EitherEncoded<IAccountCursor | null, IAnyErrorJson>>(() => repo.getLastAccountCursor())`.
- * @bad Do not keep `Schema`, `IAnyErrorJson`, cursor, or resource-shape imports only to annotate `makeAsync`.
+ * @bad Do not write `makeAsync<Schema.EitherEncoded<IReplayBatch, IAnyErrorJson>>(() => repo.getReplayBlocks(props))`.
+ * @bad Do not keep `Schema`, `IAnyErrorJson`, or replay-shape imports only to annotate `makeAsync`.
  */
-export const bootstrapReplica = Effect.fn('Replica.bootstrap')(
+export const readNextReplayBatch = Effect.fn('Replica.readNextReplayBatch')(
   function* (props: {
-    accountRepo: {
-      getLastAccountCursor(): PromiseLike<unknown>;
-      dumpModelResources(props: { modelName: string }): PromiseLike<unknown>;
+    aggregateBlockRepo: {
+      getReplayBlocks(props: {
+        afterAggregateCursor: unknown;
+        afterAggregateIndex: number | null;
+      }): PromiseLike<unknown>;
     };
-    fanout: {
-      subscribe(props: { lastAppliedCursor: unknown }): PromiseLike<unknown>;
-    };
-    modelName: string;
+    afterAggregateCursor: unknown;
+    afterAggregateIndex: number | null;
   }) {
-    const lastAccountCursor = yield* makeAsync(() =>
-      props.accountRepo.getLastAccountCursor(),
-    ).pipe(Effect.flatMap(decodeRpc));
-
-    const resources = yield* makeAsync(() =>
-      props.accountRepo.dumpModelResources({
-        modelName: props.modelName,
+    return yield* makeAsync(() =>
+      props.aggregateBlockRepo.getReplayBlocks({
+        afterAggregateCursor: props.afterAggregateCursor,
+        afterAggregateIndex: props.afterAggregateIndex,
       }),
     ).pipe(Effect.flatMap(decodeRpc));
-
-    yield* makeAsync(() =>
-      props.fanout.subscribe({
-        lastAppliedCursor,
-      }),
-    ).pipe(Effect.flatMap(decodeRpc));
-
-    return { lastAccountCursor, resources };
   },
 );
 

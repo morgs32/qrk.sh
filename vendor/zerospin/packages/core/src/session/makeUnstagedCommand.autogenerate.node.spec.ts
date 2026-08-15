@@ -74,9 +74,9 @@ const Account = makeModel(
 );
 
 const widgetFrontend = makeFrontendController({
-  actorName: 'widget',
+  aggregateName: 'account',
   frontendName: 'default',
-  version: '1.0.0',
+  userId: Schema.NonEmptyString,
   systemName: 'test',
   models: { account: Account, user: User, widget: Widget },
   contracts: {
@@ -97,8 +97,8 @@ describe('makeUnstagedCommand id autogenerate', () => {
     it.effect('fills null id from model abbreviation', () => {
       return Effect.gen(function* () {
         const cmd = yield* makeUnstagedCommand({
-          accountId: 'acct_1',
-          actorId: 'usr_1',
+          aggregateId: 'acct_1',
+          userId: 'usr_1',
           frontend: widgetFrontend,
           commandName: 'createWidget',
           payload: {
@@ -106,7 +106,6 @@ describe('makeUnstagedCommand id autogenerate', () => {
             title: 'Hello',
           },
           sessionId: 'sesn_1',
-          systemVersion: '1.0.0',
         });
 
         expect(cmd.payload.id).toMatch(/^wdg_/);

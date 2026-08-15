@@ -1,12 +1,12 @@
 import { Navigate } from 'react-router';
 
-import { useAccountSession, useServiceSession } from './useSession.js';
+import { useAggregateSession, useServiceSession } from './useSession.js';
 
 export function SessionIndexRoute() {
-  const accountSession = useAccountSession();
+  const aggregateSession = useAggregateSession();
   const serviceSession = useServiceSession();
 
-  if (accountSession !== undefined) {
+  if (aggregateSession !== undefined) {
     return <Navigate to="commands" replace relative="path" />;
   }
 

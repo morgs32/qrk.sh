@@ -27,7 +27,7 @@ describe('makeResourceDbConfig', () => {
           createdAt: now,
           updatedAt: now,
           version: User.version,
-          actorId: 'actr_relation',
+          userId: 'user_relation',
           name: 'Relation user',
         })
         .run();
@@ -166,6 +166,87 @@ describe('makeResourceDbConfig', () => {
     }
   });
 
+  it('keeps two logical model graphs in distinct physical table namespaces', async () => {
+    const projectedUsers = makeTable({
+      name: 'users',
+      shape: {
+        id: primitives.primaryKey({ abbreviation: 'usr' }),
+        label: primitives.text(),
+      },
+    });
+    const projectedPosts = makeTable({
+      name: 'posts',
+      shape: {
+        id: primitives.primaryKey({ abbreviation: 'pst' }),
+        userId: primitives.ref({
+          table: projectedUsers,
+          relation: 'user',
+          inverse: 'posts',
+        }),
+      },
+    });
+    const sourceUsers = makeTable({
+      name: 'users',
+      shape: {
+        id: primitives.primaryKey({ abbreviation: 'usr' }),
+        secret: primitives.text(),
+      },
+    });
+    const sourcePosts = makeTable({
+      name: 'posts',
+      shape: {
+        id: primitives.primaryKey({ abbreviation: 'pst' }),
+        userId: primitives.ref({
+          table: sourceUsers,
+          relation: 'user',
+          inverse: 'posts',
+        }),
+      },
+    });
+    const dbConfig = makeDbConfig({
+      tables: {
+        projectedUsers,
+        projectedPosts,
+        sourceUsers,
+        sourcePosts,
+      },
+      physicalTableNames: {
+        sourceUsers: 'aggregateSource_users',
+        sourcePosts: 'aggregateSource_posts',
+      },
+    });
+    const db = await Effect.runPromise(
+      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      ),
+    );
+
+    try {
+      db.insert(dbConfig.schema.projectedUsers)
+        .values({ id: 'usr_projected', label: 'Visible' })
+        .run();
+      db.insert(dbConfig.schema.projectedPosts)
+        .values({ id: 'pst_projected', userId: 'usr_projected' })
+        .run();
+      db.insert(dbConfig.schema.sourceUsers)
+        .values({ id: 'usr_source', secret: 'Canonical' })
+        .run();
+      db.insert(dbConfig.schema.sourcePosts)
+        .values({ id: 'pst_source', userId: 'usr_source' })
+        .run();
+
+      expect(
+        db.query.projectedPosts.findFirst({ with: { user: true } }).sync()
+          ?.user,
+      ).toMatchObject({ id: 'usr_projected', label: 'Visible' });
+      expect(
+        db.query.sourcePosts.findFirst({ with: { user: true } }).sync()?.user,
+      ).toMatchObject({ id: 'usr_source', secret: 'Canonical' });
+    } finally {
+      await db.$client.sqlite3.close(db.$client.db);
+    }
+  });
+
   it('adds query builders for otherTables', async () => {
     const dbConfig = makeResourceDbConfig({
       models: mainModels,
@@ -252,7 +333,7 @@ describe('makeDbConfig table graph validation', () => {
     });
 
     expect(() => makeDbConfig({ tables: { first, second } })).toThrow(
-      /duplicate table name "records"/,
+      /duplicate physical table name "records"/,
     );
   });
 

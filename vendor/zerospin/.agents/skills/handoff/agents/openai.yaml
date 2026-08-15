@@ -1,0 +1,4 @@
+interface:
+  display_name: "Handoff"
+  short_description: "Merge thread decisions into one handoff"
+  default_prompt: "Use $handoff to merge this thread's decisions with its active spec, plan, or prior handoff."

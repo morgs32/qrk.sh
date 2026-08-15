@@ -3,13 +3,16 @@ import path from 'node:path';
 import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
 import * as NodePath from '@effect/platform-node/NodePath';
 import type { Async } from '@zerospin/core/async/Async';
-import type { IServiceCommand } from '@zerospin/core/contracts/types';
+import type {
+  IEncodedCommand,
+  IServiceCommand,
+} from '@zerospin/core/contracts/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
-import type { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis';
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { config as loadEnv } from 'dotenv';
-import { Effect, Layer } from 'effect';
+import { Effect, Layer, Schema } from 'effect';
+import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
 import { loadSeedsFn } from '../deploy/loadSeedsFn.js';
 import { loadZerospinConfigFn } from '../deploy/loadZerospinConfigFn.js';
@@ -31,7 +34,7 @@ export const seedWranglerFn = Effect.fn('seedWranglerFn')(function* (props: {
     return yield* new ZerospinError({
       code: 'zerospin-seed-wrangler-required',
       message:
-        'Production seeds are self-hosted only. Run zerospin seed --wrangler --env production.',
+        'Production seeds are production only. Run zerospin seed --wrangler --env production.',
     });
   }
 
@@ -46,7 +49,7 @@ export const seedWranglerFn = Effect.fn('seedWranglerFn')(function* (props: {
     return yield* new ZerospinError({
       code: 'zerospin-seed-secret-key-missing',
       message:
-        'Missing ZEROSPIN_SECRET_KEY. Use the project-owned self-hosted secret key from .env.local.',
+        'Missing ZEROSPIN_SECRET_KEY. Use the project-owned production secret key from .env.local.',
     });
   }
   const configuredWorkerUrl = process.env['ZEROSPIN_WRANGLER_API_URL'] ?? null;
@@ -72,7 +75,7 @@ export const seedWranglerFn = Effect.fn('seedWranglerFn')(function* (props: {
       new ZerospinError({
         code: 'zerospin-seed-worker-url-invalid',
         message:
-          'ZEROSPIN_WRANGLER_API_URL must be the self-hosted workers.dev URL printed by zerospin deploy --wrangler.',
+          'ZEROSPIN_WRANGLER_API_URL must be the production workers.dev URL printed by zerospin deploy --wrangler.',
         cause: ZerospinError.prettyUnknownFailure(cause),
       }),
   });
@@ -93,13 +96,13 @@ export const seedWranglerFn = Effect.fn('seedWranglerFn')(function* (props: {
   }
 
   let serviceName: string | undefined;
-  const serviceCommands: IServiceCommand[] = [];
+  const serviceCommands: IEncodedCommand<IServiceCommand>[] = [];
   for (const command of seeds) {
     if (command.commandType !== 'service') {
       return yield* new ZerospinError({
         code: 'zerospin-seed-production-command-unsupported',
         message:
-          'Self-hosted production seeding currently requires one batch of service commands.',
+          'Production seeding currently requires one batch of service commands.',
         extra: { commandId: command.id, commandType: command.commandType },
       });
     }
@@ -109,7 +112,7 @@ export const seedWranglerFn = Effect.fn('seedWranglerFn')(function* (props: {
       return yield* new ZerospinError({
         code: 'zerospin-seed-production-service-mismatch',
         message:
-          'Self-hosted production seeds must target one service so they can be submitted as one operation.',
+          'Production seeds must target one service so they can be submitted as one operation.',
         extra: {
           firstServiceName: serviceName,
           commandId: command.id,
@@ -117,7 +120,16 @@ export const seedWranglerFn = Effect.fn('seedWranglerFn')(function* (props: {
         },
       });
     }
-    serviceCommands.push(command);
+    const payload = yield* Schema.encode(Schema.parseJson(Schema.Unknown))(
+      command.payload,
+    ).pipe(
+      mapParseError({
+        code: 'zerospin-seed-command-payload-encode-failed',
+        prefix: 'Failed to encode a production seed command payload',
+        extra: { commandId: command.id },
+      }),
+    );
+    serviceCommands.push({ ...command, payload });
   }
   if (serviceName === undefined) {
     return yield* new ZerospinError({
@@ -127,8 +139,8 @@ export const seedWranglerFn = Effect.fn('seedWranglerFn')(function* (props: {
     });
   }
 
-  using apis = newSyncRpcSession<ZerospinApis>(workerUrl);
-  const systemApi = apis.getSystemApi({ zerospinSecretKey });
+  using gatewayApi = newSyncRpcSession<GatewayApi>(workerUrl);
+  const systemApi = gatewayApi.getSystemApi({ zerospinSecretKey });
   const envelope = yield* Effect.tryPromise({
     try: () =>
       systemApi.finalizeServiceCommands({
@@ -143,20 +155,20 @@ export const seedWranglerFn = Effect.fn('seedWranglerFn')(function* (props: {
     catch: cause =>
       new ZerospinError({
         code: 'zerospin-seed-request-failed',
-        message: 'The self-hosted production seed request failed.',
+        message: 'The production seed request failed.',
         cause: ZerospinError.prettyUnknownFailure(cause),
         extra: { workerUrl },
       }),
   });
   const result = yield* decodeRpc(envelope.result);
-  if (result.failed.length !== 0) {
+  if (result.failedCommands.length !== 0) {
     return yield* new ZerospinError({
       code: 'zerospin-seed-commands-failed',
-      message: `${result.failed.length} production seed command(s) failed.`,
-      cause: JSON.stringify(result.failed),
+      message: `${result.failedCommands.length} production seed command(s) failed.`,
+      cause: JSON.stringify(result.failedCommands),
       extra: {
         seedsLoadedCount: seeds.length,
-        seedCommandsFinalized: result.executed.length,
+        seedCommandsFinalized: result.executedCommands.length,
       },
     });
   }
@@ -164,6 +176,6 @@ export const seedWranglerFn = Effect.fn('seedWranglerFn')(function* (props: {
   return {
     workerUrl,
     seedsLoadedCount: seeds.length,
-    seedCommandsFinalized: result.executed.length,
+    seedCommandsFinalized: result.executedCommands.length,
   };
 });

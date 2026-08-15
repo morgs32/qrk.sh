@@ -1,21 +1,21 @@
 import { Navigate, useParams } from 'react-router';
 
-import { useAccountSession, useServiceSession } from '../useSession';
+import { useAggregateSession, useServiceSession } from '../useSession';
 
 export function SessionsDatabaseIndexRoute() {
-  const accountSession = useAccountSession();
+  const aggregateSession = useAggregateSession();
   const serviceSession = useServiceSession();
   const { sessionId } = useParams();
 
   if (
-    (accountSession === undefined && serviceSession === undefined) ||
+    (aggregateSession === undefined && serviceSession === undefined) ||
     sessionId === undefined
   ) {
     return null;
   }
 
   const firstModelName =
-    accountSession?.frontend.modelNames[0] ?? serviceSession?.modelNames[0];
+    aggregateSession?.frontend.modelNames[0] ?? serviceSession?.modelNames[0];
 
   if (firstModelName === undefined) {
     return null;

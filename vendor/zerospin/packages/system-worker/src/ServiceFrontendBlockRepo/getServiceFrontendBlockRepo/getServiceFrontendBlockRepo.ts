@@ -9,13 +9,13 @@ export const getServiceFrontendBlockRepo = Effect.fn(
   key: {
     generationId: string;
     serviceName: string;
-    actorName: string;
-    actorId: string;
+    userId: string;
     frontendName: string;
   };
 }) {
-  const name = yield* ServiceFrontendBlockRepo.repoUtils.nameUtils.makeName(
-    props.key,
-  );
+  const name =
+    yield* ServiceFrontendBlockRepo.boundDORepoConfig.nameUtils.makeName(
+      props.key,
+    );
   return env.SERVICE_FRONTEND_BLOCK_REPO.getByName(name);
 });

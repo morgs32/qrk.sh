@@ -1,0 +1,277 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "56466995-6bbc-4b94-be3d-c469fe5cec7c",
+  "prevIds": [],
+  "ddl": [
+    {
+      "name": "aggregateFrontendReplicas",
+      "entityType": "tables"
+    },
+    {
+      "name": "serviceFrontendReplicas",
+      "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "aggregateFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "aggregateId",
+      "entityType": "columns",
+      "table": "aggregateFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "aggregateName",
+      "entityType": "columns",
+      "table": "aggregateFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "userId",
+      "entityType": "columns",
+      "table": "aggregateFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendName",
+      "entityType": "columns",
+      "table": "aggregateFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "aggregateFrontendLockKey",
+      "entityType": "columns",
+      "table": "aggregateFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "aggregateFrontendLock",
+      "entityType": "columns",
+      "table": "aggregateFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendSpec",
+      "entityType": "columns",
+      "table": "aggregateFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "databaseName",
+      "entityType": "columns",
+      "table": "aggregateFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "createdAt",
+      "entityType": "columns",
+      "table": "aggregateFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "serviceName",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "userId",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendName",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "serviceFrontendLockKey",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "serviceFrontendLock",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "frontendSpec",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "databaseName",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "createdAt",
+      "entityType": "columns",
+      "table": "serviceFrontendReplicas"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "aggregateFrontendReplicas_pk",
+      "table": "aggregateFrontendReplicas",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "serviceFrontendReplicas_pk",
+      "table": "serviceFrontendReplicas",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        {
+          "value": "aggregateId",
+          "isExpression": false
+        },
+        {
+          "value": "aggregateName",
+          "isExpression": false
+        },
+        {
+          "value": "userId",
+          "isExpression": false
+        },
+        {
+          "value": "frontendName",
+          "isExpression": false
+        },
+        {
+          "value": "aggregateFrontendLockKey",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "aggregate_frontend_replicas_target_lock_idx",
+      "entityType": "indexes",
+      "table": "aggregateFrontendReplicas"
+    },
+    {
+      "columns": [
+        {
+          "value": "serviceName",
+          "isExpression": false
+        },
+        {
+          "value": "userId",
+          "isExpression": false
+        },
+        {
+          "value": "frontendName",
+          "isExpression": false
+        },
+        {
+          "value": "serviceFrontendLockKey",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "service_frontend_replicas_target_lock_idx",
+      "entityType": "indexes",
+      "table": "serviceFrontendReplicas"
+    }
+  ],
+  "renames": []
+}

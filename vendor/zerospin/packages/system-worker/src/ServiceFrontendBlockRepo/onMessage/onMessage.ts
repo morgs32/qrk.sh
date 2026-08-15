@@ -1,43 +1,41 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import type { IActorId } from '@zerospin/core/models/types';
-import type {
-  IServiceFrontendGenerationBoundaryBlock,
-  IServiceFrontendLineageBlock,
-} from '@zerospin/core/serviceSession/types';
+import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
+import { ServiceFrontendBlockSchema } from '@zerospin/core/serviceSession/ServiceFrontendBlockSchema';
+import type { IServiceFrontendBlock } from '@zerospin/core/serviceSession/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import type { IRpcEitherEncoded } from '@zerospin/core/utils/types';
-import type { IAnyError } from '@zerospin/error';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, Either, Schema } from 'effect';
 import type { Connection, WSMessage } from 'partyserver';
 
 import { getArchivedBlocks } from '../getArchivedBlocks/getArchivedBlocks.js';
 import { getPredecessor } from '../getPredecessor/getPredecessor.js';
 
-/* Service-owned replay is deliberately separate from account replay. */
 export const onMessage = Effect.fn('ServiceFrontendBlockRepo.onMessage')(
   function* (props: {
     connection: Connection<{
       phase: 'awaiting-resume' | 'replaying' | 'live';
-      frontendVersion: string;
+      serviceName: string;
+      userId: string;
+      frontendName: string;
+      serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
     }>;
     message: WSMessage;
     db: IDb;
     key: {
       generationId: string;
       serviceName: string;
-      actorName: string;
-      actorId: string;
+      userId: string;
       frontendName: string;
     };
     parseRepoName: (repoName: string) => Effect.Effect<
       {
         generationId: string;
         serviceName: string;
-        actorName: string;
-        actorId: string;
+        userId: string;
         frontendName: string;
       },
       IAnyError
@@ -48,8 +46,7 @@ export const onMessage = Effect.fn('ServiceFrontendBlockRepo.onMessage')(
           systemId: ISystemId;
           generationId: string;
           serviceName: string;
-          actorName: string;
-          actorId: IActorId;
+          userId: string;
           frontendName: string;
           terminalFrontendIndex: number;
           predecessor: Readonly<{
@@ -62,117 +59,60 @@ export const onMessage = Effect.fn('ServiceFrontendBlockRepo.onMessage')(
       getArchivedBlocks(props: {
         afterFrontendIndex: number;
         throughFrontendIndex: number;
-      }): IRpcEitherEncoded<readonly IServiceFrontendLineageBlock[]>;
+        serviceFrontendLock: Schema.Schema.Type<
+          typeof ServiceFrontendLockSchema
+        >;
+      }): IRpcEitherEncoded<readonly IServiceFrontendBlock[]>;
     };
   }): Effect.fn.Return<void, IAnyError, Async> {
     const { connection, db, key } = props;
     const targetDescriptor = yield* getPredecessor({ db, key });
-    const frontendVersion = connection.state?.frontendVersion;
-    if (frontendVersion === undefined) {
-      connection.close(4004, 'frontend-version-required');
-      return;
-    }
+    const state = connection.state;
     const stateRequired = () => {
-      connection.send(
-        JSON.stringify({
-          type: 'state-required',
-          systemId: targetDescriptor.systemId,
-          generationId: key.generationId,
-          serviceName: key.serviceName,
-          actorId: key.actorId,
-          actorName: key.actorName,
-          frontendName: key.frontendName,
-          frontendVersion,
-          frontendIndex: targetDescriptor.terminalFrontendIndex,
-        }),
-      );
+      connection.send(JSON.stringify({ type: 'state-required' }));
       connection.close(4003, 'state-required');
     };
-
     if (
-      connection.state?.phase === 'replaying' ||
-      connection.state?.phase === 'live'
+      state === null ||
+      state === undefined ||
+      state.serviceName !== key.serviceName ||
+      state.userId !== key.userId ||
+      state.frontendName !== key.frontendName
     ) {
       stateRequired();
       return;
     }
-    if (typeof props.message !== 'string') {
+    if (
+      state.phase !== 'awaiting-resume' ||
+      typeof props.message !== 'string'
+    ) {
       stateRequired();
       return;
     }
     const decodedResume = yield* Schema.decodeUnknown(
       Schema.parseJson(
         Schema.Struct({
-          replicaGenerationId: Schema.String,
           frontendIndex: Schema.Number,
         }),
       ),
-    )(props.message).pipe(Effect.either);
+    )(props.message, { onExcessProperty: 'error' }).pipe(Effect.either);
     if (
       Either.isLeft(decodedResume) ||
       !Number.isInteger(decodedResume.right.frontendIndex) ||
-      decodedResume.right.frontendIndex < 0
+      decodedResume.right.frontendIndex < 0 ||
+      decodedResume.right.frontendIndex > targetDescriptor.terminalFrontendIndex
     ) {
       stateRequired();
       return;
     }
-    connection.setState({ phase: 'replaying', frontendVersion });
+    connection.setState({ ...state, phase: 'replaying' });
 
-    if (decodedResume.right.replicaGenerationId === key.generationId) {
-      let replayedThroughFrontendIndex = decodedResume.right.frontendIndex;
-      let targetReplayComplete = false;
-      while (!targetReplayComplete) {
-        const currentTargetDescriptor = yield* getPredecessor({ db, key });
-        if (
-          replayedThroughFrontendIndex >
-          currentTargetDescriptor.terminalFrontendIndex
-        ) {
-          stateRequired();
-          return;
-        }
-        const suffixResult = yield* getArchivedBlocks({
-          afterFrontendIndex: replayedThroughFrontendIndex,
-          throughFrontendIndex: currentTargetDescriptor.terminalFrontendIndex,
-          db,
-          key,
-        }).pipe(Effect.either);
-        if (Either.isLeft(suffixResult)) {
-          stateRequired();
-          return;
-        }
-        for (const block of suffixResult.right) {
-          connection.send(
-            JSON.stringify({ type: 'serviceFrontendBlock', sync: block }),
-          );
-        }
-        replayedThroughFrontendIndex =
-          currentTargetDescriptor.terminalFrontendIndex;
-        const stableTargetDescriptor = yield* getPredecessor({ db, key });
-        if (
-          stableTargetDescriptor.terminalFrontendIndex ===
-          replayedThroughFrontendIndex
-        ) {
-          connection.send(
-            JSON.stringify({
-              type: 'replay-complete',
-              generationId: key.generationId,
-              frontendIndex: replayedThroughFrontendIndex,
-            }),
-          );
-          connection.setState({ phase: 'live', frontendVersion });
-          targetReplayComplete = true;
-        }
-      }
-      return;
-    }
-
-    const childSegments: Array<{
+    const segments: Array<{
       descriptor: Readonly<{
         systemId: ISystemId;
         generationId: string;
         serviceName: string;
-        actorName: string;
-        actorId: IActorId;
+        userId: string;
         frontendName: string;
         terminalFrontendIndex: number;
         predecessor: Readonly<{
@@ -181,55 +121,36 @@ export const onMessage = Effect.fn('ServiceFrontendBlockRepo.onMessage')(
           terminalFrontendIndex: number;
         }> | null;
       }>;
-      repo: null | {
-        getArchivedBlocks(props: {
-          afterFrontendIndex: number;
-          throughFrontendIndex: number;
-        }): IRpcEitherEncoded<readonly IServiceFrontendLineageBlock[]>;
-      };
-    }> = [];
-    let currentDescriptor = targetDescriptor;
-    let currentRepo: null | {
-      getArchivedBlocks(props: {
-        afterFrontendIndex: number;
-        throughFrontendIndex: number;
-      }): IRpcEitherEncoded<readonly IServiceFrontendLineageBlock[]>;
-    } = null;
-    let sourceDescriptor: typeof targetDescriptor | null = null;
-    let sourceRepo: ReturnType<typeof props.getPredecessorRepo> | null = null;
+      repo: null | ReturnType<typeof props.getPredecessorRepo>;
+    }> = [{ descriptor: targetDescriptor, repo: null }];
     const visitedGenerationIds = new Set<string>([key.generationId]);
     const visitedRepoNames = new Set<string>();
-
+    let currentDescriptor = targetDescriptor;
     while (currentDescriptor.predecessor !== null) {
-      childSegments.push({ descriptor: currentDescriptor, repo: currentRepo });
-      const predecessorPointer = currentDescriptor.predecessor;
+      const predecessor = currentDescriptor.predecessor;
       if (
-        visitedGenerationIds.has(predecessorPointer.generationId) ||
-        visitedRepoNames.has(predecessorPointer.repoName)
+        visitedGenerationIds.has(predecessor.generationId) ||
+        visitedRepoNames.has(predecessor.repoName)
       ) {
         stateRequired();
         return;
       }
-      visitedGenerationIds.add(predecessorPointer.generationId);
-      visitedRepoNames.add(predecessorPointer.repoName);
+      visitedGenerationIds.add(predecessor.generationId);
+      visitedRepoNames.add(predecessor.repoName);
       const predecessorKeyResult = yield* props
-        .parseRepoName(predecessorPointer.repoName)
+        .parseRepoName(predecessor.repoName)
         .pipe(Effect.either);
       if (
         Either.isLeft(predecessorKeyResult) ||
-        predecessorKeyResult.right.generationId !==
-          predecessorPointer.generationId ||
+        predecessorKeyResult.right.generationId !== predecessor.generationId ||
         predecessorKeyResult.right.serviceName !== key.serviceName ||
-        predecessorKeyResult.right.actorName !== key.actorName ||
-        predecessorKeyResult.right.actorId !== key.actorId ||
+        predecessorKeyResult.right.userId !== key.userId ||
         predecessorKeyResult.right.frontendName !== key.frontendName
       ) {
         stateRequired();
         return;
       }
-      const predecessorRepo = props.getPredecessorRepo(
-        predecessorPointer.repoName,
-      );
+      const predecessorRepo = props.getPredecessorRepo(predecessor.repoName);
       const predecessorDescriptorResult = yield* makeAsync(() =>
         predecessorRepo.getPredecessor(),
       ).pipe(Effect.flatMap(decodeRpc), Effect.either);
@@ -240,132 +161,147 @@ export const onMessage = Effect.fn('ServiceFrontendBlockRepo.onMessage')(
       const predecessorDescriptor = predecessorDescriptorResult.right;
       if (
         predecessorDescriptor.systemId !== targetDescriptor.systemId ||
-        predecessorDescriptor.generationId !==
-          predecessorPointer.generationId ||
-        predecessorDescriptor.serviceName !== key.serviceName ||
-        predecessorDescriptor.actorName !== key.actorName ||
-        predecessorDescriptor.actorId !== key.actorId ||
-        predecessorDescriptor.frontendName !== key.frontendName ||
+        predecessorDescriptor.generationId !== predecessor.generationId ||
         predecessorDescriptor.terminalFrontendIndex !==
-          predecessorPointer.terminalFrontendIndex
+          predecessor.terminalFrontendIndex
+      ) {
+        stateRequired();
+        return;
+      }
+      segments.push({
+        descriptor: predecessorDescriptor,
+        repo: predecessorRepo,
+      });
+      currentDescriptor = predecessorDescriptor;
+    }
+    segments.reverse();
+
+    let replayedThroughFrontendIndex = decodedResume.right.frontendIndex;
+    let pendingBlocks: IServiceFrontendBlock[] = [];
+    for (const segment of segments) {
+      const firstSegmentIndex =
+        (segment.descriptor.predecessor?.terminalFrontendIndex ?? 0) + 1;
+      if (
+        replayedThroughFrontendIndex >= segment.descriptor.terminalFrontendIndex
+      ) {
+        continue;
+      }
+      if (replayedThroughFrontendIndex + 1 < firstSegmentIndex) {
+        stateRequired();
+        return;
+      }
+      const afterFrontendIndex = Math.max(
+        replayedThroughFrontendIndex,
+        firstSegmentIndex - 1,
+      );
+      const segmentRepo = segment.repo;
+      const archivedResult =
+        segmentRepo === null
+          ? yield* getArchivedBlocks({
+              afterFrontendIndex,
+              throughFrontendIndex: segment.descriptor.terminalFrontendIndex,
+              serviceFrontendLock: state.serviceFrontendLock,
+              db,
+              key,
+            }).pipe(Effect.either)
+          : yield* makeAsync(() =>
+              segmentRepo.getArchivedBlocks({
+                afterFrontendIndex,
+                throughFrontendIndex: segment.descriptor.terminalFrontendIndex,
+                serviceFrontendLock: state.serviceFrontendLock,
+              }),
+            ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+      if (Either.isLeft(archivedResult)) {
+        stateRequired();
+        return;
+      }
+      for (const block of archivedResult.right) {
+        if (block.frontendIndex !== replayedThroughFrontendIndex + 1) {
+          stateRequired();
+          return;
+        }
+        pendingBlocks.push(block);
+        replayedThroughFrontendIndex = block.frontendIndex;
+      }
+      if (
+        replayedThroughFrontendIndex !==
+        segment.descriptor.terminalFrontendIndex
+      ) {
+        stateRequired();
+        return;
+      }
+    }
+
+    let deliveredThroughFrontendIndex = decodedResume.right.frontendIndex;
+    while (true) {
+      for (const pending of pendingBlocks) {
+        if (
+          pending.frontendIndex !== deliveredThroughFrontendIndex + 1 ||
+          pending.frontendName !== key.frontendName
+        ) {
+          stateRequired();
+          return;
+        }
+        const encodedBlock = yield* Schema.encode(ServiceFrontendBlockSchema)(
+          pending,
+        ).pipe(
+          mapParseError({
+            code: 'service-frontend-delivery-block-encode-failed',
+            prefix: 'Failed to encode a connection-specific frontend block',
+          }),
+        );
+        yield* Effect.try({
+          try: () =>
+            connection.send(
+              JSON.stringify({
+                type: 'serviceFrontendBlock',
+                sync: encodedBlock,
+              }),
+            ),
+          catch: ZerospinError.catch({
+            code: 'service-frontend-delivery-block-send-failed',
+            message: 'Failed to send a connection-specific frontend block',
+          }),
+        });
+        deliveredThroughFrontendIndex = pending.frontendIndex;
+      }
+
+      const stableTargetDescriptor = yield* getPredecessor({ db, key });
+      if (
+        stableTargetDescriptor.systemId !== targetDescriptor.systemId ||
+        stableTargetDescriptor.generationId !== key.generationId ||
+        stableTargetDescriptor.terminalFrontendIndex <
+          deliveredThroughFrontendIndex
       ) {
         stateRequired();
         return;
       }
       if (
-        predecessorDescriptor.generationId ===
-        decodedResume.right.replicaGenerationId
+        stableTargetDescriptor.terminalFrontendIndex ===
+        deliveredThroughFrontendIndex
       ) {
-        sourceDescriptor = predecessorDescriptor;
-        sourceRepo = predecessorRepo;
         break;
       }
-      currentDescriptor = predecessorDescriptor;
-      currentRepo = predecessorRepo;
+      const suffixResult = yield* getArchivedBlocks({
+        afterFrontendIndex: deliveredThroughFrontendIndex,
+        throughFrontendIndex: stableTargetDescriptor.terminalFrontendIndex,
+        serviceFrontendLock: state.serviceFrontendLock,
+        db,
+        key,
+      }).pipe(Effect.either);
+      if (Either.isLeft(suffixResult)) {
+        stateRequired();
+        return;
+      }
+      pendingBlocks = [...suffixResult.right];
     }
 
-    if (sourceDescriptor === null || sourceRepo === null) {
-      stateRequired();
-      return;
-    }
-    if (
-      decodedResume.right.frontendIndex > sourceDescriptor.terminalFrontendIndex
-    ) {
-      stateRequired();
-      return;
-    }
-    const sourceSuffixResult = yield* makeAsync(() =>
-      sourceRepo.getArchivedBlocks({
-        afterFrontendIndex: decodedResume.right.frontendIndex,
-        throughFrontendIndex: sourceDescriptor.terminalFrontendIndex,
-      }),
-    ).pipe(Effect.flatMap(decodeRpc), Effect.either);
-    if (Either.isLeft(sourceSuffixResult)) {
-      stateRequired();
-      return;
-    }
-    for (const block of sourceSuffixResult.right) {
-      connection.send(
-        JSON.stringify({ type: 'serviceFrontendBlock', sync: block }),
-      );
-    }
-
-    const boundaries: IServiceFrontendGenerationBoundaryBlock[] = [];
-    for (
-      let childIndex = childSegments.length - 1;
-      childIndex >= 0;
-      childIndex -= 1
-    ) {
-      const child = childSegments[childIndex];
-      if (child === undefined) {
-        stateRequired();
-        return;
-      }
-      const predecessor = child.descriptor.predecessor;
-      if (predecessor === null) {
-        stateRequired();
-        return;
-      }
-      let boundaryResult;
-      if (child.repo === null) {
-        boundaryResult = yield* getArchivedBlocks({
-          afterFrontendIndex: predecessor.terminalFrontendIndex,
-          throughFrontendIndex: predecessor.terminalFrontendIndex + 1,
-          db,
-          key,
-        }).pipe(Effect.either);
-      } else {
-        const childRepo = child.repo;
-        boundaryResult = yield* makeAsync(() =>
-          childRepo.getArchivedBlocks({
-            afterFrontendIndex: predecessor.terminalFrontendIndex,
-            throughFrontendIndex: predecessor.terminalFrontendIndex + 1,
-          }),
-        ).pipe(Effect.flatMap(decodeRpc), Effect.either);
-      }
-      if (
-        Either.isLeft(boundaryResult) ||
-        boundaryResult.right.length !== 1 ||
-        boundaryResult.right[0]?.kind !== 'generation-boundary' ||
-        boundaryResult.right[0].systemId !== targetDescriptor.systemId ||
-        boundaryResult.right[0].prevGenerationId !== predecessor.generationId ||
-        boundaryResult.right[0].generationId !==
-          child.descriptor.generationId ||
-        boundaryResult.right[0].serviceName !== key.serviceName ||
-        boundaryResult.right[0].actorName !== key.actorName ||
-        boundaryResult.right[0].actorId !== key.actorId ||
-        boundaryResult.right[0].frontendName !== key.frontendName ||
-        boundaryResult.right[0].frontendIndex !==
-          predecessor.terminalFrontendIndex + 1
-      ) {
-        stateRequired();
-        return;
-      }
-      boundaries.push(boundaryResult.right[0]);
-    }
-    const firstBoundary = boundaries[0];
-    if (firstBoundary === undefined) {
-      stateRequired();
-      return;
-    }
-    connection.send(
-      JSON.stringify({ type: 'serviceFrontendBlock', sync: firstBoundary }),
-    );
     connection.send(
       JSON.stringify({
-        type: 'lineage-transition-required',
-        kind: 'lineage-transition-required',
-        systemId: targetDescriptor.systemId,
-        generationId: key.generationId,
-        serviceName: key.serviceName,
-        actorId: key.actorId,
-        actorName: key.actorName,
-        frontendName: key.frontendName,
-        frontendVersion,
-        appliedBoundaryIndex: firstBoundary.frontendIndex,
-        remainingBoundaries: boundaries.slice(1),
+        type: 'replay-complete',
+        frontendIndex: deliveredThroughFrontendIndex,
       }),
     );
-    connection.close(4002, 'lineage-transition-required');
+    connection.setState({ ...state, phase: 'live' });
   },
 );

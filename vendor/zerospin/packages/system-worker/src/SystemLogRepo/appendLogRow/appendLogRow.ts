@@ -38,7 +38,6 @@ const maxRows = 1000;
 export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
   function* (props: {
     db: IDb;
-    deployId: string;
     generationId: string;
     level: ISystemLogLevel;
     message: string;
@@ -66,15 +65,6 @@ export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
         extra: { generationId: props.generationId },
       }),
     );
-    const deployId = yield* Schema.validate(
-      makeAbbreviationIdSchema(coreAbbreviations.deploy),
-    )(props.deployId).pipe(
-      mapParseError({
-        code: 'failed-to-decode-log-row-deploy-id',
-        prefix: 'Failed to decode SystemLogRepo deployId',
-        extra: { deployId: props.deployId },
-      }),
-    );
     // 2 — identity and creation time remain independent from ordering
     const createdAt = yield* dutils.date();
     const id = yield* makeIdFromAbbreviation({ abbreviation: 'log' });
@@ -95,7 +85,6 @@ export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
         source,
         systemId,
         generationId,
-        deployId,
       } satisfies ISystemLogRow;
 
       // 4 — the max read and insert are synchronous so requests cannot interleave them

@@ -5,16 +5,16 @@
  */
 import type { SystemWorker } from 'system-worker';
 
-export async function pushFromApis(props: { accountId: string }) {
+export async function pushFromApis(props: { aggregateId: string }) {
   const entrypoint = (await getSystemWorker({
-    accountId: props.accountId,
+    aggregateId: props.aggregateId,
   })) as SystemWorker;
 
   return entrypoint.pushCommands(props);
 }
 
 declare function getSystemWorker(props: {
-  accountId: string;
+  aggregateId: string;
 }): Promise<unknown>;
 
 // Before typecheck: nx run system-worker:lib

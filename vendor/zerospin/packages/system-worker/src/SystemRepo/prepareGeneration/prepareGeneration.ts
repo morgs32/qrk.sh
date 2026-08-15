@@ -1,79 +1,75 @@
 /*
  * System-worker annotation:
- * Prepares one candidate generation in a single blocking Effect. Reuse only
- * updates candidate admission metadata; clean seeds and historical replay build
- * a new immutable lineage before readiness becomes authoritative.
+ * Prepares a closed root or continuously advances a migrating linked
+ * generation from immutable service ledgers before aggregate ledgers.
  */
 
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { IDeploySeedCommand } from '@zerospin/core/contracts/types';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
-import { ServiceFrontendStateSchema } from '@zerospin/core/serviceSession/ServiceFrontendBlockSchema';
-import { FrontendSyncStateSchema } from '@zerospin/core/session/FrontendBlockSchema';
 import { checkSystemCompatibility } from '@zerospin/core/system/checkSystemCompatibility';
-import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
 import type { ISystemSpec } from '@zerospin/core/system/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
-import {
-  makeTelemetryCollector,
-  makeTraceableRpcTarget,
-  TelemetryCollector,
-} from '@zerospin/logger';
 import { and, eq, type AnyColumn } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
-import { system } from 'system';
 
-import { AccountBlockRepo } from '../../AccountBlockRepo/AccountBlockRepo.js';
-import { getAccountBlockRepo } from '../../AccountBlockRepo/getAccountBlockRepo/getAccountBlockRepo.js';
-import {
-  AccountRepo as AccountRepoClass,
-  type AccountRepo,
-} from '../../AccountRepo/AccountRepo.js';
-import { getAccountRepo } from '../../AccountRepo/getAccountRepo/getAccountRepo.js';
-import { FrontendRepo } from '../../FrontendRepo/FrontendRepo.js';
-import { getFrontendRepo } from '../../FrontendRepo/getFrontendRepo/getFrontendRepo.js';
+import { AggregateBlockRepo } from '../../AggregateBlockRepo/AggregateBlockRepo.js';
+import { getAggregateBlockRepo } from '../../AggregateBlockRepo/getAggregateBlockRepo/getAggregateBlockRepo.js';
+import { AggregateRepo } from '../../AggregateRepo/AggregateRepo.js';
+import { getAggregateRepo } from '../../AggregateRepo/getAggregateRepo/getAggregateRepo.js';
 import { getServiceBlockRepo } from '../../ServiceBlockRepo/getServiceBlockRepo/getServiceBlockRepo.js';
 import { ServiceBlockRepo } from '../../ServiceBlockRepo/ServiceBlockRepo.js';
-import { getServiceFrontendRepo } from '../../ServiceFrontendRepo/getServiceFrontendRepo/getServiceFrontendRepo.js';
-import { ServiceFrontendRepo } from '../../ServiceFrontendRepo/ServiceFrontendRepo.js';
 import { getServiceRepo } from '../../ServiceRepo/getServiceRepo/getServiceRepo.js';
 import { ServiceRepo } from '../../ServiceRepo/ServiceRepo.js';
 import { getRepoRegistrations } from '../getRepoRegistrations/getRepoRegistrations.js';
-import { SystemRepo } from '../SystemRepo.js';
+import { registerRepo } from '../registerRepo/registerRepo.js';
 
 export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
   function* (props: {
     db: IDb;
+    activationGuard: Effect.Effect<void>;
     configuredSystemId: string;
     deployId: string;
     generationId: string;
     prevGenerationId: string | null;
+    restoreSubscriptions: boolean;
     systemSpec: ISystemSpec;
     seeds: readonly IDeploySeedCommand[];
+    submitTargetedSeed: (props: {
+      generationId: string;
+      seed: IDeploySeedCommand;
+    }) => Effect.Effect<void, IAnyError, Async>;
+    drainSystemWrites: (props: {
+      generationId: string;
+      throughWriteIndex: number | null;
+      includeHeld?: true;
+    }) => Effect.Effect<void, IAnyError, Async>;
     generationStateTable: IAnyDrizzleSchema;
     generationStateColumns: Readonly<{
       generationId: AnyColumn;
-      initialDeployId: AnyColumn;
+      phase: AnyColumn;
       preparingDeployId: AnyColumn;
-      readiness: AnyColumn;
     }>;
     replayCompletionsTable: IAnyDrizzleSchema;
     replayCompletionsColumns: Readonly<{
-      deployId: AnyColumn;
+      generationId: AnyColumn;
       targetRepoName: AnyColumn;
     }>;
-    repoTable: IAnyDrizzleSchema;
+    repoTable: IAnyDrizzleSchema & {
+      generationId: AnyColumn;
+      repoType: AnyColumn;
+      repoName: AnyColumn;
+      tableNames: AnyColumn;
+    };
   }): Effect.fn.Return<
     Readonly<{
       deployId: string;
       generationId: string;
-      readiness: 'ready';
+      phase: 'closed' | 'migrating' | 'open';
       reusedGeneration: boolean;
     }>,
     IAnyError,
@@ -97,13 +93,18 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
     if (prevGenerationId === generationId) {
       return yield* new ZerospinError({
         code: 'generation-cannot-replay-itself',
-        message: 'A new generation cannot name itself as its predecessor',
-        extra: { deployId, generationId, prevGenerationId },
+        message: 'A generation cannot name itself as predecessor',
+        extra: { deployId, generationId },
+      });
+    }
+    if (prevGenerationId !== null && seeds.length !== 0) {
+      return yield* new ZerospinError({
+        code: 'generation-migration-seeds-not-allowed',
+        message: 'Linked generation preparation cannot run lifecycle seeds',
+        extra: { deployId, generationId, seedCount: seeds.length },
       });
     }
 
-    // Checkpoint 1: the candidate spec must describe the code executing this
-    // preparation. A caller-supplied different spec cannot authorize readiness.
     const encodedSystemSpec = yield* Schema.encode(
       Schema.parseJson(SystemSpecSchema),
     )(systemSpec).pipe(
@@ -113,234 +114,14 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
         extra: { deployId, generationId },
       }),
     );
-    const encodedRuntimeSystemSpec = yield* Schema.encode(
-      Schema.parseJson(SystemSpecSchema),
-    )(makeSystemSpec({ system })).pipe(
-      mapParseError({
-        code: 'generation-runtime-system-spec-encode-failed',
-        prefix: 'Failed to encode runtime SystemSpec',
-        extra: { deployId, generationId },
-      }),
-    );
-    if (encodedSystemSpec !== encodedRuntimeSystemSpec) {
-      return yield* new ZerospinError({
-        code: 'generation-system-spec-runtime-mismatch',
-        message: 'The candidate SystemSpec does not match this Worker code',
-        extra: { deployId, generationId },
-      });
-    }
 
-    const rawStoredGeneration = yield* Effect.try({
-      try: () =>
-        db
-          .select()
-          .from(generationStateTable)
-          .where(eq(generationStateColumns.generationId, generationId))
-          .get(),
-      catch: ZerospinError.catch({
-        code: 'generation-prepare-state-read-failed',
-        message: 'Failed to read generation preparation state',
-        extra: { deployId, generationId },
-      }),
-    });
-
-    if (rawStoredGeneration !== undefined) {
-      const storedGeneration = yield* Schema.decodeUnknown(
-        Schema.Struct({
-          generationId: Schema.String,
-          prevGenerationId: Schema.NullOr(Schema.String),
-          initialDeployId: Schema.String,
-          activeDeployId: Schema.NullOr(Schema.String),
-          preparingDeployId: Schema.NullOr(Schema.String),
-          readiness: Schema.Literal('initializing', 'ready', 'failed'),
-          admission: Schema.Literal('closed', 'open', 'draining', 'drained'),
-          activeSystemSpec: Schema.NullOr(Schema.String),
-          preparingSystemSpec: Schema.NullOr(Schema.String),
-        }),
-      )(rawStoredGeneration).pipe(
-        mapParseError({
-          code: 'generation-prepare-state-invalid',
-          prefix: 'Stored generation preparation state is invalid',
-          extra: { deployId, generationId },
-        }),
-      );
-
-      if (storedGeneration.readiness === 'failed') {
-        return yield* new ZerospinError({
-          code: 'failed-generation-cannot-resume',
-          message: 'A failed target generation can never be prepared again',
-          extra: { deployId, generationId },
-        });
-      }
-
-      // Checkpoint 2: same-deploy retries after readiness or opening return the
-      // original result only when the persisted candidate spec is identical.
-      if (
-        storedGeneration.initialDeployId === deployId &&
-        storedGeneration.readiness === 'ready' &&
-        (storedGeneration.preparingDeployId === deployId ||
-          storedGeneration.activeDeployId === deployId)
-      ) {
-        const storedSystemSpec =
-          storedGeneration.preparingDeployId === deployId
-            ? storedGeneration.preparingSystemSpec
-            : storedGeneration.activeSystemSpec;
-        if (storedSystemSpec !== encodedSystemSpec) {
-          return yield* new ZerospinError({
-            code: 'generation-prepare-retry-system-spec-mismatch',
-            message:
-              'The deploy already prepared this generation with another SystemSpec',
-            extra: { deployId, generationId },
-          });
-        }
-        return {
-          deployId,
-          generationId,
-          readiness: 'ready',
-          reusedGeneration: false,
-        };
-      }
-
-      if (
-        storedGeneration.readiness === 'initializing' &&
-        (storedGeneration.initialDeployId !== deployId ||
-          storedGeneration.preparingDeployId !== deployId ||
-          storedGeneration.preparingSystemSpec !== encodedSystemSpec)
-      ) {
-        return yield* new ZerospinError({
-          code: 'generation-preparation-owned-by-another-deploy',
-          message: 'Another deploy already owns this generation preparation',
-          extra: {
-            deployId,
-            generationId,
-            initialDeployId: storedGeneration.initialDeployId,
-            preparingDeployId: storedGeneration.preparingDeployId,
-          },
-        });
-      }
-
-      if (storedGeneration.readiness === 'ready') {
-        if (storedGeneration.admission !== 'open') {
-          return yield* new ZerospinError({
-            code: 'generation-reuse-admission-not-open',
-            message:
-              'A generation with closed or frozen admission cannot be reused',
-            extra: {
-              deployId,
-              generationId,
-              admission: storedGeneration.admission,
-            },
-          });
-        }
-        if (
-          storedGeneration.preparingDeployId !== null &&
-          storedGeneration.preparingDeployId !== deployId
-        ) {
-          return yield* new ZerospinError({
-            code: 'generation-reuse-owned-by-another-deploy',
-            message: 'Another deploy already owns generation reuse preparation',
-            extra: {
-              deployId,
-              generationId,
-              preparingDeployId: storedGeneration.preparingDeployId,
-            },
-          });
-        }
-        if (storedGeneration.activeSystemSpec === null) {
-          return yield* new ZerospinError({
-            code: 'generation-reuse-active-system-spec-missing',
-            message: 'A reusable generation must have an active SystemSpec',
-            extra: { deployId, generationId },
-          });
-        }
-        if (prevGenerationId !== null) {
-          return yield* new ZerospinError({
-            code: 'generation-reuse-predecessor-must-be-null',
-            message: 'Reusing a generation does not replay a predecessor',
-            extra: { deployId, generationId, prevGenerationId },
-          });
-        }
-        if (seeds.length !== 0) {
-          return yield* new ZerospinError({
-            code: 'generation-reuse-seeds-not-allowed',
-            message: 'Seeds run only for a detached clean generation',
-            extra: { deployId, generationId, seedCount: seeds.length },
-          });
-        }
-
-        const activeSystemSpec = yield* Schema.decodeUnknown(
-          Schema.parseJson(SystemSpecSchema),
-        )(storedGeneration.activeSystemSpec).pipe(
-          mapParseError({
-            code: 'generation-reuse-active-system-spec-invalid',
-            prefix: 'Stored active SystemSpec is invalid',
-            extra: { deployId, generationId },
-          }),
-        );
-        const compatibility = yield* checkSystemCompatibility({
-          prior: activeSystemSpec,
-          next: systemSpec,
-        });
-        if (compatibility.requiresNewGeneration) {
-          return yield* new ZerospinError({
-            code: 'generation-reuse-model-definitions-changed',
-            message:
-              'The candidate changes encoded model definitions and requires a new generation',
-            extra: {
-              deployId,
-              generationId,
-              requiredBump: compatibility.requiredBump,
-              diffCount: compatibility.diffs.length,
-              missingAdapterCount: compatibility.missingAdapters.length,
-            },
-          });
-        }
-        if (compatibility.missingAdapters.length !== 0) {
-          return yield* new ZerospinError({
-            code: 'generation-reuse-mutation-adapters-missing',
-            message:
-              'The candidate has unresolved mutation adapter requirements',
-            extra: {
-              deployId,
-              generationId,
-              missingAdapterCount: compatibility.missingAdapters.length,
-            },
-          });
-        }
-
-        yield* Effect.try({
-          try: () =>
-            db
-              .update(generationStateTable)
-              .set({
-                preparingDeployId: deployId,
-                preparingSystemSpec: encodedSystemSpec,
-                failure: null,
-              })
-              .where(
-                and(
-                  eq(generationStateColumns.generationId, generationId),
-                  eq(generationStateColumns.readiness, 'ready'),
-                ),
-              )
-              .run(),
-          catch: ZerospinError.catch({
-            code: 'generation-reuse-prepare-write-failed',
-            message: 'Failed to persist generation reuse preparation',
-            extra: { deployId, generationId },
-          }),
-        });
-
-        return {
-          deployId,
-          generationId,
-          readiness: 'ready',
-          reusedGeneration: true,
-        };
-      }
-    } else {
-      // Checkpoint 3: first preparation creates the only lifecycle row for this
-      // target lineage. A clean/initial root has no predecessor.
+    yield* props.activationGuard;
+    const rawStored = db
+      .select()
+      .from(generationStateTable)
+      .where(eq(generationStateColumns.generationId, generationId))
+      .get();
+    if (rawStored === undefined) {
       yield* Effect.try({
         try: () =>
           db
@@ -348,11 +129,12 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
             .values({
               generationId,
               prevGenerationId,
+              successorGenerationId: null,
               initialDeployId: deployId,
               activeDeployId: null,
               preparingDeployId: deployId,
-              readiness: 'initializing',
-              admission: 'closed',
+              phase: prevGenerationId === null ? 'closed' : 'migrating',
+              lastWriteIndex: 0,
               activeSystemSpec: null,
               preparingSystemSpec: encodedSystemSpec,
               failure: null,
@@ -360,1513 +142,519 @@ export const prepareGeneration = Effect.fn('SystemRepo.prepareGeneration')(
               readyAt: null,
               openedAt: null,
               drainFrozenAt: null,
-              drainedAt: null,
+              retirementCompletedAt: null,
+              retiredAt: null,
             })
             .run(),
         catch: ZerospinError.catch({
-          code: 'generation-prepare-state-create-failed',
-          message: 'Failed to create target generation preparation state',
+          code: 'generation-prepare-state-write-failed',
+          message: 'Failed to create generation preparation state',
           extra: { deployId, generationId, prevGenerationId },
         }),
       });
-    }
-
-    // Checkpoint 4: everything below belongs only to the new target generation.
-    // Any failure makes this lineage permanently inactive.
-    return yield* Effect.gen(function* () {
-      if (prevGenerationId === null) {
-        // Clean seeds preserve their declared order and use ordinary finalization
-        // so the root generation starts with normal authoritative ledgers.
-        for (const seed of seeds) {
-          if (seed.commandType === 'account') {
-            const targetAccountRepo = yield* getAccountRepo({
-              key: {
-                generationId,
-                accountId: seed.accountId,
-                accountName: seed.accountName,
-              },
-            });
-            const tracedTargetAccountRepo =
-              makeTraceableRpcTarget<Pick<AccountRepo, 'finalizeAccountBlock'>>(
-                targetAccountRepo,
-              );
-            const finalized = yield* tracedTargetAccountRepo
-              .finalizeAccountBlock({
-                accountId: seed.accountId,
-                accountName: seed.accountName,
-                commands: [seed],
-              })
-              .pipe(
-                Effect.mapError(errorJson =>
-                  errorJson instanceof Error
-                    ? new ZerospinError({
-                        code: 'generation-seed-account-rpc-failed',
-                        message: errorJson.message,
-                        cause: ZerospinError.prettyUnknownFailure(errorJson),
-                      })
-                    : Schema.decodeUnknownSync(ZerospinError.schema)(errorJson),
-                ),
-              );
-            if (
-              finalized.failure !== null ||
-              finalized.failedCommands.length !== 0
-            ) {
-              return yield* new ZerospinError({
-                code: 'generation-seed-account-finalization-failed',
-                message:
-                  'An account seed command failed during clean preparation',
-                extra: {
-                  deployId,
-                  generationId,
-                  commandId: seed.id,
-                  failedCommandCount: finalized.failedCommands.length,
-                },
-              });
-            }
-            continue;
-          }
-
-          if (seed.commandType === 'service') {
-            const targetServiceRepo = yield* getServiceRepo({
-              key: {
-                generationId,
-                serviceName: seed.serviceName,
-              },
-            });
-            const encodedFinalized = yield* makeAsync(() =>
-              targetServiceRepo.finalizeServiceCommands({
-                serviceName: seed.serviceName,
-                commands: [seed],
-              }),
-            );
-            const finalized = yield* decodeRpc(encodedFinalized);
-            if (finalized.failedCommands.length !== 0) {
-              return yield* new ZerospinError({
-                code: 'generation-seed-service-finalization-failed',
-                message:
-                  'A service seed command failed during clean preparation',
-                extra: {
-                  deployId,
-                  generationId,
-                  commandId: seed.id,
-                  failedCommandCount: finalized.failedCommands.length,
-                },
-              });
-            }
-            const encodedDrained = yield* makeAsync(() =>
-              targetServiceRepo.drainServiceBlockOutbox(),
-            );
-            yield* decodeRpc(encodedDrained);
-            continue;
-          }
-
-          return yield* new ZerospinError({
-            code: 'generation-seed-command-type-unsupported',
-            message: 'Generation seeds contain an unsupported command type',
-            extra: { deployId, generationId },
-          });
-        }
-      } else {
-        if (seeds.length !== 0) {
-          return yield* new ZerospinError({
-            code: 'generation-migration-seeds-not-allowed',
-            message: 'Migration preparation cannot run clean seeds',
-            extra: { deployId, generationId, seedCount: seeds.length },
-          });
-        }
-
-        const sourceSystemRepo = SystemRepo.getRepo({
-          generationId: prevGenerationId,
-        });
-        const encodedSourceState = yield* makeAsync(() =>
-          sourceSystemRepo.getGenerationState(),
-        );
-        const sourceState = yield* decodeRpc(encodedSourceState);
-        if (sourceState === null) {
-          return yield* new ZerospinError({
-            code: 'generation-source-state-missing',
-            message: 'The predecessor generation has no lifecycle state',
-            extra: { deployId, generationId, prevGenerationId },
-          });
-        }
-        if (
-          sourceState.readiness !== 'ready' ||
-          sourceState.admission !== 'draining' ||
-          sourceState.drainFrozenAt === null ||
-          sourceState.activeSystemSpec === null
-        ) {
-          return yield* new ZerospinError({
-            code: 'generation-source-not-frozen',
-            message:
-              'The predecessor must be ready with frozen drain bounds and an active SystemSpec',
-            extra: {
-              deployId,
-              generationId,
-              prevGenerationId,
-              sourceReadiness: sourceState.readiness,
-              sourceAdmission: sourceState.admission,
-              sourceDrainFrozenAt: sourceState.drainFrozenAt,
-            },
-          });
-        }
-
-        const compatibility = yield* checkSystemCompatibility({
-          prior: sourceState.activeSystemSpec,
-          next: systemSpec,
-        });
-        if (!compatibility.requiresNewGeneration) {
-          return yield* new ZerospinError({
-            code: 'generation-migration-not-required',
-            message:
-              'The candidate has identical encoded model definitions and must reuse the active generation',
-            extra: {
-              deployId,
-              generationId,
-              prevGenerationId,
-              requiredBump: compatibility.requiredBump,
-            },
-          });
-        }
-        if (compatibility.missingAdapters.length !== 0) {
-          return yield* new ZerospinError({
-            code: 'generation-migration-adapters-missing',
-            message:
-              'Generation migration is missing mutation adapter coverage',
-            extra: {
-              deployId,
-              generationId,
-              prevGenerationId,
-              missingAdapterCount: compatibility.missingAdapters.length,
-            },
-          });
-        }
-
-        const encodedSourceServiceRepos = yield* makeAsync(() =>
-          sourceSystemRepo.getRepoRegistrations({ repoType: 'ServiceRepo' }),
-        );
-        const sourceServiceRepos = yield* decodeRpc(encodedSourceServiceRepos);
-
-        // Checkpoint 5: services replay first, one source repo and one ascending
-        // authoritative block at a time.
-        for (const sourceServiceRegistration of sourceServiceRepos) {
-          const sourceServiceKey =
-            yield* ServiceRepo.repoUtils.nameUtils.parseName(
-              sourceServiceRegistration.repoName,
-            );
-          const sourceServiceBlockRepoName =
-            yield* ServiceBlockRepo.repoUtils.nameUtils.makeName({
-              generationId: prevGenerationId,
-              serviceName: sourceServiceKey.serviceName,
-            });
-          let sourceBound: (typeof sourceState.drainBounds)[number] | null =
-            null;
-          for (const candidateBound of sourceState.drainBounds) {
-            if (candidateBound.repoName !== sourceServiceBlockRepoName) {
-              continue;
-            }
-            if (sourceBound !== null) {
-              return yield* new ZerospinError({
-                code: 'generation-service-replay-bound-duplicate',
-                message: 'A source ServiceRepo has duplicate replay bounds',
-                extra: {
-                  deployId,
-                  generationId,
-                  sourceRepoName: sourceServiceRegistration.repoName,
-                },
-              });
-            }
-            sourceBound = candidateBound;
-          }
-
-          const targetServiceRepoName =
-            yield* ServiceRepo.repoUtils.nameUtils.makeName({
-              generationId,
-              serviceName: sourceServiceKey.serviceName,
-            });
-          const existingCompletion = yield* Effect.try({
-            try: () =>
-              db
-                .select()
-                .from(replayCompletionsTable)
-                .where(
-                  and(
-                    eq(replayCompletionsColumns.deployId, deployId),
-                    eq(
-                      replayCompletionsColumns.targetRepoName,
-                      targetServiceRepoName,
-                    ),
-                  ),
-                )
-                .get(),
-            catch: ZerospinError.catch({
-              code: 'generation-service-replay-completion-read-failed',
-              message:
-                'Failed to read the target ServiceRepo replay completion',
-              extra: { deployId, generationId, targetServiceRepoName },
-            }),
-          });
-          if (existingCompletion !== undefined) {
-            const completion = yield* Schema.decodeUnknown(
-              Schema.Struct({
-                repoType: Schema.Literal('ServiceRepo', 'AccountRepo'),
-                prevRepoName: Schema.String,
-                targetRepoName: Schema.String,
-                terminalIndex: Schema.NullOr(Schema.Number),
-              }),
-            )(existingCompletion).pipe(
-              mapParseError({
-                code: 'generation-service-replay-completion-invalid',
-                prefix: 'Stored service replay completion is invalid',
-                extra: { deployId, generationId, targetServiceRepoName },
-              }),
-            );
-            if (
-              completion.repoType !== 'ServiceRepo' ||
-              completion.prevRepoName !== sourceServiceRegistration.repoName ||
-              completion.targetRepoName !== targetServiceRepoName ||
-              completion.terminalIndex !== (sourceBound?.terminalIndex ?? null)
-            ) {
-              return yield* new ZerospinError({
-                code: 'generation-service-replay-completion-mismatch',
-                message:
-                  'Stored service replay completion does not match retry',
-                extra: { deployId, generationId, targetServiceRepoName },
-              });
-            }
-            continue;
-          }
-
-          const targetServiceRepo = yield* getServiceRepo({
-            key: {
-              generationId,
-              serviceName: sourceServiceKey.serviceName,
-            },
-          });
-          let afterServiceIndex: number | null = null;
-          let lastServiceCursor: string | null = null;
-          let replayedBlockCount = 0;
-          if (sourceBound !== null) {
-            if (sourceBound.repoType !== 'ServiceBlockRepo') {
-              return yield* new ZerospinError({
-                code: 'generation-service-replay-bound-type-mismatch',
-                message: 'Source service replay bound has the wrong repo type',
-                extra: {
-                  deployId,
-                  generationId,
-                  repoName: sourceBound.repoName,
-                  repoType: sourceBound.repoType,
-                },
-              });
-            }
-            if (sourceBound.terminalIndex === null) {
-              if (sourceBound.terminalCursor !== null) {
-                return yield* new ZerospinError({
-                  code: 'generation-service-empty-bound-inconsistent',
-                  message:
-                    'An empty service bound cannot have a terminal cursor',
-                  extra: {
-                    deployId,
-                    generationId,
-                    repoName: sourceBound.repoName,
-                  },
-                });
-              }
-            } else {
-              const throughServiceIndex = sourceBound.terminalIndex;
-              const sourceServiceBlockRepo = yield* getServiceBlockRepo({
-                key: {
-                  generationId: prevGenerationId,
-                  serviceName: sourceServiceKey.serviceName,
-                },
-              });
-              while (afterServiceIndex !== sourceBound.terminalIndex) {
-                const encodedBlock = yield* makeAsync(() =>
-                  sourceServiceBlockRepo.getReplayBlock({
-                    afterServiceIndex,
-                    throughServiceIndex,
-                  }),
-                );
-                const block = yield* decodeRpc(encodedBlock);
-                if (block === null) {
-                  return yield* new ZerospinError({
-                    code: 'generation-service-replay-block-missing',
-                    message: 'Source ServiceBlockRepo ended before its bound',
-                    extra: {
-                      deployId,
-                      generationId,
-                      repoName: sourceBound.repoName,
-                      afterServiceIndex,
-                      throughServiceIndex: sourceBound.terminalIndex,
-                    },
-                  });
-                }
-                if (
-                  (afterServiceIndex !== null &&
-                    block.serviceIndex <= afterServiceIndex) ||
-                  block.serviceIndex > sourceBound.terminalIndex
-                ) {
-                  return yield* new ZerospinError({
-                    code: 'generation-service-replay-order-invalid',
-                    message: 'Source service blocks are not strictly ascending',
-                    extra: {
-                      deployId,
-                      generationId,
-                      repoName: sourceBound.repoName,
-                      afterServiceIndex,
-                      blockServiceIndex: block.serviceIndex,
-                      throughServiceIndex: sourceBound.terminalIndex,
-                    },
-                  });
-                }
-                const encodedReplayed = yield* makeAsync(() =>
-                  targetServiceRepo.replayServiceBlock({
-                    deployId,
-                    prevGenerationId,
-                    block,
-                  }),
-                );
-                const replayed = yield* decodeRpc(encodedReplayed);
-                if (
-                  replayed.serviceIndex !== block.serviceIndex ||
-                  replayed.lastServiceCursor !== block.lastServiceCursor
-                ) {
-                  return yield* new ZerospinError({
-                    code: 'generation-service-replay-result-mismatch',
-                    message: 'Target ServiceRepo replayed a different block',
-                    extra: {
-                      deployId,
-                      generationId,
-                      targetServiceRepoName,
-                      sourceServiceIndex: block.serviceIndex,
-                      targetServiceIndex: replayed.serviceIndex,
-                    },
-                  });
-                }
-                afterServiceIndex = block.serviceIndex;
-                lastServiceCursor = block.lastServiceCursor;
-                replayedBlockCount += 1;
-              }
-              if (lastServiceCursor !== sourceBound.terminalCursor) {
-                return yield* new ZerospinError({
-                  code: 'generation-service-replay-terminal-cursor-mismatch',
-                  message:
-                    'Target service replay did not reach the captured cursor',
-                  extra: {
-                    deployId,
-                    generationId,
-                    targetServiceRepoName,
-                    expectedCursor: sourceBound.terminalCursor,
-                    actualCursor: lastServiceCursor,
-                  },
-                });
-              }
-            }
-
-            const targetServiceBlockRepoName =
-              yield* ServiceBlockRepo.repoUtils.nameUtils.makeName({
-                generationId,
-                serviceName: sourceServiceKey.serviceName,
-              });
-            const targetServiceBlockRepo = yield* getServiceBlockRepo({
-              key: {
-                generationId,
-                serviceName: sourceServiceKey.serviceName,
-              },
-            });
-            const encodedTargetBound = yield* makeAsync(() =>
-              targetServiceBlockRepo.getReplayBound(),
-            );
-            const targetBound = yield* decodeRpc(encodedTargetBound);
-            if (
-              targetBound.serviceIndex !== sourceBound.terminalIndex ||
-              targetBound.lastServiceCursor !== sourceBound.terminalCursor
-            ) {
-              return yield* new ZerospinError({
-                code: 'generation-target-service-bound-mismatch',
-                message: 'Target ServiceBlockRepo does not match source bound',
-                extra: { deployId, generationId, targetServiceBlockRepoName },
-              });
-            }
-          }
-
-          // Even an empty source data-owner repo must exist in the target
-          // generation. The repo-local drain is also the exact no-pending-work
-          // postcondition after replay publication.
-          const encodedTargetDrained = yield* makeAsync(() =>
-            targetServiceRepo.drainGeneration(),
-          );
-          const targetDrained = yield* decodeRpc(encodedTargetDrained);
-          if (targetDrained.pendingServiceBlockCount !== 0) {
-            return yield* new ZerospinError({
-              code: 'generation-target-service-repo-not-drained',
-              message:
-                'Target ServiceRepo still has pending work after historical replay',
-              extra: {
-                deployId,
-                generationId,
-                targetServiceRepoName,
-                pendingServiceBlockCount:
-                  targetDrained.pendingServiceBlockCount,
-              },
-            });
-          }
-
-          yield* Effect.try({
-            try: () =>
-              db
-                .insert(replayCompletionsTable)
-                .values({
-                  deployId,
-                  repoType: 'ServiceRepo',
-                  prevRepoName: sourceServiceRegistration.repoName,
-                  targetRepoName: targetServiceRepoName,
-                  terminalIndex: sourceBound?.terminalIndex ?? null,
-                  blockCount: replayedBlockCount,
-                  completedAt: new Date(),
-                })
-                .onConflictDoNothing()
-                .run(),
-            catch: ZerospinError.catch({
-              code: 'generation-service-replay-completion-write-failed',
-              message:
-                'Failed to store the target ServiceRepo replay completion',
-              extra: { deployId, generationId, targetServiceRepoName },
-            }),
-          });
-
-          const storedCompletion = yield* Effect.try({
-            try: () =>
-              db
-                .select()
-                .from(replayCompletionsTable)
-                .where(
-                  and(
-                    eq(replayCompletionsColumns.deployId, deployId),
-                    eq(
-                      replayCompletionsColumns.targetRepoName,
-                      targetServiceRepoName,
-                    ),
-                  ),
-                )
-                .get(),
-            catch: ZerospinError.catch({
-              code: 'generation-service-replay-completion-verify-read-failed',
-              message:
-                'Failed to verify the target ServiceRepo replay completion',
-              extra: { deployId, generationId, targetServiceRepoName },
-            }),
-          });
-          const verifiedCompletion = yield* Schema.decodeUnknown(
-            Schema.Struct({
-              repoType: Schema.Literal('ServiceRepo', 'AccountRepo'),
-              prevRepoName: Schema.String,
-              targetRepoName: Schema.String,
-              terminalIndex: Schema.NullOr(Schema.Number),
-              blockCount: Schema.Number,
-            }),
-          )(storedCompletion).pipe(
-            mapParseError({
-              code: 'generation-service-replay-completion-verify-invalid',
-              prefix: 'Stored target ServiceRepo replay completion is invalid',
-              extra: { deployId, generationId, targetServiceRepoName },
-            }),
-          );
-          if (
-            verifiedCompletion.repoType !== 'ServiceRepo' ||
-            verifiedCompletion.prevRepoName !==
-              sourceServiceRegistration.repoName ||
-            verifiedCompletion.targetRepoName !== targetServiceRepoName ||
-            verifiedCompletion.terminalIndex !==
-              (sourceBound?.terminalIndex ?? null) ||
-            verifiedCompletion.blockCount !== replayedBlockCount
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-service-replay-completion-write-conflict',
-              message:
-                'Target ServiceRepo replay completion changed during preparation',
-              extra: { deployId, generationId, targetServiceRepoName },
-            });
-          }
-        }
-
-        const encodedSourceAccountRepos = yield* makeAsync(() =>
-          sourceSystemRepo.getRepoRegistrations({ repoType: 'AccountRepo' }),
-        );
-        const sourceAccountRepos = yield* decodeRpc(encodedSourceAccountRepos);
-
-        // Checkpoint 6: accounts replay after every service ledger is complete,
-        // then restore service subscriptions at their exact prior watermarks.
-        for (const sourceAccountRegistration of sourceAccountRepos) {
-          const sourceAccountKey =
-            yield* AccountRepoClass.repoUtils.nameUtils.parseName(
-              sourceAccountRegistration.repoName,
-            );
-          const sourceAccountBlockRepoName =
-            yield* AccountBlockRepo.repoUtils.nameUtils.makeName({
-              generationId: prevGenerationId,
-              accountId: sourceAccountKey.accountId,
-              accountName: sourceAccountKey.accountName,
-            });
-          let sourceBound: (typeof sourceState.drainBounds)[number] | null =
-            null;
-          for (const candidateBound of sourceState.drainBounds) {
-            if (candidateBound.repoName !== sourceAccountBlockRepoName) {
-              continue;
-            }
-            if (sourceBound !== null) {
-              return yield* new ZerospinError({
-                code: 'generation-account-replay-bound-duplicate',
-                message: 'A source AccountRepo has duplicate replay bounds',
-                extra: {
-                  deployId,
-                  generationId,
-                  sourceRepoName: sourceAccountRegistration.repoName,
-                },
-              });
-            }
-            sourceBound = candidateBound;
-          }
-
-          const targetAccountRepoName =
-            yield* AccountRepoClass.repoUtils.nameUtils.makeName({
-              generationId,
-              accountId: sourceAccountKey.accountId,
-              accountName: sourceAccountKey.accountName,
-            });
-          const existingCompletion = yield* Effect.try({
-            try: () =>
-              db
-                .select()
-                .from(replayCompletionsTable)
-                .where(
-                  and(
-                    eq(replayCompletionsColumns.deployId, deployId),
-                    eq(
-                      replayCompletionsColumns.targetRepoName,
-                      targetAccountRepoName,
-                    ),
-                  ),
-                )
-                .get(),
-            catch: ZerospinError.catch({
-              code: 'generation-account-replay-completion-read-failed',
-              message:
-                'Failed to read the target AccountRepo replay completion',
-              extra: { deployId, generationId, targetAccountRepoName },
-            }),
-          });
-          if (existingCompletion !== undefined) {
-            const completion = yield* Schema.decodeUnknown(
-              Schema.Struct({
-                repoType: Schema.Literal('ServiceRepo', 'AccountRepo'),
-                prevRepoName: Schema.String,
-                targetRepoName: Schema.String,
-                terminalIndex: Schema.NullOr(Schema.Number),
-              }),
-            )(existingCompletion).pipe(
-              mapParseError({
-                code: 'generation-account-replay-completion-invalid',
-                prefix: 'Stored account replay completion is invalid',
-                extra: { deployId, generationId, targetAccountRepoName },
-              }),
-            );
-            if (
-              completion.repoType !== 'AccountRepo' ||
-              completion.prevRepoName !== sourceAccountRegistration.repoName ||
-              completion.targetRepoName !== targetAccountRepoName ||
-              completion.terminalIndex !== (sourceBound?.terminalIndex ?? null)
-            ) {
-              return yield* new ZerospinError({
-                code: 'generation-account-replay-completion-mismatch',
-                message:
-                  'Stored account replay completion does not match retry',
-                extra: { deployId, generationId, targetAccountRepoName },
-              });
-            }
-            continue;
-          }
-
-          const targetAccountRepo = yield* getAccountRepo({
-            key: {
-              generationId,
-              accountId: sourceAccountKey.accountId,
-              accountName: sourceAccountKey.accountName,
-            },
-          });
-          let afterAccountIndex: number | null = null;
-          let lastAccountCursor: string | null = null;
-          let replayedBlockCount = 0;
-          if (sourceBound !== null) {
-            if (sourceBound.repoType !== 'AccountBlockRepo') {
-              return yield* new ZerospinError({
-                code: 'generation-account-replay-bound-type-mismatch',
-                message: 'Source account replay bound has the wrong repo type',
-                extra: {
-                  deployId,
-                  generationId,
-                  repoName: sourceBound.repoName,
-                  repoType: sourceBound.repoType,
-                },
-              });
-            }
-            if (sourceBound.terminalIndex === null) {
-              if (sourceBound.terminalCursor !== null) {
-                return yield* new ZerospinError({
-                  code: 'generation-account-empty-bound-inconsistent',
-                  message:
-                    'An empty account bound cannot have a terminal cursor',
-                  extra: {
-                    deployId,
-                    generationId,
-                    repoName: sourceBound.repoName,
-                  },
-                });
-              }
-            } else {
-              const throughAccountIndex = sourceBound.terminalIndex;
-              const sourceAccountBlockRepo = yield* getAccountBlockRepo({
-                key: {
-                  generationId: prevGenerationId,
-                  accountId: sourceAccountKey.accountId,
-                  accountName: sourceAccountKey.accountName,
-                },
-              });
-              while (afterAccountIndex !== sourceBound.terminalIndex) {
-                const encodedBlock = yield* makeAsync(() =>
-                  sourceAccountBlockRepo.getReplayBlock({
-                    afterAccountIndex,
-                    throughAccountIndex,
-                  }),
-                );
-                const block = yield* decodeRpc(encodedBlock);
-                if (block === null) {
-                  return yield* new ZerospinError({
-                    code: 'generation-account-replay-block-missing',
-                    message: 'Source AccountBlockRepo ended before its bound',
-                    extra: {
-                      deployId,
-                      generationId,
-                      repoName: sourceBound.repoName,
-                      afterAccountIndex,
-                      throughAccountIndex: sourceBound.terminalIndex,
-                    },
-                  });
-                }
-                if (
-                  (afterAccountIndex !== null &&
-                    block.accountIndex <= afterAccountIndex) ||
-                  block.accountIndex > sourceBound.terminalIndex
-                ) {
-                  return yield* new ZerospinError({
-                    code: 'generation-account-replay-order-invalid',
-                    message: 'Source account blocks are not strictly ascending',
-                    extra: {
-                      deployId,
-                      generationId,
-                      repoName: sourceBound.repoName,
-                      afterAccountIndex,
-                      blockAccountIndex: block.accountIndex,
-                      throughAccountIndex: sourceBound.terminalIndex,
-                    },
-                  });
-                }
-                const encodedReplayed = yield* makeAsync(() =>
-                  targetAccountRepo.replayAccountBlock({
-                    deployId,
-                    prevGenerationId,
-                    block,
-                  }),
-                );
-                const replayed = yield* decodeRpc(encodedReplayed);
-                if (
-                  replayed.accountIndex !== block.accountIndex ||
-                  replayed.lastAccountCursor !== block.lastAccountCursor
-                ) {
-                  return yield* new ZerospinError({
-                    code: 'generation-account-replay-result-mismatch',
-                    message: 'Target AccountRepo replayed a different block',
-                    extra: {
-                      deployId,
-                      generationId,
-                      targetAccountRepoName,
-                      sourceAccountIndex: block.accountIndex,
-                      targetAccountIndex: replayed.accountIndex,
-                    },
-                  });
-                }
-                afterAccountIndex = block.accountIndex;
-                lastAccountCursor = block.lastAccountCursor;
-                replayedBlockCount += 1;
-              }
-              if (lastAccountCursor !== sourceBound.terminalCursor) {
-                return yield* new ZerospinError({
-                  code: 'generation-account-replay-terminal-cursor-mismatch',
-                  message:
-                    'Target account replay did not reach the captured cursor',
-                  extra: {
-                    deployId,
-                    generationId,
-                    targetAccountRepoName,
-                    expectedCursor: sourceBound.terminalCursor,
-                    actualCursor: lastAccountCursor,
-                  },
-                });
-              }
-            }
-
-            const targetAccountBlockRepoName =
-              yield* AccountBlockRepo.repoUtils.nameUtils.makeName({
-                generationId,
-                accountId: sourceAccountKey.accountId,
-                accountName: sourceAccountKey.accountName,
-              });
-            const targetAccountBlockRepo = yield* getAccountBlockRepo({
-              key: {
-                generationId,
-                accountId: sourceAccountKey.accountId,
-                accountName: sourceAccountKey.accountName,
-              },
-            });
-            const encodedTargetBound = yield* makeAsync(() =>
-              targetAccountBlockRepo.getReplayBound(),
-            );
-            const targetBound = yield* decodeRpc(encodedTargetBound);
-            if (
-              targetBound.accountIndex !== sourceBound.terminalIndex ||
-              targetBound.lastAccountCursor !== sourceBound.terminalCursor
-            ) {
-              return yield* new ZerospinError({
-                code: 'generation-target-account-bound-mismatch',
-                message: 'Target AccountBlockRepo does not match source bound',
-                extra: { deployId, generationId, targetAccountBlockRepoName },
-              });
-            }
-          }
-
-          // Empty AccountRepos still belong to the copied data-owner topology.
-          // Draining here instantiates the target and proves replay publication
-          // is complete before subscriptions become live.
-          const encodedTargetDrained = yield* makeAsync(() =>
-            targetAccountRepo.drainGeneration(),
-          );
-          const targetDrained = yield* decodeRpc(encodedTargetDrained);
-          if (
-            targetDrained.pendingServiceSubscriptionCount !== 0 ||
-            targetDrained.pendingAccountBlockCount !== 0
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-target-account-repo-not-drained',
-              message:
-                'Target AccountRepo still has pending work after historical replay',
-              extra: {
-                deployId,
-                generationId,
-                targetAccountRepoName,
-                pendingServiceSubscriptionCount:
-                  targetDrained.pendingServiceSubscriptionCount,
-                pendingAccountBlockCount:
-                  targetDrained.pendingAccountBlockCount,
-              },
-            });
-          }
-
-          const sourceAccountRepo = yield* getAccountRepo({
-            key: {
-              generationId: prevGenerationId,
-              accountId: sourceAccountKey.accountId,
-              accountName: sourceAccountKey.accountName,
-            },
-          });
-          const encodedSubscriptions = yield* makeAsync(() =>
-            sourceAccountRepo.getReplaySubscriptions(),
-          );
-          const subscriptions = yield* decodeRpc(encodedSubscriptions);
-          for (const subscription of subscriptions) {
-            const sourceSubscriptionBlockRepoName =
-              yield* ServiceBlockRepo.repoUtils.nameUtils.makeName({
-                generationId: prevGenerationId,
-                serviceName: subscription.serviceName,
-              });
-            let subscriptionBound:
-              | (typeof sourceState.drainBounds)[number]
-              | null = null;
-            for (const candidateBound of sourceState.drainBounds) {
-              if (candidateBound.repoName === sourceSubscriptionBlockRepoName) {
-                subscriptionBound = candidateBound;
-                break;
-              }
-            }
-            if (
-              subscriptionBound === null ||
-              subscriptionBound.repoType !== 'ServiceBlockRepo' ||
-              subscriptionBound.terminalIndex === null ||
-              subscription.currentServiceIndex > subscriptionBound.terminalIndex
-            ) {
-              return yield* new ZerospinError({
-                code: 'generation-subscription-source-watermark-invalid',
-                message:
-                  'A source account subscription is beyond its captured service bound',
-                extra: {
-                  deployId,
-                  generationId,
-                  targetAccountRepoName,
-                  serviceName: subscription.serviceName,
-                  currentServiceIndex: subscription.currentServiceIndex,
-                  terminalServiceIndex:
-                    subscriptionBound?.terminalIndex ?? null,
-                },
-              });
-            }
-            const encodedRestored = yield* makeAsync(() =>
-              targetAccountRepo.restoreReplaySubscription({
-                serviceName: subscription.serviceName,
-                currentServiceCursor: subscription.currentServiceCursor,
-                currentServiceIndex: subscription.currentServiceIndex,
-              }),
-            );
-            const restored = yield* decodeRpc(encodedRestored);
-            if (
-              restored.serviceName !== subscription.serviceName ||
-              restored.currentServiceCursor !==
-                subscription.currentServiceCursor ||
-              restored.currentServiceIndex !== subscription.currentServiceIndex
-            ) {
-              return yield* new ZerospinError({
-                code: 'generation-subscription-restore-result-mismatch',
-                message: 'Target AccountRepo restored a different subscription',
-                extra: {
-                  deployId,
-                  generationId,
-                  targetAccountRepoName,
-                  serviceName: subscription.serviceName,
-                },
-              });
-            }
-          }
-
-          yield* Effect.try({
-            try: () =>
-              db
-                .insert(replayCompletionsTable)
-                .values({
-                  deployId,
-                  repoType: 'AccountRepo',
-                  prevRepoName: sourceAccountRegistration.repoName,
-                  targetRepoName: targetAccountRepoName,
-                  terminalIndex: sourceBound?.terminalIndex ?? null,
-                  blockCount: replayedBlockCount,
-                  completedAt: new Date(),
-                })
-                .onConflictDoNothing()
-                .run(),
-            catch: ZerospinError.catch({
-              code: 'generation-account-replay-completion-write-failed',
-              message:
-                'Failed to store the target AccountRepo replay completion',
-              extra: { deployId, generationId, targetAccountRepoName },
-            }),
-          });
-
-          const storedCompletion = yield* Effect.try({
-            try: () =>
-              db
-                .select()
-                .from(replayCompletionsTable)
-                .where(
-                  and(
-                    eq(replayCompletionsColumns.deployId, deployId),
-                    eq(
-                      replayCompletionsColumns.targetRepoName,
-                      targetAccountRepoName,
-                    ),
-                  ),
-                )
-                .get(),
-            catch: ZerospinError.catch({
-              code: 'generation-account-replay-completion-verify-read-failed',
-              message:
-                'Failed to verify the target AccountRepo replay completion',
-              extra: { deployId, generationId, targetAccountRepoName },
-            }),
-          });
-          const verifiedCompletion = yield* Schema.decodeUnknown(
-            Schema.Struct({
-              repoType: Schema.Literal('ServiceRepo', 'AccountRepo'),
-              prevRepoName: Schema.String,
-              targetRepoName: Schema.String,
-              terminalIndex: Schema.NullOr(Schema.Number),
-              blockCount: Schema.Number,
-            }),
-          )(storedCompletion).pipe(
-            mapParseError({
-              code: 'generation-account-replay-completion-verify-invalid',
-              prefix: 'Stored target AccountRepo replay completion is invalid',
-              extra: { deployId, generationId, targetAccountRepoName },
-            }),
-          );
-          if (
-            verifiedCompletion.repoType !== 'AccountRepo' ||
-            verifiedCompletion.prevRepoName !==
-              sourceAccountRegistration.repoName ||
-            verifiedCompletion.targetRepoName !== targetAccountRepoName ||
-            verifiedCompletion.terminalIndex !==
-              (sourceBound?.terminalIndex ?? null) ||
-            verifiedCompletion.blockCount !== replayedBlockCount
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-account-replay-completion-write-conflict',
-              message:
-                'Target AccountRepo replay completion changed during preparation',
-              extra: { deployId, generationId, targetAccountRepoName },
-            });
-          }
-        }
-
-        // Checkpoint 7: every projection in the predecessor's finite freeze
-        // receipt is materialized against the already-replayed target owners.
-        for (const sourceBound of sourceState.drainBounds) {
-          if (sourceBound.repoType !== 'FrontendRepo') {
-            continue;
-          }
-          if (
-            sourceBound.systemWorkerName === null ||
-            sourceBound.frontendBlockRepoName === null ||
-            sourceBound.terminalFrontendIndex === null ||
-            sourceBound.segmentKind === null ||
-            sourceBound.segmentKind === 'no-local-segment'
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-account-frontend-bound-incomplete',
-              message:
-                'Frozen account frontend bounds require worker identity, archive identity, terminal index, and a real local segment',
-              extra: { deployId, generationId, repoName: sourceBound.repoName },
-            });
-          }
-          const sourceSystemWorkerName = sourceBound.systemWorkerName;
-          const sourceFrontendBlockRepoName = sourceBound.frontendBlockRepoName;
-          const sourceTerminalFrontendIndex = sourceBound.terminalFrontendIndex;
-          const sourceFrontendKey =
-            yield* FrontendRepo.repoUtils.nameUtils.parseName(
-              sourceBound.repoName,
-            );
-          const sourceActorId = yield* Schema.decodeUnknown(
-            makeAbbreviationIdSchema(coreAbbreviations.actor),
-          )(sourceFrontendKey.actorId).pipe(
-            mapParseError({
-              code: 'generation-account-frontend-actor-id-invalid',
-              prefix: 'Frozen account frontend actorId is invalid',
-              extra: { repoName: sourceBound.repoName },
-            }),
-          );
-          const lastAccountCursor =
-            sourceBound.terminalCursor === null
-              ? null
-              : yield* Schema.decodeUnknown(
-                  makeAbbreviationIdSchema(coreAbbreviations.accountCursor),
-                )(sourceBound.terminalCursor).pipe(
-                  mapParseError({
-                    code: 'generation-account-frontend-cursor-invalid',
-                    prefix: 'Frozen account frontend cursor is invalid',
-                    extra: {
-                      deployId,
-                      generationId,
-                      repoName: sourceBound.repoName,
-                    },
-                  }),
-                );
-          if (
-            (lastAccountCursor === null) !==
-              (sourceBound.terminalIndex === null) ||
-            !Number.isInteger(sourceTerminalFrontendIndex) ||
-            sourceTerminalFrontendIndex < 0
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-account-frontend-watermark-invalid',
-              message:
-                'Frozen account frontend causal and logical watermarks are invalid',
-              extra: { deployId, generationId, repoName: sourceBound.repoName },
-            });
-          }
-          if (
-            (sourceBound.segmentKind === 'root' &&
-              (sourceBound.predecessorGenerationId !== null ||
-                sourceBound.predecessorRepoName !== null ||
-                sourceBound.predecessorTerminalFrontendIndex !== null)) ||
-            (sourceBound.segmentKind === 'inherited' &&
-              (sourceBound.predecessorGenerationId === null ||
-                sourceBound.predecessorRepoName === null ||
-                sourceBound.predecessorTerminalFrontendIndex === null))
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-account-frontend-lineage-invalid',
-              message:
-                'Frozen account frontend lineage classification and predecessor are inconsistent',
-              extra: { deployId, generationId, repoName: sourceBound.repoName },
-            });
-          }
-          const sourceLineagePredecessor =
-            sourceBound.segmentKind === 'root' ||
-            sourceBound.predecessorGenerationId === null ||
-            sourceBound.predecessorRepoName === null ||
-            sourceBound.predecessorTerminalFrontendIndex === null
-              ? null
-              : {
-                  generationId: sourceBound.predecessorGenerationId,
-                  repoName: sourceBound.predecessorRepoName,
-                  terminalFrontendIndex:
-                    sourceBound.predecessorTerminalFrontendIndex,
-                };
-
-          const sourceFrontendRepo = yield* getFrontendRepo({
-            key: sourceFrontendKey,
-          });
-          const sourceStateUnknown = yield* makeAsync(() =>
-            sourceFrontendRepo.getFrontendState({
-              accountId: sourceFrontendKey.accountId,
-              accountName: sourceFrontendKey.accountName,
-              actorId: sourceActorId,
-              actorName: sourceFrontendKey.actorName,
-              frontendName: sourceFrontendKey.frontendName,
-              systemWorkerName: sourceSystemWorkerName,
-              lineage: {
-                mode: 'live',
-                predecessor: sourceLineagePredecessor,
-              },
-            }),
-          );
-          const sourceStateEncoded = yield* Schema.decodeUnknown(
-            Schema.Union(
-              Schema.Struct({
-                _tag: Schema.Literal('Right'),
-                right: Schema.typeSchema(FrontendSyncStateSchema),
-              }),
-              Schema.Struct({
-                _tag: Schema.Literal('Left'),
-                left: Schema.encodedSchema(ZerospinError.schema),
-              }),
-            ),
-          )(sourceStateUnknown).pipe(
-            mapParseError({
-              code: 'generation-account-frontend-state-rpc-invalid',
-              prefix: 'Failed to decode source FrontendRepo state RPC',
-              extra: { repoName: sourceBound.repoName },
-            }),
-          );
-          const sourceFrontendState = yield* decodeRpc(sourceStateEncoded);
-          if (
-            sourceFrontendState.generationId !== prevGenerationId ||
-            sourceFrontendState.frontendIndex !== sourceTerminalFrontendIndex ||
-            sourceFrontendState.systemWorkerName !== sourceSystemWorkerName
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-account-frontend-state-bound-mismatch',
-              message:
-                'Source account frontend state does not match its frozen bound',
-              extra: { deployId, generationId, repoName: sourceBound.repoName },
-            });
-          }
-
-          const targetFrontendKey = {
-            generationId,
-            accountId: sourceFrontendKey.accountId,
-            accountName: sourceFrontendKey.accountName,
-            actorId: sourceActorId,
-            actorName: sourceFrontendKey.actorName,
-            frontendName: sourceFrontendKey.frontendName,
-          };
-          const targetFrontendRepo = yield* getFrontendRepo({
-            key: targetFrontendKey,
-          });
-          const preparedEncoded = yield* makeAsync(() =>
-            targetFrontendRepo.prepareSuccessor({
-              sourceState: sourceFrontendState,
-              lastAccountCursor,
-              accountIndex: sourceBound.terminalIndex,
-              predecessor: {
-                generationId: prevGenerationId,
-                repoName: sourceFrontendBlockRepoName,
-                terminalFrontendIndex: sourceTerminalFrontendIndex,
-              },
-            }),
-          );
-          yield* decodeRpc(preparedEncoded);
-          const readinessEncoded = yield* makeAsync(() =>
-            targetFrontendRepo.getProjectionReadiness(),
-          );
-          const readiness = yield* decodeRpc(readinessEncoded);
-          if (
-            readiness.generationId !== generationId ||
-            readiness.frontendIndex !== sourceTerminalFrontendIndex + 1
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-account-frontend-successor-not-ready',
-              message:
-                'Target account frontend did not reach its inherited boundary',
-              extra: {
-                deployId,
-                generationId,
-                sourceRepoName: sourceBound.repoName,
-                targetFrontendIndex: readiness.frontendIndex,
-              },
-            });
-          }
-        }
-
-        for (const sourceBound of sourceState.drainBounds) {
-          if (sourceBound.repoType !== 'ServiceFrontendRepo') {
-            continue;
-          }
-          if (
-            sourceBound.systemWorkerName === null ||
-            sourceBound.frontendBlockRepoName === null ||
-            sourceBound.terminalFrontendIndex === null ||
-            sourceBound.segmentKind === null ||
-            sourceBound.segmentKind === 'no-local-segment'
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-service-frontend-bound-incomplete',
-              message:
-                'Frozen service frontend bounds require worker identity, archive identity, terminal index, and a real local segment',
-              extra: { deployId, generationId, repoName: sourceBound.repoName },
-            });
-          }
-          const sourceServiceFrontendKey =
-            yield* ServiceFrontendRepo.repoUtils.nameUtils.parseName(
-              sourceBound.repoName,
-            );
-          const lastServiceCursor =
-            sourceBound.terminalCursor === null
-              ? null
-              : yield* Schema.decodeUnknown(
-                  makeAbbreviationIdSchema(coreAbbreviations.serviceCursor),
-                )(sourceBound.terminalCursor).pipe(
-                  mapParseError({
-                    code: 'generation-service-frontend-cursor-invalid',
-                    prefix: 'Frozen service frontend cursor is invalid',
-                    extra: {
-                      deployId,
-                      generationId,
-                      repoName: sourceBound.repoName,
-                    },
-                  }),
-                );
-          if (
-            (lastServiceCursor === null) !==
-              (sourceBound.terminalIndex === null) ||
-            !Number.isInteger(sourceBound.terminalFrontendIndex) ||
-            sourceBound.terminalFrontendIndex < 0
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-service-frontend-watermark-invalid',
-              message:
-                'Frozen service frontend causal and logical watermarks are invalid',
-              extra: { deployId, generationId, repoName: sourceBound.repoName },
-            });
-          }
-          if (
-            (sourceBound.segmentKind === 'root' &&
-              (sourceBound.predecessorGenerationId !== null ||
-                sourceBound.predecessorRepoName !== null ||
-                sourceBound.predecessorTerminalFrontendIndex !== null)) ||
-            (sourceBound.segmentKind === 'inherited' &&
-              (sourceBound.predecessorGenerationId === null ||
-                sourceBound.predecessorRepoName === null ||
-                sourceBound.predecessorTerminalFrontendIndex === null))
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-service-frontend-lineage-invalid',
-              message:
-                'Frozen service frontend lineage classification and predecessor are inconsistent',
-              extra: { deployId, generationId, repoName: sourceBound.repoName },
-            });
-          }
-          const sourceServiceLineagePredecessor =
-            sourceBound.segmentKind === 'root' ||
-            sourceBound.predecessorGenerationId === null ||
-            sourceBound.predecessorRepoName === null ||
-            sourceBound.predecessorTerminalFrontendIndex === null
-              ? null
-              : {
-                  generationId: sourceBound.predecessorGenerationId,
-                  repoName: sourceBound.predecessorRepoName,
-                  terminalFrontendIndex:
-                    sourceBound.predecessorTerminalFrontendIndex,
-                };
-
-          const sourceServiceFrontendRepo = yield* getServiceFrontendRepo({
-            key: sourceServiceFrontendKey,
-          });
-          const sourceStateUnknown = yield* makeAsync(() =>
-            sourceServiceFrontendRepo.getFrontendState({
-              systemId: configuredSystemId,
-              systemWorkerName: sourceBound.systemWorkerName,
-              serviceName: sourceServiceFrontendKey.serviceName,
-              actorName: sourceServiceFrontendKey.actorName,
-              actorId: sourceServiceFrontendKey.actorId,
-              frontendName: sourceServiceFrontendKey.frontendName,
-              lineage: {
-                mode: 'live',
-                predecessor: sourceServiceLineagePredecessor,
-              },
-            }),
-          );
-          const sourceStateEncoded = yield* Schema.decodeUnknown(
-            Schema.Union(
-              Schema.Struct({
-                _tag: Schema.Literal('Right'),
-                right: Schema.typeSchema(ServiceFrontendStateSchema),
-              }),
-              Schema.Struct({
-                _tag: Schema.Literal('Left'),
-                left: Schema.encodedSchema(ZerospinError.schema),
-              }),
-            ),
-          )(sourceStateUnknown).pipe(
-            mapParseError({
-              code: 'generation-service-frontend-state-rpc-invalid',
-              prefix: 'Failed to decode source ServiceFrontendRepo state RPC',
-              extra: { repoName: sourceBound.repoName },
-            }),
-          );
-          const sourceServiceFrontendState =
-            yield* decodeRpc(sourceStateEncoded);
-          if (
-            sourceServiceFrontendState.generationId !== prevGenerationId ||
-            sourceServiceFrontendState.frontendIndex !==
-              sourceBound.terminalFrontendIndex ||
-            sourceServiceFrontendState.systemWorkerName !==
-              sourceBound.systemWorkerName
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-service-frontend-state-bound-mismatch',
-              message:
-                'Source service frontend state does not match its frozen bound',
-              extra: { deployId, generationId, repoName: sourceBound.repoName },
-            });
-          }
-
-          const targetServiceFrontendKey = {
-            generationId,
-            serviceName: sourceServiceFrontendKey.serviceName,
-            actorName: sourceServiceFrontendKey.actorName,
-            actorId: sourceServiceFrontendKey.actorId,
-            frontendName: sourceServiceFrontendKey.frontendName,
-          };
-          const targetServiceFrontendRepo = yield* getServiceFrontendRepo({
-            key: targetServiceFrontendKey,
-          });
-          const preparedUnknown = yield* makeAsync(() =>
-            targetServiceFrontendRepo.prepareSuccessor({
-              sourceState: sourceServiceFrontendState,
-              lastServiceCursor,
-              serviceIndex: sourceBound.terminalIndex,
-              predecessor: {
-                generationId: prevGenerationId,
-                repoName: sourceBound.frontendBlockRepoName,
-                terminalFrontendIndex: sourceBound.terminalFrontendIndex,
-              },
-            }),
-          );
-          const preparedEncoded = yield* Schema.decodeUnknown(
-            Schema.Union(
-              Schema.Struct({
-                _tag: Schema.Literal('Right'),
-                right: Schema.Undefined,
-              }),
-              Schema.Struct({
-                _tag: Schema.Literal('Left'),
-                left: Schema.encodedSchema(ZerospinError.schema),
-              }),
-            ),
-          )(preparedUnknown).pipe(
-            mapParseError({
-              code: 'generation-service-frontend-prepare-rpc-invalid',
-              prefix: 'Failed to decode target ServiceFrontendRepo prepare RPC',
-              extra: { repoName: sourceBound.repoName },
-            }),
-          );
-          yield* decodeRpc(preparedEncoded);
-          const readinessUnknown = yield* makeAsync(() =>
-            targetServiceFrontendRepo.getProjectionReadiness(),
-          );
-          const readinessEncoded = yield* Schema.decodeUnknown(
-            Schema.Union(
-              Schema.Struct({
-                _tag: Schema.Literal('Right'),
-                right: Schema.Struct({
-                  generationId: Schema.String,
-                  frontendIndex: Schema.Number,
-                }),
-              }),
-              Schema.Struct({
-                _tag: Schema.Literal('Left'),
-                left: Schema.encodedSchema(ZerospinError.schema),
-              }),
-            ),
-          )(readinessUnknown).pipe(
-            mapParseError({
-              code: 'generation-service-frontend-readiness-rpc-invalid',
-              prefix:
-                'Failed to decode target ServiceFrontendRepo readiness RPC',
-              extra: { repoName: sourceBound.repoName },
-            }),
-          );
-          const readiness = yield* decodeRpc(readinessEncoded);
-          if (
-            readiness.generationId !== generationId ||
-            readiness.frontendIndex !== sourceBound.terminalFrontendIndex + 1
-          ) {
-            return yield* new ZerospinError({
-              code: 'generation-service-frontend-successor-not-ready',
-              message:
-                'Target service frontend did not reach its inherited boundary',
-              extra: {
-                deployId,
-                generationId,
-                sourceRepoName: sourceBound.repoName,
-                targetFrontendIndex: readiness.frontendIndex,
-              },
-            });
-          }
-        }
-
-        // Checkpoint 8: source and target data-owner repo counts must match before
-        // readiness. Block repos validate their own exact terminal bounds above.
-        const targetServiceRepos = yield* getRepoRegistrations({
-          db,
-          repoTable,
-          repoType: 'ServiceRepo',
-        });
-        const targetAccountRepos = yield* getRepoRegistrations({
-          db,
-          repoTable,
-          repoType: 'AccountRepo',
-        });
-        if (
-          targetServiceRepos.length !== sourceServiceRepos.length ||
-          targetAccountRepos.length !== sourceAccountRepos.length
-        ) {
-          return yield* new ZerospinError({
-            code: 'generation-target-repo-count-mismatch',
-            message:
-              'Target data-owner repo counts do not match the predecessor',
-            extra: {
-              deployId,
-              generationId,
-              sourceServiceRepoCount: sourceServiceRepos.length,
-              targetServiceRepoCount: targetServiceRepos.length,
-              sourceAccountRepoCount: sourceAccountRepos.length,
-              targetAccountRepoCount: targetAccountRepos.length,
-            },
-          });
-        }
-      }
-
-      // Checkpoint 8: readiness and its timestamp commit only after all clean or
-      // migration work and validation have completed.
-      yield* Effect.try({
-        try: () =>
-          db
-            .update(generationStateTable)
-            .set({
-              readiness: 'ready',
-              readyAt: new Date(),
-              failure: null,
-            })
-            .where(
-              and(
-                eq(generationStateColumns.generationId, generationId),
-                eq(generationStateColumns.preparingDeployId, deployId),
-                eq(generationStateColumns.readiness, 'initializing'),
-              ),
-            )
-            .run(),
-        catch: ZerospinError.catch({
-          code: 'generation-ready-write-failed',
-          message: 'Failed to mark target generation ready',
-          extra: { deployId, generationId },
-        }),
-      });
-
-      const rawReadyState = yield* Effect.try({
-        try: () =>
-          db
-            .select()
-            .from(generationStateTable)
-            .where(eq(generationStateColumns.generationId, generationId))
-            .get(),
-        catch: ZerospinError.catch({
-          code: 'generation-ready-verification-read-failed',
-          message: 'Failed to verify target generation readiness',
-          extra: { deployId, generationId },
-        }),
-      });
-      const readyState = yield* Schema.decodeUnknown(
+    } else {
+      const stored = yield* Schema.decodeUnknown(
         Schema.Struct({
+          generationId: Schema.String,
+          prevGenerationId: Schema.NullOr(Schema.String),
+          initialDeployId: Schema.String,
+          activeDeployId: Schema.NullOr(Schema.String),
           preparingDeployId: Schema.NullOr(Schema.String),
-          readiness: Schema.Literal('initializing', 'ready', 'failed'),
+          phase: Schema.Literal(
+            'closed',
+            'migrating',
+            'open',
+            'draining',
+            'retired',
+          ),
+          activeSystemSpec: Schema.NullOr(Schema.String),
+          preparingSystemSpec: Schema.NullOr(Schema.String),
+          readyAt: Schema.NullOr(Schema.DateFromSelf),
         }),
-      )(rawReadyState).pipe(
+      )(rawStored).pipe(
         mapParseError({
-          code: 'generation-ready-verification-invalid',
-          prefix: 'Stored target readiness is invalid',
+          code: 'generation-prepare-state-invalid',
+          prefix: 'Stored generation preparation state is invalid',
           extra: { deployId, generationId },
         }),
       );
       if (
-        readyState.preparingDeployId !== deployId ||
-        readyState.readiness !== 'ready'
+        stored.phase === 'open' &&
+        stored.activeDeployId !== null &&
+        stored.prevGenerationId === prevGenerationId
       ) {
-        return yield* new ZerospinError({
-          code: 'generation-ready-write-conflict',
-          message: 'Target generation readiness changed during preparation',
-          extra: {
-            deployId,
-            generationId,
-            preparingDeployId: readyState.preparingDeployId,
-            readiness: readyState.readiness,
-          },
+        if (prevGenerationId !== null || seeds.length !== 0) {
+          return yield* new ZerospinError({
+            code: 'generation-reuse-input-invalid',
+            message: 'Compatible reuse cannot replay a predecessor or seeds',
+            extra: { deployId, generationId },
+          });
+        }
+        if (stored.activeSystemSpec === null) {
+          return yield* new ZerospinError({
+            code: 'generation-reuse-active-system-spec-missing',
+            message: 'Reusable generation has no active SystemSpec',
+            extra: { deployId, generationId },
+          });
+        }
+        const prior = yield* Schema.decodeUnknown(
+          Schema.parseJson(SystemSpecSchema),
+        )(stored.activeSystemSpec).pipe(
+          mapParseError({
+            code: 'generation-reuse-active-system-spec-invalid',
+            prefix: 'Stored active SystemSpec is invalid',
+            extra: { deployId, generationId },
+          }),
+        );
+        const compatibility = yield* checkSystemCompatibility({
+          prior,
+          next: systemSpec,
         });
-      }
-
-      return {
-        deployId,
-        generationId,
-        readiness: 'ready',
-        reusedGeneration: false,
-      } satisfies Readonly<{
-        deployId: string;
-        generationId: string;
-        readiness: 'ready';
-        reusedGeneration: boolean;
-      }>;
-    }).pipe(
-      Effect.tapError(error =>
-        Effect.try({
+        if (
+          compatibility.requiresNewGeneration ||
+          compatibility.missingAdapters.length !== 0
+        ) {
+          return yield* new ZerospinError({
+            code: 'generation-reuse-model-definitions-changed',
+            message: 'The candidate requires a linked successor generation',
+            extra: { deployId, generationId },
+          });
+        }
+        yield* Effect.try({
           try: () =>
             db
               .update(generationStateTable)
               .set({
-                readiness: 'failed',
-                admission: 'closed',
-                failure: ZerospinError.prettyUnknownFailure(error),
+                preparingDeployId: deployId,
+                preparingSystemSpec: encodedSystemSpec,
+                readyAt: new Date(),
+                failure: null,
               })
               .where(
                 and(
                   eq(generationStateColumns.generationId, generationId),
-                  eq(generationStateColumns.initialDeployId, deployId),
-                  eq(generationStateColumns.preparingDeployId, deployId),
+                  eq(generationStateColumns.phase, 'open'),
                 ),
               )
               .run(),
           catch: ZerospinError.catch({
-            code: 'generation-failure-write-failed',
-            message: 'Failed to persist target generation preparation failure',
+            code: 'generation-reuse-prepare-write-failed',
+            message: 'Failed to persist compatible generation preparation',
             extra: { deployId, generationId },
           }),
-        }),
-      ),
-      Effect.provideService(TelemetryCollector, makeTelemetryCollector()),
-    );
+        });
+        return {
+          deployId,
+          generationId,
+          phase: 'open',
+          reusedGeneration: true,
+        };
+      }
+      if (
+        stored.phase === 'closed' &&
+        stored.readyAt !== null &&
+        stored.initialDeployId === deployId &&
+        stored.preparingDeployId === deployId &&
+        stored.preparingSystemSpec === encodedSystemSpec &&
+        stored.prevGenerationId === null
+      ) {
+        return {
+          deployId,
+          generationId,
+          phase: 'closed',
+          reusedGeneration: false,
+        };
+      }
+      if (
+        stored.initialDeployId !== deployId ||
+        stored.preparingDeployId !== deployId ||
+        stored.prevGenerationId !== prevGenerationId ||
+        stored.preparingSystemSpec !== encodedSystemSpec ||
+        (stored.phase !== 'closed' && stored.phase !== 'migrating')
+      ) {
+        return yield* new ZerospinError({
+          code: 'generation-preparation-owned-by-another-deploy',
+          message: 'Stored generation preparation conflicts with this deploy',
+          extra: { deployId, generationId, phase: stored.phase },
+        });
+      }
+    }
+
+    yield* registerRepo({
+      db,
+      repoTable,
+      registration: {
+        generationId,
+        repoType: 'SystemRepo',
+        repoName: configuredSystemId,
+        tableNames: [
+          'selection',
+          'deploy',
+          'generationState',
+          'drainBounds',
+          'replayCompletions',
+          'aggregateFrontendWebSocketTickets',
+          'serviceFrontendWebSocketTickets',
+          'systemWrites',
+          'aggregates',
+          'repos',
+        ],
+      },
+    });
+
+    if (prevGenerationId === null) {
+      for (const seed of seeds) {
+        yield* props.submitTargetedSeed({ generationId, seed });
+        yield* props.activationGuard;
+      }
+      yield* props.drainSystemWrites({
+        generationId,
+        throughWriteIndex: null,
+        includeHeld: true,
+      });
+    } else {
+      // A fresh tip pair is read after each replay pass. Any new source block
+      // changes a completion watermark and forces another service-first pass.
+      while (true) {
+        const before = yield* replayCurrentTips({
+          db,
+          activationGuard: props.activationGuard,
+          sourceGenerationId: prevGenerationId,
+          targetGenerationId: generationId,
+          restoreSubscriptions: props.restoreSubscriptions,
+          replayCompletionsTable,
+          replayCompletionsColumns,
+          repoTable,
+        });
+        const after = yield* readTipFingerprint({
+          db,
+          generationId: prevGenerationId,
+          repoTable,
+        });
+        if (before === after) {
+          break;
+        }
+      }
+    }
+
+    yield* props.activationGuard;
+    yield* Effect.try({
+      try: () =>
+        db
+          .update(generationStateTable)
+          .set({ readyAt: new Date(), failure: null })
+          .where(
+            and(
+              eq(generationStateColumns.generationId, generationId),
+              eq(generationStateColumns.preparingDeployId, deployId),
+            ),
+          )
+          .run(),
+      catch: ZerospinError.catch({
+        code: 'generation-prepared-write-failed',
+        message: 'Failed to persist generation preparation completion',
+        extra: { deployId, generationId },
+      }),
+    });
+
+    return {
+      deployId,
+      generationId,
+      phase: prevGenerationId === null ? 'closed' : 'migrating',
+      reusedGeneration: false,
+    };
   },
 );
+
+const readTipFingerprint = Effect.fn(
+  'SystemRepo.prepareGeneration.readTipFingerprint',
+)(function* (props: {
+  db: IDb;
+  generationId: string;
+  repoTable: IAnyDrizzleSchema & {
+    generationId: AnyColumn;
+    repoType: AnyColumn;
+    repoName: AnyColumn;
+    tableNames: AnyColumn;
+  };
+}): Effect.fn.Return<string, IAnyError, Async> {
+  const serviceBlocks = yield* getRepoRegistrations({
+    db: props.db,
+    generationId: props.generationId,
+    repoTable: props.repoTable,
+    repoType: 'ServiceBlockRepo',
+  });
+  const aggregateBlocks = yield* getRepoRegistrations({
+    db: props.db,
+    generationId: props.generationId,
+    repoTable: props.repoTable,
+    repoType: 'AggregateBlockRepo',
+  });
+  const tips: unknown[] = [];
+  for (const registration of serviceBlocks) {
+    const key = yield* ServiceBlockRepo.boundDORepoConfig.nameUtils.parseName(
+      registration.repoName,
+    );
+    const repo = yield* getServiceBlockRepo({ key });
+    const bound = yield* makeAsync(() => repo.getReplayBound()).pipe(
+      Effect.flatMap(decodeRpc),
+    );
+    tips.push(['service', registration.repoName, bound]);
+  }
+  for (const registration of aggregateBlocks) {
+    const key = yield* AggregateBlockRepo.boundDORepoConfig.nameUtils.parseName(
+      registration.repoName,
+    );
+    const repo = yield* getAggregateBlockRepo({ key });
+    const bound = yield* makeAsync(() => repo.getReplayBound()).pipe(
+      Effect.flatMap(decodeRpc),
+    );
+    tips.push(['aggregate', registration.repoName, bound]);
+  }
+  return JSON.stringify(tips);
+});
+
+const replayCurrentTips = Effect.fn(
+  'SystemRepo.prepareGeneration.replayCurrentTips',
+)(function* (props: {
+  db: IDb;
+  activationGuard: Effect.Effect<void>;
+  sourceGenerationId: string;
+  targetGenerationId: string;
+  restoreSubscriptions: boolean;
+  replayCompletionsTable: IAnyDrizzleSchema;
+  replayCompletionsColumns: Readonly<{
+    generationId: AnyColumn;
+    targetRepoName: AnyColumn;
+  }>;
+  repoTable: IAnyDrizzleSchema & {
+    generationId: AnyColumn;
+    repoType: AnyColumn;
+    repoName: AnyColumn;
+    tableNames: AnyColumn;
+  };
+}): Effect.fn.Return<string, IAnyError, Async> {
+  const fingerprint = yield* readTipFingerprint({
+    db: props.db,
+    generationId: props.sourceGenerationId,
+    repoTable: props.repoTable,
+  });
+
+  const sourceServiceBlocks = yield* getRepoRegistrations({
+    db: props.db,
+    generationId: props.sourceGenerationId,
+    repoTable: props.repoTable,
+    repoType: 'ServiceBlockRepo',
+  });
+  for (const sourceRegistration of sourceServiceBlocks) {
+    const sourceKey =
+      yield* ServiceBlockRepo.boundDORepoConfig.nameUtils.parseName(
+        sourceRegistration.repoName,
+      );
+    const sourceRepo = yield* getServiceBlockRepo({ key: sourceKey });
+    const bound = yield* makeAsync(() => sourceRepo.getReplayBound()).pipe(
+      Effect.flatMap(decodeRpc),
+    );
+    const targetKey = {
+      generationId: props.targetGenerationId,
+      serviceName: sourceKey.serviceName,
+    };
+    const targetRepoName =
+      yield* ServiceRepo.boundDORepoConfig.nameUtils.makeName(targetKey);
+    const existing = props.db
+      .select()
+      .from(props.replayCompletionsTable)
+      .where(
+        and(
+          eq(
+            props.replayCompletionsColumns.generationId,
+            props.targetGenerationId,
+          ),
+          eq(props.replayCompletionsColumns.targetRepoName, targetRepoName),
+        ),
+      )
+      .get();
+    let afterIndex =
+      typeof existing?.terminalIndex === 'number'
+        ? existing.terminalIndex
+        : null;
+    let blockCount =
+      typeof existing?.blockCount === 'number' ? existing.blockCount : 0;
+    if (bound.serviceIndex !== null) {
+      const throughServiceIndex = bound.serviceIndex;
+      const targetRepo = yield* getServiceRepo({ key: targetKey });
+      while (afterIndex === null || afterIndex < throughServiceIndex) {
+        const block = yield* makeAsync(() =>
+          sourceRepo.getReplayBlock({
+            afterServiceIndex: afterIndex,
+            throughServiceIndex,
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        if (block === null) {
+          return yield* new ZerospinError({
+            code: 'generation-service-replay-block-missing',
+            message: 'Source service ledger is missing a block within its tip',
+            extra: { sourceRepoName: sourceRegistration.repoName, afterIndex },
+          });
+        }
+        const result = yield* makeAsync(() =>
+          targetRepo.replayServiceBlock({
+            prevGenerationId: props.sourceGenerationId,
+            block,
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        afterIndex = result.serviceIndex;
+        blockCount += 1;
+        yield* props.activationGuard;
+      }
+    }
+    props.db
+      .insert(props.replayCompletionsTable)
+      .values({
+        generationId: props.targetGenerationId,
+        repoType: 'ServiceRepo',
+        prevRepoName: sourceRegistration.repoName,
+        targetRepoName,
+        terminalCursor: bound.lastServiceCursor,
+        terminalIndex: bound.serviceIndex,
+        blockCount,
+        completedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [
+          props.replayCompletionsColumns.generationId,
+          props.replayCompletionsColumns.targetRepoName,
+        ],
+        set: {
+          terminalCursor: bound.lastServiceCursor,
+          terminalIndex: bound.serviceIndex,
+          blockCount,
+          completedAt: new Date(),
+        },
+      })
+      .run();
+  }
+
+  const sourceAggregateBlocks = yield* getRepoRegistrations({
+    db: props.db,
+    generationId: props.sourceGenerationId,
+    repoTable: props.repoTable,
+    repoType: 'AggregateBlockRepo',
+  });
+  for (const sourceRegistration of sourceAggregateBlocks) {
+    const sourceKey =
+      yield* AggregateBlockRepo.boundDORepoConfig.nameUtils.parseName(
+        sourceRegistration.repoName,
+      );
+    const sourceRepo = yield* getAggregateBlockRepo({ key: sourceKey });
+    const bound = yield* makeAsync(() => sourceRepo.getReplayBound()).pipe(
+      Effect.flatMap(decodeRpc),
+    );
+    const targetKey = {
+      generationId: props.targetGenerationId,
+      aggregateId: sourceKey.aggregateId,
+      aggregateName: sourceKey.aggregateName,
+    };
+    const targetRepoName =
+      yield* AggregateRepo.boundDORepoConfig.nameUtils.makeName(targetKey);
+    const existing = props.db
+      .select()
+      .from(props.replayCompletionsTable)
+      .where(
+        and(
+          eq(
+            props.replayCompletionsColumns.generationId,
+            props.targetGenerationId,
+          ),
+          eq(props.replayCompletionsColumns.targetRepoName, targetRepoName),
+        ),
+      )
+      .get();
+    let afterIndex =
+      typeof existing?.terminalIndex === 'number'
+        ? existing.terminalIndex
+        : null;
+    let blockCount =
+      typeof existing?.blockCount === 'number' ? existing.blockCount : 0;
+    if (bound.aggregateIndex !== null) {
+      const throughAggregateIndex = bound.aggregateIndex;
+      const targetRepo = yield* getAggregateRepo({ key: targetKey });
+      while (afterIndex === null || afterIndex < throughAggregateIndex) {
+        const block = yield* makeAsync(() =>
+          sourceRepo.getReplayBlock({
+            afterAggregateIndex: afterIndex,
+            throughAggregateIndex,
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        if (block === null) {
+          return yield* new ZerospinError({
+            code: 'generation-aggregate-replay-block-missing',
+            message:
+              'Source aggregate ledger is missing a block within its tip',
+            extra: { sourceRepoName: sourceRegistration.repoName, afterIndex },
+          });
+        }
+        const result = yield* makeAsync(() =>
+          targetRepo.replayAggregateBlock({
+            prevGenerationId: props.sourceGenerationId,
+            block,
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        afterIndex = result.aggregateIndex;
+        blockCount += 1;
+        yield* props.activationGuard;
+      }
+    }
+    props.db
+      .insert(props.replayCompletionsTable)
+      .values({
+        generationId: props.targetGenerationId,
+        repoType: 'AggregateRepo',
+        prevRepoName: sourceRegistration.repoName,
+        targetRepoName,
+        terminalCursor: bound.lastAggregateCursor,
+        terminalIndex: bound.aggregateIndex,
+        blockCount,
+        completedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [
+          props.replayCompletionsColumns.generationId,
+          props.replayCompletionsColumns.targetRepoName,
+        ],
+        set: {
+          terminalCursor: bound.lastAggregateCursor,
+          terminalIndex: bound.aggregateIndex,
+          blockCount,
+          completedAt: new Date(),
+        },
+      })
+      .run();
+
+    if (props.restoreSubscriptions) {
+      const sourceAggregateRepo = yield* getAggregateRepo({
+        key: {
+          generationId: props.sourceGenerationId,
+          aggregateId: sourceKey.aggregateId,
+          aggregateName: sourceKey.aggregateName,
+        },
+      });
+      const subscriptions = yield* makeAsync(() =>
+        sourceAggregateRepo.getReplaySubscriptions(),
+      ).pipe(Effect.flatMap(decodeRpc));
+      const targetAggregateRepo = yield* getAggregateRepo({ key: targetKey });
+      for (const subscription of subscriptions) {
+        yield* makeAsync(() =>
+          targetAggregateRepo.restoreReplaySubscription({
+            serviceName: subscription.serviceName,
+            currentServiceCursor: subscription.currentServiceCursor,
+            currentServiceIndex: subscription.currentServiceIndex,
+          }),
+        ).pipe(Effect.flatMap(decodeRpc));
+        yield* props.activationGuard;
+      }
+    }
+  }
+
+  return fingerprint;
+});

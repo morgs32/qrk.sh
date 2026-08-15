@@ -1,2 +1,7 @@
 .playwright/
+.wrangler/
+dist/
 playwright-report/
+lib/dev/
+tests/browser/transition-fixture/lib/dev/
+tests/workerd/model-adapter-fixture/lib/dev/

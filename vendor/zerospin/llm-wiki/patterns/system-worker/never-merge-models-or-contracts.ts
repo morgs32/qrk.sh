@@ -3,33 +3,33 @@ import { Effect } from 'effect';
 /**
  * Each runtime boundary owns one models map and one contracts map.
  *
- * @bad Build module-level `systemModels` by reducing account + service controllers.
- * @bad Fall back to all service models when `accountName` is missing on account paths.
- * @bad Scan `system.serviceControllers` during account command finalization.
+ * @bad Build module-level `systemModels` by reducing aggregate and service registries.
+ * @bad Fall back to all service models when `aggregateName` is missing on aggregate paths.
+ * @bad Scan `system.services` during aggregate command finalization.
  */
-export const applyFinalizationEventFanoutMutations = Effect.fn(
-  'applyFinalizationEventFanoutMutations',
+export const applyAggregateBlockMutations = Effect.fn(
+  'applyAggregateBlockMutations',
 )(function* (props: {
   system: {
-    accountControllers: Record<
+    aggregates: Record<
       string,
       { models: Record<string, unknown>; contracts: Record<string, unknown> }
     >;
   };
-  accountName: string;
+  aggregateName: string;
   mutations: readonly unknown[];
 }) {
-  const { system, accountName, mutations } = props;
+  const { aggregateName, mutations, system } = props;
 
-  const account = yield* getByKeyOrThrow({
-    record: system.accountControllers,
-    key: accountName,
-    recordKind: 'accountControllers',
+  const aggregate = yield* getByKeyOrThrow({
+    record: system.aggregates,
+    key: aggregateName,
+    recordKind: 'aggregates',
   });
 
   yield* applyMutationsToResourcesInTx({
     mutations,
-    models: account.models,
+    models: aggregate.models,
   });
 });
 

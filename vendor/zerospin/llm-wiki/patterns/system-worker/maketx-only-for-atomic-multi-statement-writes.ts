@@ -7,7 +7,7 @@ import { Effect } from 'effect';
  * @bad Wrap read-only `.select(...).all()` in `makeTx`; call `db` directly.
  * @bad Split audit/current-state writes across direct `db` calls when they must stay atomic.
  */
-export const rememberAccount = Effect.fn('Repo.rememberAccount')(
+export const rememberAggregate = Effect.fn('Repo.rememberAggregate')(
   function* (props: {
     db: {
       insert: (table: unknown) => {
@@ -16,12 +16,12 @@ export const rememberAccount = Effect.fn('Repo.rememberAccount')(
         };
       };
     };
-    accounts: unknown;
-    accountId: string;
+    aggregates: unknown;
+    aggregateId: string;
   }) {
-    const { accountId, accounts, db } = props;
+    const { aggregateId, aggregates, db } = props;
 
-    db.insert(accounts).values({ accountId }).onConflictDoNothing().run();
+    db.insert(aggregates).values({ aggregateId }).onConflictDoNothing().run();
   },
 );
 

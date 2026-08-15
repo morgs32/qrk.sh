@@ -6,7 +6,7 @@ import { Outlet, useMatch, useNavigate, useParams } from 'react-router';
 
 import { useLiveQueryOnDb } from '../../../../useLiveQueryOnDb';
 import { sessionsDatabaseTabStyles } from '../database/sessionsDatabaseTabStyles';
-import { useAccountSession } from '../useSession';
+import { useAggregateSession } from '../useSession';
 
 const commandSidebarRows = [
   { segment: 'staged', label: 'Staged' },
@@ -87,7 +87,7 @@ function SessionsCommandsLayoutBody(props: {
 }
 
 export function SessionsCommandsLayout() {
-  const session = useAccountSession();
+  const session = useAggregateSession();
   const { sessionId } = useParams<{ sessionId: ISessionId }>();
 
   if (session === undefined || sessionId === undefined) {

@@ -1,20 +1,22 @@
 import { expect, test } from '@playwright/test';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
-import type { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis';
 import {
   makeTelemetryCollector,
   makeTelemetryLayer,
   makeTraceableApiTarget,
 } from '@zerospin/logger';
 import { Effect } from 'effect';
+import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
+
+import { system } from '@/zerospin/system';
 
 test('standalone system api exposes its spec and app service query', async () => {
   test.setTimeout(120_000);
 
-  const apiUrl = process.env.NEXT_PUBLIC_ZEROSPIN_API_URL;
+  const apiUrl = process.env.ZEROSPIN_API_URL;
   if (!apiUrl) {
-    throw new Error('Set NEXT_PUBLIC_ZEROSPIN_API_URL for shopping e2e.');
+    throw new Error('Set ZEROSPIN_API_URL for shopping e2e.');
   }
 
   const zerospinSecretKey = process.env.ZEROSPIN_SECRET_KEY;
@@ -27,8 +29,8 @@ test('standalone system api exposes its spec and app service query', async () =>
 
     // 1 — preserve the deployed-system contract assertion without adding a
     // third caller link to the two-operation cross-store proof below.
-    using systemSpecApis = newSyncRpcSession<ZerospinApis>(apiUrl);
-    const systemSpecApi = systemSpecApis.getSystemApi({ zerospinSecretKey });
+    using gatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
+    const systemSpecApi = gatewayApi.getSystemApi({ zerospinSecretKey });
     const systemSpecEnvelope = await systemSpecApi.makeSystemSpec({
       traceContext: null,
       args: [],
@@ -37,14 +39,14 @@ test('standalone system api exposes its spec and app service query', async () =>
       decodeRpc(systemSpecEnvelope.result),
     );
 
-    expect(systemSpec.systemName).toBe('shopping');
-    expect(systemSpec.version).toBe('1.1.0');
+    expect(systemSpec.systemName).toBe(system.name);
+    expect(systemSpec.version).toBe(system.version);
     expect(systemSpecEnvelope.link).toBeNull();
 
     // 2 — execute one read through the concrete traced SystemApi client.
-    using serviceQueryApis = newSyncRpcSession<ZerospinApis>(apiUrl);
+    using serviceQueryGatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
     const serviceQuerySystemApi = makeTraceableApiTarget(
-      serviceQueryApis.getSystemApi({ zerospinSecretKey }),
+      serviceQueryGatewayApi.getSystemApi({ zerospinSecretKey }),
     );
     const productRows = await Effect.runPromise(
       serviceQuerySystemApi
@@ -64,11 +66,12 @@ test('standalone system api exposes its spec and app service query', async () =>
     expect(productRows).toEqual(expect.any(Array));
 
     // 3 — execute the mutation leaf with no commands. ServiceRepo rejects the
-    // request before changing domain state, while SystemApi still persists its
-    // completed server root and returns the causal link to this caller root.
-    using serviceFinalizationApis = newSyncRpcSession<ZerospinApis>(apiUrl);
+    // request before changing domain state. The current-write route enters
+    // SystemRepo directly and therefore returns no generation-owned telemetry
+    // link.
+    using serviceFinalizationGatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
     const serviceFinalizationSystemApi = makeTraceableApiTarget(
-      serviceFinalizationApis.getSystemApi({ zerospinSecretKey }),
+      serviceFinalizationGatewayApi.getSystemApi({ zerospinSecretKey }),
     );
     const mutationResult = await Effect.runPromise(
       serviceFinalizationSystemApi
@@ -92,11 +95,12 @@ test('standalone system api exposes its spec and app service query', async () =>
       }),
     );
 
-    // 4 — retain the two local caller roots and the two server-owned links
-    // before making the raw RepoExplorer calls used to inspect SystemLogRepo.
+    // 4 — retain the two local caller roots and the read route's server-owned
+    // link before making the raw RepoExplorer calls used to inspect
+    // SystemLogRepo.
     const callerBatch = telemetryCollector.flush();
     expect(callerBatch.spans).toHaveLength(2);
-    expect(callerBatch.links).toHaveLength(2);
+    expect(callerBatch.links).toHaveLength(1);
 
     const readCallerRoot = callerBatch.spans[0];
     if (readCallerRoot === undefined) {
@@ -109,10 +113,6 @@ test('standalone system api exposes its spec and app service query', async () =>
     const readLink = callerBatch.links[0];
     if (readLink === undefined) {
       throw new Error('Expected the service-query causedBy link');
-    }
-    const mutationLink = callerBatch.links[1];
-    if (mutationLink === undefined) {
-      throw new Error('Expected the service-finalization causedBy link');
     }
 
     expect(readCallerRoot.name).toBe('shopping.system.executeServiceQuery');
@@ -128,18 +128,11 @@ test('standalone system api exposes its spec and app service query', async () =>
         kind: 'causedBy',
       }),
     );
-    expect(mutationLink).toEqual(
-      expect.objectContaining({
-        priorTraceId: mutationCallerRoot.traceId,
-        priorSpanId: mutationCallerRoot.spanId,
-        kind: 'causedBy',
-      }),
-    );
 
     // 5 — use the raw linked-envelope surface for RepoExplorer so these
     // administrative reads do not add links to the caller batch under proof.
-    using systemLogRepoApis = newSyncRpcSession<ZerospinApis>(apiUrl);
-    const systemLogRepoSystemApi = systemLogRepoApis.getSystemApi({
+    using systemLogRepoGatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
+    const systemLogRepoSystemApi = systemLogRepoGatewayApi.getSystemApi({
       zerospinSecretKey,
     });
     const systemLogRepoRegistrationsEnvelope =
@@ -160,8 +153,8 @@ test('standalone system api exposes its spec and app service query', async () =>
     expect(systemLogRepoRegistration.repoType).toBe('SystemLogRepo');
     expect(systemLogRepoRegistration.tableNames).toContain('telemetrySpans');
 
-    using telemetrySpansApis = newSyncRpcSession<ZerospinApis>(apiUrl);
-    const telemetrySpansSystemApi = telemetrySpansApis.getSystemApi({
+    using telemetrySpansGatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
+    const telemetrySpansSystemApi = telemetrySpansGatewayApi.getSystemApi({
       zerospinSecretKey,
     });
     const telemetrySpansEnvelope =
@@ -184,14 +177,6 @@ test('standalone system api exposes its spec and app service query', async () =>
         traceId: readLink.traceId,
         spanId: readLink.spanId,
         name: 'SystemApi.executeServiceQuery',
-        parentSpanId: null,
-      }),
-    );
-    expect(telemetrySpans.rows).toContainEqual(
-      expect.objectContaining({
-        traceId: mutationLink.traceId,
-        spanId: mutationLink.spanId,
-        name: 'SystemApi.finalizeServiceCommands',
         parentSpanId: null,
       }),
     );

@@ -6,7 +6,7 @@ Ledger/archive DOs own finalization, fanout cursors, or command execution instea
 
 ## Pattern
 
-See `system-worker/account-repo-finalization-fanout.ts`.
+See `system-worker/aggregate-repo-finalization-fanout.ts` for the current aggregate-named guidance.
 
 ## When to apply
 

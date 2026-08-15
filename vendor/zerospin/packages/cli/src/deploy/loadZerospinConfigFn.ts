@@ -131,15 +131,17 @@ export const loadZerospinConfigFn = Effect.fn('loadZerospinConfigFn')(
       [K in keyof ISystemConfig]: unknown | null;
     } = {
       entry: raw['entry'],
+      supportedPredecessors: raw['supportedPredecessors'],
       environmentId: raw['environmentId'] ?? null,
       env: raw['env'] ?? null,
+      retention: raw['retention'],
       seeds: raw['seeds'] ?? {
         dev: null,
         production: null,
       },
     };
 
-    return yield* Schema.validate(ZerospinConfigSchema)(
+    const config = yield* Schema.validate(ZerospinConfigSchema)(
       configForValidation as typeof ZerospinConfigSchema.Type,
       { onExcessProperty: 'ignore' },
     ).pipe(
@@ -151,5 +153,16 @@ export const loadZerospinConfigFn = Effect.fn('loadZerospinConfigFn')(
           }),
       ),
     );
+
+    if (
+      new Set(config.supportedPredecessors).size !==
+      config.supportedPredecessors.length
+    ) {
+      return yield* new ZerospinError({
+        code: 'deploy-invalid-config',
+        message: 'supportedPredecessors must not contain duplicate releases.',
+      });
+    }
+    return config;
   },
 );

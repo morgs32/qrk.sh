@@ -1,11 +1,6 @@
-/*
- * System-worker annotation:
- * Implements the ServiceRepo execute Service Query operation.
- * Keep the domain effect named after the operation and leave async Promise glue at the Durable Object boundary.
- */
-
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { mapParseError, ZerospinError } from '@zerospin/error';
+import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 import { system } from 'system';
 
@@ -15,41 +10,54 @@ export const executeServiceQuery = Effect.fn('ServiceRepo.executeServiceQuery')(
     queryName: string;
     params: unknown;
     db: IDb;
-  }) {
-    const { serviceName, queryName, params, db } = props;
-    const serviceController = system.serviceControllers[serviceName];
-
-    if (serviceController === undefined) {
-      return yield* new ZerospinError({
-        code: 'service-not-found',
-        message: `Service ${serviceName} was not found`,
-        extra: { serviceName },
-      });
-    }
-
-    const serviceQuery = serviceController.queries[queryName];
-
+  }): Effect.fn.Return<unknown, IAnyError> {
+    const service = yield* getByKeyOrThrow({
+      record: system.services,
+      key: props.serviceName,
+      recordKind: 'services',
+    });
+    const serviceQuery = service.queries[props.queryName];
     if (serviceQuery === undefined) {
       return yield* new ZerospinError({
         code: 'service-query-not-found',
-        message: `Service query ${serviceName}.${queryName} was not found`,
-        extra: { serviceName, queryName },
+        message: `Service query ${props.serviceName}.${props.queryName} was not found`,
+        extra: {
+          serviceName: props.serviceName,
+          queryName: props.queryName,
+        },
       });
     }
-
-    const decodedParams = yield* Schema.validate(serviceQuery.paramsSchema)(
-      params,
+    const params = yield* Schema.validate(serviceQuery.paramsSchema)(
+      props.params,
       { onExcessProperty: 'ignore' },
     ).pipe(
       mapParseError({
         code: 'failed-to-decode-service-query-params',
-        prefix: `Failed to decode params for ${serviceName}.${queryName}`,
-        extra: { serviceName, queryName },
+        prefix: `Failed to decode params for ${props.serviceName}.${props.queryName}`,
+        extra: {
+          serviceName: props.serviceName,
+          queryName: props.queryName,
+        },
       }),
     );
-    return yield* serviceQuery.query({
-      db,
-      params: decodedParams,
-    } as never);
+
+    const query = Object.create(null);
+    for (const modelName of Object.keys(service.models)) {
+      const modelQuery = Reflect.get(props.db.query, modelName);
+      if (modelQuery === undefined) {
+        return yield* new ZerospinError({
+          code: 'service-query-readable-query-required',
+          message: `Service query cannot resolve model query "${modelName}"`,
+          extra: {
+            serviceName: props.serviceName,
+            queryName: props.queryName,
+            modelName,
+          },
+        });
+      }
+      Reflect.set(query, modelName, modelQuery);
+    }
+
+    return yield* serviceQuery.query({ db: { query }, params });
   },
 );

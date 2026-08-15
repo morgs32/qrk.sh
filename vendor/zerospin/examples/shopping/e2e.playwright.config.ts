@@ -14,10 +14,9 @@ loadEnv({ path: path.join(shoppingAppRoot, '.env') });
 
 if (
   !process.env.CLERK_PUBLISHABLE_KEY &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  process.env.VITE_CLERK_PUBLISHABLE_KEY
 ) {
-  process.env.CLERK_PUBLISHABLE_KEY =
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  process.env.CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY;
 }
 
 export default defineConfig({
@@ -53,10 +52,6 @@ export default defineConfig({
   webServer: {
     command: 'nx run shopping:e2e-app',
     cwd: repoRoot,
-    env: {
-      ...process.env,
-      PLAYWRIGHT_CLAIM_INSPECTION: '1',
-    },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     url: 'http://localhost:3010',

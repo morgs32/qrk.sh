@@ -53,7 +53,7 @@
     "tests/workerd/**",
     "src/TestWorker.ts",
     "src/FixtureRepo/**",
-    "src/makeRepo/test/**",
+    "src/makeBoundDORepo/test/**",
     "src/workerd-utils/**"
   ],
   "references": [

@@ -9,7 +9,9 @@ export const getServiceRepo = Effect.fn('getServiceRepo')(function* (props: {
     serviceName: string;
   };
 }) {
-  const name = yield* ServiceRepo.repoUtils.nameUtils.makeName(props.key);
+  const name = yield* ServiceRepo.boundDORepoConfig.nameUtils.makeName(
+    props.key,
+  );
   return env.SERVICE_REPO.getByName(
     name,
   ) as DurableObjectStub<Rpc.DurableObjectBranded> & IServiceRepoRpcTarget;

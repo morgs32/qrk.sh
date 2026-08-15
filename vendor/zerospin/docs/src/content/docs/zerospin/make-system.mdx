@@ -1,23 +1,21 @@
 ---
 title: Make a system
-description: Define models, contracts, a frontend, an actor, and a system with Zerospin make methods.
+description: Define models, contracts, a frontend, and its aggregate-owned authentication with Zerospin make methods.
 ---
 
-This guide shows the direct shape for defining a small system. It keeps each exported piece visible so the relationships between models, contracts, frontend, actor, and system are easy to inspect.
+This guide shows the direct shape for defining a small system. It keeps each exported piece visible so the relationships between models, contracts, frontend, aggregate owner, and system are easy to inspect.
 
 ## Imports
 
 Import the builders, primitive descriptors, typed error shape, and Effect schema tools used by the system.
 
 ```ts
-import { makeActorController } from '@zerospin/core/actorController/makeActorController.js';
-import { makeSurfaceController } from '@zerospin/core/actorController/makeSurfaceController.js';
-import { makeAccountController } from '@zerospin/core/accountController/makeAccountController.js';
 import { makeContract } from '@zerospin/core/contracts/makeContract.js';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController.js';
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { ZerospinError } from '@zerospin/error';
 import { makeModelIdSchema } from '@zerospin/core/models/makeIdSchema.js';
 import { makeModel } from '@zerospin/core/models/makeModel.js';
+import { makeSelection } from '@zerospin/core/models/makeSelection.js';
 import { primitives } from '@zerospin/core/models/primitives.js';
 import { makeSystem } from '@zerospin/core/system/makeSystem.js';
 import { Effect, Schema } from 'effect';
@@ -25,7 +23,7 @@ import { Effect, Schema } from 'effect';
 
 ## Models
 
-Models define the resource types in the system. Each call provides one complete current definition followed by its complete historical definitions; these first-version models have empty history arrays. The `User` model is the actor model. `List` belongs to a user, and `Item` belongs to a list.
+Models define the resource types in the system. Each call provides one complete current definition followed by its complete historical definitions; these first-version models have empty history arrays. The `User` model supplies this aggregate's user identity. `List` belongs to a user, and `Item` belongs to a list.
 
 ```ts
 export const User = makeModel(
@@ -170,19 +168,19 @@ export const updateList = makeContract({
 
 ## Frontend
 
-The frontend names the command surface and model set for a UI-facing actor surface.
+The frontend names the command surface and model set for one aggregate-owned UI. It repeats the owner's exact user-ID schema so `makeSystem` can reject a mismatch before constructing the System.
 
 ```ts
 export const listFrontend = makeFrontendController({
+  systemName: 'system1',
+  aggregateName: 'user',
+  frontendName: 'main',
+  version: '1.0.0',
   contracts: {
     createList,
     createItem,
     updateList,
   },
-  accountName: 'user',
-  actorName: 'main',
-  version: '1.0.0',
-  systemName: 'system1',
   models: {
     list: List,
     item: Item,
@@ -191,80 +189,58 @@ export const listFrontend = makeFrontendController({
   signature: Schema.Struct({
     userId: makeModelIdSchema(User),
   }),
-});
-
-export const frontends = {
-  main: listFrontend,
-};
-```
-
-## Actor
-
-The actor ties frontends to graph loading and authentication via surfaces. `getGraph` loads the actor resource and related lists. `authenticate` resolves the actor id from the frontend signature.
-
-```ts
-export const listActor = makeActorController({
-  version: '1.0.0',
-  models: listFrontend.models,
-  contracts: listFrontend.contracts,
-  surfaces: {
-    main: makeSurfaceController({
-      frontend: listFrontend,
-      authenticate: props =>
-        Effect.gen(function* () {
-          const user = props.db.query.user
-            .findFirst({
-              where: { id: { eq: props.signature.userId } },
-            })
-            .sync();
-          if (user === undefined) {
-            return yield* new ZerospinError({
-              code: 'user-not-found',
-              message: `User ${props.signature.userId} was not found`,
-            });
-          }
-          return { actorId: user.id, accountId: 'acct_1' };
-        }),
-      getGraph: Effect.fn('getGraph')(function* (props) {
-        const { actorId, db } = props;
-        const user = db.query.user
-          .findFirst({
-            where: { id: { eq: actorId } },
-            with: {
-              lists: true,
-            },
-          })
-          .sync();
-        if (user === undefined) {
-          return yield* new ZerospinError({
-            code: 'user-not-found',
-            message: `User ${actorId} was not found`,
-          });
-        }
-        return { user };
-      }),
-    }),
-  },
-});
-
-export const userAccount = makeAccountController({
-  version: '1.0.0',
-  actorControllers: {
-    main: listActor,
-  },
+  userId: makeModelIdSchema(User),
 });
 ```
 
-## System
+## System and owner authentication
 
-The system registers accounts and actors. Export `frontends` separately for worker deploy wiring.
+The aggregate owns one user-ID schema and one authenticator for all of its frontends. Zerospin first adapts the selected frontend signature, then supplies only that binding's resolved model database. The authenticator returns the exact schema-derived `userId`; selections use the same value to define the aggregate frontend graph.
 
 ```ts
 export const system = makeSystem({
   name: 'system1',
   version: '1.0.1',
-  accounts: {
-    user: userAccount,
+  aggregates: {
+    user: {
+      userId: makeModelIdSchema(User),
+      authenticate: ({ signature, db }) =>
+        Effect.gen(function* () {
+          const user = yield* Effect.promise(() =>
+            db.query.user.findFirst({
+              where: { id: { eq: signature.userId } },
+            }),
+          );
+          if (user === undefined) {
+            return yield* new ZerospinError({
+              code: 'user-not-found',
+              message: `User ${signature.userId} was not found`,
+            });
+          }
+          return user.id;
+        }),
+      models: { user: User, list: List, item: Item },
+      contracts: { createList, createItem, updateList },
+      selections: {
+        user: makeSelection({
+          model: User,
+          where: ({ userId }) => ({ id: userId }),
+        }),
+        list: makeSelection({
+          model: List,
+          where: ({ userId }) => ({ user: { id: userId } }),
+        }),
+        item: makeSelection({
+          model: Item,
+          where: ({ userId }) => ({
+            list: { user: { id: userId } },
+          }),
+        }),
+      },
+      frontends: {
+        main: { controller: listFrontend },
+      },
+    },
   },
 });
 ```

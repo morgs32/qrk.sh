@@ -1,121 +1,64 @@
 ---
 title: SystemWorker Service Frontend Bindings
 type: api
-updated: 2026-07-28
-sources:
-  - path: packages/system-worker/package.json
-    sha: 01b8f4a5ce89b7768731503cfd2af3e325b9163d
-    lines: 8-26
-  - path: packages/system-worker/src/SystemWorker.ts
-    sha: 86ec0244f0688ea6dd2bc4d97bda74a8ce055a16
-    lines: 92-2814
-  - path: packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts
-    sha: 365b12f0ef26b8a27aabf6a209b2d84035ca3741
-    lines: 44-334
-  - path: packages/system-worker/src/ServiceFrontendRepo/drainGeneration/drainGeneration.ts
-    sha: b2a0a609358af0bd5ff7d26732522abd5a8864e4
-    lines: 10-65
-  - path: packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts
-    sha: 0c7aff28b20709526ff7825b74726de91473e113
-    lines: 37-329
-  - path: packages/system-worker/src/authenticateServiceFrontend/authenticateServiceFrontend.ts
-    sha: 11230976ef6334db580ad85a46a0b8e6c4a8b313
-    lines: 22-103
-  - path: packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts
-    sha: 96e4196bca64fa89b0586f28330cd03860fccca7
-    lines: 25-259
-  - path: packages/system-worker/src/createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.ts
-    sha: 7c5d036a67378072550af1a57d7afa0611b89e32
-    lines: 28-452
-  - path: packages/dispatch-worker/src/Worker.ts
-    sha: f65a437ebbc271f9f00bdfb01b4cb725c6374d9f
-    lines: 9-149
-  - path: packages/dispatch-worker/src/LocalWorker.ts
-    sha: c4580799a485a4ece97a5b0d5b6ae253c97922ca
-    lines: 3-33
+updated: 2026-08-11
 ---
 
 # SystemWorker Service Frontend Bindings
 
-The `system-worker` package's root export resolves to the Cloudflare Worker
-entrypoint, which exports `ServiceFrontendRepo` and
-`ServiceFrontendBlockRepo` alongside the existing Durable Object classes
-(../../packages/system-worker/package.json:8-14,
-../../packages/system-worker/src/SystemWorker.ts:92-106).
+Service frontend authentication is universal and happens before this boundary.
+`SystemWorker.authorizeServiceFrontend` receives exactly `{ generationId,
+userId, serviceName, frontendName, serviceFrontendLock }`: `AuthenticatedApi` supplies
+the authenticated `userId` and acquired generation locator, while its caller
+supplies the source-selected controller names and complete lock. It resolves the
+generation-keyed `ServiceRepo`, which invokes the service-owned authorizer with
+a synchronous model-only `{ db: { query } }` view
+([`SystemWorker.ts:106-119`](../../packages/system-worker/src/SystemWorker.ts#L106-L119),
+[`getServiceFrontendApi.ts:64-84`](../../packages/system-worker/src/AuthenticatedApi/getServiceFrontendApi/getServiceFrontendApi.ts#L64-L84),
+[`authorizeServiceFrontend.ts:15-72`](../../packages/system-worker/src/authorizeServiceFrontend/authorizeServiceFrontend.ts#L15-L72),
+[`ServiceRepo/authorizeServiceFrontend.ts:23-61`](../../packages/system-worker/src/ServiceRepo/authorizeServiceFrontend/authorizeServiceFrontend.ts#L23-L61)).
 
-The production and local dispatch entrypoints both export those two Durable
-Object classes. The production entrypoint also exports the distinct
-`SelfHostedZerospinApis` controller, while `LocalWorker` preserves the
-`DevZerospinApis` class name and reuses the same request handler. That handler
-forwards both account and service-frontend WebSocket upgrades through the
-co-located `SystemWorker`
-(../../packages/dispatch-worker/src/Worker.ts:9-24,
-../../packages/dispatch-worker/src/Worker.ts:31-105,
-../../packages/dispatch-worker/src/Worker.ts:110-147,
-../../packages/dispatch-worker/src/LocalWorker.ts:3-33).
+## Projection owner
 
-## `ServiceFrontendRepo`
+`ServiceFrontendRepo` owns the canonical user/frontend-scoped projection and
+its outbox under server-private
+`{ generationId, serviceName, userId, frontendName }`
+([`ServiceFrontendRepo.ts:97-165`](../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts#L97-L165),
+[`ServiceFrontendRepo.ts:181-240`](../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts#L181-L240)).
 
-The direct-RPC surface supports state bootstrap, ServiceBlock delivery, outbox
-drain, projection-readiness inspection, successor preparation, and generation
-drain. State and readiness results retain the generation, service watermark,
-frontend index, segment classification, and predecessor descriptor needed by
-the lifecycle coordinator
-(../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts:44-93).
+Before projection, the owner decodes each persisted hybrid service row with
+`makeEffectSchema(serviceModel.propertiesShape)`, validates the decoded value
+with the authored `resourceSchema`, applies the projection adapter, and
+validates the frontend result
+([`projectServiceFrontendResource.ts:43-88`](../../packages/system-worker/src/ServiceFrontendRepo/projectServiceFrontendResource/projectServiceFrontendResource.ts#L43-L88),
+[`authoredPersistedResourceDecoding.node.spec.ts:46-81`](../../packages/system-worker/src/authoredPersistedResourceDecoding.node.spec.ts#L46-L81)).
 
-The generation-drain boundary actively drains the archive outbox for a hosted
-Worker. Under `ZEROSPIN_SELF_HOSTED`, it instead performs an inspection-only
-count and rejects any unpublished or failed outbox rows, preventing newly
-uploaded code from completing archive work owned by the previous upload
-(../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts:309-323,
-../../packages/system-worker/src/ServiceFrontendRepo/drainGeneration/drainGeneration.ts:27-63).
+## Archive owner
 
-## `ServiceFrontendBlockRepo`
+`ServiceFrontendBlockRepo` owns immutable blocks, retained model-version
+materializations, replay coverage, and the hibernating WebSocket room. Socket
+admission binds exact `{ serviceName, userId, frontendName }` and the complete
+service lock
+([`ServiceFrontendBlockRepo.ts:52-118`](../../packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts#L52-L118),
+[`onConnect.ts:5-55`](../../packages/system-worker/src/ServiceFrontendBlockRepo/onConnect/onConnect.ts#L5-L55)).
 
-The archive RPC surface records immutable predecessor metadata, stores lineage
-blocks, reads and asserts archive bounds, reads indexed suffixes, exposes the
-predecessor descriptor, and accepts generation-superseded notifications
-(../../packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts:37-81).
+## State and ticket authority
 
-## SystemWorker admission and socket bindings
+The service capability retains one generation-specific read route, revalidates
+the complete service lock, reads canonical projection state, omits unselected
+models, and adapts visible resources to the selected definitions
+([`getServiceFrontendState.ts:23-89`](../../packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts#L23-L89),
+[`getServiceFrontendState.ts:107-141`](../../packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts#L107-L141)).
 
-`SystemWorker.authenticateServiceFrontend`, `getServiceFrontendSpec`,
-`getServiceFrontendState`, and `createServiceFrontendWebSocketTicket` are thin
-encoded RPC boundaries over the named Effects. Admission resolves the service,
-actor, and frontend binding, decodes the signature before executing the
-server-only callback, and returns an actor ID before any actor-specific
-projection repo name is constructed
-(../../packages/system-worker/src/SystemWorker.ts:314-390,
-../../packages/system-worker/src/authenticateServiceFrontend/authenticateServiceFrontend.ts:22-103,
-../../packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts:25-259,
-../../packages/system-worker/src/createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.ts:28-452).
+Ticket creation binds `generationId`, the resolved archive, exact target, and
+lock into a single-use route with no deploy or Worker-version identity. The
+public `ServiceFrontendApi` exposes the flat receiver-relative `getAdmission()`
+receipt plus `getState()` and `createWebSocketTicket()`
+([`createServiceFrontendWebSocketTicket.ts:18-95`](../../packages/system-worker/src/createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.ts#L18-L95),
+[`ServiceFrontendApi.ts:56-100`](../../packages/system-worker/src/ServiceFrontendApi/ServiceFrontendApi.ts#L56-L100)).
 
-State and ticket authority deliberately differ. State rejects a drained source,
-removed identity, or same-generation controller mismatch instead of reading a
-different projection. Ticket creation may follow a complete durable successor
-chain with verified inverse predecessors, or report a newer frontend version in
-the same generation, but mints only after the final ready/open projection and
-archive prove coverage. The dispatch capability forwards its stored target to
-these boundaries; it does not choose authority itself
-(../../packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts:37-154,
-../../packages/system-worker/src/createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.ts:82-265,
-../../packages/system-worker/src/createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.ts:268-452).
+## Related pages
 
-The service websocket route consumes its service-specific ticket, derives and
-validates the `ServiceFrontendBlockRepo` name, and forwards the upgrade only to
-the matching service archive. The spent ticket's persisted `frontendVersion` is
-forwarded in a private header rather than accepted from the browser. The route
-does not share the account FrontendBlockRepo route or ticket table. Hosted
-Workers require the ticket generation to equal the upload-bound generation;
-self-hosted Workers admit the generation selected by their durable deployment
-controller
-(../../packages/system-worker/src/SystemWorker.ts:2693-2811).
-
-These classes are Worker binding targets, not browser gateways. Public browser
-admission remains in `ServiceFrontendApi`, and projection/archive behavior is
-documented separately
-(../../packages/system-worker/src/SystemWorker.ts:92-106,
-../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts:195-204,
-../../packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts:158-171).
-
-See [[ServiceFrontendApi]] and [[ServiceFrontendProjection]].
+- [[../architecture/Authentication|Universal Authentication]]
+- [[../architecture/ServiceFrontendApi]]
+- [[../architecture/ServiceFrontendProjection]]

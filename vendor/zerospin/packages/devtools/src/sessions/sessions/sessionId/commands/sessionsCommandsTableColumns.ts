@@ -17,7 +17,7 @@ type ICommandColumnId = (typeof COMMAND_COLUMN_IDS)[number];
 
 const COPY_CELL_COLUMN_IDS = new Set<ICommandColumnId>([
   'id',
-  'actorId',
+  'userId',
   'sessionId',
   'payload',
   'failure',
@@ -29,14 +29,13 @@ const COLUMN_SIZES: Partial<
 > = {
   id: { size: 140, minSize: 80, maxSize: 200 },
   commandName: { size: 120, minSize: 80, maxSize: 160 },
-  actorName: { size: 120, minSize: 80, maxSize: 160 },
   status: { size: 88, minSize: 72, maxSize: 120 },
   payload: { size: 200, minSize: 120, maxSize: 320 },
   failure: { size: 200, minSize: 120, maxSize: 320 },
   stagedAt: { size: 160, minSize: 120, maxSize: 200 },
   pushedAt: { size: 160, minSize: 120, maxSize: 200 },
   executedAt: { size: 160, minSize: 120, maxSize: 200 },
-  actorId: { size: 140, minSize: 80, maxSize: 200 },
+  userId: { size: 140, minSize: 80, maxSize: 200 },
   sessionId: { size: 140, minSize: 80, maxSize: 200 },
 };
 
@@ -94,7 +93,6 @@ export function defaultColumnVisibilityForStatus(
 
   visibility.id = true;
   visibility.commandName = true;
-  visibility.actorName = true;
   visibility.status = true;
   visibility.payload = true;
   visibility[timestampColumn] = true;

@@ -44,6 +44,15 @@ const Todo = makeModel(
       },
       indexes: [],
       version: '1.0.0',
+      adaptResource: ({ resource }) =>
+        Effect.succeed({
+          id: resource.id,
+          modelName: resource.modelName,
+          createdAt: resource.createdAt,
+          updatedAt: resource.updatedAt,
+          version: '1.0.0',
+          title: resource.title,
+        }),
     },
     {
       abbreviation: 'todo',
@@ -53,6 +62,15 @@ const Todo = makeModel(
       },
       indexes: [],
       version: '0.5.0',
+      adaptResource: ({ resource }) =>
+        Effect.succeed({
+          id: resource.id,
+          modelName: resource.modelName,
+          createdAt: resource.createdAt,
+          updatedAt: resource.updatedAt,
+          version: '0.5.0',
+          description: resource.title,
+        }),
     },
   ],
 );
@@ -103,6 +121,7 @@ describe('makeModel', () => {
 
   it('structuredClone of model sans runtime schemas works', () => {
     const {
+      adaptResource: _adaptResource,
       attributesSchema: _attributes,
       drizzleSchema: _drizzle,
       makeId: _makeId,
@@ -150,6 +169,7 @@ describe('makeModel', () => {
         },
         indexes: [],
         version: '1.0.0',
+        adaptResource: expect.any(Function),
       },
       {
         abbreviation: 'todo',
@@ -159,8 +179,213 @@ describe('makeModel', () => {
         },
         indexes: [],
         version: '0.5.0',
+        adaptResource: expect.any(Function),
       },
     ]);
+  });
+
+  it('validates the complete current resource and directly encodes current or historical resources', () => {
+    const createdAt = new Date('2026-08-05T12:00:00.000Z');
+    const updatedAt = new Date('2026-08-05T13:00:00.000Z');
+    const currentResource = {
+      id: 'todo_current',
+      modelName: 'todo',
+      createdAt,
+      updatedAt,
+      version: '2.0.0',
+      title: 'Current todo',
+      completed: true,
+    };
+
+    expect(
+      Effect.runSync(
+        Todo.adaptResource({
+          version: '2.0.0',
+          resource: currentResource,
+        }),
+      ),
+    ).toEqual({
+      ...currentResource,
+      createdAt: createdAt.toISOString(),
+      updatedAt: updatedAt.toISOString(),
+    });
+    const historicalResource = Effect.runSync(
+      Todo.adaptResource({
+        version: '1.0.0',
+        resource: currentResource,
+      }),
+    );
+    expect(historicalResource).toEqual({
+      id: 'todo_current',
+      modelName: 'todo',
+      createdAt: createdAt.toISOString(),
+      updatedAt: updatedAt.toISOString(),
+      version: '1.0.0',
+      title: 'Current todo',
+    });
+    expect(historicalResource.id).toBe(currentResource.id);
+
+    expect(() =>
+      Effect.runSync(
+        Todo.adaptResource({
+          version: '1.0.0',
+          resource: { ...currentResource, version: '1.0.0' },
+        }),
+      ),
+    ).toThrow(/model-current-resource-identity-invalid/);
+  });
+
+  it('selects one exact historical adapter without chaining', () => {
+    let versionOneCalls = 0;
+    let versionZeroCalls = 0;
+    const Direct = makeModel(
+      {
+        abbreviation: 'dir',
+        modelName: 'direct',
+        attributes: { current: primitives.text() },
+        indexes: [],
+        version: '2.0.0',
+      },
+      [
+        {
+          abbreviation: 'dir',
+          modelName: 'direct',
+          attributes: { prior: primitives.text() },
+          indexes: [],
+          version: '1.0.0',
+          adaptResource: ({ resource }) =>
+            Effect.sync(() => {
+              versionOneCalls += 1;
+              return {
+                id: resource.id,
+                modelName: resource.modelName,
+                createdAt: resource.createdAt,
+                updatedAt: resource.updatedAt,
+                version: '1.0.0',
+                prior: resource.current,
+              };
+            }),
+        },
+        {
+          abbreviation: 'dir',
+          modelName: 'direct',
+          attributes: { original: primitives.text() },
+          indexes: [],
+          version: '0.5.0',
+          adaptResource: ({ resource }) =>
+            Effect.sync(() => {
+              versionZeroCalls += 1;
+              return {
+                id: resource.id,
+                modelName: resource.modelName,
+                createdAt: resource.createdAt,
+                updatedAt: resource.updatedAt,
+                version: '0.5.0',
+                original: resource.current,
+              };
+            }),
+        },
+      ],
+    );
+
+    Effect.runSync(
+      Direct.adaptResource({
+        version: '0.5.0',
+        resource: {
+          id: 'dir_test',
+          modelName: 'direct',
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+          version: '2.0.0',
+          current: 'current',
+        },
+      }),
+    );
+
+    expect(versionOneCalls).toBe(0);
+    expect(versionZeroCalls).toBe(1);
+  });
+
+  it('surfaces adapter throws and invalid exact output as invariant failures', () => {
+    const Throwing = makeModel(
+      {
+        abbreviation: 'thr',
+        modelName: 'throwing',
+        attributes: { value: primitives.integer() },
+        indexes: [],
+        version: '2.0.0',
+      },
+      [
+        {
+          abbreviation: 'thr',
+          modelName: 'throwing',
+          attributes: { value: primitives.integer() },
+          indexes: [],
+          version: '1.0.0',
+          adaptResource: () => {
+            throw new Error('adapter exploded');
+          },
+        },
+      ],
+    );
+    const Invalid = makeModel(
+      {
+        abbreviation: 'inv',
+        modelName: 'invalidOutput',
+        attributes: { value: primitives.integer() },
+        indexes: [],
+        version: '2.0.0',
+      },
+      [
+        {
+          abbreviation: 'inv',
+          modelName: 'invalidOutput',
+          attributes: { value: primitives.text() },
+          indexes: [],
+          version: '1.0.0',
+          adaptResource: ({ resource }) =>
+            Effect.succeed({
+              id: resource.id,
+              modelName: resource.modelName,
+              createdAt: resource.createdAt,
+              updatedAt: resource.updatedAt,
+              version: '1.0.0',
+              value: Reflect.get(resource, 'value'),
+            }),
+        },
+      ],
+    );
+
+    expect(() =>
+      Effect.runSync(
+        Throwing.adaptResource({
+          version: '1.0.0',
+          resource: {
+            id: 'thr_test',
+            modelName: 'throwing',
+            createdAt: new Date(0),
+            updatedAt: new Date(0),
+            version: '2.0.0',
+            value: 1,
+          },
+        }),
+      ),
+    ).toThrow(/model-resource-adapter-invariant-failed/);
+    expect(() =>
+      Effect.runSync(
+        Invalid.adaptResource({
+          version: '1.0.0',
+          resource: {
+            id: 'inv_test',
+            modelName: 'invalidOutput',
+            createdAt: new Date(0),
+            updatedAt: new Date(0),
+            version: '2.0.0',
+            value: 1,
+          },
+        }),
+      ),
+    ).toThrow(/model-resource-adapter-output-invariant-failed/);
   });
 
   it('encodes and decodes versioned create, update, delete, and move mutations', () => {
@@ -301,6 +526,8 @@ describe('makeModel', () => {
             attributes: {},
             indexes: [],
             version: '1',
+            adaptResource: ({ resource }) =>
+              Effect.succeed({ ...resource, version: '1' }),
           },
         ],
       ),
@@ -322,6 +549,7 @@ describe('makeModel', () => {
             attributes: {},
             indexes: [],
             version: '2.0.0',
+            adaptResource: ({ resource }) => Effect.succeed(resource),
           },
         ],
       ),
@@ -343,6 +571,8 @@ describe('makeModel', () => {
             attributes: {},
             indexes: [],
             version: '1.0.0',
+            adaptResource: ({ resource }) =>
+              Effect.succeed({ ...resource, version: '1.0.0' }),
           },
           {
             abbreviation: 'dup',
@@ -350,10 +580,64 @@ describe('makeModel', () => {
             attributes: {},
             indexes: [],
             version: '1.0.0',
+            adaptResource: ({ resource }) =>
+              Effect.succeed({ ...resource, version: '1.0.0' }),
           },
         ],
       ),
     ).toThrow(/Duplicate model version "1.0.0"/);
+
+    expect(() =>
+      makeModel(
+        {
+          abbreviation: 'new',
+          modelName: 'newerHistory',
+          attributes: {},
+          indexes: [],
+          version: '2.0.0',
+        },
+        [
+          {
+            abbreviation: 'new',
+            modelName: 'newerHistory',
+            attributes: {},
+            indexes: [],
+            version: '3.0.0',
+            adaptResource: ({ resource }) =>
+              Effect.succeed({ ...resource, version: '3.0.0' }),
+          },
+        ],
+      ),
+    ).toThrow(/must be older than current version "2.0.0"/);
+
+    const missingAdapter = {
+      abbreviation: 'mis',
+      modelName: 'missingAdapter',
+      attributes: {},
+      indexes: [],
+      version: '1.0.0',
+      adaptResource: () =>
+        Effect.succeed({
+          id: 'mis_test',
+          modelName: 'missingAdapter',
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+          version: '1.0.0',
+        }),
+    };
+    Reflect.deleteProperty(missingAdapter, 'adaptResource');
+    expect(() =>
+      makeModel(
+        {
+          abbreviation: 'mis',
+          modelName: 'missingAdapter',
+          attributes: {},
+          indexes: [],
+          version: '2.0.0',
+        },
+        [missingAdapter],
+      ),
+    ).toThrow(/requires adaptResource/);
   });
 
   it('rejects historical identity mismatches', () => {
@@ -369,10 +653,13 @@ describe('makeModel', () => {
         [
           {
             abbreviation: 'todo',
+            // @ts-expect-error runtime validation protects untyped historical definitions
             modelName: 'task',
             attributes: {},
             indexes: [],
             version: '1.0.0',
+            adaptResource: ({ resource }) =>
+              Effect.succeed({ ...resource, version: '1.0.0' }),
           },
         ],
       ),
@@ -389,11 +676,14 @@ describe('makeModel', () => {
         },
         [
           {
+            // @ts-expect-error runtime validation protects untyped historical definitions
             abbreviation: 'tsk',
             modelName: 'todo',
             attributes: {},
             indexes: [],
             version: '1.0.0',
+            adaptResource: ({ resource }) =>
+              Effect.succeed({ ...resource, version: '1.0.0' }),
           },
         ],
       ),
@@ -463,14 +753,14 @@ describe('makeModel', () => {
         abbreviation: 'xid',
         modelName: 'withAbbrevId',
         attributes: {
-          actorId: primitives.opaqueId({ abbreviation: 'actr' }),
+          userId: primitives.opaqueId({ abbreviation: 'uid' }),
         },
         indexes: [],
         version: '1.0.0',
       },
       [],
     );
-    expect(model.attributes.actorId.kind).toBe(PrimitiveKind.OpaqueId);
+    expect(model.attributes.userId.kind).toBe(PrimitiveKind.OpaqueId);
   });
 
   it('rejects primary-key attributes because the model owns its synthesized id', () => {

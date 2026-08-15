@@ -48,7 +48,6 @@ export const e2eFn = Effect.fn('e2eFn')(function* () {
             cwd,
             env: {
               ...process.env,
-              ZEROSPIN_E2E_DEPLOY_NAME: 'happy_blue_whale_ab',
               ZEROSPIN_E2E_SYSTEM_MODULE_PATH: systemModulePath,
             },
             stdio: 'inherit',

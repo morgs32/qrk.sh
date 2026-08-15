@@ -72,6 +72,38 @@ export class ZerospinError<T extends string = never> extends Data.TaggedError(
     return this.#rawMessage;
   }
 
+  /** Define a fixed-code subclass with an optional default message. */
+  static makeClass<const TCode extends string>(definition: {
+    code: TCode;
+    message?: string;
+  }): new (props?: {
+    code?: never;
+    cause?: null | string;
+    extra?: null | Record<string, unknown>;
+    message?: string;
+    status?: null | number;
+  }) => ZerospinError<TCode> {
+    const { code, message } = definition;
+
+    return class extends ZerospinError<TCode> {
+      constructor(
+        props: {
+          code?: never;
+          cause?: null | string;
+          extra?: null | Record<string, unknown>;
+          message?: string;
+          status?: null | number;
+        } = {},
+      ) {
+        super({
+          ...props,
+          code,
+          message: props.message ?? message ?? code,
+        });
+      }
+    };
+  }
+
   static isZerospinError(data: unknown): data is ZerospinError {
     return isObject(data) && '_tag' in data && data._tag === 'ZerospinError';
   }

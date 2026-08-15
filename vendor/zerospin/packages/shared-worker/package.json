@@ -6,15 +6,15 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./makeSharedWorkerSession": {
-      "types": "./dist/makeSharedWorkerSession.d.ts",
-      "import": "./dist/makeSharedWorkerSession.js",
-      "default": "./dist/makeSharedWorkerSession.js"
+    "./acquireUserPartitionRepo": {
+      "types": "./dist/acquireUserPartitionRepo.d.ts",
+      "import": "./dist/acquireUserPartitionRepo.js",
+      "default": "./dist/acquireUserPartitionRepo.js"
     }
   },
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
-    "drizzle:partition": "drizzle-kit generate --config drizzle.partition.config.ts && node scripts/writePartitionMigrationManifest.mjs",
+    "drizzle:user-replica": "drizzle-kit generate --config drizzle.userReplica.config.ts && node scripts/writeUserReplicaMigrationManifest.mjs",
     "lib": "pnpm run clean && tsc -b tsconfig.json && tsup && node -e \"const fs=require('node:fs'); const path=require('node:path'); const asyncJs=require.resolve('wa-sqlite/dist/wa-sqlite-async.mjs'); fs.copyFileSync(path.join(path.dirname(asyncJs), 'wa-sqlite-async.wasm'), 'dist/wa-sqlite-async.wasm');\"",
     "ts": "tsc -p tsconfig.etc.json --noEmit",
     "watch": "tsc -b tsconfig.json --watch",
@@ -25,6 +25,7 @@
   "dependencies": {
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
+    "@zerospin/frontend": "workspace:*",
     "@zerospin/logger": "workspace:*",
     "capnweb": "^0.7.0",
     "drizzle-orm": "1.0.0-beta.17-67b1795",

@@ -1,427 +1,379 @@
 ---
-title: bootstrapBrowserSession
+title: Browser Session Bootstrap
 type: module
-updated: 2026-07-28
-sources:
-  - path: packages/react/src/ZerospinConfig.tsx
-    sha: 233f700d012ecd2d71a0f30b810dce81d8a59b50
-    lines: 23-279
-  - path: packages/react/src/makeReactFrontend.ts
-    sha: c718f318c46bfd16063d4fed46bd2a4f40a39e6a
-    lines: 63-121
-  - path: packages/frontend/src/authenticate.ts
-    sha: 3979f3541656b870901b3813ce63ff94a54d3ae7
-    lines: 19-54
-  - path: packages/devtools/src/zerospinDevtoolsController.ts
-    sha: cf6c7227acddbc4a45189267554bfd7971d810e5
-    lines: 1-107
-  - path: packages/react/src/makeBrowserPartitionController.ts
-    sha: 36cc769ebd0dc62c8569a84c7de9ffd8e9cd3cb4
-    lines: 340-5739
-  - path: packages/react/src/bootstrapBrowserSession.ts
-    sha: bf4eca2adac3e17dab890877fb0ced80e3a62528
-    lines: 55-3455
-  - path: packages/react/src/bootstrapBrowserServiceSession.ts
-    sha: b16249bef7b9ad9207d90f587f3a044e447bda35
-    lines: 36-2458
-  - path: packages/react/src/acquireFrontendWebSocket.ts
-    sha: af08d68747ba61629b37af6e0c12057c44cf42b3
-    lines: 62-877
-  - path: packages/react/src/acquireServiceFrontendWebSocket.ts
-    sha: 672893661d59941da2e047707f13b4bb9d5a299f
-    lines: 85-903
-  - path: packages/react/src/useCommissionFrontendReplica.ts
-    sha: 21d08dda77eb1b4546b0f3bd0921333570193ac1
-    lines: 45-1041
-  - path: packages/shared-worker/src/makeSharedWorkerSession.ts
-    sha: a023286b84eb3beff92e910b5cb07d11b0e6b28e
-    lines: 33-396
-  - path: packages/shared-worker/src/SharedWorker/partitionSchemas.ts
-    sha: 6a67722b0d866bfd019f7363612b5df4d571f030
-    lines: 181-464
-  - path: packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts
-    sha: 491f7e4055485cd66fe9ff63449190be2fcba395
-    lines: 246-9200
+updated: 2026-08-15
 ---
 
-# bootstrapBrowserSession
+# Browser Session Bootstrap
 
-Browser startup is Config-owned and target-specific. `ZerospinConfig` owns the
-partition key, execution mode, and current authenticator registry; account and
-service Providers consume that controller but do not own signature generation.
-Registry keys must equal each registered frontend's authored `frontendName`
-(../../packages/react/src/ZerospinConfig.tsx:93-143).
+One `ZerospinApp.Provider` mount owns one scoped Effect lifecycle. The page
+supplies `{ systemName, authenticationLock, generateSignature }` to one neutral
+SharedWorker MessagePort; the worker authenticates or resolves its native
+last-user locator and returns `{ api, systemId, userId, mode }`. The Provider
+then acquires every configured aggregate and service session concurrently.
+Children render only after the complete session set is ready, and scope cleanup
+releases acquired sessions before the SharedWorker port
+([`makeZerospinApp.tsx:206-267`](../../packages/react/src/makeZerospinApp.tsx#L206-L267),
+[`makeZerospinApp.tsx:269-445`](../../packages/react/src/makeZerospinApp.tsx#L269-L445),
+[`makeZerospinApp.tsx:454-459`](../../packages/react/src/makeZerospinApp.tsx#L454-L459)).
 
-Account code that needs identity before mounting Config or a Provider uses the
-public `makeReactFrontend(...).authenticate(signature)` Promise. It runs the
-standalone frontend `authenticate` Effect through the frontend's managed runtime;
-that Effect uses the ordinary `fetchFrontend` admission, returns only
-actor/deploy/generation/system identity, and releases the admitted capability in
-the same operation. It creates no browser session, replica, journal, or retained
-RPC target
-(../../packages/react/src/makeReactFrontend.ts:63-121,
-../../packages/frontend/src/authenticate.ts:19-54).
+```mermaid
+sequenceDiagram
+  participant React as ZerospinApp.Provider
+  participant Worker as SharedWorker
+  participant Auth as GatewayApi authentication
+  participant Replica as UserPartitionRepo and exact replica Repos
+  participant Sessions as Aggregate and service sessions
+  participant MainDb as Main-thread SQLite
+  participant Frontend as AggregateFrontendApi and AggregateFrontendRepo
+  autonumber 1
+  React->>Worker: acquire port with systemName, lock, signature capability
+  autonumber 2
+  Worker->>React: invoke generateSignature when authentication needs it
+  autonumber 3
+  React-->>Worker: encoded schema-validated signature
+  autonumber 4
+  Worker->>Auth: authenticate with signature and port configuration
+  autonumber 5
+  Auth-->>Worker: AuthenticatedApi plus identity or domain failure
+  autonumber 6
+  Worker->>Worker: select native locator and exact 056 VFS
+  autonumber 7
+  Worker-->>React: api plus systemId, userId, and mode
+  par every configured frontend
+    autonumber 8
+    React->>Replica: acquire exact replica plus delivery sink
+    autonumber 9
+    Replica->>Auth: install one exact Repo authority when online
+    autonumber 10
+    Replica-->>Sessions: state plus live updates
+  end
+  autonumber 11
+  Sessions-->>React: complete session map
+  autonumber 12
+  React-->>React: render children
+  autonumber 13
+  React->>MainDb: stageCommand and commit local transaction
+  autonumber 14
+  MainDb-->>React: direct encoded Either after commit
+  autonumber 15
+  MainDb->>Replica: asynchronous handoff(command, mutations, sessionIndex)
+  autonumber 16
+  Replica->>Replica: exact-lock journal, resources, and metadata transaction
+  autonumber 17
+  Replica-->>MainDb: durable receipt(commandId)
+  autonumber 18
+  Replica->>Frontend: exact-lock push in replicaIndex order
+  autonumber 19
+  Frontend-->>Replica: five canonical outcome arrays
+  autonumber 20
+  Replica-->>Sessions: fan-out local/server block or replacement
+  autonumber 21
+  React->>Sessions: scope finalizers on replacement or unmount
+  autonumber 22
+  React->>Worker: release port
+```
 
-The two bootstrap Effects remain separate. `bootstrapBrowserSession` creates a
-writable account session with command-journal support, while
-`bootstrapBrowserServiceSession` creates a read-only service session. Both
-validate the authenticated identity and deterministic frontend-spec hash before
-installing any network state
-(../../packages/react/src/bootstrapBrowserSession.ts:75-170,
-../../packages/react/src/bootstrapBrowserSession.ts:1141-1173,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:36-121,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:888-920).
+## Annotated workflow steps
+
+1. The Provider builds the selected authentication lock and opens one
+   SharedWorker port with `{ systemName, authenticationLock,
+generateSignature }`. The worker asset URL contains only `apiUrl`,
+   `publishableKey`, and `wasmUrl`; neither user identity field is a worker URL
+   parameter
+   ([`makeZerospinApp.tsx:206-237`](../../packages/react/src/makeZerospinApp.tsx#L206-L237),
+   [`acquireUserPartitionRepo.ts:223-258`](../../packages/shared-worker/src/acquireUserPartitionRepo.ts#L223-L258)).
+2. The worker retains the port-owned signature capability and invokes it only
+   from a worker authentication attempt
+   ([`getUserPartitionRepo.ts:117-159`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L117-L159),
+   [`getUserPartitionRepo.ts:227-245`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L227-L245)).
+3. The Provider's live callback ref produces the current signature, validates
+   it against the selected signature schema, and returns an encoded RPC result;
+   changing only the callback function does not restart the Provider scope
+   ([`makeZerospinApp.tsx:174-177`](../../packages/react/src/makeZerospinApp.tsx#L174-L177),
+   [`makeZerospinApp.tsx:211-235`](../../packages/react/src/makeZerospinApp.tsx#L211-L235)).
+4. SharedWorker decodes that result and authenticates through the configured
+   Gateway boundary. Authentication and refresh attempts are single-flight per
+   port
+   ([`getUserPartitionRepo.ts:164-258`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L164-L258)).
+5. Online success binds the port to the returned `{ systemId, userId,
+systemName }` and exact `AuthenticatedApi` object. Definitive callback,
+   authentication, configuration, or identity failures dispose the port;
+   transient failures remain retryable
+   ([`getUserPartitionRepo.ts:264-376`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L264-L376)).
+6. Online acquisition opens or creates the exact Plan-056 user VFS and writes a
+   native IndexedDB locator keyed by `{ apiUrl, publishableKey, systemName,
+authenticationLock }`. Only an initial remote-authentication failure in the
+   five-code allowlist may read that locator and open the already-existing VFS
+   in `existing-only` mode
+   ([`getUserPartitionRepo.ts:380-492`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L380-L492),
+   [`getUserPartitionRepo.ts:520-688`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L520-L688),
+   [`makeVfsName.ts:3-10`](../../packages/shared-worker/src/SharedWorker/makeVfsName.ts#L3-L10)).
+7. One MessagePort returns `{ api, systemId, userId, mode }`; the page uses the
+   returned identity and mode for diagnostics and every child bootstrap
+   ([`acquireUserPartitionRepo.ts:328-372`](../../packages/shared-worker/src/acquireUserPartitionRepo.ts#L328-L372),
+   [`makeZerospinApp.tsx:238-267`](../../packages/react/src/makeZerospinApp.tsx#L238-L267)).
+8. Aggregate and service bootstraps pass the exact target, complete lock and
+   lock key, frontend spec, acquisition mode, and a main-thread delivery sink
+   through the shared user root
+   ([`bootstrapBrowserSession.ts:235-287`](../../packages/react/src/bootstrapBrowserSession.ts#L235-L287),
+   [`bootstrapBrowserServiceSession.ts:215-264`](../../packages/react/src/bootstrapBrowserServiceSession.ts#L215-L264)).
+9. In `online` mode, the exact Repo selects the oldest eligible live online
+   registration and installs exactly one authority tuple `{ registrationId,
+ownerToken, authenticatedApi, frontendApi }`. Child admission is accepted
+   only while the selected registration, port parent, selection attempt,
+   identity, complete lock, lock key, and frontend spec remain current
+   ([`AggregateFrontendReplicaRepo.ts:1479-1801`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L1479-L1801),
+   [`ServiceFrontendReplicaRepo.ts:531-830`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L531-L830)).
+10. The acquired exact replica supplies current state and owns later block,
+    replacement-state, or terminal-failure delivery through the registered sink
+    ([`bootstrapBrowserSession.ts:123-316`](../../packages/react/src/bootstrapBrowserSession.ts#L123-L316),
+    [`bootstrapBrowserServiceSession.ts:95-291`](../../packages/react/src/bootstrapBrowserServiceSession.ts#L95-L291)).
+11. The Provider waits for every configured session before publishing the map
+    ([`makeZerospinApp.tsx:269-426`](../../packages/react/src/makeZerospinApp.tsx#L269-L426)).
+12. React renders children only after the complete session map is ready
+    ([`makeZerospinApp.tsx:454-459`](../../packages/react/src/makeZerospinApp.tsx#L454-L459)).
+13. Aggregate `stageCommand` prepares the complete command and applies command,
+    resource, and inverse writes in one synchronous local transaction
+    ([`makeSession.ts:243-337`](../../packages/core/src/session/makeSession.ts#L243-L337)).
+14. The session returns the direct encoded Either after the transaction and
+    synchronous table notification complete
+    ([`makeSession.ts:340-369`](../../packages/core/src/session/makeSession.ts#L340-L369)).
+15. A successful local commit starts exactly one asynchronous handoff with the
+    complete command, mutations, and committed `sessionIndex`
+    ([`makeSession.ts:371-480`](../../packages/core/src/session/makeSession.ts#L371-L480)).
+16. The exact-replica transaction checks idempotency by command ID and
+    `(sessionId, sessionIndex)`, allocates the next `replicaIndex`, applies the
+    optimistic resource mutations, stores the full staged replica command plus
+    mutation bytes and applied inverses in the journal, and advances metadata.
+    Fan-out and push scheduling begin only after commit
+    ([`AggregateFrontendReplicaRepo.ts:3515-3785`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L3515-L3785)).
+17. SharedWorker returns only `{ commandId }` after that exact database
+    transaction completes; a byte-identical repeated handoff returns the same
+    durable receipt without applying optimism again
+    ([`AggregateFrontendReplicaRepo.ts:3596-3665`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L3596-L3665),
+    [`AggregateFrontendReplicaRepo.ts:3771-3785`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L3771-L3785)).
+18. Exact-lock push captures staged rows in staging `replicaIndex` order,
+    selects a live online registration, retries byte-identical complete commands,
+    and fences the result by the selected registration, child, and parent
+    ([`AggregateFrontendReplicaRepo.ts:2857-3033`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L2857-L3033),
+    [`AggregateFrontendReplicaRepo.ts:3107-3178`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L3107-L3178)).
+19. `AggregateFrontendApi.pushCommands` returns pending, newly pushed, executed,
+    failed-staged, and failed-pushed commands with full provenance
+    ([`AggregateFrontendApi.ts:83-90`](../../packages/system-worker/src/AggregateFrontendApi/AggregateFrontendApi.ts#L83-L90),
+    [`types.ts:338-349`](../../packages/core/src/contracts/types.ts#L338-L349)).
+20. Failed-stage results are settled immediately by rewinding all active
+    optimism, removing the failed journal rows, reapplying the remaining
+    journal, and emitting one replacement. Pushed, executed, and failed-pushed
+    convergence remains canonical-block or authoritative-replacement work; local
+    stage, server block, and replacement fan-out all stay inside SharedWorker
+    ([`AggregateFrontendReplicaRepo.ts:3194-3429`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L3194-L3429),
+    [`AggregateFrontendReplicaRepo.ts:2477-2813`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L2477-L2813),
+    [`AggregateFrontendReplicaRepo.ts:868-1195`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L868-L1195)).
+21. Provider replacement, unmount, or partial bootstrap failure interrupts the
+    scoped Effect and releases every acquired aggregate/service session before
+    the earlier-acquired port finalizer
+    ([`makeZerospinApp.tsx:227-237`](../../packages/react/src/makeZerospinApp.tsx#L227-L237),
+    [`makeZerospinApp.tsx:317-387`](../../packages/react/src/makeZerospinApp.tsx#L317-L387),
+    [`makeZerospinApp.tsx:429-445`](../../packages/react/src/makeZerospinApp.tsx#L429-L445)).
+22. SharedWorker client release or a non-persisted `pagehide` disposes its RPC
+    session and closes that port; a persisted `pagehide` retains both for
+    BFCache restoration
+    ([`acquireUserPartitionRepo.ts:299-371`](../../packages/shared-worker/src/acquireUserPartitionRepo.ts#L299-L371)).
 
 ```mermaid
 flowchart TD
-  Config["ZerospinConfig: partition + authenticators + mode"] --> Controller["BrowserPartitionController"]
-  Controller --> AccountProvider["Account Provider"]
-  Controller --> ServiceProvider["Service Provider"]
-  AccountProvider --> AccountBootstrap["bootstrapBrowserSession"]
-  ServiceProvider --> ServiceBootstrap["bootstrapBrowserServiceSession"]
-  AccountBootstrap -->|"shared-worker"| AccountReplica["persistent account replica + journal"]
-  ServiceBootstrap -->|"shared-worker"| ServiceReplica["persistent service replica"]
-  AccountBootstrap -->|"direct"| AccountDirect["Provider DB + Provider socket"]
-  ServiceBootstrap -->|"direct"| ServiceDirect["Provider DB + Provider socket"]
+  Mount["ZerospinApp.Provider mount"] --> Worker["one neutral SharedWorker port plus authentication capability"]
+  Worker --> Authenticate["worker authentication or native last-user locator"]
+  Authenticate --> Identity["returned systemId, userId, and online or existing-only mode"]
+  Identity --> Acquire["concurrent exact frontend acquisition"]
+  Acquire --> Ready{"all sessions ready?"}
+  Ready -->|no| Hidden["children remain unrendered"]
+  Ready -->|yes| Render["publish session map and render"]
+  Render --> Stage["synchronous local staging, then asynchronous handoff"]
+  Stage --> Converge["exact-replica push, sockets, materialization, and fan-out"]
+  Mount -->|aggregateIds key changes| Replace["interrupt old scope"]
+  Replace --> Worker
+  Mount -->|unmount| Release["release sessions and SharedWorker port"]
 ```
 
 ## Trigger
 
-1. `ZerospinConfig` creates one `BrowserPartitionController` for the exact
-   `partitionKey` and `isSharedWorkerEnabled` pair and supplies live
-   authenticator lookup through a ref. Unmount releases the controller after
-   React's effect-replay microtask window
-   (../../packages/react/src/ZerospinConfig.tsx:127-143,
-   ../../packages/react/src/ZerospinConfig.tsx:237-260).
-2. An account or service Provider creates its own in-memory main-thread SQLite
-   database and invokes the matching bootstrap Effect. Separate Providers may
-   share one worker replica while retaining separate main-thread databases
-   (../../packages/react/src/bootstrapBrowserSession.ts:169-191,
-   ../../packages/react/src/bootstrapBrowserServiceSession.ts:116-140).
-3. Bootstrap authenticates through the Config registry first. A successful
-   admission is authoritative; a domain authentication or signature-schema
-   failure invalidates matching cached locators and does not fall back to
-   cached identity
-   (../../packages/react/src/bootstrapBrowserSession.ts:95-149,
-   ../../packages/react/src/bootstrapBrowserServiceSession.ts:58-112).
+1. `makeZerospinApp` requires `systemName`, a top-level authentication signature
+   selection, source-selected frontends, and a session runtime. Provider props
+   are exactly `generateSignature`, aggregate IDs keyed by aggregate name, and
+   children
+   ([`makeZerospinApp.tsx:63-90`](../../packages/react/src/makeZerospinApp.tsx#L63-L90),
+   [`makeZerospinApp.tsx:144-166`](../../packages/react/src/makeZerospinApp.tsx#L144-L166)).
+2. The Provider delegates root identity and acquisition mode to
+   `acquireUserPartitionRepo`; it does not authenticate on the page or inspect
+   a page-local locator
+   ([`makeZerospinApp.tsx:206-242`](../../packages/react/src/makeZerospinApp.tsx#L206-L242)).
+3. `acquireUserPartitionRepo` transfers the authentication configuration and
+   signature capability to the port-bound `SharedWorkerApi`; worker-side
+   authentication is single-flight for that port. Refresh is
+   compare-and-refresh by exact failed-parent object identity: a stale sibling
+   failure reuses the newer current parent instead of replacing it
+   ([`acquireUserPartitionRepo.ts:193-208`](../../packages/shared-worker/src/acquireUserPartitionRepo.ts#L193-L208),
+   [`acquireUserPartitionRepo.ts:328-372`](../../packages/shared-worker/src/acquireUserPartitionRepo.ts#L328-L372),
+   [`getUserPartitionRepo.ts:164-225`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L164-L225)).
+4. SharedWorker is the only execution transport. Missing `SharedWorker` or
+   `MessagePort` support fails with `shared-worker-unavailable`; there is no
+   direct-mode fallback
+   ([`acquireUserPartitionRepo.ts:212-221`](../../packages/shared-worker/src/acquireUserPartitionRepo.ts#L212-L221)).
+5. Each aggregate frontend resolves `aggregateIds[aggregateName]`, constructs
+   one core/browser session, and acquires its exact replica through the shared
+   `UserPartitionRepo`
+   ([`makeZerospinApp.tsx:279-357`](../../packages/react/src/makeZerospinApp.tsx#L279-L357),
+   [`bootstrapBrowserSession.ts:37-325`](../../packages/react/src/bootstrapBrowserSession.ts#L37-L325)).
+6. Each service frontend constructs its read-only session and acquires its exact
+   service replica through the same `UserPartitionRepo`
+   ([`makeZerospinApp.tsx:360-416`](../../packages/react/src/makeZerospinApp.tsx#L360-L416),
+   [`bootstrapBrowserServiceSession.ts:27-291`](../../packages/react/src/bootstrapBrowserServiceSession.ts#L27-L291)).
+7. The Provider publishes the session map in one state update after every
+   acquisition succeeds. Cleanup interrupts the scope, which runs replica,
+   database, DevTools, and SharedWorker finalizers
+   ([`makeZerospinApp.tsx:419-445`](../../packages/react/src/makeZerospinApp.tsx#L419-L445)).
 
-## Lazy DevTools trigger
+## Lifecycle keys
 
-1. [`ZerospinConfig`](../../packages/react/src/ZerospinConfig.tsx) registers its
-   lazy shell loader and installs only
-   `window.zerospin.devtools.open()` for its mounted lifetime
-   (../../packages/react/src/ZerospinConfig.tsx:190-235).
-2. A console caller invokes `open()`. If a DevTools shell is already mounted,
-   the controller opens that shell directly; otherwise it asks Config to load
-   and commit the shell first
-   (../../packages/devtools/src/zerospinDevtoolsController.ts:64-106).
+1. Only the serialized `aggregateIds` record restarts the Provider scope. A new
+   `generateSignature` function alone does not; a live ref supplies its latest
+   function to every later worker authentication attempt
+   ([`makeZerospinApp.tsx:174-177`](../../packages/react/src/makeZerospinApp.tsx#L174-L177),
+   [`makeZerospinApp.tsx:211-235`](../../packages/react/src/makeZerospinApp.tsx#L211-L235),
+   [`makeZerospinApp.tsx:438-445`](../../packages/react/src/makeZerospinApp.tsx#L438-L445)).
+2. The native locator key is exactly `{ apiUrl, publishableKey, systemName,
+authenticationLock }`; its value is `{ key, systemId, userId }`. The selected
+   SharedWorker persistence root is `{ systemId, userId }`, with Plan-056 VFS
+   path `zerospin/056/{systemId}/users/{userId}` and SQLite database name
+   `replicas.db`. Existing-only opens neither a missing VFS nor an empty schema,
+   and every incompatible legacy, locator, VFS, or schema layout fails before
+   mutation with `browser-persistence-reset-required`
+   ([`makeVfsName.ts:3-10`](../../packages/shared-worker/src/SharedWorker/makeVfsName.ts#L3-L10),
+   [`getUserPartitionRepo.ts:411-492`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L411-L492),
+   [`lastUserPartitionStore.ts:7-14`](../../packages/shared-worker/src/SharedWorker/lastUserPartitionStore.ts#L7-L14),
+   [`lastUserPartitionStore.ts:29-303`](../../packages/shared-worker/src/SharedWorker/lastUserPartitionStore.ts#L29-L303),
+   [`makeIdbSQLite3.ts:30-155`](../../packages/shared-worker/src/drizzle/makeIdbSQLite3.ts#L30-L155),
+   [`migrateUserReplicaDbAsync.ts:214-251`](../../packages/shared-worker/src/SharedWorker/migrateUserReplicaDbAsync.ts#L214-L251)).
+3. Aggregate replica identity adds `{ aggregateName, aggregateId, frontendName,
+aggregateFrontendLockKey }`; service replica identity adds `{ serviceName,
+frontendName, serviceFrontendLockKey }`. `userId` is already bound by the
+   parent `UserPartitionRepo`
+   ([`UserPartitionRepo.ts:30-119`](../../packages/shared-worker/src/SharedWorker/UserPartitionRepo/UserPartitionRepo.ts#L30-L119)).
 
-## Annotated DevTools steps
+## Runtime registrations and persisted rows
 
-1. The controller returns the same in-flight Promise to concurrent callers and
-   rejects when no Config loader is registered
-   (../../packages/devtools/src/zerospinDevtoolsController.ts:64-80).
-2. Config dynamically imports `ZerospinDevtools` only after that request and
-   resolves the load only after the rendered subtree confirms its mount. Import
-   or mount failure clears the loaded component so a later `open()` may retry
-   (../../packages/react/src/ZerospinConfig.tsx:145-188,
-   ../../packages/react/src/ZerospinConfig.tsx:262-278).
-3. Config unmount unregisters only its loader, rejects unfinished load/mount
-   work, and restores the exact previous `window.zerospin.devtools` value when
-   its own property is still installed
-   (../../packages/react/src/ZerospinConfig.tsx:190-235,
-   ../../packages/devtools/src/zerospinDevtoolsController.ts:13-51).
+1. A browser replica registration is runtime-only state inside one exact
+   SharedWorker aggregate or service replica Repo. The worker allocator supplies
+   `registrationId`, the MessagePort supplies `ownerToken` and its authentication
+   callbacks, and the main-thread acquisition supplies the delivery `sink` and
+   `online | existing-only` mode. Delivery gates, captured state, buffered
+   blocks, and release state remain registration-local. Neither child
+   `frontendApi` nor its parent `authenticatedApi` is registration state
+   ([`AggregateFrontendReplicaRepo.ts:188-243`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L188-L243),
+   [`AggregateFrontendReplicaRepo.ts:1198-1280`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L1198-L1280),
+   [`ServiceFrontendReplicaRepo.ts:87-133`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L87-L133),
+   [`ServiceFrontendReplicaRepo.ts:344-415`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L344-L415)).
+2. Each exact Repo owns at most one installed authority tuple, exactly `{
+registrationId, ownerToken, authenticatedApi, frontendApi }`, plus one
+   selection-attempt token and one joined selection promise. Authority RPCs and
+   callbacks fence on that tuple, the selected live registration, and the
+   selection attempt before any state, socket, or push result commits. A failed
+   parent is passed to the selected port's compare-and-refresh operation; a
+   stale failure receives the newer port parent rather than replacing it
+   ([`AggregateFrontendReplicaRepo.ts:198-209`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L198-L209),
+   [`AggregateFrontendReplicaRepo.ts:1479-2049`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L1479-L2049),
+   [`ServiceFrontendReplicaRepo.ts:97-106`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L97-L106),
+   [`ServiceFrontendReplicaRepo.ts:531-1093`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L531-L1093),
+   [`getUserPartitionRepo.ts:164-225`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L164-L225)).
+3. IndexedDB persists exact replica locators and replica contents, not browser
+   registrations. A new exact Repo remains unpublished with `activating` state
+   and no placeholder metadata. It first installs authority and commits the
+   initial authoritative state transaction, then inserts the locator row and
+   publishes the runtime. Failure releases only a newly appended registration
+   and closes unowned handles; it does not delete SQLite or VFS bytes
+   ([`acquireAggregateFrontendReplica.ts:492-588`](../../packages/shared-worker/src/SharedWorker/UserPartitionRepo/acquireAggregateFrontendReplica/acquireAggregateFrontendReplica.ts#L492-L588),
+   [`acquireAggregateFrontendReplica.ts:595-610`](../../packages/shared-worker/src/SharedWorker/UserPartitionRepo/acquireAggregateFrontendReplica/acquireAggregateFrontendReplica.ts#L595-L610),
+   [`acquireServiceFrontendReplica.ts:494-541`](../../packages/shared-worker/src/SharedWorker/UserPartitionRepo/acquireServiceFrontendReplica/acquireServiceFrontendReplica.ts#L494-L541),
+   [`acquireServiceFrontendReplica.ts:547-559`](../../packages/shared-worker/src/SharedWorker/UserPartitionRepo/acquireServiceFrontendReplica/acquireServiceFrontendReplica.ts#L547-L559)).
+4. The aggregate locator key is `{ aggregateId, aggregateName, userId,
+frontendName, aggregateFrontendLockKey }`; the service locator key is `{
+serviceName, userId, frontendName, serviceFrontendLockKey }`. Those rows also
+   retain the complete lock, frontend spec, database name, and creation time.
+   Each exact aggregate database contains generated resource tables, metadata
+   `{ id, systemVersion, frontendIndex, replicaIndex }`, and the command journal
+   `{ commandId, sessionId, sessionIndex, command, mutations,
+appliedMutationInverses }`. Each exact service database contains generated
+   resource tables and only the same four metadata fields. Online reacquisition
+   finds a live registration by the same MessagePort owner token without writing
+   a registration row
+   ([`userReplicaSchemas.ts:176-247`](../../packages/shared-worker/src/SharedWorker/userReplicaSchemas.ts#L176-L247),
+   [`AggregateFrontendReplicaRepo.ts:90-132`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L90-L132),
+   [`ServiceFrontendReplicaRepo.ts:53-69`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L53-L69),
+   [`AggregateFrontendReplicaRepo.ts:1198-1280`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L1198-L1280),
+   [`ServiceFrontendReplicaRepo.ts:344-415`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L344-L415)).
+5. SystemRepo has a separate persisted repo-registration concept with exact
+   shape `{ generationId, repoType, repoName, tableNames }`. SystemRepo writes
+   those generation-qualified Durable Object inventory rows to its `repos`
+   table; they do not represent browser MessagePorts, sessions, or delivery
+   sinks
+   ([`types.ts:63-68`](../../packages/core/src/system/types.ts#L63-L68),
+   [`SystemRepo.ts:947-955`](../../packages/system-worker/src/SystemRepo/SystemRepo.ts#L947-L955)).
 
-## SharedWorker mode
+## Failure and release
 
-SharedWorker mode is persistent and online-first. Only a transport failure may
-select a validated, unexpired cached locator, and only when the cached
-controller identity, version, and spec hash match the code currently mounted.
-The cached replica is then readable with `authority: cached-offline`; a later
-healthy Config capability can upgrade that acquisition to online without
-replacing the Provider database object
-(../../packages/react/src/bootstrapBrowserSession.ts:115-175,
-../../packages/react/src/bootstrapBrowserSession.ts:176-1136,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:78-145,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:145-890,
-../../packages/react/src/makeBrowserPartitionController.ts:1797-1874,
-../../packages/react/src/makeBrowserPartitionController.ts:2220-3642,
-../../packages/react/src/makeBrowserPartitionController.ts:4198-5125).
+1. Initial worker authentication or native-locator/VFS failure prevents every
+   child session. One target acquisition failure prevents the atomic session
+   map from being published; Effect scope cleanup releases any successful
+   sibling acquisition before it releases the port
+   ([`getUserPartitionRepo.ts:380-566`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L380-L566),
+   [`makeZerospinApp.tsx:227-237`](../../packages/react/src/makeZerospinApp.tsx#L227-L237),
+   [`makeZerospinApp.tsx:269-445`](../../packages/react/src/makeZerospinApp.tsx#L269-L445)).
+2. An initial worker-side remote authentication failure in the explicit
+   five-code allowlist may hydrate an existing exact replica offline. A later
+   browser `online` event reacquires that exact replica in `online` mode. The
+   Repo promotes the same owner registration in place, disposes the duplicate
+   incoming sink, and performs authority selection without changing replica or
+   registration identity
+   ([`bootstrapBrowserSession.ts:318-380`](../../packages/react/src/bootstrapBrowserSession.ts#L318-L380),
+   [`bootstrapBrowserServiceSession.ts:293-355`](../../packages/react/src/bootstrapBrowserServiceSession.ts#L293-L355),
+   [`acquireAggregateFrontendReplica.ts:228-276`](../../packages/shared-worker/src/SharedWorker/UserPartitionRepo/acquireAggregateFrontendReplica/acquireAggregateFrontendReplica.ts#L228-L276),
+   [`acquireServiceFrontendReplica.ts:224-277`](../../packages/shared-worker/src/SharedWorker/UserPartitionRepo/acquireServiceFrontendReplica/acquireServiceFrontendReplica.ts#L224-L277),
+   [`AggregateFrontendReplicaRepo.ts:1198-1249`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L1198-L1249),
+   [`ServiceFrontendReplicaRepo.ts:344-390`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L344-L390)).
+3. A late aggregate state, ticket, or push result and a late service state or
+   ticket result cannot commit after exact Repo authority changes. Every such
+   path fences the captured `{ registrationId, ownerToken, authenticatedApi,
+frontendApi }`, selected live registration, and selection attempt before
+   commit or socket transition
+   ([`AggregateFrontendReplicaRepo.ts:1857-2049`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L1857-L2049),
+   [`AggregateFrontendReplicaRepo.ts:2082-2474`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L2082-L2474),
+   [`AggregateFrontendReplicaRepo.ts:2961-3211`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L2961-L3211),
+   [`ServiceFrontendReplicaRepo.ts:862-1093`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L862-L1093),
+   [`ServiceFrontendReplicaRepo.ts:1126-1495`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1126-L1495)).
+4. A `1012 / generation-drained` close suppresses ordinary reconnect. The exact
+   replica conditionally refreshes the failed parent, fetches authoritative
+   current-generation state, commits replacement or aggregate intent rebase,
+   and only then mints a ticket and resumes from the committed `frontendIndex`.
+   `state-required` follows that replacement-first path. A ticket RPC failure
+   instead refreshes and installs child authority without replacing state, then
+   retries only that ticket once
+   ([`AggregateFrontendReplicaRepo.ts:2082-2474`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L2082-L2474),
+   [`ServiceFrontendReplicaRepo.ts:1126-1495`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1126-L1495)).
+5. Port close, explicit disposal, or a non-persisted `pagehide` releases
+   registrations and authentication owned by that port. Releasing a selected
+   registration synchronously invalidates the installed authority, selection
+   token, and socket before queued cleanup; another live online registration
+   may become authority later. Persisted BFCache transitions retain the port,
+   while user-root and exact-replica bytes remain in IndexedDB
+   ([`AggregateFrontendReplicaRepo.ts:1332-1398`](../../packages/shared-worker/src/SharedWorker/AggregateFrontendReplicaRepo/AggregateFrontendReplicaRepo.ts#L1332-L1398),
+   [`ServiceFrontendReplicaRepo.ts:1636-1715`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1636-L1715),
+   [`dispose.ts:26-46`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/dispose/dispose.ts#L26-L46),
+   [`acquireUserPartitionRepo.ts:299-371`](../../packages/shared-worker/src/acquireUserPartitionRepo.ts#L299-L371)).
 
-Each active account or service acquisition installs a serialized browser
-`online` listener. Another classified transport failure leaves its readable
-replica and locator intact. Exact same-generation reauthentication either
-upgrades cached authority or confirms the existing online acquisition. A
-different authenticated generation starts a separate active target acquisition
-with fresh state, ticket, and account-push callbacks; the partition controller
-transfers the mounted sessions only after the target handoff succeeds and keeps
-the source intact when it fails. A same-principal version or compiled-spec
-change reports `update-required`. Signature-schema, other authority, or
-identity failures invalidate matching locators and revoke only the matching
-account or service entries
-(../../packages/react/src/bootstrapBrowserSession.ts:183-1136,
-../../packages/react/src/bootstrapBrowserSession.ts:1627-2206,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:140-890,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:1215-1633,
-../../packages/react/src/makeBrowserPartitionController.ts:2220-2924,
-../../packages/react/src/makeBrowserPartitionController.ts:4198-4892).
+## Callers
 
-Authentication, authorization, or signature-schema rejection and an
-independently resolved target change remove every matching active and
-commissioned locator across frontend versions, detach matching main-thread
-sessions, and preserve the persistent replica and journal bytes. Ordinary
-state, ticket, push, transport, and repair failures do not revoke that
-authority. Provider rejection returns before the
-controller schedules the worker acquisition release, avoiding a callback that
-waits on the same worker that is waiting for the rejection
-(../../packages/react/src/makeBrowserPartitionController.ts:949-1227,
-../../packages/react/src/makeBrowserPartitionController.ts:1403-1586,
-../../packages/react/src/makeBrowserPartitionController.ts:2014-2218).
-
-Authenticated online handoff discovery retains structurally valid source
-locators even after their TTL expires; expiry gates cached-offline admission,
-not discovery after fresh authentication. Malformed TTL pairs are still deleted
-before either account or service source discovery proceeds
-(../../packages/react/src/makeBrowserPartitionController.ts:1797-2009,
-../../packages/react/src/makeBrowserPartitionController.ts:2220-2502,
-../../packages/react/src/makeBrowserPartitionController.ts:4198-4418).
-
-The controller obtains a root SharedWorker session keyed by system,
-generation, API URL, and public key, then asks its partition target for a
-separate account or service replica. The account provider surface includes
-state, ticket, and full-command push methods; the service provider surface has
-only state and ticket methods
-(../../packages/react/src/makeBrowserPartitionController.ts:340-448,
-../../packages/shared-worker/src/makeSharedWorkerSession.ts:33-155,
-../../packages/shared-worker/src/makeSharedWorkerSession.ts:292-396).
-
-Those provider methods are stable operation callbacks, not retained admitted
-frontend APIs. Every state, ticket, and account-push operation generates a fresh
-signature, obtains a new actor-bound capability, validates its complete
-identity, version, spec, and generation as required by that operation, performs
-one leaf call, and releases the capability. Initial online admission is also
-released before the SharedWorker acquisition begins
-(../../packages/react/src/bootstrapBrowserSession.ts:1148-1175,
-../../packages/react/src/bootstrapBrowserSession.ts:1231-1625,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:895-922,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:961-1213).
-
-Hydration is a barrier. The worker captures one replica snapshot, buffers blocks
-committed after that capture, and does not expose the acquisition until the
-Provider has installed the snapshot and the buffered suffix in order. Every
-worker-visible commit increments `replicaIndex` once after durable transaction
-success; each main-thread session rejects gaps and schedules isolated repair
-instead of mutating from an uncertain base
-(../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:1758-1883,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:4568-4712,
-../../packages/react/src/bootstrapBrowserSession.ts:785-1136,
-../../packages/react/src/bootstrapBrowserSession.ts:2227-2521,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:650-890,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:1654-1926).
-
-```mermaid
-sequenceDiagram
-  autonumber
-  participant Provider
-  participant Config as BrowserPartitionController
-  participant Worker as SharedWorker replica
-  participant Journal as Partition command journal
-  participant Main as Provider SQLite
-
-  Provider->>Config: authenticate compiled frontend
-  alt online authority
-    Config->>Worker: acquire exact account/service target
-  else transport failure with valid cached locator
-    Config->>Worker: acquire cached-offline target
-  end
-  Worker->>Worker: capture replica state and index
-  Worker-->>Main: hydrate snapshot
-  Worker-->>Main: drain blocks buffered after capture
-  Main-->>Provider: initialized with replicaIndex
-  opt account staging
-    Provider->>Journal: persist full command and mutations first
-    Journal->>Worker: materialize optimistic overlay
-  end
-```
-
-## Ongoing authority and version changes
-
-Each replica provider remains bound to the generation and frontend identity
-that admitted it, while every SharedWorker network operation independently
-reauthenticates instead of retaining that admitted API capability. State and
-account push do not silently retarget that provider. A generation change starts
-a separately bound target acquisition, and the partition controller moves the
-session only after lineage and target activation succeed. An authoritative
-frontend-version change instead propagates `frontend-version-changed` to every
-mounted source session as `update-required`. A ticket may still identify the
-recorded successor or a newer frontend version in the same generation because
-archive continuity is resolved separately from state and write authority
-(../../packages/react/src/makeBrowserPartitionController.ts:949-1227,
-../../packages/react/src/makeBrowserPartitionController.ts:1403-1586,
-../../packages/react/src/bootstrapBrowserSession.ts:1627-2206,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:1215-1633).
-
-For a same-generation version change, both old replicas stay readable and keep
-consuming their immutable archive while the mounted session reports
-`update-required`. The service session remains read-only. The account worker
-marks its catalog `writeSuspended`, makes staged, pushing, and
-transport-uncertain journal rows dormant, stops new push, and retains the source
-database and journal for later commissioning or migration to matching code
-(../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:1992-2060,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:2198-2305,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:3170-3369,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:4739-4772,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:4908-4934).
-
-## Partition journal and repair
-
-The partition database keeps distinct account and service replica catalogs and
-a partition-owned account command journal. Journal rows retain source/adapted
-provenance, full encoded command bytes, encoded mutations and inverses,
-lifecycle, push uncertainty, source locator, and materialization receipt; the
-journal is not stored inside one replaceable replica database
-(../../packages/shared-worker/src/SharedWorker/partitionSchemas.ts:212-338,
-../../packages/shared-worker/src/SharedWorker/partitionSchemas.ts:340-433).
-
-Account staging commits journal intent before optimistic materialization. Push
-selects ordered pushable journal rows, sends the full command objects through an
-online provider, and records pending, pushed, failed, or transport-uncertain
-outcomes without discarding original command identity. Service replicas have no
-stage or push branch
-(../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:3170-3869,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:3871-4096,
-../../packages/shared-worker/src/makeSharedWorkerSession.ts:33-98).
-
-A logical block gap, wrong target, conflicting equal index, invalid block, or
-application failure enters repair. Account repair replaces authoritative state
-and rematerializes only healthy journal overlays; service repair replaces state
-directly. If physical account materialization is corrupt, the worker verifies
-the separate journal and swaps to a rebuilt database only after success. A
-corrupt journal or quarantined legacy database is preserved and fails closed
-(../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:825-1345,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:1347-1756,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:4210-4568,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:5523-7568).
-
-## Direct mode
-
-Direct mode has no persistent catalog, cached-offline startup, cross-tab socket,
-commissioning, or refresh-durable command journal. It authenticates online,
-fetches full state, commits that state into the Provider's database, and owns
-its WebSocket and account push behavior on the main thread
-(../../packages/react/src/bootstrapBrowserSession.ts:2524-3430,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:1929-2448).
-
-Direct account and service sockets still send an in-band resume watermark,
-apply exact suffixes, repair from bound full state on `state-required`, mint a
-fresh one-use ticket for every reconnect, and cap exponential reconnect delay at
-30 seconds. A generation transition authenticates and validates the target
-before replacing the same Provider database; incompatible mounted code retains
-the readable source and reports `update-required`. A same-generation version
-change likewise keeps applying archive blocks to the old readable replica; the
-account session no longer treats that source as writable, and the service
-session remains read-only
-(../../packages/react/src/acquireFrontendWebSocket.ts:62-127,
-../../packages/react/src/acquireFrontendWebSocket.ts:195-839,
-../../packages/react/src/acquireServiceFrontendWebSocket.ts:85-154,
-../../packages/react/src/acquireServiceFrontendWebSocket.ts:215-859).
-
-Before a matching-code account transition replaces authoritative state, direct
-mode reads staged commands oldest-first and validates every current or
-historical payload adapter and current mutation program. A missing contract,
-adapter, or compatible payload returns `update-required` without touching the
-source database or staged intent. After target state commits, one transaction
-removes all old optimistic overlays newest-first, reverses each command's
-mutations in reverse order, installs adapted commands oldest-first, and applies
-each new mutation program in declaration order. Command IDs, staged cursors,
-timestamps, and target provenance remain intact, and the session identity
-changes only after the adaptation transaction succeeds
-(../../packages/react/src/bootstrapBrowserSession.ts:2770-3221).
-
-On ticket or connect transport failure, direct account and service sockets
-reauthenticate through the current Config authenticator. An exact target,
-frontend version, and compiled spec atomically replaces the API capability and
-releases the prior capability. A same-target version change preserves the
-readable database as `update-required`; other identity or spec mismatches fail
-closed, clear session authority, and close the Provider database. A generation
-target is adopted only after exact identity/spec validation and full target
-state application; unmatched compiled code preserves the readable source as
-`update-required`
-(../../packages/react/src/bootstrapBrowserSession.ts:2673-3221,
-../../packages/react/src/bootstrapBrowserServiceSession.ts:2064-2255,
-../../packages/react/src/acquireFrontendWebSocket.ts:665-830,
-../../packages/react/src/acquireServiceFrontendWebSocket.ts:693-852).
-
-## Commissioning and transitions
-
-`useCommissionFrontendReplica` is SharedWorker-only. It authenticates the
-candidate, validates its compiled spec, and acquires a separate commissioned
-replica. The hook releases that initial admitted API before acquisition and
-retains only commission ownership plus account state/ticket/push or service
-state/ticket operation callbacks; every later operation reauthenticates through
-a one-shot capability. `release()` records the release request without waiting
-for an in-flight commission. An already-acquired owner is released immediately;
-a later successful account or service acquisition sees the request and releases
-that hook instance's commission owner exactly once
-(../../packages/react/src/useCommissionFrontendReplica.ts:45-127,
-../../packages/react/src/useCommissionFrontendReplica.ts:142-615,
-../../packages/react/src/useCommissionFrontendReplica.ts:650-976).
-
-For a commissioned account target with predecessors, the controller serially
-records every exact source target in the target catalog through an empty command
-import before commission resolves. If that catalog write fails, it removes and
-releases the exact commission owner so the failed acquisition cannot strand its
-sole SharedWorker registration or network capability
-(../../packages/react/src/makeBrowserPartitionController.ts:2765-2890).
-
-Generation transition never repoints a source database. The worker persists the
-pending transition, keeps source replicas and journals, and acquires or reuses a
-target replica. When matching target code is mounted, dormant source commands
-are adapted directly to current code, imported with byte-exact source/adapted
-provenance, and only then marked migrated; missing definitions or invalid
-lineage preserve every source byte and fail closed
-(../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:5523-7568,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:7570-8870).
-
-The worker never trusts a catalog transition by itself. On resume and before
-cross-generation journal migration, it rereads the replica state and previous
-block, requires the recorded applied index to equal the catalog's logical
-index, proves that block is the exact source generation boundary, and verifies
-that the remaining descriptors are ordered, acyclic, and reach the recorded
-target. An unproven transition fails the source replica without discarding its
-database or journal
-(../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:5982-6130,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:7275-7419,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:8527-8729).
-
-## Ownership and release
-
-One worker replica runtime serializes its queue and owns at most one socket.
-Multiple Provider and commission registrations are reference-counted; losing
-one Provider or commission registration does not tear down a healthy acquisition
-owned elsewhere. An authoritative rejection is the deliberate exception: it
-revokes every matching registration and locator, returns the provider failure,
-and schedules worker release afterward. When the final ordinary owner releases,
-reconnect is interrupted and the socket closes, but retained catalog, replica,
-archive, and journal bytes are not deleted
-(../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:313-358,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:1885-1919,
-../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:5280-5312,
-../../packages/react/src/ZerospinConfig.tsx:237-260,
-../../packages/react/src/makeBrowserPartitionController.ts:2014-2218).
-
-Config teardown first fences every local entry and registration and revokes its
-account or service transport. It starts each explicit worker acquisition
-release before disposing the owning root session; root disposal is also the
-crash path that rejects release RPCs left pending on a dead MessagePort. All
-release outcomes are settled before the controller clears its entry maps
-(../../packages/react/src/makeBrowserPartitionController.ts:5609-5734,
-../../packages/shared-worker/src/makeSharedWorkerSession.ts:366-385).
-
-Each SharedWorker MessagePort has an owner token. Port close or `messageerror`
-releases only that port's account and service registrations, preserving
-registrations owned by other Configs
-(../../packages/shared-worker/src/SharedWorker/makeSharedWorkerHost.ts:9093-9198).
-
-See [[FrontendWebSocket]] for the wire handshake and
-[[ServiceFrontendProjection]] for the service-owned server projection.
+- [`Browser Frontend Lifecycle`](../dev/diagrams/BrowserFrontendLifecycle.md)
+- [`Universal Authentication`](./Authentication.md)
+- [`Source-Selected Frontends`](./SourceSelectedFrontends.md)

@@ -169,7 +169,7 @@ Focus on:
 - Bolt-on type fixes at the call site instead of fixing the factory/base type
 - "Helpful" exports, index files, aliases, or props/types the user did not ask for
 - Big method refactors that add indirection without deleting real complexity
-- Runtime-boundary moves between CLI, dispatch-worker, shared-worker, or system-worker without approval
+- Runtime-boundary moves between CLI, dev-worker, production-worker, hosted dispatch-worker, shared-worker, or system-worker without approval
 - Repo-wide cleanup passes disguised as a local fix
 
 ## Simplification order (Prune mode)

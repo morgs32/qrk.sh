@@ -1,355 +1,439 @@
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeAccountController } from '../accountController/makeAccountController.ts';
-import type { IAccountControllers } from '../accountController/types.ts';
-import { makeActorController } from '../actorController/makeActorController.ts';
+import { makeSignature } from '../authentication/makeSignature.ts';
 import { makeContract } from '../contracts/makeContract.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
+import { makeGuard } from '../guards/makeGuard.ts';
 import { makeModel } from '../models/makeModel.ts';
 import { makeSelection } from '../models/makeSelection.ts';
-import { makeServiceModel } from '../models/makeServiceModel.ts';
 import { primitives } from '../models/primitives.ts';
-import { makeServiceController } from '../service/makeServiceController.ts';
-import type { IServiceControllers } from '../service/types.ts';
-import { makeServiceActorController } from '../serviceActorController/makeServiceActorController.ts';
-import { makeServiceFrontendController } from '../serviceFrontendController/makeServiceFrontendController.ts';
 
 import { makeSystem } from './makeSystem.ts';
 
-const User = makeModel(
-  {
-    abbreviation: 'usr',
-    modelName: 'user',
-    attributes: {
-      name: primitives.text(),
-    },
-    indexes: [],
-    version: '1.0.0',
-  },
-  [],
-);
-
-const ServiceUser = makeServiceModel(
-  {
-    serviceName: 'user',
-    abbreviation: 'susr',
-    modelName: 'user',
-    attributes: { name: primitives.text() },
-    indexes: [],
-    version: '1.0.0',
-  },
-  [],
-);
-
-const makeTestContract = (commandName: string) =>
-  makeContract({
-    commandName,
-    payload: {
-      id: User.primaryKey({ autogenerate: false }),
-    },
-    mutations: null,
-    version: '1.0.0',
-  });
-
 describe('makeSystem', () => {
-  it('rejects a missing version before controller-map validation', () => {
-    const props = {
-      accountControllers: {},
+  it('normalizes aggregate and service definitions under their registry keys', () => {
+    const system = makeSystem({
       name: 'test',
-      version: '1.0.0',
-    };
-    Reflect.deleteProperty(props, 'version');
-
-    expect(() => makeSystem(props)).toThrow(
-      'makeSystem: version must be a non-empty string',
-    );
-  });
-
-  it('rejects an empty version before controller-map validation', () => {
-    const props = {
-      accountControllers: {},
-      name: 'test',
-      version: '1.0.0',
-    };
-    Reflect.set(props, 'version', '');
-
-    expect(() => makeSystem(props)).toThrow(
-      'makeSystem: version must be a non-empty string',
-    );
-  });
-
-  it('keeps account contracts aligned with frontend frontend binding contracts', () => {
-    const createUser = makeTestContract('createUser');
-    const frontend = makeFrontendController({
-      contracts: { createUser },
-      accountName: 'user',
-      actorName: 'main',
-      frontendName: 'main',
-      version: '1.0.0',
-      systemName: 'test',
-      models: { user: User },
-      signature: Schema.Struct({ userId: Schema.String }),
-    });
-    const mainActor = makeActorController({
-      name: 'main',
-      version: '1.0.0',
-      models: { user: User },
-      selections: {
-        user: makeSelection({ model: User }),
+      version: '1.2.3',
+      authentication: {
+        signature: makeSignature(
+          {
+            version: '1.0.0',
+            schema: Schema.Struct({ userId: Schema.NonEmptyString }),
+          },
+          [],
+        ),
+        authenticate: ({ signature }) => Effect.succeed(signature.userId),
       },
-      frontends: {
-        main: {
-          frontendController: frontend,
-          authenticate: () =>
-            Effect.succeed({
-              actorId: 'usr_1' as const,
-              accountId: 'usr_1' as const,
-            }),
+      aggregates: {
+        user: {
+          models: {},
+          contracts: {},
+          selections: {},
+          frontends: {},
+        },
+      },
+      services: {
+        catalog: {
+          models: {},
+          contracts: {},
+          frontends: {},
         },
       },
     });
 
+    expect(system.name).toBe('test');
+    expect(system.version).toBe('1.2.3');
+    expect(system.aggregates.user.name).toBe('user');
+    expect(system.services.catalog.name).toBe('catalog');
+  });
+
+  it('resolves aggregate query grants directly to service queries', () => {
     const system = makeSystem({
-      accountControllers: {
-        user: makeAccountController({
-          name: 'user',
-          version: '1.0.0',
-          actorControllers: { main: mainActor },
-          models: { user: User },
-          contracts: mainActor.frontends.main.contracts,
+      name: 'test',
+      version: '1.0.0',
+      authentication: {
+        signature: makeSignature(
+          {
+            version: '1.0.0',
+            schema: Schema.Struct({ userId: Schema.NonEmptyString }),
+          },
+          [],
+        ),
+        authenticate: ({ signature }) => Effect.succeed(signature.userId),
+      },
+      aggregates: {
+        user: {
+          models: {},
+          contracts: {},
+          selections: {},
+          queries: {
+            products: { service: 'catalog', query: 'products' },
+          },
+          frontends: {},
+        },
+      },
+      services: {
+        catalog: {
+          models: {},
+          contracts: {},
+          queries: {
+            products: {
+              paramsSchema: Schema.Struct({}),
+              query: () => Effect.succeed([]),
+            },
+          },
+          frontends: {},
+        },
+      },
+    });
+
+    expect(system.aggregates.user.queries.products).toBe(
+      system.services.catalog.queries.products,
+    );
+    expect(system.aggregates.user.queries.products).toMatchObject({
+      kind: 'service',
+      name: 'products',
+      serviceName: 'catalog',
+    });
+  });
+
+  it('normalizes aggregate and service frontend bindings directly', () => {
+    const aggregateController = makeFrontendController({
+      systemName: 'test',
+      aggregateName: 'user',
+      frontendName: 'web',
+      models: {},
+      contracts: {},
+    });
+    const serviceController = makeFrontendController({
+      systemName: 'test',
+      serviceName: 'catalog',
+      frontendName: 'browse',
+      models: {},
+    });
+
+    const system = makeSystem({
+      name: 'test',
+      version: '1.0.0',
+      authentication: {
+        signature: makeSignature(
+          {
+            version: '1.0.0',
+            schema: Schema.Struct({ userId: Schema.NonEmptyString }),
+          },
+          [],
+        ),
+        authenticate: ({ signature }) => Effect.succeed(signature.userId),
+      },
+      aggregates: {
+        user: {
+          authorize: () => Effect.void,
+          models: {},
+          contracts: {},
+          selections: {},
+          frontends: {
+            web: {
+              controller: aggregateController,
+            },
+          },
+        },
+      },
+      services: {
+        catalog: {
+          authorize: () => Effect.void,
+          models: {},
+          contracts: {},
+          frontends: {
+            browse: {
+              controller: serviceController,
+            },
+          },
+        },
+      },
+    });
+
+    expect(system.aggregates.user.frontends.web.controller).toBe(
+      aggregateController,
+    );
+    expect(system.services.catalog.frontends.browse.controller).toBe(
+      serviceController,
+    );
+  });
+
+  it('rejects an aggregate owner without authorization when it has frontends', () => {
+    const controller = makeFrontendController({
+      systemName: 'test',
+      aggregateName: 'user',
+      frontendName: 'web',
+      models: {},
+      contracts: {},
+    });
+
+    expect(() =>
+      makeSystem({
+        name: 'test',
+        version: '1.0.0',
+        authentication: {
+          signature: makeSignature(
+            { version: '1.0.0', schema: Schema.Struct({}) },
+            [],
+          ),
+          authenticate: () => Effect.succeed('user'),
+        },
+        aggregates: {
+          // @ts-expect-error aggregate frontends require owner authorization
+          user: {
+            models: {},
+            contracts: {},
+            selections: {},
+            frontends: { web: { controller } },
+          },
+        },
+      }),
+    ).toThrow(
+      'makeSystem: aggregates.user.authorize must be a function when the aggregate has frontends',
+    );
+  });
+
+  it('rejects a service owner without authorization when it has frontends', () => {
+    const controller = makeFrontendController({
+      systemName: 'test',
+      serviceName: 'catalog',
+      frontendName: 'browse',
+      models: {},
+    });
+
+    expect(() =>
+      makeSystem({
+        name: 'test',
+        version: '1.0.0',
+        authentication: {
+          signature: makeSignature(
+            { version: '1.0.0', schema: Schema.Struct({}) },
+            [],
+          ),
+          authenticate: () => Effect.succeed('user'),
+        },
+        aggregates: {},
+        services: {
+          // @ts-expect-error service frontends require owner authorization
+          catalog: {
+            models: {},
+            contracts: {},
+            frontends: {
+              browse: { controller },
+            },
+          },
+        },
+      }),
+    ).toThrow(
+      'makeSystem: services.catalog.authorize must be a function when the service has frontends',
+    );
+  });
+
+  it('rejects an empty system version', () => {
+    expect(() =>
+      makeSystem({
+        name: 'test',
+        version: '',
+        authentication: {
+          signature: makeSignature(
+            { version: '1.0.0', schema: Schema.Struct({}) },
+            [],
+          ),
+          authenticate: () => Effect.succeed('user'),
+        },
+        aggregates: {},
+      }),
+    ).toThrow('makeSystem: version must be a non-empty string');
+  });
+
+  it('retains guards bound to the authoritative aggregate model identity', () => {
+    const Item = makeModel(
+      {
+        abbreviation: 'git',
+        modelName: 'guardItem',
+        attributes: { name: primitives.text() },
+        indexes: [],
+        version: '1.0.0',
+      },
+      [],
+    );
+    const renameItem = makeContract({
+      commandName: 'renameItem',
+      payload: {
+        id: Item.primaryKey({ autogenerate: false }),
+        name: primitives.text(),
+      },
+      mutations: Schema.Struct({
+        updated: Item.updateMutation('1.0.0'),
+      }),
+      program: ({ payload }) =>
+        Effect.all({
+          updated: Item.update('1.0.0', {
+            resourceId: payload.id,
+            attributes: { name: payload.name },
+          }),
         }),
-      },
-      name: 'test',
       version: '1.0.0',
     });
-
-    expect(system.accountControllers.user.contracts.createUser).toStrictEqual(
-      createUser,
-    );
-  });
-
-  it('returns accounts map on the system', () => {
-    const frontend = makeFrontendController({
-      contracts: { createUser: makeTestContract('createUser') },
-      accountName: 'user',
-      actorName: 'a',
-      frontendName: 'default',
-      version: '1.0.0',
-      systemName: 'test',
-      models: { user: User },
-      signature: Schema.Struct({ userId: Schema.String }),
+    const guard = makeGuard({
+      contract: renameItem,
+      models: { guardItem: Item },
+      program: () => Effect.void,
     });
-    const mainActor = makeActorController({
-      name: 'a',
-      version: '1.0.0',
-      models: { user: User },
-      selections: {
-        user: makeSelection({ model: User }),
-      },
-      frontends: {
-        default: {
-          frontendController: frontend,
-          authenticate: () =>
-            Effect.succeed({
-              actorId: 'usr_1' as const,
-              accountId: 'usr_1' as const,
-            }),
-        },
-      },
-    });
-    const userAccount = makeAccountController({
-      name: 'user',
-      version: '1.0.0',
-      actorControllers: { a: mainActor },
-      models: { user: User },
-      contracts: mainActor.frontends.default.contracts,
+    const controller = makeFrontendController({
+      systemName: 'guard-system',
+      aggregateName: 'account',
+      frontendName: 'web',
+      contracts: { renameItem },
+      models: { guardItem: Item },
+      guards: { renameItem: [guard] },
     });
 
     const system = makeSystem({
-      accountControllers: { user: userAccount },
-      name: 'test',
+      name: 'guard-system',
       version: '1.0.0',
-    });
-
-    expect(system.accountControllers.user).toBe(userAccount);
-  });
-
-  it('returns serviceControllers map on the system', () => {
-    const createUser = makeTestContract('createUser');
-    const userService = makeServiceController({
-      name: 'user',
-      version: '1.0.0',
-      models: { user: ServiceUser },
-      contracts: { createUser },
-    });
-
-    const system = makeSystem({
-      accountControllers: {},
-      serviceControllers: { user: userService },
-      name: 'test',
-      version: '1.0.0',
-    });
-
-    expect(system.serviceControllers.user).toBe(userService);
-  });
-
-  it('retains the nested service actor and frontend graph', () => {
-    const frontendController = makeServiceFrontendController({
-      systemName: 'test',
-      serviceName: 'user',
-      actorName: 'reader',
-      frontendName: 'profile',
-      version: '1.0.0',
-      models: { user: ServiceUser },
-      signature: Schema.Struct({ subject: Schema.String }),
-    });
-    const actorController = makeServiceActorController({
-      name: 'reader',
-      version: '1.0.0',
-      models: { user: ServiceUser },
-      frontends: {
-        profile: {
-          frontendController,
-          authenticate: () => Effect.succeed('actr_reader'),
+      authentication: {
+        signature: makeSignature(
+          { version: '1.0.0', schema: Schema.Struct({}) },
+          [],
+        ),
+        authenticate: () => Effect.succeed('user'),
+      },
+      aggregates: {
+        account: {
+          authorize: () => Effect.void,
+          models: { guardItem: Item },
+          contracts: { renameItem },
+          selections: {
+            guardItem: makeSelection({ model: Item, where: () => ({}) }),
+          },
+          frontends: { web: { controller } },
         },
       },
     });
-    const serviceController = makeServiceController({
-      name: 'user',
-      version: '1.0.0',
-      models: { user: ServiceUser },
-      contracts: {},
-      actorControllers: { reader: actorController },
-    });
 
-    const system = makeSystem({
-      accountControllers: {},
-      serviceControllers: { user: serviceController },
-      name: 'test',
-      version: '1.0.0',
+    expect(system.aggregates.account.frontends.web.controller.guards).toEqual({
+      renameItem: [guard],
     });
-
-    expect(
-      system.serviceControllers.user.actorControllers.reader.frontends.profile
-        .frontendController,
-    ).toBe(frontendController);
+    expect(guard.models.guardItem).toBe(Item);
   });
 
-  it('rejects a nested service frontend owned by another system', () => {
-    const frontendController = makeServiceFrontendController({
-      systemName: 'test',
-      serviceName: 'user',
-      actorName: 'reader',
-      frontendName: 'profile',
-      version: '1.0.0',
-      models: { user: ServiceUser },
-      signature: Schema.Struct({}),
-    });
-    const actorController = makeServiceActorController({
-      name: 'reader',
-      version: '1.0.0',
-      models: { user: ServiceUser },
-      frontends: {
-        profile: {
-          frontendController,
-          authenticate: () => Effect.succeed('actr_reader'),
-        },
-      },
-    });
-    const serviceController = makeServiceController({
-      name: 'user',
-      version: '1.0.0',
-      models: { user: ServiceUser },
-      contracts: {},
-      actorControllers: { reader: actorController },
-    });
-    Reflect.set(frontendController, 'systemName', 'other');
-
-    expect(() =>
-      makeSystem({
-        accountControllers: {},
-        serviceControllers: { user: serviceController },
-        name: 'test',
+  it('rejects guards that query a projected frontend model identity', () => {
+    const Command = makeModel(
+      {
+        abbreviation: 'gcm',
+        modelName: 'guardCommand',
+        attributes: { name: primitives.text() },
+        indexes: [],
         version: '1.0.0',
-      }),
-    ).toThrow(
-      'makeSystem: serviceControllers.user.actorControllers.reader.frontends.profile.frontendController must have systemName "test", received "other"',
+      },
+      [],
     );
-  });
-
-  it('throws when an accountControllers key does not match the account name', () => {
-    const frontend = makeFrontendController({
-      contracts: { createUser: makeTestContract('createUser') },
-      accountName: 'user',
-      actorName: 'main',
-      frontendName: 'main',
-      version: '1.0.0',
-      systemName: 'test',
-      models: { user: User },
-      signature: Schema.Struct({ userId: Schema.String }),
-    });
-    const mainActor = makeActorController({
-      name: 'main',
-      version: '1.0.0',
-      models: { user: User },
-      selections: {
-        user: makeSelection({ model: User }),
-      },
-      frontends: {
-        main: {
-          frontendController: frontend,
-          authenticate: () =>
-            Effect.succeed({
-              actorId: 'usr_1' as const,
-              accountId: 'usr_1' as const,
-            }),
-        },
-      },
-    });
-    const userAccount = makeAccountController({
-      name: 'user',
-      version: '1.0.0',
-      actorControllers: { main: mainActor },
-      models: { user: User },
-      contracts: mainActor.frontends.main.contracts,
-    });
-    const accountControllers = {
-      admin: userAccount,
-    } as IAccountControllers;
-
-    expect(() =>
-      makeSystem({
-        accountControllers,
-        name: 'test',
+    const Source = makeModel(
+      {
+        abbreviation: 'gsc',
+        modelName: 'guardSource',
+        attributes: { name: primitives.text() },
+        indexes: [],
         version: '1.0.0',
-      }),
-    ).toThrow(
-      'makeSystem: accountControllers.admin must have name "admin", received "user"',
+      },
+      [],
     );
-  });
-
-  it('throws when a serviceControllers key does not match the service name', () => {
-    const createUser = makeTestContract('createUser');
-    const userService = makeServiceController({
-      name: 'user',
+    const Projected = makeModel(
+      {
+        abbreviation: 'gpr',
+        modelName: 'guardProjected',
+        attributes: { name: primitives.text() },
+        indexes: [],
+        version: '1.0.0',
+      },
+      [],
+    );
+    const createCommand = makeContract({
+      commandName: 'createCommand',
+      payload: {
+        id: Command.primaryKey({ autogenerate: false }),
+        name: primitives.text(),
+      },
+      mutations: Schema.Struct({
+        created: Command.createMutation('1.0.0'),
+      }),
+      program: ({ payload }) =>
+        Effect.all({
+          created: Command.create('1.0.0', {
+            resourceId: payload.id,
+            attributes: { name: payload.name },
+          }),
+        }),
       version: '1.0.0',
-      models: { user: ServiceUser },
-      contracts: { createUser },
     });
-    const serviceControllers = {
-      app: userService,
-    } as IServiceControllers;
+    const guard = makeGuard({
+      contract: createCommand,
+      models: { guardProjected: Projected },
+      program: () => Effect.void,
+    });
+    const controller = makeFrontendController({
+      systemName: 'guard-projection-system',
+      aggregateName: 'account',
+      frontendName: 'web',
+      contracts: { createCommand },
+      models: { guardCommand: Command, guardProjected: Projected },
+      guards: { createCommand: [guard] },
+    });
 
     expect(() =>
       makeSystem({
-        accountControllers: {},
-        serviceControllers,
-        name: 'test',
+        name: 'guard-projection-system',
         version: '1.0.0',
+        authentication: {
+          signature: makeSignature(
+            { version: '1.0.0', schema: Schema.Struct({}) },
+            [],
+          ),
+          authenticate: () => Effect.succeed('user'),
+        },
+        aggregates: {
+          account: {
+            authorize: () => Effect.void,
+            models: { guardCommand: Command, guardSource: Source },
+            contracts: { createCommand },
+            selections: {
+              guardCommand: makeSelection({
+                model: Command,
+                where: () => ({}),
+              }),
+              guardSource: makeSelection({
+                model: Source,
+                where: () => ({}),
+              }),
+            },
+            frontends: {
+              web: {
+                controller,
+                models: {
+                  guardCommand: 'guardCommand',
+                  guardProjected: 'guardSource',
+                },
+                projectionAdapters: {
+                  guardProjected: resource =>
+                    Effect.succeed({
+                      ...resource,
+                      id: Projected.prefixId(resource.id),
+                      modelName: Projected.modelName,
+                      version: Projected.version,
+                    }),
+                },
+              },
+            },
+          },
+        },
       }),
     ).toThrow(
-      'makeSystem: serviceControllers.app must have name "app", received "user"',
+      'guards.createCommand.0.models.guardProjected must be identity-bound to authoritative aggregate model "guardProjected"',
     );
   });
 });

@@ -1,0 +1,922 @@
+/*
+ * Aggregate replica block application.
+ *
+ * 1. Validate the complete target, local/server index rules, and strict wire
+ *    encoding before opening a transaction.
+ * 2. Accept an equal replica index only when the caller supplies the exact
+ *    previous block and both canonical schema encodings are identical.
+ * 3. Ordinary server blocks rewind and replay stored encoded optimistic
+ *    mutations without rerunning authored contract programs.
+ * 4. Local command blocks apply their already-computed resource and lifecycle
+ *    changes directly in the same SQLite transaction.
+ * 5. Preserve each command's authored contract version; the lock key guards
+ *    delivery to the exact local materialization before any mutation.
+ */
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import { desc, eq, sql } from 'drizzle-orm';
+import { Effect, Schema } from 'effect';
+
+import { applyAggregateFrontendMutationTx } from '../contracts/applyAggregateFrontendMutationTx.ts';
+import { applyMutationInverseTx } from '../contracts/applyMutationInverseTx.ts';
+import { decodeAppliedMutation } from '../contracts/decodeAppliedMutation.ts';
+import {
+  encodeAppliedMutation,
+  EncodedAppliedMutationSchema,
+} from '../contracts/encodeAppliedMutation.ts';
+import { makeTx } from '../drizzle/makeTx.ts';
+import type { IDrizzleRelationsFromModels } from '../drizzle/types.ts';
+import { upsertHelper } from '../drizzle/upsertHelper.ts';
+import type {
+  IAggregateFrontendController,
+  InferFrontendModels,
+} from '../frontendController/types.ts';
+import { makeAbbreviationIdSchema } from '../models/makeIdSchema.ts';
+import { makeEffectSchema } from '../models/primitiveMaps.ts';
+import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
+
+import { AggregateFrontendReplicaBlockSchema } from './AggregateFrontendBlockSchema.ts';
+import {
+  sessionExecutedPushedCommandDrizzleSchema,
+  sessionFailedCommandDrizzleSchema,
+  sessionOptimisticAppliedMutationDrizzleSchema,
+  sessionPushedCommandDrizzleSchema,
+  sessionStagedCommandDrizzleSchema,
+} from './sessionCommandShape.ts';
+import type {
+  IAggregateFrontendReplicaBlock,
+  ISessionDrizzleDb,
+} from './types.ts';
+
+export const applyAggregateFrontendReplicaBlock = Effect.fn(
+  'applyAggregateFrontendReplicaBlock',
+)(function* <FRONTEND extends IAggregateFrontendController>(props: {
+  db: ISessionDrizzleDb<
+    InferFrontendModels<FRONTEND>,
+    IDrizzleRelationsFromModels<InferFrontendModels<FRONTEND>>
+  >;
+  frontend: FRONTEND;
+  models: InferFrontendModels<FRONTEND>;
+  frontendReplicaBlock: IAggregateFrontendReplicaBlock;
+  aggregateId: IAggregateFrontendReplicaBlock['aggregateId'];
+  userId: IAggregateFrontendReplicaBlock['userId'];
+  systemId: IAggregateFrontendReplicaBlock['systemId'];
+  aggregateFrontendLockKey: string;
+  currentFrontendIndex: number;
+  currentReplicaIndex: number;
+  previousReplicaBlock: IAggregateFrontendReplicaBlock | null;
+}): Effect.fn.Return<'applied' | 'duplicate', IAnyError> {
+  const {
+    aggregateId,
+    userId,
+    currentFrontendIndex,
+    currentReplicaIndex,
+    db,
+    frontend,
+    frontendReplicaBlock,
+    models,
+    previousReplicaBlock,
+    systemId,
+    aggregateFrontendLockKey,
+  } = props;
+
+  if (
+    frontendReplicaBlock.systemId !== systemId ||
+    frontendReplicaBlock.aggregateId !== aggregateId ||
+    frontendReplicaBlock.aggregateName !== frontend.aggregateName ||
+    frontendReplicaBlock.userId !== userId ||
+    frontendReplicaBlock.frontendName !== frontend.frontendName ||
+    frontendReplicaBlock.aggregateFrontendLockKey !==
+      aggregateFrontendLockKey ||
+    (frontendReplicaBlock.kind === 'server' &&
+      frontendReplicaBlock.frontendBlock.frontendName !== frontend.frontendName)
+  ) {
+    return yield* new ZerospinError({
+      code: 'aggregate-frontend-replica-block-target-mismatch',
+      message:
+        'Frontend replica block does not match the bound aggregate target',
+      extra: {
+        expectedSystemId: systemId,
+        expectedAggregateId: aggregateId,
+        expectedAggregateName: frontend.aggregateName,
+        expectedUserId: userId,
+        expectedFrontendName: frontend.frontendName,
+        expectedAggregateFrontendLockKey: aggregateFrontendLockKey,
+        actualSystemId: frontendReplicaBlock.systemId,
+        actualAggregateId: frontendReplicaBlock.aggregateId,
+        actualAggregateName: frontendReplicaBlock.aggregateName,
+        actualUserId: frontendReplicaBlock.userId,
+        actualFrontendName: frontendReplicaBlock.frontendName,
+        actualAggregateFrontendLockKey:
+          frontendReplicaBlock.aggregateFrontendLockKey,
+      },
+    });
+  }
+
+  const encodedReplicaBlock = yield* Schema.encode(
+    AggregateFrontendReplicaBlockSchema,
+  )(frontendReplicaBlock, { onExcessProperty: 'error' }).pipe(
+    mapParseError({
+      code: 'aggregate-frontend-replica-block-encode-failed',
+      prefix: 'Failed to encode frontend replica block',
+    }),
+  );
+
+  if (frontendReplicaBlock.replicaIndex === currentReplicaIndex) {
+    if (previousReplicaBlock === null) {
+      return yield* new ZerospinError({
+        code: 'aggregate-frontend-replica-block-duplicate-proof-missing',
+        message:
+          'Equal-index frontend replica block requires the previous block',
+      });
+    }
+    const encodedPreviousReplicaBlock = yield* Schema.encode(
+      AggregateFrontendReplicaBlockSchema,
+    )(previousReplicaBlock, { onExcessProperty: 'error' }).pipe(
+      mapParseError({
+        code: 'aggregate-frontend-previous-replica-block-encode-failed',
+        prefix: 'Failed to encode previous frontend replica block',
+      }),
+    );
+    if (
+      JSON.stringify(encodedReplicaBlock) ===
+      JSON.stringify(encodedPreviousReplicaBlock)
+    ) {
+      return 'duplicate';
+    }
+    return yield* new ZerospinError({
+      code: 'aggregate-frontend-replica-block-conflicting-duplicate',
+      message: 'Equal-index frontend replica blocks have different bytes',
+      extra: { replicaIndex: frontendReplicaBlock.replicaIndex },
+    });
+  }
+
+  if (frontendReplicaBlock.replicaIndex !== currentReplicaIndex + 1) {
+    return yield* new ZerospinError({
+      code: 'aggregate-frontend-replica-block-index-gap',
+      message: 'Frontend replica block is not the exact next replica index',
+      extra: {
+        currentReplicaIndex,
+        receivedReplicaIndex: frontendReplicaBlock.replicaIndex,
+      },
+    });
+  }
+
+  if (frontendReplicaBlock.kind === 'local-command') {
+    if (frontendReplicaBlock.frontendIndex !== currentFrontendIndex) {
+      return yield* new ZerospinError({
+        code: 'aggregate-frontend-local-command-block-index-mismatch',
+        message: 'Local command block must preserve the server frontend index',
+        extra: {
+          currentFrontendIndex,
+          receivedFrontendIndex: frontendReplicaBlock.frontendIndex,
+        },
+      });
+    }
+
+    for (const resource of [
+      ...frontendReplicaBlock.delta.inserted,
+      ...frontendReplicaBlock.delta.updated,
+    ]) {
+      const model = yield* getByKeyOrThrow({
+        record: models,
+        key: resource.modelName,
+        recordKind: 'frontend models',
+      });
+      yield* Schema.decodeUnknown(makeEffectSchema(model.propertiesShape))(
+        resource,
+        { onExcessProperty: 'error' },
+      ).pipe(
+        mapParseError({
+          code: 'aggregate-frontend-replica-block-resource-invalid',
+          prefix: `Failed to decode frontend replica resource ${resource.modelName}.${resource.id}`,
+        }),
+      );
+    }
+    for (const removedRef of frontendReplicaBlock.delta.deleted) {
+      const model = yield* getByKeyOrThrow({
+        record: models,
+        key: removedRef.modelName,
+        recordKind: 'frontend models',
+      });
+      yield* Schema.validate(
+        Schema.Struct({
+          id: makeAbbreviationIdSchema(model.abbreviation),
+          modelName: Schema.Literal(model.modelName),
+        }),
+      )(removedRef, { onExcessProperty: 'error' }).pipe(
+        mapParseError({
+          code: 'aggregate-frontend-replica-block-ref-invalid',
+          prefix: `Failed to decode deleted frontend replica ref ${removedRef.modelName}.${removedRef.id}`,
+        }),
+      );
+    }
+    for (const optimisticRow of frontendReplicaBlock.optimisticAppliedMutationsAdded) {
+      for (const mutation of optimisticRow.mutations) {
+        if (mutation.commandId !== optimisticRow.commandId) {
+          return yield* new ZerospinError({
+            code: 'aggregate-frontend-replica-block-mutation-command-mismatch',
+            message: `Optimistic mutation command "${mutation.commandId}" does not match row "${optimisticRow.commandId}"`,
+          });
+        }
+        yield* getByKeyOrThrow({
+          record: models,
+          key: mutation.modelName,
+          recordKind: 'frontend models',
+        });
+      }
+    }
+    for (const command of frontendReplicaBlock.stagedCommandsAdded) {
+      if (
+        command.aggregateId !== aggregateId ||
+        command.userId !== userId ||
+        command.aggregateName !== frontend.aggregateName ||
+        command.frontendName !== frontend.frontendName ||
+        command.systemName !== frontend.systemName
+      ) {
+        return yield* new ZerospinError({
+          code: 'aggregate-frontend-replica-block-staged-command-target-mismatch',
+          message: `Staged command "${command.id}" does not match the bound aggregate target`,
+        });
+      }
+    }
+    for (const command of frontendReplicaBlock.pushedCommandsAdded) {
+      if (
+        command.aggregateId !== aggregateId ||
+        command.userId !== userId ||
+        command.aggregateName !== frontend.aggregateName ||
+        command.frontendName !== frontend.frontendName ||
+        command.systemName !== frontend.systemName
+      ) {
+        return yield* new ZerospinError({
+          code: 'aggregate-frontend-replica-block-pushed-command-target-mismatch',
+          message: `Pushed command "${command.id}" does not match the bound aggregate target`,
+        });
+      }
+    }
+    for (const command of frontendReplicaBlock.executedPushedCommandsAdded) {
+      if (
+        command.aggregateId !== aggregateId ||
+        command.userId !== userId ||
+        command.aggregateName !== frontend.aggregateName ||
+        command.frontendName !== frontend.frontendName ||
+        command.systemName !== frontend.systemName
+      ) {
+        return yield* new ZerospinError({
+          code: 'aggregate-frontend-replica-block-executed-command-target-mismatch',
+          message: `Executed command "${command.id}" does not match the bound aggregate target`,
+        });
+      }
+    }
+    for (const command of frontendReplicaBlock.failedStagedCommandsAdded) {
+      if (
+        command.aggregateId !== aggregateId ||
+        command.userId !== userId ||
+        command.aggregateName !== frontend.aggregateName ||
+        command.frontendName !== frontend.frontendName ||
+        command.systemName !== frontend.systemName
+      ) {
+        return yield* new ZerospinError({
+          code: 'aggregate-frontend-replica-block-failed-staged-command-target-mismatch',
+          message: `Failed staged command "${command.id}" does not match the bound aggregate target`,
+        });
+      }
+    }
+    for (const command of frontendReplicaBlock.failedPushedCommandsAdded) {
+      if (
+        command.aggregateId !== aggregateId ||
+        command.userId !== userId ||
+        command.aggregateName !== frontend.aggregateName ||
+        command.frontendName !== frontend.frontendName ||
+        command.systemName !== frontend.systemName
+      ) {
+        return yield* new ZerospinError({
+          code: 'aggregate-frontend-replica-block-failed-pushed-command-target-mismatch',
+          message: `Failed pushed command "${command.id}" does not match the bound aggregate target`,
+        });
+      }
+    }
+
+    yield* makeTx({
+      db,
+      program: Effect.fn('applyAggregateFrontendReplicaBlock.localCommand')(
+        function* ({ tx }) {
+          yield* Effect.sync(() => {
+            tx.run(sql.raw('PRAGMA defer_foreign_keys = ON;'));
+          });
+
+          // 1 — rewind every current local overlay in reverse local order.
+          const stagedCommandsToRewind = tx
+            .select()
+            .from(sessionStagedCommandDrizzleSchema)
+            .orderBy(desc(sessionStagedCommandDrizzleSchema.stagedCursor))
+            .all();
+          const pushedCommandsToRewind = tx
+            .select()
+            .from(sessionPushedCommandDrizzleSchema)
+            .orderBy(desc(sessionPushedCommandDrizzleSchema.pushedCursor))
+            .all();
+          for (const command of [
+            ...stagedCommandsToRewind,
+            ...pushedCommandsToRewind,
+          ]) {
+            const optimisticRow = tx
+              .select()
+              .from(sessionOptimisticAppliedMutationDrizzleSchema)
+              .where(
+                eq(
+                  sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+                  command.id,
+                ),
+              )
+              .get();
+            if (optimisticRow === undefined) continue;
+            const encodedMutations = yield* Schema.decode(
+              Schema.parseJson(Schema.Array(EncodedAppliedMutationSchema)),
+            )(optimisticRow.mutations).pipe(
+              mapParseError({
+                code: 'session-optimistic-mutations-decode-failed',
+                prefix: 'Failed to decode optimistic session mutations',
+              }),
+            );
+            const decodedMutations = [];
+            for (const encodedMutation of encodedMutations) {
+              const model = yield* getByKeyOrThrow({
+                record: models,
+                key: encodedMutation.modelName,
+                recordKind: 'frontend models',
+              });
+              decodedMutations.push(
+                yield* decodeAppliedMutation({
+                  mutation: encodedMutation,
+                  model,
+                }),
+              );
+            }
+            decodedMutations.sort(
+              (left, right) => right.mutationIndex - left.mutationIndex,
+            );
+            for (const decodedMutation of decodedMutations) {
+              yield* applyMutationInverseTx({
+                tx,
+                mutation: decodedMutation,
+              });
+            }
+          }
+
+          // 2 — apply the worker materialization delta exactly once.
+          for (const resource of [
+            ...frontendReplicaBlock.delta.inserted,
+            ...frontendReplicaBlock.delta.updated,
+          ]) {
+            const model = yield* getByKeyOrThrow({
+              record: models,
+              key: resource.modelName,
+              recordKind: 'frontend models',
+            });
+            upsertHelper({
+              table: model.drizzleSchema,
+              tx,
+              values: resource,
+            });
+          }
+          for (const removedRef of frontendReplicaBlock.delta.deleted) {
+            const model = yield* getByKeyOrThrow({
+              record: models,
+              key: removedRef.modelName,
+              recordKind: 'frontend models',
+            });
+            tx.delete(model.drizzleSchema)
+              .where(eq(model.drizzleSchema.id, removedRef.id))
+              .run();
+          }
+
+          // 3 — commit the worker-owned lifecycle transition.
+          for (const commandId of frontendReplicaBlock.stagedCommandIdsRemoved) {
+            tx.delete(sessionStagedCommandDrizzleSchema)
+              .where(eq(sessionStagedCommandDrizzleSchema.id, commandId))
+              .run();
+          }
+          for (const commandId of frontendReplicaBlock.pushedCommandIdsRemoved) {
+            tx.delete(sessionPushedCommandDrizzleSchema)
+              .where(eq(sessionPushedCommandDrizzleSchema.id, commandId))
+              .run();
+          }
+          for (const commandId of frontendReplicaBlock.executedPushedCommandIdsRemoved) {
+            tx.delete(sessionExecutedPushedCommandDrizzleSchema)
+              .where(
+                eq(sessionExecutedPushedCommandDrizzleSchema.id, commandId),
+              )
+              .run();
+          }
+          for (const commandId of frontendReplicaBlock.failedCommandIdsRemoved) {
+            tx.delete(sessionFailedCommandDrizzleSchema)
+              .where(eq(sessionFailedCommandDrizzleSchema.id, commandId))
+              .run();
+          }
+          for (const commandId of frontendReplicaBlock.optimisticAppliedMutationCommandIdsRemoved) {
+            tx.delete(sessionOptimisticAppliedMutationDrizzleSchema)
+              .where(
+                eq(
+                  sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+                  commandId,
+                ),
+              )
+              .run();
+          }
+
+          for (const command of frontendReplicaBlock.stagedCommandsAdded) {
+            upsertHelper({
+              table: sessionStagedCommandDrizzleSchema,
+              tx,
+              values: command,
+            });
+          }
+          for (const command of frontendReplicaBlock.pushedCommandsAdded) {
+            upsertHelper({
+              table: sessionPushedCommandDrizzleSchema,
+              tx,
+              values: command,
+            });
+          }
+          for (const command of frontendReplicaBlock.executedPushedCommandsAdded) {
+            upsertHelper({
+              table: sessionExecutedPushedCommandDrizzleSchema,
+              tx,
+              values: command,
+            });
+          }
+          for (const command of frontendReplicaBlock.failedStagedCommandsAdded) {
+            upsertHelper({
+              table: sessionFailedCommandDrizzleSchema,
+              tx,
+              values: {
+                ...command,
+                pushedAt: null,
+              },
+            });
+          }
+          for (const command of frontendReplicaBlock.failedPushedCommandsAdded) {
+            upsertHelper({
+              table: sessionFailedCommandDrizzleSchema,
+              tx,
+              values: command,
+            });
+          }
+          for (const optimisticRow of frontendReplicaBlock.optimisticAppliedMutationsAdded) {
+            const encodedMutations = yield* Schema.encode(
+              Schema.parseJson(Schema.Array(EncodedAppliedMutationSchema)),
+            )(optimisticRow.mutations).pipe(
+              mapParseError({
+                code: 'session-optimistic-mutations-encode-failed',
+                prefix: 'Failed to encode optimistic session mutations',
+              }),
+            );
+            tx.insert(sessionOptimisticAppliedMutationDrizzleSchema)
+              .values({
+                commandId: optimisticRow.commandId,
+                mutations: encodedMutations,
+              })
+              .onConflictDoUpdate({
+                target: sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+                set: { mutations: encodedMutations },
+              })
+              .run();
+          }
+
+          // 4 — replay only overlays not already materialized by this block.
+          const representedCommandIds = new Set(
+            frontendReplicaBlock.optimisticAppliedMutationsAdded.map(
+              optimistic => optimistic.commandId,
+            ),
+          );
+          const pushedCommandsToReplay = tx
+            .select()
+            .from(sessionPushedCommandDrizzleSchema)
+            .orderBy(sessionPushedCommandDrizzleSchema.pushedCursor)
+            .all();
+          const stagedCommandsToReplay = tx
+            .select()
+            .from(sessionStagedCommandDrizzleSchema)
+            .orderBy(sessionStagedCommandDrizzleSchema.stagedCursor)
+            .all();
+          for (const command of [
+            ...pushedCommandsToReplay,
+            ...stagedCommandsToReplay,
+          ]) {
+            if (representedCommandIds.has(command.id)) continue;
+            const optimisticRow = tx
+              .select()
+              .from(sessionOptimisticAppliedMutationDrizzleSchema)
+              .where(
+                eq(
+                  sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+                  command.id,
+                ),
+              )
+              .get();
+            if (optimisticRow === undefined) continue;
+            const encodedMutations = yield* Schema.decode(
+              Schema.parseJson(Schema.Array(EncodedAppliedMutationSchema)),
+            )(optimisticRow.mutations).pipe(
+              mapParseError({
+                code: 'session-optimistic-mutations-decode-failed',
+                prefix: 'Failed to decode optimistic session mutations',
+              }),
+            );
+            const nextEncodedMutations = [];
+            for (const encodedMutation of encodedMutations) {
+              const model = yield* getByKeyOrThrow({
+                record: models,
+                key: encodedMutation.modelName,
+                recordKind: 'frontend models',
+              });
+              const decodedMutation = yield* decodeAppliedMutation({
+                mutation: encodedMutation,
+                model,
+              });
+              const nextAppliedMutation =
+                yield* applyAggregateFrontendMutationTx({
+                  tx,
+                  mutation: decodedMutation,
+                  commandId: encodedMutation.commandId,
+                  mutationIndex: encodedMutation.mutationIndex,
+                  appliedAt: encodedMutation.appliedAt,
+                });
+              nextEncodedMutations.push(
+                yield* encodeAppliedMutation({
+                  mutation: nextAppliedMutation,
+                }),
+              );
+            }
+            const encodedNextMutations = yield* Schema.encode(
+              Schema.parseJson(Schema.Array(EncodedAppliedMutationSchema)),
+            )(nextEncodedMutations).pipe(
+              mapParseError({
+                code: 'session-optimistic-mutations-encode-failed',
+                prefix: 'Failed to encode optimistic session mutations',
+              }),
+            );
+            tx.update(sessionOptimisticAppliedMutationDrizzleSchema)
+              .set({ mutations: encodedNextMutations })
+              .where(
+                eq(
+                  sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+                  command.id,
+                ),
+              )
+              .run();
+          }
+        },
+      ),
+    });
+
+    return 'applied';
+  }
+
+  const { frontendBlock } = frontendReplicaBlock;
+  if (
+    frontendBlock.frontendName !== frontend.frontendName ||
+    frontendBlock.frontendIndex !== frontendReplicaBlock.frontendIndex ||
+    frontendReplicaBlock.frontendIndex !== currentFrontendIndex + 1
+  ) {
+    return yield* new ZerospinError({
+      code: 'aggregate-frontend-replica-server-block-target-mismatch',
+      message: 'Frontend server block does not match its replica envelope',
+    });
+  }
+  const resourceRows = [
+    ...frontendBlock.delta.inserted,
+    ...frontendBlock.delta.updated,
+  ];
+  for (const resource of resourceRows) {
+    const model = yield* getByKeyOrThrow({
+      record: models,
+      key: resource.modelName,
+      recordKind: 'frontend models',
+    });
+    yield* Schema.decodeUnknown(makeEffectSchema(model.propertiesShape))(
+      resource,
+      { onExcessProperty: 'error' },
+    ).pipe(
+      mapParseError({
+        code: 'aggregate-frontend-replica-block-resource-invalid',
+        prefix: `Failed to decode frontend replica resource ${resource.modelName}.${resource.id}`,
+      }),
+    );
+  }
+  for (const removedRef of frontendBlock.delta.deleted) {
+    const model = yield* getByKeyOrThrow({
+      record: models,
+      key: removedRef.modelName,
+      recordKind: 'frontend models',
+    });
+    yield* Schema.validate(
+      Schema.Struct({
+        id: makeAbbreviationIdSchema(model.abbreviation),
+        modelName: Schema.Literal(model.modelName),
+      }),
+    )(removedRef, { onExcessProperty: 'error' }).pipe(
+      mapParseError({
+        code: 'aggregate-frontend-replica-block-ref-invalid',
+        prefix: `Failed to decode deleted frontend replica ref ${removedRef.modelName}.${removedRef.id}`,
+      }),
+    );
+  }
+  for (const command of frontendBlock.pendingPushedCommands) {
+    if (
+      command.aggregateId !== aggregateId ||
+      command.userId !== userId ||
+      command.aggregateName !== frontend.aggregateName ||
+      command.frontendName !== frontend.frontendName ||
+      command.systemName !== frontend.systemName
+    ) {
+      return yield* new ZerospinError({
+        code: 'aggregate-frontend-replica-block-pending-command-target-mismatch',
+        message: `Pending command "${command.id}" does not match the bound aggregate target`,
+      });
+    }
+  }
+  for (const command of frontendBlock.executedPushedCommands) {
+    if (
+      command.aggregateId !== aggregateId ||
+      command.userId !== userId ||
+      command.aggregateName !== frontend.aggregateName ||
+      command.frontendName !== frontend.frontendName ||
+      command.systemName !== frontend.systemName
+    ) {
+      return yield* new ZerospinError({
+        code: 'aggregate-frontend-replica-block-executed-command-target-mismatch',
+        message: `Executed command "${command.id}" does not match the bound aggregate target`,
+      });
+    }
+  }
+  for (const command of frontendBlock.failedPushedCommands) {
+    if (
+      command.aggregateId !== aggregateId ||
+      command.userId !== userId ||
+      command.aggregateName !== frontend.aggregateName ||
+      command.frontendName !== frontend.frontendName ||
+      command.systemName !== frontend.systemName
+    ) {
+      return yield* new ZerospinError({
+        code: 'aggregate-frontend-replica-block-failed-command-target-mismatch',
+        message: `Failed command "${command.id}" does not match the bound aggregate target`,
+      });
+    }
+  }
+
+  yield* makeTx({
+    db,
+    program: Effect.fn('applyAggregateFrontendReplicaBlock.server')(function* ({
+      tx,
+    }) {
+      yield* Effect.sync(() => {
+        tx.run(sql.raw('PRAGMA defer_foreign_keys = ON;'));
+      });
+
+      // 1 — rewind all local overlays in reverse application order.
+      const stagedCommandsToRewind = tx
+        .select()
+        .from(sessionStagedCommandDrizzleSchema)
+        .orderBy(desc(sessionStagedCommandDrizzleSchema.stagedCursor))
+        .all();
+      const pushedCommandsToRewind = tx
+        .select()
+        .from(sessionPushedCommandDrizzleSchema)
+        .orderBy(desc(sessionPushedCommandDrizzleSchema.pushedCursor))
+        .all();
+      const accountedPushedCommandIds = new Set(
+        [
+          ...frontendBlock.pendingPushedCommands,
+          ...frontendBlock.executedPushedCommands,
+          ...frontendBlock.failedPushedCommands,
+        ].map(command => command.id),
+      );
+      const unaccountedPushedCommand = pushedCommandsToRewind.find(
+        command => !accountedPushedCommandIds.has(command.id),
+      );
+      if (unaccountedPushedCommand !== undefined) {
+        return yield* new ZerospinError({
+          code: 'aggregate-frontend-replica-block-pushed-command-unaccounted',
+          message: `Frontend replica block does not account for pushed command "${unaccountedPushedCommand.id}"`,
+        });
+      }
+      for (const command of [
+        ...stagedCommandsToRewind,
+        ...pushedCommandsToRewind,
+      ]) {
+        const optimisticRow = tx
+          .select()
+          .from(sessionOptimisticAppliedMutationDrizzleSchema)
+          .where(
+            eq(
+              sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+              command.id,
+            ),
+          )
+          .get();
+        if (optimisticRow === undefined) {
+          continue;
+        }
+        const encodedMutations = yield* Schema.decode(
+          Schema.parseJson(Schema.Array(EncodedAppliedMutationSchema)),
+        )(optimisticRow.mutations).pipe(
+          mapParseError({
+            code: 'session-optimistic-mutations-decode-failed',
+            prefix: 'Failed to decode optimistic session mutations',
+          }),
+        );
+        const decodedMutations = [];
+        for (const encodedMutation of encodedMutations) {
+          const model = yield* getByKeyOrThrow({
+            record: models,
+            key: encodedMutation.modelName,
+            recordKind: 'frontend models',
+          });
+          decodedMutations.push(
+            yield* decodeAppliedMutation({
+              mutation: encodedMutation,
+              model,
+            }),
+          );
+        }
+        decodedMutations.sort(
+          (left, right) => right.mutationIndex - left.mutationIndex,
+        );
+        for (const decodedMutation of decodedMutations) {
+          yield* applyMutationInverseTx({ tx, mutation: decodedMutation });
+        }
+      }
+
+      // 2 — apply the authoritative resource delta.
+      for (const resource of resourceRows) {
+        const model = yield* getByKeyOrThrow({
+          record: models,
+          key: resource.modelName,
+          recordKind: 'frontend models',
+        });
+        upsertHelper({ table: model.drizzleSchema, tx, values: resource });
+      }
+      for (const removedRef of frontendBlock.delta.deleted) {
+        const model = yield* getByKeyOrThrow({
+          record: models,
+          key: removedRef.modelName,
+          recordKind: 'frontend models',
+        });
+        tx.delete(model.drizzleSchema)
+          .where(eq(model.drizzleSchema.id, removedRef.id))
+          .run();
+      }
+
+      // 3 — promote the complete post-block pending membership.
+      for (const command of frontendBlock.pendingPushedCommands) {
+        const localFailure = tx
+          .select()
+          .from(sessionFailedCommandDrizzleSchema)
+          .where(eq(sessionFailedCommandDrizzleSchema.id, command.id))
+          .get();
+        if (localFailure !== undefined) {
+          continue;
+        }
+        upsertHelper({
+          table: sessionPushedCommandDrizzleSchema,
+          tx,
+          values: command,
+        });
+        tx.delete(sessionStagedCommandDrizzleSchema)
+          .where(eq(sessionStagedCommandDrizzleSchema.id, command.id))
+          .run();
+      }
+
+      // 4 — persist full terminal authority and remove local intent rows.
+      for (const command of frontendBlock.executedPushedCommands) {
+        const localFailure = tx
+          .select()
+          .from(sessionFailedCommandDrizzleSchema)
+          .where(eq(sessionFailedCommandDrizzleSchema.id, command.id))
+          .get();
+        if (localFailure === undefined) {
+          upsertHelper({
+            table: sessionExecutedPushedCommandDrizzleSchema,
+            tx,
+            values: command,
+          });
+        }
+        tx.delete(sessionStagedCommandDrizzleSchema)
+          .where(eq(sessionStagedCommandDrizzleSchema.id, command.id))
+          .run();
+        tx.delete(sessionPushedCommandDrizzleSchema)
+          .where(eq(sessionPushedCommandDrizzleSchema.id, command.id))
+          .run();
+        tx.delete(sessionOptimisticAppliedMutationDrizzleSchema)
+          .where(
+            eq(
+              sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+              command.id,
+            ),
+          )
+          .run();
+      }
+      for (const command of frontendBlock.failedPushedCommands) {
+        tx.delete(sessionStagedCommandDrizzleSchema)
+          .where(eq(sessionStagedCommandDrizzleSchema.id, command.id))
+          .run();
+        tx.delete(sessionPushedCommandDrizzleSchema)
+          .where(eq(sessionPushedCommandDrizzleSchema.id, command.id))
+          .run();
+        upsertHelper({
+          table: sessionFailedCommandDrizzleSchema,
+          tx,
+          values: command,
+        });
+        tx.delete(sessionOptimisticAppliedMutationDrizzleSchema)
+          .where(
+            eq(
+              sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+              command.id,
+            ),
+          )
+          .run();
+      }
+
+      // 5 — replay stored encoded operations and recompute their inverses.
+      const pushedCommandsToReplay = tx
+        .select()
+        .from(sessionPushedCommandDrizzleSchema)
+        .orderBy(sessionPushedCommandDrizzleSchema.pushedCursor)
+        .all();
+      const stagedCommandsToReplay = tx
+        .select()
+        .from(sessionStagedCommandDrizzleSchema)
+        .orderBy(sessionStagedCommandDrizzleSchema.stagedCursor)
+        .all();
+      for (const command of [
+        ...pushedCommandsToReplay,
+        ...stagedCommandsToReplay,
+      ]) {
+        const optimisticRow = tx
+          .select()
+          .from(sessionOptimisticAppliedMutationDrizzleSchema)
+          .where(
+            eq(
+              sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+              command.id,
+            ),
+          )
+          .get();
+        if (optimisticRow === undefined) {
+          continue;
+        }
+        const encodedMutations = yield* Schema.decode(
+          Schema.parseJson(Schema.Array(EncodedAppliedMutationSchema)),
+        )(optimisticRow.mutations).pipe(
+          mapParseError({
+            code: 'session-optimistic-mutations-decode-failed',
+            prefix: 'Failed to decode optimistic session mutations',
+          }),
+        );
+        const nextEncodedMutations = [];
+        for (const encodedMutation of encodedMutations) {
+          const model = yield* getByKeyOrThrow({
+            record: models,
+            key: encodedMutation.modelName,
+            recordKind: 'frontend models',
+          });
+          const decodedMutation = yield* decodeAppliedMutation({
+            mutation: encodedMutation,
+            model,
+          });
+          const nextAppliedMutation = yield* applyAggregateFrontendMutationTx({
+            tx,
+            mutation: decodedMutation,
+            commandId: encodedMutation.commandId,
+            mutationIndex: encodedMutation.mutationIndex,
+            appliedAt: encodedMutation.appliedAt,
+          });
+          nextEncodedMutations.push(
+            yield* encodeAppliedMutation({ mutation: nextAppliedMutation }),
+          );
+        }
+        const encodedNextMutations = yield* Schema.encode(
+          Schema.parseJson(Schema.Array(EncodedAppliedMutationSchema)),
+        )(nextEncodedMutations).pipe(
+          mapParseError({
+            code: 'session-optimistic-mutations-encode-failed',
+            prefix: 'Failed to encode optimistic session mutations',
+          }),
+        );
+        tx.update(sessionOptimisticAppliedMutationDrizzleSchema)
+          .set({ mutations: encodedNextMutations })
+          .where(
+            eq(
+              sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+              command.id,
+            ),
+          )
+          .run();
+      }
+    }),
+  });
+
+  return 'applied';
+});

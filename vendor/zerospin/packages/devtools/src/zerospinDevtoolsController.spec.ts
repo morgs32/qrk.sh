@@ -86,7 +86,7 @@ describe('zerospinDevtoolsController', () => {
     unregisterFirstLoader();
 
     await expect(staleOpen).rejects.toThrow(
-      'ZerospinConfig unmounted before Zerospin DevTools finished loading.',
+      'ZerospinApp.Provider unmounted before Zerospin DevTools finished loading.',
     );
     await zerospinDevtoolsController.open();
 
@@ -97,9 +97,9 @@ describe('zerospinDevtoolsController', () => {
     unregisterReplacementLoader();
   });
 
-  it('requires a mounted ZerospinConfig loader', async () => {
+  it('requires a mounted ZerospinApp.Provider loader', async () => {
     await expect(zerospinDevtoolsController.open()).rejects.toThrow(
-      'ZerospinConfig must be mounted before opening Zerospin DevTools.',
+      'ZerospinApp.Provider must be mounted before opening Zerospin DevTools.',
     );
   });
 });

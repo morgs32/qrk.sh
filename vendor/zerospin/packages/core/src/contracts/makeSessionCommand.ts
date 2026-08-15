@@ -18,16 +18,14 @@ import type {
 export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
   CONTRACT extends IContract,
 >(props: {
-  accountId: string;
-  accountName: string;
-  actorId: string;
-  actorName: string;
+  aggregateId: string;
+  aggregateName: string;
+  userId: string;
   contract: CONTRACT;
   payload: InferPayloadInput<CONTRACT['payload']>;
   sessionId: ISessionId;
   frontendName: string;
   systemName: string;
-  systemVersion: string;
 }): Effect.fn.Return<
   ISessionCommand<
     ICommand<
@@ -40,29 +38,25 @@ export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
   CuidFactory
 > {
   const {
-    accountId,
-    accountName,
-    actorId,
-    actorName,
+    aggregateId,
+    aggregateName,
+    userId,
     contract,
     payload,
     sessionId,
     frontendName,
     systemName,
-    systemVersion,
   } = props;
   const command = yield* makeCommand({ contract, payload });
 
   return {
     ...command,
-    accountId,
-    accountName,
-    actorId,
-    actorName,
+    aggregateId,
+    aggregateName,
+    userId,
     pushedCursor: null,
     sessionId,
     frontendName,
     systemName,
-    systemVersion,
   };
 });

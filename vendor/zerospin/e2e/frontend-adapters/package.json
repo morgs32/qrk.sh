@@ -1,0 +1,24 @@
+{
+  "name": "@zerospin/e2e-frontend-adapters",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "oxlint . --format stylish",
+    "test:workerd": "vitest run --config vitest.workerd.config.ts",
+    "ts": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.16.3",
+    "@effect/vitest": "^0.29.0",
+    "@types/node": "^25.6.2",
+    "effect": "3.21.4",
+    "vitest": "~4.1.5",
+    "wrangler": "^4.118.0"
+  },
+  "dependencies": {
+    "@zerospin/core": "workspace:*",
+    "@zerospin/dev-worker": "workspace:*",
+    "system-worker": "workspace:*"
+  }
+}

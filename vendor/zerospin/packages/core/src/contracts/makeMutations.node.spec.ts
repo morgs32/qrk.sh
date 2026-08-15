@@ -4,7 +4,6 @@ import { Effect, Schema } from 'effect';
 import { createList, List, system } from '../fixtures/system.ts';
 import { makeServiceModel } from '../models/makeServiceModel.ts';
 import { primitives } from '../models/primitives.ts';
-import { makeServiceController } from '../service/makeServiceController.ts';
 
 import { makeContract } from './makeContract.ts';
 import { makeMutations } from './makeMutations.ts';
@@ -58,28 +57,27 @@ const replicateServiceProduct = makeContract({
 });
 
 describe('makeMutations', () => {
-  it.effect('runs account controller contracts', () =>
+  it.effect('runs aggregate contracts', () =>
     Effect.gen(function* () {
-      const accountController = system.accountControllers.user!;
+      const aggregate = system.aggregates.user;
       const command = {
         id: 'cmd_test' as const,
         commandName: 'createList',
-        version: '1.0.0',
+        contractVersion: '1.0.0',
         payload: {
           id: 'lst_test',
           name: 'Test List',
           userId: 'usr_test',
         },
-        commandType: 'account' as const,
-        systemVersion: '1.0.0',
-        accountId: 'acct_1',
-        accountName: 'user',
+        commandType: 'aggregate' as const,
+        aggregateId: 'acct_1',
+        aggregateName: 'user',
       };
 
       const result = yield* makeMutations({
-        contract: accountController.contracts.createList,
-        models: accountController.models,
-        owner: { kind: 'account' },
+        contract: aggregate.contracts.createList,
+        models: aggregate.models,
+        owner: { kind: 'aggregate' },
         command,
       });
 
@@ -91,30 +89,27 @@ describe('makeMutations', () => {
 
   it.effect('runs frontend binding contracts', () =>
     Effect.gen(function* () {
-      const frontendBinding =
-        system.accountControllers.user!.actorControllers.main!.frontends.main!;
+      const frontendBinding = system.aggregates.user.frontends.main;
       const command = {
         id: 'cmd_test' as const,
         commandName: 'createList',
-        version: '1.0.0',
+        contractVersion: '1.0.0',
         payload: {
           id: 'lst_frontend',
-          name: 'Actor List',
+          name: 'Frontend List',
           userId: 'usr_test',
         },
-        commandType: 'actor' as const,
-        systemVersion: '1.0.0',
-        accountId: 'acct_1',
-        accountName: 'user',
-        actorId: 'actr_1',
-        actorName: 'main',
+        commandType: 'frontend' as const,
+        aggregateId: 'acct_1',
+        aggregateName: 'user',
+        userId: 'user_1',
         frontendName: 'main',
       };
 
       const result = yield* makeMutations({
         contract: frontendBinding.contracts.createList,
         models: frontendBinding.models,
-        owner: { kind: 'account' },
+        owner: { kind: 'aggregate' },
         command,
       });
 
@@ -123,34 +118,23 @@ describe('makeMutations', () => {
     }),
   );
 
-  it.effect('runs service controller contracts', () =>
+  it.effect('runs service contracts', () =>
     Effect.gen(function* () {
-      const service = makeServiceController({
-        name: 'app',
-        version: '1.0.0',
-        models: {
-          serviceProduct: ServiceProduct,
-        },
-        contracts: {
-          createServiceProduct,
-        },
-      });
       const command = {
         id: 'cmd_test' as const,
         commandName: 'createServiceProduct',
-        version: '1.0.0',
+        contractVersion: '1.0.0',
         payload: {
           id: 'sprd_service',
           name: 'Service Product',
         },
         commandType: 'service' as const,
-        systemVersion: '1.0.0',
         serviceName: 'app',
       };
 
       const result = yield* makeMutations({
-        contract: service.contracts.createServiceProduct,
-        models: service.models,
+        contract: createServiceProduct,
+        models: { serviceProduct: ServiceProduct },
         owner: { kind: 'service', serviceName: 'app' },
         command,
       });
@@ -180,7 +164,7 @@ describe('makeMutations', () => {
       const command = {
         id: 'cmd_test' as const,
         commandName: 'createSingleList',
-        version: '1.0.0',
+        contractVersion: '1.0.0',
         payload: {
           id: 'lst_single',
           name: 'Single List',
@@ -193,7 +177,7 @@ describe('makeMutations', () => {
         models: {
           list: List,
         },
-        owner: { kind: 'account' },
+        owner: { kind: 'aggregate' },
         command,
       });
 
@@ -232,11 +216,11 @@ describe('makeMutations', () => {
       const result = yield* makeMutations({
         contract: tupleContract,
         models: { list: List },
-        owner: { kind: 'account' },
+        owner: { kind: 'aggregate' },
         command: {
           id: 'cmd_tuple_order',
           commandName: 'replaceListsInTupleOrder',
-          version: '1.0.0',
+          contractVersion: '1.0.0',
           payload: {
             firstId: 'lst_first',
             secondId: 'lst_second',
@@ -277,11 +261,11 @@ describe('makeMutations', () => {
       const result = yield* makeMutations({
         contract: arrayContract,
         models: { list: List },
-        owner: { kind: 'account' },
+        owner: { kind: 'aggregate' },
         command: {
           id: 'cmd_array_order',
           commandName: 'deleteListsInArrayOrder',
-          version: '1.0.0',
+          contractVersion: '1.0.0',
           payload: {
             firstId: 'lst_first',
             secondId: 'lst_second',
@@ -319,11 +303,11 @@ describe('makeMutations', () => {
         const result = yield* makeMutations({
           contract: invalidOutputContract,
           models: { list: List },
-          owner: { kind: 'account' },
+          owner: { kind: 'aggregate' },
           command: {
             id: 'cmd_invalid_output',
             commandName: 'invalidCreateOutput',
-            version: '1.0.0',
+            contractVersion: '1.0.0',
             payload: { id: 'lst_invalid_output' },
           },
         }).pipe(Effect.either);
@@ -352,11 +336,11 @@ describe('makeMutations', () => {
       const result = yield* makeMutations({
         contract: nullContract,
         models: { list: List },
-        owner: { kind: 'account' },
+        owner: { kind: 'aggregate' },
         command: {
           id: 'cmd_read_list',
           commandName: 'readList',
-          version: '1.0.0',
+          contractVersion: '1.0.0',
           payload: { id: 'lst_read' },
         },
       });
@@ -367,34 +351,22 @@ describe('makeMutations', () => {
 
   it.effect('rejects service contract mutations outside service models', () =>
     Effect.gen(function* () {
-      const service = makeServiceController({
-        name: 'app',
-        version: '1.0.0',
-        models: {
-          serviceProduct: ServiceProduct,
-        },
-        // @ts-expect-error runtime validation still protects untyped boundaries
-        contracts: {
-          createList,
-        },
-      });
       const command = {
         id: 'cmd_test' as const,
         commandName: 'createList',
-        version: '1.0.0',
+        contractVersion: '1.0.0',
         payload: {
           id: 'lst_service',
           name: 'Service List',
           userId: 'usr_test',
         },
         commandType: 'service' as const,
-        systemVersion: '1.0.0',
         serviceName: 'app',
       };
 
       const maybeMutations = yield* makeMutations({
-        contract: service.contracts.createList,
-        models: service.models,
+        contract: createList,
+        models: { serviceProduct: ServiceProduct },
         owner: { kind: 'service', serviceName: 'app' },
         command,
       }).pipe(Effect.either);
@@ -409,27 +381,26 @@ describe('makeMutations', () => {
   );
 
   it.effect(
-    'rejects ordinary service-model mutations from account owners',
+    'rejects ordinary service-model mutations from aggregate owners',
     () =>
       Effect.gen(function* () {
         const command = {
-          id: 'cmd_account_service_model' as const,
+          id: 'cmd_aggregate_service_model' as const,
           commandName: 'createServiceProduct',
-          version: '1.0.0',
+          contractVersion: '1.0.0',
           payload: {
-            id: 'sprd_account_service_model',
-            name: 'Account-owned service product',
+            id: 'sprd_aggregate_service_model',
+            name: 'Aggregate-owned service product',
           },
-          commandType: 'account' as const,
-          systemVersion: '1.0.0',
-          accountId: 'acct_1',
-          accountName: 'user',
+          commandType: 'aggregate' as const,
+          aggregateId: 'acct_1',
+          aggregateName: 'user',
         };
 
         const maybeMutations = yield* makeMutations({
           contract: createServiceProduct,
           models: { serviceProduct: ServiceProduct },
-          owner: { kind: 'account' },
+          owner: { kind: 'aggregate' },
           command,
         }).pipe(Effect.either);
 
@@ -445,17 +416,10 @@ describe('makeMutations', () => {
   it.effect('rejects replicateResource from service owners', () =>
     Effect.gen(function* () {
       const now = new Date(0);
-      const service = makeServiceController({
-        name: 'app',
-        version: '1.0.0',
-        models: { serviceProduct: ServiceProduct },
-        // @ts-expect-error service contracts cannot emit replicateResource
-        contracts: { replicateServiceProduct },
-      });
       const command = {
         id: 'cmd_service_replication' as const,
         commandName: 'replicateServiceProduct',
-        version: '1.0.0',
+        contractVersion: '1.0.0',
         payload: {
           product: {
             id: 'sprd_service_replication',
@@ -468,13 +432,12 @@ describe('makeMutations', () => {
           },
         },
         commandType: 'service' as const,
-        systemVersion: '1.0.0',
         serviceName: 'app',
       };
 
       const maybeMutations = yield* makeMutations({
-        contract: service.contracts.replicateServiceProduct,
-        models: service.models,
+        contract: replicateServiceProduct,
+        models: { serviceProduct: ServiceProduct },
         owner: { kind: 'service', serviceName: 'app' },
         command,
       }).pipe(Effect.either);

@@ -21,7 +21,7 @@ export async function executeInRepo<
     key: MatchParams<string>;
   }) => Effect.Effect<DurableObjectStub<Rpc.DurableObjectBranded>, IAnyError>;
   repo: {
-    repoUtils: {
+    boundDORepoConfig: {
       nameUtils: {
         makeName(
           ...args: readonly unknown[]
@@ -42,19 +42,19 @@ export async function executeInRepo<
     relations: IDbConfigRelations<CONFIG>;
     key: MatchParams<string>;
     name: string;
-    storage: DurableObjectStorage;
+    state: DurableObjectState;
   }) => RESULT | Promise<RESULT>;
 }): Promise<Awaited<RESULT>> {
   const { fn, getRepo, key, managedRuntime, repo } = props;
-  const { repoUtils } = repo;
-  const name = Effect.runSync(repoUtils.nameUtils.makeName(key));
+  const { boundDORepoConfig } = repo;
+  const name = Effect.runSync(boundDORepoConfig.nameUtils.makeName(key));
   const stub = await managedRuntime.runPromise(getRepo({ key }));
 
   return runInDurableObject<Rpc.DurableObjectBranded, Awaited<RESULT>>(
     stub,
     async (_instance, state) => {
       const dbConfig = await managedRuntime.runPromise(
-        repoUtils
+        boundDORepoConfig
           .getDbConfig({
             storage: state.storage,
             name,
@@ -76,7 +76,7 @@ export async function executeInRepo<
         relations,
         key,
         name,
-        storage: state.storage,
+        state,
       });
     },
   );

@@ -63,9 +63,9 @@ export const getReplicatedResources = Effect.fn(
 
   // 1 — the Durable Object key is the only service identity accepted by this snapshot
   const serviceController = yield* getByKeyOrThrow({
-    record: system.serviceControllers,
+    record: system.services,
     key: serviceName,
-    recordKind: 'service controllers',
+    recordKind: 'services',
   });
 
   // 2 — resource rows, watermark W, and (C, W] must come from one SQLite view
@@ -76,8 +76,10 @@ export const getReplicatedResources = Effect.fn(
         // 3 — capture W before interpreting any resource as the canonical snapshot
         const watermark = tx
           .select()
-          .from(serviceRepoDrizzleSchemas.serviceCursors)
-          .orderBy(desc(serviceRepoDrizzleSchemas.serviceCursors.serviceIndex))
+          .from(serviceRepoDrizzleSchemas.serviceCommandOutcomes)
+          .orderBy(
+            desc(serviceRepoDrizzleSchemas.serviceCommandOutcomes.serviceIndex),
+          )
           .limit(1)
           .get();
         if (watermark === undefined) {

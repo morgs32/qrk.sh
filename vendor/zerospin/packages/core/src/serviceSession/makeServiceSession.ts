@@ -1,7 +1,10 @@
-import { emptyTelemetryBatch, type ITelemetryCollector } from '@zerospin/logger';
+import {
+  emptyTelemetryBatch,
+  type ITelemetryCollector,
+} from '@zerospin/logger';
 import { createStore } from 'zustand/vanilla';
 
-import type { IServiceFrontendController } from '../serviceFrontendController/types.ts';
+import type { IServiceFrontendController } from '../frontendController/types.ts';
 import type { ISessionId } from '../session/types.ts';
 
 import type {
@@ -15,9 +18,8 @@ export function makeServiceSession<
 >(props: {
   frontend: FRONTEND;
   sessionId: ISessionId;
-  mode: 'shared-worker' | 'direct';
 }): IServiceSession<FRONTEND> {
-  const { frontend, mode, sessionId } = props;
+  const { frontend, sessionId } = props;
 
   const store = createStore<IServiceSessionState<FRONTEND['models']>>(
     (set, get) => {
@@ -68,15 +70,12 @@ export function makeServiceSession<
 
       return {
         sessionId,
-        actorId: null,
+        userId: null,
         systemId: null,
-        generationId: null,
         systemVersion: null,
-        systemWorkerName: null,
         serviceName: null,
-        actorName: null,
         frontendName: null,
-        frontendVersion: null,
+        serviceFrontendLockKey: null,
         db: null,
         schema: null,
         models: null,
@@ -84,7 +83,7 @@ export function makeServiceSession<
         frontendIndex: null,
         replicaIndex: null,
         workerState: {
-          mode,
+          mode: 'shared-worker',
           status: 'authenticating',
           bootstrapSource: null,
           frontendIndex: null,

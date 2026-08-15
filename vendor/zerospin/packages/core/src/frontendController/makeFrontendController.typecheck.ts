@@ -1,101 +1,139 @@
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
+import { makeContract } from '../contracts/makeContract.ts';
+import { makeGuard } from '../guards/makeGuard.ts';
 import { makeModel } from '../models/makeModel.ts';
 import { primitives } from '../models/primitives.ts';
 
 import { makeFrontendController } from './makeFrontendController.ts';
+import { makeSignature } from './makeSignature.ts';
 
-const User = makeModel(
-  {
-    abbreviation: 'usr',
-    modelName: 'user',
-    attributes: {
-      name: primitives.text(),
-    },
-    indexes: [],
-    version: '1.0.0',
-  },
+const signature = makeSignature(
+  { version: '1.0.0', schema: Schema.Struct({}) },
   [],
 );
 
-const List = makeModel(
-  {
-    abbreviation: 'lst',
-    modelName: 'list',
-    attributes: {
-      name: primitives.text(),
-      userId: primitives.ref({
-        table: User.table,
-        relation: 'user',
-        inverse: 'lists',
-      }),
-    },
-    indexes: [],
-    version: '1.0.0',
-  },
-  [],
-);
-
-const withModels = makeFrontendController({
-  accountName: 'user',
-  actorName: 'main',
+const aggregateFrontend = makeFrontendController({
+  systemName: 'test',
+  aggregateName: 'user',
   frontendName: 'web',
-  version: '1.0.0',
-  systemName: 'test',
-  models: {
-    list: List,
-    user: User,
-  },
+  userId: Schema.NonEmptyString,
+  models: {},
   contracts: {},
-  signature: Schema.Struct({}),
+  signature,
 });
 
-void withModels.models.user;
-const frontendControllerVersion: '1.0.0' = withModels.version;
-const frontendControllerActorName: 'main' = withModels.actorName;
-const frontendControllerFrontendName: 'web' = withModels.frontendName;
-void frontendControllerVersion;
-void frontendControllerActorName;
-void frontendControllerFrontendName;
+const aggregateName: 'user' = aggregateFrontend.aggregateName;
+const aggregateFrontendName: 'web' = aggregateFrontend.frontendName;
+void aggregateName;
+void aggregateFrontendName;
+// @ts-expect-error — frontend controllers do not expose controller SemVer.
+void aggregateFrontend.version;
 
-// @ts-expect-error — version is required at the factory call site
-makeFrontendController({
-  accountName: 'user',
-  actorName: 'main',
-  frontendName: 'main',
+const serviceFrontend = makeFrontendController({
   systemName: 'test',
-  models: {
-    list: List,
-    user: User,
-  },
-  contracts: {},
-  signature: Schema.Struct({}),
+  serviceName: 'catalog',
+  frontendName: 'browse',
+  userId: Schema.NonEmptyString,
+  models: {},
+  signature,
 });
 
+const serviceName: 'catalog' = serviceFrontend.serviceName;
+const serviceFrontendName: 'browse' = serviceFrontend.frontendName;
+void serviceName;
+void serviceFrontendName;
+// @ts-expect-error — frontend controllers do not expose controller SemVer.
+void serviceFrontend.version;
+
 makeFrontendController({
-  accountName: 'user',
-  actorName: 'main',
-  frontendName: 'main',
-  version: '1.0.0',
   systemName: 'test',
-  // @ts-expect-error CoreTypeError — models key must equal model.modelName
-  models: {
-    wrongKey: User,
-  },
+  frontendName: 'invalid',
+  userId: Schema.NonEmptyString,
+  models: {},
+  signature,
+  // @ts-expect-error — a controller must identify either its aggregate or its service
   contracts: {},
-  signature: Schema.Struct({}),
 });
 
 makeFrontendController({
-  accountName: 'user',
-  actorName: 'main',
-  frontendName: 'main',
-  version: '1.0.0',
   systemName: 'test',
-  // @ts-expect-error CoreTypeError: ref target model must be in controller models
-  models: {
-    list: List,
-  },
+  aggregateName: 'user',
+  frontendName: 'missing-version',
+  models: {},
   contracts: {},
-  signature: Schema.Struct({}),
+  userId: Schema.NonEmptyString,
+  signature,
 });
+
+const GuardList = makeModel(
+  {
+    abbreviation: 'gls',
+    modelName: 'guardList',
+    attributes: { name: primitives.text() },
+    indexes: [],
+    version: '1.0.0',
+  },
+  [],
+);
+const GuardUser = makeModel(
+  {
+    abbreviation: 'gus',
+    modelName: 'guardUser',
+    attributes: { name: primitives.text() },
+    indexes: [],
+    version: '1.0.0',
+  },
+  [],
+);
+const renameGuardList = makeContract({
+  commandName: 'renameGuardList',
+  payload: {
+    id: GuardList.primaryKey({ autogenerate: false }),
+    name: primitives.text(),
+  },
+  mutations: Schema.Struct({
+    updated: GuardList.updateMutation('1.0.0'),
+  }),
+  program: ({ payload }) =>
+    Effect.all({
+      updated: GuardList.update('1.0.0', {
+        resourceId: payload.id,
+        attributes: { name: payload.name },
+      }),
+    }),
+  version: '1.0.0',
+});
+const declaredModelGuard = makeGuard({
+  contract: renameGuardList,
+  models: { list: GuardList },
+  program: ({ db, payload }) => {
+    db.query.list.findFirst({ where: { id: { eq: payload.id } } }).sync();
+    // @ts-expect-error — a guard cannot query a model it did not declare
+    void db.query.user;
+    // @ts-expect-error — authored guard databases expose no mutation API
+    void db.insert;
+    // @ts-expect-error — authored guard databases expose no raw SQL API
+    void db.run;
+    // @ts-expect-error — authored guard databases expose no transaction API
+    void db.transaction;
+    // @ts-expect-error — authored guard databases expose no underlying client
+    void db.$client;
+    return Effect.void;
+  },
+});
+const guardedController = makeFrontendController({
+  systemName: 'guard-type-test',
+  aggregateName: 'account',
+  frontendName: 'web',
+  contracts: { renameGuardList },
+  models: { list: GuardList, user: GuardUser },
+  guards: { renameGuardList: [declaredModelGuard] },
+});
+const retainedGuard = guardedController.guards.renameGuardList[0];
+if (retainedGuard !== undefined) {
+  const retainedDeclaredModel: typeof GuardList = retainedGuard.models.list;
+  void retainedDeclaredModel;
+  // @ts-expect-error — normalized guards retain the concrete declared model keys
+  void retainedGuard.models.user;
+}

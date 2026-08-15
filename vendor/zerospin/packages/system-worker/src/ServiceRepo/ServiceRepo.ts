@@ -7,7 +7,13 @@
 import { RoutePattern } from '@remix-run/route-pattern';
 import type {} from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import {
+  EncodedExecutedServiceCommandSchema,
+  EncodedFailedServiceCommandSchema,
+} from '@zerospin/core/contracts/CommandSchema';
+import { EncodedAppliedMutationSchema } from '@zerospin/core/contracts/encodeAppliedMutation';
 import type {
+  IEncodedCommand,
   IExecutedServiceCommand,
   IFailedServiceCommand,
   IServiceCommand,
@@ -17,7 +23,6 @@ import { makeDrizzleSchemasRecordFromTables } from '@zerospin/core/drizzle/makeD
 import { makeTable } from '@zerospin/core/models/makeTable';
 import { primitives } from '@zerospin/core/models/primitives';
 import type {
-  IActorId,
   IAnyTables,
   IEncodedResourceShape,
   IServiceCursorId,
@@ -28,21 +33,25 @@ import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import type { IRpcEitherEncoded } from '@zerospin/core/utils/types';
 import { ZerospinError, type IAnyErrorJson } from '@zerospin/error';
-import { Effect, type Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 import { BrandTypeId } from 'effect/Brand';
 import { system } from 'system';
 
-import { ServiceBlockSchema } from '../blockSchemas.js';
-import { makeRepo } from '../makeRepo/makeRepo.js';
-import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
+import {
+  ServiceBlockSchema,
+  ServiceFinalizationReceiptSchema,
+} from '../blockSchemas.js';
+import { makeBoundDORepo } from '../makeBoundDORepo/makeBoundDORepo.js';
+import { makeBoundDORepoConfig } from '../makeBoundDORepo/makeBoundDORepoConfig.js';
+import { makeDeliveryQueue } from '../makeDeliveryQueue/makeDeliveryQueue.js';
 import { managedRuntime } from '../managedRuntime.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import type { IServiceBlock } from '../types.js';
 
-import { authenticateServiceFrontend } from './authenticateServiceFrontend/authenticateServiceFrontend.js';
+import { alarm } from './alarm/alarm.js';
+import { authorizeServiceFrontend } from './authorizeServiceFrontend/authorizeServiceFrontend.js';
 import { drainGeneration } from './drainGeneration/drainGeneration.js';
 import { drainServiceBlockOutbox } from './drainServiceBlockOutbox/drainServiceBlockOutbox.js';
-import { executeActorQuery } from './executeActorQuery/executeActorQuery.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
 import { finalizeServiceCommands } from './finalizeServiceCommands/finalizeServiceCommands.js';
 import { getReplicatedResources } from './getReplicatedResources/getReplicatedResources.js';
@@ -51,38 +60,30 @@ import { replayServiceBlock } from './replayServiceBlock/replayServiceBlock.js';
 
 /** Exact direct-RPC surface returned by the SERVICE_REPO binding. */
 export interface IServiceRepoRpcTarget {
-  authenticateServiceFrontend(props: {
+  authorizeServiceFrontend(props: {
     serviceName: string;
-    actorName: string;
     frontendName: string;
-    signature: unknown;
-  }): IRpcEitherEncoded<IActorId>;
-  finalizeServiceCommands(props: {
+    userId: string;
+  }): IRpcEitherEncoded<void>;
+  executeServiceQuery(props: {
     serviceName: string;
-    commands: readonly IServiceCommand[];
+    queryName: string;
+    params: unknown;
+  }): IRpcEitherEncoded<unknown>;
+  finalizeServiceCommands(props: {
+    writeIndex: number;
+    serviceName: string;
+    commands: readonly IEncodedCommand<IServiceCommand>[];
   }): IRpcEitherEncoded<
     Readonly<{
-      executedCommands: readonly IExecutedServiceCommand[];
-      failedCommands: readonly IFailedServiceCommand[];
+      executedCommands: readonly IEncodedCommand<IExecutedServiceCommand>[];
+      failedCommands: readonly IEncodedCommand<IFailedServiceCommand>[];
     }>
   >;
   drainServiceBlockOutbox(): IRpcEitherEncoded<void>;
   drainGeneration(): IRpcEitherEncoded<
     Readonly<{ pendingServiceBlockCount: number }>
   >;
-  executeServiceQuery(props: {
-    serviceName: string;
-    queryName: string;
-    params: unknown;
-  }): IRpcEitherEncoded<unknown>;
-  executeActorQuery(props: {
-    accountName: string;
-    actorId: string;
-    actorName: string;
-    params: unknown;
-    queryName: string;
-    frontendName: string;
-  }): IRpcEitherEncoded<unknown>;
   getReplicatedResources(props: {
     currentServiceIndex: number | null;
     resources: readonly Readonly<{
@@ -112,7 +113,6 @@ export interface IServiceRepoRpcTarget {
   >;
   getServiceFrontendSnapshot(props: {
     serviceName: string;
-    actorName: string;
     frontendName: string;
   }): IRpcEitherEncoded<
     Readonly<{
@@ -122,7 +122,6 @@ export interface IServiceRepoRpcTarget {
     }>
   >;
   replayServiceBlock(props: {
-    deployId: string;
     prevGenerationId: string;
     block: IServiceBlock;
   }): IRpcEitherEncoded<
@@ -139,23 +138,38 @@ export interface IServiceRepoRpcTarget {
   }): IRpcEitherEncoded<IRepoTableData>;
 }
 
-const serviceCursorShape = {
-  commandId: primitives.text(),
-  serviceCursor: primitives.primaryKey({
+const serviceCommandOutcomeShape = {
+  commandId: primitives.primaryKey({ abbreviation: 'cmd' }),
+  commandBytes: primitives.text(),
+  command: primitives.json({
+    schema: Schema.Union(
+      EncodedExecutedServiceCommandSchema,
+      EncodedFailedServiceCommandSchema,
+    ),
+  }),
+  serviceCursor: primitives.cursor({
     abbreviation: coreAbbreviations.serviceCursor,
   }),
   serviceIndex: primitives.integer({ unique: true }),
-  appliedAt: primitives.date(),
+  appliedMutations: primitives.json({
+    schema: Schema.Array(EncodedAppliedMutationSchema),
+  }),
+  writeIndex: primitives.integer(),
 } satisfies IShape;
 
 const serviceRepoTables = {
-  serviceCursors: makeTable({
-    name: 'serviceCursors',
-    shape: serviceCursorShape,
+  serviceCommandOutcomes: makeTable({
+    name: 'serviceCommandOutcomes',
+    shape: serviceCommandOutcomeShape,
     indexes: [
       {
-        name: 'serviceCursors_commandId',
-        columns: ['commandId'],
+        name: 'serviceCommandOutcomes_serviceCursor_unique',
+        columns: ['serviceCursor'],
+        unique: true,
+      },
+      {
+        name: 'serviceCommandOutcomes_serviceIndex_unique',
+        columns: ['serviceIndex'],
         unique: true,
       },
     ],
@@ -178,12 +192,12 @@ const serviceRepoTables = {
   serviceReplayReceipts: makeTable({
     name: 'serviceReplayReceipts',
     shape: {
-      deployId: primitives.opaqueId({
-        abbreviation: coreAbbreviations.deploy,
-      }),
       prevGenerationId: primitives.opaqueId({
         abbreviation: coreAbbreviations.generation,
       }),
+      writeIndex: primitives.integer(),
+      sourceBlockBytes: primitives.text(),
+      targetBlockBytes: primitives.text(),
       sourceServiceIndex: primitives.integer(),
       lastServiceCursor: primitives.cursor({
         abbreviation: coreAbbreviations.serviceCursor,
@@ -194,8 +208,8 @@ const serviceRepoTables = {
     },
     indexes: [
       {
-        name: 'serviceReplayReceipts_deploy_generation_index_unique',
-        columns: ['deployId', 'prevGenerationId', 'sourceServiceIndex'],
+        name: 'serviceReplayReceipts_generation_index_unique',
+        columns: ['prevGenerationId', 'sourceServiceIndex'],
         unique: true,
       },
       {
@@ -209,16 +223,44 @@ const serviceRepoTables = {
 export const serviceRepoDrizzleSchemas =
   makeDrizzleSchemasRecordFromTables(serviceRepoTables);
 
-const serviceRepoUtils = makeRepoUtils({
+const serviceBoundDORepoConfig = makeBoundDORepoConfig({
   abbreviation: systemWorkerAbbreviations.serviceRepo,
   repoType: 'ServiceRepo',
   namePattern: RoutePattern.parse('/:generationId/:serviceName'),
   managedRuntime,
   getDbConfig: Effect.fn('ServiceRepo.getDbConfig')(function* (props) {
-    yield* Effect.void;
+    const legacyCursorColumns = [
+      ...props.storage.sql.exec<{ name: string }>(
+        'PRAGMA table_info(serviceCursors)',
+      ),
+    ];
+    const outcomeColumns = [
+      ...props.storage.sql.exec<{ name: string }>(
+        'PRAGMA table_info(serviceCommandOutcomes)',
+      ),
+    ].map(column => column.name);
+    if (
+      legacyCursorColumns.length > 0 ||
+      (outcomeColumns.length > 0 &&
+        [
+          'commandId',
+          'commandBytes',
+          'command',
+          'serviceCursor',
+          'serviceIndex',
+          'appliedMutations',
+          'writeIndex',
+        ].some(column => !outcomeColumns.includes(column)))
+    ) {
+      return yield* new ZerospinError({
+        code: 'legacy-service-repo-outcome-persistence-reset-required',
+        message:
+          'ServiceRepo contains incompatible command persistence and must be reset before this code can run',
+      });
+    }
 
-    const serviceController = system.serviceControllers[props.key.serviceName];
-    const serviceModels = serviceController?.models ?? {};
+    const service = system.services[props.key.serviceName];
+    const serviceModels = service?.models ?? {};
 
     return makeResourceDbConfig({
       models: serviceModels,
@@ -234,44 +276,58 @@ const serviceRepoUtils = makeRepoUtils({
  * service block per finalized command batch to the singleton ServiceBlockRepo.
  */
 export class ServiceRepo
-  extends makeRepo({ repoUtils: serviceRepoUtils })
+  extends makeBoundDORepo({ boundDORepoConfig: serviceBoundDORepoConfig })
   implements IServiceRepoRpcTarget
 {
   declare [BrandTypeId]: { readonly TargetApi: 'TargetApi' };
 
-  static override readonly repoUtils = serviceRepoUtils;
+  static override readonly boundDORepoConfig = serviceBoundDORepoConfig;
 
-  async authenticateServiceFrontend(props: {
+  private readonly deliveryQueue = makeDeliveryQueue({
+    storage: this.ctx.storage,
+  });
+
+  async authorizeServiceFrontend(props: {
     serviceName: string;
-    actorName: string;
     frontendName: string;
-    signature: unknown;
-  }): Promise<Schema.EitherEncoded<IActorId, IAnyErrorJson>> {
+    userId: string;
+  }): Promise<Schema.EitherEncoded<void, IAnyErrorJson>> {
     return managedRuntime.runPromise(
-      authenticateServiceFrontend({
-        ...props,
-        db: this.db,
-      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+      authorizeServiceFrontend({ ...props, db: this.db }).pipe(encodeRpc),
+    );
+  }
+
+  async executeServiceQuery(props: {
+    serviceName: string;
+    queryName: string;
+    params: unknown;
+  }): Promise<Schema.EitherEncoded<unknown, IAnyErrorJson>> {
+    return managedRuntime.runPromise(
+      executeServiceQuery({ ...props, db: this.db }).pipe(encodeRpc),
     );
   }
 
   async finalizeServiceCommands(props: {
+    writeIndex: number;
     serviceName: string;
-    commands: readonly IServiceCommand[];
+    commands: readonly IEncodedCommand<IServiceCommand>[];
   }): Promise<
     Schema.EitherEncoded<
       Readonly<{
-        executedCommands: readonly IExecutedServiceCommand[];
-        failedCommands: readonly IFailedServiceCommand[];
+        executedCommands: readonly IEncodedCommand<IExecutedServiceCommand>[];
+        failedCommands: readonly IEncodedCommand<IFailedServiceCommand>[];
       }>,
       IAnyErrorJson
     >
   > {
-    const encoded = await managedRuntime.runPromise(
-      finalizeServiceCommands({
-        ...props,
-        db: this.db,
-      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    const encoded = await this.ctx.blockConcurrencyWhile(() =>
+      managedRuntime.runPromise(
+        finalizeServiceCommands({
+          ...props,
+          db: this.db,
+          key: this.key,
+        }).pipe(Effect.provide(AsyncLive), encodeRpc),
+      ),
     );
     this.ctx.waitUntil(
       this.drainServiceBlockOutbox().then(
@@ -288,6 +344,7 @@ export class ServiceRepo
     return managedRuntime.runPromise(
       drainServiceBlockOutbox({
         db: this.db,
+        deliveryQueue: this.deliveryQueue,
         storage: this.ctx.storage,
         generationId: this.key.generationId,
         serviceName: this.key.serviceName,
@@ -304,40 +361,10 @@ export class ServiceRepo
     return managedRuntime.runPromise(
       drainGeneration({
         db: this.db,
-        inspectionOnly: this.env.ZEROSPIN_SELF_HOSTED === 'true',
+        deliveryQueue: this.deliveryQueue,
         generationId: this.key.generationId,
         serviceName: this.key.serviceName,
         storage: this.ctx.storage,
-      }).pipe(Effect.provide(AsyncLive), encodeRpc),
-    );
-  }
-
-  async executeServiceQuery(props: {
-    serviceName: string;
-    queryName: string;
-    params: unknown;
-  }): Promise<Schema.EitherEncoded<unknown, IAnyErrorJson>> {
-    return managedRuntime.runPromise(
-      executeServiceQuery({
-        ...props,
-        db: this.db,
-      }).pipe(Effect.provide(AsyncLive), encodeRpc),
-    );
-  }
-
-  async executeActorQuery(props: {
-    accountName: string;
-    actorId: string;
-    actorName: string;
-    params: unknown;
-    queryName: string;
-    frontendName: string;
-  }): Promise<Schema.EitherEncoded<unknown, IAnyErrorJson>> {
-    return managedRuntime.runPromise(
-      executeActorQuery({
-        ...props,
-        db: this.db,
-        serviceName: this.key.serviceName,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }
@@ -383,7 +410,6 @@ export class ServiceRepo
 
   async getServiceFrontendSnapshot(props: {
     serviceName: string;
-    actorName: string;
     frontendName: string;
   }): Promise<
     Schema.EitherEncoded<
@@ -404,7 +430,6 @@ export class ServiceRepo
   }
 
   async replayServiceBlock(props: {
-    deployId: string;
     prevGenerationId: string;
     block: IServiceBlock;
   }): Promise<
@@ -419,18 +444,29 @@ export class ServiceRepo
       IAnyErrorJson
     >
   > {
-    return managedRuntime.runPromise(
-      replayServiceBlock({
-        ...props,
-        db: this.db,
-        generationId: this.key.generationId,
-        serviceName: this.key.serviceName,
-        storage: this.ctx.storage,
-      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+    return this.ctx.blockConcurrencyWhile(() =>
+      managedRuntime.runPromise(
+        replayServiceBlock({
+          ...props,
+          db: this.db,
+          deliveryQueue: this.deliveryQueue,
+          generationId: this.key.generationId,
+          serviceName: this.key.serviceName,
+          storage: this.ctx.storage,
+        }).pipe(Effect.provide(AsyncLive), encodeRpc),
+      ),
     );
   }
 
   async alarm(): Promise<void> {
-    await this.drainServiceBlockOutbox();
+    await managedRuntime.runPromise(
+      alarm({
+        db: this.db,
+        deliveryQueue: this.deliveryQueue,
+        generationId: this.key.generationId,
+        serviceName: this.key.serviceName,
+        storage: this.ctx.storage,
+      }).pipe(Effect.provide(AsyncLive)),
+    );
   }
 }

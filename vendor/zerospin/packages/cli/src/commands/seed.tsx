@@ -18,7 +18,7 @@ export const options = zod.object({
   wrangler: zod
     .boolean()
     .default(false)
-    .describe('Submit directly to the self-hosted Wrangler Worker'),
+    .describe('Submit directly to the production Wrangler Worker'),
 });
 
 export default function Seed(props: {
@@ -41,7 +41,7 @@ export default function Seed(props: {
         <Header />
         <ProcedureStep status={status}>
           <ProcedureStepError
-            description="Failed to seed self-hosted Zerospin"
+            description="Failed to seed production Zerospin"
             error={error ?? null}
           />
           {data && (

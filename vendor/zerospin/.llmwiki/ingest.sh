@@ -193,11 +193,12 @@ if ! "$CLI" -p < "$STATE_DIR/ingest-prompt.md" > "$STATE_DIR/ingest-output.log" 
   exit 1
 fi
 
-# Commit the wiki if anything changed
-if git diff --quiet wiki/ && git diff --cached --quiet wiki/; then
+# Commit generated wiki pages if anything changed. Plans are human-authored and
+# must never be swept into an ingest commit.
+if git diff --quiet -- wiki/ ':(exclude)wiki/dev/**' && git diff --cached --quiet -- wiki/ ':(exclude)wiki/dev/**'; then
   echo "[$(date '+%F %T')] CLI ran but no wiki changes produced"
 else
-  git add wiki/
+  git add -- wiki/ ':(exclude)wiki/dev/**'
   # Skip hooks on our own commit to avoid recursion. The env var is a second line of defence.
   git -c core.hooksPath=/dev/null commit -m "wiki: update ($HEAD_SHORT)" -m "Ingested commit $HEAD_SHA: $SUBJECT"
   echo "[$(date '+%F %T')] wiki committed"

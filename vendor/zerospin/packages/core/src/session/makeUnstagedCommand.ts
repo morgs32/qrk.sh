@@ -18,26 +18,23 @@ export const makeUnstagedCommand = Effect.fn('makeUnstagedCommand')(function* <
   K extends keyof CONTRACTS & string,
 >(
   props: {
-    accountId: string;
-    actorId: string;
+    aggregateId: string;
+    userId: string;
     commandName: K;
     payload: InferPayloadInput<CONTRACTS[K]['payload']>;
     sessionId: ISessionId;
-    systemVersion: string;
   } & (
     | {
         contracts: CONTRACTS;
         systemName: string;
-        accountName: string;
-        actorName: string;
+        aggregateName: string;
         frontendName: string;
       }
     | {
         frontend: {
           contracts: CONTRACTS;
           systemName: string;
-          accountName: string;
-          actorName: string;
+          aggregateName: string;
           frontendName: string;
         };
       }
@@ -47,9 +44,8 @@ export const makeUnstagedCommand = Effect.fn('makeUnstagedCommand')(function* <
   IAnyError,
   CuidFactory
 > {
-  const { accountId, actorId, commandName, payload, sessionId, systemVersion } =
-    props;
-  const { contracts, systemName, accountName, actorName, frontendName } =
+  const { aggregateId, userId, commandName, payload, sessionId } = props;
+  const { contracts, systemName, aggregateName, frontendName } =
     'frontend' in props ? props.frontend : props;
 
   const contract = yield* getByKeyOrThrow({
@@ -59,24 +55,21 @@ export const makeUnstagedCommand = Effect.fn('makeUnstagedCommand')(function* <
   });
 
   const command = yield* makeSessionCommand({
-    accountId,
-    accountName,
-    actorId,
-    actorName,
+    aggregateId,
+    aggregateName,
+    userId,
     contract,
     payload,
     sessionId,
     frontendName,
     systemName,
-    systemVersion,
   });
 
   const unstagedCommand: IUnstagedCommand<InferCommand<CONTRACTS[K]>> = {
     ...command,
     commandType: 'frontend',
-    actorId,
-    accountName,
-    actorName,
+    userId,
+    aggregateName,
     frontendName,
     stagedCursor: null,
     sessionId,

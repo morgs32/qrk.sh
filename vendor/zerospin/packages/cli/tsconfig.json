@@ -51,7 +51,10 @@
       "path": "../error"
     },
     {
-      "path": "../dispatch-worker"
+      "path": "../dev-worker"
+    },
+    {
+      "path": "../production-worker"
     },
     {
       "path": "../core"

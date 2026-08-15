@@ -6,20 +6,18 @@ import type {
   IResourceDbConfig,
   IWaSqliteDrizzleDb,
 } from '../drizzle/types.ts';
+import type { IServiceFrontendController } from '../frontendController/types.ts';
 import type {
-  IActorId,
   IEncodedResourceShape,
   IModels,
   IServiceCursorId,
 } from '../models/types.ts';
-import type { IServiceFrontendController } from '../serviceFrontendController/types.ts';
 import type { IFrontendDelta, ISessionId } from '../session/types.ts';
 import type { ISystemId } from '../system/types.ts';
 
 export type IServiceFrontendBlock = Readonly<{
   serviceName: string;
-  actorName: string;
-  actorId: IActorId;
+  userId: string;
   frontendName: string;
   frontendIndex: number;
   lastServiceCursor: IServiceCursorId;
@@ -27,13 +25,10 @@ export type IServiceFrontendBlock = Readonly<{
 }>;
 
 export type IServiceFrontendState = Readonly<{
-  actorId: IActorId;
+  userId: string;
   systemId: ISystemId;
-  generationId: string;
   systemVersion: string;
-  systemWorkerName: string;
   serviceName: string;
-  actorName: string;
   frontendName: string;
   frontendIndex: number;
   resources: readonly IEncodedResourceShape[];
@@ -41,73 +36,30 @@ export type IServiceFrontendState = Readonly<{
 
 export type IServiceFrontendReplicaState = IServiceFrontendState &
   Readonly<{
-    frontendVersion: string;
+    serviceFrontendLockKey: string;
     replicaIndex: number;
   }>;
 
-export type IServiceFrontendGenerationBoundaryBlock = Readonly<{
-  kind: 'generation-boundary';
-  systemId: ISystemId;
-  prevGenerationId: string;
-  generationId: string;
-  serviceName: string;
-  actorId: IActorId;
-  actorName: string;
-  frontendName: string;
-  frontendIndex: number;
-}>;
-
-export type IServiceFrontendLineageBlock =
-  | IServiceFrontendGenerationBoundaryBlock
-  | Readonly<{
-      kind: 'service-frontend';
-      systemId: ISystemId;
-      generationId: string;
-      serviceName: string;
-      actorId: IActorId;
-      actorName: string;
-      frontendName: string;
-      frontendBlock: IServiceFrontendBlock;
-    }>;
-
 export type IServiceFrontendReplicaBlock = Readonly<{
   systemId: ISystemId;
-  generationId: string;
   serviceName: string;
-  actorId: IActorId;
-  actorName: string;
+  userId: string;
   frontendName: string;
-  frontendVersion: string;
+  serviceFrontendLockKey: string;
   replicaIndex: number;
   frontendIndex: number;
-  lineageBlock: IServiceFrontendLineageBlock;
-}>;
-
-export type IServiceFrontendLineageTransitionRequired = Readonly<{
-  kind: 'lineage-transition-required';
-  systemId: ISystemId;
-  generationId: string;
-  serviceName: string;
-  actorId: IActorId;
-  actorName: string;
-  frontendName: string;
-  frontendVersion: string;
-  appliedBoundaryIndex: number;
-  remainingBoundaries: readonly IServiceFrontendGenerationBoundaryBlock[];
+  frontendBlock: IServiceFrontendBlock;
 }>;
 
 export type IInitializedServiceSessionState<MODELS extends IModels = IModels> =
   Readonly<{
     sessionId: ISessionId;
-    actorId: IActorId;
+    userId: string;
     systemId: ISystemId;
-    generationId: string;
     systemVersion: string;
-    systemWorkerName: string;
     serviceName: string;
-    actorName: string;
     frontendName: string;
-    frontendVersion: string;
+    serviceFrontendLockKey: string;
     db: IWaSqliteDrizzleDb<IResourceDbConfig<MODELS, Record<never, never>>>;
     schema: IResourceDbConfig<MODELS, Record<never, never>>['schema'];
     models: MODELS;
@@ -115,7 +67,7 @@ export type IInitializedServiceSessionState<MODELS extends IModels = IModels> =
     frontendIndex: number;
     replicaIndex: number | null;
     workerState: Readonly<{
-      mode: 'shared-worker' | 'direct';
+      mode: 'shared-worker';
       status:
         | 'authenticating'
         | 'hydrating'
@@ -124,7 +76,6 @@ export type IInitializedServiceSessionState<MODELS extends IModels = IModels> =
         | 'replaying'
         | 'online'
         | 'repairing'
-        | 'update-required'
         | 'failed'
         | 'released';
       bootstrapSource: 'network' | 'replica' | null;
@@ -141,15 +92,12 @@ export type IServiceSessionState<MODELS extends IModels = IModels> =
   | IInitializedServiceSessionState<MODELS>
   | Readonly<{
       sessionId: ISessionId;
-      actorId: null;
+      userId: null;
       systemId: null;
-      generationId: null;
       systemVersion: null;
-      systemWorkerName: null;
       serviceName: null;
-      actorName: null;
       frontendName: null;
-      frontendVersion: null;
+      serviceFrontendLockKey: null;
       db: null;
       schema: null;
       models: null;
@@ -157,7 +105,7 @@ export type IServiceSessionState<MODELS extends IModels = IModels> =
       frontendIndex: null;
       replicaIndex: null;
       workerState: Readonly<{
-        mode: 'shared-worker' | 'direct';
+        mode: 'shared-worker';
         status:
           | 'authenticating'
           | 'hydrating'
@@ -166,7 +114,6 @@ export type IServiceSessionState<MODELS extends IModels = IModels> =
           | 'replaying'
           | 'online'
           | 'repairing'
-          | 'update-required'
           | 'failed'
           | 'released';
         bootstrapSource: 'network' | 'replica' | null;

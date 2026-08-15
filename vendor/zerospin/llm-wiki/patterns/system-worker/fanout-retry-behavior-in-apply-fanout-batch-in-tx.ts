@@ -1,29 +1,64 @@
 import { Effect } from 'effect';
 
 /**
- * Fanout apply handlers return success payload or `null`; idempotent retry lives in fanout helpers.
+ * Fanout owns subscriber progress; the coordinator owns retry and the alarm.
+ * A callback returns `false` only when that subscriber exhausted its attempts.
  *
- * @bad Add custom `prev*Cursor` handshake checks in repo fanout handlers.
- * @bad Perform ad-hoc RPC lookups to detect whether a fanout step already ran.
+ * @bad Run all subscribers without a concurrency bound.
+ * @bad Stop unrelated subscribers when one target exhausts its attempts.
+ * @bad Advance a subscriber watermark before its target RPC succeeds.
  */
-export const applyFrontendFanoutBatchInTx = Effect.fn(
-  'FrontendRepo.applyFanoutBatchInTx',
-)(function* (props: { events: readonly unknown[]; tx: unknown }) {
-  const { events, tx } = props;
-
-  const applied = yield* decodeAndApplyFrontendDeltaBatch({
-    tx,
-    events,
-  });
-
-  if (applied === null) {
-    return null;
-  }
-
-  return { frontendDeltaCursor: applied.cursor };
+export const drainSubscriberFanout = Effect.fn(
+  'BlockRepo.drainSubscriberFanout',
+)(function* (props: {
+  fanoutQueue: {
+    drain(): Effect.Effect<void, Error>;
+  };
+}) {
+  yield* props.fanoutQueue.drain();
 });
 
-declare function decodeAndApplyFrontendDeltaBatch(props: {
-  tx: unknown;
-  events: readonly unknown[];
-}): Effect.Effect<{ cursor: string } | null, unknown, unknown>;
+export const processSubscriber = Effect.fn('BlockRepo.processSubscriber')(
+  function* (props: {
+    retry<A>(delivery: Effect.Effect<A, Error>): Effect.Effect<A, Error>;
+    subscriber: {
+      id: string;
+      currentIndex: number;
+    };
+    targetRepo: {
+      handle(blocks: readonly unknown[]): PromiseLike<unknown>;
+    };
+    readNextBlocks(afterIndex: number): readonly unknown[];
+    acknowledge(props: { id: string; currentIndex: number }): void;
+    recordDiagnostic(props: { id: string; failure: string }): void;
+  }) {
+    const blocks = props.readNextBlocks(props.subscriber.currentIndex);
+    if (blocks.length === 0) {
+      return true;
+    }
+    const delivered = yield* props
+      .retry(
+        makeAsync(() => props.targetRepo.handle(blocks)).pipe(
+          Effect.flatMap(decodeRpc),
+        ),
+      )
+      .pipe(Effect.either);
+    if (delivered._tag === 'Left') {
+      props.recordDiagnostic({
+        id: props.subscriber.id,
+        failure: delivered.left.message,
+      });
+      return false;
+    }
+    props.acknowledge({
+      id: props.subscriber.id,
+      currentIndex: props.subscriber.currentIndex + blocks.length,
+    });
+    return true;
+  },
+);
+
+declare function makeAsync<A>(
+  fn: () => PromiseLike<A>,
+): Effect.Effect<A, Error>;
+declare function decodeRpc<A>(encoded: A): Effect.Effect<A, Error>;

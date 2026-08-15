@@ -1,10 +1,12 @@
 /*
  * System-worker annotation:
- * Publishes the actor-specific service projection and its archive together.
+ * Publishes one ready frontend projection and its archive together.
  */
 
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
+import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
+import type { AnyColumn } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import { registerRepo } from '../registerRepo/registerRepo.js';
@@ -12,18 +14,36 @@ import { registerRepo } from '../registerRepo/registerRepo.js';
 export const registerRepos = Effect.fn('SystemRepo.registerRepos')(
   function* (props: {
     db: IDb;
-    repoTable: unknown;
-    serviceFrontendRepo: {
+    generationId: string;
+    repoTable: IAnyDrizzleSchema & {
+      generationId: AnyColumn;
+      repoType: AnyColumn;
+      repoName: AnyColumn;
+      tableNames: AnyColumn;
+    };
+    frontendRepo: {
+      repoType: 'AggregateFrontendRepo' | 'ServiceFrontendRepo';
       repoName: string;
       tableNames: readonly string[];
     };
-    serviceFrontendBlockRepo: {
+    frontendBlockRepo: {
+      repoType: 'AggregateFrontendBlockRepo' | 'ServiceFrontendBlockRepo';
       repoName: string;
       tableNames: readonly string[];
     };
   }) {
-    const { db, repoTable, serviceFrontendBlockRepo, serviceFrontendRepo } =
+    const { db, frontendBlockRepo, frontendRepo, generationId, repoTable } =
       props;
+    if (
+      (frontendRepo.repoType === 'AggregateFrontendRepo' &&
+        frontendBlockRepo.repoType !== 'AggregateFrontendBlockRepo') ||
+      (frontendRepo.repoType === 'ServiceFrontendRepo' &&
+        frontendBlockRepo.repoType !== 'ServiceFrontendBlockRepo')
+    ) {
+      return yield* Effect.die(
+        'SystemRepo.registerRepos requires a matching projection/archive pair',
+      );
+    }
 
     yield* makeTx({
       db,
@@ -34,9 +54,10 @@ export const registerRepos = Effect.fn('SystemRepo.registerRepos')(
           db: tx,
           repoTable,
           registration: {
-            repoType: 'ServiceFrontendRepo',
-            repoName: serviceFrontendRepo.repoName,
-            tableNames: serviceFrontendRepo.tableNames,
+            generationId,
+            repoType: frontendRepo.repoType,
+            repoName: frontendRepo.repoName,
+            tableNames: frontendRepo.tableNames,
           },
         });
 
@@ -44,9 +65,10 @@ export const registerRepos = Effect.fn('SystemRepo.registerRepos')(
           db: tx,
           repoTable,
           registration: {
-            repoType: 'ServiceFrontendBlockRepo',
-            repoName: serviceFrontendBlockRepo.repoName,
-            tableNames: serviceFrontendBlockRepo.tableNames,
+            generationId,
+            repoType: frontendBlockRepo.repoType,
+            repoName: frontendBlockRepo.repoName,
+            tableNames: frontendBlockRepo.tableNames,
           },
         });
       }),

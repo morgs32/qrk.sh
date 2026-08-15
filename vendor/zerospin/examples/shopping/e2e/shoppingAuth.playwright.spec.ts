@@ -6,7 +6,6 @@ import { clerk, clerkSetup } from '@clerk/testing/playwright';
 import { expect, test as setup } from '@playwright/test';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
-import type { ZerospinApis } from '@zerospin/dispatch-worker/ZerospinApis';
 import {
   makeTelemetryCollector,
   makeTelemetryLayer,
@@ -14,6 +13,7 @@ import {
 } from '@zerospin/logger';
 import { config } from 'dotenv';
 import { Effect, Schema } from 'effect';
+import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
 import { Product } from '@/zerospin/models';
 import { seeds } from '@/zerospin/seeds';
@@ -28,10 +28,9 @@ config({ path: path.join(shoppingAppRoot, '.env') });
 
 if (
   !process.env.CLERK_PUBLISHABLE_KEY &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  process.env.VITE_CLERK_PUBLISHABLE_KEY
 ) {
-  process.env.CLERK_PUBLISHABLE_KEY =
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  process.env.CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY;
 }
 
 setup('auth', async () => {
@@ -55,13 +54,13 @@ setup('authenticate and save state to storage', async ({ page }) => {
   }
   if (!process.env.CLERK_PUBLISHABLE_KEY) {
     throw new Error(
-      'Set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY or CLERK_PUBLISHABLE_KEY in shopping/.env.local for authenticated e2e.',
+      'Set VITE_CLERK_PUBLISHABLE_KEY in shopping/.env.local for authenticated e2e.',
     );
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_ZEROSPIN_API_URL;
+  const apiUrl = process.env.ZEROSPIN_API_URL;
   if (!apiUrl) {
-    throw new Error('Set NEXT_PUBLIC_ZEROSPIN_API_URL for shopping e2e.');
+    throw new Error('Set ZEROSPIN_API_URL for shopping e2e.');
   }
   const zerospinSecretKey = process.env.ZEROSPIN_SECRET_KEY;
   if (!zerospinSecretKey) {
@@ -72,9 +71,9 @@ setup('authenticate and save state to storage', async ({ page }) => {
     const telemetryCollector = makeTelemetryCollector();
     let shouldSeedProducts = false;
     {
-      using queryApis = newSyncRpcSession<ZerospinApis>(apiUrl);
+      using gatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
       const querySystemApi = makeTraceableApiTarget(
-        queryApis.getSystemApi({ zerospinSecretKey }),
+        gatewayApi.getSystemApi({ zerospinSecretKey }),
       );
       const currentProducts = await Effect.runPromise(
         querySystemApi
@@ -104,15 +103,22 @@ setup('authenticate and save state to storage', async ({ page }) => {
       const serviceSeedCommands = seedCommands.filter(
         command => command.commandType === 'service',
       );
-      using seedApis = newSyncRpcSession<ZerospinApis>(apiUrl);
+      const encodedServiceSeedCommands = await Effect.runPromise(
+        Effect.forEach(serviceSeedCommands, command =>
+          Schema.encode(Schema.parseJson(Schema.Unknown))(command.payload).pipe(
+            Effect.map(payload => ({ ...command, payload })),
+          ),
+        ),
+      );
+      using seedGatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
       const seedSystemApi = makeTraceableApiTarget(
-        seedApis.getSystemApi({ zerospinSecretKey }),
+        seedGatewayApi.getSystemApi({ zerospinSecretKey }),
       );
       const seedResult = await Effect.runPromise(
         seedSystemApi
           .finalizeServiceCommands({
             serviceName: 'app',
-            commands: serviceSeedCommands,
+            commands: encodedServiceSeedCommands,
           })
           .pipe(
             Effect.withSpan('shoppingAuth.finalizeServiceCommands', {

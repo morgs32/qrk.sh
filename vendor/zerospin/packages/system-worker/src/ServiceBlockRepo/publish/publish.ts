@@ -1,6 +1,7 @@
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { mapParseError } from '@zerospin/error';
+import { mapParseError, ZerospinError } from '@zerospin/error';
+import { eq, or } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 import { ServiceBlockSchema } from '../../blockSchemas.js';
@@ -20,6 +21,35 @@ export const publish = Effect.fn('ServiceBlockRepo.publish')(function* (props: {
       prefix: 'Failed to encode service block',
     }),
   );
+  const retained = db
+    .select()
+    .from(serviceBlockDrizzleSchemas.serviceBlocks)
+    .where(
+      or(
+        eq(
+          serviceBlockDrizzleSchemas.serviceBlocks.serviceIndex,
+          block.serviceIndex,
+        ),
+        eq(
+          serviceBlockDrizzleSchemas.serviceBlocks.lastServiceCursor,
+          block.lastServiceCursor,
+        ),
+      ),
+    )
+    .get();
+  if (retained !== undefined) {
+    if (
+      retained.lastServiceCursor !== block.lastServiceCursor ||
+      retained.serviceIndex !== block.serviceIndex ||
+      retained.block !== encodedBlock
+    ) {
+      return yield* new ZerospinError({
+        code: 'service-block-publish-conflict',
+        message: `Service block ${block.serviceIndex} conflicts with its retained ledger bytes`,
+      });
+    }
+    return;
+  }
   yield* makeTx({
     db,
     program: Effect.fn('ServiceBlockRepo.publish.transaction')(function* ({

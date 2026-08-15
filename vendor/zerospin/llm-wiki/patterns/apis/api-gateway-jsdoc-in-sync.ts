@@ -1,18 +1,18 @@
 /**
  * *Api gateway methods carry architecture JSDoc naming delegation chain and workflow doc.
  *
- * @bad Do not change push/finalize delegation without updating FrontendApi method JSDoc.
+ * @bad Do not change push/finalize delegation without updating AggregateFrontendApi method JSDoc.
  */
-export class FrontendApi {
+export class AggregateFrontendApi {
   /**
-   * Session push: SystemWorker.pushCommands → FrontendRepo.pushCommands → AccountRepo.finalizePushedCommands.
-   * See FrontendApi architecture doc — Annotated methods.
+   * Session push: AggregateFrontendApi → SystemRepo.pushCommands → AggregateFrontendRepo.pushCommands → AggregateRepo.finalizePushedCommands.
+   * See AggregateFrontendApi architecture doc — Annotated methods.
    */
   async pushCommands(props: { commands: readonly unknown[] }) {
-    return systemWorker.pushCommands(props);
+    return systemRepo.pushCommands(props);
   }
 }
 
-declare const systemWorker: {
+declare const systemRepo: {
   pushCommands: (props: unknown) => Promise<unknown>;
 };

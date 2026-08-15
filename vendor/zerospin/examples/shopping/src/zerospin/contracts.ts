@@ -1,6 +1,4 @@
-import { makeContract } from '@zerospin/core/contracts/makeContract';
-import { primitives } from '@zerospin/core/models/primitives';
-import { prefixActorId } from '@zerospin/core/utils/prefixActorId';
+import { makeContract, primitives } from '@zerospin/sdk/browser';
 import { Effect, Schema } from 'effect';
 
 import { Cart, CartItem, CatalogMarker, Product, User } from './models';
@@ -16,12 +14,11 @@ export const createUser = makeContract({
   }),
   program: ({ payload }) => {
     const { id, clerkUserId } = payload;
-    const actorId = prefixActorId(clerkUserId);
     return Effect.all({
       created: User.create('1.0.0', {
         resourceId: id,
         attributes: {
-          actorId,
+          clerkUserId,
           name: null,
         },
       }),
@@ -126,7 +123,7 @@ export const addToCart = makeContract({
   },
   mutations: Schema.Struct({
     product: Product.replicateResourceMutation('1.0.0'),
-    cartItem: CartItem.createMutation('1.0.0'),
+    cartItem: CartItem.createMutation('2.0.0'),
   }),
   program: ({ payload }) => {
     const { id, cartId, product, quantity } = payload;
@@ -134,35 +131,63 @@ export const addToCart = makeContract({
       product: Product.replicateResource('1.0.0', {
         resource: product,
       }),
-      cartItem: CartItem.create('1.0.0', {
+      cartItem: CartItem.create('2.0.0', {
         resourceId: id,
-        attributes: { cartId, productId: product.id, quantity },
+        attributes: {
+          amount: quantity,
+          cartId,
+          productId: product.id,
+          unit: 'item',
+        },
       }),
     });
   },
   version: '1.0.0',
 });
 
-export const updateCartItemQuantity = makeContract({
-  commandName: 'updateCartItemQuantity',
-  payload: {
-    id: CartItem.primaryKey({ autogenerate: false }),
-    quantity: primitives.integer(),
+export const updateCartItemQuantity = makeContract(
+  {
+    commandName: 'updateCartItemQuantity',
+    payload: {
+      cartItemId: CartItem.primaryKey({ autogenerate: false }),
+      amount: primitives.integer(),
+      unit: primitives.enum({ values: ['item', 'case'] }),
+    },
+    mutations: Schema.Struct({
+      updated: CartItem.updateMutation('2.0.0'),
+    }),
+    program: ({ payload }) => {
+      const { amount, cartItemId, unit } = payload;
+      return Effect.all({
+        updated: CartItem.update('2.0.0', {
+          resourceId: cartItemId,
+          attributes: { amount, unit },
+        }),
+      });
+    },
+    version: '2.0.0',
   },
-  mutations: Schema.Struct({
-    updated: CartItem.updateMutation('1.0.0'),
-  }),
-  program: ({ payload }) => {
-    const { id, quantity } = payload;
-    return Effect.all({
-      updated: CartItem.update('1.0.0', {
-        resourceId: id,
-        attributes: { quantity },
-      }),
-    });
-  },
-  version: '1.0.0',
-});
+  [
+    {
+      commandName: 'updateCartItemQuantity',
+      payload: {
+        cartItemId: CartItem.primaryKey({ autogenerate: false }),
+        quantity: primitives.integer(),
+      },
+      version: '1.0.0',
+      adaptPayload: ({ payload }) =>
+        Effect.succeed({
+          cartItemId: payload.cartItemId,
+          amount: payload.quantity,
+          unit: 'item',
+        } satisfies Readonly<{
+          cartItemId: typeof payload.cartItemId;
+          amount: number;
+          unit: 'item' | 'case';
+        }>),
+    },
+  ],
+);
 
 export const removeFromCart = makeContract({
   commandName: 'removeFromCart',
@@ -170,12 +195,12 @@ export const removeFromCart = makeContract({
     id: CartItem.primaryKey({ autogenerate: false }),
   },
   mutations: Schema.Struct({
-    deleted: CartItem.deleteMutation('1.0.0'),
+    deleted: CartItem.deleteMutation('2.0.0'),
   }),
   program: ({ payload }) => {
     const { id } = payload;
     return Effect.all({
-      deleted: CartItem.delete('1.0.0', {
+      deleted: CartItem.delete('2.0.0', {
         resourceId: id,
       }),
     });

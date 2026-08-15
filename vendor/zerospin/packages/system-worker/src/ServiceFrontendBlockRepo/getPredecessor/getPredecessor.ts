@@ -1,5 +1,4 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
-import type { IActorId } from '@zerospin/core/models/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { desc, eq } from 'drizzle-orm';
@@ -14,8 +13,7 @@ export const getPredecessor = Effect.fn(
   key: {
     generationId: string;
     serviceName: string;
-    actorName: string;
-    actorId: string;
+    userId: string;
     frontendName: string;
   };
 }): Effect.fn.Return<
@@ -23,8 +21,7 @@ export const getPredecessor = Effect.fn(
     systemId: ISystemId;
     generationId: string;
     serviceName: string;
-    actorName: string;
-    actorId: IActorId;
+    userId: string;
     frontendName: string;
     terminalFrontendIndex: number;
     predecessor: Readonly<{
@@ -45,28 +42,13 @@ export const getPredecessor = Effect.fn(
     lineage === undefined ||
     lineage.generationId !== key.generationId ||
     lineage.serviceName !== key.serviceName ||
-    lineage.actorName !== key.actorName ||
-    lineage.actorId !== key.actorId ||
+    lineage.userId !== key.userId ||
     lineage.frontendName !== key.frontendName
   ) {
     return yield* new ZerospinError({
       code: 'service-frontend-archive-state-required',
       message:
         'ServiceFrontendBlockRepo lineage is not configured for this exact target',
-    });
-  }
-  if (
-    (lineage.predecessorGenerationId === null &&
-      (lineage.predecessorRepoName !== null ||
-        lineage.predecessorTerminalFrontendIndex !== null)) ||
-    (lineage.predecessorGenerationId !== null &&
-      (lineage.predecessorRepoName === null ||
-        lineage.predecessorTerminalFrontendIndex === null))
-  ) {
-    return yield* new ZerospinError({
-      code: 'service-frontend-predecessor-descriptor-invalid',
-      message:
-        'ServiceFrontendBlockRepo predecessor descriptor is incomplete persisted state',
     });
   }
   const terminal = db
@@ -82,12 +64,25 @@ export const getPredecessor = Effect.fn(
     )
     .limit(1)
     .get();
+  if (
+    (lineage.predecessorGenerationId === null &&
+      (lineage.predecessorRepoName !== null ||
+        lineage.predecessorTerminalFrontendIndex !== null)) ||
+    (lineage.predecessorGenerationId !== null &&
+      (lineage.predecessorRepoName === null ||
+        lineage.predecessorTerminalFrontendIndex === null))
+  ) {
+    return yield* new ZerospinError({
+      code: 'service-frontend-predecessor-descriptor-invalid',
+      message:
+        'ServiceFrontendBlockRepo predecessor descriptor is incomplete persisted state',
+    });
+  }
   return {
     systemId: lineage.systemId,
     generationId: lineage.generationId,
     serviceName: lineage.serviceName,
-    actorName: lineage.actorName,
-    actorId: lineage.actorId,
+    userId: lineage.userId,
     frontendName: lineage.frontendName,
     terminalFrontendIndex:
       terminal?.frontendIndex ?? lineage.predecessorTerminalFrontendIndex ?? 0,

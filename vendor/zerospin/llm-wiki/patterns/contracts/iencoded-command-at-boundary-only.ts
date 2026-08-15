@@ -1,56 +1,37 @@
+import { encodeCommand } from '@zerospin/core/contracts/encodeCommand';
+import type {
+  IContract,
+  IEncodedAppliedMutation,
+  IEncodedCommand,
+  IExecutedAggregateCommand,
+} from '@zerospin/core/contracts/types';
 import { Effect } from 'effect';
 
 /**
- * Keep commands decoded in domain; encode only at persistence and wire boundaries.
+ * Keep commands decoded in domain work; persist the complete encoded command at the block boundary.
  *
- * @bad Domain alias `IAcceptedEntry = IEncodedCommand<IExecutedAccountCommand> & { mutations: ... }`.
- * @bad `JSON.parse` command payload inside AccountRepo finalize paths.
+ * @bad Create a domain alias by intersecting `IEncodedCommand<IExecutedAggregateCommand>` with mutation state.
+ * @bad `JSON.parse` command payload inside AggregateRepo finalization.
+ * @bad Rebuild the terminal command from a hand-picked field subset.
  */
-export type IFinalizationEventFanoutPayload = Readonly<{
-  executedCommands: readonly IExecutedAccountCommand[];
+export const persistAggregateCommandOutcome = Effect.fn(
+  'persistAggregateCommandOutcome',
+)(function* (props: {
   appliedMutations: readonly IEncodedAppliedMutation[];
-}>;
+  command: IExecutedAggregateCommand;
+  contract: IContract;
+  insertBlock(props: {
+    executedCommands: readonly IEncodedCommand<IExecutedAggregateCommand>[];
+    appliedMutations: readonly IEncodedAppliedMutation[];
+  }): void;
+}) {
+  const encodedCommand = yield* encodeCommand({
+    command: props.command,
+    contract: props.contract,
+  });
 
-export const finalizeAccountCommand = Effect.fn('finalizeAccountCommand')(
-  function* (props: {
-    contract: {
-      validatePayload: (p: unknown) => Effect.Effect<unknown, unknown, unknown>;
-      program: (p: unknown) => Effect.Effect<unknown, unknown, unknown>;
-    };
-    command: IExecutedAccountCommand;
-    tx: unknown;
-  }) {
-    const decodedPayload = yield* props.contract.validatePayload({
-      payload: props.command.payload,
-    });
-    const mutations = yield* props.contract.program({
-      payload: decodedPayload,
-    });
-
-    for (const [mutationIndex, mutation] of Object.values(
-      mutations,
-    ).entries()) {
-      const appliedMutation = yield* applyMutationTx({
-        tx: props.tx,
-        mutation,
-        commandId: props.command.id,
-        mutationIndex,
-        appliedAt: props.command.executedAt,
-      });
-      yield* encodeAppliedMutation({ mutation: appliedMutation });
-    }
-  },
-);
-
-declare type IExecutedAccountCommand = {
-  id: string;
-  payload: unknown;
-  executedAt: number;
-};
-declare type IEncodedAppliedMutation = unknown;
-declare function applyMutationTx(
-  props: unknown,
-): Effect.Effect<unknown, unknown, unknown>;
-declare function encodeAppliedMutation(props: {
-  mutation: unknown;
-}): Effect.Effect<unknown, unknown, unknown>;
+  props.insertBlock({
+    executedCommands: [encodedCommand],
+    appliedMutations: props.appliedMutations,
+  });
+});

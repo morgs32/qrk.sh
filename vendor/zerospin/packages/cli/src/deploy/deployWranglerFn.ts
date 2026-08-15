@@ -10,11 +10,15 @@ import * as NodePath from '@effect/platform-node/NodePath';
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { loadConfig } from 'c12';
 import { config as loadEnv } from 'dotenv';
 import { Effect, Layer, Schema } from 'effect';
+import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
+import { loadSystemFn } from './loadSystemFn.js';
 import { loadZerospinConfigFn } from './loadZerospinConfigFn.js';
 
 const require = createRequire(import.meta.url);
@@ -61,15 +65,6 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
       };
     }
 
-    const clerkJwtKey = process.env['CLERK_JWT_KEY'];
-    if (!clerkJwtKey) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-clerk-jwt-key-missing',
-        message:
-          'Missing CLERK_JWT_KEY. Copy the Clerk JWT verification public key into .env.local before running zerospin deploy --wrangler.',
-      });
-    }
-
     const wranglerBinPath = yield* Effect.try({
       try: () => {
         const wranglerPackageJsonPath = require.resolve(
@@ -112,7 +107,7 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
       catch: cause =>
         new ZerospinError({
           code: 'zerospin-wrangler-config-load-failed',
-          message: 'Failed to load wrangler.jsonc for self-hosted deployment.',
+          message: 'Failed to load wrangler.jsonc for production deployment.',
           cause: ZerospinError.prettyUnknownFailure(cause),
         }),
     });
@@ -143,13 +138,14 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
       ),
     );
 
-    const dispatchWorkerPath = yield* Effect.try({
-      try: () => require.resolve('@zerospin/dispatch-worker/Worker'),
+    const productionWorkerPath = yield* Effect.try({
+      try: () =>
+        require.resolve('@zerospin/production-worker/ProductionWorker'),
       catch: cause =>
         new ZerospinError({
-          code: 'zerospin-wrangler-dispatch-worker-not-found',
+          code: 'zerospin-wrangler-production-worker-not-found',
           message:
-            'Could not resolve the shared Zerospin dispatch Worker for self-hosted deployment.',
+            'Could not resolve the Zerospin Production Worker for production deployment.',
           cause: ZerospinError.prettyUnknownFailure(cause),
         }),
     });
@@ -157,13 +153,13 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
     const emptySeedsPath = yield* Effect.try({
       try: () =>
         require.resolve(
-          path.join(path.dirname(dispatchWorkerPath), 'emptySeeds.js'),
+          path.join(path.dirname(productionWorkerPath), 'emptySeeds.js'),
         ),
       catch: cause =>
         new ZerospinError({
           code: 'zerospin-wrangler-empty-seeds-not-found',
           message:
-            'Could not resolve the built-in empty seed module for self-hosted deployment.',
+            'Could not resolve the built-in empty seed module for production deployment.',
           cause: ZerospinError.prettyUnknownFailure(cause),
         }),
     });
@@ -197,13 +193,46 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
       return yield* new ZerospinError({
         code: 'zerospin-wrangler-config-invalid',
         message:
-          'wrangler.jsonc cannot disable ctx.exports because the self-hosted lifecycle uses it.',
+          'wrangler.jsonc cannot disable ctx.exports because the production lifecycle uses it.',
       });
     }
     const compatibilityFlagsWithoutCtxExports = compatibilityFlags.filter(
       flag => flag !== 'enable_ctx_exports',
     );
     const rawCompatibilityDate = wranglerConfig['compatibility_date'];
+
+    const rawRules = wranglerConfig['rules'];
+    if (
+      rawRules !== undefined &&
+      rawRules !== null &&
+      !Array.isArray(rawRules)
+    ) {
+      return yield* new ZerospinError({
+        code: 'zerospin-wrangler-config-invalid',
+        message: 'wrangler.jsonc rules must be an array when present.',
+      });
+    }
+    const rules = rawRules ?? [];
+    const textRule = rules.find(
+      rule =>
+        rule !== null &&
+        typeof rule === 'object' &&
+        !Array.isArray(rule) &&
+        Reflect.get(rule, 'type') === 'Text',
+    );
+    if (textRule !== undefined) {
+      const textRuleGlobs = Reflect.get(textRule, 'globs');
+      if (
+        !Array.isArray(textRuleGlobs) ||
+        textRuleGlobs.some(glob => typeof glob !== 'string')
+      ) {
+        return yield* new ZerospinError({
+          code: 'zerospin-wrangler-config-invalid',
+          message:
+            'wrangler.jsonc Text rules must contain a globs array of strings.',
+        });
+      }
+    }
 
     const rawMigrations = wranglerConfig['migrations'];
     if (
@@ -216,36 +245,19 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
         message: 'wrangler.jsonc migrations must be an array when present.',
       });
     }
-    const migrations = rawMigrations ?? [];
-    if (
-      migrations.some(
-        migration =>
-          migration !== null &&
-          typeof migration === 'object' &&
-          Reflect.get(migration, 'tag') === 'zerospin-self-hosted-v1',
-      )
-    ) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-migration-conflict',
-        message:
-          'wrangler.jsonc already contains reserved migration tag zerospin-self-hosted-v1.',
-      });
-    }
+    yield* loadSystemFn(
+      { ...zerospinConfig, environmentId: 'production' },
+      cwd,
+    ).pipe(
+      Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
+    );
 
     const generatedVars = { ...rawVars };
-    Reflect.deleteProperty(generatedVars, 'DEV');
-    Reflect.deleteProperty(generatedVars, 'NEXT_PUBLIC_ZEROSPIN_API_URL');
+    Reflect.deleteProperty(generatedVars, 'CLERK_JWT_KEY');
     Reflect.deleteProperty(generatedVars, 'ZEROSPIN_API_URL');
     Reflect.deleteProperty(generatedVars, 'ZEROSPIN_CLEAN_REQUEST_ID');
-    Reflect.deleteProperty(generatedVars, 'ZEROSPIN_DEPLOY_ID');
-    Reflect.deleteProperty(generatedVars, 'ZEROSPIN_ENVIRONMENT_ID');
-    Reflect.deleteProperty(generatedVars, 'ZEROSPIN_GENERATION_ID');
-    Reflect.deleteProperty(generatedVars, 'ZEROSPIN_INSTANCE_ID');
-    Reflect.deleteProperty(generatedVars, 'ZEROSPIN_SELF_HOSTED');
-    Reflect.deleteProperty(generatedVars, 'ZEROSPIN_SYSTEM_RELEASE');
     Reflect.set(generatedVars, 'ZEROSPIN_SYSTEM_ID', systemId);
-    Reflect.set(generatedVars, 'ZEROSPIN_INSTANCE_ID', 'production');
-    Reflect.set(generatedVars, 'ZEROSPIN_SELF_HOSTED', 'true');
+    Reflect.set(generatedVars, 'ZEROSPIN_ENVIRONMENT', 'production');
     if (props.clean) {
       Reflect.set(
         generatedVars,
@@ -256,7 +268,7 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
 
     const generatedConfig = {
       ...wranglerConfig,
-      main: dispatchWorkerPath,
+      main: productionWorkerPath,
       alias: {
         ...rawAlias,
         system: systemPath,
@@ -267,16 +279,29 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
         rawCompatibilityDate < '2025-11-17'
           ? [...compatibilityFlagsWithoutCtxExports, 'enable_ctx_exports']
           : compatibilityFlagsWithoutCtxExports,
-      migrations: [
-        {
-          tag: 'zerospin-self-hosted-v1',
-          new_sqlite_classes: ['SelfHostedZerospinApis'],
-        },
-        ...migrations,
-      ],
+      rules:
+        textRule === undefined
+          ? [
+              {
+                type: 'Text',
+                globs: ['**/*.sql'],
+                fallthrough: true,
+              },
+              ...rules,
+            ]
+          : rules.map(rule => {
+              if (rule !== textRule) return rule;
+              const textRuleGlobs = Reflect.get(textRule, 'globs');
+              return {
+                ...textRule,
+                globs: textRuleGlobs.includes('**/*.sql')
+                  ? textRuleGlobs
+                  : [...textRuleGlobs, '**/*.sql'],
+              };
+            }),
       vars: generatedVars,
       version_metadata: {
-        binding: 'ZEROSPIN_VERSION_METADATA',
+        binding: 'WORKER_VERSION_METADATA',
       },
     };
 
@@ -285,7 +310,7 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
       catch: cause =>
         new ZerospinError({
           code: 'zerospin-wrangler-temp-directory-failed',
-          message: 'Failed to create temporary self-hosted deployment files.',
+          message: 'Failed to create temporary production deployment files.',
           cause: ZerospinError.prettyUnknownFailure(cause),
         }),
     });
@@ -296,7 +321,7 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
       catch: cause =>
         new ZerospinError({
           code: 'zerospin-wrangler-temp-directory-remove-failed',
-          message: 'Failed to remove temporary self-hosted deployment files.',
+          message: 'Failed to remove temporary production deployment files.',
           cause: ZerospinError.prettyUnknownFailure(cause),
         }),
     });
@@ -316,7 +341,6 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
                 {
                   ZEROSPIN_PUBLISHABLE_KEY: configuredPublishableKey,
                   ZEROSPIN_SECRET_KEY: configuredSecretKey,
-                  CLERK_JWT_KEY: clerkJwtKey,
                 },
                 null,
                 2,
@@ -327,21 +351,17 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
         catch: cause =>
           new ZerospinError({
             code: 'zerospin-wrangler-temp-files-write-failed',
-            message: 'Failed to write temporary self-hosted deployment files.',
+            message: 'Failed to write temporary production deployment files.',
             cause: ZerospinError.prettyUnknownFailure(cause),
           }),
       });
 
       // Wrangler inherits the operator's Cloudflare authentication environment,
-      // but the strictly self-hosted branch removes both generic Zerospin URL
+      // but the strictly production branch removes the generic Zerospin
       // variables before the child process starts. Project secrets reach
       // Cloudflare only through the mode-0600 --secrets-file payload above.
       const wranglerEnvironment = { ...process.env };
       Reflect.deleteProperty(wranglerEnvironment, 'ZEROSPIN_API_URL');
-      Reflect.deleteProperty(
-        wranglerEnvironment,
-        'NEXT_PUBLIC_ZEROSPIN_API_URL',
-      );
       Reflect.deleteProperty(wranglerEnvironment, 'ZEROSPIN_PUBLISHABLE_KEY');
       Reflect.deleteProperty(wranglerEnvironment, 'ZEROSPIN_SECRET_KEY');
       Reflect.deleteProperty(wranglerEnvironment, 'CLERK_JWT_KEY');
@@ -391,7 +411,7 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
             Effect.fail(
               new ZerospinError({
                 code: 'zerospin-wrangler-start-failed',
-                message: 'Failed to start Wrangler for self-hosted deployment.',
+                message: 'Failed to start Wrangler for production deployment.',
                 cause: ZerospinError.prettyUnknownFailure(cause),
               }),
             ),
@@ -456,31 +476,57 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
       });
     }
 
-    yield* Effect.tryPromise({
-      try: async () => {
-        let lastFailure = 'No readiness response received.';
-        for (let attempt = 1; attempt <= 60; attempt += 1) {
-          try {
-            const response = await fetch(`${workerUrl}/__zerospin/ready`);
-            if (response.status === 204) return;
-            lastFailure = `${response.status} ${await response.text()}`.trim();
-            if (response.status === 500) break;
-          } catch (cause) {
-            lastFailure = ZerospinError.prettyUnknownFailure(cause);
-          }
-          await new Promise(resolve => setTimeout(resolve, 1_000));
-        }
-        throw new Error(lastFailure);
-      },
-      catch: cause =>
-        new ZerospinError({
-          code: 'zerospin-wrangler-worker-not-ready',
-          message:
-            'The self-hosted Zerospin Worker did not pass its deployment readiness gate.',
-          cause: ZerospinError.prettyUnknownFailure(cause),
-          extra: { workerUrl },
-        }),
-    });
+    let lastFailure: IAnyError | null = null;
+    for (let attempt = 1; attempt <= 60; attempt += 1) {
+      const readiness = yield* Effect.gen(function* () {
+        const encoded = yield* Effect.tryPromise({
+          try: async () => {
+            using gatewayApi = newSyncRpcSession<GatewayApi>(workerUrl);
+            return await gatewayApi.getProductionDeployApi().getReadiness();
+          },
+          catch: cause =>
+            ZerospinError.isZerospinError(cause)
+              ? cause
+              : new ZerospinError({
+                  code: 'zerospin-wrangler-readiness-transport-failed',
+                  message:
+                    "Failed to request Production Worker readiness over Cap'n Web.",
+                  cause: ZerospinError.prettyUnknownFailure(cause),
+                }),
+        });
+        yield* decodeRpc(encoded);
+      }).pipe(Effect.either);
+      if (readiness._tag === 'Right') {
+        lastFailure = null;
+        break;
+      }
+
+      lastFailure = readiness.left;
+      if (
+        readiness.left.code !==
+          'zerospin-wrangler-readiness-transport-failed' &&
+        readiness.left.code !== 'failed-to-get-readiness-rpc' &&
+        readiness.left.code !== 'system-deploy-activating' &&
+        readiness.left.code !== 'system-worker-not-active'
+      ) {
+        return yield* readiness.left;
+      }
+      if (attempt < 60) {
+        yield* Effect.sleep(1_000);
+      }
+    }
+    if (lastFailure !== null) {
+      return yield* new ZerospinError({
+        code: 'zerospin-wrangler-worker-not-ready',
+        message:
+          'The production Zerospin Worker did not pass its deployment readiness gate.',
+        cause: lastFailure.toString(),
+        extra: {
+          workerUrl,
+          lastFailure: Schema.encodeSync(ZerospinError.schema)(lastFailure),
+        },
+      });
+    }
 
     return {
       status: 'deployed',

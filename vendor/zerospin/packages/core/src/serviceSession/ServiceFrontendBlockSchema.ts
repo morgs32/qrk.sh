@@ -9,9 +9,6 @@ import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
 
 import type {
   IServiceFrontendBlock,
-  IServiceFrontendGenerationBoundaryBlock,
-  IServiceFrontendLineageBlock,
-  IServiceFrontendLineageTransitionRequired,
   IServiceFrontendReplicaBlock,
   IServiceFrontendReplicaState,
   IServiceFrontendState,
@@ -19,13 +16,10 @@ import type {
 
 export const ServiceFrontendBlockSchema = Schema.Struct({
   serviceName: Schema.String,
-  actorName: Schema.String,
-  actorId: makeAbbreviationIdSchema(coreAbbreviations.actor),
+  userId: Schema.NonEmptyString,
   frontendName: Schema.String,
   frontendIndex: Schema.Number,
-  lastServiceCursor: makeAbbreviationIdSchema(
-    coreAbbreviations.serviceCursor,
-  ),
+  lastServiceCursor: makeAbbreviationIdSchema(coreAbbreviations.serviceCursor),
   delta: Schema.Struct({
     inserted: Schema.Array(EncodedResourceSchema),
     updated: Schema.Array(EncodedResourceSchema),
@@ -34,13 +28,10 @@ export const ServiceFrontendBlockSchema = Schema.Struct({
 }) satisfies Schema.Schema<IServiceFrontendBlock, any>;
 
 export const ServiceFrontendStateSchema = Schema.Struct({
-  actorId: makeAbbreviationIdSchema(coreAbbreviations.actor),
+  userId: Schema.NonEmptyString,
   systemId: makeAbbreviationIdSchema(coreAbbreviations.system),
-  generationId: Schema.String,
   systemVersion: Schema.String,
-  systemWorkerName: Schema.String,
   serviceName: Schema.String,
-  actorName: Schema.String,
   frontendName: Schema.String,
   frontendIndex: Schema.Number,
   resources: Schema.Array(EncodedResourceSchema),
@@ -49,63 +40,18 @@ export const ServiceFrontendStateSchema = Schema.Struct({
 export const ServiceFrontendReplicaStateSchema = Schema.extend(
   ServiceFrontendStateSchema,
   Schema.Struct({
-    frontendVersion: Schema.String,
+    serviceFrontendLockKey: Schema.String,
     replicaIndex: Schema.Number,
   }),
 ) satisfies Schema.Schema<IServiceFrontendReplicaState, any>;
 
-export const ServiceFrontendGenerationBoundaryBlockSchema = Schema.Struct({
-  kind: Schema.Literal('generation-boundary'),
-  systemId: makeAbbreviationIdSchema(coreAbbreviations.system),
-  prevGenerationId: Schema.String,
-  generationId: Schema.String,
-  serviceName: Schema.String,
-  actorId: makeAbbreviationIdSchema(coreAbbreviations.actor),
-  actorName: Schema.String,
-  frontendName: Schema.String,
-  frontendIndex: Schema.Number,
-}) satisfies Schema.Schema<IServiceFrontendGenerationBoundaryBlock, any>;
-
-const ServiceFrontendResourceLineageBlockSchema = Schema.Struct({
-  kind: Schema.Literal('service-frontend'),
-  systemId: makeAbbreviationIdSchema(coreAbbreviations.system),
-  generationId: Schema.String,
-  serviceName: Schema.String,
-  actorId: makeAbbreviationIdSchema(coreAbbreviations.actor),
-  actorName: Schema.String,
-  frontendName: Schema.String,
-  frontendBlock: ServiceFrontendBlockSchema,
-});
-
-export const ServiceFrontendLineageBlockSchema = Schema.Union(
-  ServiceFrontendGenerationBoundaryBlockSchema,
-  ServiceFrontendResourceLineageBlockSchema,
-) satisfies Schema.Schema<IServiceFrontendLineageBlock, any>;
-
 export const ServiceFrontendReplicaBlockSchema = Schema.Struct({
   systemId: makeAbbreviationIdSchema(coreAbbreviations.system),
-  generationId: Schema.String,
   serviceName: Schema.String,
-  actorId: makeAbbreviationIdSchema(coreAbbreviations.actor),
-  actorName: Schema.String,
+  userId: Schema.NonEmptyString,
   frontendName: Schema.String,
-  frontendVersion: Schema.String,
+  serviceFrontendLockKey: Schema.String,
   replicaIndex: Schema.Number,
   frontendIndex: Schema.Number,
-  lineageBlock: ServiceFrontendLineageBlockSchema,
+  frontendBlock: ServiceFrontendBlockSchema,
 }) satisfies Schema.Schema<IServiceFrontendReplicaBlock, any>;
-
-export const ServiceFrontendLineageTransitionRequiredSchema = Schema.Struct({
-  kind: Schema.Literal('lineage-transition-required'),
-  systemId: makeAbbreviationIdSchema(coreAbbreviations.system),
-  generationId: Schema.String,
-  serviceName: Schema.String,
-  actorId: makeAbbreviationIdSchema(coreAbbreviations.actor),
-  actorName: Schema.String,
-  frontendName: Schema.String,
-  frontendVersion: Schema.String,
-  appliedBoundaryIndex: Schema.Number,
-  remainingBoundaries: Schema.Array(
-    ServiceFrontendGenerationBoundaryBlockSchema,
-  ),
-}) satisfies Schema.Schema<IServiceFrontendLineageTransitionRequired, any>;

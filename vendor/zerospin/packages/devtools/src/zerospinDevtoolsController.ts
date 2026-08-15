@@ -4,7 +4,7 @@ let openingZerospinDevtools: Promise<void> | null = null;
 let openingZerospinDevtoolsLoader: (() => Promise<void>) | null = null;
 
 /*
- * 1. ZerospinConfig registers the one lazy shell loader for its mounted lifetime.
+ * 1. ZerospinApp.Provider registers the one lazy shell loader for its mounted lifetime.
  * 2. ZerospinDevtools registers the one already-mounted shell open callback.
  * 3. Console callers share one open operation, preferring the mounted shell.
  * 4. Both registrations use identity-checked cleanup so stale owners cannot clear replacements.
@@ -40,7 +40,7 @@ export const zerospinDevtoolsController = {
       rejectPendingLoad = null;
       reject?.(
         new Error(
-          'ZerospinConfig unmounted before Zerospin DevTools finished loading.',
+          'ZerospinApp.Provider unmounted before Zerospin DevTools finished loading.',
         ),
       );
 
@@ -71,7 +71,7 @@ export const zerospinDevtoolsController = {
         const registeredLoad = loadZerospinDevtools;
         if (registeredLoad === null) {
           throw new Error(
-            'ZerospinConfig must be mounted before opening Zerospin DevTools.',
+            'ZerospinApp.Provider must be mounted before opening Zerospin DevTools.',
           );
         }
 

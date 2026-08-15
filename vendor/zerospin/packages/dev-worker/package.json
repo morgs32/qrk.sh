@@ -1,0 +1,81 @@
+{
+  "name": "@zerospin/dev-worker",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "wrangler.vitest.jsonc"
+  ],
+  "exports": {
+    "./makeStaticApiKeyIdentityResolver": {
+      "types": "./dist/ApiKeyIdentityResolver/makeStaticApiKeyIdentityResolver.d.ts",
+      "import": "./dist/ApiKeyIdentityResolver/makeStaticApiKeyIdentityResolver.js",
+      "default": "./dist/ApiKeyIdentityResolver/makeStaticApiKeyIdentityResolver.js"
+    },
+    "./makeTestGateway": {
+      "types": "./dist/makeTestGateway.d.ts",
+      "import": "./dist/makeTestGateway.js",
+      "default": "./dist/makeTestGateway.js"
+    },
+    "./DevWorker": {
+      "types": "./dist/DevWorker.d.ts",
+      "import": "./dist/DevWorker.js",
+      "default": "./dist/DevWorker.js"
+    },
+    "./shims/makeMigratedInMemoryWasmSqliteDb": {
+      "types": "./dist/shims/makeMigratedInMemoryWasmSqliteDb.d.ts",
+      "import": "./dist/shims/makeMigratedInMemoryWasmSqliteDb.js",
+      "default": "./dist/shims/makeMigratedInMemoryWasmSqliteDb.js"
+    },
+    "./vitest/makePlaywrightVitestConfig": {
+      "types": "./dist/vitest/makePlaywrightVitestConfig.d.ts",
+      "import": "./dist/vitest/makePlaywrightVitestConfig.js",
+      "default": "./dist/vitest/makePlaywrightVitestConfig.js"
+    },
+    "./vitest/makeWorkerdE2eTestLayer": {
+      "types": "./dist/vitest/makeWorkerdE2eTestLayer.d.ts",
+      "import": "./dist/vitest/makeWorkerdE2eTestLayer.js",
+      "default": "./dist/vitest/makeWorkerdE2eTestLayer.js"
+    },
+    "./vitest/makeWorkerdVitestConfig": {
+      "types": "./dist/vitest/makeWorkerdVitestConfig.d.ts",
+      "import": "./dist/vitest/makeWorkerdVitestConfig.js",
+      "default": "./dist/vitest/makeWorkerdVitestConfig.js"
+    },
+    "./vitest/workerdSetup": {
+      "types": "./dist/vitest/workerdSetup.d.ts",
+      "import": "./dist/vitest/workerdSetup.js",
+      "default": "./dist/vitest/workerdSetup.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lib": "pnpm run clean && tsc -b tsconfig.json",
+    "test": "vitest run --config vitest.config.ts",
+    "test:workerd": "vitest run --config vitest.workerd.config.ts",
+    "ts": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint . --format stylish"
+  },
+  "dependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.16.3",
+    "@remix-run/route-pattern": "^0.22.1",
+    "@vitest/browser-playwright": "4.1.5",
+    "@zerospin/core": "workspace:*",
+    "@zerospin/error": "workspace:*",
+    "@zerospin/logger": "workspace:*",
+    "capnweb": "^0.7.0",
+    "cloudflare": "^6.1.0",
+    "effect": "^3.21.4",
+    "playwright": "1.59.1",
+    "system": "workspace:*",
+    "system-worker": "workspace:*",
+    "vitest": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.4",
+    "rimraf": "^6.1.3"
+  }
+}

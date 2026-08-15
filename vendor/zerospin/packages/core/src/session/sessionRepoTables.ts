@@ -20,12 +20,13 @@ const sharedWorkerMetadataTable = makeTable({
     systemId: primitives.opaqueId({
       abbreviation: coreAbbreviations.system,
     }),
-    generationId: primitives.text(),
-    accountName: primitives.text(),
-    actorName: primitives.text(),
+    aggregateId: primitives.opaqueId({
+      abbreviation: coreAbbreviations.aggregate,
+    }),
+    aggregateName: primitives.text(),
     frontendName: primitives.text(),
-    frontendVersion: primitives.text(),
-    actorId: primitives.text(),
+    aggregateFrontendLockKey: primitives.text(),
+    userId: primitives.text(),
     hasState: primitives.boolean(),
     frontendIndex: primitives.integer({ nullable: true }),
   },

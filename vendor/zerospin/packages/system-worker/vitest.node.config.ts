@@ -22,6 +22,7 @@ function cloudflareWorkersStub(): Plugin {
       if (id === cloudflareWorkersVirtualId) {
         return [
           'export class DurableObject {}',
+          'export class RpcTarget {}',
           'export class WorkerEntrypoint {}',
           'export const env = {}',
         ].join('\n');

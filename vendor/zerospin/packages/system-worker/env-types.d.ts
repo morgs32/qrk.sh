@@ -13,36 +13,32 @@
 declare namespace Cloudflare {
   interface Env {
     TESTING: false;
-    ZEROSPIN_ENVIRONMENT_ID: 'zerospin-dev';
-    ZEROSPIN_DEPLOY_ID: string;
-    ZEROSPIN_GENERATION_ID: string;
-    ZEROSPIN_INSTANCE_ID: string;
-    ZEROSPIN_SELF_HOSTED?: 'true';
+    ZEROSPIN_CLEAN_REQUEST_ID?: string;
+    ZEROSPIN_ENVIRONMENT: 'dev' | 'production';
+    ZEROSPIN_PUBLISHABLE_KEY?: string;
+    ZEROSPIN_SECRET_KEY: string;
     ZEROSPIN_SYSTEM_ID: string;
-    ZEROSPIN_VERSION_METADATA: WorkerVersionMetadata;
+    WORKER_VERSION_METADATA: WorkerVersionMetadata;
     OTEL_EXPORTER_OTLP_LOGS_ENDPOINT?: string;
     OTEL_EXPORTER_OTLP_LOGS_HEADERS?: string;
     OTEL_SERVICE_NAME?: string;
     SYSTEM_REPO: DurableObjectNamespace<
       import('./src/SystemWorker').SystemRepo
     >;
-    ACCOUNT_REPO: DurableObjectNamespace<
-      import('./src/SystemWorker').AccountRepo
+    AGGREGATE_REPO: DurableObjectNamespace<
+      import('./src/SystemWorker').AggregateRepo
     >;
     SERVICE_REPO: DurableObjectNamespace<
       import('./src/SystemWorker').ServiceRepo
     >;
-    ACCOUNT_BLOCK_REPO: DurableObjectNamespace<
-      import('./src/SystemWorker').AccountBlockRepo
+    AGGREGATE_BLOCK_REPO: DurableObjectNamespace<
+      import('./src/SystemWorker').AggregateBlockRepo
     >;
-    ACTOR_BLOCK_REPO: DurableObjectNamespace<
-      import('./src/SystemWorker').ActorBlockRepo
+    AGGREGATE_FRONTEND_REPO: DurableObjectNamespace<
+      import('./src/SystemWorker').AggregateFrontendRepo
     >;
-    FRONTEND_REPO: DurableObjectNamespace<
-      import('./src/SystemWorker').FrontendRepo
-    >;
-    FRONTEND_BLOCK_REPO: DurableObjectNamespace<
-      import('./src/SystemWorker').FrontendBlockRepo
+    AGGREGATE_FRONTEND_BLOCK_REPO: DurableObjectNamespace<
+      import('./src/SystemWorker').AggregateFrontendBlockRepo
     >;
     SERVICE_BLOCK_REPO: DurableObjectNamespace<
       import('./src/SystemWorker').ServiceBlockRepo
@@ -54,15 +50,11 @@ declare namespace Cloudflare {
       Rpc.DurableObjectBranded &
         import('./src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo').IServiceFrontendBlockRepoRpcTarget
     >;
-    AUTHORIZATION_REPO: DurableObjectNamespace<
-      import('./src/SystemWorker').AuthorizationRepo
-    >;
     SYSTEM_LOG_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded & import('./src/SystemWorker').SystemLogRepo
     >;
     SYSTEM_LOG_AGENT: DurableObjectNamespace<
       Rpc.DurableObjectBranded & import('./src/SystemWorker').SystemLogAgent
     >;
-    ACTOR_REPO: DurableObjectNamespace<import('./src/SystemWorker').ActorRepo>;
   }
 }

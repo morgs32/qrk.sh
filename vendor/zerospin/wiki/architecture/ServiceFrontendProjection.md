@@ -1,254 +1,203 @@
 ---
 title: Service Frontend Projection
 type: module
-updated: 2026-07-28
-sources:
-  - path: packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts
-    sha: 96e4196bca64fa89b0586f28330cd03860fccca7
-    lines: 25-259
-  - path: packages/system-worker/src/SystemRepo/resolveFrontendProjectionLineage/resolveFrontendProjectionLineage.ts
-    sha: 2ddbda8d656f64bd4c205dbfa3e34cfa6ce4f92f
-    lines: 589-625
-  - path: packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts
-    sha: 365b12f0ef26b8a27aabf6a209b2d84035ca3741
-    lines: 1-334
-  - path: packages/system-worker/src/ServiceFrontendRepo/drainGeneration/drainGeneration.ts
-    sha: b2a0a609358af0bd5ff7d26732522abd5a8864e4
-    lines: 10-65
-  - path: packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts
-    sha: d2577f0318c280ca03103ab99dcf37562c282adf
-    lines: 35-674
-  - path: packages/system-worker/src/ServiceBlockRepo/subscribeServiceFrontend/subscribeServiceFrontend.ts
-    sha: f24ec8e3c7ee9b0eafff5180b9095e273838576d
-    lines: 23-298
-  - path: packages/system-worker/src/ServiceBlockRepo/ServiceBlockRepo.ts
-    sha: 8b196f8e385d4d13b1faaf3702eb34420316933b
-    lines: 244-359
-  - path: packages/system-worker/src/ServiceBlockRepo/drainGeneration/drainGeneration.ts
-    sha: a5a801c9a915b17a6bc9e840e8fa67596451784c
-    lines: 11-222
-  - path: packages/system-worker/src/ServiceBlockRepo/alarm/alarm.ts
-    sha: 7e4ed8d8e6362c83ea5516f3d070262673b7ad2d
-    lines: 9-75
-  - path: packages/system-worker/src/ServiceBlockRepo/drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.ts
-    sha: fdb084437e04cc54c9fab033ef0c54b888eff8b5
-    lines: 18-373
-  - path: packages/system-worker/src/ServiceFrontendRepo/handleServiceBlocks/handleServiceBlocks.ts
-    sha: a01cf052cd60bc1a19ce4a4ca2c2d737c65cf769
-    lines: 18-298
-  - path: packages/system-worker/src/ServiceFrontendRepo/drainServiceFrontendBlockOutbox/drainServiceFrontendBlockOutbox.ts
-    sha: 66394209d0ddf3c5e5cda425dce77167b5e97360
-    lines: 14-150
-  - path: packages/system-worker/src/ServiceFrontendRepo/alarm/alarm.ts
-    sha: 8bc2a16d48ea20e7b1b949a182abd7d14d1ca2ef
-    lines: 8-20
-  - path: packages/system-worker/src/ServiceFrontendRepo/prepareSuccessor/prepareSuccessor.ts
-    sha: 77e32719456329012493e2441ef95ae1c9d9c474
-    lines: 33-394
-  - path: packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts
-    sha: 0c7aff28b20709526ff7825b74726de91473e113
-    lines: 1-329
-  - path: packages/system-worker/src/ServiceFrontendBlockRepo/storeServiceFrontendBlocks/storeServiceFrontendBlocks.ts
-    sha: 4a371e26ec1ab5a14c8e576f5c8846bd13d9ffc6
-    lines: 13-286
-  - path: packages/system-worker/src/ServiceFrontendBlockRepo/onMessage/onMessage.ts
-    sha: dc3e51a8e39ebfd5284791e0f2f50e2b74a9a7ec
-    lines: 19-371
+updated: 2026-08-14
 ---
 
 # Service Frontend Projection
 
-Each service frontend target owns two actor-specific Durable Objects with the
-same deterministic
-`generation/service/actor/actorId/frontend` key: ServiceFrontendRepo stores the
-read-only materialized projection, while ServiceFrontendBlockRepo stores its
-immutable lineage archive and owns the hibernating WebSocket room
-(../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts:1-5,
-../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts:163-203,
-../../packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts:1-5,
-../../packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts:146-171).
-
-```mermaid
-flowchart LR
-  Service["ServiceRepo source state"] --> Blocks["ServiceBlockRepo immutable blocks"]
-  Blocks --> Projection["ServiceFrontendRepo projected models"]
-  Projection --> Outbox["Service frontend block outbox"]
-  Outbox --> Archive["ServiceFrontendBlockRepo lineage archive"]
-  Archive --> Browser["Direct or SharedWorker replica"]
-```
-
-The projection stores one target/lineage/watermark row, retained canonical
-ServiceBlock receipts, and a frontend-block outbox. The archive separately
-stores one immutable predecessor descriptor and indexed lineage blocks
-(../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts:96-158,
-../../packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts:87-137).
-
-## Trigger
-
-1. [`SystemWorker.getServiceFrontendState`](../../packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts)
-   first checks that the capability's exact generation and frontend binding are
-   still authoritative, then checks read admission, validates the complete
-   service-owned target, asks SystemRepo whether this generation is live or has
-   no local segment, and calls the deterministic ServiceFrontendRepo
-   (../../packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts:25-154,
-   ../../packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts:156-259).
-2. [`ServiceFrontendRepo.getFrontendState`](../../packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts)
-   installs the service snapshot once and records its source watermark and
-   lineage. A no-local segment returns snapshot-only state; a live segment
-   catches up through a captured ServiceBlock bound, verifies archive coverage,
-   and atomically publishes the projection/archive registration pair before
-   returning state
-   (../../packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts:35-72,
-   ../../packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts:174-318,
-   ../../packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts:320-364,
-   ../../packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts:517-672).
-3. Later ServiceBlock publication drives
-   [`drainServiceFrontendSubscribers`](../../packages/system-worker/src/ServiceBlockRepo/drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.ts),
-   which delivers only a complete contiguous suffix and acknowledges it only
-   after ServiceFrontendRepo has committed the projection and archive. Failed
-   delivery returns its next retry time to the shared ServiceBlockRepo alarm;
-   that named alarm Effect drains both account and service-frontend subscriber
-   queues and retains the earliest outstanding retry
-   (../../packages/system-worker/src/ServiceBlockRepo/drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.ts:18-25,
-   ../../packages/system-worker/src/ServiceBlockRepo/drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.ts:92-239,
-   ../../packages/system-worker/src/ServiceBlockRepo/drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.ts:241-303,
-   ../../packages/system-worker/src/ServiceBlockRepo/drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.ts:306-369,
-   ../../packages/system-worker/src/ServiceBlockRepo/alarm/alarm.ts:9-75).
-
-## Annotated workflow steps
-
-State authority is intentionally generation-local. A drained source reports its
-recorded successor instead of reading that successor's projection; a removed
-service/actor/frontend reports an identity change; and a controller version or
-spec change inside the same generation reports `frontend-version-changed`.
-Successor selection belongs to ticket minting and browser lineage recovery, not
-to this state read
-(../../packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts:37-154).
+A service frontend is a read-only user-scoped projection. The SharedWorker
+authenticates each port and binds exact `{ systemId, userId, systemName }`;
+service-owned authorization admits exact `{ serviceName, userId, frontendName }`
+plus the complete service lock. Server projection and archive state are
+generation-scoped, while the browser replica identity is `{ systemId, userId,
+serviceName, frontendName, serviceFrontendLockKey }`
+([`getUserPartitionRepo.ts:296-348`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L296-L348),
+[`authorizeServiceFrontend.ts:17-82`](../../packages/system-worker/src/authorizeServiceFrontend/authorizeServiceFrontend.ts#L17-L82),
+[`ServiceFrontendReplicaRepo.ts:135-171`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L135-L171)).
 
 ```mermaid
 sequenceDiagram
-  autonumber
-  participant Gateway as SystemWorker state leaf
-  participant Source as ServiceRepo
-  participant Ledger as ServiceBlockRepo
+  participant Replica as exact ServiceFrontendReplicaRepo
+  participant Auth as selected current AuthenticatedApi
+  participant Worker as SystemWorker
+  participant ServiceRepo
+  participant Owner as authored service
+  participant Child as ServiceFrontendApi
   participant Projection as ServiceFrontendRepo
   participant Archive as ServiceFrontendBlockRepo
-  participant System as SystemRepo
-
-  Gateway->>Projection: getFrontendState(validated target, lineage)
-  Projection->>Source: snapshot(resources, N)
-  Projection->>Archive: recordPredecessor()
-  Projection->>Ledger: subscribeServiceFrontend(N)
-  Ledger->>Ledger: capture immutable terminal T
-  Ledger->>Projection: handleServiceBlocks((N, T])
-  Projection->>Archive: append emitted lineage blocks
-  Archive-->>Projection: archive acknowledged through current index
-  Projection->>System: registerRepos(projection plus archive)
-  Projection-->>Gateway: ready state
+  autonumber 1
+  Replica->>Auth: retain sticky authority or select the oldest usable online root
+  autonumber 2
+  Auth->>Worker: authorizeServiceFrontend(bound generation, user, target, lock)
+  autonumber 3
+  Worker->>ServiceRepo: resolve the generation-keyed service
+  autonumber 4
+  ServiceRepo->>Owner: authorize with declared-model queries
+  autonumber 5
+  Owner-->>ServiceRepo: owner decision
+  autonumber 6
+  Auth-->>Replica: ServiceFrontendApi candidate
+  autonumber 7
+  Replica->>Child: getAdmission()
+  autonumber 8
+  Child-->>Replica: exact flat admission receipt
+  autonumber 9
+  Replica->>Replica: install {registrationId, ownerToken, authenticatedApi, frontendApi}
+  autonumber 10
+  Replica->>Child: getState()
+  autonumber 11
+  Child->>Worker: getServiceFrontendState(bound admission)
+  autonumber 12
+  Worker->>Projection: read canonical selected state
+  autonumber 13
+  Replica->>Replica: replace resources, then metadata, under authority fences
+  autonumber 14
+  Projection->>Archive: publish canonical service frontend blocks
+  autonumber 15
+  Archive-->>Replica: exact-next ticket-admitted block
+  autonumber 16
+  Replica-->>Replica: verify exact socket and tuple, commit, then fan out
 ```
 
-1. Snapshot installation validates every resource against the frontend's
-   declared service models and writes the resources, complete target identity,
-   source cursor/index, frontend index, and lineage classification in one
-   transaction. A retry reuses the stored snapshot rather than taking a second
-   source snapshot
-   (../../packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts:174-318).
-2. Root and inherited segments record their immutable predecessor descriptor in
-   ServiceFrontendBlockRepo before any frontend block can become visible
-   (../../packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts:366-416).
-3. `subscribeServiceFrontend` captures one terminal source bound `T`, persists a
-   `catching-up` or `live` subscriber row, synchronously drains that subscriber,
-   and returns only after its stored watermark reaches the captured bound
-   (../../packages/system-worker/src/ServiceBlockRepo/subscribeServiceFrontend/subscribeServiceFrontend.ts:148-265,
-   ../../packages/system-worker/src/ServiceBlockRepo/subscribeServiceFrontend/subscribeServiceFrontend.ts:267-298).
-4. ServiceFrontendRepo accepts source blocks only at the exact next service
-   index; a duplicate succeeds only when its retained cursor and canonical bytes
-   match. Every source block advances the service watermark, but only a relevant
-   block in live emission mode advances the frontend index and creates an outbox
-   row
-   (../../packages/system-worker/src/ServiceFrontendRepo/handleServiceBlocks/handleServiceBlocks.ts:127-162,
-   ../../packages/system-worker/src/ServiceFrontendRepo/handleServiceBlocks/handleServiceBlocks.ts:233-294).
-5. The outbox wraps projected blocks in complete system/generation/target
-   lineage envelopes and appends them to ServiceFrontendBlockRepo. A failed
-   append persists the diagnostic and arms an alarm; success marks every row
-   published and clears the alarm. The ServiceFrontendRepo lifecycle boundary
-   runs the same named outbox-drain Effect when that alarm fires
-   (../../packages/system-worker/src/ServiceFrontendRepo/drainServiceFrontendBlockOutbox/drainServiceFrontendBlockOutbox.ts:29-135,
-   ../../packages/system-worker/src/ServiceFrontendRepo/drainServiceFrontendBlockOutbox/drainServiceFrontendBlockOutbox.ts:138-150,
-   ../../packages/system-worker/src/ServiceFrontendRepo/alarm/alarm.ts:8-20,
-   ../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts:325-333).
-6. The archive appends the request atomically in caller order, accepts an old
-   index only when canonical bytes are identical, requires each new index to be
-   exactly terminal plus one, and broadcasts only rows that committed for the
-   first time
-   (../../packages/system-worker/src/ServiceFrontendBlockRepo/storeServiceFrontendBlocks/storeServiceFrontendBlocks.ts:13-19,
-   ../../packages/system-worker/src/ServiceFrontendBlockRepo/storeServiceFrontendBlocks/storeServiceFrontendBlocks.ts:128-285).
-7. Initialization marks the projection ready only after explicit archive
-   coverage, then registers ServiceFrontendRepo and ServiceFrontendBlockRepo in
-   one SystemRepo call so discovery cannot observe only one half
-   (../../packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts:623-672).
-8. The returned `frontendIndex` and resource rows are captured in one local
-   transaction before the remote archive/readiness calls. The projection drains
-   again afterward and asserts archive coverage through that captured index, so
-   concurrent live delivery cannot pair an older index with newer resource
-   bytes
-   (../../packages/system-worker/src/ServiceFrontendRepo/getFrontendState/getFrontendState.ts:568-652).
+## Annotated workflow steps
 
-## Generation continuity
+1. When replacement is needed, the exact Repo retains a usable installed tuple
+   or tests eligible online registrations in allocator append order. A
+   registration can supply authority only while its `AuthenticatedApi` is still
+   that port's current root
+   ([`ServiceFrontendReplicaRepo.ts:579-714`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L579-L714)).
+2. `AuthenticatedApi` adds its private generation and authenticated user to the
+   selected service target and complete lock
+   ([`getServiceFrontendApi.ts:53-76`](../../packages/system-worker/src/AuthenticatedApi/getServiceFrontendApi/getServiceFrontendApi.ts#L53-L76)).
+3. `SystemWorker` validates the lock, proves generation read admission, and
+   resolves the generation-keyed `ServiceRepo`
+   ([`authorizeServiceFrontend.ts:36-76`](../../packages/system-worker/src/authorizeServiceFrontend/authorizeServiceFrontend.ts#L36-L76)).
+4. `ServiceRepo` invokes authored authorization with synchronous access to only
+   the service's declared model queries
+   ([`ServiceRepo/authorizeServiceFrontend.ts:23-61`](../../packages/system-worker/src/ServiceRepo/authorizeServiceFrontend/authorizeServiceFrontend.ts#L23-L61)).
+5. Owner success or failure remains a service-owned authorization decision, not
+   root authentication
+   ([`ServiceRepo/authorizeServiceFrontend.ts:33-61`](../../packages/system-worker/src/ServiceRepo/authorizeServiceFrontend/authorizeServiceFrontend.ts#L33-L61)).
+6. `AuthenticatedApi` target-checks the returned user, service spec, names, and
+   canonical lock key before returning a `ServiceFrontendApi` candidate
+   ([`getServiceFrontendApi.ts:77-115`](../../packages/system-worker/src/AuthenticatedApi/getServiceFrontendApi/getServiceFrontendApi.ts#L77-L115)).
+7. The exact Repo decodes the candidate's complete flat admission receipt before
+   it can be installed
+   ([`ServiceFrontendReplicaRepo.ts:716-740`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L716-L740),
+   [`getAdmission.ts:7-32`](../../packages/system-worker/src/ServiceFrontendApi/getAdmission/getAdmission.ts#L7-L32)).
+8. It verifies exact identity, target, kind, complete lock bytes and key, and
+   byte-exact spec. An unsupported lock or exact-admission mismatch terminally
+   fails this Repo and not the SharedWorker port or sibling exact Repos
+   ([`ServiceFrontendReplicaRepo.ts:741-789`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L741-L789),
+   [`ServiceFrontendReplicaRepo.ts:1043-1083`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1043-L1083)).
+9. The still-current selection installs one Repo-owned inline `{ registrationId,
+ownerToken, authenticatedApi, frontendApi }` tuple before any state read
+   ([`ServiceFrontendReplicaRepo.ts:790-838`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L790-L838)).
+10. Online activation or replacement uses the installed child's zero-argument
+    `getState()` for authoritative hydration
+    ([`fetchServiceFrontendState.ts:12-39`](../../packages/frontend/src/fetchServiceFrontendState.ts#L12-L39),
+    [`ServiceFrontendApi.ts:77-83`](../../packages/system-worker/src/ServiceFrontendApi/ServiceFrontendApi.ts#L77-L83),
+    [`ServiceFrontendReplicaRepo.ts:862-958`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L862-L958)).
+11. The child supplies bound `{ generationId, serviceName, userId, frontendName,
+serviceFrontendLock }` to `SystemWorker.getServiceFrontendState`
+    ([`getState.ts:17-96`](../../packages/system-worker/src/ServiceFrontendApi/getState/getState.ts#L17-L96)).
+12. `SystemWorker` validates the exact lock, reads the canonical
+    `ServiceFrontendRepo` projection, omits unselected models, and adapts
+    selected resources
+    ([`getServiceFrontendState.ts:24-93`](../../packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts#L24-L93),
+    [`getServiceFrontendState.ts:94-148`](../../packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts#L94-L148)).
+13. A new exact service database installs resources before four-field metadata
+    at `replicaIndex = 0`; replacement deletes old resources, inserts the
+    authoritative set, then advances metadata once under repeated authority
+    fences
+    ([`ServiceFrontendReplicaRepo.ts:218-342`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L218-L342),
+    [`ServiceFrontendReplicaRepo.ts:960-1033`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L960-L1033)).
+14. `ServiceFrontendRepo` persists canonical projection state and drains its
+    archive outbox to `ServiceFrontendBlockRepo`
+    ([`ServiceFrontendRepo.ts:97-165`](../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts#L97-L165),
+    [`drainServiceFrontendBlockOutbox.ts:19-109`](../../packages/system-worker/src/ServiceFrontendRepo/drainServiceFrontendBlockOutbox/drainServiceFrontendBlockOutbox.ts#L19-L109)).
+15. The archive shapes retained and live blocks by the admitted complete lock,
+    then delivers them to the exact SharedWorker replica. Duplicate or older
+    frontend indexes are ignored and a gap requires authoritative replacement
+    ([`getArchivedBlocks.ts:45-391`](../../packages/system-worker/src/ServiceFrontendBlockRepo/getArchivedBlocks/getArchivedBlocks.ts#L45-L391),
+    [`ServiceFrontendReplicaRepo.ts:1314-1362`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1314-L1362)).
+16. Every message callback requires the exact socket plus the installed
+    `{ registrationId, ownerToken, authenticatedApi, frontendApi }`, selection
+    token, live registration, and current port root. Exact-next application
+    mutates resources and both metadata frontiers transactionally and fans out
+    one contiguous replica block only after commit
+    ([`ServiceFrontendReplicaRepo.ts:1276-1431`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1276-L1431),
+    [`ServiceFrontendReplicaRepo.ts:1498-1633`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1498-L1633)).
 
-Closing write admission does not itself classify a late projection as having no
-local segment. Until `drainFrozenAt` is durable, lineage resolution reserves a
-live segment so the final freeze transaction must include or visibly reject it;
-only a draining generation with that persisted freeze timestamp returns
-`no-local-segment`
-(../../packages/system-worker/src/SystemRepo/resolveFrontendProjectionLineage/resolveFrontendProjectionLineage.ts:589-625).
+```mermaid
+flowchart LR
+  Service["ServiceRepo"] --> Blocks["ServiceBlockRepo"]
+  Blocks --> Projection["ServiceFrontendRepo"]
+  Projection --> Archive["ServiceFrontendBlockRepo"]
+  Archive --> Replica["ServiceFrontendReplicaRepo"]
+  Port["SharedWorkerApi(port) current root"] --> Replica
+  Replica --> Session["read-only React service session"]
+```
 
-Generation drain distinguishes hosted delivery from self-hosted inspection.
-Hosted ServiceBlockRepo drain first delivers pending account and
-service-frontend subscriber work, and hosted ServiceFrontendRepo drain first
-publishes pending archive outbox rows. When `ZEROSPIN_SELF_HOSTED` is true,
-both repos only count pending work and reject a non-empty result so newly
-uploaded code cannot finish work created by the previous upload
-(../../packages/system-worker/src/ServiceBlockRepo/ServiceBlockRepo.ts:308-325,
-../../packages/system-worker/src/ServiceBlockRepo/drainGeneration/drainGeneration.ts:27-86,
-../../packages/system-worker/src/ServiceBlockRepo/drainGeneration/drainGeneration.ts:150-220,
-../../packages/system-worker/src/ServiceFrontendRepo/ServiceFrontendRepo.ts:309-323,
-../../packages/system-worker/src/ServiceFrontendRepo/drainGeneration/drainGeneration.ts:27-63).
+## Offline and regain
 
-An eagerly prepared successor validates the predecessor state only as the
-logical lineage receipt, then snapshots the target generation's authoritative
-ServiceRepo at the exact frozen causal watermark. Target rows therefore reflect
-the target model/projection definition rather than copied predecessor bytes.
-Catch-up runs in `no-emission` mode, after which the projection appends exactly
-one generation boundary, switches to live emission, and publishes the
-registration pair
-(../../packages/system-worker/src/ServiceFrontendRepo/prepareSuccessor/prepareSuccessor.ts:33-125,
-../../packages/system-worker/src/ServiceFrontendRepo/prepareSuccessor/prepareSuccessor.ts:143-233,
-../../packages/system-worker/src/ServiceFrontendRepo/prepareSuccessor/prepareSuccessor.ts:291-394).
+1. Existing-only mode opens only a located exact database with a ready matching
+   catalog receipt and exact schema. The exact-replica acquisition does not
+   migrate, call the port authentication accessor, acquire a child, read server
+   state, mint a ticket, or open a socket
+   ([`acquireServiceFrontendReplica.ts:175-245`](../../packages/shared-worker/src/SharedWorker/UserPartitionRepo/acquireServiceFrontendReplica/acquireServiceFrontendReplica.ts#L175-L245),
+   [`acquireServiceFrontendReplica.ts:316-431`](../../packages/shared-worker/src/SharedWorker/UserPartitionRepo/acquireServiceFrontendReplica/acquireServiceFrontendReplica.ts#L316-L431),
+   [`acquireServiceFrontendReplica.ts:494-528`](../../packages/shared-worker/src/SharedWorker/UserPartitionRepo/acquireServiceFrontendReplica/acquireServiceFrontendReplica.ts#L494-L528)).
+2. On browser `online`, React reacquires with the same sink. The Repo promotes
+   the existing owner registration in place and disposes the duplicate sink
+   stub; React disposes only the temporary returned API stub, so no second
+   registration is allocated or released
+   ([`bootstrapBrowserServiceSession.ts:293-355`](../../packages/react/src/bootstrapBrowserServiceSession.ts#L293-L355),
+   [`ServiceFrontendReplicaRepo.ts:344-415`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L344-L415)).
+3. A refreshable ticket failure refreshes only the failed authority tuple and
+   retries the ticket without replacing already-authoritative state. In
+   contrast, `state-required` and a `1012/generation-drained` close perform
+   authoritative replacement before a new socket opens
+   ([`ServiceFrontendReplicaRepo.ts:1150-1228`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1150-L1228),
+   [`ServiceFrontendReplicaRepo.ts:1357-1362`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1357-L1362),
+   [`ServiceFrontendReplicaRepo.ts:1436-1475`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1436-L1475)).
+4. Selected release clears the tuple and socket before scheduling forced-fresh
+   transfer; nonselected release removes only delivery; zero online
+   registrations stop networking while the ready local projection remains
+   available
+   ([`ServiceFrontendReplicaRepo.ts:1636-1717`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1636-L1717)).
 
-A same-generation WebSocket resume receives the exact archived suffix and a
-`replay-complete` control before the connection becomes live. A resume from an
-ancestor generation validates every predecessor descriptor, replays the source
-suffix, sends the first boundary, emits `lineage-transition-required` with any
-remaining boundaries, and closes so the client can rebind to the target
-generation
-(../../packages/system-worker/src/ServiceFrontendBlockRepo/onMessage/onMessage.ts:103-166,
-../../packages/system-worker/src/ServiceFrontendBlockRepo/onMessage/onMessage.ts:169-291,
-../../packages/system-worker/src/ServiceFrontendBlockRepo/onMessage/onMessage.ts:293-369).
+## Read-only boundary
+
+Service replica databases have no command journal, staging, command status,
+pause, or push control. The exact database contains only generated resource
+tables and `serviceFrontendReplicaMetadata { id, systemVersion, frontendIndex,
+replicaIndex }`; its public replica capability and React sink cover state,
+ordered block delivery, full replacement, failure, and release only
+([`ServiceFrontendReplicaRepo.ts:55-71`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L55-L71),
+[`ServiceFrontendReplicaApi.ts:12-42`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaApi/ServiceFrontendReplicaApi.ts#L12-L42),
+[`ServiceFrontendReplicaSink.ts:14-62`](../../packages/react/src/ServiceFrontendReplicaSink/ServiceFrontendReplicaSink.ts#L14-L62)).
+
+## Trigger
+
+1. `bootstrapBrowserServiceSession` derives the exact target, lock/key, and spec
+   from source selection and calls `acquireServiceFrontendReplica` with the
+   worker-returned identity and mode
+   ([`bootstrapBrowserServiceSession.ts:40-56`](../../packages/react/src/bootstrapBrowserServiceSession.ts#L40-L56),
+   [`bootstrapBrowserServiceSession.ts:215-248`](../../packages/react/src/bootstrapBrowserServiceSession.ts#L215-L248),
+   [`makeZerospinApp.tsx:238-242`](../../packages/react/src/makeZerospinApp.tsx#L238-L242),
+   [`makeZerospinApp.tsx:360-387`](../../packages/react/src/makeZerospinApp.tsx#L360-L387)).
+2. The SharedWorker owns authentication, authority selection, state hydration,
+   ticket renewal, socket replay, repair, and fan-out; React owns only the
+   main-thread session sink
+   ([`getUserPartitionRepo.ts:164-379`](../../packages/shared-worker/src/SharedWorker/SharedWorkerApi/getUserPartitionRepo/getUserPartitionRepo.ts#L164-L379),
+   [`ServiceFrontendReplicaRepo.ts:531-1083`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L531-L1083),
+   [`ServiceFrontendReplicaRepo.ts:1126-1633`](../../packages/shared-worker/src/SharedWorker/ServiceFrontendReplicaRepo/ServiceFrontendReplicaRepo.ts#L1126-L1633),
+   [`bootstrapBrowserServiceSession.ts:79-214`](../../packages/react/src/bootstrapBrowserServiceSession.ts#L79-L214)).
 
 ## Callers
 
-1. `ServiceFrontendApi.getFrontendState()` is the public bootstrap caller; it
-   cannot select a repo name and supplies only its stored authenticated target
-   (../../packages/system-worker/src/getServiceFrontendState/getServiceFrontendState.ts:221-259).
-2. ServiceBlockRepo is the only source-block delivery owner for this projection;
-   its acknowledgement advances after the remote handler returns successfully
-   (../../packages/system-worker/src/ServiceBlockRepo/drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.ts:210-239,
-   ../../packages/system-worker/src/ServiceBlockRepo/drainServiceFrontendSubscribers/drainServiceFrontendSubscribers.ts:306-369).
-3. Browser replicas consume the immutable ServiceFrontendBlockRepo lineage
-   archive through its hibernating service WebSocket room
-(../../packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts:158-171,
-../../packages/system-worker/src/ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.ts:294-328).
-
-See [[ServiceFrontendApi]] for admission and leaf binding, and
-[[FrontendWebSocket]] for the public upgrade boundary.
+- [`ServiceFrontendApi`](./ServiceFrontendApi.md)
+- [`Browser Session Bootstrap`](./bootstrapBrowserSession.md)
+- [`Frontend WebSocket`](./FrontendWebSocket.md)

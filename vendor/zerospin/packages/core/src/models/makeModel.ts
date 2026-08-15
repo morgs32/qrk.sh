@@ -1,4 +1,4 @@
-import { mapParseError, ZerospinError } from '@zerospin/error';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, JSONSchema, Schema } from 'effect';
 import { BrandTypeId } from 'effect/Brand';
 import { mapValues } from 'es-toolkit';
@@ -22,6 +22,7 @@ import type {
   IDrizzleSchema,
   IModel,
   InferAttributesSchema,
+  InferDecodedRow,
   InferProperties,
   IPrimaryKeyDescriptor,
   IResourceShape,
@@ -32,7 +33,7 @@ import type {
 
 type IReservedKeys =
   // Model / metadata keys that are not allowed as user attributes.
-  | 'accountCursor'
+  | 'aggregateCursor'
   | 'createdAt'
   | 'deletedAt'
   | 'id'
@@ -197,6 +198,9 @@ export function makeModel<
   const HISTORICAL_DEFINITIONS extends readonly {
     readonly abbreviation: string;
     readonly attributes: IShape;
+    readonly adaptResource: (props: {
+      resource: never;
+    }) => Effect.Effect<unknown, IAnyError>;
     readonly indexes: readonly IDrizzleIndexConfig<string>[];
     readonly modelName: string;
     readonly version: string;
@@ -220,7 +224,45 @@ export function makeModel<
     >[];
     version: VERSION;
   },
-  historicalDefinitions: HISTORICAL_DEFINITIONS,
+  historicalDefinitions: HISTORICAL_DEFINITIONS & {
+    readonly [INDEX in keyof HISTORICAL_DEFINITIONS]: Readonly<{
+      abbreviation: ABBREVIATION;
+      attributes: HISTORICAL_DEFINITIONS[INDEX]['attributes'];
+      adaptResource: (props: {
+        resource: InferDecodedRow<
+          InferProperties<
+            ATTRIBUTES,
+            ABBREVIATION,
+            {
+              id: IPrimaryKeyDescriptor<ABBREVIATION>;
+              modelName: ITextDescriptor<false>;
+              createdAt: IDateDescriptor<false>;
+              updatedAt: IDateDescriptor<false>;
+              version: ITextDescriptor<false>;
+            }
+          >
+        >;
+      }) => Effect.Effect<
+        InferDecodedRow<
+          InferProperties<
+            HISTORICAL_DEFINITIONS[INDEX]['attributes'],
+            ABBREVIATION,
+            {
+              id: IPrimaryKeyDescriptor<ABBREVIATION>;
+              modelName: ITextDescriptor<false>;
+              createdAt: IDateDescriptor<false>;
+              updatedAt: IDateDescriptor<false>;
+              version: ITextDescriptor<false>;
+            }
+          >
+        >,
+        IAnyError
+      >;
+      indexes: HISTORICAL_DEFINITIONS[INDEX]['indexes'];
+      modelName: MODEL_NAME;
+      version: HISTORICAL_DEFINITIONS[INDEX]['version'];
+    }>;
+  },
 ): IModel<
   ATTRIBUTES,
   ABBREVIATION,
@@ -261,6 +303,21 @@ export function makeModel<
   historicalDefinitions: readonly {
     readonly abbreviation: string;
     readonly attributes: IShape;
+    readonly adaptResource: (props: {
+      resource: InferDecodedRow<
+        InferProperties<
+          ATTRIBUTES,
+          ABBREVIATION,
+          {
+            id: IPrimaryKeyDescriptor<ABBREVIATION>;
+            modelName: ITextDescriptor<false>;
+            createdAt: IDateDescriptor<false>;
+            updatedAt: IDateDescriptor<false>;
+            version: ITextDescriptor<false>;
+          }
+        >
+      >;
+    }) => Effect.Effect<unknown, IAnyError>;
     readonly indexes: readonly IDrizzleIndexConfig<string>[];
     readonly modelName: string;
     readonly version: string;
@@ -290,6 +347,9 @@ export function makeModelAndMetadata<
   const HISTORICAL_DEFINITIONS extends readonly {
     readonly abbreviation: string;
     readonly attributes: IShape;
+    readonly adaptResource: (props: {
+      resource: never;
+    }) => Effect.Effect<unknown, IAnyError>;
     readonly indexes: readonly IDrizzleIndexConfig<string>[];
     readonly modelName: string;
     readonly version: string;
@@ -314,7 +374,29 @@ export function makeModelAndMetadata<
     >[];
     version: VERSION;
   },
-  historicalDefinitions: HISTORICAL_DEFINITIONS,
+  historicalDefinitions: HISTORICAL_DEFINITIONS & {
+    readonly [INDEX in keyof HISTORICAL_DEFINITIONS]: Readonly<{
+      abbreviation: ABBREVIATION;
+      attributes: HISTORICAL_DEFINITIONS[INDEX]['attributes'];
+      adaptResource: (props: {
+        resource: InferDecodedRow<
+          InferProperties<ATTRIBUTES, ABBREVIATION, METADATA>
+        >;
+      }) => Effect.Effect<
+        InferDecodedRow<
+          InferProperties<
+            HISTORICAL_DEFINITIONS[INDEX]['attributes'],
+            ABBREVIATION,
+            METADATA
+          >
+        >,
+        IAnyError
+      >;
+      indexes: HISTORICAL_DEFINITIONS[INDEX]['indexes'];
+      modelName: MODEL_NAME;
+      version: HISTORICAL_DEFINITIONS[INDEX]['version'];
+    }>;
+  },
 ): IModel<
   ATTRIBUTES,
   ABBREVIATION,
@@ -342,6 +424,40 @@ export function makeModelAndMetadata<
   historicalDefinitions: readonly {
     readonly abbreviation: string;
     readonly attributes: IShape;
+    readonly adaptResource: (props: {
+      resource: InferDecodedRow<
+        InferProperties<ATTRIBUTES, ABBREVIATION, METADATA>
+      >;
+    }) => Effect.Effect<unknown, IAnyError>;
+    readonly indexes: readonly IDrizzleIndexConfig<string>[];
+    readonly modelName: string;
+    readonly version: string;
+  }[],
+): IModel;
+export function makeModelAndMetadata<
+  MODEL_NAME extends string,
+  ABBREVIATION extends string,
+  ATTRIBUTES extends IShape,
+  METADATA extends IResourceShape,
+>(
+  props: {
+    abbreviation: ABBREVIATION;
+    modelName: MODEL_NAME;
+    metadata: METADATA;
+    attributes: ATTRIBUTES;
+    indexes: readonly IDrizzleIndexConfig<
+      keyof InferProperties<ATTRIBUTES, ABBREVIATION, METADATA> & string
+    >[];
+    version: string;
+  },
+  historicalDefinitions: readonly {
+    readonly abbreviation: string;
+    readonly attributes: IShape;
+    readonly adaptResource: (props: {
+      resource: InferDecodedRow<
+        InferProperties<ATTRIBUTES, ABBREVIATION, METADATA>
+      >;
+    }) => Effect.Effect<unknown, IAnyError>;
     readonly indexes: readonly IDrizzleIndexConfig<string>[];
     readonly modelName: string;
     readonly version: string;
@@ -356,10 +472,22 @@ export function makeModelAndMetadata<
     version,
   } = props;
 
-  if (
-    !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(
+  const currentVersionMatch =
+    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
       version,
-    )
+    );
+  if (currentVersionMatch === null) {
+    throw new Error(
+      `Invalid model version "${version}" for "${modelName}": expected SemVer`,
+    );
+  }
+  const currentMajor = Number(currentVersionMatch[1]);
+  const currentMinor = Number(currentVersionMatch[2]);
+  const currentPatch = Number(currentVersionMatch[3]);
+  if (
+    !Number.isSafeInteger(currentMajor) ||
+    !Number.isSafeInteger(currentMinor) ||
+    !Number.isSafeInteger(currentPatch)
   ) {
     throw new Error(
       `Invalid model version "${version}" for "${modelName}": expected SemVer`,
@@ -383,11 +511,16 @@ export function makeModelAndMetadata<
         `Historical model version "${historicalDefinition.version}" has abbreviation "${historicalDefinition.abbreviation}", not "${abbreviation}"`,
       );
     }
-    if (
-      !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(
+    if (typeof historicalDefinition.adaptResource !== 'function') {
+      throw new Error(
+        `Historical model version "${historicalDefinition.version}" for "${modelName}" requires adaptResource`,
+      );
+    }
+    const historicalVersionMatch =
+      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
         historicalDefinition.version,
-      )
-    ) {
+      );
+    if (historicalVersionMatch === null) {
       throw new Error(
         `Invalid historical model version "${historicalDefinition.version}" for "${modelName}": expected SemVer`,
       );
@@ -395,6 +528,99 @@ export function makeModelAndMetadata<
     if (definitionsByVersion.has(historicalDefinition.version)) {
       throw new Error(
         `Duplicate model version "${historicalDefinition.version}" for "${modelName}"`,
+      );
+    }
+
+    const historicalMajor = Number(historicalVersionMatch[1]);
+    const historicalMinor = Number(historicalVersionMatch[2]);
+    const historicalPatch = Number(historicalVersionMatch[3]);
+    if (
+      !Number.isSafeInteger(historicalMajor) ||
+      !Number.isSafeInteger(historicalMinor) ||
+      !Number.isSafeInteger(historicalPatch)
+    ) {
+      throw new Error(
+        `Invalid historical model version "${historicalDefinition.version}" for "${modelName}": expected SemVer`,
+      );
+    }
+
+    let historicalIsOlder = historicalMajor < currentMajor;
+    let versionsHaveEqualPrecedence = historicalMajor === currentMajor;
+    if (versionsHaveEqualPrecedence) {
+      historicalIsOlder = historicalMinor < currentMinor;
+      versionsHaveEqualPrecedence = historicalMinor === currentMinor;
+    }
+    if (versionsHaveEqualPrecedence) {
+      historicalIsOlder = historicalPatch < currentPatch;
+      versionsHaveEqualPrecedence = historicalPatch === currentPatch;
+    }
+
+    if (versionsHaveEqualPrecedence) {
+      const historicalPrerelease = historicalVersionMatch[4];
+      const currentPrerelease = currentVersionMatch[4];
+      if (
+        historicalPrerelease !== undefined &&
+        currentPrerelease === undefined
+      ) {
+        historicalIsOlder = true;
+        versionsHaveEqualPrecedence = false;
+      } else if (
+        historicalPrerelease === undefined &&
+        currentPrerelease !== undefined
+      ) {
+        historicalIsOlder = false;
+        versionsHaveEqualPrecedence = false;
+      } else if (
+        historicalPrerelease !== undefined &&
+        currentPrerelease !== undefined
+      ) {
+        const historicalIdentifiers = historicalPrerelease.split('.');
+        const currentIdentifiers = currentPrerelease.split('.');
+        let identifierIndex = 0;
+        while (
+          identifierIndex < historicalIdentifiers.length &&
+          identifierIndex < currentIdentifiers.length &&
+          versionsHaveEqualPrecedence
+        ) {
+          const historicalIdentifier = historicalIdentifiers[identifierIndex];
+          const currentIdentifier = currentIdentifiers[identifierIndex];
+          if (
+            historicalIdentifier !== undefined &&
+            currentIdentifier !== undefined &&
+            historicalIdentifier !== currentIdentifier
+          ) {
+            const historicalIsNumeric = /^(0|[1-9]\d*)$/.test(
+              historicalIdentifier,
+            );
+            const currentIsNumeric = /^(0|[1-9]\d*)$/.test(currentIdentifier);
+            if (historicalIsNumeric && !currentIsNumeric) {
+              historicalIsOlder = true;
+            } else if (!historicalIsNumeric && currentIsNumeric) {
+              historicalIsOlder = false;
+            } else if (historicalIsNumeric && currentIsNumeric) {
+              historicalIsOlder =
+                historicalIdentifier.length < currentIdentifier.length ||
+                (historicalIdentifier.length === currentIdentifier.length &&
+                  historicalIdentifier < currentIdentifier);
+            } else {
+              historicalIsOlder = historicalIdentifier < currentIdentifier;
+            }
+            versionsHaveEqualPrecedence = false;
+          }
+          identifierIndex += 1;
+        }
+        if (versionsHaveEqualPrecedence) {
+          historicalIsOlder =
+            historicalIdentifiers.length < currentIdentifiers.length;
+          versionsHaveEqualPrecedence =
+            historicalIdentifiers.length === currentIdentifiers.length;
+        }
+      }
+    }
+
+    if (!historicalIsOlder || versionsHaveEqualPrecedence) {
+      throw new Error(
+        `Historical model version "${historicalDefinition.version}" for "${modelName}" must be older than current version "${version}"`,
       );
     }
     definitionsByVersion.set(
@@ -435,6 +661,25 @@ export function makeModelAndMetadata<
         `Invalid attribute "${key}" on model "${modelName}": autogeneration belongs to contract payload primary keys`,
       );
     }
+  }
+
+  const resourceSchemasByVersion = new Map<
+    string,
+    Schema.Schema.AnyNoContext
+  >();
+  for (const [definitionVersion, definition] of definitionsByVersion) {
+    const propertySchemas: Record<string, Schema.Schema.AnyNoContext> =
+      mapValues(
+        {
+          ...metadata,
+          ...definition.attributes,
+        },
+        descriptor => descriptorToJsonEffectSchema(descriptor),
+      );
+    resourceSchemasByVersion.set(
+      definitionVersion,
+      Schema.Struct(propertySchemas),
+    );
   }
 
   const table = makeTable({
@@ -483,6 +728,148 @@ export function makeModelAndMetadata<
     propertiesShape: mergedShape,
     table,
     spec,
+    adaptResource: Effect.fn(`adaptResource/${modelName}`)(function* (props: {
+      version: string;
+      resource: unknown;
+    }): Effect.fn.Return<unknown, IAnyError> {
+      const currentResourceSchema = resourceSchemasByVersion.get(version);
+      if (currentResourceSchema === undefined) {
+        return yield* new ZerospinError({
+          code: 'model-current-resource-schema-missing',
+          message: `Current resource schema for ${modelName}@${version} is missing`,
+          extra: { modelName, modelVersion: version },
+        });
+      }
+
+      const currentResource = yield* Schema.validate(
+        makeEffectSchema(mergedShape),
+      )(props.resource, { onExcessProperty: 'error' }).pipe(
+        mapParseError({
+          code: 'model-current-resource-invalid',
+          prefix: `Failed to validate current resource for ${modelName}@${version}`,
+          extra: { modelName, modelVersion: version },
+        }),
+      );
+      if (
+        Reflect.get(currentResource, 'modelName') !== modelName ||
+        Reflect.get(currentResource, 'version') !== version
+      ) {
+        return yield* new ZerospinError({
+          code: 'model-current-resource-identity-invalid',
+          message: `Current resource must identify ${modelName}@${version}`,
+          extra: {
+            modelName,
+            modelVersion: version,
+            resourceModelName: Reflect.get(currentResource, 'modelName'),
+            resourceVersion: Reflect.get(currentResource, 'version'),
+          },
+        });
+      }
+
+      const targetDefinition = definitionsByVersion.get(props.version);
+      const targetResourceSchema = resourceSchemasByVersion.get(props.version);
+      if (
+        targetDefinition === undefined ||
+        targetResourceSchema === undefined
+      ) {
+        return yield* new ZerospinError({
+          code: 'model-resource-version-unsupported',
+          message: `Model ${modelName} does not support resource version ${props.version}`,
+          extra: {
+            modelName,
+            currentVersion: version,
+            targetVersion: props.version,
+          },
+        });
+      }
+
+      let targetResource: unknown = currentResource;
+      if (props.version !== version) {
+        const targetHistoricalDefinition = historicalDefinitions.find(
+          definition => definition.version === props.version,
+        );
+        if (targetHistoricalDefinition === undefined) {
+          return yield* new ZerospinError({
+            code: 'model-resource-adapter-missing',
+            message: `Historical model ${modelName}@${props.version} has no direct adaptResource from current version ${version}`,
+            extra: {
+              modelName,
+              currentVersion: version,
+              targetVersion: props.version,
+            },
+          });
+        }
+        const adaptedResource: Effect.Effect<unknown, IAnyError> =
+          Effect.suspend(() =>
+            targetHistoricalDefinition.adaptResource({
+              resource: currentResource,
+            }),
+          ).pipe(
+            Effect.catchAllCause(
+              cause =>
+                new ZerospinError({
+                  code: 'model-resource-adapter-invariant-failed',
+                  message: `Direct resource adapter from ${modelName}@${version} to ${modelName}@${props.version} failed`,
+                  cause: ZerospinError.prettyUnknownFailure(cause),
+                  extra: {
+                    modelName,
+                    currentVersion: version,
+                    targetVersion: props.version,
+                  },
+                }),
+            ),
+          );
+        targetResource = yield* adaptedResource;
+      }
+
+      const validatedTargetResource = yield* Schema.validate(
+        targetResourceSchema,
+      )(targetResource, { onExcessProperty: 'error' }).pipe(
+        mapParseError({
+          code: 'model-resource-adapter-output-invariant-failed',
+          prefix: `Resource adapter output did not match ${modelName}@${props.version}`,
+          extra: {
+            modelName,
+            currentVersion: version,
+            targetVersion: props.version,
+          },
+        }),
+      );
+      if (
+        Reflect.get(validatedTargetResource, 'modelName') !== modelName ||
+        Reflect.get(validatedTargetResource, 'version') !== props.version
+      ) {
+        return yield* new ZerospinError({
+          code: 'model-resource-adapter-output-invariant-failed',
+          message: `Resource adapter output must identify ${modelName}@${props.version}`,
+          extra: {
+            modelName,
+            currentVersion: version,
+            targetVersion: props.version,
+            resourceModelName: Reflect.get(
+              validatedTargetResource,
+              'modelName',
+            ),
+            resourceVersion: Reflect.get(validatedTargetResource, 'version'),
+          },
+        });
+      }
+
+      return yield* Schema.encode(targetResourceSchema)(
+        validatedTargetResource,
+        { onExcessProperty: 'error' },
+      ).pipe(
+        mapParseError({
+          code: 'model-resource-encode-invariant-failed',
+          prefix: `Failed to encode resource for ${modelName}@${props.version}`,
+          extra: {
+            modelName,
+            currentVersion: version,
+            targetVersion: props.version,
+          },
+        }),
+      );
+    }),
     createMutation(modelVersion) {
       const definition = definitionsByVersion.get(modelVersion);
       if (definition === undefined) {

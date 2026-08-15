@@ -6,28 +6,29 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { zerospinDevtoolsStore } from './zerospinDevtoolsStore.js';
 
-const accountSessionId = 'sesn_devtools_account';
+const aggregateSessionId = 'sesn_devtools_aggregate';
 const serviceSessionId = 'sesn_devtools_service';
 
 describe('zerospinDevtoolsStore session ownership', () => {
   afterEach(() => {
-    zerospinDevtoolsStore.getState().removeAccountSession(accountSessionId);
+    zerospinDevtoolsStore.getState().removeAggregateSession(aggregateSessionId);
     zerospinDevtoolsStore.getState().removeServiceSession(serviceSessionId);
   });
 
   it('registers account and service sessions in separate maps', () => {
-    const accountSession = makeSession({
+    const aggregateSession = makeSession({
       frontend: main,
-      sessionId: accountSessionId,
+      sessionId: aggregateSessionId,
       generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     const serviceSession = makeServiceSession({
       frontend: {
         systemName: 'shopping',
         serviceName: 'catalog',
-        actorName: 'product',
         frontendName: 'browse',
-        version: '1.0.0',
+        kind: 'service',
+        contracts: {},
+        guards: {},
         models: {},
         modelNames: [],
         signature: Schema.Struct({ userId: Schema.String }),
@@ -36,22 +37,18 @@ describe('zerospinDevtoolsStore session ownership', () => {
       mode: 'shared-worker',
     });
 
-    zerospinDevtoolsStore.getState().addAccountSession({
-      session: accountSession,
-      pushStagedCommands: async () => ({
-        pendingCommands: [],
-        pushedCommands: [],
-        failedCommands: [],
-      }),
+    zerospinDevtoolsStore.getState().addAggregateSession({
+      session: aggregateSession,
     });
     zerospinDevtoolsStore.getState().addServiceSession({
       session: serviceSession,
     });
 
     expect(
-      zerospinDevtoolsStore.getState().accountSessionsById.get(accountSessionId)
-        ?.session,
-    ).toBe(accountSession);
+      zerospinDevtoolsStore
+        .getState()
+        .aggregateSessionsById.get(aggregateSessionId)?.session,
+    ).toBe(aggregateSession);
     expect(
       zerospinDevtoolsStore.getState().serviceSessionsById.get(serviceSessionId)
         ?.sessionId,
@@ -59,17 +56,17 @@ describe('zerospinDevtoolsStore session ownership', () => {
     expect(
       zerospinDevtoolsStore
         .getState()
-        .accountSessionsById.has(serviceSessionId),
+        .aggregateSessionsById.has(serviceSessionId),
     ).toBe(false);
     expect(
       zerospinDevtoolsStore
         .getState()
-        .serviceSessionsById.has(accountSessionId),
+        .serviceSessionsById.has(aggregateSessionId),
     ).toBe(false);
 
-    zerospinDevtoolsStore.getState().removeAccountSession(accountSessionId);
+    zerospinDevtoolsStore.getState().removeAggregateSession(aggregateSessionId);
 
-    expect(zerospinDevtoolsStore.getState().accountSessionsById.size).toBe(0);
+    expect(zerospinDevtoolsStore.getState().aggregateSessionsById.size).toBe(0);
     expect(
       zerospinDevtoolsStore.getState().serviceSessionsById.get(serviceSessionId)
         ?.sessionId,

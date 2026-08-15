@@ -1,7 +1,7 @@
 ---
 title: Index
 type: meta
-updated: 2026-07-28
+updated: 2026-08-15
 ---
 
 # Index
@@ -12,7 +12,7 @@ Organised by category. Pages are `[[wiki-links]]` without the `.md` extension.
 
 ## Getting oriented
 
-- [[overview]] — big-picture synthesis of this codebase
+- [[overview|Distributed Architecture Overview]] — how authoring, browser replicas, stable ingress, SystemRepo generations, and durable block/projection flows interact
 - [[glossary]] — domain terms discovered from the code
 - [[log]] — chronological record of every ingest, lint, and query
 
@@ -23,23 +23,29 @@ Organised by category. Pages are `[[wiki-links]]` without the `.md` extension.
 
 ## Architecture
 
-- [[architecture/FrontendApi]] — account-bound state/write authority, successor-resolving tickets, and seven leaves
-- [[architecture/ServiceFrontendApi]] — read-only service state authority and successor-resolving ticket capability
-- [[architecture/FrontendWebSocket]] — exact resume, lineage transitions, same-generation update-required, and repair
-- [[architecture/SystemApi]] — concrete secret-key linked gateway, twenty-nine leaves, and RepoExplorer/service routing
-- [[architecture/Blockchain]] — authoritative ledgers plus account and service browser lineage archives
-- [[architecture/ServiceFrontendProjection]] — actor-scoped read-only service materialization and migration lineage
-- [[architecture/bootstrapBrowserSession]] — pre-Provider auth, lazy DevTools, direct/SharedWorker replicas, and commissioning
-- [[architecture/DeploySystem]] — distinct local/production control, Wrangler deploy/seed, finite freeze, and completion
+- [[architecture/Authentication|Universal Authentication]] — GatewayApi user admission, per-port SharedWorker authentication, exact resolver/authentication tuples, and owner-local authorization
+- [[architecture/Blockchain]] — aggregate and service authority, immutable block archives, direct frontend fanout, projection, and exact-lock delivery
+- [[architecture/DevLifecycle|Development Lifecycle]] — direct DevWorker-to-SystemRepo routing, explicit deploy-status polling, `{ workerVersionId, clean }` lifecycle identity, and browser refresh
+- [[architecture/AggregateFrontendApi]] — state, command, query, and ticket capability bound to `{ aggregateName, aggregateId, userId, frontendName }` plus one complete aggregate lock
+- [[architecture/FrontendWebSocket]] — fixed socket routes, opaque one-use tickets, index-only resume, full-state repair, and terminal lock failure
+- [[architecture/RpcErrorBoundaries]] — encoded ZerospinError preservation, one-time boundary conversion, and failure-target replay
+- [[architecture/ServiceFrontendApi]] — read-only state and ticket capability bound to `{ serviceName, userId, frontendName }` plus one complete service lock
+- [[architecture/ServiceFrontendProjection]] — user-scoped service source replica, canonical projection, archive, and generation continuity
+- [[architecture/SourceSelectedFrontends]] — source-selected exact definitions, exhaustive static admission, and selection identity
+- [[architecture/StaticSystemWorker]] — direct authored System Effects, owner-local database/query boundaries, and retained command revisions
+- [[architecture/SystemApi]] — generation-specific reads, current-write mutations, telemetry, and repository inspection
+- [[architecture/SystemLifecycle|System Lifecycle]] — singleton SystemRepo deployment coordination, write reservation, freeze/drain, replay, and atomic promotion
+- [[architecture/bootstrapBrowserSession]] — one signature-callback ZerospinApp.Provider scope, one identity-neutral SharedWorker port with a worker-bound UserPartitionRepo root, atomic sessions, and teardown
+- [[dev/diagrams/BrowserFrontendLifecycle|Browser frontend lifecycle]] — online/offline startup, independent authorization, SharedWorker acquisition, replacement, and teardown
 
 ## API
 
-- [[api/CoreFrontendReplicas]] — account/service wire schemas and replica-application Effects
-- [[api/CoreServiceControllers]] — authored service actor/frontend graph and authentication callback surface
-- [[api/FrontendPrograms]] — one-shot auth plus account/service admission, state, command, and ticket Effects
-- [[api/ReactFrontends]] — account pre-auth, lazy DevTools, Config authenticators, Providers, and commissioning
-- [[api/SharedWorkerSession]] — partition capability, replica catalogs, command journal, migration, and repair
-- [[api/SystemWorkerServiceFrontends]] — service projection Durable Object and SystemWorker RPC bindings
+- [[api/CoreFrontendReplicas]] — aggregate/service wire schemas and replica-application Effects
+- [[api/CoreServiceControllers]] — universal authentication, System authoring, owner authorization, controllers, and frontend locks
+- [[api/FrontendPrograms]] — aggregate/service admission, state, command, query, and ticket Effects
+- [[api/ReactFrontends]] — makeZerospinApp root, source-selected controllers, one Provider with no page-owned `userId` or `AuthenticatedApi`, and atomic session ownership
+- [[api/SharedWorkerSession]] — identity-neutral host, per-port authentication, native `zerospin/056/` locator/VFS persistence, in-place existing-only promotion, and one exact Repo-owned `{ registrationId, ownerToken, authenticatedApi, frontendApi }`
+- [[api/SystemWorkerServiceFrontends]] — generation-qualified service projection, direct SystemRepo mutation routing, and read-only frontend bindings
 
 ## Decisions
 

@@ -4,41 +4,28 @@ import { Effect, Schema } from 'effect';
 
 import { makeTx } from '../drizzle/makeTx.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
+import type { IServiceFrontendController } from '../frontendController/types.ts';
 import { makeEffectSchema } from '../models/primitiveMaps.ts';
-import type { IServiceFrontendController } from '../serviceFrontendController/types.ts';
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 
 import { ServiceFrontendStateSchema } from './ServiceFrontendBlockSchema.ts';
 import type { IServiceFrontendState } from './types.ts';
 
 /*
- * 1. Reject a state for any other system, generation, actor, or frontend.
+ * 1. Reject a state for any other system, user, service, or frontend.
  * 2. Prove every encoded resource belongs to one declared projection model.
  * 3. Replace all projected rows in one synchronous SQLite transaction.
  */
 export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
   function* <FRONTEND extends IServiceFrontendController>(props: {
     frontend: FRONTEND;
-    actorId: IServiceFrontendState['actorId'];
+    userId: IServiceFrontendState['userId'];
     systemId: IServiceFrontendState['systemId'];
-    generationId: string;
-    systemVersion: string;
-    systemWorkerName: string;
     db: IDb<IResourceDbConfig<FRONTEND['models'], Record<never, never>>>;
     models: FRONTEND['models'];
     frontendState: IServiceFrontendState;
   }): Effect.fn.Return<void, IAnyError> {
-    const {
-      actorId,
-      db,
-      frontend,
-      frontendState,
-      generationId,
-      models,
-      systemId,
-      systemVersion,
-      systemWorkerName,
-    } = props;
+    const { userId, db, frontend, frontendState, models, systemId } = props;
 
     yield* Schema.encode(ServiceFrontendStateSchema)(frontendState, {
       onExcessProperty: 'error',
@@ -50,34 +37,22 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
     );
 
     if (
-      frontendState.actorId !== actorId ||
+      frontendState.userId !== userId ||
       frontendState.systemId !== systemId ||
-      frontendState.generationId !== generationId ||
-      frontendState.systemVersion !== systemVersion ||
-      frontendState.systemWorkerName !== systemWorkerName ||
       frontendState.serviceName !== frontend.serviceName ||
-      frontendState.actorName !== frontend.actorName ||
       frontendState.frontendName !== frontend.frontendName
     ) {
       return yield* new ZerospinError({
         code: 'service-frontend-state-target-mismatch',
         message: 'Service frontend state does not match the bound target',
         extra: {
-          expectedActorId: actorId,
+          expectedUserId: userId,
           expectedSystemId: systemId,
-          expectedGenerationId: generationId,
-          expectedSystemVersion: systemVersion,
-          expectedSystemWorkerName: systemWorkerName,
           expectedServiceName: frontend.serviceName,
-          expectedActorName: frontend.actorName,
           expectedFrontendName: frontend.frontendName,
-          actualActorId: frontendState.actorId,
+          actualUserId: frontendState.userId,
           actualSystemId: frontendState.systemId,
-          actualGenerationId: frontendState.generationId,
-          actualSystemVersion: frontendState.systemVersion,
-          actualSystemWorkerName: frontendState.systemWorkerName,
           actualServiceName: frontendState.serviceName,
-          actualActorName: frontendState.actorName,
           actualFrontendName: frontendState.frontendName,
         },
       });

@@ -15,7 +15,6 @@ const User = makeModel(
     abbreviation: 'usr',
     modelName: 'user',
     attributes: {
-      actorId: primitives.opaqueId({ abbreviation: 'actr', unique: true }),
       name: primitives.text({ nullable: true }),
     },
     indexes: [],
@@ -76,7 +75,6 @@ const CartItem = makeModel(
   [],
 );
 
-const testActorId = 'actr_selectionspec01' as const;
 const testUserId = 'usr_selectionspec001' as const;
 const testCartId = 'crt_selectionspec001' as const;
 const testItemId = 'cit_selectionspec001' as const;
@@ -86,7 +84,7 @@ describe('makeSelection', () => {
   it('defaults where to select-all when omitted', () => {
     const selection = makeSelection({ model: User });
 
-    expect(selection.where({ actorId: testActorId })).toEqual({});
+    expect(selection.where({ userId: testUserId })).toEqual({});
   });
 
   it.effect('applies forward-ref joins and filters by nested user fields', () =>
@@ -109,7 +107,6 @@ describe('makeSelection', () => {
           createdAt: now,
           updatedAt: now,
           version: User.version,
-          actorId: testActorId,
           name: 'Ada',
         })
         .run();
@@ -151,10 +148,10 @@ describe('makeSelection', () => {
 
       const selection = makeSelection({
         model: CartItem,
-        where: ({ actorId }) => ({
+        where: ({ userId }) => ({
           cart: {
             user: {
-              actorId,
+              id: userId,
             },
           },
         }),
@@ -164,7 +161,7 @@ describe('makeSelection', () => {
         db,
         models,
         selection,
-        actorId: testActorId,
+        userId: testUserId,
       });
       const { sql } = query.toSQL();
 
@@ -196,11 +193,11 @@ describe('makeSelection', () => {
         models,
         selection: makeSelection({
           model: Product,
-          where: ({ actorId }) => ({
-            cartItems: { cart: { user: { actorId } } },
+          where: ({ userId }) => ({
+            cartItems: { cart: { user: { id: userId } } },
           }),
         }),
-        actorId: testActorId,
+        userId: testUserId,
       }).all();
       expect(productRows).toHaveLength(1);
       expect(productRows[0]).toEqual(

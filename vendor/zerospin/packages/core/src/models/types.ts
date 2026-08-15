@@ -100,6 +100,8 @@ export type IIntegerDescriptor<
   nullable: NULLABLE;
   /** When true, column has a SQLite `UNIQUE` constraint. */
   unique: boolean;
+  /** When true, column is the table's SQLite `INTEGER PRIMARY KEY`. */
+  primaryKey?: boolean;
   defaultValue?: DEFAULT_VALUE;
 };
 
@@ -680,12 +682,18 @@ export type IModel<
     readonly indexes: readonly IDrizzleIndexConfig<string>[];
     readonly modelName: string;
     readonly version: string;
+    readonly adaptResource: (props: {
+      resource: never;
+    }) => Effect.Effect<unknown, IAnyError>;
   }[] = readonly {
     readonly abbreviation: string;
     readonly attributes: IShape;
     readonly indexes: readonly IDrizzleIndexConfig<string>[];
     readonly modelName: string;
     readonly version: string;
+    readonly adaptResource: (props: {
+      resource: never;
+    }) => Effect.Effect<unknown, IAnyError>;
   }[],
   METADATA extends IResourceShape = Omit<IResourceShape, 'id'> & {
     id: IPrimaryKeyDescriptor<ABBREVIATION>;
@@ -728,6 +736,7 @@ export type IModel<
   spec: IModelSpec;
 } & (string extends VERSION
   ? {
+      adaptResource: (...args: any[]) => Effect.Effect<any, IAnyError>;
       createMutation: (...args: any[]) => Schema.Schema.AnyNoContext;
       create: (...args: any[]) => Effect.Effect<any, any, any>;
       updateMutation: (...args: any[]) => Schema.Schema.AnyNoContext;
@@ -740,6 +749,37 @@ export type IModel<
       replicateResource: (...args: any[]) => Effect.Effect<any, any, any>;
     }
   : {
+      adaptResource: <
+        MODEL_VERSION extends
+          | VERSION
+          | HISTORICAL_DEFINITIONS[number]['version'],
+      >(props: {
+        version: MODEL_VERSION;
+        resource: InferResource<
+          IModel<
+            ATTRIBUTES,
+            ABBREVIATION,
+            MODEL_NAME,
+            VERSION,
+            HISTORICAL_DEFINITIONS,
+            METADATA
+          >
+        >;
+      }) => Effect.Effect<
+        MODEL_VERSION extends VERSION
+          ? InferEncodedRow<InferProperties<ATTRIBUTES, ABBREVIATION, METADATA>>
+          : InferEncodedRow<
+              InferProperties<
+                Extract<
+                  HISTORICAL_DEFINITIONS[number],
+                  { readonly version: MODEL_VERSION }
+                >['attributes'],
+                ABBREVIATION,
+                METADATA
+              >
+            >,
+        IAnyError
+      >;
       createMutation: <
         MODEL_VERSION extends
           | VERSION
@@ -1267,18 +1307,15 @@ export type IPushedCursorId = InferIdFromAbbreviation<
   (typeof coreAbbreviations)['pushedCursor']
 >;
 
-export type IAccountCursor = InferIdFromAbbreviation<
-  (typeof coreAbbreviations)['accountCursor']
+export type IAggregateCursor = InferIdFromAbbreviation<
+  (typeof coreAbbreviations)['aggregateCursor']
 >;
 
 export type IServiceCursorId = InferIdFromAbbreviation<
   (typeof coreAbbreviations)['serviceCursor']
 >;
-export type IActorId = InferIdFromAbbreviation<
-  (typeof coreAbbreviations)['actor']
->;
-export type IAccountId = InferIdFromAbbreviation<
-  (typeof coreAbbreviations)['account']
+export type IAggregateId = InferIdFromAbbreviation<
+  (typeof coreAbbreviations)['aggregate']
 >;
 
 /** Alias for resource id string type (e.g. \`usr_xxx\`). */

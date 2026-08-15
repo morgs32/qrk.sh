@@ -1,13 +1,19 @@
-import { makeModel } from '@zerospin/core/models/makeModel';
-import { makeServiceModel } from '@zerospin/core/models/makeServiceModel';
-import { primitives } from '@zerospin/core/models/primitives';
+import { makeModel, makeServiceModel, primitives } from '@zerospin/sdk/browser';
+import { Effect, Schema } from 'effect';
+
+export const ClerkUserIdSchema = Schema.String.pipe(
+  Schema.minLength(1),
+  Schema.brand('ClerkUserId'),
+);
+
+export type IClerkUserId = Schema.Schema.Type<typeof ClerkUserIdSchema>;
 
 export const User = makeModel(
   {
     abbreviation: 'usr',
     modelName: 'user',
     attributes: {
-      actorId: primitives.opaqueId({ abbreviation: 'actr', unique: true }),
+      clerkUserId: primitives.text({ unique: true }),
       name: primitives.text({ nullable: true }),
     },
     indexes: [],
@@ -82,12 +88,45 @@ export const CartItem = makeModel(
         relation: 'product',
         inverse: 'cartItems',
       }),
-      quantity: primitives.integer(),
+      amount: primitives.integer(),
+      unit: primitives.enum({ values: ['item', 'case'] }),
     },
     indexes: [],
-    version: '1.0.0',
+    version: '2.0.0',
   },
-  [],
+  [
+    {
+      abbreviation: 'cit',
+      modelName: 'cartItem',
+      attributes: {
+        cartId: primitives.ref({
+          table: Cart.table,
+          relation: 'cart',
+          inverse: 'items',
+        }),
+        productId: primitives.ref({
+          table: Product.table,
+          relation: 'product',
+          inverse: 'cartItems',
+        }),
+        quantity: primitives.integer(),
+      },
+      indexes: [],
+      version: '1.0.0',
+      adaptResource: ({ resource }) =>
+        Effect.succeed({
+          id: resource.id,
+          modelName: resource.modelName,
+          createdAt: resource.createdAt,
+          updatedAt: resource.updatedAt,
+          version: '1.0.0',
+          cartId: resource.cartId,
+          productId: resource.productId,
+          quantity:
+            resource.unit === 'case' ? resource.amount * 12 : resource.amount,
+        }),
+    },
+  ],
 );
 
 export const models = {

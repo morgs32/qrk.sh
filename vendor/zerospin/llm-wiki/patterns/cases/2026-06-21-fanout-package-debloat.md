@@ -6,7 +6,7 @@ Fanout factory subscriberMap carries success callbacks, spread passthrough into 
 
 ## Pattern
 
-See `fanout/subscriber-owned-downstream-publish.ts`, `fanout/subscriber-shell-composition-explicit.ts`.
+See `system-worker/direct-aggregate-frontend-fanout.ts` for the current explicit subscriber-delivery shape.
 
 ## When to apply
 

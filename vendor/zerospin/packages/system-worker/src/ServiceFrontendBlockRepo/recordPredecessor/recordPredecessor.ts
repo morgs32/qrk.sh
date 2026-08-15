@@ -6,16 +6,8 @@ import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 import { systemWorkerAbbreviations } from '../../systemWorkerAbbreviations.js';
-import {
-  serviceFrontendBlockDrizzleSchemas,
-  ServiceFrontendBlockRepo,
-} from '../ServiceFrontendBlockRepo.js';
+import { serviceFrontendBlockDrizzleSchemas } from '../ServiceFrontendBlockRepo.js';
 
-/*
- * 1. Decode every persisted identity from the deterministic repository key.
- * 2. Accept either a complete predecessor triple or the explicit root case.
- * 3. Make the first descriptor immutable; only a byte-for-byte retry succeeds.
- */
 export const recordPredecessor = Effect.fn(
   'ServiceFrontendBlockRepo.recordPredecessor',
 )(function* (props: {
@@ -28,15 +20,11 @@ export const recordPredecessor = Effect.fn(
   key: {
     generationId: string;
     serviceName: string;
-    actorName: string;
-    actorId: string;
+    userId: string;
     frontendName: string;
   };
   db: IDb;
 }): Effect.fn.Return<void, IAnyError> {
-  const { db, key, predecessor } = props;
-
-  // 1 — malformed route or system identities never reach persisted lineage.
   const systemId = yield* Schema.decodeUnknown(
     makeAbbreviationIdSchema(coreAbbreviations.system),
   )(props.systemId).pipe(
@@ -47,27 +35,26 @@ export const recordPredecessor = Effect.fn(
   );
   const generationId = yield* Schema.decodeUnknown(
     makeAbbreviationIdSchema(coreAbbreviations.generation),
-  )(key.generationId).pipe(
+  )(props.key.generationId).pipe(
     mapParseError({
       code: 'service-frontend-lineage-generation-id-invalid',
       prefix: 'Failed to decode ServiceFrontendBlockRepo generationId',
     }),
   );
-  const actorId = yield* Schema.decodeUnknown(
-    makeAbbreviationIdSchema(coreAbbreviations.actor),
-  )(key.actorId).pipe(
+  const userId = yield* Schema.decodeUnknown(Schema.NonEmptyString)(
+    props.key.userId,
+  ).pipe(
     mapParseError({
-      code: 'service-frontend-lineage-actor-id-invalid',
-      prefix: 'Failed to decode ServiceFrontendBlockRepo actorId',
+      code: 'service-frontend-lineage-user-id-invalid',
+      prefix: 'Failed to decode ServiceFrontendBlockRepo userId',
     }),
   );
-  // 2 — a predecessor is one complete, exact pointer to the previous segment.
   const predecessorGenerationId =
-    predecessor === null
+    props.predecessor === null
       ? null
       : yield* Schema.decodeUnknown(
           makeAbbreviationIdSchema(coreAbbreviations.generation),
-        )(predecessor.generationId).pipe(
+        )(props.predecessor.generationId).pipe(
           mapParseError({
             code: 'service-frontend-predecessor-generation-id-invalid',
             prefix:
@@ -75,107 +62,92 @@ export const recordPredecessor = Effect.fn(
           }),
         );
   const predecessorRepoName =
-    predecessor === null
+    props.predecessor === null
       ? null
       : yield* Schema.decodeUnknown(
           makeAbbreviationIdSchema(
             systemWorkerAbbreviations.serviceFrontendBlockRepo,
           ),
-        )(predecessor.repoName).pipe(
+        )(props.predecessor.repoName).pipe(
           mapParseError({
             code: 'service-frontend-predecessor-repo-name-invalid',
             prefix:
               'Failed to decode ServiceFrontendBlockRepo predecessor repoName',
           }),
         );
-  if (predecessor !== null) {
-    const predecessorRepoKey =
-      yield* ServiceFrontendBlockRepo.repoUtils.nameUtils
-        .parseName(predecessor.repoName)
-        .pipe(
-          Effect.mapError(
-            error =>
-              new ZerospinError({
-                code: 'service-frontend-predecessor-repo-name-invalid',
-                message:
-                  'ServiceFrontendBlockRepo predecessor repoName must encode one exact service frontend archive target',
-                cause: error.message,
-              }),
-          ),
-        );
-    if (
-      !Number.isInteger(predecessor.terminalFrontendIndex) ||
-      predecessor.terminalFrontendIndex < 0
-    ) {
-      return yield* new ZerospinError({
-        code: 'service-frontend-predecessor-index-invalid',
-        message: `ServiceFrontendBlockRepo predecessor terminal index must be a non-negative integer, received ${predecessor.terminalFrontendIndex}`,
-      });
-    }
-    if (predecessorGenerationId === generationId) {
-      return yield* new ZerospinError({
-        code: 'service-frontend-predecessor-self-reference',
-        message:
-          'ServiceFrontendBlockRepo predecessor generation must differ from its generation',
-      });
-    }
-    if (
-      predecessorRepoKey.generationId !== predecessorGenerationId ||
-      predecessorRepoKey.serviceName !== key.serviceName ||
-      predecessorRepoKey.actorName !== key.actorName ||
-      predecessorRepoKey.actorId !== actorId ||
-      predecessorRepoKey.frontendName !== key.frontendName
-    ) {
-      return yield* new ZerospinError({
-        code: 'service-frontend-predecessor-target-mismatch',
-        message:
-          'ServiceFrontendBlockRepo predecessor repoName does not encode the supplied predecessor generation and exact logical target',
-      });
-    }
-  }
-  const predecessorTerminalFrontendIndex =
-    predecessor === null ? null : predecessor.terminalFrontendIndex;
-
-  // 3 — retries may restate the exact descriptor, but cannot rewrite ancestry.
-  const existing = db
-    .select()
-    .from(serviceFrontendBlockDrizzleSchemas.lineage)
-    .where(eq(serviceFrontendBlockDrizzleSchemas.lineage.id, 'lineage'))
-    .get();
-  if (existing !== undefined) {
-    if (
-      existing.systemId === systemId &&
-      existing.generationId === generationId &&
-      existing.serviceName === key.serviceName &&
-      existing.actorName === key.actorName &&
-      existing.actorId === actorId &&
-      existing.frontendName === key.frontendName &&
-      existing.predecessorGenerationId === predecessorGenerationId &&
-      existing.predecessorRepoName === predecessorRepoName &&
-      existing.predecessorTerminalFrontendIndex ===
-        predecessorTerminalFrontendIndex
-    ) {
-      return;
-    }
+  if (
+    props.predecessor !== null &&
+    (!Number.isInteger(props.predecessor.terminalFrontendIndex) ||
+      props.predecessor.terminalFrontendIndex < 0)
+  ) {
     return yield* new ZerospinError({
-      code: 'service-frontend-lineage-conflict',
-      message:
-        'ServiceFrontendBlockRepo lineage is immutable and does not match the stored descriptor',
+      code: 'service-frontend-predecessor-index-invalid',
+      message: `ServiceFrontendBlockRepo predecessor terminal index must be a non-negative integer, received ${props.predecessor.terminalFrontendIndex}`,
     });
   }
+  if (predecessorGenerationId === generationId) {
+    return yield* new ZerospinError({
+      code: 'service-frontend-predecessor-self-reference',
+      message:
+        'ServiceFrontendBlockRepo predecessor generation must differ from its generation',
+    });
+  }
+  const predecessorTerminalFrontendIndex =
+    props.predecessor?.terminalFrontendIndex ?? null;
+  const replayFloorFrontendIndex =
+    props.predecessor?.terminalFrontendIndex ?? 0;
 
-  db.insert(serviceFrontendBlockDrizzleSchemas.lineage)
-    .values({
-      id: 'lineage',
-      systemId,
-      generationId,
-      serviceName: key.serviceName,
-      actorName: key.actorName,
-      actorId,
-      frontendName: key.frontendName,
-      predecessorGenerationId,
-      predecessorRepoName,
-      predecessorTerminalFrontendIndex,
-    })
-    .run();
+  yield* Effect.try({
+    try: () =>
+      props.db.transaction(tx => {
+        const existing = tx
+          .select()
+          .from(serviceFrontendBlockDrizzleSchemas.lineage)
+          .where(eq(serviceFrontendBlockDrizzleSchemas.lineage.id, 'lineage'))
+          .get();
+        if (existing !== undefined) {
+          if (
+            existing.systemId === systemId &&
+            existing.generationId === generationId &&
+            existing.serviceName === props.key.serviceName &&
+            existing.userId === userId &&
+            existing.frontendName === props.key.frontendName &&
+            existing.predecessorGenerationId === predecessorGenerationId &&
+            existing.predecessorRepoName === predecessorRepoName &&
+            existing.predecessorTerminalFrontendIndex ===
+              predecessorTerminalFrontendIndex &&
+            existing.replayFloorFrontendIndex === replayFloorFrontendIndex
+          ) {
+            return;
+          }
+          throw new ZerospinError({
+            code: 'service-frontend-lineage-conflict',
+            message:
+              'ServiceFrontendBlockRepo immutable lineage already targets different state',
+          });
+        }
+        tx.insert(serviceFrontendBlockDrizzleSchemas.lineage)
+          .values({
+            id: 'lineage',
+            systemId,
+            generationId,
+            serviceName: props.key.serviceName,
+            userId,
+            frontendName: props.key.frontendName,
+            predecessorGenerationId,
+            predecessorRepoName,
+            predecessorTerminalFrontendIndex,
+            replayFloorFrontendIndex,
+          })
+          .run();
+      }),
+    catch: error =>
+      ZerospinError.isZerospinError(error)
+        ? error
+        : new ZerospinError({
+            code: 'service-frontend-lineage-write-failed',
+            message: 'Failed to persist ServiceFrontendBlockRepo lineage',
+            cause: ZerospinError.prettyUnknownFailure(error),
+          }),
+  });
 });

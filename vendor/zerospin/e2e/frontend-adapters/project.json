@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@zerospin/e2e-frontend-adapters",
+  "targets": {
+    "ts": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "ts"
+      },
+      "dependsOn": ["^lib"]
+    },
+    "test:workerd": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:workerd"
+      },
+      "dependsOn": ["^lib"]
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "@zerospin/production-worker",
+  "targets": {
+    "lib": {
+      "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "test:workerd": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --config vitest.production.config.ts",
+        "cwd": "{projectRoot}"
+      },
+      "dependsOn": ["lib", "^lib"]
+    }
+  }
+}

@@ -4,20 +4,31 @@
     "rootDir": ".",
     "noEmit": true,
     "paths": {
+      "*": ["./*"],
       "@/*": ["./src/*"],
-      "@zerospin/shared-worker/makeSharedWorkerSession": [
-        "../../packages/shared-worker/dist/makeSharedWorkerSession.d.ts"
+      "@zerospin/shared-worker/acquireUserPartitionRepo": [
+        "../../packages/shared-worker/dist/acquireUserPartitionRepo.d.ts"
+      ],
+      "virtual:pwa-register/react": [
+        "./node_modules/vite-plugin-pwa/react.d.ts"
       ]
     },
-    "types": ["node", "vitest/globals", "./worker-configuration.d.ts"]
+    "types": [
+      "vite/client",
+      "node",
+      "vitest/globals",
+      "./worker-configuration.d.ts",
+      "./src/cloudflare-workers.d.ts"
+    ]
   },
   "include": [
-    "next-env.d.ts",
     "e2e.playwright.config.ts",
+    "e2e.preview.playwright.config.ts",
     "e2e/**/*.ts",
     "vitest.playwright.config.ts",
     "vitest.*.config.ts",
     "vitest.setup.ts",
+    "vite.config.ts",
     "zerospin.config.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx",

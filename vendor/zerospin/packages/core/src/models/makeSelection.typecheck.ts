@@ -3,14 +3,12 @@ import type { IDb } from '../drizzle/types.ts';
 import { makeModel } from './makeModel.ts';
 import { applySelection, makeSelection } from './makeSelection.ts';
 import { primitives } from './primitives.ts';
-import type { IActorId } from './types.ts';
 
 const User = makeModel(
   {
     abbreviation: 'usr',
     modelName: 'user',
     attributes: {
-      actorId: primitives.opaqueId({ abbreviation: 'actr', unique: true }),
       name: primitives.text({ nullable: true }),
     },
     indexes: [],
@@ -56,14 +54,14 @@ const CartItem = makeModel(
   [],
 );
 
-const testActorId = 'actr_typecheck0001' as IActorId;
+const testUserId = 'usr_typecheck0001' as string;
 
 void makeSelection({
   model: CartItem,
-  where: ({ actorId }) => ({
+  where: ({ userId }) => ({
     cart: {
       user: {
-        actorId,
+        id: userId,
       },
     },
   }),
@@ -88,7 +86,7 @@ declare const cartItemSelection: ReturnType<
   typeof makeSelection<typeof CartItem>
 >;
 
-// @ts-expect-error CoreTypeError — actorId is required
+// @ts-expect-error CoreTypeError — userId is required
 void applySelection({
   db: null as IDb,
   models: { cart: Cart, cartItem: CartItem, user: User },
@@ -99,5 +97,5 @@ void applySelection({
   db: null as IDb,
   models: { cart: Cart, cartItem: CartItem, user: User },
   selection: cartItemSelection,
-  actorId: testActorId,
+  userId: testUserId,
 });

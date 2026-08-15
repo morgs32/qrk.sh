@@ -2,7 +2,7 @@
 
 ## Smell
 
-Same RPC props validated in the `ZerospinApis` capability factory and again in
+Same RPC props validated in the `AuthenticatedApi` child-capability factory and again in
 SystemWorker or \*Repo DO.
 
 ## Pattern

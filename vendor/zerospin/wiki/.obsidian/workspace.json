@@ -1,0 +1,244 @@
+{
+  "main": {
+    "id": "88375201a68048f0",
+    "type": "split",
+    "children": [
+      {
+        "id": "0b276baa0bc821f8",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4c4cac7d45fc4efd",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "architecture/bootstrapBrowserSession.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "bootstrapBrowserSession"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "08cb5cfed0aa6ddd",
+    "type": "split",
+    "children": [
+      {
+        "id": "6ea10da81da71de6",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "9ede8d77a040a736",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "2e523ebea8a1ccb2",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "03cc368ad8fdbd02",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "5c6a96687fa572e5",
+    "type": "split",
+    "children": [
+      {
+        "id": "839e9072435f8ec1",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4e1624a679a09fda",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "architecture/SystemLifecycle.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "318c8a666482b471",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "architecture/SystemLifecycle.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "2cbeb4129f468066",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "22d3e1420f1bd064",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "9385b2a714c5e79c",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "architecture/SystemLifecycle.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          },
+          {
+            "id": "eb9d4d2d712c75d5",
+            "type": "leaf",
+            "state": {
+              "type": "codex-panel-view",
+              "state": {
+                "version": 1
+              },
+              "icon": "bot-message-square",
+              "title": "Codex"
+            }
+          }
+        ],
+        "currentTab": 5
+      }
+    ],
+    "direction": "horizontal",
+    "width": 544.8125,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "codex-panel:Open panel": false
+    }
+  },
+  "active": "9ede8d77a040a736",
+  "lastOpenFiles": [
+    "dev/archived/056-spec-shared-worker-port-authentication-and-exact-repo-authority.md",
+    "dev/plans/056-plan-shared-worker-port-authentication-and-exact-repo-authority.md",
+    "dev/archived/ActiveSharedWorkerCommandJournal.md",
+    "dev/archived/2026-08-13-handoff-shared-worker-replica-persistence.md",
+    "dev/specs/056-spec-shared-worker-port-authentication-and-exact-repo-authority.md",
+    "dev/archived/055-plan-shared-worker-host-and-user-partition-acquisition-naming.md",
+    "architecture/bootstrapBrowserSession.md",
+    "dev/archived",
+    "dev/plans/055-plan-shared-worker-host-and-user-partition-acquisition-naming.md",
+    "dev/rfcs/GenerationDrainLifecycle.md",
+    "dev/archived/2026-08-11-handoff-repo-local-generation-drain.md",
+    "dev/archived/GenerationDrainLifecycle.md",
+    "dev/archived/054-plan-generation-drain-lifecycle.md",
+    "dev/archived/054-spec-generation-drain-lifecycle.md",
+    "dev/plans/054-plan-generation-drain-lifecycle.md",
+    "dev/specs/054-spec-generation-drain-lifecycle.md",
+    "dev/handoffs/2026-08-13-handoff-shared-worker-replica-persistence.md",
+    "dev/rfcs/ImmutableSharedWorkerCommandJournal.md",
+    "dev/rfcs/ActiveSharedWorkerCommandJournal.md",
+    "diagrams/SharedWorkerActiveCommandJournal.md",
+    "dev/diagrams/SharedWorkerActiveCommandJournal.md",
+    "dev/diagrams/BrowserFrontendLifecycle.md",
+    "dev/diagrams",
+    "dev/specs",
+    "dev/plans",
+    "dev/handoffs/2026-08-11-handoff-repo-local-generation-drain.md",
+    "dev/handoffs",
+    "dev/archived/2026-08-11-handoff-deploy-identity.md",
+    "dev/archived/053-spec-shared-worker-capability-ownership.md",
+    "dev/archived/053-plan-shared-worker-capability-ownership.md",
+    "dev/archived/053-handoff-shared-worker-capability-ownership-and-system-repo-current-write.md",
+    "dev/rfcs",
+    "dev",
+    "rfcs",
+    "plans/handoffs",
+    "plans/archived"
+  ]
+}

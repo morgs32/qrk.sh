@@ -10,7 +10,7 @@ import { makeServiceModel } from '../models/makeServiceModel.ts';
 import { primitives } from '../models/primitives.ts';
 import type { IServiceModel } from '../models/types.ts';
 
-import { applyFrontendMutationTx } from './applyFrontendMutationTx.ts';
+import { applyAggregateFrontendMutationTx } from './applyAggregateFrontendMutationTx.ts';
 import { applyMutationInverseTx } from './applyMutationInverseTx.ts';
 
 const User = makeServiceModel(
@@ -19,7 +19,7 @@ const User = makeServiceModel(
     abbreviation: 'usr',
     modelName: 'user',
     attributes: {
-      actorId: primitives.opaqueId({ abbreviation: 'actr', unique: true }),
+      userId: primitives.opaqueId({ abbreviation: 'uid', unique: true }),
       name: primitives.text({ nullable: true }),
     },
     indexes: [],
@@ -35,7 +35,7 @@ const resource = {
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   deletedAt: null,
-  actorId: 'actr_replicated' as const,
+  userId: 'uid_replicated' as const,
   name: 'Replicated user',
 };
 
@@ -102,7 +102,7 @@ describe('replicateResource', () => {
           db,
           program: Effect.fn('replicateResourceSpec.apply.transaction')(
             function* ({ tx }) {
-              return yield* applyFrontendMutationTx({
+              return yield* applyAggregateFrontendMutationTx({
                 tx,
                 mutation,
                 commandId: 'cmd_replicated',

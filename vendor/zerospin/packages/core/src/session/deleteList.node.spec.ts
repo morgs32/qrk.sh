@@ -8,7 +8,7 @@ import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
 import { main, mainModels, User } from '../fixtures/system.ts';
 import { PublishableKey } from '../services/PublishableKey.ts';
-import { ZerospinApisUrl } from '../services/ZerospinApisUrl.ts';
+import { ZerospinApiUrl } from '../services/ZerospinApiUrl.ts';
 import { IncrementalMonotonicFactory } from '../test-utils/IncrementalMonotonicFactory.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
@@ -30,7 +30,7 @@ const TestLayer = Layer.mergeAll(
   TraceLoggerLayer,
   TestContext,
   AsyncLive,
-  Layer.succeed(ZerospinApisUrl, 'https://api.example.com/'),
+  Layer.succeed(ZerospinApiUrl, 'https://api.example.com/'),
   Layer.succeed(PublishableKey, Redacted.make('pk_test')),
 );
 
@@ -50,7 +50,7 @@ const makeSessionDb = Effect.gen(function* () {
       createdAt: now,
       updatedAt: now,
       version: User.version,
-      actorId: 'actr_1',
+      userId: 'user_1',
       name: 'User',
     })
     .run();
@@ -58,24 +58,25 @@ const makeSessionDb = Effect.gen(function* () {
   const sessionId = 'sesn_1' as ISessionId;
   const session = makeSession({
     frontend: main,
-    generateSignature: () => Effect.succeed({ actorId: 'usr_1' }),
+    generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     sessionId,
   });
   session.store.setState({
     sessionId,
-    accountId: 'acct_1',
-    accountName: main.accountName,
-    actorId: 'usr_1',
-    generationId: 'gen_test',
-    systemWorkerName: 'stub-deploy',
+    aggregateId: 'acct_1',
+    aggregateName: main.aggregateName,
+    userId: 'usr_1',
+    systemId: 'sys_test',
     systemVersion: '1.0.0',
+    frontendName: main.frontendName,
+    aggregateFrontendLockKey: 'aggregate-lock-key',
     db,
     schema,
     models,
     vfsName: null,
     isInitialized: true,
-    frontendIndex: null,
-    lastRebasedPushedCursor: null,
+    frontendIndex: 0,
+    replicaIndex: null,
   });
 
   return { db, models, session };
@@ -87,7 +88,7 @@ describe('deleteList', () => {
       Effect.gen(function* () {
         const { db, models, session } = yield* makeSessionDb;
 
-        yield* Effect.promise(() =>
+        yield* decodeRpc(
           session.stageCommand({
             contractName: 'createList',
             payload: {
@@ -96,16 +97,16 @@ describe('deleteList', () => {
               userId: 'usr_1',
             },
           }),
-        ).pipe(Effect.flatMap(encoded => decodeRpc(encoded)));
+        );
 
-        const staged = yield* Effect.promise(() =>
+        const staged = yield* decodeRpc(
           session.stageCommand({
             contractName: 'deleteList',
             payload: {
               id: 'lst_1',
             },
           }),
-        ).pipe(Effect.flatMap(encoded => decodeRpc(encoded)));
+        );
 
         const stagedRows = db
           .select()
@@ -144,17 +145,14 @@ describe('deleteList', () => {
       Effect.gen(function* () {
         const { db, models, session } = yield* makeSessionDb;
 
-        const maybeStaged = yield* Effect.promise(() =>
+        const maybeStaged = yield* decodeRpc(
           session.stageCommand({
             contractName: 'deleteList',
             payload: {
               id: 'lst_missing',
             },
           }),
-        ).pipe(
-          Effect.flatMap(encoded => decodeRpc(encoded)),
-          Effect.either,
-        );
+        ).pipe(Effect.either);
 
         const stagedRows = db
           .select()

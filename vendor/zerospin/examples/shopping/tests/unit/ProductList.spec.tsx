@@ -3,57 +3,36 @@
 import { act, useEffect } from 'react';
 
 import { waitFor } from '@testing-library/react';
-import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
-import { makeServiceFrontendControllerSpec } from '@zerospin/core/serviceFrontendController/makeServiceFrontendControllerSpec';
-import { sessionStagedCommandDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
+import { encodeRight } from '@zerospin/core/utils/encodeRight';
 import type { IBrowserSession } from '@zerospin/react/types';
 import { useSession } from '@zerospin/react/useSession';
-import { ZerospinConfig } from '@zerospin/react/ZerospinConfig';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ProductList } from '@/app/(authed)/ProductList';
-import { ZerospinCatalog } from '@/app/(authed)/ZerospinCatalog';
-import { ZerospinShopper } from '@/app/(authed)/ZerospinShopper';
+import { ProductList } from '@/components/ProductList';
 import { catalogFrontend, shopperFrontend } from '@/zerospin/frontend';
-import { Product, User } from '@/zerospin/models';
+import { ClerkUserIdSchema, Product, User } from '@/zerospin/models';
+import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
-const fetchFrontend = vi.hoisted(() => vi.fn());
-const fetchFrontendState = vi.hoisted(() => vi.fn());
-const acquireFrontendWebSocket = vi.hoisted(() => vi.fn());
-const fetchServiceFrontend = vi.hoisted(() => vi.fn());
-const fetchServiceFrontendState = vi.hoisted(() => vi.fn());
-const acquireServiceFrontendWebSocket = vi.hoisted(() => vi.fn());
+const acquireUserPartitionRepo = vi.hoisted(() => vi.fn());
+const stageAggregateFrontendCommand = vi.hoisted(() => vi.fn());
 
 vi.hoisted(() => {
   process.env.ZEROSPIN_PUBLISHABLE_KEY = 'pk_test';
 });
 
-vi.mock('@zerospin/frontend/fetchFrontend', () => ({ fetchFrontend }));
-vi.mock('@zerospin/frontend/fetchFrontendState', () => ({
-  fetchFrontendState,
+vi.mock('@zerospin/shared-worker/acquireUserPartitionRepo', () => ({
+  acquireUserPartitionRepo,
 }));
-vi.mock('@zerospin/react/acquireFrontendWebSocket', () => ({
-  acquireFrontendWebSocket,
-}));
-vi.mock('@zerospin/frontend/fetchServiceFrontend', () => ({
-  fetchServiceFrontend,
-}));
-vi.mock('@zerospin/frontend/fetchServiceFrontendState', () => ({
-  fetchServiceFrontendState,
-}));
-vi.mock('@zerospin/react/acquireServiceFrontendWebSocket', () => ({
-  acquireServiceFrontendWebSocket,
-}));
-
-const clerkUserId = 'test';
-const userId = User.prefixId(clerkUserId);
-const actorId = 'actr_test';
+const clerkUserId = Schema.decodeUnknownSync(ClerkUserIdSchema)('test');
+const userRowId = User.prefixId(clerkUserId);
 const now = new Date('2026-01-01T00:00:00.000Z');
 
 async function waitForSessionReady(props: {
-  getSession: () => IBrowserSession<typeof shopperFrontend> | null;
+  getSession: () => IBrowserSession<
+    (typeof ZerospinApp.frontends.web)['frontend']
+  > | null;
 }) {
   const { getSession } = props;
   await waitFor(
@@ -67,9 +46,11 @@ async function waitForSessionReady(props: {
 }
 
 function SessionCapture(props: {
-  onSession: (session: IBrowserSession<typeof shopperFrontend>) => void;
+  onSession: (
+    session: IBrowserSession<(typeof ZerospinApp.frontends.web)['frontend']>,
+  ) => void;
 }) {
-  const session = useSession(ZerospinShopper);
+  const session = useSession(ZerospinApp.frontends.web);
   const { onSession } = props;
 
   useEffect(() => {
@@ -82,108 +63,93 @@ function SessionCapture(props: {
 describe('ProductList', () => {
   let container: HTMLDivElement;
   let root: Root;
-  let capturedSession: IBrowserSession<typeof shopperFrontend> | null;
+  let capturedSession: IBrowserSession<
+    (typeof ZerospinApp.frontends.web)['frontend']
+  > | null;
 
   beforeEach(() => {
-    fetchFrontend.mockReturnValue(
+    stageAggregateFrontendCommand.mockReset();
+    stageAggregateFrontendCommand.mockImplementation(async props =>
+      encodeRight({ commandId: props.command.id, replicaIndex: 1 }),
+    );
+    acquireUserPartitionRepo.mockReturnValue(
       Effect.succeed({
-        identity: {
-          actor: { accountId: 'acct_1', actorId },
-          accountId: 'acct_1',
-          accountName: shopperFrontend.accountName,
-          actorId,
-          actorName: shopperFrontend.actorName,
-          deployId: 'dpl_test',
-          frontendName: shopperFrontend.frontendName,
-          frontendVersion: shopperFrontend.version,
-          generationId: 'gen_test',
-          systemEnvironmentId: 'dev',
-          systemId: 'sys_test',
-          systemVersion: '1.1.0',
-          systemWorkerName: 'shopping-test-worker',
+        api: {
+          acquireAggregateFrontendReplica: vi.fn(async props =>
+            encodeRight({
+              getState: vi.fn(async () =>
+                encodeRight({
+                  aggregateId: 'acct_1',
+                  aggregateName: shopperFrontend.aggregateName,
+                  userId: clerkUserId,
+                  frontendName: shopperFrontend.frontendName,
+                  frontendIndex: 0,
+                  systemId: 'sys_test',
+                  systemVersion: '1.1.0',
+                  aggregateFrontendLockKey: props.aggregateFrontendLockKey,
+                  replicaIndex: 0,
+                  lastRebasedPushedCursor: null,
+                  resources: [
+                    {
+                      id: userRowId,
+                      clerkUserId,
+                      modelName: User.modelName,
+                      version: User.version,
+                      createdAt: now,
+                      updatedAt: now,
+                      name: null,
+                    },
+                  ],
+                  stagedCommands: [],
+                  pushedCommands: [],
+                  failedStagedCommands: [],
+                  optimisticAppliedMutations: [],
+                  executedPushedCommands: [],
+                  failedPushedCommands: [],
+                }),
+              ),
+              release: vi.fn(async () => encodeRight(undefined)),
+            }),
+          ),
+          acquireServiceFrontendReplica: vi.fn(async props =>
+            encodeRight({
+              getState: vi.fn(async () =>
+                encodeRight({
+                  userId: clerkUserId,
+                  frontendName: catalogFrontend.frontendName,
+                  frontendIndex: 0,
+                  serviceName: catalogFrontend.serviceName,
+                  systemId: 'sys_test',
+                  systemVersion: '1.1.0',
+                  serviceFrontendLockKey: props.serviceFrontendLockKey,
+                  replicaIndex: 0,
+                  resources: [
+                    {
+                      id: Product.prefixId('test'),
+                      modelName: Product.modelName,
+                      version: Product.version,
+                      createdAt: now,
+                      updatedAt: now,
+                      deletedAt: null,
+                      description: 'Test product',
+                      name: 'Test Product',
+                      price: 20,
+                    },
+                  ],
+                }),
+              ),
+              release: vi.fn(async () => encodeRight(undefined)),
+            }),
+          ),
+          stageAggregateFrontendCommand,
+          listAggregateFrontendReplicas: vi.fn(async () => encodeRight([])),
+          listServiceFrontendReplicas: vi.fn(async () => encodeRight([])),
         },
-        frontendSpec: makeFrontendControllerSpec(shopperFrontend),
-        frontendApi: {},
-        releaseFrontendApi: vi.fn(),
-      }),
-    );
-    fetchFrontendState.mockReturnValue(
-      Effect.succeed({
-        accountId: 'acct_1',
-        accountName: shopperFrontend.accountName,
-        actorId,
-        actorName: shopperFrontend.actorName,
-        frontendName: shopperFrontend.frontendName,
-        frontendIndex: 0,
-        generationId: 'gen_test',
+        release: Effect.void,
         systemId: 'sys_test',
-        systemVersion: '1.1.0',
-        systemWorkerName: 'shopping-test-worker',
-        lastRebasedPushedCursor: null,
-        resources: [
-          {
-            id: userId,
-            actorId,
-            modelName: User.modelName,
-            version: User.version,
-            createdAt: now,
-            updatedAt: now,
-            name: null,
-          },
-        ],
-        pushedCommands: [],
-        executedPushedCommands: [],
-        failedPushedCommands: [],
+        userId: clerkUserId,
+        mode: 'online',
       }),
-    );
-    acquireFrontendWebSocket.mockReturnValue(Effect.succeed(Effect.void));
-
-    fetchServiceFrontend.mockReturnValue(
-      Effect.succeed({
-        identity: {
-          actorId,
-          actorName: catalogFrontend.actorName,
-          frontendName: catalogFrontend.frontendName,
-          frontendVersion: catalogFrontend.version,
-          generationId: 'gen_test',
-          serviceName: catalogFrontend.serviceName,
-          systemId: 'sys_test',
-          systemVersion: '1.1.0',
-          systemWorkerName: 'shopping-test-worker',
-        },
-        frontendSpec: makeServiceFrontendControllerSpec(catalogFrontend),
-        frontendApi: {},
-        releaseFrontendApi: vi.fn(),
-      }),
-    );
-    fetchServiceFrontendState.mockReturnValue(
-      Effect.succeed({
-        actorId,
-        actorName: catalogFrontend.actorName,
-        frontendName: catalogFrontend.frontendName,
-        frontendIndex: 0,
-        generationId: 'gen_test',
-        serviceName: catalogFrontend.serviceName,
-        systemId: 'sys_test',
-        systemVersion: '1.1.0',
-        systemWorkerName: 'shopping-test-worker',
-        resources: [
-          {
-            id: Product.prefixId('test'),
-            modelName: Product.modelName,
-            version: Product.version,
-            createdAt: now,
-            updatedAt: now,
-            deletedAt: null,
-            description: 'Test product',
-            name: 'Test Product',
-            price: 20,
-          },
-        ],
-      }),
-    );
-    acquireServiceFrontendWebSocket.mockReturnValue(
-      Effect.succeed(Effect.void),
     );
 
     capturedSession = null;
@@ -200,34 +166,20 @@ describe('ProductList', () => {
     container.remove();
   });
 
-  it('reads products from the service replica and stages account cart commands', async () => {
+  it('reads products from the service replica and stages aggregate cart commands', async () => {
     await act(async () => {
       root.render(
-        <ZerospinConfig
-          partitionKey={clerkUserId}
-          frontendAuthenticators={{
-            web: {
-              frontend: ZerospinShopper,
-              generateSignature: () => Effect.succeed({ clerkUserId }),
-            },
-            catalog: {
-              frontend: ZerospinCatalog,
-              generateSignature: () =>
-                Effect.succeed({ viewerId: clerkUserId }),
-            },
-          }}
+        <ZerospinApp.Provider
+          aggregateIds={{ shopper: 'acct_1' }}
+          generateSignature={() => Effect.succeed({ clerkUserId })}
         >
-          <ZerospinShopper.Provider>
-            <ZerospinCatalog.Provider>
-              <SessionCapture
-                onSession={session => {
-                  capturedSession = session;
-                }}
-              />
-              <ProductList />
-            </ZerospinCatalog.Provider>
-          </ZerospinShopper.Provider>
-        </ZerospinConfig>,
+          <SessionCapture
+            onSession={session => {
+              capturedSession = session;
+            }}
+          />
+          <ProductList />
+        </ZerospinApp.Provider>,
       );
       await Promise.resolve();
     });
@@ -249,36 +201,29 @@ describe('ProductList', () => {
       await Promise.resolve();
     });
 
-    const sessionState = capturedSession?.store.getState();
-    if (sessionState?.isInitialized !== true) {
-      throw new Error('expected initialized account session');
-    }
-    const stagedRows = await waitFor(() => {
-      const rows = sessionState.db
-        .select()
-        .from(sessionStagedCommandDrizzleSchema)
-        .all()
-        .filter(row => row.status === 'staged');
-      expect(rows).toHaveLength(2);
-      return rows;
+    const stagedCommands = await waitFor(() => {
+      expect(stageAggregateFrontendCommand).toHaveBeenCalledTimes(2);
+      return stageAggregateFrontendCommand.mock.calls.map(
+        call => call[0].command,
+      );
     });
 
-    expect(stagedRows.map(row => row.commandName).sort()).toEqual([
+    expect(stagedCommands.map(command => command.commandName).sort()).toEqual([
       'addToCart',
       'createCart',
     ]);
-    const createCartRow = stagedRows.find(
-      row => row.commandName === 'createCart',
+    const createCartCommand = stagedCommands.find(
+      command => command.commandName === 'createCart',
     );
-    const addToCartRow = stagedRows.find(
-      row => row.commandName === 'addToCart',
+    const addToCartCommand = stagedCommands.find(
+      command => command.commandName === 'addToCart',
     );
-    expect(createCartRow).toBeDefined();
-    expect(addToCartRow).toBeDefined();
-    expect(JSON.parse(createCartRow?.payload ?? '{}')).toMatchObject({
-      userId,
+    expect(createCartCommand).toBeDefined();
+    expect(addToCartCommand).toBeDefined();
+    expect(JSON.parse(createCartCommand?.payload ?? '{}')).toMatchObject({
+      userId: userRowId,
     });
-    expect(JSON.parse(addToCartRow?.payload ?? '{}')).toMatchObject({
+    expect(JSON.parse(addToCartCommand?.payload ?? '{}')).toMatchObject({
       quantity: 1,
       product: expect.stringContaining('prd_test'),
     });

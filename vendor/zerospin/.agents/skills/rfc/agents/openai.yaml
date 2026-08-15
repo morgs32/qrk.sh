@@ -1,0 +1,4 @@
+interface:
+  display_name: 'RFC'
+  short_description: 'Draft architecture requests for comments'
+  default_prompt: 'Use $rfc to draft a proposed architecture RFC with schema tables and an annotated workflow.'

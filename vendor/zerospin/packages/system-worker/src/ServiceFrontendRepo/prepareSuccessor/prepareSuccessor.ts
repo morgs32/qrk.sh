@@ -7,12 +7,10 @@ import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import { makeEffectSchema } from '@zerospin/core/models/primitiveMaps';
 import type {
   IAnyDrizzleSchemas,
+  IEncodedResourceShape,
   IServiceCursorId,
 } from '@zerospin/core/models/types';
-import type {
-  IServiceFrontendLineageBlock,
-  IServiceFrontendState,
-} from '@zerospin/core/serviceSession/types';
+import type { IServiceFrontendState } from '@zerospin/core/serviceSession/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
@@ -29,12 +27,13 @@ import {
 } from '../../ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.js';
 import { getServiceRepo } from '../../ServiceRepo/getServiceRepo/getServiceRepo.js';
 import { SystemRepo } from '../../SystemRepo/SystemRepo.js';
+import { projectServiceFrontendResource } from '../projectServiceFrontendResource/projectServiceFrontendResource.js';
 import { serviceFrontendRepoDrizzleSchemas } from '../ServiceFrontendRepo.js';
 
 /*
  * Installs a predecessor snapshot at its causal watermark, applies only the
- * exact target-generation suffix in no-emission mode, then appends one lineage
- * boundary before making the projection discoverable.
+ * exact target-generation suffix in no-emission mode, then opens ordinary
+ * emission at the predecessor terminal index.
  */
 export const prepareSuccessor = Effect.fn(
   'ServiceFrontendRepo.prepareSuccessor',
@@ -52,8 +51,7 @@ export const prepareSuccessor = Effect.fn(
   key: {
     generationId: string;
     serviceName: string;
-    actorName: string;
-    actorId: string;
+    userId: string;
     frontendName: string;
   };
   name: string;
@@ -86,12 +84,12 @@ export const prepareSuccessor = Effect.fn(
       prefix: 'Failed to decode successor generationId',
     }),
   );
-  const actorId = yield* Schema.decodeUnknown(
-    makeAbbreviationIdSchema(coreAbbreviations.actor),
-  )(key.actorId).pipe(
+  const userId = yield* Schema.decodeUnknown(Schema.NonEmptyString)(
+    key.userId,
+  ).pipe(
     mapParseError({
-      code: 'service-frontend-successor-actor-id-invalid',
-      prefix: 'Failed to decode successor actorId',
+      code: 'service-frontend-successor-user-id-invalid',
+      prefix: 'Failed to decode successor userId',
     }),
   );
   const predecessorGenerationId = yield* Schema.decodeUnknown(
@@ -107,10 +105,8 @@ export const prepareSuccessor = Effect.fn(
     !Number.isInteger(predecessor.terminalFrontendIndex) ||
     predecessor.terminalFrontendIndex < 0 ||
     sourceState.systemId !== systemId ||
-    sourceState.generationId !== predecessorGenerationId ||
     sourceState.serviceName !== key.serviceName ||
-    sourceState.actorName !== key.actorName ||
-    sourceState.actorId !== actorId ||
+    sourceState.userId !== userId ||
     sourceState.frontendName !== key.frontendName ||
     sourceState.frontendIndex !== predecessor.terminalFrontendIndex ||
     (lastServiceCursor === null) !== (serviceIndex === null) ||
@@ -124,28 +120,25 @@ export const prepareSuccessor = Effect.fn(
     });
   }
 
-  const serviceController = yield* getByKeyOrThrow({
-    record: system.serviceControllers,
+  const service = yield* getByKeyOrThrow({
+    record: system.services,
     key: key.serviceName,
-    recordKind: 'service controllers',
-  });
-  const actorController = yield* getByKeyOrThrow({
-    record: serviceController.actorControllers,
-    key: key.actorName,
-    recordKind: `actor controllers owned by service ${key.serviceName}`,
+    recordKind: 'services',
   });
   const frontendBinding = yield* getByKeyOrThrow({
-    record: actorController.frontends,
+    record: service.frontends,
     key: key.frontendName,
-    recordKind: `frontends owned by service actor ${key.serviceName}.${key.actorName}`,
+    recordKind: `frontends owned by service ${key.serviceName}`,
   });
+  const boundSourceModelNames = new Set(
+    Object.values(frontendBinding.models).map(model => model.modelName),
+  );
 
   const existingState = db
     .select()
     .from(serviceFrontendRepoDrizzleSchemas.projectionState)
     .where(eq(serviceFrontendRepoDrizzleSchemas.projectionState.id, 'state'))
     .get();
-  const boundaryFrontendIndex = predecessor.terminalFrontendIndex + 1;
   if (existingState === undefined) {
     // The predecessor snapshot establishes logical lineage only. Target rows
     // come from the target generation's authoritative ServiceRepo after replay,
@@ -160,7 +153,6 @@ export const prepareSuccessor = Effect.fn(
     const targetSnapshot = yield* makeAsync(() =>
       serviceRepo.getServiceFrontendSnapshot({
         serviceName: key.serviceName,
-        actorName: key.actorName,
         frontendName: key.frontendName,
       }),
     ).pipe(Effect.flatMap(decodeRpc));
@@ -175,6 +167,42 @@ export const prepareSuccessor = Effect.fn(
       });
     }
 
+    const projectedResources: IEncodedResourceShape[] = [];
+    for (const resource of targetSnapshot.resources) {
+      if (!boundSourceModelNames.has(resource.modelName)) {
+        continue;
+      }
+      const projectedResult = yield* projectServiceFrontendResource({
+        serviceName: key.serviceName,
+        frontendName: key.frontendName,
+        modelName: resource.modelName,
+        resource,
+      });
+      const projected = yield* Schema.decodeUnknown(
+        Schema.Struct({
+          modelName: Schema.String,
+          resource: EncodedResourceSchema,
+        }),
+      )(projectedResult, { onExcessProperty: 'error' }).pipe(
+        mapParseError({
+          code: 'service-frontend-successor-projection-invalid',
+          prefix: `Dynamic successor projection for ${key.serviceName}.${key.frontendName}.${resource.modelName} returned an invalid result`,
+        }),
+      );
+      if (
+        projected.modelName !== projected.resource.modelName ||
+        Object.values(frontendBinding.controller.models).some(
+          model => model.modelName === projected.modelName,
+        ) === false
+      ) {
+        return yield* new ZerospinError({
+          code: 'service-frontend-successor-projection-model-mismatch',
+          message: `Successor projection targets undeclared frontend model "${projected.modelName}"`,
+        });
+      }
+      projectedResources.push(projected.resource);
+    }
+
     yield* makeTx({
       db,
       program: Effect.fn(
@@ -182,11 +210,17 @@ export const prepareSuccessor = Effect.fn(
       )(function* ({ tx }) {
         tx.run(sql.raw('PRAGMA defer_foreign_keys = ON'));
         for (const resource of targetSnapshot.resources) {
-          const model = yield* getByKeyOrThrow({
-            record: frontendBinding.frontendController.models,
-            key: resource.modelName,
-            recordKind: 'service frontend models',
-          });
+          const model = Object.values(service.models).find(
+            candidate => candidate.modelName === resource.modelName,
+          );
+          const sourceDrizzleSchema =
+            serviceFrontendRepoSchema[`serviceSource_${resource.modelName}`];
+          if (model === undefined || sourceDrizzleSchema === undefined) {
+            return yield* new ZerospinError({
+              code: 'service-frontend-successor-source-model-not-found',
+              message: `Successor snapshot targets unknown service source model "${resource.modelName}"`,
+            });
+          }
           const decodedResource = yield* Schema.validate(EncodedResourceSchema)(
             resource,
           ).pipe(
@@ -204,17 +238,36 @@ export const prepareSuccessor = Effect.fn(
               prefix: `Successor resource does not match model ${resource.modelName}`,
             }),
           );
-          tx.insert(model.drizzleSchema).values(decodedResource).run();
+          tx.insert(sourceDrizzleSchema).values(decodedResource).run();
+        }
+        for (const resource of projectedResources) {
+          const model = Object.values(frontendBinding.controller.models).find(
+            candidate => candidate.modelName === resource.modelName,
+          );
+          if (model === undefined) {
+            return yield* new ZerospinError({
+              code: 'service-frontend-successor-model-not-found',
+              message: `Successor projection targets unknown frontend model "${resource.modelName}"`,
+            });
+          }
+          yield* Schema.decodeUnknown(makeEffectSchema(model.propertiesShape))(
+            resource,
+            { onExcessProperty: 'error' },
+          ).pipe(
+            mapParseError({
+              code: 'service-frontend-successor-model-resource-invalid',
+              prefix: `Successor projected resource does not match model ${resource.modelName}`,
+            }),
+          );
+          tx.insert(model.drizzleSchema).values(resource).run();
         }
         tx.insert(serviceFrontendRepoDrizzleSchemas.projectionState)
           .values({
             id: 'state',
             systemId,
-            systemWorkerName: sourceState.systemWorkerName,
             generationId,
             serviceName: key.serviceName,
-            actorName: key.actorName,
-            actorId,
+            userId,
             frontendName: key.frontendName,
             status: 'initializing',
             segmentKind: 'inherited',
@@ -231,11 +284,9 @@ export const prepareSuccessor = Effect.fn(
     });
   } else if (
     existingState.systemId !== systemId ||
-    existingState.systemWorkerName !== sourceState.systemWorkerName ||
     existingState.generationId !== generationId ||
     existingState.serviceName !== key.serviceName ||
-    existingState.actorName !== key.actorName ||
-    existingState.actorId !== actorId ||
+    existingState.userId !== userId ||
     existingState.frontendName !== key.frontendName ||
     existingState.segmentKind !== 'inherited' ||
     existingState.predecessorGenerationId !== predecessorGenerationId ||
@@ -247,7 +298,7 @@ export const prepareSuccessor = Effect.fn(
         existingState.frontendIndex !== predecessor.terminalFrontendIndex)) ||
     (existingState.status === 'ready' &&
       (existingState.emissionMode !== 'live' ||
-        existingState.frontendIndex !== boundaryFrontendIndex))
+        existingState.frontendIndex !== predecessor.terminalFrontendIndex))
   ) {
     return yield* new ZerospinError({
       code: 'service-frontend-successor-state-conflict',
@@ -304,8 +355,7 @@ export const prepareSuccessor = Effect.fn(
       serviceBlockRepo.subscribeServiceFrontend({
         serviceFrontendRepoName: name,
         serviceName: key.serviceName,
-        actorName: key.actorName,
-        actorId,
+        userId,
         frontendName: key.frontendName,
         currentServiceCursor: currentState.lastServiceCursor,
         currentServiceIndex: currentState.serviceIndex,
@@ -330,60 +380,27 @@ export const prepareSuccessor = Effect.fn(
       });
     }
 
-    const boundary = {
-      kind: 'generation-boundary',
-      systemId,
-      prevGenerationId: predecessorGenerationId,
-      generationId,
-      serviceName: key.serviceName,
-      actorId,
-      actorName: key.actorName,
-      frontendName: key.frontendName,
-      frontendIndex: boundaryFrontendIndex,
-    } satisfies IServiceFrontendLineageBlock;
-    const boundaryUnknown = yield* makeAsync(() =>
-      serviceFrontendBlockRepo.storeServiceFrontendBlocks({
-        blocks: [boundary],
-      }),
-    );
-    const boundaryEncoded = yield* Schema.decodeUnknown(
-      Schema.Union(
-        Schema.Struct({
-          _tag: Schema.Literal('Right'),
-          right: Schema.Undefined,
-        }),
-        Schema.Struct({
-          _tag: Schema.Literal('Left'),
-          left: Schema.encodedSchema(ZerospinError.schema),
-        }),
-      ),
-    )(boundaryUnknown).pipe(
-      mapParseError({
-        code: 'service-frontend-successor-boundary-rpc-invalid',
-        prefix: 'Failed to decode successor boundary archive RPC',
-      }),
-    );
-    yield* decodeRpc(boundaryEncoded);
-
     db.update(serviceFrontendRepoDrizzleSchemas.projectionState)
       .set({
         status: 'ready',
         emissionMode: 'live',
-        frontendIndex: boundaryFrontendIndex,
       })
       .where(eq(serviceFrontendRepoDrizzleSchemas.projectionState.id, 'state'))
       .run();
   }
 
   const serviceFrontendBlockRepoName =
-    yield* ServiceFrontendBlockRepo.repoUtils.nameUtils.makeName(key);
+    yield* ServiceFrontendBlockRepo.boundDORepoConfig.nameUtils.makeName(key);
   yield* makeAsync(() =>
-    SystemRepo.getRepo({ generationId: key.generationId }).registerRepos({
-      serviceFrontendRepo: {
+    SystemRepo.getRepo({ systemId }).registerRepos({
+      generationId: key.generationId,
+      frontendRepo: {
+        repoType: 'ServiceFrontendRepo',
         repoName: name,
         tableNames: Object.values(serviceFrontendRepoSchema).map(getTableName),
       },
-      serviceFrontendBlockRepo: {
+      frontendBlockRepo: {
+        repoType: 'ServiceFrontendBlockRepo',
         repoName: serviceFrontendBlockRepoName,
         tableNames: Object.values(serviceFrontendBlockDrizzleSchemas).map(
           getTableName,

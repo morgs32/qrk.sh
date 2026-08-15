@@ -57,7 +57,7 @@ Do **not** mix modes unless the user asks for both. For say-so, do **not** add i
 
 ### Example
 
-Canonical reference: [`ControllerRepo.handleFanout`](../../../packages/system-worker/src/ControllerRepo/ControllerRepo.ts) — concise block-comment overview (steps 1–8) and richer `// N — …` checkpoints at phase boundaries.
+Canonical reference: [`AggregateRepo.finalizeCommandsTx`](../../../packages/system-worker/src/AggregateRepo/finalizeAggregateBlock/finalizeCommandsTx.ts) — concise block-comment overview (steps 1–8) and richer `// N — …` checkpoints at phase boundaries.
 
 ### Verification
 

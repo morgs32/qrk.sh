@@ -138,12 +138,6 @@
       }
     },
     {
-      "files": ["packages/react/src/ZerospinConfig.tsx"],
-      "rules": {
-        "react/jsx-filename-extension": "off"
-      }
-    },
-    {
       "files": [
         "packages/react/src/devtools/SessionsPlugin/sessions/sessionId/commands/SessionsCommandsColumnPicker.tsx"
       ],

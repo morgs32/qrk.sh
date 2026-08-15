@@ -6,7 +6,7 @@ Monolithic closeAccountBatch; subscribe on every finalize; shared KV flag for mu
 
 ## Pattern
 
-See `system-worker/account-repo-finalization-fanout.ts`, `system-worker/fanout-inline-payload-shape.ts`.
+See `system-worker/aggregate-repo-finalization-fanout.ts` and `system-worker/direct-aggregate-frontend-fanout.ts` for the current direct topology.
 
 ## When to apply
 

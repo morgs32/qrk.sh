@@ -1,3 +1,5 @@
+import { useContext } from 'react';
+
 import type {
   IDrizzleRelationsFromModels,
   ILiveRelationalQuery,
@@ -6,23 +8,21 @@ import type {
   IWaSqliteDrizzleDb,
 } from '@zerospin/core/drizzle/types';
 import type {
+  IAggregateFrontendController,
   IFrontendController,
   InferFrontendModels,
+  IServiceFrontendController,
 } from '@zerospin/core/frontendController/types';
-import type { IServiceFrontendController } from '@zerospin/core/serviceFrontendController/types';
-import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
 import type { ISessionWaSqliteDb } from '@zerospin/core/session/types';
-import { ZerospinError } from '@zerospin/error';
 
-import type { IReactFrontend, IReactServiceFrontend } from './types';
-import { useCtxOrThrow } from './useCtxOrThrow';
 import { useLiveQueryOnDb } from './useLiveQueryOnDb';
+import { ZerospinProviderContext } from './ZerospinProviderContext';
 
 export function useLiveQuery<
-  FRONTEND extends IFrontendController,
+  FRONTEND extends IAggregateFrontendController,
   QUERY extends ILiveRelationalQuery,
 >(
-  reactFrontend: Pick<IReactFrontend<FRONTEND>, 'kind' | 'ReactContext'>,
+  selector: Readonly<{ frontend: FRONTEND }>,
   props: {
     deps?: readonly unknown[];
     query(
@@ -42,10 +42,7 @@ export function useLiveQuery<
   FRONTEND extends IServiceFrontendController,
   QUERY extends ILiveRelationalQuery,
 >(
-  reactFrontend: Pick<
-    IReactServiceFrontend<FRONTEND>,
-    'kind' | 'useCtxOrThrow'
-  >,
+  selector: Readonly<{ frontend: FRONTEND }>,
   props: {
     deps?: readonly unknown[];
     query(
@@ -61,12 +58,9 @@ export function useLiveQuery<
   readonly updatedAt: Date | undefined;
 };
 export function useLiveQuery(
-  reactFrontend:
-    | Pick<IReactFrontend<IFrontendController>, 'kind' | 'ReactContext'>
-    | Pick<
-        IReactServiceFrontend<IServiceFrontendController>,
-        'kind' | 'useCtxOrThrow'
-      >,
+  selector: Readonly<{
+    frontend: IFrontendController | IServiceFrontendController;
+  }>,
   props: {
     deps?: readonly unknown[];
     query(db: { $client: IWaSqliteClient }): ILiveRelationalQuery;
@@ -77,28 +71,22 @@ export function useLiveQuery(
   readonly error: Error | undefined;
   readonly updatedAt: Date | undefined;
 } {
-  const { deps = [], query, tableNames = [] } = props;
-  let db: { $client: IWaSqliteClient };
-
-  if (reactFrontend.kind === 'account') {
-    const { session } = useCtxOrThrow(reactFrontend);
-    db = getInitializedStateOrThrow({ session: session.coreSession }).db;
-  } else {
-    const { session } = reactFrontend.useCtxOrThrow();
-    const state = session.store.getState();
-    if (!state.isInitialized || state.db === null || state.schema === null) {
-      throw new ZerospinError({
-        code: 'service-session-store-not-initialized',
-        message: 'Service session store is not initialized',
-      });
-    }
-    db = state.db;
+  const provider = useContext(ZerospinProviderContext);
+  if (provider === null) {
+    throw new Error('useLiveQuery must be used within ZerospinApp.Provider.');
   }
+  const entry = provider.sessions.get(selector);
+  if (entry === undefined) {
+    throw new Error(
+      `ZerospinApp.Provider has no mounted session for frontend "${selector.frontend.frontendName}". Use the matching ZerospinApp.frontends entry.`,
+    );
+  }
+  const { deps = [], query, tableNames = [] } = props;
 
   return useLiveQueryOnDb({
     deps,
     query,
-    db,
+    db: entry.getLiveQueryDb(),
     tableNames,
   });
 }

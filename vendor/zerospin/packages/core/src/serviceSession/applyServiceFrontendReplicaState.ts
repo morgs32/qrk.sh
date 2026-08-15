@@ -2,7 +2,7 @@ import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
-import type { IServiceFrontendController } from '../serviceFrontendController/types.ts';
+import type { IServiceFrontendController } from '../frontendController/types.ts';
 
 import { applyServiceFrontendState } from './applyServiceFrontendState.ts';
 import { ServiceFrontendReplicaStateSchema } from './ServiceFrontendBlockSchema.ts';
@@ -17,25 +17,21 @@ export const applyServiceFrontendReplicaState = Effect.fn(
   'applyServiceFrontendReplicaState',
 )(function* <FRONTEND extends IServiceFrontendController>(props: {
   frontend: FRONTEND;
-  actorId: IServiceFrontendReplicaState['actorId'];
+  userId: IServiceFrontendReplicaState['userId'];
   systemId: IServiceFrontendReplicaState['systemId'];
-  generationId: string;
-  systemVersion: string;
-  systemWorkerName: string;
+  serviceFrontendLockKey: string;
   db: IDb<IResourceDbConfig<FRONTEND['models'], Record<never, never>>>;
   models: FRONTEND['models'];
   frontendReplicaState: IServiceFrontendReplicaState;
 }): Effect.fn.Return<void, IAnyError> {
   const {
-    actorId,
+    userId,
     db,
     frontend,
     frontendReplicaState,
-    generationId,
     models,
     systemId,
-    systemVersion,
-    systemWorkerName,
+    serviceFrontendLockKey,
   } = props;
 
   yield* Schema.encode(ServiceFrontendReplicaStateSchema)(
@@ -49,58 +45,42 @@ export const applyServiceFrontendReplicaState = Effect.fn(
   );
 
   if (
-    frontendReplicaState.frontendVersion !== frontend.version ||
-    frontendReplicaState.actorId !== actorId ||
+    frontendReplicaState.userId !== userId ||
     frontendReplicaState.systemId !== systemId ||
-    frontendReplicaState.generationId !== generationId ||
-    frontendReplicaState.systemWorkerName !== systemWorkerName ||
     frontendReplicaState.serviceName !== frontend.serviceName ||
-    frontendReplicaState.actorName !== frontend.actorName ||
-    frontendReplicaState.frontendName !== frontend.frontendName
+    frontendReplicaState.frontendName !== frontend.frontendName ||
+    frontendReplicaState.serviceFrontendLockKey !== serviceFrontendLockKey
   ) {
     return yield* new ZerospinError({
       code: 'service-frontend-replica-state-target-mismatch',
       message: 'Service frontend replica state does not match the bound target',
       extra: {
-        expectedFrontendVersion: frontend.version,
-        expectedActorId: actorId,
+        expectedUserId: userId,
         expectedSystemId: systemId,
-        expectedGenerationId: generationId,
-        expectedSystemWorkerName: systemWorkerName,
         expectedServiceName: frontend.serviceName,
-        expectedActorName: frontend.actorName,
         expectedFrontendName: frontend.frontendName,
-        actualFrontendVersion: frontendReplicaState.frontendVersion,
-        actualActorId: frontendReplicaState.actorId,
+        expectedServiceFrontendLockKey: serviceFrontendLockKey,
+        actualUserId: frontendReplicaState.userId,
         actualSystemId: frontendReplicaState.systemId,
-        actualGenerationId: frontendReplicaState.generationId,
-        actualSystemWorkerName: frontendReplicaState.systemWorkerName,
         actualServiceName: frontendReplicaState.serviceName,
-        actualActorName: frontendReplicaState.actorName,
         actualFrontendName: frontendReplicaState.frontendName,
-        authenticatedSystemVersion: systemVersion,
-        replicaSystemVersion: frontendReplicaState.systemVersion,
+        actualServiceFrontendLockKey:
+          frontendReplicaState.serviceFrontendLockKey,
       },
     });
   }
 
   yield* applyServiceFrontendState({
     frontend,
-    actorId,
+    userId,
     systemId,
-    generationId,
-    systemVersion: frontendReplicaState.systemVersion,
-    systemWorkerName,
     db,
     models,
     frontendState: {
-      actorId: frontendReplicaState.actorId,
+      userId: frontendReplicaState.userId,
       systemId: frontendReplicaState.systemId,
-      generationId: frontendReplicaState.generationId,
       systemVersion: frontendReplicaState.systemVersion,
-      systemWorkerName: frontendReplicaState.systemWorkerName,
       serviceName: frontendReplicaState.serviceName,
-      actorName: frontendReplicaState.actorName,
       frontendName: frontendReplicaState.frontendName,
       frontendIndex: frontendReplicaState.frontendIndex,
       resources: frontendReplicaState.resources,

@@ -12,18 +12,16 @@ export const getProjectionReadiness = Effect.fn(
   key: {
     generationId: string;
     serviceName: string;
-    actorName: string;
-    actorId: string;
+    userId: string;
     frontendName: string;
   };
 }): Effect.fn.Return<
   Readonly<{
     generationId: string;
-    systemWorkerName: string;
     lastServiceCursor: string | null;
     serviceIndex: number | null;
     frontendIndex: number;
-    segmentKind: 'root' | 'inherited' | 'no-local-segment';
+    segmentKind: 'root' | 'inherited';
     predecessorGenerationId: string | null;
     predecessorRepoName: string | null;
     predecessorTerminalFrontendIndex: number | null;
@@ -41,8 +39,7 @@ export const getProjectionReadiness = Effect.fn(
     state.status !== 'ready' ||
     state.generationId !== key.generationId ||
     state.serviceName !== key.serviceName ||
-    state.actorName !== key.actorName ||
-    state.actorId !== key.actorId ||
+    state.userId !== key.userId ||
     state.frontendName !== key.frontendName
   ) {
     return yield* new ZerospinError({
@@ -73,7 +70,6 @@ export const getProjectionReadiness = Effect.fn(
   }
   return {
     generationId: state.generationId,
-    systemWorkerName: state.systemWorkerName,
     lastServiceCursor: state.lastServiceCursor,
     serviceIndex: state.serviceIndex,
     frontendIndex: state.frontendIndex,

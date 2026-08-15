@@ -1,480 +1,169 @@
 import { it } from '@effect/vitest';
-import { Effect, Either, Schema } from 'effect';
+import { Effect, Layer, Schema } from 'effect';
+import { TestContext } from 'effect/TestContext';
 import { describe, expect } from 'vitest';
 
+import { makeSignature } from '../authentication/makeSignature.ts';
 import { makeContract } from '../contracts/makeContract.ts';
-import { List, User, userAccount } from '../fixtures/system.ts';
-import { makeServiceModel } from '../models/makeServiceModel.ts';
 import { primitives } from '../models/primitives.ts';
-import { makeServiceController } from '../service/makeServiceController.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
+import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
+import { ErrorLayer } from '../utils/ErrorLayer.ts';
+import { makeAggregateId } from '../utils/makeAggregateId.ts';
 
 import { makeSeeds } from './makeSeeds.ts';
 import { makeSystem } from './makeSystem.ts';
 
-const Product = makeServiceModel(
-  {
-    serviceName: 'app',
-    abbreviation: 'prd',
-    modelName: 'product',
-    attributes: {
-      name: primitives.text(),
-    },
-    indexes: [],
-    version: '1.0.0',
+const createUser = makeContract({
+  commandName: 'createUser',
+  version: '1.0.0',
+  payload: { name: primitives.text() },
+  mutations: null,
+});
+
+const refreshCatalog = makeContract({
+  commandName: 'refreshCatalog',
+  version: '1.0.0',
+  payload: { reason: primitives.text() },
+  mutations: null,
+});
+
+const system = makeSystem({
+  name: 'shopping',
+  version: '1.0.0',
+  authentication: {
+    signature: makeSignature(
+      {
+        version: '1.0.0',
+        schema: Schema.Struct({ userId: Schema.NonEmptyString }),
+      },
+      [],
+    ),
+    authenticate: ({ signature }) => Effect.succeed(signature.userId),
   },
-  [],
+  aggregates: {
+    user: {
+      models: {},
+      contracts: { createUser },
+      selections: {},
+      frontends: {},
+    },
+  },
+  services: {
+    catalog: {
+      models: {},
+      contracts: { refreshCatalog },
+      frontends: {},
+    },
+  },
+});
+
+const userAggregateId = makeAggregateId({ id: 'user-1' });
+
+const TestLayer = Layer.mergeAll(
+  makePrefixedIncrementalIdFactory('makeSeeds'),
+  ErrorLayer,
+  TraceLoggerLayer,
+  TestContext,
 );
 
-const createProduct = makeContract({
-  commandName: 'createProduct',
-  payload: {
-    id: Product.primaryKey({ autogenerate: false }),
-    name: primitives.text(),
-  },
-  mutations: Schema.Struct({
-    created: Product.createMutation('1.0.0'),
-  }),
-  program: ({ payload }) =>
-    Effect.all({
-      created: Product.create('1.0.0', {
-        resourceId: payload.id,
-        attributes: {
-          name: payload.name,
-        },
-      }),
-    }),
-  version: '1.0.0',
-});
-
-const appService = makeServiceController({
-  name: 'app',
-  version: '1.0.0',
-  models: { product: Product },
-  contracts: { createProduct },
-});
-
-const seedSystem = makeSystem({
-  accountControllers: {
-    user: userAccount,
-  },
-  serviceControllers: {
-    app: appService,
-  },
-  name: 'system-worker',
-  version: '1.0.1',
-});
-
 describe('makeSeeds', () => {
-  it.layer(makePrefixedIncrementalIdFactory('makeSeeds'))(it => {
-    it.effect(
-      'preserves account-first ordering, property ordering, command ordering, and object identity',
-      () =>
-        Effect.gen(function* () {
-          const firstAccountCommand = yield* userAccount.makeCommand({
-            accountId: 'account-1',
-            systemName: seedSystem.name,
-            systemVersion: seedSystem.version,
-            contractName: 'createList',
-            payload: {
-              id: List.prefixId('first-list'),
-              name: 'First list',
-              userId: User.prefixId('first-user'),
-            },
-          });
-          const secondAccountCommand = yield* userAccount.makeCommand({
-            accountId: 'account-2',
-            systemName: seedSystem.name,
-            systemVersion: seedSystem.version,
-            contractName: 'createList',
-            payload: {
-              id: List.prefixId('second-list'),
-              name: 'Second list',
-              userId: User.prefixId('second-user'),
-            },
-          });
-          const firstServiceCommand = yield* appService.makeCommand({
-            contractName: 'createProduct',
-            systemVersion: seedSystem.version,
-            payload: {
-              id: Product.prefixId('first-product'),
-              name: 'First product',
-            },
-          });
-          const secondServiceCommand = yield* appService.makeCommand({
-            contractName: 'createProduct',
-            systemVersion: seedSystem.version,
-            payload: {
-              id: Product.prefixId('second-product'),
-              name: 'Second product',
-            },
-          });
+  it.layer(TestLayer)(it => {
+    it.effect('resolves aggregate commands before service commands', () =>
+      Effect.gen(function* () {
+        const aggregateCommand = system.aggregates.user.makeCommand({
+          contractName: 'createUser',
+          aggregateId: userAggregateId,
+          systemName: 'shopping',
+          payload: { name: 'Ada' },
+        });
+        const serviceCommand = system.services.catalog.makeCommand({
+          contractName: 'refreshCatalog',
+          payload: { reason: 'initial import' },
+        });
 
-          const seeds = yield* makeSeeds({
-            system: seedSystem,
-            accounts: {
-              user: [
-                Effect.succeed(firstAccountCommand),
-                Effect.succeed(secondAccountCommand),
-              ],
-            },
-            services: {
-              app: [
-                Effect.succeed(firstServiceCommand),
-                Effect.succeed(secondServiceCommand),
-              ],
-            },
-          });
+        const seeds = yield* makeSeeds({
+          system,
+          aggregates: { user: [aggregateCommand] },
+          services: { catalog: [serviceCommand] },
+        });
 
-          expect(seeds).toEqual([
-            firstAccountCommand,
-            secondAccountCommand,
-            firstServiceCommand,
-            secondServiceCommand,
-          ]);
-          expect(seeds[0]).toBe(firstAccountCommand);
-          expect(seeds[1]).toBe(secondAccountCommand);
-          expect(seeds[2]).toBe(firstServiceCommand);
-          expect(seeds[3]).toBe(secondServiceCommand);
-          expect(seeds[0]).toMatchObject({ accountId: 'account-1' });
-          expect(seeds[1]).toMatchObject({ accountId: 'account-2' });
-        }),
+        expect(seeds).toHaveLength(2);
+        expect(seeds[0]).toMatchObject({
+          commandType: 'aggregate',
+          aggregateId: userAggregateId,
+          aggregateName: 'user',
+        });
+        expect(seeds[1]).toMatchObject({
+          commandType: 'service',
+          serviceName: 'catalog',
+        });
+      }),
     );
 
-    it.effect('rejects an empty account group', () =>
+    it.effect('rejects an empty aggregate seed group', () =>
       Effect.gen(function* () {
-        const result = yield* makeSeeds({
-          system: seedSystem,
-          accounts: {
-            user: [],
-          },
+        const error = yield* makeSeeds({
+          system,
+          aggregates: { user: [] },
           services: {},
-        }).pipe(Effect.either);
+        }).pipe(Effect.flip);
 
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left.code).toBe('invalid-seeds');
-          expect(result.left.message).toContain(
-            'Seed account group "user" must contain at least one command',
-          );
-        }
+        expect(error.message).toBe(
+          'invalid-seeds: Seed aggregate group "user" must contain at least one command',
+        );
       }),
     );
 
-    it.effect('rejects an empty service group', () =>
+    it.effect('rejects an aggregate command assigned to the wrong group', () =>
       Effect.gen(function* () {
-        const result = yield* makeSeeds({
-          system: seedSystem,
-          accounts: {},
-          services: {
-            app: [],
-          },
-        }).pipe(Effect.either);
-
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left.code).toBe('invalid-seeds');
-          expect(result.left.message).toContain(
-            'Seed service group "app" must contain at least one command',
+        const wrongAggregateCommand = system.aggregates.user
+          .makeCommand({
+            contractName: 'createUser',
+            aggregateId: makeAggregateId({ id: 'user-2' }),
+            systemName: 'shopping',
+            payload: { name: 'Grace' },
+          })
+          .pipe(
+            Effect.map(command => ({
+              ...command,
+              aggregateName: 'admin',
+            })),
           );
-        }
-      }),
-    );
-
-    it.effect('rejects a runtime account group absent from the system', () =>
-      Effect.gen(function* () {
-        const accountCommand = yield* userAccount.makeCommand({
-          accountId: 'account-1',
-          systemName: seedSystem.name,
-          systemVersion: seedSystem.version,
-          contractName: 'createList',
-          payload: {
-            id: List.prefixId('unknown-group-list'),
-            name: 'Unknown group',
-            userId: User.prefixId('unknown-group-user'),
-          },
-        });
-        const accountGroups = {};
-        Object.defineProperty(accountGroups, 'unknown', {
-          enumerable: true,
-          value: [Effect.succeed(accountCommand)],
-        });
-
-        const result = yield* makeSeeds({
-          system: seedSystem,
-          accounts: accountGroups,
+        const error = yield* makeSeeds({
+          system,
+          aggregates: { user: [wrongAggregateCommand] },
           services: {},
-        }).pipe(Effect.either);
+        }).pipe(Effect.flip);
 
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left.message).toContain(
-            'Seed account group "unknown" does not exist',
-          );
-        }
+        expect(error.message).toBe(
+          'invalid-seeds: Seed aggregate group "user" received aggregateName "admin"',
+        );
       }),
     );
 
-    it.effect(
-      'rejects an account command whose accountName misses its group',
-      () =>
-        Effect.gen(function* () {
-          const accountCommand = yield* userAccount.makeCommand({
-            accountId: 'account-1',
-            systemName: seedSystem.name,
-            systemVersion: seedSystem.version,
-            contractName: 'createList',
-            payload: {
-              id: List.prefixId('bad-account-name-list'),
-              name: 'Bad account name',
-              userId: User.prefixId('bad-account-name-user'),
-            },
-          });
-          Reflect.set(accountCommand, 'accountName', 'admin');
-
-          const result = yield* makeSeeds({
-            system: seedSystem,
-            accounts: {
-              user: [Effect.succeed(accountCommand)],
-            },
-            services: {},
-          }).pipe(Effect.either);
-
-          expect(Either.isLeft(result)).toBe(true);
-          if (Either.isLeft(result)) {
-            expect(result.left.message).toContain(
-              'Seed account group "user" received accountName "admin"',
-            );
-          }
-        }),
-    );
-
-    it.effect(
-      'rejects a service command whose serviceName misses its group',
-      () =>
-        Effect.gen(function* () {
-          const serviceCommand = yield* appService.makeCommand({
-            contractName: 'createProduct',
-            systemVersion: seedSystem.version,
-            payload: {
-              id: Product.prefixId('bad-service-name-product'),
-              name: 'Bad service name',
-            },
-          });
-          Reflect.set(serviceCommand, 'serviceName', 'catalog');
-
-          const result = yield* makeSeeds({
-            system: seedSystem,
-            accounts: {},
-            services: {
-              app: [Effect.succeed(serviceCommand)],
-            },
-          }).pipe(Effect.either);
-
-          expect(Either.isLeft(result)).toBe(true);
-          if (Either.isLeft(result)) {
-            expect(result.left.message).toContain(
-              'Seed service group "app" received serviceName "catalog"',
-            );
-          }
-        }),
-    );
-
-    it.effect('rejects an account command for another system', () =>
+    it.effect('rejects a service command assigned to the wrong group', () =>
       Effect.gen(function* () {
-        const accountCommand = yield* userAccount.makeCommand({
-          accountId: 'account-1',
-          systemName: 'another-system',
-          systemVersion: seedSystem.version,
-          contractName: 'createList',
-          payload: {
-            id: List.prefixId('bad-system-list'),
-            name: 'Bad system',
-            userId: User.prefixId('bad-system-user'),
-          },
-        });
-
-        const result = yield* makeSeeds({
-          system: seedSystem,
-          accounts: {
-            user: [Effect.succeed(accountCommand)],
-          },
-          services: {},
-        }).pipe(Effect.either);
-
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left.message).toContain(
-            'received systemName "another-system" instead of "system-worker"',
+        const wrongServiceCommand = system.services.catalog
+          .makeCommand({
+            contractName: 'refreshCatalog',
+            payload: { reason: 'scheduled import' },
+          })
+          .pipe(
+            Effect.map(command => ({
+              ...command,
+              serviceName: 'billing',
+            })),
           );
-        }
-      }),
-    );
+        const error = yield* makeSeeds({
+          system,
+          aggregates: {},
+          services: { catalog: [wrongServiceCommand] },
+        }).pipe(Effect.flip);
 
-    it.effect(
-      'rejects an account command missing decoded provenance fields',
-      () =>
-        Effect.gen(function* () {
-          const accountCommand = yield* userAccount.makeCommand({
-            accountId: 'account-1',
-            systemName: seedSystem.name,
-            systemVersion: seedSystem.version,
-            contractName: 'createList',
-            payload: {
-              id: List.prefixId('missing-provenance-list'),
-              name: 'Missing provenance',
-              userId: User.prefixId('missing-provenance-user'),
-            },
-          });
-          Reflect.deleteProperty(accountCommand, 'sessionId');
-
-          const result = yield* makeSeeds({
-            system: seedSystem,
-            accounts: {
-              user: [Effect.succeed(accountCommand)],
-            },
-            services: {},
-          }).pipe(Effect.either);
-
-          expect(Either.isLeft(result)).toBe(true);
-          if (Either.isLeft(result)) {
-            expect(result.left.code).toBe('invalid-seeds');
-            expect(result.left.message).toContain(
-              'Invalid command in seed account group "user"',
-            );
-            expect(result.left.message).toContain('sessionId');
-          }
-        }),
-    );
-
-    it.effect('ignores inherited account and service groups', () =>
-      Effect.gen(function* () {
-        const accountCommand = yield* userAccount.makeCommand({
-          accountId: 'account-1',
-          systemName: seedSystem.name,
-          systemVersion: seedSystem.version,
-          contractName: 'createList',
-          payload: {
-            id: List.prefixId('inherited-list'),
-            name: 'Inherited list',
-            userId: User.prefixId('inherited-user'),
-          },
-        });
-        const serviceCommand = yield* appService.makeCommand({
-          contractName: 'createProduct',
-          systemVersion: seedSystem.version,
-          payload: {
-            id: Product.prefixId('inherited-product'),
-            name: 'Inherited product',
-          },
-        });
-        const accountGroups = {};
-        const serviceGroups = {};
-        Object.setPrototypeOf(accountGroups, {
-          user: [Effect.succeed(accountCommand)],
-        });
-        Object.setPrototypeOf(serviceGroups, {
-          app: [Effect.succeed(serviceCommand)],
-        });
-
-        const resolvedSeeds = yield* makeSeeds({
-          system: seedSystem,
-          accounts: accountGroups,
-          services: serviceGroups,
-        });
-
-        expect(resolvedSeeds).toEqual([]);
-      }),
-    );
-
-    it.effect('rejects the wrong command type in an account group', () =>
-      Effect.gen(function* () {
-        const accountCommand = yield* userAccount.makeCommand({
-          accountId: 'account-1',
-          systemName: seedSystem.name,
-          systemVersion: seedSystem.version,
-          contractName: 'createList',
-          payload: {
-            id: List.prefixId('bad-type-list'),
-            name: 'Bad type',
-            userId: User.prefixId('bad-type-user'),
-          },
-        });
-        Reflect.set(accountCommand, 'commandType', 'service');
-        Reflect.set(accountCommand, 'serviceName', 'app');
-
-        const result = yield* makeSeeds({
-          system: seedSystem,
-          accounts: {
-            user: [Effect.succeed(accountCommand)],
-          },
-          services: {},
-        }).pipe(Effect.either);
-
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left.message).toContain(
-            'Seed account group "user" received command type "service"',
-          );
-        }
-      }),
-    );
-
-    it.effect('rejects an unknown command name', () =>
-      Effect.gen(function* () {
-        const serviceCommand = yield* appService.makeCommand({
-          contractName: 'createProduct',
-          systemVersion: seedSystem.version,
-          payload: {
-            id: Product.prefixId('unknown-command-product'),
-            name: 'Unknown command',
-          },
-        });
-        Reflect.set(serviceCommand, 'commandName', 'archiveProduct');
-
-        const result = yield* makeSeeds({
-          system: seedSystem,
-          accounts: {},
-          services: {
-            app: [Effect.succeed(serviceCommand)],
-          },
-        }).pipe(Effect.either);
-
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left.message).toContain(
-            'has no contract for command "archiveProduct" version "1.0.0"',
-          );
-        }
-      }),
-    );
-
-    it.effect('rejects an unknown command version', () =>
-      Effect.gen(function* () {
-        const serviceCommand = yield* appService.makeCommand({
-          contractName: 'createProduct',
-          systemVersion: seedSystem.version,
-          payload: {
-            id: Product.prefixId('unknown-version-product'),
-            name: 'Unknown version',
-          },
-        });
-        Reflect.set(serviceCommand, 'version', '2.0.0');
-
-        const result = yield* makeSeeds({
-          system: seedSystem,
-          accounts: {},
-          services: {
-            app: [Effect.succeed(serviceCommand)],
-          },
-        }).pipe(Effect.either);
-
-        expect(Either.isLeft(result)).toBe(true);
-        if (Either.isLeft(result)) {
-          expect(result.left.message).toContain(
-            'has no contract for command "createProduct" version "2.0.0"',
-          );
-        }
+        expect(error.message).toBe(
+          'invalid-seeds: Seed service group "catalog" received serviceName "billing"',
+        );
       }),
     );
   });

@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
 
+import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeServiceController } from '../service/makeServiceController.ts';
+import { makeSignature } from '../authentication/makeSignature.ts';
+import { makeSystem } from '../system/makeSystem.ts';
 
 import { makeModel } from './makeModel.ts';
 import { makeServiceModel } from './makeServiceModel.ts';
@@ -74,7 +76,7 @@ describe('makeServiceModel', () => {
     });
   });
 
-  it('makes service controllers reject plain and wrong-service models', () => {
+  it('makes systems reject plain and wrong-service models from services', () => {
     const PlainProduct = makeModel(
       {
         abbreviation: 'prd',
@@ -98,21 +100,47 @@ describe('makeServiceModel', () => {
     );
 
     expect(() =>
-      makeServiceController({
+      makeSystem({
         name: 'app',
         version: '1.0.0',
-        // @ts-expect-error plain models are rejected by the public API
-        models: { product: PlainProduct },
-        contracts: {},
+        authentication: {
+          signature: makeSignature(
+            { version: '1.0.0', schema: Schema.Struct({}) },
+            [],
+          ),
+          authenticate: () => Effect.succeed('user'),
+        },
+        aggregates: {},
+        services: {
+          app: {
+            // @ts-expect-error plain models are rejected by the public API
+            models: { product: PlainProduct },
+            contracts: {},
+            frontends: {},
+          },
+        },
       }),
     ).toThrow(/makeServiceModel with serviceName "app"/);
     expect(() =>
-      makeServiceController({
+      makeSystem({
         name: 'app',
         version: '1.0.0',
-        // @ts-expect-error service ownership must match the controller name
-        models: { directoryProduct: DirectoryProduct },
-        contracts: {},
+        authentication: {
+          signature: makeSignature(
+            { version: '1.0.0', schema: Schema.Struct({}) },
+            [],
+          ),
+          authenticate: () => Effect.succeed('user'),
+        },
+        aggregates: {},
+        services: {
+          app: {
+            // @ts-expect-error service ownership must match the service name
+            models: { directoryProduct: DirectoryProduct },
+            contracts: {},
+            frontends: {},
+          },
+        },
       }),
     ).toThrow(/makeServiceModel with serviceName "app"/);
   });

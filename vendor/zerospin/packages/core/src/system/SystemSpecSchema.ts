@@ -1,407 +1,181 @@
 import { Schema } from 'effect';
 
+import { AggregateFrontendLockSchema } from '../frontendController/makeAggregateFrontendLock.ts';
+import { ServiceFrontendLockSchema } from '../frontendController/makeServiceFrontendLock.ts';
+
+const signatureVersionSchema = Schema.String.pipe(
+  Schema.pattern(
+    /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-dev\.[0-9a-f]{12})?$/u,
+  ),
+);
+
 const encodedShapeSchema = Schema.Record({
   key: Schema.String,
   value: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
 });
 
-// The schema repeats each controller position just as SystemSpec repeats its
-// definitions. Schema.Unknown is limited to encoded JSON Schema documents and
-// encoded primitive descriptors; every surrounding identity and collection is
-// validated explicitly.
+const indexSchema = Schema.Struct({
+  name: Schema.String,
+  columns: Schema.Array(Schema.String),
+  unique: Schema.optionalWith(Schema.Boolean, { exact: true }),
+});
+
+const modelSchema = Schema.Struct({
+  modelName: Schema.String,
+  abbreviation: Schema.String,
+  version: Schema.String,
+  properties: encodedShapeSchema,
+  indexes: Schema.Array(indexSchema),
+  historicalDefinitions: Schema.Array(
+    Schema.Struct({
+      modelName: Schema.String,
+      abbreviation: Schema.String,
+      version: Schema.String,
+      hasDirectAdapter: Schema.Boolean,
+      properties: encodedShapeSchema,
+      indexes: Schema.Array(indexSchema),
+    }),
+  ),
+});
+
+const contractSchema = Schema.Struct({
+  commandName: Schema.String,
+  version: Schema.String,
+  payloadJsonSchema: Schema.Unknown,
+  historicalDefinitions: Schema.Array(
+    Schema.Struct({
+      commandName: Schema.String,
+      version: Schema.String,
+      hasDirectAdapter: Schema.Boolean,
+      payloadJsonSchema: Schema.Unknown,
+    }),
+  ),
+});
+
+const authenticationSignatureSchema = Schema.Struct({
+  version: signatureVersionSchema,
+  schemaJsonSchema: Schema.Unknown,
+  historicalDefinitions: Schema.Array(
+    Schema.Struct({
+      version: signatureVersionSchema,
+      schemaJsonSchema: Schema.Unknown,
+      hasDirectAdapter: Schema.Boolean,
+    }),
+  ),
+});
+
+const mutationIdentitySchema = Schema.Struct({
+  modelName: Schema.String,
+  modelVersion: Schema.String,
+  operationName: Schema.Literal(
+    'create',
+    'delete',
+    'move',
+    'replicateResource',
+    'update',
+  ),
+  jsonSchema: Schema.Unknown,
+});
+
+const mutationAdaptersSchema = Schema.Record({
+  key: Schema.String,
+  value: Schema.Record({
+    key: Schema.String.pipe(
+      Schema.pattern(/^(create|delete|move|replicateResource|update)$/u),
+    ),
+    value: Schema.Array(
+      Schema.Struct({
+        source: mutationIdentitySchema,
+        destination: Schema.NullOr(mutationIdentitySchema),
+      }),
+    ),
+  }),
+});
+
+const frontendControllerSchema = Schema.Union(
+  Schema.Struct({
+    kind: Schema.Literal('aggregate'),
+    systemName: Schema.String,
+    aggregateName: Schema.String,
+    frontendName: Schema.String,
+    modelNames: Schema.Array(Schema.String),
+    models: Schema.Record({ key: Schema.String, value: modelSchema }),
+    contracts: Schema.Record({ key: Schema.String, value: contractSchema }),
+    aggregateFrontendLock: AggregateFrontendLockSchema,
+  }),
+  Schema.Struct({
+    kind: Schema.Literal('service'),
+    systemName: Schema.String,
+    serviceName: Schema.String,
+    frontendName: Schema.String,
+    modelNames: Schema.Array(Schema.String),
+    models: Schema.Record({ key: Schema.String, value: modelSchema }),
+    contracts: Schema.Record({ key: Schema.String, value: contractSchema }),
+    serviceFrontendLock: ServiceFrontendLockSchema,
+  }),
+);
+
+const frontendBindingSchema = Schema.Struct({
+  name: Schema.String,
+  models: Schema.Record({
+    key: Schema.String,
+    value: Schema.Struct({
+      modelName: Schema.String,
+      hasProjectionAdapter: Schema.Boolean,
+    }),
+  }),
+  contracts: Schema.Record({
+    key: Schema.String,
+    value: Schema.Struct({
+      commandName: Schema.String,
+      version: Schema.String,
+      hasAuthoritativeAdapter: Schema.Boolean,
+    }),
+  }),
+  controller: frontendControllerSchema,
+});
+
+const querySchema = Schema.Struct({
+  name: Schema.String,
+  serviceName: Schema.String,
+  paramsJsonSchema: Schema.Unknown,
+});
+
 export const SystemSpecSchema = Schema.Struct({
   systemName: Schema.String,
   version: Schema.String,
-  accountControllers: Schema.Record({
+  authentication: Schema.Struct({
+    signature: authenticationSignatureSchema,
+  }),
+  aggregates: Schema.Record({
     key: Schema.String,
     value: Schema.Struct({
       name: Schema.String,
-      version: Schema.String,
-      models: Schema.Record({
+      models: Schema.Record({ key: Schema.String, value: modelSchema }),
+      contracts: Schema.Record({ key: Schema.String, value: contractSchema }),
+      mutationAdapters: mutationAdaptersSchema,
+      selections: Schema.Record({
         key: Schema.String,
-        value: Schema.Struct({
-          modelName: Schema.String,
-          abbreviation: Schema.String,
-          version: Schema.String,
-          properties: encodedShapeSchema,
-          indexes: Schema.Array(
-            Schema.Struct({
-              name: Schema.String,
-              columns: Schema.Array(Schema.String),
-              unique: Schema.optionalWith(Schema.Boolean, { exact: true }),
-            }),
-          ),
-          historicalDefinitions: Schema.Array(
-            Schema.Struct({
-              modelName: Schema.String,
-              abbreviation: Schema.String,
-              version: Schema.String,
-              properties: encodedShapeSchema,
-              indexes: Schema.Array(
-                Schema.Struct({
-                  name: Schema.String,
-                  columns: Schema.Array(Schema.String),
-                  unique: Schema.optionalWith(Schema.Boolean, { exact: true }),
-                }),
-              ),
-            }),
-          ),
-        }),
+        value: Schema.Struct({ modelName: Schema.String }),
       }),
-      contracts: Schema.Record({
+      queries: Schema.Record({ key: Schema.String, value: querySchema }),
+      frontends: Schema.Record({
         key: Schema.String,
-        value: Schema.Struct({
-          commandName: Schema.String,
-          version: Schema.String,
-          payloadJsonSchema: Schema.Unknown,
-          historicalDefinitions: Schema.Array(
-            Schema.Struct({
-              commandName: Schema.String,
-              version: Schema.String,
-              payloadJsonSchema: Schema.Unknown,
-            }),
-          ),
-        }),
-      }),
-      mutationAdapters: Schema.Record({
-        key: Schema.String,
-        value: Schema.Record({
-          key: Schema.String.pipe(
-            Schema.pattern(/^(create|delete|move|replicateResource|update)$/u),
-          ),
-          value: Schema.Array(
-            Schema.Struct({
-              source: Schema.Struct({
-                modelName: Schema.String,
-                modelVersion: Schema.String,
-                operationName: Schema.Literal(
-                  'create',
-                  'delete',
-                  'move',
-                  'replicateResource',
-                  'update',
-                ),
-                jsonSchema: Schema.Unknown,
-              }),
-              destination: Schema.NullOr(
-                Schema.Struct({
-                  modelName: Schema.String,
-                  modelVersion: Schema.String,
-                  operationName: Schema.Literal(
-                    'create',
-                    'delete',
-                    'move',
-                    'replicateResource',
-                    'update',
-                  ),
-                  jsonSchema: Schema.Unknown,
-                }),
-              ),
-            }),
-          ),
-        }),
-      }),
-      actorControllers: Schema.Record({
-        key: Schema.String,
-        value: Schema.Struct({
-          name: Schema.String,
-          version: Schema.String,
-          models: Schema.Record({
-            key: Schema.String,
-            value: Schema.Struct({
-              modelName: Schema.String,
-              abbreviation: Schema.String,
-              version: Schema.String,
-              properties: encodedShapeSchema,
-              indexes: Schema.Array(
-                Schema.Struct({
-                  name: Schema.String,
-                  columns: Schema.Array(Schema.String),
-                  unique: Schema.optionalWith(Schema.Boolean, { exact: true }),
-                }),
-              ),
-              historicalDefinitions: Schema.Array(
-                Schema.Struct({
-                  modelName: Schema.String,
-                  abbreviation: Schema.String,
-                  version: Schema.String,
-                  properties: encodedShapeSchema,
-                  indexes: Schema.Array(
-                    Schema.Struct({
-                      name: Schema.String,
-                      columns: Schema.Array(Schema.String),
-                      unique: Schema.optionalWith(Schema.Boolean, {
-                        exact: true,
-                      }),
-                    }),
-                  ),
-                }),
-              ),
-            }),
-          }),
-          selections: Schema.Record({
-            key: Schema.String,
-            value: Schema.Struct({ modelName: Schema.String }),
-          }),
-          queries: Schema.Record({
-            key: Schema.String,
-            value: Schema.Struct({
-              name: Schema.String,
-              serviceName: Schema.String,
-              paramsJsonSchema: Schema.Unknown,
-            }),
-          }),
-          frontends: Schema.Record({
-            key: Schema.String,
-            value: Schema.Struct({
-              name: Schema.String,
-              frontendController: Schema.Struct({
-                accountName: Schema.String,
-                actorName: Schema.String,
-                frontendName: Schema.String,
-                version: Schema.String,
-                models: Schema.Record({
-                  key: Schema.String,
-                  value: Schema.Struct({
-                    modelName: Schema.String,
-                    abbreviation: Schema.String,
-                    version: Schema.String,
-                    properties: encodedShapeSchema,
-                    indexes: Schema.Array(
-                      Schema.Struct({
-                        name: Schema.String,
-                        columns: Schema.Array(Schema.String),
-                        unique: Schema.optionalWith(Schema.Boolean, {
-                          exact: true,
-                        }),
-                      }),
-                    ),
-                    historicalDefinitions: Schema.Array(
-                      Schema.Struct({
-                        modelName: Schema.String,
-                        abbreviation: Schema.String,
-                        version: Schema.String,
-                        properties: encodedShapeSchema,
-                        indexes: Schema.Array(
-                          Schema.Struct({
-                            name: Schema.String,
-                            columns: Schema.Array(Schema.String),
-                            unique: Schema.optionalWith(Schema.Boolean, {
-                              exact: true,
-                            }),
-                          }),
-                        ),
-                      }),
-                    ),
-                  }),
-                }),
-                contracts: Schema.Record({
-                  key: Schema.String,
-                  value: Schema.Struct({
-                    commandName: Schema.String,
-                    version: Schema.String,
-                    payloadJsonSchema: Schema.Unknown,
-                    historicalDefinitions: Schema.Array(
-                      Schema.Struct({
-                        commandName: Schema.String,
-                        version: Schema.String,
-                        payloadJsonSchema: Schema.Unknown,
-                      }),
-                    ),
-                  }),
-                }),
-                signatureJsonSchema: Schema.Unknown,
-              }),
-            }),
-          }),
-        }),
+        value: frontendBindingSchema,
       }),
     }),
   }),
-  serviceControllers: Schema.Record({
+  services: Schema.Record({
     key: Schema.String,
     value: Schema.Struct({
       name: Schema.String,
-      version: Schema.String,
-      models: Schema.Record({
+      models: Schema.Record({ key: Schema.String, value: modelSchema }),
+      contracts: Schema.Record({ key: Schema.String, value: contractSchema }),
+      mutationAdapters: mutationAdaptersSchema,
+      queries: Schema.Record({ key: Schema.String, value: querySchema }),
+      frontends: Schema.Record({
         key: Schema.String,
-        value: Schema.Struct({
-          modelName: Schema.String,
-          abbreviation: Schema.String,
-          version: Schema.String,
-          properties: encodedShapeSchema,
-          indexes: Schema.Array(
-            Schema.Struct({
-              name: Schema.String,
-              columns: Schema.Array(Schema.String),
-              unique: Schema.optionalWith(Schema.Boolean, { exact: true }),
-            }),
-          ),
-          historicalDefinitions: Schema.Array(
-            Schema.Struct({
-              modelName: Schema.String,
-              abbreviation: Schema.String,
-              version: Schema.String,
-              properties: encodedShapeSchema,
-              indexes: Schema.Array(
-                Schema.Struct({
-                  name: Schema.String,
-                  columns: Schema.Array(Schema.String),
-                  unique: Schema.optionalWith(Schema.Boolean, { exact: true }),
-                }),
-              ),
-            }),
-          ),
-        }),
-      }),
-      contracts: Schema.Record({
-        key: Schema.String,
-        value: Schema.Struct({
-          commandName: Schema.String,
-          version: Schema.String,
-          payloadJsonSchema: Schema.Unknown,
-          historicalDefinitions: Schema.Array(
-            Schema.Struct({
-              commandName: Schema.String,
-              version: Schema.String,
-              payloadJsonSchema: Schema.Unknown,
-            }),
-          ),
-        }),
-      }),
-      mutationAdapters: Schema.Record({
-        key: Schema.String,
-        value: Schema.Record({
-          key: Schema.String.pipe(
-            Schema.pattern(/^(create|delete|move|replicateResource|update)$/u),
-          ),
-          value: Schema.Array(
-            Schema.Struct({
-              source: Schema.Struct({
-                modelName: Schema.String,
-                modelVersion: Schema.String,
-                operationName: Schema.Literal(
-                  'create',
-                  'delete',
-                  'move',
-                  'replicateResource',
-                  'update',
-                ),
-                jsonSchema: Schema.Unknown,
-              }),
-              destination: Schema.NullOr(
-                Schema.Struct({
-                  modelName: Schema.String,
-                  modelVersion: Schema.String,
-                  operationName: Schema.Literal(
-                    'create',
-                    'delete',
-                    'move',
-                    'replicateResource',
-                    'update',
-                  ),
-                  jsonSchema: Schema.Unknown,
-                }),
-              ),
-            }),
-          ),
-        }),
-      }),
-      actorControllers: Schema.Record({
-        key: Schema.String,
-        value: Schema.Struct({
-          name: Schema.String,
-          version: Schema.String,
-          models: Schema.Record({
-            key: Schema.String,
-            value: Schema.Struct({
-              modelName: Schema.String,
-              abbreviation: Schema.String,
-              version: Schema.String,
-              properties: encodedShapeSchema,
-              indexes: Schema.Array(
-                Schema.Struct({
-                  name: Schema.String,
-                  columns: Schema.Array(Schema.String),
-                  unique: Schema.optionalWith(Schema.Boolean, { exact: true }),
-                }),
-              ),
-              historicalDefinitions: Schema.Array(
-                Schema.Struct({
-                  modelName: Schema.String,
-                  abbreviation: Schema.String,
-                  version: Schema.String,
-                  properties: encodedShapeSchema,
-                  indexes: Schema.Array(
-                    Schema.Struct({
-                      name: Schema.String,
-                      columns: Schema.Array(Schema.String),
-                      unique: Schema.optionalWith(Schema.Boolean, {
-                        exact: true,
-                      }),
-                    }),
-                  ),
-                }),
-              ),
-            }),
-          }),
-          frontends: Schema.Record({
-            key: Schema.String,
-            value: Schema.Struct({
-              name: Schema.String,
-              frontendController: Schema.Struct({
-                serviceName: Schema.String,
-                actorName: Schema.String,
-                frontendName: Schema.String,
-                version: Schema.String,
-                models: Schema.Record({
-                  key: Schema.String,
-                  value: Schema.Struct({
-                    modelName: Schema.String,
-                    abbreviation: Schema.String,
-                    version: Schema.String,
-                    properties: encodedShapeSchema,
-                    indexes: Schema.Array(
-                      Schema.Struct({
-                        name: Schema.String,
-                        columns: Schema.Array(Schema.String),
-                        unique: Schema.optionalWith(Schema.Boolean, {
-                          exact: true,
-                        }),
-                      }),
-                    ),
-                    historicalDefinitions: Schema.Array(
-                      Schema.Struct({
-                        modelName: Schema.String,
-                        abbreviation: Schema.String,
-                        version: Schema.String,
-                        properties: encodedShapeSchema,
-                        indexes: Schema.Array(
-                          Schema.Struct({
-                            name: Schema.String,
-                            columns: Schema.Array(Schema.String),
-                            unique: Schema.optionalWith(Schema.Boolean, {
-                              exact: true,
-                            }),
-                          }),
-                        ),
-                      }),
-                    ),
-                  }),
-                }),
-                signatureJsonSchema: Schema.Unknown,
-              }),
-            }),
-          }),
-        }),
-      }),
-      queries: Schema.Record({
-        key: Schema.String,
-        value: Schema.Struct({
-          name: Schema.String,
-          serviceName: Schema.String,
-          paramsJsonSchema: Schema.Unknown,
-        }),
+        value: frontendBindingSchema,
       }),
     }),
   }),

@@ -8,10 +8,7 @@ describe('createMutation', () => {
     Effect.gen(function* () {
       const mutation = yield* User.create('1.0.0', {
         resourceId: 'usr_test' as const,
-        attributes: {
-          actorId: 'actr_test' as const,
-          name: 'Alice',
-        },
+        attributes: { name: 'Alice' },
       });
 
       expect(mutation.model).toBe(User);
@@ -24,9 +21,7 @@ describe('createMutation', () => {
     Effect.gen(function* () {
       const maybeMutation = yield* User.create('1.0.0', {
         resourceId: 'usr_test' as const,
-        attributes: {
-          name: 'Alice',
-        } as { actorId: string; name: string },
+        attributes: {},
       }).pipe(Effect.either);
 
       expect(maybeMutation._tag).toBe('Left');
@@ -34,7 +29,7 @@ describe('createMutation', () => {
         expect(maybeMutation.left.code).toBe(
           'create-resource-missing-attributes',
         );
-        expect(maybeMutation.left.message).toContain('actorId');
+        expect(maybeMutation.left.message).toContain('name');
       }
     }),
   );

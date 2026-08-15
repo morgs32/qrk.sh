@@ -4,32 +4,63 @@
  */
 
 import type { IDb } from '@zerospin/core/drizzle/types';
-import type { IRepoRegistration, IRepoType } from '@zerospin/core/system/types';
+import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
+import type { IRepoType } from '@zerospin/core/system/types';
 import { ZerospinError } from '@zerospin/error';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq, type AnyColumn } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 const RepoTableNames = Schema.parseJson(Schema.Array(Schema.String));
 
 export const getRepoRegistrations = Effect.fn(
   'SystemRepo.getRepoRegistrations',
-)(function* (props: { db: IDb; repoTable: unknown; repoType: IRepoType }) {
-  const { db, repoTable, repoType } = props;
+)(function* (props: {
+  db: IDb;
+  generationId: string;
+  repoTable: IAnyDrizzleSchema & {
+    generationId: AnyColumn;
+    repoType: AnyColumn;
+    repoName: AnyColumn;
+  };
+  repoType: IRepoType;
+}) {
+  const { db, generationId, repoTable, repoType } = props;
   yield* Effect.void;
   const rows = db
     .select()
-    .from(repoTable as never)
-    .where(eq((repoTable as { repoType: never }).repoType, repoType))
-    .orderBy(asc((repoTable as { repoName: never }).repoName))
-    .all() as Array<{
-    repoType: IRepoType;
-    repoName: string;
-    tableNames: string;
-  }>;
+    .from(repoTable)
+    .where(
+      and(
+        eq(repoTable.generationId, generationId),
+        eq(repoTable.repoType, repoType),
+      ),
+    )
+    .orderBy(asc(repoTable.repoName))
+    .all();
 
   return yield* Effect.try({
-    try: (): IRepoRegistration[] =>
-      rows.map(row => ({
+    try: () =>
+      Schema.decodeUnknownSync(
+        Schema.Array(
+          Schema.Struct({
+            generationId: Schema.String,
+            repoType: Schema.Literal(
+              'SystemRepo',
+              'AggregateRepo',
+              'AggregateFrontendRepo',
+              'ServiceFrontendRepo',
+              'ServiceRepo',
+              'AggregateBlockRepo',
+              'AggregateFrontendBlockRepo',
+              'ServiceFrontendBlockRepo',
+              'ServiceBlockRepo',
+              'SystemLogRepo',
+            ),
+            repoName: Schema.String,
+            tableNames: Schema.String,
+          }),
+        ),
+      )(rows).map(row => ({
         ...row,
         tableNames: Schema.decodeUnknownSync(RepoTableNames)(row.tableNames),
       })),

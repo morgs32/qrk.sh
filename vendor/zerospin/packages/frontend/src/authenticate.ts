@@ -1,54 +1,107 @@
-import type { IActor } from '@zerospin/core/actorController/types';
-import { type Async } from '@zerospin/core/async/Async';
-import type { IFrontendController } from '@zerospin/core/frontendController/types';
-import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
-import type { ZerospinApisUrl } from '@zerospin/core/services/ZerospinApisUrl';
-import type {
-  ISystemEnvironmentId,
-  ISystemId,
-} from '@zerospin/core/system/types';
-import type { IAnyError } from '@zerospin/error';
+import type { Async } from '@zerospin/core/async/Async';
+import type { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
+import { PublishableKey } from '@zerospin/core/services/PublishableKey';
+import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
+import type { ISystemId } from '@zerospin/core/system/types';
+import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { ZerospinError, type IAnyError } from '@zerospin/error';
 import {
   annotateFunctionSpan,
   type TelemetryCollector,
 } from '@zerospin/logger';
-import { Effect, type Schema } from 'effect';
+import { newWebSocketRpcSession, type RpcStub } from 'capnweb';
+import { Effect, Redacted, type Schema } from 'effect';
+import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
-import { fetchFrontend } from './fetchFrontend';
-
-export const authenticate = Effect.fn('authenticate')(function* <
-  FRONTEND extends IFrontendController,
->(props: {
-  frontend: FRONTEND;
-  signature: Schema.Schema.Type<FRONTEND['signature']>;
+export const authenticate = Effect.fn('authenticate')(function* (props: {
+  authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
+  generateSignature: () => Effect.Effect<unknown, IAnyError, Async>;
 }): Effect.fn.Return<
-  {
-    actor: IActor;
-    deployId: string;
-    generationId: string;
+  Readonly<{
+    authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
     systemId: ISystemId;
+    systemName: string;
     systemVersion: string;
-    systemWorkerName: string;
-    systemEnvironmentId: ISystemEnvironmentId;
-  },
+    userId: string;
+    authenticatedApi: Awaited<
+      ReturnType<RpcStub<GatewayApi>['getAuthenticatedApi']>
+    >;
+    releaseAuthenticatedApi(): void;
+  }>,
   IAnyError,
-  Async | PublishableKey | ZerospinApisUrl | TelemetryCollector
+  Async | PublishableKey | TelemetryCollector | ZerospinApiUrl
 > {
-  return yield* Effect.acquireUseRelease(
-    fetchFrontend({
-      frontend: props.frontend,
-      generateSignature: () => Effect.succeed(props.signature),
-    }),
-    admitted =>
-      Effect.succeed({
-        actor: admitted.identity.actor,
-        deployId: admitted.identity.deployId,
-        generationId: admitted.identity.generationId,
-        systemId: admitted.identity.systemId,
-        systemVersion: admitted.identity.systemVersion,
-        systemWorkerName: admitted.identity.systemWorkerName,
-        systemEnvironmentId: admitted.identity.systemEnvironmentId,
+  const signature = yield* props.generateSignature();
+  const publishableKey = yield* PublishableKey;
+  const apiUrl = yield* ZerospinApiUrl;
+  const gatewayApi = yield* Effect.try({
+    try: () => {
+      const webSocketUrl = new URL(apiUrl);
+      if (webSocketUrl.protocol === 'http:') {
+        webSocketUrl.protocol = 'ws:';
+      } else if (webSocketUrl.protocol === 'https:') {
+        webSocketUrl.protocol = 'wss:';
+      } else {
+        throw new Error(
+          `Unsupported Zerospin API URL protocol: ${webSocketUrl.protocol}`,
+        );
+      }
+      return newWebSocketRpcSession<GatewayApi>(webSocketUrl.href);
+    },
+    catch: cause =>
+      ZerospinError.isZerospinError(cause)
+        ? cause
+        : new ZerospinError({
+            code: 'user-authentication-transport-failed',
+            message: 'Failed to open the Zerospin user capability transport',
+            cause: ZerospinError.prettyUnknownFailure(cause),
+          }),
+  });
+  const authenticatedApi = yield* Effect.tryPromise({
+    try: async () =>
+      await gatewayApi.getAuthenticatedApi({
+        publishableKey: Redacted.value(publishableKey),
+        authenticationLock: props.authenticationLock,
+        signature,
       }),
-    admitted => Effect.sync(admitted.releaseFrontendApi),
+    catch: cause =>
+      ZerospinError.isZerospinError(cause)
+        ? cause
+        : new ZerospinError({
+            code: 'user-authentication-transport-failed',
+            message: 'Failed to authenticate the Zerospin user',
+            cause: ZerospinError.prettyUnknownFailure(cause),
+          }),
+  }).pipe(
+    Effect.onError(() => Effect.sync(() => gatewayApi[Symbol.dispose]())),
   );
+  const authentication = yield* Effect.tryPromise({
+    try: async () => await authenticatedApi.getAuthentication(),
+    catch: cause =>
+      ZerospinError.isZerospinError(cause)
+        ? cause
+        : new ZerospinError({
+            code: 'user-authentication-transport-failed',
+            message: 'Failed to read the authenticated Zerospin identity',
+            cause: ZerospinError.prettyUnknownFailure(cause),
+          }),
+  }).pipe(
+    Effect.flatMap(decodeRpc),
+    Effect.onError(() => Effect.sync(() => gatewayApi[Symbol.dispose]())),
+  );
+
+  let released = false;
+  return {
+    authenticationLock: authentication.authenticationLock,
+    systemId: authentication.systemId,
+    systemName: authentication.systemName,
+    systemVersion: authentication.systemVersion,
+    userId: authentication.userId,
+    authenticatedApi,
+    releaseAuthenticatedApi() {
+      if (released) return;
+      released = true;
+      gatewayApi[Symbol.dispose]();
+    },
+  };
 }, annotateFunctionSpan);

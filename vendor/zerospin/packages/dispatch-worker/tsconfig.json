@@ -5,7 +5,6 @@
     "moduleResolution": "Bundler",
     "rootDir": "./src",
     "outDir": "./dist",
-    "esModuleInterop": true,
     "skipLibCheck": true,
     "target": "es2022",
     "moduleDetection": "force",
@@ -13,48 +12,25 @@
     "lib": ["dom", "dom.iterable", "esnext", "es2021"],
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "allowUnusedLabels": false,
-    "allowUnreachableCode": false,
-    "noPropertyAccessFromIndexSignature": false,
     "exactOptionalPropertyTypes": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
     "incremental": true,
     "composite": true,
     "declaration": true,
     "declarationMap": true,
-    "plugins": [
-      {
-        "name": "@effect/language-service"
-      }
-    ],
+    "plugins": [{ "name": "@effect/language-service" }],
     "types": ["node"],
     "paths": {
-      "@zerospin/core/*": ["../core/src/*"],
-      "system-worker/*": ["../../packages/system-worker/src/*"],
-      "system-worker": ["../../packages/system-worker/src/SystemWorker.ts"]
+      "@zerospin/core/*": ["../core/src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "include": ["src/**/*.ts"],
   "references": [
-    {
-      "path": "../system-worker"
-    },
-    {
-      "path": "../system"
-    },
-    {
-      "path": "../logger"
-    },
-    {
-      "path": "../error"
-    },
-    {
-      "path": "../core"
-    }
+    { "path": "../system-worker" },
+    { "path": "../error" },
+    { "path": "../core" }
   ]
 }

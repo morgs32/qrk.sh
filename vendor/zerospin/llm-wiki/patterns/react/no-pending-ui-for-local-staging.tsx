@@ -19,19 +19,16 @@ export function CreateItemButton() {
         type="button"
         onClick={() => {
           setError(null);
-          void session
-            .stageCommand({
-              contractName: 'createItem',
-              payload: {},
-            })
-            .then(result => {
-              if (result._tag === 'Left') {
-                setError(result.left.message);
-                return;
-              }
+          const result = session.stageCommand({
+            contractName: 'createItem',
+            payload: {},
+          });
+          if (result._tag === 'Left') {
+            setError(result.left.message);
+            return;
+          }
 
-              navigate(`/items/${result.right.payload.id}`);
-            });
+          navigate(`/items/${result.right.payload.id}`);
         }}
       >
         Create item

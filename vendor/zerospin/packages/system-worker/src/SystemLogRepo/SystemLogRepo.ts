@@ -28,8 +28,8 @@ import { Effect, Schema } from 'effect';
 import { BrandTypeId } from 'effect/Brand';
 import { assert, type Equals } from 'tsafe';
 
-import { makeRepo } from '../makeRepo/makeRepo.js';
-import { makeRepoUtils } from '../makeRepo/makeRepoUtils.js';
+import { makeBoundDORepo } from '../makeBoundDORepo/makeBoundDORepo.js';
+import { makeBoundDORepoConfig } from '../makeBoundDORepo/makeBoundDORepoConfig.js';
 import { managedRuntime } from '../managedRuntime.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
@@ -56,9 +56,6 @@ const logRowShape = Object.freeze({
   }),
   generationId: primitives.opaqueId({
     abbreviation: coreAbbreviations.generation,
-  }),
-  deployId: primitives.opaqueId({
-    abbreviation: coreAbbreviations.deploy,
   }),
   payload: primitives.json({
     schema: Schema.Unknown,
@@ -92,9 +89,6 @@ const telemetrySpanShape = {
   generationId: primitives.opaqueId({
     abbreviation: coreAbbreviations.generation,
   }),
-  deployId: primitives.opaqueId({
-    abbreviation: coreAbbreviations.deploy,
-  }),
 };
 
 assert<
@@ -102,7 +96,7 @@ assert<
     Readonly<
       Omit<
         InferDecodedRow<typeof telemetrySpanShape>,
-        'systemId' | 'generationId' | 'deployId'
+        'systemId' | 'generationId'
       >
     >,
     ISpanRecord
@@ -151,9 +145,6 @@ const telemetryLogShape = {
   generationId: primitives.opaqueId({
     abbreviation: coreAbbreviations.generation,
   }),
-  deployId: primitives.opaqueId({
-    abbreviation: coreAbbreviations.deploy,
-  }),
 };
 
 assert<
@@ -161,7 +152,7 @@ assert<
     Readonly<
       Omit<
         InferDecodedRow<typeof telemetryLogShape>,
-        'systemId' | 'generationId' | 'deployId'
+        'systemId' | 'generationId'
       >
     >,
     ILogRecord
@@ -185,9 +176,6 @@ const telemetryLinkShape = {
   generationId: primitives.opaqueId({
     abbreviation: coreAbbreviations.generation,
   }),
-  deployId: primitives.opaqueId({
-    abbreviation: coreAbbreviations.deploy,
-  }),
 };
 
 assert<
@@ -195,7 +183,7 @@ assert<
     Readonly<
       Omit<
         InferDecodedRow<typeof telemetryLinkShape>,
-        'systemId' | 'generationId' | 'deployId'
+        'systemId' | 'generationId'
       >
     >,
     ISpanLinkRecord
@@ -262,7 +250,7 @@ export const systemLogRepoDrizzleSchemas = systemLogRepoDbConfig.schema;
 
 export const systemLogRowSchema = makeEffectSchema(logRowShape);
 
-const systemLogRepoUtils = makeRepoUtils({
+const systemLogBoundDORepoConfig = makeBoundDORepoConfig({
   abbreviation: systemWorkerAbbreviations.systemLogRepo,
   repoType: 'SystemLogRepo',
   namePattern: RoutePattern.parse('/:generationId'),
@@ -273,13 +261,14 @@ const systemLogRepoUtils = makeRepoUtils({
   }),
 });
 
-export class SystemLogRepo extends makeRepo({ repoUtils: systemLogRepoUtils }) {
+export class SystemLogRepo extends makeBoundDORepo({
+  boundDORepoConfig: systemLogBoundDORepoConfig,
+}) {
   declare [BrandTypeId]: { readonly TargetApi: 'TargetApi' };
 
-  static override readonly repoUtils = systemLogRepoUtils;
+  static override readonly boundDORepoConfig = systemLogBoundDORepoConfig;
 
   async appendLogRow(props: {
-    deployId: string;
     level: ISystemLogLevel;
     message: string;
     payload?: unknown | null;
@@ -288,7 +277,6 @@ export class SystemLogRepo extends makeRepo({ repoUtils: systemLogRepoUtils }) {
     return managedRuntime.runPromise(
       appendLogRow({
         db: this.db,
-        deployId: props.deployId,
         generationId: this.key.generationId,
         level: props.level,
         message: props.message,
@@ -301,13 +289,11 @@ export class SystemLogRepo extends makeRepo({ repoUtils: systemLogRepoUtils }) {
 
   async appendTelemetryBatch(props: {
     batch: ITelemetryBatch;
-    deployId: string;
   }): Promise<Schema.EitherEncoded<void, IAnyErrorJson>> {
     return managedRuntime.runPromise(
       appendTelemetryBatch({
         batch: props.batch,
         db: this.db,
-        deployId: props.deployId,
         generationId: this.key.generationId,
         systemId: this.env.ZEROSPIN_SYSTEM_ID,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),

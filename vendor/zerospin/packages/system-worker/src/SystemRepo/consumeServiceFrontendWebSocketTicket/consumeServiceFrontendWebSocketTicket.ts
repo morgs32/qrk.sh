@@ -5,12 +5,12 @@
  */
 
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
-import type { IActorId, IAnyDrizzleSchema } from '@zerospin/core/models/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
+import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { and, eq, type AnyColumn } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
+import { isEqual } from 'es-toolkit';
 
 import { assertGenerationAdmission } from '../assertGenerationAdmission/assertGenerationAdmission.js';
 
@@ -18,7 +18,6 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
   'SystemRepo.consumeServiceFrontendWebSocketTicket',
 )(function* (props: {
   db: IDb;
-  generationId: string;
   ticket: string;
   generationStateTable: IAnyDrizzleSchema;
   generationStateColumns: Readonly<{
@@ -27,27 +26,27 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
   serviceFrontendWebSocketTicketTable: IAnyDrizzleSchema;
   serviceFrontendWebSocketTicketColumns: Readonly<{
     ticketHash: AnyColumn;
-    deployId: AnyColumn;
+    generationId: AnyColumn;
     expiresAt: AnyColumn;
+    repoName: AnyColumn;
     serviceName: AnyColumn;
-    actorName: AnyColumn;
-    actorId: AnyColumn;
+    userId: AnyColumn;
     frontendName: AnyColumn;
-    frontendVersion: AnyColumn;
+    serviceFrontendLock: AnyColumn;
   }>;
 }): Effect.fn.Return<
   Readonly<{
+    generationId: string;
+    repoName: string;
     serviceName: string;
-    actorName: string;
-    actorId: IActorId;
+    userId: string;
     frontendName: string;
-    frontendVersion: string;
+    serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
   }>,
   IAnyError
 > {
   const {
     db,
-    generationId,
     generationStateColumns,
     generationStateTable,
     serviceFrontendWebSocketTicketColumns,
@@ -58,9 +57,11 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
   // Checkpoint 1: malformed, unknown, expired, and already-spent tickets share
   // one public failure so storage state and target identity are not disclosed.
   const ticketParts = ticket.split('.');
+  const generationId = ticketParts[0];
   if (
     ticketParts.length !== 2 ||
-    ticketParts[0] !== generationId ||
+    generationId === undefined ||
+    !generationId.startsWith('gen_') ||
     ticketParts[1] === undefined ||
     !/^[A-Za-z0-9_-]{43}$/.test(ticketParts[1])
   ) {
@@ -86,14 +87,22 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
     .replaceAll('/', '_')
     .replaceAll('=', '');
 
-  // Checkpoint 2: load the stored deploy and exact actor-specific target from
+  // Checkpoint 2: load the stored generation and exact actor-specific target from
   // the ticket hash. No raw credential enters logs or error metadata.
   const rawTicketRow = yield* Effect.try({
     try: () =>
       db
         .select()
         .from(serviceFrontendWebSocketTicketTable)
-        .where(eq(serviceFrontendWebSocketTicketColumns.ticketHash, ticketHash))
+        .where(
+          and(
+            eq(
+              serviceFrontendWebSocketTicketColumns.generationId,
+              generationId,
+            ),
+            eq(serviceFrontendWebSocketTicketColumns.ticketHash, ticketHash),
+          ),
+        )
         .get(),
     catch: ZerospinError.catch({
       code: 'service-frontend-websocket-ticket-read-failed',
@@ -110,13 +119,13 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
 
   const ticketRow = yield* Schema.decodeUnknown(
     Schema.Struct({
-      deployId: Schema.String,
+      generationId: Schema.String,
       expiresAt: Schema.DateFromSelf,
+      repoName: Schema.String,
       serviceName: Schema.String,
-      actorName: Schema.String,
-      actorId: makeAbbreviationIdSchema(coreAbbreviations.actor),
+      userId: Schema.String,
       frontendName: Schema.String,
-      frontendVersion: Schema.String,
+      serviceFrontendLock: Schema.parseJson(ServiceFrontendLockSchema),
     }),
   )(rawTicketRow).pipe(
     mapParseError({
@@ -133,7 +142,13 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
         db
           .delete(serviceFrontendWebSocketTicketTable)
           .where(
-            eq(serviceFrontendWebSocketTicketColumns.ticketHash, ticketHash),
+            and(
+              eq(
+                serviceFrontendWebSocketTicketColumns.generationId,
+                generationId,
+              ),
+              eq(serviceFrontendWebSocketTicketColumns.ticketHash, ticketHash),
+            ),
           )
           .run(),
       catch: ZerospinError.catch({
@@ -148,11 +163,10 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
     });
   }
 
-  // Checkpoint 3: an already-issued ticket remains readable while the source
-  // generation is frozen, but never after completion marks it drained.
+  // Checkpoint 3: an already-issued ticket remains readable after source
+  // retirement; only expiry, consumption, or an unreadable route invalidates it.
   yield* assertGenerationAdmission({
     db,
-    deployId: ticketRow.deployId,
     generationId,
     generationStateTable,
     generationStateColumns,
@@ -169,8 +183,8 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
           and(
             eq(serviceFrontendWebSocketTicketColumns.ticketHash, ticketHash),
             eq(
-              serviceFrontendWebSocketTicketColumns.deployId,
-              ticketRow.deployId,
+              serviceFrontendWebSocketTicketColumns.generationId,
+              generationId,
             ),
             eq(
               serviceFrontendWebSocketTicketColumns.expiresAt,
@@ -179,12 +193,13 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
           ),
         )
         .returning({
+          generationId: serviceFrontendWebSocketTicketColumns.generationId,
+          repoName: serviceFrontendWebSocketTicketColumns.repoName,
           serviceName: serviceFrontendWebSocketTicketColumns.serviceName,
-          actorName: serviceFrontendWebSocketTicketColumns.actorName,
-          actorId: serviceFrontendWebSocketTicketColumns.actorId,
+          userId: serviceFrontendWebSocketTicketColumns.userId,
           frontendName: serviceFrontendWebSocketTicketColumns.frontendName,
-          frontendVersion:
-            serviceFrontendWebSocketTicketColumns.frontendVersion,
+          serviceFrontendLock:
+            serviceFrontendWebSocketTicketColumns.serviceFrontendLock,
         })
         .get(),
     catch: ZerospinError.catch({
@@ -202,11 +217,12 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
 
   const consumedTarget = yield* Schema.decodeUnknown(
     Schema.Struct({
+      generationId: Schema.String,
+      repoName: Schema.String,
       serviceName: Schema.String,
-      actorName: Schema.String,
-      actorId: makeAbbreviationIdSchema(coreAbbreviations.actor),
+      userId: Schema.String,
       frontendName: Schema.String,
-      frontendVersion: Schema.String,
+      serviceFrontendLock: Schema.parseJson(ServiceFrontendLockSchema),
     }),
   )(deletedTicketRow).pipe(
     mapParseError({
@@ -217,11 +233,12 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
   );
 
   if (
+    consumedTarget.generationId !== ticketRow.generationId ||
+    consumedTarget.repoName !== ticketRow.repoName ||
     consumedTarget.serviceName !== ticketRow.serviceName ||
-    consumedTarget.actorName !== ticketRow.actorName ||
-    consumedTarget.actorId !== ticketRow.actorId ||
+    consumedTarget.userId !== ticketRow.userId ||
     consumedTarget.frontendName !== ticketRow.frontendName ||
-    consumedTarget.frontendVersion !== ticketRow.frontendVersion
+    !isEqual(consumedTarget.serviceFrontendLock, ticketRow.serviceFrontendLock)
   ) {
     return yield* new ZerospinError({
       code: 'service-frontend-websocket-ticket-consume-target-mismatch',

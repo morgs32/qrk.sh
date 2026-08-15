@@ -2,17 +2,22 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { makePlaywrightVitestConfig } from '@zerospin/dispatch-worker/vitest/makePlaywrightVitestConfig';
+import { makePlaywrightVitestConfig } from '@zerospin/dev-worker/vitest/makePlaywrightVitestConfig';
 import { mergeConfig } from 'vitest/config';
+
+import {
+  startAdverseFixture,
+  stopAdverseFixture,
+} from './tests/browser/adverse-fixture/adverseFixtureGlobalSetup';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default mergeConfig(
   makePlaywrightVitestConfig({
     include: [
+      'tests/browser/lastUserPartitionStore.playwright.spec.ts',
       'tests/browser/reactAndSharedWorkerFlow1.playwright.spec.ts',
       'tests/browser/reactSharedWorkerAdverse.playwright.spec.ts',
-      'tests/browser/reactDirectAndUnavailable.playwright.spec.ts',
     ],
     packageRoot: __dirname,
   }),
@@ -31,7 +36,7 @@ export default mergeConfig(
             id ===
             path.resolve(
               __dirname,
-              '../../packages/shared-worker/dist/makeSharedWorkerSession.js',
+              '../../packages/shared-worker/dist/acquireUserPartitionRepo.js',
             )
           ) {
             return code.replace(
@@ -70,12 +75,8 @@ export default mergeConfig(
           }
 
           if (
-            id.endsWith(
-              '/@livestore_wa-sqlite_dist_wa-sqlite__mjs.js',
-            ) ||
-            id.includes(
-              '/@livestore_wa-sqlite_dist_wa-sqlite__mjs.js?',
-            )
+            id.endsWith('/@livestore_wa-sqlite_dist_wa-sqlite__mjs.js') ||
+            id.includes('/@livestore_wa-sqlite_dist_wa-sqlite__mjs.js?')
           ) {
             return code.replace(
               /new URL\("[^"]*\/@livestore\/wa-sqlite\/dist\/wa-sqlite\.wasm", import\.meta\.url\)/,
@@ -96,8 +97,8 @@ export default mergeConfig(
               /new URL\("[^"]*\/wa-sqlite\/dist\/wa-sqlite-async\.wasm", import\.meta\.url\)/,
               `new URL(${JSON.stringify(
                 `/@fs${path.resolve(
-                __dirname,
-                '../../packages/shared-worker/dist/wa-sqlite-async.wasm',
+                  __dirname,
+                  '../../packages/shared-worker/dist/wa-sqlite-async.wasm',
                 )}`,
               )}, location.origin)`,
             );
@@ -113,22 +114,20 @@ export default mergeConfig(
     resolve: {
       alias: [
         {
-          find: '@zerospin/shared-worker/makeSharedWorkerSession',
+          find: '@zerospin/shared-worker/acquireUserPartitionRepo',
           replacement: path.resolve(
             __dirname,
-            '../../packages/shared-worker/dist/makeSharedWorkerSession.js',
+            '../../packages/shared-worker/dist/acquireUserPartitionRepo.js',
           ),
         },
       ],
     },
-    server: {
-      proxy: {
-        '/__zerospin': {
-          target: 'http://127.0.0.1:3035',
-        },
-      },
-    },
     optimizeDeps: {
+      entries: [
+        'tests/browser/lastUserPartitionStore.playwright.spec.ts',
+        'tests/browser/reactAndSharedWorkerFlow1.playwright.spec.ts',
+        'tests/browser/reactSharedWorkerAdverse.playwright.spec.ts',
+      ],
       include: [
         'wa-sqlite',
         'wa-sqlite/dist/wa-sqlite-async.mjs',
@@ -136,6 +135,13 @@ export default mergeConfig(
       ],
     },
     test: {
+      fileParallelism: false,
+      browser: {
+        commands: {
+          startAdverseFixture: () => startAdverseFixture(),
+          stopAdverseFixture: () => stopAdverseFixture(),
+        },
+      },
       globalSetup: [
         './tests/browser/adverse-fixture/adverseFixtureGlobalSetup.ts',
       ],

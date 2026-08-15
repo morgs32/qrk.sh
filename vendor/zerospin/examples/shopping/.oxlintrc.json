@@ -1,5 +1,6 @@
 {
   "extends": ["../../.oxlintrc.json"],
+  "ignorePatterns": ["**/lib/**"],
   "overrides": [
     {
       "files": ["**/*"],
@@ -15,6 +16,12 @@
             ]
           }
         ]
+      }
+    },
+    {
+      "files": ["tests/**/*.ts", "tests/**/*.tsx"],
+      "rules": {
+        "eslint/no-restricted-imports": "off"
       }
     }
   ],

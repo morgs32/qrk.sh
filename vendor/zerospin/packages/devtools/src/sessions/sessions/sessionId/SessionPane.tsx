@@ -9,8 +9,7 @@ import type {
   IDevtoolsWorkerState,
 } from '../../../types.js';
 
-import { SessionToolbar } from './SessionToolbar';
-import { useAccountSession, useServiceSession } from './useSession';
+import { useAggregateSession, useServiceSession } from './useSession';
 
 const styles = {
   paneRoot: {
@@ -80,11 +79,11 @@ function FileJsonIcon(props: { readonly color: string }) {
 }
 
 export function SessionPane() {
-  const accountSession = useAccountSession();
+  const aggregateSession = useAggregateSession();
   const serviceSession = useServiceSession();
 
-  if (accountSession !== undefined) {
-    return <AccountSessionPane session={accountSession} />;
+  if (aggregateSession !== undefined) {
+    return <AggregateSessionPane session={aggregateSession} />;
   }
 
   if (serviceSession !== undefined) {
@@ -130,7 +129,7 @@ function SessionWorkerState(props: {
   );
 }
 
-function AccountSessionPane(props: { readonly session: ISession }) {
+function AggregateSessionPane(props: { readonly session: ISession }) {
   const { session } = props;
 
   const isInitialized = useStore(session.store, state => state.isInitialized);
@@ -143,7 +142,6 @@ function AccountSessionPane(props: { readonly session: ISession }) {
   return (
     <div style={styles.paneRoot}>
       <SessionWorkerState workerState={workerState} />
-      <SessionToolbar />
       <div style={styles.tabsHeader}>
         <NavLink
           to="commands"

@@ -1,22 +1,30 @@
 import { act, useEffect, useState } from 'react';
 
-import type { IServiceQuery } from '@zerospin/core/actorController/types';
-import { List, main, User } from '@zerospin/core/fixtures/system';
+import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import {
+  authenticationSignature,
+  List,
+  main,
+  User,
+} from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeModel } from '@zerospin/core/models/makeModel';
 import { primitives } from '@zerospin/core/models/primitives';
+import { PublishableKey } from '@zerospin/core/services/PublishableKey';
+import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import {
   sessionOptimisticAppliedMutationDrizzleSchema,
   sessionStagedCommandDrizzleSchema,
 } from '@zerospin/core/session/sessionCommandShape';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
+import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import type * as Capnweb from 'capnweb';
-import { Either, Schema } from 'effect';
+import { Effect, Layer, ManagedRuntime, Redacted, Schema } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { makeReactFrontend } from './makeReactFrontend';
+import { makeZerospinApp } from './makeZerospinApp';
 import { makeMockProvider } from './mock';
-import { useApi } from './useApi';
 import { useInitializedStateOrThrow } from './useInitializedStateOrThrow';
 import { useLiveQuery } from './useLiveQuery';
 import { useSession } from './useSession';
@@ -60,16 +68,31 @@ vi.mock('capnweb', async importOriginal => {
   };
 });
 
-const ReactMain = makeReactFrontend({
-  frontend: main,
+const sessionRuntime = ManagedRuntime.make(
+  Layer.mergeAll(
+    AsyncLive,
+    NanoIdFactory,
+    UlidMonotonicFactory,
+    Layer.succeed(PublishableKey, Redacted.make('pk_test')),
+    Layer.succeed(ZerospinApiUrl, 'https://api.example.test'),
+  ),
+);
+
+const ZerospinMain = makeZerospinApp({
+  systemName: 'system-worker',
+  authentication: { signature: authenticationSignature },
+  frontends: {
+    main: {
+      controller: main,
+    },
+  },
+  runtime: sessionRuntime,
 });
 const MockMainProvider = makeMockProvider({
-  reactFrontend: ReactMain,
+  frontend: ZerospinMain.frontends.main,
+  runtime: sessionRuntime,
 });
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
-const remoteParamsSchema = Schema.Struct({
-  limit: Schema.Number,
-});
 const JsonDocument = makeModel(
   {
     abbreviation: 'doc',
@@ -91,18 +114,23 @@ const jsonFrontend = makeFrontendController({
   models: {
     document: JsonDocument,
   },
-  accountName: 'user',
-  actorName: 'jsonFixture',
+  aggregateName: 'user',
   frontendName: 'main',
-  version: '1.0.0',
   systemName: 'mock-json-fixture-test',
-  signature: Schema.Struct({}),
 });
-const ReactJsonFixture = makeReactFrontend({
-  frontend: jsonFrontend,
+const ZerospinJsonFixture = makeZerospinApp({
+  systemName: 'mock-json-fixture-test',
+  authentication: { signature: authenticationSignature },
+  frontends: {
+    main: {
+      controller: jsonFrontend,
+    },
+  },
+  runtime: sessionRuntime,
 });
 const MockJsonFixtureProvider = makeMockProvider({
-  reactFrontend: ReactJsonFixture,
+  frontend: ZerospinJsonFixture.frontends.main,
+  runtime: sessionRuntime,
 });
 
 describe('makeMockProvider', () => {
@@ -139,9 +167,9 @@ describe('makeMockProvider', () => {
 
   it('gates children until real SQLite initialization and publishes typed seeded and empty models', async () => {
     const Probe = () => {
-      const session = useSession(ReactMain);
-      const state = useInitializedStateOrThrow(ReactMain);
-      const users = useLiveQuery(ReactMain, {
+      const session = useSession(ZerospinMain.frontends.main);
+      const state = useInitializedStateOrThrow(ZerospinMain.frontends.main);
+      const users = useLiveQuery(ZerospinMain.frontends.main, {
         query: db =>
           db.query.user.findMany({
             with: {
@@ -149,26 +177,21 @@ describe('makeMockProvider', () => {
             },
           }),
       });
-      const items = useLiveQuery(ReactMain, {
+      const items = useLiveQuery(ZerospinMain.frontends.main, {
         query: db => db.query.item.findMany(),
       });
-      const accounts = useLiveQuery(ReactMain, {
+      const accounts = useLiveQuery(ZerospinMain.frontends.main, {
         query: db => db.query.account.findMany(),
       });
 
       return (
         <output
           data-testid="ready"
-          data-account-id={state.accountId}
-          data-actor-id={state.actorId}
-          data-generation-id={state.generationId}
+          data-aggregate-id={state.aggregateId}
+          data-user-id={state.userId}
           data-session-id={session.sessionId}
-          data-shared-worker={String(
-            session.browserPartitionController.isSharedWorkerEnabled,
-          )}
+          data-shared-worker={state.workerState.mode}
           data-system-version={state.systemVersion}
-          data-system-worker-name={state.systemWorkerName}
-          data-partition-key={session.browserPartitionController.partitionKey}
         >
           {JSON.stringify({
             accounts: accounts.data,
@@ -182,16 +205,14 @@ describe('makeMockProvider', () => {
     act(() => {
       root.render(
         <MockMainProvider
-          partitionKey="browser_partition_1"
-          accountId="acct_1"
-          actorId="actr_1"
-          generationId="gen_1"
+          userId="user_1"
+          aggregateIds={{ user: 'acct_1' }}
+          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           systemVersion="1.0.0"
-          systemWorkerName="worker_1"
           resources={{
             user: [
               {
-                actorId: 'actr_1',
+                userId: 'user_1',
                 createdAt: fixtureDate,
                 id: 'usr_1',
                 modelName: User.modelName,
@@ -229,16 +250,11 @@ describe('makeMockProvider', () => {
     );
 
     const output = container.querySelector('[data-testid="ready"]');
-    expect(output?.getAttribute('data-account-id')).toBe('acct_1');
-    expect(output?.getAttribute('data-actor-id')).toBe('actr_1');
-    expect(output?.getAttribute('data-generation-id')).toBe('gen_1');
+    expect(output?.getAttribute('data-aggregate-id')).toBe('acct_1');
+    expect(output?.getAttribute('data-user-id')).toBe('user_1');
     expect(output?.getAttribute('data-session-id')).toMatch(/^sesn_/);
-    expect(output?.getAttribute('data-shared-worker')).toBe('false');
+    expect(output?.getAttribute('data-shared-worker')).toBe('shared-worker');
     expect(output?.getAttribute('data-system-version')).toBe('1.0.0');
-    expect(output?.getAttribute('data-system-worker-name')).toBe('worker_1');
-    expect(output?.getAttribute('data-partition-key')).toBe(
-      'browser_partition_1',
-    );
     expect(output?.textContent).toContain('User 1');
     expect(output?.textContent).toContain('List 1');
     expect(output?.textContent).toContain('"items":[]');
@@ -257,16 +273,16 @@ describe('makeMockProvider', () => {
 
   it('migrates every model table as empty when resources are omitted', async () => {
     const EmptyModelsProbe = () => {
-      const accounts = useLiveQuery(ReactMain, {
+      const accounts = useLiveQuery(ZerospinMain.frontends.main, {
         query: db => db.query.account.findMany(),
       });
-      const items = useLiveQuery(ReactMain, {
+      const items = useLiveQuery(ZerospinMain.frontends.main, {
         query: db => db.query.item.findMany(),
       });
-      const lists = useLiveQuery(ReactMain, {
+      const lists = useLiveQuery(ZerospinMain.frontends.main, {
         query: db => db.query.list.findMany(),
       });
-      const users = useLiveQuery(ReactMain, {
+      const users = useLiveQuery(ZerospinMain.frontends.main, {
         query: db => db.query.user.findMany(),
       });
 
@@ -285,12 +301,10 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          partitionKey="browser_partition_1"
-          accountId="acct_1"
-          actorId="actr_1"
-          generationId="gen_1"
+          userId="user_1"
+          aggregateIds={{ user: 'acct_1' }}
+          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           systemVersion="1.0.0"
-          systemWorkerName="worker_1"
         >
           <EmptyModelsProbe />
         </MockMainProvider>,
@@ -311,7 +325,7 @@ describe('makeMockProvider', () => {
 
   it('encodes a decoded JSON fixture for the real Drizzle row', async () => {
     const JsonFixtureProbe = () => {
-      const documents = useLiveQuery(ReactJsonFixture, {
+      const documents = useLiveQuery(ZerospinJsonFixture.frontends.main, {
         query: db => db.query.document.findMany(),
       });
 
@@ -325,12 +339,10 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockJsonFixtureProvider
-          partitionKey="browser_partition_1"
-          accountId="acct_1"
-          actorId="actr_1"
-          generationId="gen_1"
+          userId="user_1"
+          aggregateIds={{ user: 'acct_1' }}
+          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           systemVersion="1.0.0"
-          systemWorkerName="worker_1"
           resources={{
             document: [
               {
@@ -367,8 +379,8 @@ describe('makeMockProvider', () => {
     const listSnapshots: string[] = [];
 
     const StagingProbe = () => {
-      const session = useSession(ReactMain);
-      const lists = useLiveQuery(ReactMain, {
+      const session = useSession(ZerospinMain.frontends.main);
+      const lists = useLiveQuery(ZerospinMain.frontends.main, {
         query: db => db.query.list.findMany(),
       });
       const [optimisticRowCount, setOptimisticRowCount] = useState(0);
@@ -380,31 +392,28 @@ describe('makeMockProvider', () => {
       }, [lists.data]);
 
       useEffect(() => {
-        void session
-          .stageCommand({
-            contractName: 'createList',
-            payload: {
-              id: 'lst_staged',
-              name: 'Staged List',
-              userId: 'usr_1',
-            },
-          })
-          .then(result => {
-            setStageResult(result._tag);
-            const state = session.store.getState();
-            if (state.isInitialized) {
-              setOptimisticRowCount(
-                state.db
-                  .select()
-                  .from(sessionOptimisticAppliedMutationDrizzleSchema)
-                  .all().length,
-              );
-              setStagedRowCount(
-                state.db.select().from(sessionStagedCommandDrizzleSchema).all()
-                  .length,
-              );
-            }
-          });
+        const result = session.stageCommand({
+          contractName: 'createList',
+          payload: {
+            id: 'lst_staged',
+            name: 'Staged List',
+            userId: 'usr_1',
+          },
+        });
+        setStageResult(result._tag);
+        const state = session.store.getState();
+        if (state.isInitialized) {
+          setOptimisticRowCount(
+            state.db
+              .select()
+              .from(sessionOptimisticAppliedMutationDrizzleSchema)
+              .all().length,
+          );
+          setStagedRowCount(
+            state.db.select().from(sessionStagedCommandDrizzleSchema).all()
+              .length,
+          );
+        }
       }, [session]);
 
       return (
@@ -426,16 +435,14 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          partitionKey="browser_partition_1"
-          accountId="acct_1"
-          actorId="actr_1"
-          generationId="gen_1"
+          userId="user_1"
+          aggregateIds={{ user: 'acct_1' }}
+          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           systemVersion="1.0.0"
-          systemWorkerName="worker_1"
           resources={{
             user: [
               {
-                actorId: 'actr_1',
+                userId: 'user_1',
                 createdAt: fixtureDate,
                 id: 'usr_1',
                 modelName: User.modelName,
@@ -471,23 +478,17 @@ describe('makeMockProvider', () => {
 
   it('captures fixture and identity props once and uses a new key as the reset boundary', async () => {
     const IdentityProbe = () => {
-      const session = useSession(ReactMain);
-      const state = useInitializedStateOrThrow(ReactMain);
-      const users = useLiveQuery(ReactMain, {
+      const state = useInitializedStateOrThrow(ZerospinMain.frontends.main);
+      const users = useLiveQuery(ZerospinMain.frontends.main, {
         query: db => db.query.user.findMany(),
       });
 
       return (
         <output
           data-testid="identity"
-          data-account-id={state.accountId}
-          data-actor-id={state.actorId}
-          data-browser-partition-key={
-            session.browserPartitionController.partitionKey
-          }
-          data-generation-id={state.generationId}
+          data-aggregate-id={state.aggregateId}
+          data-user-id={state.userId}
           data-system-version={state.systemVersion}
-          data-system-worker-name={state.systemWorkerName}
         >
           {users.data.map(user => user.name).join(',')}
         </output>
@@ -497,16 +498,14 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          partitionKey="browser_partition_1"
-          accountId="acct_1"
-          actorId="actr_1"
-          generationId="gen_1"
+          userId="user_1"
+          aggregateIds={{ user: 'acct_1' }}
+          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           systemVersion="1.0.0"
-          systemWorkerName="worker_1"
           resources={{
             user: [
               {
-                actorId: 'actr_1',
+                userId: 'user_1',
                 createdAt: fixtureDate,
                 id: 'usr_1',
                 modelName: User.modelName,
@@ -535,16 +534,14 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          partitionKey="browser_partition_2"
-          accountId="acct_2"
-          actorId="actr_2"
-          generationId="gen_2"
+          userId="user_2"
+          aggregateIds={{ user: 'acct_2' }}
+          generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
           systemVersion="2.0.0"
-          systemWorkerName="worker_2"
           resources={{
             user: [
               {
-                actorId: 'actr_2',
+                userId: 'user_2',
                 createdAt: fixtureDate,
                 id: 'usr_2',
                 modelName: User.modelName,
@@ -562,16 +559,9 @@ describe('makeMockProvider', () => {
     });
 
     const unchangedOutput = container.querySelector('[data-testid="identity"]');
-    expect(unchangedOutput?.getAttribute('data-account-id')).toBe('acct_1');
-    expect(unchangedOutput?.getAttribute('data-actor-id')).toBe('actr_1');
-    expect(unchangedOutput?.getAttribute('data-browser-partition-key')).toBe(
-      'browser_partition_1',
-    );
-    expect(unchangedOutput?.getAttribute('data-generation-id')).toBe('gen_1');
+    expect(unchangedOutput?.getAttribute('data-aggregate-id')).toBe('acct_1');
+    expect(unchangedOutput?.getAttribute('data-user-id')).toBe('user_1');
     expect(unchangedOutput?.getAttribute('data-system-version')).toBe('1.0.0');
-    expect(unchangedOutput?.getAttribute('data-system-worker-name')).toBe(
-      'worker_1',
-    );
     expect(unchangedOutput?.textContent).toContain('Original User');
     expect(unchangedOutput?.textContent).not.toContain('Replacement User');
 
@@ -579,16 +569,14 @@ describe('makeMockProvider', () => {
       root.render(
         <MockMainProvider
           key="reset"
-          partitionKey="browser_partition_2"
-          accountId="acct_2"
-          actorId="actr_2"
-          generationId="gen_2"
+          userId="user_2"
+          aggregateIds={{ user: 'acct_2' }}
+          generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
           systemVersion="2.0.0"
-          systemWorkerName="worker_2"
           resources={{
             user: [
               {
-                actorId: 'actr_2',
+                userId: 'user_2',
                 createdAt: fixtureDate,
                 id: 'usr_2',
                 modelName: User.modelName,
@@ -608,16 +596,9 @@ describe('makeMockProvider', () => {
     await vi.waitFor(
       () => {
         const resetOutput = container.querySelector('[data-testid="identity"]');
-        expect(resetOutput?.getAttribute('data-account-id')).toBe('acct_2');
-        expect(resetOutput?.getAttribute('data-actor-id')).toBe('actr_2');
-        expect(resetOutput?.getAttribute('data-browser-partition-key')).toBe(
-          'browser_partition_2',
-        );
-        expect(resetOutput?.getAttribute('data-generation-id')).toBe('gen_2');
+        expect(resetOutput?.getAttribute('data-aggregate-id')).toBe('acct_2');
+        expect(resetOutput?.getAttribute('data-user-id')).toBe('user_2');
         expect(resetOutput?.getAttribute('data-system-version')).toBe('2.0.0');
-        expect(resetOutput?.getAttribute('data-system-worker-name')).toBe(
-          'worker_2',
-        );
         expect(resetOutput?.textContent).toContain('Replacement User');
         expect(sqliteCloseBoundary).toHaveBeenCalledTimes(1);
       },
@@ -635,80 +616,18 @@ describe('makeMockProvider', () => {
     });
   });
 
-  it('fails an actor API before constructing an RPC session', async () => {
-    const RemoteApiProbe = () => {
-      const api = useApi<{
-        name: 'main';
-        api: {
-          getProducts: IServiceQuery<
-            'getProducts',
-            {},
-            typeof remoteParamsSchema,
-            { total: number }
-          >;
-        };
-      }>(ReactMain);
-      const [errorCode, setErrorCode] = useState('pending');
-
-      useEffect(() => {
-        void api
-          .executeActorQuery({
-            queryName: 'getProducts',
-            params: {
-              limit: 7,
-            },
-          })
-          .then(result => {
-            if (Either.isLeft(result)) {
-              setErrorCode(result.left.code);
-            }
-          });
-      }, [api]);
-
-      return <output data-testid="remote-error">{errorCode}</output>;
-    };
-
-    await act(async () => {
-      root.render(
-        <MockMainProvider
-          partitionKey="browser_partition_1"
-          accountId="acct_1"
-          actorId="actr_1"
-          generationId="gen_1"
-          systemVersion="1.0.0"
-          systemWorkerName="worker_1"
-        >
-          <RemoteApiProbe />
-        </MockMainProvider>,
-      );
-      await Promise.resolve();
-    });
-
-    await vi.waitFor(
-      () => {
-        expect(
-          container.querySelector('[data-testid="remote-error"]')?.textContent,
-        ).toBe('mock-session-remote-api-unsupported');
-      },
-      { timeout: 10_000 },
-    );
-    expect(newHttpBatchRpcSessionMock).not.toHaveBeenCalled();
-  });
-
   it('closes the database exactly once when fixture initialization fails after open', async () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          partitionKey="browser_partition_1"
-          accountId="acct_1"
-          actorId="actr_1"
-          generationId="gen_1"
+          userId="user_1"
+          aggregateIds={{ user: 'acct_1' }}
+          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           systemVersion="1.0.0"
-          systemWorkerName="worker_1"
           resources={{
             user: [
               {
-                actorId: 'actr_1',
+                userId: 'user_1',
                 createdAt: fixtureDate,
                 id: 'usr_duplicate',
                 modelName: User.modelName,
@@ -717,7 +636,7 @@ describe('makeMockProvider', () => {
                 version: User.version,
               },
               {
-                actorId: 'actr_2',
+                userId: 'user_2',
                 createdAt: fixtureDate,
                 id: 'usr_duplicate',
                 modelName: User.modelName,
@@ -759,12 +678,10 @@ describe('makeMockProvider', () => {
     act(() => {
       root.render(
         <MockMainProvider
-          partitionKey="browser_partition_1"
-          accountId="acct_1"
-          actorId="actr_1"
-          generationId="gen_1"
+          userId="user_1"
+          aggregateIds={{ user: 'acct_1' }}
+          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           systemVersion="1.0.0"
-          systemWorkerName="worker_1"
         >
           <div data-testid="late-child" />
         </MockMainProvider>,

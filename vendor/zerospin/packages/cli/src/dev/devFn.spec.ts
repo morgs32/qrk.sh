@@ -1,64 +1,56 @@
-import { EventEmitter } from 'node:events';
-import os from 'node:os';
 import path from 'node:path';
-import { PassThrough } from 'node:stream';
 
+import {
+  Command,
+  CommandExecutor,
+  FileSystem,
+  Path,
+  Terminal,
+} from '@effect/platform';
+import * as NodePath from '@effect/platform-node/NodePath';
+import { it } from '@effect/vitest';
+import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { Effect, Fiber } from 'effect';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  Deferred,
+  Effect,
+  Fiber,
+  Inspectable,
+  Layer,
+  Queue,
+  Sink,
+  Stream,
+  TestClock,
+} from 'effect';
+import { beforeEach, describe, expect, vi } from 'vitest';
 
 import { devFn } from './devFn.js';
 
 const {
-  fetchMock,
+  disposeGatewayMock,
+  getDeployMock,
+  getDevDeployApiMock,
   loadEnvMock,
-  loadConfigMock,
+  loadWranglerConfigMock,
   loadZerospinConfigMock,
-  mkdirMock,
-  randomUUIDMock,
-  readFileMock,
+  newSyncRpcSessionMock,
+  startDeployMock,
   resolveMock,
-  rmMock,
-  spawnMock,
-  writeFileMock,
 } = vi.hoisted(() => ({
-  fetchMock: vi.fn(),
+  disposeGatewayMock: vi.fn(),
+  getDeployMock: vi.fn(),
+  getDevDeployApiMock: vi.fn(),
   loadEnvMock: vi.fn(),
-  loadConfigMock: vi.fn(),
+  loadWranglerConfigMock: vi.fn(),
   loadZerospinConfigMock: vi.fn(),
-  mkdirMock: vi.fn(),
-  randomUUIDMock: vi.fn(),
-  readFileMock: vi.fn(),
+  newSyncRpcSessionMock: vi.fn(),
+  startDeployMock: vi.fn(),
   resolveMock: vi.fn(),
-  rmMock: vi.fn(),
-  spawnMock: vi.fn(),
-  writeFileMock: vi.fn(),
 }));
 
-vi.stubGlobal('fetch', fetchMock);
-
-vi.mock('node:child_process', () => ({
-  spawn: spawnMock,
+vi.mock('@zerospin/core/utils/newSyncRpcSession', () => ({
+  newSyncRpcSession: newSyncRpcSessionMock,
 }));
-
-vi.mock('node:crypto', () => ({
-  randomUUID: randomUUIDMock,
-}));
-
-vi.mock('node:fs/promises', async importOriginal => {
-  const actual = await importOriginal<typeof import('node:fs/promises')>();
-
-  return {
-    ...actual,
-    default: {
-      ...actual,
-      mkdir: mkdirMock,
-      readFile: readFileMock,
-      rm: rmMock,
-      writeFile: writeFileMock,
-    },
-  };
-});
 
 vi.mock('node:module', () => ({
   createRequire: () => ({
@@ -66,56 +58,144 @@ vi.mock('node:module', () => ({
   }),
 }));
 
-vi.mock('c12', () => ({
-  loadConfig: loadConfigMock,
-}));
-
 vi.mock('dotenv', () => ({
   config: loadEnvMock,
+}));
+
+vi.mock('c12', () => ({
+  loadConfig: loadWranglerConfigMock,
 }));
 
 vi.mock('../deploy/loadZerospinConfigFn.js', () => ({
   loadZerospinConfigFn: loadZerospinConfigMock,
 }));
 
-describe('devFn', () => {
-  const originalClerkJwtKey = process.env['CLERK_JWT_KEY'];
+const fileSystemRemoveMock = vi.fn();
+const fileSystemWriteMock = vi.fn();
+const killMock = vi.fn();
+const terminalDisplayMock = vi.fn();
 
+let commandStarted: Deferred.Deferred<Command.Command>;
+let exitCode: Deferred.Deferred<CommandExecutor.ExitCode>;
+let stdout: Queue.Queue<string>;
+let wranglerProcess: CommandExecutor.Process;
+
+const commandExecutor = CommandExecutor.makeExecutor(command =>
+  Effect.gen(function* () {
+    yield* Deferred.succeed(commandStarted, command);
+    return yield* Effect.acquireRelease(
+      Effect.succeed(wranglerProcess),
+      process =>
+        process.isRunning.pipe(
+          Effect.flatMap(running =>
+            running ? process.kill('SIGTERM') : Effect.void,
+          ),
+          Effect.ignore,
+        ),
+    );
+  }),
+);
+
+const testLayer: Layer.Layer<
+  | Async
+  | CommandExecutor.CommandExecutor
+  | FileSystem.FileSystem
+  | Path.Path
+  | Terminal.Terminal
+> = Layer.mergeAll(
+  AsyncLive,
+  NodePath.layer,
+  FileSystem.layerNoop({
+    remove: (filePath, options) =>
+      Effect.sync(() => fileSystemRemoveMock(filePath, options)),
+    writeFileString: (filePath, data, options) =>
+      Effect.sync(() => fileSystemWriteMock(filePath, data, options)),
+  }),
+  Layer.succeed(Terminal.Terminal, {
+    columns: Effect.succeed(80),
+    display: text => Effect.sync(() => terminalDisplayMock(text)),
+    isTTY: Effect.succeed(false),
+    readInput: Effect.die('Terminal.readInput is not used by devFn'),
+    readLine: Effect.die('Terminal.readLine is not used by devFn'),
+    rows: Effect.succeed(24),
+  }),
+  Layer.succeed(CommandExecutor.CommandExecutor, commandExecutor),
+);
+
+describe('devFn', () => {
   beforeEach(() => {
-    process.env['CLERK_JWT_KEY'] = 'local-clerk-jwt-public-key';
-    fetchMock.mockReset();
-    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
-    loadEnvMock.mockReset();
-    loadConfigMock.mockReset();
-    loadConfigMock.mockResolvedValue({
-      config: {
-        name: 'zerospin-test',
-        main: './src/Worker.ts',
-        compatibility_date: '2026-01-20',
-        compatibility_flags: ['nodejs_compat'],
-        alias: {
-          system: './src/system.ts',
-        },
-        migrations: [
-          {
-            tag: 'v1',
-            new_sqlite_classes: ['SystemRepo'],
-          },
-        ],
-        vars: {
-          CLERK_JWT_KEY: 'authored-stale-clerk-key',
-          DEV: 'stale',
-          ZEROSPIN_CLEAN_REQUEST_ID: 'cln_stale',
-          ZEROSPIN_DEPLOY_ID: 'dpl_stale',
-          ZEROSPIN_GENERATION_ID: 'gen_stale',
-          ZEROSPIN_INSTANCE_ID: 'stale',
-          ZEROSPIN_SELF_HOSTED: 'stale',
-          ZEROSPIN_SYSTEM_RELEASE: 'stale',
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-        preserved_null: null,
+    commandStarted = Effect.runSync(Deferred.make<Command.Command>());
+    exitCode = Effect.runSync(Deferred.make<CommandExecutor.ExitCode>());
+    stdout = Effect.runSync(Queue.unbounded<string>());
+
+    killMock.mockReset();
+    terminalDisplayMock.mockReset();
+    wranglerProcess = {
+      [CommandExecutor.ProcessTypeId]: CommandExecutor.ProcessTypeId,
+      [Inspectable.NodeInspectSymbol]() {
+        return this.toJSON();
       },
-      configFile: path.join(process.cwd(), 'wrangler.jsonc'),
+      exitCode: Deferred.await(exitCode),
+      isRunning: Deferred.isDone(exitCode).pipe(Effect.map(done => !done)),
+      kill: signal =>
+        Effect.sync(() => killMock(signal)).pipe(
+          Effect.zipRight(
+            Deferred.succeed(exitCode, CommandExecutor.ExitCode(143)),
+          ),
+          Effect.asVoid,
+        ),
+      pid: CommandExecutor.ProcessId(123),
+      stderr: Stream.empty,
+      stdin: Sink.drain,
+      stdout: Stream.fromQueue(stdout).pipe(Stream.encodeText),
+      toJSON() {
+        return { pid: this.pid };
+      },
+      toString() {
+        return 'FakeWranglerProcess';
+      },
+    };
+
+    disposeGatewayMock.mockReset();
+    getDeployMock.mockReset();
+    getDevDeployApiMock.mockReset();
+    getDevDeployApiMock.mockReturnValue({
+      getDeploy: getDeployMock,
+      startDeploy: startDeployMock,
+    });
+    newSyncRpcSessionMock.mockReset();
+    newSyncRpcSessionMock.mockReturnValue({
+      getDevDeployApi: getDevDeployApiMock,
+      [Symbol.dispose]: disposeGatewayMock,
+    });
+    startDeployMock.mockReset();
+    startDeployMock.mockResolvedValue({
+      _tag: 'Right',
+      right: {
+        activationCheckpoint: 'generation-prepared',
+        clean: false,
+        deployId: 'deploy-1',
+        failure: null,
+        generationId: 'generation-1',
+        status: 'succeeded',
+        workerVersionId: 'version-1',
+      },
+    });
+    fileSystemRemoveMock.mockReset();
+    fileSystemWriteMock.mockReset();
+    loadEnvMock.mockReset();
+    loadWranglerConfigMock.mockReset();
+    loadWranglerConfigMock.mockResolvedValue({
+      config: {
+        alias: { authored: './src/authored.ts' },
+        compatibility_date: '2026-01-20',
+        name: 'authored-dev-worker',
+        preserved_null: null,
+        vars: {
+          AUTHORED_VAR: 'preserved',
+          ZEROSPIN_ENVIRONMENT: 'production',
+        },
+      },
     });
     loadZerospinConfigMock.mockReset();
     loadZerospinConfigMock.mockReturnValue(
@@ -129,1202 +209,751 @@ describe('devFn', () => {
         },
       }),
     );
-    mkdirMock.mockReset();
-    mkdirMock.mockResolvedValue(undefined);
     resolveMock.mockReset();
     resolveMock.mockImplementation((specifier: string) => {
       if (specifier === 'wrangler/package.json') {
         return '/project/node_modules/wrangler/package.json';
       }
-      if (specifier === '@zerospin/dispatch-worker/Worker') {
-        return '/project/node_modules/@zerospin/dispatch-worker/dist/Worker.js';
+      if (specifier === '@zerospin/dev-worker/DevWorker') {
+        return '/project/node_modules/@zerospin/dev-worker/dist/DevWorker.js';
       }
       return specifier;
     });
-    rmMock.mockReset();
-    rmMock.mockResolvedValue(undefined);
-    randomUUIDMock.mockReset();
-    randomUUIDMock.mockReturnValue('test-clean-request');
-    readFileMock.mockReset();
-    readFileMock.mockResolvedValue('0\n');
-    spawnMock.mockReset();
-    writeFileMock.mockReset();
-    writeFileMock.mockResolvedValue(undefined);
     delete process.env['ZEROSPIN_PORT'];
   });
 
-  afterEach(() => {
-    if (originalClerkJwtKey === undefined) {
-      delete process.env['CLERK_JWT_KEY'];
-    } else {
-      process.env['CLERK_JWT_KEY'] = originalClerkJwtKey;
-    }
-  });
+  it.layer(testLayer)(it => {
+    it.effect('loads project dotenv files before zerospin.config', () =>
+      Effect.gen(function* () {
+        loadEnvMock.mockImplementation(({ path: envPath }) => {
+          if (envPath.endsWith('.env.local')) {
+            process.env['ZEROSPIN_DEV_CONFIG_TEST'] = 'local';
+          }
+          return {};
+        });
+        loadZerospinConfigMock.mockImplementation(() => {
+          expect(process.env['ZEROSPIN_DEV_CONFIG_TEST']).toBe('local');
+          return Effect.succeed({
+            entry: 'src/system.ts',
+            environmentId: 'dev',
+            env: null,
+            seeds: { dev: 'src/seeds.ts', production: null },
+          });
+        });
 
-  it('requires the Clerk JWT verification key after loading local environment files', async () => {
-    delete process.env['CLERK_JWT_KEY'];
+        const fiber = yield* devFn({
+          clean: false,
+          port: 3005,
+          systemId: 'sys_test',
+        }).pipe(Effect.fork);
+        yield* Deferred.await(commandStarted);
+        yield* Deferred.succeed(exitCode, CommandExecutor.ExitCode(0));
+        yield* Fiber.join(fiber);
 
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
+        expect(loadEnvMock.mock.calls).toEqual([
+          [{ path: path.join(process.cwd(), '.env.local') }],
+          [{ path: path.join(process.cwd(), '.env') }],
+        ]);
+        delete process.env['ZEROSPIN_DEV_CONFIG_TEST'];
+      }),
     );
 
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-clerk-jwt-key-missing',
-      message: expect.stringContaining(path.join(process.cwd(), '.env.local')),
-    });
-    expect(loadEnvMock.mock.calls).toEqual([
-      [{ path: path.join(process.cwd(), '.env.local') }],
-      [{ path: path.join(process.cwd(), '.env') }],
-    ]);
-    expect(resolveMock).not.toHaveBeenCalled();
-    expect(loadZerospinConfigMock).not.toHaveBeenCalled();
-    expect(loadConfigMock).not.toHaveBeenCalled();
-    expect(writeFileMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
+    it.effect(
+      'starts Wrangler from a derived config with forced dev environment variables',
+      () =>
+        Effect.gen(function* () {
+          const fiber = yield* devFn({
+            clean: false,
+            port: 3005,
+            systemId: 'sys_test',
+          }).pipe(Effect.fork);
+          const command = yield* Deferred.await(commandStarted);
+          const standardCommand = Command.flatten(command)[0];
 
-  it('loads .env.local and .env before loading zerospin.config', async () => {
-    loadEnvMock.mockImplementation(({ path: envPath }) => {
-      if (envPath.endsWith('.env.local')) {
-        process.env['ZEROSPIN_DEV_CONFIG_TEST'] = 'local';
-      }
-      return {};
-    });
-    loadZerospinConfigMock.mockImplementation(() => {
-      expect(process.env['ZEROSPIN_DEV_CONFIG_TEST']).toBe('local');
-      return Effect.succeed({
-        entry: 'src/system.ts',
-        environmentId: 'dev',
-        env: null,
-        seeds: {
-          dev: 'src/seeds.ts',
-          production: null,
-        },
-      });
-    });
-    writeFileMock.mockRejectedValue(new Error('stop after config loading'));
+          expect(standardCommand.command).toBe(process.execPath);
+          expect(standardCommand.args).toEqual([
+            '/project/node_modules/wrangler/bin/wrangler.js',
+            'dev',
+            '/project/node_modules/@zerospin/dev-worker/dist/DevWorker.js',
+            '-c',
+            `./wrangler.zerospin-dev.${process.pid}.local.json`,
+            '--ip',
+            '127.0.0.1',
+            '--port',
+            '3005',
+            '--persist-to',
+            path.join(
+              process.cwd(),
+              '.wrangler',
+              'zerospin',
+              'dev-worker',
+              'sys_test',
+            ),
+          ]);
 
-    try {
-      await Effect.runPromise(
-        devFn({ clean: false, port: 3005 }).pipe(
-          Effect.provide(AsyncLive),
-          Effect.flip,
-        ),
-      );
+          expect(standardCommand.args).not.toContain('--alias');
+          expect(fileSystemWriteMock).toHaveBeenCalledWith(
+            path.join(
+              process.cwd(),
+              `wrangler.zerospin-dev.${process.pid}.local.json`,
+            ),
+            `${JSON.stringify(
+              {
+                alias: {
+                  authored: './src/authored.ts',
+                  system: path.join(process.cwd(), 'src/system.ts'),
+                  seeds: path.join(process.cwd(), 'src/seeds.ts'),
+                },
+                compatibility_date: '2026-01-20',
+                name: 'authored-dev-worker',
+                preserved_null: null,
+                vars: {
+                  AUTHORED_VAR: 'preserved',
+                  ZEROSPIN_ENVIRONMENT: 'dev',
+                },
+              },
+              null,
+              2,
+            )}\n`,
+            { mode: 0o600 },
+          );
 
-      expect(loadEnvMock.mock.calls).toEqual([
-        [{ path: path.join(process.cwd(), '.env.local') }],
-        [{ path: path.join(process.cwd(), '.env') }],
-      ]);
-      expect(loadZerospinConfigMock).toHaveBeenCalledTimes(1);
-    } finally {
-      delete process.env['ZEROSPIN_DEV_CONFIG_TEST'];
-    }
-  });
+          yield* Deferred.succeed(exitCode, CommandExecutor.ExitCode(0));
+          expect(yield* Fiber.join(fiber)).toEqual({ port: 3005 });
+          expect(fileSystemRemoveMock).toHaveBeenCalledWith(
+            path.join(
+              process.cwd(),
+              `wrangler.zerospin-dev.${process.pid}.local.json`,
+            ),
+            { force: true },
+          );
+        }),
+    );
 
-  it('uses ZEROSPIN_PORT from env when --port is omitted', async () => {
-    loadEnvMock.mockImplementation(({ path: envPath }) => {
-      if (envPath.endsWith('.env.local')) {
+    it.effect('rejects non-object authored Wrangler vars', () =>
+      Effect.gen(function* () {
+        loadWranglerConfigMock.mockResolvedValueOnce({
+          config: { vars: 'invalid' },
+        });
+
+        const error = yield* devFn({
+          clean: false,
+          port: 3005,
+          systemId: 'sys_test',
+        }).pipe(Effect.flip);
+
+        expect(error).toMatchObject({
+          code: 'zerospin-dev-wrangler-config-invalid',
+        });
+      }),
+    );
+
+    it.effect(
+      'aliases seeds to the built-in empty module when configured',
+      () =>
+        Effect.gen(function* () {
+          loadZerospinConfigMock.mockReturnValue(
+            Effect.succeed({
+              entry: 'src/system.ts',
+              environmentId: 'dev',
+              env: null,
+              seeds: { dev: null, production: null },
+            }),
+          );
+
+          const fiber = yield* devFn({
+            clean: false,
+            port: 3005,
+            systemId: 'sys_test',
+          }).pipe(Effect.fork);
+          yield* Deferred.await(commandStarted);
+
+          const generatedConfig = JSON.parse(
+            String(fileSystemWriteMock.mock.calls[0]?.[1]),
+          );
+          expect(generatedConfig.alias.seeds).toBe(
+            '/project/node_modules/@zerospin/dev-worker/dist/emptySeeds.js',
+          );
+
+          yield* Deferred.succeed(exitCode, CommandExecutor.ExitCode(0));
+          yield* Fiber.join(fiber);
+        }),
+    );
+
+    it.effect(
+      'does not put clean request identity in the Wrangler command',
+      () =>
+        Effect.gen(function* () {
+          const fiber = yield* devFn({
+            clean: true,
+            port: 3005,
+            systemId: 'sys_test',
+          }).pipe(Effect.fork);
+          const command = yield* Deferred.await(commandStarted);
+
+          expect(Command.flatten(command)[0].args).not.toContain('--var');
+          expect(Command.flatten(command)[0].args.join(' ')).not.toContain(
+            'ZEROSPIN_CLEAN_REQUEST_ID',
+          );
+          yield* Deferred.succeed(exitCode, CommandExecutor.ExitCode(0));
+          yield* Fiber.join(fiber);
+        }),
+    );
+
+    it.effect('uses the validated ZEROSPIN_PORT when --port is omitted', () =>
+      Effect.gen(function* () {
         process.env['ZEROSPIN_PORT'] = '4001';
-      }
-      return {};
-    });
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
-    const generatedConfigName = `wrangler.zerospin-dev.${process.pid}.local.json`;
+        const fiber = yield* devFn({
+          clean: false,
+          port: undefined,
+          systemId: 'sys_test',
+        }).pipe(Effect.fork);
+        const command = yield* Deferred.await(commandStarted);
 
-    const resultPromise = Effect.runPromise(
-      devFn({ clean: false, port: undefined }).pipe(Effect.provide(AsyncLive)),
-    );
-
-    await vi.waitFor(() =>
-      expect(spawnMock).toHaveBeenCalledWith(
-        process.execPath,
-        expect.arrayContaining(['--port', '4001']),
-        expect.objectContaining({ cwd: process.cwd() }),
-      ),
-    );
-    expect(spawnMock.mock.calls[0]?.[1]).toEqual([
-      '/project/node_modules/wrangler/bin/wrangler.js',
-      'dev',
-      '-c',
-      `./${generatedConfigName}`,
-      '--ip',
-      '0.0.0.0',
-      '--port',
-      '4001',
-      '--persist-to',
-      path.join(
-        process.cwd(),
-        '.wrangler',
-        'zerospin',
-        'dev',
-        'sys_test%3Alocal',
-      ),
-      '--var',
-      'DEV:true',
-      '--var',
-      'ZEROSPIN_INSTANCE_ID:local',
-    ]);
-
-    child.emit('close', 0, null);
-    await expect(resultPromise).resolves.toEqual({ port: 4001 });
-  });
-
-  it('prefers CLI --port over ZEROSPIN_PORT', async () => {
-    process.env['ZEROSPIN_PORT'] = '4001';
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
-
-    const resultPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(Effect.provide(AsyncLive)),
-    );
-
-    await vi.waitFor(() =>
-      expect(spawnMock).toHaveBeenCalledWith(
-        process.execPath,
-        expect.arrayContaining(['--port', '3005']),
-        expect.objectContaining({ cwd: process.cwd() }),
-      ),
-    );
-
-    child.emit('close', 0, null);
-    await expect(resultPromise).resolves.toEqual({ port: 3005 });
-  });
-
-  it('rejects an invalid ZEROSPIN_PORT', async () => {
-    process.env['ZEROSPIN_PORT'] = 'nope';
-
-    await expect(
-      Effect.runPromise(
-        devFn({ clean: false, port: undefined }).pipe(
-          Effect.provide(AsyncLive),
-          Effect.flip,
-        ),
-      ),
-    ).resolves.toMatchObject({
-      code: 'zerospin-dev-invalid-port',
-    });
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('derives a clean request over the stable instance root and forwards termination signals', async () => {
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
-    const sigtermListenerIndex = process.listenerCount('SIGTERM');
-    const generatedConfigName = `wrangler.zerospin-dev.${process.pid}.local.json`;
-    const persistenceRoot = path.join(
-      process.cwd(),
-      '.wrangler',
-      'zerospin',
-      'dev',
-      'sys_test%3Alocal',
-    );
-
-    const resultPromise = Effect.runPromise(
-      devFn({ clean: true, port: 3005 }).pipe(Effect.provide(AsyncLive)),
-    );
-
-    await vi.waitFor(() =>
-      expect(spawnMock).toHaveBeenCalledWith(
-        process.execPath,
-        [
-          '/project/node_modules/wrangler/bin/wrangler.js',
-          'dev',
-          '-c',
-          `./${generatedConfigName}`,
-          '--ip',
-          '0.0.0.0',
-          '--port',
-          '3005',
-          '--persist-to',
-          persistenceRoot,
-          '--var',
-          'DEV:true',
-          '--var',
-          'ZEROSPIN_INSTANCE_ID:local',
-          '--var',
-          'ZEROSPIN_CLEAN_REQUEST_ID:cln_test-clean-request',
-        ],
-        {
-          cwd: process.cwd(),
-          env: process.env,
-          stdio: ['inherit', 'pipe', 'inherit'],
-        },
-      ),
-    );
-
-    expect(resolveMock).toHaveBeenCalledWith('wrangler/package.json', {
-      paths: [process.cwd()],
-    });
-    expect(resolveMock).toHaveBeenCalledWith(
-      '@zerospin/dispatch-worker/Worker',
-    );
-    expect(resolveMock).toHaveBeenCalledWith(
-      '/project/node_modules/@zerospin/dispatch-worker/dist/LocalWorker.js',
-    );
-    expect(resolveMock).toHaveBeenCalledWith(
-      path.join(process.cwd(), 'src/seeds.ts'),
-    );
-    expect(rmMock).not.toHaveBeenCalled();
-
-    const generatedConfig = JSON.parse(writeFileMock.mock.calls[0]?.[1]);
-    expect(generatedConfig).toEqual({
-      name: 'zerospin-test',
-      main: '/project/node_modules/@zerospin/dispatch-worker/dist/LocalWorker.js',
-      compatibility_date: '2026-01-20',
-      compatibility_flags: ['nodejs_compat'],
-      alias: {
-        system: './src/system.ts',
-        seeds: path.join(process.cwd(), 'src/seeds.ts'),
-      },
-      migrations: [
-        {
-          tag: 'zerospin-dev-v1',
-          new_sqlite_classes: ['DevZerospinApis'],
-        },
-        {
-          tag: 'v1',
-          new_sqlite_classes: ['SystemRepo'],
-        },
-      ],
-      vars: {
-        CLERK_JWT_KEY: 'local-clerk-jwt-public-key',
-        ZEROSPIN_SELF_HOSTED: 'true',
-        ZEROSPIN_SYSTEM_ID: 'sys_test',
-      },
-      preserved_null: null,
-      version_metadata: {
-        binding: 'ZEROSPIN_VERSION_METADATA',
-      },
-    });
-
-    process.listeners('SIGTERM')[sigtermListenerIndex]?.();
-    expect(child.kill).toHaveBeenCalledWith('SIGTERM');
-
-    child.emit('close', 0, null);
-    await expect(resultPromise).resolves.toEqual({ port: 3005 });
-    expect(rmMock).toHaveBeenCalledWith(
-      path.join(process.cwd(), generatedConfigName),
-      { force: true },
-    );
-  });
-
-  it('uses the empty seed module and preserves state on ordinary dev', async () => {
-    loadZerospinConfigMock.mockReturnValue(
-      Effect.succeed({
-        entry: 'src/system.ts',
-        environmentId: 'dev',
-        env: null,
-        seeds: {
-          dev: null,
-          production: null,
-        },
+        expect(Command.flatten(command)[0].args).toContain('4001');
+        yield* Deferred.succeed(exitCode, CommandExecutor.ExitCode(0));
+        expect(yield* Fiber.join(fiber)).toEqual({ port: 4001 });
       }),
     );
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
-    const generatedConfigName = `wrangler.zerospin-dev.${process.pid}.local.json`;
-    const persistenceRoot = path.join(
-      process.cwd(),
-      '.wrangler',
-      'zerospin',
-      'dev',
-      'sys_test%3Alocal',
-    );
 
-    const resultPromise = Effect.runPromise(
-      devFn({ clean: false, port: undefined }).pipe(Effect.provide(AsyncLive)),
-    );
+    it.effect('rejects an invalid ZEROSPIN_PORT', () =>
+      Effect.gen(function* () {
+        process.env['ZEROSPIN_PORT'] = '70000';
+        const error = yield* devFn({
+          clean: false,
+          port: undefined,
+          systemId: 'sys_test',
+        }).pipe(Effect.flip);
 
-    await vi.waitFor(() =>
-      expect(spawnMock).toHaveBeenCalledWith(
-        process.execPath,
-        [
-          '/project/node_modules/wrangler/bin/wrangler.js',
-          'dev',
-          '-c',
-          `./${generatedConfigName}`,
-          '--ip',
-          '0.0.0.0',
-          '--persist-to',
-          persistenceRoot,
-          '--var',
-          'DEV:true',
-          '--var',
-          'ZEROSPIN_INSTANCE_ID:local',
-        ],
-        {
-          cwd: process.cwd(),
-          env: process.env,
-          stdio: ['inherit', 'pipe', 'inherit'],
-        },
-      ),
-    );
-    expect(rmMock).not.toHaveBeenCalled();
-    expect(resolveMock).toHaveBeenCalledWith(
-      '/project/node_modules/@zerospin/dispatch-worker/dist/emptySeeds.js',
-    );
-
-    child.emit('close', 0, null);
-    await expect(resultPromise).resolves.toEqual({ port: undefined });
-    expect(rmMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('records the current authored migration boundary before the local controller migration', async () => {
-    readFileMock.mockRejectedValue(
-      Object.assign(new Error('missing migration boundary'), {
-        code: 'ENOENT',
+        expect(error).toMatchObject({ code: 'zerospin-dev-invalid-port' });
       }),
     );
-    loadConfigMock.mockResolvedValue({
-      config: {
-        compatibility_date: '2026-01-20',
-        migrations: [
-          { tag: 'authored-v1', new_sqlite_classes: ['FirstRepo'] },
-          { tag: 'authored-v2', new_sqlite_classes: ['SecondRepo'] },
-        ],
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-      },
-    });
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
 
-    const resultPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(Effect.provide(AsyncLive)),
-    );
-    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
+    it.effect(
+      'starts and polls complete deploy snapshots through fresh Gateway sessions',
+      () =>
+        Effect.gen(function* () {
+          startDeployMock.mockResolvedValueOnce({
+            _tag: 'Right',
+            right: {
+              activationCheckpoint: 'allocated',
+              clean: false,
+              deployId: 'deploy-1',
+              failure: null,
+              generationId: 'generation-1',
+              status: 'activating',
+              workerVersionId: 'version-1',
+            },
+          });
+          getDeployMock.mockResolvedValueOnce({
+            _tag: 'Right',
+            right: {
+              activationCheckpoint: 'generation-prepared',
+              clean: false,
+              deployId: 'deploy-1',
+              failure: null,
+              generationId: 'generation-1',
+              status: 'succeeded',
+              workerVersionId: 'version-1',
+            },
+          });
 
-    const generatedConfig = JSON.parse(writeFileMock.mock.calls[0]?.[1]);
-    expect(generatedConfig.migrations).toEqual([
-      { tag: 'authored-v1', new_sqlite_classes: ['FirstRepo'] },
-      { tag: 'authored-v2', new_sqlite_classes: ['SecondRepo'] },
-      {
-        tag: 'zerospin-dev-v1',
-        new_sqlite_classes: ['DevZerospinApis'],
-      },
-    ]);
+          const fiber = yield* devFn({
+            clean: false,
+            port: 3005,
+            systemId: 'sys_test',
+          }).pipe(Effect.fork);
+          yield* Deferred.await(commandStarted);
+          yield* Queue.offer(stdout, 'Wrangler output\nReady on http://127.0.');
+          yield* Queue.offer(stdout, '0.1:3005\n');
+          yield* Effect.promise(() =>
+            vi.waitFor(() => expect(startDeployMock).toHaveBeenCalledOnce()),
+          );
+          yield* TestClock.adjust(250);
+          yield* Effect.promise(() =>
+            vi.waitFor(() => expect(getDeployMock).toHaveBeenCalledOnce()),
+          );
 
-    const persistenceRoot = path.join(
-      process.cwd(),
-      '.wrangler',
-      'zerospin',
-      'dev',
-      'sys_test%3Alocal',
-    );
-    const migrationBoundaryPath = `${persistenceRoot}.authored-migration-boundary`;
-    expect(readFileMock).toHaveBeenCalledWith(migrationBoundaryPath, 'utf8');
-    expect(mkdirMock).toHaveBeenCalledWith(
-      path.dirname(migrationBoundaryPath),
-      {
-        recursive: true,
-      },
-    );
-    expect(writeFileMock).toHaveBeenCalledWith(
-      migrationBoundaryPath,
-      '2\n',
-      'utf8',
-    );
+          expect(newSyncRpcSessionMock).toHaveBeenNthCalledWith(
+            1,
+            'http://127.0.0.1:3005',
+          );
+          expect(newSyncRpcSessionMock).toHaveBeenNthCalledWith(
+            2,
+            'http://127.0.0.1:3005',
+          );
+          expect(getDevDeployApiMock).toHaveBeenCalledTimes(2);
+          expect(startDeployMock).toHaveBeenCalledWith({ clean: false });
+          expect(getDeployMock).toHaveBeenCalledWith({ deployId: 'deploy-1' });
+          expect(disposeGatewayMock).toHaveBeenCalledTimes(2);
+          expect(terminalDisplayMock.mock.calls).toEqual([
+            ['Wrangler output\nReady on http://127.0.'],
+            ['0.1:3005\n'],
+          ]);
 
-    child.emit('close', 0, null);
-    await expect(resultPromise).resolves.toEqual({ port: 3005 });
-  });
-
-  it('places later authored migrations after the persisted local controller boundary', async () => {
-    readFileMock.mockResolvedValue('2\n');
-    loadConfigMock.mockResolvedValue({
-      config: {
-        compatibility_date: '2026-01-20',
-        migrations: [
-          { tag: 'authored-v1', new_sqlite_classes: ['FirstRepo'] },
-          { tag: 'authored-v2', new_sqlite_classes: ['SecondRepo'] },
-          { tag: 'authored-v3', new_sqlite_classes: ['ThirdRepo'] },
-        ],
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-      },
-    });
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
-
-    const resultPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(Effect.provide(AsyncLive)),
-    );
-    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-
-    const generatedConfig = JSON.parse(writeFileMock.mock.calls[0]?.[1]);
-    expect(generatedConfig.migrations).toEqual([
-      { tag: 'authored-v1', new_sqlite_classes: ['FirstRepo'] },
-      { tag: 'authored-v2', new_sqlite_classes: ['SecondRepo'] },
-      {
-        tag: 'zerospin-dev-v1',
-        new_sqlite_classes: ['DevZerospinApis'],
-      },
-      { tag: 'authored-v3', new_sqlite_classes: ['ThirdRepo'] },
-    ]);
-    expect(writeFileMock).toHaveBeenCalledTimes(1);
-    expect(mkdirMock).not.toHaveBeenCalled();
-
-    child.emit('close', 0, null);
-    await expect(resultPromise).resolves.toEqual({ port: 3005 });
-  });
-
-  it('rejects a local migration boundary beyond the authored migration list', async () => {
-    readFileMock.mockResolvedValue('2\n');
-    loadConfigMock.mockResolvedValue({
-      config: {
-        migrations: [{ tag: 'authored-v1' }],
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-      },
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
+          yield* Deferred.succeed(exitCode, CommandExecutor.ExitCode(0));
+          yield* Fiber.join(fiber);
+        }),
     );
 
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-migration-boundary-invalid',
-      extra: {
-        migrationsLength: 1,
-        storedMigrationBoundary: '2\n',
-      },
-    });
-    expect(writeFileMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
+    it.effect(
+      'ignores reload completion before readiness and matches it across chunks later',
+      () =>
+        Effect.gen(function* () {
+          startDeployMock
+            .mockResolvedValueOnce({
+              _tag: 'Right',
+              right: {
+                activationCheckpoint: 'generation-prepared',
+                clean: false,
+                deployId: 'deploy-1',
+                failure: null,
+                generationId: 'generation-1',
+                status: 'succeeded',
+                workerVersionId: 'version-1',
+              },
+            })
+            .mockResolvedValueOnce({
+              _tag: 'Right',
+              right: {
+                activationCheckpoint: 'generation-prepared',
+                clean: false,
+                deployId: 'deploy-2',
+                failure: null,
+                generationId: 'generation-1',
+                status: 'succeeded',
+                workerVersionId: 'version-2',
+              },
+            });
 
-  it('enables ctx.exports for a pre-default compatibility date', async () => {
-    loadConfigMock.mockResolvedValue({
-      config: {
-        compatibility_date: '2025-11-16',
-        compatibility_flags: [
-          'nodejs_compat',
-          'enable_ctx_exports',
-          'enable_ctx_exports',
-        ],
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-      },
-    });
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
+          const fiber = yield* devFn({
+            clean: false,
+            port: 3005,
+            systemId: 'sys_test',
+          }).pipe(Effect.fork);
+          yield* Deferred.await(commandStarted);
+          yield* Queue.offer(stdout, '⎔ Local server up');
+          yield* Queue.offer(stdout, 'dated and ready\n');
+          yield* Queue.offer(stdout, 'Ready on http://127.0.0.1:3005\n');
+          yield* Effect.promise(() =>
+            vi.waitFor(() => expect(startDeployMock).toHaveBeenCalledTimes(1)),
+          );
 
-    const resultPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(Effect.provide(AsyncLive)),
-    );
-    await vi.waitFor(() => expect(writeFileMock).toHaveBeenCalledTimes(1));
+          yield* Queue.offer(stdout, '⎔ Local server updated');
+          yield* Queue.offer(stdout, ' and ready\n');
+          yield* Effect.promise(() =>
+            vi.waitFor(() => expect(startDeployMock).toHaveBeenCalledTimes(2)),
+          );
 
-    const generatedConfig = JSON.parse(writeFileMock.mock.calls[0]?.[1]);
-    expect(generatedConfig.compatibility_flags).toEqual([
-      'nodejs_compat',
-      'enable_ctx_exports',
-    ]);
-
-    child.emit('close', 0, null);
-    await expect(resultPromise).resolves.toEqual({ port: 3005 });
-  });
-
-  it('removes supplied ctx.exports flags after the feature becomes default-on', async () => {
-    loadConfigMock.mockResolvedValue({
-      config: {
-        compatibility_date: '2025-11-17',
-        compatibility_flags: [
-          'nodejs_compat',
-          'enable_ctx_exports',
-          'enable_ctx_exports',
-        ],
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-      },
-    });
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
-
-    const resultPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(Effect.provide(AsyncLive)),
-    );
-    await vi.waitFor(() => expect(writeFileMock).toHaveBeenCalledTimes(1));
-
-    const generatedConfig = JSON.parse(writeFileMock.mock.calls[0]?.[1]);
-    expect(generatedConfig.compatibility_flags).toEqual(['nodejs_compat']);
-
-    child.emit('close', 0, null);
-    await expect(resultPromise).resolves.toEqual({ port: 3005 });
-  });
-
-  it('rejects a config that disables ctx.exports', async () => {
-    loadConfigMock.mockResolvedValue({
-      config: {
-        compatibility_date: '2026-01-20',
-        compatibility_flags: ['disable_ctx_exports'],
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-      },
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
+          expect(startDeployMock).toHaveBeenNthCalledWith(2, { clean: false });
+          expect(newSyncRpcSessionMock).toHaveBeenCalledTimes(2);
+          yield* Deferred.succeed(exitCode, CommandExecutor.ExitCode(0));
+          yield* Fiber.join(fiber);
+        }),
     );
 
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-wrangler-config-invalid',
-    });
-    expect(writeFileMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('fails when Wrangler cannot be resolved from the current project', async () => {
-    resolveMock.mockImplementation(() => {
-      throw new Error('missing wrangler');
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-wrangler-not-found',
-    });
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('fails when the CLI-owned dispatch Worker cannot be resolved', async () => {
-    resolveMock.mockImplementation((specifier: string) => {
-      if (specifier === 'wrangler/package.json') {
-        return '/project/node_modules/wrangler/package.json';
-      }
-      if (specifier === '@zerospin/dispatch-worker/Worker') {
-        throw new Error('missing dispatch Worker');
-      }
-      return specifier;
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-dispatch-worker-not-found',
-    });
-    expect(writeFileMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('fails when the configured seed module cannot be resolved', async () => {
-    resolveMock.mockImplementation((specifier: string) => {
-      if (specifier === 'wrangler/package.json') {
-        return '/project/node_modules/wrangler/package.json';
-      }
-      if (specifier === '@zerospin/dispatch-worker/Worker') {
-        return '/project/node_modules/@zerospin/dispatch-worker/dist/Worker.js';
-      }
-      if (specifier === path.join(process.cwd(), 'src/seeds.ts')) {
-        throw new Error('missing configured seeds');
-      }
-      return specifier;
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-seeds-not-found',
-      message: expect.stringContaining('src/seeds.ts'),
-    });
-    expect(writeFileMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('fails when the built-in empty seed module cannot be resolved', async () => {
-    loadZerospinConfigMock.mockReturnValue(
-      Effect.succeed({
-        entry: 'src/system.ts',
-        environmentId: 'dev',
-        env: null,
-        seeds: {
-          dev: null,
-          production: null,
-        },
-      }),
-    );
-    resolveMock.mockImplementation((specifier: string) => {
-      if (specifier === 'wrangler/package.json') {
-        return '/project/node_modules/wrangler/package.json';
-      }
-      if (specifier === '@zerospin/dispatch-worker/Worker') {
-        return '/project/node_modules/@zerospin/dispatch-worker/dist/Worker.js';
-      }
-      if (
-        specifier ===
-        '/project/node_modules/@zerospin/dispatch-worker/dist/emptySeeds.js'
-      ) {
-        throw new Error('missing built-in seeds');
-      }
-      return specifier;
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-seeds-not-found',
-    });
-    expect(writeFileMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('fails when spawning Wrangler throws', async () => {
-    spawnMock.mockImplementation(() => {
-      throw new Error('spawn failed');
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-wrangler-start-failed',
-    });
-    expect(rmMock).toHaveBeenCalledWith(
-      path.join(
-        process.cwd(),
-        `wrangler.zerospin-dev.${process.pid}.local.json`,
-      ),
-      { force: true },
-    );
-  });
-
-  it('fails when Wrangler emits a startup error', async () => {
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
-
-    const errorPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-    child.emit('error', new Error('startup failed'));
-
-    await expect(errorPromise).resolves.toMatchObject({
-      code: 'zerospin-dev-wrangler-start-failed',
-    });
-    expect(rmMock).toHaveBeenCalledWith(
-      path.join(
-        process.cwd(),
-        `wrangler.zerospin-dev.${process.pid}.local.json`,
-      ),
-      { force: true },
-    );
-  });
-
-  it('checks the durable deployment barrier whenever Wrangler reports ready', async () => {
-    const stdout = new PassThrough();
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-      stdout,
-    });
-    spawnMock.mockReturnValue(child);
-
-    const resultPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(Effect.provide(AsyncLive)),
-    );
-    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-
-    stdout.write('Ready on http://127.0.0.1:3005\n');
-    await vi.waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        'http://127.0.0.1:3005/__zerospin/ready',
-      ),
-    );
-
-    child.emit('close', 0, null);
-    await expect(resultPromise).resolves.toEqual({ port: 3005 });
-  });
-
-  it('stops Wrangler and fails when the deployed code version is not ready', async () => {
-    fetchMock.mockResolvedValue(
-      new Response('breaking model change: add an adapter or rerun --clean', {
-        status: 500,
-      }),
-    );
-    const stdout = new PassThrough();
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-      stdout,
-    });
-    spawnMock.mockReturnValue(child);
-
-    const errorPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-
-    stdout.write('Ready on http://127.0.0.1:3005\n');
-
-    await expect(errorPromise).resolves.toMatchObject({
-      code: 'zerospin-dev-worker-not-ready',
-      cause: expect.stringContaining('breaking model change'),
-    });
-    expect(child.kill).toHaveBeenCalledWith('SIGTERM');
-  });
-
-  it('fails when Wrangler exits with a nonzero code', async () => {
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
-
-    const errorPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-    child.emit('close', 7, null);
-
-    await expect(errorPromise).resolves.toMatchObject({
-      code: 'zerospin-dev-wrangler-exited',
-    });
-    expect(rmMock).toHaveBeenCalledWith(
-      path.join(
-        process.cwd(),
-        `wrangler.zerospin-dev.${process.pid}.local.json`,
-      ),
-      { force: true },
-    );
-  });
-
-  it('preserves an unchecked authored-system factory failure from Wrangler', async () => {
-    loadConfigMock.mockResolvedValueOnce({
-      config: {
-        name: 'zerospin-test',
-        main: './src/Worker.ts',
-        compatibility_date: '2026-01-20',
-        compatibility_flags: ['nodejs_compat'],
-        alias: {
-          system: './test-fixtures/missingAccountControllerVersion.js',
-        },
-        migrations: [],
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-      },
-      configFile: path.join(process.cwd(), 'wrangler.jsonc'),
-    });
-    const stdout = new PassThrough();
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-      stdout,
-    });
-    spawnMock.mockReturnValue(child);
-
-    const errorPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-
-    stdout.write('makeAccountController: version must be a non-empty string\n');
-    child.emit('close', 1, null);
-
-    await expect(errorPromise).resolves.toMatchObject({
-      code: 'zerospin-dev-wrangler-exited',
-      cause: expect.stringContaining(
-        'makeAccountController: version must be a non-empty string',
-      ),
-    });
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('fails when Wrangler exits from a signal', async () => {
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
-
-    const errorPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-    child.emit('close', null, 'SIGTERM');
-
-    await expect(errorPromise).resolves.toMatchObject({
-      code: 'zerospin-dev-wrangler-signaled',
-    });
-    expect(rmMock).toHaveBeenCalledWith(
-      path.join(
-        process.cwd(),
-        `wrangler.zerospin-dev.${process.pid}.local.json`,
-      ),
-      { force: true },
-    );
-  });
-
-  it('fails before startup when the Wrangler config cannot be loaded', async () => {
-    loadConfigMock.mockRejectedValue(new Error('bad jsonc'));
-
-    const error = await Effect.runPromise(
-      devFn({ clean: true, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-wrangler-config-load-failed',
-    });
-    expect(rmMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('propagates a zerospin config load failure before loading Wrangler config', async () => {
-    const configError = new Error('bad zerospin config');
-    loadZerospinConfigMock.mockReturnValue(Effect.fail(configError));
-
-    const error = await Effect.runPromise(
-      devFn({ clean: true, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      message: 'bad zerospin config',
-    });
-    expect(loadConfigMock).not.toHaveBeenCalled();
-    expect(writeFileMock).not.toHaveBeenCalled();
-    expect(rmMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('fails before startup when the system id is not a prefixed id', async () => {
-    loadConfigMock.mockResolvedValue({
-      config: {
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 2,
-        },
-      },
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: true, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-system-id-missing',
-    });
-    expect(rmMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects a user migration with the reserved dev tag', async () => {
-    loadConfigMock.mockResolvedValue({
-      config: {
-        migrations: [{ tag: 'zerospin-dev-v1' }],
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-      },
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: true, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-migration-conflict',
-    });
-    expect(rmMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects a non-object Wrangler alias', async () => {
-    loadConfigMock.mockResolvedValue({
-      config: {
-        alias: './src/aliases.ts',
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-      },
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-wrangler-config-invalid',
-    });
-    expect(writeFileMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects Wrangler compatibility flags containing a non-string', async () => {
-    loadConfigMock.mockResolvedValue({
-      config: {
-        compatibility_flags: ['nodejs_compat', 1],
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-      },
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-wrangler-config-invalid',
-    });
-    expect(writeFileMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects non-array Wrangler migrations', async () => {
-    loadConfigMock.mockResolvedValue({
-      config: {
-        migrations: {
-          tag: 'v1',
-        },
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_test',
-        },
-      },
-    });
-
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-wrangler-config-invalid',
-    });
-    expect(writeFileMock).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('loads comments, trailing commas, and explicit nulls through real c12 JSONC parsing', async () => {
-    const actualC12 = await vi.importActual<typeof import('c12')>('c12');
-    const actualFs =
-      await vi.importActual<typeof import('node:fs/promises')>(
-        'node:fs/promises',
-      );
-    const tempCwd = await actualFs.mkdtemp(
-      path.join(os.tmpdir(), 'zerospin-devFn-'),
-    );
-    const cwdMock = vi.spyOn(process, 'cwd').mockReturnValue(tempCwd);
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-
-    try {
-      await actualFs.writeFile(
-        path.join(tempCwd, 'wrangler.jsonc'),
-        `{
-          // c12 must accept Wrangler's JSONC syntax.
-          "name": "jsonc-test",
-          "compatibility_date": "2026-01-20",
-          "compatibility_flags": ["nodejs_compat",],
-          "vars": {
-            "ZEROSPIN_SYSTEM_ID": "sys_jsonc",
-            "OPTIONAL_VALUE": null,
+    it.effect('retries getDeploy with the same deploy id', () =>
+      Effect.gen(function* () {
+        startDeployMock.mockResolvedValueOnce({
+          _tag: 'Right',
+          right: {
+            activationCheckpoint: 'allocated',
+            clean: false,
+            deployId: 'deploy-1',
+            failure: null,
+            generationId: 'generation-1',
+            status: 'activating',
+            workerVersionId: 'version-1',
           },
-          "nested": {
-            "preserved_null": null,
-          },
-        }\n`,
-        'utf8',
-      );
-      loadConfigMock.mockImplementationOnce(actualC12.loadConfig);
-      spawnMock.mockReturnValue(child);
+        });
+        getDeployMock
+          .mockResolvedValueOnce({
+            _tag: 'Left',
+            left: {
+              cause: 'transient SystemRepo transport rejection',
+              code: 'failed-to-get-deploy-rpc',
+              extra: null,
+              message: 'Failed to get deploy over SystemRepo RPC.',
+              status: null,
+            },
+          })
+          .mockResolvedValueOnce({
+            _tag: 'Right',
+            right: {
+              activationCheckpoint: 'generation-prepared',
+              clean: false,
+              deployId: 'deploy-1',
+              failure: null,
+              generationId: 'generation-1',
+              status: 'succeeded',
+              workerVersionId: 'version-1',
+            },
+          });
 
-      const resultPromise = Effect.runPromise(
-        devFn({ clean: false, port: 3005 }).pipe(Effect.provide(AsyncLive)),
-      );
-      await vi.waitFor(() => expect(writeFileMock).toHaveBeenCalledTimes(1));
+        const fiber = yield* devFn({
+          clean: false,
+          port: 3005,
+          systemId: 'sys_test',
+        }).pipe(Effect.fork);
+        yield* Deferred.await(commandStarted);
+        yield* Queue.offer(stdout, 'Ready on http://127.0.0.1:3005\n');
+        yield* Effect.promise(() =>
+          vi.waitFor(() => expect(startDeployMock).toHaveBeenCalledOnce()),
+        );
+        yield* TestClock.adjust(250);
+        yield* Effect.promise(() =>
+          vi.waitFor(() => expect(getDeployMock).toHaveBeenCalledTimes(1)),
+        );
+        yield* TestClock.adjust(2_000);
+        yield* Effect.promise(() =>
+          vi.waitFor(() => expect(getDeployMock).toHaveBeenCalledTimes(2)),
+        );
 
-      const generatedConfig = JSON.parse(writeFileMock.mock.calls[0]?.[1]);
-      expect(generatedConfig).toMatchObject({
-        name: 'jsonc-test',
-        compatibility_flags: ['nodejs_compat'],
-        vars: {
-          ZEROSPIN_SYSTEM_ID: 'sys_jsonc',
-          OPTIONAL_VALUE: null,
-        },
-        nested: {
-          preserved_null: null,
-        },
-      });
-
-      child.emit('close', 0, null);
-      await expect(resultPromise).resolves.toEqual({ port: 3005 });
-    } finally {
-      cwdMock.mockRestore();
-      await actualFs.rm(tempCwd, { recursive: true, force: true });
-    }
-  });
-
-  it('removes a partially written generated config when writing fails', async () => {
-    writeFileMock.mockRejectedValue(new Error('disk full'));
-
-    const error = await Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-
-    expect(error).toMatchObject({
-      code: 'zerospin-dev-generated-config-write-failed',
-    });
-    expect(rmMock).toHaveBeenCalledWith(
-      path.join(
-        process.cwd(),
-        `wrangler.zerospin-dev.${process.pid}.local.json`,
-      ),
-      { force: true },
-    );
-    expect(spawnMock).not.toHaveBeenCalled();
-  });
-
-  it('reports generated config cleanup failures', async () => {
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
-    rmMock.mockRejectedValue(new Error('cannot unlink'));
-
-    const errorPromise = Effect.runPromise(
-      devFn({ clean: false, port: 3005 }).pipe(
-        Effect.provide(AsyncLive),
-        Effect.flip,
-      ),
-    );
-    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-    child.emit('close', 0, null);
-
-    await expect(errorPromise).resolves.toMatchObject({
-      code: 'zerospin-dev-generated-config-remove-failed',
-    });
-  });
-
-  it('kills Wrangler and removes the generated config when interrupted', async () => {
-    const child = Object.assign(new EventEmitter(), {
-      kill: vi.fn(() => {
-        void Promise.resolve().then(() => child.emit('close', null, 'SIGTERM'));
-        return true;
+        expect(getDeployMock.mock.calls).toEqual([
+          [{ deployId: 'deploy-1' }],
+          [{ deployId: 'deploy-1' }],
+        ]);
+        expect(startDeployMock).toHaveBeenCalledTimes(1);
+        expect(newSyncRpcSessionMock).toHaveBeenCalledTimes(3);
+        yield* Deferred.succeed(exitCode, CommandExecutor.ExitCode(0));
+        yield* Fiber.join(fiber);
       }),
-      killed: false,
-    });
-    spawnMock.mockReturnValue(child);
-
-    const fiber = Effect.runFork(
-      devFn({ clean: false, port: 3005 }).pipe(Effect.provide(AsyncLive)),
     );
-    await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(1));
-    await Effect.runPromise(Fiber.interrupt(fiber));
 
-    expect(child.kill).toHaveBeenCalledWith('SIGTERM');
-    expect(rmMock).toHaveBeenCalledWith(
-      path.join(
-        process.cwd(),
-        `wrangler.zerospin-dev.${process.pid}.local.json`,
-      ),
-      { force: true },
+    it.effect(
+      'coalesces reload completions into one new idempotent deploy start',
+      () =>
+        Effect.gen(function* () {
+          let resolvePoll: ((value: unknown) => void) | undefined;
+          startDeployMock
+            .mockResolvedValueOnce({
+              _tag: 'Right',
+              right: {
+                activationCheckpoint: 'allocated',
+                clean: false,
+                deployId: 'deploy-1',
+                failure: null,
+                generationId: 'generation-1',
+                status: 'activating',
+                workerVersionId: 'version-1',
+              },
+            })
+            .mockResolvedValueOnce({
+              _tag: 'Right',
+              right: {
+                activationCheckpoint: 'generation-prepared',
+                clean: false,
+                deployId: 'deploy-2',
+                failure: null,
+                generationId: 'generation-2',
+                status: 'succeeded',
+                workerVersionId: 'version-2',
+              },
+            });
+          getDeployMock.mockImplementationOnce(
+            () =>
+              new Promise(resolve => {
+                resolvePoll = resolve;
+              }),
+          );
+
+          const fiber = yield* devFn({
+            clean: false,
+            port: 3005,
+            systemId: 'sys_test',
+          }).pipe(Effect.fork);
+          yield* Deferred.await(commandStarted);
+          yield* Queue.offer(stdout, 'Ready on http://127.0.0.1:3005\n');
+          yield* Effect.promise(() =>
+            vi.waitFor(() => expect(startDeployMock).toHaveBeenCalledTimes(1)),
+          );
+          yield* TestClock.adjust(250);
+          yield* Effect.promise(() =>
+            vi.waitFor(() => expect(getDeployMock).toHaveBeenCalledOnce()),
+          );
+          yield* Queue.offer(
+            stdout,
+            '⎔ Local server updated and ready\n⎔ Local server updated and ready\n⎔ Local server updated and ready\n',
+          );
+          yield* Effect.sync(() => {
+            resolvePoll?.({
+              _tag: 'Right',
+              right: {
+                activationCheckpoint: 'allocated',
+                clean: false,
+                deployId: 'deploy-1',
+                failure: null,
+                generationId: 'generation-1',
+                status: 'activating',
+                workerVersionId: 'version-1',
+              },
+            });
+          });
+          yield* Effect.promise(() =>
+            vi.waitFor(() => expect(startDeployMock).toHaveBeenCalledTimes(2)),
+          );
+
+          expect(startDeployMock.mock.calls).toEqual([
+            [{ clean: false }],
+            [{ clean: false }],
+          ]);
+          expect(getDeployMock).toHaveBeenCalledOnce();
+          expect(newSyncRpcSessionMock).toHaveBeenCalledTimes(3);
+          yield* Deferred.succeed(exitCode, CommandExecutor.ExitCode(0));
+          yield* Fiber.join(fiber);
+        }),
+    );
+
+    it.effect(
+      'keeps clean true through transport and boundary retries, then acknowledges it once',
+      () =>
+        Effect.gen(function* () {
+          startDeployMock
+            .mockRejectedValueOnce(new TypeError('connection reset'))
+            .mockResolvedValueOnce({
+              _tag: 'Left',
+              left: {
+                cause: 'transient SystemRepo transport rejection',
+                code: 'failed-to-start-deploy-rpc',
+                extra: null,
+                message: 'Failed to start deploy over SystemRepo RPC.',
+                status: null,
+              },
+            })
+            .mockResolvedValueOnce({
+              _tag: 'Right',
+              right: {
+                activationCheckpoint: 'allocated',
+                clean: true,
+                deployId: 'deploy-1',
+                failure: null,
+                generationId: 'generation-1',
+                status: 'activating',
+                workerVersionId: 'version-1',
+              },
+            })
+            .mockResolvedValueOnce({
+              _tag: 'Right',
+              right: {
+                activationCheckpoint: 'generation-prepared',
+                clean: false,
+                deployId: 'deploy-2',
+                failure: null,
+                generationId: 'generation-2',
+                status: 'succeeded',
+                workerVersionId: 'version-2',
+              },
+            });
+          getDeployMock.mockResolvedValueOnce({
+            _tag: 'Right',
+            right: {
+              activationCheckpoint: 'generation-prepared',
+              clean: true,
+              deployId: 'deploy-1',
+              failure: null,
+              generationId: 'generation-1',
+              status: 'succeeded',
+              workerVersionId: 'version-1',
+            },
+          });
+
+          const fiber = yield* devFn({
+            clean: true,
+            port: 3005,
+            systemId: 'sys_test',
+          }).pipe(Effect.fork);
+          yield* Deferred.await(commandStarted);
+          yield* Queue.offer(stdout, 'Ready on http://127.0.0.1:3005\n');
+          yield* Effect.promise(() =>
+            vi.waitFor(() => expect(startDeployMock).toHaveBeenCalledTimes(1)),
+          );
+          yield* TestClock.adjust(2_000);
+          yield* Effect.promise(() =>
+            vi.waitFor(() => expect(startDeployMock).toHaveBeenCalledTimes(3)),
+          );
+          yield* TestClock.adjust(250);
+          yield* Effect.promise(() =>
+            vi.waitFor(() => expect(getDeployMock).toHaveBeenCalledOnce()),
+          );
+
+          yield* Queue.offer(stdout, '⎔ Local server updated and ready\n');
+          yield* Effect.promise(() =>
+            vi.waitFor(() => expect(startDeployMock).toHaveBeenCalledTimes(4)),
+          );
+
+          for (const callNumber of [1, 2, 3]) {
+            expect(startDeployMock).toHaveBeenNthCalledWith(callNumber, {
+              clean: true,
+            });
+          }
+          expect(startDeployMock).toHaveBeenNthCalledWith(4, { clean: false });
+          expect(getDeployMock).toHaveBeenCalledWith({ deployId: 'deploy-1' });
+          expect(newSyncRpcSessionMock).toHaveBeenCalledTimes(5);
+          expect(disposeGatewayMock).toHaveBeenCalledTimes(5);
+          yield* Deferred.succeed(exitCode, CommandExecutor.ExitCode(0));
+          yield* Fiber.join(fiber);
+        }),
+    );
+
+    it.effect('bounds retries for transient Gateway transport failures', () =>
+      Effect.gen(function* () {
+        startDeployMock
+          .mockRejectedValueOnce(new TypeError('connection reset'))
+          .mockRejectedValueOnce(new TypeError('service unavailable'))
+          .mockRejectedValueOnce(new TypeError('gateway timeout'));
+        const fiber = yield* devFn({
+          clean: false,
+          port: 3005,
+          systemId: 'sys_test',
+        }).pipe(Effect.fork);
+        yield* Deferred.await(commandStarted);
+        yield* Queue.offer(stdout, 'Ready on http://127.0.0.1:3005\n');
+        yield* Effect.promise(() =>
+          vi.waitFor(() => expect(startDeployMock).toHaveBeenCalledTimes(1)),
+        );
+        yield* TestClock.adjust(2_000);
+
+        const error = yield* Fiber.join(fiber).pipe(Effect.flip);
+        expect(error).toMatchObject({
+          code: 'zerospin-dev-start-deploy-failed',
+        });
+        expect(startDeployMock).toHaveBeenCalledTimes(3);
+        expect(newSyncRpcSessionMock).toHaveBeenCalledTimes(3);
+        expect(disposeGatewayMock).toHaveBeenCalledTimes(3);
+        expect(killMock).toHaveBeenCalledWith('SIGTERM');
+      }),
+    );
+
+    it.effect('does not retry a nontransient control failure', () =>
+      Effect.gen(function* () {
+        startDeployMock.mockResolvedValueOnce({
+          _tag: 'Left',
+          left: {
+            cause: 'missing executing metadata',
+            code: 'dev-version-metadata-missing',
+            extra: null,
+            message: 'The executing version metadata is missing.',
+            status: 500,
+          },
+        });
+        const fiber = yield* devFn({
+          clean: false,
+          port: 3005,
+          systemId: 'sys_test',
+        }).pipe(Effect.fork);
+        yield* Deferred.await(commandStarted);
+        yield* Queue.offer(stdout, 'Ready on http://127.0.0.1:3005\n');
+
+        const error = yield* Fiber.join(fiber).pipe(Effect.flip);
+        expect(error).toMatchObject({
+          code: 'dev-version-metadata-missing',
+          status: 500,
+        });
+        expect(startDeployMock).toHaveBeenCalledTimes(1);
+        expect(newSyncRpcSessionMock).toHaveBeenCalledTimes(1);
+        expect(killMock).toHaveBeenCalledWith('SIGTERM');
+      }),
+    );
+
+    it.effect('rejects an incomplete deploy snapshot without retrying', () =>
+      Effect.gen(function* () {
+        startDeployMock.mockResolvedValueOnce({
+          _tag: 'Right',
+          right: {
+            activationCheckpoint: 'generation-prepared',
+            clean: false,
+            deployId: 'deploy-1',
+            failure: null,
+            generationId: 'generation-1',
+            status: 'succeeded',
+          },
+        });
+        const fiber = yield* devFn({
+          clean: false,
+          port: 3005,
+          systemId: 'sys_test',
+        }).pipe(Effect.fork);
+        yield* Deferred.await(commandStarted);
+        yield* Queue.offer(stdout, 'Ready on http://127.0.0.1:3005\n');
+
+        const error = yield* Fiber.join(fiber).pipe(Effect.flip);
+        expect(error).toMatchObject({
+          code: 'zerospin-dev-deploy-response-invalid',
+        });
+        expect(startDeployMock).toHaveBeenCalledTimes(1);
+        expect(newSyncRpcSessionMock).toHaveBeenCalledTimes(1);
+        expect(killMock).toHaveBeenCalledWith('SIGTERM');
+      }),
+    );
+
+    it.effect('stops Wrangler on the persisted deploy failure', () =>
+      Effect.gen(function* () {
+        startDeployMock.mockResolvedValueOnce({
+          _tag: 'Right',
+          right: {
+            activationCheckpoint: 'allocated',
+            clean: false,
+            deployId: 'deploy-1',
+            failure: {
+              cause: 'schema changed after remote mutation',
+              code: 'dev-activation-conflict',
+              extra: null,
+              message: 'The activation cannot be resumed safely.',
+              status: 409,
+            },
+            generationId: 'generation-1',
+            status: 'failed',
+            workerVersionId: 'version-1',
+          },
+        });
+        const fiber = yield* devFn({
+          clean: false,
+          port: 3005,
+          systemId: 'sys_test',
+        }).pipe(Effect.fork);
+        yield* Deferred.await(commandStarted);
+        yield* Queue.offer(stdout, 'Ready on http://127.0.0.1:3005\n');
+
+        const error = yield* Fiber.join(fiber).pipe(Effect.flip);
+        expect(error).toMatchObject({
+          cause: 'schema changed after remote mutation',
+          code: 'dev-activation-conflict',
+          status: 409,
+        });
+        expect(startDeployMock).toHaveBeenCalledTimes(1);
+        expect(killMock).toHaveBeenCalledWith('SIGTERM');
+      }),
+    );
+
+    it.effect('reports a nonzero Wrangler exit', () =>
+      Effect.gen(function* () {
+        const fiber = yield* devFn({
+          clean: false,
+          port: 3005,
+          systemId: 'sys_test',
+        }).pipe(Effect.fork);
+        yield* Deferred.await(commandStarted);
+        yield* Deferred.succeed(exitCode, CommandExecutor.ExitCode(2));
+
+        const error = yield* Fiber.join(fiber).pipe(Effect.flip);
+        expect(error).toMatchObject({
+          code: 'zerospin-dev-wrangler-exited',
+        });
+      }),
+    );
+
+    it.effect('terminates Wrangler when the dev Effect is interrupted', () =>
+      Effect.gen(function* () {
+        const fiber = yield* devFn({
+          clean: false,
+          port: 3005,
+          systemId: 'sys_test',
+        }).pipe(Effect.fork);
+        yield* Deferred.await(commandStarted);
+        yield* Fiber.interrupt(fiber);
+
+        expect(killMock).toHaveBeenCalledWith('SIGTERM');
+      }),
     );
   });
 });

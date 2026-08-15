@@ -1,13 +1,21 @@
 /**
- * Route all SystemRepo DO lookups through `SystemRepo.getRepo()`.
+ * Address the singleton SystemRepo by system ID and qualify generation-owned reads.
  *
- * @bad Call `env.SYSTEM_REPO.getByName('systemRepo')` at feature call sites.
+ * @bad Address one SystemRepo per generation or omit the configured system ID.
+ * @bad Read generation-owned rows without the generation ID that locates them.
  */
-export function loadRegisteredAccountIds() {
-  const systemRepo = SystemRepo.getRepo();
-  return systemRepo.getAccountIds();
+export function loadRegisteredAggregateIds(props: {
+  systemId: string;
+  generationId: string;
+}) {
+  const systemRepo = SystemRepo.getRepo({ systemId: props.systemId });
+  return systemRepo.getAggregateIds({ generationId: props.generationId });
 }
 
 declare const SystemRepo: {
-  getRepo: () => { getAccountIds: () => Promise<readonly string[]> };
+  getRepo: (props: { systemId: string }) => {
+    getAggregateIds: (props: {
+      generationId: string;
+    }) => Promise<readonly string[]>;
+  };
 };

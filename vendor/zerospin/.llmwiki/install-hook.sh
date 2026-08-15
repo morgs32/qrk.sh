@@ -25,7 +25,7 @@ if [ ! -f .llmwiki/config.yml ]; then
 fi
 
 # Make scripts executable
-chmod +x .llmwiki/post-commit .llmwiki/ingest.sh .llmwiki/freshness.sh
+chmod +x .llmwiki/post-commit .llmwiki/ingest.sh
 
 # Seed the per-machine Obsidian workspace from the committed template, if not already present.
 # Obsidian mutates .obsidian/workspace.json on every open; we gitignore the real file and

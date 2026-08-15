@@ -35,6 +35,12 @@
       "path": "./packages/studio"
     },
     {
+      "path": "./packages/dev-worker"
+    },
+    {
+      "path": "./packages/production-worker"
+    },
+    {
       "path": "./packages/dispatch-worker"
     },
     {
@@ -48,6 +54,12 @@
     },
     {
       "path": "./packages/sync"
+    },
+    {
+      "path": "./e2e/frontend-adapters"
+    },
+    {
+      "path": "./examples/shopping"
     }
   ]
 }

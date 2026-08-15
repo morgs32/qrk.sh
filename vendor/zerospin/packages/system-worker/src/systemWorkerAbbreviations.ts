@@ -1,17 +1,13 @@
 /** System-worker cursor and Durable Object repo-name prefixes. */
 export const systemWorkerAbbreviations = {
-  authorizationAttemptCursor: 'atzcur',
   systemRepo: 'sysrepo',
-  accountRepo: 'acctrepo',
-  authorizationRepo: 'atzrepo',
-  actorRepo: 'actrrepo',
-  frontendRepo: 'frtrepo',
+  aggregateRepo: 'acctrepo',
+  aggregateFrontendRepo: 'frtrepo',
   serviceRepo: 'svcrepo',
-  accountBlockRepo: 'acctbrepo',
-  actorBlockRepo: 'actrbrepo',
+  aggregateBlockRepo: 'acctbrepo',
   serviceBlockRepo: 'svcbrepo',
   serviceFrontendRepo: 'svcfrtrepo',
   serviceFrontendBlockRepo: 'svcfrtbrepo',
   systemLogRepo: 'syslogrepo',
-  frontendBlockRepo: 'frtbrepo',
+  aggregateFrontendBlockRepo: 'frtbrepo',
 };

@@ -1,6 +1,6 @@
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import type { AnyRelations, DrizzleTypeError } from 'drizzle-orm';
-import { Effect, Runtime } from 'effect';
+import { Cause, Effect, Exit, Option, Runtime } from 'effect';
 
 import { type Async } from '../async/Async.ts';
 import type { IAnyDrizzleSchemas } from '../models/types.ts';
@@ -40,22 +40,38 @@ export const makeTx = Effect.fn('makeTx')(function* <
       }
       inTxAlready = true;
       try {
-        return db.transaction(tx =>
-          Runtime.runSync(runtime)(
+        return db.transaction(tx => {
+          const exit = Runtime.runSyncExit(
+            runtime,
             program({
               tx,
             }),
-          ),
-        );
+          );
+          if (Exit.isFailure(exit)) {
+            throw exit;
+          }
+          return exit.value;
+        });
       } finally {
         inTxAlready = false;
       }
     },
-    catch: error =>
-      new ZerospinError({
+    catch: error => {
+      if (Exit.isExit(error) && Exit.isFailure(error)) {
+        const failure = Cause.failureOption(error.cause);
+        if (
+          Option.isSome(failure) &&
+          ZerospinError.isZerospinError(failure.value)
+        ) {
+          return failure.value;
+        }
+      }
+
+      return new ZerospinError({
         code: 'drizzle-transaction-failed',
         message: `Failed to begin database transaction: ${error}`,
         cause: ZerospinError.prettyUnknownFailure(error),
-      }),
+      });
+    },
   });
 });

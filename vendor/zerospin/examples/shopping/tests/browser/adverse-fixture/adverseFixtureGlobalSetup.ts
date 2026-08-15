@@ -3,6 +3,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
+import { Effect } from 'effect';
+import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
+
 const fixtureDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(fixtureDirectory, '../../../../..');
 const fixturePersistencePath = path.join(fixtureDirectory, '.wrangler');
@@ -12,10 +17,229 @@ const zerospinExecutable = path.join(
 );
 const fixtureApiUrl = 'http://127.0.0.1:3035';
 
-let fixtureProcess: ReturnType<typeof spawn> | null = null;
-let fixtureOutput = '';
-let fixtureStartup: Promise<void> | null = null;
-let activeSetupCount = 0;
+const fixtureStateKey = Symbol.for(
+  '@zerospin/shopping/adverse-fixture-process-state',
+);
+const fixtureState: {
+  process: ReturnType<typeof spawn> | null;
+  output: string;
+  startup: Promise<void> | null;
+  activeSetupCount: number;
+} = Reflect.get(process, fixtureStateKey) ?? {
+  process: null,
+  output: '',
+  startup: null,
+  activeSetupCount: 0,
+};
+Reflect.set(process, fixtureStateKey, fixtureState);
+
+export async function stopAdverseFixture(): Promise<void> {
+  const runningFixtureProcess = fixtureState.process;
+  fixtureState.process = null;
+  fixtureState.startup = null;
+  fixtureState.output = '';
+  if (
+    runningFixtureProcess === null ||
+    runningFixtureProcess.exitCode !== null ||
+    runningFixtureProcess.signalCode !== null
+  ) {
+    return;
+  }
+
+  const runningFixtureChildProcessIds =
+    process.platform === 'win32' || runningFixtureProcess.pid === undefined
+      ? []
+      : await new Promise<number[]>(resolve => {
+          const lookup = spawn(
+            'pgrep',
+            ['-P', String(runningFixtureProcess.pid)],
+            { stdio: ['ignore', 'pipe', 'ignore'] },
+          );
+          let output = '';
+          lookup.stdout?.on('data', chunk => {
+            output += String(chunk);
+          });
+          lookup.once('error', () => resolve([]));
+          lookup.once('close', () =>
+            resolve(
+              output
+                .trim()
+                .split(/\s+/)
+                .map(Number)
+                .filter(
+                  processId => Number.isSafeInteger(processId) && processId > 0,
+                ),
+            ),
+          );
+        });
+
+  await new Promise<void>(resolve => {
+    const forceKill = setTimeout(() => {
+      runningFixtureProcess.kill('SIGKILL');
+      for (const processId of runningFixtureChildProcessIds) {
+        try {
+          process.kill(-processId, 'SIGKILL');
+        } catch {
+          // The Wrangler process group already exited.
+        }
+      }
+    }, 10_000);
+    runningFixtureProcess.once('close', () => {
+      clearTimeout(forceKill);
+      resolve();
+    });
+    runningFixtureProcess.kill('SIGTERM');
+    for (const processId of runningFixtureChildProcessIds) {
+      try {
+        process.kill(-processId, 'SIGTERM');
+      } catch {
+        // The Wrangler process group already exited.
+      }
+    }
+  });
+}
+
+export async function startAdverseFixture(
+  cleanFixturePersistence = false,
+): Promise<void> {
+  if (fixtureState.startup !== null) {
+    return fixtureState.startup;
+  }
+
+  const startup = (async () => {
+    if (cleanFixturePersistence) {
+      await fs.rm(fixturePersistencePath, { force: true, recursive: true });
+    }
+    fixtureState.output = '';
+    const startedFixtureProcess = spawn(
+      zerospinExecutable,
+      ['dev', '--port', '3035'],
+      {
+        cwd: fixtureDirectory,
+        env: {
+          ...process.env,
+          FORCE_COLOR: '0',
+          NO_COLOR: '1',
+        },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    );
+    fixtureState.process = startedFixtureProcess;
+
+    startedFixtureProcess.once('close', () => {
+      if (fixtureState.process === startedFixtureProcess) {
+        fixtureState.process = null;
+        fixtureState.startup = null;
+      }
+    });
+
+    try {
+      // Wrangler's listening line is necessary, but Gateway readiness remains
+      // the authority that every Durable Object binding is usable.
+      await new Promise<void>((resolve, reject) => {
+        let didSettleWranglerReadiness = false;
+        const wranglerReadinessTimeout = setTimeout(() => {
+          if (didSettleWranglerReadiness) return;
+          didSettleWranglerReadiness = true;
+          reject(
+            new Error(
+              `Adverse fixture did not print Wrangler readiness.\n${fixtureState.output}`,
+            ),
+          );
+        }, 120_000);
+        const handleOutput = (chunk: unknown) => {
+          fixtureState.output = `${fixtureState.output}${String(chunk)}`.slice(
+            -32_768,
+          );
+          if (
+            !didSettleWranglerReadiness &&
+            /Ready on http:\/\/[^\s]+:3035/.test(fixtureState.output)
+          ) {
+            didSettleWranglerReadiness = true;
+            clearTimeout(wranglerReadinessTimeout);
+            resolve();
+          }
+        };
+        startedFixtureProcess.stdout?.on('data', handleOutput);
+        startedFixtureProcess.stderr?.on('data', handleOutput);
+        startedFixtureProcess.once('error', error => {
+          if (didSettleWranglerReadiness) return;
+          didSettleWranglerReadiness = true;
+          clearTimeout(wranglerReadinessTimeout);
+          reject(error);
+        });
+        startedFixtureProcess.once('close', (code, signal) => {
+          if (didSettleWranglerReadiness) return;
+          didSettleWranglerReadiness = true;
+          clearTimeout(wranglerReadinessTimeout);
+          reject(
+            new Error(
+              `Adverse fixture exited before Wrangler readiness (code=${String(code)}, signal=${String(signal)}).\n${fixtureState.output}`,
+            ),
+          );
+        });
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        let didSettleGatewayReadiness = false;
+        const gatewayReadinessTimeout = setTimeout(() => {
+          if (didSettleGatewayReadiness) return;
+          didSettleGatewayReadiness = true;
+          clearInterval(gatewayReadinessPoll);
+          reject(
+            new Error(
+              `Adverse fixture did not report Gateway readiness.\n${fixtureState.output}`,
+            ),
+          );
+        }, 120_000);
+        const gatewayReadinessPoll = setInterval(() => {
+          if (didSettleGatewayReadiness) return;
+          if (
+            startedFixtureProcess.exitCode !== null ||
+            startedFixtureProcess.signalCode !== null
+          ) {
+            didSettleGatewayReadiness = true;
+            clearInterval(gatewayReadinessPoll);
+            clearTimeout(gatewayReadinessTimeout);
+            reject(
+              new Error(
+                `Adverse fixture exited before Gateway readiness.\n${fixtureState.output}`,
+              ),
+            );
+            return;
+          }
+          void (async () => {
+            using gatewayApi = newSyncRpcSession<GatewayApi>(fixtureApiUrl);
+            const devDeployApi = gatewayApi.getDevDeployApi();
+            await Effect.runPromise(
+              decodeRpc(await devDeployApi.getReadiness()),
+            );
+          })()
+            .then(() => {
+              if (didSettleGatewayReadiness) return;
+              didSettleGatewayReadiness = true;
+              clearInterval(gatewayReadinessPoll);
+              clearTimeout(gatewayReadinessTimeout);
+              resolve();
+            })
+            .catch(() => {
+              // The listening message can precede accepted requests. Only
+              // a decoded DevDeployApi readiness result completes startup.
+            });
+        }, 50);
+      });
+    } catch (error) {
+      await stopAdverseFixture();
+      if (cleanFixturePersistence) {
+        await fs.rm(fixturePersistencePath, { force: true, recursive: true });
+      }
+      throw error;
+    }
+  })();
+  fixtureState.startup = startup;
+
+  return startup;
+}
 
 // oxlint-disable-next-line import/no-default-export -- Vitest globalSetup modules require a default export.
 export default async function adverseFixtureGlobalSetup() {
@@ -26,216 +250,22 @@ export default async function adverseFixtureGlobalSetup() {
    * 4. Each teardown releases its own count exactly once.
    * 5. The final teardown stops the child and removes only fixture persistence.
    */
-  activeSetupCount += 1;
+  fixtureState.activeSetupCount += 1;
   let didReleaseSetup = false;
 
-  if (fixtureStartup === null) {
-    fixtureStartup = (async () => {
-      await fs.rm(fixturePersistencePath, { force: true, recursive: true });
-      fixtureOutput = '';
-
-      const startedFixtureProcess = spawn(
-        zerospinExecutable,
-        ['dev', '--port', '3035'],
-        {
-          cwd: fixtureDirectory,
-          env: {
-            ...process.env,
-            FORCE_COLOR: '0',
-            NO_COLOR: '1',
-          },
-          stdio: ['ignore', 'pipe', 'pipe'],
-        },
-      );
-      fixtureProcess = startedFixtureProcess;
-
-      try {
-        // Wrangler's listening line is necessary, but HTTP readiness remains
-        // the authority that every Durable Object binding is usable.
-        await new Promise<void>((resolve, reject) => {
-          let didSettleWranglerReadiness = false;
-          const wranglerReadinessTimeout = setTimeout(() => {
-            if (didSettleWranglerReadiness) {
-              return;
-            }
-            didSettleWranglerReadiness = true;
-            reject(
-              new Error(
-                `Adverse fixture did not print Wrangler readiness.\n${fixtureOutput}`,
-              ),
-            );
-          }, 120_000);
-
-          startedFixtureProcess.stdout?.on('data', chunk => {
-            fixtureOutput = `${fixtureOutput}${String(chunk)}`.slice(-32_768);
-            if (
-              !didSettleWranglerReadiness &&
-              /Ready on http:\/\/[^\s]+:3035/.test(fixtureOutput)
-            ) {
-              didSettleWranglerReadiness = true;
-              clearTimeout(wranglerReadinessTimeout);
-              resolve();
-            }
-          });
-          startedFixtureProcess.stderr?.on('data', chunk => {
-            fixtureOutput = `${fixtureOutput}${String(chunk)}`.slice(-32_768);
-            if (
-              !didSettleWranglerReadiness &&
-              /Ready on http:\/\/[^\s]+:3035/.test(fixtureOutput)
-            ) {
-              didSettleWranglerReadiness = true;
-              clearTimeout(wranglerReadinessTimeout);
-              resolve();
-            }
-          });
-          startedFixtureProcess.once('error', error => {
-            if (didSettleWranglerReadiness) {
-              return;
-            }
-            didSettleWranglerReadiness = true;
-            clearTimeout(wranglerReadinessTimeout);
-            reject(error);
-          });
-          startedFixtureProcess.once('close', (code, signal) => {
-            if (fixtureProcess === startedFixtureProcess) {
-              fixtureProcess = null;
-            }
-            if (didSettleWranglerReadiness) {
-              return;
-            }
-            didSettleWranglerReadiness = true;
-            clearTimeout(wranglerReadinessTimeout);
-            reject(
-              new Error(
-                `Adverse fixture exited before Wrangler readiness (code=${String(code)}, signal=${String(signal)}).\n${fixtureOutput}`,
-              ),
-            );
-          });
-        });
-
-        await new Promise<void>((resolve, reject) => {
-          let didSettleHttpReadiness = false;
-          const httpReadinessTimeout = setTimeout(() => {
-            if (didSettleHttpReadiness) {
-              return;
-            }
-            didSettleHttpReadiness = true;
-            clearInterval(httpReadinessPoll);
-            reject(
-              new Error(
-                `Adverse fixture did not reach /__zerospin/ready HTTP 204.\n${fixtureOutput}`,
-              ),
-            );
-          }, 120_000);
-          const httpReadinessPoll = setInterval(() => {
-            if (didSettleHttpReadiness) {
-              return;
-            }
-            if (
-              startedFixtureProcess.exitCode !== null ||
-              startedFixtureProcess.signalCode !== null
-            ) {
-              didSettleHttpReadiness = true;
-              clearInterval(httpReadinessPoll);
-              clearTimeout(httpReadinessTimeout);
-              reject(
-                new Error(
-                  `Adverse fixture exited before HTTP readiness.\n${fixtureOutput}`,
-                ),
-              );
-              return;
-            }
-            void fetch(`${fixtureApiUrl}/__zerospin/ready`)
-              .then(async response => {
-                if (didSettleHttpReadiness) {
-                  return;
-                }
-                if (response.status === 204) {
-                  didSettleHttpReadiness = true;
-                  clearInterval(httpReadinessPoll);
-                  clearTimeout(httpReadinessTimeout);
-                  resolve();
-                  return;
-                }
-                fixtureOutput =
-                  `${fixtureOutput}\n${await response.text()}`.slice(-32_768);
-              })
-              .catch(() => {
-                // The listening message can precede accepted requests. Only
-                // the HTTP 204 branch above completes fixture readiness.
-              });
-          }, 50);
-        });
-      } catch (error) {
-        if (
-          startedFixtureProcess.exitCode === null &&
-          startedFixtureProcess.signalCode === null
-        ) {
-          await new Promise<void>(resolve => {
-            const forceKill = setTimeout(() => {
-              startedFixtureProcess.kill('SIGKILL');
-            }, 10_000);
-            startedFixtureProcess.once('close', () => {
-              clearTimeout(forceKill);
-              resolve();
-            });
-            startedFixtureProcess.kill('SIGTERM');
-          });
-        }
-        if (fixtureProcess === startedFixtureProcess) {
-          fixtureProcess = null;
-        }
-        await fs.rm(fixturePersistencePath, {
-          force: true,
-          recursive: true,
-        });
-        throw error;
-      }
-    })();
-  }
-
   try {
-    await fixtureStartup;
+    await startAdverseFixture(fixtureState.activeSetupCount === 1);
   } catch (error) {
-    activeSetupCount -= 1;
-    if (activeSetupCount === 0) {
-      fixtureStartup = null;
-      fixtureProcess = null;
-      fixtureOutput = '';
-    }
+    fixtureState.activeSetupCount -= 1;
     throw error;
   }
 
   return async () => {
-    if (didReleaseSetup) {
-      return;
-    }
+    if (didReleaseSetup) return;
     didReleaseSetup = true;
-    activeSetupCount -= 1;
-    if (activeSetupCount !== 0) {
-      return;
-    }
-
-    const runningFixtureProcess = fixtureProcess;
-    fixtureProcess = null;
-    fixtureStartup = null;
-    fixtureOutput = '';
-    if (
-      runningFixtureProcess !== null &&
-      runningFixtureProcess.exitCode === null &&
-      runningFixtureProcess.signalCode === null
-    ) {
-      await new Promise<void>(resolve => {
-        const forceKill = setTimeout(() => {
-          runningFixtureProcess.kill('SIGKILL');
-        }, 10_000);
-        runningFixtureProcess.once('close', () => {
-          clearTimeout(forceKill);
-          resolve();
-        });
-        runningFixtureProcess.kill('SIGTERM');
-      });
-    }
+    fixtureState.activeSetupCount -= 1;
+    if (fixtureState.activeSetupCount !== 0) return;
+    await stopAdverseFixture();
     await fs.rm(fixturePersistencePath, { force: true, recursive: true });
   };
 }

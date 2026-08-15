@@ -14,7 +14,6 @@ import { executeInRepo } from '../workerd-utils/executeInRepo.js';
 
 describe('SystemLogAgent', () => {
   it('reconciles, broadcasts ordered bounded state, deduplicates retries, and rejects client writes', async () => {
-    const deployId = 'dpl_system_log_agent';
     const generationId = 'gen_system_log_agent';
     const systemId = 'sys_local';
     await executeInRepo({
@@ -31,7 +30,7 @@ describe('SystemLogAgent', () => {
           )
           INSERT INTO ${schema.logs} (
             id, logIndex, createdAt, source, message, level,
-            systemId, generationId, deployId, payload
+            systemId, generationId, payload
           )
           SELECT
             printf('log_startup_%03d', value),
@@ -42,7 +41,6 @@ describe('SystemLogAgent', () => {
             'info',
             ${systemId},
             ${generationId},
-            ${deployId},
             NULL
           FROM sequence
         `);
@@ -50,7 +48,7 @@ describe('SystemLogAgent', () => {
     });
 
     const systemLogRepoName = await managedRuntime.runPromise(
-      SystemLogRepo.repoUtils.nameUtils.makeName({ generationId }),
+      SystemLogRepo.boundDORepoConfig.nameUtils.makeName({ generationId }),
     );
     const systemLogRepo = env.SYSTEM_LOG_REPO.getByName(systemLogRepoName);
     const systemLogAgent = env.SYSTEM_LOG_AGENT.getByName(generationId);
@@ -155,7 +153,6 @@ describe('SystemLogAgent', () => {
       );
 
       const encodedPushedRow = await systemLogRepo.appendLogRow({
-        deployId,
         level: 'warn',
         message: 'pushed',
         payload: { phase: 'push' },
@@ -237,14 +234,12 @@ describe('SystemLogAgent', () => {
   });
 
   it('fails startup after reconciliation retries are exhausted', async () => {
-    const deployId = 'dpl_system_log_agent_failure';
     const generationId = 'gen_system_log_agent_failure';
     const systemLogRepoName = await managedRuntime.runPromise(
-      SystemLogRepo.repoUtils.nameUtils.makeName({ generationId }),
+      SystemLogRepo.boundDORepoConfig.nameUtils.makeName({ generationId }),
     );
     const systemLogRepo = env.SYSTEM_LOG_REPO.getByName(systemLogRepoName);
     const encodedRow = await systemLogRepo.appendLogRow({
-      deployId,
       level: 'error',
       message: 'stale',
       payload: null,

@@ -1,62 +1,78 @@
-import { Effect, Schedule, Schema } from 'effect';
+import { Effect } from 'effect';
 
 /**
- * Retry outbox delivery with an Effect schedule and persist only terminal failure state.
+ * Put the standard three-attempt schedule in the Durable Object coordinator.
+ * Persist domain completion and the latest diagnostic, never retry progress.
  *
- * @bad Add `deliveryAttempts`, `nextRetryAt`, `lastDeliveryError`, `failedAt`, or `succeededAt` columns for ordinary retry bookkeeping.
- * @bad Reimplement exponential backoff by mutating outbox rows between attempts.
- * @bad Advance downstream watermarks before scheduled delivery succeeds.
+ * @bad Add `deliveryAttempts`, `nextRetryAt`, `failedAt`, or `succeededAt` columns for ordinary delivery retry bookkeeping.
+ * @bad Treat `lastDeliveryError` as retry progress; it is retained operator-visible diagnostic state.
+ * @bad Decode persisted payloads or run local validation inside the retry schedule.
  */
 export const drainDeliveryOutbox = Effect.fn('LedgerRepo.drainDeliveryOutbox')(
   function* (props: {
+    deliveryQueue: {
+      drain(props: {
+        lanes: readonly {
+          name: string;
+          requested: boolean;
+          drain(): Effect.Effect<void, Error>;
+          hasPending(): Effect.Effect<boolean, Error>;
+        }[];
+      }): Effect.Effect<void, Error>;
+      retry<A>(delivery: Effect.Effect<A, Error>): Effect.Effect<A, Error>;
+    };
     outbox: {
-      readPending(): readonly {
-        id: string;
-        payload: unknown;
-      }[];
+      readFirstPending(): { id: string; payload: unknown } | undefined;
+      hasPending(): boolean;
       markDelivered(props: { deliveredAt: Date; id: string }): void;
-      markFailed(props: { failure: string; id: string }): void;
+      recordDiagnostic(props: { failure: string; id: string }): void;
     };
     targetRepo: {
       handle(payload: unknown): PromiseLike<unknown>;
     };
   }) {
-    const pendingRows = props.outbox.readPending();
-
-    for (const pendingRow of pendingRows) {
-      const delivered = yield* makeAsync(() =>
-        props.targetRepo.handle(pendingRow.payload),
-      ).pipe(
-        Effect.flatMap(decodeRpc),
-        Effect.retry({
-          schedule: Schedule.recurs(2).pipe(
-            Schedule.intersect(Schedule.exponential(250, 2)),
-          ),
-        }),
-        Effect.either,
-      );
-
-      if (delivered._tag === 'Left') {
-        const failure = yield* Schema.encode(
-          Schema.parseJson(ZerospinErrorSchema),
-        )(delivered.left);
-        props.outbox.markFailed({
-          id: pendingRow.id,
-          failure,
-        });
-        continue;
-      }
-
-      props.outbox.markDelivered({
-        id: pendingRow.id,
-        deliveredAt: new Date(),
-      });
-    }
+    yield* props.deliveryQueue.drain({
+      lanes: [
+        {
+          name: 'LedgerRepo.outbox',
+          requested: true,
+          drain: () =>
+            Effect.gen(function* () {
+              const pending = props.outbox.readFirstPending();
+              if (pending === undefined) {
+                return;
+              }
+              const payload = yield* decodePersistedPayload(pending.payload);
+              const delivered = yield* props.deliveryQueue
+                .retry(
+                  makeAsync(() => props.targetRepo.handle(payload)).pipe(
+                    Effect.flatMap(decodeRpc),
+                  ),
+                )
+                .pipe(Effect.either);
+              if (delivered._tag === 'Left') {
+                props.outbox.recordDiagnostic({
+                  id: pending.id,
+                  failure: delivered.left.message,
+                });
+                return;
+              }
+              props.outbox.markDelivered({
+                id: pending.id,
+                deliveredAt: new Date(),
+              });
+            }),
+          hasPending: () => Effect.sync(() => props.outbox.hasPending()),
+        },
+      ],
+    });
   },
 );
 
+declare function decodePersistedPayload(
+  payload: unknown,
+): Effect.Effect<unknown, Error>;
 declare function makeAsync<A>(
   fn: () => PromiseLike<A>,
-): Effect.Effect<A, unknown, unknown>;
-declare function decodeRpc<A>(encoded: A): Effect.Effect<A, unknown, unknown>;
-declare const ZerospinErrorSchema: Schema.Schema<unknown, unknown>;
+): Effect.Effect<A, Error>;
+declare function decodeRpc<A>(encoded: A): Effect.Effect<A, Error>;

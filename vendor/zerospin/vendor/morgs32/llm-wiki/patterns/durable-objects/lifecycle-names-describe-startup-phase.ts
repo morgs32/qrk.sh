@@ -13,20 +13,22 @@ declare function migrateDb(props: {
   db: unknown;
   schema: unknown;
 }): Effect.Effect<void, unknown, never>;
-declare function makeRepoUtils(props: unknown): unknown;
-declare function makeRepo(props: { repoUtils: unknown }): new () => unknown;
+declare function makeBoundDORepoConfig(props: unknown): unknown;
+declare function makeBoundDORepo(props: {
+  boundDORepoConfig: unknown;
+}): new () => unknown;
 
 declare const runtime: {
   runSync<A>(effect: Effect.Effect<A, unknown, never>): A;
 };
 
 /**
- * Lifecycle names describe the startup phase: `#initialize`, `#migrate`, optional `#bootstrap`.
+ * Lifecycle names describe the startup phase: `#initialize`, `#provisionSchema`, optional `#bootstrap`.
  *
- * @bad Do not use a vague `#setup` that runs migration and fanout subscription inside sync init.
+ * @bad Do not use a vague `#setup` that runs schema provisioning and fanout subscription inside sync init.
  * @bad Do not make `#initialize` write one-time KV defaults, subscribe fanout, or kick queues.
  */
-const accountRepoUtils = makeRepoUtils({
+const accountBoundDORepoConfig = makeBoundDORepoConfig({
   abbreviation: 'acctrepo',
   namePattern: 'account',
   managedRuntime: runtime,
@@ -50,6 +52,8 @@ const accountRepoUtils = makeRepoUtils({
   }),
 });
 
-class AccountRepo extends makeRepo({ repoUtils: accountRepoUtils }) {}
+class AccountRepo extends makeBoundDORepo({
+  boundDORepoConfig: accountBoundDORepoConfig,
+}) {}
 
 export { AccountRepo };

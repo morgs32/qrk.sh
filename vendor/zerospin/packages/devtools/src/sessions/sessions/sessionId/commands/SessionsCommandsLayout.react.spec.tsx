@@ -39,7 +39,7 @@ describe('SessionsCommandsLayout', () => {
       root.unmount();
       await Promise.resolve();
     });
-    zerospinDevtoolsStore.getState().removeAccountSession(sessionId);
+    zerospinDevtoolsStore.getState().removeAggregateSession(sessionId);
     container.remove();
     vi.clearAllMocks();
   });
@@ -67,27 +67,23 @@ describe('SessionsCommandsLayout', () => {
 
     session.store.setState({
       sessionId,
-      accountId: 'acct_1',
-      accountName: main.accountName,
-      actorId: 'usr_1',
-      systemWorkerName: 'stub-deploy',
+      aggregateId: 'acct_1',
+      aggregateName: main.aggregateName,
+      userId: 'usr_1',
+      systemId: 'sys_commands_layout',
+      systemVersion: '1.0.0',
+      frontendName: main.frontendName,
+      aggregateFrontendLockKey: 'a'.repeat(64),
       db,
       schema,
       models,
       vfsName: null,
       isInitialized: true,
-      frontendIndex: null,
-      lastRebasedPushedCursor: null,
-      isPushPaused: false,
+      frontendIndex: 0,
+      replicaIndex: null,
     });
-    zerospinDevtoolsStore.getState().addAccountSession({
+    zerospinDevtoolsStore.getState().addAggregateSession({
       session,
-      pushStagedCommands: () =>
-        Promise.resolve({
-          pendingCommands: [],
-          pushedCommands: [],
-          failedCommands: [],
-        }),
     });
 
     const router = createMemoryRouter(

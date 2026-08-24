@@ -1,6 +1,6 @@
 ---
 name: update-vendor
-description: Pull or push the Git subtrees vendored under vendor/. Use when the user asks to update, sync, pull, push, publish, or inspect external vendors, including Effect and morgs32/llm-wiki.
+description: Pull or push the Git subtrees vendored under vendor/. Use when the user asks to update, sync, pull, push, publish, or inspect external vendors such as Zerospin.
 ---
 
 # Update Vendor
@@ -14,10 +14,12 @@ Discovery:
 
 1. Immediate children of `vendor/` (e.g. `vendor/effect`).
 2. Immediate children of each `vendor/<org>/` directory (one nesting level for
-   namespaced vendors such as `vendor/morgs32/llm-wiki`).
+   any configured namespaced vendor).
 
 Do not recurse into vendored package trees (e.g. `vendor/effect/packages`).
-`llm-wiki/` at the repository root is first-party and is never a vendor target.
+The globally installed `$engineering-patterns` skill is not a vendor target.
+`vendor/zerospin/llm-wiki/` belongs to the Zerospin subtree and is refreshed
+only by updating `vendor/zerospin/`.
 
 ## Safety checks
 

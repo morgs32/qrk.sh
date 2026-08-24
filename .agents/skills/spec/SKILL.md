@@ -32,12 +32,15 @@ Read these **before** inventing topology, trust boundaries, or domain names. Pre
 | 2        | [`wiki/glossary.md`](../../../wiki/glossary.md)                                                 | Canonical domain terms                                                    |
 | 3        | [`wiki/index.md`](../../../wiki/index.md)                                                       | Catalog of wiki pages                                                     |
 | 4        | [`AGENTS.md` Docs lookup](../../../AGENTS.md)                                                   | Keyword → pattern / architecture routing                                  |
-| 5        | [`vendor/morgs32/llm-wiki/patterns/`](../../../vendor/morgs32/llm-wiki/patterns/index.md)                   | Generic code-shape patterns                                               |
-| 6        | [`llm-wiki/patterns/`](../../../llm-wiki/patterns/index.md) | Zerospin-specific patterns and case studies                               |
-| 7        | [`llm-wiki.md`](../../../llm-wiki.md)                                                           | How this repo's LLM wiki idea works (meta)                                |
+| 5        | `$engineering-patterns` → `references/patterns/index.md`                                    | Generic code-shape patterns                                               |
+| 6        | [`vendor/zerospin/llm-wiki/patterns/`](../../../vendor/zerospin/llm-wiki/patterns/index.md)       | Pinned Zerospin-specific patterns and case studies                        |
+| 7        | [`vendor/zerospin/llm-wiki.md`](../../../vendor/zerospin/llm-wiki.md)                             | How Zerospin's LLM wiki works (meta)                                      |
 | 8        | [`TODOS.md`](../../../TODOS.md)                                                                 | Target-vs-current naming / topology audit                                 |
 
 Also read the relevant source under `packages/` / `apps/` when the wiki is thin or the question is about current behavior.
+
+Invoke `$engineering-patterns` before following priority 5. Paths beginning
+with `references/patterns/` are logical paths inside that installed skill.
 
 **Rule:** docs describe intended topology; code may lag. Do not treat stale `*Repo` method names as the design target when architecture pages disagree.
 

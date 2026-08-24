@@ -1,4 +1,0 @@
-interface:
-  display_name: 'Slack-Me'
-  short_description: 'Send yourself concise Slack updates from Codex.'
-  default_prompt: 'Slack me the current status.'

@@ -1,4 +1,0 @@
-interface:
-  display_name: 'Fix Casts'
-  short_description: 'Audit unapproved TypeScript assertions'
-  default_prompt: 'Use $fix-casts to audit assertions without ALLOWED_CAST comments one site at a time.'

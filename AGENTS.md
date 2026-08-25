@@ -128,7 +128,9 @@ When a code change invalidates a linked doc, update that doc in the same request
 
 If `$patterns` is unavailable in a fresh environment, follow the
 [`morgs32/llm-wiki` install instructions](https://github.com/morgs32/llm-wiki#install)
-to provision it before continuing; do not vendor shared patterns here.
+to provision it before continuing; do not vendor shared patterns here. Install
+it before entering an offline environment: a fresh network-isolated environment
+without the global skill is unsupported.
 
 <!-- patterns configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->

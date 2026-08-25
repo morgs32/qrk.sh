@@ -113,31 +113,35 @@ Plans and specs live under [`.plans/`](./.plans/):
 
 ### Documentation routing
 
-| Topic | Guidance |
-| --- | --- |
-| React components, files, site workspace, bricks, and catalog | [`docs/styleguide/component-and-file-naming.md`](./docs/styleguide/component-and-file-naming.md) |
-| Effect core, Schema, and errors | [`docs/effect/README.md`](./docs/effect/README.md) |
-| TypeScript fixes and validation patterns | [`docs/tooling/typescript.md`](./docs/tooling/typescript.md) |
-| Next.js client route params, `useParams`, and `ParamsSchema` | Invoke `$engineering-patterns`; read `references/patterns/nextjs/validated-client-route-params.ts` |
-| Local Zerospin model resets and clean development state | Invoke `$engineering-patterns`; read `references/patterns/tooling/zerospin-dev-clean-until-production.ts` |
-| React controls, shadcn, buttons, and design-system components | Invoke `$engineering-patterns`; read `references/patterns/react/prefer-design-system-components.ts` |
-| Zerospin domain patterns and case studies | [Pinned Zerospin pattern index](./vendor/zerospin/llm-wiki/patterns/index.md) |
-| Agent workflow skills | [`.agents/skills/`](./.agents/skills/) |
+| Topic                                                         | Guidance                                                                                         |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| React components, files, site workspace, bricks, and catalog  | [`docs/styleguide/component-and-file-naming.md`](./docs/styleguide/component-and-file-naming.md) |
+| Effect core, Schema, and errors                               | [`docs/effect/README.md`](./docs/effect/README.md)                                               |
+| TypeScript fixes and validation patterns                      | [`docs/tooling/typescript.md`](./docs/tooling/typescript.md)                                     |
+| Next.js client route params, `useParams`, and `ParamsSchema`  | Invoke `$patterns`; read `references/patterns/nextjs/validated-client-route-params.ts`           |
+| Local Zerospin model resets and clean development state       | Invoke `$patterns`; read `references/patterns/tooling/zerospin-dev-clean-until-production.ts`    |
+| React controls, shadcn, buttons, and design-system components | Invoke `$patterns`; read `references/patterns/react/prefer-design-system-components.ts`          |
+| Zerospin domain patterns and case studies                     | [Pinned Zerospin pattern index](./vendor/zerospin/llm-wiki/patterns/index.md)                    |
+| Agent workflow skills                                         | [`.agents/skills/`](./.agents/skills/)                                                           |
 
 When a code change invalidates a linked doc, update that doc in the same requested pass. Do not leave stale file paths or symbol names.
 
-<!-- engineering-patterns configuration start-->
+If `$patterns` is unavailable in a fresh environment, follow the
+[`morgs32/llm-wiki` install instructions](https://github.com/morgs32/llm-wiki#install)
+to provision it before continuing; do not vendor shared patterns here.
+
+<!-- patterns configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
-## Shared engineering patterns
+## Shared patterns
 
 For TypeScript, Effect, RPC, Next.js, Cloudflare, testing, naming, and
-code-shape work, invoke `$engineering-patterns` before editing or reviewing
+code-shape work, invoke `$patterns` before editing or reviewing
 code. Start at `references/patterns/index.md`, read only the patterns relevant
 to the task, and treat this repository's `AGENTS.md` and any repository-local
 pattern index as higher-precedence guidance.
 
-<!-- engineering-patterns configuration end-->
+<!-- patterns configuration end-->
 
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->

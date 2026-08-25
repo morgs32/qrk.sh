@@ -94,15 +94,15 @@ For each session in scope, read the `.jsonl` file line by line using the format 
 
 Extract and tag:
 
-| Tag              | What to capture                                                                                                                                                                           |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `frustration`    | User correction, repeated instruction, caps, "again", "stop", "DO NOT", "partial", "stub", "you didn't", "why did you", explicit rejection of agent output                                |
-| `doc-request`    | User asks to update **$engineering-patterns**, **references/patterns/**, **vendor/zerospin/llm-wiki/patterns/**, **architecture**, **AGENTS.md**, **TODOS.md**, **.plans/**, README, or "docs stay in sync" |
-| `recurring-task` | Same task type appears in **≥2 sessions** across either or both sources                                                                                                                   |
-| `skill-attached` | Skills attached or named (`$SkillName`, `<manually_attached_skills>`, Codex `<skills_instructions>`) — note whether the session still went wrong                                          |
-| `agent-mistake`  | Assistant did something the user had to fix: extra refactors, wrapper helpers, wrong runtime boundary, stale doc paths, bolt-on types                                                     |
-| `missing-skill`  | User had to spell out a multi-step workflow that no attached skill covered                                                                                                                |
-| `cross-tool`     | Same theme in both Cursor and Codex — strong signal for a shared repo skill                                                                                                               |
+| Tag              | What to capture                                                                                                                                                                                                         |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frustration`    | User correction, repeated instruction, caps, "again", "stop", "DO NOT", "partial", "stub", "you didn't", "why did you", explicit rejection of agent output                                                              |
+| `doc-request`    | User asks to update **$patterns**, **references/patterns/**, **llm-wiki/patterns/**, **vendor/zerospin/llm-wiki/patterns/**, **architecture**, **AGENTS.md**, **TODOS.md**, **.plans/**, README, or "docs stay in sync" |
+| `recurring-task` | Same task type appears in **≥2 sessions** across either or both sources                                                                                                                                                 |
+| `skill-attached` | Skills attached or named (`$SkillName`, `<manually_attached_skills>`, Codex `<skills_instructions>`) — note whether the session still went wrong                                                                        |
+| `agent-mistake`  | Assistant did something the user had to fix: extra refactors, wrapper helpers, wrong runtime boundary, stale doc paths, bolt-on types                                                                                   |
+| `missing-skill`  | User had to spell out a multi-step workflow that no attached skill covered                                                                                                                                              |
+| `cross-tool`     | Same theme in both Cursor and Codex — strong signal for a shared repo skill                                                                                                                                             |
 
 **Do not** treat assistant `[REDACTED]` placeholders or Codex system/developer preamble as evidence. Prefer **verbatim user quotes** (trim to ≤240 chars).
 
@@ -121,7 +121,7 @@ find "$CURSOR_ROOT" -name '*.jsonl' -not -path '*/subagents/*' -mtime -14 | head
 rg -i 'zerospin|GitHub/zerospin' "$CODEX_INDEX" 2>/dev/null | tail -40
 
 # Keyword triage across both sources
-rg -i 'engineering-patterns|references/patterns|vendor/zerospin/llm-wiki/patterns|cleanup mode|architecture|AGENTS\\.md|update.*doc|partial|DO NOT|re-export|wrapper|again\\?' \
+rg -i '\$patterns|engineering-patterns|references/patterns|llm-wiki/patterns|vendor/zerospin/llm-wiki/patterns|cleanup mode|architecture|AGENTS\\.md|update.*doc|partial|DO NOT|re-export|wrapper|again\\?' \
   "$CURSOR_ROOT" "$CODEX_SESSIONS" "$CODEX_ARCHIVED" --glob '*.jsonl' -l | head -40
 ```
 

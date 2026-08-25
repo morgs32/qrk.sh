@@ -17,7 +17,7 @@ Discovery:
    any configured namespaced vendor).
 
 Do not recurse into vendored package trees (e.g. `vendor/effect/packages`).
-The globally installed `$engineering-patterns` skill is not a vendor target.
+The globally installed `$patterns` skill is not a vendor target.
 `vendor/zerospin/llm-wiki/` belongs to the Zerospin subtree and is refreshed
 only by updating `vendor/zerospin/`.
 

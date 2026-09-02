@@ -1,6 +1,6 @@
 import { makeFrontendController } from '@zerospin/sdk/browser';
 
-import { Product } from '../models';
+import { Product } from '../models/Product';
 
 export const catalog = makeFrontendController({
   systemName: 'shopping',

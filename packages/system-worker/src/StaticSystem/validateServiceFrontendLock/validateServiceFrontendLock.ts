@@ -1,10 +1,9 @@
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
-import { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
+import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import { makeServiceFrontendLockKey } from '@zerospin/core/frontendController/makeServiceFrontendLockKey';
-import { encodeShape } from '@zerospin/core/models/encodeShape';
-import { descriptorToJsonEffectSchema } from '@zerospin/core/models/primitiveMaps';
-import { mapParseError, ZerospinError } from '@zerospin/error';
-import { Effect, JSONSchema, Schema } from 'effect';
+import { ZerospinError } from '@zerospin/error';
+import { descriptorToJsonEffectSchema, encodeShape } from '@zerospin/schema';
+import { Effect, Schema } from 'effect';
 import { isEqual, mapValues } from 'es-toolkit';
 import { system } from 'system';
 
@@ -13,28 +12,12 @@ export const validateServiceFrontendLock = Effect.fn(
 )(function* (props: {
   serviceName: string;
   frontendName: string;
-  serviceFrontendLock: unknown;
+  serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
 }) {
-  const serviceFrontendLock = yield* Schema.decodeUnknown(
-    ServiceFrontendLockSchema,
-  )(props.serviceFrontendLock, { onExcessProperty: 'error' }).pipe(
-    mapParseError({
-      code: 'service-frontend-lock-invalid',
-      prefix: 'Failed to decode the requested service frontend lock',
-      extra: {
-        target: {
-          serviceName: props.serviceName,
-          frontendName: props.frontendName,
-        },
-        serviceFrontendLockKey: null,
-        definitionPath: 'lock',
-        reason: 'malformed',
-      },
-    }),
-  );
+  const { frontendName, serviceFrontendLock, serviceName } = props;
   const serviceFrontendLockKey =
     yield* makeServiceFrontendLockKey(serviceFrontendLock);
-  const service = system.services[props.serviceName];
+  const service = system.services[serviceName];
   if (service === undefined) {
     return yield* new ZerospinError({
       code: 'service-frontend-lock-unsupported',
@@ -42,16 +25,16 @@ export const validateServiceFrontendLock = Effect.fn(
         'The requested service frontend owner is unavailable in the active System',
       extra: {
         target: {
-          serviceName: props.serviceName,
-          frontendName: props.frontendName,
+          serviceName: serviceName,
+          frontendName: frontendName,
         },
         serviceFrontendLockKey,
-        definitionPath: `services.${props.serviceName}`,
+        definitionPath: `services.${serviceName}`,
         reason: 'owner-missing',
       },
     });
   }
-  const frontendBinding = service.frontends[props.frontendName];
+  const frontendBinding = service.frontends[frontendName];
   if (frontendBinding === undefined) {
     return yield* new ZerospinError({
       code: 'service-frontend-lock-unsupported',
@@ -59,11 +42,11 @@ export const validateServiceFrontendLock = Effect.fn(
         'The requested service frontend is unavailable in the active System',
       extra: {
         target: {
-          serviceName: props.serviceName,
-          frontendName: props.frontendName,
+          serviceName: serviceName,
+          frontendName: frontendName,
         },
         serviceFrontendLockKey,
-        definitionPath: `services.${props.serviceName}.frontends.${props.frontendName}`,
+        definitionPath: `services.${serviceName}.frontends.${frontendName}`,
         reason: 'frontend-missing',
       },
     });
@@ -80,8 +63,8 @@ export const validateServiceFrontendLock = Effect.fn(
         'The requested service frontend lock belongs to another logical frontend',
       extra: {
         target: {
-          serviceName: props.serviceName,
-          frontendName: props.frontendName,
+          serviceName: serviceName,
+          frontendName: frontendName,
         },
         serviceFrontendLockKey,
         definitionPath: 'lock.systemName|lock.frontendName',
@@ -102,8 +85,8 @@ export const validateServiceFrontendLock = Effect.fn(
       message: 'The requested frontend model key set is unavailable',
       extra: {
         target: {
-          serviceName: props.serviceName,
-          frontendName: props.frontendName,
+          serviceName: serviceName,
+          frontendName: frontendName,
         },
         serviceFrontendLockKey,
         definitionPath: 'lock.models',
@@ -121,8 +104,8 @@ export const validateServiceFrontendLock = Effect.fn(
         message: `Frontend model "${modelKey}" is unavailable`,
         extra: {
           target: {
-            serviceName: props.serviceName,
-            frontendName: props.frontendName,
+            serviceName: serviceName,
+            frontendName: frontendName,
           },
           serviceFrontendLockKey,
           definitionPath: `models.${modelKey}`,
@@ -143,8 +126,8 @@ export const validateServiceFrontendLock = Effect.fn(
         message: `Frontend model ${modelKey}@${requestedModel.version} is unavailable`,
         extra: {
           target: {
-            serviceName: props.serviceName,
-            frontendName: props.frontendName,
+            serviceName: serviceName,
+            frontendName: frontendName,
           },
           serviceFrontendLockKey,
           definitionPath: `models.${modelKey}@${requestedModel.version}`,
@@ -152,17 +135,13 @@ export const validateServiceFrontendLock = Effect.fn(
         },
       });
     }
-    const propertiesShape = {
-      ...model.metadata,
-      ...definition.attributes,
-    };
     const resolvedModel = {
       modelName: model.modelName,
       abbreviation: model.abbreviation,
       version: definition.version,
-      propertiesJsonSchema: JSONSchema.make(
+      propertiesJsonSchema: Schema.toJsonSchemaDocument(
         Schema.Struct(
-          mapValues(propertiesShape, descriptor =>
+          mapValues(definition.propertiesShape, descriptor =>
             descriptorToJsonEffectSchema(descriptor),
           ),
         ),
@@ -181,8 +160,8 @@ export const validateServiceFrontendLock = Effect.fn(
         message: `Frontend model ${modelKey}@${requestedModel.version} changed after publication`,
         extra: {
           target: {
-            serviceName: props.serviceName,
-            frontendName: props.frontendName,
+            serviceName: serviceName,
+            frontendName: frontendName,
           },
           serviceFrontendLockKey,
           definitionPath: `models.${modelKey}@${requestedModel.version}`,
@@ -195,7 +174,7 @@ export const validateServiceFrontendLock = Effect.fn(
       modelName: model.modelName,
       abbreviation: model.abbreviation,
       version: definition.version,
-      properties: encodeShape(propertiesShape),
+      properties: encodeShape(definition.propertiesShape),
       indexes: definition.indexes,
       historicalDefinitions: [],
     };
@@ -213,8 +192,8 @@ export const validateServiceFrontendLock = Effect.fn(
         'The requested service frontend lock does not match the running System definitions',
       extra: {
         target: {
-          serviceName: props.serviceName,
-          frontendName: props.frontendName,
+          serviceName: serviceName,
+          frontendName: frontendName,
         },
         serviceFrontendLockKey,
         definitionPath: 'lock',

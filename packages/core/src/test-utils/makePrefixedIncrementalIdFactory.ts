@@ -1,6 +1,5 @@
+import { CuidFactory } from '@zerospin/schema';
 import { Effect, Layer } from 'effect';
-
-import { CuidFactory } from '../services/CuidFactory.ts';
 
 import type { IIdPrefix } from './types.ts';
 

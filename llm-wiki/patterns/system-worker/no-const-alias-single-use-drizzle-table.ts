@@ -1,9 +1,9 @@
 /**
  * Do not alias a Drizzle table binding used in only one select chain.
  *
- * @bad Assign `const executedCommands = schema.finalizedAggregateCommands` for a single query.
+ * @bad Assign `const commands = aggregateCommandChainDrizzleSchemas.commands` for a single query.
  */
-export function loadRecentExecutedCommands(props: {
+export function loadRecentAggregateCommands(props: {
   db: {
     select: () => {
       from: (table: unknown) => {
@@ -11,16 +11,17 @@ export function loadRecentExecutedCommands(props: {
       };
     };
   };
-  aggregateRepoDrizzleSchemas: { finalizedAggregateCommands: unknown };
-  aggregateName: string;
+  aggregateCommandChainDrizzleSchemas: { commands: unknown };
+  afterAggregateIndex: number;
 }) {
-  const { aggregateName, aggregateRepoDrizzleSchemas, db } = props;
+  const { afterAggregateIndex, aggregateCommandChainDrizzleSchemas, db } =
+    props;
 
   return db
     .select()
-    .from(aggregateRepoDrizzleSchemas.finalizedAggregateCommands)
-    .where(eqAggregateName(aggregateName))
+    .from(aggregateCommandChainDrizzleSchemas.commands)
+    .where(gtAggregateIndex(afterAggregateIndex))
     .all();
 }
 
-declare function eqAggregateName(aggregateName: string): unknown;
+declare function gtAggregateIndex(afterAggregateIndex: number): unknown;

@@ -1,3 +1,7 @@
+import * as NodeChildProcessSpawner from '@effect/platform-node-shared/NodeChildProcessSpawner';
+import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
+import * as NodePath from '@effect/platform-node-shared/NodePath';
+import { Effect, Layer } from 'effect';
 import { Box, Text } from 'ink';
 
 import { ProcedureStep } from '../ProcedureStep/ProcedureStep.js';
@@ -8,9 +12,18 @@ import { useProgram } from '../ProcedureStep/useProgram.js';
 
 import { deployWranglerFn } from './deployWranglerFn.js';
 
-export function DeployWrangler(props: { clean: boolean }) {
+export function DeployWrangler() {
   const { data, error, status } = useProgram({
-    fetcher: () => deployWranglerFn({ clean: props.clean }),
+    fetcher: () =>
+      deployWranglerFn().pipe(
+        Effect.provide(
+          NodeChildProcessSpawner.layer.pipe(
+            Layer.provideMerge(
+              Layer.mergeAll(NodeFileSystem.layer, NodePath.layer),
+            ),
+          ),
+        ),
+      ),
   });
 
   return (
@@ -25,7 +38,7 @@ export function DeployWrangler(props: { clean: boolean }) {
             <Text>Production Zerospin keys generated; nothing deployed.</Text>
             <Text>
               Copy these values into {data.envFilePath}, then rerun `zerospin
-              deploy --wrangler`:
+              deploy`:
             </Text>
             <Text>ZEROSPIN_PUBLISHABLE_KEY={data.zerospinPublishableKey}</Text>
             <Text>ZEROSPIN_SECRET_KEY={data.zerospinSecretKey}</Text>

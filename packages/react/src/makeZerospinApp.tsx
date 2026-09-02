@@ -14,23 +14,27 @@ import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthen
 import { makeSignature } from '@zerospin/core/authentication/makeSignature';
 import type { IAuthenticationSignature } from '@zerospin/core/authentication/types';
 import type { IFrontendController } from '@zerospin/core/frontendController/types';
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { IAggregateId } from '@zerospin/core/models/types';
+import { PublishableKey } from '@zerospin/core/services/PublishableKey';
+import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
 import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
 import { makeSession } from '@zerospin/core/session/makeSession';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
 import type { ISignatureFactory } from '@zerospin/core/utils/types';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { bootstrapAggregateFrontendSession } from '@zerospin/frontend/bootstrapAggregateFrontendSession';
+import { bootstrapServiceFrontendSession } from '@zerospin/frontend/bootstrapServiceFrontendSession';
 import { makeTelemetryLayer } from '@zerospin/logger';
-import { acquireUserPartitionRepo } from '@zerospin/shared-worker/acquireUserPartitionRepo';
-import { Effect, Fiber, Schema } from 'effect';
+import { acquireOpfsBackupWorker } from '@zerospin/opfs-backup-worker';
+import {
+  makeAbbreviationIdSchema,
+  makeIdFromAbbreviation,
+} from '@zerospin/schema';
+import { Effect, Redacted, Schema } from 'effect';
 
-import { bootstrapBrowserServiceSession } from './bootstrapBrowserServiceSession';
-import { bootstrapBrowserSession } from './bootstrapBrowserSession';
 import { makeBrowserSession } from './makeBrowserSession';
 import {
   resolveFrontendSourceSelection,
@@ -205,13 +209,25 @@ export function makeZerospinApp<
 
       const program = Effect.scoped(
         Effect.gen(function* () {
-          const authenticationLock = yield* makeAuthenticationLock({
+          const selectedFrontends = Object.entries(frontends);
+          if (selectedFrontends.length === 0) {
+            yield* Effect.sync(() => {
+              if (!cancelled) {
+                setSessions(new Map());
+              }
+            });
+            return yield* Effect.never;
+          }
+
+          const authenticationLock = makeAuthenticationLock({
             signature: selectedAuthenticationSignature,
           });
           const generateValidatedSignature = () =>
             generateSignatureRef.current().pipe(
               Effect.flatMap(
-                Schema.decodeUnknown(selectedAuthenticationSignature.schema),
+                Schema.decodeUnknownEffect(
+                  selectedAuthenticationSignature.schema,
+                ),
               ),
               Effect.mapError(error =>
                 ZerospinError.isZerospinError(error)
@@ -224,60 +240,19 @@ export function makeZerospinApp<
                     }),
               ),
             );
-          const sharedWorkerClient = yield* Effect.acquireRelease(
-            acquireUserPartitionRepo({
-              systemName,
-              authenticationLock,
-              generateSignature: () =>
-                sessionRuntime.runPromise(
-                  generateValidatedSignature().pipe(encodeRpc),
-                ),
-            }),
-            client => client.release,
-          );
-          const {
-            systemId,
-            userId: resolvedUserId,
-            mode: acquisitionMode,
-          } = sharedWorkerClient;
-          const sharedWorkerDiagnosticsId = globalThis.crypto.randomUUID();
-          yield* Effect.sync(() => {
-            zerospinDevtoolsStore.getState().addSharedWorkerRootDiagnostics({
-              id: sharedWorkerDiagnosticsId,
-              systemId,
-              userId: resolvedUserId,
-              mode: acquisitionMode,
-              listAggregateFrontendReplicas: () =>
-                sharedWorkerClient.api.listAggregateFrontendReplicas(),
-              listServiceFrontendReplicas: () =>
-                sharedWorkerClient.api.listServiceFrontendReplicas(),
-              getPushPaused: target =>
-                sharedWorkerClient.api.getPushPaused(target),
-              setPushPaused: target =>
-                sharedWorkerClient.api.setPushPaused(target),
-              pushNow: target => sharedWorkerClient.api.pushNow(target),
-            });
-          });
-          yield* Effect.addFinalizer(() =>
-            Effect.sync(() => {
-              zerospinDevtoolsStore
-                .getState()
-                .removeSharedWorkerRootDiagnostics(sharedWorkerDiagnosticsId);
-            }),
-          );
+          const apiUrl = yield* ZerospinApiUrl;
+          const publishableKey = Redacted.value(yield* PublishableKey);
+          const backupWorker = yield* acquireOpfsBackupWorker();
 
-          const initializedSessions: readonly (readonly [
-            object,
-            ISessionRegistryEntry,
-          ])[] = yield* Effect.all(
-            Object.entries(frontends).map(([frontendName, selector]) =>
+          const initializedSessions = yield* Effect.all(
+            selectedFrontends.map(([frontendName, selector]) =>
               Effect.gen(function* () {
                 const frontend = selector.frontend;
                 const sessionId = yield* makeIdFromAbbreviation({
                   abbreviation: coreAbbreviations.session,
                 });
                 if (frontend.kind === 'aggregate') {
-                  const aggregateId = yield* Schema.decodeUnknown(
+                  const aggregateId = yield* Schema.decodeUnknownEffect(
                     makeAbbreviationIdSchema(coreAbbreviations.aggregate),
                   )(
                     Reflect.get(
@@ -293,49 +268,65 @@ export function makeZerospinApp<
                         }),
                     ),
                   );
-                  let stageAggregateFrontendCommand: NonNullable<
+                  let executeAggregateFrontendCommand: NonNullable<
                     Parameters<
                       typeof makeSession
-                    >[0]['stageAggregateFrontendCommand']
+                    >[0]['executeAggregateFrontendCommand']
                   > | null = null;
                   const coreSession = makeSession({
                     frontend,
                     sessionId,
                     runtime: sessionRuntime,
-                    stageAggregateFrontendCommand: stageProps =>
-                      stageAggregateFrontendCommand === null
+                    executeAggregateFrontendCommand: executeProps =>
+                      executeAggregateFrontendCommand === null
                         ? Effect.fail(
                             new ZerospinError({
-                              code: 'shared-worker-session-not-ready',
+                              code: 'aggregate-frontend-session-not-ready',
                               message:
-                                'Command staging started before the aggregate replica was acquired',
+                                'Command execution started before the aggregate replica was acquired',
                             }),
                           )
-                        : stageAggregateFrontendCommand(stageProps),
+                        : executeAggregateFrontendCommand(executeProps),
                   });
                   const session = makeBrowserSession({ session: coreSession });
-                  const bootstrap = yield* Effect.acquireRelease(
-                    bootstrapBrowserSession({
-                      session: coreSession,
-                      aggregateId,
-                      userId: resolvedUserId,
-                      systemId,
-                      mode: acquisitionMode,
-                      userReplicaApi: sharedWorkerClient.api,
-                    }).pipe(
-                      Effect.provide(
-                        makeTelemetryLayer(
-                          coreSession.store.getState().telemetryCollector,
-                        ),
+                  const bootstrap = yield* bootstrapAggregateFrontendSession({
+                    session: coreSession,
+                    aggregateId,
+                    apiUrl,
+                    publishableKey,
+                    systemName,
+                    authenticationLock,
+                    generateSignature: () =>
+                      sessionRuntime.runPromise(
+                        generateValidatedSignature().pipe(encodeRpc),
                       ),
-                      Effect.provide(AsyncLive),
+                    backupWorker,
+                  }).pipe(
+                    Effect.provide(
+                      makeTelemetryLayer(
+                        coreSession.store.getState().telemetryCollector,
+                      ),
                     ),
-                    data => data.releaseBrowserSession,
+                    Effect.provide(AsyncLive),
                   );
-                  stageAggregateFrontendCommand =
-                    bootstrap.stageAggregateFrontendCommand;
+                  executeAggregateFrontendCommand =
+                    bootstrap.executeAggregateFrontendCommand;
                   zerospinDevtoolsStore.getState().addAggregateSession({
                     session: coreSession,
+                    getPushPaused: () =>
+                      sessionRuntime.runPromise(
+                        bootstrap.getPushPaused.pipe(encodeRpc),
+                      ),
+                    setPushPaused: pushPausedProps =>
+                      sessionRuntime.runPromise(
+                        bootstrap
+                          .setPushPaused(pushPausedProps)
+                          .pipe(encodeRpc),
+                      ),
+                    pushNow: () =>
+                      sessionRuntime.runPromise(
+                        bootstrap.pushNow.pipe(encodeRpc),
+                      ),
                   });
                   yield* Effect.addFinalizer(() =>
                     Effect.sync(() => {
@@ -344,9 +335,9 @@ export function makeZerospinApp<
                         .removeAggregateSession(session.sessionId);
                     }),
                   );
-                  return [
+                  return {
                     selector,
-                    {
+                    registryEntry: {
                       session,
                       subscribe: (onStoreChange: () => void) =>
                         coreSession.store.subscribe(onStoreChange),
@@ -354,7 +345,9 @@ export function makeZerospinApp<
                       getLiveQueryDb: () =>
                         getInitializedStateOrThrow({ session: coreSession }).db,
                     } satisfies ISessionRegistryEntry,
-                  ] satisfies readonly [object, ISessionRegistryEntry];
+                    systemId: bootstrap.systemId,
+                    userId: bootstrap.userId,
+                  };
                 }
 
                 const coreSession = makeServiceSession({
@@ -368,22 +361,24 @@ export function makeZerospinApp<
                   onInitialized: coreSession.onInitialized,
                   store: coreSession.store,
                 };
-                yield* Effect.acquireRelease(
-                  bootstrapBrowserServiceSession({
-                    session: coreSession,
-                    userId: resolvedUserId,
-                    systemId,
-                    mode: acquisitionMode,
-                    userReplicaApi: sharedWorkerClient.api,
-                  }).pipe(
-                    Effect.provide(
-                      makeTelemetryLayer(
-                        coreSession.store.getState().telemetryCollector,
-                      ),
+                const bootstrap = yield* bootstrapServiceFrontendSession({
+                  session: coreSession,
+                  apiUrl,
+                  publishableKey,
+                  systemName,
+                  authenticationLock,
+                  generateSignature: () =>
+                    sessionRuntime.runPromise(
+                      generateValidatedSignature().pipe(encodeRpc),
                     ),
-                    Effect.provide(AsyncLive),
+                  backupWorker,
+                }).pipe(
+                  Effect.provide(
+                    makeTelemetryLayer(
+                      coreSession.store.getState().telemetryCollector,
+                    ),
                   ),
-                  data => data.releaseBrowserSession,
+                  Effect.provide(AsyncLive),
                 );
                 zerospinDevtoolsStore.getState().addServiceSession({
                   session: coreSession,
@@ -395,9 +390,9 @@ export function makeZerospinApp<
                       .removeServiceSession(coreSession.sessionId);
                   }),
                 );
-                return [
+                return {
                   selector,
-                  {
+                  registryEntry: {
                     session,
                     subscribe: (onStoreChange: () => void) =>
                       coreSession.store.subscribe(onStoreChange),
@@ -413,23 +408,56 @@ export function makeZerospinApp<
                       return state.db;
                     },
                   } satisfies ISessionRegistryEntry,
-                ] satisfies readonly [object, ISessionRegistryEntry];
+                  systemId: bootstrap.systemId,
+                  userId: bootstrap.userId,
+                };
               }),
             ),
             { concurrency: 'unbounded' },
           );
 
+          const firstInitializedSession = initializedSessions[0];
+          if (firstInitializedSession === undefined) {
+            return yield* new ZerospinError({
+              code: 'frontend-session-not-ready',
+              message: 'No selected frontend established an identity',
+            });
+          }
+          const systemId = firstInitializedSession.systemId;
+          const resolvedUserId = firstInitializedSession.userId;
+          for (const initializedSession of initializedSessions) {
+            if (
+              initializedSession.systemId !== systemId ||
+              initializedSession.userId !== resolvedUserId
+            ) {
+              return yield* new ZerospinError({
+                code: 'frontend-session-identity-mismatch',
+                message: 'Selected frontends resolved to different identities',
+              });
+            }
+          }
+
           yield* Effect.sync(() => {
             if (!cancelled) {
-              setSessions(new Map(initializedSessions));
+              const nextSessions = new Map<object, ISessionRegistryEntry>();
+              for (const initializedSession of initializedSessions) {
+                nextSessions.set(
+                  initializedSession.selector,
+                  initializedSession.registryEntry,
+                );
+              }
+              setSessions(nextSessions);
             }
           });
           return yield* Effect.never;
         }),
       ).pipe(
-        Effect.catchAll(error =>
+        Effect.catch(error =>
           Effect.sync(() => {
-            if (!cancelled) setStartupError(error);
+            if (!cancelled) {
+              setSessions(new Map());
+              setStartupError(error);
+            }
           }),
         ),
         Effect.ensuring(Effect.sync(releasePageProviderOwner)),
@@ -439,7 +467,7 @@ export function makeZerospinApp<
       return () => {
         cancelled = true;
         setSessions(new Map());
-        void sessionRuntime.runPromise(Fiber.interrupt(fiber));
+        fiber.interruptUnsafe();
         releasePageProviderOwner();
       };
     }, [aggregateIdsKey]);

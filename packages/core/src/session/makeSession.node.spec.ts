@@ -1,7 +1,7 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { makeMigratedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb';
+import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { main, mainModels } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import type { InferFrontendModels } from '@zerospin/core/frontendController/types';
@@ -111,7 +111,7 @@ async function makeInitializedSessionDeps() {
   });
   const { schema } = dbConfig;
   const db = await Effect.runPromise(
-    makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+    makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
       Effect.provide(AsyncLive),
     ),
   );
@@ -135,10 +135,10 @@ function publishInitializedState(props: {
     db: deps.db,
     schema: deps.schema,
     models: mainModels,
-    vfsName: null,
     isInitialized: true,
     frontendIndex: 0,
-    replicaIndex: null,
+    sessionStatus: 'current',
+    backupState: { status: 'ready', failure: null },
   });
 }
 

@@ -1,29 +1,23 @@
-import { assert, Equals } from 'tsafe';
+import type { IChainedCommand } from '@zerospin/core/contracts/types';
+import type { IEncodedResult } from '@zerospin/error';
+import { assert, type Equals } from 'tsafe';
 
 /**
  * Assert explicit public contract in typecheck tests — not ReturnType reflexivity.
  *
  * @bad assert<Equals<typeof promise, ReturnType<typeof fn>>> right after calling fn.
  */
-const createListPromise = systemClient.contracts.createList({
-  id: 'lst_123',
-  name: 'Weekly groceries',
-  userId: 'usr_123',
-});
+const finalizeListPromise =
+  systemApi.finalizeAggregateCommand(encodedListCommand);
 
 assert<
   Equals<
-    typeof createListPromise,
-    Promise<
-      | { _tag: 'Right'; right: IExecutedCommand }
-      | { _tag: 'Left'; left: unknown }
-    >
+    typeof finalizeListPromise,
+    Promise<IEncodedResult<IChainedCommand, unknown>>
   >
 >();
 
-declare const systemClient: {
-  contracts: {
-    createList: (props: unknown) => Promise<unknown>;
-  };
+declare const systemApi: {
+  finalizeAggregateCommand: (command: unknown) => Promise<unknown>;
 };
-declare type IExecutedCommand = { id: string };
+declare const encodedListCommand: unknown;

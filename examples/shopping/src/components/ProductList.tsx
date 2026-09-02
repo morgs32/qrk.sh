@@ -9,7 +9,7 @@ import {
 
 import { ProductCard } from './ProductCard';
 
-import { User } from '@/zerospin/models';
+import { User } from '@/zerospin/models/User';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function ProductList() {
@@ -33,15 +33,15 @@ export function ProductList() {
   useEffect(() => {
     if (user !== undefined || userCreationStarted.current) return;
     userCreationStarted.current = true;
-    const result = session.stageCommand({
+    const result = session.executeCommand({
       contractName: 'createUser',
       payload: {
         id: User.prefixId(userId),
         clerkUserId: userId,
       },
     });
-    if (result._tag === 'Left') {
-      setUserCreationFailure(new ZerospinError(result.left));
+    if (result._tag === 'Failure') {
+      setUserCreationFailure(new ZerospinError(result.failure));
     }
   }, [session, user, userId]);
 

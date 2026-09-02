@@ -1,13 +1,16 @@
-import { makeTable } from '@zerospin/core/models/makeTable';
-import { primitives } from '@zerospin/core/models/primitives';
-import type { IAnyTables, IShape } from '@zerospin/core/models/types';
+import {
+  makeTable,
+  primitives,
+  type IAnyTables,
+  type IShape,
+} from '@zerospin/schema';
 
 /**
- * Use `satisfies` alone for `IShape` / `IAnyTables`; reserve plain `as const` for readonly command-row parity.
+ * Use `satisfies` alone for `IShape` / `IAnyTables`; reserve plain `as const` for readonly command-occurrence parity.
  *
  * @bad Do not use `as const satisfies IShape` on repo table shapes.
  * @bad Do not use `as const satisfies IAnyTables` on `makeTable` maps.
- * @bad Do not use `satisfies IShape` when a typecheck compares a command shape to readonly command types.
+ * @bad Do not use `satisfies IShape` when a typecheck compares an occurrence shape to readonly command types.
  */
 const resourceRefShape = {
   resourceId: primitives.text({ unique: true }),
@@ -21,15 +24,13 @@ const resourceRepoTables = {
   }),
 } satisfies IAnyTables;
 
-const executedCommandShape = {
-  id: primitives.primaryKey({ abbreviation: 'cmd' }),
-  commandName: primitives.text(),
-  payload: primitives.text(),
-  contractVersion: primitives.text(),
-  status: primitives.enum({
-    values: ['executed'],
-  }),
+const aggregateCommandOccurrenceShape = {
+  aggregateIndex: primitives.integer({ primaryKey: true }),
+  commandId: primitives.text({ unique: true }),
+  canonicalBytes: primitives.text(),
+  chainedAt: primitives.date(),
+  result: primitives.text({ nullable: true }),
 } as const;
 
 void resourceRepoTables;
-void executedCommandShape;
+void aggregateCommandOccurrenceShape;

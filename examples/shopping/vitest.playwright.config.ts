@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,9 +16,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default mergeConfig(
   makePlaywrightVitestConfig({
     include: [
-      'tests/browser/lastUserPartitionStore.playwright.spec.ts',
-      'tests/browser/reactAndSharedWorkerFlow1.playwright.spec.ts',
-      'tests/browser/reactSharedWorkerAdverse.playwright.spec.ts',
+      'tests/browser/frontendSessionLocators.playwright.spec.ts',
+      'tests/browser/mainThreadFrontendFlow.playwright.spec.ts',
+      'tests/browser/mainThreadOpfsAdverse.playwright.spec.ts',
     ],
     packageRoot: __dirname,
   }),
@@ -27,6 +28,38 @@ export default mergeConfig(
       {
         name: 'qualify-static-emscripten-wasm-assets',
         enforce: 'pre',
+        resolveId(id: string) {
+          if (
+            id === 'virtual:zerospin-sync-wasm-url' ||
+            id === 'virtual:zerospin-opfs-backup-wasm-url'
+          ) {
+            return `\0${id}`;
+          }
+          return undefined;
+        },
+        load(id: string) {
+          if (id === '\0virtual:zerospin-sync-wasm-url') {
+            return `export default ${JSON.stringify(
+              `data:application/octet-stream;base64,${readFileSync(
+                path.resolve(
+                  __dirname,
+                  '../../packages/react/dist/wa-sqlite.wasm',
+                ),
+              ).toString('base64')}`,
+            )};`;
+          }
+          if (id === '\0virtual:zerospin-opfs-backup-wasm-url') {
+            return `export default ${JSON.stringify(
+              `data:application/octet-stream;base64,${readFileSync(
+                path.resolve(
+                  __dirname,
+                  '../../packages/opfs-backup-worker/dist/wa-sqlite.wasm',
+                ),
+              ).toString('base64')}`,
+            )};`;
+          }
+          return undefined;
+        },
         transform(code: string, id: string) {
           // Vitest's browser server creates a second Vite 8 environment. Its
           // built-in WASM fallback runs before an absolute WASM request can be
@@ -36,17 +69,12 @@ export default mergeConfig(
             id ===
             path.resolve(
               __dirname,
-              '../../packages/shared-worker/dist/acquireUserPartitionRepo.js',
+              '../../packages/opfs-backup-worker/dist/acquireOpfsBackupWorker/acquireOpfsBackupWorker.js',
             )
           ) {
             return code.replace(
-              "new URL('./wa-sqlite-async.wasm', import.meta.url)",
-              `new URL(${JSON.stringify(
-                `/@fs${path.resolve(
-                  __dirname,
-                  '../../packages/shared-worker/dist/wa-sqlite-async.wasm',
-                )}`,
-              )}, location.origin)`,
+              "new URL('../wa-sqlite.wasm', import.meta.url)",
+              "new URL('/__zerospin_test_wasm__/unused', location.origin)",
             );
           }
 
@@ -54,54 +82,36 @@ export default mergeConfig(
             id ===
               path.resolve(
                 __dirname,
-                '../../packages/shared-worker/dist/sharedWorker.bundle.js',
+                '../../packages/opfs-backup-worker/dist/opfsBackupLeader.bundle.js',
               ) ||
             id.startsWith(
               `${path.resolve(
                 __dirname,
-                '../../packages/shared-worker/dist/sharedWorker.bundle.js',
+                '../../packages/opfs-backup-worker/dist/opfsBackupLeader.bundle.js',
               )}?`,
             )
           ) {
-            return code.replace(
-              'new URL("wa-sqlite-async.wasm", import.meta.url)',
-              `new URL(${JSON.stringify(
-                `/@fs${path.resolve(
-                  __dirname,
-                  '../../packages/shared-worker/dist/wa-sqlite-async.wasm',
-                )}`,
-              )}, location.origin)`,
-            );
+            return `import zerospinOpfsBackupWasmUrl from 'virtual:zerospin-opfs-backup-wasm-url';\n${code
+              .replace(
+                'new URL("wa-sqlite.wasm", import.meta.url)',
+                'new URL(zerospinOpfsBackupWasmUrl, location.origin)',
+              )
+              .replace(
+                'var wasmUrl = workerUrl.searchParams.get("wasmUrl");',
+                'var wasmUrl = zerospinOpfsBackupWasmUrl;',
+              )}`;
           }
 
           if (
+            id.endsWith('/@livestore/wa-sqlite/dist/wa-sqlite.mjs') ||
+            id.includes('/@livestore/wa-sqlite/dist/wa-sqlite.mjs?') ||
             id.endsWith('/@livestore_wa-sqlite_dist_wa-sqlite__mjs.js') ||
             id.includes('/@livestore_wa-sqlite_dist_wa-sqlite__mjs.js?')
           ) {
-            return code.replace(
-              /new URL\("[^"]*\/@livestore\/wa-sqlite\/dist\/wa-sqlite\.wasm", import\.meta\.url\)/,
-              `new URL(${JSON.stringify(
-                `/@fs${path.resolve(
-                  __dirname,
-                  '../../packages/react/dist/wa-sqlite.wasm',
-                )}`,
-              )}, location.origin)`,
-            );
-          }
-
-          if (
-            id.endsWith('/wa-sqlite_dist_wa-sqlite-async__mjs.js') ||
-            id.includes('/wa-sqlite_dist_wa-sqlite-async__mjs.js?')
-          ) {
-            return code.replace(
-              /new URL\("[^"]*\/wa-sqlite\/dist\/wa-sqlite-async\.wasm", import\.meta\.url\)/,
-              `new URL(${JSON.stringify(
-                `/@fs${path.resolve(
-                  __dirname,
-                  '../../packages/shared-worker/dist/wa-sqlite-async.wasm',
-                )}`,
-              )}, location.origin)`,
-            );
+            return `import zerospinSyncWasmUrl from 'virtual:zerospin-sync-wasm-url';\n${code.replace(
+              /new URL\("[^"]*wa-sqlite\.wasm",\s*import\.meta\.url\)\.href/,
+              'zerospinSyncWasmUrl',
+            )}`;
           }
 
           return undefined;
@@ -114,24 +124,23 @@ export default mergeConfig(
     resolve: {
       alias: [
         {
-          find: '@zerospin/shared-worker/acquireUserPartitionRepo',
+          find: '@zerospin/opfs-backup-worker',
           replacement: path.resolve(
             __dirname,
-            '../../packages/shared-worker/dist/acquireUserPartitionRepo.js',
+            '../../packages/opfs-backup-worker/dist/index.js',
           ),
         },
       ],
     },
     optimizeDeps: {
-      entries: [
-        'tests/browser/lastUserPartitionStore.playwright.spec.ts',
-        'tests/browser/reactAndSharedWorkerFlow1.playwright.spec.ts',
-        'tests/browser/reactSharedWorkerAdverse.playwright.spec.ts',
+      exclude: [
+        '@livestore/wa-sqlite',
+        '@livestore/wa-sqlite/dist/wa-sqlite.mjs',
       ],
-      include: [
-        'wa-sqlite',
-        'wa-sqlite/dist/wa-sqlite-async.mjs',
-        'wa-sqlite/src/examples/IDBBatchAtomicVFS.js',
+      entries: [
+        'tests/browser/frontendSessionLocators.playwright.spec.ts',
+        'tests/browser/mainThreadFrontendFlow.playwright.spec.ts',
+        'tests/browser/mainThreadOpfsAdverse.playwright.spec.ts',
       ],
     },
     test: {

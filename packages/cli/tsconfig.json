@@ -48,13 +48,16 @@
       "path": "../studio"
     },
     {
+      "path": "../schema"
+    },
+    {
+      "path": "../production-worker"
+    },
+    {
       "path": "../error"
     },
     {
       "path": "../dev-worker"
-    },
-    {
-      "path": "../production-worker"
     },
     {
       "path": "../core"

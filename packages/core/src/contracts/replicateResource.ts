@@ -1,13 +1,10 @@
-import type {
-  IModel,
-  InferIdFromAbbreviation,
-  InferResource,
-  IShape,
-} from '../models/types.ts';
+import type { InferIdFromAbbreviation, IShape } from '@zerospin/schema';
+
+import type { IModel, InferResource } from '../models/types.ts';
 
 export type IReplicateResourceMutation<
   MODEL extends IModel,
-  ATTRIBUTES extends IShape = MODEL['attributes'],
+  PROPERTIES_SHAPE extends IShape = MODEL['propertiesShape'],
 > = {
   readonly model: MODEL;
   readonly modelVersion: string;
@@ -15,7 +12,6 @@ export type IReplicateResourceMutation<
   readonly resourceId: InferIdFromAbbreviation<MODEL['abbreviation']>;
   readonly operation: {
     readonly serviceName: string;
-    readonly resource: InferResource<MODEL, ATTRIBUTES> &
-      Readonly<{ deletedAt?: Date | null }>;
+    readonly resource: InferResource<MODEL, PROPERTIES_SHAPE>;
   };
 };

@@ -3,25 +3,22 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { cloudflareTest } from '@cloudflare/vitest-pool-workers';
+import { cloudflareTest } from '@cloudflare/vitest-plugin';
 import { defineConfig, type Plugin } from 'vitest/config';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function makeWorkerdVitestConfig(
-  props: {
-    packageRoot?: string;
-    seedsModulePath?: string;
-    systemModulePath?: string;
-    include?: readonly string[];
-    passWithNoTests?: boolean;
-    setupFiles?: readonly string[];
-    workerBindings?: Readonly<Record<string, string | boolean>>;
-    workerMainPath?: string;
-    wranglerConfigPath?: string;
-  } = {},
-) {
+export function makeWorkerdVitestConfig(props: {
+  packageRoot?: string;
+  systemModulePath?: string;
+  include?: readonly string[];
+  passWithNoTests?: boolean;
+  setupFiles?: readonly string[];
+  workerBindings?: Readonly<Record<string, string | boolean>>;
+  workerMainPath?: string;
+  wranglerConfigPath?: string;
+}) {
   const {
     include = ['src/**/*.workerd.spec.ts'],
     packageRoot = process.cwd(),
@@ -33,7 +30,6 @@ export function makeWorkerdVitestConfig(
     props.systemModulePath ??
     process.env['ZEROSPIN_E2E_SYSTEM_MODULE_PATH'] ??
     path.join(packageRoot, 'src/zerospin/system.ts');
-
   const repoRoot = path.resolve(packageRoot, '../..');
   const devWorkerRuntimeRoot = path.resolve(__dirname, '..');
   const devWorkerPackageRoot = path.resolve(devWorkerRuntimeRoot, '..');
@@ -42,11 +38,6 @@ export function makeWorkerdVitestConfig(
   const workerMainPath =
     props.workerMainPath ??
     path.join(devWorkerRuntimeRoot, `DevWorker${devWorkerRuntimeExtension}`);
-  const emptySeedsPath = path.join(
-    devWorkerRuntimeRoot,
-    `emptySeeds${devWorkerRuntimeExtension}`,
-  );
-  const seedsModulePath = props.seedsModulePath ?? emptySeedsPath;
   const workerdSetupPath = path.join(
     devWorkerRuntimeRoot,
     'vitest',
@@ -67,14 +58,12 @@ export function makeWorkerdVitestConfig(
   }
   const systemWorkerEntryPath = path.join(
     systemWorkerSrcRoot,
-    path.basename(systemWorkerSrcRoot) === 'dist'
-      ? 'SystemWorker.js'
-      : 'SystemWorker.ts',
+    path.basename(systemWorkerSrcRoot) === 'dist' ? 'index.js' : 'index.ts',
   );
   const wasmAdapterShimPath = path.join(
     devWorkerRuntimeRoot,
     'shims',
-    `makeMigratedInMemoryWasmSqliteDb${devWorkerRuntimeExtension}`,
+    `makeProvisionedInMemoryWasmSqliteDb${devWorkerRuntimeExtension}`,
   );
   let sqlJsAsmPath = path.join(
     repoRoot,
@@ -94,9 +83,10 @@ export function makeWorkerdVitestConfig(
     name: 'wasm-to-sqljs-adapter-shim',
     resolveId(source) {
       if (
-        source === '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb' ||
-        source.endsWith('makeMigratedInMemoryWasmSqliteDb.ts') ||
-        source.endsWith('makeMigratedInMemoryWasmSqliteDb')
+        source ===
+          '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb' ||
+        source.endsWith('makeProvisionedInMemoryWasmSqliteDb.ts') ||
+        source.endsWith('makeProvisionedInMemoryWasmSqliteDb')
       ) {
         return wasmAdapterShimPath;
       }
@@ -113,13 +103,10 @@ export function makeWorkerdVitestConfig(
       conditions: ['workerd'],
       alias: [
         {
-          find: '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb',
+          find: '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb',
           replacement: wasmAdapterShimPath,
         },
-        {
-          find: /^sql\.js$/,
-          replacement: sqlJsAsmPath,
-        },
+        { find: /^sql\.js$/, replacement: sqlJsAsmPath },
         {
           find: /^@\/(.+)$/,
           replacement: `${path.join(packageRoot, 'src')}/$1`,
@@ -132,22 +119,12 @@ export function makeWorkerdVitestConfig(
           find: /^@zerospin\/dev-worker\/(.+)$/,
           replacement: `${devWorkerRuntimeRoot}/$1`,
         },
-        {
-          find: 'seeds',
-          replacement: seedsModulePath,
-        },
-        {
-          find: 'system',
-          replacement: systemModulePath,
-        },
+        { find: 'system', replacement: systemModulePath },
         {
           find: /^system-worker\/(.+)$/,
           replacement: `${systemWorkerSrcRoot}/$1`,
         },
-        {
-          find: 'system-worker',
-          replacement: systemWorkerEntryPath,
-        },
+        { find: 'system-worker', replacement: systemWorkerEntryPath },
       ],
     },
     plugins: [
@@ -157,9 +134,7 @@ export function makeWorkerdVitestConfig(
         ...(props.workerBindings === undefined
           ? {}
           : { miniflare: { bindings: props.workerBindings } }),
-        wrangler: {
-          configPath: wranglerVitestPath,
-        },
+        wrangler: { configPath: wranglerVitestPath },
       }),
     ],
     test: {

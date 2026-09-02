@@ -29,8 +29,7 @@ export default defineConfig({
     },
     {
       name: 'chromium',
-      testMatch: /.*\.playwright\.spec\.ts/,
-      testIgnore: /shoppingAuth\.playwright\.spec\.ts/,
+      testMatch: /shoppingFrontendAdmission\.playwright\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: path.join(

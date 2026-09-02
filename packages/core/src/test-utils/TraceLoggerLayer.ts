@@ -1,3 +1,6 @@
-import { Logger, LogLevel } from 'effect';
+import { Layer, References } from 'effect';
 
-export const TraceLoggerLayer = Logger.minimumLogLevel(LogLevel.Trace);
+export const TraceLoggerLayer = Layer.succeed(
+  References.MinimumLogLevel,
+  'Trace',
+);

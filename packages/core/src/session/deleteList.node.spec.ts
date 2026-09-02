@@ -1,14 +1,11 @@
 import { it } from '@effect/vitest';
-import { Effect, Either, Layer, Redacted } from 'effect';
-import { TestContext } from 'effect/TestContext';
+import { Effect, Layer, Result } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
-import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
+import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 import { main, mainModels, User } from '../fixtures/system.ts';
-import { PublishableKey } from '../services/PublishableKey.ts';
-import { ZerospinApiUrl } from '../services/ZerospinApiUrl.ts';
 import { IncrementalMonotonicFactory } from '../test-utils/IncrementalMonotonicFactory.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
@@ -17,157 +14,163 @@ import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
 import { makeSession } from './makeSession.ts';
 import {
+  sessionCommandJournalDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
-  sessionStagedCommandDrizzleSchema,
 } from './sessionCommandShape.ts';
 import { sessionRepoTables } from './sessionRepoTables.ts';
-import type { ISessionId } from './types.ts';
 
 const TestLayer = Layer.mergeAll(
   makePrefixedIncrementalIdFactory('sessionDeleteList'),
   IncrementalMonotonicFactory,
   ErrorLayer,
   TraceLoggerLayer,
-  TestContext,
   AsyncLive,
-  Layer.succeed(ZerospinApiUrl, 'https://api.example.com/'),
-  Layer.succeed(PublishableKey, Redacted.make('pk_test')),
 );
 
-const makeSessionDb = Effect.gen(function* () {
-  const models = mainModels;
-  const dbConfig = makeResourceDbConfig({
-    models,
-    otherTables: sessionRepoTables,
-  });
-  const { schema } = dbConfig;
-  const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
-  const now = new Date('2026-01-01T00:00:00.000Z');
-  db.insert(User.drizzleSchema)
-    .values({
-      id: 'usr_1',
-      modelName: User.modelName,
-      createdAt: now,
-      updatedAt: now,
-      version: User.version,
-      userId: 'user_1',
-      name: 'User',
-    })
-    .run();
+const now = new Date('2026-01-01T00:00:00.000Z');
 
-  const sessionId = 'sesn_1' as ISessionId;
-  const session = makeSession({
-    frontend: main,
-    generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
-    sessionId,
-  });
-  session.store.setState({
-    sessionId,
-    aggregateId: 'acct_1',
-    aggregateName: main.aggregateName,
-    userId: 'usr_1',
-    systemId: 'sys_test',
-    systemVersion: '1.0.0',
-    frontendName: main.frontendName,
-    aggregateFrontendLockKey: 'aggregate-lock-key',
-    db,
-    schema,
-    models,
-    vfsName: null,
-    isInitialized: true,
-    frontendIndex: 0,
-    replicaIndex: null,
-  });
-
-  return { db, models, session };
-});
-
-describe('deleteList', () => {
+describe('deleteList local occurrence', () => {
   it.layer(TestLayer)(it => {
-    it.effect('stages an optimistic delete with a full-row inverse', () =>
-      Effect.gen(function* () {
-        const { db, models, session } = yield* makeSessionDb;
+    it.effect(
+      'retains the delete and its full-row inverse in journal order',
+      () =>
+        Effect.gen(function* () {
+          const models = mainModels;
+          const dbConfig = makeResourceDbConfig({
+            models,
+            otherTables: sessionRepoTables,
+          });
+          const { schema } = dbConfig;
+          const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
+          db.insert(schema.user)
+            .values({
+              id: 'usr_1',
+              modelName: User.modelName,
+              createdAt: now,
+              updatedAt: now,
+              version: User.version,
+              name: 'User',
+            })
+            .run();
+          const session = makeSession({
+            frontend: main,
+            sessionId: 'sesn_delete',
+          });
+          session.store.setState({
+            sessionId: 'sesn_delete',
+            aggregateId: 'acct_1',
+            aggregateName: main.aggregateName,
+            userId: 'user_1',
+            systemId: 'sys_1',
+            systemVersion: '1.0.0',
+            frontendName: main.frontendName,
+            aggregateFrontendLockKey: 'aggregate-lock-key',
+            db,
+            schema,
+            models,
+            isInitialized: true,
+            aggregateIndex: 0,
+            frontendIndex: 0,
+            pushIndex: 0,
+            sessionStatus: 'current',
+            backupState: {
+              status: 'ready',
+              failure: null,
+            },
+          });
 
-        yield* decodeRpc(
-          session.stageCommand({
-            contractName: 'createList',
-            payload: {
+          yield* decodeRpc(
+            session.executeCommand({
+              contractName: 'createList',
+              payload: {
+                id: 'lst_1',
+                name: 'List 1',
+                userId: 'usr_1',
+              },
+            }),
+          );
+          const deleted = yield* decodeRpc(
+            session.executeCommand({
+              contractName: 'deleteList',
+              payload: { id: 'lst_1' },
+            }),
+          );
+
+          expect(deleted).toMatchObject({
+            sessionIndex: 2,
+            delta: { deleted: [{ id: 'lst_1', modelName: 'list' }] },
+          });
+          const rows = db
+            .select()
+            .from(sessionCommandJournalDrizzleSchema)
+            .all();
+          expect(rows.map(row => row.sessionIndex)).toEqual([1, 2]);
+          const optimisticRows = db
+            .select()
+            .from(sessionOptimisticAppliedMutationDrizzleSchema)
+            .all();
+          const deleteMutations = JSON.parse(
+            optimisticRows[1]?.mutations ?? '[]',
+          );
+          expect(
+            JSON.parse(deleteMutations[0]?.inverseOperation ?? '{}'),
+          ).toMatchObject({
+            resource: {
               id: 'lst_1',
               name: 'List 1',
               userId: 'usr_1',
             },
-          }),
-        );
-
-        const staged = yield* decodeRpc(
-          session.stageCommand({
-            contractName: 'deleteList',
-            payload: {
-              id: 'lst_1',
-            },
-          }),
-        );
-
-        const stagedRows = db
-          .select()
-          .from(sessionStagedCommandDrizzleSchema)
-          .all();
-        const listRows = db.select().from(models.list.drizzleSchema).all();
-        const optimisticRows = db
-          .select()
-          .from(sessionOptimisticAppliedMutationDrizzleSchema)
-          .all();
-
-        expect(stagedRows).toHaveLength(2);
-        expect(stagedRows[1]?.id).toBe(staged.id);
-        expect(listRows).toHaveLength(0);
-        expect(optimisticRows).toHaveLength(2);
-        const deleteMutations = JSON.parse(
-          optimisticRows[1]?.mutations ?? '[]',
-        ) as Array<{
-          operationName: string;
-          inverseOperation: string;
-        }>;
-        expect(deleteMutations).toHaveLength(1);
-        expect(deleteMutations[0]?.operationName).toBe('delete');
-        expect(
-          JSON.parse(deleteMutations[0]?.inverseOperation ?? 'null'),
-        ).toMatchObject({
-          resource: {
-            id: 'lst_1',
-            name: 'List 1',
-          },
-        });
-      }),
+          });
+        }),
     );
 
-    it.effect('rolls back the stage transaction for a missing row', () =>
+    it.effect('rolls back a delete whose source row is missing', () =>
       Effect.gen(function* () {
-        const { db, models, session } = yield* makeSessionDb;
+        const models = mainModels;
+        const dbConfig = makeResourceDbConfig({
+          models,
+          otherTables: sessionRepoTables,
+        });
+        const { schema } = dbConfig;
+        const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
+        const session = makeSession({
+          frontend: main,
+          sessionId: 'sesn_missing_delete',
+        });
+        session.store.setState({
+          sessionId: 'sesn_missing_delete',
+          aggregateId: 'acct_1',
+          aggregateName: main.aggregateName,
+          userId: 'user_1',
+          systemId: 'sys_1',
+          systemVersion: '1.0.0',
+          frontendName: main.frontendName,
+          aggregateFrontendLockKey: 'aggregate-lock-key',
+          db,
+          schema,
+          models,
+          isInitialized: true,
+          aggregateIndex: 0,
+          frontendIndex: 0,
+          pushIndex: 0,
+          sessionStatus: 'current',
+          backupState: {
+            status: 'ready',
+            failure: null,
+          },
+        });
 
-        const maybeStaged = yield* decodeRpc(
-          session.stageCommand({
+        const result = yield* decodeRpc(
+          session.executeCommand({
             contractName: 'deleteList',
-            payload: {
-              id: 'lst_missing',
-            },
+            payload: { id: 'lst_missing' },
           }),
-        ).pipe(Effect.either);
+        ).pipe(Effect.result);
 
-        const stagedRows = db
-          .select()
-          .from(sessionStagedCommandDrizzleSchema)
-          .all();
-        const listRows = db.select().from(models.list.drizzleSchema).all();
-        const optimisticRows = db
-          .select()
-          .from(sessionOptimisticAppliedMutationDrizzleSchema)
-          .all();
-
-        expect(Either.isLeft(maybeStaged)).toBe(true);
-        expect(stagedRows).toHaveLength(0);
-        expect(listRows).toHaveLength(0);
-        expect(optimisticRows).toHaveLength(0);
+        expect(Result.isFailure(result)).toBe(true);
+        expect(
+          db.select().from(sessionCommandJournalDrizzleSchema).all(),
+        ).toEqual([]);
       }),
     );
   });

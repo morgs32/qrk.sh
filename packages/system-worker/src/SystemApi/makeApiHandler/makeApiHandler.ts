@@ -1,6 +1,4 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { ISystemId } from '@zerospin/core/system/types';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { mapParseError, type IAnyError } from '@zerospin/error';
 import {
@@ -10,49 +8,40 @@ import {
   type IRpcRequest,
   type ISpanLinkRecord,
 } from '@zerospin/logger';
-import { Context, Effect, Either, Schema } from 'effect';
+import { Context, Effect, Result, Schema } from 'effect';
 
-import type { SystemWorker } from '../../SystemWorker.js';
-import { SystemWorkerResolver } from '../../SystemWorkerResolver/SystemWorkerResolver.js';
+import { appendTelemetryBatch } from '../../appendTelemetryBatch/appendTelemetryBatch.js';
 
-export class SystemApiAuthResults extends Context.Tag('SystemApiAuthResults')<
+export class SystemApiAuthResults extends Context.Service<
   SystemApiAuthResults,
   {
-    readonly generationId: string;
     readonly systemId: ISystemId;
-    readonly systemWorkerName: string;
   }
->() {}
-
-export class SystemWorkerApi extends Context.Tag('SystemWorkerApi')<
-  SystemWorkerApi,
-  SystemWorker
->() {}
+>()('SystemApiAuthResults') {}
 
 export function makeApiHandler<ARGS extends Array<unknown>, A, R>(props: {
   name: string;
-  generationReadRoute?: boolean;
   argsSchema: Schema.Schema<ARGS>;
   handler: (
     ...args: ARGS
-  ) => Effect.Effect<A, IAnyError, R | SystemApiAuthResults | SystemWorkerApi>;
+  ) => Effect.Effect<A, IAnyError, R | SystemApiAuthResults>;
 }) {
   const { argsSchema, handler, name } = props;
 
   return (request: IRpcRequest<ARGS>) =>
     Effect.gen(function* () {
-      const validatedArgs = yield* Schema.validate(argsSchema)(request.args, {
-        onExcessProperty: 'error',
-      }).pipe(
+      const validatedArgs = yield* Schema.decodeUnknownEffect(
+        Schema.toType(argsSchema),
+      )(request.args, { onExcessProperty: 'error' }).pipe(
         mapParseError({
           code: 'system-api-arguments-invalid',
           prefix: `${name} received invalid arguments`,
         }),
-        Effect.either,
+        Effect.result,
       );
 
-      if (Either.isLeft(validatedArgs)) {
-        const result = yield* encodeRpc(Effect.fail(validatedArgs.left));
+      if (Result.isFailure(validatedArgs)) {
+        const result = yield* encodeRpc(Effect.fail(validatedArgs.failure));
         return {
           result,
           link: null,
@@ -60,45 +49,27 @@ export function makeApiHandler<ARGS extends Array<unknown>, A, R>(props: {
       }
 
       const authResults = yield* SystemApiAuthResults;
-      const resolver = yield* SystemWorkerResolver;
-      using systemWorker = resolver.get({
-        systemWorkerName: authResults.systemWorkerName,
-      });
       const collector = makeTelemetryCollector();
 
-      const settled = yield* handler(...validatedArgs.right).pipe(
-        Effect.annotateSpans(
-          props.generationReadRoute === false
-            ? { systemId: authResults.systemId }
-            : {
-                generationId: authResults.generationId,
-                systemId: authResults.systemId,
-              },
-        ),
+      const settled = yield* handler(...validatedArgs.success).pipe(
+        Effect.annotateSpans({ systemId: authResults.systemId }),
         Effect.provideService(SystemApiAuthResults, authResults),
-        Effect.provideService(SystemWorkerApi, systemWorker),
         Effect.provide(makeTelemetryLayer(collector)),
-        Effect.either,
+        Effect.result,
       );
-      const result = yield* Either.match(settled, {
-        onLeft: error => encodeRpc(Effect.fail(error)),
-        onRight: value => encodeRpc(Effect.succeed(value)),
+      const result = yield* Result.match(settled, {
+        onFailure: error => encodeRpc(Effect.fail(error)),
+        onSuccess: value => encodeRpc(Effect.succeed(value)),
       });
 
       const batch = collector.flush();
-      const persisted =
-        props.generationReadRoute === false
-          ? Either.left(null)
-          : yield* makeAsync(() =>
-              systemWorker.appendTelemetryBatch({
-                batch,
-                generationId: authResults.generationId,
-              }),
-            ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+      const persisted = yield* appendTelemetryBatch({ batch }).pipe(
+        Effect.result,
+      );
       const rootSpan = batch.spans.at(-1);
 
       const link: ISpanLinkRecord | null =
-        Either.isRight(persisted) &&
+        Result.isSuccess(persisted) &&
         request.traceContext !== null &&
         rootSpan !== undefined &&
         rootSpan.parentSpanId === null &&

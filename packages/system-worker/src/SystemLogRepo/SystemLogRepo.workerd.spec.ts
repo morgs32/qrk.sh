@@ -7,13 +7,11 @@
 import { it } from '@effect/vitest';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import type { ITelemetryBatch } from '@zerospin/logger';
-import { sql } from 'drizzle-orm';
+import { env } from 'cloudflare:test';
 import { Effect } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { managedRuntime } from '../managedRuntime.js';
 import { SystemRepo } from '../SystemRepo/SystemRepo.js';
-import { executeInRepo } from '../workerd-utils/executeInRepo.js';
 
 import { getSystemLogRepo } from './getSystemLogRepo/getSystemLogRepo.js';
 import { SystemLogRepo } from './SystemLogRepo.js';
@@ -21,13 +19,13 @@ import { SystemLogRepo } from './SystemLogRepo.js';
 describe('SystemLogRepo telemetry', () => {
   it.effect('assigns increasing log indexes and reads newest rows first', () =>
     Effect.gen(function* () {
-      const generationId = 'gen_log_indexes';
-      const systemLogRepoName =
-        yield* SystemLogRepo.boundDORepoConfig.nameUtils.makeName({
-          generationId,
+      const systemId = env.ZEROSPIN_SYSTEM_ID;
+      const facetName =
+        yield* SystemLogRepo.fixedDORepoConfig.nameUtils.makeName({
+          systemId,
         });
-      expect(systemLogRepoName).toBe('syslogrepo_gen_log_indexes');
-      const systemLogRepo = yield* getSystemLogRepo({ key: { generationId } });
+      expect(facetName).toBe('syslogrepo_sys_local');
+      const systemLogRepo = yield* getSystemLogRepo({ key: { systemId } });
 
       const first = yield* Effect.promise(() =>
         systemLogRepo.appendLogRow({
@@ -70,13 +68,12 @@ describe('SystemLogRepo telemetry', () => {
       expect(rows[2]?.logIndex).toBe(1);
       const registrations = yield* Effect.promise(() =>
         SystemRepo.getRepo({ systemId: 'sys_local' }).getRepoRegistrations({
-          generationId,
           repoType: 'SystemLogRepo',
         }),
       ).pipe(Effect.flatMap(decodeRpc));
       expect(registrations).toEqual([
         expect.objectContaining({
-          repoName: systemLogRepoName,
+          repoName: facetName,
           repoType: 'SystemLogRepo',
         }),
       ]);
@@ -85,9 +82,8 @@ describe('SystemLogRepo telemetry', () => {
 
   it.effect('stores one row per stable ID when a batch is retried', () =>
     Effect.gen(function* () {
-      const generationId = 'gen_telemetry_idempotent';
-      const systemId = 'sys_local';
-      const systemLogRepo = yield* getSystemLogRepo({ key: { generationId } });
+      const systemId = env.ZEROSPIN_SYSTEM_ID;
+      const systemLogRepo = yield* getSystemLogRepo({ key: { systemId } });
       const batch = {
         spans: [
           {
@@ -132,42 +128,43 @@ describe('SystemLogRepo telemetry', () => {
         systemLogRepo.appendTelemetryBatch({ batch }),
       ).pipe(Effect.flatMap(decodeRpc));
 
-      const rows = yield* Effect.promise(() =>
-        executeInRepo({
-          managedRuntime,
-          getRepo: getSystemLogRepo,
-          repo: SystemLogRepo,
-          key: { generationId },
-          fn: ({ db, schema }) => ({
-            spans: db.select().from(schema.telemetrySpans).all(),
-            logs: db.select().from(schema.telemetryLogs).all(),
-            links: db.select().from(schema.telemetryLinks).all(),
+      const [spans, logs, links] = yield* Effect.all([
+        Effect.promise(() =>
+          systemLogRepo.getRepoTableRows({
+            tableName: 'telemetrySpans',
           }),
-        }),
-      );
+        ).pipe(Effect.flatMap(decodeRpc)),
+        Effect.promise(() =>
+          systemLogRepo.getRepoTableRows({
+            tableName: 'telemetryLogs',
+          }),
+        ).pipe(Effect.flatMap(decodeRpc)),
+        Effect.promise(() =>
+          systemLogRepo.getRepoTableRows({
+            tableName: 'telemetryLinks',
+          }),
+        ).pipe(Effect.flatMap(decodeRpc)),
+      ]);
 
-      expect(rows.spans).toHaveLength(1);
-      expect(rows.logs).toHaveLength(1);
-      expect(rows.links).toHaveLength(1);
-      expect(rows.spans[0]).toEqual(
+      expect(spans.rows).toHaveLength(1);
+      expect(logs.rows).toHaveLength(1);
+      expect(links.rows).toHaveLength(1);
+      expect(spans.rows[0]).toEqual(
         expect.objectContaining({
           spanId: 'spn_idempotent',
           systemId,
-          generationId,
         }),
       );
-      expect(rows.logs[0]).toEqual(
+      expect(logs.rows[0]).toEqual(
         expect.objectContaining({
           logId: 'lgr_idempotent',
           systemId,
-          generationId,
         }),
       );
-      expect(rows.links[0]).toEqual(
+      expect(links.rows[0]).toEqual(
         expect.objectContaining({
           linkId: 'lnk_idempotent',
           systemId,
-          generationId,
         }),
       );
     }),
@@ -175,8 +172,9 @@ describe('SystemLogRepo telemetry', () => {
 
   it.effect('rolls back the entire batch when one encoded row fails', () =>
     Effect.gen(function* () {
-      const generationId = 'gen_telemetry_rollback';
-      const systemLogRepo = yield* getSystemLogRepo({ key: { generationId } });
+      const systemLogRepo = yield* getSystemLogRepo({
+        key: { systemId: env.ZEROSPIN_SYSTEM_ID },
+      });
       const result = yield* Effect.promise(() =>
         systemLogRepo.appendTelemetryBatch({
           batch: {
@@ -207,25 +205,27 @@ describe('SystemLogRepo telemetry', () => {
             links: [],
           },
         }),
-      ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+      ).pipe(Effect.flatMap(decodeRpc), Effect.result);
 
-      expect(result._tag).toBe('Left');
+      expect(result._tag).toBe('Failure');
 
-      const rows = yield* Effect.promise(() =>
-        executeInRepo({
-          managedRuntime,
-          getRepo: getSystemLogRepo,
-          repo: SystemLogRepo,
-          key: { generationId },
-          fn: ({ db, schema }) => ({
-            spans: db.select().from(schema.telemetrySpans).all(),
-            logs: db.select().from(schema.telemetryLogs).all(),
+      const [spans, logs] = yield* Effect.all([
+        Effect.promise(() =>
+          systemLogRepo.getRepoTableRows({
+            tableName: 'telemetrySpans',
           }),
-        }),
-      );
+        ).pipe(Effect.flatMap(decodeRpc)),
+        Effect.promise(() =>
+          systemLogRepo.getRepoTableRows({
+            tableName: 'telemetryLogs',
+          }),
+        ).pipe(Effect.flatMap(decodeRpc)),
+      ]);
 
-      expect(rows.spans).toEqual([]);
-      expect(rows.logs).toEqual([]);
+      expect(spans.rows.filter(row => row.spanId === 'spn_rollback')).toEqual(
+        [],
+      );
+      expect(logs.rows.filter(row => row.logId === 'lgr_rollback')).toEqual([]);
     }),
   );
 
@@ -233,124 +233,79 @@ describe('SystemLogRepo telemetry', () => {
     'keeps every row kind for only the newest one thousand traces',
     () =>
       Effect.gen(function* () {
-        const generationId = 'gen_telemetry_retention';
-        const systemId = 'sys_local';
         const systemLogRepo = yield* getSystemLogRepo({
-          key: { generationId },
+          key: { systemId: env.ZEROSPIN_SYSTEM_ID },
         });
-
-        yield* Effect.promise(() =>
-          executeInRepo({
-            managedRuntime,
-            getRepo: getSystemLogRepo,
-            repo: SystemLogRepo,
-            key: { generationId },
-            fn: ({ db, schema }) => {
-              db.run(sql`
-              WITH RECURSIVE sequence(value) AS (
-                SELECT 0
-                UNION ALL
-                SELECT value + 1 FROM sequence WHERE value < 1000
-              )
-              INSERT INTO ${schema.telemetrySpans} (
-                spanId, traceId, parentSpanId, name, status,
-                startedAt, endedAt, attributes, systemId, generationId
-              )
-              SELECT
-                printf('spn_retention_%04d', value),
-                printf('trc_retention_%04d', value),
-                NULL,
-                'test.retention',
-                'ok',
-                value,
-                value,
-                NULL,
-                ${systemId},
-                ${generationId}
-              FROM sequence
-            `);
-              db.run(sql`
-              WITH RECURSIVE sequence(value) AS (
-                SELECT 0
-                UNION ALL
-                SELECT value + 1 FROM sequence WHERE value < 1000
-              )
-              INSERT INTO ${schema.telemetryLogs} (
-                logId, traceId, spanId, createdAt, level,
-                message, source, payload, systemId, generationId
-              )
-              SELECT
-                printf('lgr_retention_%04d', value),
-                printf('trc_retention_%04d', value),
-                printf('spn_retention_%04d', value),
-                value,
-                'info',
-                'retention',
-                'test.retention',
-                NULL,
-                ${systemId},
-                ${generationId}
-              FROM sequence
-            `);
-              db.run(sql`
-              WITH RECURSIVE sequence(value) AS (
-                SELECT 0
-                UNION ALL
-                SELECT value + 1 FROM sequence WHERE value < 1000
-              )
-              INSERT INTO ${schema.telemetryLinks} (
-                linkId, traceId, spanId, priorTraceId, priorSpanId,
-                kind, systemId, generationId
-              )
-              SELECT
-                printf('lnk_retention_%04d', value),
-                printf('trc_retention_%04d', value),
-                printf('spn_retention_%04d', value),
-                'trc_prior',
-                'spn_prior',
-                'causedBy',
-                ${systemId},
-                ${generationId}
-              FROM sequence
-            `);
-            },
-          }),
-        );
+        const values = Array.from({ length: 1_001 }, (_, value) => value);
+        const batch = {
+          spans: values.map(value => ({
+            spanId: `spn_retention_${value.toString().padStart(4, '0')}`,
+            traceId: `trc_retention_${value.toString().padStart(4, '0')}`,
+            parentSpanId: null,
+            name: 'test.retention',
+            status: 'ok',
+            startedAt: value,
+            endedAt: value,
+            attributes: null,
+          })),
+          logs: values.map(value => ({
+            logId: `lgr_retention_${value.toString().padStart(4, '0')}`,
+            traceId: `trc_retention_${value.toString().padStart(4, '0')}`,
+            spanId: `spn_retention_${value.toString().padStart(4, '0')}`,
+            createdAt: value,
+            level: 'info',
+            message: 'retention',
+            source: 'test.retention',
+            payload: null,
+          })),
+          links: values.map(value => ({
+            linkId: `lnk_retention_${value.toString().padStart(4, '0')}`,
+            traceId: `trc_retention_${value.toString().padStart(4, '0')}`,
+            spanId: `spn_retention_${value.toString().padStart(4, '0')}`,
+            priorTraceId: 'trc_prior',
+            priorSpanId: 'spn_prior',
+            kind: 'causedBy',
+          })),
+        } satisfies ITelemetryBatch;
 
         yield* Effect.promise(() =>
           systemLogRepo.appendTelemetryBatch({
-            batch: { spans: [], logs: [], links: [] },
+            batch,
           }),
         ).pipe(Effect.flatMap(decodeRpc));
 
-        const rows = yield* Effect.promise(() =>
-          executeInRepo({
-            managedRuntime,
-            getRepo: getSystemLogRepo,
-            repo: SystemLogRepo,
-            key: { generationId },
-            fn: ({ db, schema }) => ({
-              spans: db.select().from(schema.telemetrySpans).all(),
-              logs: db.select().from(schema.telemetryLogs).all(),
-              links: db.select().from(schema.telemetryLinks).all(),
+        const [spans, logs, links] = yield* Effect.all([
+          Effect.promise(() =>
+            systemLogRepo.getRepoTableRows({
+              tableName: 'telemetrySpans',
             }),
-          }),
-        );
+          ).pipe(Effect.flatMap(decodeRpc)),
+          Effect.promise(() =>
+            systemLogRepo.getRepoTableRows({
+              tableName: 'telemetryLogs',
+            }),
+          ).pipe(Effect.flatMap(decodeRpc)),
+          Effect.promise(() =>
+            systemLogRepo.getRepoTableRows({
+              tableName: 'telemetryLinks',
+            }),
+          ).pipe(Effect.flatMap(decodeRpc)),
+        ]);
 
-        expect(rows.spans).toHaveLength(1000);
-        expect(rows.logs).toHaveLength(1000);
-        expect(rows.links).toHaveLength(1000);
-        expect(rows.spans).not.toEqual(
+        expect(spans.rows).toHaveLength(1000);
+        expect(logs.rows).toHaveLength(1000);
+        expect(links.rows).toHaveLength(1000);
+        expect(spans.rows).not.toEqual(
           expect.arrayContaining([
             expect.objectContaining({ traceId: 'trc_retention_0000' }),
           ]),
         );
-        expect(rows.logs).not.toEqual(
+        expect(logs.rows).not.toEqual(
           expect.arrayContaining([
             expect.objectContaining({ traceId: 'trc_retention_0000' }),
           ]),
         );
-        expect(rows.links).not.toEqual(
+        expect(links.rows).not.toEqual(
           expect.arrayContaining([
             expect.objectContaining({ traceId: 'trc_retention_0000' }),
           ]),

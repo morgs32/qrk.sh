@@ -1,6 +1,7 @@
 import * as SQLite from '@livestore/wa-sqlite';
 import SQLiteESMFactory from '@livestore/wa-sqlite/dist/wa-sqlite.mjs';
 
+import type { ICommittedSqlStatement } from './WaSqliteSession.ts';
 import type { SQLiteModuleFactory } from './waSqliteModuleFactory.ts';
 
 /**
@@ -16,6 +17,9 @@ export async function makeInMemorySQLite3(
     listener: (changedTableNames: ReadonlySet<string>) => void,
   ): () => void;
   flushTableChanges(): void;
+  onCommittedTransaction:
+    | ((statements: readonly ICommittedSqlStatement[]) => void)
+    | null;
 }> {
   const module = await moduleFactory();
   const sqlite3 = SQLite.Factory(module);
@@ -83,5 +87,6 @@ export async function makeInMemorySQLite3(
         listener(committedTableNames);
       }
     },
+    onCommittedTransaction: null,
   };
 }

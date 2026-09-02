@@ -1,37 +1,31 @@
 import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
-import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
 import { makeSelection, makeSystem, ZerospinError } from '@zerospin/sdk';
 import { Effect, Schema } from 'effect';
 
-import { authenticationSignature } from './authentication';
-import {
-  addToCart,
-  createCart,
-  createCatalogMarker,
-  createProduct,
-  createUser,
-  removeFromCart,
-  updateCartItemQuantity,
-  updateUser,
-} from './contracts';
+import { signature } from './signature';
+import { addToCart } from './contracts/addToCart';
+import { createCart } from './contracts/createCart';
+import { createCatalogMarker } from './contracts/createCatalogMarker';
+import { createProduct } from './contracts/createProduct';
+import { createUser } from './contracts/createUser';
+import { deleteProduct } from './contracts/deleteProduct';
+import { removeFromCart } from './contracts/removeFromCart';
+import { updateCartItemQuantity } from './contracts/updateCartItemQuantity';
+import { updateUser } from './contracts/updateUser';
 import { catalog } from './frontends/catalog';
 import { web } from './frontends/web';
-import {
-  Cart,
-  CartItem,
-  CatalogMarker,
-  Product,
-  User,
-  type IClerkUserId,
-} from './models';
-
-const catalogModels = getFrontendDbModels(catalog);
+import { Cart } from './models/Cart';
+import { CartItem } from './models/CartItem';
+import { CatalogMarker } from './models/CatalogMarker';
+import { Product } from './models/Product';
+import { ProductReplica } from './models/ProductReplica';
+import { User, type IClerkUserId } from './models/User';
 
 export const system = makeSystem({
   name: 'shopping',
   version: '2.0.2',
   authentication: {
-    signature: authenticationSignature,
+    signature,
     authenticate: ({ signature }) => Effect.succeed(signature.clerkUserId),
   },
   aggregates: {
@@ -41,7 +35,7 @@ export const system = makeSystem({
         user: User,
         cart: Cart,
         cartItem: CartItem,
-        product: Product,
+        product: ProductReplica,
       },
       contracts: {
         addToCart,
@@ -50,89 +44,6 @@ export const system = makeSystem({
         removeFromCart,
         updateCartItemQuantity,
         updateUser,
-      },
-      mutationAdapters: {
-        cartItem: {
-          create: [
-            {
-              source: CartItem.createMutation('1.0.0'),
-              destination: CartItem.createMutation('2.0.0'),
-              adapter: mutation =>
-                CartItem.create('2.0.0', {
-                  resourceId: mutation.resourceId,
-                  attributes: {
-                    amount: mutation.operation.attributes.quantity,
-                    cartId: mutation.operation.attributes.cartId,
-                    productId: mutation.operation.attributes.productId,
-                    unit: 'item',
-                  },
-                }),
-            },
-          ],
-          update: [
-            {
-              source: CartItem.updateMutation('1.0.0'),
-              destination: CartItem.updateMutation('2.0.0'),
-              adapter: mutation => {
-                const quantity = mutation.operation.attributes.quantity;
-                return CartItem.update('2.0.0', {
-                  resourceId: mutation.resourceId,
-                  attributes: {
-                    ...(mutation.operation.attributes.cartId === undefined
-                      ? {}
-                      : { cartId: mutation.operation.attributes.cartId }),
-                    ...(mutation.operation.attributes.productId === undefined
-                      ? {}
-                      : {
-                          productId: mutation.operation.attributes.productId,
-                        }),
-                    ...(quantity === undefined
-                      ? {}
-                      : { amount: quantity, unit: 'item' }),
-                  },
-                  ...(mutation.operation.mask === undefined
-                    ? {}
-                    : {
-                        mask: mutation.operation.mask.flatMap(attribute => {
-                          switch (attribute) {
-                            case 'cartId':
-                            case 'productId':
-                              return [attribute];
-                            case 'quantity':
-                              return ['amount', 'unit'];
-                            default:
-                              return [];
-                          }
-                        }),
-                      }),
-                });
-              },
-            },
-          ],
-          delete: [
-            {
-              source: CartItem.deleteMutation('1.0.0'),
-              destination: CartItem.deleteMutation('2.0.0'),
-              adapter: mutation =>
-                CartItem.delete('2.0.0', {
-                  resourceId: mutation.resourceId,
-                }),
-            },
-          ],
-          move: [
-            {
-              source: CartItem.moveMutation('1.0.0'),
-              destination: CartItem.moveMutation('2.0.0'),
-              adapter: mutation =>
-                CartItem.move('2.0.0', {
-                  resourceId: mutation.resourceId,
-                  property: mutation.operation.property,
-                  prevId: mutation.operation.prevId,
-                  nextId: mutation.operation.nextId,
-                }),
-            },
-          ],
-        },
       },
       selections: {
         user: makeSelection({
@@ -154,7 +65,7 @@ export const system = makeSystem({
           }),
         }),
         product: makeSelection({
-          model: Product,
+          model: ProductReplica,
           where: ({ userId }: { userId: IClerkUserId }) => ({
             cartItems: {
               cart: { user: { clerkUserId: userId } },
@@ -182,6 +93,7 @@ export const system = makeSystem({
       contracts: {
         createCatalogMarker,
         createProduct,
+        deleteProduct,
       },
       queries: {
         getProducts: {
@@ -192,7 +104,13 @@ export const system = makeSystem({
             db: Readonly<
               Pick<
                 IDb<
-                  IResourceDbConfig<typeof catalogModels, Record<never, never>>
+                  IResourceDbConfig<
+                    {
+                      catalogMarker: typeof CatalogMarker;
+                      product: typeof Product;
+                    },
+                    Record<never, never>
+                  >
                 >,
                 'query'
               >

@@ -3,7 +3,7 @@ import { Effect, Schema } from 'effect';
 import { Navigate, Outlet } from 'react-router';
 
 import { RequiredUserProvider } from '@/components/RequiredUser';
-import { ClerkUserIdSchema } from '@/zerospin/models';
+import { ClerkUserIdSchema } from '@/zerospin/models/User';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function AuthenticatedRoute() {

@@ -1,49 +1,48 @@
 import type { IAnyError } from '@zerospin/error';
 import { RpcTarget } from 'capnweb';
 import { Effect } from 'effect';
-import { BrandTypeId } from 'effect/Brand';
 
 import type { SystemApi } from '../SystemApi.js';
 
 import { executeSelectQuery } from './executeSelectQuery/executeSelectQuery.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
-import { finalizeAggregateCommands } from './finalizeAggregateCommands/finalizeAggregateCommands.js';
-import { finalizeServiceCommands } from './finalizeServiceCommands/finalizeServiceCommands.js';
-import { getAggregateBlockRepos } from './getAggregateBlockRepos/getAggregateBlockRepos.js';
-import { getAggregateBlockRepoTableRows } from './getAggregateBlockRepoTableRows/getAggregateBlockRepoTableRows.js';
-import { getAggregateFrontendBlockRepos } from './getAggregateFrontendBlockRepos/getAggregateFrontendBlockRepos.js';
-import { getAggregateFrontendBlockRepoTableRows } from './getAggregateFrontendBlockRepoTableRows/getAggregateFrontendBlockRepoTableRows.js';
-import { getAggregateFrontendRepos } from './getAggregateFrontendRepos/getAggregateFrontendRepos.js';
-import { getAggregateFrontendRepoTableRows } from './getAggregateFrontendRepoTableRows/getAggregateFrontendRepoTableRows.js';
+import { finalizeAggregateCommand } from './finalizeAggregateCommand/finalizeAggregateCommand.js';
+import { finalizeServiceCommand } from './finalizeServiceCommand/finalizeServiceCommand.js';
+import { getAggregateCommandChains } from './getAggregateCommandChains/getAggregateCommandChains.js';
+import { getAggregateCommandChainTableRows } from './getAggregateCommandChainTableRows/getAggregateCommandChainTableRows.js';
+import { getAggregateFrontendFinalizedCommandChains } from './getAggregateFrontendFinalizedCommandChains/getAggregateFrontendFinalizedCommandChains.js';
+import { getAggregateFrontendFinalizedCommandChainTableRows } from './getAggregateFrontendFinalizedCommandChainTableRows/getAggregateFrontendFinalizedCommandChainTableRows.js';
+import { getAggregateFrontendPushedCommandChains } from './getAggregateFrontendPushedCommandChains/getAggregateFrontendPushedCommandChains.js';
+import { getAggregateFrontendPushedCommandChainTableRows } from './getAggregateFrontendPushedCommandChainTableRows/getAggregateFrontendPushedCommandChainTableRows.js';
+import { getMaterializedAggregateFrontendRepos } from './getMaterializedAggregateFrontendRepos/getMaterializedAggregateFrontendRepos.js';
+import { getMaterializedAggregateFrontendRepoTableRows } from './getMaterializedAggregateFrontendRepoTableRows/getMaterializedAggregateFrontendRepoTableRows.js';
 import { getAggregateFrontendState } from './getAggregateFrontendState/getAggregateFrontendState.js';
-import { getAggregateRepos } from './getAggregateRepos/getAggregateRepos.js';
-import { getAggregateRepoTableRows } from './getAggregateRepoTableRows/getAggregateRepoTableRows.js';
-import { getServiceBlockRepos } from './getServiceBlockRepos/getServiceBlockRepos.js';
-import { getServiceBlockRepoTableRows } from './getServiceBlockRepoTableRows/getServiceBlockRepoTableRows.js';
-import { getServiceFrontendBlockRepos } from './getServiceFrontendBlockRepos/getServiceFrontendBlockRepos.js';
-import { getServiceFrontendBlockRepoTableRows } from './getServiceFrontendBlockRepoTableRows/getServiceFrontendBlockRepoTableRows.js';
-import { getServiceFrontendRepos } from './getServiceFrontendRepos/getServiceFrontendRepos.js';
-import { getServiceFrontendRepoTableRows } from './getServiceFrontendRepoTableRows/getServiceFrontendRepoTableRows.js';
-import { getServiceRepos } from './getServiceRepos/getServiceRepos.js';
-import { getServiceRepoTableRows } from './getServiceRepoTableRows/getServiceRepoTableRows.js';
+import { getMaterializedAggregateRepos } from './getMaterializedAggregateRepos/getMaterializedAggregateRepos.js';
+import { getMaterializedAggregateRepoTableRows } from './getMaterializedAggregateRepoTableRows/getMaterializedAggregateRepoTableRows.js';
+import { getServiceCommandChains } from './getServiceCommandChains/getServiceCommandChains.js';
+import { getServiceCommandChainTableRows } from './getServiceCommandChainTableRows/getServiceCommandChainTableRows.js';
+import { getServiceFrontendFinalizedCommandChains } from './getServiceFrontendFinalizedCommandChains/getServiceFrontendFinalizedCommandChains.js';
+import { getServiceFrontendFinalizedCommandChainTableRows } from './getServiceFrontendFinalizedCommandChainTableRows/getServiceFrontendFinalizedCommandChainTableRows.js';
+import { getMaterializedServiceFrontendRepos } from './getMaterializedServiceFrontendRepos/getMaterializedServiceFrontendRepos.js';
+import { getMaterializedServiceFrontendRepoTableRows } from './getMaterializedServiceFrontendRepoTableRows/getMaterializedServiceFrontendRepoTableRows.js';
+import { getMaterializedServiceRepos } from './getMaterializedServiceRepos/getMaterializedServiceRepos.js';
+import { getMaterializedServiceRepoTableRows } from './getMaterializedServiceRepoTableRows/getMaterializedServiceRepoTableRows.js';
 import { getSystemLogRepos } from './getSystemLogRepos/getSystemLogRepos.js';
 import { getSystemLogRepoTableRows } from './getSystemLogRepoTableRows/getSystemLogRepoTableRows.js';
 import { getSystemRepos } from './getSystemRepos/getSystemRepos.js';
 import { getSystemRepoTableRows } from './getSystemRepoTableRows/getSystemRepoTableRows.js';
-import { hello } from './hello/hello.js';
+import { healthcheck } from './healthcheck/healthcheck.js';
 import { makeSystemSpec } from './makeSystemSpec/makeSystemSpec.js';
 
 export class SystemApiFailure extends RpcTarget {
-  declare [BrandTypeId]: 'TargetApi';
-
   constructor(private readonly error: IAnyError) {
     super();
   }
 
-  async hello(
-    request: Parameters<SystemApi['hello']>[0],
-  ): ReturnType<SystemApi['hello']> {
-    return Effect.runPromise(hello({ request, error: this.error }));
+  async healthcheck(
+    request: Parameters<SystemApi['healthcheck']>[0],
+  ): ReturnType<SystemApi['healthcheck']> {
+    return Effect.runPromise(healthcheck({ request, error: this.error }));
   }
 
   async getAggregateFrontendState(
@@ -62,11 +61,11 @@ export class SystemApiFailure extends RpcTarget {
     );
   }
 
-  async finalizeAggregateCommands(
-    request: Parameters<SystemApi['finalizeAggregateCommands']>[0],
-  ): ReturnType<SystemApi['finalizeAggregateCommands']> {
+  async finalizeAggregateCommand(
+    request: Parameters<SystemApi['finalizeAggregateCommand']>[0],
+  ): ReturnType<SystemApi['finalizeAggregateCommand']> {
     return Effect.runPromise(
-      finalizeAggregateCommands({ request, error: this.error }),
+      finalizeAggregateCommand({ request, error: this.error }),
     );
   }
 
@@ -78,11 +77,11 @@ export class SystemApiFailure extends RpcTarget {
     );
   }
 
-  async finalizeServiceCommands(
-    request: Parameters<SystemApi['finalizeServiceCommands']>[0],
-  ): ReturnType<SystemApi['finalizeServiceCommands']> {
+  async finalizeServiceCommand(
+    request: Parameters<SystemApi['finalizeServiceCommand']>[0],
+  ): ReturnType<SystemApi['finalizeServiceCommand']> {
     return Effect.runPromise(
-      finalizeServiceCommands({ request, error: this.error }),
+      finalizeServiceCommand({ request, error: this.error }),
     );
   }
 
@@ -100,130 +99,149 @@ export class SystemApiFailure extends RpcTarget {
     );
   }
 
-  async getAggregateRepos(
-    request: Parameters<SystemApi['getAggregateRepos']>[0],
-  ): ReturnType<SystemApi['getAggregateRepos']> {
-    return Effect.runPromise(getAggregateRepos({ request, error: this.error }));
+  async getMaterializedAggregateRepos(
+    request: Parameters<SystemApi['getMaterializedAggregateRepos']>[0],
+  ): ReturnType<SystemApi['getMaterializedAggregateRepos']> {
+    return Effect.runPromise(getMaterializedAggregateRepos({ request, error: this.error }));
   }
 
-  async getAggregateRepoTableRows(
-    request: Parameters<SystemApi['getAggregateRepoTableRows']>[0],
-  ): ReturnType<SystemApi['getAggregateRepoTableRows']> {
+  async getMaterializedAggregateRepoTableRows(
+    request: Parameters<SystemApi['getMaterializedAggregateRepoTableRows']>[0],
+  ): ReturnType<SystemApi['getMaterializedAggregateRepoTableRows']> {
     return Effect.runPromise(
-      getAggregateRepoTableRows({ request, error: this.error }),
+      getMaterializedAggregateRepoTableRows({ request, error: this.error }),
     );
   }
 
-  async getAggregateFrontendRepos(
-    request: Parameters<SystemApi['getAggregateFrontendRepos']>[0],
-  ): ReturnType<SystemApi['getAggregateFrontendRepos']> {
+  async getMaterializedAggregateFrontendRepos(
+    request: Parameters<SystemApi['getMaterializedAggregateFrontendRepos']>[0],
+  ): ReturnType<SystemApi['getMaterializedAggregateFrontendRepos']> {
     return Effect.runPromise(
-      getAggregateFrontendRepos({ request, error: this.error }),
+      getMaterializedAggregateFrontendRepos({ request, error: this.error }),
     );
   }
 
-  async getAggregateFrontendRepoTableRows(
-    request: Parameters<SystemApi['getAggregateFrontendRepoTableRows']>[0],
-  ): ReturnType<SystemApi['getAggregateFrontendRepoTableRows']> {
+  async getMaterializedAggregateFrontendRepoTableRows(
+    request: Parameters<SystemApi['getMaterializedAggregateFrontendRepoTableRows']>[0],
+  ): ReturnType<SystemApi['getMaterializedAggregateFrontendRepoTableRows']> {
     return Effect.runPromise(
-      getAggregateFrontendRepoTableRows({ request, error: this.error }),
+      getMaterializedAggregateFrontendRepoTableRows({ request, error: this.error }),
     );
   }
 
-  async getServiceFrontendRepos(
-    request: Parameters<SystemApi['getServiceFrontendRepos']>[0],
-  ): ReturnType<SystemApi['getServiceFrontendRepos']> {
+  async getMaterializedServiceFrontendRepos(
+    request: Parameters<SystemApi['getMaterializedServiceFrontendRepos']>[0],
+  ): ReturnType<SystemApi['getMaterializedServiceFrontendRepos']> {
     return Effect.runPromise(
-      getServiceFrontendRepos({ request, error: this.error }),
+      getMaterializedServiceFrontendRepos({ request, error: this.error }),
     );
   }
 
-  async getServiceFrontendRepoTableRows(
-    request: Parameters<SystemApi['getServiceFrontendRepoTableRows']>[0],
-  ): ReturnType<SystemApi['getServiceFrontendRepoTableRows']> {
+  async getMaterializedServiceFrontendRepoTableRows(
+    request: Parameters<SystemApi['getMaterializedServiceFrontendRepoTableRows']>[0],
+  ): ReturnType<SystemApi['getMaterializedServiceFrontendRepoTableRows']> {
     return Effect.runPromise(
-      getServiceFrontendRepoTableRows({ request, error: this.error }),
+      getMaterializedServiceFrontendRepoTableRows({ request, error: this.error }),
     );
   }
 
-  async getServiceRepos(
-    request: Parameters<SystemApi['getServiceRepos']>[0],
-  ): ReturnType<SystemApi['getServiceRepos']> {
-    return Effect.runPromise(getServiceRepos({ request, error: this.error }));
+  async getMaterializedServiceRepos(
+    request: Parameters<SystemApi['getMaterializedServiceRepos']>[0],
+  ): ReturnType<SystemApi['getMaterializedServiceRepos']> {
+    return Effect.runPromise(getMaterializedServiceRepos({ request, error: this.error }));
   }
 
-  async getServiceRepoTableRows(
-    request: Parameters<SystemApi['getServiceRepoTableRows']>[0],
-  ): ReturnType<SystemApi['getServiceRepoTableRows']> {
+  async getMaterializedServiceRepoTableRows(
+    request: Parameters<SystemApi['getMaterializedServiceRepoTableRows']>[0],
+  ): ReturnType<SystemApi['getMaterializedServiceRepoTableRows']> {
     return Effect.runPromise(
-      getServiceRepoTableRows({ request, error: this.error }),
+      getMaterializedServiceRepoTableRows({ request, error: this.error }),
     );
   }
 
-  async getAggregateBlockRepos(
-    request: Parameters<SystemApi['getAggregateBlockRepos']>[0],
-  ): ReturnType<SystemApi['getAggregateBlockRepos']> {
+  async getAggregateCommandChains(
+    request: Parameters<SystemApi['getAggregateCommandChains']>[0],
+  ): ReturnType<SystemApi['getAggregateCommandChains']> {
     return Effect.runPromise(
-      getAggregateBlockRepos({ request, error: this.error }),
+      getAggregateCommandChains({ request, error: this.error }),
     );
   }
 
-  async getAggregateBlockRepoTableRows(
-    request: Parameters<SystemApi['getAggregateBlockRepoTableRows']>[0],
-  ): ReturnType<SystemApi['getAggregateBlockRepoTableRows']> {
+  async getAggregateCommandChainTableRows(
+    request: Parameters<SystemApi['getAggregateCommandChainTableRows']>[0],
+  ): ReturnType<SystemApi['getAggregateCommandChainTableRows']> {
     return Effect.runPromise(
-      getAggregateBlockRepoTableRows({ request, error: this.error }),
+      getAggregateCommandChainTableRows({ request, error: this.error }),
     );
   }
 
-  async getAggregateFrontendBlockRepos(
-    request: Parameters<SystemApi['getAggregateFrontendBlockRepos']>[0],
-  ): ReturnType<SystemApi['getAggregateFrontendBlockRepos']> {
+  async getAggregateFrontendFinalizedCommandChains(
+    request: Parameters<SystemApi['getAggregateFrontendFinalizedCommandChains']>[0],
+  ): ReturnType<SystemApi['getAggregateFrontendFinalizedCommandChains']> {
     return Effect.runPromise(
-      getAggregateFrontendBlockRepos({ request, error: this.error }),
+      getAggregateFrontendFinalizedCommandChains({ request, error: this.error }),
     );
   }
 
-  async getAggregateFrontendBlockRepoTableRows(
-    request: Parameters<SystemApi['getAggregateFrontendBlockRepoTableRows']>[0],
-  ): ReturnType<SystemApi['getAggregateFrontendBlockRepoTableRows']> {
+  async getAggregateFrontendFinalizedCommandChainTableRows(
+    request: Parameters<SystemApi['getAggregateFrontendFinalizedCommandChainTableRows']>[0],
+  ): ReturnType<SystemApi['getAggregateFrontendFinalizedCommandChainTableRows']> {
     return Effect.runPromise(
-      getAggregateFrontendBlockRepoTableRows({ request, error: this.error }),
+      getAggregateFrontendFinalizedCommandChainTableRows({ request, error: this.error }),
     );
   }
 
-  async getServiceFrontendBlockRepos(
-    request: Parameters<SystemApi['getServiceFrontendBlockRepos']>[0],
-  ): ReturnType<SystemApi['getServiceFrontendBlockRepos']> {
+  async getAggregateFrontendPushedCommandChains(
+    request: Parameters<SystemApi['getAggregateFrontendPushedCommandChains']>[0],
+  ): ReturnType<SystemApi['getAggregateFrontendPushedCommandChains']> {
     return Effect.runPromise(
-      getServiceFrontendBlockRepos({ request, error: this.error }),
+      getAggregateFrontendPushedCommandChains({ request, error: this.error }),
     );
   }
 
-  async getServiceFrontendBlockRepoTableRows(
-    request: Parameters<SystemApi['getServiceFrontendBlockRepoTableRows']>[0],
-  ): ReturnType<SystemApi['getServiceFrontendBlockRepoTableRows']> {
+  async getAggregateFrontendPushedCommandChainTableRows(
+    request: Parameters<SystemApi['getAggregateFrontendPushedCommandChainTableRows']>[0],
+  ): ReturnType<SystemApi['getAggregateFrontendPushedCommandChainTableRows']> {
     return Effect.runPromise(
-      getServiceFrontendBlockRepoTableRows({
+      getAggregateFrontendPushedCommandChainTableRows({
         request,
         error: this.error,
       }),
     );
   }
 
-  async getServiceBlockRepos(
-    request: Parameters<SystemApi['getServiceBlockRepos']>[0],
-  ): ReturnType<SystemApi['getServiceBlockRepos']> {
+  async getServiceFrontendFinalizedCommandChains(
+    request: Parameters<SystemApi['getServiceFrontendFinalizedCommandChains']>[0],
+  ): ReturnType<SystemApi['getServiceFrontendFinalizedCommandChains']> {
     return Effect.runPromise(
-      getServiceBlockRepos({ request, error: this.error }),
+      getServiceFrontendFinalizedCommandChains({ request, error: this.error }),
     );
   }
 
-  async getServiceBlockRepoTableRows(
-    request: Parameters<SystemApi['getServiceBlockRepoTableRows']>[0],
-  ): ReturnType<SystemApi['getServiceBlockRepoTableRows']> {
+  async getServiceFrontendFinalizedCommandChainTableRows(
+    request: Parameters<SystemApi['getServiceFrontendFinalizedCommandChainTableRows']>[0],
+  ): ReturnType<SystemApi['getServiceFrontendFinalizedCommandChainTableRows']> {
     return Effect.runPromise(
-      getServiceBlockRepoTableRows({ request, error: this.error }),
+      getServiceFrontendFinalizedCommandChainTableRows({
+        request,
+        error: this.error,
+      }),
+    );
+  }
+
+  async getServiceCommandChains(
+    request: Parameters<SystemApi['getServiceCommandChains']>[0],
+  ): ReturnType<SystemApi['getServiceCommandChains']> {
+    return Effect.runPromise(
+      getServiceCommandChains({ request, error: this.error }),
+    );
+  }
+
+  async getServiceCommandChainTableRows(
+    request: Parameters<SystemApi['getServiceCommandChainTableRows']>[0],
+  ): ReturnType<SystemApi['getServiceCommandChainTableRows']> {
+    return Effect.runPromise(
+      getServiceCommandChainTableRows({ request, error: this.error }),
     );
   }
 

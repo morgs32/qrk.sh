@@ -7,6 +7,6 @@ import type { IRef } from './types.ts';
 export const RefSchema = Schema.Struct({
   id: Schema.String,
   modelName: Schema.String,
-}) satisfies Schema.Schema<IRef, any>;
+}) satisfies Schema.Codec<IRef, any>;
 
 assert<Equals<typeof RefSchema.Type, IRef>>();

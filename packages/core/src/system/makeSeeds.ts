@@ -1,18 +1,18 @@
 import '@zerospin/server-only';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
+import type { CuidFactory } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
 import type { IAggregates } from '../aggregate/types.ts';
-import { DeploySeedCommandSchema } from '../contracts/CommandSchema.ts';
+import { SeedCommandSchema } from '../contracts/CommandSchema.ts';
 import type {
   IAggregateCommand,
   ICommand,
-  IDeploySeedCommand,
+  ISeedCommand,
   IServiceCommand,
 } from '../contracts/types.ts';
 import type { InferCommandPayload } from '../models/types.ts';
 import type { IServices } from '../service/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
 
 import type { ISystem } from './types.ts';
 
@@ -29,7 +29,10 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
   SERVICES extends IServices,
   SYSTEM_NAME extends string,
 >(props: {
-  system: ISystem<AGGREGATES, SERVICES, SYSTEM_NAME>;
+  system: Pick<
+    ISystem<AGGREGATES, SERVICES, SYSTEM_NAME>,
+    'name' | 'aggregates' | 'services'
+  >;
   aggregates: {
     readonly [AGGREGATE_NAME in keyof AGGREGATES]?: readonly Effect.Effect<
       {
@@ -66,9 +69,9 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
       CuidFactory
     >[];
   };
-}): Effect.fn.Return<readonly IDeploySeedCommand[], IAnyError, CuidFactory> {
+}): Effect.fn.Return<readonly ISeedCommand[], IAnyError, CuidFactory> {
   const { aggregates, services, system } = props;
-  const resolvedSeeds: IDeploySeedCommand[] = [];
+  const resolvedSeeds: ISeedCommand[] = [];
 
   // Checkpoint 1: aggregate commands always occupy the first part of the flat list.
   for (const aggregateName of Object.keys(aggregates)) {
@@ -98,7 +101,9 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
 
       // Validate the already-decoded command without applying encoded-side defaults.
       // The validated copy is discarded so the exact makeCommand object crosses the boundary.
-      yield* Schema.validate(DeploySeedCommandSchema)(command).pipe(
+      yield* Schema.decodeEffect(Schema.toType(SeedCommandSchema))(
+        command,
+      ).pipe(
         Effect.mapError(
           parseError =>
             new ZerospinError({
@@ -107,13 +112,6 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
             }),
         ),
       );
-
-      if (command.commandType !== 'aggregate') {
-        return yield* new ZerospinError({
-          code: 'invalid-seeds',
-          message: `Seed aggregate group "${aggregateName}" received command type "${command.commandType}"`,
-        });
-      }
 
       if (command.aggregateName !== aggregateName) {
         return yield* new ZerospinError({
@@ -177,7 +175,9 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
     for (const commandToResolve of commandEffects) {
       const command = yield* commandToResolve;
 
-      yield* Schema.validate(DeploySeedCommandSchema)(command).pipe(
+      yield* Schema.decodeEffect(Schema.toType(SeedCommandSchema))(
+        command,
+      ).pipe(
         Effect.mapError(
           parseError =>
             new ZerospinError({
@@ -186,13 +186,6 @@ export const makeSeeds = Effect.fn('makeSeeds')(function* <
             }),
         ),
       );
-
-      if (command.commandType !== 'service') {
-        return yield* new ZerospinError({
-          code: 'invalid-seeds',
-          message: `Seed service group "${serviceName}" received command type "${command.commandType}"`,
-        });
-      }
 
       if (command.serviceName !== serviceName) {
         return yield* new ZerospinError({

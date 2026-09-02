@@ -1,15 +1,15 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { makeMigratedInMemorySqljsDb } from '@zerospin/core/drizzle/makeMigratedInMemorySqljsDb';
+import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/makeProvisionedInMemorySqljsDb';
 import { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
-import { Effect, Either } from 'effect';
+import { Effect, Result } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { authorizeAggregateFrontend } from './AggregateRepo/authorizeAggregateFrontend/authorizeAggregateFrontend.js';
 import { system } from './fixtures/system.js';
-import { authorizeServiceFrontend } from './ServiceRepo/authorizeServiceFrontend/authorizeServiceFrontend.js';
-import { executeServiceQuery } from './ServiceRepo/executeServiceQuery/executeServiceQuery.js';
+import { authorizeAggregateFrontend } from './MaterializedAggregateRepo/authorizeAggregateFrontend/authorizeAggregateFrontend.js';
+import { authorizeServiceFrontend } from './MaterializedServiceRepo/authorizeServiceFrontend/authorizeServiceFrontend.js';
+import { executeServiceQuery } from './MaterializedServiceRepo/executeServiceQuery/executeServiceQuery.js';
 
 describe('owner-local authored queries', () => {
   it.effect(
@@ -17,7 +17,7 @@ describe('owner-local authored queries', () => {
     () =>
       Effect.gen(function* () {
         const aggregate = system.aggregates.user;
-        const db = yield* makeMigratedInMemorySqljsDb({
+        const db = yield* makeProvisionedInMemorySqljsDb({
           dbConfig: makeResourceDbConfig({ models: aggregate.models }),
         });
         const now = new Date('2026-01-01T00:00:00.000Z');
@@ -48,10 +48,10 @@ describe('owner-local authored queries', () => {
           frontendName: 'main',
           userId,
           db,
-        }).pipe(Effect.either);
-        expect(Either.isLeft(missing)).toBe(true);
-        if (Either.isLeft(missing)) {
-          expect(missing.left.code).toBe('user-not-found');
+        }).pipe(Effect.result);
+        expect(Result.isFailure(missing)).toBe(true);
+        if (Result.isFailure(missing)) {
+          expect(missing.failure.code).toBe('user-not-found');
         }
       }).pipe(Effect.provide(AsyncLive)),
   );
@@ -61,7 +61,7 @@ describe('owner-local authored queries', () => {
     () =>
       Effect.gen(function* () {
         const service = system.services.app;
-        const db = yield* makeMigratedInMemorySqljsDb({
+        const db = yield* makeProvisionedInMemorySqljsDb({
           dbConfig: makeResourceDbConfig({ models: service.models }),
         });
         const now = new Date('2026-01-01T00:00:00.000Z');
@@ -74,7 +74,6 @@ describe('owner-local authored queries', () => {
             version: service.models.product.version,
             createdAt: now,
             updatedAt: now,
-            deletedAt: null,
           })
           .run();
 

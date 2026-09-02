@@ -1,6 +1,5 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import type { ISystemId } from '@zerospin/core/system/types';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { mapParseError } from '@zerospin/error';
 import {
@@ -10,9 +9,10 @@ import {
   type IRpcRequest,
   type ISpanLinkRecord,
 } from '@zerospin/logger';
-import { Effect, Either, Schema } from 'effect';
+import { Effect, Result, Schema } from 'effect';
 
-import { SystemWorkerResolver } from '../../SystemWorkerResolver/SystemWorkerResolver.js';
+import { appendTelemetryBatch } from '../../appendTelemetryBatch/appendTelemetryBatch.js';
+import { createServiceFrontendWebSocketTicket as createSystemWorkerTicket } from '../../createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.js';
 
 export const createWebSocketTicket = Effect.fn(
   'ServiceFrontendApi.createWebSocketTicket',
@@ -24,66 +24,53 @@ export const createWebSocketTicket = Effect.fn(
     readonly serviceFrontendLock: Schema.Schema.Type<
       typeof ServiceFrontendLockSchema
     >;
-    readonly generationId: string;
     readonly serviceName: string;
-    readonly systemWorkerName: string;
+    readonly systemId: ISystemId;
   };
 }) {
-  const validatedArgs = yield* Schema.validate(Schema.mutable(Schema.Tuple()))(
-    props.request.args,
-    { onExcessProperty: 'error' },
-  ).pipe(
+  const { authResults, request } = props;
+  const validatedArgs = yield* Schema.decodeUnknownEffect(
+    Schema.toType(Schema.mutable(Schema.Tuple([]))),
+  )(request.args, { onExcessProperty: 'error' }).pipe(
     mapParseError({
       code: 'service-frontend-api-arguments-invalid',
       prefix:
         'ServiceFrontendApi.createWebSocketTicket received invalid arguments',
     }),
-    Effect.either,
+    Effect.result,
   );
-  if (Either.isLeft(validatedArgs)) {
+  if (Result.isFailure(validatedArgs)) {
     return {
-      result: yield* encodeRpc(Effect.fail(validatedArgs.left)),
+      result: yield* encodeRpc(Effect.fail(validatedArgs.failure)),
       link: null,
     };
   }
 
-  const resolver = yield* SystemWorkerResolver;
-  using systemWorker = resolver.get({
-    systemWorkerName: props.authResults.systemWorkerName,
-  });
   const collector = makeTelemetryCollector();
-  const settled = yield* makeAsync(() =>
-    systemWorker.createServiceFrontendWebSocketTicket({
-      frontendName: props.authResults.frontendName,
-      generationId: props.authResults.generationId,
-      serviceFrontendLock: props.authResults.serviceFrontendLock,
-      serviceName: props.authResults.serviceName,
-      userId: props.authResults.userId,
-    }),
-  ).pipe(
-    Effect.flatMap(decodeRpc),
+  const settled = yield* createSystemWorkerTicket({
+    frontendName: authResults.frontendName,
+    serviceFrontendLock: authResults.serviceFrontendLock,
+    serviceName: authResults.serviceName,
+    userId: authResults.userId,
+    configuredSystemId: authResults.systemId,
+  }).pipe(
     Effect.withSpan('ServiceFrontendApi.createWebSocketTicket', {
       root: true,
     }),
     Effect.provide(makeTelemetryLayer(collector)),
-    Effect.either,
+    Effect.result,
   );
-  const result = yield* Either.match(settled, {
-    onLeft: error => encodeRpc(Effect.fail(error)),
-    onRight: value => encodeRpc(Effect.succeed(value)),
+  const result = yield* Result.match(settled, {
+    onFailure: error => encodeRpc(Effect.fail(error)),
+    onSuccess: value => encodeRpc(Effect.succeed(value)),
   });
 
   const batch = collector.flush();
-  const persisted = yield* makeAsync(() =>
-    systemWorker.appendTelemetryBatch({
-      batch,
-      generationId: props.authResults.generationId,
-    }),
-  ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+  const persisted = yield* appendTelemetryBatch({ batch }).pipe(Effect.result);
   const rootSpan = batch.spans.at(-1);
   const link: ISpanLinkRecord | null =
-    Either.isRight(persisted) &&
-    props.request.traceContext !== null &&
+    Result.isSuccess(persisted) &&
+    request.traceContext !== null &&
     rootSpan !== undefined &&
     rootSpan.parentSpanId === null &&
     rootSpan.name === 'ServiceFrontendApi.createWebSocketTicket'
@@ -91,8 +78,8 @@ export const createWebSocketTicket = Effect.fn(
           linkId: makeSpanLinkId(),
           traceId: rootSpan.traceId,
           spanId: rootSpan.spanId,
-          priorTraceId: props.request.traceContext.traceId,
-          priorSpanId: props.request.traceContext.parentSpanId,
+          priorTraceId: request.traceContext.traceId,
+          priorSpanId: request.traceContext.parentSpanId,
           kind: 'causedBy',
         }
       : null;

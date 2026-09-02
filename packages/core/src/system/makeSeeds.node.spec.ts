@@ -1,11 +1,10 @@
 import { it } from '@effect/vitest';
+import { primitives } from '@zerospin/schema';
 import { Effect, Layer, Schema } from 'effect';
-import { TestContext } from 'effect/TestContext';
 import { describe, expect } from 'vitest';
 
 import { makeSignature } from '../authentication/makeSignature.ts';
 import { makeContract } from '../contracts/makeContract.ts';
-import { primitives } from '../models/primitives.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
@@ -64,7 +63,6 @@ const TestLayer = Layer.mergeAll(
   makePrefixedIncrementalIdFactory('makeSeeds'),
   ErrorLayer,
   TraceLoggerLayer,
-  TestContext,
 );
 
 describe('makeSeeds', () => {
@@ -90,12 +88,10 @@ describe('makeSeeds', () => {
 
         expect(seeds).toHaveLength(2);
         expect(seeds[0]).toMatchObject({
-          commandType: 'aggregate',
           aggregateId: userAggregateId,
           aggregateName: 'user',
         });
         expect(seeds[1]).toMatchObject({
-          commandType: 'service',
           serviceName: 'catalog',
         });
       }),

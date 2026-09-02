@@ -1,6 +1,11 @@
 import { authenticationSignature, main } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
+import { makeModel } from '@zerospin/core/models/makeModel';
+import { makeReplica } from '@zerospin/core/models/makeReplica';
+import type { InferResource } from '@zerospin/core/models/types';
+import { primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
+import { assert, type Equals } from 'tsafe';
 
 import { makeZerospinApp } from './makeZerospinApp';
 import type { ISessionProviderRuntime } from './types';
@@ -29,7 +34,7 @@ const ZerospinApp = makeZerospinApp({
 
 const exactProvider = (
   <ZerospinApp.Provider
-    // @ts-expect-error — production Provider identity is returned by the SharedWorker.
+    // @ts-expect-error — production Provider identity is returned by frontend bootstrap.
     userId="user_1"
     aggregateIds={{ user: 'acct_1' }}
     generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
@@ -136,3 +141,120 @@ const emptyFrontends = makeZerospinApp({
   runtime: sessionRuntime,
 });
 void emptyFrontends;
+
+const VersionedProduct = makeModel(
+  {
+    abbreviation: 'vprd',
+    modelName: 'versionedProduct',
+    attributes: {
+      description: primitives.text(),
+      name: primitives.text(),
+    },
+    indexes: [],
+    version: '2.0.0',
+  },
+  [
+    {
+      abbreviation: 'vprd',
+      modelName: 'versionedProduct',
+      attributes: { name: primitives.text() },
+      indexes: [],
+      version: '1.0.0',
+      adaptResource: ({ resource }) =>
+        Effect.succeed({
+          id: resource.id,
+          modelName: resource.modelName,
+          createdAt: resource.createdAt,
+          updatedAt: resource.updatedAt,
+          version: '1.0.0',
+          name: resource.name,
+        }),
+    },
+  ],
+);
+const VersionedProductReplica = makeReplica({
+  sourceModel: VersionedProduct,
+  serviceName: 'catalog',
+});
+const historicalServiceProducts = makeFrontendController({
+  systemName: 'historical-app',
+  serviceName: 'catalog',
+  frontendName: 'service-products',
+  models: { versionedProduct: VersionedProduct },
+});
+const historicalAggregateProducts = makeFrontendController({
+  systemName: 'historical-app',
+  aggregateName: 'account',
+  frontendName: 'aggregate-products',
+  contracts: {},
+  models: { versionedProduct: VersionedProductReplica },
+});
+const historicalApp = makeZerospinApp({
+  systemName: 'historical-app',
+  authentication: { signature: authenticationSignature },
+  frontends: {
+    'aggregate-products': {
+      controller: historicalAggregateProducts,
+      models: { versionedProduct: '1.0.0' },
+    },
+    'service-products': {
+      controller: historicalServiceProducts,
+      models: { versionedProduct: '1.0.0' },
+    },
+  },
+  runtime: sessionRuntime,
+});
+const selectedServiceProduct =
+  historicalApp.frontends['service-products'].frontend.models.versionedProduct;
+const selectedAggregateProduct =
+  historicalApp.frontends['aggregate-products'].frontend.models
+    .versionedProduct;
+
+assert<Equals<typeof selectedServiceProduct.version, '1.0.0'>>();
+assert<
+  Equals<
+    'deletedAt' extends keyof typeof selectedServiceProduct.propertiesShape
+      ? true
+      : false,
+    false
+  >
+>();
+assert<
+  Equals<
+    'sourceModel' extends keyof typeof selectedServiceProduct ? true : false,
+    false
+  >
+>();
+assert<
+  Equals<
+    'description' extends keyof typeof selectedServiceProduct.propertiesShape
+      ? true
+      : false,
+    false
+  >
+>();
+assert<Equals<typeof selectedAggregateProduct.version, '1.0.0'>>();
+assert<Equals<typeof selectedAggregateProduct.serviceName, 'catalog'>>();
+assert<Equals<typeof selectedAggregateProduct.sourceModel.version, '1.0.0'>>();
+assert<
+  Equals<
+    'deletedAt' extends keyof typeof selectedAggregateProduct.propertiesShape
+      ? true
+      : false,
+    true
+  >
+>();
+assert<
+  Equals<
+    InferResource<typeof selectedAggregateProduct>['deletedAt'],
+    Date | null
+  >
+>();
+assert<
+  Equals<
+    'description' extends keyof typeof selectedAggregateProduct.propertiesShape
+      ? true
+      : false,
+    false
+  >
+>();

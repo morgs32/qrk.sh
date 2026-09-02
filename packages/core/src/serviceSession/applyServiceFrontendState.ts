@@ -1,15 +1,19 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import { makeEffectSchema } from '@zerospin/schema';
 import { sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 import { makeTx } from '../drizzle/makeTx.ts';
-import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
 import type { IServiceFrontendController } from '../frontendController/types.ts';
-import { makeEffectSchema } from '../models/primitiveMaps.ts';
+import type { ISessionId } from '../session/types.ts';
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 
-import { ServiceFrontendStateSchema } from './ServiceFrontendBlockSchema.ts';
-import type { IServiceFrontendState } from './types.ts';
+import { ServiceFrontendStateSchema } from './ServiceFrontendCommandSchema.ts';
+import { serviceSessionMetadataDrizzleSchema } from './serviceSessionRepoTables.ts';
+import type {
+  IServiceFrontendState,
+  IServiceSessionDrizzleDb,
+} from './types.ts';
 
 /*
  * 1. Reject a state for any other system, user, service, or frontend.
@@ -19,15 +23,17 @@ import type { IServiceFrontendState } from './types.ts';
 export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
   function* <FRONTEND extends IServiceFrontendController>(props: {
     frontend: FRONTEND;
+    sessionId: ISessionId;
     userId: IServiceFrontendState['userId'];
     systemId: IServiceFrontendState['systemId'];
-    db: IDb<IResourceDbConfig<FRONTEND['models'], Record<never, never>>>;
+    db: IServiceSessionDrizzleDb<FRONTEND['models'], Record<never, never>>;
     models: FRONTEND['models'];
     frontendState: IServiceFrontendState;
   }): Effect.fn.Return<void, IAnyError> {
-    const { userId, db, frontend, frontendState, models, systemId } = props;
+    const { db, frontend, frontendState, models, sessionId, systemId, userId } =
+      props;
 
-    yield* Schema.encode(ServiceFrontendStateSchema)(frontendState, {
+    yield* Schema.encodeEffect(ServiceFrontendStateSchema)(frontendState, {
       onExcessProperty: 'error',
     }).pipe(
       mapParseError({
@@ -65,10 +71,9 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
         key: resource.modelName,
         recordKind: 'service frontend models',
       });
-      yield* Schema.decodeUnknown(makeEffectSchema(model.propertiesShape))(
-        resource,
-        { onExcessProperty: 'error' },
-      ).pipe(
+      yield* Schema.decodeUnknownEffect(
+        makeEffectSchema(model.propertiesShape),
+      )(resource, { onExcessProperty: 'error' }).pipe(
         mapParseError({
           code: 'service-frontend-state-resource-invalid',
           prefix: `Failed to decode service frontend state resource ${resource.modelName}.${resource.id}`,
@@ -96,6 +101,23 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
             });
             tx.insert(model.drizzleSchema).values(resource).run();
           }
+
+          tx.insert(serviceSessionMetadataDrizzleSchema)
+            .values({
+              sessionId,
+              serviceIndex: frontendState.serviceIndex,
+              serviceFrontendIndex: frontendState.serviceFrontendIndex,
+              systemVersion: frontendState.systemVersion,
+            })
+            .onConflictDoUpdate({
+              target: serviceSessionMetadataDrizzleSchema.sessionId,
+              set: {
+                serviceIndex: frontendState.serviceIndex,
+                serviceFrontendIndex: frontendState.serviceFrontendIndex,
+                systemVersion: frontendState.systemVersion,
+              },
+            })
+            .run();
         },
       ),
     });

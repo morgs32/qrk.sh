@@ -1,155 +1,98 @@
 ---
-title: SystemApi
-type: module
-updated: 2026-08-13
+title: System API
+updated: 2026-09-01
 ---
 
-# SystemApi
+# System API
 
-`SystemApi` is the secret-key administrative capability acquired from the
-stable Worker-hosted `GatewayApi`. Its private state is exactly
-`{ generationId, systemId, systemWorkerName }`: the acquisition-time active
-generation routes reads, while `systemId` routes current writes through the
-singleton `SystemRepo`
-([`getSystemApi.ts:12-57`](../../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L12-L57),
-[`SystemApi.ts:61-85`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L61-L85)).
+SystemApi is the secret-key capability bound to the configured `systemId`.
+Its command surface accepts one complete encoded command and returns one
+terminal chained occurrence.
+
+- [`SystemApi.ts:60-73`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L60-L73) — stores only the authenticated `systemId` and the static System Worker runtime.
+- [`SystemApi.ts:119-134`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L119-L134) — declares one aggregate command in the RPC argument tuple and its terminal aggregate occurrence result.
+- [`SystemApi.ts:153-163`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L153-L163) — declares the matching singular service command boundary.
+
+## Trigger
+
+1. A secret-key caller acquires SystemApi from GatewayApi.
+   - [`getSystemApi.ts:17-32`](../../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L17-L32) — validates the secret key and constructs SystemApi with the configured `systemId`.
+2. The caller invokes `finalizeAggregateCommand(command)` or
+   `finalizeServiceCommand(command)` with one full encoded command; the
+   traceable RPC adapter injects caller trace context and the argument envelope.
+   - [`SystemApi.ts:119-134`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L119-L134) — exposes the singular aggregate command method.
+   - [`SystemApi.ts:153-163`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L153-L163) — exposes the singular service command method.
+   - [`executeRpc.ts:20-50`](../../packages/core/src/utils/executeRpc.ts#L20-L50) — exposes each root capability getter as a traceable child API and keeps the batch session alive while the callback Effect runs.
+   - [`makeTraceableApiTarget.ts:37-68`](../../packages/logger/src/makeTraceableApiTarget.ts#L37-L68) — reads the current caller span and constructs the wire request from the method arguments.
 
 ```mermaid
 sequenceDiagram
-  participant Caller as admin or tooling caller
-  participant Gateway as GatewayApi
-  participant SystemRepo as SystemRepo(systemId)
-  participant Resolver as ApiKeyIdentityResolver
-  participant Api as SystemApi
-  participant Worker as SystemWorker
+  actor Caller
+  participant SystemApi
+  participant Chain as AggregateCommandChain or ServiceCommandChain
+  participant Materializer as MaterializedAggregateRepo or MaterializedServiceRepo
+
   autonumber 1
-  Caller->>Gateway: getSystemApi(zerospinSecretKey)
+  Caller->>SystemApi: systemApi.finalize*Command(...)
   autonumber 2
-  Gateway->>SystemRepo: getActiveGenerationId()
+  SystemApi->>Chain: get*CommandChain(...)
   autonumber 3
-  Gateway->>Resolver: resolve(secret key)
+  SystemApi->>Chain: chain.finalize*Command(...)
   autonumber 4
-  Resolver-->>Gateway: secret-key system and Worker claims
+  Chain->>Chain: durable command admission
   autonumber 5
-  Gateway-->>Caller: SystemApi
+  Chain->>Materializer: materializedRepo.execute(...)
   autonumber 6
-  Caller->>Api: invoke one public leaf
-  alt current mutation
-    autonumber 7
-    Api->>SystemRepo: atomically journal and drain aggregate or service finalization
-    autonumber 8
-    SystemRepo-->>Api: persisted complete terminal receipt
-  else generation-specific read or query
-    autonumber 9
-    Api->>Worker: read or query with acquired generation
-    autonumber 10
-    Worker-->>Api: generation-specific result
-  end
-  autonumber 11
-  Api-->>Caller: linked encoded envelope
+  Materializer-->>Chain: terminal chained command
+  autonumber 7
+  Chain-->>SystemApi: terminal chained command
+  autonumber 8
+  SystemApi-->>Caller: encoded terminal result
 ```
 
 ## Annotated workflow steps
 
-1. The caller sends exactly `{ zerospinSecretKey }` to
-   `GatewayApi.getSystemApi`
-   ([`GatewayApi.ts:86-97`](../../packages/system-worker/src/GatewayApi/GatewayApi.ts#L86-L97)).
-2. The gateway acquires the current active `generationId`; this is a private
-   read route, not part of the key claims
-   ([`getSystemApi.ts:29-39`](../../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L29-L39)).
-3. The deployment identity resolver receives the supplied key
-   ([`getSystemApi.ts:40-42`](../../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L40-L42)).
-4. Acquisition requires `keyType: 'secret'` and retains the resolved
-   `systemId` and `systemWorkerName`
-   ([`getSystemApi.ts:43-54`](../../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L43-L54)).
-5. Failure returns `SystemApiFailure`, whose same-shaped public methods replay
-   the captured acquisition error
-   ([`getSystemApi.ts:55-57`](../../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L55-L57),
-   [`SystemApiFailure.ts:36-52`](../../packages/system-worker/src/SystemApi/SystemApiFailure/SystemApiFailure.ts#L36-L52)).
-6. Every public method delegates immediately to its same-named Effect and
-   returns one linked encoded envelope
-   ([`SystemApi.ts:87-202`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L87-L202)).
-7. `finalizeAggregateCommands` and `finalizeServiceCommands` set
-   `generationReadRoute: false`, resolve `SystemRepo(systemId)`, and send no
-   acquired generation to the mutation owner
-   ([`finalizeAggregateCommands.ts:19-49`](../../packages/system-worker/src/SystemApi/finalizeAggregateCommands/finalizeAggregateCommands.ts#L19-L49),
-   [`finalizeServiceCommands.ts:18-46`](../../packages/system-worker/src/SystemApi/finalizeServiceCommands/finalizeServiceCommands.ts#L18-L46)).
-8. `SystemRepo` atomically selects the writable generation, advances
-   `writeIndex`, and inserts the complete finalization request before child
-   delivery. Its exact-target FIFO calls
-   `AggregateRepo.finalizeAggregateCommands` or
-   `ServiceRepo.finalizeServiceCommands`, stores the terminal `Either`, and
-   returns that persisted complete receipt
-   ([`finalizeAggregateCommands.ts:87-221`](../../packages/system-worker/src/SystemRepo/finalizeAggregateCommands/finalizeAggregateCommands.ts#L87-L221),
-   [`drainSystemWrites.ts:418-548`](../../packages/system-worker/src/SystemRepo/drainSystemWrites/drainSystemWrites.ts#L418-L548),
-   [`finalizeServiceCommands.ts:212-265`](../../packages/system-worker/src/SystemRepo/finalizeServiceCommands/finalizeServiceCommands.ts#L212-L265)).
-9. Read/query leaves resolve `SystemWorker(systemWorkerName)` and carry the
-   acquisition-time `generationId`
-   ([`getAggregateFrontendState.ts:20-78`](../../packages/system-worker/src/SystemApi/getAggregateFrontendState/getAggregateFrontendState.ts#L20-L78),
-   [`executeSelectQuery.ts:19-51`](../../packages/system-worker/src/SystemApi/executeSelectQuery/executeSelectQuery.ts#L19-L51)).
-10. `SystemWorker` resolves generation-keyed Repos and returns encoded domain
-    success or failure
-    ([`SystemWorker.ts:119-145`](../../packages/system-worker/src/SystemWorker.ts#L119-L145),
-    [`SystemWorker.ts:178-216`](../../packages/system-worker/src/SystemWorker.ts#L178-L216)).
-11. `makeApiHandler` settles every operation. Generation-read leaves append
-    telemetry to the acquisition-time `SystemWorker` and may return a causal
-    link; current-write leaves return the same envelope with `link: null`, while
-    `SystemRepo` retains the accepted generation, `writeIndex`, request, and
-    terminal business result in `systemWrites`
-    ([`makeApiHandler.ts:42-120`](../../packages/system-worker/src/SystemApi/makeApiHandler/makeApiHandler.ts#L42-L120),
-    [`SystemRepo.ts:314-349`](../../packages/system-worker/src/SystemRepo/SystemRepo.ts#L314-L349)).
+1. The caller invokes one of the two singular SystemApi command methods.
+   - [`SystemApi.ts:119-134`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L119-L134) — the aggregate RpcTarget method immediately runs its same-named Effect.
+   - [`SystemApi.ts:153-163`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L153-L163) — the service RpcTarget method immediately runs its same-named Effect.
+2. The Effect derives the exact source-chain key from authenticated `systemId`
+   and fields carried by the complete command.
+   - [`finalizeAggregateCommand.ts:24-33`](../../packages/system-worker/src/SystemApi/finalizeAggregateCommand/finalizeAggregateCommand.ts#L24-L33) — derives `{ systemId, aggregateId, aggregateName }` and resolves AggregateCommandChain.
+   - [`finalizeServiceCommand.ts:24-32`](../../packages/system-worker/src/SystemApi/finalizeServiceCommand/finalizeServiceCommand.ts#L24-L32) — derives `{ systemId, serviceName }` and resolves ServiceCommandChain.
+3. SystemApi forwards the unchanged command through the chain's singular
+   method and decodes the RPC result.
+   - [`finalizeAggregateCommand.ts:34-38`](../../packages/system-worker/src/SystemApi/finalizeAggregateCommand/finalizeAggregateCommand.ts#L34-L38) — calls `chain.finalizeAggregateCommand({ command })`.
+   - [`finalizeServiceCommand.ts:33-37`](../../packages/system-worker/src/SystemApi/finalizeServiceCommand/finalizeServiceCommand.ts#L33-L37) — calls `chain.finalizeServiceCommand({ command })`.
+4. Under its admission semaphore, the chain returns an exact retained command,
+   rejects changed canonical bytes, or durably appends the next pending
+   occurrence with its materialized Repo name.
+   - [`finalizeAggregateCommand.ts:64-177`](../../packages/system-worker/src/AggregateCommandChain/finalizeAggregateCommand/finalizeAggregateCommand.ts#L64-L177) — performs canonical-byte idempotency and aggregate-indexed durable admission.
+   - [`finalizeServiceCommand.ts:61-147`](../../packages/system-worker/src/ServiceCommandChain/finalizeServiceCommand/finalizeServiceCommand.ts#L61-L147) — performs the matching service-indexed admission.
+5. Head-at-a-time chain work invokes the materialized Repo retained on the
+   occurrence.
+   - [`runScheduledWork.ts:51-117`](../../packages/system-worker/src/AggregateCommandChain/runScheduledWork/runScheduledWork.ts#L51-L117) — selects the lowest pending aggregate occurrence and executes its retained materialized Repo.
+   - [`runScheduledWork.ts:50-97`](../../packages/system-worker/src/ServiceCommandChain/runScheduledWork/runScheduledWork.ts#L50-L97) — performs the equivalent service dispatch.
+6. The chain validates the materializer's terminal occurrence, halts on
+   execution-in-doubt, durably retains the result, and queues subscriber tips.
+   - [`runScheduledWork.ts:118-228`](../../packages/system-worker/src/AggregateCommandChain/runScheduledWork/runScheduledWork.ts#L118-L228) — validates canonical identity and commits the aggregate result plus subscriber tips.
+   - [`runScheduledWork.ts:98-205`](../../packages/system-worker/src/ServiceCommandChain/runScheduledWork/runScheduledWork.ts#L98-L205) — performs the matching service validation and terminal commit.
+7. The chain returns the retained terminal occurrence to SystemApi.
+   - [`finalizeAggregateCommand.ts:184-214`](../../packages/system-worker/src/AggregateCommandChain/finalizeAggregateCommand/finalizeAggregateCommand.ts#L184-L214) — runs scheduled work and decodes only a retained terminal result.
+   - [`finalizeServiceCommand.ts:155-183`](../../packages/system-worker/src/ServiceCommandChain/finalizeServiceCommand/finalizeServiceCommand.ts#L155-L183) — returns the retained service terminal result.
+8. The API handler encodes that settled result in the linked RPC envelope.
+   - [`finalizeAggregateCommand.ts:20-44`](../../packages/system-worker/src/SystemApi/finalizeAggregateCommand/finalizeAggregateCommand.ts#L20-L44) — owns request decoding, tracing, delegation, and the API response.
+   - [`finalizeServiceCommand.ts:20-43`](../../packages/system-worker/src/SystemApi/finalizeServiceCommand/finalizeServiceCommand.ts#L20-L43) — owns the matching service response.
 
-## Operational leaves
+## Inspection
 
-1. `hello`, `getAggregateFrontendState`, `executeServiceQuery`,
-   `executeSelectQuery`, and `makeSystemSpec` are generation-specific
-   read/query operations
-   ([`SystemApi.ts:87-130`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L87-L130),
-   [`SystemApi.ts:164-179`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L164-L179),
-   [`SystemApi.ts:394-401`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L394-L401)).
-2. `finalizeAggregateCommands` accepts `{ aggregateId, aggregateName,
-commands }` and returns executed/failed complete commands, applied mutations,
-   `lastAggregateCursor`, and `aggregateIndex`
-   ([`SystemApi.ts:132-161`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L132-L161),
-   [`blockSchemas.ts:25-33`](../../packages/system-worker/src/blockSchemas.ts#L25-L33)).
-3. `finalizeServiceCommands` accepts `{ serviceName, commands }` and returns
-   complete executed and failed command arrays
-   ([`SystemApi.ts:180-201`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L180-L201),
-   [`blockSchemas.ts:35-38`](../../packages/system-worker/src/blockSchemas.ts#L35-L38)).
-4. `getAggregateFrontendState` is aggregate-qualified because `SystemApi` owns
-   many Repo families. Receiver-local aggregate/service child APIs instead use
-   the leaf name `getState()`
-   ([`SystemApi.ts:95-114`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L95-L114),
-   [`AggregateFrontendApi.ts:125-131`](../../packages/system-worker/src/AggregateFrontendApi/AggregateFrontendApi.ts#L125-L131),
-   [`ServiceFrontendApi.ts:77-83`](../../packages/system-worker/src/ServiceFrontendApi/ServiceFrontendApi.ts#L77-L83)).
+SystemApi inspection pairs cover SystemRepo, all five command chains, all four
+materialized Repos, and SystemLogRepo: each pair lists registered instances or
+reads one registered table.
 
-## Repository explorer
-
-`SystemApi` exposes paired registration/table-row methods for System,
-Aggregate, AggregateFrontend, Service, AggregateBlock,
-AggregateFrontendBlock, ServiceFrontendBlock, ServiceBlock, and SystemLog Repo
-families. Aggregate-only names remain explicitly aggregate-qualified
-([`SystemApi.ts:204-291`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L204-L291),
-[`SystemApi.ts:293-392`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L293-L392)).
-
-Table-row methods validate the requested Repo name against the matching
-generation-qualified registration before reading its declared table; they do
-not turn a caller-supplied Repo name into ambient authority
-([`getAggregateFrontendRepoTableRows.ts:18-48`](../../packages/system-worker/src/SystemApi/getAggregateFrontendRepoTableRows/getAggregateFrontendRepoTableRows.ts#L18-L48),
-[`getAggregateFrontendBlockRepoTableRows.ts:18-48`](../../packages/system-worker/src/SystemApi/getAggregateFrontendBlockRepoTableRows/getAggregateFrontendBlockRepoTableRows.ts#L18-L48)).
-
-## Trigger
-
-1. Admin and tooling clients open the Worker root and call
-   `GatewayApi.getSystemApi` with a secret key
-   ([`GatewayApi.ts:86-97`](../../packages/system-worker/src/GatewayApi/GatewayApi.ts#L86-L97)).
-2. The resulting capability is pinned to one acquired generation for reads but
-   uses SystemRepo current-write selection for direct finalization
-   ([`SystemApi.ts:65-85`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L65-L85),
-   [`finalizeAggregateCommands.ts:37-49`](../../packages/system-worker/src/SystemApi/finalizeAggregateCommands/finalizeAggregateCommands.ts#L37-L49)).
+- [`SystemApi.ts:166-376`](../../packages/system-worker/src/SystemApi/SystemApi.ts#L166-L376) — declares the registration and table-row inspection pairs for the complete durable topology.
 
 ## Callers
 
-- CLI and administrative tooling
-- [`System Lifecycle`](./SystemLifecycle.md)
-- [`Block and Replication Flow`](./Blockchain.md)
+- [Authored System and static deployment](./AuthoredSystem.md)
+- [Command chains and materialization](./CommandChains.md)
+- [`finalizeAggregateCommand` lifecycle](./server/finalizeAggregateCommand.md)

@@ -1,0 +1,43 @@
+{
+  "name": "markdown-code-links",
+  "displayName": "Zerospin Markdown Code Links",
+  "description": "Cmd-click wiki citations like [`file.ts:80-104`](../path.ts#L80-L104) and open the real file at that range.",
+  "version": "0.0.1",
+  "publisher": "zerospin",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onLanguage:markdown"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "zerospin.openMarkdownCodeLink",
+        "title": "Zerospin: Open Markdown Code Link at Cursor"
+      },
+      {
+        "command": "zerospin.previewMarkdownCodeLinks",
+        "title": "Zerospin: Preview Markdown (working code links)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "zerospin.openMarkdownCodeLink",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "editorTextFocus && editorLangId == markdown"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "zerospin.previewMarkdownCodeLinks",
+          "when": "resourceLangId == markdown",
+          "group": "navigation"
+        }
+      ]
+    }
+  }
+}

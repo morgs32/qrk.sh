@@ -1,12 +1,8 @@
+import { primitives, type InferDecodedRow } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 
 import { makeModel } from './makeModel.ts';
-import { primitives } from './primitives.ts';
-import type {
-  InferCommandPayload,
-  InferDecodedRow,
-  InferPayloadInput,
-} from './types.ts';
+import type { InferCommandPayload, InferPayloadInput } from './types.ts';
 
 const Widget = makeModel(
   {

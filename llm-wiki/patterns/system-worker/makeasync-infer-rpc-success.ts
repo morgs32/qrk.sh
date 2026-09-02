@@ -1,25 +1,22 @@
 import { Effect } from 'effect';
 
 /**
- * Let `makeAsync` infer RPC success shapes from the promise-returning repo method.
+ * Let `makeAsync` infer the RPC success shape from the promise-returning chain method.
  *
- * @bad Do not write `makeAsync<Schema.EitherEncoded<IReplayBatch, IAnyErrorJson>>(() => repo.getReplayBlocks(props))`.
- * @bad Do not keep `Schema`, `IAnyErrorJson`, or replay-shape imports only to annotate `makeAsync`.
+ * @bad Force a wire-envelope generic onto `makeAsync`.
+ * @bad Keep RPC result imports only to annotate `makeAsync`.
  */
-export const readNextReplayBatch = Effect.fn('Replica.readNextReplayBatch')(
+export const readNextCommands = Effect.fn('MaterializedRepo.readNextCommands')(
   function* (props: {
-    aggregateBlockRepo: {
-      getReplayBlocks(props: {
-        afterAggregateCursor: unknown;
+    chain: {
+      getCommands(props: {
         afterAggregateIndex: number | null;
       }): PromiseLike<unknown>;
     };
-    afterAggregateCursor: unknown;
     afterAggregateIndex: number | null;
   }) {
     return yield* makeAsync(() =>
-      props.aggregateBlockRepo.getReplayBlocks({
-        afterAggregateCursor: props.afterAggregateCursor,
+      props.chain.getCommands({
         afterAggregateIndex: props.afterAggregateIndex,
       }),
     ).pipe(Effect.flatMap(decodeRpc));

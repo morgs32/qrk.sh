@@ -8,4 +8,4 @@ interface IAsync {
   }) => Effect.Effect<SUCCESS, ERROR>;
 }
 
-export class Async extends Context.Tag('Async')<Async, IAsync>() {}
+export class Async extends Context.Service<Async, IAsync>()('Async') {}

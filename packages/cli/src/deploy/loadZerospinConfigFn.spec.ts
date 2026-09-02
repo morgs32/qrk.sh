@@ -1,11 +1,9 @@
-import { FileSystem, Path } from '@effect/platform';
-import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
-import * as NodePath from '@effect/platform-node/NodePath';
+import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
+import * as NodePath from '@effect/platform-node-shared/NodePath';
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { ZerospinConfigSchema } from '@zerospin/core/system/ZerospinConfigSchema';
-import { Effect, Layer, Schema } from 'effect';
-import { describe, expect, vi } from 'vitest';
+import { Effect, FileSystem, Layer, Path } from 'effect';
+import { describe, expect } from 'vitest';
 
 import { loadZerospinConfigFn } from './loadZerospinConfigFn.js';
 
@@ -17,303 +15,161 @@ const platformLayer = Layer.mergeAll(
 
 describe('loadZerospinConfigFn', () => {
   it.layer(platformLayer)(it => {
-    it.effect(
-      'loads config with a seeds path without importing the seeds module',
-      () =>
-        Effect.scoped(
-          Effect.gen(function* () {
-            const pathApi = yield* Path.Path;
-            const fileSystem = yield* FileSystem.FileSystem;
-            const cwd = yield* fileSystem.makeTempDirectoryScoped({
-              prefix: 'zerospin-config-test-',
-            });
-            yield* fileSystem.writeFileString(
-              pathApi.join(cwd, 'zerospin.config.ts'),
-              `export default {
-	  entry: 'src/system.ts',
-	  supportedPredecessors: [],
-	  environmentId: 'dev',
-	  env: null,
-	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
-	  seeds: {
-	    dev: 'src/zerospin/seeds.ts',
-	    production: 'src/zerospin/seeds.production.ts',
-	  },
-	};
-`,
-            );
-
-            const config = yield* loadZerospinConfigFn(cwd);
-
-            expect(config.entry).toBe('src/system.ts');
-            expect(config.seeds).toEqual({
-              dev: 'src/zerospin/seeds.ts',
-              production: 'src/zerospin/seeds.production.ts',
-            });
-          }),
-        ),
-    );
-
-    it.effect(
-      'loads a TypeScript config in a package without a type without emitting the typeless package warning',
-      () =>
-        Effect.scoped(
-          Effect.gen(function* () {
-            const pathApi = yield* Path.Path;
-            const fileSystem = yield* FileSystem.FileSystem;
-            const cwd = yield* fileSystem.makeTempDirectoryScoped({
-              prefix: 'zerospin-config-typeless-package-test-',
-            });
-            yield* fileSystem.writeFileString(
-              pathApi.join(cwd, 'package.json'),
-              `{
-  "name": "zerospin-config-typeless-package-test"
-}
-`,
-            );
-            yield* fileSystem.writeFileString(
-              pathApi.join(cwd, 'zerospin.config.ts'),
-              `export default {
-  entry: 'src/system.ts',
-  supportedPredecessors: [],
-  environmentId: 'dev',
-  env: null,
-	retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
-	};
-`,
-            );
-
-            const warningListener = vi.fn();
-            process.on('warning', warningListener);
-            yield* Effect.addFinalizer(() =>
-              Effect.sync(() => process.off('warning', warningListener)),
-            );
-
-            const config = yield* loadZerospinConfigFn(cwd);
-            yield* Effect.promise(
-              () => new Promise<void>(resolve => setTimeout(resolve, 0)),
-            );
-
-            expect(config.entry).toBe('src/system.ts');
-            expect(warningListener).not.toHaveBeenCalledWith(
-              expect.objectContaining({
-                code: 'MODULE_TYPELESS_PACKAGE_JSON',
-              }),
-            );
-          }),
-        ),
-    );
-
-    it.effect('loads a .js config', () =>
+    it.effect('loads JSONC and normalizes omitted production seeds', () =>
       Effect.scoped(
         Effect.gen(function* () {
           const pathApi = yield* Path.Path;
           const fileSystem = yield* FileSystem.FileSystem;
           const cwd = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: 'zerospin-config-js-test-',
+            prefix: 'zerospin-jsonc-config-test-',
           });
           yield* fileSystem.writeFileString(
-            pathApi.join(cwd, 'zerospin.config.js'),
-            `export default {
-	  entry: 'src/system.js',
-	  supportedPredecessors: [],
-	  environmentId: 'dev',
-	  env: null,
-	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
-	};
-`,
+            pathApi.join(cwd, 'zerospin.jsonc'),
+            `{
+  // Editor metadata is accepted but not returned to CLI consumers.
+  "$schema": "./node_modules/@zerospin/sdk/zerospin.schema.json",
+  "entry": "src/system.ts",
+  "seeds": {
+    "dev": "src/seeds.ts",
+  },
+}\n`,
           );
 
           const config = yield* loadZerospinConfigFn(cwd);
 
-          expect(config.entry).toBe('src/system.js');
+          expect(config).toEqual({
+            entry: 'src/system.ts',
+            seeds: { dev: 'src/seeds.ts', production: null },
+          });
+          expect(config).not.toHaveProperty('$schema');
         }),
       ),
     );
 
-    it.effect('loads a .ts config', () =>
+    for (const production of ['src/production-seeds.ts', null]) {
+      it.effect(
+        `accepts an explicit ${String(production)} production seed`,
+        () =>
+          Effect.scoped(
+            Effect.gen(function* () {
+              const pathApi = yield* Path.Path;
+              const fileSystem = yield* FileSystem.FileSystem;
+              const cwd = yield* fileSystem.makeTempDirectoryScoped({
+                prefix: 'zerospin-jsonc-production-seed-test-',
+              });
+              yield* fileSystem.writeFileString(
+                pathApi.join(cwd, 'zerospin.jsonc'),
+                `${JSON.stringify({
+                  entry: 'src/system.ts',
+                  seeds: { dev: null, production },
+                })}\n`,
+              );
+
+              const config = yield* loadZerospinConfigFn(cwd);
+
+              expect(config.seeds.production).toBe(production);
+            }),
+          ),
+      );
+    }
+
+    for (const [name, contents] of [
+      ['malformed JSONC', '{'],
+      [
+        'an unknown top-level property',
+        JSON.stringify({
+          entry: 'src/system.ts',
+          seeds: { dev: null },
+          unknown: true,
+        }),
+      ],
+      [
+        'an unknown seeds property',
+        JSON.stringify({
+          entry: 'src/system.ts',
+          seeds: { dev: null, unknown: true },
+        }),
+      ],
+    ] as const) {
+      it.effect(`rejects ${name}`, () =>
+        Effect.scoped(
+          Effect.gen(function* () {
+            const pathApi = yield* Path.Path;
+            const fileSystem = yield* FileSystem.FileSystem;
+            const cwd = yield* fileSystem.makeTempDirectoryScoped({
+              prefix: 'zerospin-jsonc-invalid-test-',
+            });
+            yield* fileSystem.writeFileString(
+              pathApi.join(cwd, 'zerospin.jsonc'),
+              contents,
+            );
+
+            const failure = yield* loadZerospinConfigFn(cwd).pipe(Effect.flip);
+
+            expect(failure.code).toBe('deploy-invalid-config');
+          }),
+        ),
+      );
+    }
+
+    it.effect('rejects a missing root config', () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const fileSystem = yield* FileSystem.FileSystem;
+          const cwd = yield* fileSystem.makeTempDirectoryScoped({
+            prefix: 'zerospin-jsonc-missing-test-',
+          });
+
+          const failure = yield* loadZerospinConfigFn(cwd).pipe(Effect.flip);
+
+          expect(failure.code).toBe('deploy-invalid-config');
+        }),
+      ),
+    );
+
+    it.effect('rejects a legacy executable config', () =>
       Effect.scoped(
         Effect.gen(function* () {
           const pathApi = yield* Path.Path;
           const fileSystem = yield* FileSystem.FileSystem;
           const cwd = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: 'zerospin-config-ts-test-',
+            prefix: 'zerospin-jsonc-legacy-test-',
           });
           yield* fileSystem.writeFileString(
             pathApi.join(cwd, 'zerospin.config.ts'),
-            `export default {
-	  entry: 'src/system.ts',
-	  supportedPredecessors: [],
-	  environmentId: 'dev',
-	  env: null,
-	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
-	};
-`,
+            'export default {};\n',
           );
 
-          const config = yield* loadZerospinConfigFn(cwd);
+          const failure = yield* loadZerospinConfigFn(cwd).pipe(Effect.flip);
 
-          expect(config.entry).toBe('src/system.ts');
+          expect(failure.code).toBe('deploy-invalid-config');
         }),
       ),
     );
 
-    it.effect('loads a .mjs config', () =>
+    it.effect('rejects a nested .config/zerospin.jsonc file', () =>
       Effect.scoped(
         Effect.gen(function* () {
           const pathApi = yield* Path.Path;
           const fileSystem = yield* FileSystem.FileSystem;
           const cwd = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: 'zerospin-config-mjs-test-',
+            prefix: 'zerospin-jsonc-nested-test-',
           });
+          const nestedConfigRoot = pathApi.join(cwd, '.config');
+          yield* fileSystem.makeDirectory(nestedConfigRoot);
           yield* fileSystem.writeFileString(
-            pathApi.join(cwd, 'zerospin.config.mjs'),
-            `export default {
-	  entry: 'src/system.mjs',
-	  supportedPredecessors: [],
-	  environmentId: 'dev',
-	  env: null,
-	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
-	};
-`,
+            pathApi.join(nestedConfigRoot, 'zerospin.jsonc'),
+            `${JSON.stringify({
+              entry: 'src/system.ts',
+              seeds: { dev: null },
+            })}\n`,
           );
 
-          const config = yield* loadZerospinConfigFn(cwd);
+          const failure = yield* loadZerospinConfigFn(cwd).pipe(Effect.flip);
 
-          expect(config.entry).toBe('src/system.mjs');
-        }),
-      ),
-    );
-
-    it.effect('loads a .cjs config', () =>
-      Effect.scoped(
-        Effect.gen(function* () {
-          const pathApi = yield* Path.Path;
-          const fileSystem = yield* FileSystem.FileSystem;
-          const cwd = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: 'zerospin-config-cjs-test-',
-          });
-          yield* fileSystem.writeFileString(
-            pathApi.join(cwd, 'zerospin.config.cjs'),
-            `module.exports = {
-	  entry: 'src/system.cjs',
-	  supportedPredecessors: [],
-	  environmentId: 'dev',
-	  env: null,
-	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
-	};
-`,
-          );
-
-          const config = yield* loadZerospinConfigFn(cwd);
-
-          expect(config.entry).toBe('src/system.cjs');
-        }),
-      ),
-    );
-
-    it.effect('loads a .mts config', () =>
-      Effect.scoped(
-        Effect.gen(function* () {
-          const pathApi = yield* Path.Path;
-          const fileSystem = yield* FileSystem.FileSystem;
-          const cwd = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: 'zerospin-config-mts-test-',
-          });
-          yield* fileSystem.writeFileString(
-            pathApi.join(cwd, 'zerospin.config.mts'),
-            `export default {
-	  entry: 'src/system.mts',
-	  supportedPredecessors: [],
-	  environmentId: 'dev',
-	  env: null,
-	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
-	};
-`,
-          );
-
-          const config = yield* loadZerospinConfigFn(cwd);
-
-          expect(config.entry).toBe('src/system.mts');
-        }),
-      ),
-    );
-
-    it.effect('loads a .cts config', () =>
-      Effect.scoped(
-        Effect.gen(function* () {
-          const pathApi = yield* Path.Path;
-          const fileSystem = yield* FileSystem.FileSystem;
-          const cwd = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: 'zerospin-config-cts-test-',
-          });
-          yield* fileSystem.writeFileString(
-            pathApi.join(cwd, 'zerospin.config.cts'),
-            `module.exports = {
-	  entry: 'src/system.cts',
-	  supportedPredecessors: [],
-	  environmentId: 'dev',
-	  env: null,
-	  retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
-	};
-`,
-          );
-
-          const config = yield* loadZerospinConfigFn(cwd);
-
-          expect(config.entry).toBe('src/system.cts');
+          expect(failure.code).toBe('deploy-invalid-config');
         }),
       ),
     );
   });
-});
-
-describe('ZerospinConfigSchema', () => {
-  it.effect('accepts environment-specific seed module paths', () =>
-    Effect.gen(function* () {
-      const config = yield* Schema.validate(ZerospinConfigSchema)(
-        {
-          entry: 'src/system.ts',
-          supportedPredecessors: [],
-          environmentId: 'dev',
-          env: null,
-          retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
-          seeds: {
-            dev: 'src/zerospin/seeds.ts',
-            production: 'src/zerospin/seeds.production.ts',
-          },
-        },
-        { onExcessProperty: 'ignore' },
-      );
-
-      expect(config.seeds).toEqual({
-        dev: 'src/zerospin/seeds.ts',
-        production: 'src/zerospin/seeds.production.ts',
-      });
-    }),
-  );
-
-  it.effect('accepts null paths for both seed environments', () =>
-    Effect.gen(function* () {
-      const config = yield* Schema.validate(ZerospinConfigSchema)(
-        {
-          entry: 'src/system.ts',
-          supportedPredecessors: [],
-          environmentId: 'dev',
-          env: null,
-          retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
-          seeds: {
-            dev: null,
-            production: null,
-          },
-        },
-        { onExcessProperty: 'ignore' },
-      );
-
-      expect(config.seeds).toEqual({
-        dev: null,
-        production: null,
-      });
-    }),
-  );
 });

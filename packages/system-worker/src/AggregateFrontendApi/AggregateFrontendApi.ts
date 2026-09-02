@@ -1,57 +1,55 @@
-import type { IUserRef } from '@zerospin/core/aggregate/types';
 import type {
+  IChainedCommand,
   IEncodedCommand,
-  IPushBlock,
-  IStagedReplicaCommand,
+  ISessionCommand,
 } from '@zerospin/core/contracts/types';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
-import type { IFrontendControllerSpec } from '@zerospin/core/frontendController/types';
-import type { IAggregateFrontendSyncState } from '@zerospin/core/session/types';
+import type { IAggregateId } from '@zerospin/core/models/types';
+import type {
+  IAggregateFrontendFinalizedCommand,
+  IAggregateFrontendPushedCommand,
+  IAggregateFrontendSyncState,
+  IFrontendDelta,
+} from '@zerospin/core/session/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import type { IAnyErrorJson } from '@zerospin/error';
 import type { ILinkedRpcEnvelope, IRpcRequest } from '@zerospin/logger';
 import { RpcTarget } from 'capnweb';
 import type { Schema } from 'effect';
-import { BrandTypeId } from 'effect/Brand';
 
 import type { ISystemRuntime } from '../makeSystemRuntime.js';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
 import { executeAggregateQuery } from './executeAggregateQuery/executeAggregateQuery.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
-import { getAdmission } from './getAdmission/getAdmission.js';
+import { getFinalizedCommands } from './getFinalizedCommands/getFinalizedCommands.js';
+import { getPushedCommands } from './getPushedCommands/getPushedCommands.js';
 import { getState } from './getState/getState.js';
-import { pushCommands } from './pushCommands/pushCommands.js';
+import { pushCommand } from './pushCommand/pushCommand.js';
 
 export class AggregateFrontendApi extends RpcTarget {
-  declare [BrandTypeId]: 'TargetApi';
-
   readonly #authResults: {
-    readonly actorRef: IUserRef;
+    readonly aggregateId: IAggregateId;
+    readonly aggregateName: string;
+    readonly userId: string;
     readonly frontendName: string;
     readonly aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
     >;
-    readonly generationId: string;
-    readonly frontendSpec: IFrontendControllerSpec;
     readonly systemId: ISystemId;
-    readonly systemVersion: string;
-    readonly systemWorkerName: string;
   };
   readonly #runtime: ISystemRuntime;
 
   constructor(props: {
     authResults: {
-      readonly actorRef: IUserRef;
+      readonly aggregateId: IAggregateId;
+      readonly aggregateName: string;
+      readonly userId: string;
       readonly frontendName: string;
       readonly aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema
       >;
-      readonly generationId: string;
-      readonly frontendSpec: IFrontendControllerSpec;
       readonly systemId: ISystemId;
-      readonly systemVersion: string;
-      readonly systemWorkerName: string;
     };
     runtime: ISystemRuntime;
   }) {
@@ -60,33 +58,57 @@ export class AggregateFrontendApi extends RpcTarget {
     this.#runtime = props.runtime;
   }
 
-  async getAdmission(): Promise<
-    Schema.EitherEncoded<
+  async pushCommand(
+    request: IRpcRequest<
+      [
+        {
+          readonly command: IEncodedCommand<
+            IChainedCommand<ISessionCommand, IFrontendDelta> &
+              Readonly<{ sessionIndex: number; pushIndex: null }>
+          >;
+        },
+      ]
+    >,
+  ): Promise<
+    ILinkedRpcEnvelope<
+      IEncodedCommand<IAggregateFrontendPushedCommand>,
+      IAnyErrorJson
+    >
+  > {
+    return this.#runtime.runPromise(
+      pushCommand({ request, authResults: this.#authResults }),
+    );
+  }
+
+  async getFinalizedCommands(
+    request: IRpcRequest<[{ afterFrontendIndex: number }]>,
+  ): Promise<
+    ILinkedRpcEnvelope<
       Readonly<{
-        actorRef: IUserRef;
-        aggregateFrontendLock: Schema.Schema.Type<
-          typeof AggregateFrontendLockSchema
-        >;
-        frontendName: string;
-        frontendSpec: IFrontendControllerSpec;
-        systemId: ISystemId;
-        systemVersion: string;
+        commands: readonly IEncodedCommand<IAggregateFrontendFinalizedCommand>[];
+        tip: number;
       }>,
       IAnyErrorJson
     >
   > {
     return this.#runtime.runPromise(
-      getAdmission({ admission: this.#authResults }),
+      getFinalizedCommands({ request, authResults: this.#authResults }),
     );
   }
 
-  async pushCommands(
-    request: IRpcRequest<
-      [{ readonly commands: readonly IEncodedCommand<IStagedReplicaCommand>[] }]
-    >,
-  ): Promise<ILinkedRpcEnvelope<IPushBlock, IAnyErrorJson>> {
+  async getPushedCommands(
+    request: IRpcRequest<[{ afterPushIndex: number }]>,
+  ): Promise<
+    ILinkedRpcEnvelope<
+      Readonly<{
+        commands: readonly IEncodedCommand<IAggregateFrontendPushedCommand>[];
+        tip: number;
+      }>,
+      IAnyErrorJson
+    >
+  > {
     return this.#runtime.runPromise(
-      pushCommands({ request, authResults: this.#authResults }),
+      getPushedCommands({ request, authResults: this.#authResults }),
     );
   }
 

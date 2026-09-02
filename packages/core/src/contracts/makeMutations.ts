@@ -1,8 +1,8 @@
 import { mapParseError, type IAnyError } from '@zerospin/error';
+import type { CuidFactory } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
 import type { IModels } from '../models/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
 
 import { assertMutationsUseModels } from './assertMutationsUseModels.ts';
 import type { IAnyMutation, ICommand, IContract } from './types.ts';
@@ -29,9 +29,12 @@ export const makeMutations = Effect.fn('makeMutations')(function* (props: {
   const validatedMutations =
     contract.mutations === null
       ? {}
-      : yield* Schema.validate(contract.mutations)(commandMutations, {
-          onExcessProperty: 'error',
-        }).pipe(
+      : yield* Schema.decodeUnknownEffect(Schema.toType(contract.mutations))(
+          commandMutations,
+          {
+            onExcessProperty: 'error',
+          },
+        ).pipe(
           mapParseError({
             code: 'validate-contract-mutations-failed',
             prefix: `Contract "${command.commandName}" program output did not match its mutations schema`,

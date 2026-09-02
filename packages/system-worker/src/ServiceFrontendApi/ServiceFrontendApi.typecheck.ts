@@ -31,7 +31,7 @@ void serviceFrontendApiUnion.getState(emptyRequest);
 void serviceFrontendApiUnion.createWebSocketTicket(emptyRequest);
 
 // @ts-expect-error Service frontends expose no command push leaf.
-void serviceFrontendApi.pushCommands;
+void serviceFrontendApi.pushCommand;
 
 // @ts-expect-error Service frontends expose no remote service query leaf.
 void serviceFrontendApi.executeServiceQuery;

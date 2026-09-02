@@ -50,10 +50,13 @@
   ],
   "references": [
     {
-      "path": "../error"
+      "path": "../schema"
     },
     {
       "path": "../logger"
+    },
+    {
+      "path": "../error"
     }
   ]
 }

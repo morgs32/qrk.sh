@@ -1,9 +1,9 @@
-import { Schema } from 'effect/Schema';
+import { Schema } from 'effect';
 
 /**
- * Fix schema/IConfig parity with satisfies — do not cast schema as unknown as Schema<IConfig>.
+ * Fix schema/IConfig parity with satisfies — do not coerce the codec after construction.
  *
- * @bad `ZerospinConfigSchema as unknown as Schema.Schema<IConfig, unknown>`.
+ * @bad `ZerospinConfigSchema as unknown as Schema.Codec<IConfig, unknown>`.
  */
 export const ZerospinConfigSchema = Schema.Struct({
   entry: Schema.String,
@@ -12,13 +12,9 @@ export const ZerospinConfigSchema = Schema.Struct({
       onIdentityCreated: Schema.optional(Schema.Unknown),
     }),
   ),
-}) satisfies Schema.Schema<IConfig, unknown>;
+}) satisfies Schema.Codec<IConfig, unknown>;
 
 declare type IConfig = {
   entry: string;
   authentication?: { onIdentityCreated?: unknown };
 };
-
-declare namespace Schema {
-  type Schema<A, I> = unknown;
-}

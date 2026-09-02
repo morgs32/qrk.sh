@@ -1,16 +1,19 @@
-import { JSONSchema } from 'effect';
+import { encodeShape } from '@zerospin/schema';
+import { Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
+import type { IAuthenticationSignature } from '../authentication/types.ts';
 import { makeFrontendControllerSpec } from '../frontendController/makeFrontendControllerSpec.ts';
-import { encodeShape } from '../models/encodeShape.ts';
 
 import type { ISystem, ISystemSpec } from './types.ts';
 
 export function makeSystemSpec<
   SYSTEM extends Pick<
     ISystem,
-    'name' | 'version' | 'authentication' | 'aggregates' | 'services'
-  >,
+    'name' | 'version' | 'aggregates' | 'services'
+  > & {
+    authentication: { signature: IAuthenticationSignature };
+  },
 >(props: { system: SYSTEM }): ISystemSpec {
   const { system } = props;
 
@@ -41,10 +44,7 @@ export function makeSystemSpec<
             abbreviation: definition.abbreviation,
             version: definition.version,
             hasDirectAdapter: typeof definition.adaptResource === 'function',
-            properties: encodeShape({
-              ...model.metadata,
-              ...definition.attributes,
-            }),
+            properties: encodeShape(definition.propertiesShape),
             indexes: definition.indexes,
           })),
       })),
@@ -84,9 +84,9 @@ export function makeSystemSpec<
               );
             }
             return edges.map((edge, edgeIndex) => {
-              const sourceJsonSchema = JSONSchema.make(edge.source);
+              const sourceJsonSchema = Schema.toJsonSchemaDocument(edge.source);
               const sourceProperties = Reflect.get(
-                sourceJsonSchema,
+                sourceJsonSchema.schema,
                 'properties',
               );
               const sourceModelVersionProperty =
@@ -120,9 +120,11 @@ export function makeSystemSpec<
                 };
               }
 
-              const destinationJsonSchema = JSONSchema.make(edge.destination);
+              const destinationJsonSchema = Schema.toJsonSchemaDocument(
+                edge.destination,
+              );
               const destinationProperties = Reflect.get(
-                destinationJsonSchema,
+                destinationJsonSchema.schema,
                 'properties',
               );
               const destinationModelNameProperty =
@@ -184,7 +186,7 @@ export function makeSystemSpec<
       queries: mapValues(aggregate.queries, query => ({
         name: query.name,
         serviceName: query.serviceName,
-        paramsJsonSchema: JSONSchema.make(query.paramsSchema),
+        paramsJsonSchema: Schema.toJsonSchemaDocument(query.paramsSchema),
       })),
       frontends: mapValues(aggregate.frontends, binding => ({
         name: binding.name,
@@ -217,10 +219,7 @@ export function makeSystemSpec<
             abbreviation: definition.abbreviation,
             version: definition.version,
             hasDirectAdapter: typeof definition.adaptResource === 'function',
-            properties: encodeShape({
-              ...model.metadata,
-              ...definition.attributes,
-            }),
+            properties: encodeShape(definition.propertiesShape),
             indexes: definition.indexes,
           })),
       })),
@@ -260,9 +259,9 @@ export function makeSystemSpec<
               );
             }
             return edges.map((edge, edgeIndex) => {
-              const sourceJsonSchema = JSONSchema.make(edge.source);
+              const sourceJsonSchema = Schema.toJsonSchemaDocument(edge.source);
               const sourceProperties = Reflect.get(
-                sourceJsonSchema,
+                sourceJsonSchema.schema,
                 'properties',
               );
               const sourceModelVersionProperty =
@@ -296,9 +295,11 @@ export function makeSystemSpec<
                 };
               }
 
-              const destinationJsonSchema = JSONSchema.make(edge.destination);
+              const destinationJsonSchema = Schema.toJsonSchemaDocument(
+                edge.destination,
+              );
               const destinationProperties = Reflect.get(
-                destinationJsonSchema,
+                destinationJsonSchema.schema,
                 'properties',
               );
               const destinationModelNameProperty =
@@ -357,7 +358,7 @@ export function makeSystemSpec<
       queries: mapValues(service.queries, query => ({
         name: query.name,
         serviceName: query.serviceName,
-        paramsJsonSchema: JSONSchema.make(query.paramsSchema),
+        paramsJsonSchema: Schema.toJsonSchemaDocument(query.paramsSchema),
       })),
       frontends: mapValues(service.frontends, binding => ({
         name: binding.name,

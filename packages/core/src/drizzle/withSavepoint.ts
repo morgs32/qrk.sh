@@ -1,9 +1,9 @@
 import { ZerospinError, type IAnyError } from '@zerospin/error';
+import type { IAnyDrizzleSchemas } from '@zerospin/schema';
 import type { AnyRelations, DrizzleTypeError } from 'drizzle-orm';
-import { Cause, Effect, Exit, Option, Runtime } from 'effect';
+import { Cause, Effect, Exit, Option } from 'effect';
 
 import type { Async } from '../async/Async.ts';
-import type { IAnyDrizzleSchemas } from '../models/types.ts';
 
 import type { IDbConfig, ITx } from './types.ts';
 
@@ -33,8 +33,8 @@ export const withSavepoint = Effect.fn('withSavepoint')(function* <
     : never
 > {
   const { program, tx } = props;
-  const runtime =
-    yield* Effect.runtime<
+  const context =
+    yield* Effect.context<
       [Extract<PROGRAM_REQUIREMENTS, Async>] extends [never]
         ? PROGRAM_REQUIREMENTS
         : never
@@ -43,7 +43,9 @@ export const withSavepoint = Effect.fn('withSavepoint')(function* <
   return yield* Effect.try({
     try: (): SUCCESS =>
       tx.transaction(savepointTx => {
-        const exit = Runtime.runSyncExit(runtime, program({ tx: savepointTx }));
+        const exit = Effect.runSyncExitWith(context)(
+          program({ tx: savepointTx }),
+        );
         if (Exit.isFailure(exit)) {
           throw exit;
         }
@@ -51,7 +53,7 @@ export const withSavepoint = Effect.fn('withSavepoint')(function* <
       }),
     catch: cause => {
       if (Exit.isExit(cause) && Exit.isFailure(cause)) {
-        const failure = Cause.failureOption(cause.cause);
+        const failure = Cause.findErrorOption(cause.cause);
         if (
           Option.isSome(failure) &&
           ZerospinError.isZerospinError(failure.value)

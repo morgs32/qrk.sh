@@ -5,15 +5,13 @@ import { act } from 'react';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { makeMigratedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb';
+import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { makeSession } from '@zerospin/core/session/makeSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { encodeLeft } from '@zerospin/core/utils/encodeLeft';
-import { encodeRight } from '@zerospin/core/utils/encodeRight';
-import { makeStaticApiKeyIdentityResolver } from '@zerospin/dev-worker/makeStaticApiKeyIdentityResolver';
+import { encodeFailure } from '@zerospin/core/utils/encodeFailure';
+import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
 import { ZerospinDevtools } from '@zerospin/devtools/ZerospinDevtools';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import { ZerospinError } from '@zerospin/error';
@@ -23,30 +21,16 @@ import {
   makeTraceableApiTarget,
   type ITelemetryBatch,
 } from '@zerospin/logger';
-import { Effect, Either, Layer, Schema } from 'effect';
+import { env } from 'cloudflare:workers';
+import { Effect, Result, Schema } from 'effect';
 import { createRoot } from 'react-dom/client';
-import type { SystemWorker } from 'system-worker';
 import { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { makeSystemRuntime } from 'system-worker/makeSystemRuntime';
-import { SystemWorkerResolver } from 'system-worker/SystemWorkerResolver/SystemWorkerResolver';
 import { describe, expect, it, vi } from 'vitest';
 
-import { shopperFrontend } from '@/zerospin/frontend';
-import { ClerkUserIdSchema, User } from '@/zerospin/models';
+import { web as shopperFrontend } from '@/zerospin/frontends/web';
+import { ClerkUserIdSchema, User } from '@/zerospin/models/User';
 import { system } from '@/zerospin/system';
-
-vi.mock(
-  '../../../../packages/system-worker/src/SystemRepo/SystemRepo.js',
-  () => ({
-    SystemRepo: {
-      getRepo: vi.fn(() => {
-        throw new Error(
-          'aggregate frontend session logs integration does not exercise current-write routing',
-        );
-      }),
-    },
-  }),
-);
 
 describe('aggregate frontend session logs integration', () => {
   it('links persisted server roots into one browser session and renders them in DevTools', async () => {
@@ -54,114 +38,47 @@ describe('aggregate frontend session logs integration', () => {
       Schema.decodeUnknownSync(ClerkUserIdSchema)('user_logs');
     const persistedBatches: ITelemetryBatch[] = [];
     const frontendSpec = makeFrontendControllerSpec(shopperFrontend);
-    const authenticationLock = Effect.runSync(
-      makeAuthenticationLock({ signature: system.authentication.signature }),
-    );
-    const systemWorker: SystemWorker & Disposable = Object.create(null);
-    systemWorker[Symbol.dispose] = vi.fn();
-    systemWorker.authenticate = vi.fn<SystemWorker['authenticate']>(async () =>
-      encodeRight({
-        authenticationLock,
-        userId: clerkUserId,
-        systemName: system.name,
-        systemVersion: system.version,
+    const authenticationLock = makeAuthenticationLock({
+      signature: system.authentication.signature,
+    });
+    Reflect.set(env, 'MATERIALIZED_AGGREGATE_REPO', {
+      getByName: () => ({
+        authorizeAggregateFrontend: async () => encodeSuccess(undefined),
       }),
-    );
-    systemWorker.authorizeAggregateFrontend = vi.fn<
-      SystemWorker['authorizeAggregateFrontend']
-    >(async () =>
-      encodeRight({
-        actorRef: {
-          aggregateId: 'acct_1',
-          aggregateName: shopperFrontend.aggregateName,
-          userId: clerkUserId,
+    });
+    Reflect.set(env, 'MATERIALIZED_SERVICE_REPO', {
+      getByName: () => ({
+        executeServiceQuery: async () =>
+          encodeFailure(
+            new ZerospinError({
+              code: 'integration-query-failed',
+              message: 'Expected aggregate query failure',
+            }),
+          ),
+      }),
+    });
+    Reflect.set(env, 'SYSTEM_LOG_REPO', {
+      getByName: () => ({
+        appendTelemetryBatch: async (props: { batch: ITelemetryBatch }) => {
+          persistedBatches.push(props.batch);
+          return encodeSuccess(undefined);
         },
-        aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
-        frontendSpec,
-        systemVersion: system.version,
       }),
-    );
-    systemWorker.executeAggregateQuery = vi.fn<
-      SystemWorker['executeAggregateQuery']
-    >(async () =>
-      encodeLeft(
-        new ZerospinError({
-          code: 'integration-query-failed',
-          message: 'Expected aggregate query failure',
-        }),
-      ),
-    );
-    systemWorker.appendTelemetryBatch = vi.fn<
-      SystemWorker['appendTelemetryBatch']
-    >(async props => {
-      persistedBatches.push(props.batch);
-      return encodeRight(undefined);
     });
 
-    const apiKeyIdentityResolver = makeStaticApiKeyIdentityResolver({
-      systemId: 'sys_shopping',
-      keyType: 'publishable',
-    });
-    const runtime = makeSystemRuntime({
-      systemWorkerResolver: Layer.succeed(SystemWorkerResolver, {
-        get: () => systemWorker,
-      }),
-    });
+    const runtime = makeSystemRuntime();
     const gatewayApi = new GatewayApi({
-      apiKeyIdentityResolver,
-      environment: 'dev',
       runtime,
-      systemRepo: {
-        getActiveGenerationId: vi.fn(async () => encodeRight('gen_test')),
-        getDeploy: vi.fn(async () => {
-          throw new Error(
-            'aggregate frontend session logs does not read deploys',
-          );
-        }),
-        getReadiness: vi.fn(async () => {
-          throw new Error(
-            'aggregate frontend session logs does not read readiness',
-          );
-        }),
-        startDeploy: vi.fn(async () => {
-          throw new Error(
-            'aggregate frontend session logs does not request deploys',
-          );
-        }),
-      },
     });
-    const authenticatedApi = await gatewayApi.getAuthenticatedApi({
+    const aggregateFrontendApi = await gatewayApi.getAggregateFrontendApi({
       publishableKey: 'pk_logs',
+      systemName: shopperFrontend.systemName,
       authenticationLock,
       signature: { clerkUserId: 'user_logs' },
-    });
-    expect(
-      await Effect.runPromise(
-        decodeRpc(await authenticatedApi.getAuthentication()),
-      ),
-    ).toMatchObject({
-      systemId: 'sys_shopping',
-      userId: clerkUserId,
-    });
-    const aggregateFrontendApi = await authenticatedApi.getAggregateFrontendApi(
-      {
-        aggregateId: 'acct_1',
-        aggregateName: shopperFrontend.aggregateName,
-        frontendName: shopperFrontend.frontendName,
-        aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
-      },
-    );
-    expect(
-      await Effect.runPromise(
-        decodeRpc(await aggregateFrontendApi.getAdmission()),
-      ),
-    ).toMatchObject({
-      actorRef: {
-        aggregateId: 'acct_1',
-        aggregateName: shopperFrontend.aggregateName,
-        userId: clerkUserId,
-      },
-      systemId: 'sys_shopping',
+      aggregateId: 'acct_1',
+      aggregateName: shopperFrontend.aggregateName,
+      frontendName: shopperFrontend.frontendName,
+      aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
     });
     const session = makeSession({
       frontend: shopperFrontend,
@@ -178,12 +95,12 @@ describe('aggregate frontend session logs integration', () => {
       Effect.gen(function* () {
         const failedQuery = yield* tracedAggregateFrontendApi
           .executeAggregateQuery({
-            queryName: 'missing-query',
+            queryName: 'getProducts',
             params: {},
           })
           .pipe(
             Effect.withSpan('browser.executeAggregateQuery'),
-            Effect.either,
+            Effect.result,
           );
         return { failedQuery };
       }).pipe(
@@ -193,9 +110,9 @@ describe('aggregate frontend session logs integration', () => {
       ),
     );
 
-    expect(Either.isLeft(outcome.failedQuery)).toBe(true);
-    if (Either.isLeft(outcome.failedQuery)) {
-      expect(outcome.failedQuery.left).toEqual(
+    expect(Result.isFailure(outcome.failedQuery)).toBe(true);
+    if (Result.isFailure(outcome.failedQuery)) {
+      expect(outcome.failedQuery.failure).toEqual(
         expect.objectContaining({ code: 'integration-query-failed' }),
       );
     }
@@ -235,7 +152,7 @@ describe('aggregate frontend session logs integration', () => {
       otherTables: sessionRepoTables,
     });
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
@@ -249,11 +166,10 @@ describe('aggregate frontend session logs integration', () => {
       db,
       schema: dbConfig.schema,
       models,
-      vfsName: null,
       isInitialized: true,
       frontendIndex: 0,
-      replicaIndex: null,
-      lastRebasedPushedCursor: null,
+      sessionStatus: 'current',
+      backupState: { status: 'ready', failure: null },
     });
     const seededAt = new Date('2025-09-13T18:55:23.000Z');
     db.insert(dbConfig.schema.user)
@@ -268,7 +184,18 @@ describe('aggregate frontend session logs integration', () => {
       })
       .run();
     Reflect.apply(zerospinDevtoolsStore.getState().addAggregateSession, null, [
-      { session },
+      {
+        session,
+        getPushPaused: async () => ({ _tag: 'Success', success: false }),
+        setPushPaused: async () => ({
+          _tag: 'Success',
+          success: undefined,
+        }),
+        pushNow: async () => ({
+          _tag: 'Success',
+          success: { status: 'empty' },
+        }),
+      },
     ]);
 
     const container = document.createElement('div');

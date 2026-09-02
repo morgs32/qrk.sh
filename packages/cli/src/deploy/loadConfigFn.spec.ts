@@ -1,5 +1,5 @@
-import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
-import * as NodePath from '@effect/platform-node/NodePath';
+import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
+import * as NodePath from '@effect/platform-node-shared/NodePath';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { Effect, Layer } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,10 +33,6 @@ describe('loadConfigFn', () => {
     loadZerospinConfigMock.mockReturnValue(
       Effect.succeed({
         entry: 'src/system.ts',
-        supportedPredecessors: [],
-        environmentId: 'dev',
-        env: null,
-        retention: { clientLeaseSeconds: 90, stagedJournalDays: 30 },
         seeds: {
           dev: null,
           production: null,

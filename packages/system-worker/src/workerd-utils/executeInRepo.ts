@@ -21,7 +21,7 @@ export async function executeInRepo<
     key: MatchParams<string>;
   }) => Effect.Effect<DurableObjectStub<Rpc.DurableObjectBranded>, IAnyError>;
   repo: {
-    boundDORepoConfig: {
+    fixedDORepoConfig: {
       nameUtils: {
         makeName(
           ...args: readonly unknown[]
@@ -46,15 +46,15 @@ export async function executeInRepo<
   }) => RESULT | Promise<RESULT>;
 }): Promise<Awaited<RESULT>> {
   const { fn, getRepo, key, managedRuntime, repo } = props;
-  const { boundDORepoConfig } = repo;
-  const name = Effect.runSync(boundDORepoConfig.nameUtils.makeName(key));
+  const { fixedDORepoConfig } = repo;
+  const name = Effect.runSync(fixedDORepoConfig.nameUtils.makeName(key));
   const stub = await managedRuntime.runPromise(getRepo({ key }));
 
   return runInDurableObject<Rpc.DurableObjectBranded, Awaited<RESULT>>(
     stub,
     async (_instance, state) => {
       const dbConfig = await managedRuntime.runPromise(
-        boundDORepoConfig
+        fixedDORepoConfig
           .getDbConfig({
             storage: state.storage,
             name,
@@ -65,7 +65,6 @@ export async function executeInRepo<
       const { relations, schema } = dbConfig;
       state.storage.sql.exec('PRAGMA foreign_keys = ON;');
       const db = drizzle(state.storage, {
-        schema,
         relations,
       }) as IDb<CONFIG>;
 

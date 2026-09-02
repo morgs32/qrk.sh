@@ -24,7 +24,7 @@ class CollectorSpan implements Tracer.Span {
   constructor(
     readonly name: string,
     readonly parent: Option.Option<Tracer.AnySpan>,
-    readonly context: Context.Context<never>,
+    readonly annotations: Context.Context<never>,
     links: ReadonlyArray<Tracer.SpanLink>,
     private readonly startTime: bigint,
     readonly kind: Tracer.SpanKind,
@@ -88,15 +88,14 @@ export const makeTelemetryTracer = (
   collector: ITelemetryCollector,
 ): Tracer.Tracer =>
   Tracer.make({
-    span: (name, parent, context, links, startTime, kind) =>
+    span: ({ name, parent, annotations, links, startTime, kind }) =>
       new CollectorSpan(
         name,
         parent,
-        context,
+        annotations,
         links,
         startTime,
         kind,
         collector,
       ),
-    context: f => f(),
   });

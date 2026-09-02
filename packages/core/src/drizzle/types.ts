@@ -1,21 +1,18 @@
-import type { AnyRelations, Many, One } from 'drizzle-orm';
-import type {
-  AnySQLiteSelect,
-  BaseSQLiteDatabase,
-} from 'drizzle-orm/sqlite-core';
-import type * as V1 from 'drizzle-orm/sqlite-core/query-builders/_query';
-import type { SQLiteSyncRelationalQuery } from 'drizzle-orm/sqlite-core/query-builders/query';
-import type { SQLiteTransaction } from 'drizzle-orm/sqlite-core/session';
-import type { Brand } from 'effect';
-import type { UnionToIntersection } from 'type-fest';
-
 import type {
   IAnyDrizzleSchemas,
   IAnyRefDescriptor,
   IAnyTables,
   IDrizzleSchema,
-  IModels,
-} from '../models/types.ts';
+} from '@zerospin/schema';
+import type { AnyRelations, Many, One } from 'drizzle-orm';
+import type { SQLiteAsyncDatabase } from 'drizzle-orm/sqlite-core/async/db';
+import type { SQLiteSyncRelationalQuery } from 'drizzle-orm/sqlite-core/async/query';
+import type { AnySQLiteAsyncSelect } from 'drizzle-orm/sqlite-core/async/select';
+import type { SQLiteAsyncTransaction } from 'drizzle-orm/sqlite-core/async/session';
+import type { Brand } from 'effect';
+import type { UnionToIntersection } from 'type-fest';
+
+import type { IModels } from '../models/types.ts';
 
 import type { makeInMemorySQLite3 } from './makeInMemorySQLite3.ts';
 
@@ -134,16 +131,15 @@ export type IDrizzleRelationsFromModels<
     relations: {
       [PROPERTY in keyof TABLES[TABLE_KEY]['shape'] as TABLES[TABLE_KEY]['shape'][PROPERTY] extends IAnyRefDescriptor
         ? TABLES[TABLE_KEY]['shape'][PROPERTY]['relation']
-        : never]: TABLES[TABLE_KEY]['shape'][PROPERTY] extends infer REF extends
-        IAnyRefDescriptor
+        : never]: TABLES[TABLE_KEY]['shape'][PROPERTY] extends IAnyRefDescriptor
         ? One<
             {
               [TARGET_TABLE_KEY in keyof TABLES &
-                string]: TABLES[TARGET_TABLE_KEY]['name'] extends REF['targetTableName']
+                string]: TABLES[TARGET_TABLE_KEY]['name'] extends TABLES[TABLE_KEY]['shape'][PROPERTY]['targetTableName']
                 ? TARGET_TABLE_KEY
                 : never;
             }[keyof TABLES & string],
-            REF['nullable']
+            TABLES[TABLE_KEY]['shape'][PROPERTY]['nullable']
           >
         : never;
     } & InverseRelationsMapForParentModel<TABLES, TABLE_KEY>;
@@ -167,14 +163,19 @@ export type IResourceDbConfig<
   OTHER_TABLES extends IAnyTables = IAnyTables,
 > = IDbConfig<
   IFullDrizzleSchema<MODELS, OTHER_TABLES>,
-  IDrizzleRelationsFromModels<MODELS>
+  IDrizzleRelationsFromModels<
+    MODELS,
+    {
+      [MODEL_KEY in keyof MODELS]: MODELS[MODEL_KEY]['table'];
+    } & OTHER_TABLES
+  >
 > &
   Brand.Brand<'ResourceDbConfig'>;
 
 export type ISyncSQLiteDatabase<
-  SCHEMA extends IAnyDrizzleSchemas,
+  _SCHEMA extends IAnyDrizzleSchemas,
   RELATIONS extends AnyRelations,
-> = BaseSQLiteDatabase<'sync', unknown, SCHEMA, RELATIONS>;
+> = SQLiteAsyncDatabase<'sync', unknown, RELATIONS>;
 
 // TODO: Make an IAnyDbConfig
 export type IDb<
@@ -189,10 +190,9 @@ export type IResourceDb<
 > = IDb<CONFIG> & Brand.Brand<'ResourceDb'>;
 
 /** Branded `IDrizzleTransaction` — only produced inside an open `makeTx` transaction. */
-type IDrizzleTransaction<CONFIG extends IDbConfig> = SQLiteTransaction<
+type IDrizzleTransaction<CONFIG extends IDbConfig> = SQLiteAsyncTransaction<
   'sync',
   unknown,
-  IDbConfigSchema<CONFIG>,
   IDbConfigRelations<CONFIG>
 >;
 
@@ -208,8 +208,6 @@ export type IWaSqliteDrizzleDb<CONFIG extends IDbConfig = IDbConfig<any, any>> =
 
 /** Relational/select queries `useLiveQuery` can run against a sync wa-sqlite Drizzle db. */
 export type ILiveRelationalQuery =
-  | AnySQLiteSelect
+  | AnySQLiteAsyncSelect
   // oxlint-disable-next-line typescript/no-explicit-any -- Drizzle relational query union erases row types
-  | SQLiteSyncRelationalQuery<any>
-  // oxlint-disable-next-line typescript/no-explicit-any -- Drizzle relational query union erases row types
-  | V1.SQLiteSyncRelationalQuery<any>;
+  | SQLiteSyncRelationalQuery<any>;

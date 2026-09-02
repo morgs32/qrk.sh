@@ -1,5 +1,8 @@
+import { primitives } from '@zerospin/schema';
+import { Effect, Schema } from 'effect';
+
+import { makeSignature } from '../authentication/makeSignature.ts';
 import { makeContract } from '../contracts/makeContract.ts';
-import { primitives } from '../models/primitives.ts';
 import { makeAggregateId } from '../utils/makeAggregateId.ts';
 
 import { makeSeeds } from './makeSeeds.ts';
@@ -15,6 +18,16 @@ const createUser = makeContract({
 const system = makeSystem({
   name: 'shopping',
   version: '1.0.0',
+  authentication: {
+    signature: makeSignature(
+      {
+        version: '1.0.0',
+        schema: Schema.Struct({ userId: Schema.String }),
+      },
+      [],
+    ),
+    authenticate: ({ signature }) => Effect.succeed(signature.userId),
+  },
   aggregates: {
     user: {
       models: {},

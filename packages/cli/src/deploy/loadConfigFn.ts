@@ -1,9 +1,8 @@
-import { Path, type FileSystem } from '@effect/platform';
 import type { Async } from '@zerospin/core/async/Async';
 import type { ISystemConfig } from '@zerospin/core/system/types';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { config as loadEnv } from 'dotenv';
-import { Effect } from 'effect';
+import { Effect, Path, type FileSystem } from 'effect';
 
 import { loadZerospinConfigFn } from './loadZerospinConfigFn.js';
 

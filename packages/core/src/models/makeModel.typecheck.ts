@@ -1,8 +1,9 @@
+import { primitives } from '@zerospin/schema';
 import { Effect, type Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
 import { makeModel } from './makeModel.ts';
-import { primitives } from './primitives.ts';
+import { makeReplica } from './makeReplica.ts';
 import type { InferResource } from './types.ts';
 
 const User = makeModel(
@@ -66,6 +67,18 @@ const Todo = makeModel(
 );
 
 declare const currentTodoResource: InferResource<typeof Todo>;
+assert<
+  Equals<
+    Pick<typeof currentTodoResource, 'title' | 'completed'>,
+    { title: string; completed: boolean }
+  >
+>();
+assert<
+  Equals<
+    'deletedAt' extends keyof typeof currentTodoResource ? true : false,
+    false
+  >
+>();
 const historicalTodoResource = Todo.adaptResource({
   version: '1.0.0',
   resource: currentTodoResource,
@@ -81,6 +94,85 @@ assert<
     false
   >
 >();
+assert<
+  Equals<
+    'deletedAt' extends keyof Effect.Success<typeof historicalTodoResource>
+      ? true
+      : false,
+    false
+  >
+>();
+
+const TodoReplica = makeReplica({
+  sourceModel: Todo,
+  serviceName: 'todos',
+});
+assert<Equals<typeof TodoReplica.sourceModel, typeof Todo>>();
+assert<Equals<typeof TodoReplica.serviceName, 'todos'>>();
+
+declare const currentTodoReplicaResource: InferResource<typeof TodoReplica>;
+assert<
+  Equals<
+    Pick<
+      typeof currentTodoReplicaResource,
+      'title' | 'completed' | 'deletedAt'
+    >,
+    { title: string; completed: boolean; deletedAt: Date | null }
+  >
+>();
+const historicalTodoReplicaResource = TodoReplica.adaptResource({
+  version: '1.0.0',
+  resource: currentTodoReplicaResource,
+});
+assert<
+  Equals<
+    Effect.Success<typeof historicalTodoReplicaResource>['title'],
+    string
+  >
+>();
+assert<
+  Equals<
+    Effect.Success<typeof historicalTodoReplicaResource>['deletedAt'],
+    Date | null
+  >
+>();
+assert<
+  Equals<
+    'completed' extends keyof Effect.Success<
+      typeof historicalTodoReplicaResource
+    >
+      ? true
+      : false,
+    false
+  >
+>();
+
+TodoReplica.replicateResource('2.0.0', {
+  resource: {
+    id: 'todo_replication_input',
+    modelName: 'todo',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    version: '2.0.0',
+    title: 'Replication input',
+    completed: false,
+    // @ts-expect-error live replication accepts the authoritative resource, not replica deletion state
+    deletedAt: null,
+  },
+});
+
+TodoReplica.replicateResource('1.0.0', {
+  resource: {
+    id: 'todo_historical_replication_input',
+    modelName: 'todo',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    version: '1.0.0',
+    title: 'Historical replication input',
+    // @ts-expect-error historical replication also accepts the authoritative resource, not replica deletion state
+    deletedAt: null,
+  },
+});
 
 const historicalCreateSchema = Todo.createMutation('1.0.0');
 assert<
@@ -88,12 +180,12 @@ assert<
     Schema.Schema.Type<
       typeof historicalCreateSchema
     >['operation']['attributes'],
-    { title: string }
+    { readonly title: string }
   >
 >();
 assert<
   Equals<
-    Schema.Schema.Encoded<typeof historicalCreateSchema>['modelVersion'],
+    Schema.Codec.Encoded<typeof historicalCreateSchema>['modelVersion'],
     '1.0.0'
   >
 >();

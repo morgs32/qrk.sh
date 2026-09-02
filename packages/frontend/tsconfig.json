@@ -37,6 +37,9 @@
   "exclude": ["**/*.spec.ts", "**/*.typecheck.ts"],
   "references": [
     {
+      "path": "../opfs-backup-worker"
+    },
+    {
       "path": "../core"
     },
     {
@@ -44,6 +47,9 @@
     },
     {
       "path": "../logger"
+    },
+    {
+      "path": "../schema"
     },
     {
       "path": "../system-worker"

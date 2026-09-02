@@ -1,21 +1,18 @@
 /* oxlint-disable typescript/no-explicit-any -- payload/mutation erased defaults */
-import type { IAnyError } from '@zerospin/error';
-import type { Effect, JSONSchema, Schema } from 'effect';
-import { type BrandTypeId } from 'effect/Brand';
+import type { IAnyError, IAnyErrorJson } from '@zerospin/error';
+import {
+  type CuidFactory,
+  type IAnyShape,
+  type InferDecodedRow,
+  type InferIdFromAbbreviation,
+} from '@zerospin/schema';
+import type { Effect, JsonSchema, Schema } from 'effect';
 
 import type {
-  IAggregateCursor,
-  IAnyShape,
   IModel,
   InferCommandPayload,
-  InferDecodedRow,
-  InferIdFromAbbreviation,
   InferResource,
-  IPushedCursorId,
-  IServiceCursorId,
-  IStagedCursorId,
 } from '../models/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
 
 import type { ICreateMutation } from './createMutation.ts';
 import type { IDeleteMutation } from './deleteMutation.ts';
@@ -69,17 +66,14 @@ export type IContracts = Record<string, IContract>;
 
 // --- Contracts & validation
 
-/** Serializable contract metadata and payload JSON Schema for deploy specs and RPC. */
-type ICommandFinalizationMode = 'authoritative' | 'optimistic-lww';
-
 export type IContractSpec = {
   readonly commandName: string;
   readonly version: string;
-  readonly payloadJsonSchema: JSONSchema.JsonSchema7Root;
+  readonly payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
   readonly historicalDefinitions: readonly Readonly<{
     commandName: string;
     version: string;
-    payloadJsonSchema: JSONSchema.JsonSchema7Root;
+    payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
   }>[];
 };
 
@@ -112,8 +106,10 @@ export type IContract<
   COMMAND_NAME extends string = string,
   PAYLOAD extends IAnyShape = IAnyShape,
   VERSION extends string = string,
-  MUTATIONS_SCHEMA extends Schema.Schema.AnyNoContext | null =
-    Schema.Schema.AnyNoContext | null,
+  MUTATIONS_SCHEMA extends Schema.Codec<any, any> | null = Schema.Codec<
+    any,
+    any
+  > | null,
   HISTORICAL_DEFINITIONS extends readonly Readonly<{
     commandName: string;
     payload: IAnyShape;
@@ -129,32 +125,28 @@ export type IContract<
   commandName: COMMAND_NAME;
   payload: PAYLOAD;
   historicalDefinitions: HISTORICAL_DEFINITIONS;
-  decodeAndAdaptPayload: {
-    [BrandTypeId]: 'decodeAndAdaptPayload';
-  } & ((props: {
+  decodeAndAdaptPayload: (props: {
     command: {
       readonly commandName: string;
       readonly contractVersion: string;
       readonly id: string;
       readonly payload: string;
     };
-  }) => Effect.Effect<InferCommandPayload<PAYLOAD>, IAnyError>);
-  encodePayload: {
-    [BrandTypeId]: 'encodePayload';
-  } & ((props: { payload: any }) => Effect.Effect<string, IAnyError>);
-  validatePayload: {
-    [BrandTypeId]: 'validatePayload';
-  } & ((props: { payload: any }) => Effect.Effect<any, IAnyError, CuidFactory>);
+  }) => Effect.Effect<InferCommandPayload<PAYLOAD>, IAnyError>;
+  encodePayload: (props: { payload: any }) => Effect.Effect<string, IAnyError>;
+  validatePayload: (props: {
+    payload: any;
+  }) => Effect.Effect<any, IAnyError, CuidFactory>;
   mutations: MUTATIONS_SCHEMA;
   version: VERSION;
   program: InferContractProgram<
     PAYLOAD,
-    MUTATIONS_SCHEMA extends Schema.Schema.AnyNoContext
+    MUTATIONS_SCHEMA extends Schema.Codec<unknown, unknown>
       ? Schema.Schema.Type<MUTATIONS_SCHEMA>
       : Record<string, never>
   >;
   spec: IContractSpec;
-  readonly __mutations?: MUTATIONS_SCHEMA extends Schema.Schema.AnyNoContext
+  readonly __mutations?: MUTATIONS_SCHEMA extends Schema.Codec<unknown, unknown>
     ? Schema.Schema.Type<MUTATIONS_SCHEMA>
     : never;
 };
@@ -175,13 +167,11 @@ export type ICommand<
 export type ISessionId = InferIdFromAbbreviation<'sesn'>;
 
 /** Encode payload to string immediately before persisting a command row. */
-export type IEncodedCommand<COMMAND extends ICommand> = Omit<
-  COMMAND,
-  'payload'
-> &
-  Readonly<{
-    payload: string;
-  }>;
+export type IEncodedCommand<COMMAND extends ICommand> = {
+  readonly [KEY in keyof COMMAND]: KEY extends 'payload'
+    ? string
+    : COMMAND[KEY];
+};
 
 export type InferCommand<CONTRACT extends IContract> = ISessionCommand<
   ICommand<
@@ -189,161 +179,68 @@ export type InferCommand<CONTRACT extends IContract> = ISessionCommand<
     CONTRACT['version'],
     InferCommandPayload<CONTRACT['payload']>
   >
->;
+> &
+  Readonly<{ pushIndex: null }>;
 
 export type IAggregateCommand<COMMAND extends ICommand = ICommand> = COMMAND &
   Readonly<{
-    commandType: 'aggregate';
     aggregateId: string;
     aggregateName: string;
     systemName: string;
-    sessionId: ISessionId | null;
-    userId: string | null;
-    frontendName: string | null;
-    pushedCursor: IPushedCursorId | null;
-  }>;
+  }> &
+  (
+    | Readonly<{
+        sessionId: null;
+        userId: null;
+        frontendName: null;
+        pushIndex: null;
+      }>
+    | Readonly<{
+        sessionId: ISessionId;
+        userId: string;
+        frontendName: string;
+        pushIndex: number;
+      }>
+  );
 
 export type IServiceCommand<COMMAND extends ICommand = ICommand> = COMMAND &
   Readonly<{
-    commandType: 'service';
     serviceName: string;
   }>;
 
-export type IDeploySeedCommand = IAggregateCommand | IServiceCommand;
+export type ISeedCommand = IAggregateCommand | IServiceCommand;
 
-export type ISessionCommand<COMMAND extends ICommand = ICommand> = Omit<
-  IAggregateCommand<COMMAND>,
-  'userId' | 'commandType' | 'frontendName' | 'sessionId'
-> &
+export type ISessionCommand<COMMAND extends ICommand = ICommand> = COMMAND &
   Readonly<{
+    aggregateId: string;
+    aggregateName: string;
+    systemName: string;
     userId: string;
     frontendName: string;
     sessionId: ISessionId;
+    pushIndex: number | null;
   }>;
 
-export type IExecutedAggregateCommand<COMMAND extends ICommand = ICommand> =
-  IAggregateCommand<COMMAND> &
-    Readonly<{
-      mode: ICommandFinalizationMode;
-      aggregateCursor: IAggregateCursor;
-      aggregateIndex: number;
-      executedAt: Date;
-      status: 'executed';
-    }>;
-
-export type IExecutedServiceCommand<COMMAND extends ICommand = ICommand> =
-  IServiceCommand<COMMAND> &
-    Readonly<{
-      mode: ICommandFinalizationMode;
-      serviceCursor: IServiceCursorId;
-      serviceIndex: number;
-      executedAt: Date;
-      status: 'executed';
-    }>;
-
-export type IFailedAggregateCommand<COMMAND extends ICommand = ICommand> =
-  IAggregateCommand<COMMAND> &
-    Readonly<{
-      aggregateCursor: IAggregateCursor;
-      aggregateIndex: number;
-      failedAt: Date;
-      failure: string;
-      status: 'failed';
-    }>;
-
-export type IFailedServiceCommand<COMMAND extends ICommand = ICommand> =
-  IServiceCommand<COMMAND> &
-    Readonly<{
-      serviceCursor: IServiceCursorId;
-      serviceIndex: number;
-      failedAt: Date;
-      failure: string;
-      status: 'failed';
-    }>;
-
-export type IUnstagedCommand<COMMAND extends ICommand = ICommand> =
-  ISessionCommand<COMMAND> &
-    Readonly<{
-      commandType: 'frontend';
-      stagedCursor: null;
-      stagedAt: null;
-      status: null;
-    }>;
-
-export type IStagedSessionCommand<COMMAND extends ICommand = ICommand> =
-  ISessionCommand<COMMAND> &
-    Readonly<{
-      commandType: 'frontend';
-      stagedCursor: IStagedCursorId;
-      stagedAt: Date;
-      status: 'staged';
-    }>;
-
-export type IStagedReplicaCommand<COMMAND extends ICommand = ICommand> =
-  IStagedSessionCommand<COMMAND> &
-    Readonly<{
-      replicaIndex: number;
-    }>;
-
-export type IFailedStagedReplicaCommand<COMMAND extends ICommand = ICommand> =
-  Omit<IStagedReplicaCommand<COMMAND>, 'status'> &
-    Readonly<{
-      failedAt: Date;
-      failure: string;
-      status: 'failed';
-    }>;
-
-export type IFinalizedFailedStagedReplicaCommand<
+/** One flat occurrence in a command chain. */
+export type IChainedCommand<
   COMMAND extends ICommand = ICommand,
-> = IFailedStagedReplicaCommand<COMMAND> &
-  Readonly<{
-    aggregateCursor: IAggregateCursor;
-    aggregateIndex: number;
-  }>;
-
-export type IPushedCommand<COMMAND extends ICommand = ICommand> = Omit<
-  IStagedReplicaCommand<COMMAND>,
-  'status'
-> &
-  Readonly<{
-    pushedAt: Date;
-    pushedCursor: IPushedCursorId;
-    status: 'pushed';
-  }>;
-
-export type IExecutedPushedCommand<COMMAND extends ICommand = ICommand> = Omit<
-  IPushedCommand<COMMAND>,
-  'status'
-> &
-  Readonly<{
-    mode: ICommandFinalizationMode;
-    aggregateCursor: IAggregateCursor;
-    aggregateIndex: number;
-    executedAt: Date;
-    status: 'executed';
-  }>;
-
-export type IFailedPushedCommand<COMMAND extends ICommand = ICommand> = Omit<
-  IPushedCommand<COMMAND>,
-  'status'
-> &
-  Readonly<{
-    aggregateCursor: IAggregateCursor;
-    aggregateIndex: number;
-    failedAt: Date;
-    failure: string;
-    status: 'failed';
-  }>;
-
-export type IPushBlock = Readonly<{
-  writeIndex: number;
-  guardedAtAggregateCursor: IAggregateCursor | null;
-  pendingCommands: readonly IEncodedCommand<IPushedCommand>[];
-  pushedCommands: readonly IEncodedCommand<IPushedCommand>[];
-  executedCommands: readonly IEncodedCommand<IExecutedPushedCommand>[];
-  failedStagedCommands: readonly (
-    | IEncodedCommand<IFailedStagedReplicaCommand>
-    | IEncodedCommand<IFinalizedFailedStagedReplicaCommand>
-  )[];
-  failedPushedCommands: readonly IEncodedCommand<IFailedPushedCommand>[];
-}>;
+  DELTA = unknown,
+> = COMMAND &
+  Readonly<{ chainedAt: Date }> &
+  (
+    | Readonly<{
+        delta: null;
+        failedAt: null;
+        failure: null;
+      }>
+    | Readonly<{
+        delta: DELTA;
+        failedAt: null;
+        failure: null;
+      }>
+    | Readonly<{
+        delta: DELTA;
+        failedAt: Date;
+        failure: IAnyErrorJson;
+      }>
+  );

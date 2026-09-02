@@ -1,12 +1,12 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { IAnyErrorJson } from '@zerospin/error';
+import { type IAnyErrorJson, type IEncodedResult } from '@zerospin/error';
 import {
   newHttpBatchRpcResponse,
   newHttpBatchRpcSession,
   RpcTarget,
 } from 'capnweb';
-import { Brand, Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 import { http } from 'msw';
 import { setupServer } from 'msw/node';
 import {
@@ -25,15 +25,13 @@ import { encodeRpc } from './encodeRpc.ts';
 const TEST_RPC_URL = 'http://127.0.0.1:59999/rpc';
 
 class ApiA extends RpcTarget {
-  declare [Brand.BrandTypeId]: { readonly TargetApi: 'TargetApi' };
-  hello(): Promise<Schema.EitherEncoded<string, IAnyErrorJson>> {
+  hello(): Promise<IEncodedResult<string, IAnyErrorJson>> {
     return Effect.runPromise(Effect.succeed('world').pipe(encodeRpc));
   }
 }
 
 class ApiB extends RpcTarget {
-  declare [Brand.BrandTypeId]: { readonly TargetApi: 'TargetApi' };
-  hello(): Promise<Schema.EitherEncoded<string, IAnyErrorJson>> {
+  hello(): Promise<IEncodedResult<string, IAnyErrorJson>> {
     return Effect.runPromise(Effect.succeed('world').pipe(encodeRpc));
   }
 }
@@ -86,7 +84,7 @@ describe('newHttpBatchRpcSession (MSW + capnweb batch)', () => {
         using apis = newHttpBatchRpcSession<Apis>(TEST_RPC_URL);
         const stub = apis.ApiA();
         const result = yield* makeAsync(async () => stub.hello());
-        expect(result).toEqual({ _tag: 'Right', right: 'world' });
+        expect(result).toEqual({ _tag: 'Success', success: 'world' });
       }).pipe(Effect.provide(AsyncLive)),
     );
     await vi.waitFor(() => {

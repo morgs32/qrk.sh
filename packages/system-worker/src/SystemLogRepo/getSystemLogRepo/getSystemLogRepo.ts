@@ -6,15 +6,13 @@ import { SystemLogRepo } from '../SystemLogRepo.js';
 export const getSystemLogRepo = Effect.fn('getSystemLogRepo')(
   function* (props: {
     key: {
-      generationId: string;
+      systemId: string;
     };
   }) {
-    const name = yield* SystemLogRepo.boundDORepoConfig.nameUtils.makeName(
-      props.key,
-    );
-    const systemLogRepo: DurableObjectStub<
+    const { key } = props;
+    const name = yield* SystemLogRepo.fixedDORepoConfig.nameUtils.makeName(key);
+    return env.SYSTEM_LOG_REPO.getByName(name) as DurableObjectStub<
       Rpc.DurableObjectBranded & SystemLogRepo
-    > = env.SYSTEM_LOG_REPO.getByName(name);
-    return systemLogRepo;
+    >;
   },
 );

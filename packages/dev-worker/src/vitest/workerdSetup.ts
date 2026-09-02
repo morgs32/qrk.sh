@@ -1,8 +1,7 @@
 import '@zerospin/core/profiler/extend-expect/extend-expect';
+import { SELF } from 'cloudflare:test';
 import { beforeAll } from 'vitest';
 
-beforeAll(async () => {
-  const { exports: workerExports } = await import('cloudflare:workers');
-  globalThis.fetch = (input, init) =>
-    workerExports.default.fetch(new Request(input, init));
+beforeAll(() => {
+  globalThis.fetch = (input, init) => SELF.fetch(new Request(input, init));
 });

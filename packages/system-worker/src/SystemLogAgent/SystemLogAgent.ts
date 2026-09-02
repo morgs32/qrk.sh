@@ -1,103 +1,47 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type {
   ISystemLogRow,
   ISystemLogState,
 } from '@zerospin/core/system/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { mapParseError, ZerospinError } from '@zerospin/error';
 import { Agent, type Connection, type ConnectionContext } from 'agents';
-import { Effect, Either, Schema } from 'effect';
 
 import { managedRuntime } from '../managedRuntime.js';
-import { getSystemLogRepo } from '../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
-import { systemLogRowSchema } from '../SystemLogRepo/SystemLogRepo.js';
 
-export class SystemLogAgent extends Agent<Env, ISystemLogState> {
+import { onStart } from './onStart/onStart.js';
+import { pushLogRows } from './pushLogRows/pushLogRows.js';
+import { shouldConnectionBeReadonly } from './shouldConnectionBeReadonly/shouldConnectionBeReadonly.js';
+
+export class SystemLogAgent extends Agent<Cloudflare.Env, ISystemLogState> {
   override initialState: ISystemLogState = {
     rows: [],
     syncedAt: 0,
   };
 
-  /*
-   * 1. Read the Agent instance name.
-   * 2. Validate the name as a generation id.
-   * 3. Resolve the authoritative SystemLogRepo.
-   * 4. Call the latest-row RPC once and decode its wire result.
-   * 5. Replace the persisted Agent projection.
-   */
-  override async onStart(): Promise<void> {
-    // 1 — Agent names stay aligned with the generation-scoped repo name
-    const name = this.name;
-    const rows = await managedRuntime.runPromise(
-      Effect.gen(function* () {
-        // 2 — reject unnamed or malformed activations before any repo lookup
-        const generationId = yield* Schema.validate(
-          makeAbbreviationIdSchema(coreAbbreviations.generation),
-        )(name).pipe(
-          mapParseError({
-            code: 'failed-to-decode-system-log-agent-generation-id',
-            prefix: 'Failed to decode SystemLogAgent generationId',
-            extra: { generationId: name },
-          }),
-        );
-        // 3 — preserve SystemLogRepo naming policy by using the lookup boundary
-        const systemLogRepo = yield* getSystemLogRepo({
-          key: { generationId },
-        });
-        // 4 — activation performs one SystemLogRepo read
-        return yield* makeAsync(() =>
-          systemLogRepo.getSystemLogRows({ limit: 100 }),
-        ).pipe(
-          Effect.flatMap(encoded =>
-            Schema.decodeUnknown(
-              Schema.Either({
-                left: ZerospinError.schema,
-                right: Schema.Array(Schema.typeSchema(systemLogRowSchema)),
-              }),
-            )(encoded).pipe(
-              mapParseError({
-                code: 'failed-to-decode-system-log-agent-rows',
-                prefix: 'Failed to decode SystemLogAgent rows',
-              }),
-            ),
-          ),
-          Effect.flatMap(result =>
-            Either.isLeft(result) ? result.left : Effect.succeed(result.right),
-          ),
-        );
+  override onStart(): Promise<void> {
+    return managedRuntime.runPromise(
+      onStart({
+        name: this.name,
+        systemId: this.env.ZEROSPIN_SYSTEM_ID,
+        setState: state => this.setState(state),
       }),
     );
-    // 5 — authoritative startup always replaces, rather than merges with, persisted state
-    this.setState({ rows, syncedAt: Date.now() });
   }
 
   override shouldConnectionBeReadonly(
-    _connection: Connection,
-    _context: ConnectionContext,
+    connection: Connection,
+    context: ConnectionContext,
   ): boolean {
-    return true;
+    return managedRuntime.runSync(
+      shouldConnectionBeReadonly({ connection, context }),
+    );
   }
 
-  /*
-   * 1. Combine persisted and incoming rows.
-   * 2. Deduplicate rows by identity.
-   * 3. Materialize the deduplicated projection.
-   * 4. Order exclusively by descending log index.
-   * 5. Persist and broadcast the newest 100 rows.
-   */
-  async pushLogRows(rows: readonly ISystemLogRow[]): Promise<void> {
-    // 1 — include persisted rows so incremental delivery never discards prior state
-    const rowsById = new Map(
-      // 2 — incoming retries replace the same id instead of duplicating it
-      [...this.state.rows, ...rows].map(row => [row.id, row]),
+  pushLogRows(rows: readonly ISystemLogRow[]): Promise<void> {
+    return managedRuntime.runPromise(
+      pushLogRows({
+        currentRows: this.state.rows,
+        rows,
+        setState: state => this.setState(state),
+      }),
     );
-    // 3 — Map values are the complete idempotent projection before ordering
-    const stateRows = [...rowsById.values()]
-      // 4 — timestamps and ids never participate in projection ordering
-      .sort((left, right) => right.logIndex - left.logIndex)
-      .slice(0, 100);
-    // 5 — Agent setState persists and emits the Cloudflare state protocol update
-    this.setState({ rows: stateRows, syncedAt: Date.now() });
   }
 }

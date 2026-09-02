@@ -1,7 +1,7 @@
 import { main } from '@zerospin/core/fixtures/system';
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
 import { makeSession } from '@zerospin/core/session/makeSession';
-import { Effect, Schema } from 'effect';
+import { Schema } from 'effect';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { zerospinDevtoolsStore } from './zerospinDevtoolsStore.js';
@@ -19,7 +19,6 @@ describe('zerospinDevtoolsStore session ownership', () => {
     const aggregateSession = makeSession({
       frontend: main,
       sessionId: aggregateSessionId,
-      generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     const serviceSession = makeServiceSession({
       frontend: {
@@ -34,11 +33,16 @@ describe('zerospinDevtoolsStore session ownership', () => {
         signature: Schema.Struct({ userId: Schema.String }),
       },
       sessionId: serviceSessionId,
-      mode: 'shared-worker',
     });
 
     zerospinDevtoolsStore.getState().addAggregateSession({
       session: aggregateSession,
+      getPushPaused: async () => ({ _tag: 'Success', success: false }),
+      setPushPaused: async () => ({ _tag: 'Success', success: undefined }),
+      pushNow: async () => ({
+        _tag: 'Success',
+        success: { status: 'empty' },
+      }),
     });
     zerospinDevtoolsStore.getState().addServiceSession({
       session: serviceSession,

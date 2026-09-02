@@ -4,37 +4,30 @@
  */
 
 import type { IDb } from '@zerospin/core/drizzle/types';
-import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
 import type { IRepoType } from '@zerospin/core/system/types';
 import { ZerospinError } from '@zerospin/error';
-import { and, asc, eq, type AnyColumn } from 'drizzle-orm';
+import type { IAnyDrizzleSchema } from '@zerospin/schema';
+import { asc, eq, type AnyColumn } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
-const RepoTableNames = Schema.parseJson(Schema.Array(Schema.String));
+const RepoTableNames = Schema.fromJsonString(Schema.Array(Schema.String));
 
 export const getRepoRegistrations = Effect.fn(
   'SystemRepo.getRepoRegistrations',
 )(function* (props: {
   db: IDb;
-  generationId: string;
   repoTable: IAnyDrizzleSchema & {
-    generationId: AnyColumn;
     repoType: AnyColumn;
     repoName: AnyColumn;
   };
   repoType: IRepoType;
 }) {
-  const { db, generationId, repoTable, repoType } = props;
+  const { db, repoTable, repoType } = props;
   yield* Effect.void;
   const rows = db
     .select()
     .from(repoTable)
-    .where(
-      and(
-        eq(repoTable.generationId, generationId),
-        eq(repoTable.repoType, repoType),
-      ),
-    )
+    .where(eq(repoTable.repoType, repoType))
     .orderBy(asc(repoTable.repoName))
     .all();
 
@@ -43,19 +36,19 @@ export const getRepoRegistrations = Effect.fn(
       Schema.decodeUnknownSync(
         Schema.Array(
           Schema.Struct({
-            generationId: Schema.String,
-            repoType: Schema.Literal(
+            repoType: Schema.Literals([
               'SystemRepo',
-              'AggregateRepo',
-              'AggregateFrontendRepo',
-              'ServiceFrontendRepo',
-              'ServiceRepo',
-              'AggregateBlockRepo',
-              'AggregateFrontendBlockRepo',
-              'ServiceFrontendBlockRepo',
-              'ServiceBlockRepo',
+              'MaterializedAggregateRepo',
+              'MaterializedAggregateFrontendRepo',
+              'MaterializedServiceFrontendRepo',
+              'MaterializedServiceRepo',
+              'AggregateCommandChain',
+              'AggregateFrontendPushedCommandChain',
+              'AggregateFrontendFinalizedCommandChain',
+              'ServiceFrontendFinalizedCommandChain',
+              'ServiceCommandChain',
               'SystemLogRepo',
-            ),
+            ]),
             repoName: Schema.String,
             tableNames: Schema.String,
           }),

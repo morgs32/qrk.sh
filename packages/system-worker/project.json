@@ -10,8 +10,16 @@
     },
     "test:workerd": {
       "executor": "nx:run-script",
+      "dependsOn": ["^lib"],
       "options": {
         "script": "test:workerd"
+      }
+    },
+    "static-cutover:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/checkStaticCutover.mjs",
+        "cwd": "{projectRoot}"
       }
     }
   }

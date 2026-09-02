@@ -2,6 +2,7 @@ import { StrictMode, Suspense } from 'react';
 
 import '@fontsource-variable/geist/wght.css';
 import '@fontsource-variable/geist-mono/wght.css';
+import { ZerospinRouteErrorBoundary } from '@zerospin/react-router/ZerospinRouteErrorBoundary';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 
@@ -9,7 +10,6 @@ import { AppUpdateDialog } from '@/components/AppUpdateDialog';
 import { AuthenticatedRoute } from '@/routes/AuthenticatedRoute';
 import { ProductRoute } from '@/routes/ProductRoute.client';
 import { RootRoute } from '@/routes/RootRoute';
-import { ShoppingErrorBoundary } from '@/routes/ShoppingErrorBoundary';
 import { ShoppingRoute } from '@/routes/ShoppingRoute';
 import { SignInRoute } from '@/routes/SignInRoute';
 import { SignUpRoute } from '@/routes/SignUpRoute';
@@ -30,7 +30,7 @@ const router = createBrowserRouter([
       },
       {
         element: <AuthenticatedRoute />,
-        ErrorBoundary: ShoppingErrorBoundary,
+        ErrorBoundary: ZerospinRouteErrorBoundary,
         children: [
           {
             path: '/',

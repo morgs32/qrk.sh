@@ -8,6 +8,7 @@ import { Effect } from 'effect';
  * @bad Add a helper solely to hide one test readback query; keep the direct query at the assertion site.
  */
 export function seedFixtureAndReadAssertionRows(props: {
+  activeCommands: unknown;
   db: {
     insert: (table: unknown) => {
       values: (row: Record<string, unknown>) => { run: () => void };
@@ -17,68 +18,36 @@ export function seedFixtureAndReadAssertionRows(props: {
     };
   };
   now: Date;
-  stagedCommands: unknown;
   users: unknown;
 }) {
-  const { db, now, stagedCommands, users } = props;
-
-  db.insert(users)
+  props.db
+    .insert(props.users)
     .values({
       id: 'usr_1',
       modelName: 'user',
-      createdAt: now,
-      updatedAt: now,
+      createdAt: props.now,
+      updatedAt: props.now,
       version: 1,
       name: 'Ada',
     })
     .run();
 
-  const stagedRows = db.select().from(stagedCommands).all();
-
-  return stagedRows;
+  return props.db.select().from(props.activeCommands).all();
 }
 
 export function readRowsFromExistingEffectHelper(props: {
+  activeCommands: unknown;
   db: {
     select: () => {
       from: (table: unknown) => { all: () => Array<{ id: string }> };
     };
   };
-  failedCommands: unknown;
-  executedCommands: unknown;
-  pushedCommands: unknown;
-  stagedCommands: unknown;
 }) {
-  const {
-    db,
-    failedCommands,
-    executedCommands,
-    pushedCommands,
-    stagedCommands,
-  } = props;
-
-  return Effect.sync(() => {
-    const stagedIds = db
+  return Effect.sync(() =>
+    props.db
       .select()
-      .from(stagedCommands)
+      .from(props.activeCommands)
       .all()
-      .map(row => row.id);
-    const pushedIds = db
-      .select()
-      .from(pushedCommands)
-      .all()
-      .map(row => row.id);
-    const executedIds = db
-      .select()
-      .from(executedCommands)
-      .all()
-      .map(row => row.id);
-    const failedIds = db
-      .select()
-      .from(failedCommands)
-      .all()
-      .map(row => row.id);
-
-    return { executedIds, failedIds, pushedIds, stagedIds };
-  });
+      .map(row => row.id),
+  );
 }

@@ -1,7 +1,7 @@
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import type { IAnyErrorJson } from '@zerospin/error';
+import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
 import { RpcTarget } from 'capnweb';
-import { Brand, Effect, type Schema } from 'effect';
+import { Effect } from 'effect';
 
 import type { ISnapshot } from './FixtureStateRepo.js';
 
@@ -12,8 +12,6 @@ import type { ISnapshot } from './FixtureStateRepo.js';
  * Agent WebSocket at `/ws/sync/{name}`.
  */
 export class FixtureSyncRpcApi extends RpcTarget {
-  declare [Brand.BrandTypeId]: 'Apis';
-
   constructor(private readonly workerEnv: Env) {
     super();
   }
@@ -24,7 +22,7 @@ export class FixtureSyncRpcApi extends RpcTarget {
 
   async getSnapshot(props: {
     name: string;
-  }): Promise<Schema.EitherEncoded<ISnapshot, IAnyErrorJson>> {
+  }): Promise<IEncodedResult<ISnapshot, IAnyErrorJson>> {
     const { name } = props;
     const { workerEnv } = this;
     return Effect.runPromise(
@@ -37,7 +35,7 @@ export class FixtureSyncRpcApi extends RpcTarget {
   async bump(props: {
     name: string;
     value: string;
-  }): Promise<Schema.EitherEncoded<ISnapshot, IAnyErrorJson>> {
+  }): Promise<IEncodedResult<ISnapshot, IAnyErrorJson>> {
     const { name, value } = props;
     const { workerEnv } = this;
     return Effect.runPromise(

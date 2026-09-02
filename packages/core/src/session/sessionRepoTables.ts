@@ -1,64 +1,70 @@
+import {
+  makeDrizzleSchemaFromTable,
+  makeTable,
+  primitives,
+  type IAnyTables,
+} from '@zerospin/schema';
+
 import { makeDrizzleSchemasRecordFromTables } from '../drizzle/makeDrizzleSchemas.ts';
-import { makeTable } from '../models/makeTable.ts';
-import { makeDrizzleSchemaFromTable } from '../models/primitiveMaps.ts';
-import { primitives } from '../models/primitives.ts';
-import type { IAnyTables } from '../models/types.ts';
-import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
 
 import {
-  sessionExecutedPushedCommandShape,
-  sessionFailedCommandShape,
+  sessionCommandJournalShape,
   sessionOptimisticAppliedMutationShape,
-  sessionPushedCommandShape,
-  sessionStagedCommandShape,
 } from './sessionCommandShape.ts';
 
-const sharedWorkerMetadataTable = makeTable({
-  name: 'sharedWorkerMetadata',
+const sessionMetadataTable = makeTable({
+  name: 'sessionMetadata',
   shape: {
-    id: primitives.primaryKey({ abbreviation: 'wwm' }),
-    systemId: primitives.opaqueId({
-      abbreviation: coreAbbreviations.system,
-    }),
-    aggregateId: primitives.opaqueId({
-      abbreviation: coreAbbreviations.aggregate,
-    }),
-    aggregateName: primitives.text(),
-    frontendName: primitives.text(),
-    aggregateFrontendLockKey: primitives.text(),
-    userId: primitives.text(),
-    hasState: primitives.boolean(),
-    frontendIndex: primitives.integer({ nullable: true }),
+    sessionId: primitives.primaryKey({ abbreviation: 'sesn' }),
+    nextSessionIndex: primitives.integer(),
+    aggregateIndex: primitives.integer(),
+    frontendIndex: primitives.integer(),
+    pushIndex: primitives.integer(),
+    systemVersion: primitives.text(),
   },
 });
 
-export const sharedWorkerMetadataDrizzleSchema = makeDrizzleSchemaFromTable(
-  sharedWorkerMetadataTable,
+const sessionResolvedPushTable = makeTable({
+  name: 'sessionResolvedPush',
+  shape: {
+    sessionId: primitives.opaqueId({ abbreviation: 'sesn' }),
+    pushIndex: primitives.integer(),
+  },
+  indexes: [
+    {
+      name: 'session_resolved_push_session_push_unique',
+      columns: ['sessionId', 'pushIndex'],
+      unique: true,
+    },
+  ],
+});
+
+export const sessionMetadataDrizzleSchema =
+  makeDrizzleSchemaFromTable(sessionMetadataTable);
+
+export const sessionResolvedPushDrizzleSchema = makeDrizzleSchemaFromTable(
+  sessionResolvedPushTable,
 );
 
 /** Non-model tables merged with `frontend.models` for session DB adapters. */
 export const sessionRepoTables = {
-  stagedCommands: makeTable({
-    name: 'stagedCommands',
-    shape: sessionStagedCommandShape,
-  }),
-  pushedCommands: makeTable({
-    name: 'pushedCommands',
-    shape: sessionPushedCommandShape,
-  }),
-  executedPushedCommands: makeTable({
-    name: 'executedPushedCommands',
-    shape: sessionExecutedPushedCommandShape,
-  }),
-  failedCommands: makeTable({
-    name: 'failedCommands',
-    shape: sessionFailedCommandShape,
+  commandJournal: makeTable({
+    name: 'commandJournal',
+    shape: sessionCommandJournalShape,
+    indexes: [
+      {
+        name: 'session_command_journal_session_index_unique',
+        columns: ['sessionId', 'sessionIndex'],
+        unique: true,
+      },
+    ],
   }),
   optimisticAppliedMutations: makeTable({
     name: 'optimisticAppliedMutations',
     shape: sessionOptimisticAppliedMutationShape,
   }),
-  sharedWorkerMetadata: sharedWorkerMetadataTable,
+  sessionMetadata: sessionMetadataTable,
+  sessionResolvedPush: sessionResolvedPushTable,
 } satisfies IAnyTables;
 
 export const sessionRepoSchema =

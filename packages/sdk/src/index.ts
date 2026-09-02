@@ -2,7 +2,7 @@ export * from '@zerospin/core/aggregate/makeAggregateCommand';
 export * from '@zerospin/core/contracts/CommandSchema';
 export * from '@zerospin/core/contracts/makeContractAdapter';
 export * from '@zerospin/core/contracts/makeContract';
-export * from '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb';
+export * from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 export * from '@zerospin/core/frontendController/makeFrontendController';
 export * from '@zerospin/core/authentication/makeSignature';
 export * from '@zerospin/core/frontendController/makeAggregateFrontendLock';
@@ -10,14 +10,23 @@ export * from '@zerospin/core/frontendController/makeAggregateFrontendLockKey';
 export * from '@zerospin/core/frontendController/makeServiceFrontendLock';
 export * from '@zerospin/core/frontendController/makeServiceFrontendLockKey';
 export * from '@zerospin/core/models/makeModel';
+export * from '@zerospin/core/models/makeReplica';
 export * from '@zerospin/core/models/makeSelection';
-export * from '@zerospin/core/models/makeServiceModel';
-export * from '@zerospin/core/models/primitives';
+export {
+  makeIdFromAbbreviation,
+  primitives,
+  type IDrizzleBooleanColumnBuilder,
+  type IDrizzleEnumColumnBuilder,
+  type IDrizzleIntegerColumnBuilder,
+  type IDrizzleRealColumnBuilder,
+  type IDrizzleTextColumnBuilder,
+  type IDrizzleTimestampColumnBuilder,
+  type InferDrizzleColumnBuilderData,
+  type InferNullableDrizzleColumnBuilderData,
+} from '@zerospin/schema';
 export * from '@zerospin/core/session/makeSession';
 export * from '@zerospin/core/system/makeSeeds';
-export * from '@zerospin/core/system/makeSystemConfig';
 export * from '@zerospin/core/system/makeSystem';
 export * from '@zerospin/core/utils/makeAggregateId';
-export * from '@zerospin/core/utils/makeIdFromAbbreviation';
 export * from '@zerospin/error';
 export * from './version.js';

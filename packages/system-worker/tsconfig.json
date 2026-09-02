@@ -53,10 +53,13 @@
     "tests/workerd/**",
     "src/TestWorker.ts",
     "src/FixtureRepo/**",
-    "src/makeBoundDORepo/test/**",
+    "src/makeFixedDORepo/test/**",
     "src/workerd-utils/**"
   ],
   "references": [
+    {
+      "path": "../schema"
+    },
     {
       "path": "../logger"
     },

@@ -1,7 +1,8 @@
+import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { primitives } from '../models/primitives.ts';
+import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 
 import { makeContract } from './makeContract.ts';
 
@@ -41,7 +42,9 @@ describe('contract payload methods', () => {
     const payload = await Effect.runPromise(
       jsonContract.validatePayload({
         payload: { data: { value: 'decoded input' } },
-      }),
+      }).pipe(
+        Effect.provide(makePrefixedIncrementalIdFactory('validatePayload')),
+      ),
     );
 
     expect(payload).toEqual({ data: { value: 'decoded input' } });

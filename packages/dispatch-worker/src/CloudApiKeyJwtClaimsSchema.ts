@@ -1,6 +1,6 @@
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type { ISystemId } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { Schema } from 'effect';
 
 /** Raw Clerk user dev API key `claims` object (JWT template). */
@@ -26,7 +26,7 @@ export type ICloudApiKeyJwtClaims =
 
 const cloudApiKeyJwtClaimsBase = {
   systemId: makeAbbreviationIdSchema(coreAbbreviations.system),
-  keyType: Schema.Literal('secret', 'publishable'),
+  keyType: Schema.Literals(['secret', 'publishable']),
   keyPairName: Schema.String,
 } as const;
 
@@ -34,14 +34,14 @@ export const UserDevKeyJwtClaimsSchema = Schema.Struct({
   ...cloudApiKeyJwtClaimsBase,
   systemEnvironmentId: Schema.Literal('dev'),
   clerkUserId: Schema.String,
-}) satisfies Schema.Schema<IUserDevKeyJwtClaims>;
+}) satisfies Schema.Codec<IUserDevKeyJwtClaims>;
 
 export const SystemProductionKeyJwtClaimsSchema = Schema.Struct({
   ...cloudApiKeyJwtClaimsBase,
   systemEnvironmentId: Schema.Literal('production'),
-}) satisfies Schema.Schema<ISystemProductionKeyJwtClaims>;
+}) satisfies Schema.Codec<ISystemProductionKeyJwtClaims>;
 
-export const CloudApiKeyJwtClaimsSchema = Schema.Union(
+export const CloudApiKeyJwtClaimsSchema = Schema.Union([
   UserDevKeyJwtClaimsSchema,
   SystemProductionKeyJwtClaimsSchema,
-);
+]);

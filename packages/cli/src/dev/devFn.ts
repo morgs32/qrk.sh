@@ -1,22 +1,23 @@
 import { createRequire } from 'node:module';
 
-import {
-  Command,
-  FileSystem,
-  Path,
-  Terminal,
-  type CommandExecutor,
-} from '@effect/platform';
 import type { Async } from '@zerospin/core/async/Async';
 import type { ISystemId } from '@zerospin/core/system/types';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { defaultRetrySchedule } from '@zerospin/core/utils/defaultRetrySchedule';
-import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { loadConfig } from 'c12';
 import { config as loadEnv } from 'dotenv';
-import { Config, Effect, Option, Queue, Schema, Stream } from 'effect';
-import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
+import {
+  Config,
+  Effect,
+  FileSystem,
+  Option,
+  Path,
+  Stream,
+  Terminal,
+} from 'effect';
+import {
+  ChildProcess,
+  type ChildProcessSpawner,
+} from 'effect/unstable/process';
 
 import { loadZerospinConfigFn } from '../deploy/loadZerospinConfigFn.js';
 
@@ -30,7 +31,7 @@ export const devFn = Effect.fn('devFn')(function* (props: {
   Readonly<{ port: number | undefined }>,
   IAnyError,
   | Async
-  | CommandExecutor.CommandExecutor
+  | ChildProcessSpawner.ChildProcessSpawner
   | FileSystem.FileSystem
   | Path.Path
   | Terminal.Terminal
@@ -41,7 +42,6 @@ export const devFn = Effect.fn('devFn')(function* (props: {
   const pathApi = yield* Path.Path;
   const terminal = yield* Terminal.Terminal;
 
-  // Project config modules may read process.env while they are imported.
   yield* Effect.sync(() => {
     loadEnv({ path: pathApi.join(cwd, '.env.local') });
     loadEnv({ path: pathApi.join(cwd, '.env') });
@@ -49,11 +49,7 @@ export const devFn = Effect.fn('devFn')(function* (props: {
 
   let port = portOption;
   if (port === undefined) {
-    const configuredPort = yield* Config.integer('ZEROSPIN_PORT').pipe(
-      Config.validate({
-        message: 'must be an integer from 1 to 65535',
-        validation: value => value >= 1 && value <= 65_535,
-      }),
+    const configuredPort = yield* Config.port('ZEROSPIN_PORT').pipe(
       Config.option,
       Effect.mapError(
         cause =>
@@ -68,7 +64,6 @@ export const devFn = Effect.fn('devFn')(function* (props: {
     port = Option.getOrUndefined(configuredPort);
   }
 
-  // Resolve every launch input before starting Wrangler.
   const wranglerBinPath = yield* Effect.try({
     try: () => {
       const wranglerPackageJsonPath = require.resolve('wrangler/package.json', {
@@ -88,9 +83,17 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         cause: ZerospinError.prettyUnknownFailure(cause),
       }),
   });
+  const devWorkerPath = yield* Effect.try({
+    try: () => require.resolve('@zerospin/dev-worker/DevWorker'),
+    catch: cause =>
+      new ZerospinError({
+        code: 'zerospin-dev-worker-not-found',
+        message: 'Could not resolve the Zerospin development Worker.',
+        cause: ZerospinError.prettyUnknownFailure(cause),
+      }),
+  });
 
   const zerospinConfig = yield* loadZerospinConfigFn(cwd);
-
   const wranglerConfigResult = yield* Effect.tryPromise({
     try: () =>
       loadConfig<Record<string, unknown>>({
@@ -139,35 +142,6 @@ export const devFn = Effect.fn('devFn')(function* (props: {
     });
   }
 
-  const devWorkerPath = yield* Effect.try({
-    try: () => require.resolve('@zerospin/dev-worker/DevWorker'),
-    catch: cause =>
-      new ZerospinError({
-        code: 'zerospin-dev-worker-not-found',
-        message: 'Could not resolve the Zerospin development Worker.',
-        cause: ZerospinError.prettyUnknownFailure(cause),
-      }),
-  });
-
-  const devSeedsEntry = zerospinConfig.seeds.dev;
-  const seedModulePath = yield* Effect.try({
-    try: () =>
-      devSeedsEntry === null
-        ? require.resolve(
-            pathApi.join(pathApi.dirname(devWorkerPath), 'emptySeeds.js'),
-          )
-        : require.resolve(pathApi.resolve(cwd, devSeedsEntry)),
-    catch: cause =>
-      new ZerospinError({
-        code: 'zerospin-dev-seeds-not-found',
-        message:
-          devSeedsEntry === null
-            ? 'Could not resolve the built-in empty dev seed module.'
-            : `Could not resolve the configured dev seed module ${devSeedsEntry}.`,
-        cause: ZerospinError.prettyUnknownFailure(cause),
-      }),
-  });
-
   const generatedConfigName = `wrangler.zerospin-dev.${process.pid}.local.json`;
   const generatedConfigPath = pathApi.join(cwd, generatedConfigName);
   const generatedConfig = {
@@ -175,13 +149,33 @@ export const devFn = Effect.fn('devFn')(function* (props: {
     alias: {
       ...authoredAlias,
       system: pathApi.resolve(cwd, zerospinConfig.entry),
-      seeds: seedModulePath,
     },
     vars: {
       ...authoredVars,
       ZEROSPIN_ENVIRONMENT: 'dev',
     },
   };
+  const persistPath = pathApi.join(
+    cwd,
+    '.wrangler',
+    'zerospin',
+    'dev-worker',
+    encodeURIComponent(systemId),
+  );
+  if (clean) {
+    yield* fileSystem
+      .remove(persistPath, { force: true, recursive: true })
+      .pipe(
+        Effect.mapError(
+          cause =>
+            new ZerospinError({
+              code: 'zerospin-dev-clean-failed',
+              message: `Failed to remove local Zerospin state at ${persistPath}.`,
+              cause: ZerospinError.prettyUnknownFailure(cause),
+            }),
+        ),
+      );
+  }
 
   const wranglerArgs = [
     wranglerBinPath,
@@ -191,20 +185,12 @@ export const devFn = Effect.fn('devFn')(function* (props: {
     `./${generatedConfigName}`,
     '--ip',
     '127.0.0.1',
+    '--persist-to',
+    persistPath,
   ];
   if (port !== undefined) {
     wranglerArgs.push('--port', String(port));
   }
-  wranglerArgs.push(
-    '--persist-to',
-    pathApi.join(
-      cwd,
-      '.wrangler',
-      'zerospin',
-      'dev-worker',
-      encodeURIComponent(systemId),
-    ),
-  );
 
   const removeGeneratedConfig = fileSystem
     .remove(generatedConfigPath, { force: true })
@@ -240,15 +226,16 @@ export const devFn = Effect.fn('devFn')(function* (props: {
 
     return yield* Effect.scoped(
       Effect.gen(function* () {
-        const wranglerProcess = yield* Command.make(
+        const wranglerProcess = yield* ChildProcess.make(
           process.execPath,
-          ...wranglerArgs,
+          wranglerArgs,
+          {
+            cwd,
+            stdin: 'inherit',
+            stdout: 'pipe',
+            stderr: 'inherit',
+          },
         ).pipe(
-          Command.workingDirectory(cwd),
-          Command.stdin('inherit'),
-          Command.stdout('pipe'),
-          Command.stderr('inherit'),
-          Command.start,
           Effect.mapError(
             cause =>
               new ZerospinError({
@@ -258,51 +245,16 @@ export const devFn = Effect.fn('devFn')(function* (props: {
               }),
           ),
         );
-        const activationSignals = yield* Queue.sliding<boolean>(1);
-        const reloadCompleteMarker = '⎔ Local server updated and ready';
-        let baseUrl: string | undefined;
-        let markerBuffer = '';
-        let cleanAcknowledged = false;
-
-        const monitorOutput = wranglerProcess.stdout.pipe(
+        const output = wranglerProcess.stdout.pipe(
           Stream.decodeText(),
           Stream.runForEach(text =>
-            Effect.gen(function* () {
-              yield* terminal.display(text);
-              wranglerOutput = `${wranglerOutput}${text}`.slice(-16_384);
-              markerBuffer = `${markerBuffer}${text}`;
-
-              if (baseUrl === undefined) {
-                const readyMatch = markerBuffer.match(
-                  /Ready on (http:\/\/[^/\s]+:\d+)/,
-                );
-                const readyUrl = readyMatch?.[1];
-                if (readyMatch === null || readyUrl === undefined) {
-                  markerBuffer = markerBuffer.slice(-16_384);
-                  return;
-                }
-
-                baseUrl = readyUrl;
-                markerBuffer = markerBuffer.slice(
-                  (readyMatch.index ?? 0) + readyMatch[0].length,
-                );
-                yield* Queue.offer(activationSignals, true);
-              }
-
-              let reloadCompleteIndex =
-                markerBuffer.indexOf(reloadCompleteMarker);
-              while (reloadCompleteIndex !== -1) {
-                markerBuffer = markerBuffer.slice(
-                  reloadCompleteIndex + reloadCompleteMarker.length,
-                );
-                yield* Queue.offer(activationSignals, true);
-                reloadCompleteIndex =
-                  markerBuffer.indexOf(reloadCompleteMarker);
-              }
-              markerBuffer = markerBuffer.slice(
-                -(reloadCompleteMarker.length - 1),
-              );
-            }),
+            terminal.display(text).pipe(
+              Effect.andThen(
+                Effect.sync(() => {
+                  wranglerOutput = `${wranglerOutput}${text}`.slice(-16_384);
+                }),
+              ),
+            ),
           ),
           Effect.mapError(
             cause =>
@@ -312,141 +264,21 @@ export const devFn = Effect.fn('devFn')(function* (props: {
                 cause: ZerospinError.prettyUnknownFailure(cause),
               }),
           ),
-          Effect.andThen(Effect.never),
         );
-
-        const activateWorkerVersions = Effect.forever(
-          Effect.gen(function* () {
-            yield* Queue.take(activationSignals);
-
-            if (baseUrl === undefined) {
-              return;
-            }
-            const gatewayApiUrl = baseUrl;
-
-            let deployId: string | null = null;
-            let shouldStartDeploy = true;
-
-            while (true) {
-              const snapshot = yield* Effect.gen(function* () {
-                const encoded = yield* Effect.tryPromise({
-                  try: async () => {
-                    using gatewayApi =
-                      newSyncRpcSession<GatewayApi>(gatewayApiUrl);
-                    const devDeployApi = gatewayApi.getDevDeployApi();
-                    if (shouldStartDeploy) {
-                      return await devDeployApi.startDeploy({
-                        clean: clean && !cleanAcknowledged,
-                      });
-                    }
-                    if (deployId === null) {
-                      throw new ZerospinError({
-                        code: 'zerospin-dev-deploy-response-invalid',
-                        message:
-                          'The activating local Zerospin deploy omitted its deployId.',
-                      });
-                    }
-                    return await devDeployApi.getDeploy({ deployId });
-                  },
-                  catch: cause =>
-                    ZerospinError.isZerospinError(cause)
-                      ? cause
-                      : new ZerospinError({
-                          code: 'zerospin-dev-start-deploy-failed',
-                          message:
-                            'Failed to start local Zerospin deploy activation.',
-                          cause: ZerospinError.prettyUnknownFailure(cause),
-                        }),
-                });
-                const decoded = yield* decodeRpc(encoded);
-                return yield* Schema.decodeUnknown(
-                  Schema.Struct({
-                    activationCheckpoint: Schema.Literal(
-                      'allocated',
-                      'generation-prepared',
-                      'continuous-replay',
-                      'pre-cut-ready',
-                      'ownership-cut',
-                      'source-writes-terminal',
-                      'fixed-point-drained',
-                      'final-replay-complete',
-                    ),
-                    clean: Schema.Boolean,
-                    deployId: Schema.String,
-                    failure: Schema.NullOr(ZerospinError.schema),
-                    generationId: Schema.String,
-                    status: Schema.Literal('activating', 'succeeded', 'failed'),
-                    workerVersionId: Schema.String,
-                  }),
-                )(decoded).pipe(
-                  Effect.mapError(
-                    cause =>
-                      new ZerospinError({
-                        code: 'zerospin-dev-deploy-response-invalid',
-                        message:
-                          'The local Zerospin Worker returned an invalid deploy response.',
-                        cause: ZerospinError.prettyUnknownFailure(cause),
-                      }),
-                  ),
-                );
-              }).pipe(
-                Effect.retry({
-                  schedule: defaultRetrySchedule,
-                  while: error =>
-                    error.code === 'zerospin-dev-start-deploy-failed' ||
-                    error.code ===
-                      (shouldStartDeploy
-                        ? 'failed-to-start-deploy-rpc'
-                        : 'failed-to-get-deploy-rpc'),
+        const [code] = yield* Effect.all([
+          wranglerProcess.exitCode.pipe(
+            Effect.mapError(
+              cause =>
+                new ZerospinError({
+                  code: 'zerospin-dev-wrangler-signaled',
+                  message: 'Wrangler exited before returning an exit code.',
+                  cause: ZerospinError.prettyUnknownFailure(cause),
                 }),
-              );
-
-              if (shouldStartDeploy) {
-                cleanAcknowledged = true;
-              }
-
-              if (snapshot.status === 'failed') {
-                if (snapshot.failure === null) {
-                  return yield* new ZerospinError({
-                    code: 'zerospin-dev-deploy-response-invalid',
-                    message:
-                      'The failed local Zerospin deploy omitted its persisted failure.',
-                  });
-                }
-                return yield* snapshot.failure;
-              }
-              if (snapshot.status === 'succeeded') {
-                break;
-              }
-
-              deployId = snapshot.deployId;
-              shouldStartDeploy = false;
-              const workerReloaded = yield* Effect.sleep(250).pipe(
-                Effect.as(false),
-                Effect.raceFirst(
-                  Queue.take(activationSignals).pipe(Effect.as(true)),
-                ),
-              );
-              if (workerReloaded) {
-                deployId = null;
-                shouldStartDeploy = true;
-              }
-            }
-          }),
-        );
-
-        return yield* wranglerProcess.exitCode.pipe(
-          Effect.mapError(
-            cause =>
-              new ZerospinError({
-                code: 'zerospin-dev-wrangler-signaled',
-                message: 'Wrangler exited before returning an exit code.',
-                cause: ZerospinError.prettyUnknownFailure(cause),
-              }),
+            ),
           ),
-          Effect.raceFirst(activateWorkerVersions),
-          Effect.raceFirst(monitorOutput),
-        );
+          output,
+        ]);
+        return code;
       }),
     );
   }).pipe(

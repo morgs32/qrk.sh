@@ -2,9 +2,9 @@ import { it } from '@effect/vitest';
 import { Effect } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { projectAggregateFrontendResource } from './AggregateFrontendRepo/projectAggregateFrontendResource/projectAggregateFrontendResource.js';
+import { projectAggregateFrontendResource } from './MaterializedAggregateFrontendRepo/projectAggregateFrontendResource/projectAggregateFrontendResource.js';
 import { system } from './fixtures/system.js';
-import { projectServiceFrontendResource } from './ServiceFrontendRepo/projectServiceFrontendResource/projectServiceFrontendResource.js';
+import { projectServiceFrontendResource } from './MaterializedServiceFrontendRepo/projectServiceFrontendResource/projectServiceFrontendResource.js';
 import { adaptFrontendResource } from './StaticSystem/adaptFrontendResource/adaptFrontendResource.js';
 
 describe('authored persisted resource decoding', () => {
@@ -60,7 +60,6 @@ describe('authored persisted resource decoding', () => {
             version: model.version,
             createdAt,
             updatedAt,
-            deletedAt: null,
             settings: JSON.stringify({ currency: 'USD' }),
           },
         });
@@ -73,7 +72,6 @@ describe('authored persisted resource decoding', () => {
             version: model.version,
             createdAt: createdAt.toISOString(),
             updatedAt: updatedAt.toISOString(),
-            deletedAt: null,
             settings: JSON.stringify({ currency: 'USD' }),
           },
         });

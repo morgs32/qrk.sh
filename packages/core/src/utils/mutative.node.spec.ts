@@ -69,7 +69,7 @@ describe('mutative', () => {
       ]
     `);
     /**
-     * Filter out all patches where pathClock is > command.stagedAt...
+     * Filter out all patches where pathClock is > command.chainedAt...
      */
     expect(produce.applyPatches({ foo: 'bar' }, patches2))
       .toMatchInlineSnapshot(`

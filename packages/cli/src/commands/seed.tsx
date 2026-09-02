@@ -1,3 +1,6 @@
+import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
+import * as NodePath from '@effect/platform-node-shared/NodePath';
+import { Effect, Layer } from 'effect';
 import { Box, Text } from 'ink';
 import zod from 'zod';
 
@@ -8,31 +11,21 @@ import { ProcedureStepError } from '../ProcedureStep/ProcedureStepError.js';
 import { ProcedureStepLoading } from '../ProcedureStep/ProcedureStepLoading.js';
 import { ProcedureStepSuccess } from '../ProcedureStep/ProcedureStepSuccess.js';
 import { useProgram } from '../ProcedureStep/useProgram.js';
-import { seedWranglerFn } from '../seed/seedWranglerFn.js';
+import { seedFn } from '../seed/seedFn.js';
 
 export const options = zod.object({
   env: zod
-    .literal('production')
-    .default('production')
-    .describe('Seed environment (production only)'),
-  wrangler: zod
-    .boolean()
-    .default(false)
-    .describe('Submit directly to the production Wrangler Worker'),
+    .enum(['dev', 'production'])
+    .default('dev')
+    .describe('Configured seed environment'),
 });
 
-export default function Seed(props: {
-  options: {
-    env: 'production';
-    wrangler: boolean;
-  };
-}) {
+export default function Seed(props: { options: zod.infer<typeof options> }) {
   const { data, error, status } = useProgram({
     fetcher: () =>
-      seedWranglerFn({
-        environmentId: props.options.env,
-        wrangler: props.options.wrangler,
-      }),
+      seedFn({ environmentId: props.options.env }).pipe(
+        Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
+      ),
   });
 
   return (
@@ -41,20 +34,15 @@ export default function Seed(props: {
         <Header />
         <ProcedureStep status={status}>
           <ProcedureStepError
-            description="Failed to seed production Zerospin"
+            description="Failed to seed Zerospin"
             error={error ?? null}
           />
           {data && (
             <ProcedureStepSuccess>
-              <Box flexDirection="column">
-                <Text>Production seed operation succeeded.</Text>
-                <Text>Worker: {data.workerUrl}</Text>
-                <Text>Loaded commands: {data.seedsLoadedCount}</Text>
-                <Text>Finalized commands: {data.seedCommandsFinalized}</Text>
-              </Box>
+              <Text>{data.commandsFinalized} seed commands finalized</Text>
             </ProcedureStepSuccess>
           )}
-          <ProcedureStepLoading message="Submitting production seeds..." />
+          <ProcedureStepLoading message="Finalizing seed commands..." />
         </ProcedureStep>
       </Box>
     </ErrorBoundary>

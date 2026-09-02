@@ -8,9 +8,12 @@ export const makeAggregateFrontendLockKey = Effect.fn(
 )(function* (
   lock: Schema.Schema.Type<typeof AggregateFrontendLockSchema>,
 ): Effect.fn.Return<string, IAnyError> {
-  const encoded = yield* Schema.encode(AggregateFrontendLockSchema)(lock, {
-    onExcessProperty: 'error',
-  }).pipe(
+  const encoded = yield* Schema.encodeEffect(AggregateFrontendLockSchema)(
+    lock,
+    {
+      onExcessProperty: 'error',
+    },
+  ).pipe(
     mapParseError({
       code: 'aggregate-frontend-lock-encode-failed',
       prefix: 'Failed to encode the aggregate frontend lock',

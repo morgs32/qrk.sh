@@ -3,7 +3,11 @@ import {
   makeTelemetryLayer,
   makeTraceableRpcTarget,
 } from '@zerospin/logger';
-import { WorkerEntrypoint, exports as workerExports } from 'cloudflare:workers';
+import {
+  env,
+  WorkerEntrypoint,
+  exports as workerExports,
+} from 'cloudflare:workers';
 import { Effect } from 'effect';
 
 export { AccountBlockRepo } from './AccountBlockRepo.ts';
@@ -18,9 +22,22 @@ export { SystemWorker } from './SystemWorker.ts';
 export default class SystemApi extends WorkerEntrypoint {
   async finalizeAccountCommands() {
     const collector = makeTelemetryCollector();
-    const wrappedSystemWorker = makeTraceableRpcTarget(
-      workerExports.SystemWorker,
-    );
+    const systemWorker = workerExports.SystemWorker;
+    let resetRequested =
+      await env.RESET_REPO.getByName('system-worker').consumeResetRequest();
+    const wrappedSystemWorker = makeTraceableRpcTarget({
+      finalizeAccountBlock: (
+        request: Parameters<typeof systemWorker.finalizeAccountBlock>[0],
+      ) => {
+        if (resetRequested) {
+          resetRequested = false;
+          return Promise.reject(
+            new Error('Durable Object reset because its code was updated'),
+          );
+        }
+        return systemWorker.finalizeAccountBlock(request);
+      },
+    });
 
     const result = await Effect.runPromise(
       Effect.gen(function* () {

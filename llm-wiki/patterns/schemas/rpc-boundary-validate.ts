@@ -1,5 +1,4 @@
-import { Effect } from 'effect';
-import { Schema } from 'effect/Schema';
+import { Effect, Schema } from 'effect';
 
 import { mapParseError } from '../_stubs/schema';
 
@@ -11,7 +10,7 @@ import { mapParseError } from '../_stubs/schema';
 export const validateRpcProps = Effect.fn('validateRpcProps')(function* (
   props: unknown,
 ) {
-  const validated = yield* Schema.validate(
+  const validated = yield* Schema.decodeUnknownEffect(
     Schema.Struct({ systemId: Schema.String }),
   )(props, { onExcessProperty: 'ignore' });
 
@@ -26,7 +25,7 @@ export const validateRpcProps = Effect.fn('validateRpcProps')(function* (
 export const enqueueSomeWorkflow = Effect.fn('enqueueSomeWorkflow')(function* (
   props: unknown,
 ) {
-  const validated = yield* Schema.validate(
+  const validated = yield* Schema.decodeUnknownEffect(
     Schema.Struct({
       zerospinApiKey: Schema.String,
       workflowId: Schema.String,

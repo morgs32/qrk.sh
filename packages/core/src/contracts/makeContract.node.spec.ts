@@ -1,7 +1,6 @@
+import { primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
-
-import { primitives } from '../models/primitives.ts';
 
 import { makeContract } from './makeContract.ts';
 
@@ -11,7 +10,7 @@ describe('makeContract', () => {
       commandName: 'createItem',
       version: '1.0.0',
       payload: {
-        title: { kind: 'text', nullable: false, unique: false },
+        title: primitives.text(),
       },
       mutations: null,
     });
@@ -19,9 +18,13 @@ describe('makeContract', () => {
     expect(contract.spec.commandName).toBe('createItem');
     expect(contract.spec.version).toBe('1.0.0');
     expect(contract.spec.payloadJsonSchema).toMatchObject({
-      type: 'object',
-      properties: {
-        title: { type: 'string' },
+      dialect: 'draft-2020-12',
+      definitions: {},
+      schema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+        },
       },
     });
     expect(contract.spec.historicalDefinitions).toEqual([]);
@@ -66,9 +69,13 @@ describe('makeContract', () => {
     expect(
       contract.spec.historicalDefinitions[0]?.payloadJsonSchema,
     ).toMatchObject({
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
+      dialect: 'draft-2020-12',
+      definitions: {},
+      schema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+        },
       },
     });
     expect(JSON.stringify(contract.spec)).not.toContain('adaptPayload');
@@ -346,7 +353,7 @@ describe('makeContract', () => {
         commandName: 'readItem',
         version: '1.0.0',
         payload: {
-          id: { kind: 'text', nullable: false, unique: false },
+          id: primitives.text(),
         },
         mutations: null,
         // @ts-expect-error runtime validation still protects untyped callers

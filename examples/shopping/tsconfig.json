@@ -51,13 +51,19 @@
       "path": "../../packages/sdk"
     },
     {
+      "path": "../../packages/react-router"
+    },
+    {
       "path": "../../packages/error"
     },
     {
       "path": "../../packages/devtools"
     },
     {
-      "path": "../../packages/shared-worker"
+      "path": "../../packages/opfs-backup-worker"
+    },
+    {
+      "path": "../../packages/schema"
     },
     {
       "path": "../../packages/dev-worker"
@@ -69,13 +75,13 @@
       "path": "../../packages/system-worker"
     },
     {
-      "path": "../../packages/react"
-    },
-    {
       "path": "../../packages/logger"
     },
     {
       "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/react"
     }
   ]
 }

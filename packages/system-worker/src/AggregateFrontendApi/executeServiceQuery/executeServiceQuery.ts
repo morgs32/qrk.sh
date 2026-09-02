@@ -1,7 +1,6 @@
-import type { IUserRef } from '@zerospin/core/aggregate/types';
-import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import type { IAggregateId } from '@zerospin/core/models/types';
+import type { ISystemId } from '@zerospin/core/system/types';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { mapParseError } from '@zerospin/error';
 import {
@@ -11,9 +10,10 @@ import {
   type IRpcRequest,
   type ISpanLinkRecord,
 } from '@zerospin/logger';
-import { Effect, Either, Schema } from 'effect';
+import { Effect, Result, Schema } from 'effect';
 
-import { SystemWorkerResolver } from '../../SystemWorkerResolver/SystemWorkerResolver.js';
+import { appendTelemetryBatch } from '../../appendTelemetryBatch/appendTelemetryBatch.js';
+import { executeServiceQuery as executeSystemWorkerServiceQuery } from '../../executeServiceQuery/executeServiceQuery.js';
 
 export const executeServiceQuery = Effect.fn(
   'AggregateFrontendApi.executeServiceQuery',
@@ -22,77 +22,70 @@ export const executeServiceQuery = Effect.fn(
     [{ serviceName: string; queryName: string; params: unknown }]
   >;
   authResults: {
-    readonly actorRef: IUserRef;
+    readonly aggregateId: IAggregateId;
+    readonly aggregateName: string;
+    readonly userId: string;
     readonly frontendName: string;
     readonly aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
     >;
-    readonly generationId: string;
-    readonly systemWorkerName: string;
+    readonly systemId: ISystemId;
   };
 }) {
-  const validatedArgs = yield* Schema.validate(
-    Schema.mutable(
-      Schema.Tuple(
-        Schema.Struct({
-          serviceName: Schema.String,
-          queryName: Schema.String,
-          params: Schema.Unknown,
-        }),
+  const { authResults, request } = props;
+  const validatedArgs = yield* Schema.decodeUnknownEffect(
+    Schema.toType(
+      Schema.mutable(
+        Schema.Tuple([
+          Schema.Struct({
+            serviceName: Schema.String,
+            queryName: Schema.String,
+            params: Schema.Unknown,
+          }),
+        ]),
       ),
     ),
-  )(props.request.args, { onExcessProperty: 'error' }).pipe(
+  )(request.args, { onExcessProperty: 'error' }).pipe(
     mapParseError({
       code: 'aggregate-frontend-api-arguments-invalid',
       prefix:
         'AggregateFrontendApi.executeServiceQuery received invalid arguments',
     }),
-    Effect.either,
+    Effect.result,
   );
-  if (Either.isLeft(validatedArgs)) {
+  if (Result.isFailure(validatedArgs)) {
     return {
-      result: yield* encodeRpc(Effect.fail(validatedArgs.left)),
+      result: yield* encodeRpc(Effect.fail(validatedArgs.failure)),
       link: null,
     };
   }
 
-  const resolver = yield* SystemWorkerResolver;
-  using systemWorker = resolver.get({
-    systemWorkerName: props.authResults.systemWorkerName,
-  });
   const collector = makeTelemetryCollector();
-  const settled = yield* makeAsync(() =>
-    systemWorker.executeServiceQuery({
-      actorRef: props.authResults.actorRef,
-      aggregateFrontendLock: props.authResults.aggregateFrontendLock,
-      frontendName: props.authResults.frontendName,
-      generationId: props.authResults.generationId,
-      params: validatedArgs.right[0].params,
-      queryName: validatedArgs.right[0].queryName,
-      serviceName: validatedArgs.right[0].serviceName,
-    }),
-  ).pipe(
-    Effect.flatMap(decodeRpc),
+  const settled = yield* executeSystemWorkerServiceQuery({
+    aggregateId: authResults.aggregateId,
+    aggregateName: authResults.aggregateName,
+    userId: authResults.userId,
+    aggregateFrontendLock: authResults.aggregateFrontendLock,
+    frontendName: authResults.frontendName,
+    params: validatedArgs.success[0].params,
+    queryName: validatedArgs.success[0].queryName,
+    serviceName: validatedArgs.success[0].serviceName,
+  }).pipe(
     Effect.withSpan('AggregateFrontendApi.executeServiceQuery', { root: true }),
     Effect.provide(makeTelemetryLayer(collector)),
-    Effect.either,
+    Effect.result,
   );
-  const result = yield* Either.match(settled, {
-    onLeft: error => encodeRpc(Effect.fail(error)),
-    onRight: value => encodeRpc(Effect.succeed(value)),
+  const result = yield* Result.match(settled, {
+    onFailure: error => encodeRpc(Effect.fail(error)),
+    onSuccess: value => encodeRpc(Effect.succeed(value)),
   });
 
   const batch = collector.flush();
-  const persisted = yield* makeAsync(() =>
-    systemWorker.appendTelemetryBatch({
-      batch,
-      generationId: props.authResults.generationId,
-    }),
-  ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+  const persisted = yield* appendTelemetryBatch({ batch }).pipe(Effect.result);
   const rootSpan = batch.spans.at(-1);
   const link: ISpanLinkRecord | null =
-    Either.isRight(persisted) &&
-    props.request.traceContext !== null &&
+    Result.isSuccess(persisted) &&
+    request.traceContext !== null &&
     rootSpan !== undefined &&
     rootSpan.parentSpanId === null &&
     rootSpan.name === 'AggregateFrontendApi.executeServiceQuery'
@@ -100,8 +93,8 @@ export const executeServiceQuery = Effect.fn(
           linkId: makeSpanLinkId(),
           traceId: rootSpan.traceId,
           spanId: rootSpan.spanId,
-          priorTraceId: props.request.traceContext.traceId,
-          priorSpanId: props.request.traceContext.parentSpanId,
+          priorTraceId: request.traceContext.traceId,
+          priorSpanId: request.traceContext.parentSpanId,
           kind: 'causedBy',
         }
       : null;

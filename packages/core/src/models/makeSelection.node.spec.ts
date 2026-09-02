@@ -1,14 +1,15 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
-import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
+import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 
 import { makeModel } from './makeModel.ts';
+import { makeReplica } from './makeReplica.ts';
 import { applySelection, makeSelection } from './makeSelection.ts';
-import { primitives } from './primitives.ts';
 
 const User = makeModel(
   {
@@ -96,11 +97,11 @@ describe('makeSelection', () => {
         user: User,
       };
       const dbConfig = makeResourceDbConfig({ models });
-      const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
 
       const now = new Date('2020-01-01T00:00:00.000Z');
 
-      db.insert(User.drizzleSchema)
+      db.insert(dbConfig.schema.user)
         .values({
           id: testUserId,
           modelName: User.modelName,
@@ -111,7 +112,7 @@ describe('makeSelection', () => {
         })
         .run();
 
-      db.insert(Cart.drizzleSchema)
+      db.insert(dbConfig.schema.cart)
         .values({
           id: testCartId,
           modelName: Cart.modelName,
@@ -122,7 +123,7 @@ describe('makeSelection', () => {
         })
         .run();
 
-      db.insert(Product.drizzleSchema)
+      db.insert(dbConfig.schema.product)
         .values({
           id: testProductId,
           modelName: Product.modelName,
@@ -133,7 +134,7 @@ describe('makeSelection', () => {
         })
         .run();
 
-      db.insert(CartItem.drizzleSchema)
+      db.insert(dbConfig.schema.cartItem)
         .values({
           id: testItemId,
           modelName: CartItem.modelName,
@@ -176,7 +177,7 @@ describe('makeSelection', () => {
         }),
       ]);
 
-      db.insert(CartItem.drizzleSchema)
+      db.insert(dbConfig.schema.cartItem)
         .values({
           id: 'cit_selectionspec002',
           modelName: CartItem.modelName,
@@ -204,5 +205,104 @@ describe('makeSelection', () => {
         expect.objectContaining({ id: testProductId }),
       );
     }).pipe(Effect.provide(AsyncLive)),
+  );
+
+  it.effect(
+    'selects through exact authoritative source-table refs between replicas',
+    () =>
+      Effect.gen(function* () {
+        const ProductSelectionSource = makeModel(
+          {
+            abbreviation: 'sprd',
+            modelName: 'selectionProduct',
+            attributes: { name: primitives.text() },
+            indexes: [],
+            version: '1.0.0',
+          },
+          [],
+        );
+        const CartItemSelectionSource = makeModel(
+          {
+            abbreviation: 'scit',
+            modelName: 'selectionCartItem',
+            attributes: {
+              productId: primitives.ref({
+                table: ProductSelectionSource.table,
+                relation: 'product',
+                inverse: 'cartItems',
+              }),
+              quantity: primitives.integer(),
+            },
+            indexes: [],
+            version: '1.0.0',
+          },
+          [],
+        );
+        const ProductReplica = makeReplica({
+          sourceModel: ProductSelectionSource,
+          serviceName: 'catalog',
+        });
+        const CartItemReplica = makeReplica({
+          sourceModel: CartItemSelectionSource,
+          serviceName: 'catalog',
+        });
+        const models = {
+          selectionCartItem: CartItemReplica,
+          selectionProduct: ProductReplica,
+        };
+        const dbConfig = makeResourceDbConfig({ models });
+        const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
+        const now = new Date('2026-08-30T00:00:00.000Z');
+
+        db.insert(dbConfig.schema.selectionProduct)
+          .values({
+            id: 'sprd_selectionspec001',
+            modelName: ProductReplica.modelName,
+            createdAt: now,
+            updatedAt: now,
+            version: ProductReplica.version,
+            name: 'Replica product',
+            deletedAt: null,
+          })
+          .run();
+        db.insert(dbConfig.schema.selectionCartItem)
+          .values({
+            id: 'scit_selectionspec001',
+            modelName: CartItemReplica.modelName,
+            createdAt: now,
+            updatedAt: now,
+            version: CartItemReplica.version,
+            productId: 'sprd_selectionspec001',
+            quantity: 2,
+            deletedAt: null,
+          })
+          .run();
+
+        const cartItems = applySelection({
+          db,
+          models,
+          selection: makeSelection({
+            model: CartItemReplica,
+            where: () => ({ product: { name: 'Replica product' } }),
+          }),
+          userId: testUserId,
+        }).all();
+        const products = applySelection({
+          db,
+          models,
+          selection: makeSelection({
+            model: ProductReplica,
+            where: () => ({ cartItems: { quantity: 2 } }),
+          }),
+          userId: testUserId,
+        }).all();
+
+        expect(cartItems).toEqual([
+          expect.objectContaining({ id: 'scit_selectionspec001' }),
+        ]);
+        expect(products).toEqual([
+          expect.objectContaining({ id: 'sprd_selectionspec001' }),
+        ]);
+      }).pipe(Effect.provide(AsyncLive)),
   );
 });

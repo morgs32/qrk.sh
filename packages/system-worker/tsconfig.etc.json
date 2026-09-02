@@ -4,7 +4,7 @@
     "rootDir": ".",
     "noEmit": true,
     "types": [
-      "@cloudflare/vitest-pool-workers/types",
+      "@cloudflare/vitest-plugin/types",
       "node",
       "vite/client",
       "vitest/globals",

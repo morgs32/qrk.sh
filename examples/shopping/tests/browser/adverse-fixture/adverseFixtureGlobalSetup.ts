@@ -11,10 +11,7 @@ import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 const fixtureDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(fixtureDirectory, '../../../../..');
 const fixturePersistencePath = path.join(fixtureDirectory, '.wrangler');
-const zerospinExecutable = path.join(
-  repositoryRoot,
-  'node_modules/.bin/zerospin',
-);
+const nxExecutable = path.join(repositoryRoot, 'node_modules/.bin/nx');
 const fixtureApiUrl = 'http://127.0.0.1:3035';
 
 const fixtureStateKey = Symbol.for(
@@ -112,10 +109,10 @@ export async function startAdverseFixture(
     }
     fixtureState.output = '';
     const startedFixtureProcess = spawn(
-      zerospinExecutable,
-      ['dev', '--port', '3035'],
+      nxExecutable,
+      ['run', 'shopping:adverse-fixture:dev', '--skipSync'],
       {
-        cwd: fixtureDirectory,
+        cwd: repositoryRoot,
         env: {
           ...process.env,
           FORCE_COLOR: '0',
@@ -134,51 +131,14 @@ export async function startAdverseFixture(
     });
 
     try {
-      // Wrangler's listening line is necessary, but Gateway readiness remains
-      // the authority that every Durable Object binding is usable.
-      await new Promise<void>((resolve, reject) => {
-        let didSettleWranglerReadiness = false;
-        const wranglerReadinessTimeout = setTimeout(() => {
-          if (didSettleWranglerReadiness) return;
-          didSettleWranglerReadiness = true;
-          reject(
-            new Error(
-              `Adverse fixture did not print Wrangler readiness.\n${fixtureState.output}`,
-            ),
-          );
-        }, 120_000);
-        const handleOutput = (chunk: unknown) => {
-          fixtureState.output = `${fixtureState.output}${String(chunk)}`.slice(
-            -32_768,
-          );
-          if (
-            !didSettleWranglerReadiness &&
-            /Ready on http:\/\/[^\s]+:3035/.test(fixtureState.output)
-          ) {
-            didSettleWranglerReadiness = true;
-            clearTimeout(wranglerReadinessTimeout);
-            resolve();
-          }
-        };
-        startedFixtureProcess.stdout?.on('data', handleOutput);
-        startedFixtureProcess.stderr?.on('data', handleOutput);
-        startedFixtureProcess.once('error', error => {
-          if (didSettleWranglerReadiness) return;
-          didSettleWranglerReadiness = true;
-          clearTimeout(wranglerReadinessTimeout);
-          reject(error);
-        });
-        startedFixtureProcess.once('close', (code, signal) => {
-          if (didSettleWranglerReadiness) return;
-          didSettleWranglerReadiness = true;
-          clearTimeout(wranglerReadinessTimeout);
-          reject(
-            new Error(
-              `Adverse fixture exited before Wrangler readiness (code=${String(code)}, signal=${String(signal)}).\n${fixtureState.output}`,
-            ),
-          );
-        });
-      });
+      const handleOutput = (chunk: unknown) => {
+        fixtureState.output = `${fixtureState.output}${String(chunk)}`.slice(
+          -32_768,
+        );
+      };
+      startedFixtureProcess.stdout?.on('data', handleOutput);
+      startedFixtureProcess.stderr?.on('data', handleOutput);
+      startedFixtureProcess.once('error', handleOutput);
 
       await new Promise<void>((resolve, reject) => {
         let didSettleGatewayReadiness = false;
@@ -210,9 +170,14 @@ export async function startAdverseFixture(
           }
           void (async () => {
             using gatewayApi = newSyncRpcSession<GatewayApi>(fixtureApiUrl);
-            const devDeployApi = gatewayApi.getDevDeployApi();
+            const systemApi = gatewayApi.getSystemApi({
+              zerospinSecretKey: 'sk_test',
+            });
             await Effect.runPromise(
-              decodeRpc(await devDeployApi.getReadiness()),
+              decodeRpc(
+                (await systemApi.healthcheck({ args: [], traceContext: null }))
+                  .result,
+              ),
             );
           })()
             .then(() => {
@@ -223,8 +188,8 @@ export async function startAdverseFixture(
               resolve();
             })
             .catch(() => {
-              // The listening message can precede accepted requests. Only
-              // a decoded DevDeployApi readiness result completes startup.
+              // The listening message can precede accepted requests. Only a
+              // decoded SystemApi response completes startup.
             });
         }, 50);
       });

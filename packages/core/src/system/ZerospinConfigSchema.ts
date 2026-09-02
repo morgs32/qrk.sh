@@ -1,48 +1,40 @@
-import { Schema } from 'effect';
+import { Effect, Schema, SchemaTransformation } from 'effect';
 
 /* oxlint-disable typescript/no-explicit-any -- Effect Schema encoded type is invariant; any is intentional for satisfies */
-import { DeploySeedCommandSchema } from '../contracts/CommandSchema.ts';
-
-import { SystemEnvironmentIdSchema } from './SystemEnvironmentIdSchema.ts';
-import type { IDeployConfig, ISystemConfig } from './types.ts';
-
-const EnvRecord = Schema.Record({
-  key: Schema.String,
-  value: Schema.String,
-});
+import type { ISystemConfig } from './types.ts';
 
 export const ZerospinConfigSchema = Schema.Struct({
+  $schema: Schema.optionalKey(Schema.String),
   entry: Schema.String,
-  supportedPredecessors: Schema.Array(
-    Schema.String.pipe(
-      Schema.pattern(/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/),
-    ),
-  ),
-  environmentId: Schema.optionalWith(SystemEnvironmentIdSchema, {
-    default: () => 'dev',
-  }),
-  env: Schema.NullOr(EnvRecord),
-  retention: Schema.Struct({
-    clientLeaseSeconds: Schema.Number.pipe(Schema.int(), Schema.positive()),
-    stagedJournalDays: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  }),
   seeds: Schema.Struct({
     dev: Schema.NullOr(Schema.String),
-    production: Schema.NullOr(Schema.String),
+    production: Schema.NullOr(Schema.String).pipe(
+      Schema.withDecodingDefaultKey(Effect.succeed(null)),
+    ),
   }),
-}) satisfies Schema.Schema<ISystemConfig, any>;
-
-export const DeployConfigSchema = Schema.Struct({
-  environmentId: SystemEnvironmentIdSchema,
-  env: Schema.NullOr(EnvRecord),
-  seeds: Schema.Array(DeploySeedCommandSchema),
-}) satisfies Schema.Schema<IDeployConfig, any>;
+}).pipe(
+  Schema.decodeTo(
+    Schema.Struct({
+      entry: Schema.String,
+      seeds: Schema.Struct({
+        dev: Schema.NullOr(Schema.String),
+        production: Schema.NullOr(Schema.String),
+      }),
+    }),
+    SchemaTransformation.transform({
+      decode: config => ({
+        entry: config.entry,
+        seeds: config.seeds,
+      }),
+      encode: config => ({
+        entry: config.entry,
+        seeds: config.seeds,
+      }),
+    }),
+  ),
+) satisfies Schema.Codec<ISystemConfig, any>;
 
 const _check1: typeof ZerospinConfigSchema.Type = {} as ISystemConfig;
 const _check2: ISystemConfig = {} as typeof ZerospinConfigSchema.Type;
-const _check3: typeof DeployConfigSchema.Type = {} as IDeployConfig;
-const _check4: IDeployConfig = {} as typeof DeployConfigSchema.Type;
 void _check1;
 void _check2;
-void _check3;
-void _check4;

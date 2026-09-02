@@ -21,15 +21,16 @@ describe('createMutation', () => {
     Effect.gen(function* () {
       const maybeMutation = yield* User.create('1.0.0', {
         resourceId: 'usr_test' as const,
+        // @ts-expect-error runtime validation rejects incomplete attributes
         attributes: {},
-      }).pipe(Effect.either);
+      }).pipe(Effect.result);
 
-      expect(maybeMutation._tag).toBe('Left');
-      if (maybeMutation._tag === 'Left') {
-        expect(maybeMutation.left.code).toBe(
+      expect(maybeMutation._tag).toBe('Failure');
+      if (maybeMutation._tag === 'Failure') {
+        expect(maybeMutation.failure.code).toBe(
           'create-resource-missing-attributes',
         );
-        expect(maybeMutation.left.message).toContain('name');
+        expect(maybeMutation.failure.message).toContain('name');
       }
     }),
   );

@@ -1,4 +1,11 @@
 import {
+  PrimitiveKind,
+  type IAnyPrimitiveDescriptor,
+  type IAnyRefDescriptor,
+  type IAnyShape,
+  type InferDecodedRow,
+} from '@zerospin/schema';
+import {
   and,
   eq,
   getTableColumns,
@@ -13,21 +20,13 @@ import {
   type SQLWrapper,
   type Table,
 } from 'drizzle-orm';
-import type { AnySQLiteSelect, SelectedFields } from 'drizzle-orm/sqlite-core';
+import type { SelectedFields } from 'drizzle-orm/sqlite-core';
+import type { AnySQLiteAsyncSelect } from 'drizzle-orm/sqlite-core/async/select';
 import type { UnionToIntersection } from 'type-fest';
 
 import type { IDb } from '../drizzle/types.ts';
 
-import { PrimitiveKind } from './primitiveKind.ts';
-import type {
-  IAnyPrimitiveDescriptor,
-  IAnyRefDescriptor,
-  IAnyShape,
-  IModel,
-  IModels,
-  InferDecodedRow,
-  InferProperties,
-} from './types.ts';
+import type { IModel, IModels, InferProperties } from './types.ts';
 
 type InferPropertiesShape<MODEL extends IModel> = InferProperties<
   MODEL['attributes'],
@@ -115,7 +114,8 @@ type ISelectionWhereForRef<
   REF extends IAnyRefDescriptor,
   MODELS extends IModels,
 > = ISelectionWhere<
-  Extract<MODELS[keyof MODELS], { table: REF['table'] }>,
+  | Extract<MODELS[keyof MODELS], { table: REF['table'] }>
+  | Extract<MODELS[keyof MODELS], { sourceModel: { table: REF['table'] } }>,
   MODELS
 >;
 
@@ -153,7 +153,7 @@ type ISelectionDb = Pick<IDb, 'selectDistinct'>;
 
 export type { ISelectionDb };
 
-type IFlatSelectBuilder = AnySQLiteSelect;
+type IFlatSelectBuilder = AnySQLiteAsyncSelect;
 
 function asSqlColumn(column: unknown): SQLWrapper {
   return column as SQLWrapper;
@@ -175,7 +175,18 @@ function getRefModelWithTable(props: {
 }): IModel {
   const { ref, models } = props;
   const model = models[ref.targetTableName];
-  if (model !== undefined && model.table === ref.table) {
+  const sourceModel =
+    model !== undefined && 'sourceModel' in model
+      ? Reflect.get(model, 'sourceModel')
+      : undefined;
+  const sourceTable =
+    typeof sourceModel === 'object' && sourceModel !== null
+      ? Reflect.get(sourceModel, 'table')
+      : undefined;
+  if (
+    model !== undefined &&
+    (model.table === ref.table || sourceTable === ref.table)
+  ) {
     return model;
   }
   throw new Error(
@@ -321,13 +332,20 @@ function compileWhereForModel(props: {
           sourceColumnName: string;
         }
       | undefined;
+    const sourceModel =
+      'sourceModel' in model ? Reflect.get(model, 'sourceModel') : undefined;
+    const sourceTable =
+      typeof sourceModel === 'object' && sourceModel !== null
+        ? Reflect.get(sourceModel, 'table')
+        : undefined;
     for (const candidateModel of Object.values(models)) {
       for (const [attributeName, descriptor] of Object.entries(
         candidateModel.attributes,
       ) as Array<[string, IAnyPrimitiveDescriptor]>) {
         if (
           !isRefDescriptor(descriptor) ||
-          descriptor.table !== model.table ||
+          (descriptor.table !== model.table &&
+            descriptor.table !== sourceTable) ||
           descriptor.inverse !== key
         ) {
           continue;

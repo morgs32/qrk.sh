@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  required-ci:
+    name: Required CI
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'push' && 'nx-cloud-main' || 'nx-cloud-pr' }}
+    timeout-minutes: 60
+    env:
+      CI: true
+      NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+      NX_CLOUD_CONTINUOUS_ASSIGNMENT: true
+      NX_NO_CLOUD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'true' || 'false' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          filter: tree:0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.1.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.14.1
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Add workspace tools to PATH
+        run: echo "$GITHUB_WORKSPACE/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Require Nx Cloud access token
+        if: env.NX_NO_CLOUD != 'true'
+        run: |
+          if [ -z "$NX_CLOUD_ACCESS_TOKEN" ]; then
+            echo "::error::Configure the read-only repository and main-only read-write NX_CLOUD_ACCESS_TOKEN secrets before running trusted CI."
+            exit 1
+          fi
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Start Nx Agents
+        if: env.NX_NO_CLOUD != 'true'
+        run: nx-cloud start-nx-agents
+
+      - name: Lint
+        run: nx run-many -t lint --all
+
+      - name: Typecheck
+        run: nx run-many -t ts --all --nxBail
+
+      - name: Check durable repo migrations
+        run: nx run-many -t migrations:check --all --nxBail
+
+      - name: Check static runtime cutover
+        run: nx run system-worker:static-cutover:check
+
+      - name: Test
+        run: CI=true nx run-many -t test --all
+
+      - name: Test workerd
+        run: CI=true nx run-many -t test:workerd --all
+
+      - name: Build libraries and applications
+        run: nx run-many -t lib build --all

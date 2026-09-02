@@ -1,19 +1,14 @@
-import type { IUserRef } from '@zerospin/core/aggregate/types';
+import type {
+  AggregateChainedCommandSchema,
+  ServiceChainedCommandSchema,
+} from '@zerospin/core/contracts/CommandSchema';
 import type {
   IAggregateCommand,
-  IEncodedAppliedMutation,
   IEncodedCommand,
-  IExecutedAggregateCommand,
-  IExecutedServiceCommand,
-  IFailedAggregateCommand,
-  IFailedServiceCommand,
   IServiceCommand,
 } from '@zerospin/core/contracts/types';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
-import type {
-  IAggregateCursor,
-  IAggregateId,
-} from '@zerospin/core/models/types';
+import type { IAggregateId } from '@zerospin/core/models/types';
 import type { IAggregateFrontendSyncState } from '@zerospin/core/session/types';
 import type {
   IEncodedQuery,
@@ -26,80 +21,72 @@ import type { IAnyErrorJson } from '@zerospin/error';
 import type { ILinkedRpcEnvelope, IRpcRequest } from '@zerospin/logger';
 import { RpcTarget } from 'capnweb';
 import type { Schema } from 'effect';
-import { BrandTypeId } from 'effect/Brand';
 
 import type { ISystemRuntime } from '../makeSystemRuntime.js';
 
 import { executeSelectQuery } from './executeSelectQuery/executeSelectQuery.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
-import { finalizeAggregateCommands } from './finalizeAggregateCommands/finalizeAggregateCommands.js';
-import { finalizeServiceCommands } from './finalizeServiceCommands/finalizeServiceCommands.js';
-import { getAggregateBlockRepos } from './getAggregateBlockRepos/getAggregateBlockRepos.js';
-import { getAggregateBlockRepoTableRows } from './getAggregateBlockRepoTableRows/getAggregateBlockRepoTableRows.js';
-import { getAggregateFrontendBlockRepos } from './getAggregateFrontendBlockRepos/getAggregateFrontendBlockRepos.js';
-import { getAggregateFrontendBlockRepoTableRows } from './getAggregateFrontendBlockRepoTableRows/getAggregateFrontendBlockRepoTableRows.js';
-import { getAggregateFrontendRepos } from './getAggregateFrontendRepos/getAggregateFrontendRepos.js';
-import { getAggregateFrontendRepoTableRows } from './getAggregateFrontendRepoTableRows/getAggregateFrontendRepoTableRows.js';
+import { finalizeAggregateCommand } from './finalizeAggregateCommand/finalizeAggregateCommand.js';
+import { finalizeServiceCommand } from './finalizeServiceCommand/finalizeServiceCommand.js';
+import { getAggregateCommandChains } from './getAggregateCommandChains/getAggregateCommandChains.js';
+import { getAggregateCommandChainTableRows } from './getAggregateCommandChainTableRows/getAggregateCommandChainTableRows.js';
+import { getAggregateFrontendFinalizedCommandChains } from './getAggregateFrontendFinalizedCommandChains/getAggregateFrontendFinalizedCommandChains.js';
+import { getAggregateFrontendFinalizedCommandChainTableRows } from './getAggregateFrontendFinalizedCommandChainTableRows/getAggregateFrontendFinalizedCommandChainTableRows.js';
+import { getAggregateFrontendPushedCommandChains } from './getAggregateFrontendPushedCommandChains/getAggregateFrontendPushedCommandChains.js';
+import { getAggregateFrontendPushedCommandChainTableRows } from './getAggregateFrontendPushedCommandChainTableRows/getAggregateFrontendPushedCommandChainTableRows.js';
 import { getAggregateFrontendState } from './getAggregateFrontendState/getAggregateFrontendState.js';
-import { getAggregateRepos } from './getAggregateRepos/getAggregateRepos.js';
-import { getAggregateRepoTableRows } from './getAggregateRepoTableRows/getAggregateRepoTableRows.js';
-import { getServiceBlockRepos } from './getServiceBlockRepos/getServiceBlockRepos.js';
-import { getServiceBlockRepoTableRows } from './getServiceBlockRepoTableRows/getServiceBlockRepoTableRows.js';
-import { getServiceFrontendBlockRepos } from './getServiceFrontendBlockRepos/getServiceFrontendBlockRepos.js';
-import { getServiceFrontendBlockRepoTableRows } from './getServiceFrontendBlockRepoTableRows/getServiceFrontendBlockRepoTableRows.js';
-import { getServiceFrontendRepos } from './getServiceFrontendRepos/getServiceFrontendRepos.js';
-import { getServiceFrontendRepoTableRows } from './getServiceFrontendRepoTableRows/getServiceFrontendRepoTableRows.js';
-import { getServiceRepos } from './getServiceRepos/getServiceRepos.js';
-import { getServiceRepoTableRows } from './getServiceRepoTableRows/getServiceRepoTableRows.js';
+import { getMaterializedAggregateFrontendRepos } from './getMaterializedAggregateFrontendRepos/getMaterializedAggregateFrontendRepos.js';
+import { getMaterializedAggregateFrontendRepoTableRows } from './getMaterializedAggregateFrontendRepoTableRows/getMaterializedAggregateFrontendRepoTableRows.js';
+import { getMaterializedAggregateRepos } from './getMaterializedAggregateRepos/getMaterializedAggregateRepos.js';
+import { getMaterializedAggregateRepoTableRows } from './getMaterializedAggregateRepoTableRows/getMaterializedAggregateRepoTableRows.js';
+import { getMaterializedServiceFrontendRepos } from './getMaterializedServiceFrontendRepos/getMaterializedServiceFrontendRepos.js';
+import { getMaterializedServiceFrontendRepoTableRows } from './getMaterializedServiceFrontendRepoTableRows/getMaterializedServiceFrontendRepoTableRows.js';
+import { getMaterializedServiceRepos } from './getMaterializedServiceRepos/getMaterializedServiceRepos.js';
+import { getMaterializedServiceRepoTableRows } from './getMaterializedServiceRepoTableRows/getMaterializedServiceRepoTableRows.js';
+import { getServiceCommandChains } from './getServiceCommandChains/getServiceCommandChains.js';
+import { getServiceCommandChainTableRows } from './getServiceCommandChainTableRows/getServiceCommandChainTableRows.js';
+import { getServiceFrontendFinalizedCommandChains } from './getServiceFrontendFinalizedCommandChains/getServiceFrontendFinalizedCommandChains.js';
+import { getServiceFrontendFinalizedCommandChainTableRows } from './getServiceFrontendFinalizedCommandChainTableRows/getServiceFrontendFinalizedCommandChainTableRows.js';
 import { getSystemLogRepos } from './getSystemLogRepos/getSystemLogRepos.js';
 import { getSystemLogRepoTableRows } from './getSystemLogRepoTableRows/getSystemLogRepoTableRows.js';
 import { getSystemRepos } from './getSystemRepos/getSystemRepos.js';
 import { getSystemRepoTableRows } from './getSystemRepoTableRows/getSystemRepoTableRows.js';
-import { hello } from './hello/hello.js';
+import { healthcheck } from './healthcheck/healthcheck.js';
 import { makeSystemSpec } from './makeSystemSpec/makeSystemSpec.js';
 
-/** Read RPC stubs resolve SystemWorker per call; mutations enter SystemRepo. */
+/** Static system RPC boundary backed by the System Worker Effects and Repos. */
 export class SystemApi extends RpcTarget {
-  declare [BrandTypeId]: 'TargetApi';
-
   readonly #authResults: {
-    readonly generationId: string;
     readonly systemId: ISystemId;
-    readonly systemWorkerName: string;
   };
   readonly #runtime: ISystemRuntime;
 
-  constructor(props: {
-    generationId: string;
-    systemId: ISystemId;
-    systemWorkerName: string;
-    runtime: ISystemRuntime;
-  }) {
+  constructor(props: { systemId: ISystemId; runtime: ISystemRuntime }) {
     super();
     this.#authResults = {
-      generationId: props.generationId,
       systemId: props.systemId,
-      systemWorkerName: props.systemWorkerName,
     };
     this.#runtime = props.runtime;
   }
 
-  async hello(
+  async healthcheck(
     request: IRpcRequest<[]>,
   ): Promise<ILinkedRpcEnvelope<string, IAnyErrorJson>> {
     return this.#runtime.runPromise(
-      hello({ request, authResults: this.#authResults }),
+      healthcheck({ request, authResults: this.#authResults }),
     );
   }
 
   /**
-   * Admin/tooling optimistic frontend state load: `SystemWorker.getAggregateFrontendState` → `AggregateFrontendRepo`.
+   * Admin/tooling optimistic frontend state load: System Worker Effect → `MaterializedAggregateFrontendRepo`.
    */
   async getAggregateFrontendState(
     request: IRpcRequest<
       [
         {
-          actorRef: IUserRef;
+          aggregateId: IAggregateId;
+          aggregateName: string;
+          userId: string;
           frontendName: string;
           aggregateFrontendLock: Schema.Schema.Type<
             typeof AggregateFrontendLockSchema
@@ -129,38 +116,24 @@ export class SystemApi extends RpcTarget {
     );
   }
 
-  /** Aggregate commands enter the aggregate ledger and graph. */
-  async finalizeAggregateCommands(
-    request: IRpcRequest<
-      [
-        {
-          aggregateId: IAggregateId;
-          aggregateName: string;
-          commands: readonly IEncodedCommand<IAggregateCommand>[];
-        },
-      ]
-    >,
+  /** One aggregate command enters its ordered command chain. */
+  async finalizeAggregateCommand(
+    request: IRpcRequest<[IEncodedCommand<IAggregateCommand>]>,
   ): Promise<
     ILinkedRpcEnvelope<
-      Readonly<{
-        executedCommands: readonly IEncodedCommand<IExecutedAggregateCommand>[];
-        failedCommands: readonly IEncodedCommand<IFailedAggregateCommand>[];
-        appliedMutations: readonly IEncodedAppliedMutation[];
-        lastAggregateCursor: IAggregateCursor;
-        aggregateIndex: number;
-      }>,
+      Schema.Schema.Type<typeof AggregateChainedCommandSchema>,
       IAnyErrorJson
     >
   > {
     return this.#runtime.runPromise(
-      finalizeAggregateCommands({
+      finalizeAggregateCommand({
         request,
         authResults: this.#authResults,
       }),
     );
   }
 
-  /** Select-only SQL against aggregate SQLite: `SystemWorker.executeSelectQuery` → `AggregateRepo`. */
+  /** Select-only SQL against aggregate SQLite: System Worker Effect → `MaterializedAggregateRepo`. */
   async executeSelectQuery(
     request: IRpcRequest<
       [
@@ -177,26 +150,16 @@ export class SystemApi extends RpcTarget {
     );
   }
 
-  async finalizeServiceCommands(
-    request: IRpcRequest<
-      [
-        {
-          serviceName: string;
-          commands: readonly IEncodedCommand<IServiceCommand>[];
-        },
-      ]
-    >,
+  async finalizeServiceCommand(
+    request: IRpcRequest<[IEncodedCommand<IServiceCommand>]>,
   ): Promise<
     ILinkedRpcEnvelope<
-      {
-        executedCommands: readonly IEncodedCommand<IExecutedServiceCommand>[];
-        failedCommands: readonly IEncodedCommand<IFailedServiceCommand>[];
-      },
+      Schema.Schema.Type<typeof ServiceChainedCommandSchema>,
       IAnyErrorJson
     >
   > {
     return this.#runtime.runPromise(
-      finalizeServiceCommands({ request, authResults: this.#authResults }),
+      finalizeServiceCommand({ request, authResults: this.#authResults }),
     );
   }
 
@@ -216,155 +179,189 @@ export class SystemApi extends RpcTarget {
     );
   }
 
-  async getAggregateRepos(
+  async getMaterializedAggregateRepos(
     request: IRpcRequest<[]>,
   ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
-      getAggregateRepos({ request, authResults: this.#authResults }),
-    );
-  }
-
-  async getAggregateRepoTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
-  ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
-    return this.#runtime.runPromise(
-      getAggregateRepoTableRows({
+      getMaterializedAggregateRepos({
         request,
         authResults: this.#authResults,
       }),
     );
   }
 
-  async getAggregateFrontendRepos(
-    request: IRpcRequest<[]>,
-  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
-    return this.#runtime.runPromise(
-      getAggregateFrontendRepos({ request, authResults: this.#authResults }),
-    );
-  }
-
-  async getAggregateFrontendRepoTableRows(
+  async getMaterializedAggregateRepoTableRows(
     request: IRpcRequest<[{ repoName: string; tableName: string }]>,
   ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
     return this.#runtime.runPromise(
-      getAggregateFrontendRepoTableRows({
+      getMaterializedAggregateRepoTableRows({
         request,
         authResults: this.#authResults,
       }),
     );
   }
 
-  async getServiceFrontendRepos(
+  async getMaterializedAggregateFrontendRepos(
     request: IRpcRequest<[]>,
   ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
-      getServiceFrontendRepos({ request, authResults: this.#authResults }),
-    );
-  }
-
-  async getServiceFrontendRepoTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
-  ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
-    return this.#runtime.runPromise(
-      getServiceFrontendRepoTableRows({
+      getMaterializedAggregateFrontendRepos({
         request,
         authResults: this.#authResults,
       }),
     );
   }
 
-  async getServiceRepos(
-    request: IRpcRequest<[]>,
-  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
-    return this.#runtime.runPromise(
-      getServiceRepos({ request, authResults: this.#authResults }),
-    );
-  }
-
-  async getServiceRepoTableRows(
+  async getMaterializedAggregateFrontendRepoTableRows(
     request: IRpcRequest<[{ repoName: string; tableName: string }]>,
   ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
     return this.#runtime.runPromise(
-      getServiceRepoTableRows({ request, authResults: this.#authResults }),
-    );
-  }
-
-  async getAggregateBlockRepos(
-    request: IRpcRequest<[]>,
-  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
-    return this.#runtime.runPromise(
-      getAggregateBlockRepos({ request, authResults: this.#authResults }),
-    );
-  }
-
-  async getAggregateBlockRepoTableRows(
-    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
-  ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
-    return this.#runtime.runPromise(
-      getAggregateBlockRepoTableRows({
+      getMaterializedAggregateFrontendRepoTableRows({
         request,
         authResults: this.#authResults,
       }),
     );
   }
 
-  async getAggregateFrontendBlockRepos(
+  async getMaterializedServiceFrontendRepos(
     request: IRpcRequest<[]>,
   ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
-      getAggregateFrontendBlockRepos({
+      getMaterializedServiceFrontendRepos({
         request,
         authResults: this.#authResults,
       }),
     );
   }
 
-  async getAggregateFrontendBlockRepoTableRows(
+  async getMaterializedServiceFrontendRepoTableRows(
     request: IRpcRequest<[{ repoName: string; tableName: string }]>,
   ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
     return this.#runtime.runPromise(
-      getAggregateFrontendBlockRepoTableRows({
+      getMaterializedServiceFrontendRepoTableRows({
         request,
         authResults: this.#authResults,
       }),
     );
   }
 
-  async getServiceFrontendBlockRepos(
+  async getMaterializedServiceRepos(
     request: IRpcRequest<[]>,
   ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
-      getServiceFrontendBlockRepos({
-        request,
-        authResults: this.#authResults,
-      }),
+      getMaterializedServiceRepos({ request, authResults: this.#authResults }),
     );
   }
 
-  async getServiceFrontendBlockRepoTableRows(
+  async getMaterializedServiceRepoTableRows(
     request: IRpcRequest<[{ repoName: string; tableName: string }]>,
   ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
     return this.#runtime.runPromise(
-      getServiceFrontendBlockRepoTableRows({
+      getMaterializedServiceRepoTableRows({
         request,
         authResults: this.#authResults,
       }),
     );
   }
 
-  async getServiceBlockRepos(
+  async getAggregateCommandChains(
     request: IRpcRequest<[]>,
   ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
     return this.#runtime.runPromise(
-      getServiceBlockRepos({ request, authResults: this.#authResults }),
+      getAggregateCommandChains({ request, authResults: this.#authResults }),
     );
   }
 
-  async getServiceBlockRepoTableRows(
+  async getAggregateCommandChainTableRows(
     request: IRpcRequest<[{ repoName: string; tableName: string }]>,
   ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
     return this.#runtime.runPromise(
-      getServiceBlockRepoTableRows({
+      getAggregateCommandChainTableRows({
+        request,
+        authResults: this.#authResults,
+      }),
+    );
+  }
+
+  async getAggregateFrontendFinalizedCommandChains(
+    request: IRpcRequest<[]>,
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
+    return this.#runtime.runPromise(
+      getAggregateFrontendFinalizedCommandChains({
+        request,
+        authResults: this.#authResults,
+      }),
+    );
+  }
+
+  async getAggregateFrontendFinalizedCommandChainTableRows(
+    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+  ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
+    return this.#runtime.runPromise(
+      getAggregateFrontendFinalizedCommandChainTableRows({
+        request,
+        authResults: this.#authResults,
+      }),
+    );
+  }
+
+  async getAggregateFrontendPushedCommandChains(
+    request: IRpcRequest<[]>,
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
+    return this.#runtime.runPromise(
+      getAggregateFrontendPushedCommandChains({
+        request,
+        authResults: this.#authResults,
+      }),
+    );
+  }
+
+  async getAggregateFrontendPushedCommandChainTableRows(
+    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+  ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
+    return this.#runtime.runPromise(
+      getAggregateFrontendPushedCommandChainTableRows({
+        request,
+        authResults: this.#authResults,
+      }),
+    );
+  }
+
+  async getServiceFrontendFinalizedCommandChains(
+    request: IRpcRequest<[]>,
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
+    return this.#runtime.runPromise(
+      getServiceFrontendFinalizedCommandChains({
+        request,
+        authResults: this.#authResults,
+      }),
+    );
+  }
+
+  async getServiceFrontendFinalizedCommandChainTableRows(
+    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+  ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
+    return this.#runtime.runPromise(
+      getServiceFrontendFinalizedCommandChainTableRows({
+        request,
+        authResults: this.#authResults,
+      }),
+    );
+  }
+
+  async getServiceCommandChains(
+    request: IRpcRequest<[]>,
+  ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
+    return this.#runtime.runPromise(
+      getServiceCommandChains({ request, authResults: this.#authResults }),
+    );
+  }
+
+  async getServiceCommandChainTableRows(
+    request: IRpcRequest<[{ repoName: string; tableName: string }]>,
+  ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
+    return this.#runtime.runPromise(
+      getServiceCommandChainTableRows({
         request,
         authResults: this.#authResults,
       }),

@@ -4,7 +4,7 @@
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": [
-      "@cloudflare/vitest-pool-workers/types",
+      "@cloudflare/vitest-plugin/types",
       "@vitest/browser-playwright",
       "node",
       "vitest/globals",

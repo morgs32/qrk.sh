@@ -1,0 +1,26 @@
+{
+  "name": "capnweb-counter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "ts": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint . --format stylish",
+    "format:check": "oxfmt --check package.json index.html vite.config.ts wrangler.jsonc tsconfig.json src"
+  },
+  "dependencies": {
+    "capnweb": "^0.12.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.47.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "vite": "^8.0.11",
+    "wrangler": "^4.127.1"
+  }
+}

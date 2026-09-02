@@ -2,7 +2,7 @@ import { act } from 'react';
 
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { makeMigratedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb';
+import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { main, mainModels } from '@zerospin/core/fixtures/system';
 import { makeSession } from '@zerospin/core/session/makeSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
@@ -20,7 +20,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { zerospinDevtoolsStore } from '../../../../zerospinDevtoolsStore.js';
 
 import { SessionsCommandsLayout } from './SessionsCommandsLayout';
-import { SessionsCommandsStagedRoute } from './staged/SessionsCommandsStagedRoute';
 
 const sessionId = 'sesn_commands_layout' as ISessionId;
 
@@ -44,7 +43,7 @@ describe('SessionsCommandsLayout', () => {
     vi.clearAllMocks();
   });
 
-  it('renders staged commands from session otherTables query relations', async () => {
+  it('renders active commands from session otherTables query relations', async () => {
     const models = mainModels;
     const dbConfig = makeResourceDbConfig({
       models,
@@ -52,17 +51,16 @@ describe('SessionsCommandsLayout', () => {
     });
     const schema = dbConfig.schema;
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
 
-    expect(typeof db.query.stagedCommands!.findMany).toBe('function');
+    expect(typeof db.query.commandJournal!.findMany).toBe('function');
 
     const session = makeSession({
       frontend: main,
       sessionId,
-      generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
 
     session.store.setState({
@@ -77,22 +75,31 @@ describe('SessionsCommandsLayout', () => {
       db,
       schema,
       models,
-      vfsName: null,
       isInitialized: true,
+      aggregateIndex: 0,
       frontendIndex: 0,
-      replicaIndex: null,
+      pushIndex: 0,
+      sessionStatus: 'current',
+      backupState: { status: 'ready', failure: null },
     });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
+      getPushPaused: async () => ({ _tag: 'Success', success: false }),
+      setPushPaused: async () => ({ _tag: 'Success', success: undefined }),
+      pushNow: async () => ({
+        _tag: 'Success',
+        success: { status: 'empty' },
+      }),
     });
 
     const router = createMemoryRouter(
       createRoutesFromElements(
-        <Route path="/:sessionId/commands" element={<SessionsCommandsLayout />}>
-          <Route path="staged" element={<SessionsCommandsStagedRoute />} />
-        </Route>,
+        <Route
+          path="/:sessionId/commands"
+          element={<SessionsCommandsLayout />}
+        />,
       ),
-      { initialEntries: [`/${sessionId}/commands/staged`] },
+      { initialEntries: [`/${sessionId}/commands`] },
     );
 
     await act(async () => {

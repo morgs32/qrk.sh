@@ -35,7 +35,8 @@
   "dependencies": {
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
-    "effect": "^3.21.4",
+    "@zerospin/schema": "workspace:*",
+    "effect": "rc",
     "system-worker": "workspace:*"
   },
   "devDependencies": {

@@ -7,6 +7,6 @@ export const dutils = {
   }),
   hash: Effect.fn('dutils.hash')(function* () {
     const date = yield* DateTime.now;
-    return date.epochMillis.toString(36);
+    return date.epochMilliseconds.toString(36);
   }),
 };

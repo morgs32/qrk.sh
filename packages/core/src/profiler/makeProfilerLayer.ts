@@ -70,7 +70,9 @@ export type IProfiler = {
   reset: () => void;
 };
 
-export class Profiler extends Context.Tag('Profiler')<Profiler, IProfiler>() {}
+export class Profiler extends Context.Service<Profiler, IProfiler>()(
+  'Profiler',
+) {}
 
 export const makeProfilerLayer = (opts: IProfilerOptions = {}) => {
   const inMemoryExporter = new InMemorySpanExporter();
@@ -96,7 +98,7 @@ export const makeProfilerLayer = (opts: IProfilerOptions = {}) => {
             spanProcessor: processor,
           };
         })
-      : Layer.unwrapEffect(
+      : Layer.unwrap(
           Effect.map(
             makeAsync(() => import('@effect/opentelemetry/NodeSdk')).pipe(
               Effect.provide(AsyncLive),
@@ -171,7 +173,7 @@ export const makeProfilerLayer = (opts: IProfilerOptions = {}) => {
   });
 
   // ── Finalizer: forceFlush → freeze cache once scope ends ───────────────────
-  const freezeOnReleaseLayer = Layer.scopedDiscard(
+  const freezeOnReleaseLayer = Layer.effectDiscard(
     Effect.acquireRelease(Effect.void, () => {
       return Effect.promise(async () => {
         await processor.forceFlush();

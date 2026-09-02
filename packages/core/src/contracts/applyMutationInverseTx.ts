@@ -1,15 +1,12 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import type { IEncodedRecord } from '@zerospin/schema';
 import { eq } from 'drizzle-orm';
-import { Effect, Schema } from 'effect';
+import { Effect, Schema, Struct } from 'effect';
 import { pick } from 'es-toolkit';
 
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
 import { upsertHelper } from '../drizzle/upsertHelper.ts';
-import type {
-  IEncodedRecord,
-  IModel,
-  InferAttributesSchema,
-} from '../models/types.ts';
+import type { IModel, InferAttributesSchema } from '../models/types.ts';
 
 import type { IAppliedMutation, IMutation } from './types.ts';
 
@@ -86,10 +83,10 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
               updateMutation.operation.mask,
             )
           : updateMutation.inverseOperation.attributes;
-        const encodedAttributes = yield* Schema.encodeUnknown(
-          Schema.partial(
-            model.attributesSchema as InferAttributesSchema<typeof model>,
-          ),
+        const encodedAttributes = yield* Schema.encodeUnknownEffect(
+          (
+            model.attributesSchema as InferAttributesSchema<typeof model>
+          ).mapFields(Struct.map(Schema.optional)),
         )(filtered).pipe(
           mapParseError({
             code: 'failed-to-encode-inverse-update-attributes',

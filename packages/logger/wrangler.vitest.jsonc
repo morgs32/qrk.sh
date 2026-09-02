@@ -15,15 +15,10 @@
       { "name": "RESET_REPO", "class_name": "ResetRepo" },
     ],
   },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": [
-        "AccountRepo",
-        "AccountBlockRepo",
-        "ActorRepo",
-        "ResetRepo",
-      ],
-    },
-  ],
+  "exports": {
+    "AccountRepo": { "type": "durable-object", "storage": "sqlite" },
+    "AccountBlockRepo": { "type": "durable-object", "storage": "sqlite" },
+    "ActorRepo": { "type": "durable-object", "storage": "sqlite" },
+    "ResetRepo": { "type": "durable-object", "storage": "sqlite" },
+  },
 }

@@ -11,7 +11,7 @@ import {
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { makeMigratedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb';
+import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
 import { makeAggregateFrontendLockKey } from '@zerospin/core/frontendController/makeAggregateFrontendLockKey';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
@@ -19,7 +19,6 @@ import type {
   IAggregateFrontendController,
   InferFrontendModels,
 } from '@zerospin/core/frontendController/types';
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import type {
   IAggregateId,
   IEncodedResourceShape,
@@ -31,9 +30,12 @@ import { makeSession } from '@zerospin/core/session/makeSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
 import type { ISystemId } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
 import type { ISignatureFactory } from '@zerospin/core/utils/types';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import {
+  makeAbbreviationIdSchema,
+  makeIdFromAbbreviation,
+} from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import useSWRImmutable from 'swr/immutable';
 import { useStore } from 'zustand/react';
@@ -45,7 +47,7 @@ import { ZerospinProviderContext } from './ZerospinProviderContext';
 /*
  * 1. Capture identity and fixture props once for this mount.
  * 2. Create a real session without production browser infrastructure.
- * 3. Open, migrate, and seed one in-memory WASM SQLite database.
+ * 3. Open, provision, and seed one in-memory WASM SQLite database.
  * 4. Publish initialized state only while the provider is still mounted.
  * 5. Close the database exactly once on failure, late completion, or unmount.
  * 6. Render the supplied frontend selector through the session registry.
@@ -82,7 +84,7 @@ export function makeMockProvider<
     > | null>(null);
 
     // 2 — the mock keeps the normal browser-session hook surface, but creates
-    // no queue, websocket, SharedWorker, RPC, or DevTools entry.
+    // no queue, websocket, OPFS backup worker, RPC, or DevTools entry.
     const coreSession = useMemo(() => {
       const sessionId = sessionRuntime.runSync(
         makeIdFromAbbreviation({
@@ -124,7 +126,7 @@ export function makeMockProvider<
       [registryEntry],
     );
 
-    // 3 — applyAggregateFrontendState owns the one migration and the production insert
+    // 3 — applyAggregateFrontendState owns provisioning and the production insert
     // path. Fixture identity changes after this fetch begins are ignored.
     const { error: initializationError } = useSWRImmutable<
       {
@@ -148,7 +150,7 @@ export function makeMockProvider<
                 });
               }
               const userId = initializationProps.userId;
-              const aggregateId = yield* Schema.decodeUnknown(
+              const aggregateId = yield* Schema.decodeUnknownEffect(
                 makeAbbreviationIdSchema(coreAbbreviations.aggregate),
               )(
                 Reflect.get(
@@ -167,7 +169,7 @@ export function makeMockProvider<
                 otherTables: sessionRepoTables,
               });
               const schema = dbConfig.schema;
-              const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
+              const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
               const systemId = yield* makeIdFromAbbreviation({
                 abbreviation: coreAbbreviations.system,
               });
@@ -200,18 +202,16 @@ export function makeMockProvider<
                           message: `Mock resource model ${firstResource.modelName} was not found`,
                         });
                       }
-                      const encodedModelResources = yield* Schema.encode(
+                      const encodedModelResources = yield* Schema.encodeEffect(
                         Schema.Array(
-                          Schema.extend(
-                            Schema.Struct({
-                              id: makeAbbreviationIdSchema(model.abbreviation),
-                              modelName: Schema.Literal(model.modelName),
-                              createdAt: Schema.DateFromSelf,
-                              updatedAt: Schema.DateFromSelf,
-                              version: Schema.String,
-                            }),
-                            model.attributesSchema,
-                          ),
+                          Schema.Struct({
+                            id: makeAbbreviationIdSchema(model.abbreviation),
+                            modelName: Schema.Literal(model.modelName),
+                            createdAt: Schema.Date,
+                            updatedAt: Schema.Date,
+                            version: Schema.String,
+                            ...model.attributesSchema.fields,
+                          }),
                         ),
                       )(modelResources).pipe(
                         mapParseError({
@@ -227,6 +227,7 @@ export function makeMockProvider<
                 yield* applyAggregateFrontendState({
                   db,
                   frontend: selector.frontend,
+                  sessionId: coreSession.sessionId,
                   aggregateId,
                   userId,
                   systemId,
@@ -234,17 +235,17 @@ export function makeMockProvider<
                     aggregateId,
                     aggregateName: selector.frontend.aggregateName,
                     userId,
-                    executedPushedCommands: [],
-                    failedPushedCommands: [],
+                    aggregateIndex: 0,
                     frontendIndex: 0,
                     frontendName: selector.frontend.frontendName,
-                    pushedCommands: [],
+                    pushIndex: 0,
+                    resolvedPushIndexes: [],
                     resources,
                     systemId,
                     systemVersion: initializationProps.systemVersion,
                   },
                   models,
-                  schema,
+                  pushedCommands: [],
                 });
 
                 return {
@@ -275,7 +276,9 @@ export function makeMockProvider<
               aggregateName: selector.frontend.aggregateName,
               userId: data.userId,
               db: data.db,
+              aggregateIndex: 0,
               frontendIndex: 0,
+              pushIndex: 0,
               frontendName: selector.frontend.frontendName,
               aggregateFrontendLockKey: data.aggregateFrontendLockKey,
               isInitialized: true,
@@ -284,15 +287,9 @@ export function makeMockProvider<
               sessionId: coreSession.sessionId,
               systemId: data.systemId,
               systemVersion: data.systemVersion,
-              vfsName: null,
-              replicaIndex: null,
-              workerState: {
-                mode: 'shared-worker',
-                status: 'online',
-                bootstrapSource: null,
-                frontendIndex: 0,
-                replicaIndex: null,
-                databaseName: null,
+              sessionStatus: 'current',
+              backupState: {
+                status: 'ready',
                 failure: null,
               },
             });

@@ -1,9 +1,9 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { IAnyErrorJson } from '@zerospin/error';
+import { type IAnyErrorJson, type IEncodedResult } from '@zerospin/error';
 import { newHttpBatchRpcResponse, RpcTarget } from 'capnweb';
-import { Brand, Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 import { http } from 'msw';
 import { setupServer } from 'msw/node';
 import {
@@ -16,27 +16,24 @@ import {
 } from 'vitest';
 
 import { decodeRpc } from './decodeRpc.ts';
-import { encodeRight } from './encodeRight.ts';
+import { encodeSuccess } from './encodeSuccess.ts';
 import { newSyncRpcSession } from './newSyncRpcSession.ts';
 
 const TEST_RPC_URL = 'http://127.0.0.1:59999/rpc';
 
 class ApiA extends RpcTarget {
-  declare [Brand.BrandTypeId]: 'TargetApi';
-  async hello(): Promise<Schema.EitherEncoded<string, IAnyErrorJson>> {
-    return encodeRight('Api A');
+  async hello(): Promise<IEncodedResult<string, IAnyErrorJson>> {
+    return encodeSuccess('Api A');
   }
 }
 
 class ApiB extends RpcTarget {
-  declare [Brand.BrandTypeId]: 'TargetApi';
-  async hello(): Promise<Schema.EitherEncoded<string, IAnyErrorJson>> {
-    return encodeRight('Api B');
+  async hello(): Promise<IEncodedResult<string, IAnyErrorJson>> {
+    return encodeSuccess('Api B');
   }
 }
 
 class Apis extends RpcTarget {
-  declare [Brand.BrandTypeId]: 'Apis';
   getApiA() {
     return new ApiA();
   }

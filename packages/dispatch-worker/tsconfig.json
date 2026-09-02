@@ -29,8 +29,17 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
-    { "path": "../system-worker" },
-    { "path": "../error" },
-    { "path": "../core" }
+    {
+      "path": "../system-worker"
+    },
+    {
+      "path": "../schema"
+    },
+    {
+      "path": "../error"
+    },
+    {
+      "path": "../core"
+    }
   ]
 }

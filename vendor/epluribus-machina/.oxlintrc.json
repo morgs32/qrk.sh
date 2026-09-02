@@ -1,0 +1,79 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import"],
+  "jsPlugins": ["eslint-plugin-perfectionist"],
+  "env": {
+    "node": true,
+    "vitest": true
+  },
+  "overrides": [
+    {
+      "files": ["**/*.config.ts"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["**/*.spec.ts"],
+      "rules": {
+        "typescript/consistent-type-imports": "off",
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["test/**/*.ts"],
+      "rules": {
+        "eslint/no-restricted-imports": "off"
+      }
+    }
+  ],
+  "rules": {
+    "perfectionist/sort-named-imports": [
+      "warn",
+      {
+        "groups": ["value-import", "type-import"]
+      }
+    ],
+    "typescript/ban-ts-comment": "warn",
+    "typescript/consistent-type-imports": [
+      "warn",
+      {
+        "prefer": "type-imports",
+        "fixStyle": "inline-type-imports"
+      }
+    ],
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-implied-eval": "warn",
+    "typescript/no-var-requires": "warn",
+    "import/first": "error",
+    "import/no-amd": "error",
+    "import/no-default-export": "warn",
+    "import/no-duplicates": [
+      "warn",
+      {
+        "prefer-inline": true
+      }
+    ],
+    "import/no-webpack-loader-syntax": "error",
+    "eslint/array-callback-return": "warn",
+    "eslint/curly": ["warn", "multi-line", "consistent"],
+    "eslint/eqeqeq": ["warn", "smart"],
+    "eslint/no-eval": "warn",
+    "eslint/no-new-func": "warn",
+    "eslint/no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["**/src/**"],
+            "message": "Do not import from any /src/ path. Use the owning package alias or public entrypoint instead."
+          }
+        ]
+      }
+    ],
+    "eslint/no-undef": "warn",
+    "eslint/no-unused-expressions": "warn",
+    "eslint/no-var": "warn",
+    "eslint/object-shorthand": ["warn", "always"]
+  }
+}

@@ -1,9 +1,13 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { IAnyErrorJson, ZerospinError } from '@zerospin/error';
+import {
+  ZerospinError,
+  type IAnyErrorJson,
+  type IEncodedResult,
+} from '@zerospin/error';
 import { newHttpBatchRpcResponse, RpcTarget } from 'capnweb';
-import { Brand, Cause, Effect, Either, Exit, Option, Schema } from 'effect';
+import { Cause, Effect, Exit, Option, Result } from 'effect';
 import { http } from 'msw';
 import { setupServer } from 'msw/node';
 import {
@@ -28,35 +32,30 @@ const expectedError = new ZerospinError({
   extra: null,
 });
 
-function assertDecodedZerospinError(left: unknown) {
-  expect(ZerospinError.isZerospinError(left)).toBe(true);
-  expect(left).toBeInstanceOf(ZerospinError);
-  if (!ZerospinError.isZerospinError(left)) {
+function assertDecodedZerospinError(failure: unknown) {
+  expect(ZerospinError.isZerospinError(failure)).toBe(true);
+  expect(failure).toBeInstanceOf(ZerospinError);
+  if (!ZerospinError.isZerospinError(failure)) {
     return;
   }
-  expect(left.code).toBe(expectedError.code);
-  expect(left.message).toBe(
+  expect(failure.code).toBe(expectedError.code);
+  expect(failure.message).toBe(
     'failed-to-get-namespace-system-worker: Worker not found.',
   );
-  expect(left.rawMessage).toBe(expectedError.rawMessage);
-  expect(left.status).toBe(expectedError.status);
-  expect(left.extra).toEqual(expectedError.extra);
-  expect(Reflect.get(left, Brand.BrandTypeId)).toBeUndefined();
-  expect(typeof (left as { fail?: unknown }).fail).toBe('undefined');
-  expect(typeof (left as { hello?: unknown }).hello).toBe('undefined');
+  expect(failure.rawMessage).toBe(expectedError.rawMessage);
+  expect(failure.status).toBe(expectedError.status);
+  expect(failure.extra).toEqual(expectedError.extra);
+  expect(typeof (failure as { fail?: unknown }).fail).toBe('undefined');
+  expect(typeof (failure as { hello?: unknown }).hello).toBe('undefined');
 }
 
 class FailingApi extends RpcTarget {
-  declare [Brand.BrandTypeId]: 'TargetApi';
-
-  fail(): Promise<Schema.EitherEncoded<string, IAnyErrorJson>> {
+  fail(): Promise<IEncodedResult<string, IAnyErrorJson>> {
     return Effect.runPromise(expectedError.pipe(encodeRpc));
   }
 }
 
 class Apis extends RpcTarget {
-  declare [Brand.BrandTypeId]: 'Apis';
-
   getFailingApi() {
     return new FailingApi();
   }
@@ -84,15 +83,57 @@ describe('encodeRpc / decodeRpc (Node)', () => {
   });
 
   describe('in-process round trip', () => {
-    it('decodeRpc Left is a ZerospinError instance, not a stub', async () => {
+    it('encodes exact Success and Failure wire objects', async () => {
+      await expect(
+        Effect.runPromise(Effect.succeed('ok').pipe(encodeRpc)),
+      ).resolves.toEqual({ _tag: 'Success', success: 'ok' });
+      await expect(
+        Effect.runPromise(expectedError.pipe(encodeRpc)),
+      ).resolves.toEqual({
+        _tag: 'Failure',
+        failure: {
+          cause: null,
+          code: 'failed-to-get-namespace-system-worker',
+          extra: null,
+          message: 'Worker not found.',
+          status: null,
+        },
+      });
+    });
+
+    it.effect('rejects legacy Left and Right envelopes', () =>
+      Effect.gen(function* () {
+        const leftExit = yield* decodeRpc(
+          // @ts-expect-error legacy v3 wire envelope is intentionally unsupported
+          { _tag: 'Left', left: expectedError },
+        ).pipe(Effect.exit);
+        const rightExit = yield* decodeRpc(
+          // @ts-expect-error legacy v3 wire envelope is intentionally unsupported
+          { _tag: 'Right', right: 'legacy' },
+        ).pipe(Effect.exit);
+
+        for (const exit of [leftExit, rightExit]) {
+          expect(Exit.isFailure(exit)).toBe(true);
+          if (Exit.isFailure(exit)) {
+            const failure = Cause.findErrorOption(exit.cause);
+            expect(Option.isSome(failure)).toBe(true);
+            if (Option.isSome(failure)) {
+              expect(failure.value.code).toBe('failed-to-decode-rpc');
+            }
+          }
+        }
+      }),
+    );
+
+    it('decodeRpc Failure is a ZerospinError instance, not a stub', async () => {
       const encoded = await Effect.runPromise(expectedError.pipe(encodeRpc));
 
       const maybeDecoded = await Effect.runPromise(
-        decodeRpc(encoded).pipe(Effect.either),
+        decodeRpc(encoded).pipe(Effect.result),
       );
-      expect(Either.isLeft(maybeDecoded)).toBe(true);
-      if (Either.isLeft(maybeDecoded)) {
-        assertDecodedZerospinError(maybeDecoded.left);
+      expect(Result.isFailure(maybeDecoded)).toBe(true);
+      if (Result.isFailure(maybeDecoded)) {
+        assertDecodedZerospinError(maybeDecoded.failure);
       }
     });
 
@@ -101,7 +142,10 @@ describe('encodeRpc / decodeRpc (Node)', () => {
         const encoded = yield* expectedError.pipe(encodeRpc);
         const exit = yield* decodeRpc(encoded).pipe(Effect.exit);
         expect(Exit.isFailure(exit)).toBe(true);
-        const failure = Cause.failureOption(exit.cause);
+        if (!Exit.isFailure(exit)) {
+          return;
+        }
+        const failure = Cause.findErrorOption(exit.cause);
         expect(Option.isSome(failure)).toBe(true);
         if (Option.isSome(failure)) {
           assertDecodedZerospinError(failure.value);
@@ -120,11 +164,13 @@ describe('encodeRpc / decodeRpc (Node)', () => {
             decodeRpc(encoded).pipe(Effect.exit),
           );
           expect(Exit.isFailure(exit)).toBe(true);
-          const failure = Cause.failureOption(exit.cause);
+          if (!Exit.isFailure(exit)) {
+            return;
+          }
+          const failure = Cause.findErrorOption(exit.cause);
           expect(Option.isSome(failure)).toBe(true);
           if (Option.isSome(failure)) {
             assertDecodedZerospinError(failure.value);
-            expect(Cause.originalError(failure.value)).toEqual(failure.value);
           }
         }),
     );
@@ -135,26 +181,26 @@ describe('encodeRpc / decodeRpc (Node)', () => {
       server.use(...apiHandlers);
     });
 
-    it('decoded RPC Left is a ZerospinError instance, not an RpcStub', async () => {
+    it('decoded RPC Failure is a ZerospinError instance, not an RpcStub', async () => {
       using apis = newSyncRpcSession<Apis>(TEST_RPC_URL);
       const api = apis.getFailingApi();
       const encoded = await api.fail();
-      expect(encoded._tag).toBe('Left');
-      if (encoded._tag === 'Left') {
-        expect(encoded.left.code).toBe(expectedError.code);
-        expect(encoded.left.message).toBe(expectedError.rawMessage);
+      expect(encoded._tag).toBe('Failure');
+      if (encoded._tag === 'Failure') {
+        expect(encoded.failure.code).toBe(expectedError.code);
+        expect(encoded.failure.message).toBe(expectedError.rawMessage);
       }
 
       const maybeDecoded = await Effect.runPromise(
-        decodeRpc(encoded).pipe(Effect.either),
+        decodeRpc(encoded).pipe(Effect.result),
       );
-      expect(Either.isLeft(maybeDecoded)).toBe(true);
-      if (Either.isLeft(maybeDecoded)) {
-        assertDecodedZerospinError(maybeDecoded.left);
+      expect(Result.isFailure(maybeDecoded)).toBe(true);
+      if (Result.isFailure(maybeDecoded)) {
+        assertDecodedZerospinError(maybeDecoded.failure);
       }
       expect(typeof api.fail).toBe('function');
-      if (Either.isLeft(maybeDecoded)) {
-        expect(maybeDecoded.left).not.toBe(api);
+      if (Result.isFailure(maybeDecoded)) {
+        expect(maybeDecoded.failure).not.toBe(api);
       }
     });
 
@@ -169,7 +215,10 @@ describe('encodeRpc / decodeRpc (Node)', () => {
             Effect.exit,
           );
           expect(Exit.isFailure(exit)).toBe(true);
-          const failure = Cause.failureOption(exit.cause);
+          if (!Exit.isFailure(exit)) {
+            return;
+          }
+          const failure = Cause.findErrorOption(exit.cause);
           expect(Option.isSome(failure)).toBe(true);
           if (Option.isSome(failure)) {
             assertDecodedZerospinError(failure.value);

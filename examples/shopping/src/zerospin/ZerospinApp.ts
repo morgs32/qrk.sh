@@ -6,7 +6,7 @@ import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory'
 import { makeZerospinApp } from '@zerospin/react';
 import { Layer, ManagedRuntime, Redacted } from 'effect';
 
-import { authenticationSignature } from './authentication';
+import { signature } from './signature';
 import { catalog as catalogFrontend } from './frontends/catalog';
 import { web as shopperFrontend } from './frontends/web';
 
@@ -34,7 +34,7 @@ const sessionRuntime = ManagedRuntime.make(
 export const ZerospinApp = makeZerospinApp({
   systemName: 'shopping',
   authentication: {
-    signature: authenticationSignature,
+    signature,
   },
   frontends: {
     web: {

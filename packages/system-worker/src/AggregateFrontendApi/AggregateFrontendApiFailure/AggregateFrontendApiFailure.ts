@@ -1,26 +1,20 @@
 import type { IAnyError } from '@zerospin/error';
 import { RpcTarget } from 'capnweb';
 import { Effect } from 'effect';
-import { BrandTypeId } from 'effect/Brand';
 
 import type { AggregateFrontendApi } from '../AggregateFrontendApi.js';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
 import { executeAggregateQuery } from './executeAggregateQuery/executeAggregateQuery.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
-import { getAdmission } from './getAdmission/getAdmission.js';
+import { getFinalizedCommands } from './getFinalizedCommands/getFinalizedCommands.js';
+import { getPushedCommands } from './getPushedCommands/getPushedCommands.js';
 import { getState } from './getState/getState.js';
-import { pushCommands } from './pushCommands/pushCommands.js';
+import { pushCommand } from './pushCommand/pushCommand.js';
 
 export class AggregateFrontendApiFailure extends RpcTarget {
-  declare [BrandTypeId]: 'TargetApi';
-
   constructor(private readonly error: IAnyError) {
     super();
-  }
-
-  async getAdmission(): ReturnType<AggregateFrontendApi['getAdmission']> {
-    return Effect.runPromise(getAdmission({ error: this.error }));
   }
 
   async getState(
@@ -37,10 +31,26 @@ export class AggregateFrontendApiFailure extends RpcTarget {
     );
   }
 
-  async pushCommands(
-    request: Parameters<AggregateFrontendApi['pushCommands']>[0],
-  ): ReturnType<AggregateFrontendApi['pushCommands']> {
-    return Effect.runPromise(pushCommands({ request, error: this.error }));
+  async pushCommand(
+    request: Parameters<AggregateFrontendApi['pushCommand']>[0],
+  ): ReturnType<AggregateFrontendApi['pushCommand']> {
+    return Effect.runPromise(pushCommand({ request, error: this.error }));
+  }
+
+  async getFinalizedCommands(
+    request: Parameters<AggregateFrontendApi['getFinalizedCommands']>[0],
+  ): ReturnType<AggregateFrontendApi['getFinalizedCommands']> {
+    return Effect.runPromise(
+      getFinalizedCommands({ request, error: this.error }),
+    );
+  }
+
+  async getPushedCommands(
+    request: Parameters<AggregateFrontendApi['getPushedCommands']>[0],
+  ): ReturnType<AggregateFrontendApi['getPushedCommands']> {
+    return Effect.runPromise(
+      getPushedCommands({ request, error: this.error }),
+    );
   }
 
   async executeServiceQuery(

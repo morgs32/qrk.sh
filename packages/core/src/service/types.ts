@@ -1,7 +1,9 @@
 import type { IAnyError } from '@zerospin/error';
+import type { CuidFactory } from '@zerospin/schema';
 import type { Effect, Schema } from 'effect';
 
 import type {
+  IAnyMutation,
   ICommand,
   IContracts,
   IOperationName,
@@ -17,27 +19,34 @@ import type {
   InferCommandPayload,
   InferPayloadInput,
 } from '../models/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
 
 export type IServiceQuery<
   MODELS extends IModels = IModels,
-  PARAMS_SCHEMA extends Schema.Schema.AnyNoContext = Schema.Schema.AnyNoContext,
+  PARAMS_SCHEMA extends Schema.Codec<unknown, unknown> = Schema.Codec<
+    unknown,
+    unknown
+  >,
   RESULT = unknown,
 > = {
   paramsSchema: PARAMS_SCHEMA;
-  query: (props: {
-    db: Readonly<
-      Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
-    >;
-    params: Schema.Schema.Type<PARAMS_SCHEMA>;
-  }) => Effect.Effect<RESULT, IAnyError>;
+  query: {
+    bivarianceHack(props: {
+      db: Readonly<
+        Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
+      >;
+      params: Schema.Schema.Type<PARAMS_SCHEMA>;
+    }): Effect.Effect<RESULT, IAnyError>;
+  }['bivarianceHack'];
 };
 
 export type IResolvedServiceQuery<
   SERVICE_NAME extends string = string,
   QUERY_NAME extends string = string,
   MODELS extends IModels = IModels,
-  PARAMS_SCHEMA extends Schema.Schema.AnyNoContext = Schema.Schema.AnyNoContext,
+  PARAMS_SCHEMA extends Schema.Codec<unknown, unknown> = Schema.Codec<
+    unknown,
+    unknown
+  >,
   RESULT = unknown,
 > = IServiceQuery<MODELS, PARAMS_SCHEMA, RESULT> & {
   kind: 'service';
@@ -49,7 +58,7 @@ export type IAnyServiceQuery = {
   kind: 'service';
   name: string;
   serviceName: string;
-  paramsSchema: Schema.Schema.AnyNoContext;
+  paramsSchema: Schema.Codec<unknown, unknown>;
   query: {
     bivarianceHack(props: {
       db: Readonly<Pick<IDb, 'query'>>;
@@ -68,8 +77,8 @@ export type IService<
       Record<
         IOperationName,
         readonly {
-          source: Schema.Schema.AnyNoContext;
-          destination: Schema.Schema.AnyNoContext | null;
+          source: Schema.Codec<IAnyMutation, unknown>;
+          destination: Schema.Codec<IAnyMutation, unknown> | null;
           adapter?: unknown;
         }[]
       >
@@ -80,8 +89,8 @@ export type IService<
       Record<
         IOperationName,
         readonly {
-          source: Schema.Schema.AnyNoContext;
-          destination: Schema.Schema.AnyNoContext | null;
+          source: Schema.Codec<IAnyMutation, unknown>;
+          destination: Schema.Codec<IAnyMutation, unknown> | null;
           adapter?: unknown;
         }[]
       >
@@ -133,8 +142,8 @@ export type IAnyService = {
           Record<
             IOperationName,
             readonly {
-              source: Schema.Schema.AnyNoContext;
-              destination: Schema.Schema.AnyNoContext | null;
+              source: Schema.Codec<IAnyMutation, unknown>;
+              destination: Schema.Codec<IAnyMutation, unknown> | null;
               adapter?: unknown;
             }[]
           >

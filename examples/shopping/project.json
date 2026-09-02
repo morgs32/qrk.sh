@@ -5,6 +5,13 @@
     "build": {
       "dependsOn": ["^lib"]
     },
+    "tsc:typecheck": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "ts"
+      },
+      "dependsOn": ["^lib"]
+    },
     "preview": {
       "continuous": true,
       "dependsOn": ["build"]
@@ -15,6 +22,15 @@
     },
     "zerospin:dev": {
       "continuous": true,
+      "dependsOn": ["^lib"]
+    },
+    "adverse-fixture:dev": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "command": "zerospin dev --port 3035",
+        "cwd": "{projectRoot}/tests/browser/adverse-fixture"
+      },
       "dependsOn": ["^lib"]
     },
     "deploy:app": {
@@ -69,12 +85,20 @@
       "options": {
         "script": "test:vitest:browser:main"
       },
-      "dependsOn": ["^lib"]
+      "dependsOn": ["^lib", "test:vitest:browser:operator-reset"]
     },
     "test:vitest:browser:main": {
       "executor": "nx:run-script",
       "options": {
         "script": "test:vitest:browser:main"
+      },
+      "dependsOn": ["^lib"]
+    },
+    "test:vitest:browser:operator-reset": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --config vitest.operator-reset.playwright.config.ts",
+        "cwd": "{projectRoot}"
       },
       "dependsOn": ["^lib"]
     },

@@ -1,15 +1,15 @@
 import { it } from '@effect/vitest';
+import { primitives } from '@zerospin/schema';
 import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
-import { makeMigratedInMemorySqljsDb } from '../drizzle/makeMigratedInMemorySqljsDb.ts';
+import { makeProvisionedInMemorySqljsDb } from '../drizzle/makeProvisionedInMemorySqljsDb.ts';
 import { makeTx } from '../drizzle/makeTx.ts';
 import { Item, List, mainModels, User } from '../fixtures/system.ts';
-import { makeServiceModel } from '../models/makeServiceModel.ts';
-import { primitives } from '../models/primitives.ts';
+import { makeModel } from '../models/makeModel.ts';
 
 import { applyMutationInverseTx } from './applyMutationInverseTx.ts';
 import { applyMutationTx } from './applyMutationTx.ts';
@@ -19,9 +19,8 @@ const testListId = 'lst_pushedinv001' as const;
 const testItemId = 'tsk_pushedinv001' as const;
 const now = new Date('2020-01-01T00:00:00.000Z');
 const appliedAt = new Date('2020-01-02T00:00:00.000Z');
-const Product = makeServiceModel(
+const Product = makeModel(
   {
-    serviceName: 'catalog',
     abbreviation: 'prd',
     modelName: 'product',
     attributes: { name: primitives.text() },
@@ -30,12 +29,13 @@ const Product = makeServiceModel(
   },
   [],
 );
+const dbConfig = makeResourceDbConfig({ models: mainModels });
+const productDbConfig = makeResourceDbConfig({ models: { product: Product } });
 
 describe('applyMutationTx + applyMutationInverseTx', () => {
   it.effect('create inverse deletes the created row', () =>
     Effect.gen(function* () {
-      const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
       const mutation = yield* User.create('1.0.0', {
         resourceId: testUserId,
@@ -67,8 +67,8 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
       const row = db
         .select()
-        .from(User.drizzleSchema)
-        .where(eq(User.drizzleSchema.id, testUserId))
+        .from(dbConfig.schema.user)
+        .where(eq(dbConfig.schema.user.id, testUserId))
         .get();
 
       expect(row).toBeUndefined();
@@ -79,10 +79,9 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
   it.effect('create fails if the row already exists', () =>
     Effect.gen(function* () {
-      const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
-      db.insert(User.drizzleSchema)
+      db.insert(dbConfig.schema.user)
         .values({
           id: testUserId,
           modelName: User.modelName,
@@ -119,8 +118,7 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
   it.effect('update fails if the resource row is missing', () =>
     Effect.gen(function* () {
-      const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
       const mutation = yield* User.update('1.0.0', {
         resourceId: testUserId,
@@ -137,24 +135,23 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
               commandId: 'cmd_pushedinv001',
               mutationIndex: 0,
               appliedAt,
-            }).pipe(Effect.either);
+            }).pipe(Effect.result);
           },
         ),
       });
 
-      expect(result._tag).toBe('Left');
-      if (result._tag === 'Left') {
-        expect(result.left.code).toBe('mutation-row-not-found');
+      expect(result._tag).toBe('Failure');
+      if (result._tag === 'Failure') {
+        expect(result.failure.code).toBe('mutation-row-not-found');
       }
     }).pipe(Effect.provide(AsyncLive)),
   );
 
   it.effect('update inverse restores pre-apply attributes and updatedAt', () =>
     Effect.gen(function* () {
-      const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
-      db.insert(User.drizzleSchema)
+      db.insert(dbConfig.schema.user)
         .values({
           id: testUserId,
           modelName: User.modelName,
@@ -195,8 +192,8 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
       const row = db
         .select()
-        .from(User.drizzleSchema)
-        .where(eq(User.drizzleSchema.id, testUserId))
+        .from(dbConfig.schema.user)
+        .where(eq(dbConfig.schema.user.id, testUserId))
         .get();
 
       expect(row?.name).toBe('Alice');
@@ -210,10 +207,9 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
   it.effect('move inverse restores prevId and updatedAt', () =>
     Effect.gen(function* () {
-      const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
-      db.insert(User.drizzleSchema)
+      db.insert(dbConfig.schema.user)
         .values({
           id: testUserId,
           modelName: User.modelName,
@@ -223,7 +219,7 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
           name: 'Alice',
         })
         .run();
-      db.insert(List.drizzleSchema)
+      db.insert(dbConfig.schema.list)
         .values({
           id: testListId,
           modelName: List.modelName,
@@ -234,7 +230,7 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
           userId: testUserId,
         })
         .run();
-      db.insert(List.drizzleSchema)
+      db.insert(dbConfig.schema.list)
         .values({
           id: 'lst_other000001',
           modelName: List.modelName,
@@ -245,7 +241,7 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
           userId: testUserId,
         })
         .run();
-      db.insert(Item.drizzleSchema)
+      db.insert(dbConfig.schema.item)
         .values({
           id: testItemId,
           modelName: Item.modelName,
@@ -289,8 +285,8 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
       const row = db
         .select()
-        .from(Item.drizzleSchema)
-        .where(eq(Item.drizzleSchema.id, testItemId))
+        .from(dbConfig.schema.item)
+        .where(eq(dbConfig.schema.item.id, testItemId))
         .get();
 
       expect(row?.listId).toBe(testListId);
@@ -305,10 +301,9 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
   it.effect('delete removes the row and its inverse restores it', () =>
     Effect.gen(function* () {
-      const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
-      db.insert(User.drizzleSchema)
+      db.insert(dbConfig.schema.user)
         .values({
           id: testUserId,
           modelName: User.modelName,
@@ -340,8 +335,8 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
       const deletedRow = db
         .select()
-        .from(User.drizzleSchema)
-        .where(eq(User.drizzleSchema.id, testUserId))
+        .from(dbConfig.schema.user)
+        .where(eq(dbConfig.schema.user.id, testUserId))
         .get();
       expect(deletedRow).toBeUndefined();
       expect(applied.lastAppliedAt).toEqual(now);
@@ -363,8 +358,8 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
       const restoredRow = db
         .select()
-        .from(User.drizzleSchema)
-        .where(eq(User.drizzleSchema.id, testUserId))
+        .from(dbConfig.schema.user)
+        .where(eq(dbConfig.schema.user.id, testUserId))
         .get();
       expect(restoredRow).toEqual(
         expect.objectContaining({
@@ -377,8 +372,7 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
 
   it.effect('delete fails when the row is missing', () =>
     Effect.gen(function* () {
-      const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
       const mutation = yield* User.delete('1.0.0', {
         resourceId: testUserId,
@@ -394,24 +388,24 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
               commandId: 'cmd_pushedinv001',
               mutationIndex: 0,
               appliedAt,
-            }).pipe(Effect.either);
+            }).pipe(Effect.result);
           },
         ),
       });
 
-      expect(result._tag).toBe('Left');
-      if (result._tag === 'Left') {
-        expect(result.left.code).toBe('mutation-row-not-found');
+      expect(result._tag).toBe('Failure');
+      if (result._tag === 'Failure') {
+        expect(result.failure.code).toBe('mutation-row-not-found');
       }
     }).pipe(Effect.provide(AsyncLive)),
   );
 
   it.effect(
-    'service delete retains the row, restores through its inverse, and makes deletion terminal',
+    'service delete removes the row and allows a later create with the same id',
     () =>
       Effect.gen(function* () {
-        const db = yield* makeMigratedInMemorySqljsDb({
-          dbConfig: makeResourceDbConfig({ models: { product: Product } }),
+        const db = yield* makeProvisionedInMemorySqljsDb({
+          dbConfig: productDbConfig,
         });
         const productId = 'prd_terminal001';
         const createMutation = yield* Product.create('1.0.0', {
@@ -435,10 +429,10 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
         expect(
           db
             .select()
-            .from(Product.drizzleSchema)
-            .where(eq(Product.drizzleSchema.id, productId))
+            .from(productDbConfig.schema.product)
+            .where(eq(productDbConfig.schema.product.id, productId))
             .get(),
-        ).toMatchObject({ name: 'Original', deletedAt: null });
+        ).toMatchObject({ name: 'Original' });
 
         const deleteMutation = yield* Product.delete('1.0.0', {
           resourceId: productId,
@@ -460,22 +454,52 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
         expect(
           db
             .select()
-            .from(Product.drizzleSchema)
-            .where(eq(Product.drizzleSchema.id, productId))
+            .from(productDbConfig.schema.product)
+            .where(eq(productDbConfig.schema.product.id, productId))
             .get(),
-        ).toMatchObject({
-          name: 'Original',
-          deletedAt: appliedAt,
-          updatedAt: appliedAt,
+        ).toBeUndefined();
+        expect(appliedDelete.lastAppliedAt).toEqual(now);
+        expect(appliedDelete.inverseOperation).toEqual({
+          resource: expect.objectContaining({
+            id: productId,
+            name: 'Original',
+          }),
         });
 
+        const missingDelete = yield* makeTx({
+          db,
+          program: Effect.fn(
+            'applyMutationTxSpec.deleteMissingServiceResource',
+          )(function* ({ tx }) {
+            return yield* applyMutationTx({
+              tx,
+              mutation: deleteMutation,
+              commandId: 'cmd_service_delete_missing',
+              mutationIndex: 0,
+              appliedAt: new Date('2020-01-03T00:00:00.000Z'),
+            }).pipe(Effect.result);
+          }),
+        });
+        expect(missingDelete._tag).toBe('Failure');
+        if (missingDelete._tag === 'Failure') {
+          expect(missingDelete.failure.code).toBe('mutation-row-not-found');
+        }
+
+        const recreatedAt = new Date('2020-01-04T00:00:00.000Z');
+        const recreateMutation = yield* Product.create('1.0.0', {
+          resourceId: productId,
+          attributes: { name: 'Replacement' },
+        });
         yield* makeTx({
           db,
-          program: Effect.fn('applyMutationTxSpec.restoreServiceResource')(
+          program: Effect.fn('applyMutationTxSpec.recreateServiceResource')(
             function* ({ tx }) {
-              return yield* applyMutationInverseTx({
+              return yield* applyMutationTx({
                 tx,
-                mutation: appliedDelete,
+                mutation: recreateMutation,
+                commandId: 'cmd_service_recreate',
+                mutationIndex: 0,
+                appliedAt: recreatedAt,
               });
             },
           ),
@@ -483,128 +507,22 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
         expect(
           db
             .select()
-            .from(Product.drizzleSchema)
-            .where(eq(Product.drizzleSchema.id, productId))
+            .from(productDbConfig.schema.product)
+            .where(eq(productDbConfig.schema.product.id, productId))
             .get(),
         ).toMatchObject({
-          name: 'Original',
-          deletedAt: null,
-          updatedAt: now,
+          name: 'Replacement',
+          createdAt: recreatedAt,
+          updatedAt: recreatedAt,
+          version: Product.version,
         });
-
-        yield* makeTx({
-          db,
-          program: Effect.fn('applyMutationTxSpec.deleteServiceResourceAgain')(
-            function* ({ tx }) {
-              return yield* applyMutationTx({
-                tx,
-                mutation: deleteMutation,
-                commandId: 'cmd_service_delete_again',
-                mutationIndex: 0,
-                appliedAt,
-              });
-            },
-          ),
-        });
-        const replayedDelete = yield* makeTx({
-          db,
-          program: Effect.fn('applyMutationTxSpec.replayServiceDelete')(
-            function* ({ tx }) {
-              return yield* applyMutationTx({
-                tx,
-                mutation: deleteMutation,
-                commandId: 'cmd_service_delete_replay',
-                mutationIndex: 0,
-                appliedAt,
-              });
-            },
-          ),
-        });
-        expect(replayedDelete.inverseOperation).toBe(null);
-
-        const differentDelete = yield* makeTx({
-          db,
-          program: Effect.fn('applyMutationTxSpec.rejectDifferentDelete')(
-            function* ({ tx }) {
-              return yield* applyMutationTx({
-                tx,
-                mutation: deleteMutation,
-                commandId: 'cmd_service_delete_different',
-                mutationIndex: 0,
-                appliedAt: new Date('2020-01-03T00:00:00.000Z'),
-              }).pipe(Effect.either);
-            },
-          ),
-        });
-        expect(differentDelete._tag).toBe('Left');
-        if (differentDelete._tag === 'Left') {
-          expect(differentDelete.left.code).toBe('service-resource-deleted');
-        }
-
-        const updateMutation = yield* Product.update('1.0.0', {
-          resourceId: productId,
-          attributes: { name: 'Changed' },
-        });
-        const rejectedUpdate = yield* makeTx({
-          db,
-          program: Effect.fn('applyMutationTxSpec.rejectDeletedUpdate')(
-            function* ({ tx }) {
-              return yield* applyMutationTx({
-                tx,
-                mutation: updateMutation,
-                commandId: 'cmd_service_update_deleted',
-                mutationIndex: 0,
-                appliedAt: new Date('2020-01-03T00:00:00.000Z'),
-              }).pipe(Effect.either);
-            },
-          ),
-        });
-        expect(rejectedUpdate._tag).toBe('Left');
-
-        const moveMutation = yield* Product.move('1.0.0', {
-          resourceId: productId,
-          property: 'name',
-          prevId: 'Original',
-          nextId: 'Changed',
-        });
-        const rejectedMove = yield* makeTx({
-          db,
-          program: Effect.fn('applyMutationTxSpec.rejectDeletedMove')(
-            function* ({ tx }) {
-              return yield* applyMutationTx({
-                tx,
-                mutation: moveMutation,
-                commandId: 'cmd_service_move_deleted',
-                mutationIndex: 0,
-                appliedAt: new Date('2020-01-03T00:00:00.000Z'),
-              }).pipe(Effect.either);
-            },
-          ),
-        });
-        expect(rejectedMove._tag).toBe('Left');
-
-        const rejectedCreate = yield* makeTx({
-          db,
-          program: Effect.fn('applyMutationTxSpec.rejectDeletedCreate')(
-            function* ({ tx }) {
-              return yield* applyMutationTx({
-                tx,
-                mutation: createMutation,
-                commandId: 'cmd_service_create_deleted',
-                mutationIndex: 0,
-                appliedAt: new Date('2020-01-03T00:00:00.000Z'),
-              }).pipe(Effect.either);
-            },
-          ),
-        });
-        expect(rejectedCreate._tag).toBe('Left');
       }).pipe(Effect.provide(AsyncLive)),
   );
 
   it.effect('maps persisted reference violations with mutation context', () =>
     Effect.gen(function* () {
-      const db = yield* makeMigratedInMemorySqljsDb({
-        dbConfig: makeResourceDbConfig({ models: mainModels }),
+      const db = yield* makeProvisionedInMemorySqljsDb({
+        dbConfig,
       });
       const invalidItem = yield* Item.create('1.0.0', {
         resourceId: testItemId,
@@ -620,16 +538,16 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
               commandId: 'cmd_orphan_insert',
               mutationIndex: 0,
               appliedAt,
-            }).pipe(Effect.either);
+            }).pipe(Effect.result);
           },
         ),
       });
-      expect(invalidInsert._tag).toBe('Left');
-      if (invalidInsert._tag === 'Left') {
-        expect(invalidInsert.left.code).toBe(
+      expect(invalidInsert._tag).toBe('Failure');
+      if (invalidInsert._tag === 'Failure') {
+        expect(invalidInsert.failure.code).toBe(
           'mutation-referential-integrity-failed',
         );
-        expect(invalidInsert.left.extra).toMatchObject({
+        expect(invalidInsert.failure.extra).toMatchObject({
           modelName: Item.modelName,
           resourceId: testItemId,
           operationName: 'create',
@@ -654,7 +572,7 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
           },
         ),
       });
-      db.insert(List.drizzleSchema)
+      db.insert(dbConfig.schema.list)
         .values({
           id: testListId,
           modelName: List.modelName,
@@ -678,13 +596,13 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
               commandId: 'cmd_referenced_delete',
               mutationIndex: 0,
               appliedAt,
-            }).pipe(Effect.either);
+            }).pipe(Effect.result);
           },
         ),
       });
-      expect(invalidDelete._tag).toBe('Left');
-      if (invalidDelete._tag === 'Left') {
-        expect(invalidDelete.left.code).toBe(
+      expect(invalidDelete._tag).toBe('Failure');
+      if (invalidDelete._tag === 'Failure') {
+        expect(invalidDelete.failure.code).toBe(
           'mutation-referential-integrity-failed',
         );
       }
@@ -696,16 +614,16 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
             return yield* applyMutationInverseTx({
               tx,
               mutation: appliedReferencedUser,
-            }).pipe(Effect.either);
+            }).pipe(Effect.result);
           },
         ),
       });
-      expect(invalidInverse._tag).toBe('Left');
-      if (invalidInverse._tag === 'Left') {
-        expect(invalidInverse.left.code).toBe(
+      expect(invalidInverse._tag).toBe('Failure');
+      if (invalidInverse._tag === 'Failure') {
+        expect(invalidInverse.failure.code).toBe(
           'mutation-referential-integrity-failed',
         );
-        expect(invalidInverse.left.extra).toMatchObject({
+        expect(invalidInverse.failure.extra).toMatchObject({
           modelName: User.modelName,
           resourceId: testUserId,
           operationName: 'create',

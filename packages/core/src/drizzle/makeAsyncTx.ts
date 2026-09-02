@@ -1,5 +1,5 @@
 import { ZerospinError, type IAnyError } from '@zerospin/error';
-import { Cause, Effect, Exit, Option, Runtime } from 'effect';
+import { Cause, Effect, Exit, Option } from 'effect';
 
 import type { Async } from '../async/Async.js';
 import { makeAsync } from '../async/makeAsync.js';
@@ -18,12 +18,12 @@ export const makeAsyncTx = Effect.fn('makeAsyncTx')(function* <
   };
   program: () => Effect.Effect<SUCCESS, ERROR, PROGRAM_REQUIREMENTS>;
 }): Effect.fn.Return<SUCCESS, IAnyError, Async | PROGRAM_REQUIREMENTS> {
-  const runtime = yield* Effect.runtime<PROGRAM_REQUIREMENTS>();
+  const context = yield* Effect.context<PROGRAM_REQUIREMENTS>();
 
   return yield* makeAsync(
     () =>
       props.storage.transaction(async () => {
-        const exit = await Runtime.runPromiseExit(runtime)(props.program());
+        const exit = await Effect.runPromiseExitWith(context)(props.program());
         if (Exit.isFailure(exit)) {
           throw exit;
         }
@@ -31,7 +31,7 @@ export const makeAsyncTx = Effect.fn('makeAsyncTx')(function* <
       }),
     cause => {
       if (Exit.isExit(cause) && Exit.isFailure(cause)) {
-        const failure = Cause.failureOption(cause.cause);
+        const failure = Cause.findErrorOption(cause.cause);
         if (
           Option.isSome(failure) &&
           ZerospinError.isZerospinError(failure.value)

@@ -1,16 +1,11 @@
-import { Cause, Data, Runtime, Schema } from 'effect';
+import { Cause, Data, Schema, SchemaTransformation } from 'effect';
 import { isObject } from 'effect/Predicate';
 
 import type { IAnyError, IAnyErrorJson, IZerospinError } from './types.js';
 
 const ZerospinErrorJsonSchema = Schema.Struct({
   cause: Schema.NullOr(Schema.String),
-  extra: Schema.NullOr(
-    Schema.Record({
-      key: Schema.String,
-      value: Schema.Unknown,
-    }),
-  ),
+  extra: Schema.NullOr(Schema.Record(Schema.String, Schema.Unknown)),
   code: Schema.String,
   message: Schema.String,
   status: Schema.NullOr(Schema.Number),
@@ -22,9 +17,6 @@ const truncateCause = (text: string): string =>
   text.length <= maxCauseChars
     ? text
     : `${text.slice(0, maxCauseChars)}\n…[truncated]`;
-
-const peelUnknown = (error: unknown): unknown =>
-  Cause.isUnknownException(error) ? peelUnknown(error.error) : error;
 
 const formatDisplayMessage = (code: string, rawMessage: string): string =>
   rawMessage === code ? code : `${code}: ${rawMessage}`;
@@ -108,17 +100,13 @@ export class ZerospinError<T extends string = never> extends Data.TaggedError(
     return isObject(data) && '_tag' in data && data._tag === 'ZerospinError';
   }
 
-  /** Unwrap tryPromise / FiberFailure failures and format with Effect's Cause.pretty. */
+  /** Format Effect causes and Promise rejections without serializing fiber state. */
   static prettyUnknownFailure(error: unknown): string {
-    const value = peelUnknown(error);
-    if (Runtime.isFiberFailure(value)) {
-      return truncateCause(Cause.pretty(value[Runtime.FiberFailureCauseId]));
+    if (Cause.isCause(error)) return truncateCause(Cause.pretty(error));
+    if (error instanceof Error) {
+      return truncateCause(error.stack ?? `${error.name}: ${error.message}`);
     }
-    if (Cause.isCause(value)) return truncateCause(Cause.pretty(value));
-    if (value instanceof Error) {
-      return truncateCause(value.stack ?? `${value.name}: ${value.message}`);
-    }
-    return truncateCause(String(value));
+    return truncateCause(String(error));
   }
 
   static isAsyncRunSyncFailure(error: unknown): boolean {
@@ -164,31 +152,36 @@ export class ZerospinError<T extends string = never> extends Data.TaggedError(
     return `${base}\nCaused by: ${cause}`;
   }
 
-  static schema = Schema.transform(
-    ZerospinErrorJsonSchema,
-    Schema.declare((input: unknown): input is IAnyError =>
-      ZerospinError.isZerospinError(input),
-    ),
-    {
-      strict: true,
-      decode: error => new ZerospinError(error),
-      encode: error => {
-        return {
-          cause: error.cause,
-          code: error.code,
-          extra: error.extra,
-          message: error.rawMessage,
-          status: error.status,
-        } satisfies IAnyErrorJson;
-      },
-    },
-  ) as Schema.Schema<IAnyError, IAnyErrorJson>;
+  static schema: Schema.Codec<IAnyError, IAnyErrorJson> =
+    ZerospinErrorJsonSchema.pipe(
+      Schema.decodeTo(
+        Schema.declare<IAnyError>((input: unknown): input is IAnyError =>
+          ZerospinError.isZerospinError(input),
+        ),
+        SchemaTransformation.transform({
+          decode: error => new ZerospinError(error),
+          encode: error => {
+            return {
+              cause: error.cause,
+              code: error.code,
+              extra: error.extra,
+              message: error.rawMessage,
+              status: error.status,
+            } satisfies IAnyErrorJson;
+          },
+        }),
+      ),
+    );
 
   static stringify(error: IAnyError): string {
-    return Schema.encodeSync(Schema.parseJson(ZerospinError.schema))(error);
+    return Schema.encodeSync(Schema.fromJsonString(ZerospinError.schema))(
+      error,
+    );
   }
 
   static parse(error: string): IAnyError {
-    return Schema.decodeSync(Schema.parseJson(ZerospinError.schema))(error);
+    return Schema.decodeSync(Schema.fromJsonString(ZerospinError.schema))(
+      error,
+    );
   }
 }

@@ -1,396 +1,233 @@
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { DeployConfigSchema } from '../system/ZerospinConfigSchema.ts';
-
 import {
-  DeploySeedCommandSchema,
-  ExecutedPushedCommandSchema,
-  FailedPushedCommandSchema,
-  FailedStagedReplicaCommandSchema,
-  FinalizedFailedStagedReplicaCommandSchema,
-  PushBlockSchema,
-  StagedReplicaCommandSchema,
-  StagedSessionCommandSchema,
+  AggregateChainedCommandSchema,
+  SeedCommandSchema,
+  ServiceChainedCommandSchema,
 } from './CommandSchema.ts';
 
-describe('CommandSchema', () => {
-  it('decodes service commands in deploy seed schema', async () => {
-    const serviceCommand = {
-      id: 'cmd_service',
-      commandName: 'createProduct',
-      payload: {
-        id: 'prd_seed',
-      },
-      contractVersion: '1.0.0',
-      commandType: 'service',
-      serviceName: 'app',
-    };
+const emptyDelta = {
+  inserted: [],
+  updated: [],
+  deleted: [],
+  mutations: [],
+};
 
-    const seed = await Effect.runPromise(
-      Schema.decodeUnknown(DeploySeedCommandSchema)(serviceCommand),
+const resourceDelta = {
+  inserted: [
+    {
+      id: 'prd_test',
+      modelName: 'product',
+      name: 'Product',
+      version: '1.0.0',
+      createdAt: '2026-08-31T12:00:00.000Z',
+      updatedAt: '2026-08-31T12:00:00.000Z',
+    },
+  ],
+  updated: [],
+  deleted: [],
+  mutations: [],
+};
+
+const serviceCommand = {
+  id: 'cmd_service',
+  commandName: 'createProduct',
+  payload: '{}',
+  contractVersion: '1.0.0',
+  serviceName: 'catalog',
+};
+
+const aggregateCommand = {
+  id: 'cmd_aggregate',
+  commandName: 'createCart',
+  payload: '{}',
+  contractVersion: '1.0.0',
+  aggregateId: 'acct_test',
+  aggregateName: 'cart',
+  systemName: 'shopping',
+  sessionId: null,
+  userId: null,
+  frontendName: null,
+  pushIndex: null,
+};
+
+const encodedFailure = {
+  cause: null,
+  code: 'rejected',
+  extra: null,
+  message: 'rejected',
+  status: null,
+};
+
+describe('singular command schemas', () => {
+  it('accepts aggregate and service seeds without a commandType discriminator', async () => {
+    await expect(
+      Effect.runPromise(
+        Schema.decodeUnknownEffect(SeedCommandSchema)({
+          ...serviceCommand,
+          payload: {},
+        }),
+      ),
+    ).resolves.toMatchObject({ serviceName: 'catalog' });
+    await expect(
+      Effect.runPromise(
+        Schema.decodeUnknownEffect(SeedCommandSchema)({
+          ...aggregateCommand,
+          payload: {},
+        }),
+      ),
+    ).resolves.toMatchObject({ aggregateName: 'cart' });
+  });
+
+  it('decodes pending, successful, and failed service occurrences', async () => {
+    const common = {
+      ...serviceCommand,
+      serviceIndex: 1,
+      chainedAt: '2026-08-31T12:00:00.000Z',
+    };
+    const pending = await Effect.runPromise(
+      Schema.decodeUnknownEffect(ServiceChainedCommandSchema)({
+        ...common,
+        delta: null,
+        failedAt: null,
+        failure: null,
+      }),
     );
-    const deployConfig = await Effect.runPromise(
-      Schema.decodeUnknown(DeployConfigSchema)({
-        environmentId: 'dev',
-        env: null,
-        seeds: [serviceCommand],
+    const successful = await Effect.runPromise(
+      Schema.decodeUnknownEffect(ServiceChainedCommandSchema)({
+        ...common,
+        delta: resourceDelta,
+        failedAt: null,
+        failure: null,
+      }),
+    );
+    const failed = await Effect.runPromise(
+      Schema.decodeUnknownEffect(ServiceChainedCommandSchema)({
+        ...common,
+        delta: emptyDelta,
+        failedAt: '2026-08-31T12:00:01.000Z',
+        failure: encodedFailure,
       }),
     );
 
-    expect(seed).toEqual(serviceCommand);
-    expect(deployConfig.seeds).toEqual([serviceCommand]);
-  });
-
-  it('rejects legacy commands that provide version instead of contractVersion', async () => {
+    expect(pending.delta).toBeNull();
+    expect(successful.delta?.inserted).toEqual([
+      expect.objectContaining({ id: 'prd_test', name: 'Product' }),
+    ]);
+    expect(failed.failedAt).toEqual(new Date('2026-08-31T12:00:01.000Z'));
+    expect(failed.failure).toEqual(encodedFailure);
     await expect(
       Effect.runPromise(
-        Schema.decodeUnknown(DeploySeedCommandSchema)({
-          id: 'cmd_legacy_service',
-          commandName: 'createProduct',
-          payload: { id: 'prd_seed' },
-          version: '1.0.0',
-          commandType: 'service',
-          serviceName: 'app',
+        Schema.decodeUnknownEffect(ServiceChainedCommandSchema)({
+          ...common,
+          delta: emptyDelta,
+          failedAt: '2026-08-31T12:00:01.000Z',
+          failure: 'rejected',
         }),
       ),
     ).rejects.toThrow();
   });
 
-  it('requires provenance for executed pushed commands', async () => {
-    const executedPushedCommand = {
-      id: 'cmd_finalized',
-      commandName: 'createProduct',
-      payload: '{}',
-      contractVersion: '1.0.0',
-      commandType: 'frontend',
-      systemName: 'shopping',
-      aggregateId: 'acct_test',
-      aggregateName: 'main',
-      sessionId: 'sesn_test',
-      userId: 'user_test',
-      frontendName: 'dashboard',
-      stagedCursor: 'stcur_test',
-      stagedAt: '2026-01-01T00:00:00.000Z',
-      replicaIndex: 1,
-      pushedAt: '2026-01-01T00:00:00.000Z',
-      pushedCursor: 'pcur_test',
-      mode: 'authoritative',
-      aggregateCursor: 'acur_test',
+  it('accepts direct and service-derived aggregate occurrences', async () => {
+    const terminal = {
       aggregateIndex: 1,
-      executedAt: '2026-01-01T00:00:00.000Z',
-      status: 'executed',
+      chainedAt: '2026-08-31T12:00:00.000Z',
+      delta: emptyDelta,
+      failedAt: null,
+      failure: null,
     };
-
-    const decoded = await Effect.runPromise(
-      Schema.decodeUnknown(ExecutedPushedCommandSchema)(executedPushedCommand),
-    );
     await expect(
       Effect.runPromise(
-        Schema.decodeUnknown(ExecutedPushedCommandSchema)({
-          ...executedPushedCommand,
-          pushedCursor: null,
+        Schema.decodeUnknownEffect(AggregateChainedCommandSchema)({
+          ...aggregateCommand,
+          ...terminal,
+        }, { onExcessProperty: 'error' }),
+      ),
+    ).resolves.toMatchObject({ aggregateIndex: 1 });
+    await expect(
+      Effect.runPromise(
+        Schema.decodeUnknownEffect(AggregateChainedCommandSchema)({
+          ...serviceCommand,
+          ...terminal,
+          serviceIndex: 4,
+        }),
+      ),
+    ).resolves.toMatchObject({ aggregateIndex: 1, serviceIndex: 4 });
+  });
+
+  it('rejects serviceIndex on a direct aggregate occurrence', async () => {
+    await expect(
+      Effect.runPromise(
+        Schema.decodeUnknownEffect(AggregateChainedCommandSchema)(
+          {
+            ...aggregateCommand,
+            aggregateIndex: 1,
+            serviceIndex: null,
+            chainedAt: '2026-08-31T12:00:00.000Z',
+            delta: emptyDelta,
+            failedAt: null,
+            failure: null,
+          },
+          { onExcessProperty: 'error' },
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it('requires an empty delta for failure', async () => {
+    await expect(
+      Effect.runPromise(
+        Schema.decodeUnknownEffect(ServiceChainedCommandSchema)({
+          ...serviceCommand,
+          serviceIndex: 1,
+          chainedAt: '2026-08-31T12:00:00.000Z',
+          delta: {
+            ...emptyDelta,
+            inserted: [
+              {
+                id: 'prd_test',
+                modelName: 'product',
+                version: '1.0.0',
+                createdAt: '2026-08-31T12:00:00.000Z',
+                updatedAt: '2026-08-31T12:00:00.000Z',
+              },
+            ],
+          },
+          failedAt: '2026-08-31T12:00:01.000Z',
+          failure: encodedFailure,
         }),
       ),
     ).rejects.toThrow();
-
-    expect(decoded).toEqual({
-      ...executedPushedCommand,
-      stagedAt: new Date('2026-01-01T00:00:00.000Z'),
-      pushedAt: new Date('2026-01-01T00:00:00.000Z'),
-      executedAt: new Date('2026-01-01T00:00:00.000Z'),
-    });
   });
 
-  it('requires provenance for failed pushed commands', async () => {
-    const failedPushedCommand = {
-      id: 'cmd_failed',
-      commandName: 'createProduct',
-      payload: '{}',
-      contractVersion: '1.0.0',
-      commandType: 'frontend',
-      systemName: 'shopping',
-      aggregateId: 'acct_test',
-      aggregateName: 'main',
-      sessionId: 'sesn_test',
-      userId: 'user_test',
-      frontendName: 'dashboard',
-      stagedCursor: 'stcur_test',
-      stagedAt: '2026-01-01T00:00:00.000Z',
-      replicaIndex: 1,
-      pushedAt: '2026-01-01T00:00:00.000Z',
-      pushedCursor: 'pcur_test',
-      aggregateCursor: 'acur_test',
-      aggregateIndex: 1,
-      failedAt: '2026-01-01T00:00:00.000Z',
-      failure: 'failed',
-      status: 'failed',
-    };
-
-    const decoded = await Effect.runPromise(
-      Schema.decodeUnknown(FailedPushedCommandSchema)(failedPushedCommand),
-    );
-    await expect(
-      Effect.runPromise(
-        Schema.decodeUnknown(FailedPushedCommandSchema)({
-          ...failedPushedCommand,
-          sessionId: null,
-        }),
-      ),
-    ).rejects.toThrow();
-
-    expect(decoded).toEqual({
-      ...failedPushedCommand,
-      stagedAt: new Date('2026-01-01T00:00:00.000Z'),
-      pushedAt: new Date('2026-01-01T00:00:00.000Z'),
-      failedAt: new Date('2026-01-01T00:00:00.000Z'),
-    });
-  });
-
-  it('separates page-created session commands from indexed replica commands', async () => {
-    const stagedSessionCommand = {
-      id: 'cmd_staged',
-      commandName: 'createProduct',
-      payload: '{}',
-      contractVersion: '1.0.0',
-      commandType: 'frontend',
-      systemName: 'shopping',
-      aggregateId: 'acct_test',
-      aggregateName: 'main',
-      sessionId: 'sesn_test',
-      userId: 'user_test',
-      frontendName: 'dashboard',
-      stagedCursor: 'stcur_test',
-      stagedAt: '2026-01-01T00:00:00.000Z',
-      pushedCursor: null,
-      status: 'staged',
-    };
-
-    const decodedSessionCommand = await Effect.runPromise(
-      Schema.decodeUnknown(StagedSessionCommandSchema)(stagedSessionCommand),
-    );
-    const decodedReplicaCommand = await Effect.runPromise(
-      Schema.decodeUnknown(StagedReplicaCommandSchema)({
-        ...stagedSessionCommand,
-        replicaIndex: 1,
-      }),
-    );
-    const decodedMaximumReplicaCommand = await Effect.runPromise(
-      Schema.decodeUnknown(StagedReplicaCommandSchema)({
-        ...stagedSessionCommand,
-        replicaIndex: Number.MAX_SAFE_INTEGER,
-      }),
-    );
-
-    expect(decodedSessionCommand.stagedAt).toEqual(
-      new Date('2026-01-01T00:00:00.000Z'),
-    );
-    expect(decodedReplicaCommand.replicaIndex).toBe(1);
-    expect(decodedMaximumReplicaCommand.replicaIndex).toBe(
-      Number.MAX_SAFE_INTEGER,
-    );
-    await expect(
-      Effect.runPromise(
-        Schema.decodeUnknown(StagedReplicaCommandSchema)(stagedSessionCommand),
-      ),
-    ).rejects.toThrow();
-    for (const replicaIndex of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+  it('rejects legacy lifecycle, cursor, generic-index, and block-envelope fields', async () => {
+    for (const legacy of [
+      { status: 'executed' },
+      { mode: 'authoritative' },
+      { commandType: 'service' },
+      { cursor: 'cursor_legacy' },
+      { chainIndex: 1 },
+      { blockIndex: 1 },
+      { commands: [] },
+      { executedAt: '2026-08-31T12:00:00.000Z' },
+      { stagedAt: '2026-08-31T12:00:00.000Z' },
+      { pushedAt: '2026-08-31T12:00:00.000Z' },
+    ]) {
       await expect(
         Effect.runPromise(
-          Schema.decodeUnknown(StagedReplicaCommandSchema)({
-            ...stagedSessionCommand,
-            replicaIndex,
-          }),
-        ),
-      ).rejects.toThrow();
-    }
-  });
-
-  it('round-trips both complete failed staged replica variants', async () => {
-    const failedStagedCommand = {
-      id: 'cmd_failed_staged',
-      commandName: 'createProduct',
-      payload: '{}',
-      contractVersion: '1.0.0',
-      commandType: 'frontend',
-      systemName: 'shopping',
-      aggregateId: 'acct_test',
-      aggregateName: 'main',
-      sessionId: 'sesn_test',
-      userId: 'user_test',
-      frontendName: 'dashboard',
-      stagedCursor: 'stcur_test',
-      stagedAt: '2026-01-01T00:00:00.000Z',
-      pushedCursor: null,
-      replicaIndex: 1,
-      failedAt: '2026-01-01T00:00:02.000Z',
-      failure: 'rejected',
-      status: 'failed',
-    };
-    const finalizedFailedStagedCommand = {
-      ...failedStagedCommand,
-      aggregateCursor: 'acur_test',
-      aggregateIndex: 2,
-    };
-
-    const decodedFailed = await Effect.runPromise(
-      Schema.decodeUnknown(FailedStagedReplicaCommandSchema)(
-        failedStagedCommand,
-      ),
-    );
-    const decodedFinalized = await Effect.runPromise(
-      Schema.decodeUnknown(FinalizedFailedStagedReplicaCommandSchema)(
-        finalizedFailedStagedCommand,
-      ),
-    );
-
-    expect(decodedFailed).toEqual({
-      ...failedStagedCommand,
-      stagedAt: new Date('2026-01-01T00:00:00.000Z'),
-      failedAt: new Date('2026-01-01T00:00:02.000Z'),
-    });
-    expect(decodedFinalized).toEqual({
-      ...finalizedFailedStagedCommand,
-      stagedAt: new Date('2026-01-01T00:00:00.000Z'),
-      failedAt: new Date('2026-01-01T00:00:02.000Z'),
-    });
-    await expect(
-      Effect.runPromise(
-        Schema.decodeUnknown(FailedStagedReplicaCommandSchema)(
-          finalizedFailedStagedCommand,
-        ),
-      ),
-    ).rejects.toThrow();
-  });
-
-  it('decodes every complete PushBlock partition and rejects legacy shapes', async () => {
-    const stagedReplicaCommand = {
-      id: 'cmd_replica',
-      commandName: 'createProduct',
-      payload: '{}',
-      contractVersion: '1.0.0',
-      commandType: 'frontend',
-      systemName: 'shopping',
-      aggregateId: 'acct_test',
-      aggregateName: 'main',
-      sessionId: 'sesn_test',
-      userId: 'user_test',
-      frontendName: 'dashboard',
-      stagedCursor: 'stcur_test',
-      stagedAt: '2026-01-01T00:00:00.000Z',
-      pushedCursor: null,
-      replicaIndex: 1,
-      status: 'staged',
-    };
-    const pushedCommand = {
-      ...stagedReplicaCommand,
-      pushedAt: '2026-01-01T00:00:01.000Z',
-      pushedCursor: 'pcur_test',
-      status: 'pushed',
-    };
-    const executedCommand = {
-      ...pushedCommand,
-      mode: 'authoritative',
-      aggregateCursor: 'acur_executed',
-      aggregateIndex: 2,
-      executedAt: '2026-01-01T00:00:02.000Z',
-      status: 'executed',
-    };
-    const failedStagedCommand = {
-      ...stagedReplicaCommand,
-      failedAt: '2026-01-01T00:00:02.000Z',
-      failure: 'rejected',
-      status: 'failed',
-    };
-    const finalizedFailedStagedCommand = {
-      ...failedStagedCommand,
-      id: 'cmd_failed_staged_finalized',
-      aggregateCursor: 'acur_failed_staged',
-      aggregateIndex: 3,
-    };
-    const failedPushedCommand = {
-      ...pushedCommand,
-      id: 'cmd_failed_pushed',
-      aggregateCursor: 'acur_failed_pushed',
-      aggregateIndex: 4,
-      failedAt: '2026-01-01T00:00:03.000Z',
-      failure: 'failed',
-      status: 'failed',
-    };
-    const pushBlock = {
-      writeIndex: 9,
-      guardedAtAggregateCursor: 'acur_guard',
-      pendingCommands: [pushedCommand],
-      pushedCommands: [{ ...pushedCommand, id: 'cmd_newly_pushed' }],
-      executedCommands: [executedCommand],
-      failedStagedCommands: [failedStagedCommand, finalizedFailedStagedCommand],
-      failedPushedCommands: [failedPushedCommand],
-    };
-
-    const decoded = await Effect.runPromise(
-      Schema.decodeUnknown(PushBlockSchema)(pushBlock),
-    );
-    const decodedMaximumWriteIndex = await Effect.runPromise(
-      Schema.decodeUnknown(PushBlockSchema)({
-        ...pushBlock,
-        writeIndex: Number.MAX_SAFE_INTEGER,
-      }),
-    );
-
-    expect(decoded.writeIndex).toBe(9);
-    expect(decodedMaximumWriteIndex.writeIndex).toBe(Number.MAX_SAFE_INTEGER);
-    expect(decoded.guardedAtAggregateCursor).toBe('acur_guard');
-    expect(decoded.pendingCommands).toHaveLength(1);
-    expect(decoded.pushedCommands).toHaveLength(1);
-    expect(decoded.executedCommands).toHaveLength(1);
-    expect(decoded.failedStagedCommands).toHaveLength(2);
-    expect(decoded.failedPushedCommands).toHaveLength(1);
-    expect(decoded.failedStagedCommands[1]).toEqual(
-      expect.objectContaining({
-        aggregateCursor: 'acur_failed_staged',
-        aggregateIndex: 3,
-        replicaIndex: 1,
-      }),
-    );
-
-    await expect(
-      Effect.runPromise(
-        Schema.decodeUnknown(PushBlockSchema)({
-          id: 'pblk_legacy',
-          admissionLastAggregateCursor: null,
-          commands: [pushedCommand],
-        }),
-      ),
-    ).rejects.toThrow();
-    await expect(
-      Effect.runPromise(
-        Schema.decodeUnknown(PushBlockSchema)({
-          ...pushBlock,
-          guardedAtAggregateCursor: undefined,
-          admissionLastAggregateCursor: null,
-        }),
-      ),
-    ).rejects.toThrow();
-    await expect(
-      Effect.runPromise(
-        Schema.decodeUnknown(PushBlockSchema)({
-          ...pushBlock,
-          pendingCommands: [
+          Schema.decodeUnknownEffect(ServiceChainedCommandSchema)(
             {
-              ...pushedCommand,
-              replicaIndex: undefined,
+              ...serviceCommand,
+              serviceIndex: 1,
+              chainedAt: '2026-08-31T12:00:00.000Z',
+              delta: emptyDelta,
+              failedAt: null,
+              failure: null,
+              ...legacy,
             },
-          ],
-        }),
-      ),
-    ).rejects.toThrow();
-    for (const writeIndex of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
-      await expect(
-        Effect.runPromise(
-          Schema.decodeUnknown(PushBlockSchema)({
-            ...pushBlock,
-            writeIndex,
-          }),
+            { onExcessProperty: 'error' },
+          ),
         ),
       ).rejects.toThrow();
     }

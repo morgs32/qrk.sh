@@ -1,0 +1,7 @@
+{
+  "$schema": "../../packages/sdk/zerospin.schema.json",
+  "entry": "src/system.ts",
+  "seeds": {
+    "dev": null,
+  },
+}

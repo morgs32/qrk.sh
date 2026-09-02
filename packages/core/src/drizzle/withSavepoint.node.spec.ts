@@ -1,13 +1,13 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { ZerospinError } from '@zerospin/error';
-import { Effect, Either } from 'effect';
+import { Effect, Result } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { mainModels, User } from '../fixtures/system.ts';
 
 import { makeResourceDbConfig } from './makeDbConfig.ts';
-import { makeMigratedInMemorySqljsDb } from './makeMigratedInMemorySqljsDb.ts';
+import { makeProvisionedInMemorySqljsDb } from './makeProvisionedInMemorySqljsDb.ts';
 import { makeTx } from './makeTx.ts';
 import { withSavepoint } from './withSavepoint.ts';
 
@@ -17,7 +17,7 @@ describe('withSavepoint', () => {
     () =>
       Effect.gen(function* () {
         const dbConfig = makeResourceDbConfig({ models: mainModels });
-        const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+        const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
         const now = new Date('2026-07-11T00:00:00.000Z');
 
         yield* makeTx({
@@ -29,14 +29,13 @@ describe('withSavepoint', () => {
                 tx: savepointTx,
               }) {
                 savepointTx
-                  .insert(User.drizzleSchema)
+                  .insert(dbConfig.schema.user)
                   .values({
                     id: 'usr_savepoint_failed',
                     modelName: User.modelName,
                     createdAt: now,
                     updatedAt: now,
                     version: User.version,
-                    userId: 'user_savepoint_failed',
                     name: 'Rolled back',
                   })
                   .run();
@@ -45,11 +44,11 @@ describe('withSavepoint', () => {
                   message: 'Rollback this command only',
                 });
               }),
-            }).pipe(Effect.either);
+            }).pipe(Effect.result);
 
-            expect(Either.isLeft(failed)).toBe(true);
-            if (Either.isLeft(failed)) {
-              expect(failed.left.code).toBe('savepoint-command-failed');
+            expect(Result.isFailure(failed)).toBe(true);
+            if (Result.isFailure(failed)) {
+              expect(failed.failure.code).toBe('savepoint-command-failed');
             }
 
             yield* withSavepoint({
@@ -59,14 +58,13 @@ describe('withSavepoint', () => {
               }) {
                 yield* Effect.void;
                 savepointTx
-                  .insert(User.drizzleSchema)
+                  .insert(dbConfig.schema.user)
                   .values({
                     id: 'usr_savepoint_success',
                     modelName: User.modelName,
                     createdAt: now,
                     updatedAt: now,
                     version: User.version,
-                    userId: 'user_savepoint_success',
                     name: 'Committed',
                   })
                   .run();
@@ -75,7 +73,7 @@ describe('withSavepoint', () => {
           }),
         });
 
-        expect(db.select().from(User.drizzleSchema).all()).toEqual([
+        expect(db.select().from(dbConfig.schema.user).all()).toEqual([
           expect.objectContaining({
             id: 'usr_savepoint_success',
             name: 'Committed',

@@ -1,7 +1,7 @@
+import { PrimitiveKind } from '@zerospin/schema';
 import { mapValues } from 'es-toolkit';
 import invariant from 'tiny-invariant';
 
-import { PrimitiveKind } from './primitiveKind.ts';
 import type {
   IAnyConnectRelation,
   IModel,
@@ -41,7 +41,15 @@ function validateOwnRef(props: {
       `makeRelations: ${parentModelKey}.${relationName} (${relationKind}) ownRef "${ownRef}" must be a ref`,
     );
   }
-  if (parentRef.table !== connectedModel.table) {
+  const connectedSourceModel =
+    'sourceModel' in connectedModel ? connectedModel.sourceModel : undefined;
+  if (
+    parentRef.table !== connectedModel.table &&
+    (typeof connectedSourceModel !== 'object' ||
+      connectedSourceModel === null ||
+      !('table' in connectedSourceModel) ||
+      parentRef.table !== connectedSourceModel.table)
+  ) {
     throw new Error(
       `makeRelations: ${parentModelKey}.${relationName} (${relationKind}) ownRef "${ownRef}" target table "${parentRef.targetTableName}" must match connected model table "${connectedModel.table.name}"`,
     );
@@ -75,7 +83,15 @@ function validateConnectedRef(props: {
       `makeRelations: ${parentModelKey}.${relationName} (${relationKind}) connectedRef "${connectedRef}" must be a ref`,
     );
   }
-  if (connectedRefProperty.table !== parentModel.table) {
+  const parentSourceModel =
+    'sourceModel' in parentModel ? parentModel.sourceModel : undefined;
+  if (
+    connectedRefProperty.table !== parentModel.table &&
+    (typeof parentSourceModel !== 'object' ||
+      parentSourceModel === null ||
+      !('table' in parentSourceModel) ||
+      connectedRefProperty.table !== parentSourceModel.table)
+  ) {
     throw new Error(
       `makeRelations: ${parentModelKey}.${relationName} (${relationKind}) connectedRef "${connectedRef}" target table "${connectedRefProperty.targetTableName}" must match parent model table "${parentModel.table.name}"`,
     );

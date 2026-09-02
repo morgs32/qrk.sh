@@ -3,7 +3,7 @@ import { useSession } from '@zerospin/react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { type CartItem } from '@/zerospin/models';
+import { type CartItem } from '@/zerospin/models/CartItem';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 interface IProps {
@@ -18,13 +18,13 @@ export function CartItemQuantityControls({ amount, cartItemId, unit }: IProps) {
 
   const onDecrement = () => {
     if (quantity <= 1) {
-      void session.stageCommand({
+      void session.executeCommand({
         contractName: 'removeFromCart',
         payload: { id: cartItemId },
       });
       return;
     }
-    void session.stageCommand({
+    void session.executeCommand({
       contractName: 'updateCartItemQuantity',
       payload: {
         cartItemId,
@@ -34,7 +34,7 @@ export function CartItemQuantityControls({ amount, cartItemId, unit }: IProps) {
   };
 
   const onIncrement = () => {
-    void session.stageCommand({
+    void session.executeCommand({
       contractName: 'updateCartItemQuantity',
       payload: {
         cartItemId,
@@ -44,7 +44,7 @@ export function CartItemQuantityControls({ amount, cartItemId, unit }: IProps) {
   };
 
   const onRemove = () => {
-    void session.stageCommand({
+    void session.executeCommand({
       contractName: 'removeFromCart',
       payload: { id: cartItemId },
     });

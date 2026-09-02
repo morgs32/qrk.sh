@@ -1,42 +1,24 @@
-import type {
-  IDeployConfig,
-  ISystemEnvironmentId,
-  ISystemSpec,
-} from '@zerospin/core/system/types';
-import type { IAnyErrorJson } from '@zerospin/error';
-import type { Brand, Schema } from 'effect';
+import type { ISystemEnvironmentId } from '@zerospin/core/system/types';
+import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
+import type { RpcTarget } from 'capnweb';
 
 /** Success payload decoded from `CliApi.deployWorkerBundle` RPC. */
 export type IDeployWorkerResponse = {
   readonly id: string;
   readonly cloudflareDeploymentId: string;
   readonly environmentId: ISystemEnvironmentId;
-  readonly seedCommandsFinalized: number;
 };
 
 /** RPC client shape returned from `getCliApi` over the batch gateway. */
-export type ICliClientApi = {
-  [Brand.BrandTypeId]: 'TargetApi';
+export type ICliClientApi = RpcTarget & {
   deployWorkerBundle(props: {
-    readonly clean: boolean;
-    readonly workerBundle: string;
-    readonly config: IDeployConfig;
-    readonly systemSpec: ISystemSpec;
-  }): Promise<Schema.EitherEncoded<IDeployWorkerResponse, IAnyErrorJson>>;
+    readonly workerModule: string;
+    readonly compatibilityDate: string;
+    readonly compatibilityFlags: readonly string[];
+    readonly environmentId: ISystemEnvironmentId;
+  }): Promise<IEncodedResult<IDeployWorkerResponse, IAnyErrorJson>>;
 };
 
-export type ICliApis = {
-  [Brand.BrandTypeId]: 'Apis';
-} & {
+export type ICliApis = RpcTarget & {
   getCliApi(props: { zerospinSecretKey: string }): ICliClientApi;
-};
-
-export type IDeploySystemResult = {
-  zerospinApiUrl: string;
-  bundleLength: number;
-  environmentId: ISystemEnvironmentId;
-  cloudflareDeploymentId: string;
-  seedCommandsFinalized: number;
-  seedsLoadedCount: number;
-  response: unknown;
 };

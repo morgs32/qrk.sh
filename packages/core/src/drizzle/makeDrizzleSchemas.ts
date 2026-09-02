@@ -1,17 +1,17 @@
+import {
+  makeDrizzleSchemaFromTable,
+  type IAnyDrizzleSchemas,
+  type IAnyTable,
+  type IAnyTables,
+} from '@zerospin/schema';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
-
-import { makeDrizzleSchemaFromTable } from '../models/primitiveMaps.ts';
-import type {
-  IAnyDrizzleSchemas,
-  IAnyTable,
-  IAnyTables,
-} from '../models/types.ts';
 
 import type { InferDrizzleSchemaFromTables } from './types.ts';
 
 export function makeDrizzleSchemasRecordFromTables<TABLES extends IAnyTables>(
   tables: TABLES,
   physicalTableNames: Partial<Record<keyof TABLES & string, string>> = {},
+  tableAliases: ReadonlyMap<unknown, IAnyTable> = new Map(),
 ): InferDrizzleSchemaFromTables<TABLES> {
   const tableKeysByIdentity = new Map<IAnyTable, string>();
   const drizzleSchemas: IAnyDrizzleSchemas = {};
@@ -44,7 +44,9 @@ export function makeDrizzleSchemasRecordFromTables<TABLES extends IAnyTables>(
             })),
           },
       descriptor => () => {
-        const targetTableKey = tableKeysByIdentity.get(descriptor.table);
+        const targetTableKey = tableKeysByIdentity.get(
+          tableAliases.get(descriptor.table) ?? descriptor.table,
+        );
         if (targetTableKey === undefined) {
           throw new Error(
             `Reference ${table.name}.${descriptor.relation} targets unregistered table ${descriptor.targetTableName}`,

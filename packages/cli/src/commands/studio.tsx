@@ -1,5 +1,6 @@
-import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
-import * as NodePath from '@effect/platform-node/NodePath';
+import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
+import * as NodePath from '@effect/platform-node-shared/NodePath';
+import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { startStudio } from '@zerospin/studio/startStudio';
 import { Effect, Layer } from 'effect';
 import { Box, Text } from 'ink';
@@ -7,6 +8,7 @@ import { Box, Text } from 'ink';
 import { ErrorBoundary } from '../components/ErrorBoundary.js';
 import { Header } from '../components/Header.js';
 import { loadConfigFn } from '../deploy/loadConfigFn.js';
+import { loadSystemFn } from '../deploy/loadSystemFn.js';
 import { ProcedureStep } from '../ProcedureStep/ProcedureStep.js';
 import { ProcedureStepError } from '../ProcedureStep/ProcedureStepError.js';
 import { ProcedureStepLoading } from '../ProcedureStep/ProcedureStepLoading.js';
@@ -17,10 +19,13 @@ export default function Studio() {
   const { data, error, status } = useProgram({
     fetcher: () =>
       Effect.gen(function* () {
-        const { zerospinApiUrl, zerospinSecretKey } = yield* loadConfigFn();
+        const { config, zerospinApiUrl, zerospinSecretKey } =
+          yield* loadConfigFn();
+        const system = yield* loadSystemFn(config);
         return yield* startStudio({
           port: 5555,
           open: true,
+          systemSpec: makeSystemSpec({ system }),
           zerospinApiUrl,
           zerospinSecretKey,
         });

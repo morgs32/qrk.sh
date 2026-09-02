@@ -35,7 +35,9 @@ generated documentation of behavior at HEAD and do not authorize code changes.
 6. Add a Mermaid sequence diagram or workflow when ordering, ownership,
    concurrency, retries, or state transitions matter. Put `autonumber N`
    immediately before every sequence message, with contiguous numbers starting
-   at 1.
+   at 1. Label invocation arrows (`->>`) as `{receiverBinding}.{method}()` or `{receiverBinding}.{method}(...)`; keep
+   return payloads on `-->>`; keep user/process steps and unnamed inline checks
+   as short predicates.
 7. Put `## Annotated workflow steps` immediately after the workflow diagram.
    Include exactly one ordered item per numbered message or workflow step, in
    the same order, and explain the relevant call, transaction, persistence, or
@@ -88,7 +90,8 @@ For every schema table:
    for table relationships.
 2. Keep each diagram focused; split persistence, lifecycle, and request flow
    rather than producing one unreadable graph.
-3. Use exact owner names such as SystemRepo, ServiceRepo, and AggregateRepo.
+3. Use exact owner names such as SystemRepo, MaterializedServiceRepo, and
+   AggregateCommandChain.
 4. For every message, enumerate the exact target fields at first use and state
    which boundary supplies them.
 5. Do not mix superseded and proposed architecture in the same diagram.

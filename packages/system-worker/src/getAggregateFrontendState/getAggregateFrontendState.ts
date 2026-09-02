@@ -1,23 +1,20 @@
-import type { IUserRef } from '@zerospin/core/aggregate/types';
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
-import { AggregateFrontendSyncStateSchema } from '@zerospin/core/session/AggregateFrontendBlockSchema';
+import type { IAggregateId } from '@zerospin/core/models/types';
+import { AggregateFrontendSyncStateSchema } from '@zerospin/core/session/AggregateFrontendCommandSchema';
 import type { IAggregateFrontendSyncState } from '@zerospin/core/session/types';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { env } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
 import { system } from 'system';
 
-import { getAggregateFrontendRepo } from '../AggregateFrontendRepo/getAggregateFrontendRepo/getAggregateFrontendRepo.js';
+import { getMaterializedAggregateFrontendRepo } from '../MaterializedAggregateFrontendRepo/getMaterializedAggregateFrontendRepo/getMaterializedAggregateFrontendRepo.js';
 import { adaptFrontendResource } from '../StaticSystem/adaptFrontendResource/adaptFrontendResource.js';
 import { SelectedAggregateFrontendLockSchema } from '../StaticSystem/frontendSpecSchemas.js';
 import { validateAggregateFrontendLock } from '../StaticSystem/validateAggregateFrontendLock/validateAggregateFrontendLock.js';
-import { SystemRepo } from '../SystemRepo/SystemRepo.js';
 
 export const getAggregateFrontendState = Effect.fn(
   'SystemWorker.getAggregateFrontendState',
@@ -25,34 +22,25 @@ export const getAggregateFrontendState = Effect.fn(
     root: true,
   },
 )(function* (props: {
-  generationId: string;
-  actorRef: IUserRef;
+  aggregateId: IAggregateId;
+  aggregateName: string;
+  userId: string;
   frontendName: string;
   aggregateFrontendLock: Schema.Schema.Type<typeof AggregateFrontendLockSchema>;
 }): Effect.fn.Return<IAggregateFrontendSyncState, IAnyError, Async> {
-  const aggregateId = yield* Schema.decodeUnknown(
-    makeAbbreviationIdSchema(coreAbbreviations.aggregate),
-  )(props.actorRef.aggregateId).pipe(
-    mapParseError({
-      code: 'aggregate-frontend-state-aggregate-id-invalid',
-      prefix: 'Failed to decode frontend state aggregateId',
-    }),
-  );
-  const userId = yield* Schema.decodeUnknown(Schema.NonEmptyString)(
-    props.actorRef.userId,
-  ).pipe(
-    mapParseError({
-      code: 'aggregate-frontend-state-user-id-invalid',
-      prefix: 'Failed to decode frontend state userId',
-    }),
-  );
-  const generationId = props.generationId;
+  const {
+    aggregateFrontendLock,
+    aggregateId,
+    aggregateName,
+    frontendName,
+    userId,
+  } = props;
   const selectedUnknown = yield* validateAggregateFrontendLock({
-    aggregateName: props.actorRef.aggregateName,
-    frontendName: props.frontendName,
-    aggregateFrontendLock: props.aggregateFrontendLock,
+    aggregateName: aggregateName,
+    frontendName: frontendName,
+    aggregateFrontendLock: aggregateFrontendLock,
   });
-  const selected = yield* Schema.decodeUnknown(
+  const selected = yield* Schema.decodeUnknownEffect(
     SelectedAggregateFrontendLockSchema,
   )(selectedUnknown, { onExcessProperty: 'error' }).pipe(
     mapParseError({
@@ -61,58 +49,38 @@ export const getAggregateFrontendState = Effect.fn(
         'The static System returned an invalid selected aggregate frontend lock',
     }),
   );
-  const systemRepo = SystemRepo.getRepo({ systemId: env.ZEROSPIN_SYSTEM_ID });
-  yield* makeAsync(() =>
-    systemRepo.assertGenerationAdmission({
-      generationId,
-      mode: 'read',
-    }),
-  ).pipe(Effect.flatMap(decodeRpc));
-  const lineage = yield* makeAsync(() =>
-    systemRepo.resolveFrontendProjectionLineage({
-      generationId,
-      target: {
-        kind: 'aggregate',
-        aggregateId,
-        aggregateName: props.actorRef.aggregateName,
-        userId,
-        frontendName: props.frontendName,
-      },
-    }),
-  ).pipe(Effect.flatMap(decodeRpc));
-  const aggregateFrontendRepo = yield* getAggregateFrontendRepo({
+  const aggregateFrontendRepo = yield* getMaterializedAggregateFrontendRepo({
     key: {
-      generationId,
+      systemId: env.ZEROSPIN_SYSTEM_ID,
       aggregateId,
-      aggregateName: props.actorRef.aggregateName,
+      aggregateName: aggregateName,
       userId,
-      frontendName: props.frontendName,
+      frontendName: frontendName,
     },
   });
   const canonicalStateUnknown = yield* makeAsync(() =>
     aggregateFrontendRepo.getState({
       aggregateId,
-      aggregateName: props.actorRef.aggregateName,
+      aggregateName: aggregateName,
       userId,
-      frontendName: props.frontendName,
-      lineage,
+      frontendName: frontendName,
     }),
   );
-  const canonicalStateEncoded = yield* Schema.decodeUnknown(
-    Schema.Union(
+  const canonicalStateEncoded = yield* Schema.decodeUnknownEffect(
+    Schema.Union([
       Schema.Struct({
-        _tag: Schema.Literal('Right'),
-        right: Schema.typeSchema(AggregateFrontendSyncStateSchema),
+        _tag: Schema.Literal('Success'),
+        success: Schema.toType(AggregateFrontendSyncStateSchema),
       }),
       Schema.Struct({
-        _tag: Schema.Literal('Left'),
-        left: Schema.encodedSchema(ZerospinError.schema),
+        _tag: Schema.Literal('Failure'),
+        failure: Schema.toEncoded(ZerospinError.schema),
       }),
-    ),
+    ]),
   )(canonicalStateUnknown).pipe(
     mapParseError({
       code: 'aggregate-frontend-state-rpc-invalid',
-      prefix: 'Failed to decode AggregateFrontendRepo state RPC',
+      prefix: 'Failed to decode MaterializedAggregateFrontendRepo state RPC',
     }),
   );
   const canonicalState = yield* decodeRpc(canonicalStateEncoded);
@@ -127,14 +95,14 @@ export const getAggregateFrontendState = Effect.fn(
     const adaptedUnknown = yield* adaptFrontendResource({
       owner: {
         kind: 'aggregate',
-        aggregateName: props.actorRef.aggregateName,
+        aggregateName: aggregateName,
       },
-      frontendName: props.frontendName,
+      frontendName: frontendName,
       modelName: resource.modelName,
       modelVersion: requestedModel.version,
       resource,
     });
-    const adapted = yield* Schema.decodeUnknown(
+    const adapted = yield* Schema.decodeUnknownEffect(
       Schema.Struct({
         modelName: Schema.String,
         resource: EncodedResourceSchema,

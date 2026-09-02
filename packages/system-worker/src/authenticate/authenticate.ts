@@ -1,5 +1,5 @@
 import type { Async } from '@zerospin/core/async/Async';
-import { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
+import type { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
@@ -20,14 +20,7 @@ export const authenticate = Effect.fn('SystemWorker.authenticate', {
   IAnyError,
   Async
 > {
-  const authenticationLock = yield* Schema.decodeUnknown(
-    AuthenticationLockSchema,
-  )(props.authenticationLock, { onExcessProperty: 'error' }).pipe(
-    mapParseError({
-      code: 'authentication-lock-invalid',
-      prefix: 'Failed to decode the requested authentication lock',
-    }),
-  );
+  const { authenticationLock, signature: requestedSignature } = props;
   const signatureDefinition =
     authenticationLock.signature.version ===
     system.authentication.signature.version
@@ -52,12 +45,12 @@ export const authenticate = Effect.fn('SystemWorker.authenticate', {
   const signature =
     yield* system.authentication.signature.decodeAndAdaptSignature({
       version: authenticationLock.signature.version,
-      signature: props.signature,
+      signature: requestedSignature,
     });
   const returnedUserId = yield* system.authentication.authenticate({
     signature,
   });
-  const userId = yield* Schema.decodeUnknown(Schema.NonEmptyString)(
+  const userId = yield* Schema.decodeUnknownEffect(Schema.NonEmptyString)(
     returnedUserId,
   ).pipe(
     mapParseError({

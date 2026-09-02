@@ -1,8 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "composite": false,
+    "incremental": false,
     "rootDir": ".",
     "noEmit": true,
+    "rewriteRelativeImportExtensions": false,
     "types": ["node", "vite/client", "vitest/globals"]
   },
   "include": [
@@ -12,6 +16,7 @@
     "src/**/*.typecheck.tsx",
     "vitest.config.ts"
   ],
+  "exclude": [],
   "references": [
     {
       "path": "./tsconfig.json"

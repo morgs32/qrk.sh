@@ -46,10 +46,16 @@
   ],
   "references": [
     {
-      "path": "../shared-worker"
+      "path": "../opfs-backup-worker"
+    },
+    {
+      "path": "../frontend"
     },
     {
       "path": "../sdk"
+    },
+    {
+      "path": "../schema"
     },
     {
       "path": "../logger"

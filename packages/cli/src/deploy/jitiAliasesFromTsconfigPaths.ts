@@ -1,5 +1,4 @@
-import { FileSystem, Path } from '@effect/platform';
-import { Effect } from 'effect';
+import { Effect, FileSystem, Path } from 'effect';
 
 interface ITsconfigJson {
   compilerOptions?: {
@@ -31,9 +30,7 @@ export const jitiAliasesFromTsconfigPaths = Effect.fn(
   const parsed = yield* Effect.try(
     () => JSON.parse(contents) as ITsconfigJson,
   ).pipe(
-    Effect.catchAll(() =>
-      Effect.succeed(undefined as ITsconfigJson | undefined),
-    ),
+    Effect.catch(() => Effect.succeed(undefined as ITsconfigJson | undefined)),
   );
 
   const paths = parsed?.compilerOptions?.paths;

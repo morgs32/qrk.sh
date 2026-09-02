@@ -2,7 +2,6 @@ import { clerk } from '@clerk/testing/playwright';
 import { expect, test } from '@playwright/test';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import {
   makeTelemetryCollector,
   makeTelemetryLayer,
@@ -12,16 +11,17 @@ import { newWebSocketRpcSession } from 'capnweb';
 import { Effect } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
-import { authenticationSignature } from '@/zerospin/authentication';
-import { catalogFrontend, shopperFrontend } from '@/zerospin/frontend';
+import { signature } from '@/zerospin/signature';
+import { catalog as catalogFrontend } from '@/zerospin/frontends/catalog';
+import { web as shopperFrontend } from '@/zerospin/frontends/web';
 
 const shopperAggregateFrontendLock =
   makeFrontendControllerSpec(shopperFrontend).aggregateFrontendLock;
 const catalogServiceFrontendLock =
   makeFrontendControllerSpec(catalogFrontend).serviceFrontendLock;
-const authenticationLock = Effect.runSync(
-  makeAuthenticationLock({ signature: authenticationSignature }),
-);
+const authenticationLock = makeAuthenticationLock({
+  signature,
+});
 
 test('signed-in e2e user can read products through the service-owned catalog frontend', async ({
   page,
@@ -60,38 +60,32 @@ test('signed-in e2e user can read products through the service-owned catalog fro
   await expect(async () => {
     const telemetryCollector = makeTelemetryCollector();
     using gatewayApi = newWebSocketRpcSession<GatewayApi>(apiWebSocketUrl.href);
-    const authenticatedApi = await gatewayApi.getAuthenticatedApi({
+    const aggregateFrontendApi = await gatewayApi.getAggregateFrontendApi({
       publishableKey,
+      systemName: shopperFrontend.systemName,
       authenticationLock,
       signature: { clerkUserId },
+      aggregateId: 'acct_1',
+      aggregateName: shopperFrontend.aggregateName,
+      frontendName: 'web',
+      aggregateFrontendLock: shopperAggregateFrontendLock,
     });
-    const authentication = await Effect.runPromise(
-      decodeRpc(await authenticatedApi.getAuthentication()),
+    const aggregateState = await Effect.runPromise(
+      makeTraceableApiTarget(aggregateFrontendApi)
+        .getState()
+        .pipe(Effect.provide(makeTelemetryLayer(telemetryCollector))),
     );
-    expect(authentication.userId).toBe(clerkUserId);
+    expect(aggregateState.userId).toBe(clerkUserId);
 
-    const aggregateFrontendApi = await authenticatedApi.getAggregateFrontendApi(
-      {
-        aggregateId: 'acct_1',
-        aggregateName: shopperFrontend.aggregateName,
-        frontendName: 'web',
-        aggregateFrontendLock: shopperAggregateFrontendLock,
-      },
-    );
-    const aggregateAdmission = await Effect.runPromise(
-      decodeRpc(await aggregateFrontendApi.getAdmission()),
-    );
-    expect(aggregateAdmission.actorRef.userId).toBe(clerkUserId);
-
-    const serviceFrontendApi = await authenticatedApi.getServiceFrontendApi({
+    const serviceFrontendApi = await gatewayApi.getServiceFrontendApi({
+      publishableKey,
+      systemName: catalogFrontend.systemName,
+      authenticationLock,
+      signature: { clerkUserId },
       serviceName: 'app',
       frontendName: 'catalog',
       serviceFrontendLock: catalogServiceFrontendLock,
     });
-    const catalogAdmission = await Effect.runPromise(
-      decodeRpc(await serviceFrontendApi.getAdmission()),
-    );
-    expect(catalogAdmission.userId).toBe(clerkUserId);
 
     const productFrontendApi = makeTraceableApiTarget(serviceFrontendApi);
 

@@ -12,7 +12,7 @@ import { Effect, Schema } from 'effect';
 import {
   systemLogRepoDrizzleSchemas,
   systemLogRowSchema,
-} from '../SystemLogRepo.js';
+} from '../SystemLogRepoDbConfig.js';
 
 export const getSystemLogRows = Effect.fn('SystemLogRepo.getSystemLogRows')(
   function* (props: {

@@ -1,22 +1,21 @@
 import { it } from '@effect/vitest';
-import { Effect, Layer, Schema } from 'effect';
-import { TestContext } from 'effect/TestContext';
+import { primitives } from '@zerospin/schema';
+import { Effect, Layer } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
-import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
+import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { makeServiceModel } from '../models/makeServiceModel.ts';
-import { primitives } from '../models/primitives.ts';
+import { makeModel } from '../models/makeModel.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
 import { applyServiceFrontendState } from './applyServiceFrontendState.ts';
+import { serviceSessionRepoTables } from './serviceSessionRepoTables.ts';
 
-const Category = makeServiceModel(
+const Category = makeModel(
   {
-    serviceName: 'catalog',
     abbreviation: 'cat',
     modelName: 'category',
     attributes: {
@@ -28,9 +27,8 @@ const Category = makeServiceModel(
   [],
 );
 
-const Product = makeServiceModel(
+const Product = makeModel(
   {
-    serviceName: 'catalog',
     abbreviation: 'prd',
     modelName: 'product',
     attributes: {
@@ -56,16 +54,13 @@ const frontend = makeFrontendController({
   systemName: 'shop',
   serviceName: 'catalog',
   frontendName: 'catalog',
-  userId: Schema.NonEmptyString,
   models,
-  signature: Schema.Struct({ subject: Schema.String }),
 });
 
 const TestLayer = Layer.mergeAll(
   AsyncLive,
   makePrefixedIncrementalIdFactory('applyServiceFrontendState'),
   ErrorLayer,
-  TestContext,
 );
 
 const now = new Date('2026-01-01T00:00:00.000Z');
@@ -77,14 +72,18 @@ describe('applyServiceFrontendState', () => {
       () =>
         Effect.gen(function* () {
           // 1 — create the one database object that every replacement must keep.
-          const dbConfig = makeResourceDbConfig({ models });
-          const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
+          const dbConfig = makeResourceDbConfig({
+            models,
+            otherTables: serviceSessionRepoTables,
+          });
+          const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
 
           // 2 — install a valid baseline snapshot.
           yield* applyServiceFrontendState({
             frontend,
             userId: 'user_viewer',
             systemId: 'sys_shop',
+            sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
@@ -93,7 +92,8 @@ describe('applyServiceFrontendState', () => {
               systemVersion: '1.0.0',
               serviceName: 'catalog',
               frontendName: 'catalog',
-              frontendIndex: 4,
+              serviceIndex: 4,
+              serviceFrontendIndex: 4,
               resources: [
                 {
                   id: 'cat_original',
@@ -101,7 +101,6 @@ describe('applyServiceFrontendState', () => {
                   version: '1.0.0',
                   createdAt: now,
                   updatedAt: now,
-                  deletedAt: null,
                   name: 'Original category',
                 },
                 {
@@ -110,7 +109,6 @@ describe('applyServiceFrontendState', () => {
                   version: '1.0.0',
                   createdAt: now,
                   updatedAt: now,
-                  deletedAt: null,
                   categoryId: 'cat_original',
                   name: 'Original product',
                 },
@@ -123,6 +121,7 @@ describe('applyServiceFrontendState', () => {
             frontend,
             userId: 'user_viewer',
             systemId: 'sys_shop',
+            sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
@@ -131,11 +130,12 @@ describe('applyServiceFrontendState', () => {
               systemVersion: '1.0.0',
               serviceName: 'catalog',
               frontendName: 'catalog',
-              frontendIndex: 5,
+              serviceIndex: 5,
+              serviceFrontendIndex: 5,
               resources: [],
             },
-          }).pipe(Effect.either);
-          expect(wrongTarget._tag).toBe('Left');
+          }).pipe(Effect.result);
+          expect(wrongTarget._tag).toBe('Failure');
           expect(
             db.select().from(models.product.drizzleSchema).all(),
           ).toHaveLength(1);
@@ -145,6 +145,7 @@ describe('applyServiceFrontendState', () => {
             frontend,
             userId: 'user_viewer',
             systemId: 'sys_shop',
+            sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
@@ -153,7 +154,8 @@ describe('applyServiceFrontendState', () => {
               systemVersion: '1.0.0',
               serviceName: 'catalog',
               frontendName: 'catalog',
-              frontendIndex: 5,
+              serviceIndex: 5,
+              serviceFrontendIndex: 5,
               resources: [
                 {
                   id: 'cat_would_replace',
@@ -161,7 +163,6 @@ describe('applyServiceFrontendState', () => {
                   version: '1.0.0',
                   createdAt: now,
                   updatedAt: now,
-                  deletedAt: null,
                   name: 'Would replace',
                 },
                 {
@@ -170,14 +171,13 @@ describe('applyServiceFrontendState', () => {
                   version: '1.0.0',
                   createdAt: now,
                   updatedAt: now,
-                  deletedAt: null,
                   categoryId: 'cat_missing',
                   name: 'Invalid product',
                 },
               ],
             },
-          }).pipe(Effect.either);
-          expect(failedReplacement._tag).toBe('Left');
+          }).pipe(Effect.result);
+          expect(failedReplacement._tag).toBe('Failure');
           expect(db.select().from(models.category.drizzleSchema).all()).toEqual(
             [
               expect.objectContaining({
@@ -199,6 +199,7 @@ describe('applyServiceFrontendState', () => {
             frontend,
             userId: 'user_viewer',
             systemId: 'sys_shop',
+            sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
@@ -207,7 +208,8 @@ describe('applyServiceFrontendState', () => {
               systemVersion: '1.0.0',
               serviceName: 'catalog',
               frontendName: 'catalog',
-              frontendIndex: 5,
+              serviceIndex: 5,
+              serviceFrontendIndex: 5,
               resources: [
                 {
                   id: 'cat_replacement',
@@ -215,7 +217,6 @@ describe('applyServiceFrontendState', () => {
                   version: '1.0.0',
                   createdAt: now,
                   updatedAt: now,
-                  deletedAt: null,
                   name: 'Replacement category',
                 },
                 {
@@ -224,7 +225,6 @@ describe('applyServiceFrontendState', () => {
                   version: '1.0.0',
                   createdAt: now,
                   updatedAt: now,
-                  deletedAt: null,
                   categoryId: 'cat_replacement',
                   name: 'Replacement product',
                 },

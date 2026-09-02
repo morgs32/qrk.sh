@@ -1,5 +1,4 @@
-import { primitives } from '../models/primitives.ts';
-import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
+import { primitives } from '@zerospin/schema';
 
 /** Aggregate command input at the finalize boundary. */
 export const aggregateCommandShape = {
@@ -7,17 +6,11 @@ export const aggregateCommandShape = {
   commandName: primitives.text(),
   payload: primitives.text(),
   contractVersion: primitives.text(),
-  commandType: primitives.enum({
-    values: ['aggregate'],
-  }),
   aggregateId: primitives.text(),
   aggregateName: primitives.text(),
   systemName: primitives.text(),
   sessionId: primitives.opaqueId({ abbreviation: 'sesn', nullable: true }),
   userId: primitives.text({ nullable: true }),
   frontendName: primitives.text({ nullable: true }),
-  pushedCursor: primitives.cursor({
-    abbreviation: coreAbbreviations.pushedCursor,
-    nullable: true,
-  }),
+  pushIndex: primitives.integer({ nullable: true }),
 };

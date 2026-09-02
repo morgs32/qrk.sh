@@ -7,7 +7,6 @@ import { createStore } from 'zustand/vanilla';
 import type {
   IDevtoolsAggregateSessionEntry,
   IDevtoolsServiceSessionEntry,
-  IDevtoolsSharedWorkerRootDiagnostics,
   IZerospinDevtoolsStoreState,
 } from './types.js';
 
@@ -16,7 +15,6 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
     aggregateSessionsById: new Map(),
     serviceSessionsById: new Map(),
     profiles: [],
-    sharedWorkerRootsById: new Map(),
     addAggregateSession: (entry: IDevtoolsAggregateSessionEntry) =>
       set(state => {
         if (state.aggregateSessionsById.has(entry.session.sessionId)) {
@@ -55,17 +53,24 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
             }),
           getUserId: () => session.store.getState().userId,
           getIsInitialized: () => session.store.getState().isInitialized,
-          getWorkerState: () => session.store.getState().workerState,
+          getSessionStatus: () => session.store.getState().sessionStatus,
+          getBackupState: () => session.store.getState().backupState,
           getTelemetry: () => session.store.getState().telemetry,
-          getFrontendIndex: () => session.store.getState().frontendIndex,
+          getServiceIndex: () => session.store.getState().serviceIndex,
+          getServiceFrontendIndex: () =>
+            session.store.getState().serviceFrontendIndex,
           getModelAttributes: modelName =>
-            session.frontend.models[modelName]?.attributes,
+            Object.entries(session.frontend.models).find(
+              ([name]) => name === modelName,
+            )?.[1].attributes,
           readModelRows: modelName => {
             const sessionState = session.store.getState();
             if (!sessionState.isInitialized || sessionState.db === null) {
               throw new Error('Service session is not initialized');
             }
-            const modelQuery = sessionState.db.query[modelName];
+            const modelQuery = Object.entries(sessionState.db.query).find(
+              ([name]) => name === modelName,
+            )?.[1];
             if (modelQuery === undefined) {
               throw new Error(`Unknown model key: ${modelName}`);
             }
@@ -88,26 +93,6 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
         const nextServiceSessionsById = new Map(state.serviceSessionsById);
         nextServiceSessionsById.delete(sessionId);
         return { serviceSessionsById: nextServiceSessionsById };
-      }),
-    addSharedWorkerRootDiagnostics: (
-      diagnostics: IDevtoolsSharedWorkerRootDiagnostics,
-    ) =>
-      set(state => {
-        if (state.sharedWorkerRootsById.get(diagnostics.id) === diagnostics) {
-          return state;
-        }
-        const nextSharedWorkerRootsById = new Map(state.sharedWorkerRootsById);
-        nextSharedWorkerRootsById.set(diagnostics.id, diagnostics);
-        return { sharedWorkerRootsById: nextSharedWorkerRootsById };
-      }),
-    removeSharedWorkerRootDiagnostics: (id: string) =>
-      set(state => {
-        if (!state.sharedWorkerRootsById.has(id)) {
-          return state;
-        }
-        const nextSharedWorkerRootsById = new Map(state.sharedWorkerRootsById);
-        nextSharedWorkerRootsById.delete(id);
-        return { sharedWorkerRootsById: nextSharedWorkerRootsById };
       }),
   }),
 );

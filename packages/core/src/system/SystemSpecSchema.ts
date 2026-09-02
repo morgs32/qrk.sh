@@ -3,21 +3,21 @@ import { Schema } from 'effect';
 import { AggregateFrontendLockSchema } from '../frontendController/makeAggregateFrontendLock.ts';
 import { ServiceFrontendLockSchema } from '../frontendController/makeServiceFrontendLock.ts';
 
-const signatureVersionSchema = Schema.String.pipe(
-  Schema.pattern(
+const signatureVersionSchema = Schema.String.check(
+  Schema.isPattern(
     /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-dev\.[0-9a-f]{12})?$/u,
   ),
 );
 
-const encodedShapeSchema = Schema.Record({
-  key: Schema.String,
-  value: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
-});
+const encodedShapeSchema = Schema.Record(
+  Schema.String,
+  Schema.Record(Schema.String, Schema.Unknown),
+);
 
 const indexSchema = Schema.Struct({
   name: Schema.String,
   columns: Schema.Array(Schema.String),
-  unique: Schema.optionalWith(Schema.Boolean, { exact: true }),
+  unique: Schema.optionalKey(Schema.Boolean),
 });
 
 const modelSchema = Schema.Struct({
@@ -41,24 +41,40 @@ const modelSchema = Schema.Struct({
 const contractSchema = Schema.Struct({
   commandName: Schema.String,
   version: Schema.String,
-  payloadJsonSchema: Schema.Unknown,
+  payloadJsonSchema: Schema.Struct({
+    dialect: Schema.Literal('draft-2020-12'),
+    schema: Schema.Any,
+    definitions: Schema.Record(Schema.String, Schema.Any),
+  }),
   historicalDefinitions: Schema.Array(
     Schema.Struct({
       commandName: Schema.String,
       version: Schema.String,
       hasDirectAdapter: Schema.Boolean,
-      payloadJsonSchema: Schema.Unknown,
+      payloadJsonSchema: Schema.Struct({
+        dialect: Schema.Literal('draft-2020-12'),
+        schema: Schema.Any,
+        definitions: Schema.Record(Schema.String, Schema.Any),
+      }),
     }),
   ),
 });
 
 const authenticationSignatureSchema = Schema.Struct({
   version: signatureVersionSchema,
-  schemaJsonSchema: Schema.Unknown,
+  schemaJsonSchema: Schema.Struct({
+    dialect: Schema.Literal('draft-2020-12'),
+    schema: Schema.Any,
+    definitions: Schema.Record(Schema.String, Schema.Any),
+  }),
   historicalDefinitions: Schema.Array(
     Schema.Struct({
       version: signatureVersionSchema,
-      schemaJsonSchema: Schema.Unknown,
+      schemaJsonSchema: Schema.Struct({
+        dialect: Schema.Literal('draft-2020-12'),
+        schema: Schema.Any,
+        definitions: Schema.Record(Schema.String, Schema.Any),
+      }),
       hasDirectAdapter: Schema.Boolean,
     }),
   ),
@@ -67,40 +83,44 @@ const authenticationSignatureSchema = Schema.Struct({
 const mutationIdentitySchema = Schema.Struct({
   modelName: Schema.String,
   modelVersion: Schema.String,
-  operationName: Schema.Literal(
+  operationName: Schema.Literals([
     'create',
     'delete',
     'move',
     'replicateResource',
     'update',
-  ),
-  jsonSchema: Schema.Unknown,
+  ]),
+  jsonSchema: Schema.Struct({
+    dialect: Schema.Literal('draft-2020-12'),
+    schema: Schema.Any,
+    definitions: Schema.Record(Schema.String, Schema.Any),
+  }),
 });
 
-const mutationAdaptersSchema = Schema.Record({
-  key: Schema.String,
-  value: Schema.Record({
-    key: Schema.String.pipe(
-      Schema.pattern(/^(create|delete|move|replicateResource|update)$/u),
+const mutationAdaptersSchema = Schema.Record(
+  Schema.String,
+  Schema.Record(
+    Schema.String.check(
+      Schema.isPattern(/^(create|delete|move|replicateResource|update)$/u),
     ),
-    value: Schema.Array(
+    Schema.Array(
       Schema.Struct({
         source: mutationIdentitySchema,
         destination: Schema.NullOr(mutationIdentitySchema),
       }),
     ),
-  }),
-});
+  ),
+);
 
-const frontendControllerSchema = Schema.Union(
+const frontendControllerSchema = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal('aggregate'),
     systemName: Schema.String,
     aggregateName: Schema.String,
     frontendName: Schema.String,
     modelNames: Schema.Array(Schema.String),
-    models: Schema.Record({ key: Schema.String, value: modelSchema }),
-    contracts: Schema.Record({ key: Schema.String, value: contractSchema }),
+    models: Schema.Record(Schema.String, modelSchema),
+    contracts: Schema.Record(Schema.String, contractSchema),
     aggregateFrontendLock: AggregateFrontendLockSchema,
   }),
   Schema.Struct({
@@ -109,36 +129,40 @@ const frontendControllerSchema = Schema.Union(
     serviceName: Schema.String,
     frontendName: Schema.String,
     modelNames: Schema.Array(Schema.String),
-    models: Schema.Record({ key: Schema.String, value: modelSchema }),
-    contracts: Schema.Record({ key: Schema.String, value: contractSchema }),
+    models: Schema.Record(Schema.String, modelSchema),
+    contracts: Schema.Record(Schema.String, contractSchema),
     serviceFrontendLock: ServiceFrontendLockSchema,
   }),
-);
+]);
 
 const frontendBindingSchema = Schema.Struct({
   name: Schema.String,
-  models: Schema.Record({
-    key: Schema.String,
-    value: Schema.Struct({
+  models: Schema.Record(
+    Schema.String,
+    Schema.Struct({
       modelName: Schema.String,
       hasProjectionAdapter: Schema.Boolean,
     }),
-  }),
-  contracts: Schema.Record({
-    key: Schema.String,
-    value: Schema.Struct({
+  ),
+  contracts: Schema.Record(
+    Schema.String,
+    Schema.Struct({
       commandName: Schema.String,
       version: Schema.String,
       hasAuthoritativeAdapter: Schema.Boolean,
     }),
-  }),
+  ),
   controller: frontendControllerSchema,
 });
 
 const querySchema = Schema.Struct({
   name: Schema.String,
   serviceName: Schema.String,
-  paramsJsonSchema: Schema.Unknown,
+  paramsJsonSchema: Schema.Struct({
+    dialect: Schema.Literal('draft-2020-12'),
+    schema: Schema.Any,
+    definitions: Schema.Record(Schema.String, Schema.Any),
+  }),
 });
 
 export const SystemSpecSchema = Schema.Struct({
@@ -147,36 +171,30 @@ export const SystemSpecSchema = Schema.Struct({
   authentication: Schema.Struct({
     signature: authenticationSignatureSchema,
   }),
-  aggregates: Schema.Record({
-    key: Schema.String,
-    value: Schema.Struct({
+  aggregates: Schema.Record(
+    Schema.String,
+    Schema.Struct({
       name: Schema.String,
-      models: Schema.Record({ key: Schema.String, value: modelSchema }),
-      contracts: Schema.Record({ key: Schema.String, value: contractSchema }),
+      models: Schema.Record(Schema.String, modelSchema),
+      contracts: Schema.Record(Schema.String, contractSchema),
       mutationAdapters: mutationAdaptersSchema,
-      selections: Schema.Record({
-        key: Schema.String,
-        value: Schema.Struct({ modelName: Schema.String }),
-      }),
-      queries: Schema.Record({ key: Schema.String, value: querySchema }),
-      frontends: Schema.Record({
-        key: Schema.String,
-        value: frontendBindingSchema,
-      }),
+      selections: Schema.Record(
+        Schema.String,
+        Schema.Struct({ modelName: Schema.String }),
+      ),
+      queries: Schema.Record(Schema.String, querySchema),
+      frontends: Schema.Record(Schema.String, frontendBindingSchema),
     }),
-  }),
-  services: Schema.Record({
-    key: Schema.String,
-    value: Schema.Struct({
+  ),
+  services: Schema.Record(
+    Schema.String,
+    Schema.Struct({
       name: Schema.String,
-      models: Schema.Record({ key: Schema.String, value: modelSchema }),
-      contracts: Schema.Record({ key: Schema.String, value: contractSchema }),
+      models: Schema.Record(Schema.String, modelSchema),
+      contracts: Schema.Record(Schema.String, contractSchema),
       mutationAdapters: mutationAdaptersSchema,
-      queries: Schema.Record({ key: Schema.String, value: querySchema }),
-      frontends: Schema.Record({
-        key: Schema.String,
-        value: frontendBindingSchema,
-      }),
+      queries: Schema.Record(Schema.String, querySchema),
+      frontends: Schema.Record(Schema.String, frontendBindingSchema),
     }),
-  }),
+  ),
 });

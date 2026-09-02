@@ -1,6 +1,6 @@
 import type { Async } from '@zerospin/core/async/Async';
 import type { IAnyError } from '@zerospin/error';
-import { Effect, Either } from 'effect';
+import { Effect, Result } from 'effect';
 
 import type { makeDeliveryQueue } from '../makeDeliveryQueue/makeDeliveryQueue.js';
 
@@ -17,39 +17,18 @@ export const makeFanoutQueue = <SUBSCRIBER>(props: {
 }) => ({
   name: props.name,
   drain: Effect.fn(`${props.name}.drain`)(function* () {
-    const exhaustedSubscribers = new Set<string>();
-    while (true) {
-      const subscribers = (yield* props.readSubscribers()).filter(
-        subscriber =>
-          !exhaustedSubscribers.has(props.subscriberKey(subscriber)),
-      );
-      if (subscribers.length === 0) {
-        return;
-      }
-      const subscriberResults = yield* Effect.forEach(
-        subscribers,
-        subscriber =>
-          props
-            .processSubscriber(subscriber, props.deliveryQueue.retry)
-            .pipe(Effect.either),
-        { concurrency: 100 },
-      );
-      for (let index = 0; index < subscriberResults.length; index += 1) {
-        const result = subscriberResults[index];
-        const subscriber = subscribers[index];
-        if (
-          result !== undefined &&
-          subscriber !== undefined &&
-          Either.isRight(result) &&
-          !result.right
-        ) {
-          exhaustedSubscribers.add(props.subscriberKey(subscriber));
-        }
-      }
-      const subscriberFailure = subscriberResults.find(Either.isLeft);
-      if (subscriberFailure !== undefined) {
-        return yield* subscriberFailure.left;
-      }
+    const subscribers = (yield* props.readSubscribers()).slice(0, 100);
+    const subscriberResults = yield* Effect.forEach(
+      subscribers,
+      subscriber =>
+        props
+          .processSubscriber(subscriber, props.deliveryQueue.retry)
+          .pipe(Effect.result),
+      { concurrency: 100 },
+    );
+    const subscriberFailure = subscriberResults.find(Result.isFailure);
+    if (subscriberFailure !== undefined) {
+      return yield* subscriberFailure.failure;
     }
   }),
   hasPending: props.hasPending,

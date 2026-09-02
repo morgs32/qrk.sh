@@ -1,15 +1,15 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
-import { Effect, JSONSchema, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
 const stableSemVerPattern =
   /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/u;
 
 export function makeSignature<
   const VERSION extends string,
-  CURRENT_SCHEMA extends Schema.Schema.AnyNoContext,
+  CURRENT_SCHEMA extends Schema.Codec<unknown, unknown>,
   const HISTORICAL_DEFINITIONS extends readonly Readonly<{
     version: string;
-    schema: Schema.Schema.AnyNoContext;
+    schema: Schema.Codec<unknown, unknown>;
     adaptSignature: (props: {
       signature: never;
     }) => Effect.Effect<unknown, IAnyError>;
@@ -38,7 +38,7 @@ export function makeSignature<
   const definitionsByVersion = new Map<
     string,
     Readonly<{
-      schema: Schema.Schema.AnyNoContext;
+      schema: Schema.Codec<unknown, unknown>;
       adaptSignature?: (props: {
         signature: unknown;
       }) => Effect.Effect<unknown, IAnyError>;
@@ -65,11 +65,11 @@ export function makeSignature<
     historicalDefinitions,
     spec: {
       version: props.version,
-      schemaJsonSchema: JSONSchema.make(props.schema),
+      schemaJsonSchema: Schema.toJsonSchemaDocument(props.schema),
       historicalDefinitions: historicalDefinitions
         .map(definition => ({
           version: definition.version,
-          schemaJsonSchema: JSONSchema.make(definition.schema),
+          schemaJsonSchema: Schema.toJsonSchemaDocument(definition.schema),
         }))
         .toSorted((left, right) => left.version.localeCompare(right.version)),
     },
@@ -87,19 +87,27 @@ export function makeSignature<
           });
         }
 
-        const sourceSignature = yield* Schema.decodeUnknown(definition.schema)(
-          decodeProps.signature,
-          { onExcessProperty: 'error' },
-        ).pipe(
+        if (decodeProps.version === props.version) {
+          return yield* Schema.decodeUnknownEffect(props.schema)(
+            decodeProps.signature,
+            { onExcessProperty: 'error' },
+          ).pipe(
+            mapParseError({
+              code: 'authentication-signature-invalid',
+              prefix: `Failed to decode authentication signature version "${decodeProps.version}"`,
+            }),
+          );
+        }
+
+        const sourceSignature = yield* Schema.decodeUnknownEffect(
+          definition.schema,
+        )(decodeProps.signature, { onExcessProperty: 'error' }).pipe(
           mapParseError({
             code: 'authentication-signature-invalid',
             prefix: `Failed to decode authentication signature version "${decodeProps.version}"`,
           }),
         );
 
-        if (decodeProps.version === props.version) {
-          return sourceSignature;
-        }
         if (definition.adaptSignature === undefined) {
           return yield* new ZerospinError({
             code: 'authentication-signature-adapter-missing',
@@ -111,9 +119,12 @@ export function makeSignature<
         const currentSignature = yield* Effect.suspend(() =>
           adaptSignature({ signature: sourceSignature }),
         );
-        return yield* Schema.validate(props.schema)(currentSignature, {
-          onExcessProperty: 'error',
-        }).pipe(
+        return yield* Schema.decodeEffect(Schema.toType(props.schema))(
+          currentSignature,
+          {
+            onExcessProperty: 'error',
+          },
+        ).pipe(
           mapParseError({
             code: 'authentication-signature-adapter-output-invalid',
             prefix: `Adapted authentication signature did not match current version "${props.version}"`,

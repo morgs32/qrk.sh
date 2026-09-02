@@ -25,6 +25,7 @@ function cloudflareWorkersStub(): Plugin {
           'export class RpcTarget {}',
           'export class WorkerEntrypoint {}',
           'export const env = {}',
+          'export const exports = {}',
         ].join('\n');
       }
       return null;
@@ -54,6 +55,9 @@ export default defineConfig({
   root: __dirname,
   resolve: resolveAlias,
   plugins: [cloudflareWorkersStub()],
+  ssr: {
+    noExternal: ['partyserver'],
+  },
   test: {
     name: 'core-node',
     environment: 'node',

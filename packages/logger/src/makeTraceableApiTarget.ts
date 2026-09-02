@@ -1,4 +1,4 @@
-import { Effect, Either, Schema } from 'effect';
+import { Effect, Option, Result, Schema } from 'effect';
 
 import { TelemetryCollector } from './TelemetryCollector.ts';
 import type { ILinkedRpcEnvelope, IRpcRequest } from './types.ts';
@@ -10,16 +10,14 @@ export function makeTraceableApiTarget<TARGET extends object>(
     request: IRpcRequest<infer ARGS>,
   ) => infer RESULT
     ? Awaited<RESULT> extends ILinkedRpcEnvelope<infer A, infer E>
-      ? (...args: ARGS) => Effect.Effect<A, E | Error, TelemetryCollector>
+      ? (...args: ARGS) => Effect.Effect<A, E | Error>
       : TARGET[K] extends (
             ...args: infer FALLBACK_ARGS
           ) => PromiseLike<infer _R>
-        ? (
-            ...args: FALLBACK_ARGS
-          ) => Effect.Effect<never, Error, TelemetryCollector>
+        ? (...args: FALLBACK_ARGS) => Effect.Effect<never, Error>
         : TARGET[K]
     : TARGET[K] extends (...args: infer ARGS) => PromiseLike<infer _R>
-      ? (...args: ARGS) => Effect.Effect<never, Error, TelemetryCollector>
+      ? (...args: ARGS) => Effect.Effect<never, Error>
       : TARGET[K];
 };
 export function makeTraceableApiTarget(apiTarget: object) {
@@ -38,20 +36,20 @@ export function makeTraceableApiTarget(apiTarget: object) {
         Effect.gen(function* () {
           const traceContext = yield* Effect.currentSpan.pipe(
             Effect.map(span => {
-              const traceId = Schema.decodeUnknownEither(
-                Schema.TemplateLiteral('trc_', Schema.String),
+              const traceId = Schema.decodeUnknownResult(
+                Schema.TemplateLiteral(['trc_', Schema.String]),
               )(span.traceId);
-              const parentSpanId = Schema.decodeUnknownEither(
-                Schema.TemplateLiteral('spn_', Schema.String),
+              const parentSpanId = Schema.decodeUnknownResult(
+                Schema.TemplateLiteral(['spn_', Schema.String]),
               )(span.spanId);
 
-              if (Either.isLeft(traceId) || Either.isLeft(parentSpanId)) {
+              if (Result.isFailure(traceId) || Result.isFailure(parentSpanId)) {
                 return null;
               }
 
               return {
-                traceId: traceId.right,
-                parentSpanId: parentSpanId.right,
+                traceId: traceId.success,
+                parentSpanId: parentSpanId.success,
               };
             }),
             Effect.orElseSucceed(() => null),
@@ -69,52 +67,52 @@ export function makeTraceableApiTarget(apiTarget: object) {
               ),
             catch: error =>
               error instanceof Error ? error : new Error(String(error)),
-          }).pipe(Effect.either);
+          }).pipe(Effect.result);
 
-          if (Either.isLeft(settled)) {
-            return yield* Effect.fail(settled.left);
+          if (Result.isFailure(settled)) {
+            return yield* Effect.fail(settled.failure);
           }
 
-          const envelope = Schema.decodeUnknownEither(
+          const envelope = Schema.decodeUnknownResult(
             Schema.Struct({
-              result: Schema.Union(
+              result: Schema.Union([
                 Schema.Struct({
-                  _tag: Schema.Literal('Right'),
-                  right: Schema.Unknown,
+                  _tag: Schema.Literal('Success'),
+                  success: Schema.Unknown,
                 }),
                 Schema.Struct({
-                  _tag: Schema.Literal('Left'),
-                  left: Schema.Unknown,
+                  _tag: Schema.Literal('Failure'),
+                  failure: Schema.Unknown,
                 }),
-              ),
+              ]),
               link: Schema.NullOr(
                 Schema.Struct({
-                  linkId: Schema.TemplateLiteral('lnk_', Schema.String),
-                  traceId: Schema.TemplateLiteral('trc_', Schema.String),
-                  spanId: Schema.TemplateLiteral('spn_', Schema.String),
-                  priorTraceId: Schema.TemplateLiteral('trc_', Schema.String),
-                  priorSpanId: Schema.TemplateLiteral('spn_', Schema.String),
-                  kind: Schema.Literal('causedBy', 'retryOf'),
+                  linkId: Schema.TemplateLiteral(['lnk_', Schema.String]),
+                  traceId: Schema.TemplateLiteral(['trc_', Schema.String]),
+                  spanId: Schema.TemplateLiteral(['spn_', Schema.String]),
+                  priorTraceId: Schema.TemplateLiteral(['trc_', Schema.String]),
+                  priorSpanId: Schema.TemplateLiteral(['spn_', Schema.String]),
+                  kind: Schema.Literals(['causedBy', 'retryOf']),
                 }),
               ),
             }),
-          )(settled.right);
+          )(settled.success);
 
-          if (Either.isLeft(envelope)) {
+          if (Result.isFailure(envelope)) {
             return yield* Effect.fail(
               new Error('makeTraceableApiTarget expected ILinkedRpcEnvelope'),
             );
           }
 
-          const collector = yield* TelemetryCollector;
-          if (envelope.right.link !== null) {
-            collector.addLinks([envelope.right.link]);
+          const collector = yield* Effect.serviceOption(TelemetryCollector);
+          if (envelope.success.link !== null && Option.isSome(collector)) {
+            collector.value.addLinks([envelope.success.link]);
           }
 
-          if (envelope.right.result._tag === 'Left') {
-            return yield* Effect.fail(envelope.right.result.left);
+          if (envelope.success.result._tag === 'Failure') {
+            return yield* Effect.fail(envelope.success.result.failure);
           }
-          return envelope.right.result.right;
+          return envelope.success.result.success;
         });
     },
   });

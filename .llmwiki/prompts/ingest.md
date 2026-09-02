@@ -13,13 +13,17 @@ update the wiki so it reflects the code at HEAD.
 
 ## Hard rules (restating for emphasis — AGENTS.md has the full list)
 
-- Every non-trivial claim must be followed by a `(path:start-end)` citation.
+- Every non-trivial claim needs a working Markdown source citation per `AGENTS.md` hard rule 1 (label includes line numbers; destination uses document-relative path plus `#L` anchors). Exception: on architecture pages, opening prose that only summarizes the immediately following `## Annotated workflow steps` must not repeat those step citations; put the source links on the matching numbered steps instead.
 - Never describe an API, parameter, or behavior that is not in the current code.
 - For UI code, do not describe runtime behavior unless a test file confirms it.
 - When the diff contradicts an existing page, add a `> CONTRADICTION:` blockquote,
   fix the page, and note both sides in `log.md`.
 - Do NOT commit anything. The hook commits generated pages outside `wiki/dev/**`
   for you.
+- `wiki/glossary.md` uses one `## Term` ATX heading per entry; never a definition table and never HTML ids.
+- Inbound glossary links use the exact heading text as the fragment (for example `glossary.md#systemName`), not a lowercased GitHub slug.
+- After each glossary term's definition, list citations as unordered bullets. Each bullet is one working Markdown source citation followed by an em dash and one sentence naming the term-relevant fact at that range. Do not comma-separate citations. Do not restate the definition.
+- On `wiki/architecture/**` pages, list every source citation as an unordered bullet with a range-relevant fact after each working Markdown link. Do not use trailing parenthetical comma-separated citation lists. Nested bullets under Trigger and Annotated numbered items follow the same shape.
 
 ## What to produce
 
@@ -29,7 +33,7 @@ For this commit:
    - Find wiki pages that document the file. Update them.
    - If the file introduces new public surface area (exported symbol, new CLI command,
      new module) AND the matching doc type is enabled, create a new page.
-2. Update `wiki/glossary.md` with any new identifiers, CLI flags, or domain terms.
+2. Update `wiki/glossary.md` with any new identifiers, CLI flags, or domain terms. Add each term as a `## Term` section with definition prose and source citations as unordered bullets (link, em dash, term-relevant fact at that range); keep inbound links on other pages pointed at `glossary.md#Term` using the exact heading text.
 3. Update `wiki/overview.md` ONLY if the big picture shifted.
 4. Update `wiki/index.md` with new/changed page entries.
 5. Append a `## [YYYY-MM-DD HH:MM] ingest | <short-sha> | <commit-subject>` entry to `wiki/log.md`

@@ -1,5 +1,4 @@
-import { Effect } from 'effect';
-import { Schema } from 'effect/Schema';
+import { Effect, Schema } from 'effect';
 
 /**
  * Keep RPC prop validation inside the Api instance method that receives wire props.
@@ -10,7 +9,7 @@ export class SystemApi {
   enqueueSomeWorkflow = Effect.fn('SystemApi.enqueueSomeWorkflow')(function* (
     props: unknown,
   ) {
-    const validated = yield* Schema.validate(
+    const validated = yield* Schema.decodeUnknownEffect(
       Schema.Struct({ workflowId: Schema.String }),
     )(props, { onExcessProperty: 'ignore' });
 

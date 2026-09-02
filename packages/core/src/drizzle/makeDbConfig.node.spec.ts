@@ -1,37 +1,38 @@
+import { makeTable, primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { List, mainModels, User } from '../fixtures/system.ts';
-import { makeTable } from '../models/makeTable.ts';
-import { primitives } from '../models/primitives.ts';
+import { makeModel } from '../models/makeModel.ts';
+import { makeReplica } from '../models/makeReplica.ts';
 import { sessionRepoTables } from '../session/sessionRepoTables.ts';
 
 import { makeDbConfig, makeResourceDbConfig } from './makeDbConfig.ts';
-import { makeMigratedInMemoryWasmSqliteDb } from './makeMigratedInMemoryWasmSqliteDb.ts';
+import { makeProvisionedInMemoryWasmSqliteDb } from './makeProvisionedInMemoryWasmSqliteDb.ts';
 
 describe('makeResourceDbConfig', () => {
   it('queries model refs in both forward and inverse directions', async () => {
+    const dbConfig = makeResourceDbConfig({ models: mainModels });
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({
-        dbConfig: makeResourceDbConfig({ models: mainModels }),
+      makeProvisionedInMemoryWasmSqliteDb({
+        dbConfig,
       }).pipe(Effect.provide(AsyncLive)),
     );
 
     try {
       const now = new Date('2026-07-13T00:00:00.000Z');
-      db.insert(User.drizzleSchema)
+      db.insert(dbConfig.schema.user)
         .values({
           id: 'usr_relation',
           modelName: User.modelName,
           createdAt: now,
           updatedAt: now,
           version: User.version,
-          userId: 'user_relation',
           name: 'Relation user',
         })
         .run();
-      db.insert(List.drizzleSchema)
+      db.insert(dbConfig.schema.list)
         .values({
           id: 'lst_relation',
           modelName: List.modelName,
@@ -52,6 +53,94 @@ describe('makeResourceDbConfig', () => {
 
       expect(storedList?.user?.id).toBe('usr_relation');
       expect(storedUser?.lists.map(list => list.id)).toEqual(['lst_relation']);
+    } finally {
+      await db.$client.sqlite3.close(db.$client.db);
+    }
+  });
+
+  it('queries exact authoritative source-table refs between replicas', async () => {
+    const ProductSource = makeModel(
+      {
+        abbreviation: 'prd',
+        modelName: 'product',
+        attributes: { name: primitives.text() },
+        indexes: [],
+        version: '1.0.0',
+      },
+      [],
+    );
+    const CartItemSource = makeModel(
+      {
+        abbreviation: 'cit',
+        modelName: 'cartItem',
+        attributes: {
+          productId: primitives.ref({
+            table: ProductSource.table,
+            relation: 'product',
+            inverse: 'cartItems',
+          }),
+        },
+        indexes: [],
+        version: '1.0.0',
+      },
+      [],
+    );
+    const ProductReplica = makeReplica({
+      sourceModel: ProductSource,
+      serviceName: 'catalog',
+    });
+    const CartItemReplica = makeReplica({
+      sourceModel: CartItemSource,
+      serviceName: 'catalog',
+    });
+    const dbConfig = makeResourceDbConfig({
+      models: {
+        cartItem: CartItemReplica,
+        product: ProductReplica,
+      },
+    });
+    const db = await Effect.runPromise(
+      makeProvisionedInMemoryWasmSqliteDb({
+        dbConfig,
+      }).pipe(Effect.provide(AsyncLive)),
+    );
+
+    try {
+      const now = new Date('2026-08-30T00:00:00.000Z');
+      db.insert(dbConfig.schema.product)
+        .values({
+          id: 'prd_replica_relation',
+          modelName: ProductReplica.modelName,
+          createdAt: now,
+          updatedAt: now,
+          version: ProductReplica.version,
+          name: 'Replica product',
+          deletedAt: null,
+        })
+        .run();
+      db.insert(dbConfig.schema.cartItem)
+        .values({
+          id: 'cit_replica_relation',
+          modelName: CartItemReplica.modelName,
+          createdAt: now,
+          updatedAt: now,
+          version: CartItemReplica.version,
+          productId: 'prd_replica_relation',
+          deletedAt: null,
+        })
+        .run();
+
+      const storedCartItem = db.query.cartItem
+        .findFirst({ with: { product: true } })
+        .sync();
+      const storedProduct = db.query.product
+        .findFirst({ with: { cartItems: true } })
+        .sync();
+
+      expect(storedCartItem?.product?.id).toBe('prd_replica_relation');
+      expect(storedProduct?.cartItems.map(item => item.id)).toEqual([
+        'cit_replica_relation',
+      ]);
     } finally {
       await db.$client.sqlite3.close(db.$client.db);
     }
@@ -79,7 +168,7 @@ describe('makeResourceDbConfig', () => {
     });
     const dbConfig = makeDbConfig({ tables: { teams, members } });
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
@@ -112,6 +201,56 @@ describe('makeResourceDbConfig', () => {
     }
   });
 
+  it('queries numeric-primary-key refs in both forward and inverse directions', async () => {
+    const blocks = makeTable({
+      name: 'blocks',
+      shape: {
+        blockIndex: primitives.integer({ primaryKey: true }),
+        label: primitives.text(),
+      },
+    });
+    const commands = makeTable({
+      name: 'commands',
+      shape: {
+        commandId: primitives.primaryKey({ abbreviation: 'cmd' }),
+        blockIndex: primitives.ref({
+          table: blocks,
+          relation: 'block',
+          inverse: 'commands',
+        }),
+      },
+    });
+    const dbConfig = makeDbConfig({ tables: { blocks, commands } });
+    const db = await Effect.runPromise(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      ),
+    );
+
+    try {
+      db.insert(dbConfig.schema.blocks)
+        .values({ blockIndex: 1, label: 'First block' })
+        .run();
+      db.insert(dbConfig.schema.commands)
+        .values({ commandId: 'cmd_first', blockIndex: 1 })
+        .run();
+
+      const storedCommand = db.query.commands
+        .findFirst({ with: { block: true } })
+        .sync();
+      const storedBlock = db.query.blocks
+        .findFirst({ with: { commands: true } })
+        .sync();
+
+      expect(storedCommand?.block?.blockIndex).toBe(1);
+      expect(storedBlock?.commands.map(command => command.commandId)).toEqual([
+        'cmd_first',
+      ]);
+    } finally {
+      await db.$client.sqlite3.close(db.$client.db);
+    }
+  });
+
   it('queries self refs in both forward and inverse directions', async () => {
     const categories = makeTable({
       name: 'categories',
@@ -127,7 +266,7 @@ describe('makeResourceDbConfig', () => {
     });
     const dbConfig = makeDbConfig({ tables: { categories } });
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
@@ -153,13 +292,14 @@ describe('makeResourceDbConfig', () => {
       const storedRoot = db.query.categories
         .findFirst({
           where: { id: 'cat_root' },
+          // @ts-expect-error self-inverse runtime relation is not represented by the construction marker type
           with: { childCategories: true },
         })
         .sync();
 
       expect(storedChild?.parentCategory?.id).toBe('cat_root');
-      expect(storedRoot?.childCategories.map(category => category.id)).toEqual([
-        'cat_child',
+      expect(Reflect.get(storedRoot ?? {}, 'childCategories')).toMatchObject([
+        { id: 'cat_child' },
       ]);
     } finally {
       await db.$client.sqlite3.close(db.$client.db);
@@ -216,7 +356,7 @@ describe('makeResourceDbConfig', () => {
       },
     });
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
@@ -253,14 +393,14 @@ describe('makeResourceDbConfig', () => {
       otherTables: sessionRepoTables,
     });
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
 
     try {
-      expect(typeof db.query.stagedCommands!.findMany).toBe('function');
-      expect(db.query.stagedCommands!.findMany().sync()).toEqual([]);
+      expect(typeof db.query.commandJournal!.findMany).toBe('function');
+      expect(db.query.commandJournal!.findMany().sync()).toEqual([]);
     } finally {
       await db.$client.sqlite3.close(db.$client.db);
     }

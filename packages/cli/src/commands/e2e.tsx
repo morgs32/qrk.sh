@@ -1,3 +1,7 @@
+import * as NodeChildProcessSpawner from '@effect/platform-node-shared/NodeChildProcessSpawner';
+import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
+import * as NodePath from '@effect/platform-node-shared/NodePath';
+import { Effect, Layer } from 'effect';
 import { Box, Text } from 'ink';
 
 import { ErrorBoundary } from '../components/ErrorBoundary.js';
@@ -11,7 +15,16 @@ import { useProgram } from '../ProcedureStep/useProgram.js';
 
 export default function E2e() {
   const { data, error, status } = useProgram({
-    fetcher: () => e2eFn(),
+    fetcher: () =>
+      e2eFn().pipe(
+        Effect.provide(
+          NodeChildProcessSpawner.layer.pipe(
+            Layer.provideMerge(
+              Layer.mergeAll(NodeFileSystem.layer, NodePath.layer),
+            ),
+          ),
+        ),
+      ),
   });
 
   return (

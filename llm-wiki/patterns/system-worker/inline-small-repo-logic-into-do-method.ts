@@ -1,38 +1,33 @@
 import { Effect } from 'effect';
 
 /**
- * Inline non-public one-consumer repo helpers into the owning public method file.
+ * Inline non-public one-consumer Repo logic into the owning public method file.
  *
- * @bad Create `shared/applyOneMutation.ts` for a helper called once.
- * @bad Add a module-level helper above the public method file when its only caller is that method.
- * @bad Use this rule to inline a public system-worker Repo RPC method back into the class file.
+ * @bad Create `shared/applyOneCommand.ts` for a helper called once.
+ * @bad Add a module-level helper above the public method when its only caller is that method.
+ * @bad Inline a public system-worker Repo RPC method back into the class file.
  */
-export const handleAggregateBlocks = Effect.fn(
-  'AggregateFrontendRepo.handleAggregateBlocks',
-)(function* (props: { db: unknown; mutations: readonly unknown[] }) {
-  return yield* makeTx({
-    db: props.db,
-    program: Effect.fn(
-      'AggregateFrontendRepo.handleAggregateBlocks.transaction',
-    )(function* ({ tx }) {
-      for (const mutation of props.mutations) {
-        yield* applyMutationTx({ tx, mutation, appliedAt: Date.now() });
-      }
-    }),
-  });
-});
+export const execute = Effect.fn('MaterializedAggregateRepo.execute')(
+  function* (props: { command: unknown; db: unknown }) {
+    return yield* makeTx({
+      db: props.db,
+      program: Effect.fn('MaterializedAggregateRepo.execute.transaction')(
+        function* ({ tx }) {
+          return yield* applyCommandTx({ command: props.command, tx });
+        },
+      ),
+    });
+  },
+);
 
-export class AggregateFrontendRepo {
-  async handleAggregateBlocks(props: { mutations: readonly unknown[] }) {
+export class MaterializedAggregateRepo {
+  async execute(props: { command: unknown }) {
     return managedRuntime.runPromise(
-      handleAggregateBlocks({
-        db: this.db,
-        mutations: props.mutations,
-      }).pipe(Effect.provide(AsyncLive), encodeRpc),
+      execute({ command: props.command, db: this.db }).pipe(encodeRpc),
     );
   }
 
-  db = {} as unknown;
+  db = {};
 }
 
 declare const managedRuntime: {
@@ -42,10 +37,8 @@ declare const makeTx: (props: {
   db: unknown;
   program: unknown;
 }) => Effect.Effect<unknown, unknown, unknown>;
-declare const applyMutationTx: (props: {
+declare const applyCommandTx: (props: {
+  command: unknown;
   tx: unknown;
-  mutation: unknown;
-  appliedAt: number;
-}) => Effect.Effect<void, unknown, unknown>;
-declare const AsyncLive: unknown;
+}) => Effect.Effect<unknown, unknown, unknown>;
 declare const encodeRpc: (effect: unknown) => unknown;

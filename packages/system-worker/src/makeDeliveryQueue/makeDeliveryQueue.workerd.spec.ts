@@ -90,7 +90,7 @@ describe('makeDeliveryQueue workerd acceptance', () => {
   );
 
   it.effect(
-    'persists exhaustion diagnostics and retry links, then recovers once on the alarm wake',
+    'persists exhaustion diagnostics and retry links, then recovers on the next alarm drain',
     () =>
       Effect.promise(() =>
         runInDurableObject(
@@ -101,8 +101,7 @@ describe('makeDeliveryQueue workerd acceptance', () => {
             let domainOutcomes = 0;
             const firstCollector = makeTelemetryCollector();
             const firstQueue = makeDeliveryQueue({ storage: state.storage });
-            const exhaustedAt = Date.now();
-            await managedRuntime.runPromise(
+            const firstDrain = await managedRuntime.runPromise(
               firstQueue
                 .drain({
                   lanes: [
@@ -123,7 +122,7 @@ describe('makeDeliveryQueue workerd acceptance', () => {
                             }),
                           )
                           .pipe(
-                            Effect.catchAll(error =>
+                            Effect.catch(error =>
                               Effect.sync(() => {
                                 diagnostic = error.message;
                               }),
@@ -138,17 +137,15 @@ describe('makeDeliveryQueue workerd acceptance', () => {
                   Effect.provide(makeTelemetryLayer(firstCollector)),
                 ),
             );
-            const alarmAfterExhaustion = await state.storage.getAlarm();
             const persistedRetryLinks = await state.storage.get<
               readonly { traceId: string; spanId: string }[]
             >('deliveryQueueRetryOf');
 
             const secondCollector = makeTelemetryCollector();
             const secondQueue = makeDeliveryQueue({ storage: state.storage });
-            await managedRuntime.runPromise(
+            const secondDrain = await managedRuntime.runPromise(
               secondQueue
                 .drain({
-                  alarm: true,
                   lanes: [
                     {
                       name: 'acceptance-lane',
@@ -181,10 +178,8 @@ describe('makeDeliveryQueue workerd acceptance', () => {
             expect(attempts).toBe(4);
             expect(domainOutcomes).toBe(1);
             expect(diagnostic).toBeNull();
-            expect(alarmAfterExhaustion).not.toBeNull();
-            expect((alarmAfterExhaustion ?? 0) - exhaustedAt).toBeGreaterThan(
-              900,
-            );
+            expect(firstDrain.pending).toBe(true);
+            expect(secondDrain.pending).toBe(false);
             expect(persistedRetryLinks).toHaveLength(1);
             expect(firstCollector.flush().links).toHaveLength(2);
             expect(
@@ -241,9 +236,9 @@ describe('makeDeliveryQueue workerd acceptance', () => {
                           );
                         })
                       : Effect.sleep(5),
-                  ).pipe(Effect.either);
+                  ).pipe(Effect.result);
                   active -= 1;
-                  if (delivery._tag === 'Left') {
+                  if (delivery._tag === 'Failure') {
                     return false;
                   }
                   const subscriberOutcomes = outcomes.get(subscriber.id) ?? [];
@@ -257,15 +252,16 @@ describe('makeDeliveryQueue workerd acceptance', () => {
                   subscribers.some(subscriber => subscriber.remaining > 0),
                 ),
             });
-            await managedRuntime.runPromise(
-              queue
-                .drain({ lanes: [{ ...lane, requested: true }] })
-                .pipe(Effect.withSpan('DeliveryQueueAcceptance.fanoutDrain')),
-            );
-            await state.storage.deleteAlarm();
+            for (let turn = 0; turn < 4; turn += 1) {
+              await managedRuntime.runPromise(
+                queue
+                  .drain({ lanes: [{ ...lane, requested: true }] })
+                  .pipe(Effect.withSpan('DeliveryQueueAcceptance.fanoutDrain')),
+              );
+            }
 
             expect(maximumActive).toBe(100);
-            expect(failedAttempts).toBe(3);
+            expect(failedAttempts).toBe(12);
             expect(subscribers[0]?.remaining).toBe(2);
             for (const subscriber of subscribers.slice(1)) {
               expect(subscriber.remaining).toBe(0);
@@ -276,7 +272,7 @@ describe('makeDeliveryQueue workerd acceptance', () => {
       ),
   );
 
-  it.effect('keeps the shared alarm while a newer drain is waiting', () =>
+  it.effect('reports pending while a newer drain is waiting', () =>
     Effect.promise(() =>
       runInDurableObject(
         env.FIXTURE_REPO.getByName('delivery-queue/alarm-race'),
@@ -331,11 +327,10 @@ describe('makeDeliveryQueue workerd acceptance', () => {
           );
           releaseOlder?.();
           await vi.waitFor(() => expect(newerEntered).toBe(true));
-          expect(await state.storage.getAlarm()).not.toBeNull();
           releaseNewer?.();
-          await Promise.all([olderDrain, newerDrain]);
-          expect(await state.storage.getAlarm()).not.toBeNull();
-          await state.storage.deleteAlarm();
+          await expect(olderDrain).resolves.toEqual({ pending: true });
+          await expect(newerDrain).resolves.toEqual({ pending: true });
+          expect(await state.storage.getAlarm()).toBeNull();
         },
       ),
     ),

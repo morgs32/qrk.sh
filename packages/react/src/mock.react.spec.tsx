@@ -9,15 +9,15 @@ import {
 } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeModel } from '@zerospin/core/models/makeModel';
-import { primitives } from '@zerospin/core/models/primitives';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import {
+  sessionCommandJournalDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
-  sessionStagedCommandDrizzleSchema,
 } from '@zerospin/core/session/sessionCommandShape';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
+import { primitives } from '@zerospin/schema';
 import type * as Capnweb from 'capnweb';
 import { Effect, Layer, ManagedRuntime, Redacted, Schema } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
@@ -190,7 +190,7 @@ describe('makeMockProvider', () => {
           data-aggregate-id={state.aggregateId}
           data-user-id={state.userId}
           data-session-id={session.sessionId}
-          data-shared-worker={state.workerState.mode}
+          data-session-status={state.sessionStatus}
           data-system-version={state.systemVersion}
         >
           {JSON.stringify({
@@ -253,7 +253,7 @@ describe('makeMockProvider', () => {
     expect(output?.getAttribute('data-aggregate-id')).toBe('acct_1');
     expect(output?.getAttribute('data-user-id')).toBe('user_1');
     expect(output?.getAttribute('data-session-id')).toMatch(/^sesn_/);
-    expect(output?.getAttribute('data-shared-worker')).toBe('shared-worker');
+    expect(output?.getAttribute('data-session-status')).toBe('current');
     expect(output?.getAttribute('data-system-version')).toBe('1.0.0');
     expect(output?.textContent).toContain('User 1');
     expect(output?.textContent).toContain('List 1');
@@ -271,7 +271,7 @@ describe('makeMockProvider', () => {
     });
   });
 
-  it('migrates every model table as empty when resources are omitted', async () => {
+  it('provisions every model table as empty when resources are omitted', async () => {
     const EmptyModelsProbe = () => {
       const accounts = useLiveQuery(ZerospinMain.frontends.main, {
         query: db => db.query.account.findMany(),
@@ -375,7 +375,7 @@ describe('makeMockProvider', () => {
     );
   });
 
-  it('runs real optimistic staging, writes lifecycle rows, and invalidates a live query without RPC or push', async () => {
+  it('executes one optimistic command, writes the command journal, and invalidates a live query without RPC or push', async () => {
     const listSnapshots: string[] = [];
 
     const StagingProbe = () => {
@@ -384,15 +384,15 @@ describe('makeMockProvider', () => {
         query: db => db.query.list.findMany(),
       });
       const [optimisticRowCount, setOptimisticRowCount] = useState(0);
-      const [stageResult, setStageResult] = useState('pending');
-      const [stagedRowCount, setStagedRowCount] = useState(0);
+      const [executeResult, setExecuteResult] = useState('pending');
+      const [commandRowCount, setCommandRowCount] = useState(0);
 
       useEffect(() => {
         listSnapshots.push(lists.data.map(list => list.name).join(','));
       }, [lists.data]);
 
       useEffect(() => {
-        const result = session.stageCommand({
+        const result = session.executeCommand({
           contractName: 'createList',
           payload: {
             id: 'lst_staged',
@@ -400,7 +400,7 @@ describe('makeMockProvider', () => {
             userId: 'usr_1',
           },
         });
-        setStageResult(result._tag);
+        setExecuteResult(result._tag);
         const state = session.store.getState();
         if (state.isInitialized) {
           setOptimisticRowCount(
@@ -409,8 +409,8 @@ describe('makeMockProvider', () => {
               .from(sessionOptimisticAppliedMutationDrizzleSchema)
               .all().length,
           );
-          setStagedRowCount(
-            state.db.select().from(sessionStagedCommandDrizzleSchema).all()
+          setCommandRowCount(
+            state.db.select().from(sessionCommandJournalDrizzleSchema).all()
               .length,
           );
         }
@@ -419,13 +419,10 @@ describe('makeMockProvider', () => {
       return (
         <output
           data-testid="staging"
-          data-has-core-push={String(
-            'pushQueue' in session.coreSession ||
-              'pushStagedCommands' in session.coreSession,
-          )}
+          data-has-core-push={String('pushQueue' in session.coreSession)}
           data-optimistic-row-count={optimisticRowCount}
-          data-stage-result={stageResult}
-          data-staged-row-count={stagedRowCount}
+          data-execute-result={executeResult}
+          data-command-row-count={commandRowCount}
         >
           {lists.data.map(list => list.name).join(',')}
         </output>
@@ -462,9 +459,9 @@ describe('makeMockProvider', () => {
     await vi.waitFor(
       () => {
         const output = container.querySelector('[data-testid="staging"]');
-        expect(output?.getAttribute('data-stage-result')).toBe('Right');
+        expect(output?.getAttribute('data-execute-result')).toBe('Success');
         expect(output?.getAttribute('data-optimistic-row-count')).toBe('1');
-        expect(output?.getAttribute('data-staged-row-count')).toBe('1');
+        expect(output?.getAttribute('data-command-row-count')).toBe('1');
         expect(output?.getAttribute('data-has-core-push')).toBe('false');
         expect(output?.textContent).toContain('Staged List');
       },

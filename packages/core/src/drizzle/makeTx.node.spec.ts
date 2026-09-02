@@ -8,7 +8,7 @@ import { describe, expect } from 'vitest';
 import { mainModels, User } from '../fixtures/system.ts';
 
 import { makeResourceDbConfig } from './makeDbConfig.ts';
-import { makeMigratedInMemorySqljsDb } from './makeMigratedInMemorySqljsDb.ts';
+import { makeProvisionedInMemorySqljsDb } from './makeProvisionedInMemorySqljsDb.ts';
 import { makeTx } from './makeTx.ts';
 
 const testUserId = 'usr_maketxcommit001' as const;
@@ -18,7 +18,7 @@ describe('makeTx', () => {
   it.effect('commits on success', () =>
     Effect.gen(function* () {
       const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
       const now = new Date('2020-01-01T00:00:00.000Z');
 
@@ -26,7 +26,7 @@ describe('makeTx', () => {
         db,
         program: Effect.fn('transaction')(function* ({ tx }) {
           yield* Effect.void;
-          tx.insert(User.drizzleSchema)
+          tx.insert(dbConfig.schema.user)
             .values({
               id: testUserId,
               modelName: User.modelName,
@@ -41,8 +41,8 @@ describe('makeTx', () => {
 
       const row = db
         .select()
-        .from(User.drizzleSchema)
-        .where(eq(User.drizzleSchema.id, testUserId))
+        .from(dbConfig.schema.user)
+        .where(eq(dbConfig.schema.user.id, testUserId))
         .get();
 
       expect(row?.name).toBe('Alice');
@@ -52,14 +52,14 @@ describe('makeTx', () => {
   it.effect('rolls back on failure', () =>
     Effect.gen(function* () {
       const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
       const now = new Date('2020-01-01T00:00:00.000Z');
 
       const exit = yield* makeTx({
         db,
         program: Effect.fn('transaction')(function* ({ tx }) {
-          tx.insert(User.drizzleSchema)
+          tx.insert(dbConfig.schema.user)
             .values({
               id: testUserIdRollback,
               modelName: User.modelName,
@@ -69,7 +69,10 @@ describe('makeTx', () => {
               name: 'Bob',
             })
             .run();
-          return yield* Effect.fail('rollback-me');
+          return yield* new ZerospinError({
+            code: 'make-tx-rollback-test',
+            message: 'Rollback this transaction',
+          });
         }),
       }).pipe(Effect.exit);
 
@@ -77,8 +80,8 @@ describe('makeTx', () => {
 
       const row = db
         .select()
-        .from(User.drizzleSchema)
-        .where(eq(User.drizzleSchema.id, testUserIdRollback))
+        .from(dbConfig.schema.user)
+        .where(eq(dbConfig.schema.user.id, testUserIdRollback))
         .get();
 
       expect(row).toBeUndefined();
@@ -88,7 +91,7 @@ describe('makeTx', () => {
   it.effect('rejects nested makeTx', () =>
     Effect.gen(function* () {
       const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
       const exit = yield* makeTx({
         db,
@@ -111,13 +114,13 @@ describe('makeTx', () => {
   it.effect('preserves a domain failure while rolling back', () =>
     Effect.gen(function* () {
       const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
       const now = new Date('2020-01-01T00:00:00.000Z');
 
       const failure = yield* makeTx({
         db,
         program: Effect.fn('domainFailureTransaction')(function* ({ tx }) {
-          tx.insert(User.drizzleSchema)
+          tx.insert(dbConfig.schema.user)
             .values({
               id: 'usr_maketxdomainfail',
               modelName: User.modelName,
@@ -138,17 +141,17 @@ describe('makeTx', () => {
       expect(
         db
           .select()
-          .from(User.drizzleSchema)
-          .where(eq(User.drizzleSchema.id, 'usr_maketxdomainfail'))
+          .from(dbConfig.schema.user)
+          .where(eq(dbConfig.schema.user.id, 'usr_maketxdomainfail'))
           .get(),
       ).toBeUndefined();
     }).pipe(Effect.provide(AsyncLive)),
   );
 
-  it.effect('smoke: SharedWorker call-site shape with ITx program', () =>
+  it.effect('smoke: frontend call-site shape with ITx program', () =>
     Effect.gen(function* () {
       const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
       yield* makeTx({
         db,

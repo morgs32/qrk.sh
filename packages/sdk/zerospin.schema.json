@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "entry": {
+      "type": "string"
+    },
+    "seeds": {
+      "type": "object",
+      "properties": {
+        "dev": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "production": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["dev"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["entry", "seeds"],
+  "additionalProperties": false
+}

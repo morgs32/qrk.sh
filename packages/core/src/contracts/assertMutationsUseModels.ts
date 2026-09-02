@@ -1,8 +1,8 @@
 import { ZerospinError, type IAnyError } from '@zerospin/error';
+import type { ITypeError } from '@zerospin/schema';
 import { Effect, type Schema } from 'effect';
 
-import type { IModel, IModels, IServiceModel } from '../models/types.ts';
-import type { ITypeError } from '../utils/types.ts';
+import type { IModel, IModelReplica, IModels } from '../models/types.ts';
 
 import type { MutationValues } from './makeContract.ts';
 import type { IAnyMutation, IContract, IContracts } from './types.ts';
@@ -14,7 +14,7 @@ type InferContractMutations<CONTRACT extends IContract> =
     string,
     infer MUTATIONS_SCHEMA
   >
-    ? MUTATIONS_SCHEMA extends Schema.Schema.AnyNoContext
+    ? MUTATIONS_SCHEMA extends Schema.Codec<unknown, unknown>
       ? Schema.Schema.Type<MUTATIONS_SCHEMA>
       : never
     : never;
@@ -45,24 +45,15 @@ export const assertMutationsUseModels = Effect.fn('assertMutationsUseModels')(
         });
       }
 
-      const serviceName = Reflect.get(mutation.model, 'serviceName');
+      const isReplica = 'sourceModel' in mutation.model;
       if (owner.kind === 'aggregate') {
-        if (
-          mutation.operationName === 'replicateResource' &&
-          typeof serviceName === 'string'
-        ) {
+        if (mutation.operationName === 'replicateResource' && isReplica) {
           continue;
         }
-        if (
-          mutation.operationName !== 'replicateResource' &&
-          serviceName === undefined
-        ) {
+        if (mutation.operationName !== 'replicateResource' && !isReplica) {
           continue;
         }
-      } else if (
-        mutation.operationName !== 'replicateResource' &&
-        serviceName === owner.serviceName
-      ) {
+      } else if (mutation.operationName !== 'replicateResource' && !isReplica) {
         continue;
       }
 
@@ -87,17 +78,21 @@ export type AssertMutationModelInModels<
       }
     ? OWNER extends 'service'
       ? ITypeError<'service contracts cannot replicate resources'>
-      : MODEL extends IServiceModel
-        ? AssertMutationModelInModels<
-            Omit<MUTATION, 'operationName'>,
-            MODELS,
-            'service'
-          >
-        : ITypeError<'replicateResource requires a service model'>
+      : MODEL extends IModelReplica
+        ? string extends MODEL['modelName']
+          ? MODELS
+          : MODEL['modelName'] extends keyof MODELS & string
+            ? MODELS[MODEL['modelName']] extends MODEL
+              ? MODEL extends MODELS[MODEL['modelName']]
+                ? MODELS
+                : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
+              : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
+            : ITypeError<`mutation model "${MODEL['modelName']}" is not registered on controller models`>
+        : ITypeError<'replicateResource requires a model replica'>
     : MUTATION extends { readonly model: infer MODEL extends IModel }
       ? OWNER extends 'aggregate'
-        ? MODEL extends IServiceModel
-          ? ITypeError<`service model "${MODEL['modelName']}" can only use replicateResource in aggregate contracts`>
+        ? MODEL extends IModelReplica
+          ? ITypeError<`model replica "${MODEL['modelName']}" can only use replicateResource in aggregate contracts`>
           : string extends MODEL['modelName']
             ? MODELS
             : MODEL['modelName'] extends keyof MODELS & string
@@ -107,13 +102,17 @@ export type AssertMutationModelInModels<
                   : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
                 : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
               : ITypeError<`mutation model "${MODEL['modelName']}" is not registered on controller models`>
-        : string extends MODEL['modelName']
-          ? MODELS
-          : MODEL['modelName'] extends keyof MODELS & string
-            ? MODELS[MODEL['modelName']] extends MODEL
-              ? MODELS
-              : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
-            : ITypeError<`mutation model "${MODEL['modelName']}" is not registered on controller models`>
+        : MODEL extends IModelReplica
+          ? ITypeError<`service contracts cannot mutate model replica "${MODEL['modelName']}"`>
+          : string extends MODEL['modelName']
+            ? MODELS
+            : MODEL['modelName'] extends keyof MODELS & string
+              ? MODELS[MODEL['modelName']] extends MODEL
+                ? MODEL extends MODELS[MODEL['modelName']]
+                  ? MODELS
+                  : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
+                : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
+              : ITypeError<`mutation model "${MODEL['modelName']}" is not registered on controller models`>
       : ITypeError<'contract program returned a non-mutation'>;
 
 export type AssertContractMutationsInModels<

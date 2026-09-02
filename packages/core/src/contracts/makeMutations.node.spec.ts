@@ -1,16 +1,17 @@
 import { describe, expect, it } from '@effect/vitest';
+import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
-import { createList, List, system } from '../fixtures/system.ts';
-import { makeServiceModel } from '../models/makeServiceModel.ts';
-import { primitives } from '../models/primitives.ts';
+import { createList, List, main, system, User } from '../fixtures/system.ts';
+import { makeModel } from '../models/makeModel.ts';
+import { makeReplica } from '../models/makeReplica.ts';
+import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 
 import { makeContract } from './makeContract.ts';
 import { makeMutations } from './makeMutations.ts';
 
-const ServiceProduct = makeServiceModel(
+const ServiceProduct = makeModel(
   {
-    serviceName: 'app',
     abbreviation: 'sprd',
     modelName: 'serviceProduct',
     attributes: { name: primitives.text() },
@@ -19,6 +20,10 @@ const ServiceProduct = makeServiceModel(
   },
   [],
 );
+const ServiceProductReplica = makeReplica({
+  sourceModel: ServiceProduct,
+  serviceName: 'app',
+});
 
 const createServiceProduct = makeContract({
   commandName: 'createServiceProduct',
@@ -45,11 +50,11 @@ const replicateServiceProduct = makeContract({
     product: primitives.json({ schema: ServiceProduct.resourceSchema }),
   },
   mutations: Schema.Struct({
-    replicated: ServiceProduct.replicateResourceMutation('1.0.0'),
+    replicated: ServiceProductReplica.replicateResourceMutation('1.0.0'),
   }),
   program: ({ payload }) =>
     Effect.all({
-      replicated: ServiceProduct.replicateResource('1.0.0', {
+      replicated: ServiceProductReplica.replicateResource('1.0.0', {
         resource: payload.product,
       }),
     }),
@@ -57,6 +62,7 @@ const replicateServiceProduct = makeContract({
 });
 
 describe('makeMutations', () => {
+  it.layer(makePrefixedIncrementalIdFactory('makeMutations'))(it => {
   it.effect('runs aggregate contracts', () =>
     Effect.gen(function* () {
       const aggregate = system.aggregates.user;
@@ -69,7 +75,6 @@ describe('makeMutations', () => {
           name: 'Test List',
           userId: 'usr_test',
         },
-        commandType: 'aggregate' as const,
         aggregateId: 'acct_1',
         aggregateName: 'user',
       };
@@ -89,7 +94,6 @@ describe('makeMutations', () => {
 
   it.effect('runs frontend binding contracts', () =>
     Effect.gen(function* () {
-      const frontendBinding = system.aggregates.user.frontends.main;
       const command = {
         id: 'cmd_test' as const,
         commandName: 'createList',
@@ -99,7 +103,6 @@ describe('makeMutations', () => {
           name: 'Frontend List',
           userId: 'usr_test',
         },
-        commandType: 'frontend' as const,
         aggregateId: 'acct_1',
         aggregateName: 'user',
         userId: 'user_1',
@@ -107,8 +110,8 @@ describe('makeMutations', () => {
       };
 
       const result = yield* makeMutations({
-        contract: frontendBinding.contracts.createList,
-        models: frontendBinding.models,
+        contract: main.contracts.createList,
+        models: main.models,
         owner: { kind: 'aggregate' },
         command,
       });
@@ -128,7 +131,6 @@ describe('makeMutations', () => {
           id: 'sprd_service',
           name: 'Service Product',
         },
-        commandType: 'service' as const,
         serviceName: 'app',
       };
 
@@ -193,12 +195,12 @@ describe('makeMutations', () => {
         payload: {
           firstId: List.primaryKey({ autogenerate: false }),
           secondId: List.primaryKey({ autogenerate: false }),
-          userId: List.propertiesShape.userId,
+          userId: User.primaryKey({ autogenerate: false }),
         },
-        mutations: Schema.Tuple(
+        mutations: Schema.Tuple([
           List.deleteMutation('1.0.0'),
           List.createMutation('1.0.0'),
-        ),
+        ]),
         program: ({ payload }) =>
           Effect.all([
             List.delete('1.0.0', { resourceId: payload.firstId }),
@@ -289,6 +291,7 @@ describe('makeMutations', () => {
           payload: {
             id: List.primaryKey({ autogenerate: false }),
           },
+          // @ts-expect-error runtime validation still protects untyped programs
           mutations: Schema.Struct({
             created: List.createMutation('1.0.0'),
           }),
@@ -310,12 +313,14 @@ describe('makeMutations', () => {
             contractVersion: '1.0.0',
             payload: { id: 'lst_invalid_output' },
           },
-        }).pipe(Effect.either);
+        }).pipe(Effect.result);
 
-        expect(result._tag).toBe('Left');
-        if (result._tag === 'Left') {
-          expect(result.left.code).toBe('validate-contract-mutations-failed');
-          expect(result.left.message).toContain(
+        expect(result._tag).toBe('Failure');
+        if (result._tag === 'Failure') {
+          expect(result.failure.code).toBe(
+            'validate-contract-mutations-failed',
+          );
+          expect(result.failure.message).toContain(
             'Contract "invalidCreateOutput" program output did not match its mutations schema',
           );
         }
@@ -360,7 +365,6 @@ describe('makeMutations', () => {
           name: 'Service List',
           userId: 'usr_test',
         },
-        commandType: 'service' as const,
         serviceName: 'app',
       };
 
@@ -369,11 +373,11 @@ describe('makeMutations', () => {
         models: { serviceProduct: ServiceProduct },
         owner: { kind: 'service', serviceName: 'app' },
         command,
-      }).pipe(Effect.either);
+      }).pipe(Effect.result);
 
-      expect(maybeMutations._tag).toBe('Left');
-      if (maybeMutations._tag === 'Left') {
-        expect(maybeMutations.left.code).toBe(
+      expect(maybeMutations._tag).toBe('Failure');
+      if (maybeMutations._tag === 'Failure') {
+        expect(maybeMutations.failure.code).toBe(
           'contract-mutation-model-out-of-scope',
         );
       }
@@ -384,6 +388,21 @@ describe('makeMutations', () => {
     'rejects ordinary service-model mutations from aggregate owners',
     () =>
       Effect.gen(function* () {
+        const createServiceProductReplica = makeContract({
+          commandName: 'createServiceProduct',
+          payload: createServiceProduct.payload,
+          mutations: Schema.Struct({
+            created: ServiceProductReplica.createMutation('1.0.0'),
+          }),
+          program: ({ payload }) =>
+            Effect.all({
+              created: ServiceProductReplica.create('1.0.0', {
+                resourceId: payload.id,
+                attributes: { name: payload.name },
+              }),
+            }),
+          version: '1.0.0',
+        });
         const command = {
           id: 'cmd_aggregate_service_model' as const,
           commandName: 'createServiceProduct',
@@ -392,21 +411,20 @@ describe('makeMutations', () => {
             id: 'sprd_aggregate_service_model',
             name: 'Aggregate-owned service product',
           },
-          commandType: 'aggregate' as const,
           aggregateId: 'acct_1',
           aggregateName: 'user',
         };
 
         const maybeMutations = yield* makeMutations({
-          contract: createServiceProduct,
-          models: { serviceProduct: ServiceProduct },
+          contract: createServiceProductReplica,
+          models: { serviceProduct: ServiceProductReplica },
           owner: { kind: 'aggregate' },
           command,
-        }).pipe(Effect.either);
+        }).pipe(Effect.result);
 
-        expect(maybeMutations._tag).toBe('Left');
-        if (maybeMutations._tag === 'Left') {
-          expect(maybeMutations.left.code).toBe(
+        expect(maybeMutations._tag).toBe('Failure');
+        if (maybeMutations._tag === 'Failure') {
+          expect(maybeMutations.failure.code).toBe(
             'contract-mutation-model-owner-mismatch',
           );
         }
@@ -428,26 +446,25 @@ describe('makeMutations', () => {
             version: '1.0.0',
             createdAt: now,
             updatedAt: now,
-            deletedAt: null,
           },
         },
-        commandType: 'service' as const,
         serviceName: 'app',
       };
 
       const maybeMutations = yield* makeMutations({
         contract: replicateServiceProduct,
-        models: { serviceProduct: ServiceProduct },
+        models: { serviceProduct: ServiceProductReplica },
         owner: { kind: 'service', serviceName: 'app' },
         command,
-      }).pipe(Effect.either);
+      }).pipe(Effect.result);
 
-      expect(maybeMutations._tag).toBe('Left');
-      if (maybeMutations._tag === 'Left') {
-        expect(maybeMutations.left.code).toBe(
+      expect(maybeMutations._tag).toBe('Failure');
+      if (maybeMutations._tag === 'Failure') {
+        expect(maybeMutations.failure.code).toBe(
           'contract-mutation-model-owner-mismatch',
         );
       }
     }),
   );
+  });
 });

@@ -17,21 +17,13 @@ declare module 'effect' {
       fn: () => Generator<YieldWrap<Effect<any, any, any>>, A, never>,
     ): Effect<A, E, R>;
     function promise<A>(fn: () => Promise<A>): Effect<A, unknown, never>;
-    function either<A, E, R>(
+    function result<A, E, R>(
       effect: Effect<A, E, R>,
-    ): Effect<
-      { _tag: 'Right'; right: A } | { _tag: 'Left'; left: E },
-      never,
-      R
-    >;
+    ): Effect<Result.Result<A, E>, never, R>;
     function partition<A, E, R>(
       items: readonly unknown[],
       fn: (item: unknown) => Effect<A, E, R>,
     ): Effect<[E[], A[]], never, R>;
-    function catchAll<A, E, R, E2>(
-      effect: Effect<A, E, R>,
-      fn: (e: E) => Effect<A, E2, R>,
-    ): Effect<A, E2, R>;
     function provide<A, E, R, R2>(
       effect: Effect<A, E, R>,
       layer: unknown,
@@ -47,12 +39,14 @@ declare module 'effect' {
     ): Effect<B, E | E2, R | R2>;
     function all<A>(input: A): Effect<unknown, unknown, unknown>;
     function succeed<A>(value: A): Effect<A, never, never>;
-    const void_: Effect<void, never, never>;
   }
-  export namespace Either {
-    function isLeft<E, A>(
-      either: { _tag: 'Left'; left: E } | { _tag: 'Right'; right: A },
-    ): either is { _tag: 'Left'; left: E };
+  export namespace Result {
+    type Result<A, E> =
+      | { _tag: 'Success'; success: A }
+      | { _tag: 'Failure'; failure: E };
+    function isFailure<A, E>(
+      result: Result<A, E>,
+    ): result is { _tag: 'Failure'; failure: E };
   }
   export namespace Layer {
     function mergeAll(...layers: unknown[]): unknown;
@@ -61,10 +55,6 @@ declare module 'effect' {
     static make<R>(layer: unknown): ManagedRuntime<R>;
     runPromise<A, E>(effect: Effect.Effect<A, E, R>): Promise<A>;
   }
-  export const Effect: typeof Effect;
-  export const Either: typeof Either;
-  export const Layer: typeof Layer;
-  export const ManagedRuntime: typeof ManagedRuntime;
 }
 
 declare class ZerospinError {

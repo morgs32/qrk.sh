@@ -1,14 +1,15 @@
 import { it } from '@effect/vitest';
+import { primitives } from '@zerospin/schema';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
-import { makeMigratedInMemorySqljsDb } from '../drizzle/makeMigratedInMemorySqljsDb.ts';
+import { makeProvisionedInMemorySqljsDb } from '../drizzle/makeProvisionedInMemorySqljsDb.ts';
 import { makeTx } from '../drizzle/makeTx.ts';
 import { makeModel } from '../models/makeModel.ts';
-import { primitives } from '../models/primitives.ts';
+import { makeReplica } from '../models/makeReplica.ts';
 
 import { encodeAppliedMutation } from './encodeAppliedMutation.ts';
 import { replayAppliedMutationTx } from './replayAppliedMutationTx.ts';
@@ -71,11 +72,10 @@ describe('replayAppliedMutationTx', () => {
             inverseOperation: null,
           },
         });
-        const db = yield* makeMigratedInMemorySqljsDb({
-          dbConfig: makeResourceDbConfig({
-            models: { todo: DestinationTodo },
-          }),
+        const dbConfig = makeResourceDbConfig({
+          models: { todo: DestinationTodo },
         });
+        const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
         const replayed = yield* makeTx({
           db,
@@ -112,6 +112,141 @@ describe('replayAppliedMutationTx', () => {
           id: 'todo_replaycompatible',
           title: 'kept',
           version: '1.1.0',
+        });
+      }).pipe(Effect.provide(AsyncLive)),
+  );
+
+  it.effect(
+    'automatically promotes compatible historical replication without an adapter',
+    () =>
+      Effect.gen(function* () {
+        const SourceTodo = makeModel(
+          {
+            modelName: 'todo',
+            abbreviation: 'todo',
+            version: '1.0.0',
+            attributes: { title: primitives.text() },
+            indexes: [],
+          },
+          [],
+        );
+        const SourceTodoReplica = makeReplica({
+          sourceModel: SourceTodo,
+          serviceName: 'todos',
+        });
+        const DestinationTodo = makeModel(
+          {
+            modelName: 'todo',
+            abbreviation: 'todo',
+            version: '1.1.0',
+            attributes: { title: primitives.text() },
+            indexes: [],
+          },
+          [
+            {
+              modelName: 'todo',
+              abbreviation: 'todo',
+              version: '1.0.0',
+              attributes: { title: primitives.text() },
+              indexes: [],
+              adaptResource: ({ resource }) =>
+                Effect.succeed({
+                  id: resource.id,
+                  modelName: resource.modelName,
+                  createdAt: resource.createdAt,
+                  updatedAt: resource.updatedAt,
+                  version: '1.0.0',
+                  title: resource.title,
+                }),
+            },
+          ],
+        );
+        const DestinationTodoReplica = makeReplica({
+          sourceModel: DestinationTodo,
+          serviceName: 'todos',
+        });
+        const sourceMutation = yield* SourceTodoReplica.replicateResource(
+          '1.0.0',
+          {
+            resource: {
+              id: 'todo_replaycompatible_replication',
+              modelName: 'todo',
+              version: '1.0.0',
+              createdAt: new Date('2026-07-01T00:00:00.000Z'),
+              updatedAt: new Date('2026-07-02T00:00:00.000Z'),
+              title: 'Compatible historical replication',
+            },
+          },
+        );
+        const encodedSource = yield* encodeAppliedMutation({
+          mutation: {
+            ...sourceMutation,
+            commandId: 'cmd_replaycompatible_replication',
+            mutationIndex: 8,
+            appliedAt,
+            lastAppliedAt: null,
+            inverseOperation: null,
+          },
+        });
+        const db = yield* makeProvisionedInMemorySqljsDb({
+          dbConfig: makeResourceDbConfig({
+            models: { todo: DestinationTodoReplica },
+          }),
+        });
+
+        const replayed = yield* makeTx({
+          db,
+          program: Effect.fn(
+            'replayAppliedMutationTxSpec.compatibleReplication.transaction',
+          )(function* ({ tx }) {
+            return yield* replayAppliedMutationTx({
+              tx,
+              mutation: encodedSource,
+              controller: {
+                models: { todo: DestinationTodoReplica },
+                mutationAdapters: undefined,
+              },
+            });
+          }),
+        });
+
+        expect(replayed).toMatchObject({
+          commandId: 'cmd_replaycompatible_replication',
+          mutationIndex: 8,
+          modelName: 'todo',
+          modelVersion: '1.1.0',
+          operationName: 'replicateResource',
+          resourceId: 'todo_replaycompatible_replication',
+        });
+        if (replayed === null) {
+          throw new Error('expected replayed compatible replication mutation');
+        }
+        expect(JSON.parse(replayed.operation)).toMatchObject({
+          serviceName: 'todos',
+          resource: {
+            id: 'todo_replaycompatible_replication',
+            modelName: 'todo',
+            version: '1.1.0',
+            title: 'Compatible historical replication',
+            deletedAt: null,
+          },
+        });
+        expect(
+          db
+            .select()
+            .from(DestinationTodoReplica.drizzleSchema)
+            .where(
+              eq(
+                DestinationTodoReplica.drizzleSchema.id,
+                'todo_replaycompatible_replication',
+              ),
+            )
+            .get(),
+        ).toMatchObject({
+          id: 'todo_replaycompatible_replication',
+          title: 'Compatible historical replication',
+          version: '1.1.0',
+          deletedAt: null,
         });
       }).pipe(Effect.provide(AsyncLive)),
   );
@@ -174,13 +309,12 @@ describe('replayAppliedMutationTx', () => {
             inverseOperation: { attributes: { title: 'source inverse' } },
           },
         });
-        const db = yield* makeMigratedInMemorySqljsDb({
-          dbConfig: makeResourceDbConfig({
-            models: { todo: DestinationTodo },
-          }),
+        const dbConfig = makeResourceDbConfig({
+          models: { todo: DestinationTodo },
         });
+        const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
         const targetPreviousUpdatedAt = new Date('2026-07-01T00:00:00.000Z');
-        db.insert(DestinationTodo.drizzleSchema)
+        db.insert(dbConfig.schema.todo)
           .values({
             id: 'todo_replayadapted',
             modelName: 'todo',
@@ -192,6 +326,7 @@ describe('replayAppliedMutationTx', () => {
           })
           .run();
 
+        const sourceAdapterSchema = DestinationTodo.updateMutation('1.0.0');
         const replayed = yield* makeTx({
           db,
           program: Effect.fn('replayAppliedMutationTxSpec.adapter.transaction')(
@@ -205,9 +340,16 @@ describe('replayAppliedMutationTx', () => {
                     todo: {
                       update: [
                         {
-                          source: DestinationTodo.updateMutation('1.0.0'),
+                          source: sourceAdapterSchema,
                           destination: DestinationTodo.updateMutation('2.0.0'),
-                          adapter: mutation =>
+                          adapter: (
+                            mutation: Readonly<{
+                              resourceId: `todo_${string}`;
+                              operation: Readonly<{
+                                attributes: Readonly<{ title: string }>;
+                              }>;
+                            }>,
+                          ) =>
                             DestinationTodo.update('2.0.0', {
                               resourceId: mutation.resourceId,
                               attributes: {
@@ -284,7 +426,7 @@ describe('replayAppliedMutationTx', () => {
           inverseOperation: null,
         },
       });
-      const db = yield* makeMigratedInMemorySqljsDb({
+      const db = yield* makeProvisionedInMemorySqljsDb({
         dbConfig: makeResourceDbConfig({
           models: { task: DestinationTask },
         }),
@@ -305,7 +447,7 @@ describe('replayAppliedMutationTx', () => {
                       {
                         source: SourceTodo.createMutation('1.0.0'),
                         destination: DestinationTask.createMutation('2.0.0'),
-                        adapter: mutation =>
+                        adapter: (mutation: typeof sourceMutation) =>
                           DestinationTask.create('2.0.0', {
                             resourceId: 'task_replayrenamed',
                             attributes: {
@@ -356,6 +498,195 @@ describe('replayAppliedMutationTx', () => {
       });
       expect(discarded).toBeNull();
     }).pipe(Effect.provide(AsyncLive)),
+  );
+
+  it.effect(
+    'replays historical nested replication through a renamed exact replica binding',
+    () =>
+      Effect.gen(function* () {
+        const SourceProduct = makeModel(
+          {
+            modelName: 'product',
+            abbreviation: 'prd',
+            version: '1.0.0',
+            attributes: { title: primitives.text() },
+            indexes: [],
+          },
+          [],
+        );
+        const SourceProductReplica = makeReplica({
+          sourceModel: SourceProduct,
+          serviceName: 'catalog',
+        });
+        const DestinationCatalogItem = makeModel(
+          {
+            modelName: 'catalogItem',
+            abbreviation: 'prd',
+            version: '2.0.0',
+            attributes: {
+              label: primitives.text(),
+              available: primitives.boolean(),
+            },
+            indexes: [],
+          },
+          [
+            {
+              modelName: 'catalogItem',
+              abbreviation: 'prd',
+              version: '1.0.0',
+              attributes: { label: primitives.text() },
+              indexes: [],
+              adaptResource: ({ resource }) =>
+                Effect.succeed({
+                  id: resource.id,
+                  modelName: resource.modelName,
+                  createdAt: resource.createdAt,
+                  updatedAt: resource.updatedAt,
+                  version: '1.0.0',
+                  label: resource.label,
+                }),
+            },
+          ],
+        );
+        const DestinationCatalogItemReplica = makeReplica({
+          sourceModel: DestinationCatalogItem,
+          serviceName: 'catalog',
+        });
+        const UnrelatedProduct = makeModel(
+          {
+            modelName: 'product',
+            abbreviation: 'uprd',
+            version: '9.0.0',
+            attributes: { title: primitives.text() },
+            indexes: [],
+          },
+          [],
+        );
+        const sourceMutation = yield* SourceProductReplica.replicateResource(
+          '1.0.0',
+          {
+            resource: {
+              id: 'prd_replayreplicated',
+              modelName: 'product',
+              version: '1.0.0',
+              createdAt: new Date('2026-07-01T00:00:00.000Z'),
+              updatedAt: new Date('2026-07-02T00:00:00.000Z'),
+              title: 'Historical source title',
+            },
+          },
+        );
+        const encodedSource = yield* encodeAppliedMutation({
+          mutation: {
+            ...sourceMutation,
+            commandId: 'cmd_replayreplicated',
+            mutationIndex: 4,
+            appliedAt,
+            lastAppliedAt: null,
+            inverseOperation: null,
+          },
+        });
+        const db = yield* makeProvisionedInMemorySqljsDb({
+          dbConfig: makeResourceDbConfig({
+            models: {
+              catalogItem: DestinationCatalogItemReplica,
+              product: UnrelatedProduct,
+            },
+          }),
+        });
+
+        const replayed = yield* makeTx({
+          db,
+          program: Effect.fn(
+            'replayAppliedMutationTxSpec.replicationRename.transaction',
+          )(function* ({ tx }) {
+            return yield* replayAppliedMutationTx({
+              tx,
+              mutation: encodedSource,
+              controller: {
+                models: {
+                  catalogItem: DestinationCatalogItemReplica,
+                  product: UnrelatedProduct,
+                },
+                mutationAdapters: {
+                  product: {
+                    replicateResource: [
+                      {
+                        source:
+                          SourceProductReplica.replicateResourceMutation(
+                            '1.0.0',
+                          ),
+                        destination:
+                          DestinationCatalogItemReplica.replicateResourceMutation(
+                            '2.0.0',
+                          ),
+                        adapter: (mutation: typeof sourceMutation) =>
+                          DestinationCatalogItemReplica.replicateResource(
+                            '2.0.0',
+                            {
+                              resource: {
+                                id: mutation.resourceId,
+                                modelName: 'catalogItem',
+                                version: '2.0.0',
+                                createdAt:
+                                  mutation.operation.resource.createdAt,
+                                updatedAt:
+                                  mutation.operation.resource.updatedAt,
+                                label: mutation.operation.resource.title,
+                                available: true,
+                              },
+                            },
+                          ),
+                      },
+                    ],
+                  },
+                },
+              },
+            });
+          }),
+        });
+
+        expect(replayed).toMatchObject({
+          commandId: 'cmd_replayreplicated',
+          mutationIndex: 4,
+          modelName: 'catalogItem',
+          modelVersion: '2.0.0',
+          operationName: 'replicateResource',
+          resourceId: 'prd_replayreplicated',
+        });
+        if (replayed === null) {
+          throw new Error('expected replayed replication mutation');
+        }
+        expect(JSON.parse(replayed.operation)).toMatchObject({
+          serviceName: 'catalog',
+          resource: {
+            id: 'prd_replayreplicated',
+            modelName: 'catalogItem',
+            version: '2.0.0',
+            label: 'Historical source title',
+            available: true,
+            deletedAt: null,
+          },
+        });
+        expect(
+          db
+            .select()
+            .from(DestinationCatalogItemReplica.drizzleSchema)
+            .where(
+              eq(
+                DestinationCatalogItemReplica.drizzleSchema.id,
+                'prd_replayreplicated',
+              ),
+            )
+            .get(),
+        ).toMatchObject({
+          id: 'prd_replayreplicated',
+          modelName: 'catalogItem',
+          version: '2.0.0',
+          label: 'Historical source title',
+          available: true,
+          deletedAt: null,
+        });
+      }).pipe(Effect.provide(AsyncLive)),
   );
 
   it.effect('fails closed for missing and invalid direct adapters', () =>
@@ -414,7 +745,7 @@ describe('replayAppliedMutationTx', () => {
           inverseOperation: null,
         },
       });
-      const db = yield* makeMigratedInMemorySqljsDb({
+      const db = yield* makeProvisionedInMemorySqljsDb({
         dbConfig: makeResourceDbConfig({
           models: { todo: DestinationTodo },
         }),
@@ -431,13 +762,13 @@ describe('replayAppliedMutationTx', () => {
                 models: { todo: DestinationTodo },
                 mutationAdapters: undefined,
               },
-            }).pipe(Effect.either);
+            }).pipe(Effect.result);
           },
         ),
       });
-      expect(missing._tag).toBe('Left');
-      if (missing._tag === 'Left') {
-        expect(missing.left.code).toBe('replay-mutation-adapter-missing');
+      expect(missing._tag).toBe('Failure');
+      if (missing._tag === 'Failure') {
+        expect(missing.failure.code).toBe('replay-mutation-adapter-missing');
       }
 
       const invalid = yield* makeTx({
@@ -453,6 +784,7 @@ describe('replayAppliedMutationTx', () => {
                   todo: {
                     create: [
                       {
+                        // @ts-expect-error runtime validation rejects a non-mutation source schema
                         source: Schema.String,
                         destination: DestinationTodo.createMutation('2.0.0'),
                         adapter: () => Effect.succeed({}),
@@ -461,13 +793,13 @@ describe('replayAppliedMutationTx', () => {
                   },
                 },
               },
-            }).pipe(Effect.either);
+            }).pipe(Effect.result);
           },
         ),
       });
-      expect(invalid._tag).toBe('Left');
-      if (invalid._tag === 'Left') {
-        expect(invalid.left.code).toBe(
+      expect(invalid._tag).toBe('Failure');
+      if (invalid._tag === 'Failure') {
+        expect(invalid.failure.code).toBe(
           'replay-mutation-adapter-source-identity-invalid',
         );
       }

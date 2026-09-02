@@ -1,34 +1,33 @@
 import {
   ZerospinError,
+  type IEncodedResult,
   type ZerospinError as IZerospinError,
   type IZerospinErrorJson,
 } from '@zerospin/error';
-import { Effect, Either, ParseResult, Schema } from 'effect';
+import { Effect, Schema, SchemaIssue } from 'effect';
 
-import { EitherSchema } from './encodeRpc.ts';
+import { RpcResultSchema } from './encodeRpc.ts';
 
 export const decodeRpc = Effect.fn('decodeRpc')(
   <T, CODE extends string = string>(
-    encoded: Schema.EitherEncoded<T, IZerospinErrorJson<CODE>>,
+    encoded: IEncodedResult<T, IZerospinErrorJson<CODE>>,
   ): Effect.Effect<
     T,
     IZerospinError<CODE> | IZerospinError<'failed-to-decode-rpc'>
   > =>
-    Schema.decode(EitherSchema)(encoded).pipe(
+    Schema.decodeUnknownEffect(RpcResultSchema)(encoded).pipe(
       Effect.mapError(
         error =>
           new ZerospinError({
             code: 'failed-to-decode-rpc',
-            message: 'Failed to decode RPC EitherEncoded',
-            cause: ParseResult.TreeFormatter.formatErrorSync(error),
+            message: 'Failed to decode RPC Result',
+            cause: SchemaIssue.makeFormatterDefault()(error.issue),
           }),
       ),
-      Effect.flatMap(either =>
-        Either.match(either, {
-          // ALLOWED_CAST: We can't cross the EitherSchema boundary without a cast.
-          onLeft: left => left as IZerospinError<CODE>,
-          onRight: right => Effect.succeed(right),
-        }),
+      Effect.flatMap(() =>
+        encoded._tag === 'Failure'
+          ? Effect.fail(new ZerospinError(encoded.failure))
+          : Effect.succeed(encoded.success),
       ),
     ),
 );

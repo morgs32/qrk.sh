@@ -1,4 +1,6 @@
-import type { IModel, InferIdFromAbbreviation } from '../models/types.ts';
+import type { InferIdFromAbbreviation } from '@zerospin/schema';
+
+import type { IModel } from '../models/types.ts';
 
 export type IMoveMutation<MODEL extends IModel> = {
   readonly model: MODEL;

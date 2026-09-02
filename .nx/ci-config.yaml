@@ -1,0 +1,18 @@
+dte:
+  enabled-by-default: true
+  distribute-on: 3 zerospin-node24-medium
+
+nx-agents:
+  with-env-vars:
+    - CI
+
+lifecycle:
+  fail-after: 1
+  heartbeat: true
+  stop-after:
+    - lint
+    - ts
+    - test
+    - 'test:workerd'
+    - lib
+    - build

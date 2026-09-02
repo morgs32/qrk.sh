@@ -42,10 +42,13 @@
   "exclude": [],
   "references": [
     {
-      "path": "../core"
+      "path": "../schema"
     },
     {
       "path": "../error"
+    },
+    {
+      "path": "../core"
     }
   ]
 }

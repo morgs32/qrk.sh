@@ -1,6 +1,6 @@
 import type { Async } from '@zerospin/core/async/Async';
 import type { IAnyError } from '@zerospin/error';
-import { Effect, Either } from 'effect';
+import { Effect, Result } from 'effect';
 
 import type { makeDeliveryQueue } from '../makeDeliveryQueue/makeDeliveryQueue.js';
 
@@ -25,7 +25,7 @@ export const makeOutboxQueue = <ROW, PAYLOAD, RESULT>(props: {
 }) => ({
   name: props.name,
   drain: Effect.fn(`${props.name}.drain`)(function* () {
-    const pending = yield* props.readPending();
+    const pending = (yield* props.readPending()).slice(0, 64);
     const targetRows = new Map<string, ROW[]>();
     for (const row of pending) {
       const target = props.targetKey(row);
@@ -45,19 +45,19 @@ export const makeOutboxQueue = <ROW, PAYLOAD, RESULT>(props: {
             const payload = yield* props.decode(row);
             const delivered = yield* props.deliveryQueue
               .retry(props.deliver(row, payload))
-              .pipe(Effect.either);
-            if (Either.isLeft(delivered)) {
-              yield* props.recordFailure(row, delivered.left, payload);
+              .pipe(Effect.result);
+            if (Result.isFailure(delivered)) {
+              yield* props.recordFailure(row, delivered.failure, payload);
               break;
             }
-            yield* props.acknowledge(row, delivered.right, payload);
+            yield* props.acknowledge(row, delivered.success, payload);
           }
-        }).pipe(Effect.either),
+        }).pipe(Effect.result),
       { concurrency: 'unbounded' },
     );
-    const targetFailure = targetResults.find(Either.isLeft);
+    const targetFailure = targetResults.find(Result.isFailure);
     if (targetFailure !== undefined) {
-      return yield* targetFailure.left;
+      return yield* targetFailure.failure;
     }
   }),
   hasPending: props.hasPending,

@@ -15,7 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { type Product, type User } from '@/zerospin/models';
+import { type Product } from '@/zerospin/models/Product';
+import { type User } from '@/zerospin/models/User';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function ProductCard(props: {
@@ -66,7 +67,7 @@ export function ProductCard(props: {
               if (!cartId) {
                 const { payload } = Effect.runSync(
                   decodeRpc(
-                    session.stageCommand({
+                    session.executeCommand({
                       contractName: 'createCart',
                       payload: { userId },
                     }),
@@ -76,7 +77,7 @@ export function ProductCard(props: {
               }
               Effect.runSync(
                 decodeRpc(
-                  session.stageCommand({
+                  session.executeCommand({
                     contractName: 'addToCart',
                     payload: {
                       cartId,

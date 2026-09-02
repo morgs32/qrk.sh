@@ -1,4 +1,4 @@
-import type { Schema } from 'effect';
+import type { IEncodedResult } from '@zerospin/error';
 
 export type ITraceId = `trc_${string}`;
 export type ISpanId = `spn_${string}`;
@@ -9,7 +9,10 @@ export type ILogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type ISpanStatus = 'ok' | 'error' | 'lost';
 export type ISpanLinkKind = 'causedBy' | 'retryOf';
 
-/** Trace context carried in an RPC request; the callee parents its root span to this. */
+/**
+ * Caller trace context carried across an RPC boundary. A callee may parent
+ * local spans to it or record an optional causal link from a detached root.
+ */
 export type ITraceContext = Readonly<{
   traceId: ITraceId;
   parentSpanId: ISpanId;
@@ -60,19 +63,19 @@ export const emptyTelemetryBatch = (): ITelemetryBatch => ({
   links: [],
 });
 
-/** Wire shape of every cross-boundary RPC response: encoded domain Either plus telemetry. */
+/** Wire shape of every cross-boundary RPC response: encoded domain Result plus telemetry. */
 export type IRpcEnvelope<A, E = unknown> = Readonly<{
-  result: Schema.EitherEncoded<A, E>;
+  result: IEncodedResult<A, E>;
   telemetry: ITelemetryBatch;
 }>;
 
-/** Wire shape for an API result linked to separately persisted server telemetry. */
+/** Wire shape for an API result and optional causal link to persisted server telemetry. */
 export type ILinkedRpcEnvelope<A, E = unknown> = Readonly<{
-  result: Schema.EitherEncoded<A, E>;
+  result: IEncodedResult<A, E>;
   link: ISpanLinkRecord | null;
 }>;
 
-/** Wire-carried parent context plus the domain arguments for one RPC call. */
+/** Wire-carried caller trace context plus the domain arguments for one RPC call. */
 export type IRpcRequest<ARGS extends Array<unknown>> = Readonly<{
   traceContext: ITraceContext | null;
   args: ARGS;

@@ -1,4 +1,4 @@
-import { encodeLeft } from '@zerospin/core/utils/encodeLeft';
+import { encodeFailure } from '@zerospin/core/utils/encodeFailure';
 import type { IAnyError } from '@zerospin/error';
 import { Effect } from 'effect';
 
@@ -6,9 +6,10 @@ import type { SystemApi } from '../../SystemApi.js';
 
 export const getSystemRepoTableRows = Effect.fn(
   'SystemApiFailure.getSystemRepoTableRows',
-)(
-  (props: {
-    error: IAnyError;
-    request: Parameters<SystemApi['getSystemRepoTableRows']>[0];
-  }) => Effect.succeed({ result: encodeLeft(props.error), link: null }),
-);
+)((props: {
+  error: IAnyError;
+  request: Parameters<SystemApi['getSystemRepoTableRows']>[0];
+}) => {
+  const { error } = props;
+  return Effect.succeed({ result: encodeFailure(error), link: null });
+});

@@ -1,26 +1,19 @@
+import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
 import { makeContract } from '../contracts/makeContract.ts';
 import { makeGuard } from '../guards/makeGuard.ts';
 import { makeModel } from '../models/makeModel.ts';
-import { primitives } from '../models/primitives.ts';
+import { makeReplica } from '../models/makeReplica.ts';
 
 import { makeFrontendController } from './makeFrontendController.ts';
-import { makeSignature } from './makeSignature.ts';
-
-const signature = makeSignature(
-  { version: '1.0.0', schema: Schema.Struct({}) },
-  [],
-);
 
 const aggregateFrontend = makeFrontendController({
   systemName: 'test',
   aggregateName: 'user',
   frontendName: 'web',
-  userId: Schema.NonEmptyString,
   models: {},
   contracts: {},
-  signature,
 });
 
 const aggregateName: 'user' = aggregateFrontend.aggregateName;
@@ -34,9 +27,7 @@ const serviceFrontend = makeFrontendController({
   systemName: 'test',
   serviceName: 'catalog',
   frontendName: 'browse',
-  userId: Schema.NonEmptyString,
   models: {},
-  signature,
 });
 
 const serviceName: 'catalog' = serviceFrontend.serviceName;
@@ -46,12 +37,52 @@ void serviceFrontendName;
 // @ts-expect-error — frontend controllers do not expose controller SemVer.
 void serviceFrontend.version;
 
+const ServiceProduct = makeModel({
+  abbreviation: 'prd',
+  modelName: 'product',
+  attributes: { name: primitives.text() },
+  indexes: [],
+  version: '1.0.0',
+});
+const AggregateProduct = makeReplica({
+  sourceModel: ServiceProduct,
+  serviceName: 'catalog',
+});
+const productServiceFrontend = makeFrontendController({
+  systemName: 'replica-controller-test',
+  serviceName: 'catalog',
+  frontendName: 'service-products',
+  models: { product: ServiceProduct },
+});
+const productAggregateFrontend = makeFrontendController({
+  systemName: 'replica-controller-test',
+  aggregateName: 'account',
+  frontendName: 'aggregate-products',
+  contracts: {},
+  models: { product: AggregateProduct },
+});
+
+const retainedServiceProduct: typeof ServiceProduct =
+  productServiceFrontend.models.product;
+const retainedAggregateProduct: typeof AggregateProduct =
+  productAggregateFrontend.models.product;
+void retainedServiceProduct;
+void retainedAggregateProduct;
+
+makeFrontendController({
+  systemName: 'replica-controller-test',
+  serviceName: 'catalog',
+  frontendName: 'invalid-service-products',
+  models: {
+    // @ts-expect-error service frontends require authoritative source models
+    product: AggregateProduct,
+  },
+});
+
 makeFrontendController({
   systemName: 'test',
   frontendName: 'invalid',
-  userId: Schema.NonEmptyString,
   models: {},
-  signature,
   // @ts-expect-error — a controller must identify either its aggregate or its service
   contracts: {},
 });
@@ -62,8 +93,6 @@ makeFrontendController({
   frontendName: 'missing-version',
   models: {},
   contracts: {},
-  userId: Schema.NonEmptyString,
-  signature,
 });
 
 const GuardList = makeModel(
@@ -127,7 +156,7 @@ const guardedController = makeFrontendController({
   aggregateName: 'account',
   frontendName: 'web',
   contracts: { renameGuardList },
-  models: { list: GuardList, user: GuardUser },
+  models: { guardList: GuardList, guardUser: GuardUser },
   guards: { renameGuardList: [declaredModelGuard] },
 });
 const retainedGuard = guardedController.guards.renameGuardList[0];

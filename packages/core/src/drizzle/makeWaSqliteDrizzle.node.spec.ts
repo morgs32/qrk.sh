@@ -1,8 +1,6 @@
+import { makeTable, primitives } from '@zerospin/schema';
 import { eq, param, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-
-import { makeTable } from '../models/makeTable.ts';
-import { primitives } from '../models/primitives.ts';
 
 import { makeDbConfig } from './makeDbConfig.ts';
 import { makeInMemorySQLite3 } from './makeInMemorySQLite3.ts';
@@ -64,7 +62,7 @@ describe('makeWaSqliteDrizzle', () => {
           insert into child_rows (id, parent_id)
           values ('child-1', 'missing-parent')
         `),
-      ).toThrow('Failed to run the query');
+      ).toThrow('Failed query:');
     } finally {
       await client.sqlite3.close(client.db);
     }
@@ -113,10 +111,10 @@ describe('makeWaSqliteDrizzle', () => {
         .orderBy(users.id)
         .values();
 
-      expect(insertAda.changes).toBe(1);
-      expect(insertGrace.changes).toBe(1);
-      expect(updateGrace.changes).toBe(1);
-      expect(deleteAda.changes).toBe(1);
+      expect(insertAda).toMatchObject({ changes: 1 });
+      expect(insertGrace).toMatchObject({ changes: 1 });
+      expect(updateGrace).toMatchObject({ changes: 1 });
+      expect(deleteAda).toMatchObject({ changes: 1 });
       expect(allUsers).toEqual([
         {
           id: 'usr_grace',
@@ -333,6 +331,150 @@ describe('makeWaSqliteDrizzle', () => {
       expect(Array.from(row?.blob_value ?? [])).toEqual([1, 2, 3]);
       expect(Array.from(row?.array_value ?? [])).toEqual([4, 5, 6]);
       expect(row?.null_value).toBeNull();
+    } finally {
+      await client.sqlite3.close(client.db);
+    }
+  });
+
+  it('captures committed writes from every statement terminal with normalized parameters', async () => {
+    const { client, db } = await makeTestDatabase();
+    const committedTransactions: Array<
+      Parameters<NonNullable<typeof client.onCommittedTransaction>>[0]
+    > = [];
+
+    try {
+      client.onCommittedTransaction = statements => {
+        committedTransactions.push(statements);
+      };
+
+      db.insert(users)
+        .values({
+          id: 'usr_run',
+          name: 'Run',
+          email: 'run@example.com',
+        })
+        .run();
+      db.insert(users)
+        .values({
+          id: 'usr_get',
+          name: sql`${param([1, 2, 3])}`,
+          email: 'get@example.com',
+        })
+        .returning()
+        .get();
+      db.update(users)
+        .set({ name: 'All' })
+        .where(eq(users.id, 'usr_run'))
+        .returning()
+        .all();
+      db.delete(users)
+        .where(eq(users.id, 'usr_run'))
+        .returning()
+        .values();
+
+      expect(committedTransactions).toHaveLength(4);
+      expect(committedTransactions.every(batch => batch.length === 1)).toBe(
+        true,
+      );
+      expect(committedTransactions.map(([statement]) => statement?.sql)).toEqual(
+        [
+          expect.stringMatching(/^insert into "users"/),
+          expect.stringMatching(/^insert into "users"/),
+          expect.stringMatching(/^update "users"/),
+          expect.stringMatching(/^delete from "users"/),
+        ],
+      );
+      expect(
+        committedTransactions[1]?.[0]?.parameters.some(
+          parameter =>
+            parameter instanceof Uint8Array &&
+            Array.from(parameter).join(',') === '1,2,3',
+        ),
+      ).toBe(true);
+    } finally {
+      await client.sqlite3.close(client.db);
+    }
+  });
+
+  it('emits only committed outer transactions and preserves nested savepoint order', async () => {
+    const { client, db } = await makeTestDatabase();
+    const committedTransactions: Array<
+      Parameters<NonNullable<typeof client.onCommittedTransaction>>[0]
+    > = [];
+
+    try {
+      client.onCommittedTransaction = statements => {
+        committedTransactions.push(statements);
+      };
+
+      db.transaction(tx => {
+        tx.insert(users)
+          .values({
+            id: 'usr_outer',
+            name: 'Outer',
+            email: 'outer@example.com',
+          })
+          .run();
+        tx.run(sql.raw('PRAGMA defer_foreign_keys = ON;'));
+        tx.transaction(nestedTx => {
+          nestedTx
+            .update(users)
+            .set({ name: 'Nested' })
+            .where(eq(users.id, 'usr_outer'))
+            .run();
+        });
+        expect(() =>
+          tx.transaction(nestedTx => {
+            nestedTx
+              .delete(users)
+              .where(eq(users.id, 'usr_outer'))
+              .run();
+            throw new Error('discard nested statements');
+          }),
+        ).toThrow('discard nested statements');
+      });
+
+      expect(committedTransactions).toHaveLength(1);
+      expect(committedTransactions[0]?.map(statement => statement.sql)).toEqual(
+        [
+          expect.stringMatching(/^insert into "users"/),
+          'PRAGMA defer_foreign_keys = ON;',
+          expect.stringMatching(/^update "users"/),
+        ],
+      );
+
+      expect(() =>
+        db.transaction(tx => {
+          tx.delete(users).where(eq(users.id, 'usr_outer')).run();
+          throw new Error('discard outer statements');
+        }),
+      ).toThrow('discard outer statements');
+      expect(committedTransactions).toHaveLength(1);
+    } finally {
+      await client.sqlite3.close(client.db);
+    }
+  });
+
+  it('rejects unknown raw SQL only while committed transaction capture is active', async () => {
+    const { client, db } = await makeTestDatabase();
+
+    try {
+      db.run(sql.raw('create table capture_disabled (id integer)'));
+      client.onCommittedTransaction = () => undefined;
+
+      expect(() =>
+        db.run(sql.raw('create table capture_enabled (id integer)')),
+      ).toThrow('Failed query: create table capture_enabled');
+      expect(
+        db.get<{ count: number }>(sql`
+          select count(*) as count
+          from sqlite_master
+          where name = 'capture_enabled'
+        `),
+      ).toEqual({ count: 0 });
+
+      client.onCommittedTransaction = null;
+      db.run(sql.raw('create table capture_re_disabled (id integer)'));
     } finally {
       await client.sqlite3.close(client.db);
     }

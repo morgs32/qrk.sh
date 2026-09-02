@@ -1,23 +1,19 @@
 import * as SQLite from '@livestore/wa-sqlite';
-import { Column, getTableName, is, SQL, Subquery } from 'drizzle-orm';
-import type * as V1 from 'drizzle-orm/_relations';
 import { entityKind } from 'drizzle-orm/entity';
 import { NoopLogger, type Logger } from 'drizzle-orm/logger';
 import type { AnyRelations } from 'drizzle-orm/relations';
-import { fillPlaceholders, sql, type Query } from 'drizzle-orm/sql/sql';
-import type { SQLiteSyncDialect } from 'drizzle-orm/sqlite-core/dialect';
-import type { SelectedFieldsOrdered } from 'drizzle-orm/sqlite-core/query-builders/select.types';
 import {
-  SQLitePreparedQuery,
-  SQLiteSession,
-  SQLiteTransaction,
-  type PreparedQueryConfig as PreparedQueryConfigBase,
-  type SQLiteExecuteMethod,
-  type SQLiteTransactionConfig,
+  SQLiteAsyncPreparedQuery,
+  SQLiteAsyncSession,
+  SQLiteAsyncTransaction,
+} from 'drizzle-orm/sqlite-core/async/session';
+import type { SQLiteDialect } from 'drizzle-orm/sqlite-core/dialect';
+import type {
+  SQLiteExecuteMethod,
+  SQLiteTransactionConfig,
 } from 'drizzle-orm/sqlite-core/session';
+import { sql, type Query } from 'drizzle-orm/sql/sql';
 import type { DrizzleTypeError } from 'drizzle-orm/utils';
-
-import type { IAnyDrizzleSchemas } from '../models/types.ts';
 
 import type { IWaSqliteClient, IWaSqliteRunResult } from './types.ts';
 
@@ -25,21 +21,39 @@ type IWaSqliteSessionOptions = {
   logger?: Logger;
 };
 
-type IPreparedQueryConfig = Omit<PreparedQueryConfigBase, 'statement' | 'run'>;
+type IPreparedQueryConfig = {
+  type: 'sync';
+  run: IWaSqliteRunResult;
+  all: unknown;
+  get: unknown;
+  values: unknown[][];
+  execute: unknown;
+};
 
 type IExecuteRowsProps = {
+  captureStack: ICommittedSqlStatement[][];
   client: IWaSqliteClient;
   parameters: ReadonlyArray<unknown>;
+  queryMetadata:
+    | {
+        type: 'select' | 'update' | 'delete' | 'insert';
+        tables: string[];
+      }
+    | undefined;
   sql: string;
 };
 
-type ISqliteStatementParameter =
+export type ISqliteStatementParameter =
   | number
   | string
   | Uint8Array
-  | Array<number>
   | bigint
   | null;
+
+export type ICommittedSqlStatement = Readonly<{
+  sql: string;
+  parameters: readonly ISqliteStatementParameter[];
+}>;
 
 function toSqliteStatementParameter(
   parameter: unknown,
@@ -63,7 +77,7 @@ function toSqliteStatementParameter(
     Array.isArray(parameter) &&
     parameter.every(item => typeof item === 'number')
   ) {
-    return parameter;
+    return new Uint8Array(parameter);
   }
   if (parameter instanceof Date) {
     return parameter.getTime();
@@ -72,12 +86,36 @@ function toSqliteStatementParameter(
 }
 
 function executeValuesRows(props: IExecuteRowsProps): unknown[][] {
-  const { client, sql: querySql, parameters } = props;
+  const { captureStack, client, sql: querySql, parameters, queryMetadata } =
+    props;
   const { sqlite3, db } = client;
   const boundParameters = parameters.map(parameter =>
     toSqliteStatementParameter(parameter),
   );
   const rows: unknown[][] = [];
+  let shouldCapture =
+    queryMetadata?.type === 'insert' ||
+    queryMetadata?.type === 'update' ||
+    queryMetadata?.type === 'delete';
+
+  if (client.onCommittedTransaction !== null && queryMetadata === undefined) {
+    const normalizedSql = querySql.trim().replace(/;+$/, '').trim();
+
+    if (/^pragma\s+defer_foreign_keys\s*=\s*on$/i.test(normalizedSql)) {
+      shouldCapture = true;
+    } else if (
+      /^(?:begin(?:\s+\w+)?|commit|rollback|savepoint\s+\w+|release\s+savepoint\s+\w+|rollback\s+to\s+savepoint\s+\w+)$/i.test(
+        normalizedSql,
+      ) ||
+      /^(?:select|explain|pragma\b)/i.test(normalizedSql)
+    ) {
+      shouldCapture = false;
+    } else {
+      throw new Error(
+        `Unsupported raw SQL while committed transaction capture is active: ${querySql}`,
+      );
+    }
+  }
 
   try {
     for (const statement of sqlite3.statements(db, querySql, {
@@ -103,18 +141,56 @@ function executeValuesRows(props: IExecuteRowsProps): unknown[][] {
     client.flushTableChanges();
   }
 
+  if (client.onCommittedTransaction !== null && shouldCapture) {
+    const statement = {
+      sql: querySql,
+      parameters: boundParameters,
+    } satisfies ICommittedSqlStatement;
+    const currentTransaction = captureStack.at(-1);
+
+    if (currentTransaction === undefined) {
+      client.onCommittedTransaction([statement]);
+    } else {
+      currentTransaction.push(statement);
+    }
+  }
+
   return rows;
 }
 
 function executeObjectRows(
   props: IExecuteRowsProps,
 ): Record<string, unknown>[] {
-  const { client, sql: querySql, parameters } = props;
+  const { captureStack, client, sql: querySql, parameters, queryMetadata } =
+    props;
   const { sqlite3, db } = client;
   const boundParameters = parameters.map(parameter =>
     toSqliteStatementParameter(parameter),
   );
   const rows: Record<string, unknown>[] = [];
+  let shouldCapture =
+    queryMetadata?.type === 'insert' ||
+    queryMetadata?.type === 'update' ||
+    queryMetadata?.type === 'delete';
+
+  if (client.onCommittedTransaction !== null && queryMetadata === undefined) {
+    const normalizedSql = querySql.trim().replace(/;+$/, '').trim();
+
+    if (/^pragma\s+defer_foreign_keys\s*=\s*on$/i.test(normalizedSql)) {
+      shouldCapture = true;
+    } else if (
+      /^(?:begin(?:\s+\w+)?|commit|rollback|savepoint\s+\w+|release\s+savepoint\s+\w+|rollback\s+to\s+savepoint\s+\w+)$/i.test(
+        normalizedSql,
+      ) ||
+      /^(?:select|explain|pragma\b)/i.test(normalizedSql)
+    ) {
+      shouldCapture = false;
+    } else {
+      throw new Error(
+        `Unsupported raw SQL while committed transaction capture is active: ${querySql}`,
+      );
+    }
+  }
 
   try {
     for (const statement of sqlite3.statements(db, querySql, {
@@ -155,245 +231,190 @@ function executeObjectRows(
     client.flushTableChanges();
   }
 
-  return rows;
-}
+  if (client.onCommittedTransaction !== null && shouldCapture) {
+    const statement = {
+      sql: querySql,
+      parameters: boundParameters,
+    } satisfies ICommittedSqlStatement;
+    const currentTransaction = captureStack.at(-1);
 
-function mapSelectedRow(
-  fields: SelectedFieldsOrdered,
-  row: unknown[],
-  joinsNotNullableMap: Record<string, boolean> | undefined,
-): Record<string, unknown> {
-  const nullifyMap: Record<string, false | string> = {};
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle internal types lack proper definitions
-  const result = fields.reduce<Record<string, any>>(
-    (resultRecord, { path, field }, columnIndex) => {
-      let decoder;
-      if (is(field, Column)) {
-        decoder = field;
-      } else if (is(field, SQL)) {
-        decoder = (field as any).decoder; // eslint-disable-line @typescript-eslint/no-explicit-any
-      } else if (is(field, Subquery)) {
-        decoder = (field as any)._.sql.decoder; // eslint-disable-line @typescript-eslint/no-explicit-any
-      } else {
-        decoder = (field as any).sql.decoder; // eslint-disable-line @typescript-eslint/no-explicit-any
-      }
-
-      let node = resultRecord;
-      for (const [pathChunkIndex, pathChunk] of path.entries()) {
-        if (pathChunkIndex < path.length - 1) {
-          if (!(pathChunk in node)) {
-            node[pathChunk] = {};
-          }
-          node = node[pathChunk];
-          continue;
-        }
-
-        const rawValue = row[columnIndex];
-        const value =
-          rawValue === null ? null : decoder.mapFromDriverValue(rawValue);
-        node[pathChunk] = value;
-
-        if (joinsNotNullableMap && is(field, Column) && path.length === 2) {
-          const objectName = path[0];
-          if (!objectName) {
-            return resultRecord;
-          }
-          const tableName = getTableName((field as any).table); // eslint-disable-line @typescript-eslint/no-explicit-any
-          if (!(objectName in nullifyMap)) {
-            nullifyMap[objectName] = value === null ? tableName : false;
-          } else if (
-            typeof nullifyMap[objectName] === 'string' &&
-            nullifyMap[objectName] !== tableName
-          ) {
-            nullifyMap[objectName] = false;
-          }
-        }
-      }
-
-      return resultRecord;
-    },
-    {},
-  );
-
-  if (joinsNotNullableMap && Object.keys(nullifyMap).length > 0) {
-    for (const [objectName, tableName] of Object.entries(nullifyMap)) {
-      if (typeof tableName === 'string' && !joinsNotNullableMap[tableName]) {
-        result[objectName] = null;
-      }
+    if (currentTransaction === undefined) {
+      client.onCommittedTransaction([statement]);
+    } else {
+      currentTransaction.push(statement);
     }
   }
 
-  return result;
+  return rows;
 }
 
 export class WaSqliteSession<
-  TFullSchema extends IAnyDrizzleSchemas,
   TRelations extends AnyRelations,
-  TSchema extends V1.TablesRelationalConfig,
-> extends SQLiteSession<
-  'sync',
-  IWaSqliteRunResult,
-  TFullSchema,
-  TRelations,
-  TSchema
-> {
+> extends SQLiteAsyncSession<'sync', IWaSqliteRunResult, TRelations> {
   static override readonly [entityKind]: string = 'WaSqliteSession';
 
   private readonly logger: Logger;
-  private readonly sessionDialect: SQLiteSyncDialect;
+  private readonly captureStack: ICommittedSqlStatement[][] = [];
 
   constructor(
     private readonly client: IWaSqliteClient,
-    dialect: SQLiteSyncDialect,
+    dialect: SQLiteDialect,
     private readonly relations: TRelations,
-    private readonly schema: V1.RelationalSchemaConfig<TSchema> | undefined,
     options: IWaSqliteSessionOptions = {},
   ) {
-    super(dialect);
+    super(dialect, 'sync');
     this.logger = options.logger ?? new NoopLogger();
-    this.sessionDialect = dialect;
   }
 
-  override prepareQuery<T extends Omit<IPreparedQueryConfig, 'run'>>(
+  override prepareQuery(
     query: Query,
-    fields: SelectedFieldsOrdered | undefined,
-    executeMethod: SQLiteExecuteMethod,
-    isResponseInArrayMode: boolean,
-    customResultMapper?: (rows: unknown[][]) => unknown,
-  ): WaSqlitePreparedQuery<T> {
-    return new WaSqlitePreparedQuery(
-      this.client,
-      query,
-      this.logger,
-      fields,
+    mode: 'arrays' | 'objects' | 'raw',
+    _prepare: boolean,
+    executeMethod?: SQLiteExecuteMethod,
+    mapper?: (rows: unknown[]) => unknown,
+    queryMetadata?: {
+      type: 'select' | 'update' | 'delete' | 'insert';
+      tables: string[];
+    },
+  ): SQLiteAsyncPreparedQuery<IPreparedQueryConfig> {
+    return new SQLiteAsyncPreparedQuery<IPreparedQueryConfig>(
+      'sync',
       executeMethod,
-      isResponseInArrayMode,
-      customResultMapper as
-        | ((rows: unknown[][] | Record<string, unknown>[]) => unknown)
-        | undefined,
-    );
-  }
-
-  override prepareRelationalQuery<T extends Omit<IPreparedQueryConfig, 'run'>>(
-    query: Query,
-    fields: SelectedFieldsOrdered | undefined,
-    executeMethod: SQLiteExecuteMethod,
-    customResultMapper: (rows: Record<string, unknown>[]) => unknown,
-  ): WaSqlitePreparedQuery<T, true> {
-    return new WaSqlitePreparedQuery(
-      this.client,
+      {
+        all: parameters =>
+          mode === 'arrays'
+            ? executeValuesRows({
+                captureStack: this.captureStack,
+                client: this.client,
+                sql: query.sql,
+                parameters,
+                queryMetadata,
+              })
+            : executeObjectRows({
+                captureStack: this.captureStack,
+                client: this.client,
+                sql: query.sql,
+                parameters,
+                queryMetadata,
+              }),
+        get: parameters =>
+          mode === 'arrays'
+            ? executeValuesRows({
+                captureStack: this.captureStack,
+                client: this.client,
+                sql: query.sql,
+                parameters,
+                queryMetadata,
+              })[0]
+            : executeObjectRows({
+                captureStack: this.captureStack,
+                client: this.client,
+                sql: query.sql,
+                parameters,
+                queryMetadata,
+              })[0],
+        run: parameters => {
+          executeValuesRows({
+            captureStack: this.captureStack,
+            client: this.client,
+            sql: query.sql,
+            parameters,
+            queryMetadata,
+          });
+          return { changes: this.client.sqlite3.changes(this.client.db) };
+        },
+        values: parameters =>
+          executeValuesRows({
+            captureStack: this.captureStack,
+            client: this.client,
+            sql: query.sql,
+            parameters,
+            queryMetadata,
+          }),
+      },
       query,
+      mapper,
+      mode,
       this.logger,
-      fields,
-      executeMethod,
-      false,
-      customResultMapper as
-        | ((rows: unknown[][] | Record<string, unknown>[]) => unknown)
-        | undefined,
-      true,
+      undefined,
+      queryMetadata,
+      undefined,
     );
   }
 
   override transaction<T>(
-    transaction: (
-      tx: SQLiteTransaction<
-        'sync',
-        IWaSqliteRunResult,
-        TFullSchema,
-        TRelations,
-        TSchema
-      >,
-    ) => T,
+    transaction: (tx: WaSqliteTransaction<TRelations>) => T,
     config: SQLiteTransactionConfig = {},
   ): T {
     const tx = new WaSqliteTransaction(
       'sync',
-      this.sessionDialect,
+      this.dialect,
       this,
       this.relations,
-      this.schema,
       undefined,
-      false,
       true,
+      this.captureStack,
     );
     this.run(sql.raw(`begin${config.behavior ? ` ${config.behavior}` : ''}`));
+    this.captureStack.push([]);
 
     let isCommitted = false;
     try {
       const result = transaction(tx);
       this.run(sql`commit`);
       isCommitted = true;
+      const statements = this.captureStack.pop();
+      if (
+        this.client.onCommittedTransaction !== null &&
+        statements !== undefined &&
+        statements.length > 0
+      ) {
+        this.client.onCommittedTransaction(statements);
+      }
       return result;
     } finally {
       if (!isCommitted) {
-        this.run(sql`rollback`);
+        try {
+          this.run(sql`rollback`);
+        } finally {
+          this.captureStack.pop();
+        }
       }
     }
   }
 }
 
 export class WaSqliteTransaction<
-  TFullSchema extends IAnyDrizzleSchemas,
   TRelations extends AnyRelations,
-  TSchema extends V1.TablesRelationalConfig,
-> extends SQLiteTransaction<
-  'sync',
-  IWaSqliteRunResult,
-  TFullSchema,
-  TRelations,
-  TSchema
-> {
+> extends SQLiteAsyncTransaction<'sync', IWaSqliteRunResult, TRelations> {
   static override readonly [entityKind]: string = 'WaSqliteTransaction';
 
   constructor(
     resultType: 'sync',
-    dialect: SQLiteSyncDialect,
-    session: SQLiteSession<
-      'sync',
-      IWaSqliteRunResult,
-      TFullSchema,
-      TRelations,
-      TSchema
-    >,
+    dialect: SQLiteDialect,
+    session: SQLiteAsyncSession<'sync', IWaSqliteRunResult, TRelations>,
     relations: TRelations,
-    schema: V1.RelationalSchemaConfig<TSchema> | undefined,
     nestedIndex?: number,
-    rowModeRqb?: boolean,
     forbidJsonb?: boolean,
+    private readonly transactionCaptureStack: ICommittedSqlStatement[][] = [],
   ) {
-    super(
-      resultType,
-      dialect,
-      session,
-      relations,
-      schema,
-      nestedIndex,
-      rowModeRqb,
-      forbidJsonb,
-    );
+    super(resultType, dialect, session, relations, nestedIndex, forbidJsonb);
     this.transactionDialect = dialect;
     this.transactionSession = session;
+    this.transactionRelations = relations;
   }
 
-  private readonly transactionDialect: SQLiteSyncDialect;
-  private readonly transactionSession: SQLiteSession<
+  private readonly transactionDialect: SQLiteDialect;
+  private readonly transactionSession: SQLiteAsyncSession<
     'sync',
     IWaSqliteRunResult,
-    TFullSchema,
-    TRelations,
-    TSchema
+    TRelations
   >;
+  private readonly transactionRelations: TRelations;
 
   override transaction<T>(
     transaction: (
-      tx: SQLiteTransaction<
-        'sync',
-        IWaSqliteRunResult,
-        TFullSchema,
-        TRelations,
-        TSchema
-      >,
+      tx: WaSqliteTransaction<TRelations>,
     ) => T extends Promise<any> // eslint-disable-line @typescript-eslint/no-explicit-any -- Promise<any> vs Promise<unknown> are not equivalent in conditional types; unknown breaks Drizzle's assignability
       ? DrizzleTypeError<"Sync drivers can't use async functions in transactions!">
       : T,
@@ -403,204 +424,34 @@ export class WaSqliteTransaction<
       'sync',
       this.transactionDialect,
       this.transactionSession,
-      this.relations,
-      this.schema,
+      this.transactionRelations,
       this.nestedIndex + 1,
-      false,
       true,
+      this.transactionCaptureStack,
     );
 
     tx.run(sql.raw(`savepoint ${savepointName}`));
+    this.transactionCaptureStack.push([]);
 
     let isReleased = false;
     try {
       const result = transaction(tx);
       tx.run(sql.raw(`release savepoint ${savepointName}`));
       isReleased = true;
+      const statements = this.transactionCaptureStack.pop();
+      const parentTransaction = this.transactionCaptureStack.at(-1);
+      if (statements !== undefined && parentTransaction !== undefined) {
+        parentTransaction.push(...statements);
+      }
       return result as T;
     } finally {
       if (!isReleased) {
-        tx.run(sql.raw(`rollback to savepoint ${savepointName}`));
+        try {
+          tx.run(sql.raw(`rollback to savepoint ${savepointName}`));
+        } finally {
+          this.transactionCaptureStack.pop();
+        }
       }
     }
-  }
-}
-
-export class WaSqlitePreparedQuery<
-  T extends IPreparedQueryConfig = IPreparedQueryConfig,
-  TIsRqbV2 extends boolean = false,
-> extends SQLitePreparedQuery<{
-  type: 'sync';
-  run: IWaSqliteRunResult;
-  all: T['all'];
-  get: T['get'];
-  values: T['values'];
-  execute: T['execute'];
-}> {
-  static override readonly [entityKind]: string = 'WaSqlitePreparedQuery';
-
-  constructor(
-    private readonly client: IWaSqliteClient,
-    query: Query,
-    private readonly logger: Logger,
-    private readonly fields: SelectedFieldsOrdered | undefined,
-    executeMethod: SQLiteExecuteMethod,
-    private readonly responseInArrayMode: boolean,
-    private readonly customResultMapper?: (
-      rows: unknown[][] | Record<string, unknown>[],
-    ) => unknown,
-    private readonly isRqbV2Query?: TIsRqbV2,
-  ) {
-    super('sync', executeMethod, query, undefined, undefined, undefined);
-  }
-
-  override run(
-    placeholderValues?: Record<string, unknown>,
-  ): IWaSqliteRunResult {
-    const parameters = fillPlaceholders(
-      this.query.params,
-      placeholderValues ?? {},
-    );
-    this.logger.logQuery(this.query.sql, parameters);
-    executeValuesRows({
-      client: this.client,
-      sql: this.query.sql,
-      parameters,
-    });
-
-    return {
-      changes: this.client.sqlite3.changes(this.client.db),
-    };
-  }
-
-  override all(placeholderValues?: Record<string, unknown>): T['all'] {
-    if (this.isRqbV2Query) {
-      return this.allRqbV2(placeholderValues);
-    }
-
-    const joinsNotNullableMap = (
-      this as {
-        joinsNotNullableMap?: Record<string, boolean>;
-      }
-    ).joinsNotNullableMap;
-    const { fields, query, logger, customResultMapper } = this;
-
-    if (!fields && !customResultMapper) {
-      const parameters = fillPlaceholders(
-        query.params,
-        placeholderValues ?? {},
-      );
-      logger.logQuery(query.sql, parameters);
-
-      return executeObjectRows({
-        client: this.client,
-        sql: query.sql,
-        parameters,
-      }) as T['all'];
-    }
-    const rows = this.values(placeholderValues) as Array<unknown[]>;
-    if (customResultMapper) {
-      return customResultMapper(rows) as T['all'];
-    }
-
-    return rows.map(row =>
-      mapSelectedRow(fields as SelectedFieldsOrdered, row, joinsNotNullableMap),
-    ) as T['all'];
-  }
-
-  override get(placeholderValues?: Record<string, unknown>): T['get'] {
-    if (this.isRqbV2Query) {
-      return this.getRqbV2(placeholderValues);
-    }
-
-    const parameters = fillPlaceholders(
-      this.query.params,
-      placeholderValues ?? {},
-    );
-    this.logger.logQuery(this.query.sql, parameters);
-
-    const joinsNotNullableMap = (
-      this as {
-        joinsNotNullableMap?: Record<string, boolean>;
-      }
-    ).joinsNotNullableMap;
-    const { fields, customResultMapper } = this;
-
-    if (!fields && !customResultMapper) {
-      return executeObjectRows({
-        client: this.client,
-        sql: this.query.sql,
-        parameters,
-      })[0] as T['get'];
-    }
-    const row = (this.values(placeholderValues) as Array<unknown[]>)[0];
-    if (!row) {
-      return undefined as T['get'];
-    }
-
-    if (customResultMapper) {
-      return customResultMapper([row]) as T['get'];
-    }
-
-    return mapSelectedRow(
-      fields as SelectedFieldsOrdered,
-      row,
-      joinsNotNullableMap,
-    ) as T['get'];
-  }
-
-  override values(placeholderValues?: Record<string, unknown>): T['values'] {
-    const parameters = fillPlaceholders(
-      this.query.params,
-      placeholderValues ?? {},
-    );
-    this.logger.logQuery(this.query.sql, parameters);
-
-    return executeValuesRows({
-      client: this.client,
-      sql: this.query.sql,
-      parameters,
-    }) as T['values'];
-  }
-
-  /** @internal */
-  isResponseInArrayMode(): boolean {
-    return this.responseInArrayMode;
-  }
-
-  private allRqbV2(placeholderValues?: Record<string, unknown>): T['all'] {
-    const parameters = fillPlaceholders(
-      this.query.params,
-      placeholderValues ?? {},
-    );
-    this.logger.logQuery(this.query.sql, parameters);
-
-    return this.customResultMapper!(
-      executeObjectRows({
-        client: this.client,
-        sql: this.query.sql,
-        parameters,
-      }),
-    ) as T['all'];
-  }
-
-  private getRqbV2(placeholderValues?: Record<string, unknown>): T['get'] {
-    const parameters = fillPlaceholders(
-      this.query.params,
-      placeholderValues ?? {},
-    );
-    this.logger.logQuery(this.query.sql, parameters);
-
-    const row = executeObjectRows({
-      client: this.client,
-      sql: this.query.sql,
-      parameters,
-    })[0];
-
-    if (row === undefined) {
-      return row as T['get'];
-    }
-
-    return this.customResultMapper!([row]) as T['get'];
   }
 }

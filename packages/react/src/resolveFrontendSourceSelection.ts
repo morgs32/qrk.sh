@@ -7,15 +7,14 @@ import type {
   IFrontendController,
   IServiceFrontendController,
 } from '@zerospin/core/frontendController/types';
-import { makeModelAndMetadata } from '@zerospin/core/models/makeModel';
-import { makeServiceModel } from '@zerospin/core/models/makeServiceModel';
-import { PrimitiveKind } from '@zerospin/core/models/primitiveKind';
+import { makeModel } from '@zerospin/core/models/makeModel';
+import { makeReplica } from '@zerospin/core/models/makeReplica';
 import type {
-  IAnyShape,
   IModel,
+  IModelReplica,
   IModels,
-  IServiceModel,
 } from '@zerospin/core/models/types';
+import { PrimitiveKind, type IAnyShape } from '@zerospin/schema';
 import { Effect, type Schema } from 'effect';
 
 export type ISupportedDefinitionVersion<DEFINITION> = DEFINITION extends {
@@ -73,26 +72,35 @@ export type IModelAtVersion<
         { readonly version: VERSION }
       > extends infer DEFINITION extends {
         attributes: IModel['attributes'];
+        propertiesShape: IModel['propertiesShape'];
       }
-    ? MODEL extends IServiceModel<IModel, infer SERVICE_NAME>
-      ? IServiceModel<
-          IModel<
-            DEFINITION['attributes'],
-            MODEL['abbreviation'],
-            MODEL['modelName'],
-            VERSION,
-            readonly [],
-            MODEL['metadata']
-          >,
-          SERVICE_NAME
-        >
+    ? MODEL extends IModelReplica<infer SOURCE_MODEL, infer SERVICE_NAME>
+      ? Extract<
+          SOURCE_MODEL['historicalDefinitions'][number],
+          { readonly version: VERSION }
+        > extends infer SOURCE_DEFINITION extends {
+          attributes: IModel['attributes'];
+          propertiesShape: IModel['propertiesShape'];
+        }
+        ? IModelReplica<
+            IModel<
+              SOURCE_DEFINITION['attributes'],
+              SOURCE_MODEL['abbreviation'],
+              SOURCE_MODEL['modelName'],
+              VERSION,
+              readonly [],
+              SOURCE_DEFINITION['propertiesShape']
+            >,
+            SERVICE_NAME
+          >
+        : never
       : IModel<
           DEFINITION['attributes'],
           MODEL['abbreviation'],
           MODEL['modelName'],
           VERSION,
           readonly [],
-          MODEL['metadata']
+          DEFINITION['propertiesShape']
         >
     : never;
 
@@ -105,7 +113,7 @@ export type ISignatureAtVersion<
         SIGNATURE['historicalDefinitions'][number],
         { readonly version: VERSION }
       > extends infer DEFINITION extends {
-        schema: Schema.Schema.AnyNoContext;
+        schema: Schema.Codec<unknown, unknown>;
       }
     ? IAuthenticationSignature<VERSION, DEFINITION['schema'], readonly []>
     : never;
@@ -240,51 +248,152 @@ export function resolveFrontendSourceSelection(props: {
       );
     }
 
-    const attributes = Object.fromEntries(
-      Object.keys(definition.attributes).map(attributeName => {
-        const descriptor = Reflect.get(definition.attributes, attributeName);
-        if (descriptor.kind !== PrimitiveKind.Ref) {
-          return [attributeName, descriptor];
-        }
-        const targetEntry = Object.entries(controller.models).find(
-          ([, candidate]) => candidate.modelName === descriptor.targetTableName,
+    let selectedModel: IModel;
+    if ('sourceModel' in model) {
+      const sourceModel = Reflect.get(model, 'sourceModel');
+      const serviceName = Reflect.get(model, 'serviceName');
+      if (
+        typeof sourceModel !== 'object' ||
+        sourceModel === null ||
+        !('historicalDefinitions' in sourceModel) ||
+        !Array.isArray(sourceModel.historicalDefinitions) ||
+        !('abbreviation' in sourceModel) ||
+        typeof sourceModel.abbreviation !== 'string' ||
+        !('modelName' in sourceModel) ||
+        typeof sourceModel.modelName !== 'string' ||
+        typeof serviceName !== 'string'
+      ) {
+        throw new Error(
+          `makeZerospinApp: model replica "${modelKey}" has an invalid source model`,
         );
-        if (targetEntry === undefined) {
-          throw new Error(
-            `makeZerospinApp: model "${modelKey}" references unselected model "${descriptor.targetTableName}"`,
+      }
+      const sourceDefinition = sourceModel.historicalDefinitions.find(
+        historicalDefinition =>
+          historicalDefinition.version === requestedVersion,
+      );
+      if (sourceDefinition === undefined) {
+        throw new Error(
+          `makeZerospinApp: model replica "${modelKey}" source version "${requestedVersion}" is unavailable`,
+        );
+      }
+      const sourceAttributes = Object.fromEntries(
+        Object.keys(sourceDefinition.attributes).map(attributeName => {
+          const descriptor = Reflect.get(
+            sourceDefinition.attributes,
+            attributeName,
           );
-        }
-        return [
-          attributeName,
-          { ...descriptor, table: resolveModel(targetEntry[0]).table },
-        ];
-      }),
-    );
-
-    const selectedModel: IModel =
-      'serviceName' in model
-        ? Reflect.apply(makeServiceModel, undefined, [
-            {
-              serviceName: model.serviceName,
-              abbreviation: model.abbreviation,
-              modelName: model.modelName,
-              attributes,
-              indexes: definition.indexes,
-              version: requestedVersion,
+          if (descriptor.kind !== PrimitiveKind.Ref) {
+            return [attributeName, descriptor];
+          }
+          const targetEntry = Object.entries(controller.models).find(
+            ([, candidate]) => {
+              const candidateSourceModel =
+                'sourceModel' in candidate
+                  ? Reflect.get(candidate, 'sourceModel')
+                  : undefined;
+              return (
+                candidate.table === descriptor.table ||
+                (typeof candidateSourceModel === 'object' &&
+                  candidateSourceModel !== null &&
+                  'table' in candidateSourceModel &&
+                  candidateSourceModel.table === descriptor.table)
+              );
             },
-            [],
-          ])
-        : Reflect.apply(makeModelAndMetadata, undefined, [
-            {
-              abbreviation: model.abbreviation,
-              modelName: model.modelName,
-              metadata: model.metadata,
-              attributes,
-              indexes: definition.indexes,
-              version: requestedVersion,
+          );
+          if (targetEntry === undefined) {
+            throw new Error(
+              `makeZerospinApp: model "${modelKey}" references unselected model "${descriptor.targetTableName}"`,
+            );
+          }
+          const resolvedTarget = resolveModel(targetEntry[0]);
+          if ('sourceModel' in resolvedTarget) {
+            const resolvedTargetSourceModel = Reflect.get(
+              resolvedTarget,
+              'sourceModel',
+            );
+            if (
+              typeof resolvedTargetSourceModel !== 'object' ||
+              resolvedTargetSourceModel === null ||
+              !('table' in resolvedTargetSourceModel)
+            ) {
+              throw new Error(
+                `makeZerospinApp: selected model replica "${targetEntry[0]}" has an invalid source model`,
+              );
+            }
+            return [
+              attributeName,
+              { ...descriptor, table: resolvedTargetSourceModel.table },
+            ];
+          }
+          return [
+            attributeName,
+            { ...descriptor, table: resolvedTarget.table },
+          ];
+        }),
+      );
+      const selectedSourceModel = Reflect.apply(makeModel, undefined, [
+        {
+          abbreviation: sourceModel.abbreviation,
+          modelName: sourceModel.modelName,
+          attributes: sourceAttributes,
+          propertiesShape: {
+            ...sourceDefinition.propertiesShape,
+            ...sourceAttributes,
+          },
+          indexes: sourceDefinition.indexes,
+          version: requestedVersion,
+        },
+        [],
+      ]);
+      selectedModel = makeReplica({
+        sourceModel: selectedSourceModel,
+        serviceName,
+      });
+    } else {
+      const attributes = Object.fromEntries(
+        Object.keys(definition.attributes).map(attributeName => {
+          const descriptor = Reflect.get(definition.attributes, attributeName);
+          if (descriptor.kind !== PrimitiveKind.Ref) {
+            return [attributeName, descriptor];
+          }
+          const targetEntry = Object.entries(controller.models).find(
+            ([, candidate]) => {
+              const candidateSourceModel =
+                'sourceModel' in candidate
+                  ? Reflect.get(candidate, 'sourceModel')
+                  : undefined;
+              return (
+                candidate.table === descriptor.table ||
+                (typeof candidateSourceModel === 'object' &&
+                  candidateSourceModel !== null &&
+                  'table' in candidateSourceModel &&
+                  candidateSourceModel.table === descriptor.table)
+              );
             },
-            [],
-          ]);
+          );
+          if (targetEntry === undefined) {
+            throw new Error(
+              `makeZerospinApp: model "${modelKey}" references unselected model "${descriptor.targetTableName}"`,
+            );
+          }
+          return [
+            attributeName,
+            { ...descriptor, table: resolveModel(targetEntry[0]).table },
+          ];
+        }),
+      );
+      selectedModel = Reflect.apply(makeModel, undefined, [
+        {
+          abbreviation: model.abbreviation,
+          modelName: model.modelName,
+          attributes,
+          propertiesShape: { ...definition.propertiesShape, ...attributes },
+          indexes: definition.indexes,
+          version: requestedVersion,
+        },
+        [],
+      ]);
+    }
     selectedModels[modelKey] = selectedModel;
     resolvingModelKeys.delete(modelKey);
     return selectedModel;

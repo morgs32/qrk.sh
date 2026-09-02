@@ -1,3 +1,5 @@
+import type { ITypeError } from '@zerospin/schema';
+
 import type { AssertContractsMutationsInModels } from '../contracts/assertMutationsUseModels.ts';
 import type { IContracts } from '../contracts/types.ts';
 import type { IGuard } from '../guards/makeGuard.ts';
@@ -5,12 +7,10 @@ import { makeGuards } from '../guards/makeGuards.ts';
 import { assertValidModels } from '../models/assertValidModels.ts';
 import type {
   IAssertValidModels,
+  IModelReplica,
   IModels,
   InferCommandPayload,
-  IServiceModel,
 } from '../models/types.ts';
-import { makeUnstagedCommand } from '../session/makeUnstagedCommand.ts';
-import type { ITypeError } from '../utils/types.ts';
 
 import type {
   IAggregateFrontendController,
@@ -39,7 +39,7 @@ export function makeFrontendController<
         ? CONTRACTS[K]
         : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
     };
-  models: MODELS & IAssertValidModels<MODELS>;
+  models: MODELS & IAssertValidModels<NoInfer<MODELS>>;
   guards?: GUARDS & {
     [K in keyof GUARDS & string]: K extends keyof CONTRACTS & string
       ? GUARDS[K]
@@ -68,8 +68,10 @@ export function makeFrontendController<
   serviceName: SERVICE_NAME;
   frontendName: FRONTEND_NAME;
   models: MODELS &
-    IAssertValidModels<MODELS> & {
-      [K in keyof MODELS]: IServiceModel<MODELS[K], SERVICE_NAME>;
+    IAssertValidModels<NoInfer<MODELS>> & {
+      [K in keyof MODELS]: MODELS[K] extends IModelReplica
+        ? ITypeError<`Service frontend model "${MODELS[K]['modelName']}" must be authoritative, not a replica`>
+        : MODELS[K];
     };
   contracts?: never;
   guards?: never;
@@ -108,12 +110,9 @@ export function makeFrontendController(
 
   if ('serviceName' in props) {
     for (const [modelKey, model] of Object.entries(props.models)) {
-      if (
-        !('serviceName' in model) ||
-        model.serviceName !== props.serviceName
-      ) {
+      if ('sourceModel' in model) {
         throw new Error(
-          `makeFrontendController: models.${modelKey} must be created by makeServiceModel with serviceName "${props.serviceName}"`,
+          `makeFrontendController: service models.${modelKey} must be authoritative, not a replica`,
         );
       }
     }
@@ -144,17 +143,5 @@ export function makeFrontendController(
     models: props.models,
     modelNames: Object.keys(props.models),
     guards,
-    makeUnstagedCommand: (
-      commandProps: Parameters<
-        IAggregateFrontendController['makeUnstagedCommand']
-      >[0],
-    ) =>
-      makeUnstagedCommand({
-        contracts: props.contracts,
-        systemName: props.systemName,
-        aggregateName: props.aggregateName,
-        frontendName: props.frontendName,
-        ...commandProps,
-      }),
   };
 }

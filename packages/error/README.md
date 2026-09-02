@@ -95,15 +95,15 @@ export const ZerospinClientAdapter = Layer.effect(
   ZerospinStorageAdapter,
   Effect.fn('getClientAdapter')(function* () {
     const isOPFSSupported = yield* OPFSAdapter.check().pipe(
-      Effect.either,
-      Effect.map(either => Either.isRight(either)),
+      Effect.result,
+      Effect.map(Result.isSuccess),
     );
     if (isOPFSSupported) {
       return OPFSAdapter;
     }
     const isLocalStorageSupported = yield* LocalStorageAdapter.check().pipe(
-      Effect.either,
-      Effect.map(either => Either.isRight(either)),
+      Effect.result,
+      Effect.map(Result.isSuccess),
     );
     if (isLocalStorageSupported) {
       return LocalStorageAdapter;
@@ -164,7 +164,7 @@ Effect.fn('fnName')(function* () {
 });
 ```
 
-### 3. Catching All Errors with Effect.catchAll
+### 3. Catching All Errors with Effect.catch
 
 Handle any error and convert it to a ZerospinError:
 
@@ -173,7 +173,7 @@ import { Effect } from 'effect';
 import { ZerospinError } from '@zerospin/error';
 
 const safeOperation = someEffect.pipe(
-  Effect.catchAll(error => {
+  Effect.catch(error => {
     return new ZerospinError({
       code: 'operation-failed',
       message: error.message,
@@ -188,9 +188,12 @@ const safeOperation = someEffect.pipe(
 ```typescript
 // From packages/zerospin/src/batch/makeSafe.ts
 Effect.fn('fnName')(function* () {
-  const safe = yield* Schema.validate(schema)(command, {
-    onExcessProperty: 'preserve',
-  }).pipe(
+  const safe = yield* Schema.decodeUnknownEffect(Schema.toType(schema))(
+    command,
+    {
+      onExcessProperty: 'preserve',
+    },
+  ).pipe(
     Effect.mapError(error => {
       return new ZerospinError({
         code: 'failed-to-validate-command',
@@ -253,7 +256,7 @@ Convert schema validation errors to ZerospinError:
 import { Effect, Schema } from 'effect';
 import { ZerospinError } from '@zerospin/error';
 
-const validateData = Schema.decode(Schema.String)(value).pipe(
+const validateData = Schema.decodeEffect(Schema.String)(value).pipe(
   Effect.mapError(error => {
     return new ZerospinError({
       code: 'validation-failed',
@@ -269,7 +272,7 @@ const validateData = Schema.decode(Schema.String)(value).pipe(
 ```typescript
 // Encoding an unknown value with a typed Effect Schema
 Effect.fn('fnName')(function* () {
-  const encoded = yield* Schema.encodeUnknown(schema)(value).pipe(
+  const encoded = yield* Schema.encodeUnknownEffect(schema)(value).pipe(
     Effect.mapError(error => {
       return new ZerospinError({
         code: 'failed-to-encode-unknown',
@@ -285,7 +288,7 @@ Effect.fn('fnName')(function* () {
 
 ```typescript
 // Validating a known-shape value against a results schema
-return Schema.validate(resultsSchema)(results, {
+return Schema.decodeUnknownEffect(Schema.toType(resultsSchema))(results, {
   onExcessProperty: 'error',
 }).pipe(
   Effect.mapError(error => {
@@ -334,8 +337,9 @@ const exit = await Effect.runPromiseExit(myEffect);
 return Exit.match(exit, {
   onFailure: cause => {
     console.error(Cause.pretty(cause));
-    if (Cause.isFailType(cause)) {
-      const error = cause.error as ZerospinError;
+    const failure = cause.reasons.find(Cause.isFailReason);
+    if (failure !== undefined) {
+      const error = failure.error as ZerospinError;
       return NextResponse.json(error.serialize(), {
         status: error.status ?? 400,
       });
@@ -361,8 +365,9 @@ return Exit.match(exit, {
 return Exit.match(exit, {
   onFailure: cause => {
     console.error(Cause.pretty(cause));
-    if (Cause.isFailType(cause)) {
-      const error = cause.error as ZerospinError;
+    const failure = cause.reasons.find(Cause.isFailReason);
+    if (failure !== undefined) {
+      const error = failure.error as ZerospinError;
       return NextResponse.json(error.serialize(), {
         status: error.status ?? 400,
       });

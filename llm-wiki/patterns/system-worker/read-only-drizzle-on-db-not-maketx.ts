@@ -1,10 +1,10 @@
 /**
  * Read-only Drizzle queries use `db` directly — reserve `makeTx` for atomic writes.
  *
- * @bad Wrap cursor watermark reads in `makeTx` when no writes share the transaction.
- * @bad Paginate read chunks inside `managedRuntime.runPromise(makeTx(...))`.
+ * @bad Wrap command-frontier reads in `makeTx` when no writes share the transaction.
+ * @bad Paginate command pages inside `managedRuntime.runPromise(makeTx(...))`.
  */
-export function pollForFrontend(props: {
+export function readAggregateCommands(props: {
   db: {
     select: () => {
       from: (table: unknown) => {
@@ -16,22 +16,22 @@ export function pollForFrontend(props: {
       };
     };
   };
-  pushedCommandsTable: unknown;
-  afterCursor: string | null;
+  commandsTable: unknown;
+  afterAggregateIndex: number;
 }) {
-  const { db, pushedCommandsTable, afterCursor } = props;
+  const { afterAggregateIndex, commandsTable, db } = props;
 
   const rows = db
     .select()
-    .from(pushedCommandsTable)
-    .where(gtPushedCursor(afterCursor))
-    .orderBy(ascPushedCursor())
-    .limit(ACTOR_REPO_FANOUT_BATCH_LIMIT)
+    .from(commandsTable)
+    .where(gtAggregateIndex(afterAggregateIndex))
+    .orderBy(ascAggregateIndex())
+    .limit(COMMAND_PAGE_LIMIT)
     .all();
 
-  return { pushedCommands: rows };
+  return { commands: rows };
 }
 
-declare const ACTOR_REPO_FANOUT_BATCH_LIMIT: number;
-declare function gtPushedCursor(after: string | null): unknown;
-declare function ascPushedCursor(): unknown;
+declare const COMMAND_PAGE_LIMIT: number;
+declare function gtAggregateIndex(afterAggregateIndex: number): unknown;
+declare function ascAggregateIndex(): unknown;

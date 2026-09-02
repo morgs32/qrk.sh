@@ -6,6 +6,9 @@
       "inputs": ["default", "^default", "{projectRoot}/tsconfig.json"],
       "outputs": ["{projectRoot}/dist"]
     },
+    "test": {
+      "dependsOn": ["lib", "^lib"]
+    },
     "watch": {
       "continuous": true
     },

@@ -1,10 +1,9 @@
 import { it } from '@effect/vitest';
+import { primitives } from '@zerospin/schema';
 import { Effect, Layer } from 'effect';
-import { TestContext } from 'effect/TestContext';
 import { describe, expect } from 'vitest';
 
 import { makeContract } from '../contracts/makeContract.ts';
-import { primitives } from '../models/primitives.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
@@ -23,7 +22,6 @@ const TestLayer = Layer.mergeAll(
   makePrefixedIncrementalIdFactory('makeAggregateCommand'),
   ErrorLayer,
   TraceLoggerLayer,
-  TestContext,
 );
 
 describe('makeAggregateCommand', () => {
@@ -42,7 +40,6 @@ describe('makeAggregateCommand', () => {
           });
 
           expect(command).toMatchObject({
-            commandType: 'aggregate',
             commandName: 'renameUser',
             aggregateId,
             aggregateName: 'user',
@@ -51,32 +48,10 @@ describe('makeAggregateCommand', () => {
             userId: null,
             sessionId: null,
             frontendName: null,
-            pushedCursor: null,
+            pushIndex: null,
           });
+          expect(command).not.toHaveProperty('commandType');
         }),
-    );
-
-    it.effect('preserves explicit frontend provenance', () =>
-      Effect.gen(function* () {
-        const command = yield* makeAggregateCommand({
-          contract: renameUser,
-          aggregateId: makeAggregateId({ id: 'user-2' }),
-          aggregateName: 'user',
-          systemName: 'shopping',
-          userId: 'shopper',
-          sessionId: 'sesn_browser',
-          frontendName: 'web',
-          pushedCursor: 'pcur_4',
-          payload: { name: 'Grace' },
-        });
-
-        expect(command).toMatchObject({
-          userId: 'shopper',
-          sessionId: 'sesn_browser',
-          frontendName: 'web',
-          pushedCursor: 'pcur_4',
-        });
-      }),
     );
   });
 });

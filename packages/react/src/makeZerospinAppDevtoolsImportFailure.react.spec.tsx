@@ -12,12 +12,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeZerospinApp } from './makeZerospinApp';
 
-const acquireUserPartitionRepoMock = vi.hoisted(() => vi.fn());
-
-vi.mock('@zerospin/shared-worker/acquireUserPartitionRepo', () => ({
-  acquireUserPartitionRepo: acquireUserPartitionRepoMock,
-}));
-
 const sessionRuntime = ManagedRuntime.make(
   Layer.mergeAll(
     AsyncLive,
@@ -64,19 +58,6 @@ describe('makeZerospinApp Provider DevTools dynamic import failure', () => {
 
   beforeEach(() => {
     fakeImport.attempts = 0;
-    acquireUserPartitionRepoMock.mockReset();
-    acquireUserPartitionRepoMock.mockReturnValue(
-      Effect.succeed({
-        api: {
-          listAggregateFrontendReplicas: vi.fn(),
-          listServiceFrontendReplicas: vi.fn(),
-        },
-        release: Effect.void,
-        systemId: 'sys_1',
-        userId: 'usr_1',
-        mode: 'online',
-      }),
-    );
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);

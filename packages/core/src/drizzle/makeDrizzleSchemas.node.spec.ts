@@ -20,10 +20,10 @@ describe('IDrizzleRelations', () => {
     assert<Equals<keyof IRelations['user']['relations'], 'lists'>>();
 
     assert<
-      Equals<IRelations['list']['relations']['user'], One<'user', false>>
+      Equals<IRelations['list']['relations']['user'], One<'user', boolean>>
     >();
     assert<
-      Equals<IRelations['item']['relations']['list'], One<'list', false>>
+      Equals<IRelations['item']['relations']['list'], One<'list', boolean>>
     >();
     assert<Equals<IRelations['user']['relations']['lists'], Many<'list'>>>();
   });

@@ -10,10 +10,8 @@
       { "name": "FIXTURE_SYNC_AGENT", "class_name": "FixtureSyncAgent" },
     ],
   },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["FixtureStateRepo", "FixtureSyncAgent"],
-    },
-  ],
+  "exports": {
+    "FixtureStateRepo": { "type": "durable-object", "storage": "sqlite" },
+    "FixtureSyncAgent": { "type": "durable-object", "storage": "sqlite" },
+  },
 }

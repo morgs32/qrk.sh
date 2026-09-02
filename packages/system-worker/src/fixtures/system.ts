@@ -12,12 +12,12 @@ import { makeFrontendController } from '@zerospin/core/frontendController/makeFr
 import { makeGuard } from '@zerospin/core/guards/makeGuard';
 import { makeModelIdSchema } from '@zerospin/core/models/makeIdSchema';
 import { makeModel } from '@zerospin/core/models/makeModel';
+import { makeReplica } from '@zerospin/core/models/makeReplica';
 import { makeSelection } from '@zerospin/core/models/makeSelection';
-import { makeServiceModel } from '@zerospin/core/models/makeServiceModel';
-import { primitives } from '@zerospin/core/models/primitives';
 import type { IAggregateId } from '@zerospin/core/models/types';
 import { makeSystem } from '@zerospin/core/system/makeSystem';
 import { mapParseError, ZerospinError } from '@zerospin/error';
+import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
 const User = makeModel(
@@ -82,9 +82,8 @@ const Item = makeModel(
   [],
 );
 
-const Product = makeServiceModel(
+const Product = makeModel(
   {
-    serviceName: 'app',
     abbreviation: 'prd',
     modelName: 'product',
     attributes: {
@@ -96,9 +95,13 @@ const Product = makeServiceModel(
   [],
 );
 
-const Stock = makeServiceModel(
+const ProductReplica = makeReplica({
+  sourceModel: Product,
+  serviceName: 'app',
+});
+
+const Stock = makeModel(
   {
-    serviceName: 'inventory',
     abbreviation: 'stk',
     modelName: 'stock',
     attributes: {
@@ -109,6 +112,11 @@ const Stock = makeServiceModel(
   },
   [],
 );
+
+const StockReplica = makeReplica({
+  sourceModel: Stock,
+  serviceName: 'inventory',
+});
 
 const Preference = makeModel(
   {
@@ -142,9 +150,8 @@ const Preference = makeModel(
   ],
 );
 
-const CatalogSettings = makeServiceModel(
+const CatalogSettings = makeModel(
   {
-    serviceName: 'app',
     abbreviation: 'scfg',
     modelName: 'catalogSettings',
     attributes: {
@@ -369,11 +376,11 @@ const replicateProduct = makeContract({
     product: primitives.json({ schema: Product.resourceSchema }),
   },
   mutations: Schema.Struct({
-    replicated: Product.replicateResourceMutation('1.0.0'),
+    replicated: ProductReplica.replicateResourceMutation('1.0.0'),
   }),
   program: ({ payload }) =>
     Effect.all({
-      replicated: Product.replicateResource('1.0.0', {
+      replicated: ProductReplica.replicateResource('1.0.0', {
         resource: payload.product,
       }),
     }),
@@ -390,7 +397,7 @@ const createListAndReplicateProduct = makeContract({
   },
   mutations: Schema.Struct({
     created: List.createMutation('1.0.0'),
-    replicated: Product.replicateResourceMutation('1.0.0'),
+    replicated: ProductReplica.replicateResourceMutation('1.0.0'),
   }),
   program: ({ payload }) =>
     Effect.all({
@@ -401,7 +408,7 @@ const createListAndReplicateProduct = makeContract({
           userId: payload.userId,
         },
       }),
-      replicated: Product.replicateResource('1.0.0', {
+      replicated: ProductReplica.replicateResource('1.0.0', {
         resource: payload.product,
       }),
     }),
@@ -453,15 +460,15 @@ const replicateProductAndStock = makeContract({
     stock: primitives.json({ schema: Stock.resourceSchema }),
   },
   mutations: Schema.Struct({
-    product: Product.replicateResourceMutation('1.0.0'),
-    stock: Stock.replicateResourceMutation('1.0.0'),
+    product: ProductReplica.replicateResourceMutation('1.0.0'),
+    stock: StockReplica.replicateResourceMutation('1.0.0'),
   }),
   program: ({ payload }) =>
     Effect.all({
-      product: Product.replicateResource('1.0.0', {
+      product: ProductReplica.replicateResource('1.0.0', {
         resource: payload.product,
       }),
-      stock: Stock.replicateResource('1.0.0', {
+      stock: StockReplica.replicateResource('1.0.0', {
         resource: payload.stock,
       }),
     }),
@@ -540,9 +547,9 @@ export const main = makeFrontendController({
     account: Account,
     list: List,
     item: Item,
-    product: Product,
+    product: ProductReplica,
     preference: Preference,
-    stock: Stock,
+    stock: StockReplica,
     user: User,
   },
   guards: {
@@ -626,11 +633,12 @@ export const system = makeSystem({
             'query'
           >
         >;
-      }) =>
-        Effect.gen(function* () {
-          const userId = yield* Schema.decodeUnknown(makeModelIdSchema(User))(
-            props.userId,
-          ).pipe(
+      }) => {
+        const { db, userId: requestedUserId } = props;
+        return Effect.gen(function* () {
+          const userId = yield* Schema.decodeUnknownEffect(
+            makeModelIdSchema(User),
+          )(requestedUserId).pipe(
             mapParseError({
               code: 'fixture-user-id-invalid',
               prefix: 'Failed to decode the fixture authorization userId',
@@ -638,7 +646,7 @@ export const system = makeSystem({
           );
           const user = yield* Effect.try({
             try: () =>
-              props.db.query.user
+              db.query.user
                 .findFirst({
                   where: { id: { eq: userId } },
                 })
@@ -654,19 +662,20 @@ export const system = makeSystem({
           if (user === undefined) {
             return yield* new ZerospinError({
               code: 'user-not-found',
-              message: `User ${props.userId} was not found`,
+              message: `User ${requestedUserId} was not found`,
             });
           }
           return yield* Effect.void;
-        }),
+        });
+      },
       models: {
         user: User,
         list: List,
         item: Item,
         account: Account,
         preference: Preference,
-        product: Product,
-        stock: Stock,
+        product: ProductReplica,
+        stock: StockReplica,
       },
       contracts: {
         createUser,
@@ -698,11 +707,11 @@ export const system = makeSystem({
           where: () => ({}),
         }),
         product: makeSelection({
-          model: Product,
+          model: ProductReplica,
           where: () => ({}),
         }),
         stock: makeSelection({
-          model: Stock,
+          model: StockReplica,
           where: () => ({}),
         }),
       },

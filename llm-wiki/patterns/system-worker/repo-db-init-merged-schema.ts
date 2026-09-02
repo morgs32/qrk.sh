@@ -4,13 +4,13 @@
  * @bad Do not use `makeDbDefinition` indirection instead of passing the owning models and tables directly.
  * @bad Do not build `{ schema, relations }` manually instead of passing the owning table graph to `makeDbConfig`.
  */
-export function getAggregateFrontendRepoDbConfig(props: {
+export function getMaterializedAggregateFrontendRepoDbConfig(props: {
   models: Record<string, unknown>;
-  aggregateFrontendRepoTables: Record<string, unknown>;
+  materializedAggregateFrontendRepoTables: Record<string, unknown>;
 }) {
   return makeResourceDbConfig({
     models: props.models,
-    otherTables: props.aggregateFrontendRepoTables,
+    otherTables: props.materializedAggregateFrontendRepoTables,
   });
 }
 

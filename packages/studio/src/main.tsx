@@ -1,8 +1,9 @@
 import { StrictMode } from 'react';
 
+import { ZerospinRouteErrorBoundary } from '@zerospin/react-router/ZerospinRouteErrorBoundary';
 import { createRoot } from 'react-dom/client';
-import { createBrowserRouter, RouterProvider } from 'react-router';
 import 'react-json-view-lite/dist/index.css';
+import { createBrowserRouter, RouterProvider } from 'react-router';
 
 import { RepoExplorer } from './RepoExplorer.js';
 import './styles.css';
@@ -11,6 +12,7 @@ const router = createBrowserRouter([
   {
     path: '*',
     element: <RepoExplorer />,
+    ErrorBoundary: ZerospinRouteErrorBoundary,
   },
 ]);
 

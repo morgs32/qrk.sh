@@ -1,15 +1,15 @@
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
-import { makeMigratedInMemoryWasmSqliteDb } from '../drizzle/makeMigratedInMemoryWasmSqliteDb.ts';
+import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 
 import { getGraph } from './getGraph.ts';
 import { makeModel } from './makeModel.ts';
 import { makeSelection } from './makeSelection.ts';
-import { primitives } from './primitives.ts';
 
 const User = makeModel(
   {
@@ -32,11 +32,11 @@ describe('getGraph', () => {
     Effect.gen(function* () {
       const models = { user: User };
       const dbConfig = makeResourceDbConfig({ models });
-      const db = yield* makeMigratedInMemoryWasmSqliteDb({ dbConfig });
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
 
       const now = new Date('2020-01-01T00:00:00.000Z');
 
-      db.insert(User.drizzleSchema)
+      db.insert(dbConfig.schema.user)
         .values({
           id: testUserId,
           modelName: User.modelName,
@@ -47,7 +47,7 @@ describe('getGraph', () => {
         })
         .run();
 
-      db.insert(User.drizzleSchema)
+      db.insert(dbConfig.schema.user)
         .values({
           id: otherUserId,
           modelName: User.modelName,

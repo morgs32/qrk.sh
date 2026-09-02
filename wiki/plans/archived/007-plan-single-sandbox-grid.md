@@ -59,4 +59,4 @@ Replace the sandbox's per-collection grids with one persisted React Grid Layout 
 2. `/`, collection catalog routes, and grid-brick detail routes display the same placed bricks and positions.
 3. The root left pane displays exactly one draggable representative per registered collection and no collection cards.
 4. Reload restores the singleton grid, while old per-collection persisted data is not read or deleted.
-5. The plan remains active under `.plans/plans/` until implementation and every verification target pass.
+5. The plan remains active under `wiki/plans/plans/` until implementation and every verification target pass.

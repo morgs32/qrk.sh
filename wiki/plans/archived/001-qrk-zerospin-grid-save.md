@@ -3,7 +3,7 @@
 **Date:** 2026-07-12
 **Status:** Implemented — archived
 **Archived:** 2026-07-13
-**Design spec:** `.plans/archived/2026-07-12-qrk-zerospin-grid-save-design.md`
+**Design spec:** `wiki/plans/archived/2026-07-12-qrk-zerospin-grid-save-design.md`
 
 ## Goal
 
@@ -87,13 +87,13 @@ Set up current local `zerospin dev` for `apps/web`, authenticate the QRK owner f
     1. Match every spec user story and implementation decision to current files or test output.
     2. Confirm no stale surface, fanout, websocket-subscriber, `Apis`, or `makeReactSession` symbols remain in QRK's integration.
     3. Confirm no `ALLOWED_CAST` comment or unapproved compatibility path was added.
-    4. Confirm the design spec remains under `.plans/specs/` and this plan remains under `.plans/plans/`.
+    4. Confirm the design spec remains under `wiki/plans/specs/` and this plan remains under `wiki/plans/plans/`.
     5. Report the completed artifacts and code to the user for comparison before archiving either file.
 
 ## Completion Gate
 
 1. Do not mark this plan complete merely because typecheck passes; the aggregate mutation behavior, authenticated Worker boundary, save lifecycle, and dual-server readiness must each have direct evidence.
-2. Do not move the spec or plan to `.plans/archived/` during implementation.
+2. Do not move the spec or plan to `wiki/plans/archived/` during implementation.
 3. Stop after presenting the finished spec, plan, code, and verification evidence. Archive only after the user has compared them and explicitly continues.
 
 ## Execution Record

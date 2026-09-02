@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-16
 **Status:** Ready for implementation
-**Design spec:** `.plans/archived/003-spec-open-source-bricks-workbench.md`
+**Design spec:** `wiki/plans/archived/003-spec-open-source-bricks-workbench.md`
 
 ## Goal
 
@@ -81,7 +81,7 @@ Extract all eighteen catalog collections into a publishable `@qrk.sh/bricks` pac
     1. Match every spec user story and implementation decision to the package manifest, built artifacts, sandbox routes, private app imports, or direct test output.
     2. Confirm all eighteen collections moved, every registered variant is reachable by `(collectionName, brickName)`, and the extraction adds no Brick schema or persisted identity changes beyond the separately approved Brick terminology migration.
     3. Confirm consumers require only the root JavaScript import and one stylesheet import and do not configure Tailwind scanning or provide shadcn aliases.
-    4. Keep this plan active under `.plans/plans/` until every required build, typecheck, catalog invariant test, sandbox Playwright test, package dry-run inspection, and focused private Playwright regression is green.
+    4. Keep this plan active under `wiki/plans/plans/` until every required build, typecheck, catalog invariant test, sandbox Playwright test, package dry-run inspection, and focused private Playwright regression is green.
 
 ## Completion Gate
 

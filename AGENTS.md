@@ -107,10 +107,10 @@ Follow [`docs/styleguide/component-and-file-naming.md`](./docs/styleguide/compon
 
 ### Plan documents
 
-Plans and specs live under [`.plans/`](./.plans/):
+Plans and specs live under [`wiki/plans/`](./wiki/plans/):
 
-- Design specs: `.plans/specs/XXX-spec-<topic>.md`.
-- Implementation plans: `.plans/plans/XXX-plan-<topic>.md`, reusing the source spec's number and topic.
+- Design specs: `wiki/plans/specs/XXX-spec-<topic>.md`.
+- Implementation plans: `wiki/plans/plans/XXX-plan-<topic>.md`, reusing the source spec's number and topic.
 - Choose a new number by inspecting existing filenames and using one more than the highest three-digit prefix.
 - Archive a spec after converting it into a plan; archive a plan only after implementation is complete and verified.
 - Update an existing plan in place when revising it.
@@ -132,18 +132,20 @@ Plans and specs live under [`.plans/`](./.plans/):
 
 When a code change invalidates a linked doc, update that doc in the same requested pass. Do not leave stale file paths or symbol names.
 
-<!-- engineering-patterns configuration start-->
+<!-- patterns configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
-## Shared engineering patterns
+## Shared patterns
 
-For TypeScript, Effect, RPC, Next.js, Cloudflare, testing, naming, and
-code-shape work, invoke `$engineering-patterns` before editing or reviewing
-code. Start at `references/patterns/index.md`, read only the patterns relevant
+For TypeScript, Effect, RPC, Next.js, Cloudflare, runtime architecture,
+testing, naming, and code-shape work—and whenever a change proposes a new
+capability, guarantee, abstraction, compatibility path, or cross-owner
+coordination mechanism—invoke `$patterns` before editing or reviewing code.
+Start at `references/patterns/index.md`, read only the patterns relevant
 to the task, and treat this repository's `AGENTS.md` and any repository-local
 pattern index as higher-precedence guidance.
 
-<!-- engineering-patterns configuration end-->
+<!-- patterns configuration end-->
 
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->

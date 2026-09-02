@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-16
 **Status:** Implemented — archived
-**Design spec:** `.plans/archived/004-spec-multi-provider-scraper.md`
+**Design spec:** `wiki/plans/archived/004-spec-multi-provider-scraper.md`
 
 ## Goal
 
@@ -150,7 +150,7 @@
 2. Require direct evidence for browser reuse, page isolation, Truth Social's no-browser path, deterministic failures, first/second retries, third-attempt exhaustion, and persistence-gated acknowledgment.
 3. Report opt-in live failures caused by upstream blocking or shape drift separately from deterministic regressions.
 4. Preserve unrelated work and report unrelated Nx graph or repository failures without fixing them.
-5. Keep this plan under `.plans/plans/` until implementation and required verification are complete; archive it only after completion.
+5. Keep this plan under `wiki/plans/plans/` until implementation and required verification are complete; archive it only after completion.
 
 ## Execution Record
 

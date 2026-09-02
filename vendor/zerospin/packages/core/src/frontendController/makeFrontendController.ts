@@ -1,12 +1,16 @@
+import { Schema } from 'effect';
 import type { ITypeError } from '@zerospin/schema';
 
+import { Contract } from '../contracts/makeContract.ts';
 import type { AssertContractsMutationsInModels } from '../contracts/assertMutationsUseModels.ts';
-import type { IContracts } from '../contracts/types.ts';
+import type { IContract, IContracts } from '../contracts/types.ts';
 import type { IGuard } from '../guards/makeGuard.ts';
 import { makeGuards } from '../guards/makeGuards.ts';
 import { assertValidModels } from '../models/assertValidModels.ts';
+import { Model } from '../models/makeModel.ts';
 import type {
   IAssertValidModels,
+  IModel,
   IModelReplica,
   IModels,
   InferCommandPayload,
@@ -17,6 +21,56 @@ import type {
   IFrontendController,
   IServiceFrontendController,
 } from './types.ts';
+
+const FunctionSchema = Schema.declare(
+  (input: unknown): input is (...args: never[]) => unknown =>
+    typeof input === 'function',
+);
+
+const CanonicalModelSchema = Schema.declare(
+  (input: unknown): input is IModel => input instanceof Model,
+);
+
+const GuardSchema = Schema.Struct({
+  models: Schema.Record(Schema.String, CanonicalModelSchema),
+  program: FunctionSchema,
+});
+
+const ModelsRecordSchema = Schema.Record(Schema.String, CanonicalModelSchema);
+
+const ServiceFrontendControllerPropsSchema = Schema.Struct({
+  systemName: Schema.String,
+  serviceName: Schema.String,
+  frontendName: Schema.String,
+  models: ModelsRecordSchema.check(
+    Schema.makeFilter((models: Record<string, IModel>) => {
+      for (const [modelKey, model] of Object.entries(models)) {
+        if (Model.isReplica(model)) {
+          return `service models.${modelKey} must be authoritative, not a replica`;
+        }
+      }
+      return true;
+    }),
+  ),
+});
+
+const AggregateFrontendControllerPropsSchema = Schema.Struct({
+  systemName: Schema.String,
+  aggregateName: Schema.String,
+  frontendName: Schema.String,
+  contracts: Schema.Record(
+    Schema.String,
+    Schema.declare((input: unknown): input is IContract => input instanceof Contract),
+  ),
+  models: ModelsRecordSchema,
+  guards: Schema.optionalKey(
+    Schema.Record(Schema.String, Schema.Array(GuardSchema)),
+  ),
+});
+
+export class ServiceFrontendController {}
+
+export class AggregateFrontendController {}
 
 export function makeFrontendController<
   SYSTEM_NAME extends string,
@@ -103,22 +157,16 @@ export function makeFrontendController(
         guards?: never;
       },
 ): IFrontendController {
-  assertValidModels({
-    models: props.models,
-    context: 'makeFrontendController',
-  });
-
   if ('serviceName' in props) {
-    for (const [modelKey, model] of Object.entries(props.models)) {
-      if ('sourceModel' in model) {
-        throw new Error(
-          `makeFrontendController: service models.${modelKey} must be authoritative, not a replica`,
-        );
-      }
-    }
-
-    return {
-      kind: 'service',
+    Schema.decodeUnknownSync(ServiceFrontendControllerPropsSchema, {
+      onExcessProperty: 'error',
+    })(props);
+    assertValidModels({
+      models: props.models,
+      context: 'makeFrontendController',
+    });
+    return Object.assign(new ServiceFrontendController(), {
+      kind: 'service' as const,
       systemName: props.systemName,
       serviceName: props.serviceName,
       frontendName: props.frontendName,
@@ -126,16 +174,23 @@ export function makeFrontendController(
       models: props.models,
       modelNames: Object.keys(props.models),
       guards: {},
-    };
+    });
   }
 
+  Schema.decodeUnknownSync(AggregateFrontendControllerPropsSchema, {
+    onExcessProperty: 'error',
+  })(props);
+  assertValidModels({
+    models: props.models,
+    context: 'makeFrontendController',
+  });
   const guards = makeGuards({
     contracts: props.contracts,
     guards: props.guards ?? {},
   });
 
-  return {
-    kind: 'aggregate',
+  return Object.assign(new AggregateFrontendController(), {
+    kind: 'aggregate' as const,
     systemName: props.systemName,
     aggregateName: props.aggregateName,
     frontendName: props.frontendName,
@@ -143,5 +198,5 @@ export function makeFrontendController(
     models: props.models,
     modelNames: Object.keys(props.models),
     guards,
-  };
+  });
 }

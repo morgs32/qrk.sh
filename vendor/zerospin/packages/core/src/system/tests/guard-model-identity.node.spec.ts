@@ -216,7 +216,7 @@ describe('makeSystem', () => {
         },
       }),
     ).toThrow(
-      'guards.createCommand.0.models.guardProjected must be identity-bound to authoritative aggregate model "guardProjected"',
+      /must be identity-bound to authoritative aggregate model "guardProjected"/,
     );
   });
 });

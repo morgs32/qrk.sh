@@ -1,8 +1,20 @@
 import { primitives } from '@zerospin/schema';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 
-import { makeModel } from './makeModel.ts';
+import { makeModel, Model } from './makeModel.ts';
 import type { IModel, IModelReplica } from './types.ts';
+
+const MakeReplicaPropsSchema = Schema.Struct({
+  sourceModel: Schema.declare(
+    (input: unknown): input is IModel => input instanceof Model,
+  ).check(
+    Schema.makeFilter(
+      (model: IModel) =>
+        !Model.isReplica(model) || 'sourceModel must be an authored model',
+    ),
+  ),
+  serviceName: Schema.String,
+});
 
 export function makeReplica<
   SOURCE_MODEL extends IModel,
@@ -16,10 +28,10 @@ export function makeReplica(props: {
   sourceModel: IModel;
   serviceName: string;
 }): unknown {
+  Schema.decodeUnknownSync(MakeReplicaPropsSchema, {
+    onExcessProperty: 'error',
+  })(props);
   const { sourceModel, serviceName } = props;
-  if ('sourceModel' in sourceModel) {
-    throw new Error('makeReplica sourceModel must be an authored model');
-  }
 
   const deletedAt = primitives.date({ nullable: true });
   const historicalDefinitions = sourceModel.historicalDefinitions.map(
@@ -64,20 +76,8 @@ export function makeReplica(props: {
     },
     historicalDefinitions,
   );
-  Object.defineProperties(replica, {
-    sourceModel: {
-      configurable: false,
-      enumerable: true,
-      value: sourceModel,
-      writable: false,
-    },
-    serviceName: {
-      configurable: false,
-      enumerable: true,
-      value: serviceName,
-      writable: false,
-    },
+  return Model.markReplica(replica, {
+    sourceModel,
+    serviceName,
   });
-
-  return replica;
 }

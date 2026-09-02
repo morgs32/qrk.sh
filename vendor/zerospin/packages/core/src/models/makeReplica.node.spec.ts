@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 
 import { primitives } from '@zerospin/schema';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeModel } from './makeModel.ts';
+import { makeModel, Model } from './makeModel.ts';
 import { makeReplica } from './makeReplica.ts';
 
 describe('makeReplica', () => {
@@ -44,7 +44,29 @@ describe('makeReplica', () => {
     });
 
     expect(ProductReplica.sourceModel).toBe(Product);
+    expect(ProductReplica).toBeInstanceOf(Model);
+    expect(Model.isReplica(ProductReplica)).toBe(true);
+    expect(Model.isReplica(Product)).toBe(false);
     expect(ProductReplica.serviceName).toBe('app');
+    expect(() =>
+      makeReplica({
+        sourceModel: ProductReplica,
+        serviceName: 'app',
+      }),
+    ).toThrow(Schema.SchemaError);
+    expect(() =>
+      makeReplica({
+        sourceModel: ProductReplica,
+        serviceName: 'app',
+      }),
+    ).toThrow(/sourceModel must be an authored model/);
+    expect(() =>
+      makeReplica({
+        sourceModel: Product,
+        serviceName: 'app',
+        extra: true,
+      } as { sourceModel: typeof Product; serviceName: string }),
+    ).toThrow(Schema.SchemaError);
     expect(ProductReplica.attributes).toBe(Product.attributes);
     expect(Object.keys(ProductReplica.propertiesShape)).toEqual([
       'id',

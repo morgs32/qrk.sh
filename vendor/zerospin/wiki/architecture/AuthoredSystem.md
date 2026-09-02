@@ -29,6 +29,51 @@ work.
 - [`makeDORepo.ts:145-187`](../../packages/system-worker/src/makeDORepo/makeDORepo.ts#L145-L187) — owns the bootstrap marker and marks storage only after schema initialization and bootstrap succeed.
 - [`SystemRepo.ts:90-119`](../../packages/system-worker/src/SystemRepo/SystemRepo.ts#L90-L119) — applies the same provision-once marker to the singleton SystemRepo.
 
+## Authoring integrity
+
+Factory construction, `makeSystem` assembly, and later lookup are separate
+trust steps. A factory proves its own props. `makeSystem` proves factory
+provenance of those leaves and snapshots the authored containers. Downstream
+code looks up by stamped name and trusts that graph.
+
+Factory integrity decoding runs inside `makeSignature`, `makeModel`,
+`makeReplica`, `makeContract`, and `makeFrontendController`. Each factory
+strictly decodes its props, then constructs a package-internal canonical class
+instance whose fields stay enumerable own properties.
+
+- [`makeSignature.ts:66-83`](../../packages/core/src/authentication/makeSignature.ts#L66-L83) — decodes current and historical signature props before constructing `Signature`.
+- [`makeModel.ts:251-288`](../../packages/core/src/models/makeModel.ts#L251-L288) — defines the canonical `Model` class and the replica brand written only by `makeReplica`.
+- [`makeReplica.ts:7-17`](../../packages/core/src/models/makeReplica.ts#L7-L17) — requires an authored `Model` instance and rejects nested replicas.
+- [`makeContract.ts:256-273`](../../packages/core/src/contracts/makeContract.ts#L256-L273) — decodes contract props, including the mutations/program pairing, before constructing `Contract`.
+- [`makeFrontendController.ts:160-163`](../../packages/core/src/frontendController/makeFrontendController.ts#L160-L163) — decodes service frontend props before constructing `ServiceFrontendController`.
+
+`makeSystem` provenance checking does not reconstruct those leaves. It decodes
+the complete authored container graph, uses `instanceof` predicates for the
+five canonical classes, and resolves services then aggregates from that decoded
+snapshot.
+
+- [`decodeSystemProps.ts:38-58`](../../packages/core/src/system/decodeSystemProps.ts#L38-L58) — declares canonical leaf schemas that accept only factory-constructed class instances.
+- [`decodeSystemProps.ts:160-170`](../../packages/core/src/system/decodeSystemProps.ts#L160-L170) — strictly decodes the authored system graph and defaults omitted `services` to an empty record.
+- [`makeSystem.ts:610-635`](../../packages/core/src/system/makeSystem.ts#L610-L635) — decodes props, builds exclusive source-model ownership, resolves services, resolves aggregates, and returns `ISystem`.
+- [`resolveSystemService.ts:73-81`](../../packages/core/src/system/resolveSystemService.ts#L73-L81) — rejects replica models in service ownership through Schema filters.
+- [`resolveSystemAggregate.ts:99-124`](../../packages/core/src/system/resolveSystemAggregate.ts#L99-L124) — accepts branded replicas only when they replicate the owning service's exact source model.
+
+Decoded container snapshots are the sole construction input. Returned
+models, contracts, and frontends records are not the authored record
+identities, so later mutation of those authored records cannot change
+`ISystem`. Canonical leaf objects keep reference identity through
+`makeSystem`. This is provenance, not tamper detection inside a leaf after
+construction.
+
+Downstream lookup-and-trust starts from the completed `ISystem`. DevWorker
+and ProductionWorker bind the authored `system` alias and route to
+`SystemRepo({ systemId })`. Command and query paths look up contracts,
+models, and frontends by stamped name and treat factory-proven leaves as
+authoritative.
+
+- [`DevWorker.ts:7-37`](../../packages/dev-worker/src/DevWorker.ts#L7-L37) — exports the direct Repo topology from the consumer's authored System alias.
+- [`ProductionWorker.ts:7-69`](../../packages/production-worker/src/ProductionWorker.ts#L7-L69) — applies the same topology after production key and ticket checks.
+
 ## Trigger: `zerospin dev`
 
 1. The `dev` command parses `--clean` and `--port`, validates the project

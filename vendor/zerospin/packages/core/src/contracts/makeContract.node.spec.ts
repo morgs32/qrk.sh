@@ -1,8 +1,8 @@
 import { primitives } from '@zerospin/schema';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeContract } from './makeContract.ts';
+import { Contract, makeContract } from './makeContract.ts';
 
 describe('makeContract', () => {
   it('attaches a serializable contract spec with payload JSON Schema', () => {
@@ -15,6 +15,21 @@ describe('makeContract', () => {
       mutations: null,
     });
 
+    expect(contract).toBeInstanceOf(Contract);
+    expect(() =>
+      makeContract({
+        commandName: 'createItem',
+        version: '1.0.0',
+        payload: { title: primitives.text() },
+        mutations: null,
+        extra: true,
+      } as {
+        commandName: string;
+        version: string;
+        payload: { title: ReturnType<typeof primitives.text> };
+        mutations: null;
+      }),
+    ).toThrow(Schema.SchemaError);
     expect(contract.spec.commandName).toBe('createItem');
     expect(contract.spec.version).toBe('1.0.0');
     expect(contract.spec.payloadJsonSchema).toMatchObject({

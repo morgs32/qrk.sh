@@ -103,9 +103,29 @@ describe('makeSystem', () => {
           },
         },
       }),
-    ).toThrow(
-      'makeSystem: aggregates.user.authorize must be a function when the aggregate has frontends',
-    );
+    ).toThrow(Schema.SchemaError);
+    expect(() =>
+      makeSystem({
+        name: 'test',
+        version: '1.0.0',
+        authentication: {
+          signature: makeSignature(
+            { version: '1.0.0', schema: Schema.Struct({}) },
+            [],
+          ),
+          authenticate: () => Effect.succeed('user'),
+        },
+        aggregates: {
+          // @ts-expect-error aggregate frontends require owner authorization
+          user: {
+            models: {},
+            contracts: {},
+            selections: {},
+            frontends: { web: { controller } },
+          },
+        },
+      }),
+    ).toThrow(/authorize must be a function when the aggregate has frontends/);
   });
 
   it('rejects a service owner without authorization when it has frontends', () => {
@@ -139,8 +159,30 @@ describe('makeSystem', () => {
           },
         },
       }),
-    ).toThrow(
-      'makeSystem: services.catalog.authorize must be a function when the service has frontends',
-    );
+    ).toThrow(Schema.SchemaError);
+    expect(() =>
+      makeSystem({
+        name: 'test',
+        version: '1.0.0',
+        authentication: {
+          signature: makeSignature(
+            { version: '1.0.0', schema: Schema.Struct({}) },
+            [],
+          ),
+          authenticate: () => Effect.succeed('user'),
+        },
+        aggregates: {},
+        services: {
+          // @ts-expect-error service frontends require owner authorization
+          catalog: {
+            models: {},
+            contracts: {},
+            frontends: {
+              browse: { controller },
+            },
+          },
+        },
+      }),
+    ).toThrow(/authorize must be a function when the service has frontends/);
   });
 });

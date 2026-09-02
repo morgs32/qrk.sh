@@ -107,28 +107,11 @@ requires the repository's explicit approval before implementation.
       gates passed, and the source-only SCC rerun reported 607 files, 60,006
       code lines, and complexity 5,024.
 
-2. [`makeSystem.ts:648-1682`](../../../packages/core/src/system/makeSystem.ts#L648-L1682)
-   still hides two different construction workflows inside `mapValues`
-   callbacks. The public overload and inference machinery at lines 54-591 is
-   dense but essential to the public typing contract; it is not the first
-   refactor target.
-   1. After explicit approval, move the service callback at
-      [`648-1104`](../../../packages/core/src/system/makeSystem.ts#L648-L1104)
-      unchanged into proposed plain function `resolveSystemService`. It owns
-      service model ownership, mutation-adapter validation, query
-      normalization, frontend binding, authorization, and `makeCommand`.
-   2. Move the aggregate callback at
-      [`1106-1682`](../../../packages/core/src/system/makeSystem.ts#L1106-L1682)
-      unchanged into proposed plain function `resolveSystemAggregate`. It owns
-      source-replica validation, mutation-adapter validation, selection/query
-      resolution, frontend binding, authorization, and `makeCommand`.
-   3. Keep `makeSystem` as ordered orchestration: validate authentication,
-      resolve services, resolve aggregates, and return the authored System.
-   4. Add no named context type. Each proposed function uses an inline props
-      shape and imports defining types directly.
-   5. Reassess duplicated mutation-schema identity parsing only after both
-      resolvers exist. Do not begin with a configurable aggregate/service
-      validator.
+2. Superseded by [Plan 067](./067-plan-schema-validated-make-system.md): the
+   `makeSystem` slice is no longer a mechanical callback extraction. Schema
+   decoding is the authoring gate; `resolveSystemService` and
+   `resolveSystemAggregate` consume decoded snapshots and throw native Effect
+   Schema errors. Plan 064’s other cleanup work is unchanged.
 
 3. [`bootstrapAggregateFrontendSession.ts:72-1225`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L72-L1225)
    and
@@ -215,19 +198,14 @@ requires the repository's explicit approval before implementation.
    missing adapter, and invalid input behavior already live in
    [`replayAppliedMutationTx.node.spec.ts`](../../../packages/core/src/contracts/replayAppliedMutationTx.node.spec.ts).
    The module move should require no new behavior test.
-2. `makeSystem` normalization and query resolution are covered by
+2. `makeSystem` authoring is covered by [Plan 067](./067-plan-schema-validated-make-system.md)
+   and the existing specs in
    [`registry-normalization.node.spec.ts`](../../../packages/core/src/system/tests/registry-normalization.node.spec.ts),
-   frontend binding and authorization by
    [`frontend-authorization.node.spec.ts`](../../../packages/core/src/system/tests/frontend-authorization.node.spec.ts),
-   service ownership by
    [`service-model-ownership.node.spec.ts`](../../../packages/core/src/system/tests/service-model-ownership.node.spec.ts),
-   guard identity by
    [`guard-model-identity.node.spec.ts`](../../../packages/core/src/system/tests/guard-model-identity.node.spec.ts),
-   and public inference by
+   and
    [`makeSystem.typecheck.ts`](../../../packages/core/src/system/makeSystem.typecheck.ts).
-   Add focused runtime cases for mutation-adapter schema identity, retired-model
-   exhaustiveness, destination ownership, and operation matching before moving
-   that validator.
 3. Main-thread aggregate and service recovery are exercised by
    [`mainThreadFrontendFlow.playwright.spec.ts`](../../../examples/shopping/tests/browser/mainThreadFrontendFlow.playwright.spec.ts)
    and the adverse OPFS, supersession, authentication-failure, offline-hydration,
@@ -254,8 +232,8 @@ requires the repository's explicit approval before implementation.
 2. Complete: after explicit approval of the Core public-module hard cut, moved
    `prepareReplayAppliedMutation`, added no re-export, and passed Core tests,
    typecheck, lint, and the source-only SCC rerun.
-3. Ask for and implement the two `makeSystem` resolver modules. Run Core tests,
-   typecheck, lint, and diff checks before continuing.
+3. Superseded by [Plan 067](./067-plan-schema-validated-make-system.md). Do not
+   implement the original mechanical `makeSystem` callback move.
 4. Establish focused authentication-locator tests, ask for the proposed
    `resolveFrontendAuthenticationIdentity` boundary, then update both browser
    bootstrap parents if approved.

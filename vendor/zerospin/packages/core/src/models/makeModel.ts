@@ -185,6 +185,106 @@ type IReservedKeys =
   | 'with'
   | 'without';
 
+const replicaBrand = Symbol('Model.replica');
+
+const AttributeDescriptorSchema = Schema.declare(isAttributeDescriptor);
+
+const AdaptResourceSchema = Schema.declare(
+  (
+    input: unknown,
+  ): input is (props: { resource: any }) => Effect.Effect<any, IAnyError> =>
+    typeof input === 'function',
+);
+
+const SemVerSchema = Schema.String.check(
+  Schema.makeFilter((version: string) => {
+    const match =
+      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
+        version,
+      );
+    if (match === null) {
+      return `expected SemVer`;
+    }
+    const major = Number(match[1]);
+    const minor = Number(match[2]);
+    const patch = Number(match[3]);
+    if (
+      !Number.isSafeInteger(major) ||
+      !Number.isSafeInteger(minor) ||
+      !Number.isSafeInteger(patch)
+    ) {
+      return `expected SemVer`;
+    }
+    return true;
+  }),
+);
+
+const DrizzleIndexConfigSchema = Schema.Struct({
+  name: Schema.String,
+  columns: Schema.NonEmptyArray(Schema.String),
+  unique: Schema.optionalKey(Schema.Boolean),
+});
+
+const MakeModelPropsSchema = Schema.Struct({
+  abbreviation: Schema.String,
+  modelName: Schema.String,
+  attributes: Schema.Record(Schema.String, AttributeDescriptorSchema),
+  propertiesShape: Schema.optionalKey(
+    Schema.Record(Schema.String, AttributeDescriptorSchema),
+  ),
+  indexes: Schema.Array(DrizzleIndexConfigSchema),
+  version: SemVerSchema,
+});
+
+const HistoricalModelDefinitionSchema = Schema.Struct({
+  abbreviation: Schema.String,
+  attributes: Schema.Record(Schema.String, AttributeDescriptorSchema),
+  adaptResource: Schema.optionalKey(AdaptResourceSchema),
+  indexes: Schema.Array(DrizzleIndexConfigSchema),
+  modelName: Schema.String,
+  propertiesShape: Schema.optionalKey(
+    Schema.Record(Schema.String, AttributeDescriptorSchema),
+  ),
+  version: Schema.String,
+});
+
+export class Model {
+  static markReplica(
+    model: IModel,
+    props: {
+      sourceModel: IModel;
+      serviceName: string;
+    },
+  ): IModel {
+    const { sourceModel, serviceName } = props;
+    Object.defineProperty(model, replicaBrand, {
+      configurable: false,
+      enumerable: false,
+      value: true,
+      writable: false,
+    });
+    Object.defineProperties(model, {
+      sourceModel: {
+        configurable: false,
+        enumerable: true,
+        value: sourceModel,
+        writable: false,
+      },
+      serviceName: {
+        configurable: false,
+        enumerable: true,
+        value: serviceName,
+        writable: false,
+      },
+    });
+    return model;
+  }
+
+  static isReplica(model: IModel): boolean {
+    return replicaBrand in model;
+  }
+}
+
 export function makeModel<
   MODEL_NAME extends string,
   ABBREVIATION extends string,
@@ -351,6 +451,9 @@ export function makeModel<
     readonly version: string;
   }[] = [],
 ): IModel {
+  Schema.decodeUnknownSync(MakeModelPropsSchema, {
+    onExcessProperty: 'error',
+  })(props);
   const {
     abbreviation,
     modelName,
@@ -369,6 +472,137 @@ export function makeModel<
     ...standardProperties,
     ...declaredAttributes,
   };
+  Schema.decodeUnknownSync(
+    Schema.Array(HistoricalModelDefinitionSchema).check(
+      Schema.makeFilter(definitions => {
+        const currentVersionMatch =
+          /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
+            version,
+          );
+        if (currentVersionMatch === null) {
+          return `Invalid model version "${version}" for "${modelName}": expected SemVer`;
+        }
+        const currentMajor = Number(currentVersionMatch[1]);
+        const currentMinor = Number(currentVersionMatch[2]);
+        const currentPatch = Number(currentVersionMatch[3]);
+        const versions = new Set<string>([version]);
+        for (const historicalDefinition of definitions) {
+          if (historicalDefinition.modelName !== modelName) {
+            return `Historical model version "${historicalDefinition.version}" has modelName "${historicalDefinition.modelName}", not "${modelName}"`;
+          }
+          if (historicalDefinition.abbreviation !== abbreviation) {
+            return `Historical model version "${historicalDefinition.version}" has abbreviation "${historicalDefinition.abbreviation}", not "${abbreviation}"`;
+          }
+          if (typeof historicalDefinition.adaptResource !== 'function') {
+            return `Historical model version "${historicalDefinition.version}" for "${modelName}" requires adaptResource`;
+          }
+          if (
+            !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(
+              historicalDefinition.version,
+            )
+          ) {
+            return `Invalid historical model version "${historicalDefinition.version}" for "${modelName}": expected SemVer`;
+          }
+          if (versions.has(historicalDefinition.version)) {
+            return `Duplicate model version "${historicalDefinition.version}" for "${modelName}"`;
+          }
+          versions.add(historicalDefinition.version);
+          const historicalVersionMatch =
+            /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
+              historicalDefinition.version,
+            );
+          if (historicalVersionMatch === null) {
+            return `Invalid historical model version "${historicalDefinition.version}" for "${modelName}": expected SemVer`;
+          }
+          const historicalMajor = Number(historicalVersionMatch[1]);
+          const historicalMinor = Number(historicalVersionMatch[2]);
+          const historicalPatch = Number(historicalVersionMatch[3]);
+          let historicalIsOlder = historicalMajor < currentMajor;
+          let versionsHaveEqualPrecedence = historicalMajor === currentMajor;
+          if (versionsHaveEqualPrecedence) {
+            historicalIsOlder = historicalMinor < currentMinor;
+            versionsHaveEqualPrecedence = historicalMinor === currentMinor;
+          }
+          if (versionsHaveEqualPrecedence) {
+            historicalIsOlder = historicalPatch < currentPatch;
+            versionsHaveEqualPrecedence = historicalPatch === currentPatch;
+          }
+          if (versionsHaveEqualPrecedence) {
+            const historicalPrerelease = historicalVersionMatch[4];
+            const currentPrerelease = currentVersionMatch[4];
+            if (
+              historicalPrerelease !== undefined &&
+              currentPrerelease === undefined
+            ) {
+              historicalIsOlder = true;
+              versionsHaveEqualPrecedence = false;
+            } else if (
+              historicalPrerelease === undefined &&
+              currentPrerelease !== undefined
+            ) {
+              historicalIsOlder = false;
+              versionsHaveEqualPrecedence = false;
+            } else if (
+              historicalPrerelease !== undefined &&
+              currentPrerelease !== undefined
+            ) {
+              const historicalIdentifiers = historicalPrerelease.split('.');
+              const currentIdentifiers = currentPrerelease.split('.');
+              let identifierIndex = 0;
+              while (
+                identifierIndex < historicalIdentifiers.length &&
+                identifierIndex < currentIdentifiers.length &&
+                versionsHaveEqualPrecedence
+              ) {
+                const historicalIdentifier =
+                  historicalIdentifiers[identifierIndex];
+                const currentIdentifier = currentIdentifiers[identifierIndex];
+                if (
+                  historicalIdentifier !== undefined &&
+                  currentIdentifier !== undefined &&
+                  historicalIdentifier !== currentIdentifier
+                ) {
+                  const historicalIsNumeric = /^(0|[1-9]\d*)$/.test(
+                    historicalIdentifier,
+                  );
+                  const currentIsNumeric = /^(0|[1-9]\d*)$/.test(
+                    currentIdentifier,
+                  );
+                  if (historicalIsNumeric && !currentIsNumeric) {
+                    historicalIsOlder = true;
+                  } else if (!historicalIsNumeric && currentIsNumeric) {
+                    historicalIsOlder = false;
+                  } else if (historicalIsNumeric && currentIsNumeric) {
+                    historicalIsOlder =
+                      historicalIdentifier.length < currentIdentifier.length ||
+                      (historicalIdentifier.length ===
+                        currentIdentifier.length &&
+                        historicalIdentifier < currentIdentifier);
+                  } else {
+                    historicalIsOlder =
+                      historicalIdentifier < currentIdentifier;
+                  }
+                  versionsHaveEqualPrecedence = false;
+                }
+                identifierIndex += 1;
+              }
+              if (versionsHaveEqualPrecedence) {
+                historicalIsOlder =
+                  historicalIdentifiers.length < currentIdentifiers.length;
+                versionsHaveEqualPrecedence =
+                  historicalIdentifiers.length === currentIdentifiers.length;
+              }
+            }
+          }
+          if (!historicalIsOlder || versionsHaveEqualPrecedence) {
+            return `Historical model version "${historicalDefinition.version}" for "${modelName}" must be older than current version "${version}"`;
+          }
+        }
+        return true;
+      }),
+    ),
+    { onExcessProperty: 'error' },
+  )(historicalDefinitions);
   const resolvedHistoricalDefinitions = historicalDefinitions.map(
     definition => ({
       ...definition,
@@ -378,27 +612,6 @@ export function makeModel<
       },
     }),
   );
-  const currentVersionMatch =
-    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
-      version,
-    );
-  if (currentVersionMatch === null) {
-    throw new Error(
-      `Invalid model version "${version}" for "${modelName}": expected SemVer`,
-    );
-  }
-  const currentMajor = Number(currentVersionMatch[1]);
-  const currentMinor = Number(currentVersionMatch[2]);
-  const currentPatch = Number(currentVersionMatch[3]);
-  if (
-    !Number.isSafeInteger(currentMajor) ||
-    !Number.isSafeInteger(currentMinor) ||
-    !Number.isSafeInteger(currentPatch)
-  ) {
-    throw new Error(
-      `Invalid model version "${version}" for "${modelName}": expected SemVer`,
-    );
-  }
 
   const definitionsByVersion = new Map<
     string,
@@ -413,167 +626,59 @@ export function makeModel<
     }
   >();
   definitionsByVersion.set(version, {
-    ...props,
+    abbreviation,
+    attributes: declaredAttributes,
+    indexes,
+    modelName,
     propertiesShape,
+    version,
   });
 
   for (const historicalDefinition of resolvedHistoricalDefinitions) {
-    if (historicalDefinition.modelName !== modelName) {
-      throw new Error(
-        `Historical model version "${historicalDefinition.version}" has modelName "${historicalDefinition.modelName}", not "${modelName}"`,
-      );
-    }
-    if (historicalDefinition.abbreviation !== abbreviation) {
-      throw new Error(
-        `Historical model version "${historicalDefinition.version}" has abbreviation "${historicalDefinition.abbreviation}", not "${abbreviation}"`,
-      );
-    }
-    if (typeof historicalDefinition.adaptResource !== 'function') {
-      throw new Error(
-        `Historical model version "${historicalDefinition.version}" for "${modelName}" requires adaptResource`,
-      );
-    }
-    const historicalVersionMatch =
-      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
-        historicalDefinition.version,
-      );
-    if (historicalVersionMatch === null) {
-      throw new Error(
-        `Invalid historical model version "${historicalDefinition.version}" for "${modelName}": expected SemVer`,
-      );
-    }
-    if (definitionsByVersion.has(historicalDefinition.version)) {
-      throw new Error(
-        `Duplicate model version "${historicalDefinition.version}" for "${modelName}"`,
-      );
-    }
-
-    const historicalMajor = Number(historicalVersionMatch[1]);
-    const historicalMinor = Number(historicalVersionMatch[2]);
-    const historicalPatch = Number(historicalVersionMatch[3]);
-    if (
-      !Number.isSafeInteger(historicalMajor) ||
-      !Number.isSafeInteger(historicalMinor) ||
-      !Number.isSafeInteger(historicalPatch)
-    ) {
-      throw new Error(
-        `Invalid historical model version "${historicalDefinition.version}" for "${modelName}": expected SemVer`,
-      );
-    }
-
-    let historicalIsOlder = historicalMajor < currentMajor;
-    let versionsHaveEqualPrecedence = historicalMajor === currentMajor;
-    if (versionsHaveEqualPrecedence) {
-      historicalIsOlder = historicalMinor < currentMinor;
-      versionsHaveEqualPrecedence = historicalMinor === currentMinor;
-    }
-    if (versionsHaveEqualPrecedence) {
-      historicalIsOlder = historicalPatch < currentPatch;
-      versionsHaveEqualPrecedence = historicalPatch === currentPatch;
-    }
-
-    if (versionsHaveEqualPrecedence) {
-      const historicalPrerelease = historicalVersionMatch[4];
-      const currentPrerelease = currentVersionMatch[4];
-      if (
-        historicalPrerelease !== undefined &&
-        currentPrerelease === undefined
-      ) {
-        historicalIsOlder = true;
-        versionsHaveEqualPrecedence = false;
-      } else if (
-        historicalPrerelease === undefined &&
-        currentPrerelease !== undefined
-      ) {
-        historicalIsOlder = false;
-        versionsHaveEqualPrecedence = false;
-      } else if (
-        historicalPrerelease !== undefined &&
-        currentPrerelease !== undefined
-      ) {
-        const historicalIdentifiers = historicalPrerelease.split('.');
-        const currentIdentifiers = currentPrerelease.split('.');
-        let identifierIndex = 0;
-        while (
-          identifierIndex < historicalIdentifiers.length &&
-          identifierIndex < currentIdentifiers.length &&
-          versionsHaveEqualPrecedence
-        ) {
-          const historicalIdentifier = historicalIdentifiers[identifierIndex];
-          const currentIdentifier = currentIdentifiers[identifierIndex];
-          if (
-            historicalIdentifier !== undefined &&
-            currentIdentifier !== undefined &&
-            historicalIdentifier !== currentIdentifier
-          ) {
-            const historicalIsNumeric = /^(0|[1-9]\d*)$/.test(
-              historicalIdentifier,
-            );
-            const currentIsNumeric = /^(0|[1-9]\d*)$/.test(currentIdentifier);
-            if (historicalIsNumeric && !currentIsNumeric) {
-              historicalIsOlder = true;
-            } else if (!historicalIsNumeric && currentIsNumeric) {
-              historicalIsOlder = false;
-            } else if (historicalIsNumeric && currentIsNumeric) {
-              historicalIsOlder =
-                historicalIdentifier.length < currentIdentifier.length ||
-                (historicalIdentifier.length === currentIdentifier.length &&
-                  historicalIdentifier < currentIdentifier);
-            } else {
-              historicalIsOlder = historicalIdentifier < currentIdentifier;
-            }
-            versionsHaveEqualPrecedence = false;
-          }
-          identifierIndex += 1;
-        }
-        if (versionsHaveEqualPrecedence) {
-          historicalIsOlder =
-            historicalIdentifiers.length < currentIdentifiers.length;
-          versionsHaveEqualPrecedence =
-            historicalIdentifiers.length === currentIdentifiers.length;
-        }
-      }
-    }
-
-    if (!historicalIsOlder || versionsHaveEqualPrecedence) {
-      throw new Error(
-        `Historical model version "${historicalDefinition.version}" for "${modelName}" must be older than current version "${version}"`,
-      );
-    }
     definitionsByVersion.set(
       historicalDefinition.version,
       historicalDefinition,
     );
   }
 
-  for (const [key, value] of Object.entries(propertiesShape)) {
-    if (!isAttributeDescriptor(value)) {
-      throw new Error(`Invalid attribute descriptor for "${key}"`);
-    }
-    if (
-      key in declaredAttributes &&
-      (key === 'createdAt' ||
-        key === 'deletedAt' ||
-        key === 'id' ||
-        key === 'modelName' ||
-        key === 'updatedAt' ||
-        key === 'version')
-    ) {
-      throw new Error(
-        `Invalid attribute "${key}" on model "${modelName}": framework property keys are reserved`,
-      );
-    }
-    if (key in declaredAttributes && value.kind === PrimitiveKind.PrimaryKey) {
-      throw new Error(
-        `Invalid attribute "${key}" on model "${modelName}": makeModel synthesizes the model id primary key`,
-      );
-    }
-    if (key in declaredAttributes && 'autogenerate' in value) {
-      throw new Error(
-        `Invalid attribute "${key}" on model "${modelName}": autogeneration belongs to contract payload primary keys`,
-      );
-    }
-  }
+  Schema.decodeUnknownSync(
+    Schema.Record(Schema.String, AttributeDescriptorSchema).check(
+      Schema.makeFilter((shape: Record<string, unknown>) => {
+        for (const [key, value] of Object.entries(shape)) {
+          if (!isAttributeDescriptor(value)) {
+            return `Invalid attribute descriptor for "${key}"`;
+          }
+          if (
+            key in declaredAttributes &&
+            (key === 'createdAt' ||
+              key === 'deletedAt' ||
+              key === 'id' ||
+              key === 'modelName' ||
+              key === 'updatedAt' ||
+              key === 'version')
+          ) {
+            return `Invalid attribute "${key}" on model "${modelName}": framework property keys are reserved`;
+          }
+          if (
+            key in declaredAttributes &&
+            isAttributeDescriptor(value) &&
+            value.kind === PrimitiveKind.PrimaryKey
+          ) {
+            return `Invalid attribute "${key}" on model "${modelName}": makeModel synthesizes the model id primary key`;
+          }
+          if (
+            key in declaredAttributes &&
+            isAttributeDescriptor(value) &&
+            'autogenerate' in value
+          ) {
+            return `Invalid attribute "${key}" on model "${modelName}": autogeneration belongs to contract payload primary keys`;
+          }
+        }
+        return true;
+      }),
+    ),
+    { onExcessProperty: 'error' },
+  )(propertiesShape);
 
   const resourceSchemasByVersion = new Map<
     string,
@@ -620,7 +725,7 @@ export function makeModel<
     indexes,
   };
 
-  const model: IModel = {
+  const fields: IModel = {
     abbreviation,
     attributes: declaredAttributes,
     indexes,
@@ -1257,5 +1362,6 @@ export function makeModel<
     ) as unknown as Schema.Codec<any, any>,
   };
 
+  const model = Object.assign(new Model(), fields);
   return model;
 }

@@ -6,7 +6,7 @@ import {
   AuthenticationLockSchema,
   makeAuthenticationLock,
 } from './makeAuthenticationLock.ts';
-import { makeSignature } from './makeSignature.ts';
+import { makeSignature, Signature } from './makeSignature.ts';
 
 describe('makeSignature', () => {
   const signature = makeSignature(
@@ -87,10 +87,11 @@ describe('makeSignature', () => {
     }),
   );
 
-  it('rejects prerelease and duplicate versions during construction', () => {
+  it('constructs a canonical Signature and rejects invalid or excess props', () => {
+    expect(signature).toBeInstanceOf(Signature);
     expect(() =>
       makeSignature({ version: '1.0.0-dev.1', schema: Schema.Struct({}) }, []),
-    ).toThrow('stable SemVer');
+    ).toThrow(Schema.SchemaError);
     expect(() =>
       makeSignature({ version: '1.0.0', schema: Schema.Struct({}) }, [
         {
@@ -99,6 +100,16 @@ describe('makeSignature', () => {
           adaptSignature: () => Effect.succeed({}),
         },
       ]),
-    ).toThrow('duplicate signature version');
+    ).toThrow(Schema.SchemaError);
+    expect(() =>
+      makeSignature(
+        {
+          version: '1.0.0',
+          schema: Schema.Struct({}),
+          extra: true,
+        } as never,
+        [],
+      ),
+    ).toThrow(Schema.SchemaError);
   });
 });

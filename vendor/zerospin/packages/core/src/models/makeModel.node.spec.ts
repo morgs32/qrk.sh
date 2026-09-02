@@ -4,7 +4,7 @@ import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
 
-import { makeModel } from './makeModel.ts';
+import { makeModel, Model } from './makeModel.ts';
 import type { IModel, InferResource } from './types.ts';
 
 const namePropertySchema = primitives.text();
@@ -74,6 +74,28 @@ const Todo = makeModel(
 );
 
 describe('makeModel', () => {
+  it('constructs a canonical Model and rejects excess props', () => {
+    expect(User).toBeInstanceOf(Model);
+    expect(() =>
+      makeModel(
+        {
+          abbreviation: 'usr',
+          modelName: 'user',
+          attributes: { name: namePropertySchema },
+          indexes: [],
+          version: '1.0.0',
+          extra: true,
+        } as {
+          abbreviation: string;
+          modelName: string;
+          attributes: typeof User.attributes;
+          indexes: [];
+          version: string;
+        },
+        [],
+      ),
+    ).toThrow(Schema.SchemaError);
+  });
   it('types id as InferIdFromAbbreviation from model abbreviation (shape, resource, Drizzle select)', () => {
     type UserRow = InferResource<typeof User>;
     assert<Equals<UserRow['id'], `usr_${string}`>>();

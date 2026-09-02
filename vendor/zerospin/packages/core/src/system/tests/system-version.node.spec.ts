@@ -19,6 +19,20 @@ describe('makeSystem', () => {
         },
         aggregates: {},
       }),
-    ).toThrow('makeSystem: version must be a non-empty string');
+    ).toThrow(Schema.SchemaError);
+    expect(() =>
+      makeSystem({
+        name: 'test',
+        version: '',
+        authentication: {
+          signature: makeSignature(
+            { version: '1.0.0', schema: Schema.Struct({}) },
+            [],
+          ),
+          authenticate: () => Effect.succeed('user'),
+        },
+        aggregates: {},
+      }),
+    ).toThrow(/Expected a value with a length of at least 1/);
   });
 });

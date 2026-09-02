@@ -1,5 +1,6 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import {
+  isAttributeDescriptor,
   makeEffectSchema,
   PrimitiveKind,
   type IAnyRefDescriptor,
@@ -68,6 +69,94 @@ const noOpProgram = (_props: { payload: unknown }) => Effect.succeed({});
 
 const semVerPattern =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+
+const PayloadFieldDescriptorSchema = Schema.declare(
+  (input: unknown): input is IPayloadFieldDescriptor => {
+    if (!isAttributeDescriptor(input)) {
+      return false;
+    }
+    if (input.kind === PrimitiveKind.Ref) {
+      return false;
+    }
+    if (input.kind === PrimitiveKind.PrimaryKey) {
+      return 'autogenerate' in input && 'modelName' in input;
+    }
+    return true;
+  },
+);
+
+const EffectSchemaSchema = Schema.declare(
+  (input: unknown): input is Schema.Top => Schema.isSchema(input),
+);
+
+const AdaptPayloadSchema = Schema.declare(
+  (
+    input: unknown,
+  ): input is (props: { payload: unknown }) => Effect.Effect<
+    unknown,
+    IAnyError
+  > => typeof input === 'function',
+);
+
+const ContractProgramSchema = Schema.declare(
+  (
+    input: unknown,
+  ): input is (props: { payload: unknown }) => Effect.Effect<
+    unknown,
+    IAnyError
+  > => typeof input === 'function',
+);
+
+const ContractSemVerSchema = Schema.String.check(
+  Schema.makeFilter((version: string) => {
+    const match = semVerPattern.exec(version);
+    if (match === null) {
+      return `expected SemVer`;
+    }
+    const major = Number(match[1]);
+    const minor = Number(match[2]);
+    const patch = Number(match[3]);
+    if (
+      !Number.isSafeInteger(major) ||
+      !Number.isSafeInteger(minor) ||
+      !Number.isSafeInteger(patch)
+    ) {
+      return `expected SemVer`;
+    }
+    return true;
+  }),
+);
+
+const MakeContractPropsSchema = Schema.Struct({
+  commandName: Schema.String,
+  payload: Schema.Record(Schema.String, PayloadFieldDescriptorSchema),
+  version: ContractSemVerSchema,
+  mutations: Schema.Union([EffectSchemaSchema, Schema.Null]),
+  program: Schema.optionalKey(ContractProgramSchema),
+});
+
+const HistoricalContractDefinitionSchema = Schema.Struct({
+  commandName: Schema.String,
+  version: Schema.String,
+  payload: Schema.Record(Schema.String, Schema.Unknown).check(
+    Schema.makeFilter((payload: Record<string, unknown>) => {
+      for (const value of Object.values(payload)) {
+        if (
+          !isAttributeDescriptor(value) ||
+          value.kind === PrimitiveKind.Ref ||
+          (value.kind === PrimitiveKind.PrimaryKey &&
+            !('autogenerate' in value && 'modelName' in value))
+        ) {
+          return 'Invalid attribute descriptor';
+        }
+      }
+      return true;
+    }),
+  ),
+  adaptPayload: Schema.optionalKey(AdaptPayloadSchema),
+});
+
+export class Contract {}
 
 /* oxlint-disable typescript/no-explicit-any -- historical adapter requirements stay generic across authored contracts */
 export function makeContract<
@@ -168,6 +257,20 @@ export function makeContract<
   PAYLOAD extends Record<string, IPayloadFieldDescriptor>,
 >(props: any, historicalDefinitions: readonly any[] = []): any {
   /* oxlint-enable typescript/no-explicit-any */
+  Schema.decodeUnknownSync(
+    MakeContractPropsSchema.check(
+      Schema.makeFilter(decoded => {
+        if (decoded.mutations === null && decoded.program !== undefined) {
+          return `makeContract: contract "${decoded.commandName}" declares mutations: null and must omit program`;
+        }
+        if (decoded.mutations !== null && decoded.program === undefined) {
+          return `makeContract: contract "${decoded.commandName}" declares a mutations schema and requires program`;
+        }
+        return true;
+      }),
+    ),
+    { onExcessProperty: 'error' },
+  )(props);
   const {
     commandName,
     payload,
@@ -181,173 +284,143 @@ export function makeContract<
   } = props;
 
   const currentVersionMatch = semVerPattern.exec(version);
-  if (currentVersionMatch === null) {
-    throw new Error(
-      `Invalid contract version "${version}" for "${commandName}": expected SemVer`,
-    );
-  }
+  const currentMajor = Number(currentVersionMatch?.[1]);
+  const currentMinor = Number(currentVersionMatch?.[2]);
+  const currentPatch = Number(currentVersionMatch?.[3]);
 
-  const currentMajor = Number(currentVersionMatch[1]);
-  const currentMinor = Number(currentVersionMatch[2]);
-  const currentPatch = Number(currentVersionMatch[3]);
-  if (
-    !Number.isSafeInteger(currentMajor) ||
-    !Number.isSafeInteger(currentMinor) ||
-    !Number.isSafeInteger(currentPatch)
-  ) {
-    throw new Error(
-      `Invalid contract version "${version}" for "${commandName}": expected SemVer`,
-    );
-  }
-
-  const historicalVersions = new Set<string>();
-  const historicalSpecs = historicalDefinitions.map(historicalDefinition => {
-    if (historicalDefinition.commandName !== commandName) {
-      throw new Error(
-        `Historical contract version "${historicalDefinition.version}" has commandName "${historicalDefinition.commandName}", not "${commandName}"`,
-      );
-    }
-    if (typeof historicalDefinition.adaptPayload !== 'function') {
-      throw new Error(
-        `Historical contract version "${historicalDefinition.version}" for "${commandName}" requires adaptPayload`,
-      );
-    }
-
-    const historicalVersionMatch = semVerPattern.exec(
-      historicalDefinition.version,
-    );
-    if (historicalVersionMatch === null) {
-      throw new Error(
-        `Invalid historical contract version "${historicalDefinition.version}" for "${commandName}": expected SemVer`,
-      );
-    }
-    if (historicalDefinition.version === version) {
-      throw new Error(
-        `Historical contract version "${historicalDefinition.version}" duplicates the current version for "${commandName}"`,
-      );
-    }
-    if (historicalVersions.has(historicalDefinition.version)) {
-      throw new Error(
-        `Duplicate historical contract version "${historicalDefinition.version}" for "${commandName}"`,
-      );
-    }
-    historicalVersions.add(historicalDefinition.version);
-
-    const historicalMajor = Number(historicalVersionMatch[1]);
-    const historicalMinor = Number(historicalVersionMatch[2]);
-    const historicalPatch = Number(historicalVersionMatch[3]);
-    if (
-      !Number.isSafeInteger(historicalMajor) ||
-      !Number.isSafeInteger(historicalMinor) ||
-      !Number.isSafeInteger(historicalPatch)
-    ) {
-      throw new Error(
-        `Invalid historical contract version "${historicalDefinition.version}" for "${commandName}": expected SemVer`,
-      );
-    }
-
-    let historicalIsOlder = historicalMajor < currentMajor;
-    let versionsHaveEqualPrecedence = historicalMajor === currentMajor;
-    if (versionsHaveEqualPrecedence) {
-      historicalIsOlder = historicalMinor < currentMinor;
-      versionsHaveEqualPrecedence = historicalMinor === currentMinor;
-    }
-    if (versionsHaveEqualPrecedence) {
-      historicalIsOlder = historicalPatch < currentPatch;
-      versionsHaveEqualPrecedence = historicalPatch === currentPatch;
-    }
-
-    if (versionsHaveEqualPrecedence) {
-      const historicalPrerelease = historicalVersionMatch[4];
-      const currentPrerelease = currentVersionMatch[4];
-      if (
-        historicalPrerelease !== undefined &&
-        currentPrerelease === undefined
-      ) {
-        historicalIsOlder = true;
-        versionsHaveEqualPrecedence = false;
-      } else if (
-        historicalPrerelease === undefined &&
-        currentPrerelease !== undefined
-      ) {
-        historicalIsOlder = false;
-        versionsHaveEqualPrecedence = false;
-      } else if (
-        historicalPrerelease !== undefined &&
-        currentPrerelease !== undefined
-      ) {
-        const historicalIdentifiers = historicalPrerelease.split('.');
-        const currentIdentifiers = currentPrerelease.split('.');
-        let identifierIndex = 0;
-        while (
-          identifierIndex < historicalIdentifiers.length &&
-          identifierIndex < currentIdentifiers.length &&
-          versionsHaveEqualPrecedence
-        ) {
-          const historicalIdentifier = historicalIdentifiers[identifierIndex];
-          const currentIdentifier = currentIdentifiers[identifierIndex];
-          if (
-            historicalIdentifier !== undefined &&
-            currentIdentifier !== undefined &&
-            historicalIdentifier !== currentIdentifier
-          ) {
-            const historicalIsNumeric = /^(0|[1-9]\d*)$/.test(
-              historicalIdentifier,
-            );
-            const currentIsNumeric = /^(0|[1-9]\d*)$/.test(currentIdentifier);
-            if (historicalIsNumeric && !currentIsNumeric) {
-              historicalIsOlder = true;
-            } else if (!historicalIsNumeric && currentIsNumeric) {
-              historicalIsOlder = false;
-            } else if (historicalIsNumeric && currentIsNumeric) {
-              historicalIsOlder =
-                historicalIdentifier.length < currentIdentifier.length ||
-                (historicalIdentifier.length === currentIdentifier.length &&
-                  historicalIdentifier < currentIdentifier);
-            } else {
-              historicalIsOlder = historicalIdentifier < currentIdentifier;
-            }
-            versionsHaveEqualPrecedence = false;
+  Schema.decodeUnknownSync(
+    Schema.Array(HistoricalContractDefinitionSchema).check(
+      Schema.makeFilter(definitions => {
+        const historicalVersions = new Set<string>();
+        for (const historicalDefinition of definitions) {
+          if (historicalDefinition.commandName !== commandName) {
+            return `Historical contract version "${historicalDefinition.version}" has commandName "${historicalDefinition.commandName}", not "${commandName}"`;
           }
-          identifierIndex += 1;
+          if (typeof historicalDefinition.adaptPayload !== 'function') {
+            return `Historical contract version "${historicalDefinition.version}" for "${commandName}" requires adaptPayload`;
+          }
+          const historicalVersionMatch = semVerPattern.exec(
+            historicalDefinition.version,
+          );
+          if (historicalVersionMatch === null) {
+            return `Invalid historical contract version "${historicalDefinition.version}" for "${commandName}": expected SemVer`;
+          }
+          if (historicalDefinition.version === version) {
+            return `Historical contract version "${historicalDefinition.version}" duplicates the current version for "${commandName}"`;
+          }
+          if (historicalVersions.has(historicalDefinition.version)) {
+            return `Duplicate historical contract version "${historicalDefinition.version}" for "${commandName}"`;
+          }
+          historicalVersions.add(historicalDefinition.version);
+          const historicalMajor = Number(historicalVersionMatch[1]);
+          const historicalMinor = Number(historicalVersionMatch[2]);
+          const historicalPatch = Number(historicalVersionMatch[3]);
+          if (
+            !Number.isSafeInteger(historicalMajor) ||
+            !Number.isSafeInteger(historicalMinor) ||
+            !Number.isSafeInteger(historicalPatch)
+          ) {
+            return `Invalid historical contract version "${historicalDefinition.version}" for "${commandName}": expected SemVer`;
+          }
+          let historicalIsOlder = historicalMajor < currentMajor;
+          let versionsHaveEqualPrecedence = historicalMajor === currentMajor;
+          if (versionsHaveEqualPrecedence) {
+            historicalIsOlder = historicalMinor < currentMinor;
+            versionsHaveEqualPrecedence = historicalMinor === currentMinor;
+          }
+          if (versionsHaveEqualPrecedence) {
+            historicalIsOlder = historicalPatch < currentPatch;
+            versionsHaveEqualPrecedence = historicalPatch === currentPatch;
+          }
+          if (versionsHaveEqualPrecedence) {
+            const historicalPrerelease = historicalVersionMatch[4];
+            const currentPrerelease = currentVersionMatch?.[4];
+            if (
+              historicalPrerelease !== undefined &&
+              currentPrerelease === undefined
+            ) {
+              historicalIsOlder = true;
+              versionsHaveEqualPrecedence = false;
+            } else if (
+              historicalPrerelease === undefined &&
+              currentPrerelease !== undefined
+            ) {
+              historicalIsOlder = false;
+              versionsHaveEqualPrecedence = false;
+            } else if (
+              historicalPrerelease !== undefined &&
+              currentPrerelease !== undefined
+            ) {
+              const historicalIdentifiers = historicalPrerelease.split('.');
+              const currentIdentifiers = currentPrerelease.split('.');
+              let identifierIndex = 0;
+              while (
+                identifierIndex < historicalIdentifiers.length &&
+                identifierIndex < currentIdentifiers.length &&
+                versionsHaveEqualPrecedence
+              ) {
+                const historicalIdentifier =
+                  historicalIdentifiers[identifierIndex];
+                const currentIdentifier = currentIdentifiers[identifierIndex];
+                if (
+                  historicalIdentifier !== undefined &&
+                  currentIdentifier !== undefined &&
+                  historicalIdentifier !== currentIdentifier
+                ) {
+                  const historicalIsNumeric = /^(0|[1-9]\d*)$/.test(
+                    historicalIdentifier,
+                  );
+                  const currentIsNumeric = /^(0|[1-9]\d*)$/.test(
+                    currentIdentifier,
+                  );
+                  if (historicalIsNumeric && !currentIsNumeric) {
+                    historicalIsOlder = true;
+                  } else if (!historicalIsNumeric && currentIsNumeric) {
+                    historicalIsOlder = false;
+                  } else if (historicalIsNumeric && currentIsNumeric) {
+                    historicalIsOlder =
+                      historicalIdentifier.length < currentIdentifier.length ||
+                      (historicalIdentifier.length ===
+                        currentIdentifier.length &&
+                        historicalIdentifier < currentIdentifier);
+                  } else {
+                    historicalIsOlder =
+                      historicalIdentifier < currentIdentifier;
+                  }
+                  versionsHaveEqualPrecedence = false;
+                }
+                identifierIndex += 1;
+              }
+              if (versionsHaveEqualPrecedence) {
+                historicalIsOlder =
+                  historicalIdentifiers.length < currentIdentifiers.length;
+                versionsHaveEqualPrecedence =
+                  historicalIdentifiers.length === currentIdentifiers.length;
+              }
+            }
+          }
+          if (!historicalIsOlder || versionsHaveEqualPrecedence) {
+            return `Historical contract version "${historicalDefinition.version}" for "${commandName}" must be older than current version "${version}"`;
+          }
         }
-        if (versionsHaveEqualPrecedence) {
-          historicalIsOlder =
-            historicalIdentifiers.length < currentIdentifiers.length;
-          versionsHaveEqualPrecedence =
-            historicalIdentifiers.length === currentIdentifiers.length;
-        }
-      }
-    }
+        return true;
+      }),
+    ),
+    { onExcessProperty: 'error' },
+  )(historicalDefinitions);
 
-    if (!historicalIsOlder || versionsHaveEqualPrecedence) {
-      throw new Error(
-        `Historical contract version "${historicalDefinition.version}" for "${commandName}" must be older than current version "${version}"`,
-      );
-    }
-
-    return {
+  const historicalSpecs = historicalDefinitions.map(
+    historicalDefinition => ({
       commandName: historicalDefinition.commandName,
       version: historicalDefinition.version,
       payloadJsonSchema: Schema.toJsonSchemaDocument(
         makeEffectSchema(historicalDefinition.payload),
       ),
-    };
-  });
+    }),
+  );
 
-  if (mutations === null && props.program !== undefined) {
-    throw new Error(
-      `makeContract: contract "${commandName}" declares mutations: null and must omit program`,
-    );
-  }
-
-  if (mutations !== null && props.program === undefined) {
-    throw new Error(
-      `makeContract: contract "${commandName}" declares a mutations schema and requires program`,
-    );
-  }
-
-  const program = mutations === null ? noOpProgram : props.program;
+  const program =
+    mutations === null ? noOpProgram : props.program;
 
   const payloadSchema = makeEffectSchema(payload);
   const payloadJsonSchema = Schema.fromJsonString(
@@ -544,7 +617,7 @@ export function makeContract<
     ),
   };
 
-  return {
+  return Object.assign(new Contract(), {
     commandName,
     payload,
     historicalDefinitions,
@@ -555,5 +628,5 @@ export function makeContract<
     program,
     version,
     spec,
-  };
+  });
 }

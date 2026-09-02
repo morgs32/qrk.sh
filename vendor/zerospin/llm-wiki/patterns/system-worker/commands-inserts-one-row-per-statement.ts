@@ -1,26 +1,26 @@
-import { Schema } from 'effect/Schema';
+import { Schema } from 'effect';
 
 /**
- * DO SQLite caps bound parameters at 100 — insert one command row per statement.
+ * DO SQLite caps bound parameters at 100 — insert one command occurrence per statement.
  *
- * @bad Bulk `insert().values([...])` with many executed command rows in one statement.
+ * @bad Bulk `insert().values([...])` with many terminal command occurrences in one statement.
  */
-export function insertExecutedCommands(props: {
+export function insertTerminalCommands(props: {
   tx: {
     insert: (table: unknown) => {
       values: (row: unknown) => { run: () => void };
     };
   };
-  commandDrizzleSchema: unknown;
-  executedCommands: readonly unknown[];
+  chainCommandsTable: unknown;
+  terminalCommands: readonly unknown[];
 }) {
-  const { tx, commandDrizzleSchema, executedCommands } = props;
+  const { chainCommandsTable, terminalCommands, tx } = props;
 
-  for (const executedCommand of executedCommands) {
-    tx.insert(commandDrizzleSchema)
-      .values(Schema.encodeSync(ExecutedCommandSchema)(executedCommand))
+  for (const terminalCommand of terminalCommands) {
+    tx.insert(chainCommandsTable)
+      .values(Schema.encodeSync(TerminalCommandSchema)(terminalCommand))
       .run();
   }
 }
 
-declare const ExecutedCommandSchema: unknown;
+declare const TerminalCommandSchema: unknown;

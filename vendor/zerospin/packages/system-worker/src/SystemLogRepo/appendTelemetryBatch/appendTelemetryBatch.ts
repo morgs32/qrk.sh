@@ -6,14 +6,14 @@
 
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { mapParseError, type IAnyError } from '@zerospin/error';
 import type { ITelemetryBatch } from '@zerospin/logger';
+import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
-import { systemLogRepoDrizzleSchemas } from '../SystemLogRepo.js';
+import { systemLogRepoDrizzleSchemas } from '../SystemLogRepoDbConfig.js';
 
 const maxTraces = 1000;
 
@@ -22,26 +22,16 @@ export const appendTelemetryBatch = Effect.fn(
 )(function* (props: {
   batch: ITelemetryBatch;
   db: IDb;
-  generationId: string;
   systemId: string;
 }): Effect.fn.Return<void, IAnyError> {
   const { batch, db } = props;
-  const systemId = yield* Schema.validate(
-    makeAbbreviationIdSchema(coreAbbreviations.system),
+  const systemId = yield* Schema.decodeUnknownEffect(
+    Schema.toType(makeAbbreviationIdSchema(coreAbbreviations.system)),
   )(props.systemId).pipe(
     mapParseError({
       code: 'failed-to-decode-telemetry-batch-system-id',
       prefix: 'Failed to decode SystemLogRepo telemetry systemId',
       extra: { systemId: props.systemId },
-    }),
-  );
-  const generationId = yield* Schema.validate(
-    makeAbbreviationIdSchema(coreAbbreviations.generation),
-  )(props.generationId).pipe(
-    mapParseError({
-      code: 'failed-to-decode-telemetry-batch-generation-id',
-      prefix: 'Failed to decode SystemLogRepo telemetry generationId',
-      extra: { generationId: props.generationId },
     }),
   );
   yield* makeTx({
@@ -58,15 +48,11 @@ export const appendTelemetryBatch = Effect.fn(
                 span.attributes === null
                   ? null
                   : Schema.encodeSync(
-                      Schema.parseJson(
-                        Schema.Record({
-                          key: Schema.String,
-                          value: Schema.Unknown,
-                        }),
+                      Schema.fromJsonString(
+                        Schema.Record(Schema.String, Schema.Unknown),
                       ),
                     )(span.attributes),
               systemId,
-              generationId,
             })
             .onConflictDoNothing()
             .run();
@@ -79,11 +65,10 @@ export const appendTelemetryBatch = Effect.fn(
               payload:
                 log.payload === null
                   ? null
-                  : Schema.encodeSync(Schema.parseJson(Schema.Unknown))(
+                  : Schema.encodeSync(Schema.fromJsonString(Schema.Unknown))(
                       log.payload,
                     ),
               systemId,
-              generationId,
             })
             .onConflictDoNothing()
             .run();
@@ -94,7 +79,6 @@ export const appendTelemetryBatch = Effect.fn(
             .values({
               ...link,
               systemId,
-              generationId,
             })
             .onConflictDoNothing()
             .run();

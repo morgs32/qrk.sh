@@ -22,20 +22,16 @@ const FunctionSchema = Schema.declare(
 
 export const ProcedureCallSchema: Schema.Schema<Readonly<ProcedureCall>> =
   Schema.suspend(() => {
-    return Schema.Tuple(
+    return Schema.Tuple([
       FunctionSchema, // function
-      Schema.optionalElement(
+      Schema.optionalKey(
         Schema.Struct({
-          args: Schema.optionalWith(Schema.Array(Schema.Unknown), {
-            exact: true,
-          }),
-          children: Schema.optionalWith(Schema.Array(ProcedureCallSchema), {
-            exact: true,
-          }),
-          results: Schema.optionalWith(Schema.Unknown, { exact: true }),
+          args: Schema.optionalKey(Schema.Array(Schema.Unknown)),
+          children: Schema.optionalKey(Schema.Array(ProcedureCallSchema)),
+          results: Schema.optionalKey(Schema.Unknown),
         }),
       ),
-    );
+    ]);
   });
 
 assert<Equals<typeof ProcedureCallSchema.Type, Readonly<ProcedureCall>>>();

@@ -1,24 +1,26 @@
-import { spawn } from 'node:child_process';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 
-import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
-import * as NodePath from '@effect/platform-node/NodePath';
+import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
+import * as NodePath from '@effect/platform-node-shared/NodePath';
 import type { Async } from '@zerospin/core/async/Async';
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { loadConfig } from 'c12';
 import { config as loadEnv } from 'dotenv';
-import { Effect, Layer, Schema } from 'effect';
+import { Effect, Layer, Schema, Stream } from 'effect';
+import {
+  ChildProcess,
+  type ChildProcessSpawner,
+} from 'effect/unstable/process';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
-import { loadSystemFn } from './loadSystemFn.js';
 import { loadZerospinConfigFn } from './loadZerospinConfigFn.js';
 
 const require = createRequire(import.meta.url);
@@ -30,7 +32,7 @@ const require = createRequire(import.meta.url);
  * the only deployment boundary, and all credentials belong to this project.
  */
 export const deployWranglerFn = Effect.fn('deployWranglerFn')(
-  function* (props: { clean: boolean }): Effect.fn.Return<
+  function* (): Effect.fn.Return<
     | Readonly<{
         status: 'keys-generated';
         envFilePath: string;
@@ -43,7 +45,7 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
         zerospinPublishableKey: string;
       }>,
     IAnyError,
-    Async
+    Async | ChildProcessSpawner.ChildProcessSpawner
   > {
     const cwd = process.cwd();
 
@@ -81,7 +83,7 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
         new ZerospinError({
           code: 'zerospin-wrangler-not-found',
           message:
-            'Could not resolve Wrangler from the current project. Install wrangler in the project before running zerospin deploy --wrangler.',
+            'Could not resolve Wrangler from the current project. Install wrangler in the project before running zerospin deploy.',
           cause: ZerospinError.prettyUnknownFailure(cause),
         }),
     });
@@ -124,7 +126,7 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
         message: 'wrangler.jsonc vars must contain ZEROSPIN_SYSTEM_ID.',
       });
     }
-    const systemId = yield* Schema.decodeUnknown(
+    const systemId = yield* Schema.decodeUnknownEffect(
       makeAbbreviationIdSchema(coreAbbreviations.system),
     )(Reflect.get(rawVars, 'ZEROSPIN_SYSTEM_ID')).pipe(
       Effect.mapError(
@@ -149,21 +151,6 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
           cause: ZerospinError.prettyUnknownFailure(cause),
         }),
     });
-    const systemPath = path.resolve(cwd, zerospinConfig.entry);
-    const emptySeedsPath = yield* Effect.try({
-      try: () =>
-        require.resolve(
-          path.join(path.dirname(productionWorkerPath), 'emptySeeds.js'),
-        ),
-      catch: cause =>
-        new ZerospinError({
-          code: 'zerospin-wrangler-empty-seeds-not-found',
-          message:
-            'Could not resolve the built-in empty seed module for production deployment.',
-          cause: ZerospinError.prettyUnknownFailure(cause),
-        }),
-    });
-
     const rawAlias = wranglerConfig['alias'];
     if (
       rawAlias !== undefined &&
@@ -175,135 +162,52 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
         message: 'wrangler.jsonc alias must be an object when present.',
       });
     }
-    const rawCompatibilityFlags = wranglerConfig['compatibility_flags'];
+    const rawExports = wranglerConfig['exports'];
     if (
-      rawCompatibilityFlags !== undefined &&
-      rawCompatibilityFlags !== null &&
-      (!Array.isArray(rawCompatibilityFlags) ||
-        rawCompatibilityFlags.some(flag => typeof flag !== 'string'))
+      rawExports === null ||
+      typeof rawExports !== 'object' ||
+      Array.isArray(rawExports)
+    ) {
+      return yield* new ZerospinError({
+        code: 'zerospin-wrangler-config-invalid',
+        message: 'wrangler.jsonc exports must declare the Durable Objects.',
+      });
+    }
+    const systemRepoExport = Reflect.get(rawExports, 'SystemRepo');
+    if (
+      systemRepoExport === null ||
+      typeof systemRepoExport !== 'object' ||
+      Array.isArray(systemRepoExport) ||
+      Reflect.get(systemRepoExport, 'type') !== 'durable-object' ||
+      Reflect.get(systemRepoExport, 'storage') !== 'sqlite'
     ) {
       return yield* new ZerospinError({
         code: 'zerospin-wrangler-config-invalid',
         message:
-          'wrangler.jsonc compatibility_flags must be an array of strings when present.',
+          'wrangler.jsonc exports.SystemRepo must be a live SQLite Durable Object.',
       });
     }
-    const compatibilityFlags = rawCompatibilityFlags ?? [];
-    if (compatibilityFlags.includes('disable_ctx_exports')) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-config-invalid',
-        message:
-          'wrangler.jsonc cannot disable ctx.exports because the production lifecycle uses it.',
-      });
-    }
-    const compatibilityFlagsWithoutCtxExports = compatibilityFlags.filter(
-      flag => flag !== 'enable_ctx_exports',
-    );
-    const rawCompatibilityDate = wranglerConfig['compatibility_date'];
-
-    const rawRules = wranglerConfig['rules'];
-    if (
-      rawRules !== undefined &&
-      rawRules !== null &&
-      !Array.isArray(rawRules)
-    ) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-config-invalid',
-        message: 'wrangler.jsonc rules must be an array when present.',
-      });
-    }
-    const rules = rawRules ?? [];
-    const textRule = rules.find(
-      rule =>
-        rule !== null &&
-        typeof rule === 'object' &&
-        !Array.isArray(rule) &&
-        Reflect.get(rule, 'type') === 'Text',
-    );
-    if (textRule !== undefined) {
-      const textRuleGlobs = Reflect.get(textRule, 'globs');
-      if (
-        !Array.isArray(textRuleGlobs) ||
-        textRuleGlobs.some(glob => typeof glob !== 'string')
-      ) {
-        return yield* new ZerospinError({
-          code: 'zerospin-wrangler-config-invalid',
-          message:
-            'wrangler.jsonc Text rules must contain a globs array of strings.',
-        });
-      }
-    }
-
-    const rawMigrations = wranglerConfig['migrations'];
-    if (
-      rawMigrations !== undefined &&
-      rawMigrations !== null &&
-      !Array.isArray(rawMigrations)
-    ) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-config-invalid',
-        message: 'wrangler.jsonc migrations must be an array when present.',
-      });
-    }
-    yield* loadSystemFn(
-      { ...zerospinConfig, environmentId: 'production' },
-      cwd,
-    ).pipe(
-      Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
-    );
-
     const generatedVars = { ...rawVars };
     Reflect.deleteProperty(generatedVars, 'CLERK_JWT_KEY');
     Reflect.deleteProperty(generatedVars, 'ZEROSPIN_API_URL');
-    Reflect.deleteProperty(generatedVars, 'ZEROSPIN_CLEAN_REQUEST_ID');
     Reflect.set(generatedVars, 'ZEROSPIN_SYSTEM_ID', systemId);
     Reflect.set(generatedVars, 'ZEROSPIN_ENVIRONMENT', 'production');
-    if (props.clean) {
-      Reflect.set(
-        generatedVars,
-        'ZEROSPIN_CLEAN_REQUEST_ID',
-        `cln_${randomUUID()}`,
-      );
-    }
+
+    const generatedAlias = { ...rawAlias };
+    Reflect.set(
+      generatedAlias,
+      'system',
+      path.resolve(cwd, zerospinConfig.entry),
+    );
 
     const generatedConfig = {
       ...wranglerConfig,
       main: productionWorkerPath,
-      alias: {
-        ...rawAlias,
-        system: systemPath,
-        seeds: emptySeedsPath,
-      },
-      compatibility_flags:
-        typeof rawCompatibilityDate === 'string' &&
-        rawCompatibilityDate < '2025-11-17'
-          ? [...compatibilityFlagsWithoutCtxExports, 'enable_ctx_exports']
-          : compatibilityFlagsWithoutCtxExports,
-      rules:
-        textRule === undefined
-          ? [
-              {
-                type: 'Text',
-                globs: ['**/*.sql'],
-                fallthrough: true,
-              },
-              ...rules,
-            ]
-          : rules.map(rule => {
-              if (rule !== textRule) return rule;
-              const textRuleGlobs = Reflect.get(textRule, 'globs');
-              return {
-                ...textRule,
-                globs: textRuleGlobs.includes('**/*.sql')
-                  ? textRuleGlobs
-                  : [...textRuleGlobs, '**/*.sql'],
-              };
-            }),
+      preview_urls: true,
+      alias: generatedAlias,
       vars: generatedVars,
-      version_metadata: {
-        binding: 'WORKER_VERSION_METADATA',
-      },
     };
+    Reflect.deleteProperty(generatedConfig, 'version_metadata');
 
     const tempDirectory = yield* Effect.tryPromise({
       try: () => fs.mkdtemp(path.join(os.tmpdir(), 'zerospin-wrangler-')),
@@ -366,171 +270,255 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
       Reflect.deleteProperty(wranglerEnvironment, 'ZEROSPIN_SECRET_KEY');
       Reflect.deleteProperty(wranglerEnvironment, 'CLERK_JWT_KEY');
 
-      return yield* Effect.async<
-        Readonly<{ output: string }>,
-        ZerospinError<string>
-      >((resume, abortSignal) => {
-        const child = spawn(
-          process.execPath,
-          [
-            wranglerBinPath,
-            'deploy',
-            '--config',
-            generatedConfigPath,
-            '--secrets-file',
-            secretsPath,
-          ],
-          {
-            cwd,
-            env: wranglerEnvironment,
-            stdio: ['inherit', 'pipe', 'pipe'],
-          },
-        );
-        let settled = false;
-        let output = '';
-
-        const onAbort = () => {
-          child.kill('SIGTERM');
-        };
-        abortSignal.addEventListener('abort', onAbort, { once: true });
-        child.stdout?.on('data', chunk => {
-          const text = String(chunk);
-          process.stdout.write(text);
-          output = `${output}${text}`.slice(-65_536);
-        });
-        child.stderr?.on('data', chunk => {
-          const text = String(chunk);
-          process.stderr.write(text);
-          output = `${output}${text}`.slice(-65_536);
-        });
-        child.once('error', cause => {
-          if (settled) return;
-          settled = true;
-          abortSignal.removeEventListener('abort', onAbort);
-          resume(
-            Effect.fail(
-              new ZerospinError({
-                code: 'zerospin-wrangler-start-failed',
-                message: 'Failed to start Wrangler for production deployment.',
-                cause: ZerospinError.prettyUnknownFailure(cause),
-              }),
-            ),
-          );
-        });
-        child.once('close', (code, signal) => {
-          if (settled) return;
-          settled = true;
-          abortSignal.removeEventListener('abort', onAbort);
-          if (signal !== null) {
-            resume(
-              Effect.fail(
+      const uploadResult = yield* Effect.scoped(
+        Effect.gen(function* () {
+          const wranglerProcess = yield* ChildProcess.make(
+            process.execPath,
+            [
+              wranglerBinPath,
+              'versions',
+              'upload',
+              '--config',
+              generatedConfigPath,
+              '--secrets-file',
+              secretsPath,
+            ],
+            {
+              cwd,
+              env: wranglerEnvironment,
+              stdin: 'inherit',
+              stdout: 'pipe',
+              stderr: 'pipe',
+            },
+          ).pipe(
+            Effect.mapError(
+              cause =>
                 new ZerospinError({
-                  code: 'zerospin-wrangler-signaled',
-                  message: `Wrangler exited from signal ${signal}.`,
-                }),
-              ),
-            );
-            return;
-          }
-          if (code !== 0) {
-            resume(
-              Effect.fail(
-                new ZerospinError({
-                  code: 'zerospin-wrangler-exited',
-                  message: `Wrangler exited with code ${code ?? 'unknown'}.`,
-                  cause: output.length === 0 ? undefined : output,
-                }),
-              ),
-            );
-            return;
-          }
-          resume(Effect.succeed({ output }));
-        });
-
-        return Effect.sync(() => {
-          abortSignal.removeEventListener('abort', onAbort);
-          if (!child.killed) child.kill('SIGTERM');
-        });
-      });
-    }).pipe(Effect.onInterrupt(() => removeTempDirectory.pipe(Effect.orDie)));
-
-    const deploymentResult = yield* deployment.pipe(Effect.either);
-    const cleanupResult = yield* removeTempDirectory.pipe(Effect.either);
-    if (deploymentResult._tag === 'Left') {
-      return yield* deploymentResult.left;
-    }
-    if (cleanupResult._tag === 'Left') {
-      return yield* cleanupResult.left;
-    }
-
-    const workerUrlMatch = deploymentResult.right.output.match(
-      /https:\/\/[A-Za-z0-9.-]+\.workers\.dev/,
-    );
-    const workerUrl = workerUrlMatch?.[0];
-    if (workerUrl === undefined) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-worker-url-missing',
-        message:
-          'Wrangler deployed successfully but did not report a workers.dev URL.',
-        cause: deploymentResult.right.output,
-      });
-    }
-
-    let lastFailure: IAnyError | null = null;
-    for (let attempt = 1; attempt <= 60; attempt += 1) {
-      const readiness = yield* Effect.gen(function* () {
-        const encoded = yield* Effect.tryPromise({
-          try: async () => {
-            using gatewayApi = newSyncRpcSession<GatewayApi>(workerUrl);
-            return await gatewayApi.getProductionDeployApi().getReadiness();
-          },
-          catch: cause =>
-            ZerospinError.isZerospinError(cause)
-              ? cause
-              : new ZerospinError({
-                  code: 'zerospin-wrangler-readiness-transport-failed',
+                  code: 'zerospin-wrangler-start-failed',
                   message:
-                    "Failed to request Production Worker readiness over Cap'n Web.",
+                    'Failed to start Wrangler for the production version upload.',
                   cause: ZerospinError.prettyUnknownFailure(cause),
                 }),
-        });
-        yield* decodeRpc(encoded);
-      }).pipe(Effect.either);
-      if (readiness._tag === 'Right') {
-        lastFailure = null;
-        break;
-      }
+            ),
+          );
 
-      lastFailure = readiness.left;
-      if (
-        readiness.left.code !==
-          'zerospin-wrangler-readiness-transport-failed' &&
-        readiness.left.code !== 'failed-to-get-readiness-rpc' &&
-        readiness.left.code !== 'system-deploy-activating' &&
-        readiness.left.code !== 'system-worker-not-active'
-      ) {
-        return yield* readiness.left;
+          let output = '';
+          const [exitCode] = yield* Effect.all(
+            [
+              wranglerProcess.exitCode.pipe(
+                Effect.mapError(
+                  cause =>
+                    new ZerospinError({
+                      code: 'zerospin-wrangler-signaled',
+                      message: 'Wrangler exited before returning an exit code.',
+                      cause: ZerospinError.prettyUnknownFailure(cause),
+                    }),
+                ),
+              ),
+              wranglerProcess.stdout.pipe(
+                Stream.decodeText(),
+                Stream.runForEach(text =>
+                  Effect.sync(() => {
+                    process.stdout.write(text);
+                    output = `${output}${text}`.slice(-65_536);
+                  }),
+                ),
+              ),
+              wranglerProcess.stderr.pipe(
+                Stream.decodeText(),
+                Stream.runForEach(text =>
+                  Effect.sync(() => {
+                    process.stderr.write(text);
+                    output = `${output}${text}`.slice(-65_536);
+                  }),
+                ),
+              ),
+            ],
+            { concurrency: 'unbounded' },
+          ).pipe(
+            Effect.mapError(cause =>
+              ZerospinError.isZerospinError(cause)
+                ? cause
+                : new ZerospinError({
+                    code: 'zerospin-wrangler-signaled',
+                    message: 'Failed to read Wrangler process output.',
+                    cause: ZerospinError.prettyUnknownFailure(cause),
+                  }),
+            ),
+          );
+
+          if (exitCode !== 0) {
+            return yield* new ZerospinError({
+              code: 'zerospin-wrangler-exited',
+              message: `Wrangler version upload exited with code ${exitCode}.`,
+              cause: output.length === 0 ? undefined : output,
+            });
+          }
+          return { output };
+        }),
+      );
+
+      const versionId = uploadResult.output.match(
+        /Worker Version ID:\s*([0-9a-f-]{36})/i,
+      )?.[1];
+      const previewUrl = uploadResult.output.match(
+        /Version Preview URL:\s*(https:\/\/\S+)/,
+      )?.[1];
+      if (versionId === undefined || previewUrl === undefined) {
+        return yield* new ZerospinError({
+          code: 'zerospin-wrangler-version-output-missing',
+          message:
+            'Wrangler uploaded the Worker but did not report its version ID and preview URL.',
+          cause: uploadResult.output,
+        });
       }
-      if (attempt < 60) {
-        yield* Effect.sleep(1_000);
-      }
-    }
-    if (lastFailure !== null) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-worker-not-ready',
-        message:
-          'The production Zerospin Worker did not pass its deployment readiness gate.',
-        cause: lastFailure.toString(),
-        extra: {
-          workerUrl,
-          lastFailure: Schema.encodeSync(ZerospinError.schema)(lastFailure),
-        },
+      const preview = yield* Effect.try({
+        try: () => new URL(previewUrl),
+        catch: cause =>
+          new ZerospinError({
+            code: 'zerospin-wrangler-preview-url-invalid',
+            message: 'Wrangler reported an invalid Worker preview URL.',
+            cause: ZerospinError.prettyUnknownFailure(cause),
+          }),
       });
+      const workerHostname = preview.hostname.replace(/^[0-9a-f]{8}-/i, '');
+      if (workerHostname === preview.hostname) {
+        return yield* new ZerospinError({
+          code: 'zerospin-wrangler-preview-url-invalid',
+          message:
+            'Wrangler preview URL did not contain the expected version-qualified Worker hostname.',
+          cause: previewUrl,
+        });
+      }
+      const workerUrl = `${preview.protocol}//${workerHostname}`;
+
+      const deployResult = yield* Effect.scoped(
+        Effect.gen(function* () {
+          const wranglerProcess = yield* ChildProcess.make(
+            process.execPath,
+            [
+              wranglerBinPath,
+              'versions',
+              'deploy',
+              `${versionId}@100%`,
+              '--yes',
+              '--config',
+              generatedConfigPath,
+            ],
+            {
+              cwd,
+              env: wranglerEnvironment,
+              stdin: 'inherit',
+              stdout: 'pipe',
+              stderr: 'pipe',
+            },
+          ).pipe(
+            Effect.mapError(
+              cause =>
+                new ZerospinError({
+                  code: 'zerospin-wrangler-start-failed',
+                  message:
+                    'Failed to start Wrangler for production version deployment.',
+                  cause: ZerospinError.prettyUnknownFailure(cause),
+                }),
+            ),
+          );
+
+          let output = '';
+          const [exitCode] = yield* Effect.all(
+            [
+              wranglerProcess.exitCode.pipe(
+                Effect.mapError(
+                  cause =>
+                    new ZerospinError({
+                      code: 'zerospin-wrangler-signaled',
+                      message: 'Wrangler exited before returning an exit code.',
+                      cause: ZerospinError.prettyUnknownFailure(cause),
+                    }),
+                ),
+              ),
+              wranglerProcess.stdout.pipe(
+                Stream.decodeText(),
+                Stream.runForEach(text =>
+                  Effect.sync(() => {
+                    process.stdout.write(text);
+                    output = `${output}${text}`.slice(-65_536);
+                  }),
+                ),
+              ),
+              wranglerProcess.stderr.pipe(
+                Stream.decodeText(),
+                Stream.runForEach(text =>
+                  Effect.sync(() => {
+                    process.stderr.write(text);
+                    output = `${output}${text}`.slice(-65_536);
+                  }),
+                ),
+              ),
+            ],
+            { concurrency: 'unbounded' },
+          ).pipe(
+            Effect.mapError(cause =>
+              ZerospinError.isZerospinError(cause)
+                ? cause
+                : new ZerospinError({
+                    code: 'zerospin-wrangler-signaled',
+                    message: 'Failed to read Wrangler process output.',
+                    cause: ZerospinError.prettyUnknownFailure(cause),
+                  }),
+            ),
+          );
+
+          if (exitCode !== 0) {
+            return yield* new ZerospinError({
+              code: 'zerospin-wrangler-exited',
+              message: `Wrangler version deployment exited with code ${exitCode}.`,
+              cause: output.length === 0 ? undefined : output,
+            });
+          }
+          return { output };
+        }),
+      );
+
+      yield* Effect.tryPromise({
+        try: async () => {
+          for (const apiUrl of [previewUrl, workerUrl]) {
+            using gatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
+            const systemApi = gatewayApi.getSystemApi({
+              zerospinSecretKey: configuredSecretKey,
+            });
+            const healthcheckResponse = await systemApi.healthcheck({
+              traceContext: null,
+              args: [],
+            });
+            await Effect.runPromise(decodeRpc(healthcheckResponse.result));
+          }
+        },
+        catch: cause =>
+          ZerospinError.isZerospinError(cause)
+            ? cause
+            : new ZerospinError({
+                code: 'zerospin-deployment-readiness-failed',
+                message: 'The deployed Worker did not prove readiness.',
+                cause: ZerospinError.prettyUnknownFailure(cause),
+              }),
+      });
+
+      return { workerUrl, output: deployResult.output };
+    }).pipe(Effect.onInterrupt(() => removeTempDirectory.pipe(Effect.orDie)));
+
+    const deploymentResult = yield* deployment.pipe(Effect.result);
+    const cleanupResult = yield* removeTempDirectory.pipe(Effect.result);
+    if (deploymentResult._tag === 'Failure') {
+      return yield* deploymentResult.failure;
+    }
+    if (cleanupResult._tag === 'Failure') {
+      return yield* cleanupResult.failure;
     }
 
     return {
       status: 'deployed',
-      workerUrl,
+      workerUrl: deploymentResult.success.workerUrl,
       zerospinPublishableKey: configuredPublishableKey,
     };
   },

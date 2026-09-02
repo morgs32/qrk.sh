@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Effect, Result } from 'effect';
 
 /**
  * Put the standard three-attempt schedule in the Durable Object coordinator.
@@ -49,11 +49,11 @@ export const drainDeliveryOutbox = Effect.fn('LedgerRepo.drainDeliveryOutbox')(
                     Effect.flatMap(decodeRpc),
                   ),
                 )
-                .pipe(Effect.either);
-              if (delivered._tag === 'Left') {
+                .pipe(Effect.result);
+              if (Result.isFailure(delivered)) {
                 props.outbox.recordDiagnostic({
                   id: pending.id,
-                  failure: delivered.left.message,
+                  failure: delivered.failure.message,
                 });
                 return;
               }

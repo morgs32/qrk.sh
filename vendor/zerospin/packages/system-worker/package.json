@@ -7,46 +7,10 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./src/SystemWorker.ts",
-      "workerd": "./src/SystemWorker.ts",
-      "import": "./src/SystemWorker.ts",
-      "default": "./src/SystemWorker.ts"
-    },
-    "./ApiKeyIdentityResolver": {
-      "types": "./src/ApiKeyIdentityResolver/ApiKeyIdentityResolver.ts",
-      "workerd": "./src/ApiKeyIdentityResolver/ApiKeyIdentityResolver.ts",
-      "import": "./src/ApiKeyIdentityResolver/ApiKeyIdentityResolver.ts",
-      "default": "./src/ApiKeyIdentityResolver/ApiKeyIdentityResolver.ts"
-    },
-    "./ApiKeyIdentityResolver/ApiKeyIdentityResolver": {
-      "types": "./src/ApiKeyIdentityResolver/ApiKeyIdentityResolver.ts",
-      "workerd": "./src/ApiKeyIdentityResolver/ApiKeyIdentityResolver.ts",
-      "import": "./src/ApiKeyIdentityResolver/ApiKeyIdentityResolver.ts",
-      "default": "./src/ApiKeyIdentityResolver/ApiKeyIdentityResolver.ts"
-    },
-    "./SystemWorkerResolver": {
-      "types": "./src/SystemWorkerResolver/SystemWorkerResolver.ts",
-      "workerd": "./src/SystemWorkerResolver/SystemWorkerResolver.ts",
-      "import": "./src/SystemWorkerResolver/SystemWorkerResolver.ts",
-      "default": "./src/SystemWorkerResolver/SystemWorkerResolver.ts"
-    },
-    "./SystemWorkerResolver/SystemWorkerResolver": {
-      "types": "./src/SystemWorkerResolver/SystemWorkerResolver.ts",
-      "workerd": "./src/SystemWorkerResolver/SystemWorkerResolver.ts",
-      "import": "./src/SystemWorkerResolver/SystemWorkerResolver.ts",
-      "default": "./src/SystemWorkerResolver/SystemWorkerResolver.ts"
-    },
-    "./WorkerExportsSystemWorkerResolver": {
-      "types": "./src/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.ts",
-      "workerd": "./src/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.ts",
-      "import": "./src/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.ts",
-      "default": "./src/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.ts"
-    },
-    "./SystemWorkerResolver/WorkerExportsSystemWorkerResolver": {
-      "types": "./src/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.ts",
-      "workerd": "./src/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.ts",
-      "import": "./src/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.ts",
-      "default": "./src/SystemWorkerResolver/WorkerExportsSystemWorkerResolver.ts"
+      "types": "./src/index.ts",
+      "workerd": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./GatewayApi": {
       "types": "./src/GatewayApi/GatewayApi.ts",
@@ -59,60 +23,6 @@
       "workerd": "./src/GatewayApi/GatewayApi.ts",
       "import": "./src/GatewayApi/GatewayApi.ts",
       "default": "./src/GatewayApi/GatewayApi.ts"
-    },
-    "./AuthenticatedApi": {
-      "types": "./src/AuthenticatedApi/AuthenticatedApi.ts",
-      "workerd": "./src/AuthenticatedApi/AuthenticatedApi.ts",
-      "import": "./src/AuthenticatedApi/AuthenticatedApi.ts",
-      "default": "./src/AuthenticatedApi/AuthenticatedApi.ts"
-    },
-    "./AuthenticatedApi/AuthenticatedApi": {
-      "types": "./src/AuthenticatedApi/AuthenticatedApi.ts",
-      "workerd": "./src/AuthenticatedApi/AuthenticatedApi.ts",
-      "import": "./src/AuthenticatedApi/AuthenticatedApi.ts",
-      "default": "./src/AuthenticatedApi/AuthenticatedApi.ts"
-    },
-    "./AuthenticatedApi/AuthenticatedApiFailure": {
-      "types": "./src/AuthenticatedApi/AuthenticatedApiFailure/AuthenticatedApiFailure.ts",
-      "workerd": "./src/AuthenticatedApi/AuthenticatedApiFailure/AuthenticatedApiFailure.ts",
-      "import": "./src/AuthenticatedApi/AuthenticatedApiFailure/AuthenticatedApiFailure.ts",
-      "default": "./src/AuthenticatedApi/AuthenticatedApiFailure/AuthenticatedApiFailure.ts"
-    },
-    "./DevDeployApi": {
-      "types": "./src/DevDeployApi/DevDeployApi.ts",
-      "workerd": "./src/DevDeployApi/DevDeployApi.ts",
-      "import": "./src/DevDeployApi/DevDeployApi.ts",
-      "default": "./src/DevDeployApi/DevDeployApi.ts"
-    },
-    "./DevDeployApi/DevDeployApi": {
-      "types": "./src/DevDeployApi/DevDeployApi.ts",
-      "workerd": "./src/DevDeployApi/DevDeployApi.ts",
-      "import": "./src/DevDeployApi/DevDeployApi.ts",
-      "default": "./src/DevDeployApi/DevDeployApi.ts"
-    },
-    "./DevDeployApi/DevDeployApiFailure": {
-      "types": "./src/DevDeployApi/DevDeployApiFailure/DevDeployApiFailure.ts",
-      "workerd": "./src/DevDeployApi/DevDeployApiFailure/DevDeployApiFailure.ts",
-      "import": "./src/DevDeployApi/DevDeployApiFailure/DevDeployApiFailure.ts",
-      "default": "./src/DevDeployApi/DevDeployApiFailure/DevDeployApiFailure.ts"
-    },
-    "./ProductionDeployApi": {
-      "types": "./src/ProductionDeployApi/ProductionDeployApi.ts",
-      "workerd": "./src/ProductionDeployApi/ProductionDeployApi.ts",
-      "import": "./src/ProductionDeployApi/ProductionDeployApi.ts",
-      "default": "./src/ProductionDeployApi/ProductionDeployApi.ts"
-    },
-    "./ProductionDeployApi/ProductionDeployApi": {
-      "types": "./src/ProductionDeployApi/ProductionDeployApi.ts",
-      "workerd": "./src/ProductionDeployApi/ProductionDeployApi.ts",
-      "import": "./src/ProductionDeployApi/ProductionDeployApi.ts",
-      "default": "./src/ProductionDeployApi/ProductionDeployApi.ts"
-    },
-    "./ProductionDeployApi/ProductionDeployApiFailure": {
-      "types": "./src/ProductionDeployApi/ProductionDeployApiFailure/ProductionDeployApiFailure.ts",
-      "workerd": "./src/ProductionDeployApi/ProductionDeployApiFailure/ProductionDeployApiFailure.ts",
-      "import": "./src/ProductionDeployApi/ProductionDeployApiFailure/ProductionDeployApiFailure.ts",
-      "default": "./src/ProductionDeployApi/ProductionDeployApiFailure/ProductionDeployApiFailure.ts"
     },
     "./SystemApi": {
       "types": "./src/SystemApi/SystemApi.ts",
@@ -174,17 +84,17 @@
       "import": "./src/makeSystemRuntime.ts",
       "default": "./src/makeSystemRuntime.ts"
     },
-    "./makeBoundDORepo/makeBoundDORepo": {
-      "types": "./src/makeBoundDORepo/makeBoundDORepo.ts",
-      "workerd": "./src/makeBoundDORepo/makeBoundDORepo.ts",
-      "import": "./src/makeBoundDORepo/makeBoundDORepo.ts",
-      "default": "./src/makeBoundDORepo/makeBoundDORepo.ts"
+    "./makeFixedDORepo/makeFixedDORepo": {
+      "types": "./src/makeFixedDORepo/makeFixedDORepo.ts",
+      "workerd": "./src/makeFixedDORepo/makeFixedDORepo.ts",
+      "import": "./src/makeFixedDORepo/makeFixedDORepo.ts",
+      "default": "./src/makeFixedDORepo/makeFixedDORepo.ts"
     },
-    "./makeBoundDORepo/makeBoundDORepoConfig": {
-      "types": "./src/makeBoundDORepo/makeBoundDORepoConfig.ts",
-      "workerd": "./src/makeBoundDORepo/makeBoundDORepoConfig.ts",
-      "import": "./src/makeBoundDORepo/makeBoundDORepoConfig.ts",
-      "default": "./src/makeBoundDORepo/makeBoundDORepoConfig.ts"
+    "./makeFixedDORepo/makeFixedDORepoConfig": {
+      "types": "./src/makeFixedDORepo/makeFixedDORepoConfig.ts",
+      "workerd": "./src/makeFixedDORepo/makeFixedDORepoConfig.ts",
+      "import": "./src/makeFixedDORepo/makeFixedDORepoConfig.ts",
+      "default": "./src/makeFixedDORepo/makeFixedDORepoConfig.ts"
     }
   },
   "scripts": {
@@ -194,11 +104,10 @@
     "test": "vitest run --config vitest.node.config.ts",
     "test:workerd": "vitest run --config vitest.workerd.config.ts",
     "test:watch": "vitest --config vitest.node.config.ts",
-    "types": "wrangler types -c ./wrangler.jsonc",
+    "types": "wrangler types -c ./wrangler.jsonc --include-env=false",
     "lint": "oxlint . --format stylish"
   },
   "dependencies": {
-    "@effect/platform": "^0.96.1",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/core": "^2.7.1",
     "@opentelemetry/sdk-trace-node": "^2.7.1",
@@ -206,12 +115,14 @@
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
     "@zerospin/logger": "workspace:*",
+    "@zerospin/schema": "workspace:*",
     "agents": "^0.17.0",
-    "capnweb": "^0.7.0",
+    "capnweb": "^0.12.0",
     "cloudflare": "^6.1.0",
     "dotenv": "^17.4.2",
-    "drizzle-orm": "1.0.0-beta.17-67b1795",
-    "effect": "^3.21.4",
+    "drizzle-orm": "1.0.0-rc.4",
+    "effect": "rc",
+    "epluribus-machina": "workspace:*",
     "es-toolkit": "^1.46.1",
     "partyserver": "^0.5.8",
     "solid-js": "^1.9.12",
@@ -220,10 +131,10 @@
     "tsafe": "^1.8.12"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.3",
-    "@effect/language-service": "^0.85.1",
-    "@effect/opentelemetry": "^0.63.0",
-    "@effect/vitest": "^0.29.0",
+    "@cloudflare/vitest-plugin": "^1.1.2",
+    "@effect/language-service": "^0.87.2",
+    "@effect/opentelemetry": "rc",
+    "@effect/vitest": "rc",
     "@opentelemetry/sdk-logs": "^0.217.0",
     "@opentelemetry/sdk-metrics": "^2.7.1",
     "@opentelemetry/sdk-trace-base": "^2.7.1",
@@ -243,15 +154,15 @@
     "tsx": "^4.21.0",
     "vite": "^8.0.11",
     "vitest": "^4.1.5",
-    "wrangler": "^4.90.0"
+    "wrangler": "^4.127.1"
   },
   "peerDependencies": {
-    "@effect/opentelemetry": "^0.48.4",
+    "@effect/opentelemetry": "^4.0.0-rc.111",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/core": "^2.1.0",
     "@opentelemetry/sdk-trace-base": "^2.0.1",
     "@opentelemetry/sdk-trace-node": "^2.0.1",
-    "effect": "^3.17.11",
+    "effect": "^4.0.0-rc.111",
     "react": ">=18",
     "react-dom": ">=18",
     "solid-js": ">=1.9.7"

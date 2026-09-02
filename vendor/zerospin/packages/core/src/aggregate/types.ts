@@ -1,8 +1,10 @@
 import type { IAnyError } from '@zerospin/error';
+import type { CuidFactory } from '@zerospin/schema';
 import type { Effect, Schema } from 'effect';
 
 import type {
   IAggregateCommand,
+  IAnyMutation,
   ICommand,
   IContracts,
   IOperationName,
@@ -20,13 +22,6 @@ import type {
   InferPayloadInput,
 } from '../models/types.ts';
 import type { IAnyServiceQuery } from '../service/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
-
-export type IUserRef<USER_ID extends string = string> = Readonly<{
-  aggregateName: string;
-  aggregateId: IAggregateId;
-  userId: USER_ID;
-}>;
 
 export type IAggregate<
   NAME extends string = string,
@@ -38,8 +33,8 @@ export type IAggregate<
       Record<
         IOperationName,
         readonly {
-          source: Schema.Schema.AnyNoContext;
-          destination: Schema.Schema.AnyNoContext | null;
+          source: Schema.Codec<IAnyMutation, unknown>;
+          destination: Schema.Codec<IAnyMutation, unknown> | null;
           adapter?: unknown;
         }[]
       >
@@ -50,8 +45,8 @@ export type IAggregate<
       Record<
         IOperationName,
         readonly {
-          source: Schema.Schema.AnyNoContext;
-          destination: Schema.Schema.AnyNoContext | null;
+          source: Schema.Codec<IAnyMutation, unknown>;
+          destination: Schema.Codec<IAnyMutation, unknown> | null;
           adapter?: unknown;
         }[]
       >
@@ -110,8 +105,8 @@ export type IAnyAggregate = {
           Record<
             IOperationName,
             readonly {
-              source: Schema.Schema.AnyNoContext;
-              destination: Schema.Schema.AnyNoContext | null;
+              source: Schema.Codec<IAnyMutation, unknown>;
+              destination: Schema.Codec<IAnyMutation, unknown> | null;
               adapter?: unknown;
             }[]
           >

@@ -7,15 +7,15 @@ import { describe, expect } from 'vitest';
 import { List, mainModels, User } from '../fixtures/system.ts';
 
 import { makeResourceDbConfig } from './makeDbConfig.ts';
-import { makeMigratedInMemorySqljsDb } from './makeMigratedInMemorySqljsDb.ts';
+import { makeProvisionedInMemorySqljsDb } from './makeProvisionedInMemorySqljsDb.ts';
 
 const testUserId = 'usr_testsqljsadapter01' as const;
 
 describe('makeInMemorySqljsDb', () => {
-  it.effect('migrates and supports sync run/get APIs', () =>
+  it.effect('provisions and supports sync run/get APIs', () =>
     Effect.gen(function* () {
       const dbConfig = makeResourceDbConfig({ models: mainModels });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig });
+      const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
       const now = new Date('2020-01-01T00:00:00.000Z');
 
@@ -25,7 +25,7 @@ describe('makeInMemorySqljsDb', () => {
 
       expect(() =>
         db
-          .insert(List.drizzleSchema)
+          .insert(dbConfig.schema.list)
           .values({
             id: 'lst_testsqljsorphan01',
             modelName: List.modelName,
@@ -36,9 +36,9 @@ describe('makeInMemorySqljsDb', () => {
             userId: 'usr_testsqljsmissing1',
           })
           .run(),
-      ).toThrow(/foreign key constraint failed/i);
+      ).toThrow('Failed query:');
 
-      db.insert(User.drizzleSchema)
+      db.insert(dbConfig.schema.user)
         .values({
           id: testUserId,
           modelName: User.modelName,
@@ -51,8 +51,8 @@ describe('makeInMemorySqljsDb', () => {
 
       const row = db
         .select()
-        .from(User.drizzleSchema)
-        .where(eq(User.drizzleSchema.id, testUserId))
+        .from(dbConfig.schema.user)
+        .where(eq(dbConfig.schema.user.id, testUserId))
         .get();
 
       expect(row).toEqual({

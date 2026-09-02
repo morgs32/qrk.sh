@@ -4,51 +4,47 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 ## system-worker
 
-| Keywords                                                                                                  | File                                                                      |
-| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| makeCursor, coreAbbreviations, cursor cast                                                                | `system-worker/make-cursor-core-abbreviations.ts`                         |
-| DO KV cursor, UndefinedOr, NullOr, bootstrap absence                                                      | `system-worker/do-kv-optional-cursor-reads.ts`                            |
-| storage.sql guard, SQLite DO, makeDurableDb                                                               | `system-worker/no-storage-sql-guard-on-sqlite-do.ts`                      |
-| systemModels, merge contracts, aggregate boundaries                                                       | `system-worker/never-merge-models-or-contracts.ts`                        |
-| AggregateBlockRepo history pull, AggregateFrontendRepo catch-up, frozen projection rejection, live fanout | `system-worker/direct-aggregate-frontend-fanout.ts`                       |
-| makeFanoutQueue, subscriber order, 100 concurrency, failure isolation                                     | `system-worker/fanout-retry-behavior-in-apply-fanout-batch-in-tx.ts`      |
-| makeDeliveryQueue, default retry, outbox diagnostic, no retry counters                                    | `system-worker/effect-retry-no-persisted-counters.ts`                     |
-| aggregate.contracts, contract lookup                                                                      | `system-worker/aggregate-repo-contract-lookup.ts`                         |
-| Effect.partition, batch finalization                                                                      | `system-worker/effect-partition-batch-finalization.ts`                    |
-| AggregateRepo finalization, outbox, AggregateBlockRepo publish                                            | `system-worker/aggregate-repo-finalization-fanout.ts`                     |
-| command payloads, blocks, sync, websocket                                                                 | `system-worker/preserve-command-payloads-across-blocks.ts`                |
-| repo DB init, table graph, makeDbConfig                                                                   | `system-worker/repo-db-init-merged-schema.ts`                             |
-| makeBoundDORepoConfig, getDbConfig, contextual callbacks                                                  | `system-worker/make-bound-do-repo-config-contextual-callbacks.ts`         |
-| repo abbreviation, persisted \*RepoName, delivery                                                         | `system-worker/persist-prefixed-repo-name-delivery.ts`                    |
-| makeAsync, decodeRpc, EitherEncoded inference                                                             | `system-worker/makeasync-infer-rpc-success.ts`                            |
-| commands insert, SQL variables limit                                                                      | `system-worker/commands-inserts-one-row-per-statement.ts`                 |
-| SYSTEM_REPO, SystemRepo.getRepo, systemId, generationId                                                   | `system-worker/system-repo-lookup-ownership.ts`                           |
-| vitest node workerd, spec suffix                                                                          | `system-worker/vitest-runtime-boundaries.ts`                              |
-| SystemWorker thin, Api validation                                                                         | `system-worker/system-worker-stays-thin-after-api-validation.ts`          |
-| get\*Repo helper, boundDORepoConfig statics                                                               | `system-worker/use-bound-do-repo-config-static-access.ts`                 |
-| inline non-public repo helper                                                                             | `system-worker/inline-small-repo-logic-into-do-method.ts`                 |
-| Repo JSDoc, architecture sync                                                                             | `system-worker/repo-and-api-jsdoc-in-sync.ts`                             |
-| AggregateFrontendRepo push, pushed block, admission cursor, stale guard revalidation                      | `system-worker/aggregate-frontend-repo-owned-push.ts`                     |
-| AggregateFrontendRepo selection, source replica, projection, canonical block                              | `system-worker/aggregate-frontend-repo-owned-selection-and-projection.ts` |
-| makeTx program, Effect.fn transaction                                                                     | `system-worker/maketx-program-effect-fn.ts`                               |
-| makeTx atomic writes, single statement write                                                              | `system-worker/maketx-only-for-atomic-multi-statement-writes.ts`          |
-| Effect.sync drizzle, sync db query, tx.select                                                             | `tooling/sync-drizzle-no-effect-sync.ts`                                  |
-| read-only Drizzle, makeTx                                                                                 | `system-worker/read-only-drizzle-on-db-not-maketx.ts`                     |
-| Drizzle table alias single use                                                                            | `system-worker/no-const-alias-single-use-drizzle-table.ts`                |
+| Keywords                                                                                         | File                                                                     |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| storage.sql guard, SQLite DO, makeDurableDb                                                      | `system-worker/no-storage-sql-guard-on-sqlite-do.ts`                     |
+| systemModels, merge contracts, aggregate boundaries                                              | `system-worker/never-merge-models-or-contracts.ts`                       |
+| command chain history pull, materialized Repo catch-up, subscriber acknowledgement, anti-entropy | `system-worker/command-chain-subscriber-anti-entropy.ts`                 |
+| makeDeliveryQueue, default retry, outbox diagnostic, no retry counters                           | `system-worker/effect-retry-no-persisted-counters.ts`                    |
+| materialized aggregate, aggregate.contracts, contract lookup                                     | `system-worker/materialized-aggregate-repo-contract-lookup.ts`           |
+| command chain admission, materialized Repo execution, terminal history, subscriber fanout        | `system-worker/aggregate-command-chain-materialization.ts`               |
+| complete command occurrence, chain, outbox, RPC, websocket, replica journal                      | `system-worker/preserve-command-payloads-across-chains.ts`               |
+| repo DB init, table graph, makeDbConfig                                                          | `system-worker/repo-db-init-merged-schema.ts`                            |
+| makeFixedDORepoConfig, getDbConfig, contextual callbacks                                         | `system-worker/make-fixed-do-repo-config-contextual-callbacks.ts`        |
+| repo abbreviation, persisted \*RepoName, delivery                                                | `system-worker/persist-prefixed-repo-name-delivery.ts`                   |
+| makeAsync, decodeRpc, IEncodedResult inference                                                   | `system-worker/makeasync-infer-rpc-success.ts`                           |
+| commands insert, SQL variables limit                                                             | `system-worker/commands-inserts-one-row-per-statement.ts`                |
+| SYSTEM_REPO, SystemRepo.getRepo, systemId, singleton                                             | `system-worker/system-repo-lookup-ownership.ts`                          |
+| vitest node workerd, spec suffix                                                                 | `system-worker/vitest-runtime-boundaries.ts`                             |
+| get\*Repo helper, fixedDORepoConfig statics                                                      | `system-worker/use-fixed-do-repo-config-static-access.ts`                |
+| inline non-public repo helper                                                                    | `system-worker/inline-small-repo-logic-into-do-method.ts`                |
+| Repo JSDoc, architecture sync                                                                    | `system-worker/repo-and-api-jsdoc-in-sync.ts`                            |
+| MaterializedAggregateFrontendRepo push, optimistic journal, aggregate forwarding                 | `system-worker/materialized-aggregate-frontend-repo-owned-push.ts`       |
+| MaterializedAggregateFrontendRepo selection, source replica, projection, optimistic replay       | `system-worker/materialized-aggregate-frontend-repo-owned-projection.ts` |
+| makeTx program, Effect.fn transaction                                                            | `system-worker/maketx-program-effect-fn.ts`                              |
+| makeTx atomic writes, single statement write                                                     | `system-worker/maketx-only-for-atomic-multi-statement-writes.ts`         |
+| Effect.sync drizzle, sync db query, tx.select                                                    | `tooling/sync-drizzle-no-effect-sync.ts`                                 |
+| read-only Drizzle, makeTx                                                                        | `system-worker/read-only-drizzle-on-db-not-maketx.ts`                    |
+| Drizzle table alias single use                                                                   | `system-worker/no-const-alias-single-use-drizzle-table.ts`               |
 
 ## rpc
 
-| Keywords                                                  | File                               |
-| --------------------------------------------------------- | ---------------------------------- |
-| RpcTarget method folders, same-named Effect.fn, Api, Repo | `rpc/rpc-target-method-folders.ts` |
+| Keywords                                                                                                                      | File                                  |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| RpcTarget method folders, same-named Effect.fn, Api, Repo                                                                     | `rpc/rpc-target-method-folders.ts`    |
+| IEncodedResult, Success, Failure, RpcResultSchema, encodeRpc, decodeRpc, domain failure, Promise rejection, transport failure | `rpc/encoded-result-wire-boundary.ts` |
 
 ## apis
 
-| Keywords                       | File                                                |
-| ------------------------------ | --------------------------------------------------- |
-| Schema.validate trust boundary | `apis/validate-at-boundary.ts`                      |
-| *Api not *Repo validation      | `apis/trust-boundary-validation-in-api-not-repo.ts` |
-| \*Api JSDoc architecture       | `apis/api-gateway-jsdoc-in-sync.ts`                 |
+| Keywords                                                                | File                                                |
+| ----------------------------------------------------------------------- | --------------------------------------------------- |
+| Schema.decodeUnknownEffect trust boundary                               | `apis/validate-at-boundary.ts`                      |
+| \*Api validation, direct System Worker Effects, no ctx.exports loopback | `apis/trust-boundary-validation-in-api-not-repo.ts` |
+| \*Api JSDoc architecture                                                | `apis/api-gateway-jsdoc-in-sync.ts`                 |
 
 ## contracts
 
@@ -63,37 +59,37 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 ## models
 
-| Keywords                                      | File                                  |
-| --------------------------------------------- | ------------------------------------- |
-| historical model, adaptResource, down, direct | `models/model-history-adapts-down.ts` |
+| Keywords                                                                       | File                                        |
+| ------------------------------------------------------------------------------ | ------------------------------------------- |
+| historical model, adaptResource, down, direct                                  | `models/model-history-adapts-down.ts`       |
+| makeReplica, authoritative service model, aggregate replica, replica tombstone | `models/authoritative-model-and-replica.ts` |
 
 ## react
 
-| Keywords                                                     | File                                        |
-| ------------------------------------------------------------ | ------------------------------------------- |
-| stageCommand, local staging, optimistic UI, no pending state | `react/no-pending-ui-for-local-staging.tsx` |
+| Keywords                                                         | File                                          |
+| ---------------------------------------------------------------- | --------------------------------------------- |
+| executeCommand, local execution, optimistic UI, no pending state | `react/no-pending-ui-for-local-execution.tsx` |
 
 ## error
 
-| Keywords                      | File                                        |
-| ----------------------------- | ------------------------------------------- |
-| yield ZerospinError           | `error/yield-zerospin-error-directly.ts`    |
-| catchAll yieldable            | `error/catch-all-return-yieldable-error.ts` |
-| one-step Effect.gen wrapper   | `error/no-one-step-effect-gen-wrapper.ts`   |
-| Either.left yieldable         | `error/either-left-is-yieldable.ts`         |
-| deploy-invalid-config         | `error/deploy-config-load-errors.ts`        |
-| seeds module path             | `error/seeds-path-not-import.ts`            |
-| AsyncLive runPromise boundary | `error/async-live-at-run-promise.ts`        |
+| Keywords                      | File                                      |
+| ----------------------------- | ----------------------------------------- |
+| yield ZerospinError           | `error/yield-zerospin-error-directly.ts`  |
+| Effect.catch yieldable        | `error/catch-return-yieldable-error.ts`   |
+| one-step Effect.gen wrapper   | `error/no-one-step-effect-gen-wrapper.ts` |
+| Result Failure yieldable      | `error/result-failure-is-yieldable.ts`    |
+| deploy-invalid-config         | `error/deploy-config-load-errors.ts`      |
+| AsyncLive runPromise boundary | `error/async-live-at-run-promise.ts`      |
 
 ## schemas
 
-| Keywords                               | File                                             |
-| -------------------------------------- | ------------------------------------------------ |
-| onExcessProperty ignore, inline Struct | `schemas/rpc-boundary-validate.ts`               |
-| validate in Api method                 | `schemas/rpc-prop-validation-in-api-method.ts`   |
-| validate unknown request without cast  | `schemas/validate-unknown-without-cast.ts`       |
-| ParseError stable message prefix       | `schemas/parse-error-on-message-not-cause.ts`    |
-| mapParseError                          | `schemas/map-parse-error-for-schema-failures.ts` |
+| Keywords                                                    | File                                             |
+| ----------------------------------------------------------- | ------------------------------------------------ |
+| decodeUnknownEffect, onExcessProperty ignore, inline Struct | `schemas/rpc-boundary-validate.ts`               |
+| decodeUnknownEffect in Api method                           | `schemas/rpc-prop-validation-in-api-method.ts`   |
+| decode unknown request without cast                         | `schemas/validate-unknown-without-cast.ts`       |
+| SchemaError stable message prefix                           | `schemas/schema-error-on-message-not-cause.ts`   |
+| mapParseError, SchemaIssue                                  | `schemas/map-parse-error-for-schema-failures.ts` |
 
 ## testing
 
@@ -114,7 +110,6 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 | ---------------------------------------------------------- | ------------------------------------------------------------ |
 | typecheck after core edit                                  | `typescript/typecheck-consumer-after-core-edit.ts`           |
 | lib after new types                                        | `typescript/run-lib-after-adding-types.ts`                   |
-| rebuild worker dist                                        | `typescript/rebuild-worker-declarations-before-patch.ts`     |
 | stale dist exports                                         | `typescript/dont-match-stale-dist.ts`                        |
 | paths vs references                                        | `typescript/paths-with-project-references.ts`                |
 | project reference flags                                    | `typescript/project-reference-performance-flags.ts`          |
@@ -124,7 +119,7 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 | IShape satisfies, IAnyTables, as const satisfies           | `typescript/shape-table-satisfies-without-as-const.ts`       |
 | table ref, opaque ID, Model.primaryKey, payload key        | `typescript/table-ref-opaque-id-and-payload-primary-key.ts`  |
 | makeSystem id inference                                    | `typescript/makesystem-system-entry-exports.ts`              |
-| owner authenticate, userId, IUserRef                       | `typescript/owner-authentication-returns-user-id.ts`         |
+| owner authenticate, userId, aggregate authorization target | `typescript/owner-authentication-returns-user-id.ts`         |
 | intersection factory return                                | `typescript/intersection-return-types-on-factories.ts`       |
 | frontend binding source model, aggregate model consistency | `typescript/aggregate-frontend-binding-model-consistency.ts` |
 | unprompted type JSDoc                                      | `typescript/unrequested-annotations-on-types.ts`             |

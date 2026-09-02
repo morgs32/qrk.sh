@@ -7,10 +7,10 @@ import { makeGuard } from '@zerospin/core/guards/makeGuard';
 import { makeModelIdSchema } from '@zerospin/core/models/makeIdSchema';
 import { makeModel } from '@zerospin/core/models/makeModel';
 import { makeSelection } from '@zerospin/core/models/makeSelection';
-import { primitives } from '@zerospin/core/models/primitives';
 import type { IAggregateId } from '@zerospin/core/models/types';
 import { makeSystem } from '@zerospin/core/system/makeSystem';
 import { mapParseError, ZerospinError } from '@zerospin/error';
+import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
 export const User = makeModel(
@@ -257,11 +257,12 @@ export const system = makeSystem({
             'query'
           >
         >;
-      }) =>
-        Effect.gen(function* () {
-          const userId = yield* Schema.decodeUnknown(makeModelIdSchema(User))(
-            props.userId,
-          ).pipe(
+      }) => {
+        const { db, userId: requestedUserId } = props;
+        return Effect.gen(function* () {
+          const userId = yield* Schema.decodeUnknownEffect(
+            makeModelIdSchema(User),
+          )(requestedUserId).pipe(
             mapParseError({
               code: 'fixture-user-id-invalid',
               prefix: 'Failed to decode the fixture authorization userId',
@@ -269,7 +270,7 @@ export const system = makeSystem({
           );
           const user = yield* Effect.try({
             try: () =>
-              props.db.query.user
+              db.query.user
                 .findFirst({
                   where: { id: { eq: userId } },
                 })
@@ -285,11 +286,12 @@ export const system = makeSystem({
           if (user === undefined) {
             return yield* new ZerospinError({
               code: 'user-not-found',
-              message: `User ${props.userId} was not found`,
+              message: `User ${requestedUserId} was not found`,
             });
           }
           return yield* Effect.void;
-        }),
+        });
+      },
       models: {
         user: User,
         list: List,

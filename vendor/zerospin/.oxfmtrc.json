@@ -3,8 +3,10 @@
   "ignorePatterns": [
     "vendor/**",
     "vendor/effect/**",
+    "wiki/.obsidian/**",
     "**/package.json",
-    "**/worker-configuration.d.ts"
+    "**/worker-configuration.d.ts",
+    "**/drizzle/**"
   ],
   "singleQuote": true,
   "trailingComma": "all",

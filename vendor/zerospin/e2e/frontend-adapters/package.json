@@ -9,12 +9,14 @@
     "ts": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.3",
-    "@effect/vitest": "^0.29.0",
+    "@cloudflare/vitest-plugin": "^1.1.2",
+    "@effect/vitest": "rc",
     "@types/node": "^25.6.2",
-    "effect": "3.21.4",
+    "@zerospin/schema": "workspace:*",
+    "capnweb": "^0.12.0",
+    "effect": "rc",
     "vitest": "~4.1.5",
-    "wrangler": "^4.118.0"
+    "wrangler": "^4.127.1"
   },
   "dependencies": {
     "@zerospin/core": "workspace:*",

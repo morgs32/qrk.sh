@@ -1,57 +1,33 @@
+import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { RpcResultSchema } from '@zerospin/core/utils/encodeRpc';
 import { ZerospinError } from '@zerospin/error';
 import { env, runInDurableObject } from 'cloudflare:test';
-import { sql } from 'drizzle-orm';
-import { Either, Schema } from 'effect';
+import { Result, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { managedRuntime } from '../managedRuntime.js';
 import { getSystemLogRepo } from '../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
-import {
-  SystemLogRepo,
-  systemLogRowSchema,
-} from '../SystemLogRepo/SystemLogRepo.js';
-import { executeInRepo } from '../workerd-utils/executeInRepo.js';
+import { systemLogRowSchema } from '../SystemLogRepo/SystemLogRepoDbConfig.js';
 
 describe('SystemLogAgent', () => {
   it('reconciles, broadcasts ordered bounded state, deduplicates retries, and rejects client writes', async () => {
-    const generationId = 'gen_system_log_agent';
-    const systemId = 'sys_local';
-    await executeInRepo({
-      managedRuntime,
-      getRepo: getSystemLogRepo,
-      repo: SystemLogRepo,
-      key: { generationId },
-      fn: ({ db, schema }) => {
-        db.run(sql`
-          WITH RECURSIVE sequence(value) AS (
-            SELECT 1
-            UNION ALL
-            SELECT value + 1 FROM sequence WHERE value < 101
-          )
-          INSERT INTO ${schema.logs} (
-            id, logIndex, createdAt, source, message, level,
-            systemId, generationId, payload
-          )
-          SELECT
-            printf('log_startup_%03d', value),
-            value,
-            value,
-            'SystemLogAgent.workerd.spec',
-            printf('startup-%03d', value),
-            'info',
-            ${systemId},
-            ${generationId},
-            NULL
-          FROM sequence
-        `);
-      },
-    });
-
-    const systemLogRepoName = await managedRuntime.runPromise(
-      SystemLogRepo.boundDORepoConfig.nameUtils.makeName({ generationId }),
+    const systemId = env.ZEROSPIN_SYSTEM_ID;
+    const systemLogRepo = await managedRuntime.runPromise(
+      getSystemLogRepo({ key: { systemId } }),
     );
-    const systemLogRepo = env.SYSTEM_LOG_REPO.getByName(systemLogRepoName);
-    const systemLogAgent = env.SYSTEM_LOG_AGENT.getByName(generationId);
+    for (let value = 1; value <= 101; value += 1) {
+      await managedRuntime.runPromise(
+        decodeRpc(
+          await systemLogRepo.appendLogRow({
+            level: 'info',
+            message: `startup-${value.toString().padStart(3, '0')}`,
+            payload: null,
+            source: 'SystemLogAgent.workerd.spec',
+          }),
+        ),
+      );
+    }
+    const systemLogAgent = env.SYSTEM_LOG_AGENT.getByName(systemId);
     const response = await systemLogAgent.fetch(
       new Request('http://log-agent.invalid/ws', {
         headers: { Upgrade: 'websocket' },
@@ -83,7 +59,7 @@ describe('SystemLogAgent', () => {
       );
       expect(JSON.parse(identityMessage.data)).toEqual({
         agent: 'system-log-agent',
-        name: generationId,
+        name: systemId,
         type: 'cf_agent_identity',
       });
 
@@ -159,15 +135,12 @@ describe('SystemLogAgent', () => {
         source: 'SystemLogAgent.workerd.spec',
       });
       const decodedPushedRow = Schema.decodeUnknownSync(
-        Schema.Either({
-          left: ZerospinError.schema,
-          right: Schema.typeSchema(systemLogRowSchema),
-        }),
-      )(encodedPushedRow);
-      if (Either.isLeft(decodedPushedRow)) {
-        throw decodedPushedRow.left;
+        Schema.toType(Schema.Result(systemLogRowSchema, ZerospinError.schema)),
+      )(Schema.decodeUnknownSync(RpcResultSchema)(encodedPushedRow));
+      if (Result.isFailure(decodedPushedRow)) {
+        throw decodedPushedRow.failure;
       }
-      const pushedRow = decodedPushedRow.right;
+      const pushedRow = decodedPushedRow.success;
       const pushedStateMessage = new Promise<MessageEvent<string>>(
         (resolve, reject) => {
           const timeout = setTimeout(() => {
@@ -233,45 +206,17 @@ describe('SystemLogAgent', () => {
     }
   });
 
-  it('fails startup after reconciliation retries are exhausted', async () => {
-    const generationId = 'gen_system_log_agent_failure';
-    const systemLogRepoName = await managedRuntime.runPromise(
-      SystemLogRepo.boundDORepoConfig.nameUtils.makeName({ generationId }),
-    );
-    const systemLogRepo = env.SYSTEM_LOG_REPO.getByName(systemLogRepoName);
-    const encodedRow = await systemLogRepo.appendLogRow({
-      level: 'error',
-      message: 'stale',
-      payload: null,
-      source: 'SystemLogAgent.workerd.spec',
-    });
-    const decodedRow = Schema.decodeUnknownSync(
-      Schema.Either({
-        left: ZerospinError.schema,
-        right: Schema.typeSchema(systemLogRowSchema),
-      }),
-    )(encodedRow);
-    if (Either.isLeft(decodedRow)) {
-      throw decodedRow.left;
-    }
-    const staleRow = decodedRow.right;
-    const systemLogAgent = env.SYSTEM_LOG_AGENT.getByName(generationId);
+  it('fails startup when its Agent name is not a System id', async () => {
+    const systemLogAgent = env.SYSTEM_LOG_AGENT.getByName('invalid-agent-name');
 
     await runInDurableObject(systemLogAgent, instance => {
-      instance.setState({ rows: [staleRow], syncedAt: 1 });
-    });
-    await executeInRepo({
-      managedRuntime,
-      getRepo: getSystemLogRepo,
-      repo: SystemLogRepo,
-      key: { generationId },
-      fn: ({ db, schema }) => {
-        db.run(sql`DROP TABLE ${schema.logs}`);
-      },
+      instance.setState({ rows: [], syncedAt: 1 });
     });
 
-    await expect(
-      runInDurableObject(systemLogAgent, instance => instance.onStart()),
-    ).rejects.toThrow();
+    await runInDurableObject(systemLogAgent, async instance => {
+      await expect(instance.onStart()).rejects.toMatchObject({
+        code: 'failed-to-decode-system-log-agent-system-id',
+      });
+    });
   });
 });

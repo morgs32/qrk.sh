@@ -26,7 +26,7 @@ describe('makeAsync', () => {
       return;
     }
 
-    const failure = Cause.failureOption(exit.cause);
+    const failure = Cause.findErrorOption(exit.cause);
     expect(Option.isSome(failure)).toBe(true);
     if (!Option.isSome(failure)) {
       return;
@@ -58,7 +58,7 @@ describe('makeAsync', () => {
       return;
     }
 
-    const failure = Cause.failureOption(exit.cause);
+    const failure = Cause.findErrorOption(exit.cause);
     expect(Option.isSome(failure)).toBe(true);
     if (!Option.isSome(failure)) {
       return;
@@ -78,8 +78,8 @@ describe('makeAsync', () => {
     const exit = await makeAsync(
       () => Promise.reject(new Error('worker failed')),
       ZerospinError.catch({
-        code: 'failed-to-apply-session-batch-update-to-shared-worker',
-        message: 'Failed to apply session batch update to SharedWorker',
+        code: 'failed-to-apply-session-batch-update',
+        message: 'Failed to apply session batch update',
         preferCauseMessage: false,
       }),
     ).pipe(Effect.provide(AsyncLive), Effect.runPromiseExit);
@@ -89,7 +89,7 @@ describe('makeAsync', () => {
       return;
     }
 
-    const failure = Cause.failureOption(exit.cause);
+    const failure = Cause.findErrorOption(exit.cause);
     expect(Option.isSome(failure)).toBe(true);
     if (!Option.isSome(failure)) {
       return;
@@ -102,16 +102,17 @@ describe('makeAsync', () => {
     }
 
     expect(error.code).toBe(
-      'failed-to-apply-session-batch-update-to-shared-worker',
+      'failed-to-apply-session-batch-update',
     );
     expect(error.rawMessage).toBe(
-      'Failed to apply session batch update to SharedWorker',
+      'Failed to apply session batch update',
     );
     expect(error.cause).not.toBeNull();
   });
 
   it('fails when Async is not provided', async () => {
     const exit = await makeAsync(() => Promise.resolve(42)).pipe(
+      // @ts-expect-error intentionally exercises the runtime missing-service failure
       Effect.runPromiseExit,
     );
 

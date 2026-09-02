@@ -1,17 +1,12 @@
 /* oxlint-disable typescript/no-explicit-any -- Effect Schema encoded types / defaults */
 
-import type { IAnyError, IAnyErrorJson } from '@zerospin/error';
-import type { Effect, Schema } from 'effect';
+import type { IAnyError, IAnyErrorJson, IEncodedResult } from '@zerospin/error';
+import type { ITypeError } from '@zerospin/schema';
+import type { Effect } from 'effect';
 
 import type { Async } from '../async/Async.ts';
 
 // --- base ---
-
-/** Compile-time-only error brand for generic constraints (`@ts-expect-error CoreTypeError`). */
-export type ITypeError<T extends string> = {
-  name: 'CoreTypeError';
-  type: T;
-};
 
 export type IAnyRecord = {
   readonly [key: string]: any;
@@ -25,12 +20,6 @@ export type Prettify<T> = {
 export type InferProps<FN extends (...args: never) => unknown> =
   Parameters<FN>[0];
 
-/** Wire return type for a stub-invokable RPC method (`encodeRpc` / `decodeRpc`). */
-export type IRpcEitherEncoded<
-  SUCCESS = unknown,
-  ERROR_JSON extends IAnyErrorJson = IAnyErrorJson,
-> = Promise<Schema.EitherEncoded<SUCCESS, ERROR_JSON>>;
-
 type IRpcMethodKeys<T> = {
   [K in keyof T]: K extends string
     ? T[K] extends (...args: never) => unknown
@@ -39,21 +28,18 @@ type IRpcMethodKeys<T> = {
     : never;
 }[keyof T];
 
-/** Every function member must return `Promise<Schema.EitherEncoded<…>>`; violations become `ITypeError`. */
+/** Every function member must return `Promise<IEncodedResult<…>>`; violations become `ITypeError`. */
 type IRpcTargetMethodsOf<T> = {
   [K in IRpcMethodKeys<T>]: T[K] extends (...args: infer A) => infer R
-    ? Awaited<R> extends Schema.EitherEncoded<
-        infer S,
-        infer E extends IAnyErrorJson
-      >
-      ? (...args: A) => Promise<Schema.EitherEncoded<S, E>>
-      : ITypeError<`RPC method "${K & string}" must return Promise<Schema.EitherEncoded<…>>`>
+    ? Awaited<R> extends IEncodedResult<infer S, infer E extends IAnyErrorJson>
+      ? (...args: A) => Promise<IEncodedResult<S, E>>
+      : ITypeError<`RPC method "${K & string}" must return Promise<IEncodedResult<…>>`>
     : never;
 };
 
 /**
- * Leaf Capnweb / DO RPC surface — every public method resolves to wire-encoded Either,
- * not a thrown domain error (see vendor/morgs32/llm-wiki/patterns/rpc/).
+ * Leaf Capnweb / DO RPC surface — every public method resolves to a wire-encoded Result,
+ * not a thrown domain error (see `$engineering-patterns` RPC guidance).
  */
 export type IRpcTarget<T> = Prettify<IRpcTargetMethodsOf<T>>;
 
@@ -64,8 +50,6 @@ export type IApiRequestInit = {
 
 export type ISignatureFactory<T extends IAnyRecord = IAnyRecord> =
   () => Effect.Effect<T, IAnyError, Async>;
-
-export type ICuidFactory = () => Effect.Effect<string>;
 
 /** Raw monotonic opaque suffix (e.g. ULID). No prefix — use `makeCursor` for full cursor ids. */
 export type IMonotonicFactory = () => Effect.Effect<string>;

@@ -7,19 +7,19 @@ export function makeBrowserSession<
   FRONTEND extends IAggregateFrontendController,
 >(props: {
   session: ISession<FRONTEND>;
-  onCommandStaged?: () => void;
+  onCommandExecuted?: () => void;
 }): IBrowserSession<FRONTEND> {
-  const { onCommandStaged, session } = props;
+  const { onCommandExecuted, session } = props;
 
   return {
     coreSession: session,
     frontend: session.frontend,
     onInitialized: session.onInitialized,
     sessionId: session.sessionId,
-    stageCommand(stageProps) {
-      const result = session.stageCommand(stageProps);
-      if (result._tag === 'Right') {
-        onCommandStaged?.();
+    executeCommand(executeProps) {
+      const result = session.executeCommand(executeProps);
+      if (result._tag === 'Success') {
+        onCommandExecuted?.();
       }
       return result;
     },

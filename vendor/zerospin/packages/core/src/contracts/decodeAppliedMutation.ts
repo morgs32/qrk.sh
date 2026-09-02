@@ -1,7 +1,8 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import type { IDecodedRecord } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
-import type { IDecodedRecord, IModel } from '../models/types.ts';
+import type { IModel } from '../models/types.ts';
 
 import {
   makeInverseOperationJsonSchema,
@@ -35,7 +36,7 @@ export const decodeAppliedMutation = Effect.fn('decodeAppliedMutation')(
         message: `Unknown model version "${mutation.modelVersion}" for "${model.modelName}"`,
       });
     }
-    const decoded = yield* Schema.decode(
+    const decoded = yield* Schema.decodeEffect(
       makeOperationJsonSchema({
         model,
         modelVersion: mutation.modelVersion,
@@ -59,7 +60,7 @@ export const decodeAppliedMutation = Effect.fn('decodeAppliedMutation')(
 
     switch (mutation.operationName) {
       case 'delete': {
-        const inverseOperation = (yield* Schema.decode(
+        const inverseOperation = (yield* Schema.decodeEffect(
           makeInverseOperationJsonSchema({
             model,
             modelVersion: mutation.modelVersion,
@@ -95,7 +96,7 @@ export const decodeAppliedMutation = Effect.fn('decodeAppliedMutation')(
       case 'update': {
         const attributes = (decoded as { encodedAttributes: IDecodedRecord })
           .encodedAttributes;
-        const decodedInverseOperation = yield* Schema.decode(
+        const decodedInverseOperation = yield* Schema.decodeEffect(
           makeInverseOperationJsonSchema({
             model,
             modelVersion: mutation.modelVersion,
@@ -128,7 +129,7 @@ export const decodeAppliedMutation = Effect.fn('decodeAppliedMutation')(
         };
       }
       case 'move': {
-        const inverseOperation = (yield* Schema.decode(
+        const inverseOperation = (yield* Schema.decodeEffect(
           makeInverseOperationJsonSchema({
             model,
             modelVersion: mutation.modelVersion,
@@ -154,7 +155,7 @@ export const decodeAppliedMutation = Effect.fn('decodeAppliedMutation')(
           IModel,
           'replicateResource'
         >['operation'];
-        const inverseOperation = (yield* Schema.decode(
+        const inverseOperation = (yield* Schema.decodeEffect(
           makeInverseOperationJsonSchema({
             model,
             modelVersion: mutation.modelVersion,

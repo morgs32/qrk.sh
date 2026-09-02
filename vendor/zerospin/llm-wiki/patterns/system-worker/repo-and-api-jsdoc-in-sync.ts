@@ -1,22 +1,16 @@
 /**
- * Keep *Repo DO RPC JSDoc in sync with *Api gateway method architecture docs.
+ * Keep chain and materialized Repo RPC JSDoc aligned with *Api gateway methods and architecture docs.
  *
- * @bad Change delegation chain without updating method JSDoc or architecture doc links.
+ * @bad Change a delegation chain without updating method JSDoc or architecture links.
  */
-export class AggregateRepo {
+export class AggregateCommandChain {
   /**
-   * Secret-key finalization path: finalize aggregate commands into an
-   * aggregate block.
-   *
-   * SystemApi → SystemRepo.finalizeAggregateCommands → AggregateRepo.finalizeAggregateBlock →
-   * AggregateBlockRepo → AggregateFrontendRepo.
+   * Secret-key finalization path: SystemApi → AggregateCommandChain →
+   * MaterializedAggregateRepo → aggregate subscribers.
    */
-  async finalizeAggregateBlock(props: {
-    aggregateName: string;
-    commands: readonly unknown[];
-  }) {
+  async finalizeAggregateCommand(props: { command: unknown }) {
     return managedRuntime.runPromise(
-      finalizeAggregateBlock(props).pipe(encodeRpc),
+      finalizeAggregateCommand(props).pipe(encodeRpc),
     );
   }
 }
@@ -25,5 +19,6 @@ declare const managedRuntime: {
   runPromise: (effect: unknown) => Promise<unknown>;
 };
 declare const encodeRpc: (effect: unknown) => unknown;
-declare const finalizeAggregateBlock: (props: unknown) => unknown;
-declare const Effect: { void: unknown };
+declare const finalizeAggregateCommand: (props: unknown) => {
+  pipe(next: unknown): unknown;
+};

@@ -2,20 +2,20 @@
  * Stable Workers for Platforms dispatch script name for one authenticated
  * system environment.
  */
-import type { ICloudApiKeyIdentity } from 'system-worker/ApiKeyIdentityResolver/ApiKeyIdentityResolver';
+import type { ISystemId } from '@zerospin/core/system/types';
 
 export function makeSystemWorkerName(
   props:
     | {
-        systemId: ICloudApiKeyIdentity['systemId'];
+        systemId: ISystemId;
         systemEnvironmentId: 'dev';
         clerkUserId: string;
       }
     | {
-        systemId: ICloudApiKeyIdentity['systemId'];
+        systemId: ISystemId;
         systemEnvironmentId: 'production';
       },
-): ICloudApiKeyIdentity['systemWorkerName'] {
+): string {
   if (props.systemEnvironmentId === 'dev') {
     if (props.clerkUserId.length === 0) {
       throw new Error(

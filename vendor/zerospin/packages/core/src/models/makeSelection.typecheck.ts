@@ -1,8 +1,9 @@
+import { primitives } from '@zerospin/schema';
+
 import type { IDb } from '../drizzle/types.ts';
 
 import { makeModel } from './makeModel.ts';
 import { applySelection, makeSelection } from './makeSelection.ts';
-import { primitives } from './primitives.ts';
 
 const User = makeModel(
   {
@@ -74,27 +75,20 @@ void makeSelection({
   }),
 });
 
-// @ts-expect-error CoreTypeError — unknown scalar where key
-void makeSelection({
-  model: CartItem,
-  where: () => ({
-    notAColumn: true,
-  }),
-});
-
 declare const cartItemSelection: ReturnType<
   typeof makeSelection<typeof CartItem>
 >;
+declare const db: IDb;
 
 // @ts-expect-error CoreTypeError — userId is required
 void applySelection({
-  db: null as IDb,
+  db,
   models: { cart: Cart, cartItem: CartItem, user: User },
   selection: cartItemSelection,
 });
 
 void applySelection({
-  db: null as IDb,
+  db,
   models: { cart: Cart, cartItem: CartItem, user: User },
   selection: cartItemSelection,
   userId: testUserId,

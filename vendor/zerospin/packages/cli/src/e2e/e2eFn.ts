@@ -1,14 +1,14 @@
-import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
-import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem';
-import * as NodePath from '@effect/platform-node/NodePath';
+import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
+import * as NodePath from '@effect/platform-node-shared/NodePath';
 import type {} from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { ZerospinError } from '@zerospin/error';
 import { Effect, Layer } from 'effect';
+import { ChildProcess } from 'effect/unstable/process';
 
 import { loadZerospinConfigFn } from '../deploy/loadZerospinConfigFn.js';
 
@@ -38,36 +38,30 @@ export const e2eFn = Effect.fn('e2eFn')(function* () {
     require.resolve('vitest/package.json'),
   );
   const vitestBinPath = path.join(vitestPackageRoot, 'vitest.mjs');
-  const exitCode = yield* makeAsync(
-    () =>
-      new Promise<number>((resolve, reject) => {
-        const child = spawn(
-          process.execPath,
-          [vitestBinPath, 'run', '--config', vitestConfigPath],
-          {
-            cwd,
-            env: {
-              ...process.env,
-              ZEROSPIN_E2E_SYSTEM_MODULE_PATH: systemModulePath,
-            },
-            stdio: 'inherit',
-          },
-        );
-        child.on('error', reject);
-        child.on('close', (code, signal) => {
-          if (signal !== null) {
-            reject(new Error(`Vitest exited from signal ${signal}.`));
-            return;
-          }
-          resolve(code ?? 1);
-        });
-      }),
-    cause =>
-      new ZerospinError({
-        code: 'zerospin-e2e-run-failed',
-        message: 'Failed to run zerospin e2e.',
-        cause: ZerospinError.prettyUnknownFailure(cause),
-      }),
+  const exitCode = yield* ChildProcess.make(
+    process.execPath,
+    [vitestBinPath, 'run', '--config', vitestConfigPath],
+    {
+      cwd,
+      env: {
+        ...process.env,
+        ZEROSPIN_E2E_SYSTEM_MODULE_PATH: systemModulePath,
+      },
+      stdin: 'inherit',
+      stdout: 'inherit',
+      stderr: 'inherit',
+    },
+  ).pipe(
+    Effect.flatMap(process => process.exitCode),
+    Effect.scoped,
+    Effect.mapError(
+      cause =>
+        new ZerospinError({
+          code: 'zerospin-e2e-run-failed',
+          message: 'Failed to run zerospin e2e.',
+          cause: ZerospinError.prettyUnknownFailure(cause),
+        }),
+    ),
   );
 
   if (exitCode !== 0) {

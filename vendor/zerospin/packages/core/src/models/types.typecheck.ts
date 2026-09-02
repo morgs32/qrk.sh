@@ -1,20 +1,22 @@
-import { assert, type Equals } from 'tsafe';
-
 import type {
   IDateDescriptor,
-  IEncodedProperties,
-  IEncodedResourceShape,
   InferEncodedRow,
   IPrimaryKeyDescriptor,
   IPrimitiveDescriptor,
-  IProperties,
-  IResourceShape,
   IShape,
   ITextDescriptor,
+} from '@zerospin/schema';
+import { assert, type Equals } from 'tsafe';
+
+import type {
+  IEncodedProperties,
+  IEncodedResourceShape,
+  IProperties,
+  IResourceShape,
 } from './types.ts';
 
 assert<Equals<IProperties, IResourceShape & IShape>>();
-/** Full row descriptor map: fixed metadata columns plus arbitrary attribute keys. */
+/** Full row descriptor map: fixed framework columns plus arbitrary attribute keys. */
 assert<
   Equals<
     IProperties,
@@ -38,7 +40,9 @@ assert<
       createdAt: Date;
       updatedAt: Date;
       version: string;
-    } & Record<string, unknown>
+    } &
+      Readonly<{ deletedAt?: Date | null | undefined }> &
+      Record<string, unknown>
   >
 >();
 assert<

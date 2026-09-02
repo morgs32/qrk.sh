@@ -36,19 +36,19 @@
     "paths": {
       "@zerospin/core/*": ["../core/src/*"],
       "system-worker/*": ["../../packages/system-worker/src/*"],
-      "system-worker": ["../../packages/system-worker/src/SystemWorker.ts"]
+      "system-worker": ["../../packages/system-worker/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "references": [
     {
-      "path": "../dev-worker"
-    },
-    {
       "path": "../system-worker"
     },
     {
       "path": "../system"
+    },
+    {
+      "path": "../schema"
     },
     {
       "path": "../logger"
@@ -58,6 +58,9 @@
     },
     {
       "path": "../core"
+    },
+    {
+      "path": "../dev-worker"
     }
   ]
 }

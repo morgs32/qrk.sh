@@ -72,7 +72,7 @@ export function useProgram<TData, TError extends IAnyError = IAnyError>(
       };
     }
     if (Exit.isFailure(exit)) {
-      const error = Option.match(Cause.failureOption(exit.cause), {
+      const error = Option.match(Cause.findErrorOption(exit.cause), {
         onNone: () => {
           return new ZerospinError({
             code: 'unexpected-error',

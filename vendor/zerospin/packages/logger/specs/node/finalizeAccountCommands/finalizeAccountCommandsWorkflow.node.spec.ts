@@ -46,7 +46,7 @@ describe('finalizeAccountCommands telemetry workflow', () => {
       throw new Error('Expected a delayed drain job');
     }
     const drainEnvelope = await drainJob.run();
-    expect(drainEnvelope.result._tag).toBe('Right');
+    expect(drainEnvelope.result._tag).toBe('Success');
     expect(harness.subscriberDeliveryAttempts).toBe(1);
     expect(harness.failNextActorDelivery).toBe(false);
     expect(queuedJobs).toHaveLength(1);
@@ -58,7 +58,7 @@ describe('finalizeAccountCommands telemetry workflow', () => {
       throw new Error('Expected a delayed alarm job');
     }
     const alarmEnvelope = await alarmJob.run();
-    expect(alarmEnvelope.result._tag).toBe('Right');
+    expect(alarmEnvelope.result._tag).toBe('Success');
     expect(harness.subscriberDeliveryAttempts).toBe(2);
     expect(harness.failNextActorDelivery).toBe(false);
     expect(queuedJobs).toEqual([]);

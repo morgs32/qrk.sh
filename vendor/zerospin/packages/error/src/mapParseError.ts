@@ -1,4 +1,4 @@
-import { Effect, ParseResult } from 'effect';
+import { Effect, SchemaIssue, type Schema } from 'effect';
 
 import { ZerospinError } from './ZerospinError.js';
 
@@ -10,14 +10,14 @@ interface IProps<CODE extends string> {
 
 export function mapParseError<CODE extends string>(props: IProps<CODE>) {
   const { code, prefix, extra = null } = props;
-  return <A, R>(self: Effect.Effect<A, ParseResult.ParseError, R>) =>
+  return <A, R>(self: Effect.Effect<A, Schema.SchemaError, R>) =>
     self.pipe(
       Effect.mapError(
         error =>
           new ZerospinError({
             code,
             extra,
-            message: `${prefix}: ${ParseResult.TreeFormatter.formatErrorSync(error)}`,
+            message: `${prefix}: ${SchemaIssue.makeFormatterDefault()(error.issue)}`,
           }),
       ),
     );

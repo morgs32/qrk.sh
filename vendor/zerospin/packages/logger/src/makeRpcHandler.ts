@@ -1,5 +1,4 @@
-import { Cause, Effect, Either, Tracer } from 'effect';
-import type { YieldWrap } from 'effect/Utils';
+import { Effect, Result, Tracer } from 'effect';
 
 import { makeTelemetryLayer } from './makeTelemetryLayer.ts';
 import {
@@ -10,31 +9,27 @@ import type { IRpcEnvelope, IRpcRequest } from './types.ts';
 
 export function makeRpcHandler<NAME extends string>(name: NAME) {
   return <
-    YIELD_WRAP extends YieldWrap<Effect.Effect<unknown, unknown, unknown>>,
+    YIELD_EFFECT extends Effect.Effect<unknown, unknown, unknown>,
     A,
     ARGS extends Array<unknown>,
   >(
-    fn: (...args: ARGS) => Generator<YIELD_WRAP, A, never>,
+    fn: (...args: ARGS) => Generator<YIELD_EFFECT, A, never>,
   ): ((
     request: IRpcRequest<ARGS>,
   ) => Effect.Effect<
     IRpcEnvelope<
       A,
-      [YIELD_WRAP] extends [never]
+      [YIELD_EFFECT] extends [never]
         ? never
-        : [YIELD_WRAP] extends [
-              YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>,
-            ]
+        : [YIELD_EFFECT] extends [Effect.Effect<infer _A, infer E, infer _R>]
           ? E
           : never
     >,
     never,
     Exclude<
-      [YIELD_WRAP] extends [never]
+      [YIELD_EFFECT] extends [never]
         ? never
-        : [YIELD_WRAP] extends [
-              YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>,
-            ]
+        : [YIELD_EFFECT] extends [Effect.Effect<infer _A, infer _E, infer R>]
           ? R
           : never,
       TelemetryCollector
@@ -61,12 +56,12 @@ export function makeRpcHandler<NAME extends string>(name: NAME) {
             );
 
       return parented.pipe(
-        Effect.either,
+        Effect.result,
         Effect.provide(makeTelemetryLayer(collector)),
-        Effect.map(either => ({
-          result: Either.isRight(either)
-            ? { _tag: 'Right', right: either.right }
-            : { _tag: 'Left', left: Cause.originalError(either.left) },
+        Effect.map(result => ({
+          result: Result.isSuccess(result)
+            ? { _tag: 'Success', success: result.success }
+            : { _tag: 'Failure', failure: result.failure },
           telemetry: collector.flush(),
         })),
       );

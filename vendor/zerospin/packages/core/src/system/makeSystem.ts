@@ -1,6 +1,8 @@
+/* oxlint-disable typescript/no-explicit-any -- complete resolved definitions span model-specific resource shapes */
 import '@zerospin/server-only';
 import type { IAnyError } from '@zerospin/error';
-import { Effect, JSONSchema, Schema } from 'effect';
+import type { ITypeError } from '@zerospin/schema';
+import { Effect, Schema } from 'effect';
 import { isEqual, mapValues } from 'es-toolkit';
 
 import { makeAggregateCommand } from '../aggregate/makeAggregateCommand.ts';
@@ -22,6 +24,7 @@ import type {
   IAggregateFrontendBindingProps,
   IContractAdapters,
   IFrontendModelBindings,
+  IResolvedFrontendModels,
   IServiceAuthorization,
   IServiceFrontendBinding,
   IServiceFrontendBindingProps,
@@ -36,9 +39,9 @@ import type {
   IAggregateId,
   IAssertValidModels,
   IModel,
+  IModelReplica,
   IModels,
   InferPayloadInput,
-  IServiceModel,
 } from '../models/types.ts';
 import { makeServiceCommand } from '../service/makeServiceCommand.ts';
 import type {
@@ -54,8 +57,8 @@ type IMutationAdapters<MODELS extends IModels> = Partial<{
   readonly [MODEL_NAME in keyof MODELS]: Partial<{
     readonly [OPERATION_NAME in IOperationName]: readonly (
       | {
-          source: Schema.Schema.AnyNoContext;
-          destination: Schema.Schema.AnyNoContext;
+          source: Schema.Codec<any, any>;
+          destination: Schema.Codec<any, any>;
           adapter: (
             mutation: IMutation<
               IModel<
@@ -68,7 +71,7 @@ type IMutationAdapters<MODELS extends IModels> = Partial<{
           ) => Effect.Effect<unknown, IAnyError>;
         }
       | {
-          source: Schema.Schema.AnyNoContext;
+          source: Schema.Codec<any, any>;
           destination: null;
           adapter?: never;
         }
@@ -77,28 +80,14 @@ type IMutationAdapters<MODELS extends IModels> = Partial<{
 }>;
 
 type IAggregateFrontendBindingInput = {
-  controller: {
-    kind: 'aggregate';
-    systemName: string;
-    aggregateName: string;
-    frontendName: string;
-    contracts: IContracts;
-    models: IModels;
-    guards: IAnyAggregateFrontendController['guards'];
-  };
+  controller: IAnyAggregateFrontendController;
   models?: Record<string, string>;
   projectionAdapters?: Record<string, unknown>;
   contractAdapters?: Record<string, IContractAdapterEntry>;
 };
 
 type IServiceFrontendBindingInput = {
-  controller: {
-    kind: 'service';
-    systemName: string;
-    serviceName: string;
-    frontendName: string;
-    models: IModels;
-  };
+  controller: IAnyServiceFrontendController;
   models?: Record<string, string>;
   projectionAdapters?: Record<string, unknown>;
 };
@@ -112,8 +101,8 @@ type IAggregateInput = {
       Record<
         IOperationName,
         readonly {
-          source: Schema.Schema.AnyNoContext;
-          destination: Schema.Schema.AnyNoContext | null;
+          source: Schema.Codec<any, any>;
+          destination: Schema.Codec<any, any> | null;
           adapter?: unknown;
         }[]
       >
@@ -140,8 +129,8 @@ type IServiceInput = {
       Record<
         IOperationName,
         readonly {
-          source: Schema.Schema.AnyNoContext;
-          destination: Schema.Schema.AnyNoContext | null;
+          source: Schema.Codec<any, any>;
+          destination: Schema.Codec<any, any> | null;
           adapter?: unknown;
         }[]
       >
@@ -202,6 +191,40 @@ type IValidateAggregateFrontends<
         systemName: SYSTEM_NAME;
         aggregateName: AGGREGATE_NAME;
         frontendName: FRONTEND_NAME;
+        models: CONTROLLERS[FRONTEND_NAME]['models'] & {
+          [MODEL_KEY in keyof CONTROLLERS[FRONTEND_NAME]['models'] &
+            keyof IResolvedFrontendModels<
+              CONTROLLERS[FRONTEND_NAME]['models'],
+              MODELS,
+              IModelBindingsAt<
+                BINDINGS[FRONTEND_NAME],
+                CONTROLLERS[FRONTEND_NAME]['models'],
+                MODELS
+              >
+            >]: CONTROLLERS[FRONTEND_NAME]['models'][MODEL_KEY] extends {
+            modelName: infer FRONTEND_MODEL_NAME extends string;
+          }
+            ? IResolvedFrontendModels<
+                CONTROLLERS[FRONTEND_NAME]['models'],
+                MODELS,
+                IModelBindingsAt<
+                  BINDINGS[FRONTEND_NAME],
+                  CONTROLLERS[FRONTEND_NAME]['models'],
+                  MODELS
+                >
+              >[MODEL_KEY] extends infer SOURCE_MODEL extends IModel
+              ? SOURCE_MODEL['modelName'] extends FRONTEND_MODEL_NAME
+                ? FRONTEND_MODEL_NAME extends SOURCE_MODEL['modelName']
+                  ? CONTROLLERS[FRONTEND_NAME]['models'][MODEL_KEY] extends SOURCE_MODEL
+                    ? SOURCE_MODEL extends CONTROLLERS[FRONTEND_NAME]['models'][MODEL_KEY]
+                      ? CONTROLLERS[FRONTEND_NAME]['models'][MODEL_KEY]
+                      : ITypeError<`Aggregate frontend model "${MODEL_KEY & string}" must exactly match its identity-bound source model`>
+                    : ITypeError<`Aggregate frontend model "${MODEL_KEY & string}" must exactly match its identity-bound source model`>
+                  : CONTROLLERS[FRONTEND_NAME]['models'][MODEL_KEY]
+                : CONTROLLERS[FRONTEND_NAME]['models'][MODEL_KEY]
+              : never
+            : never;
+        };
       };
     };
 };
@@ -291,12 +314,6 @@ type IResolvedServiceQueries<
 
 type IResolvedServices<
   SERVICES extends Record<string, unknown>,
-  FRONTEND_BINDINGS extends {
-    [SERVICE_NAME in keyof SERVICES]: Record<
-      string,
-      IServiceFrontendBindingInput
-    >;
-  },
   AUTHORIZATIONS extends {
     [SERVICE_NAME in keyof SERVICES]: unknown;
   },
@@ -321,10 +338,24 @@ type IResolvedServices<
         }
           ? IResolvedServiceQueries<SERVICE_NAME, MODELS, QUERIES>
           : {},
-        IResolvedServiceFrontends<MODELS, FRONTEND_BINDINGS[SERVICE_NAME]>,
+        SERVICES[SERVICE_NAME] extends {
+          frontends: infer FRONTENDS extends Record<
+            string,
+            IServiceFrontendBindingInput
+          >;
+        }
+          ? IResolvedServiceFrontends<MODELS, FRONTENDS>
+          : {},
         AUTHORIZATIONS[SERVICE_NAME] &
           IServiceAuthorization<
-            IResolvedServiceFrontends<MODELS, FRONTEND_BINDINGS[SERVICE_NAME]>,
+            SERVICES[SERVICE_NAME] extends {
+              frontends: infer FRONTENDS extends Record<
+                string,
+                IServiceFrontendBindingInput
+              >;
+            }
+              ? IResolvedServiceFrontends<MODELS, FRONTENDS>
+              : {},
             MODELS,
             never
           >
@@ -353,7 +384,13 @@ type IResolvedAggregateQueries<
 };
 
 type IResolvedAggregates<
-  AGGREGATES extends Record<string, IAggregateInput>,
+  AGGREGATES extends Record<string, unknown>,
+  FRONTENDS extends {
+    [AGGREGATE_NAME in keyof AGGREGATES]: Record<
+      string,
+      IAggregateFrontendBindingInput
+    >;
+  },
   SERVICES extends Record<
     string,
     { queries: Record<string, IResolvedServiceQuery> }
@@ -362,39 +399,40 @@ type IResolvedAggregates<
     [AGGREGATE_NAME in keyof AGGREGATES]: unknown;
   },
 > = {
-  [AGGREGATE_NAME in keyof AGGREGATES & string]: IAggregate<
-    AGGREGATE_NAME,
-    AGGREGATES[AGGREGATE_NAME]['models'],
-    AGGREGATES[AGGREGATE_NAME]['contracts'],
-    AGGREGATES[AGGREGATE_NAME]['mutationAdapters'] extends NonNullable<
-      IAggregateInput['mutationAdapters']
-    >
-      ? AGGREGATES[AGGREGATE_NAME]['mutationAdapters']
-      : {},
-    AGGREGATES[AGGREGATE_NAME]['selections'],
-    AGGREGATES[AGGREGATE_NAME]['queries'] extends Record<
-      string,
-      { service: string; query: string }
-    >
-      ? IResolvedAggregateQueries<
-          AGGREGATES[AGGREGATE_NAME]['queries'],
-          SERVICES
-        >
-      : {},
-    IResolvedAggregateFrontends<
-      AGGREGATES[AGGREGATE_NAME]['models'],
-      AGGREGATES[AGGREGATE_NAME]['frontends']
-    >,
-    AUTHORIZATIONS[AGGREGATE_NAME] &
-      IAggregateAuthorization<
-        IResolvedAggregateFrontends<
-          AGGREGATES[AGGREGATE_NAME]['models'],
-          AGGREGATES[AGGREGATE_NAME]['frontends']
-        >,
-        AGGREGATES[AGGREGATE_NAME]['models'],
-        never
+  [AGGREGATE_NAME in keyof AGGREGATES & string]: AGGREGATES[AGGREGATE_NAME] extends {
+    models: infer MODELS extends IModels;
+    contracts: infer CONTRACTS extends IContracts;
+    selections: infer SELECTIONS extends IAggregateInput['selections'];
+  }
+    ? IAggregate<
+        AGGREGATE_NAME,
+        MODELS,
+        CONTRACTS,
+        AGGREGATES[AGGREGATE_NAME] extends {
+          mutationAdapters: infer MUTATION_ADAPTERS extends NonNullable<
+            IAggregateInput['mutationAdapters']
+          >;
+        }
+          ? MUTATION_ADAPTERS
+          : {},
+        SELECTIONS,
+        AGGREGATES[AGGREGATE_NAME] extends {
+          queries: infer QUERIES extends Record<
+            string,
+            { service: string; query: string }
+          >;
+        }
+          ? IResolvedAggregateQueries<QUERIES, SERVICES>
+          : {},
+        IResolvedAggregateFrontends<MODELS, FRONTENDS[AGGREGATE_NAME]>,
+        AUTHORIZATIONS[AGGREGATE_NAME] &
+          IAggregateAuthorization<
+            IResolvedAggregateFrontends<MODELS, FRONTENDS[AGGREGATE_NAME]>,
+            MODELS,
+            never
+          >
       >
-  >;
+    : never;
 };
 
 export function makeSystem<
@@ -402,20 +440,15 @@ export function makeSystem<
   VERSION extends string,
   AUTHENTICATION_SIGNATURE extends IAuthenticationSignature,
   AUTHENTICATE extends unknown,
-  const AGGREGATES extends Record<string, unknown>,
+  const AGGREGATES extends Record<string, IAggregateInput>,
   const AGGREGATE_MODELS extends {
     [AGGREGATE_NAME in keyof AGGREGATES]: IModels;
   },
-  const AGGREGATE_BINDINGS extends {
+  const AGGREGATE_FRONTENDS extends {
     [AGGREGATE_NAME in keyof AGGREGATES]: Record<
       string,
       IAggregateFrontendBindingInput
     >;
-  },
-  const AGGREGATE_CONTROLLERS extends {
-    [AGGREGATE_NAME in keyof AGGREGATES]: {
-      [FRONTEND_NAME in keyof AGGREGATE_BINDINGS[AGGREGATE_NAME]]: IAnyAggregateFrontendController;
-    };
   },
   const AGGREGATE_AUTHORIZATIONS extends {
     [AGGREGATE_NAME in keyof AGGREGATES]: unknown;
@@ -435,26 +468,6 @@ export function makeSystem<
       IServiceQuery<SERVICE_MODELS[SERVICE_NAME]>
     >;
   },
-  const SERVICE_BINDINGS extends {
-    [SERVICE_NAME in keyof SERVICES]: Record<
-      string,
-      IServiceFrontendBindingInput
-    >;
-  } = {
-    [SERVICE_NAME in keyof SERVICES]: Record<
-      string,
-      IServiceFrontendBindingInput
-    >;
-  },
-  const SERVICE_CONTROLLERS extends {
-    [SERVICE_NAME in keyof SERVICES]: {
-      [FRONTEND_NAME in keyof SERVICE_BINDINGS[SERVICE_NAME]]: IAnyServiceFrontendController;
-    };
-  } = {
-    [SERVICE_NAME in keyof SERVICES]: {
-      [FRONTEND_NAME in keyof SERVICE_BINDINGS[SERVICE_NAME]]: IAnyServiceFrontendController;
-    };
-  },
   const SERVICE_AUTHORIZATIONS extends {
     [SERVICE_NAME in keyof SERVICES]: unknown;
   } = { [SERVICE_NAME in keyof SERVICES]: unknown },
@@ -471,8 +484,7 @@ export function makeSystem<
   aggregates: AGGREGATES & {
     [AGGREGATE_NAME in keyof AGGREGATES &
       keyof AGGREGATE_MODELS &
-      keyof AGGREGATE_BINDINGS &
-      keyof AGGREGATE_CONTROLLERS &
+      keyof AGGREGATE_FRONTENDS &
       string]: AGGREGATES[AGGREGATE_NAME] & {
       models: AGGREGATE_MODELS[AGGREGATE_NAME] &
         IAssertValidModels<AGGREGATE_MODELS[AGGREGATE_NAME]>;
@@ -488,21 +500,25 @@ export function makeSystem<
         }
       >;
       queries?: Record<string, { service: string; query: string }>;
-      frontends: IValidateAggregateFrontends<
-        SYSTEM_NAME,
-        AGGREGATE_NAME,
-        AGGREGATE_MODELS[AGGREGATE_NAME],
-        AGGREGATE_BINDINGS[AGGREGATE_NAME],
-        AGGREGATE_CONTROLLERS[AGGREGATE_NAME]
-      >;
-    } & ([keyof AGGREGATE_BINDINGS[AGGREGATE_NAME]] extends [never]
+      frontends: AGGREGATE_FRONTENDS[AGGREGATE_NAME] &
+        IValidateAggregateFrontends<
+          SYSTEM_NAME,
+          AGGREGATE_NAME,
+          AGGREGATE_MODELS[AGGREGATE_NAME],
+          AGGREGATE_FRONTENDS[AGGREGATE_NAME],
+          {
+            [FRONTEND_NAME in keyof AGGREGATE_FRONTENDS[AGGREGATE_NAME] &
+              string]: AGGREGATE_FRONTENDS[AGGREGATE_NAME][FRONTEND_NAME]['controller'];
+          }
+        >;
+    } & ([keyof AGGREGATE_FRONTENDS[AGGREGATE_NAME]] extends [never]
         ? { authorize?: never }
         : {
             authorize: AGGREGATE_AUTHORIZATIONS[AGGREGATE_NAME] &
               IAggregateAuthorization<
                 IResolvedAggregateFrontends<
                   AGGREGATE_MODELS[AGGREGATE_NAME],
-                  AGGREGATE_BINDINGS[AGGREGATE_NAME]
+                  AGGREGATE_FRONTENDS[AGGREGATE_NAME]
                 >,
                 AGGREGATE_MODELS[AGGREGATE_NAME],
                 never
@@ -513,15 +529,12 @@ export function makeSystem<
     [SERVICE_NAME in keyof NoInfer<SERVICES> &
       keyof SERVICE_MODELS &
       keyof SERVICE_QUERIES &
-      keyof SERVICE_BINDINGS &
-      keyof SERVICE_CONTROLLERS &
       string]: NoInfer<SERVICES>[SERVICE_NAME] & {
       models: SERVICE_MODELS[SERVICE_NAME] &
         IAssertValidModels<SERVICE_MODELS[SERVICE_NAME]> & {
-          [MODEL_NAME in keyof SERVICE_MODELS[SERVICE_NAME]]: IServiceModel<
-            SERVICE_MODELS[SERVICE_NAME][MODEL_NAME],
-            SERVICE_NAME
-          >;
+          [MODEL_NAME in keyof SERVICE_MODELS[SERVICE_NAME]]: SERVICE_MODELS[SERVICE_NAME][MODEL_NAME] extends IModelReplica
+            ? ITypeError<`Service "${SERVICE_NAME}" must register the authoritative source model, not replica "${SERVICE_MODELS[SERVICE_NAME][MODEL_NAME]['modelName']}"`>
+            : SERVICE_MODELS[SERVICE_NAME][MODEL_NAME];
         };
       contracts: IContracts;
       mutationAdapters?: IMutationAdapters<SERVICE_MODELS[SERVICE_NAME]>;
@@ -532,13 +545,23 @@ export function makeSystem<
             authorize?: never;
           }
         | {
-            frontends: IValidateServiceFrontends<
-              SYSTEM_NAME,
-              SERVICE_NAME,
-              SERVICE_MODELS[SERVICE_NAME],
-              SERVICE_BINDINGS[SERVICE_NAME],
-              SERVICE_CONTROLLERS[SERVICE_NAME]
-            >;
+            frontends: NoInfer<SERVICES>[SERVICE_NAME] extends {
+              frontends: infer FRONTENDS extends Record<
+                string,
+                IServiceFrontendBindingInput
+              >;
+            }
+              ? FRONTENDS &
+                  IValidateServiceFrontends<
+                    SYSTEM_NAME,
+                    SERVICE_NAME,
+                    SERVICE_MODELS[SERVICE_NAME],
+                    FRONTENDS,
+                    {
+                      [FRONTEND_NAME in keyof FRONTENDS & string]: FRONTENDS[FRONTEND_NAME]['controller'];
+                    }
+                  >
+              : never;
             authorize: SERVICE_AUTHORIZATIONS[SERVICE_NAME] &
               {
                 bivarianceHack(
@@ -550,16 +573,12 @@ export function makeSystem<
   };
 }): ISystem<
   IResolvedAggregates<
-    {
-      [AGGREGATE_NAME in keyof AGGREGATES]: Extract<
-        AGGREGATES[AGGREGATE_NAME] & IAggregateInput,
-        IAggregateInput
-      >;
-    },
-    IResolvedServices<SERVICES, SERVICE_BINDINGS, SERVICE_AUTHORIZATIONS>,
+    AGGREGATES,
+    AGGREGATE_FRONTENDS,
+    IResolvedServices<SERVICES, SERVICE_AUTHORIZATIONS>,
     AGGREGATE_AUTHORIZATIONS
   >,
-  IResolvedServices<SERVICES, SERVICE_BINDINGS, SERVICE_AUTHORIZATIONS>,
+  IResolvedServices<SERVICES, SERVICE_AUTHORIZATIONS>,
   SYSTEM_NAME,
   VERSION,
   AUTHENTICATION_SIGNATURE,
@@ -625,6 +644,7 @@ export function makeSystem(props: {
     );
   }
 
+  const serviceNameBySourceModel = new Map<IModel, string>();
   const services = mapValues(serviceInputs, (service, serviceKey) => {
     const serviceName = String(serviceKey);
     const {
@@ -654,11 +674,18 @@ export function makeSystem(props: {
     });
 
     for (const [modelKey, model] of Object.entries(models)) {
-      if (!('serviceName' in model) || model.serviceName !== serviceName) {
+      if ('sourceModel' in model) {
         throw new Error(
-          `makeSystem: services.${serviceName}.models.${modelKey} must be created by makeServiceModel with serviceName "${serviceName}"`,
+          `makeSystem: services.${serviceName}.models.${modelKey} must be the authoritative source model, not a replica`,
         );
       }
+      const priorServiceName = serviceNameBySourceModel.get(model);
+      if (priorServiceName !== undefined) {
+        throw new Error(
+          `makeSystem: services.${serviceName}.models.${modelKey} reuses a source model already owned by service "${priorServiceName}"`,
+        );
+      }
+      serviceNameBySourceModel.set(model, serviceName);
     }
 
     for (const [sourceModelName, operationAdapters] of Object.entries(
@@ -701,8 +728,11 @@ export function makeSystem(props: {
             );
           }
 
-          const sourceJsonSchema = JSONSchema.make(source);
-          const sourceProperties = Reflect.get(sourceJsonSchema, 'properties');
+          const sourceJsonSchema = Schema.toJsonSchemaDocument(source);
+          const sourceProperties = Reflect.get(
+            sourceJsonSchema.schema,
+            'properties',
+          );
           if (
             typeof sourceProperties !== 'object' ||
             sourceProperties === null
@@ -778,14 +808,6 @@ export function makeSystem(props: {
 
           const sourceModel = models[sourceModelName];
           if (sourceModel !== undefined) {
-            if (
-              !('serviceName' in sourceModel) ||
-              sourceModel.serviceName !== serviceName
-            ) {
-              throw new Error(
-                `makeSystem: services.${serviceName}.mutationAdapters.${sourceModelName} is not owned by service "${serviceName}"`,
-              );
-            }
             if (schemaSourceModelVersion === sourceModel.version) {
               throw new Error(
                 `makeSystem: services.${serviceName}.mutationAdapters.${sourceModelName}.${operationName}[${edgeIndex}] source version "${schemaSourceModelVersion}" is current; adapter sources must be historical`,
@@ -823,9 +845,10 @@ export function makeSystem(props: {
             );
           }
 
-          const destinationJsonSchema = JSONSchema.make(destination);
+          const destinationJsonSchema =
+            Schema.toJsonSchemaDocument(destination);
           const destinationProperties = Reflect.get(
-            destinationJsonSchema,
+            destinationJsonSchema.schema,
             'properties',
           );
           if (
@@ -891,11 +914,7 @@ export function makeSystem(props: {
             );
           }
           const destinationModel = models[destinationModelName];
-          if (
-            destinationModel === undefined ||
-            !('serviceName' in destinationModel) ||
-            destinationModel.serviceName !== serviceName
-          ) {
+          if (destinationModel === undefined) {
             throw new Error(
               `makeSystem: services.${serviceName}.mutationAdapters.${sourceModelName}.${operationName}[${edgeIndex}] destination model "${destinationModelName}" is not owned by service "${serviceName}"`,
             );
@@ -1113,6 +1132,32 @@ export function makeSystem(props: {
       context: `makeSystem: aggregates.${aggregateName}`,
     });
 
+    for (const [modelKey, model] of Object.entries(models)) {
+      if ('sourceModel' in model) {
+        const sourceModel = Reflect.get(model, 'sourceModel');
+        const sourceServiceName = Reflect.get(model, 'serviceName');
+        const sourceService =
+          typeof sourceServiceName === 'string'
+            ? services[sourceServiceName]
+            : undefined;
+        if (
+          sourceService === undefined ||
+          sourceService.models[model.modelName] !== sourceModel
+        ) {
+          throw new Error(
+            `makeSystem: aggregates.${aggregateName}.models.${modelKey} must replicate the exact source model "${String(sourceServiceName)}.${model.modelName}"`,
+          );
+        }
+        continue;
+      }
+      const sourceServiceName = serviceNameBySourceModel.get(model);
+      if (sourceServiceName !== undefined) {
+        throw new Error(
+          `makeSystem: aggregates.${aggregateName}.models.${modelKey} must use makeReplica for source model "${sourceServiceName}.${model.modelName}"`,
+        );
+      }
+    }
+
     for (const [sourceModelName, operationAdapters] of Object.entries(
       mutationAdapters ?? {},
     )) {
@@ -1158,8 +1203,11 @@ export function makeSystem(props: {
             );
           }
 
-          const sourceJsonSchema = JSONSchema.make(source);
-          const sourceProperties = Reflect.get(sourceJsonSchema, 'properties');
+          const sourceJsonSchema = Schema.toJsonSchemaDocument(source);
+          const sourceProperties = Reflect.get(
+            sourceJsonSchema.schema,
+            'properties',
+          );
           if (
             typeof sourceProperties !== 'object' ||
             sourceProperties === null
@@ -1235,7 +1283,7 @@ export function makeSystem(props: {
 
           const sourceModel = models[sourceModelName];
           if (sourceModel !== undefined) {
-            if ('serviceName' in sourceModel) {
+            if ('sourceModel' in sourceModel) {
               throw new Error(
                 `makeSystem: aggregates.${aggregateName}.mutationAdapters.${sourceModelName} belongs to its service`,
               );
@@ -1277,9 +1325,10 @@ export function makeSystem(props: {
             );
           }
 
-          const destinationJsonSchema = JSONSchema.make(destination);
+          const destinationJsonSchema =
+            Schema.toJsonSchemaDocument(destination);
           const destinationProperties = Reflect.get(
-            destinationJsonSchema,
+            destinationJsonSchema.schema,
             'properties',
           );
           if (
@@ -1347,7 +1396,7 @@ export function makeSystem(props: {
           const destinationModel = models[destinationModelName];
           if (
             destinationModel === undefined ||
-            'serviceName' in destinationModel
+            'sourceModel' in destinationModel
           ) {
             throw new Error(
               `makeSystem: aggregates.${aggregateName}.mutationAdapters.${sourceModelName}.${operationName}[${edgeIndex}] destination model "${destinationModelName}" is not an aggregate model`,

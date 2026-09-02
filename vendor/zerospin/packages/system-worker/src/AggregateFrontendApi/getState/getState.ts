@@ -1,10 +1,15 @@
-import type { IUserRef } from '@zerospin/core/aggregate/types';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
+import type { IAggregateId } from '@zerospin/core/models/types';
+import type { IAggregateFrontendSyncState } from '@zerospin/core/session/types';
 import type { ISystemId } from '@zerospin/core/system/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import { mapParseError } from '@zerospin/error';
+import {
+  mapParseError,
+  type IAnyErrorJson,
+  type IEncodedResult,
+} from '@zerospin/error';
 import {
   makeSpanLinkId,
   makeTelemetryCollector,
@@ -12,74 +17,87 @@ import {
   type IRpcRequest,
   type ISpanLinkRecord,
 } from '@zerospin/logger';
-import { Effect, Either, Schema } from 'effect';
+import { Effect, Result, Schema } from 'effect';
 
-import { SystemWorkerResolver } from '../../SystemWorkerResolver/SystemWorkerResolver.js';
+import { getMaterializedAggregateFrontendRepo } from '../../MaterializedAggregateFrontendRepo/getMaterializedAggregateFrontendRepo/getMaterializedAggregateFrontendRepo.js';
+import { getSystemLogRepo } from '../../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
 
 export const getState = Effect.fn('AggregateFrontendApi.getState')(
   function* (props: {
     request: IRpcRequest<[]>;
     authResults: {
-      readonly actorRef: IUserRef;
+      readonly aggregateId: IAggregateId;
+      readonly aggregateName: string;
+      readonly userId: string;
       readonly frontendName: string;
       readonly aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema
       >;
-      readonly generationId: string;
       readonly systemId: ISystemId;
-      readonly systemWorkerName: string;
     };
   }) {
-    const validatedArgs = yield* Schema.validate(
-      Schema.mutable(Schema.Tuple()),
-    )(props.request.args, { onExcessProperty: 'error' }).pipe(
+    const { authResults, request } = props;
+    const validatedArgs = yield* Schema.decodeUnknownEffect(
+      Schema.toType(Schema.mutable(Schema.Tuple([]))),
+    )(request.args, { onExcessProperty: 'error' }).pipe(
       mapParseError({
         code: 'aggregate-frontend-api-arguments-invalid',
         prefix: 'AggregateFrontendApi.getState received invalid arguments',
       }),
-      Effect.either,
+      Effect.result,
     );
-    if (Either.isLeft(validatedArgs)) {
+    if (Result.isFailure(validatedArgs)) {
       return {
-        result: yield* encodeRpc(Effect.fail(validatedArgs.left)),
+        result: yield* encodeRpc(Effect.fail(validatedArgs.failure)),
         link: null,
       };
     }
 
-    const resolver = yield* SystemWorkerResolver;
-    using systemWorker = resolver.get({
-      systemWorkerName: props.authResults.systemWorkerName,
+    const aggregateFrontendRepo = yield* getMaterializedAggregateFrontendRepo({
+      key: {
+        systemId: authResults.systemId,
+        aggregateId: authResults.aggregateId,
+        aggregateName: authResults.aggregateName,
+        userId: authResults.userId,
+        frontendName: authResults.frontendName,
+      },
     });
     const collector = makeTelemetryCollector();
-    const settled = yield* makeAsync(() =>
-      systemWorker.getAggregateFrontendState({
-        actorRef: props.authResults.actorRef,
-        aggregateFrontendLock: props.authResults.aggregateFrontendLock,
-        frontendName: props.authResults.frontendName,
-        generationId: props.authResults.generationId,
+    const settled = yield* makeAsync<
+      IEncodedResult<IAggregateFrontendSyncState, IAnyErrorJson>
+    >(() =>
+      aggregateFrontendRepo.getState({
+        aggregateId: authResults.aggregateId,
+        aggregateName: authResults.aggregateName,
+        userId: authResults.userId,
+        frontendName: authResults.frontendName,
       }),
     ).pipe(
       Effect.flatMap(decodeRpc),
       Effect.withSpan('AggregateFrontendApi.getState', { root: true }),
       Effect.provide(makeTelemetryLayer(collector)),
-      Effect.either,
+      Effect.result,
     );
-    const result = yield* Either.match(settled, {
-      onLeft: error => encodeRpc(Effect.fail(error)),
-      onRight: value => encodeRpc(Effect.succeed(value)),
+    const result = yield* Result.match(settled, {
+      onFailure: error => encodeRpc(Effect.fail(error)),
+      onSuccess: value => encodeRpc(Effect.succeed(value)),
     });
 
     const batch = collector.flush();
-    const persisted = yield* makeAsync(() =>
-      systemWorker.appendTelemetryBatch({
-        batch,
-        generationId: props.authResults.generationId,
-      }),
-    ).pipe(Effect.flatMap(decodeRpc), Effect.either);
+    const persisted = yield* Effect.gen(function* () {
+      const systemLogRepo = yield* getSystemLogRepo({
+        key: { systemId: authResults.systemId },
+      });
+      return yield* makeAsync<IEncodedResult<void, IAnyErrorJson>>(() =>
+        systemLogRepo.appendTelemetryBatch({
+          batch,
+        }),
+      ).pipe(Effect.flatMap(decodeRpc));
+    }).pipe(Effect.result);
     const rootSpan = batch.spans.at(-1);
     const link: ISpanLinkRecord | null =
-      Either.isRight(persisted) &&
-      props.request.traceContext !== null &&
+      Result.isSuccess(persisted) &&
+      request.traceContext !== null &&
       rootSpan !== undefined &&
       rootSpan.parentSpanId === null &&
       rootSpan.name === 'AggregateFrontendApi.getState'
@@ -87,8 +105,8 @@ export const getState = Effect.fn('AggregateFrontendApi.getState')(
             linkId: makeSpanLinkId(),
             traceId: rootSpan.traceId,
             spanId: rootSpan.spanId,
-            priorTraceId: props.request.traceContext.traceId,
-            priorSpanId: props.request.traceContext.parentSpanId,
+            priorTraceId: request.traceContext.traceId,
+            priorSpanId: request.traceContext.parentSpanId,
             kind: 'causedBy',
           }
         : null;

@@ -2,7 +2,7 @@ import { act } from 'react';
 
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { makeMigratedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb';
+import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
 import { Effect, Schema } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
@@ -38,7 +38,7 @@ describe('SessionPane service surface', () => {
     const models = {};
     const dbConfig = makeResourceDbConfig({ models, otherTables: {} });
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
@@ -55,7 +55,6 @@ describe('SessionPane service surface', () => {
         signature: Schema.Struct({ userId: Schema.String }),
       },
       sessionId: serviceSessionId,
-      mode: 'shared-worker',
     });
     session.store.setState({
       sessionId: serviceSessionId,
@@ -69,17 +68,10 @@ describe('SessionPane service surface', () => {
       schema: dbConfig.schema,
       models,
       isInitialized: true,
-      frontendIndex: 12,
-      replicaIndex: 15,
-      workerState: {
-        mode: 'shared-worker',
-        status: 'replaying',
-        bootstrapSource: 'replica',
-        frontendIndex: 12,
-        replicaIndex: 15,
-        databaseName: 'service-pane.db',
-        failure: null,
-      },
+      serviceIndex: 14,
+      serviceFrontendIndex: 12,
+      sessionStatus: 'current',
+      backupState: { status: 'repairing', failure: null },
     });
     zerospinDevtoolsStore.getState().addServiceSession({ session });
 
@@ -103,11 +95,9 @@ describe('SessionPane service surface', () => {
     expect(container.textContent).not.toContain('Commands');
     expect(container.textContent).not.toContain('Pause push');
     expect(container.textContent).not.toContain('Push');
-    expect(container.textContent).toContain('mode: shared-worker');
-    expect(container.textContent).toContain('status: replaying');
-    expect(container.textContent).toContain('bootstrap: replica');
-    expect(container.textContent).toContain('frontend index: 12');
-    expect(container.textContent).toContain('replica index: 15');
-    expect(container.textContent).toContain('database: service-pane.db');
+    expect(container.textContent).toContain('session: current');
+    expect(container.textContent).toContain('backup: repairing');
+    expect(container.textContent).toContain('service index: 14');
+    expect(container.textContent).toContain('service frontend index: 12');
   });
 });

@@ -1,10 +1,10 @@
 import { it } from '@effect/vitest';
+import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { makeContract } from '../contracts/makeContract.ts';
 import { makeModel } from '../models/makeModel.ts';
-import { primitives } from '../models/primitives.ts';
 
 import {
   AggregateFrontendLockSchema,
@@ -69,8 +69,8 @@ describe('aggregate frontend lock', () => {
           contracts: { renameItem, createList },
         });
 
-        const leftLock = yield* makeAggregateFrontendLock({ frontend: left });
-        const rightLock = yield* makeAggregateFrontendLock({
+        const leftLock = makeAggregateFrontendLock({ frontend: left });
+        const rightLock = makeAggregateFrontendLock({
           frontend: right,
         });
         const leftKey = yield* makeAggregateFrontendLockKey(leftLock);
@@ -82,8 +82,20 @@ describe('aggregate frontend lock', () => {
         expect(leftLock).not.toHaveProperty('ownerName');
         expect(leftLock).not.toHaveProperty('userIdJsonSchema');
         expect(leftLock).not.toHaveProperty('signature');
+        expect(leftLock.models.item?.propertiesJsonSchema).toMatchObject({
+          dialect: 'draft-2020-12',
+          definitions: {},
+          schema: { type: 'object' },
+        });
+        expect(leftLock.contracts.renameItem?.payloadJsonSchema).toMatchObject({
+          dialect: 'draft-2020-12',
+          definitions: {},
+          schema: { type: 'object' },
+        });
         expect(leftKey).toBe(rightKey);
-        expect(leftKey).toMatch(/^[0-9a-f]{64}$/u);
+        expect(leftKey).toBe(
+          'e5091717699822233e038992cba9d62ce7cf044d032ac985e4febf093b8998fd',
+        );
         expect(leftLock).not.toHaveProperty('version');
       }),
   );
@@ -97,31 +109,30 @@ describe('aggregate frontend lock', () => {
         models: { item: Item },
         contracts: { renameItem },
       });
+      const ChangedItem = makeModel(
+        {
+          abbreviation: 'itm',
+          modelName: 'item',
+          attributes: { title: primitives.integer() },
+          indexes: [],
+          version: '2.0.0',
+        },
+        [],
+      );
       const changed = makeFrontendController({
         systemName: 'shopping',
         aggregateName: 'shopper',
         frontendName: 'web',
-        models: {
-          item: makeModel(
-            {
-              abbreviation: 'itm',
-              modelName: 'item',
-              attributes: { title: primitives.integer() },
-              indexes: [],
-              version: '2.0.0',
-            },
-            [],
-          ),
-        },
+        models: { item: ChangedItem },
         contracts: { renameItem },
       });
 
-      const baselineKey = yield* makeAggregateFrontendLock({
-        frontend: baseline,
-      }).pipe(Effect.flatMap(makeAggregateFrontendLockKey));
-      const changedKey = yield* makeAggregateFrontendLock({
-        frontend: changed,
-      }).pipe(Effect.flatMap(makeAggregateFrontendLockKey));
+      const baselineKey = yield* makeAggregateFrontendLockKey(
+        makeAggregateFrontendLock({ frontend: baseline }),
+      );
+      const changedKey = yield* makeAggregateFrontendLockKey(
+        makeAggregateFrontendLock({ frontend: changed }),
+      );
 
       expect(changedKey).not.toBe(baselineKey);
     }),

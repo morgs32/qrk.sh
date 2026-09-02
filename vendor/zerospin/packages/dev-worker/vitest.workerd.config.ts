@@ -9,14 +9,10 @@ export default makeWorkerdVitestConfig({
   include: ['tests/workerd/DevWorker.system-repo.workerd.spec.ts'],
   packageRoot,
   passWithNoTests: false,
-  seedsModulePath: path.join(packageRoot, 'tests/workerd/devSeeds.fixture.ts'),
   systemModulePath: path.resolve(
     packageRoot,
     '../system-worker/src/fixtures/system.ts',
   ),
-  wranglerConfigPath: path.join(
-    packageRoot,
-    'wrangler.dev-seeds-clean.vitest.jsonc',
-  ),
+  wranglerConfigPath: path.join(packageRoot, 'wrangler.vitest.jsonc'),
   workerMainPath: path.join(packageRoot, 'src/DevWorker.ts'),
 });

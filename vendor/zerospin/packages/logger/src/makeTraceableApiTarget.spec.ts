@@ -3,10 +3,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { makeTelemetryLayer } from './makeTelemetryLayer.ts';
 import { makeTraceableApiTarget } from './makeTraceableApiTarget.ts';
-import {
-  makeTelemetryCollector,
-  TelemetryCollector,
-} from './TelemetryCollector.ts';
+import { makeTelemetryCollector } from './TelemetryCollector.ts';
 import type {
   ILinkedRpcEnvelope,
   IRpcRequest,
@@ -31,7 +28,7 @@ describe('makeTraceableApiTarget', () => {
       ): Promise<ILinkedRpcEnvelope<number, 'domain-error'>> => {
         receivedTraceContext = request.traceContext;
         return Promise.resolve({
-          result: { _tag: 'Right', right: request.args[0] * 2 },
+          result: { _tag: 'Success', success: request.args[0] * 2 },
           link: {
             ...link,
             priorTraceId: request.traceContext?.traceId ?? link.priorTraceId,
@@ -42,7 +39,7 @@ describe('makeTraceableApiTarget', () => {
     };
     const apiTarget = makeTraceableApiTarget(rawApiTarget);
     expectTypeOf(apiTarget.double).returns.toEqualTypeOf<
-      Effect.Effect<number, 'domain-error' | Error, TelemetryCollector>
+      Effect.Effect<number, 'domain-error' | Error>
     >();
     const collector = makeTelemetryCollector();
 
@@ -82,7 +79,7 @@ describe('makeTraceableApiTarget', () => {
         _request: IRpcRequest<[]>,
       ): Promise<ILinkedRpcEnvelope<never, 'domain-error'>> =>
         Promise.resolve({
-          result: { _tag: 'Left', left: 'domain-error' },
+          result: { _tag: 'Failure', failure: 'domain-error' },
           link: {
             linkId: 'lnk_failed-call',
             traceId: 'trc_server',
@@ -111,7 +108,7 @@ describe('makeTraceableApiTarget', () => {
         _request: IRpcRequest<[]>,
       ): Promise<ILinkedRpcEnvelope<string, never>> =>
         Promise.resolve({
-          result: { _tag: 'Right', right: 'ok' },
+          result: { _tag: 'Success', success: 'ok' },
           link: null,
         }),
     };
@@ -125,6 +122,22 @@ describe('makeTraceableApiTarget', () => {
 
     expect(value).toBe('ok');
     expect(collector.flush().links).toEqual([]);
+  });
+
+  it('does not require a telemetry collector', async () => {
+    const value = await Effect.runPromise(
+      makeTraceableApiTarget({
+        call: (
+          _request: IRpcRequest<[]>,
+        ): Promise<ILinkedRpcEnvelope<string, never>> =>
+          Promise.resolve({
+            result: { _tag: 'Success', success: 'ok' },
+            link: null,
+          }),
+      }).call(),
+    );
+
+    expect(value).toBe('ok');
   });
 
   it('normalizes transport rejection to Error', async () => {
@@ -153,7 +166,7 @@ describe('makeTraceableApiTarget', () => {
     const apiTarget = makeTraceableApiTarget({
       call: () =>
         Promise.resolve({
-          result: { _tag: 'Right', right: 'ok' },
+          result: { _tag: 'Success', success: 'ok' },
           link: {
             linkId: 'lnk_incomplete',
             traceId: 'trc_server',

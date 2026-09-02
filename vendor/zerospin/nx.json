@@ -4,11 +4,11 @@
   "plugins": [
     {
       "plugin": "nx/plugins/package-json",
-      "exclude": ["vendor/**"]
+      "exclude": ["vendor/**", "!vendor/epluribus-machina/**"]
     },
     {
       "plugin": "@nx/js/typescript",
-      "exclude": ["vendor/**"],
+      "exclude": ["vendor/**", "!vendor/epluribus-machina/**"],
       "options": {
         "typecheck": {
           "targetName": "tsc:typecheck"
@@ -52,5 +52,6 @@
       "dependsOn": ["^lib"]
     }
   },
-  "analytics": true
+  "analytics": true,
+  "nxCloudId": "6a8ca057e6767a71a0a24c46"
 }

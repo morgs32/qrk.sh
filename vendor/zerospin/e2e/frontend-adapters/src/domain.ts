@@ -1,6 +1,6 @@
 import { makeContract } from '@zerospin/core/contracts/makeContract';
 import { makeModel } from '@zerospin/core/models/makeModel';
-import { primitives } from '@zerospin/core/models/primitives';
+import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
 export const SourceItem = makeModel(

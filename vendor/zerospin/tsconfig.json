@@ -44,7 +44,7 @@
       "path": "./packages/dispatch-worker"
     },
     {
-      "path": "./packages/shared-worker"
+      "path": "./packages/opfs-backup-worker"
     },
     {
       "path": "./packages/live-query"
@@ -56,10 +56,10 @@
       "path": "./packages/sync"
     },
     {
-      "path": "./e2e/frontend-adapters"
+      "path": "./packages/schema"
     },
     {
-      "path": "./examples/shopping"
+      "path": "./packages/react-router"
     }
   ]
 }

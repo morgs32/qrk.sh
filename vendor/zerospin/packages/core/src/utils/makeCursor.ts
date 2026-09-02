@@ -1,7 +1,7 @@
 import type { IAnyError } from '@zerospin/error';
+import type { InferIdFromAbbreviation } from '@zerospin/schema';
 import { Effect } from 'effect';
 
-import type { InferIdFromAbbreviation } from '../models/types.ts';
 import { MonotonicFactory } from '../services/MonotonicFactory.ts';
 
 export const makeCursor = Effect.fn('makeCursor')(function* <

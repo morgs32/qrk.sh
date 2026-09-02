@@ -147,10 +147,10 @@ function ServiceDatabaseRowsTable(props: {
     session.getIsInitialized,
     session.getIsInitialized,
   );
-  const frontendIndex = useSyncExternalStore(
+  const serviceFrontendIndex = useSyncExternalStore(
     session.subscribe,
-    session.getFrontendIndex,
-    session.getFrontendIndex,
+    session.getServiceFrontendIndex,
+    session.getServiceFrontendIndex,
   );
 
   if (!isInitialized) {
@@ -161,9 +161,9 @@ function ServiceDatabaseRowsTable(props: {
   let error: Error | undefined;
 
   try {
-    // The subscribed frontend index makes each committed service block rerun
+    // The subscribed frontend index makes each committed service command rerun
     // the typed query closure retained by the registration adapter.
-    void frontendIndex;
+    void serviceFrontendIndex;
     const result = session.readModelRows(modelKey);
     rows = Array.isArray(result) ? result.filter(isRecord) : [];
   } catch (cause) {

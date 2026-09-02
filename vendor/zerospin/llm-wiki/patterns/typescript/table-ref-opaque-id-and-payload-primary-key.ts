@@ -1,8 +1,7 @@
 import { makeContract } from '@zerospin/core/contracts/makeContract';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeModel } from '@zerospin/core/models/makeModel';
-import { makeTable } from '@zerospin/core/models/makeTable';
-import { primitives } from '@zerospin/core/models/primitives';
+import { makeTable, primitives } from '@zerospin/schema';
 
 /**
  * Use table refs for concrete same-database relations, `primitives.self` for relations to the current table, opaque IDs for identities with no local relational target, and `Model.primaryKey` for payload model keys. Every persisted table ref becomes an immediate SQLite foreign key with default NO ACTION behavior, so pass resource-model and other-table definitions through one `makeResourceDbConfig` graph.

@@ -1,28 +1,49 @@
 import type { IAnyErrorJson } from '@zerospin/error';
 import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
+import type { AnyRelations } from 'drizzle-orm';
 import type { StoreApi } from 'zustand';
 
 import type {
-  IResourceDbConfig,
+  IChainedCommand,
+  IServiceCommand,
+} from '../contracts/types.ts';
+import type {
+  IDb,
+  IDbConfig,
+  IDrizzleRelationsFromModels,
+  IResourceDrizzleSchemasFromModels,
   IWaSqliteDrizzleDb,
 } from '../drizzle/types.ts';
 import type { IServiceFrontendController } from '../frontendController/types.ts';
-import type {
-  IEncodedResourceShape,
-  IModels,
-  IServiceCursorId,
-} from '../models/types.ts';
+import type { IEncodedResourceShape, IModels } from '../models/types.ts';
 import type { IFrontendDelta, ISessionId } from '../session/types.ts';
 import type { ISystemId } from '../system/types.ts';
 
-export type IServiceFrontendBlock = Readonly<{
-  serviceName: string;
-  userId: string;
-  frontendName: string;
-  frontendIndex: number;
-  lastServiceCursor: IServiceCursorId;
-  delta: IFrontendDelta;
-}>;
+import { type serviceSessionRepoSchema } from './serviceSessionRepoTables.ts';
+
+export type IServiceSessionRepoSchema = typeof serviceSessionRepoSchema;
+
+export type IServiceSessionSchema<MODELS extends IModels = IModels> =
+  IResourceDrizzleSchemasFromModels<MODELS> & IServiceSessionRepoSchema;
+
+export type IServiceSessionDrizzleDb<
+  MODELS extends IModels = IModels,
+  RELATIONS extends AnyRelations = AnyRelations,
+> = IDb<IDbConfig<IServiceSessionSchema<MODELS>, RELATIONS>>;
+
+export type IServiceSessionWaSqliteDb<
+  MODELS extends IModels = IModels,
+  RELATIONS extends AnyRelations = AnyRelations,
+> = IWaSqliteDrizzleDb<IDbConfig<IServiceSessionSchema<MODELS>, RELATIONS>>;
+
+export type IServiceFrontendFinalizedCommand = IChainedCommand<
+  IServiceCommand,
+  IFrontendDelta
+> &
+  Readonly<{
+    serviceIndex: number;
+    serviceFrontendIndex: number;
+  }>;
 
 export type IServiceFrontendState = Readonly<{
   userId: string;
@@ -30,25 +51,9 @@ export type IServiceFrontendState = Readonly<{
   systemVersion: string;
   serviceName: string;
   frontendName: string;
-  frontendIndex: number;
+  serviceIndex: number;
+  serviceFrontendIndex: number;
   resources: readonly IEncodedResourceShape[];
-}>;
-
-export type IServiceFrontendReplicaState = IServiceFrontendState &
-  Readonly<{
-    serviceFrontendLockKey: string;
-    replicaIndex: number;
-  }>;
-
-export type IServiceFrontendReplicaBlock = Readonly<{
-  systemId: ISystemId;
-  serviceName: string;
-  userId: string;
-  frontendName: string;
-  serviceFrontendLockKey: string;
-  replicaIndex: number;
-  frontendIndex: number;
-  frontendBlock: IServiceFrontendBlock;
 }>;
 
 export type IInitializedServiceSessionState<MODELS extends IModels = IModels> =
@@ -60,28 +65,20 @@ export type IInitializedServiceSessionState<MODELS extends IModels = IModels> =
     serviceName: string;
     frontendName: string;
     serviceFrontendLockKey: string;
-    db: IWaSqliteDrizzleDb<IResourceDbConfig<MODELS, Record<never, never>>>;
-    schema: IResourceDbConfig<MODELS, Record<never, never>>['schema'];
+    db: IServiceSessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>;
+    schema: IServiceSessionSchema<MODELS>;
     models: MODELS;
     isInitialized: true;
-    frontendIndex: number;
-    replicaIndex: number | null;
-    workerState: Readonly<{
-      mode: 'shared-worker';
-      status:
-        | 'authenticating'
-        | 'hydrating'
-        | 'offline'
-        | 'connecting'
-        | 'replaying'
-        | 'online'
-        | 'repairing'
-        | 'failed'
-        | 'released';
-      bootstrapSource: 'network' | 'replica' | null;
-      frontendIndex: number;
-      replicaIndex: number | null;
-      databaseName: string | null;
+    serviceIndex: number;
+    serviceFrontendIndex: number;
+    sessionStatus:
+      | 'bootstrapping'
+      | 'current'
+      | 'superseded'
+      | 'failed'
+      | 'released';
+    backupState: Readonly<{
+      status: 'pending' | 'ready' | 'repairing' | 'failed' | 'released';
       failure: IAnyErrorJson | null;
     }>;
     telemetry: ITelemetryBatch;
@@ -102,24 +99,16 @@ export type IServiceSessionState<MODELS extends IModels = IModels> =
       schema: null;
       models: null;
       isInitialized: false;
-      frontendIndex: null;
-      replicaIndex: null;
-      workerState: Readonly<{
-        mode: 'shared-worker';
-        status:
-          | 'authenticating'
-          | 'hydrating'
-          | 'offline'
-          | 'connecting'
-          | 'replaying'
-          | 'online'
-          | 'repairing'
-          | 'failed'
-          | 'released';
-        bootstrapSource: 'network' | 'replica' | null;
-        frontendIndex: null;
-        replicaIndex: null;
-        databaseName: null;
+      serviceIndex: null;
+      serviceFrontendIndex: null;
+      sessionStatus:
+        | 'bootstrapping'
+        | 'current'
+        | 'superseded'
+        | 'failed'
+        | 'released';
+      backupState: Readonly<{
+        status: 'pending' | 'ready' | 'repairing' | 'failed' | 'released';
         failure: IAnyErrorJson | null;
       }>;
       telemetry: ITelemetryBatch;

@@ -11,16 +11,13 @@
  */
 
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import type { InferDecodedRow } from '@zerospin/schema';
 import { eq } from 'drizzle-orm';
-import { Effect, Schema } from 'effect';
+import { Effect, Schema, Struct } from 'effect';
 import { pick } from 'es-toolkit';
 
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
-import type {
-  IModel,
-  InferAttributesSchema,
-  InferDecodedRow,
-} from '../models/types.ts';
+import type { IModel, InferAttributesSchema } from '../models/types.ts';
 
 import { getResourceRow } from './getResourceRow.ts';
 import type { IAnyMutation, IAppliedMutation } from './types.ts';
@@ -52,36 +49,9 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
         operationName,
         resourceId,
       });
-
-      if ('serviceName' in model && resourceRow.deletedAt !== null) {
-        if (
-          resourceRow.deletedAt instanceof Date &&
-          resourceRow.deletedAt.getTime() === appliedAt.getTime()
-        ) {
-          return {
-            ...mutation,
-            commandId,
-            mutationIndex,
-            appliedAt,
-            lastAppliedAt: resourceRow.updatedAt,
-            inverseOperation: null,
-          };
-        }
-        return yield* new ZerospinError({
-          code: 'service-resource-deleted',
-          message: `Cannot apply delete mutation to deleted service resource "${resourceId}"`,
-          extra: {
-            modelName: model.modelName,
-            resourceId,
-            operationName,
-            deletedAt: resourceRow.deletedAt,
-          },
-        });
-      }
-
-      const resource = yield* Schema.validate(model.resourceSchema)(
-        resourceRow,
-      ).pipe(
+      const resource = yield* Schema.decodeUnknownEffect(
+        Schema.toType(model.resourceSchema),
+      )(resourceRow).pipe(
         mapParseError({
           code: 'delete-resource-row-invalid',
           prefix: `Failed to validate deleted resource "${resourceId}"`,
@@ -91,14 +61,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
       lastAppliedAt = resourceRow.updatedAt;
 
       yield* Effect.try({
-        try: () =>
-          'serviceName' in model
-            ? tx
-                .update(table)
-                .set({ ...{ deletedAt: appliedAt }, updatedAt: appliedAt })
-                .where(eq(table.id, resourceId))
-                .run()
-            : tx.delete(table).where(eq(table.id, resourceId)).run(),
+        try: () => tx.delete(table).where(eq(table.id, resourceId)).run(),
         catch: cause => {
           const failure = `${ZerospinError.prettyUnknownFailure(cause)}${
             cause instanceof Error && cause.cause !== undefined
@@ -121,30 +84,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
       break;
     }
     case 'create': {
-      if ('serviceName' in model) {
-        const existingResource = tx
-          .select()
-          .from(table)
-          .where(eq(table.id, resourceId))
-          .get();
-        if (
-          existingResource !== undefined &&
-          'deletedAt' in existingResource &&
-          existingResource.deletedAt !== null
-        ) {
-          return yield* new ZerospinError({
-            code: 'service-resource-deleted',
-            message: `Cannot apply create mutation to deleted service resource "${resourceId}"`,
-            extra: {
-              modelName: model.modelName,
-              resourceId,
-              operationName,
-              deletedAt: existingResource.deletedAt,
-            },
-          });
-        }
-      }
-      const encodedAttributes = yield* Schema.encodeUnknown(
+      const encodedAttributes = yield* Schema.encodeUnknownEffect(
         model.attributesSchema as InferAttributesSchema<typeof model>,
       )(mutation.operation.attributes).pipe(
         mapParseError({
@@ -162,7 +102,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
               updatedAt: appliedAt,
               modelName: model.modelName,
               version: mutation.modelVersion,
-              ...('serviceName' in model ? { deletedAt: null } : {}),
+              ...('sourceModel' in model ? { deletedAt: null } : {}),
               ...encodedAttributes,
             })
             .run(),
@@ -194,18 +134,6 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
         operationName,
         resourceId,
       });
-      if ('serviceName' in model && resourceRow.deletedAt !== null) {
-        return yield* new ZerospinError({
-          code: 'service-resource-deleted',
-          message: `Cannot apply update mutation to deleted service resource "${resourceId}"`,
-          extra: {
-            modelName: model.modelName,
-            resourceId,
-            operationName,
-            deletedAt: resourceRow.deletedAt,
-          },
-        });
-      }
       const attributeKeys = Object.keys(model.attributes);
       const rawAttributes: Record<string, unknown> = {};
 
@@ -213,7 +141,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
         rawAttributes[key] = resourceRow[key];
       }
 
-      const rowAttributes = yield* Schema.decodeUnknown(
+      const rowAttributes = yield* Schema.decodeUnknownEffect(
         model.attributesSchema as InferAttributesSchema<typeof model>,
       )(rawAttributes).pipe(
         mapParseError({
@@ -235,10 +163,10 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
         ? pick(mutation.operation.attributes, mutation.operation.mask)
         : mutation.operation.attributes;
 
-      const encodedAttributes = yield* Schema.encodeUnknown(
-        Schema.partial(
-          model.attributesSchema as InferAttributesSchema<typeof model>,
-        ),
+      const encodedAttributes = yield* Schema.encodeUnknownEffect(
+        (
+          model.attributesSchema as InferAttributesSchema<typeof model>
+        ).mapFields(Struct.map(Schema.optional)),
       )(filtered).pipe(
         mapParseError({
           code: 'failed-to-encode-update-attributes',
@@ -283,18 +211,6 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
         operationName,
         resourceId,
       });
-      if ('serviceName' in model && resourceRow.deletedAt !== null) {
-        return yield* new ZerospinError({
-          code: 'service-resource-deleted',
-          message: `Cannot apply move mutation to deleted service resource "${resourceId}"`,
-          extra: {
-            modelName: model.modelName,
-            resourceId,
-            operationName,
-            deletedAt: resourceRow.deletedAt,
-          },
-        });
-      }
       inverseOperation = {
         property: mutation.operation.property,
         prevId: mutation.operation.prevId,

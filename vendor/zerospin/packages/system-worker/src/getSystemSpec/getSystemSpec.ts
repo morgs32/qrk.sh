@@ -9,7 +9,7 @@ export const getSystemSpec = Effect.fn('SystemWorker.getSystemSpec', {
   root: true,
 })(function* (): Effect.fn.Return<ISystemSpec, IAnyError> {
   const specUnknown = makeSystemSpec({ system });
-  return yield* Schema.decodeUnknown(SystemSpecSchema)(specUnknown).pipe(
+  return yield* Schema.decodeUnknownEffect(SystemSpecSchema)(specUnknown).pipe(
     mapParseError({
       code: 'system-runtime-system-spec-invalid',
       prefix: 'The static System returned an invalid SystemSpec',

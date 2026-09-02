@@ -4,8 +4,8 @@
  */
 
 import type { IDb, ITx } from '@zerospin/core/drizzle/types';
-import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
 import type { IRepoRegistration } from '@zerospin/core/system/types';
+import type { IAnyDrizzleSchema } from '@zerospin/schema';
 import type { AnyColumn } from 'drizzle-orm';
 import { Effect } from 'effect';
 
@@ -13,7 +13,6 @@ export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
   function* (props: {
     db: IDb | ITx;
     repoTable: IAnyDrizzleSchema & {
-      generationId: AnyColumn;
       repoType: AnyColumn;
       repoName: AnyColumn;
       tableNames: AnyColumn;
@@ -28,11 +27,7 @@ export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
         tableNames: JSON.stringify(registration.tableNames),
       })
       .onConflictDoUpdate({
-        target: [
-          repoTable.generationId,
-          repoTable.repoType,
-          repoTable.repoName,
-        ],
+        target: [repoTable.repoType, repoTable.repoName],
         set: { tableNames: JSON.stringify(registration.tableNames) },
       })
       .run();

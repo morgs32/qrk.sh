@@ -1,9 +1,8 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
-import { Effect, Schema } from 'effect';
+import { makeAbbreviationIdSchema, PrimitiveKind } from '@zerospin/schema';
+import { Effect, Schema, Struct } from 'effect';
 import { mapValues, pick } from 'es-toolkit';
 
-import { makeAbbreviationIdSchema } from '../models/makeIdSchema.ts';
-import { PrimitiveKind } from '../models/primitiveKind.ts';
 import type { IModel } from '../models/types.ts';
 
 import type {
@@ -20,18 +19,15 @@ export const EncodedAggregateFrontendMutationSchema = Schema.Struct({
   modelName: Schema.String,
   modelVersion: Schema.String,
   resourceId: Schema.String,
-  operationName: Schema.Literal(
+  operationName: Schema.Literals([
     'create',
     'delete',
     'move',
     'replicateResource',
     'update',
-  ),
+  ]),
   operation: Schema.String,
-}) satisfies Schema.Schema<
-  IEncodedAggregateFrontendMutation,
-  Schema.Schema.Encoded<Schema.Schema.Any>
->;
+}) satisfies Schema.Codec<IEncodedAggregateFrontendMutation, unknown>;
 
 export const EncodedAppliedMutationSchema = Schema.Struct({
   commandId: Schema.String,
@@ -39,27 +35,24 @@ export const EncodedAppliedMutationSchema = Schema.Struct({
   modelName: Schema.String,
   modelVersion: Schema.String,
   resourceId: Schema.String,
-  operationName: Schema.Literal(
+  operationName: Schema.Literals([
     'create',
     'delete',
     'move',
     'replicateResource',
     'update',
-  ),
+  ]),
   operation: Schema.String,
-  appliedAt: Schema.Date,
-  lastAppliedAt: Schema.NullOr(Schema.Date),
+  appliedAt: Schema.DateFromString,
+  lastAppliedAt: Schema.NullOr(Schema.DateFromString),
   inverseOperation: Schema.String,
-}) satisfies Schema.Schema<
-  IEncodedAppliedMutation,
-  Schema.Schema.Encoded<Schema.Schema.Any>
->;
+}) satisfies Schema.Codec<IEncodedAppliedMutation, unknown>;
 
 export const makeOperationJsonSchema = (props: {
   model: IModel;
   modelVersion: string;
   operationName: IOperationName;
-}): Schema.Schema<unknown, string, never> => {
+}): Schema.Codec<unknown, string> => {
   const { model, modelVersion, operationName } = props;
   const definition =
     model.version === modelVersion
@@ -87,9 +80,11 @@ export const makeOperationJsonSchema = (props: {
           return descriptor.nullable ? Schema.NullOr(idSchema) : idSchema;
         }
         case PrimitiveKind.Date:
-          return descriptor.nullable ? Schema.NullOr(Schema.Date) : Schema.Date;
+          return descriptor.nullable
+            ? Schema.NullOr(Schema.DateFromString)
+            : Schema.DateFromString;
         case PrimitiveKind.Enum: {
-          const literalSchema = Schema.Literal(...descriptor.values);
+          const literalSchema = Schema.Literals(descriptor.values);
           return descriptor.nullable
             ? Schema.NullOr(literalSchema)
             : literalSchema;
@@ -100,7 +95,7 @@ export const makeOperationJsonSchema = (props: {
             ? Schema.NullOr(Schema.Number)
             : Schema.Number;
         case PrimitiveKind.Json: {
-          const jsonSchema = Schema.parseJson();
+          const jsonSchema = Schema.fromJsonString(Schema.Unknown);
           return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
         }
         case PrimitiveKind.PrimaryKey:
@@ -117,55 +112,49 @@ export const makeOperationJsonSchema = (props: {
     }),
   );
   const resourceSchema = Schema.Struct(
-    mapValues(
-      {
-        ...model.metadata,
-        ...definition.attributes,
-      },
-      descriptor => {
-        switch (descriptor.kind) {
-          case PrimitiveKind.Boolean:
-            return descriptor.nullable
-              ? Schema.NullOr(Schema.Boolean)
-              : Schema.Boolean;
-          case PrimitiveKind.Cursor:
-          case PrimitiveKind.OpaqueId:
-          case PrimitiveKind.Ref: {
-            const idSchema = makeAbbreviationIdSchema(descriptor.abbreviation);
-            return descriptor.nullable ? Schema.NullOr(idSchema) : idSchema;
-          }
-          case PrimitiveKind.Date:
-            return descriptor.nullable
-              ? Schema.NullOr(Schema.Date)
-              : Schema.Date;
-          case PrimitiveKind.Enum: {
-            const literalSchema = Schema.Literal(...descriptor.values);
-            return descriptor.nullable
-              ? Schema.NullOr(literalSchema)
-              : literalSchema;
-          }
-          case PrimitiveKind.Integer:
-          case PrimitiveKind.Number:
-            return descriptor.nullable
-              ? Schema.NullOr(Schema.Number)
-              : Schema.Number;
-          case PrimitiveKind.Json: {
-            const jsonSchema = Schema.parseJson();
-            return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
-          }
-          case PrimitiveKind.PrimaryKey:
-            return makeAbbreviationIdSchema(descriptor.abbreviation);
-          case PrimitiveKind.Text:
-            return descriptor.nullable
-              ? Schema.NullOr(Schema.String)
-              : Schema.String;
-          default:
-            throw new Error(
-              `Unknown property kind on model "${model.modelName}" version "${modelVersion}"`,
-            );
+    mapValues(definition.propertiesShape, descriptor => {
+      switch (descriptor.kind) {
+        case PrimitiveKind.Boolean:
+          return descriptor.nullable
+            ? Schema.NullOr(Schema.Boolean)
+            : Schema.Boolean;
+        case PrimitiveKind.Cursor:
+        case PrimitiveKind.OpaqueId:
+        case PrimitiveKind.Ref: {
+          const idSchema = makeAbbreviationIdSchema(descriptor.abbreviation);
+          return descriptor.nullable ? Schema.NullOr(idSchema) : idSchema;
         }
-      },
-    ),
+        case PrimitiveKind.Date:
+          return descriptor.nullable
+            ? Schema.NullOr(Schema.DateFromString)
+            : Schema.DateFromString;
+        case PrimitiveKind.Enum: {
+          const literalSchema = Schema.Literals(descriptor.values);
+          return descriptor.nullable
+            ? Schema.NullOr(literalSchema)
+            : literalSchema;
+        }
+        case PrimitiveKind.Integer:
+        case PrimitiveKind.Number:
+          return descriptor.nullable
+            ? Schema.NullOr(Schema.Number)
+            : Schema.Number;
+        case PrimitiveKind.Json: {
+          const jsonSchema = Schema.fromJsonString(Schema.Unknown);
+          return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
+        }
+        case PrimitiveKind.PrimaryKey:
+          return makeAbbreviationIdSchema(descriptor.abbreviation);
+        case PrimitiveKind.Text:
+          return descriptor.nullable
+            ? Schema.NullOr(Schema.String)
+            : Schema.String;
+        default:
+          throw new Error(
+            `Unknown property kind on model "${model.modelName}" version "${modelVersion}"`,
+          );
+      }
+    }),
   );
 
   const innerOperationSchema = (() => {
@@ -176,7 +165,9 @@ export const makeOperationJsonSchema = (props: {
         return Schema.Struct({});
       case 'update':
         return Schema.Struct({
-          encodedAttributes: Schema.partial(attributesSchema),
+          encodedAttributes: attributesSchema.mapFields(
+            Struct.map(Schema.optional),
+          ),
         });
       case 'move':
         return Schema.Struct({
@@ -196,18 +187,14 @@ export const makeOperationJsonSchema = (props: {
     }
   })();
 
-  return Schema.parseJson(innerOperationSchema) as Schema.Schema<
-    unknown,
-    string,
-    never
-  >;
+  return Schema.fromJsonString(innerOperationSchema);
 };
 
 export const makeInverseOperationJsonSchema = (props: {
   model: IModel;
   modelVersion: string;
   operationName: IOperationName;
-}): Schema.Schema<unknown, string, never> => {
+}): Schema.Codec<unknown, string> => {
   const { model, modelVersion, operationName } = props;
   const definition =
     model.version === modelVersion
@@ -235,9 +222,11 @@ export const makeInverseOperationJsonSchema = (props: {
           return descriptor.nullable ? Schema.NullOr(idSchema) : idSchema;
         }
         case PrimitiveKind.Date:
-          return descriptor.nullable ? Schema.NullOr(Schema.Date) : Schema.Date;
+          return descriptor.nullable
+            ? Schema.NullOr(Schema.DateFromString)
+            : Schema.DateFromString;
         case PrimitiveKind.Enum: {
-          const literalSchema = Schema.Literal(...descriptor.values);
+          const literalSchema = Schema.Literals(descriptor.values);
           return descriptor.nullable
             ? Schema.NullOr(literalSchema)
             : literalSchema;
@@ -248,7 +237,7 @@ export const makeInverseOperationJsonSchema = (props: {
             ? Schema.NullOr(Schema.Number)
             : Schema.Number;
         case PrimitiveKind.Json: {
-          const jsonSchema = Schema.parseJson();
+          const jsonSchema = Schema.fromJsonString(Schema.Unknown);
           return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
         }
         case PrimitiveKind.PrimaryKey:
@@ -265,55 +254,49 @@ export const makeInverseOperationJsonSchema = (props: {
     }),
   );
   const resourceSchema = Schema.Struct(
-    mapValues(
-      {
-        ...model.metadata,
-        ...definition.attributes,
-      },
-      descriptor => {
-        switch (descriptor.kind) {
-          case PrimitiveKind.Boolean:
-            return descriptor.nullable
-              ? Schema.NullOr(Schema.Boolean)
-              : Schema.Boolean;
-          case PrimitiveKind.Cursor:
-          case PrimitiveKind.OpaqueId:
-          case PrimitiveKind.Ref: {
-            const idSchema = makeAbbreviationIdSchema(descriptor.abbreviation);
-            return descriptor.nullable ? Schema.NullOr(idSchema) : idSchema;
-          }
-          case PrimitiveKind.Date:
-            return descriptor.nullable
-              ? Schema.NullOr(Schema.Date)
-              : Schema.Date;
-          case PrimitiveKind.Enum: {
-            const literalSchema = Schema.Literal(...descriptor.values);
-            return descriptor.nullable
-              ? Schema.NullOr(literalSchema)
-              : literalSchema;
-          }
-          case PrimitiveKind.Integer:
-          case PrimitiveKind.Number:
-            return descriptor.nullable
-              ? Schema.NullOr(Schema.Number)
-              : Schema.Number;
-          case PrimitiveKind.Json: {
-            const jsonSchema = Schema.parseJson();
-            return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
-          }
-          case PrimitiveKind.PrimaryKey:
-            return makeAbbreviationIdSchema(descriptor.abbreviation);
-          case PrimitiveKind.Text:
-            return descriptor.nullable
-              ? Schema.NullOr(Schema.String)
-              : Schema.String;
-          default:
-            throw new Error(
-              `Unknown property kind on model "${model.modelName}" version "${modelVersion}"`,
-            );
+    mapValues(definition.propertiesShape, descriptor => {
+      switch (descriptor.kind) {
+        case PrimitiveKind.Boolean:
+          return descriptor.nullable
+            ? Schema.NullOr(Schema.Boolean)
+            : Schema.Boolean;
+        case PrimitiveKind.Cursor:
+        case PrimitiveKind.OpaqueId:
+        case PrimitiveKind.Ref: {
+          const idSchema = makeAbbreviationIdSchema(descriptor.abbreviation);
+          return descriptor.nullable ? Schema.NullOr(idSchema) : idSchema;
         }
-      },
-    ),
+        case PrimitiveKind.Date:
+          return descriptor.nullable
+            ? Schema.NullOr(Schema.DateFromString)
+            : Schema.DateFromString;
+        case PrimitiveKind.Enum: {
+          const literalSchema = Schema.Literals(descriptor.values);
+          return descriptor.nullable
+            ? Schema.NullOr(literalSchema)
+            : literalSchema;
+        }
+        case PrimitiveKind.Integer:
+        case PrimitiveKind.Number:
+          return descriptor.nullable
+            ? Schema.NullOr(Schema.Number)
+            : Schema.Number;
+        case PrimitiveKind.Json: {
+          const jsonSchema = Schema.fromJsonString(Schema.Unknown);
+          return descriptor.nullable ? Schema.NullOr(jsonSchema) : jsonSchema;
+        }
+        case PrimitiveKind.PrimaryKey:
+          return makeAbbreviationIdSchema(descriptor.abbreviation);
+        case PrimitiveKind.Text:
+          return descriptor.nullable
+            ? Schema.NullOr(Schema.String)
+            : Schema.String;
+        default:
+          throw new Error(
+            `Unknown property kind on model "${model.modelName}" version "${modelVersion}"`,
+          );
+      }
+    }),
   );
 
   const innerInverseOperationSchema = (() => {
@@ -329,7 +312,9 @@ export const makeInverseOperationJsonSchema = (props: {
       case 'update':
         return Schema.NullOr(
           Schema.Struct({
-            encodedAttributes: Schema.partial(attributesSchema),
+            encodedAttributes: attributesSchema.mapFields(
+              Struct.map(Schema.optional),
+            ),
           }),
         );
       case 'move':
@@ -352,11 +337,7 @@ export const makeInverseOperationJsonSchema = (props: {
     }
   })();
 
-  return Schema.parseJson(innerInverseOperationSchema) as Schema.Schema<
-    unknown,
-    string,
-    never
-  >;
+  return Schema.fromJsonString(innerInverseOperationSchema);
 };
 
 /** Encodes a contract-produced mutation before any database applies it. */
@@ -382,7 +363,7 @@ export const encodeAggregateFrontendMutation = Effect.fn(
     case 'delete':
       return {
         ...encodedBase,
-        operation: yield* Schema.encode(
+        operation: yield* Schema.encodeEffect(
           makeOperationJsonSchema({
             model,
             modelVersion,
@@ -398,7 +379,7 @@ export const encodeAggregateFrontendMutation = Effect.fn(
     case 'create':
       return {
         ...encodedBase,
-        operation: yield* Schema.encode(
+        operation: yield* Schema.encodeEffect(
           makeOperationJsonSchema({
             model,
             modelVersion,
@@ -417,7 +398,7 @@ export const encodeAggregateFrontendMutation = Effect.fn(
         : mutation.operation.attributes;
       return {
         ...encodedBase,
-        operation: yield* Schema.encode(
+        operation: yield* Schema.encodeEffect(
           makeOperationJsonSchema({
             model,
             modelVersion,
@@ -434,7 +415,7 @@ export const encodeAggregateFrontendMutation = Effect.fn(
     case 'move':
       return {
         ...encodedBase,
-        operation: yield* Schema.encode(
+        operation: yield* Schema.encodeEffect(
           makeOperationJsonSchema({
             model,
             modelVersion,
@@ -450,7 +431,7 @@ export const encodeAggregateFrontendMutation = Effect.fn(
     case 'replicateResource':
       return {
         ...encodedBase,
-        operation: yield* Schema.encode(
+        operation: yield* Schema.encodeEffect(
           makeOperationJsonSchema({
             model,
             modelVersion,
@@ -505,7 +486,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
         case 'delete':
           return {
             ...encodedBase,
-            operation: yield* Schema.encode(
+            operation: yield* Schema.encodeEffect(
               makeOperationJsonSchema({
                 model,
                 modelVersion,
@@ -521,7 +502,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
         case 'create':
           return {
             ...encodedBase,
-            operation: yield* Schema.encode(
+            operation: yield* Schema.encodeEffect(
               makeOperationJsonSchema({
                 model,
                 modelVersion,
@@ -540,7 +521,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
             : mutation.operation.attributes;
           return {
             ...encodedBase,
-            operation: yield* Schema.encode(
+            operation: yield* Schema.encodeEffect(
               makeOperationJsonSchema({
                 model,
                 modelVersion,
@@ -557,7 +538,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
         case 'move':
           return {
             ...encodedBase,
-            operation: yield* Schema.encode(
+            operation: yield* Schema.encodeEffect(
               makeOperationJsonSchema({
                 model,
                 modelVersion,
@@ -573,7 +554,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
         case 'replicateResource':
           return {
             ...encodedBase,
-            operation: yield* Schema.encode(
+            operation: yield* Schema.encodeEffect(
               makeOperationJsonSchema({
                 model,
                 modelVersion,
@@ -599,7 +580,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
     if (inverseOperation === null) {
       return {
         ...encoded,
-        inverseOperation: yield* Schema.encode(
+        inverseOperation: yield* Schema.encodeEffect(
           makeInverseOperationJsonSchema({
             model,
             modelVersion,
@@ -628,7 +609,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
           : inverseOperation.attributes;
         return {
           ...encoded,
-          inverseOperation: yield* Schema.encode(
+          inverseOperation: yield* Schema.encodeEffect(
             makeInverseOperationJsonSchema({
               model,
               modelVersion,
@@ -652,7 +633,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
         }
         return {
           ...encoded,
-          inverseOperation: yield* Schema.encode(
+          inverseOperation: yield* Schema.encodeEffect(
             makeInverseOperationJsonSchema({
               model,
               modelVersion,
@@ -675,7 +656,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
         }
         return {
           ...encoded,
-          inverseOperation: yield* Schema.encode(
+          inverseOperation: yield* Schema.encodeEffect(
             makeInverseOperationJsonSchema({
               model,
               modelVersion,
@@ -698,7 +679,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
         }
         return {
           ...encoded,
-          inverseOperation: yield* Schema.encode(
+          inverseOperation: yield* Schema.encodeEffect(
             makeInverseOperationJsonSchema({
               model,
               modelVersion,

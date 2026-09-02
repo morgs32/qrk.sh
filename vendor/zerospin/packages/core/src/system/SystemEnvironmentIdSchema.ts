@@ -2,7 +2,7 @@ import { Schema } from 'effect';
 
 import type { ISystemEnvironmentId } from './types.ts';
 
-export const SystemEnvironmentIdSchema = Schema.Literal(
+export const SystemEnvironmentIdSchema = Schema.Literals([
   'dev',
   'production',
-) satisfies Schema.Schema<ISystemEnvironmentId>;
+]) satisfies Schema.Codec<ISystemEnvironmentId>;

@@ -7,7 +7,7 @@ import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
-import { ServiceFrontendStateSchema } from '@zerospin/core/serviceSession/ServiceFrontendBlockSchema';
+import { ServiceFrontendStateSchema } from '@zerospin/core/serviceSession/ServiceFrontendCommandSchema';
 import type { IServiceFrontendState } from '@zerospin/core/serviceSession/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
@@ -15,38 +15,27 @@ import { env } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
 import { system } from 'system';
 
-import { getServiceFrontendRepo } from '../ServiceFrontendRepo/getServiceFrontendRepo/getServiceFrontendRepo.js';
+import { getMaterializedServiceFrontendRepo } from '../MaterializedServiceFrontendRepo/getMaterializedServiceFrontendRepo/getMaterializedServiceFrontendRepo.js';
 import { adaptFrontendResource } from '../StaticSystem/adaptFrontendResource/adaptFrontendResource.js';
 import { SelectedServiceFrontendLockSchema } from '../StaticSystem/frontendSpecSchemas.js';
 import { validateServiceFrontendLock } from '../StaticSystem/validateServiceFrontendLock/validateServiceFrontendLock.js';
-import { SystemRepo } from '../SystemRepo/SystemRepo.js';
 
 export const getServiceFrontendState = Effect.fn(
   'SystemWorker.getServiceFrontendState',
   { root: true },
 )(function* (props: {
-  generationId: string;
   serviceName: string;
   userId: string;
   frontendName: string;
   serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
 }): Effect.fn.Return<IServiceFrontendState, IAnyError, Async> {
-  const userId = yield* Schema.decodeUnknown(Schema.NonEmptyString)(
-    props.userId,
-  ).pipe(
-    mapParseError({
-      code: 'service-frontend-state-user-id-invalid',
-      prefix: 'Failed to decode service frontend state userId',
-    }),
-  );
-
-  const generationId = props.generationId;
+  const { frontendName, serviceFrontendLock, serviceName, userId } = props;
   const selectedUnknown = yield* validateServiceFrontendLock({
-    serviceName: props.serviceName,
-    frontendName: props.frontendName,
-    serviceFrontendLock: props.serviceFrontendLock,
+    serviceName: serviceName,
+    frontendName: frontendName,
+    serviceFrontendLock: serviceFrontendLock,
   });
-  const selected = yield* Schema.decodeUnknown(
+  const selected = yield* Schema.decodeUnknownEffect(
     SelectedServiceFrontendLockSchema,
   )(selectedUnknown, { onExcessProperty: 'error' }).pipe(
     mapParseError({
@@ -54,58 +43,37 @@ export const getServiceFrontendState = Effect.fn(
       prefix: 'The static System returned an invalid selected lock',
     }),
   );
-  const systemRepo = SystemRepo.getRepo({
-    systemId: env.ZEROSPIN_SYSTEM_ID,
-  });
-  yield* makeAsync(() =>
-    systemRepo.assertGenerationAdmission({
-      generationId,
-      mode: 'read',
-    }),
-  ).pipe(Effect.flatMap(decodeRpc));
-  const lineage = yield* makeAsync(() =>
-    systemRepo.resolveFrontendProjectionLineage({
-      generationId,
-      target: {
-        kind: 'service',
-        serviceName: props.serviceName,
-        userId,
-        frontendName: props.frontendName,
-      },
-    }),
-  ).pipe(Effect.flatMap(decodeRpc));
-  const serviceFrontendRepo = yield* getServiceFrontendRepo({
+  const serviceFrontendRepo = yield* getMaterializedServiceFrontendRepo({
     key: {
-      generationId,
-      serviceName: props.serviceName,
+      systemId: env.ZEROSPIN_SYSTEM_ID,
+      serviceName: serviceName,
       userId,
-      frontendName: props.frontendName,
+      frontendName: frontendName,
     },
   });
   const canonicalStateUnknown = yield* makeAsync(() =>
     serviceFrontendRepo.getState({
       systemId: env.ZEROSPIN_SYSTEM_ID,
-      serviceName: props.serviceName,
+      serviceName: serviceName,
       userId,
-      frontendName: props.frontendName,
-      lineage,
+      frontendName: frontendName,
     }),
   );
-  const canonicalStateEncoded = yield* Schema.decodeUnknown(
-    Schema.Union(
+  const canonicalStateEncoded = yield* Schema.decodeUnknownEffect(
+    Schema.Union([
       Schema.Struct({
-        _tag: Schema.Literal('Right'),
-        right: Schema.typeSchema(ServiceFrontendStateSchema),
+        _tag: Schema.Literal('Success'),
+        success: Schema.toType(ServiceFrontendStateSchema),
       }),
       Schema.Struct({
-        _tag: Schema.Literal('Left'),
-        left: Schema.encodedSchema(ZerospinError.schema),
+        _tag: Schema.Literal('Failure'),
+        failure: Schema.toEncoded(ZerospinError.schema),
       }),
-    ),
+    ]),
   )(canonicalStateUnknown).pipe(
     mapParseError({
       code: 'service-frontend-state-rpc-invalid',
-      prefix: 'Failed to decode ServiceFrontendRepo state RPC',
+      prefix: 'Failed to decode MaterializedServiceFrontendRepo state RPC',
     }),
   );
   const canonicalState = yield* decodeRpc(canonicalStateEncoded);
@@ -119,13 +87,13 @@ export const getServiceFrontendState = Effect.fn(
       continue;
     }
     const adaptedUnknown = yield* adaptFrontendResource({
-      owner: { kind: 'service', serviceName: props.serviceName },
-      frontendName: props.frontendName,
+      owner: { kind: 'service', serviceName: serviceName },
+      frontendName: frontendName,
       modelName: resource.modelName,
       modelVersion: requestedModel.version,
       resource,
     });
-    const adapted = yield* Schema.decodeUnknown(
+    const adapted = yield* Schema.decodeUnknownEffect(
       Schema.Struct({
         modelName: Schema.String,
         resource: EncodedResourceSchema,

@@ -1,16 +1,15 @@
-import { Path, type FileSystem } from '@effect/platform';
 import { type Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { ISystem, ISystemConfig } from '@zerospin/core/system/types';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
-import { Effect, Schema } from 'effect';
+import { Effect, Path, Schema, type FileSystem } from 'effect';
 import { createJiti } from 'jiti';
 
 import { jitiAliasesFromTsconfigPaths } from './jitiAliasesFromTsconfigPaths.js';
 
 const ModuleSchema = Schema.Struct({ system: Schema.Unknown }).pipe(
-  Schema.filter((o): o is { system: ISystem } => 'system' in o, {
-    message: () => 'System module must export const system: System',
+  Schema.refine((o): o is { system: ISystem } => 'system' in o, {
+    message: 'System module must export const system: System',
   }),
 );
 
@@ -62,9 +61,9 @@ export const loadSystemFn = Effect.fn('loadSystemFn')(function* (
     }),
   );
 
-  const { system } = yield* Schema.validate(ModuleSchema)(loadedModule, {
-    onExcessProperty: 'ignore',
-  }).pipe(
+  const { system } = yield* Schema.decodeUnknownEffect(
+    Schema.toType(ModuleSchema),
+  )(loadedModule, { onExcessProperty: 'ignore' }).pipe(
     Effect.mapError(
       cause =>
         new ZerospinError({

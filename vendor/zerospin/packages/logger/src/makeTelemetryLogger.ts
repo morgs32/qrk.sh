@@ -1,12 +1,4 @@
-import {
-  Cause,
-  Context,
-  FiberRef,
-  FiberRefs,
-  Logger,
-  Option,
-  Tracer,
-} from 'effect';
+import { Cause, Logger, References } from 'effect';
 import { toStringUnknown } from 'effect/Inspectable';
 
 import { makeLogId } from './makeTelemetryIds.ts';
@@ -33,25 +25,19 @@ export const makeTelemetryLogger = (
   collector: ITelemetryCollector,
 ): Logger.Logger<unknown, void> =>
   Logger.make(options => {
-    const fiberContext = FiberRefs.getOrDefault(
-      options.context,
-      FiberRef.currentContext,
-    );
-    const span = Option.getOrNull(
-      Context.getOption(fiberContext, Tracer.ParentSpan),
-    );
+    const span = options.fiber.currentSpan ?? null;
 
-    const payload: Record<string, unknown> = Object.fromEntries(
-      options.annotations,
-    );
-    if (!Cause.isEmpty(options.cause)) {
+    const payload: Record<string, unknown> = {
+      ...options.fiber.getRef(References.CurrentLogAnnotations),
+    };
+    if (options.cause.reasons.length > 0) {
       payload['cause'] = Cause.pretty(options.cause);
     }
 
     collector.addLog({
       logId: makeLogId(),
       createdAt: options.date.getTime(),
-      level: levelFromLabel(options.logLevel.label),
+      level: levelFromLabel(options.logLevel.toUpperCase()),
       message: Array.isArray(options.message)
         ? options.message.map(part => toStringUnknown(part)).join(' ')
         : toStringUnknown(options.message),

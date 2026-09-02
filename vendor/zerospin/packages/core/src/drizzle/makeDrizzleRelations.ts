@@ -1,4 +1,9 @@
 import {
+  PrimitiveKind,
+  type IAnyTable,
+  type IAnyTables,
+} from '@zerospin/schema';
+import {
   defineRelations,
   type AnyRelation,
   type AnyRelations,
@@ -6,8 +11,7 @@ import {
   type RelationsBuilderColumnBase,
 } from 'drizzle-orm';
 
-import { PrimitiveKind } from '../models/primitiveKind.ts';
-import type { IAnyTable, IAnyTables, IModels } from '../models/types.ts';
+import type { IModels } from '../models/types.ts';
 
 import { makeDrizzleSchemasRecordFromTables } from './makeDrizzleSchemas.ts';
 import type { IDrizzleRelationsFromModels } from './types.ts';
@@ -16,10 +20,12 @@ import type { IDrizzleRelationsFromModels } from './types.ts';
 export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
   tables: TABLES,
   physicalTableNames?: Partial<Record<keyof TABLES & string, string>>,
+  tableAliases?: ReadonlyMap<unknown, IAnyTable>,
 ): IDrizzleRelationsFromModels<IModels, TABLES>;
 export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
   tables: TABLES,
   physicalTableNames: Partial<Record<keyof TABLES & string, string>> = {},
+  tableAliases: ReadonlyMap<unknown, IAnyTable> = new Map(),
 ): AnyRelations {
   const tableKeys: (keyof TABLES & string)[] = [];
   const tableKeyByObject = new Map<IAnyTable, keyof TABLES & string>();
@@ -68,7 +74,10 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
     }
     let primaryKeyColumnName: string | undefined;
     for (const [columnName, descriptor] of Object.entries(table.shape)) {
-      if (descriptor.kind !== PrimitiveKind.PrimaryKey) {
+      if (
+        descriptor.kind !== PrimitiveKind.PrimaryKey &&
+        !(descriptor.kind === PrimitiveKind.Integer && descriptor.primaryKey)
+      ) {
         continue;
       }
       if (primaryKeyColumnName !== undefined) {
@@ -97,7 +106,9 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
         continue;
       }
 
-      const targetTableKey = tableKeyByObject.get(descriptor.table);
+      const targetTableKey = tableKeyByObject.get(
+        tableAliases.get(descriptor.table) ?? descriptor.table,
+      );
       if (targetTableKey === undefined) {
         throw new Error(
           `makeDrizzleRelationsFromTables: ref "${sourceTable.name}.${sourceColumnName}" targets table "${descriptor.targetTableName}" outside this database`,
@@ -118,11 +129,18 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
       }
       const targetPrimaryKeyDescriptor =
         targetTable.shape[targetPrimaryKeyColumnName];
+      const targetKeyMetadataMatches =
+        targetPrimaryKeyDescriptor?.kind === PrimitiveKind.PrimaryKey
+          ? descriptor.targetKind === undefined &&
+            descriptor.abbreviation === targetPrimaryKeyDescriptor.abbreviation
+          : targetPrimaryKeyDescriptor?.kind === PrimitiveKind.Integer &&
+            targetPrimaryKeyDescriptor.primaryKey === true &&
+            descriptor.targetKind === PrimitiveKind.Integer &&
+            descriptor.abbreviation === '';
       if (
-        targetPrimaryKeyDescriptor?.kind !== PrimitiveKind.PrimaryKey ||
         descriptor.targetTableName !== targetTable.name ||
         descriptor.targetColumnName !== targetPrimaryKeyColumnName ||
-        descriptor.abbreviation !== targetPrimaryKeyDescriptor.abbreviation
+        !targetKeyMetadataMatches
       ) {
         throw new Error(
           `makeDrizzleRelationsFromTables: ref "${sourceTable.name}.${sourceColumnName}" has invalid target key metadata`,
@@ -213,7 +231,11 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
     }
   }
 
-  const schema = makeDrizzleSchemasRecordFromTables(tables, physicalTableNames);
+  const schema = makeDrizzleSchemasRecordFromTables(
+    tables,
+    physicalTableNames,
+    tableAliases,
+  );
 
   // Step 5: construct one forward relation and one inverse relation for every
   // ref. Unique refs produce inverse one relations; all other refs produce
@@ -235,7 +257,9 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
         if (descriptor.kind !== PrimitiveKind.Ref) {
           continue;
         }
-        const targetTableKey = tableKeyByObject.get(descriptor.table);
+        const targetTableKey = tableKeyByObject.get(
+          tableAliases.get(descriptor.table) ?? descriptor.table,
+        );
         if (targetTableKey === undefined) {
           throw new Error(
             `makeDrizzleRelationsFromTables: missing target table while building "${sourceTable.name}.${descriptor.relation}"`,

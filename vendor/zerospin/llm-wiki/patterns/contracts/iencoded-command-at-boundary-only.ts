@@ -1,37 +1,30 @@
 import { encodeCommand } from '@zerospin/core/contracts/encodeCommand';
 import type {
+  IAggregateCommand,
   IContract,
-  IEncodedAppliedMutation,
   IEncodedCommand,
-  IExecutedAggregateCommand,
 } from '@zerospin/core/contracts/types';
 import { Effect } from 'effect';
 
 /**
- * Keep commands decoded in domain work; persist the complete encoded command at the block boundary.
+ * Execute decoded domain commands, but persist and transport the complete encoded command on every chain occurrence.
  *
- * @bad Create a domain alias by intersecting `IEncodedCommand<IExecutedAggregateCommand>` with mutation state.
- * @bad `JSON.parse` command payload inside AggregateRepo finalization.
- * @bad Rebuild the terminal command from a hand-picked field subset.
+ * @bad Parse encoded payload bytes repeatedly inside authored execution.
+ * @bad Rebuild a terminal occurrence from a hand-picked field subset.
+ * @bad Use a storage row as the chain, outbox, WebSocket, or browser-journal contract.
  */
-export const persistAggregateCommandOutcome = Effect.fn(
-  'persistAggregateCommandOutcome',
-)(function* (props: {
-  appliedMutations: readonly IEncodedAppliedMutation[];
-  command: IExecutedAggregateCommand;
-  contract: IContract;
-  insertBlock(props: {
-    executedCommands: readonly IEncodedCommand<IExecutedAggregateCommand>[];
-    appliedMutations: readonly IEncodedAppliedMutation[];
-  }): void;
-}) {
-  const encodedCommand = yield* encodeCommand({
-    command: props.command,
-    contract: props.contract,
-  });
+export const encodeForAdmission = Effect.fn('encodeForAdmission')(
+  function* (props: {
+    command: IAggregateCommand;
+    contract: IContract;
+    insert(command: IEncodedCommand<IAggregateCommand>): void;
+  }) {
+    const encodedCommand = yield* encodeCommand({
+      command: props.command,
+      contract: props.contract,
+    });
 
-  props.insertBlock({
-    executedCommands: [encodedCommand],
-    appliedMutations: props.appliedMutations,
-  });
-});
+    props.insert(encodedCommand);
+    return encodedCommand;
+  },
+);

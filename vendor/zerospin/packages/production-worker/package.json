@@ -4,7 +4,10 @@
   "private": false,
   "type": "module",
   "sideEffects": false,
-  "files": ["dist", "src"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "exports": {
     "./ProductionWorker": {
       "types": "./dist/ProductionWorker.d.ts",
@@ -23,14 +26,15 @@
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
     "@zerospin/logger": "workspace:*",
-    "capnweb": "^0.7.0",
+    "@zerospin/schema": "workspace:*",
+    "capnweb": "^0.12.0",
     "cloudflare": "^6.1.0",
-    "effect": "^3.21.4",
+    "effect": "rc",
     "system": "workspace:*",
     "system-worker": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.3",
+    "@cloudflare/vitest-plugin": "^1.1.2",
     "@types/node": "^25.9.4",
     "@zerospin/dev-worker": "workspace:*",
     "rimraf": "^6.1.3",

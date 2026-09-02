@@ -12,9 +12,15 @@ each fix.
    - **Orphan pages** — no inbound `[[wiki-link]]` from any other page.
    - **Stale `TODO-VERIFY` blocks** — blocks older than 30 days that are still unresolved.
    - **Unresolved `CONTRADICTION` blocks** — ever flagged, never cleaned up.
-   - **Ungrounded claims** — paragraphs without a `(path:line-line)` citation nearby.
-   - **Glossary gaps** — public identifiers that appear in `wiki/api/` or `wiki/architecture/`
+   - **Ungrounded claims** — paragraphs without a working Markdown source citation nearby per `AGENTS.md` hard rule 1. Do not flag architecture opening prose when the immediately following `## Annotated workflow steps` already cite the same claims.
+   - **Glossary gaps** — public identifiers that appear in `wiki/architecture/`
      but not in `wiki/glossary.md`.
+   - **Glossary citation format** — each `wiki/glossary.md` term lists source
+     citations as unordered bullets with a term-relevant fact after each link;
+     comma-separated citation lines are stale.
+   - **Architecture citation format** — each `wiki/architecture/**` source
+     citation is an unordered bullet with a range-relevant fact after each link;
+     trailing parenthetical comma-separated citation lists are stale.
    - **Broken internal links** — `[[page]]` references where `page.md` does not exist.
    - **Terminology drift** — the same concept spelled two different ways across pages.
 

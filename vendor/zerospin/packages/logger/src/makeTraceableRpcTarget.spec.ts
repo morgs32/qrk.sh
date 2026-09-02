@@ -60,12 +60,12 @@ describe('makeTraceableRpcTarget', () => {
         args: [1],
       }),
     );
-    expect(envelope.result).toEqual({ _tag: 'Right', right: 2 });
+    expect(envelope.result).toEqual({ _tag: 'Success', success: 2 });
     expect(envelope.telemetry.spans).toHaveLength(1);
     expect(envelope.telemetry.spans[0]!.parentSpanId).toBeNull();
   });
 
-  it('returns domain failures as Left while keeping telemetry', async () => {
+  it('returns domain failures as Failure while keeping telemetry', async () => {
     const fail = makeRpcHandler('MockRpc.fail')(function* () {
       return yield* Effect.fail('domain-error' as const);
     });
@@ -167,7 +167,10 @@ describe('makeTraceableRpcTarget', () => {
         args: [],
       }),
     );
-    expect(envelope.result).toEqual({ _tag: 'Left', left: 'domain-error' });
+    expect(envelope.result).toEqual({
+      _tag: 'Failure',
+      failure: 'domain-error',
+    });
     expect(envelope.telemetry.spans[0]!.status).toBe('error');
 
     const localCollector = makeTelemetryCollector();
@@ -175,10 +178,10 @@ describe('makeTraceableRpcTarget', () => {
       Effect.gen(function* () {
         const collector = yield* TelemetryCollector;
         collector.merge(envelope.telemetry);
-        if (envelope.result._tag === 'Left') {
-          return yield* Effect.fail(envelope.result.left);
+        if (envelope.result._tag === 'Failure') {
+          return yield* Effect.fail(envelope.result.failure);
         }
-        return envelope.result.right;
+        return envelope.result.success;
       }).pipe(Effect.provide(makeTelemetryLayer(localCollector))),
     );
     expect(exit._tag).toBe('Failure');

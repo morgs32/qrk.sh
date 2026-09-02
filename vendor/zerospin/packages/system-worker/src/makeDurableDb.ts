@@ -15,7 +15,6 @@ export function makeDurableDb<CONFIG extends IDbConfig>(props: {
   storage.sql.exec('PRAGMA foreign_keys = ON;');
 
   return drizzle(storage, {
-    schema: dbConfig.schema,
     relations: dbConfig.relations,
   }) as unknown as IDb<CONFIG>;
 }

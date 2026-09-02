@@ -6,7 +6,7 @@ cli: cursor-agent
 
 doc_types:
   architecture: true
-  api: true
+  api: false
   user: false
   decisions: true
   concepts: true

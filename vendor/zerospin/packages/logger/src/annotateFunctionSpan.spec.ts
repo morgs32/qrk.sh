@@ -1,4 +1,4 @@
-import { Effect, Exit, Layer, Redacted } from 'effect';
+import { Cause, Effect, Exit, Layer, Redacted, Tracer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { annotateFunctionSpan } from './annotateFunctionSpan.ts';
@@ -8,7 +8,7 @@ import { makeTelemetryCollector } from './TelemetryCollector.ts';
 describe('annotateFunctionSpan', () => {
   it('captures arguments, a successful result, and preserves existing attributes', async () => {
     const collector = makeTelemetryCollector();
-    const layer = Layer.setTracer(makeTelemetryTracer(collector));
+    const layer = Layer.succeed(Tracer.Tracer, makeTelemetryTracer(collector));
     const operation = Effect.fn('test.success')(function* (
       input: Readonly<{ value: number }>,
     ) {
@@ -34,7 +34,7 @@ describe('annotateFunctionSpan', () => {
 
   it('captures arguments before failure without adding a result or changing the failure', async () => {
     const collector = makeTelemetryCollector();
-    const layer = Layer.setTracer(makeTelemetryTracer(collector));
+    const layer = Layer.succeed(Tracer.Tracer, makeTelemetryTracer(collector));
     const operation = Effect.fn('test.failure')(function* (value: string) {
       yield* Effect.fail('expected failure');
       return value;
@@ -44,7 +44,11 @@ describe('annotateFunctionSpan', () => {
       operation('input').pipe(Effect.provide(layer)),
     );
 
-    expect(exit).toEqual(Exit.fail('expected failure'));
+    expect(Exit.isFailure(exit)).toBe(true);
+    if (Exit.isSuccess(exit)) {
+      throw new Error('expected failure');
+    }
+    expect(Cause.squash(exit.cause)).toBe('expected failure');
     const span = collector.flush().spans[0];
     if (span === undefined) {
       throw new Error('expected a completed span');
@@ -57,7 +61,7 @@ describe('annotateFunctionSpan', () => {
 
   it('masks sensitive property names and Effect Redacted values', async () => {
     const collector = makeTelemetryCollector();
-    const layer = Layer.setTracer(makeTelemetryTracer(collector));
+    const layer = Layer.succeed(Tracer.Tracer, makeTelemetryTracer(collector));
     const operation = Effect.fn('test.redaction')(function* (input: unknown) {
       return input;
     }, annotateFunctionSpan);
@@ -109,7 +113,7 @@ describe('annotateFunctionSpan', () => {
 
   it('represents cycles, functions, instances, errors, bigint, symbols, undefined, and non-finite numbers', async () => {
     const collector = makeTelemetryCollector();
-    const layer = Layer.setTracer(makeTelemetryTracer(collector));
+    const layer = Layer.succeed(Tracer.Tracer, makeTelemetryTracer(collector));
     const circular: Record<string, unknown> = { label: 'root' };
     circular.self = circular;
     const operation = Effect.fn('test.special-values')(function* (
@@ -157,7 +161,7 @@ describe('annotateFunctionSpan', () => {
 
   it('bounds string length, depth, collection entries, and visited values', async () => {
     const collector = makeTelemetryCollector();
-    const layer = Layer.setTracer(makeTelemetryTracer(collector));
+    const layer = Layer.succeed(Tracer.Tracer, makeTelemetryTracer(collector));
     const operation = Effect.fn('test.limits')(function* (input: unknown) {
       return input;
     }, annotateFunctionSpan);
@@ -197,7 +201,7 @@ describe('annotateFunctionSpan', () => {
 
   it('keeps the function outcome when an argument or result cannot be inspected', async () => {
     const collector = makeTelemetryCollector();
-    const layer = Layer.setTracer(makeTelemetryTracer(collector));
+    const layer = Layer.succeed(Tracer.Tracer, makeTelemetryTracer(collector));
     const unavailable = new Proxy(
       {},
       {

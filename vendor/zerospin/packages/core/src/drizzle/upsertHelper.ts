@@ -1,21 +1,17 @@
-import { getTableColumns, sql, type InferInsertModel } from 'drizzle-orm';
-import type {
-  BaseSQLiteDatabase,
-  SQLiteUpdateSetSource,
-} from 'drizzle-orm/sqlite-core';
-import { mapValues } from 'es-toolkit';
-
 import type {
   IAnyPrimitiveDescriptor,
   IAnyShape,
   IAnyTables,
   IDrizzleSchema,
-  IModels,
-} from '../models/types.ts';
+} from '@zerospin/schema';
+import { getTableColumns, sql, type InferInsertModel } from 'drizzle-orm';
+import type { SQLiteAsyncDatabase } from 'drizzle-orm/sqlite-core/async/db';
+import { mapValues } from 'es-toolkit';
+
+import type { IModels } from '../models/types.ts';
 
 import type {
   IDbConfigRelations,
-  IDbConfigSchema,
   IResourceDbConfig,
 } from './types.ts';
 
@@ -24,10 +20,9 @@ type IUpsertShape = IAnyShape & {
 };
 
 type IUpsertTx<MODELS extends IModels, OTHER_TABLES extends IAnyTables> = Pick<
-  BaseSQLiteDatabase<
+  SQLiteAsyncDatabase<
     'sync' | 'async',
     unknown,
-    IDbConfigSchema<IResourceDbConfig<MODELS, OTHER_TABLES>>,
     IDbConfigRelations<IResourceDbConfig<MODELS, OTHER_TABLES>>
   >,
   'insert'
@@ -47,14 +42,15 @@ export function upsertHelper<
   const { id: _id, ...updateColumns } = getTableColumns(table);
   const set = mapValues(updateColumns, (_column, key) =>
     sql.raw(`excluded.${String(key)}`),
-  ) as unknown as SQLiteUpdateSetSource<IDrizzleSchema<TABLE_NAME, PROPERTIES>>;
+  );
+  const insert = tx.insert(table).values([values]);
 
-  return tx
-    .insert(table)
-    .values([values])
+  return insert
     .onConflictDoUpdate({
       target: [table.id],
-      set,
+      set: set as unknown as Parameters<
+        typeof insert.onConflictDoUpdate
+      >[0]['set'],
     })
     .run();
 }

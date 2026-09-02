@@ -28,28 +28,27 @@
         "name": "@effect/language-service"
       }
     ],
-    "types": [
-      "@cloudflare/vitest-pool-workers/types",
-      "node",
-      "vitest/globals"
-    ],
+    "types": ["@cloudflare/vitest-plugin/types", "node", "vitest/globals"],
     "paths": {
       "@zerospin/core/*": ["../../packages/core/src/*"],
       "@zerospin/dev-worker/*": ["../../packages/dev-worker/src/*"],
       "system-worker/*": ["../../packages/system-worker/src/*"],
-      "system-worker": ["../../packages/system-worker/src/SystemWorker.ts"]
+      "system-worker": ["../../packages/system-worker/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.workerd.config.ts"],
   "references": [
     {
-      "path": "../../packages/core"
+      "path": "../../packages/system-worker"
     },
     {
       "path": "../../packages/dev-worker"
     },
     {
-      "path": "../../packages/system-worker"
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/schema"
     }
   ]
 }

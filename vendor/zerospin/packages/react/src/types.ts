@@ -3,13 +3,13 @@ import type {
   IAggregateFrontendController,
   IServiceFrontendController,
 } from '@zerospin/core/frontendController/types';
-import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import type { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import type { IServiceSession } from '@zerospin/core/serviceSession/types';
 import type { ISession } from '@zerospin/core/session/types';
 import type { IAnyError } from '@zerospin/error';
+import type { CuidFactory } from '@zerospin/schema';
 import type { ManagedRuntime } from 'effect';
 
 export type IBrowserSession<

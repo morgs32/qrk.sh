@@ -39,6 +39,12 @@
   "exclude": ["**/*.spec.ts"],
   "references": [
     {
+      "path": "../system-worker"
+    },
+    {
+      "path": "../react-router"
+    },
+    {
       "path": "../logger"
     },
     {
@@ -46,9 +52,6 @@
     },
     {
       "path": "../core"
-    },
-    {
-      "path": "../system-worker"
     }
   ]
 }

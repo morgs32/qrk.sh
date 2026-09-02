@@ -1,47 +1,40 @@
-import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { Effect, Schema, type Context } from 'effect';
 
+import { executeServiceQuery as executeSystemWorkerServiceQuery } from '../../executeServiceQuery/executeServiceQuery.js';
 import {
   makeApiHandler,
   SystemApiAuthResults,
-  SystemWorkerApi,
 } from '../makeApiHandler/makeApiHandler.js';
 import type { SystemApi } from '../SystemApi.js';
 
 export const executeServiceQuery = Effect.fn('SystemApi.executeServiceQuery')(
   function* (props: {
     request: Parameters<SystemApi['executeServiceQuery']>[0];
-    authResults: Context.Tag.Service<typeof SystemApiAuthResults>;
+    authResults: Context.Service.Shape<typeof SystemApiAuthResults>;
   }) {
+    const { request, authResults } = props;
     return yield* makeApiHandler({
       name: 'SystemApi.executeServiceQuery',
       argsSchema: Schema.mutable(
-        Schema.Tuple(
+        Schema.Tuple([
           Schema.Struct({
             serviceName: Schema.String,
             queryName: Schema.String,
             params: Schema.Unknown,
           }),
-        ),
+        ]),
       ),
-      handler: props =>
+      handler: handlerProps =>
         Effect.gen(function* () {
-          const authResults = yield* SystemApiAuthResults;
-          const systemWorker = yield* SystemWorkerApi;
-          return yield* makeAsync(() =>
-            systemWorker.executeServiceQuery({
-              generationId: authResults.generationId,
-              params: props.params,
-              queryName: props.queryName,
-              serviceName: props.serviceName,
-            }),
-          ).pipe(Effect.flatMap(decodeRpc));
+          const { params, queryName, serviceName } = handlerProps;
+          return yield* executeSystemWorkerServiceQuery({
+            params,
+            queryName,
+            serviceName,
+          });
         }).pipe(
           Effect.withSpan('SystemApi.executeServiceQuery', { root: true }),
         ),
-    })(props.request).pipe(
-      Effect.provideService(SystemApiAuthResults, props.authResults),
-    );
+    })(request).pipe(Effect.provideService(SystemApiAuthResults, authResults));
   },
 );

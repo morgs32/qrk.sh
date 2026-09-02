@@ -5,7 +5,7 @@
  */
 
 import type { IDb } from '@zerospin/core/drizzle/types';
-import type { IAnyDrizzleSchema } from '@zerospin/core/models/types';
+import type { IAnyDrizzleSchema } from '@zerospin/schema';
 import type { AnyColumn } from 'drizzle-orm';
 import { Effect } from 'effect';
 
@@ -14,15 +14,13 @@ export const upsertAggregate = Effect.fn('SystemRepo.upsertAggregate')(
     db: IDb;
     aggregateTable: IAnyDrizzleSchema & {
       aggregateId: AnyColumn;
-      generationId: AnyColumn;
     };
     aggregateId: string;
-    generationId: string;
   }) {
-    const { aggregateId, aggregateTable, db, generationId } = props;
+    const { aggregateId, aggregateTable, db } = props;
     yield* Effect.void;
     db.insert(aggregateTable)
-      .values({ aggregateId, generationId })
+      .values({ aggregateId })
       .onConflictDoNothing()
       .run();
   },

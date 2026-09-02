@@ -1,21 +1,24 @@
-import type { IUserRef } from '@zerospin/core/aggregate/types';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
+import type { IAggregateId } from '@zerospin/core/models/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { ZerospinError } from '@zerospin/error';
+import {
+  ZerospinError,
+  type IAnyErrorJson,
+  type IEncodedResult,
+} from '@zerospin/error';
 import { env } from 'cloudflare:workers';
 import { Effect, type Schema } from 'effect';
 
-import { getServiceRepo } from '../ServiceRepo/getServiceRepo/getServiceRepo.js';
-import { validateAggregateFrontendLock } from '../StaticSystem/validateAggregateFrontendLock/validateAggregateFrontendLock.js';
-import { SystemRepo } from '../SystemRepo/SystemRepo.js';
+import { getMaterializedServiceRepo } from '../MaterializedServiceRepo/getMaterializedServiceRepo/getMaterializedServiceRepo.js';
 
 export const executeServiceQuery = Effect.fn(
   'SystemWorker.executeServiceQuery',
   { root: true },
 )(function* (props: {
-  generationId: string;
-  actorRef?: IUserRef;
+  aggregateId?: IAggregateId;
+  aggregateName?: string;
+  userId?: string;
   frontendName?: string;
   aggregateFrontendLock?: Schema.Schema.Type<
     typeof AggregateFrontendLockSchema
@@ -24,52 +27,47 @@ export const executeServiceQuery = Effect.fn(
   queryName: string;
   params: unknown;
 }) {
+  const {
+    aggregateFrontendLock,
+    aggregateId,
+    aggregateName,
+    frontendName,
+    params,
+    queryName,
+    serviceName,
+    userId,
+  } = props;
   const hasAnyFrontendBinding =
-    props.actorRef !== undefined ||
-    props.frontendName !== undefined ||
-    props.aggregateFrontendLock !== undefined;
+    aggregateId !== undefined ||
+    aggregateName !== undefined ||
+    userId !== undefined ||
+    frontendName !== undefined ||
+    aggregateFrontendLock !== undefined;
   if (
     hasAnyFrontendBinding &&
-    (props.actorRef === undefined ||
-      props.frontendName === undefined ||
-      props.aggregateFrontendLock === undefined)
+    (aggregateId === undefined ||
+      aggregateName === undefined ||
+      userId === undefined ||
+      frontendName === undefined ||
+      aggregateFrontendLock === undefined)
   ) {
     return yield* new ZerospinError({
       code: 'service-query-frontend-binding-incomplete',
       message:
-        'A frontend-bound service query requires actorRef, frontendName, and aggregateFrontendLock together',
+        'A frontend-bound service query requires aggregateId, aggregateName, userId, frontendName, and aggregateFrontendLock together',
     });
   }
-  if (
-    props.actorRef !== undefined &&
-    props.frontendName !== undefined &&
-    props.aggregateFrontendLock !== undefined
-  ) {
-    yield* validateAggregateFrontendLock({
-      aggregateName: props.actorRef.aggregateName,
-      frontendName: props.frontendName,
-      aggregateFrontendLock: props.aggregateFrontendLock,
-    });
-  }
-  yield* makeAsync(() =>
-    SystemRepo.getRepo({
-      systemId: env.ZEROSPIN_SYSTEM_ID,
-    }).assertGenerationAdmission({
-      generationId: props.generationId,
-      mode: 'read',
-    }),
-  ).pipe(Effect.flatMap(decodeRpc));
-  const serviceRepo = yield* getServiceRepo({
+  const serviceRepo = yield* getMaterializedServiceRepo({
     key: {
-      generationId: props.generationId,
-      serviceName: props.serviceName,
+      systemId: env.ZEROSPIN_SYSTEM_ID,
+      serviceName: serviceName,
     },
   });
-  return yield* makeAsync(() =>
+  return yield* makeAsync<IEncodedResult<unknown, IAnyErrorJson>>(() =>
     serviceRepo.executeServiceQuery({
-      serviceName: props.serviceName,
-      queryName: props.queryName,
-      params: props.params,
+      serviceName: serviceName,
+      queryName: queryName,
+      params: params,
     }),
   ).pipe(Effect.flatMap(decodeRpc));
 });

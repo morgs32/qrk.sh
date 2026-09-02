@@ -1,7 +1,6 @@
-import { FileSystem, Path } from '@effect/platform';
-import * as NodePath from '@effect/platform-node/NodePath';
+import * as NodePath from '@effect/platform-node-shared/NodePath';
 import { it } from '@effect/vitest';
-import { Effect, Layer } from 'effect';
+import { Effect, FileSystem, Layer, Path } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { jitiAliasesFromTsconfigPaths } from './jitiAliasesFromTsconfigPaths.js';

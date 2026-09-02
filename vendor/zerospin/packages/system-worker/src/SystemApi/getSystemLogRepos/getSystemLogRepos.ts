@@ -2,34 +2,34 @@ import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { Effect, Schema, type Context } from 'effect';
 
+import { SystemRepo } from '../../SystemRepo/SystemRepo.js';
 import {
   makeApiHandler,
   SystemApiAuthResults,
-  SystemWorkerApi,
 } from '../makeApiHandler/makeApiHandler.js';
 import type { SystemApi } from '../SystemApi.js';
 
 export const getSystemLogRepos = Effect.fn('SystemApi.getSystemLogRepos')(
   function* (props: {
     request: Parameters<SystemApi['getSystemLogRepos']>[0];
-    authResults: Context.Tag.Service<typeof SystemApiAuthResults>;
+    authResults: Context.Service.Shape<typeof SystemApiAuthResults>;
   }) {
+    const { authResults: requestedAuthResults, request } = props;
     return yield* makeApiHandler({
       name: 'SystemApi.getSystemLogRepos',
-      argsSchema: Schema.mutable(Schema.Tuple()),
+      argsSchema: Schema.mutable(Schema.Tuple([])),
       handler: () =>
         Effect.gen(function* () {
           const authResults = yield* SystemApiAuthResults;
-          const systemWorker = yield* SystemWorkerApi;
-          const encoded = yield* makeAsync(() =>
-            systemWorker.getSystemLogRepos({
-              generationId: authResults.generationId,
-            }),
-          );
-          return yield* decodeRpc(encoded);
+          const systemRepo = SystemRepo.getRepo({
+            systemId: authResults.systemId,
+          });
+          return yield* makeAsync(() =>
+            systemRepo.getRepoRegistrations({ repoType: 'SystemLogRepo' }),
+          ).pipe(Effect.flatMap(decodeRpc));
         }).pipe(Effect.withSpan('SystemApi.getSystemLogRepos', { root: true })),
-    })(props.request).pipe(
-      Effect.provideService(SystemApiAuthResults, props.authResults),
+    })(request).pipe(
+      Effect.provideService(SystemApiAuthResults, requestedAuthResults),
     );
   },
 );

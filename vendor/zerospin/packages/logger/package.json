@@ -20,16 +20,16 @@
     "lint": "oxlint . --format stylish"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.3",
-    "@effect/language-service": "^0.85.1",
+    "@cloudflare/vitest-plugin": "^1.1.2",
+    "@effect/language-service": "^0.87.2",
     "@types/node": "^25.6.2",
     "@zerospin/error": "workspace:*",
-    "effect": "^3.21.4",
+    "effect": "rc",
     "rimraf": "^6.1.3",
     "vitest": "^4.1.5",
-    "wrangler": "^4.90.0"
+    "wrangler": "^4.127.1"
   },
   "peerDependencies": {
-    "effect": "^3.17.11"
+    "effect": "^4.0.0-rc.111"
   }
 }

@@ -1,15 +1,12 @@
 import type { IAnyError } from '@zerospin/error';
-import type { Brand, Effect, Schema } from 'effect';
+import type { InferIdFromAbbreviation } from '@zerospin/schema';
+import type { Brand, Effect, JsonSchema, Schema } from 'effect';
 
 import type { IAggregates } from '../aggregate/types.ts';
 import type { IAuthenticationSignature } from '../authentication/types.ts';
-import type { IDeploySeedCommand, IOperationName } from '../contracts/types.ts';
+import type { IOperationName } from '../contracts/types.ts';
 import type { IFrontendControllerSpec } from '../frontendController/types.ts';
-import type {
-  IEncodedResourceShape,
-  InferIdFromAbbreviation,
-  IRef,
-} from '../models/types.ts';
+import type { IEncodedResourceShape, IRef } from '../models/types.ts';
 import type { IServices } from '../service/types.ts';
 
 export type IRefRecord = Record<string, IRef>;
@@ -22,23 +19,10 @@ export type ISystemEnvironmentId = 'dev' | 'production';
 
 export type ISystemConfig = {
   entry: string;
-  supportedPredecessors: readonly string[];
-  environmentId: ISystemEnvironmentId;
-  env: Record<string, string> | null;
-  retention: {
-    clientLeaseSeconds: number;
-    stagedJournalDays: number;
-  };
   seeds: {
     dev: string | null;
     production: string | null;
   };
-};
-
-export type IDeployConfig = {
-  environmentId: ISystemEnvironmentId;
-  env: Record<string, string> | null;
-  seeds: readonly IDeploySeedCommand[];
 };
 
 export type IEncodedQuery = {
@@ -50,18 +34,18 @@ export type IEncodedQuery = {
 
 export type IRepoType =
   | 'SystemRepo'
-  | 'AggregateRepo'
-  | 'AggregateFrontendRepo'
-  | 'ServiceFrontendRepo'
-  | 'ServiceRepo'
-  | 'AggregateBlockRepo'
-  | 'AggregateFrontendBlockRepo'
-  | 'ServiceFrontendBlockRepo'
-  | 'ServiceBlockRepo'
+  | 'AggregateCommandChain'
+  | 'MaterializedAggregateRepo'
+  | 'ServiceCommandChain'
+  | 'MaterializedServiceRepo'
+  | 'AggregateFrontendPushedCommandChain'
+  | 'AggregateFrontendFinalizedCommandChain'
+  | 'ServiceFrontendFinalizedCommandChain'
+  | 'MaterializedAggregateFrontendRepo'
+  | 'MaterializedServiceFrontendRepo'
   | 'SystemLogRepo';
 
 export type IRepoRegistration = Readonly<{
-  generationId: string;
   repoType: IRepoType;
   repoName: string;
   tableNames: readonly string[];
@@ -106,12 +90,12 @@ type ISystemModelSpec = {
 type ISystemContractSpec = {
   commandName: string;
   version: string;
-  payloadJsonSchema: unknown;
+  payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
   historicalDefinitions: readonly {
     commandName: string;
     version: string;
     hasDirectAdapter: boolean;
-    payloadJsonSchema: unknown;
+    payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
   }[];
 };
 
@@ -125,13 +109,13 @@ type ISystemMutationAdaptersSpec = Record<
           modelName: string;
           modelVersion: string;
           operationName: IOperationName;
-          jsonSchema: unknown;
+          jsonSchema: JsonSchema.Document<'draft-2020-12'>;
         };
         destination: {
           modelName: string;
           modelVersion: string;
           operationName: IOperationName;
-          jsonSchema: unknown;
+          jsonSchema: JsonSchema.Document<'draft-2020-12'>;
         } | null;
       }[]
     >
@@ -144,10 +128,10 @@ export type ISystemSpec = {
   authentication: {
     signature: {
       version: string;
-      schemaJsonSchema: unknown;
+      schemaJsonSchema: JsonSchema.Document<'draft-2020-12'>;
       historicalDefinitions: readonly {
         version: string;
-        schemaJsonSchema: unknown;
+        schemaJsonSchema: JsonSchema.Document<'draft-2020-12'>;
         hasDirectAdapter: boolean;
       }[];
     };
@@ -165,7 +149,7 @@ export type ISystemSpec = {
         {
           name: string;
           serviceName: string;
-          paramsJsonSchema: unknown;
+          paramsJsonSchema: JsonSchema.Document<'draft-2020-12'>;
         }
       >;
       frontends: Record<
@@ -201,7 +185,7 @@ export type ISystemSpec = {
         {
           name: string;
           serviceName: string;
-          paramsJsonSchema: unknown;
+          paramsJsonSchema: JsonSchema.Document<'draft-2020-12'>;
         }
       >;
       frontends: Record<
@@ -237,7 +221,6 @@ export type ISystemLogRow = Readonly<{
   message: string;
   level: ISystemLogLevel;
   systemId: ISystemId;
-  generationId: InferIdFromAbbreviation<'gen'>;
   payload: unknown | null;
 }>;
 

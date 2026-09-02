@@ -1,19 +1,17 @@
+import {
+  descriptorToEffectSchema,
+  makeDrizzleSchemaFromTable,
+  makeTable,
+  primitives,
+} from '@zerospin/schema';
 import { sql } from 'drizzle-orm';
-import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { makeDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeInMemorySQLite3 } from '../drizzle/makeInMemorySQLite3.ts';
-import { makeTableMigrationSQL } from '../drizzle/makeTableMigrationSQL.ts';
+import { makeTableProvisioningSQL } from '../drizzle/makeTableProvisioningSQL.ts';
 import { makeWaSqliteDrizzle } from '../drizzle/makeWaSqliteDrizzle.ts';
-
-import { makeTable } from './makeTable.ts';
-import {
-  descriptorToEffectSchema,
-  makeDrizzleSchemaFromTable,
-} from './primitiveMaps.ts';
-import { primitives } from './primitives.ts';
 
 const TinyJsonRowSchema = Schema.Struct({ x: Schema.String });
 const claimsJson = primitives.json({
@@ -32,51 +30,13 @@ const apiKeyTable = makeTable({
 const apiKeyDrizzleSchema = makeDrizzleSchemaFromTable(apiKeyTable);
 const dbConfig = makeDbConfig({ tables: { apiKey: apiKeyTable } });
 
-const cursorDrizzleSchema = makeDrizzleSchemaFromTable(
-  makeTable({
-    name: 'cursorPrimaryKey',
-    shape: {
-      cursor: primitives.cursor({ abbreviation: 'cur' }),
-    },
-  }),
-);
-
-const textDrizzleSchema = makeDrizzleSchemaFromTable(
-  makeTable({
-    name: 'textPrimaryKey',
-    shape: {
-      version: primitives.text(),
-    },
-  }),
-);
-
-describe('primary-key drizzle metadata', () => {
-  it('marks only dedicated primary-key descriptors as primary columns', () => {
-    expect(getTableConfig(apiKeyDrizzleSchema).columns[0]).toMatchObject({
-      name: 'id',
-      notNull: true,
-      primary: true,
-    });
-    expect(getTableConfig(cursorDrizzleSchema).columns[0]).toMatchObject({
-      name: 'cursor',
-      notNull: true,
-      primary: false,
-    });
-    expect(getTableConfig(textDrizzleSchema).columns[0]).toMatchObject({
-      name: 'version',
-      notNull: true,
-      primary: false,
-    });
-  });
-});
-
 describe('primitives.json drizzle persistence', () => {
   it('round-trips IEncoded json as sqlite text without parsing on read', async () => {
     const claimsJsonWire = JSON.stringify({ x: 'ok' });
     const client = await makeInMemorySQLite3();
     const db = makeWaSqliteDrizzle(client, dbConfig);
 
-    db.run(sql.raw(makeTableMigrationSQL(apiKeyDrizzleSchema)));
+    db.run(sql.raw(makeTableProvisioningSQL(apiKeyDrizzleSchema)));
 
     try {
       db.insert(apiKeyDrizzleSchema)

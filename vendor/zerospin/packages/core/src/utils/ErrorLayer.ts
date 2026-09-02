@@ -14,15 +14,8 @@ const makeTracer: Effect.Effect<Tracer.Tracer> = Effect.gen(function* () {
   return Tracer.make({
     // eslint-disable-next-line @typescript-eslint/unbound-method -- Copied this from the Discord
     context: currentTracer.context,
-    span: (name, parent, context, links, startTime, kind) => {
-      const span = currentTracer.span(
-        name,
-        parent,
-        context,
-        links,
-        startTime,
-        kind,
-      );
+    span: options => {
+      const span = currentTracer.span(options);
 
       const oldEnd = span.end.bind(span);
       span.end = function (
@@ -75,6 +68,6 @@ const makeTracer: Effect.Effect<Tracer.Tracer> = Effect.gen(function* () {
 );
 
 export const ErrorLayer = makeTracer.pipe(
-  Effect.map(Layer.setTracer),
-  Layer.unwrapEffect,
+  Effect.map(tracer => Layer.succeed(Tracer.Tracer, tracer)),
+  Layer.unwrap,
 );

@@ -18,14 +18,11 @@ const validWranglerConfig = {
   durable_objects: {
     bindings: [{ name: 'SYSTEM_REPO', class_name: 'SystemRepo' }],
   },
-  migrations: [
-    {
-      tag: 'v1',
-      new_sqlite_classes: ['SystemRepo'],
+  exports: {
+    SystemRepo: {
+      type: 'durable-object',
+      storage: 'sqlite',
     },
-  ],
-  version_metadata: {
-    binding: 'WORKER_VERSION_METADATA',
   },
   vars: {
     ZEROSPIN_SYSTEM_ID: 'sys_test',
@@ -76,11 +73,11 @@ describe('checkWranglerConfigFn', () => {
     });
   });
 
-  it('requires the ctx.exports compatibility-date default', async () => {
+  it('requires an ISO compatibility date', async () => {
     loadConfigMock.mockResolvedValue({
       config: {
         ...validWranglerConfig,
-        compatibility_date: '2025-11-16',
+        compatibility_date: 'not-a-date',
       },
     });
 
@@ -90,7 +87,7 @@ describe('checkWranglerConfigFn', () => {
       ),
     ).resolves.toMatchObject({
       code: 'zerospin-dev-wrangler-config-invalid',
-      cause: expect.stringContaining('2025-11-17'),
+      cause: expect.stringContaining('YYYY-MM-DD'),
     });
   });
 
@@ -112,11 +109,16 @@ describe('checkWranglerConfigFn', () => {
     });
   });
 
-  it('rejects disable_ctx_exports', async () => {
+  it('requires a live SQLite SystemRepo export', async () => {
     loadConfigMock.mockResolvedValue({
       config: {
         ...validWranglerConfig,
-        compatibility_flags: ['nodejs_compat', 'disable_ctx_exports'],
+        exports: {
+          SystemRepo: {
+            type: 'durable-object',
+            storage: 'legacy-kv',
+          },
+        },
       },
     });
 
@@ -126,25 +128,7 @@ describe('checkWranglerConfigFn', () => {
       ),
     ).resolves.toMatchObject({
       code: 'zerospin-dev-wrangler-config-invalid',
-      cause: expect.stringContaining('disable_ctx_exports'),
-    });
-  });
-
-  it('requires authored version metadata', async () => {
-    loadConfigMock.mockResolvedValue({
-      config: {
-        ...validWranglerConfig,
-        version_metadata: { binding: 'OTHER_BINDING' },
-      },
-    });
-
-    await expect(
-      Effect.runPromise(
-        checkWranglerConfigFn().pipe(Effect.provide(AsyncLive), Effect.flip),
-      ),
-    ).resolves.toMatchObject({
-      code: 'zerospin-dev-wrangler-config-invalid',
-      cause: expect.stringContaining('WORKER_VERSION_METADATA'),
+      cause: expect.stringContaining('sqlite'),
     });
   });
 
@@ -163,24 +147,6 @@ describe('checkWranglerConfigFn', () => {
     ).resolves.toMatchObject({
       code: 'zerospin-dev-wrangler-config-invalid',
       cause: expect.stringContaining('SYSTEM_REPO'),
-    });
-  });
-
-  it('requires an authored SystemRepo migration', async () => {
-    loadConfigMock.mockResolvedValue({
-      config: {
-        ...validWranglerConfig,
-        migrations: [{ tag: 'v1', new_sqlite_classes: ['AuthoredRepo'] }],
-      },
-    });
-
-    await expect(
-      Effect.runPromise(
-        checkWranglerConfigFn().pipe(Effect.provide(AsyncLive), Effect.flip),
-      ),
-    ).resolves.toMatchObject({
-      code: 'zerospin-dev-wrangler-config-invalid',
-      cause: expect.stringContaining('SystemRepo'),
     });
   });
 });

@@ -15,10 +15,10 @@ export type ITelemetryCollector = {
   flush: () => ITelemetryBatch;
 };
 
-export class TelemetryCollector extends Context.Tag('TelemetryCollector')<
+export class TelemetryCollector extends Context.Service<
   TelemetryCollector,
   ITelemetryCollector
->() {}
+>()('TelemetryCollector') {}
 
 export const makeTelemetryCollector = (): ITelemetryCollector => {
   let spans: ISpanRecord[] = [];

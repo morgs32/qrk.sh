@@ -5,7 +5,7 @@ import { Effect, Schema } from 'effect';
  *
  * @bad Return aggregateName or aggregateId from authentication; admission already owns that coordinate.
  * @bad Add a separate authored authorize callback after successful authentication.
- * @bad Add actorName to authentication or IUserRef.
+ * @bad Add actorName to authentication.
  */
 export const system = makeSystem({
   name: 'shopping',

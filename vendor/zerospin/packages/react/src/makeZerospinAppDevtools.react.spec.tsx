@@ -5,10 +5,10 @@ import { authenticationSignature, main } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
+import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { zerospinDevtoolsController } from '@zerospin/devtools/zerospinDevtoolsController';
-import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import { ZerospinError } from '@zerospin/error';
 import { Effect, Layer, ManagedRuntime, Redacted } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
@@ -16,18 +16,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeZerospinApp } from './makeZerospinApp';
 
-const acquireUserPartitionRepoMock = vi.hoisted(() => vi.fn());
-const bootstrapBrowserSessionMock = vi.hoisted(() => vi.fn());
-const bootstrapBrowserServiceSessionMock = vi.hoisted(() => vi.fn());
+const acquireOpfsBackupWorkerMock = vi.hoisted(() => vi.fn());
+const bootstrapAggregateFrontendSessionMock = vi.hoisted(() => vi.fn());
+const bootstrapServiceFrontendSessionMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@zerospin/shared-worker/acquireUserPartitionRepo', () => ({
-  acquireUserPartitionRepo: acquireUserPartitionRepoMock,
+vi.mock('@zerospin/opfs-backup-worker', () => ({
+  acquireOpfsBackupWorker: acquireOpfsBackupWorkerMock,
 }));
-vi.mock('./bootstrapBrowserSession', () => ({
-  bootstrapBrowserSession: bootstrapBrowserSessionMock,
+vi.mock('@zerospin/frontend/bootstrapAggregateFrontendSession', () => ({
+  bootstrapAggregateFrontendSession: bootstrapAggregateFrontendSessionMock,
 }));
-vi.mock('./bootstrapBrowserServiceSession', () => ({
-  bootstrapBrowserServiceSession: bootstrapBrowserServiceSessionMock,
+vi.mock('@zerospin/frontend/bootstrapServiceFrontendSession', () => ({
+  bootstrapServiceFrontendSession: bootstrapServiceFrontendSessionMock,
 }));
 
 const sessionRuntime = ManagedRuntime.make(
@@ -40,14 +40,14 @@ const sessionRuntime = ManagedRuntime.make(
   ),
 );
 
-const ZerospinApp = makeZerospinApp({
+const EmptyZerospinApp = makeZerospinApp({
   systemName: 'system-worker',
   authentication: { signature: authenticationSignature },
   frontends: {},
   runtime: sessionRuntime,
 });
 
-const lifecycleServiceFrontend = makeFrontendController({
+const serviceFrontend = makeFrontendController({
   systemName: 'system-worker',
   serviceName: 'catalog',
   frontendName: 'products',
@@ -59,13 +59,12 @@ const LifecycleZerospinApp = makeZerospinApp({
   authentication: { signature: authenticationSignature },
   frontends: {
     main: { controller: main },
-    products: { controller: lifecycleServiceFrontend },
+    products: { controller: serviceFrontend },
   },
   runtime: sessionRuntime,
 });
 
 const fakeDevtools = vi.hoisted(() => ({
-  mountShouldFail: false,
   moduleLoads: 0,
   shellOpens: 0,
 }));
@@ -96,47 +95,35 @@ vi.mock('@zerospin/devtools/ZerospinDevtools', async () => {
           }),
         [],
       );
-
-      if (fakeDevtools.mountShouldFail) {
-        throw new Error('devtools shell mount failed');
-      }
-
       return <section aria-label="Zerospin DevTools" />;
     },
   };
 });
 
-describe('makeZerospinApp Provider DevTools console API', () => {
+describe('makeZerospinApp main-thread frontend bootstrap', () => {
   let container: HTMLDivElement;
   let root: Root;
 
   beforeEach(() => {
-    fakeDevtools.mountShouldFail = false;
     fakeDevtools.shellOpens = 0;
-    acquireUserPartitionRepoMock.mockReset();
-    acquireUserPartitionRepoMock.mockReturnValue(
+    acquireOpfsBackupWorkerMock.mockReset();
+    acquireOpfsBackupWorkerMock.mockReturnValue(Effect.succeed({}));
+    bootstrapAggregateFrontendSessionMock.mockReset();
+    bootstrapAggregateFrontendSessionMock.mockReturnValue(
       Effect.succeed({
-        api: {
-          listAggregateFrontendReplicas: vi.fn(),
-          listServiceFrontendReplicas: vi.fn(),
-        },
-        release: Effect.void,
         systemId: 'sys_1',
         userId: 'usr_1',
-        mode: 'online',
+        aggregateFrontendLockKey: 'aggregate-lock-1',
+        executeAggregateFrontendCommand: ({ command }) =>
+          Effect.succeed({ commandId: command.id }),
+        getPushPaused: Effect.succeed(false),
+        setPushPaused: () => Effect.void,
+        pushNow: Effect.succeed({ status: 'empty' }),
       }),
     );
-    bootstrapBrowserSessionMock.mockReset();
-    bootstrapBrowserSessionMock.mockReturnValue(
-      Effect.succeed({
-        stageAggregateFrontendCommand: () =>
-          Effect.succeed({ commandId: 'cmd_test' }),
-        releaseBrowserSession: Effect.void,
-      }),
-    );
-    bootstrapBrowserServiceSessionMock.mockReset();
-    bootstrapBrowserServiceSessionMock.mockReturnValue(
-      Effect.succeed({ releaseBrowserSession: Effect.void }),
+    bootstrapServiceFrontendSessionMock.mockReset();
+    bootstrapServiceFrontendSessionMock.mockReturnValue(
+      Effect.succeed({ systemId: 'sys_1', userId: 'usr_1' }),
     );
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -144,269 +131,78 @@ describe('makeZerospinApp Provider DevTools console API', () => {
   });
 
   afterEach(async () => {
-    await act(async () => {
-      root.unmount();
-    });
+    await act(async () => root.unmount());
     container.remove();
   });
 
-  it('installs one lazy console open and removes it with the generated Provider root', async () => {
+  it('mounts empty providers without acquiring storage and lazily opens DevTools once', async () => {
+    const generateSignature = vi.fn(() =>
+      Effect.succeed({ userId: 'usr_unused' }),
+    );
     await act(async () => {
       root.render(
         <StrictMode>
-          <ZerospinApp.Provider
+          <EmptyZerospinApp.Provider
             aggregateIds={{}}
-            generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+            generateSignature={generateSignature}
           >
             <div>Application</div>
-          </ZerospinApp.Provider>
+          </EmptyZerospinApp.Provider>
         </StrictMode>,
       );
     });
 
     expect(container.textContent).toBe('Application');
-    expect(
-      container.querySelector('[aria-label="Zerospin DevTools"]'),
-    ).toBeNull();
-
+    expect(acquireOpfsBackupWorkerMock).not.toHaveBeenCalled();
+    expect(generateSignature).not.toHaveBeenCalled();
     const devtools = window.zerospin?.devtools;
-    expect(devtools).toBeDefined();
     if (devtools === undefined) {
-      throw new Error(
-        'ZerospinApp.Provider did not install the DevTools console API.',
-      );
+      throw new Error('DevTools API was not installed');
     }
-
     const moduleLoadsBeforeOpen = fakeDevtools.moduleLoads;
-    let firstOpen: Promise<void> | null = null;
-    let concurrentOpen: Promise<void> | null = null;
-
+    let firstOpen: Promise<void> | undefined;
+    let concurrentOpen: Promise<void> | undefined;
     await act(async () => {
       firstOpen = devtools.open();
       concurrentOpen = devtools.open();
       await Promise.resolve();
     });
-
+    if (firstOpen === undefined || concurrentOpen === undefined) {
+      throw new Error('DevTools open promises were not captured');
+    }
     expect(concurrentOpen).toBe(firstOpen);
     await firstOpen;
-
     expect(fakeDevtools.moduleLoads).toBe(moduleLoadsBeforeOpen + 1);
     expect(fakeDevtools.shellOpens).toBe(1);
-    expect(
-      container.querySelector('[aria-label="Zerospin DevTools"]'),
-    ).not.toBeNull();
-
-    await act(async () => {
-      root.unmount();
-    });
-
-    expect(window.zerospin?.devtools).toBeUndefined();
-    root = createRoot(container);
-
-    await act(async () => {
-      root.render(
-        <StrictMode>
-          <ZerospinApp.Provider
-            aggregateIds={{}}
-            generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          >
-            <div>Remounted application</div>
-          </ZerospinApp.Provider>
-        </StrictMode>,
-      );
-    });
-    expect(container.textContent).toBe('Remounted application');
   });
 
-  it('rejects a mount failure and retries the same dynamic module', async () => {
+  it('opens a directly mounted shell without lazily mounting another', async () => {
     await act(async () => {
       root.render(
-        <ZerospinApp.Provider
-          aggregateIds={{}}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-        >
-          <div>Application</div>
-        </ZerospinApp.Provider>,
-      );
-    });
-
-    const devtools = window.zerospin?.devtools;
-    expect(devtools).toBeDefined();
-    if (devtools === undefined) {
-      throw new Error(
-        'ZerospinApp.Provider did not install the DevTools console API.',
-      );
-    }
-
-    fakeDevtools.mountShouldFail = true;
-    const consoleError = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => undefined);
-
-    let failedOpen: Promise<void> | null = null;
-    await act(async () => {
-      failedOpen = devtools.open();
-      await Promise.resolve();
-    });
-    await expect(failedOpen).rejects.toThrow('devtools shell mount failed');
-
-    fakeDevtools.mountShouldFail = false;
-    let retryOpen: Promise<void> | null = null;
-    await act(async () => {
-      retryOpen = devtools.open();
-      await Promise.resolve();
-    });
-    await retryOpen;
-
-    expect(fakeDevtools.shellOpens).toBe(1);
-    expect(
-      container.querySelector('[aria-label="Zerospin DevTools"]'),
-    ).not.toBeNull();
-    consoleError.mockRestore();
-  });
-
-  it('opens one directly mounted shell without lazily mounting another', async () => {
-    await act(async () => {
-      root.render(
-        <ZerospinApp.Provider
+        <EmptyZerospinApp.Provider
           aggregateIds={{}}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
           <DirectZerospinDevtools />
-        </ZerospinApp.Provider>,
+        </EmptyZerospinApp.Provider>,
       );
     });
-
     const devtools = window.zerospin?.devtools;
-    expect(devtools).toBeDefined();
     if (devtools === undefined) {
-      throw new Error(
-        'ZerospinApp.Provider did not install the DevTools console API.',
-      );
+      throw new Error('DevTools API was not installed');
     }
-
     const moduleLoadsBeforeOpen = fakeDevtools.moduleLoads;
     await devtools.open();
-
     expect(fakeDevtools.moduleLoads).toBe(moduleLoadsBeforeOpen);
     expect(fakeDevtools.shellOpens).toBe(1);
-    expect(
-      container.querySelectorAll('[aria-label="Zerospin DevTools"]'),
-    ).toHaveLength(1);
   });
 
-  it('uses worker-returned identity and mode while updating the signature callback without restarting', async () => {
-    await act(async () => {
-      root.render(
-        <ZerospinApp.Provider
-          aggregateIds={{}}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-        >
-          <div>Application</div>
-        </ZerospinApp.Provider>,
-      );
-    });
-
-    expect(acquireUserPartitionRepoMock).toHaveBeenCalledTimes(1);
-    const request = acquireUserPartitionRepoMock.mock.calls[0]?.[0];
-    if (request === undefined) {
-      throw new Error('SharedWorker acquisition request was not captured');
-    }
-    expect(await request.generateSignature()).toEqual({
-      _tag: 'Right',
-      right: { userId: 'usr_1' },
-    });
-    expect([
-      ...zerospinDevtoolsStore.getState().sharedWorkerRootsById.values(),
-    ]).toEqual([
-      expect.objectContaining({
-        systemId: 'sys_1',
-        userId: 'usr_1',
-        mode: 'online',
-      }),
-    ]);
-
-    await act(async () => {
-      root.render(
-        <ZerospinApp.Provider
-          aggregateIds={{}}
-          generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
-        >
-          <div>Application</div>
-        </ZerospinApp.Provider>,
-      );
-    });
-
-    expect(acquireUserPartitionRepoMock).toHaveBeenCalledTimes(1);
-    expect(await request.generateSignature()).toEqual({
-      _tag: 'Right',
-      right: { userId: 'usr_2' },
-    });
-  });
-
-  it('returns authentication-signature-invalid to the worker without page fallback', async () => {
-    await act(async () => {
-      root.render(
-        <ZerospinApp.Provider
-          aggregateIds={{}}
-          generateSignature={() => Effect.succeed(JSON.parse('{"userId":1}'))}
-        >
-          <div>Application</div>
-        </ZerospinApp.Provider>,
-      );
-    });
-
-    const request = acquireUserPartitionRepoMock.mock.calls[0]?.[0];
-    if (request === undefined) {
-      throw new Error('SharedWorker acquisition request was not captured');
-    }
-    await expect(request.generateSignature()).resolves.toEqual({
-      _tag: 'Left',
-      left: expect.objectContaining({
-        code: 'authentication-signature-invalid',
-      }),
-    });
-    expect(acquireUserPartitionRepoMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('feeds worker identity and mode to every session and releases sessions before the port', async () => {
-    const releases: string[] = [];
-    acquireUserPartitionRepoMock.mockReturnValueOnce(
-      Effect.succeed({
-        api: {
-          listAggregateFrontendReplicas: vi.fn(),
-          listServiceFrontendReplicas: vi.fn(),
-        },
-        release: Effect.sync(() => {
-          releases.push('port');
-        }),
-        systemId: 'sys_worker',
-        userId: 'usr_worker',
-        mode: 'existing-only',
-      }),
-    );
-    bootstrapBrowserSessionMock.mockReturnValueOnce(
-      Effect.succeed({
-        stageAggregateFrontendCommand: () =>
-          Effect.succeed({ commandId: 'cmd_test' }),
-        releaseBrowserSession: Effect.sync(() => {
-          releases.push('aggregate');
-        }),
-      }),
-    );
-    bootstrapBrowserServiceSessionMock.mockReturnValueOnce(
-      Effect.succeed({
-        releaseBrowserSession: Effect.sync(() => {
-          releases.push('service');
-        }),
-      }),
-    );
-
+  it('shares one page backup port across parallel exact-target bootstraps and keeps signature callbacks current', async () => {
     await act(async () => {
       root.render(
         <LifecycleZerospinApp.Provider
           aggregateIds={{ user: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_worker' })}
+          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
           <div>Ready application</div>
         </LifecycleZerospinApp.Provider>,
@@ -414,340 +210,199 @@ describe('makeZerospinApp Provider DevTools console API', () => {
     });
 
     expect(container.textContent).toBe('Ready application');
-    expect(bootstrapBrowserSessionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        systemId: 'sys_worker',
-        userId: 'usr_worker',
-        mode: 'existing-only',
-      }),
-    );
-    expect(bootstrapBrowserServiceSessionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        systemId: 'sys_worker',
-        userId: 'usr_worker',
-        mode: 'existing-only',
-      }),
+    expect(acquireOpfsBackupWorkerMock).toHaveBeenCalledOnce();
+    expect(bootstrapAggregateFrontendSessionMock).toHaveBeenCalledOnce();
+    expect(bootstrapServiceFrontendSessionMock).toHaveBeenCalledOnce();
+    const aggregateRequest =
+      bootstrapAggregateFrontendSessionMock.mock.calls[0]?.[0];
+    const serviceRequest =
+      bootstrapServiceFrontendSessionMock.mock.calls[0]?.[0];
+    if (aggregateRequest === undefined || serviceRequest === undefined) {
+      throw new Error('Frontend bootstrap requests were not captured');
+    }
+    expect(aggregateRequest.backupWorker).toBe(serviceRequest.backupWorker);
+    expect(await aggregateRequest.generateSignature()).toEqual(
+      encodeSuccess({ userId: 'usr_1' }),
     );
 
     await act(async () => {
-      root.unmount();
+      root.render(
+        <LifecycleZerospinApp.Provider
+          aggregateIds={{ user: 'acct_1' }}
+          generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
+        >
+          <div>Ready application</div>
+        </LifecycleZerospinApp.Provider>,
+      );
     });
-    expect(releases.at(-1)).toBe('port');
+    expect(await serviceRequest.generateSignature()).toEqual(
+      encodeSuccess({ userId: 'usr_2' }),
+    );
+    expect(acquireOpfsBackupWorkerMock).toHaveBeenCalledOnce();
+  });
+
+  it('releases both scoped sessions before the page backup port', async () => {
+    const releases: string[] = [];
+    acquireOpfsBackupWorkerMock.mockReturnValueOnce(
+      Effect.acquireRelease(Effect.succeed({}), () =>
+        Effect.sync(() => releases.push('backup-port')),
+      ),
+    );
+    bootstrapAggregateFrontendSessionMock.mockReturnValueOnce(
+      Effect.acquireRelease(
+        Effect.succeed({
+          systemId: 'sys_1',
+          userId: 'usr_1',
+          aggregateFrontendLockKey: 'aggregate-lock-1',
+          executeAggregateFrontendCommand: ({ command }) =>
+            Effect.succeed({ commandId: command.id }),
+          getPushPaused: Effect.succeed(false),
+          setPushPaused: () => Effect.void,
+          pushNow: Effect.succeed({ status: 'empty' }),
+        }),
+        () => Effect.sync(() => releases.push('aggregate')),
+      ),
+    );
+    bootstrapServiceFrontendSessionMock.mockReturnValueOnce(
+      Effect.acquireRelease(
+        Effect.succeed({ systemId: 'sys_1', userId: 'usr_1' }),
+        () => Effect.sync(() => releases.push('service')),
+      ),
+    );
+
+    await act(async () => {
+      root.render(
+        <LifecycleZerospinApp.Provider
+          aggregateIds={{ user: 'acct_1' }}
+          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+        >
+          <div>Ready</div>
+        </LifecycleZerospinApp.Provider>,
+      );
+    });
+    await act(async () => root.unmount());
+    expect(releases.at(-1)).toBe('backup-port');
     expect(new Set(releases.slice(0, -1))).toEqual(
       new Set(['aggregate', 'service']),
     );
     root = createRoot(container);
   });
 
-  it('releases each replaced Provider session before its SharedWorker port', async () => {
+  it('rejects inconsistent frontend identities and releases partial acquisition', async () => {
     const releases: string[] = [];
-    acquireUserPartitionRepoMock
-      .mockReturnValueOnce(
+    bootstrapAggregateFrontendSessionMock.mockReturnValueOnce(
+      Effect.acquireRelease(
         Effect.succeed({
-          api: {
-            listAggregateFrontendReplicas: vi.fn(),
-            listServiceFrontendReplicas: vi.fn(),
-          },
-          release: Effect.sync(() => {
-            releases.push('port-1');
-          }),
-          systemId: 'sys_worker',
-          userId: 'usr_worker',
-          mode: 'online',
+          systemId: 'sys_1',
+          userId: 'usr_1',
+          aggregateFrontendLockKey: 'aggregate-lock-1',
+          executeAggregateFrontendCommand: ({ command }) =>
+            Effect.succeed({ commandId: command.id }),
+          getPushPaused: Effect.succeed(false),
+          setPushPaused: () => Effect.void,
+          pushNow: Effect.succeed({ status: 'empty' }),
         }),
-      )
-      .mockReturnValueOnce(
-        Effect.succeed({
-          api: {
-            listAggregateFrontendReplicas: vi.fn(),
-            listServiceFrontendReplicas: vi.fn(),
-          },
-          release: Effect.sync(() => {
-            releases.push('port-2');
-          }),
-          systemId: 'sys_worker',
-          userId: 'usr_worker',
-          mode: 'online',
-        }),
-      );
-    bootstrapBrowserSessionMock
-      .mockReturnValueOnce(
-        Effect.succeed({
-          stageAggregateFrontendCommand: () =>
-            Effect.succeed({ commandId: 'cmd_test_1' }),
-          releaseBrowserSession: Effect.sync(() => {
-            releases.push('aggregate-1');
-          }),
-        }),
-      )
-      .mockReturnValueOnce(
-        Effect.succeed({
-          stageAggregateFrontendCommand: () =>
-            Effect.succeed({ commandId: 'cmd_test_2' }),
-          releaseBrowserSession: Effect.sync(() => {
-            releases.push('aggregate-2');
-          }),
-        }),
-      );
-    bootstrapBrowserServiceSessionMock
-      .mockReturnValueOnce(
-        Effect.succeed({
-          releaseBrowserSession: Effect.sync(() => {
-            releases.push('service-1');
-          }),
-        }),
-      )
-      .mockReturnValueOnce(
-        Effect.succeed({
-          releaseBrowserSession: Effect.sync(() => {
-            releases.push('service-2');
-          }),
-        }),
-      );
-
-    await act(async () => {
-      root.render(
-        <LifecycleZerospinApp.Provider
-          aggregateIds={{ user: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_worker' })}
-        >
-          <div>First lifecycle</div>
-        </LifecycleZerospinApp.Provider>,
-      );
-    });
-    expect(container.textContent).toBe('First lifecycle');
-
-    await act(async () => {
-      root.render(
-        <LifecycleZerospinApp.Provider
-          aggregateIds={{ user: 'acct_2' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_worker' })}
-        >
-          <div>Second lifecycle</div>
-        </LifecycleZerospinApp.Provider>,
-      );
-    });
-    await vi.waitFor(() => {
-      expect(container.textContent).toBe('Second lifecycle');
-      expect(releases).toEqual(
-        expect.arrayContaining(['aggregate-1', 'service-1', 'port-1']),
-      );
-    });
-    expect(releases.indexOf('aggregate-1')).toBeLessThan(
-      releases.indexOf('port-1'),
+        () => Effect.sync(() => releases.push('aggregate')),
+      ),
     );
-    expect(releases.indexOf('service-1')).toBeLessThan(
-      releases.indexOf('port-1'),
-    );
-
-    await act(async () => {
-      root.unmount();
-    });
-    expect(releases).toEqual(
-      expect.arrayContaining(['aggregate-2', 'service-2', 'port-2']),
-    );
-    expect(releases.indexOf('aggregate-2')).toBeLessThan(
-      releases.indexOf('port-2'),
-    );
-    expect(releases.indexOf('service-2')).toBeLessThan(
-      releases.indexOf('port-2'),
-    );
-    root = createRoot(container);
-  });
-
-  it('releases a successful partial bootstrap before the port when its sibling fails', async () => {
-    const releases: string[] = [];
-    acquireUserPartitionRepoMock.mockReturnValueOnce(
-      Effect.succeed({
-        api: {
-          listAggregateFrontendReplicas: vi.fn(),
-          listServiceFrontendReplicas: vi.fn(),
-        },
-        release: Effect.sync(() => {
-          releases.push('port');
-        }),
-        systemId: 'sys_worker',
-        userId: 'usr_worker',
-        mode: 'online',
-      }),
-    );
-    bootstrapBrowserSessionMock.mockReturnValueOnce(
-      Effect.succeed({
-        stageAggregateFrontendCommand: () =>
-          Effect.succeed({ commandId: 'cmd_test' }),
-        releaseBrowserSession: Effect.sync(() => {
-          releases.push('aggregate');
-        }),
-      }),
-    );
-    bootstrapBrowserServiceSessionMock.mockReturnValueOnce(
-      Effect.sleep('10 millis').pipe(
-        Effect.zipRight(
-          Effect.fail(
-            new ZerospinError({
-              code: 'service-bootstrap-test-failed',
-              message: 'Service bootstrap failed after aggregate acquisition',
-            }),
-          ),
-        ),
+    bootstrapServiceFrontendSessionMock.mockReturnValueOnce(
+      Effect.acquireRelease(
+        Effect.succeed({ systemId: 'sys_1', userId: 'usr_other' }),
+        () => Effect.sync(() => releases.push('service')),
       ),
     );
     const consoleError = vi
       .spyOn(console, 'error')
-      .mockImplementation(() => undefined);
-
-    await act(async () => {
-      root.render(
-        <LifecycleZerospinApp.Provider
-          aggregateIds={{ user: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_worker' })}
-        >
-          <div>Never published</div>
-        </LifecycleZerospinApp.Provider>,
-      );
-    });
-    await expect(
-      act(async () => {
-        await vi.waitFor(() => {
-          expect(releases).toEqual(['aggregate', 'port']);
-        });
-      }),
-    ).rejects.toThrow('service-bootstrap-test-failed');
-    consoleError.mockRestore();
-  });
-
-  it('rejects a nested Provider before SharedWorker construction', async () => {
-    acquireUserPartitionRepoMock.mockClear();
-    const consoleError = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => undefined);
-
-    await expect(
-      act(async () => {
-        root.render(
-          <ZerospinApp.Provider
-            aggregateIds={{}}
-            generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          >
-            <ZerospinApp.Provider
-              aggregateIds={{}}
-              generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-            >
-              <div>Nested application</div>
-            </ZerospinApp.Provider>
-          </ZerospinApp.Provider>,
-        );
-      }),
-    ).rejects.toThrow(
-      'ZerospinApp.Provider cannot be mounted inside another ZerospinApp.Provider',
-    );
-    expect(acquireUserPartitionRepoMock).not.toHaveBeenCalled();
-    consoleError.mockRestore();
-  });
-
-  it('rejects sibling roots and separately constructed app namespaces before a second bootstrap', async () => {
-    const secondContainer = document.createElement('div');
-    document.body.appendChild(secondContainer);
-    const secondRoot = createRoot(secondContainer);
-    const SecondZerospinApp = makeZerospinApp({
-      systemName: 'system-worker',
-      authentication: { signature: authenticationSignature },
-      frontends: {},
-      runtime: sessionRuntime,
-    });
-    const consoleError = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => undefined);
-
+      .mockImplementation(() => {});
     try {
-      await act(async () => {
-        root.render(
-          <ZerospinApp.Provider
-            aggregateIds={{}}
-            generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          >
-            <div>First root</div>
-          </ZerospinApp.Provider>,
-        );
-      });
-      expect(acquireUserPartitionRepoMock).toHaveBeenCalledTimes(1);
-
       await expect(
         act(async () => {
-          secondRoot.render(
-            <SecondZerospinApp.Provider
-              aggregateIds={{}}
+          root.render(
+            <LifecycleZerospinApp.Provider
+              aggregateIds={{ user: 'acct_1' }}
               generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
             >
-              <div>Second root</div>
-            </SecondZerospinApp.Provider>,
+              <div>Never published</div>
+            </LifecycleZerospinApp.Provider>,
           );
         }),
-      ).rejects.toThrow('zerospin-app-provider-already-mounted');
-      expect(acquireUserPartitionRepoMock).toHaveBeenCalledTimes(1);
+      ).rejects.toThrow('Selected frontends resolved to different identities');
+      expect(new Set(releases)).toEqual(new Set(['aggregate', 'service']));
     } finally {
-      await act(async () => {
-        secondRoot.unmount();
-      });
-      secondContainer.remove();
       consoleError.mockRestore();
     }
   });
 
-  it('releases page ownership after SharedWorker acquisition fails', async () => {
-    acquireUserPartitionRepoMock.mockReturnValueOnce(
+  it('rejects nested providers before acquiring the backup worker', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    try {
+      await expect(
+        act(async () => {
+          root.render(
+            <EmptyZerospinApp.Provider
+              aggregateIds={{}}
+              generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+            >
+              <EmptyZerospinApp.Provider
+                aggregateIds={{}}
+                generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+              >
+                <div>Nested</div>
+              </EmptyZerospinApp.Provider>
+            </EmptyZerospinApp.Provider>,
+          );
+        }),
+      ).rejects.toThrow(
+        'ZerospinApp.Provider cannot be mounted inside another ZerospinApp.Provider',
+      );
+      expect(acquireOpfsBackupWorkerMock).not.toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it('releases page ownership after backup acquisition fails', async () => {
+    acquireOpfsBackupWorkerMock.mockReturnValueOnce(
       Effect.fail(
         new ZerospinError({
-          code: 'authentication-signature-test-failed',
-          message: 'Worker-requested authentication signature failed',
+          code: 'opfs-backup-worker-test-failed',
+          message: 'OPFS backup worker connection failed',
         }),
       ),
     );
     const consoleError = vi
       .spyOn(console, 'error')
-      .mockImplementation(() => undefined);
-
-    await expect(
-      act(async () => {
+      .mockImplementation(() => {});
+    try {
+      await expect(
+        act(async () => {
+          root.render(
+            <LifecycleZerospinApp.Provider
+              aggregateIds={{ user: 'acct_1' }}
+              generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+            >
+              <div>Failed</div>
+            </LifecycleZerospinApp.Provider>,
+          );
+        }),
+      ).rejects.toThrow('OPFS backup worker connection failed');
+      await act(async () => root.unmount());
+      root = createRoot(container);
+      await act(async () => {
         root.render(
-          <ZerospinApp.Provider
+          <EmptyZerospinApp.Provider
             aggregateIds={{}}
             generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           >
-            <div>Failed application</div>
-          </ZerospinApp.Provider>,
+            <div>Recovered</div>
+          </EmptyZerospinApp.Provider>,
         );
-      }),
-    ).rejects.toThrow('authentication-signature-test-failed');
-    expect(acquireUserPartitionRepoMock).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      root.unmount();
-    });
-    root = createRoot(container);
-    acquireUserPartitionRepoMock.mockReturnValue(
-      Effect.succeed({
-        api: {
-          listAggregateFrontendReplicas: vi.fn(),
-          listServiceFrontendReplicas: vi.fn(),
-        },
-        release: Effect.void,
-        systemId: 'sys_1',
-        userId: 'usr_1',
-        mode: 'online',
-      }),
-    );
-    await act(async () => {
-      root.render(
-        <ZerospinApp.Provider
-          aggregateIds={{}}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-        >
-          <div>Recovered application</div>
-        </ZerospinApp.Provider>,
-      );
-    });
-    expect(container.textContent).toBe('Recovered application');
-    consoleError.mockRestore();
+      });
+      expect(container.textContent).toBe('Recovered');
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });

@@ -25,15 +25,17 @@ describe('service frontend lock', () => {
         models: {},
       });
 
-      const leftLock = yield* makeServiceFrontendLock({ frontend: left });
-      const rightLock = yield* makeServiceFrontendLock({ frontend: right });
+      const leftLock = makeServiceFrontendLock({ frontend: left });
+      const rightLock = makeServiceFrontendLock({ frontend: right });
       const leftKey = yield* makeServiceFrontendLockKey(leftLock);
       const rightKey = yield* makeServiceFrontendLockKey(rightLock);
 
       expect(Schema.is(ServiceFrontendLockSchema)(leftLock)).toBe(true);
       expect(leftLock).toEqual(rightLock);
       expect(leftKey).toBe(rightKey);
-      expect(leftKey).toMatch(/^[0-9a-f]{64}$/u);
+      expect(leftKey).toBe(
+        'bef33d25b9d7c8981a1b7975a3ea108517409a0479c538c7f38ee3a226159c67',
+      );
       expect(leftLock).not.toHaveProperty('kind');
       expect(leftLock).not.toHaveProperty('ownerName');
       expect(leftLock).not.toHaveProperty('contracts');

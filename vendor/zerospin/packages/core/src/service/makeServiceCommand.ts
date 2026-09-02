@@ -1,4 +1,5 @@
 import type { IAnyError } from '@zerospin/error';
+import type { CuidFactory } from '@zerospin/schema';
 import { Effect } from 'effect';
 
 import { makeCommand } from '../contracts/makeCommand.ts';
@@ -11,7 +12,6 @@ import type {
   InferCommandPayload,
   InferPayloadInput,
 } from '../models/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 
 export const makeServiceCommand = Effect.fn('makeServiceCommand')(function* <
@@ -47,7 +47,6 @@ export const makeServiceCommand = Effect.fn('makeServiceCommand')(function* <
 
   return {
     ...command,
-    commandType: 'service',
     serviceName,
   };
 });

@@ -1,44 +1,21 @@
+import type { InferEncodedRow } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 
-import type {
-  IEncodedCommand,
-  IExecutedPushedCommand,
-  IPushedCommand,
-  IStagedSessionCommand,
-} from '../contracts/types.ts';
-import type { InferEncodedRow, Prettify } from '../models/types.ts';
+import type { IEncodedCommand, ISessionCommand } from '../contracts/types.ts';
+import type { Prettify } from '../models/types.ts';
 
-import {
-  type sessionExecutedPushedCommandShape,
-  type sessionFailedCommandShape,
-  type sessionPushedCommandShape,
-  type sessionStagedCommandShape,
-} from './sessionCommandShape.ts';
+import { type sessionCommandJournalShape } from './sessionCommandShape.ts';
 
 assert<
   Equals<
-    InferEncodedRow<typeof sessionStagedCommandShape>,
+    InferEncodedRow<typeof sessionCommandJournalShape>,
     Prettify<
-      IEncodedCommand<IStagedSessionCommand> &
-        Readonly<{ replicaIndex: number | null }>
+      {
+        -readonly [KEY in keyof IEncodedCommand<ISessionCommand>]: IEncodedCommand<ISessionCommand>[KEY];
+      } & {
+        sessionIndex: number | null;
+        command: string;
+      }
     >
-  >
->();
-assert<
-  Equals<
-    InferEncodedRow<typeof sessionPushedCommandShape>,
-    IEncodedCommand<IPushedCommand>
-  >
->();
-assert<
-  Equals<
-    InferEncodedRow<typeof sessionExecutedPushedCommandShape>,
-    IEncodedCommand<IExecutedPushedCommand>
-  >
->();
-assert<
-  Equals<
-    InferEncodedRow<typeof sessionFailedCommandShape>['replicaIndex'],
-    number | null
   >
 >();

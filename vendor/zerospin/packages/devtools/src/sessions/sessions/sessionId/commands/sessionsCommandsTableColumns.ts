@@ -1,10 +1,5 @@
-import type { ColumnDef, VisibilityState } from '@tanstack/react-table';
-import {
-  sessionCommandDevtoolsShape,
-  type ISessionCommandStatus,
-} from '@zerospin/core/session/sessionCommandShape';
-
-export type IDevtoolsSessionCommandsStatus = ISessionCommandStatus;
+import type { ColumnDef } from '@tanstack/react-table';
+import { sessionCommandDevtoolsShape } from '@zerospin/core/session/sessionCommandShape';
 
 const COMMAND_COLUMN_IDS = [
   'id',
@@ -20,8 +15,7 @@ const COPY_CELL_COLUMN_IDS = new Set<ICommandColumnId>([
   'userId',
   'sessionId',
   'payload',
-  'failure',
-  'stagedCursor',
+  'userId',
 ]);
 
 const COLUMN_SIZES: Partial<
@@ -29,12 +23,7 @@ const COLUMN_SIZES: Partial<
 > = {
   id: { size: 140, minSize: 80, maxSize: 200 },
   commandName: { size: 120, minSize: 80, maxSize: 160 },
-  status: { size: 88, minSize: 72, maxSize: 120 },
   payload: { size: 200, minSize: 120, maxSize: 320 },
-  failure: { size: 200, minSize: 120, maxSize: 320 },
-  stagedAt: { size: 160, minSize: 120, maxSize: 200 },
-  pushedAt: { size: 160, minSize: 120, maxSize: 200 },
-  executedAt: { size: 160, minSize: 120, maxSize: 200 },
   userId: { size: 140, minSize: 80, maxSize: 200 },
   sessionId: { size: 140, minSize: 80, maxSize: 200 },
 };
@@ -60,48 +49,6 @@ export function truncateCommandDisplayText(text: string): string {
 
 export function isSessionsCommandsCopyCellColumn(columnId: string): boolean {
   return COPY_CELL_COLUMN_IDS.has(columnId);
-}
-
-function statusTimestampColumnId(
-  status: IDevtoolsSessionCommandsStatus,
-): ICommandColumnId {
-  switch (status) {
-    case 'staged':
-      return 'stagedAt';
-    case 'pushed':
-      return 'pushedAt';
-    case 'executed':
-      return 'executedAt';
-    case 'failed':
-      return 'pushedAt';
-    default: {
-      const exhaustive: never = status;
-      throw new Error(`Unsupported command status: ${exhaustive}`);
-    }
-  }
-}
-
-export function defaultColumnVisibilityForStatus(
-  status: IDevtoolsSessionCommandsStatus,
-): VisibilityState {
-  const timestampColumn = statusTimestampColumnId(status);
-  const visibility: VisibilityState = {};
-
-  for (const columnId of COMMAND_COLUMN_IDS) {
-    visibility[columnId] = false;
-  }
-
-  visibility.id = true;
-  visibility.commandName = true;
-  visibility.status = true;
-  visibility.payload = true;
-  visibility[timestampColumn] = true;
-
-  if (status === 'failed') {
-    visibility.failure = true;
-  }
-
-  return visibility;
 }
 
 export function makeSessionsCommandsTableColumns(): ColumnDef<

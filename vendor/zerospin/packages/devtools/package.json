@@ -27,12 +27,12 @@
     "@zerospin/error": "workspace:*",
     "@zerospin/live-query": "workspace:*",
     "@zerospin/logger": "workspace:*",
-    "effect": "^3.21.4",
+    "effect": "rc",
     "react-router": "^7.15.0",
     "zustand": "^5.0.13"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.85.1",
+    "@effect/language-service": "^0.87.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.17",

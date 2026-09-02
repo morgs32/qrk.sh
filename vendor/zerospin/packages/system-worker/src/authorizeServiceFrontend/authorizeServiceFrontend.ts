@@ -9,16 +9,15 @@ import { env } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
 import { system } from 'system';
 
-import { getServiceRepo } from '../ServiceRepo/getServiceRepo/getServiceRepo.js';
+import { getMaterializedServiceRepo } from '../MaterializedServiceRepo/getMaterializedServiceRepo/getMaterializedServiceRepo.js';
+import { MaterializedServiceRepo } from '../MaterializedServiceRepo/MaterializedServiceRepo.js';
 import { SelectedServiceFrontendLockSchema } from '../StaticSystem/frontendSpecSchemas.js';
 import { validateServiceFrontendLock } from '../StaticSystem/validateServiceFrontendLock/validateServiceFrontendLock.js';
-import { SystemRepo } from '../SystemRepo/SystemRepo.js';
 
 export const authorizeServiceFrontend = Effect.fn(
   'SystemWorker.authorizeServiceFrontend',
   { root: true },
 )(function* (props: {
-  generationId: string;
   userId: string;
   serviceName: string;
   frontendName: string;
@@ -33,21 +32,14 @@ export const authorizeServiceFrontend = Effect.fn(
   IAnyError,
   Async
 > {
-  const userId = yield* Schema.decodeUnknown(Schema.NonEmptyString)(
-    props.userId,
-  ).pipe(
-    mapParseError({
-      code: 'service-frontend-authorization-user-id-invalid',
-      prefix: 'Failed to decode service frontend authorization userId',
-    }),
-  );
+  const { userId, serviceName, frontendName, serviceFrontendLock } = props;
   const systemSpec = makeSystemSpec({ system });
   const selectedUnknown = yield* validateServiceFrontendLock({
-    serviceName: props.serviceName,
-    frontendName: props.frontendName,
-    serviceFrontendLock: props.serviceFrontendLock,
+    serviceName,
+    frontendName,
+    serviceFrontendLock,
   });
-  const selected = yield* Schema.decodeUnknown(
+  const selected = yield* Schema.decodeUnknownEffect(
     SelectedServiceFrontendLockSchema,
   )(selectedUnknown, { onExcessProperty: 'error' }).pipe(
     mapParseError({
@@ -56,21 +48,15 @@ export const authorizeServiceFrontend = Effect.fn(
         'The static System returned an invalid selected service frontend lock',
     }),
   );
-  yield* makeAsync(() =>
-    SystemRepo.getRepo({
-      systemId: env.ZEROSPIN_SYSTEM_ID,
-    }).assertGenerationAdmission({
-      generationId: props.generationId,
-      mode: 'read',
-    }),
-  ).pipe(Effect.flatMap(decodeRpc));
-  const serviceRepo = yield* getServiceRepo({
-    key: { generationId: props.generationId, serviceName: props.serviceName },
+  const serviceRepo = yield* getMaterializedServiceRepo({
+    key: { systemId: env.ZEROSPIN_SYSTEM_ID, serviceName },
   });
-  yield* makeAsync(() =>
+  yield* makeAsync<
+    Awaited<ReturnType<MaterializedServiceRepo['authorizeServiceFrontend']>>
+  >(() =>
     serviceRepo.authorizeServiceFrontend({
-      serviceName: props.serviceName,
-      frontendName: props.frontendName,
+      serviceName,
+      frontendName,
       userId,
     }),
   ).pipe(Effect.flatMap(decodeRpc));

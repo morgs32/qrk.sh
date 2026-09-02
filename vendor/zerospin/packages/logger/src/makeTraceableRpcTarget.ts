@@ -1,4 +1,4 @@
-import { Effect, Either } from 'effect';
+import { Effect, Result } from 'effect';
 
 import { makeSpanId } from './makeTelemetryIds.ts';
 import { TelemetryCollector } from './TelemetryCollector.ts';
@@ -33,10 +33,10 @@ const unwrapEnvelope = <A, E>(
   Effect.gen(function* () {
     const collector = yield* TelemetryCollector;
     collector.merge(envelope.telemetry);
-    if (envelope.result._tag === 'Left') {
-      return yield* Effect.fail(envelope.result.left);
+    if (envelope.result._tag === 'Failure') {
+      return yield* Effect.fail(envelope.result.failure);
     }
-    return envelope.result.right;
+    return envelope.result.success;
   });
 
 export const makeTraceableRpcTarget = <TARGET extends object>(
@@ -87,9 +87,9 @@ export const makeTraceableRpcTarget = <TARGET extends object>(
               ]),
             catch: error =>
               error instanceof Error ? error : new Error(String(error)),
-          }).pipe(Effect.either);
+          }).pipe(Effect.result);
 
-          if (Either.isLeft(settled)) {
+          if (Result.isFailure(settled)) {
             const collector = yield* TelemetryCollector;
             if (traceContext !== null) {
               collector.addSpan({
@@ -100,19 +100,19 @@ export const makeTraceableRpcTarget = <TARGET extends object>(
                 status: 'lost',
                 startedAt,
                 endedAt: Date.now(),
-                attributes: { transportError: String(settled.left) },
+                attributes: { transportError: String(settled.failure) },
               });
             }
-            return yield* Effect.fail(settled.left);
+            return yield* Effect.fail(settled.failure);
           }
 
-          if (!isRpcEnvelope(settled.right)) {
+          if (!isRpcEnvelope(settled.success)) {
             return yield* Effect.fail(
               new Error('makeTraceableRpcTarget expected IRpcEnvelope'),
             );
           }
 
-          return yield* unwrapEnvelope(settled.right);
+          return yield* unwrapEnvelope(settled.success);
         });
     },
   }) as {

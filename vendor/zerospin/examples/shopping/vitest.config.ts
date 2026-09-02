@@ -18,16 +18,27 @@ export default defineConfig({
   resolve: {
     conditions: ['node'],
     alias: [
+      {
+        find: 'cloudflare:workers',
+        replacement: path.resolve(__dirname, 'tests/unit/cloudflareWorkers.ts'),
+      },
       { find: '@', replacement: path.resolve(__dirname, 'src') },
       {
         find: 'internal',
         replacement: path.resolve(__dirname, '../../packages/core/src'),
       },
       {
+        find: 'system',
+        replacement: path.resolve(__dirname, 'src/zerospin/system.ts'),
+      },
+      {
         find: '@livestore/wa-sqlite/dist/wa-sqlite.mjs',
         replacement: '@livestore/wa-sqlite/dist/wa-sqlite.node.mjs',
       },
     ],
+  },
+  ssr: {
+    noExternal: ['system-worker', 'partyserver'],
   },
   test: {
     environment: 'node',
@@ -39,7 +50,7 @@ export default defineConfig({
       'tests/e2e/**',
       '**/*.workerd.spec.ts',
     ],
-    passWithNoTests: true,
+    passWithNoTests: false,
     setupFiles: ['./vitest.setup.ts'],
     testTimeout: 30_000,
   },

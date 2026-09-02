@@ -1,5 +1,4 @@
-import { mapParseError, type IAnyError } from '@zerospin/error';
-import { Effect, Schema } from 'effect';
+import { Schema } from 'effect';
 
 import type { IAuthenticationSignature } from './types.ts';
 
@@ -10,26 +9,11 @@ export const AuthenticationLockSchema = Schema.Struct({
   }),
 });
 
-export const makeAuthenticationLock = Effect.fn('makeAuthenticationLock')(
-  function* (props: {
-    signature: IAuthenticationSignature;
-  }): Effect.fn.Return<
-    Schema.Schema.Type<typeof AuthenticationLockSchema>,
-    IAnyError
-  > {
-    return yield* Schema.validate(AuthenticationLockSchema)(
-      {
-        signature: {
-          version: props.signature.version,
-          schemaJsonSchema: props.signature.spec.schemaJsonSchema,
-        },
-      },
-      { onExcessProperty: 'error' },
-    ).pipe(
-      mapParseError({
-        code: 'authentication-lock-invalid',
-        prefix: 'Failed to construct the authentication lock',
-      }),
-    );
+export const makeAuthenticationLock = (props: {
+  signature: IAuthenticationSignature;
+}): Schema.Schema.Type<typeof AuthenticationLockSchema> => ({
+  signature: {
+    version: props.signature.version,
+    schemaJsonSchema: props.signature.spec.schemaJsonSchema,
   },
-);
+});

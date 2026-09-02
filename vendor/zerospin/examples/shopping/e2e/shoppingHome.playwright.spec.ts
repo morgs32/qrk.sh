@@ -60,7 +60,7 @@ test('signed-in user can view the authed home page', async ({ page }) => {
   await expect(page.getByText('Cart', { exact: true })).toBeVisible();
 });
 
-test('SharedWorker push applies inverse deletes without reentering SQLite', async ({
+test('main-thread push applies inverse deletes without reentering SQLite', async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -74,7 +74,7 @@ test('SharedWorker push applies inverse deletes without reentering SQLite', asyn
   page.on('console', message => {
     if (
       message.type() === 'error' &&
-      /FiberFailure|drizzle-transaction-failed|database disk image is malformed|account-frontend|durable-stage/.test(
+      /drizzle-transaction-failed|database disk image is malformed|account-frontend/.test(
         message.text(),
       )
     ) {
@@ -98,6 +98,16 @@ test('SharedWorker push applies inverse deletes without reentering SQLite', asyn
     await window.zerospin.devtools.open();
   });
 
+  let devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
+  await expect(devtools).toBeVisible();
+  await devtools
+    .getByRole('button', {
+      name: 'Close Zerospin DevTools',
+      exact: true,
+    })
+    .click();
+  await expect(devtools).toBeHidden();
+
   const basicTShirtCard = page
     .locator('[data-slot="card"]')
     .filter({ hasText: 'Basic T-Shirt' });
@@ -107,7 +117,7 @@ test('SharedWorker push applies inverse deletes without reentering SQLite', asyn
   });
 
   // 2 — The authenticated actor persists between runs. Converge only this
-  // product to absent through the SharedWorker-owned push path before starting
+  // product to absent through the main-thread push path before starting
   // the precise add/remove regression.
   await expect
     .poll(
@@ -123,7 +133,7 @@ test('SharedWorker push applies inverse deletes without reentering SQLite', asyn
   }
 
   // 3 — Reload after convergence so the regression starts from the
-  // authoritative empty state produced by the SharedWorker.
+  // authoritative empty state produced by the frontend session.
   await page.reload();
   await expect(
     page.getByRole('heading', { level: 2, name: 'Products', exact: true }),
@@ -140,108 +150,176 @@ test('SharedWorker push applies inverse deletes without reentering SQLite', asyn
     }
     await window.zerospin.devtools.open();
   });
-  let devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
-  await expect(devtools).toBeVisible();
-  const pushedRoute = devtools.getByRole('button', {
-    name: 'Pushed',
-    exact: true,
-  });
-  await pushedRoute.click();
-  await expect(pushedRoute).toHaveCSS('background-color', 'rgb(243, 244, 246)');
-  const baselinePushedRemoveCount = await devtools
-    .getByRole('cell', {
-      name: 'removeFromCart',
-      exact: true,
-    })
-    .count();
-  const executedRoute = devtools.getByRole('button', {
-    name: 'Executed',
-    exact: true,
-  });
-  await executedRoute.click();
-  await expect(executedRoute).toHaveCSS(
-    'background-color',
-    'rgb(243, 244, 246)',
-  );
-  const baselineExecutedRemoveCount = await devtools
-    .getByRole('cell', {
-      name: 'removeFromCart',
-      exact: true,
-    })
-    .count();
-  const baselineSettledRemoveCount =
-    baselinePushedRemoveCount + baselineExecutedRemoveCount;
-  await page
-    .getByRole('button', { name: 'Close Zerospin DevTools', exact: true })
-    .click();
-
-  // 4 — Stage an optimistic insert and its removal while the SharedWorker owns
-  // continuous journal push. Applying the authoritative frontend blocks must
-  // rewind the insert with a DELETE without running the live-query SELECT
-  // inside sqlite3_step.
-  await addBasicTShirt.click();
-  await expect(basicTShirtCard.getByRole('button')).toHaveCount(3);
-  await basicTShirtCard.getByRole('button').last().click();
-  await expect(addBasicTShirt).toBeVisible();
-
-  await page
-    .getByRole('button', { name: 'Open Zerospin DevTools', exact: true })
-    .click();
   devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
+  await expect(devtools).toBeVisible();
+  const aggregateSessionRow = devtools
+    .getByRole('cell', { name: 'shopper/web', exact: true })
+    .locator('..');
+  await expect(aggregateSessionRow).toHaveCount(1);
+  await expect(
+    aggregateSessionRow.getByRole('cell', {
+      name: 'aggregate',
+      exact: true,
+    }),
+  ).toBeVisible();
+  const aggregateSessionId = (
+    await aggregateSessionRow.locator('td').nth(2).innerText()
+  ).trim();
+  await aggregateSessionRow.click();
+  await devtools.getByRole('link', { name: 'Commands', exact: true }).click();
+  const commandTable = devtools
+    .getByRole('columnheader', {
+      name: 'commandName',
+      exact: true,
+    })
+    .locator('xpath=ancestor::table');
+  const baselineCommandIds = new Set(
+    (
+      await commandTable.locator('tbody tr td:first-child').allTextContents()
+    ).map(commandId => commandId.trim()),
+  );
 
-  // 5 — Pushed or Executed means the durable journal settlement block has
-  // rewound and reapplied the optimistic mutations. Count both terminal
-  // locations because the server may execute the command while this assertion
-  // is observing it.
-  await expect
-    .poll(
-      async () => {
-        expect(targetedRuntimeFailures).toEqual([]);
-        await pushedRoute.click();
-        await expect(pushedRoute).toHaveCSS(
-          'background-color',
-          'rgb(243, 244, 246)',
-        );
-        const pushedRemoveCount = await devtools
-          .getByRole('cell', {
-            name: 'removeFromCart',
-            exact: true,
-          })
-          .count();
-        await executedRoute.click();
-        await expect(executedRoute).toHaveCSS(
-          'background-color',
-          'rgb(243, 244, 246)',
-        );
-        const executedRemoveCount = await devtools
-          .getByRole('cell', {
-            name: 'removeFromCart',
-            exact: true,
-          })
-          .count();
-        return pushedRemoveCount + executedRemoveCount;
-      },
-      { timeout: 30_000 },
+  try {
+    await devtools
+      .getByRole('button', { name: 'Pause push', exact: true })
+      .click();
+    await expect(devtools.getByText('paused', { exact: true })).toBeVisible();
+    await devtools
+      .getByRole('button', {
+        name: 'Close Zerospin DevTools',
+        exact: true,
+      })
+      .click();
+    await expect(devtools).toBeHidden();
+
+    // 4 — Apply an optimistic insert and its removal while the exact
+    // main-thread push lane is paused. Applying the authoritative command must
+    // rewind the insert with a DELETE without running the live-query SELECT
+    // inside sqlite3_step.
+    await addBasicTShirt.click();
+    await expect(basicTShirtCard.getByRole('button')).toHaveCount(3);
+    await basicTShirtCard.getByRole('button').last().click();
+
+    await page
+      .getByRole('button', { name: 'Open Zerospin DevTools', exact: true })
+      .click();
+    await expect(devtools).toBeVisible();
+    await devtools.getByRole('link', { name: 'Sessions', exact: true }).click();
+    const currentAggregateSessionRow = devtools
+      .getByRole('cell', { name: 'shopper/web', exact: true })
+      .locator('..');
+    await expect(currentAggregateSessionRow).toHaveCount(1);
+    await expect(currentAggregateSessionRow.locator('td').nth(2)).toHaveText(
+      aggregateSessionId,
+    );
+    await currentAggregateSessionRow.click();
+    await devtools.getByRole('link', { name: 'Commands', exact: true }).click();
+    const removeCommandRows = commandTable
+      .getByRole('cell', {
+        name: 'removeFromCart',
+        exact: true,
+      })
+      .locator('..');
+    await expect
+      .poll(
+        async () =>
+          (await removeCommandRows.locator('td:first-child').allTextContents())
+            .map(commandId => commandId.trim())
+            .filter(commandId => !baselineCommandIds.has(commandId)).length,
+        { timeout: 30_000 },
+      )
+      .toBe(1);
+    const newRemoveCommandIds = (
+      await removeCommandRows.locator('td:first-child').allTextContents()
     )
-    .toBeGreaterThan(baselineSettledRemoveCount);
-  expect(targetedRuntimeFailures).toEqual([]);
-  await expect(page.locator('body')).not.toContainText(
-    'database disk image is malformed',
-  );
+      .map(commandId => commandId.trim())
+      .filter(commandId => !baselineCommandIds.has(commandId));
+    expect(newRemoveCommandIds).toHaveLength(1);
+    const removeCommandId = newRemoveCommandIds[0];
+    if (removeCommandId === undefined) {
+      throw new Error('The removeFromCart command ID was not journaled');
+    }
+    await expect(
+      removeCommandRows
+        .locator('td:first-child')
+        .filter({ hasText: removeCommandId }),
+    ).toBeVisible();
 
-  // 6 — A fresh session must reconstruct the same authoritative empty state.
-  await page.reload();
-  await expect(
-    page.getByRole('heading', { level: 2, name: 'Products', exact: true }),
-  ).toBeVisible({ timeout: 90_000 });
-  await expect(addBasicTShirt).toBeVisible();
-  const desktopCart = page.locator(
-    '[data-slot="sidebar"][data-side="right"] [data-sidebar="sidebar"]',
-  );
-  await expect(
-    desktopCart.getByText('Basic T-Shirt', { exact: true }),
-  ).toHaveCount(0);
-  expect(targetedRuntimeFailures).toEqual([]);
+    await devtools
+      .getByRole('button', { name: 'Push now', exact: true })
+      .click();
+    await expect(devtools.getByText('pushed', { exact: true })).toBeVisible();
+
+    // 5 — The exact remove command remains one retained journal occurrence as
+    // its push and finalization indexes settle.
+    await devtools.getByRole('link', { name: 'Sessions', exact: true }).click();
+    await currentAggregateSessionRow.click();
+    await devtools.getByRole('link', { name: 'Commands', exact: true }).click();
+    await expect
+      .poll(
+        async () => {
+          expect(targetedRuntimeFailures).toEqual([]);
+          return (
+            await commandTable
+              .locator('tbody tr td:first-child')
+              .allTextContents()
+          ).filter(commandId => commandId.trim() === removeCommandId).length;
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(1);
+    expect(targetedRuntimeFailures).toEqual([]);
+    await expect(page.locator('body')).not.toContainText(
+      'database disk image is malformed',
+    );
+
+    // 6 — A fresh session must reconstruct the same authoritative empty state.
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Products', exact: true }),
+    ).toBeVisible({ timeout: 90_000 });
+    await expect(addBasicTShirt).toBeVisible();
+    const desktopCart = page.locator(
+      '[data-slot="sidebar"][data-side="right"] [data-sidebar="sidebar"]',
+    );
+    await expect(
+      desktopCart.getByText('Basic T-Shirt', { exact: true }),
+    ).toHaveCount(0);
+    expect(targetedRuntimeFailures).toEqual([]);
+  } finally {
+    if (!page.isClosed()) {
+      await page.evaluate(async () => {
+        if (window.zerospin?.devtools === undefined) {
+          throw new Error(
+            'ZerospinApp.Provider did not install the DevTools console API.',
+          );
+        }
+        await window.zerospin.devtools.open();
+      });
+      devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
+      await expect(devtools).toBeVisible();
+      await devtools.getByRole('link', { name: 'Sessions', exact: true }).click();
+      const cleanupSessionRow = devtools
+        .getByRole('cell', { name: 'shopper/web', exact: true })
+        .locator('..');
+      await cleanupSessionRow.click();
+      await devtools.getByRole('link', { name: 'Commands', exact: true }).click();
+      const resumePush = devtools.getByRole('button', {
+        name: 'Resume push',
+        exact: true,
+      });
+      if (await resumePush.isVisible()) {
+        await resumePush.click();
+      }
+      await devtools
+        .getByRole('button', {
+          name: 'Close Zerospin DevTools',
+          exact: true,
+        })
+        .click();
+      await expect(devtools).toBeHidden();
+    }
+  }
 });
 
 test('Zerospin DevTools uses one routed React shell', async ({ page }) => {
@@ -297,34 +375,10 @@ test('Zerospin DevTools uses one routed React shell', async ({ page }) => {
     name: 'Profiler',
     exact: true,
   });
-  const sharedWorkerRoute = page.getByRole('link', {
-    name: 'Shared Worker',
-    exact: true,
-  });
-
   await expect(sessionsRoute).toHaveAttribute('aria-current', 'page', {
     timeout: 90_000,
   });
   await expect(profilerRoute).toBeVisible();
-  await expect(sharedWorkerRoute).toBeVisible();
-  await expect(
-    profilerRoute.evaluate(element =>
-      element.nextElementSibling?.textContent?.trim(),
-    ),
-  ).resolves.toBe('Shared Worker');
-  await sharedWorkerRoute.click();
-  const sharedWorkerRoot = page.locator('[data-testid^="shared-worker-root-"]');
-  await expect(sharedWorkerRoot).toHaveCount(1);
-  await expect(
-    sharedWorkerRoot.getByRole('region', {
-      name: 'Aggregate frontend replicas',
-    }),
-  ).toBeVisible();
-  await expect(
-    sharedWorkerRoot.getByRole('region', {
-      name: 'Service frontend replicas',
-    }),
-  ).toBeVisible();
 
   const toolbar = page.getByTestId('zerospin-devtools-toolbar');
   const nativeControls = page.getByTestId('zerospin-devtools-native-controls');

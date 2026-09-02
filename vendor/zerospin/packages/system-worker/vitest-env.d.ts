@@ -3,9 +3,11 @@ declare namespace Cloudflare {
     FIXTURE_REPO: DurableObjectNamespace<
       import('./src/TestWorker').FixtureRepo
     >;
-    BOUND_DO_REPO_FIXTURE: DurableObjectNamespace<
-      import('./src/TestWorker').BoundDORepoFixture
+    FIXED_DO_REPO_FIXTURE: DurableObjectNamespace<
+      import('./src/TestWorker').FixedDORepoFixture
     >;
-    ZEROSPIN_TEST_INTERRUPT_SYSTEM_WRITE_CAPTURE: boolean;
+    E_PLURIBUS_MACHINA_FIXTURE: DurableObjectNamespace<
+      import('./src/TestWorker').EPluribusMachinaFixture
+    >;
   }
 }

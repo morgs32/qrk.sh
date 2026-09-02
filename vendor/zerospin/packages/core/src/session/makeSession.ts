@@ -6,46 +6,47 @@ import {
   TelemetryCollector,
   type ITelemetryCollector,
 } from '@zerospin/logger';
+import type { CuidFactory } from '@zerospin/schema';
 import { eq, sql } from 'drizzle-orm';
-import { Effect, Layer, ManagedRuntime, Runtime, Schema } from 'effect';
+import { Effect, Layer, ManagedRuntime, Schema } from 'effect';
 import { createStore } from 'zustand/vanilla';
 
 import { applyAggregateFrontendMutationTx } from '../contracts/applyAggregateFrontendMutationTx.ts';
 import {
-  encodeAggregateFrontendMutation,
   encodeAppliedMutation,
   EncodedAppliedMutationSchema,
 } from '../contracts/encodeAppliedMutation.ts';
 import { encodeCommand } from '../contracts/encodeCommand.ts';
 import { makeMutations } from '../contracts/makeMutations.ts';
+import { makeSessionCommand } from '../contracts/makeSessionCommand.ts';
 import type {
-  IEncodedAggregateFrontendMutation,
+  IChainedCommand,
   IEncodedCommand,
   InferCommand,
-  IStagedSessionCommand,
+  ISessionCommand,
 } from '../contracts/types.ts';
 import { makeTx } from '../drizzle/makeTx.ts';
 import type {
   IAggregateFrontendController,
   InferFrontendModels,
 } from '../frontendController/types.ts';
+import { EncodedResourceSchema } from '../models/EncodedResourceSchema.ts';
 import type { InferPayloadInput } from '../models/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
 import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
-import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
 import { dutils } from '../utils/dutils.ts';
 import { encodeRpc } from '../utils/encodeRpc.ts';
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
-import { makeCursor } from '../utils/makeCursor.ts';
 import { NanoIdFactory } from '../utils/NanoIdFactory.ts';
 import { UlidMonotonicFactory } from '../utils/UlidMonotonicFactory.ts';
 
+import { SessionCommandSchema } from './AggregateFrontendCommandSchema.ts';
 import {
-  sessionFailedCommandDrizzleSchema,
+  sessionCommandJournalDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
-  sessionStagedCommandDrizzleSchema,
 } from './sessionCommandShape.ts';
+import { sessionMetadataDrizzleSchema } from './sessionRepoTables.ts';
 import type {
+  IFrontendDelta,
   IInitializedSessionState,
   ISession,
   ISessionId,
@@ -61,23 +62,23 @@ export function makeSession<
 >(props: {
   frontend: FRONTEND;
   sessionId: ISessionId;
-  stageAggregateFrontendCommand?: (props: {
-    sessionIndex: number;
-    command: IEncodedCommand<IStagedSessionCommand>;
-    mutations: readonly IEncodedAggregateFrontendMutation[];
+  executeAggregateFrontendCommand?: (props: {
+    command: IEncodedCommand<
+      IChainedCommand<ISessionCommand, IFrontendDelta> &
+        Readonly<{ sessionIndex: number; pushIndex: null }>
+    >;
   }) => Effect.Effect<Readonly<{ commandId: string }>, IAnyError>;
-  runtime?:
-    | ManagedRuntime.ManagedRuntime<CuidFactory | MonotonicFactory, IAnyError>
-    | Runtime.Runtime<CuidFactory | MonotonicFactory>;
+  runtime?: ManagedRuntime.ManagedRuntime<
+    CuidFactory | MonotonicFactory,
+    IAnyError
+  >;
 }): ISession<FRONTEND> {
   const {
+    executeAggregateFrontendCommand,
     frontend,
-    sessionId,
-    stageAggregateFrontendCommand,
     runtime = defaultSessionRuntime,
+    sessionId,
   } = props;
-  let nextSessionIndex = 1;
-
   const store = createStore<ISessionState<InferFrontendModels<FRONTEND>>>(
     (set, get) => {
       const telemetryCollector: ITelemetryCollector = {
@@ -137,17 +138,13 @@ export function makeSession<
         db: null,
         schema: null,
         models: null,
-        vfsName: null,
         isInitialized: false,
+        aggregateIndex: null,
         frontendIndex: null,
-        replicaIndex: null,
-        workerState: {
-          mode: 'shared-worker',
-          status: 'authenticating',
-          bootstrapSource: null,
-          frontendIndex: null,
-          replicaIndex: null,
-          databaseName: null,
+        pushIndex: null,
+        sessionStatus: 'bootstrapping',
+        backupState: {
+          status: 'pending',
           failure: null,
         },
         telemetry: emptyTelemetryBatch(),
@@ -166,12 +163,9 @@ export function makeSession<
       handler({ state });
       return () => {};
     }
-
     const unsubscribe = store.subscribe(state => {
       if (state.isInitialized && state.db !== null && state.schema !== null) {
         unsubscribe();
-        // Deliver outside the store's setState so a throwing handler cannot
-        // make bootstrap's initialized publication report failure.
         queueMicrotask(() => {
           handler({ state });
         });
@@ -180,29 +174,29 @@ export function makeSession<
     return unsubscribe;
   };
 
-  const stageCommandEffect = Effect.fn('stageCommand')(function* <
+  const executeCommandEffect = Effect.fn('executeCommand')(function* <
     CONTRACT_NAME extends keyof FRONTEND['contracts'] & string,
-  >(props: {
+  >(commandProps: {
     contractName: CONTRACT_NAME;
     payload: InferPayloadInput<FRONTEND['contracts'][CONTRACT_NAME]['payload']>;
   }): Effect.fn.Return<
     Readonly<{
-      stagedCommand: IStagedSessionCommand<
-        InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>
-      >;
+      command: IChainedCommand<
+        InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>,
+        IFrontendDelta
+      > &
+        Readonly<{ sessionIndex: number }>;
       encodedCommand: IEncodedCommand<
-        IStagedSessionCommand<
-          InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>
-        >
-      >;
-      encodedMutations: readonly IEncodedAggregateFrontendMutation[];
-      sessionIndex: number;
+        IChainedCommand<
+          InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>,
+          IFrontendDelta
+        > &
+          Readonly<{ sessionIndex: number; pushIndex: null }>
+      > | null;
     }>,
     IAnyError,
     CuidFactory | MonotonicFactory
   > {
-    const { contractName, payload } = props;
-
     const state = store.getState();
     if (!state.isInitialized || state.db === null || state.schema === null) {
       return yield* new ZerospinError({
@@ -210,276 +204,357 @@ export function makeSession<
         message: 'Session store is not initialized',
       });
     }
-    if (state.workerState.status === 'repairing') {
+    if (state.sessionStatus !== 'current') {
       return yield* new ZerospinError({
-        code: 'aggregate-frontend-repairing',
-        message:
-          'Aggregate command staging is suspended while authoritative frontend state is being repaired',
+        code: 'aggregate-frontend-session-not-current',
+        message: `Aggregate command execution requires a current session; received ${state.sessionStatus}`,
       });
     }
-    if (state.workerState.status === 'failed') {
-      if (state.workerState.failure !== null) {
-        return yield* new ZerospinError(state.workerState.failure);
-      }
-      return yield* new ZerospinError({
-        code: 'aggregate-frontend-session-repair-failed',
-        message:
-          'Aggregate command staging is suspended after frontend session repair failed',
-      });
-    }
-    if (state.workerState.status === 'released') {
-      return yield* new ZerospinError({
-        code: 'session-store-not-initialized',
-        message: 'Session store has been released',
-      });
-    }
-    const { aggregateId, userId, db } = state;
 
-    const contract = yield* getByKeyOrThrow({
+    const contract = yield* getByKeyOrThrow<
+      FRONTEND['contracts'],
+      CONTRACT_NAME
+    >({
       record: frontend.contracts,
-      key: contractName,
+      key: commandProps.contractName,
       recordKind: 'contracts',
     });
-    const unstagedCommand = yield* frontend.makeUnstagedCommand({
-      aggregateId,
-      userId,
-      commandName: contractName,
-      payload,
+    const command = yield* makeSessionCommand({
+      aggregateId: state.aggregateId,
+      aggregateName: frontend.aggregateName,
+      contract,
+      frontendName: frontend.frontendName,
+      payload: commandProps.payload,
       sessionId,
+      systemName: frontend.systemName,
+      userId: state.userId,
     });
+    const chainedAt = yield* dutils.date();
+    const encodedCommand = yield* encodeCommand({ contract, command });
 
-    const stagedCursor = yield* makeCursor({
-      abbreviation: coreAbbreviations.stagedCursor,
-    });
-    const now = yield* dutils.date();
-
-    const stagedCommand: IStagedSessionCommand<
-      InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>
-    > = {
-      ...unstagedCommand,
-      stagedCursor,
-      status: 'staged',
-      stagedAt: now,
-    };
-
-    const { mutations } = yield* makeMutations({
+    const madeMutations = yield* makeMutations({
       contract,
       models: frontend.models,
       owner: { kind: 'aggregate' },
-      command: stagedCommand,
-    });
+      command,
+    }).pipe(
+      Effect.match({
+        onFailure: failure => ({ failure }),
+        onSuccess: success => ({ success }),
+      }),
+    );
 
-    const encodedCommand = yield* encodeCommand({
-      contract,
-      command: stagedCommand,
-    });
-    const encodedMutations: IEncodedAggregateFrontendMutation[] = [];
-    for (const [mutationIndex, mutation] of mutations.entries()) {
-      encodedMutations.push(
-        yield* encodeAggregateFrontendMutation({
-          commandId: stagedCommand.id,
+    return yield* makeTx({
+      db: state.db,
+      program: Effect.fn('executeCommand.transaction')(function* ({ tx }) {
+        const metadata = tx
+          .select()
+          .from(sessionMetadataDrizzleSchema)
+          .where(eq(sessionMetadataDrizzleSchema.sessionId, sessionId))
+          .get();
+        const sessionIndex = metadata?.nextSessionIndex ?? 1;
+        const nextSessionIndex = sessionIndex + 1;
+        if (
+          !Number.isSafeInteger(sessionIndex) ||
+          sessionIndex < 1 ||
+          !Number.isSafeInteger(nextSessionIndex)
+        ) {
+          return yield* new ZerospinError({
+            code: 'session-index-invalid',
+            message: 'The durable next session index is invalid',
+            extra: { sessionIndex },
+          });
+        }
+
+        if ('failure' in madeMutations) {
+          const failure = yield* Schema.encodeUnknownEffect(
+            ZerospinError.schema,
+          )(madeMutations.failure).pipe(
+            mapParseError({
+              code: 'session-command-failure-encode-failed',
+              prefix: 'Failed to encode locally terminal command failure',
+            }),
+          );
+          const delta = {
+            inserted: [],
+            updated: [],
+            deleted: [],
+            mutations: [],
+          } satisfies IFrontendDelta;
+          const encodedOccurrence = {
+            ...encodedCommand,
+            sessionIndex,
+            chainedAt,
+            delta,
+            failedAt: chainedAt,
+            failure,
+          };
+          const commandBytes = yield* Schema.encodeEffect(
+            Schema.fromJsonString(SessionCommandSchema),
+          )(encodedOccurrence).pipe(
+            mapParseError({
+              code: 'session-command-encode-failed',
+              prefix: 'Failed to encode locally terminal command',
+            }),
+          );
+
+          tx.insert(sessionCommandJournalDrizzleSchema)
+            .values({
+              ...encodedCommand,
+              sessionIndex,
+              command: commandBytes,
+            })
+            .run();
+          tx.insert(sessionMetadataDrizzleSchema)
+            .values({
+              sessionId,
+              nextSessionIndex,
+              aggregateIndex: state.aggregateIndex,
+              frontendIndex: state.frontendIndex,
+              pushIndex: state.pushIndex,
+              systemVersion: state.systemVersion,
+            })
+            .onConflictDoUpdate({
+              target: sessionMetadataDrizzleSchema.sessionId,
+              set: { nextSessionIndex },
+            })
+            .run();
+
+          return {
+            command: {
+              ...command,
+              sessionIndex,
+              chainedAt,
+              delta,
+              failedAt: chainedAt,
+              failure,
+            },
+            encodedCommand: encodedOccurrence,
+          };
+        }
+
+        const encodedMutations = [];
+        const inserted = new Map<
+          string,
+          (typeof madeMutations.success.mutations)[number]['model']
+        >();
+        const updated = new Map<
+          string,
+          (typeof madeMutations.success.mutations)[number]['model']
+        >();
+        const deleted = new Map<
+          string,
+          Readonly<{ id: string; modelName: string }>
+        >();
+
+        for (const [
           mutationIndex,
           mutation,
-        }),
-      );
-    }
-
-    const sessionIndex = nextSessionIndex;
-
-    yield* makeTx({
-      db,
-      program: Effect.fn('transaction')(function* ({ tx }) {
-        tx.insert(sessionStagedCommandDrizzleSchema)
-          .values(encodedCommand)
-          .run();
-
-        const encodedAppliedMutations = [];
-        for (const [mutationIndex, mutation] of mutations.entries()) {
+        ] of madeMutations.success.mutations.entries()) {
           const appliedMutation = yield* applyAggregateFrontendMutationTx({
             tx,
             mutation,
-            commandId: stagedCommand.id,
+            commandId: command.id,
             mutationIndex,
-            appliedAt: now,
+            appliedAt: chainedAt,
           });
-          encodedAppliedMutations.push(
-            yield* encodeAppliedMutation({ mutation: appliedMutation }),
+          const encodedMutation = yield* encodeAppliedMutation({
+            mutation: appliedMutation,
+          });
+          encodedMutations.push(encodedMutation);
+          const key = `${mutation.model.modelName}\u0000${mutation.resourceId}`;
+          if (mutation.operationName === 'delete') {
+            if (inserted.delete(key)) {
+              updated.delete(key);
+              deleted.delete(key);
+            } else {
+              updated.delete(key);
+              deleted.set(key, {
+                id: mutation.resourceId,
+                modelName: mutation.model.modelName,
+              });
+            }
+          } else if (
+            mutation.operationName === 'create' ||
+            (mutation.operationName === 'replicateResource' &&
+              appliedMutation.inverseOperation === null)
+          ) {
+            inserted.set(key, mutation.model);
+            updated.delete(key);
+            deleted.delete(key);
+          } else if (!inserted.has(key)) {
+            updated.set(key, mutation.model);
+            deleted.delete(key);
+          }
+        }
+
+        const insertedResources = [];
+        for (const [key, model] of inserted) {
+          const id = key.slice(key.indexOf('\u0000') + 1);
+          const row = tx
+            .select()
+            .from(model.drizzleSchema)
+            .where(eq(model.drizzleSchema.id, id))
+            .get();
+          if (row === undefined) continue;
+          insertedResources.push(
+            yield* Schema.decodeUnknownEffect(
+              Schema.toType(EncodedResourceSchema),
+            )(row).pipe(
+              mapParseError({
+                code: 'session-resource-encode-failed',
+                prefix: `Failed to encode session resource ${model.modelName}.${id}`,
+              }),
+            ),
+          );
+        }
+        const updatedResources = [];
+        for (const [key, model] of updated) {
+          const id = key.slice(key.indexOf('\u0000') + 1);
+          const row = tx
+            .select()
+            .from(model.drizzleSchema)
+            .where(eq(model.drizzleSchema.id, id))
+            .get();
+          if (row === undefined) continue;
+          updatedResources.push(
+            yield* Schema.decodeUnknownEffect(
+              Schema.toType(EncodedResourceSchema),
+            )(row).pipe(
+              mapParseError({
+                code: 'session-resource-encode-failed',
+                prefix: `Failed to encode session resource ${model.modelName}.${id}`,
+              }),
+            ),
           );
         }
 
-        const optimisticMutations = yield* Schema.encode(
-          Schema.parseJson(Schema.Array(EncodedAppliedMutationSchema)),
-        )(encodedAppliedMutations).pipe(
+        const delta = {
+          inserted: insertedResources,
+          updated: updatedResources,
+          deleted: [...deleted.values()],
+          mutations: encodedMutations,
+        } satisfies IFrontendDelta;
+        const encodedOccurrence = {
+          ...encodedCommand,
+          sessionIndex,
+          chainedAt,
+          delta,
+          failedAt: null,
+          failure: null,
+        };
+        const commandBytes = yield* Schema.encodeEffect(
+          Schema.fromJsonString(SessionCommandSchema),
+        )(encodedOccurrence).pipe(
+          mapParseError({
+            code: 'session-command-encode-failed',
+            prefix: 'Failed to encode locally terminal command',
+          }),
+        );
+
+        tx.insert(sessionCommandJournalDrizzleSchema)
+          .values({
+            ...encodedCommand,
+            sessionIndex,
+            command: commandBytes,
+          })
+          .run();
+        const encodedMutationJson = yield* Schema.encodeEffect(
+          Schema.fromJsonString(Schema.Array(EncodedAppliedMutationSchema)),
+        )(encodedMutations).pipe(
           mapParseError({
             code: 'session-optimistic-mutations-encode-failed',
             prefix: 'Failed to encode optimistic session mutations',
           }),
         );
-
         tx.insert(sessionOptimisticAppliedMutationDrizzleSchema)
-          .values({
-            commandId: stagedCommand.id,
-            mutations: optimisticMutations,
-          })
+          .values({ commandId: command.id, mutations: encodedMutationJson })
           .onConflictDoUpdate({
             target: sessionOptimisticAppliedMutationDrizzleSchema.commandId,
-            set: {
-              mutations: sql`excluded.mutations`,
-            },
+            set: { mutations: sql`excluded.mutations` },
           })
           .run();
+        tx.insert(sessionMetadataDrizzleSchema)
+          .values({
+            sessionId,
+            nextSessionIndex,
+            aggregateIndex: state.aggregateIndex,
+            frontendIndex: state.frontendIndex,
+            pushIndex: state.pushIndex,
+            systemVersion: state.systemVersion,
+          })
+          .onConflictDoUpdate({
+            target: sessionMetadataDrizzleSchema.sessionId,
+            set: { nextSessionIndex },
+          })
+          .run();
+
+        return {
+          command: {
+            ...command,
+            sessionIndex,
+            chainedAt,
+            delta,
+            failedAt: null,
+            failure: null,
+          },
+          encodedCommand: encodedOccurrence,
+        };
       }),
     });
-    nextSessionIndex += 1;
-
-    return { stagedCommand, encodedCommand, encodedMutations, sessionIndex };
   });
 
   const session: ISession<FRONTEND> = {
+    executeCommand(commandProps) {
+      let committedCommand:
+        | IEncodedCommand<
+            IChainedCommand<ISessionCommand, IFrontendDelta> &
+              Readonly<{ sessionIndex: number; pushIndex: null }>
+          >
+        | undefined;
+      const telemetryCollector = store.getState().telemetryCollector;
+      const result = runtime.runSync(
+        executeCommandEffect(commandProps).pipe(
+          Effect.map(execution => {
+            if (execution.encodedCommand !== null) {
+              committedCommand = execution.encodedCommand;
+            }
+            return execution.command;
+          }),
+          Effect.provideService(TelemetryCollector, telemetryCollector),
+          Effect.withTracer(makeTelemetryTracer(telemetryCollector)),
+          encodeRpc,
+        ),
+      );
+
+      if (
+        executeAggregateFrontendCommand !== undefined &&
+        committedCommand !== undefined
+      ) {
+        const command = committedCommand;
+        runtime.runFork(
+          executeAggregateFrontendCommand({ command }).pipe(
+            Effect.flatMap(receipt =>
+              receipt.commandId === command.id
+                ? Effect.void
+                : Effect.fail(
+                    new ZerospinError({
+                      code: 'aggregate-frontend-command-receipt-invalid',
+                      message:
+                        'Frontend push receipt does not match the committed command',
+                    }),
+                  ),
+            ),
+            Effect.catch(() => Effect.void),
+            Effect.provide(makeTelemetryLayer(telemetryCollector)),
+          ),
+        );
+      }
+      return result;
+    },
     frontend,
     onInitialized,
     sessionId,
-    stageCommand(props) {
-      let committedHandoff:
-        | Readonly<{
-            command: IEncodedCommand<IStagedSessionCommand>;
-            mutations: readonly IEncodedAggregateFrontendMutation[];
-            sessionIndex: number;
-          }>
-        | undefined;
-      const telemetryCollector = store.getState().telemetryCollector;
-      const effect = stageCommandEffect(props).pipe(
-        Effect.map(result => {
-          committedHandoff = {
-            command: result.encodedCommand,
-            mutations: result.encodedMutations,
-            sessionIndex: result.sessionIndex,
-          };
-          return result.stagedCommand;
-        }),
-        Effect.provideService(TelemetryCollector, telemetryCollector),
-        Effect.withTracer(makeTelemetryTracer(telemetryCollector)),
-        encodeRpc,
-      );
-      const result =
-        'context' in runtime
-          ? Runtime.runSync(runtime)(effect)
-          : runtime.runSync(effect);
-
-      if (
-        stageAggregateFrontendCommand !== undefined &&
-        committedHandoff !== undefined
-      ) {
-        const handoff = committedHandoff;
-        const program = stageAggregateFrontendCommand(handoff).pipe(
-          Effect.flatMap(receipt =>
-            receipt.commandId === handoff.command.id
-              ? Effect.void
-              : Effect.fail(
-                  new ZerospinError({
-                    code: 'shared-worker-command-receipt-invalid',
-                    message:
-                      'SharedWorker durable command receipt does not match the committed command',
-                  }),
-                ),
-          ),
-          Effect.catchAll(error =>
-            Effect.gen(function* () {
-              const state = store.getState();
-              if (
-                !state.isInitialized ||
-                state.db === null ||
-                state.workerState.status === 'released'
-              ) {
-                return;
-              }
-              const failedAt = yield* dutils.date();
-              yield* makeTx({
-                db: state.db,
-                program: Effect.fn('stageCommand.handoffFailure')(function* ({
-                  tx,
-                }) {
-                  const command = tx
-                    .select()
-                    .from(sessionStagedCommandDrizzleSchema)
-                    .where(
-                      eq(
-                        sessionStagedCommandDrizzleSchema.id,
-                        handoff.command.id,
-                      ),
-                    )
-                    .get();
-                  if (command === undefined) return;
-                  tx.delete(sessionStagedCommandDrizzleSchema)
-                    .where(
-                      eq(
-                        sessionStagedCommandDrizzleSchema.id,
-                        handoff.command.id,
-                      ),
-                    )
-                    .run();
-                  tx.insert(sessionFailedCommandDrizzleSchema)
-                    .values({
-                      ...command,
-                      pushedAt: null,
-                      aggregateCursor: null,
-                      aggregateIndex: null,
-                      failedAt,
-                      failure: ZerospinError.stringify(error),
-                      status: 'failed',
-                    })
-                    .run();
-                }),
-              });
-              const current = store.getState();
-              if (
-                current.isInitialized &&
-                current.workerState.status !== 'released'
-              ) {
-                store.setState({
-                  workerState: {
-                    ...current.workerState,
-                    status: 'failed',
-                    failure: Schema.encodeUnknownSync(ZerospinError.schema)(
-                      error,
-                    ),
-                  },
-                });
-              }
-            }),
-          ),
-          Effect.catchAll(error =>
-            Effect.sync(() => {
-              const current = store.getState();
-              if (
-                current.isInitialized &&
-                current.workerState.status !== 'released'
-              ) {
-                store.setState({
-                  workerState: {
-                    ...current.workerState,
-                    status: 'failed',
-                    failure: Schema.encodeUnknownSync(ZerospinError.schema)(
-                      error,
-                    ),
-                  },
-                });
-              }
-            }),
-          ),
-          Effect.provide(
-            makeTelemetryLayer(store.getState().telemetryCollector),
-          ),
-        );
-        if ('context' in runtime) {
-          Runtime.runFork(runtime)(program);
-        } else {
-          runtime.runFork(program);
-        }
-      }
-
-      return result;
-    },
     store,
   };
 

@@ -1,19 +1,21 @@
 import type { IAnyError } from '@zerospin/error';
-import type { Effect, Schema } from 'effect';
+import type { Effect, JsonSchema, Schema } from 'effect';
 
 export type IAuthenticationSignature<
   VERSION extends string = string,
-  SIGNATURE_SCHEMA extends Schema.Schema.AnyNoContext =
-    Schema.Schema.AnyNoContext,
+  SIGNATURE_SCHEMA extends Schema.Codec<unknown, unknown> = Schema.Codec<
+    unknown,
+    unknown
+  >,
   HISTORICAL_DEFINITIONS extends readonly Readonly<{
     version: string;
-    schema: Schema.Schema.AnyNoContext;
+    schema: Schema.Codec<unknown, unknown>;
     adaptSignature: (props: {
       signature: never;
     }) => Effect.Effect<unknown, IAnyError>;
   }>[] = readonly Readonly<{
     version: string;
-    schema: Schema.Schema.AnyNoContext;
+    schema: Schema.Codec<unknown, unknown>;
     adaptSignature: (props: {
       signature: never;
     }) => Effect.Effect<unknown, IAnyError>;
@@ -24,10 +26,10 @@ export type IAuthenticationSignature<
   historicalDefinitions: HISTORICAL_DEFINITIONS;
   spec: {
     version: VERSION;
-    schemaJsonSchema: unknown;
+    schemaJsonSchema: JsonSchema.Document<'draft-2020-12'>;
     historicalDefinitions: readonly {
       version: string;
-      schemaJsonSchema: unknown;
+      schemaJsonSchema: JsonSchema.Document<'draft-2020-12'>;
     }[];
   };
   decodeAndAdaptSignature: (props: {

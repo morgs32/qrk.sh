@@ -1,6 +1,5 @@
 import { it } from '@effect/vitest';
 import { Effect } from 'effect';
-import type { YieldWrap } from 'effect/Utils';
 
 import { makeProfilerLayer, Profiler } from './makeProfilerLayer.ts';
 import { profile } from './profile.ts';
@@ -10,7 +9,7 @@ describe('profile', () => {
   it.layer(makeProfilerLayer())(it => {
     it.effect('should match procedure', () => {
       const fn = profile('helloWorld')(function* (): Generator<
-        YieldWrap<Effect.Effect<void>>,
+        Effect.Effect<void>,
         string,
         never
       > {
@@ -40,27 +39,27 @@ describe('profile', () => {
     it.effect('should match nested procedure', () => {
       const nestedFn1 = profile('nestedFn1')(function* (
         args: string,
-      ): Generator<YieldWrap<Effect.Effect<void>>, string, never> {
+      ): Generator<Effect.Effect<void>, string, never> {
         yield* Effect.void;
         return `Hello, nestedFn1! ${args}`;
       });
 
       const nestedFn2 = profile('nestedFn2')(function* (
         args: string,
-      ): Generator<YieldWrap<Effect.Effect<void>>, string, never> {
+      ): Generator<Effect.Effect<void>, string, never> {
         yield* Effect.void;
         return `Hello, nestedFn2! ${args}`;
       });
 
       const nestedFn3 = profile('nestedFn3')(function* (
         args: string,
-      ): Generator<YieldWrap<Effect.Effect<void>>, string, never> {
+      ): Generator<Effect.Effect<void>, string, never> {
         yield* Effect.void;
         return `Hello, nestedFn3! ${args}`;
       });
 
       const fn = profile('fn')(function* (): Generator<
-        YieldWrap<Effect.Effect<any, never, Profiler>>,
+        Effect.Effect<any, never, Profiler>,
         string,
         never
       > {

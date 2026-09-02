@@ -1,46 +1,40 @@
-import { Effect } from 'effect';
-import { Schema } from 'effect/Schema';
+import { Effect, Schema } from 'effect';
 
 /**
- * Trust-boundary validation lives in *Api — not SystemWorker or *Repo DOs.
+ * Validate in *Api, then invoke statically imported System Worker Effects directly.
  *
- * @bad Validate the same wire props again in SystemWorker after
- * AuthenticatedApi.getAggregateFrontendApi decoded them.
- * @bad Run `Schema.decodeUnknown` on an aggregate frontend lock inside a repo
- * DO when the AuthenticatedApi capability factory already validated it.
+ * @bad Route same-isolate work through an exported SystemWorker RPC target or
+ * `ctx.exports` resolver after GatewayApi decoded the request.
+ * @bad Run `Schema.decodeUnknownEffect` on an aggregate frontend lock inside a repo
+ * DO when the GatewayApi capability factory already validated it.
  */
 export const getAggregateFrontendApi = Effect.fn(
-  'AuthenticatedApi.getAggregateFrontendApi',
+  'GatewayApi.getAggregateFrontendApi',
 )(function* (props: unknown) {
-  const validated = yield* Schema.validate(AggregateFrontendApiPropsSchema)(
-    props,
-    { onExcessProperty: 'error' },
-  ).pipe(mapParseError({ code: 'aggregate-frontend-api-props-invalid' }));
+  const validated = yield* Schema.decodeUnknownEffect(
+    AggregateFrontendApiPropsSchema,
+  )(props, { onExcessProperty: 'error' }).pipe(
+    mapParseError({ code: 'aggregate-frontend-api-props-invalid' }),
+  );
+  const authentication = yield* authenticate(validated.signature);
+  const authorization = yield* authorizeAggregateFrontend({
+    ...validated,
+    userId: authentication.userId,
+  });
 
-  return aggregateFrontendApiFactory(validated);
+  return aggregateFrontendApiFactory(authorization);
 });
-
-export class SystemWorker {
-  authorizeAggregateFrontend(props: {
-    aggregateId: string;
-    aggregateName: string;
-    frontendName: string;
-    aggregateFrontendLock: unknown;
-    userId: string;
-  }) {
-    return authorizeAggregateFrontend(props);
-  }
-}
 
 declare const AggregateFrontendApiPropsSchema: unknown;
 declare function mapParseError(props: {
   code: string;
 }): (effect: unknown) => unknown;
 declare function aggregateFrontendApiFactory(props: unknown): unknown;
-declare function authorizeAggregateFrontend(props: unknown): Promise<{
-  actorRef: {
-    aggregateId: string;
-    aggregateName: string;
-    userId: string;
-  };
+declare function authenticate(signature: unknown): Effect.Effect<{
+  userId: string;
+}>;
+declare function authorizeAggregateFrontend(props: unknown): Effect.Effect<{
+  aggregateId: string;
+  aggregateName: string;
+  userId: string;
 }>;

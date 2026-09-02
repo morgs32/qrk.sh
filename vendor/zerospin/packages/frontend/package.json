@@ -10,20 +10,15 @@
     "src"
   ],
   "exports": {
-    "./authenticate": {
-      "types": "./dist/authenticate.d.ts",
-      "import": "./dist/authenticate.js",
-      "default": "./dist/authenticate.js"
-    },
     "./fetchAggregateFrontendState": {
       "types": "./dist/fetchAggregateFrontendState.d.ts",
       "import": "./dist/fetchAggregateFrontendState.js",
       "default": "./dist/fetchAggregateFrontendState.js"
     },
-    "./pushAggregateFrontendCommands": {
-      "types": "./dist/pushAggregateFrontendCommands.d.ts",
-      "import": "./dist/pushAggregateFrontendCommands.js",
-      "default": "./dist/pushAggregateFrontendCommands.js"
+    "./pushAggregateFrontendCommand": {
+      "types": "./dist/pushAggregateFrontendCommand.d.ts",
+      "import": "./dist/pushAggregateFrontendCommand.js",
+      "default": "./dist/pushAggregateFrontendCommand.js"
     },
     "./createAggregateFrontendWebSocketTicket": {
       "types": "./dist/createAggregateFrontendWebSocketTicket.d.ts",
@@ -39,6 +34,31 @@
       "types": "./dist/createServiceFrontendWebSocketTicket.d.ts",
       "import": "./dist/createServiceFrontendWebSocketTicket.js",
       "default": "./dist/createServiceFrontendWebSocketTicket.js"
+    },
+    "./makeAggregateFrontendBackupKey": {
+      "types": "./dist/makeAggregateFrontendBackupKey.d.ts",
+      "import": "./dist/makeAggregateFrontendBackupKey.js",
+      "default": "./dist/makeAggregateFrontendBackupKey.js"
+    },
+    "./makeServiceFrontendBackupKey": {
+      "types": "./dist/makeServiceFrontendBackupKey.d.ts",
+      "import": "./dist/makeServiceFrontendBackupKey.js",
+      "default": "./dist/makeServiceFrontendBackupKey.js"
+    },
+    "./frontendPushRetrySchedule": {
+      "types": "./dist/frontendPushRetrySchedule.d.ts",
+      "import": "./dist/frontendPushRetrySchedule.js",
+      "default": "./dist/frontendPushRetrySchedule.js"
+    },
+    "./bootstrapAggregateFrontendSession": {
+      "types": "./dist/bootstrapAggregateFrontendSession.d.ts",
+      "import": "./dist/bootstrapAggregateFrontendSession.js",
+      "default": "./dist/bootstrapAggregateFrontendSession.js"
+    },
+    "./bootstrapServiceFrontendSession": {
+      "types": "./dist/bootstrapServiceFrontendSession.d.ts",
+      "import": "./dist/bootstrapServiceFrontendSession.js",
+      "default": "./dist/bootstrapServiceFrontendSession.js"
     }
   },
   "scripts": {
@@ -54,20 +74,22 @@
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
     "@zerospin/logger": "workspace:*",
-    "capnweb": "^0.7.0",
-    "drizzle-orm": "1.0.0-beta.17-67b1795",
-    "effect": "^3.21.4",
+    "@zerospin/opfs-backup-worker": "workspace:*",
+    "@zerospin/schema": "workspace:*",
+    "capnweb": "^0.12.0",
+    "drizzle-orm": "1.0.0-rc.4",
+    "effect": "rc",
     "system-worker": "workspace:*"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.85.1",
-    "@effect/vitest": "^0.29.0",
+    "@effect/language-service": "^0.87.2",
+    "@effect/vitest": "rc",
     "@types/node": "^25.6.2",
     "rimraf": "^6.1.3",
     "vite": "^8.0.11",
     "vitest": "^4.1.5"
   },
   "peerDependencies": {
-    "effect": "^3.17.11"
+    "effect": "^4.0.0-rc.111"
   }
 }

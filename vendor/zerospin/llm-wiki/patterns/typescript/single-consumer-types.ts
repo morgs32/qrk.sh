@@ -12,10 +12,10 @@ type ContractMutationRow = {
   mutation: MutationShape;
 };
 
-export type IContractMutationCursor = string;
+export type IContractMutationIndex = number;
 
 export function normalizeContractMutations(props: {
-  cursor: IContractMutationCursor;
+  mutationIndex: IContractMutationIndex;
   rows: readonly ContractMutationRow[];
 }) {
   const rowsById = new Map<string, ContractMutationRow>();
@@ -27,7 +27,7 @@ export function normalizeContractMutations(props: {
   }
 
   return {
-    cursor: props.cursor,
+    mutationIndex: props.mutationIndex,
     rows: [...rowsById.values()],
   };
 }

@@ -1,17 +1,17 @@
-import { Effect } from 'effect';
-import { Schema } from 'effect/Schema';
+import { Effect, Schema } from 'effect';
 
 /**
  * Validate unknown inputs only at trust boundaries — not typed literals you just built.
  *
- * @bad Run `Schema.validate` on a row assembled from typed props right before Drizzle insert.
+ * @bad Run `Schema.decodeUnknownEffect` on a row assembled from typed props right before Drizzle insert.
  */
 export const handleRpcInput = Effect.fn('handleRpcInput')(function* (props: {
   rawFromRpc: unknown;
 }) {
-  const validated = yield* Schema.validate(SomeInputSchema)(props.rawFromRpc, {
-    onExcessProperty: 'ignore',
-  }).pipe(mapRpcParseError());
+  const validated = yield* Schema.decodeUnknownEffect(SomeInputSchema)(
+    props.rawFromRpc,
+    { onExcessProperty: 'ignore' },
+  ).pipe(mapRpcParseError());
 
   return validated;
 });

@@ -6,7 +6,7 @@ import {
   type ITelemetryBatch,
 } from '@zerospin/logger';
 import { DurableObject, env } from 'cloudflare:workers';
-import { Effect, Either, Schema, Tracer } from 'effect';
+import { Effect, Result, Schema, Tracer } from 'effect';
 
 // AccountRepo owns publish retry; this Durable Object is the publish target and
 // owns the real deferred-delivery alarm turns. The platform discards alarm
@@ -80,7 +80,6 @@ export class AccountBlockRepo extends DurableObject {
           const span = yield* Effect.currentSpan.pipe(Effect.orDie);
           span.addLinks([
             {
-              _tag: 'SpanLink',
               span: Tracer.externalSpan({
                 traceId: prior.traceId,
                 spanId: prior.parentSpanId,
@@ -96,9 +95,9 @@ export class AccountBlockRepo extends DurableObject {
           yield* Effect.gen(function* () {
             const delivery = yield* wrappedActorRepo
               .handleAccountBlocks()
-              .pipe(Effect.either);
+              .pipe(Effect.result);
 
-            if (Either.isLeft(delivery)) {
+            if (Result.isFailure(delivery)) {
               const processSubscriberSpan = yield* Effect.currentSpan.pipe(
                 Effect.orDie,
               );
@@ -136,7 +135,6 @@ export class AccountBlockRepo extends DurableObject {
         const span = yield* Effect.currentSpan.pipe(Effect.orDie);
         span.addLinks([
           {
-            _tag: 'SpanLink',
             span: Tracer.externalSpan({
               traceId: prior.traceId,
               spanId: prior.parentSpanId,
@@ -153,9 +151,9 @@ export class AccountBlockRepo extends DurableObject {
           yield* Effect.gen(function* () {
             const delivery = yield* wrappedActorRepo
               .handleAccountBlocks()
-              .pipe(Effect.either);
-            if (Either.isLeft(delivery)) {
-              return yield* Effect.fail(delivery.left);
+              .pipe(Effect.result);
+            if (Result.isFailure(delivery)) {
+              return yield* Effect.fail(delivery.failure);
             }
           }).pipe(Effect.withSpan('AccountBlockRepo.processSubscriber'));
         }).pipe(Effect.withSpan('AccountBlockRepo.drainActorOutbox'));

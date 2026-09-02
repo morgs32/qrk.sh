@@ -8,7 +8,7 @@ export const makeServiceFrontendLockKey = Effect.fn(
 )(function* (
   lock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>,
 ): Effect.fn.Return<string, IAnyError> {
-  const encoded = yield* Schema.encode(ServiceFrontendLockSchema)(lock, {
+  const encoded = yield* Schema.encodeEffect(ServiceFrontendLockSchema)(lock, {
     onExcessProperty: 'error',
   }).pipe(
     mapParseError({

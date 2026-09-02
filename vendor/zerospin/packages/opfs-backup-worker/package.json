@@ -1,0 +1,47 @@
+{
+  "name": "@zerospin/opfs-backup-worker",
+  "version": "2.0.1",
+  "private": false,
+  "description": "Zerospin OPFS SQLite backup SharedWorker",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lib": "pnpm run clean && tsc -b tsconfig.json && tsup && node -e \"const fs=require('node:fs'); const path=require('node:path'); const syncJs=require.resolve('wa-sqlite/dist/wa-sqlite.mjs'); fs.copyFileSync(path.join(path.dirname(syncJs), 'wa-sqlite.wasm'), 'dist/wa-sqlite.wasm');\"",
+    "ts": "tsc -p tsconfig.etc.json --noEmit",
+    "watch": "tsc -b tsconfig.json --watch",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
+    "lint": "oxlint . --format stylish"
+  },
+  "dependencies": {
+    "@zerospin/core": "workspace:*",
+    "@zerospin/error": "workspace:*",
+    "capnweb": "^0.12.0",
+    "effect": "4.0.0-rc.111",
+    "wa-sqlite": "github:rhashimoto/wa-sqlite#07ad48cf2f682d279f9cd69818cc1d39b2ccda86"
+  },
+  "devDependencies": {
+    "@effect/language-service": "^0.87.2",
+    "@effect/vitest": "4.0.0-rc.111",
+    "@types/node": "^25.6.2",
+    "rimraf": "^6.1.3",
+    "tsup": "^8.5.1",
+    "vite": "^8.0.11",
+    "vitest": "^4.1.5"
+  },
+  "peerDependencies": {
+    "effect": "^4.0.0-rc.111"
+  }
+}

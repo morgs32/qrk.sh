@@ -1,12 +1,10 @@
+import { makeEffectSchema, PrimitiveKind, primitives } from '@zerospin/schema';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
 
 import { makeModel } from './makeModel.ts';
-import { PrimitiveKind } from './primitiveKind.ts';
-import { makeEffectSchema } from './primitiveMaps.ts';
-import { primitives } from './primitives.ts';
 import type { IModel, InferResource } from './types.ts';
 
 const namePropertySchema = primitives.text();
@@ -96,18 +94,15 @@ describe('makeModel', () => {
     expect(User.attributes).toEqual({
       name: namePropertySchema,
     });
-    expect(Object.keys(User.metadata)).toEqual([
+    expect(Object.keys(User.propertiesShape)).toEqual([
       'id',
       'modelName',
       'createdAt',
       'updatedAt',
       'version',
+      'name',
     ]);
-    expect(User.metadata).not.toHaveProperty('deletedAt');
-    expect(User.propertiesShape).toEqual({
-      ...User.metadata,
-      ...User.attributes,
-    });
+    expect(User.propertiesShape).not.toHaveProperty('deletedAt');
     expect(User.version).toBe('1.0.0');
     expect(makeEffectSchema(User.attributes)).toBeDefined();
     expect(User.drizzleSchema).toBeDefined();
@@ -115,7 +110,11 @@ describe('makeModel', () => {
     expect(User.spec.abbreviation).toBe('usr');
     expect(User.spec.version).toBe('1.0.0');
     expect(User.spec.attributes).toEqual(['name']);
-    expect(User.spec.propertiesJsonSchema).toMatchObject({ type: 'object' });
+    expect(User.spec.propertiesJsonSchema).toMatchObject({
+      dialect: 'draft-2020-12',
+      definitions: {},
+      schema: { type: 'object' },
+    });
     expect(() => structuredClone(User.spec)).not.toThrow();
   });
 
@@ -167,6 +166,9 @@ describe('makeModel', () => {
         attributes: {
           title: expect.objectContaining({ kind: PrimitiveKind.Text }),
         },
+        propertiesShape: expect.objectContaining({
+          title: expect.objectContaining({ kind: PrimitiveKind.Text }),
+        }),
         indexes: [],
         version: '1.0.0',
         adaptResource: expect.any(Function),
@@ -177,6 +179,9 @@ describe('makeModel', () => {
         attributes: {
           description: expect.objectContaining({ kind: PrimitiveKind.Text }),
         },
+        propertiesShape: expect.objectContaining({
+          description: expect.objectContaining({ kind: PrimitiveKind.Text }),
+        }),
         indexes: [],
         version: '0.5.0',
         adaptResource: expect.any(Function),
@@ -185,8 +190,8 @@ describe('makeModel', () => {
   });
 
   it('validates the complete current resource and directly encodes current or historical resources', () => {
-    const createdAt = new Date('2026-08-05T12:00:00.000Z');
-    const updatedAt = new Date('2026-08-05T13:00:00.000Z');
+    const createdAt = new Date('2026-08-05T12:00:00.123Z');
+    const updatedAt = new Date('2026-08-05T13:00:00.456Z');
     const currentResource = {
       id: 'todo_current',
       modelName: 'todo',
@@ -195,7 +200,24 @@ describe('makeModel', () => {
       version: '2.0.0',
       title: 'Current todo',
       completed: true,
-    };
+    } satisfies InferResource<typeof Todo>;
+    const encodedCurrentResource = Schema.encodeUnknownSync(
+      Schema.fromJsonString(Todo.resourceSchema),
+    )(currentResource, { onExcessProperty: 'error' });
+
+    expect(encodedCurrentResource).toBe(
+      JSON.stringify({
+        ...currentResource,
+        createdAt: createdAt.toISOString(),
+        updatedAt: updatedAt.toISOString(),
+      }),
+    );
+    expect(
+      Schema.decodeUnknownSync(Schema.fromJsonString(Todo.resourceSchema))(
+        encodedCurrentResource,
+        { onExcessProperty: 'error' },
+      ),
+    ).toEqual(currentResource);
 
     expect(
       Effect.runSync(
@@ -242,7 +264,7 @@ describe('makeModel', () => {
       {
         abbreviation: 'dir',
         modelName: 'direct',
-        attributes: { current: primitives.text() },
+        attributes: { currentValue: primitives.text() },
         indexes: [],
         version: '2.0.0',
       },
@@ -262,7 +284,7 @@ describe('makeModel', () => {
                 createdAt: resource.createdAt,
                 updatedAt: resource.updatedAt,
                 version: '1.0.0',
-                prior: resource.current,
+                prior: resource.currentValue,
               };
             }),
         },
@@ -281,7 +303,7 @@ describe('makeModel', () => {
                 createdAt: resource.createdAt,
                 updatedAt: resource.updatedAt,
                 version: '0.5.0',
-                original: resource.current,
+                original: resource.currentValue,
               };
             }),
         },
@@ -297,7 +319,7 @@ describe('makeModel', () => {
           createdAt: new Date(0),
           updatedAt: new Date(0),
           version: '2.0.0',
-          current: 'current',
+          currentValue: 'current',
         },
       }),
     );
@@ -329,6 +351,7 @@ describe('makeModel', () => {
       ],
     );
     const Invalid = makeModel(
+      // @ts-expect-error runtime validation protects invalid historical adapter output
       {
         abbreviation: 'inv',
         modelName: 'invalidOutput',
@@ -628,6 +651,7 @@ describe('makeModel', () => {
     Reflect.deleteProperty(missingAdapter, 'adaptResource');
     expect(() =>
       makeModel(
+        // @ts-expect-error runtime validation protects a missing historical adapter
         {
           abbreviation: 'mis',
           modelName: 'missingAdapter',
@@ -643,6 +667,7 @@ describe('makeModel', () => {
   it('rejects historical identity mismatches', () => {
     expect(() =>
       makeModel(
+        // @ts-expect-error runtime validation protects untyped historical definitions
         {
           abbreviation: 'todo',
           modelName: 'todo',
@@ -653,7 +678,6 @@ describe('makeModel', () => {
         [
           {
             abbreviation: 'todo',
-            // @ts-expect-error runtime validation protects untyped historical definitions
             modelName: 'task',
             attributes: {},
             indexes: [],
@@ -667,6 +691,7 @@ describe('makeModel', () => {
 
     expect(() =>
       makeModel(
+        // @ts-expect-error runtime validation protects untyped historical definitions
         {
           abbreviation: 'todo',
           modelName: 'todo',
@@ -676,7 +701,6 @@ describe('makeModel', () => {
         },
         [
           {
-            // @ts-expect-error runtime validation protects untyped historical definitions
             abbreviation: 'tsk',
             modelName: 'todo',
             attributes: {},
@@ -708,14 +732,14 @@ describe('makeModel', () => {
     ).toThrow();
   });
 
-  it('reserves service deletion metadata on plain models', () => {
+  it('reserves the replica deletion property on authored models', () => {
     expect(() =>
       makeModel(
         {
           abbreviation: 'bad',
           modelName: 'reservedDeletedAt',
           attributes: {
-            // @ts-expect-error deletedAt is framework metadata even on plain models
+            // @ts-expect-error deletedAt is reserved replica framework state on authored models
             deletedAt: primitives.date({ nullable: true }),
           },
           indexes: [],
@@ -723,7 +747,7 @@ describe('makeModel', () => {
         },
         [],
       ),
-    ).toThrow(/framework metadata keys are reserved/);
+    ).toThrow(/framework property keys are reserved/);
   });
 
   it('rejects payload primary keys on attributes', () => {
@@ -781,7 +805,7 @@ describe('makeModel', () => {
     ).toThrow(/makeModel synthesizes the model id primary key/);
   });
 
-  it('accepts indexes on merged properties including metadata keys', () => {
+  it('accepts indexes on the complete properties shape', () => {
     const IndexedUser = makeModel(
       {
         abbreviation: 'usr',

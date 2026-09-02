@@ -1,8 +1,8 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
-import { makeMigratedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDb';
+import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { makeModel } from '@zerospin/core/models/makeModel';
-import { primitives } from '@zerospin/core/models/primitives';
+import { primitives } from '@zerospin/schema';
 import { eq, sql } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -47,7 +47,7 @@ const now = new Date('2026-01-01T00:00:00.000Z');
 describe('makeLiveQuery', () => {
   it('tracks inferred tables, ignores unrelated writes, and stops after cleanup', async () => {
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
@@ -124,7 +124,7 @@ describe('makeLiveQuery', () => {
 
   it('refreshes once after transaction commit and safely reruns after delete', async () => {
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
@@ -202,7 +202,7 @@ describe('makeLiveQuery', () => {
 
   it('discards outer rollback changes and defers savepoints to outer commit', async () => {
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
@@ -297,7 +297,7 @@ describe('makeLiveQuery', () => {
 
   it('discards invalidations from an aborted autocommit statement', async () => {
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
@@ -398,7 +398,7 @@ describe('makeLiveQuery', () => {
 
   it('requires explicit table names for raw SQL sources', async () => {
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );
@@ -428,7 +428,7 @@ describe('makeLiveQuery', () => {
 
   it('uses explicit raw-query tables and recovers from rerun failures', async () => {
     const db = await Effect.runPromise(
-      makeMigratedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+      makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
       ),
     );

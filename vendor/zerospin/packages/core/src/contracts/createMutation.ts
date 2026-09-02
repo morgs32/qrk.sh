@@ -1,9 +1,10 @@
 import type {
-  IModel,
   InferDecodedRow,
   InferIdFromAbbreviation,
   IShape,
-} from '../models/types.ts';
+} from '@zerospin/schema';
+
+import type { IModel } from '../models/types.ts';
 
 export type ICreateMutation<
   MODEL extends IModel,

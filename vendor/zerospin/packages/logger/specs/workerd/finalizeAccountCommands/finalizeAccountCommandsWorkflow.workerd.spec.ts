@@ -8,7 +8,7 @@ import {
 } from '@zerospin/logger';
 import { runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
 import { env, exports as workerExports } from 'cloudflare:workers';
-import { Effect, Either, Schema } from 'effect';
+import { Effect, Result, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import type { AccountBlockRepo } from './AccountBlockRepo.ts';
@@ -33,8 +33,8 @@ describe('finalizeAccountCommands telemetry workflow in workerd', () => {
       args: [],
     });
     expect(rawEnvelope.result).toEqual({
-      _tag: 'Left',
-      left: encodedFailure,
+      _tag: 'Failure',
+      failure: encodedFailure,
     });
     expect(
       await runInDurableObject(rawActorRepo, (_instance: ActorRepo, state) =>
@@ -53,17 +53,17 @@ describe('finalizeAccountCommands telemetry workflow in workerd', () => {
       actorRepo
         .handleAccountBlocks()
         .pipe(
-          Effect.either,
+          Effect.result,
           Effect.withSpan('test.encodedErrorOrigin'),
           Effect.provide(makeTelemetryLayer(collector)),
         ),
     );
 
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isRight(result)) {
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isSuccess(result)) {
       throw new Error('Expected encoded ActorRepo failure');
     }
-    expect(result.left).toEqual(encodedFailure);
+    expect(result.failure).toEqual(encodedFailure);
     expect(
       await runInDurableObject(
         wrappedActorRepo,

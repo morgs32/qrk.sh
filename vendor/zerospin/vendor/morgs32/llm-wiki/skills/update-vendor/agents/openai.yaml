@@ -1,4 +1,0 @@
-interface:
-  display_name: "Update Vendor"
-  short_description: "Pull and push configured Git vendors safely"
-  default_prompt: "Use $update-vendor to pull all configured vendors."

@@ -4,12 +4,13 @@
 
 `vendor/` contains external repositories vendored with `git subtree`:
 
-| Prefix                    | Upstream                                  |
-| ------------------------- | ----------------------------------------- |
-| `vendor/effect`           | `https://github.com/Effect-TS/effect.git` |
-| `vendor/morgs32/llm-wiki` | `https://github.com/morgs32/llm-wiki.git` |
+| Prefix          | Upstream                                  |
+| --------------- | ----------------------------------------- |
+| `vendor/effect` | `https://github.com/Effect-TS/effect.git` |
 
-`llm-wiki/` is first-party Zerospin-domain guidance (not a subtree).
+Shared code-shape guidance is provided by the globally installed
+`$engineering-patterns` skill. `llm-wiki/` is first-party Zerospin-domain
+guidance (not a subtree).
 
 Each vendor README records its upstream and branch. Use the repository-local
 `update-vendor` skill for occasional squashed pulls and pushes. Invoking it
@@ -143,7 +144,7 @@ storage.
 The first deployment that consolidates lifecycle state into
 `SystemRepo(systemId)` requires a fresh remote Worker lifecycle. Reset the
 existing pre-cutover Worker or deploy under a new Worker name before running
-`zerospin deploy --wrangler`. `--clean` starts a detached, predecessor-free
+`zerospin deploy`. `--clean` starts a detached, predecessor-free
 generation inside SystemRepo; it does not reset Cloudflare's Durable Object
 class-migration history.
 

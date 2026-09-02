@@ -17,10 +17,11 @@
   "dependencies": {
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
-    "effect": "^3.21.4"
+    "@zerospin/schema": "workspace:*",
+    "effect": "rc"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.85.1",
+    "@effect/language-service": "^0.87.2",
     "@types/node": "^25.6.2",
     "rimraf": "^6.1.3",
     "vitest": "^4.1.5"

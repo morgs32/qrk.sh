@@ -1,9 +1,10 @@
+import { primitives } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
 
 import { makeModel } from './makeModel.ts';
 import { makeRelations } from './makeRelations.ts';
-import { primitives } from './primitives.ts';
+import { makeReplica } from './makeReplica.ts';
 
 const User = makeModel(
   {
@@ -58,6 +59,46 @@ const models = {
   list: List,
   user: User,
 };
+
+const ProductSource = makeModel(
+  {
+    abbreviation: 'prd',
+    modelName: 'product',
+    attributes: {
+      name: primitives.text(),
+    },
+    indexes: [],
+    version: '1.0.0',
+  },
+  [],
+);
+
+const CartItemSource = makeModel(
+  {
+    abbreviation: 'cit',
+    modelName: 'cartItem',
+    attributes: {
+      productId: primitives.ref({
+        table: ProductSource.table,
+        relation: 'product',
+        inverse: 'cartItems',
+      }),
+    },
+    indexes: [],
+    version: '1.0.0',
+  },
+  [],
+);
+
+const ProductReplica = makeReplica({
+  sourceModel: ProductSource,
+  serviceName: 'catalog',
+});
+
+const CartItemReplica = makeReplica({
+  sourceModel: CartItemSource,
+  serviceName: 'catalog',
+});
 
 describe('makeRelations', () => {
   it('builds relation descriptors with ownRef and connectedRef overloads', () => {
@@ -118,6 +159,93 @@ describe('makeRelations', () => {
 
     assert<Equals<typeof listItems.kind, 'many'>>();
     assert<Equals<typeof itemList.kind, 'one'>>();
+  });
+
+  it('accepts exact authoritative source-table refs between replicas', () => {
+    const relations = makeRelations(
+      {
+        cartItem: CartItemReplica,
+        product: ProductReplica,
+      },
+      ({ connectOne, connectMany }) => ({
+        cartItem: {
+          product: connectOne({
+            model: ProductReplica,
+            ownRef: 'productId',
+          }),
+        },
+        product: {
+          cartItems: connectMany({
+            model: CartItemReplica,
+            connectedRef: 'productId',
+          }),
+        },
+      }),
+    );
+
+    expect(relations.cartItem?.product.ownRef).toBe('productId');
+    expect(relations.product?.cartItems.connectedRef).toBe('productId');
+  });
+
+  it('rejects same-name source tables that are not the exact replica source', () => {
+    const UnrelatedProductSource = makeModel(
+      {
+        abbreviation: 'prd',
+        modelName: 'product',
+        attributes: {
+          name: primitives.text(),
+        },
+        indexes: [],
+        version: '1.0.0',
+      },
+      [],
+    );
+    const UnrelatedCartItemSource = makeModel(
+      {
+        abbreviation: 'cit',
+        modelName: 'cartItem',
+        attributes: {
+          productId: primitives.ref({
+            table: UnrelatedProductSource.table,
+            relation: 'product',
+            inverse: 'cartItems',
+          }),
+        },
+        indexes: [],
+        version: '1.0.0',
+      },
+      [],
+    );
+    const UnrelatedCartItemReplica = makeReplica({
+      sourceModel: UnrelatedCartItemSource,
+      serviceName: 'catalog',
+    });
+    const replicaModels = {
+      cartItem: UnrelatedCartItemReplica,
+      product: ProductReplica,
+    };
+
+    expect(() =>
+      makeRelations(replicaModels, ({ connectOne }) => ({
+        cartItem: {
+          product: connectOne({
+            model: ProductReplica,
+            ownRef: 'productId',
+          }),
+        },
+      })),
+    ).toThrow(/must match connected model table/);
+
+    expect(() =>
+      makeRelations(replicaModels, ({ connectMany }) => ({
+        product: {
+          cartItems: connectMany({
+            model: UnrelatedCartItemReplica,
+            connectedRef: 'productId',
+          }),
+        },
+      })),
+    ).toThrow(/must match parent model table/);
   });
 
   it('throws when ownRef is not a parent ref to connected model', () => {

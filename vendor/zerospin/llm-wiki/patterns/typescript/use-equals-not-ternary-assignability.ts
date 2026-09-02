@@ -7,15 +7,15 @@ import { assert, Equals } from 'tsafe';
  */
 assert<
   Equals<
-    InferRow<typeof commandRowShape>,
+    InferRow<typeof aggregateCommandRowShape>,
     {
-      readonly id: InferIdFromAbbreviation<'cmd'>;
-      readonly payload: string;
-      readonly status: 'executed';
+      readonly aggregateIndex: number;
+      readonly commandId: InferIdFromAbbreviation<'cmd'>;
+      readonly result: string | null;
     }
   >
 >();
 
 declare type InferRow<T> = unknown;
-declare const commandRowShape: unknown;
+declare const aggregateCommandRowShape: unknown;
 declare type InferIdFromAbbreviation<A extends string> = `${A}_${string}`;

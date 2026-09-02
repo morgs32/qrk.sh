@@ -1,20 +1,18 @@
 import { it } from '@effect/vitest';
+import { primitives } from '@zerospin/schema';
 import { Effect, Layer, Schema } from 'effect';
-import { TestContext } from 'effect/TestContext';
 import { describe, expect } from 'vitest';
 
 import { makeContract } from '../contracts/makeContract.ts';
-import { makeServiceModel } from '../models/makeServiceModel.ts';
-import { primitives } from '../models/primitives.ts';
+import { makeModel } from '../models/makeModel.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
 import { makeServiceCommand } from './makeServiceCommand.ts';
 
-const Product = makeServiceModel(
+const Product = makeModel(
   {
-    serviceName: 'catalog',
     abbreviation: 'prd',
     modelName: 'product',
     attributes: {
@@ -54,7 +52,6 @@ const TestLayer = Layer.mergeAll(
   makePrefixedIncrementalIdFactory('makeServiceCommand'),
   ErrorLayer,
   TraceLoggerLayer,
-  TestContext,
 );
 
 describe('makeServiceCommand', () => {
@@ -74,7 +71,6 @@ describe('makeServiceCommand', () => {
         });
 
         expect(command).toMatchObject({
-          commandType: 'service',
           commandName: 'createProduct',
           serviceName: 'catalog',
           payload: {
@@ -83,6 +79,7 @@ describe('makeServiceCommand', () => {
             price: 20,
           },
         });
+        expect(command).not.toHaveProperty('commandType');
       }),
     );
 

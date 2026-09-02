@@ -169,7 +169,7 @@ export function SessionsLayout() {
       const firstAggregateSession = aggregateSessions[0];
       if (firstAggregateSession !== undefined) {
         void navigate(
-          `/sessions/${firstAggregateSession.sessionId}/commands/staged`,
+          `/sessions/${firstAggregateSession.sessionId}/commands`,
           { replace: true },
         );
         return;
@@ -191,7 +191,7 @@ export function SessionsLayout() {
       const firstAggregateSession = aggregateSessions[0];
       if (firstAggregateSession !== undefined) {
         void navigate(
-          `/sessions/${firstAggregateSession.sessionId}/commands/staged`,
+          `/sessions/${firstAggregateSession.sessionId}/commands`,
           { replace: true },
         );
         return;
@@ -247,7 +247,7 @@ export function SessionsLayout() {
                         key={`aggregate:${session.sessionId}`}
                         onClick={() => {
                           void navigate(
-                            `/sessions/${session.sessionId}/commands/staged`,
+                            `/sessions/${session.sessionId}/commands`,
                           );
                         }}
                         onMouseEnter={() =>

@@ -1,19 +1,19 @@
 import { Effect } from 'effect';
 
 /**
- * Deploy config load errors: prettyUnknownFailure on cause string — not raw fiber dumps.
+ * JSONC config load errors: format unknown Promise rejections as cause text.
  *
- * @bad Generic message without unwrapping UnknownException / FiberFailure.
- * @bad Store raw Error or fiber object on `cause` (must be null | string).
+ * @bad Assume a Promise rejection is always an Error instance.
+ * @bad Store a raw rejection value on `cause` (must be null | string).
  */
 export const loadZerospinConfigFn = Effect.fn('loadZerospinConfigFn')(
   function* () {
-    return yield* importConfigModule().pipe(
-      Effect.catchAll(
+    return yield* parseJsoncConfig().pipe(
+      Effect.catch(
         (base: unknown) =>
           new ZerospinError({
             code: 'deploy-invalid-config',
-            message: 'Failed to load zerospin.config file.',
+            message: 'Failed to load zerospin.jsonc.',
             cause: ZerospinError.prettyUnknownFailure(base),
           }),
       ),
@@ -21,7 +21,7 @@ export const loadZerospinConfigFn = Effect.fn('loadZerospinConfigFn')(
   },
 );
 
-declare function importConfigModule(): Effect.Effect<unknown, unknown, never>;
+declare function parseJsoncConfig(): Effect.Effect<unknown, unknown, never>;
 declare class ZerospinError {
   constructor(props: { code: string; message: string; cause?: string | null });
   static prettyUnknownFailure(error: unknown): string;

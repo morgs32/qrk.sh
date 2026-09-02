@@ -1,19 +1,36 @@
 declare module 'cloudflare:workers' {
   export const env: {
-    AGGREGATE_FRONTEND_REPO: DurableObjectNamespace<
-      import('system-worker').AggregateFrontendRepo
+    AGGREGATE_COMMAND_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').AggregateCommandChain
     >;
-    AGGREGATE_FRONTEND_BLOCK_REPO: DurableObjectNamespace<
-      import('system-worker').AggregateFrontendBlockRepo
+    SERVICE_COMMAND_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').ServiceCommandChain
     >;
-    SERVICE_BLOCK_REPO: DurableObjectNamespace<
-      import('system-worker').ServiceBlockRepo
+    AGGREGATE_FRONTEND_PUSHED_COMMAND_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded &
+        import('system-worker').AggregateFrontendPushedCommandChain
     >;
-    SERVICE_FRONTEND_REPO: DurableObjectNamespace<
-      import('system-worker').ServiceFrontendRepo
+    AGGREGATE_FRONTEND_FINALIZED_COMMAND_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded &
+        import('system-worker').AggregateFrontendFinalizedCommandChain
     >;
-    SERVICE_FRONTEND_BLOCK_REPO: DurableObjectNamespace<
-      import('system-worker').ServiceFrontendBlockRepo
+    SERVICE_FRONTEND_FINALIZED_COMMAND_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded &
+        import('system-worker').ServiceFrontendFinalizedCommandChain
+    >;
+    MATERIALIZED_AGGREGATE_REPO: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').MaterializedAggregateRepo
+    >;
+    MATERIALIZED_SERVICE_REPO: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').MaterializedServiceRepo
+    >;
+    MATERIALIZED_AGGREGATE_FRONTEND_REPO: DurableObjectNamespace<
+      Rpc.DurableObjectBranded &
+        import('system-worker').MaterializedAggregateFrontendRepo
+    >;
+    MATERIALIZED_SERVICE_FRONTEND_REPO: DurableObjectNamespace<
+      Rpc.DurableObjectBranded &
+        import('system-worker').MaterializedServiceFrontendRepo
     >;
     SYSTEM_LOG_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded & import('system-worker').SystemLogRepo
@@ -26,27 +43,9 @@ declare module 'cloudflare:workers' {
     ZEROSPIN_PUBLISHABLE_KEY: string;
     ZEROSPIN_SECRET_KEY: string;
     ZEROSPIN_SYSTEM_ID: import('@zerospin/core/system/types').ISystemId;
-    WORKER_VERSION_METADATA: {
-      id: string;
-    };
-  };
-
-  export const exports: {
-    default: {
-      fetch(request: Request): Promise<Response>;
-    };
-    ServiceRepo: typeof import('system-worker').ServiceRepo;
-    SystemRepo: typeof import('system-worker').SystemRepo;
-    SystemWorker: import('system-worker').SystemWorker;
   };
 
   export class WorkerEntrypoint {
-    protected ctx: {
-      exports: {
-        SystemRepo?: DurableObjectNamespace<import('system-worker').SystemRepo>;
-        SystemWorker?: import('system-worker').SystemWorker;
-      };
-    };
     fetch(request: Request): Promise<Response>;
   }
 

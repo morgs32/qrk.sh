@@ -15,7 +15,7 @@ export type IStorageAdapter = {
   }) => Effect.Effect<void, IAnyError>;
 };
 
-export class StorageAdapter extends Context.Tag('StorageAdapter')<
+export class StorageAdapter extends Context.Service<
   StorageAdapter,
   IStorageAdapter
->() {}
+>()('StorageAdapter') {}

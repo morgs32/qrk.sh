@@ -1,10 +1,10 @@
 import { it } from '@effect/vitest';
+import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { User } from '../fixtures/system.ts';
 import { makeModel } from '../models/makeModel.ts';
-import { primitives } from '../models/primitives.ts';
 
 import { decodeAppliedMutation } from './decodeAppliedMutation.ts';
 import {

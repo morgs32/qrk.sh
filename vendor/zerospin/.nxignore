@@ -1,5 +1,7 @@
 .nx/
-vendor/
+vendor/*
+!vendor/epluribus-machina/
+vendor/epluribus-machina/project.json
 **/.next/
 **/dist/
 **/.wrangler/

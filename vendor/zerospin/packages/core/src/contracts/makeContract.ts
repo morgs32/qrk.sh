@@ -1,19 +1,19 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
-import { Effect, JSONSchema, Schema } from 'effect';
-import { type BrandTypeId } from 'effect/Brand';
+import {
+  makeEffectSchema,
+  PrimitiveKind,
+  type IAnyRefDescriptor,
+  type IAnyShape,
+  type IPrimaryKeyDescriptor,
+  type IPrimitiveDescriptor,
+  type ITypeError,
+} from '@zerospin/schema';
+import { Effect, Schema } from 'effect';
 
-import { PrimitiveKind } from '../models/primitiveKind.ts';
-import { makeEffectSchema } from '../models/primitiveMaps.ts';
 import type {
-  IAnyRefDescriptor,
-  IAnyShape,
   InferCommandPayload,
   InferPayloadInput,
-  IPrimaryKeyDescriptor,
-  IPrimitiveDescriptor,
 } from '../models/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
-import type { ITypeError } from '../utils/types.ts';
 
 import type { IAnyMutation, IContract } from './types.ts';
 
@@ -37,30 +37,16 @@ type IsErasedPayloadShape<PAYLOAD extends IAnyShape> = IAnyShape extends PAYLOAD
 export type InferContractProgram<
   PAYLOAD extends IAnyShape = IAnyShape,
   MUTATIONS = IMutations,
-> = {
-  [BrandTypeId]: 'program';
-} & ((props: {
+> = (props: {
   payload: IsErasedPayloadShape<PAYLOAD> extends true
     ? // oxlint-disable-next-line typescript/no-explicit-any -- erased payload shape intentionally accepts any payload
       any
     : InferCommandPayload<PAYLOAD>;
-}) => Effect.Effect<MUTATIONS, IAnyError>);
+}) => Effect.Effect<MUTATIONS, IAnyError>;
 
 type IContractProgramFn<PAYLOAD extends IAnyShape, MUTATIONS> = (props: {
   payload: InferCommandPayload<PAYLOAD>;
 }) => Effect.Effect<MUTATIONS, IAnyError>;
-
-type InferContractValidatePayload<PAYLOAD extends IAnyShape> = {
-  [BrandTypeId]: 'validatePayload';
-} & ((props: {
-  payload: InferPayloadInput<PAYLOAD>;
-}) => Effect.Effect<InferCommandPayload<PAYLOAD>, IAnyError, CuidFactory>);
-
-type InferContractEncodePayload<PAYLOAD extends IAnyShape> = {
-  [BrandTypeId]: 'encodePayload';
-} & ((props: {
-  payload: InferCommandPayload<PAYLOAD>;
-}) => Effect.Effect<string, IAnyError>);
 
 /**
  * Contract payload fields only — excludes {@link IAnyRefDescriptor}.
@@ -88,7 +74,7 @@ export function makeContract<
   COMMAND_NAME extends string,
   PAYLOAD extends Record<string, IPayloadFieldDescriptor>,
   VERSION extends string,
-  MUTATIONS_SCHEMA extends Schema.Schema.AnyNoContext,
+  MUTATIONS_SCHEMA extends Schema.Codec<unknown, unknown>,
   const HISTORICAL_PAYLOADS extends readonly Record<
     string,
     IPayloadFieldDescriptor
@@ -180,7 +166,6 @@ export function makeContract<
 
 export function makeContract<
   PAYLOAD extends Record<string, IPayloadFieldDescriptor>,
-  MUTATIONS_SCHEMA extends Schema.Schema.AnyNoContext | null,
 >(props: any, historicalDefinitions: readonly any[] = []): any {
   /* oxlint-enable typescript/no-explicit-any */
   const {
@@ -192,7 +177,7 @@ export function makeContract<
     commandName: string;
     payload: Record<string, IPayloadFieldDescriptor>;
     version: string;
-    mutations: Schema.Schema.AnyNoContext | null;
+    mutations: Schema.Codec<unknown, unknown> | null;
   } = props;
 
   const currentVersionMatch = semVerPattern.exec(version);
@@ -344,7 +329,7 @@ export function makeContract<
     return {
       commandName: historicalDefinition.commandName,
       version: historicalDefinition.version,
-      payloadJsonSchema: JSONSchema.make(
+      payloadJsonSchema: Schema.toJsonSchemaDocument(
         makeEffectSchema(historicalDefinition.payload),
       ),
     };
@@ -365,24 +350,28 @@ export function makeContract<
   const program = mutations === null ? noOpProgram : props.program;
 
   const payloadSchema = makeEffectSchema(payload);
-  const payloadJsonSchema = Schema.parseJson(payloadSchema) as Schema.Schema<
+  const payloadJsonSchema = Schema.fromJsonString(
+    payloadSchema,
+  ) as Schema.Codec<
     // oxlint-disable-next-line typescript/no-explicit-any -- Effect Schema is contravariant; unknown breaks assignability?
     any,
     string
   >;
-  const payloadSchemasByVersion = new Map<string, Schema.Schema.AnyNoContext>([
-    [version, payloadJsonSchema],
-  ]);
+  const payloadSchemasByVersion = new Map<
+    string,
+    Schema.Codec<unknown, string>
+  >([[version, payloadJsonSchema]]);
   for (const historicalDefinition of historicalDefinitions) {
     payloadSchemasByVersion.set(
       historicalDefinition.version,
-      Schema.parseJson(makeEffectSchema(historicalDefinition.payload)),
+      Schema.fromJsonString(makeEffectSchema(historicalDefinition.payload)),
     );
   }
 
   const validatePayload = Effect.fn(`validatePayload/${commandName}`)(
     function* (props: { payload: InferPayloadInput<PAYLOAD> }) {
-      const encodedPayload: Record<string, unknown> = { ...props.payload };
+      const { payload: commandPayload } = props;
+      const encodedPayload: Record<string, unknown> = { ...commandPayload };
       for (const [key, descriptor] of Object.entries(payload)) {
         if (descriptor.kind !== PrimitiveKind.Json) {
           continue;
@@ -391,8 +380,8 @@ export function makeContract<
         if (value === null || value === undefined) {
           continue;
         }
-        encodedPayload[key] = yield* Schema.encode(
-          Schema.parseJson(descriptor.schema),
+        encodedPayload[key] = yield* Schema.encodeEffect(
+          Schema.fromJsonString(descriptor.schema),
         )(value).pipe(
           mapParseError({
             code: 'encode-command-json-payload-field-failed',
@@ -400,7 +389,7 @@ export function makeContract<
           }),
         );
       }
-      const decoded = yield* Schema.decodeUnknown(payloadSchema)(
+      const decoded = yield* Schema.decodeUnknownEffect(payloadSchema)(
         encodedPayload,
         {
           onExcessProperty: 'error',
@@ -418,7 +407,8 @@ export function makeContract<
 
   const encodePayload = Effect.fn(`encodePayload/${commandName}`)(
     function* (props: { payload: InferCommandPayload<PAYLOAD> }) {
-      return yield* Schema.encode(payloadJsonSchema)(props.payload, {
+      const { payload } = props;
+      return yield* Schema.encodeEffect(payloadJsonSchema)(payload, {
         onExcessProperty: 'error',
       }).pipe(
         mapParseError({
@@ -469,7 +459,7 @@ export function makeContract<
       });
     }
 
-    const sourcePayload = yield* Schema.decode(sourcePayloadSchema)(
+    const sourcePayload = yield* Schema.decodeEffect(sourcePayloadSchema)(
       command.payload,
       { onExcessProperty: 'error' },
     ).pipe(
@@ -510,7 +500,7 @@ export function makeContract<
     const currentPayload = yield* Effect.suspend(() =>
       historicalDefinition.adaptPayload({ payload: sourcePayload }),
     ).pipe(
-      Effect.catchAllCause(
+      Effect.catchCause(
         cause =>
           new ZerospinError({
             code: 'contract-payload-adapter-invariant-failed',
@@ -526,9 +516,12 @@ export function makeContract<
       ),
     );
 
-    return yield* Schema.validate(payloadSchema)(currentPayload, {
-      onExcessProperty: 'error',
-    }).pipe(
+    return yield* Schema.decodeUnknownEffect(Schema.toType(payloadSchema))(
+      currentPayload,
+      {
+        onExcessProperty: 'error',
+      },
+    ).pipe(
       mapParseError({
         code: 'contract-payload-adapter-output-invariant-failed',
         prefix: `Payload adapter output did not match ${commandName}@${version}`,
@@ -545,7 +538,7 @@ export function makeContract<
   const spec = {
     commandName,
     version,
-    payloadJsonSchema: JSONSchema.make(payloadSchema),
+    payloadJsonSchema: Schema.toJsonSchemaDocument(payloadSchema),
     historicalDefinitions: historicalSpecs.toSorted((left, right) =>
       left.version.localeCompare(right.version),
     ),
@@ -556,16 +549,10 @@ export function makeContract<
     payload,
     historicalDefinitions,
     decodeAndAdaptPayload,
-    encodePayload: encodePayload as InferContractEncodePayload<PAYLOAD>,
-    validatePayload:
-      validatePayload as unknown as InferContractValidatePayload<PAYLOAD>,
+    encodePayload,
+    validatePayload,
     mutations,
-    program: program as InferContractProgram<
-      PAYLOAD,
-      MUTATIONS_SCHEMA extends Schema.Schema.AnyNoContext
-        ? Schema.Schema.Type<MUTATIONS_SCHEMA>
-        : Record<string, never>
-    >,
+    program,
     version,
     spec,
   };

@@ -1,9 +1,9 @@
 import { ZerospinError, type IAnyError } from '@zerospin/error';
+import type { IAnyDrizzleSchemas } from '@zerospin/schema';
 import type { AnyRelations, DrizzleTypeError } from 'drizzle-orm';
-import { Cause, Effect, Exit, Option, Runtime } from 'effect';
+import { Cause, Effect, Exit, Option } from 'effect';
 
 import { type Async } from '../async/Async.ts';
-import type { IAnyDrizzleSchemas } from '../models/types.ts';
 
 import type { IDb, IDbConfig, ITx } from './types.ts';
 
@@ -31,7 +31,7 @@ export const makeTx = Effect.fn('makeTx')(function* <
   >;
 }): Effect.fn.Return<SUCCESS, IAnyError, IRejectAsync<PROGRAM_REQUIREMENTS>> {
   const { db, program } = props;
-  const runtime = yield* Effect.runtime<IRejectAsync<PROGRAM_REQUIREMENTS>>();
+  const context = yield* Effect.context<IRejectAsync<PROGRAM_REQUIREMENTS>>();
 
   return yield* Effect.try({
     try: (): SUCCESS => {
@@ -41,8 +41,7 @@ export const makeTx = Effect.fn('makeTx')(function* <
       inTxAlready = true;
       try {
         return db.transaction(tx => {
-          const exit = Runtime.runSyncExit(
-            runtime,
+          const exit = Effect.runSyncExitWith(context)(
             program({
               tx,
             }),
@@ -58,7 +57,7 @@ export const makeTx = Effect.fn('makeTx')(function* <
     },
     catch: error => {
       if (Exit.isExit(error) && Exit.isFailure(error)) {
-        const failure = Cause.failureOption(error.cause);
+        const failure = Cause.findErrorOption(error.cause);
         if (
           Option.isSome(failure) &&
           ZerospinError.isZerospinError(failure.value)

@@ -1,6 +1,6 @@
-import { makeEffectSchema } from '@zerospin/core/models/primitiveMaps';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import { makeEffectSchema } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { system } from 'system';
 
@@ -18,62 +18,66 @@ export const adaptFrontendResource = Effect.fn(
   Readonly<{ modelName: string; resource: unknown }>,
   IAnyError
 > {
-  if (props.owner.kind === 'aggregate') {
+  const { frontendName, modelName, modelVersion, owner, resource } = props;
+  if (owner.kind === 'aggregate') {
     const aggregate = yield* getByKeyOrThrow({
       record: system.aggregates,
-      key: props.owner.aggregateName,
+      key: owner.aggregateName,
       recordKind: 'aggregates',
     });
     const controller = (yield* getByKeyOrThrow({
       record: aggregate.frontends,
-      key: props.frontendName,
-      recordKind: `frontends owned by aggregate ${props.owner.aggregateName}`,
+      key: frontendName,
+      recordKind: `frontends owned by aggregate ${owner.aggregateName}`,
     })).controller;
     const modelEntry = Object.entries(controller.models).find(
-      ([, candidate]) => candidate.modelName === props.modelName,
+      ([, candidate]) => candidate.modelName === modelName,
     );
     if (
       modelEntry === undefined ||
-      (modelEntry[1].version !== props.modelVersion &&
+      (modelEntry[1].version !== modelVersion &&
         !modelEntry[1].historicalDefinitions.some(
-          definition => definition.version === props.modelVersion,
+          definition => definition.version === modelVersion,
         ))
     ) {
       return yield* new ZerospinError({
         code: 'frontend-model-definition-missing',
-        message: `Selected frontend requires unknown model ${props.modelName}@${props.modelVersion}`,
+        message: `Selected frontend requires unknown model ${modelName}@${modelVersion}`,
         extra: {
-          frontendName: props.frontendName,
-          modelName: props.modelName,
-          modelVersion: props.modelVersion,
-          owner: props.owner,
+          frontendName: frontendName,
+          modelName: modelName,
+          modelVersion: modelVersion,
+          owner: owner,
         },
       });
     }
     const model = modelEntry[1];
-    const currentResource = yield* Schema.decodeUnknown(
+    const currentResource = yield* Schema.decodeUnknownEffect(
       makeEffectSchema(model.propertiesShape),
-    )(props.resource, { onExcessProperty: 'error' }).pipe(
+    )(resource, { onExcessProperty: 'error' }).pipe(
       Effect.flatMap(resource =>
-        Schema.validate(model.resourceSchema)(resource, {
-          onExcessProperty: 'error',
-        }),
+        Schema.decodeUnknownEffect(Schema.toType(model.resourceSchema))(
+          resource,
+          {
+            onExcessProperty: 'error',
+          },
+        ),
       ),
       mapParseError({
         code: 'frontend-resource-current-invalid',
-        prefix: `Failed to decode current frontend resource ${props.modelName}@${model.version}`,
+        prefix: `Failed to decode current frontend resource ${modelName}@${model.version}`,
         extra: {
-          frontendName: props.frontendName,
-          modelName: props.modelName,
-          modelVersion: props.modelVersion,
-          owner: props.owner,
+          frontendName: frontendName,
+          modelName: modelName,
+          modelVersion: modelVersion,
+          owner: owner,
         },
       }),
     );
     return {
       modelName: model.modelName,
       resource: yield* model.adaptResource({
-        version: props.modelVersion,
+        version: modelVersion,
         resource: currentResource,
       }),
     };
@@ -81,59 +85,60 @@ export const adaptFrontendResource = Effect.fn(
 
   const service = yield* getByKeyOrThrow({
     record: system.services,
-    key: props.owner.serviceName,
+    key: owner.serviceName,
     recordKind: 'services',
   });
   const controller = (yield* getByKeyOrThrow({
     record: service.frontends,
-    key: props.frontendName,
-    recordKind: `frontends owned by service ${props.owner.serviceName}`,
+    key: frontendName,
+    recordKind: `frontends owned by service ${owner.serviceName}`,
   })).controller;
   const modelEntry = Object.entries(controller.models).find(
-    ([, candidate]) => candidate.modelName === props.modelName,
+    ([, candidate]) => candidate.modelName === modelName,
   );
   if (
     modelEntry === undefined ||
-    (modelEntry[1].version !== props.modelVersion &&
+    (modelEntry[1].version !== modelVersion &&
       !modelEntry[1].historicalDefinitions.some(
-        definition => definition.version === props.modelVersion,
+        definition => definition.version === modelVersion,
       ))
   ) {
     return yield* new ZerospinError({
       code: 'frontend-model-definition-missing',
-      message: `Selected frontend requires unknown model ${props.modelName}@${props.modelVersion}`,
+      message: `Selected frontend requires unknown model ${modelName}@${modelVersion}`,
       extra: {
-        frontendName: props.frontendName,
-        modelName: props.modelName,
-        modelVersion: props.modelVersion,
-        owner: props.owner,
+        frontendName: frontendName,
+        modelName: modelName,
+        modelVersion: modelVersion,
+        owner: owner,
       },
     });
   }
   const model = modelEntry[1];
-  const currentResource = yield* Schema.decodeUnknown(
+  const currentResource = yield* Schema.decodeUnknownEffect(
     makeEffectSchema(model.propertiesShape),
-  )(props.resource, { onExcessProperty: 'error' }).pipe(
+  )(resource, { onExcessProperty: 'error' }).pipe(
     Effect.flatMap(resource =>
-      Schema.validate(model.resourceSchema)(resource, {
-        onExcessProperty: 'error',
-      }),
+      Schema.decodeUnknownEffect(Schema.toType(model.resourceSchema))(
+        resource,
+        { onExcessProperty: 'error' },
+      ),
     ),
     mapParseError({
       code: 'frontend-resource-current-invalid',
-      prefix: `Failed to decode current frontend resource ${props.modelName}@${model.version}`,
+      prefix: `Failed to decode current frontend resource ${modelName}@${model.version}`,
       extra: {
-        frontendName: props.frontendName,
-        modelName: props.modelName,
-        modelVersion: props.modelVersion,
-        owner: props.owner,
+        frontendName: frontendName,
+        modelName: modelName,
+        modelVersion: modelVersion,
+        owner: owner,
       },
     }),
   );
   return {
     modelName: model.modelName,
     resource: yield* model.adaptResource({
-      version: props.modelVersion,
+      version: modelVersion,
       resource: currentResource,
     }),
   };

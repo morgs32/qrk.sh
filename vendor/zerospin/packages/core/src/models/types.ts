@@ -1,388 +1,43 @@
 import type { IAnyError } from '@zerospin/error';
 import type {
-  $Type,
-  BuildColumns,
-  ColumnBuilderBase,
-  HasDefault,
-  IsPrimaryKey,
-  NotNull,
-} from 'drizzle-orm/column-builder';
+  CuidFactory,
+  IAnyRefDescriptor,
+  IAnyShape,
+  IDateDescriptor,
+  IDrizzleIndexConfig,
+  IDrizzleSchema,
+  InferDecodedRow,
+  InferEncodedRow,
+  InferIdFromAbbreviation,
+  IPrimaryKeyDescriptor,
+  IPrimitive,
+  IPrimitiveDescriptorDecoded,
+  IPrimitiveDescriptorEncoded,
+  IShape,
+  ITable,
+  ITextDescriptor,
+  ITypeError,
+  PrimitiveKind,
+} from '@zerospin/schema';
 /* oxlint-disable typescript/no-explicit-any -- Effect Schema encoded type / generic defaults */
-import type {
-  AnySQLiteTable,
-  SQLiteTableWithColumns,
-} from 'drizzle-orm/sqlite-core';
-import type { Effect, JSONSchema, Schema } from 'effect';
-import { type Brand, type BrandTypeId } from 'effect/Brand';
+import type { Effect, JsonSchema, Schema } from 'effect';
+import type { Brand } from 'effect/Brand';
 import { assert, type Equals } from 'tsafe';
 
 import type { ICreateMutation } from '../contracts/createMutation.ts';
 import type { IDeleteMutation } from '../contracts/deleteMutation.ts';
 import type { IMoveMutation } from '../contracts/moveMutation.ts';
 import type { IReplicateResourceMutation } from '../contracts/replicateResource.ts';
+import type { IEncodedAppliedMutation } from '../contracts/types.ts';
 import type { IUpdateMutation } from '../contracts/updateMutation.ts';
-import { type CuidFactory } from '../services/CuidFactory.ts';
 import { type coreAbbreviations } from '../utils/coreAbbreviations.ts';
-import type { ITypeError } from '../utils/types.ts';
-
-import { type PrimitiveKind } from './primitiveKind.ts';
 
 // --- model ---
-
-/** A non-null, unique abbreviation-prefixed SQLite primary-key column. */
-export type IPrimaryKeyDescriptor<ABBREVIATION extends string = string> = {
-  kind: PrimitiveKind.PrimaryKey;
-  nullable: false;
-  unique: true;
-  abbreviation: ABBREVIATION;
-};
-
-/** An opaque abbreviation-prefixed value with no relational meaning. */
-export type IOpaqueIdDescriptor<
-  NULLABLE extends boolean = boolean,
-  ABBREVIATION extends string = string,
-> = {
-  kind: PrimitiveKind.OpaqueId;
-  nullable: NULLABLE;
-  unique: boolean;
-  abbreviation: ABBREVIATION;
-};
-
-/** A same-database reference to the sole primary-key column of one concrete table. */
-export type IRefDescriptor<
-  NULLABLE extends boolean = boolean,
-  ABBREVIATION extends string = string,
-  TARGET_TABLE extends IAnyTable = IAnyTable,
-  TARGET_COLUMN_NAME extends keyof TARGET_TABLE['shape'] & string =
-    keyof TARGET_TABLE['shape'] & string,
-  RELATION extends string = string,
-  INVERSE extends string = string,
-  UNIQUE extends boolean = boolean,
-> = {
-  kind: PrimitiveKind.Ref;
-  nullable: NULLABLE;
-  unique: UNIQUE;
-  abbreviation: ABBREVIATION;
-  table: TARGET_TABLE;
-  targetTableName: TARGET_TABLE['name'];
-  targetColumnName: TARGET_COLUMN_NAME;
-  relation: RELATION;
-  inverse: INVERSE;
-};
-
-/** Monotonic cursor value with an abbreviation-scoped string encoding. */
-export type ICursorDescriptor<
-  NULLABLE extends boolean = boolean,
-  ABBREVIATION extends string = string,
-> = {
-  kind: PrimitiveKind.Cursor;
-  nullable: NULLABLE;
-  unique: boolean;
-  abbreviation: ABBREVIATION;
-};
-
-export type IBooleanDescriptor<
-  NULLABLE extends boolean = boolean,
-  DEFAULT_VALUE extends boolean | undefined = boolean | undefined,
-> = {
-  kind: PrimitiveKind.Boolean;
-  nullable: NULLABLE;
-  /** When true, column has a SQLite `UNIQUE` constraint. */
-  unique: boolean;
-  defaultValue?: DEFAULT_VALUE;
-};
-
-export type IIntegerDescriptor<
-  NULLABLE extends boolean = boolean,
-  DEFAULT_VALUE extends number | undefined = number | undefined,
-> = {
-  kind: PrimitiveKind.Integer;
-  nullable: NULLABLE;
-  /** When true, column has a SQLite `UNIQUE` constraint. */
-  unique: boolean;
-  /** When true, column is the table's SQLite `INTEGER PRIMARY KEY`. */
-  primaryKey?: boolean;
-  defaultValue?: DEFAULT_VALUE;
-};
-
-export type INumberDescriptor<
-  NULLABLE extends boolean = boolean,
-  DEFAULT_VALUE extends number | undefined = number | undefined,
-> = {
-  kind: PrimitiveKind.Number;
-  nullable: NULLABLE;
-  unique: boolean;
-  defaultValue?: DEFAULT_VALUE;
-};
-
-export type ITextDescriptor<
-  NULLABLE extends boolean = boolean,
-  DEFAULT_VALUE extends
-    | string
-    | (true extends NULLABLE ? null : never)
-    | undefined = string | (true extends NULLABLE ? null : never) | undefined,
-> = {
-  kind: PrimitiveKind.Text;
-  nullable: NULLABLE;
-  unique: boolean;
-  defaultValue?: DEFAULT_VALUE;
-};
-
-export type IDateDescriptor<
-  NULLABLE extends boolean = boolean,
-  DEFAULT_VALUE extends Date | undefined = Date | undefined,
-> = {
-  kind: PrimitiveKind.Date;
-  nullable: NULLABLE;
-  unique: boolean;
-  defaultValue?: DEFAULT_VALUE;
-};
-
-export type IEnumDescriptor<
-  NULLABLE extends boolean = boolean,
-  VALUES extends readonly [string, ...string[]] = readonly [
-    string,
-    ...string[],
-  ],
-  DEFAULT_VALUE extends VALUES[number] | undefined = VALUES[number] | undefined,
-> = {
-  kind: PrimitiveKind.Enum;
-  values: VALUES;
-  nullable: NULLABLE;
-  unique: boolean;
-  defaultValue?: DEFAULT_VALUE;
-};
-
-/**
- * JSON stored as SQLite `text`. `InferEncodedRow` stays wire `string`; `DATA` is the
- * domain type described by {@link IJsonDescriptor.schema}. `makeEffectSchema`
- * owns JSON encode/decode through the descriptor schema.
- */
-export interface IJsonDescriptor<
-  NULLABLE extends boolean = boolean,
-  DATA = unknown,
-  DEFAULT_VALUE extends null | undefined = null | undefined,
-> {
-  kind: PrimitiveKind.Json;
-  nullable: NULLABLE;
-  schema: Schema.Schema<
-    NULLABLE extends true ? Exclude<DATA, null> : DATA,
-    any
-  >;
-  defaultValue?: DEFAULT_VALUE;
-}
-
-/** Widened json primitive for {@link IPrimitiveDescriptor} unions. */
-type IAnyJsonDescriptor = IJsonDescriptor<boolean, any>;
-
-export type IPrimitiveDescriptor =
-  | IPrimaryKeyDescriptor
-  | IOpaqueIdDescriptor
-  | IBooleanDescriptor
-  | ICursorDescriptor
-  | IIntegerDescriptor
-  | INumberDescriptor
-  | ITextDescriptor
-  | IDateDescriptor
-  | IEnumDescriptor
-  | IAnyJsonDescriptor
-  | IAnyRefDescriptor;
-
-export type IAnyPrimitiveDescriptor =
-  | IPrimaryKeyDescriptor
-  | IOpaqueIdDescriptor
-  | IBooleanDescriptor
-  | ICursorDescriptor
-  | IIntegerDescriptor
-  | INumberDescriptor
-  | ITextDescriptor
-  | IDateDescriptor
-  | IEnumDescriptor
-  | IAnyJsonDescriptor
-  | IAnyRefDescriptor;
-
-export type IEncodedPrimitive =
-  IPrimitiveKindEncodedMap[keyof IPrimitiveKindEncodedMap];
-
-export type IDecodedPrimitive =
-  IPrimitiveKindDecodedMap[keyof IPrimitiveKindDecodedMap];
-
-export type IEncodedRecord = Record<string, IEncodedPrimitive>;
-
-export type IDecodedRecord = Record<string, IDecodedPrimitive>;
-
-/** Model / table attribute shapes (includes {@link PrimitiveKind.Ref} for FK columns). */
-export type IShape = Record<string, IPrimitiveDescriptor>;
-
-export type IAnyShape = Record<string, IAnyPrimitiveDescriptor>;
-
-/** Widest ref shape for `extends` checks (works with `exactOptionalPropertyTypes`). */
-export interface IAnyRefDescriptor {
-  kind: PrimitiveKind.Ref;
-  nullable: boolean;
-  unique: boolean;
-  abbreviation: string;
-  table: IAnyTable;
-  targetTableName: string;
-  targetColumnName: string;
-  relation: string;
-  inverse: string;
-}
-
-export type IAnyShapes = Record<string, IAnyShape>;
-
-export type IDrizzleIndexConfig<COLUMN_NAME extends string = string> = {
-  name: string;
-  columns: readonly [COLUMN_NAME, ...COLUMN_NAME[]];
-  unique?: boolean;
-};
-
-export type IDrizzleTableConfig<SHAPE extends IAnyShape = IAnyShape> = {
-  indexes?: readonly IDrizzleIndexConfig<keyof SHAPE & string>[];
-};
-
-export type ITable<
-  TABLE_NAME extends string = string,
-  SHAPE extends IAnyShape = IAnyShape,
-> = {
-  name: TABLE_NAME;
-  shape: SHAPE;
-  indexes: readonly IDrizzleIndexConfig<keyof SHAPE & string>[];
-};
-
-export type IAnyTable = ITable<string, IAnyShape>;
-
-export type IAnyTables = Record<string, IAnyTable>;
 
 export type IProperties = IResourceShape & IShape;
 
 export type IEncodedProperties = InferEncodedRow<IProperties>;
 export type IDecodedProperties = InferDecodedRow<IProperties>;
-
-export type IPrimitiveKindDecodedMap = {
-  [PrimitiveKind.Boolean]: boolean;
-  [PrimitiveKind.Cursor]: string;
-  [PrimitiveKind.Integer]: number;
-  [PrimitiveKind.Number]: number;
-  [PrimitiveKind.Text]: string;
-  [PrimitiveKind.Date]: Date;
-  [PrimitiveKind.Enum]: string;
-  [PrimitiveKind.Json]: never;
-  [PrimitiveKind.OpaqueId]: string;
-  [PrimitiveKind.PrimaryKey]: string;
-  [PrimitiveKind.Ref]: string;
-};
-
-export type IPrimitive =
-  IPrimitiveKindDecodedMap[keyof IPrimitiveKindDecodedMap];
-
-export type IPrimitiveKindEncodedMap = {
-  [PrimitiveKind.Boolean]: boolean;
-  [PrimitiveKind.Cursor]: string;
-  [PrimitiveKind.Integer]: number;
-  [PrimitiveKind.Number]: number;
-  [PrimitiveKind.Text]: string;
-  [PrimitiveKind.Date]: Date;
-  [PrimitiveKind.Enum]: string;
-  [PrimitiveKind.Json]: string;
-  [PrimitiveKind.OpaqueId]: string;
-  [PrimitiveKind.PrimaryKey]: string;
-  [PrimitiveKind.Ref]: string;
-};
-
-/** Union of encoded scalar values for every {@link PrimitiveKind}. */
-export type IPrimitiveKindEncoded =
-  IPrimitiveKindEncodedMap[keyof IPrimitiveKindEncodedMap];
-
-export type IPrimitiveDescriptorDecoded<T extends IAnyPrimitiveDescriptor> =
-  T extends
-    | IPrimaryKeyDescriptor
-    | IOpaqueIdDescriptor
-    | ICursorDescriptor
-    | IAnyRefDescriptor
-    ? string extends T['abbreviation']
-      ? T extends { nullable: true }
-        ? string | null
-        : string
-      : T extends { nullable: true }
-        ? `${T['abbreviation']}_${string}` | null
-        : `${T['abbreviation']}_${string}`
-    : T extends IBooleanDescriptor<infer NULLABLE, infer _DEFAULT_VALUE>
-      ? NULLABLE extends true
-        ? boolean | null
-        : boolean
-      : T extends IIntegerDescriptor<infer NULLABLE, infer _DEFAULT_VALUE>
-        ? NULLABLE extends true
-          ? number | null
-          : number
-        : T extends IJsonDescriptor<
-              infer NULLABLE,
-              infer DATA,
-              infer _DEFAULT_VALUE
-            >
-          ? NULLABLE extends true
-            ? DATA | null
-            : DATA
-          : T extends IDateDescriptor<infer NULLABLE, infer _DEFAULT_VALUE>
-            ? NULLABLE extends true
-              ? Date | null
-              : Date
-            : T extends IEnumDescriptor<
-                  infer NULLABLE,
-                  infer VALUES,
-                  infer _DEFAULT_VALUE
-                >
-              ? NULLABLE extends true
-                ? VALUES[number] | null
-                : VALUES[number]
-              : T extends { nullable: true }
-                ? IPrimitiveKindDecodedMap[T['kind']] | null
-                : IPrimitiveKindDecodedMap[T['kind']];
-
-export type IPrimitiveDescriptorEncoded<T extends IAnyPrimitiveDescriptor> =
-  T extends
-    | IPrimaryKeyDescriptor
-    | IOpaqueIdDescriptor
-    | ICursorDescriptor
-    | IAnyRefDescriptor
-    ? string extends T['abbreviation']
-      ? T extends { nullable: true }
-        ? string | null
-        : string
-      : T extends { nullable: true }
-        ? `${T['abbreviation']}_${string}` | null
-        : `${T['abbreviation']}_${string}`
-    : T extends IBooleanDescriptor<infer NULLABLE, infer _DEFAULT_VALUE>
-      ? NULLABLE extends true
-        ? boolean | null
-        : boolean
-      : T extends IIntegerDescriptor<infer NULLABLE, infer _DEFAULT_VALUE>
-        ? NULLABLE extends true
-          ? number | null
-          : number
-        : T extends IJsonDescriptor<
-              infer NULLABLE,
-              infer _DATA,
-              infer _DEFAULT_VALUE
-            >
-          ? NULLABLE extends true
-            ? string | null
-            : string
-          : T extends IEnumDescriptor<
-                infer NULLABLE,
-                infer VALUES,
-                infer _DEFAULT_VALUE
-              >
-            ? NULLABLE extends true
-              ? VALUES[number] | null
-              : VALUES[number]
-            : T extends { nullable: true }
-              ? IPrimitiveKindEncodedMap[T['kind']] | null
-              : IPrimitiveKindEncodedMap[T['kind']];
-
-export type InferDecodedRow<SHAPE extends IAnyShape> = {
-  [K in keyof SHAPE]: IPrimitiveDescriptorDecoded<SHAPE[K]>;
-};
 
 /**
  * Caller payload **input** for contracts: id fields with `autogenerate: true`
@@ -444,159 +99,9 @@ export type InferCommandPayload<SHAPE extends IAnyShape> = {
     : IPrimitiveDescriptorDecoded<SHAPE[K]>;
 };
 
-export type InferEncodedRow<SHAPE extends IAnyShape> = {
-  [K in keyof SHAPE]: IPrimitiveDescriptorEncoded<SHAPE[K]>;
-};
-
 export type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};
-
-/** Minimal sqlite text builder config for type-level column mapping. */
-type ISqliteTextBuilder = ColumnBuilderBase<{
-  dataType: 'string';
-  data: string;
-  driverParam: unknown;
-}>;
-
-type ISqliteNumberBuilder = ColumnBuilderBase<{
-  dataType: 'number';
-  data: number;
-  driverParam: unknown;
-}>;
-
-type ISqliteBooleanBuilder = ColumnBuilderBase<{
-  dataType: 'number';
-  data: boolean;
-  driverParam: unknown;
-}>;
-
-type ISqliteDateBuilder = ColumnBuilderBase<{
-  dataType: 'number';
-  data: Date;
-  driverParam: unknown;
-}>;
-
-type IEncodedTextColumn<
-  NULLABLE extends boolean,
-  DATA extends string,
-> = NULLABLE extends true
-  ? $Type<ISqliteTextBuilder, DATA | null>
-  : NotNull<$Type<ISqliteTextBuilder, DATA>>;
-
-type IEncodedNumberColumn<NULLABLE extends boolean> = NULLABLE extends true
-  ? ISqliteNumberBuilder
-  : NotNull<ISqliteNumberBuilder>;
-
-type IEncodedBooleanColumn<NULLABLE extends boolean> = NULLABLE extends true
-  ? ISqliteBooleanBuilder
-  : NotNull<ISqliteBooleanBuilder>;
-
-type IEncodedDateColumn<NULLABLE extends boolean> = NULLABLE extends true
-  ? ISqliteDateBuilder
-  : NotNull<ISqliteDateBuilder>;
-
-/**
- * Maps a primitive descriptor to the Drizzle column builder shape produced by
- * {@link descriptorToDrizzleColumn} (sqlite `BuildColumns` input).
- */
-export type InferDrizzleColumnBuilderFromDescriptor<
-  D extends IAnyPrimitiveDescriptor,
-> =
-  D extends IPrimaryKeyDescriptor<infer ABBREVIATION>
-    ? IsPrimaryKey<
-        $Type<
-          ISqliteTextBuilder,
-          string extends ABBREVIATION ? string : `${ABBREVIATION}_${string}`
-        >
-      >
-    : D extends IBooleanDescriptor<infer NULLABLE, infer DEFAULT_VALUE>
-      ? [DEFAULT_VALUE] extends [boolean]
-        ? HasDefault<IEncodedBooleanColumn<NULLABLE>>
-        : IEncodedBooleanColumn<NULLABLE>
-      : D extends ICursorDescriptor<infer NULLABLE, infer ABBREVIATION>
-        ? IEncodedTextColumn<
-            NULLABLE,
-            string extends ABBREVIATION ? string : `${ABBREVIATION}_${string}`
-          >
-        : D extends IOpaqueIdDescriptor<infer NULLABLE, infer ABBREVIATION>
-          ? IEncodedTextColumn<
-              NULLABLE,
-              string extends ABBREVIATION ? string : `${ABBREVIATION}_${string}`
-            >
-          : D extends IIntegerDescriptor<infer NULLABLE, infer DEFAULT_VALUE>
-            ? [DEFAULT_VALUE] extends [number]
-              ? HasDefault<IEncodedNumberColumn<NULLABLE>>
-              : IEncodedNumberColumn<NULLABLE>
-            : D extends INumberDescriptor<infer NULLABLE, infer DEFAULT_VALUE>
-              ? [DEFAULT_VALUE] extends [number]
-                ? HasDefault<IEncodedNumberColumn<NULLABLE>>
-                : IEncodedNumberColumn<NULLABLE>
-              : D extends ITextDescriptor<infer NULLABLE, infer DEFAULT_VALUE>
-                ? [DEFAULT_VALUE] extends [string | null]
-                  ? HasDefault<IEncodedTextColumn<NULLABLE, string>>
-                  : IEncodedTextColumn<NULLABLE, string>
-                : D extends IJsonDescriptor<
-                      infer NULLABLE,
-                      infer _DATA,
-                      infer DEFAULT_VALUE
-                    >
-                  ? [DEFAULT_VALUE] extends [null]
-                    ? NULLABLE extends true
-                      ? HasDefault<IEncodedTextColumn<NULLABLE, string>>
-                      : IEncodedTextColumn<NULLABLE, string>
-                    : IEncodedTextColumn<NULLABLE, string>
-                  : D extends IDateDescriptor<
-                        infer NULLABLE,
-                        infer DEFAULT_VALUE
-                      >
-                    ? [DEFAULT_VALUE] extends [Date]
-                      ? HasDefault<IEncodedDateColumn<NULLABLE>>
-                      : IEncodedDateColumn<NULLABLE>
-                    : D extends IEnumDescriptor<
-                          infer NULLABLE,
-                          infer VALUES extends readonly [string, ...string[]],
-                          infer DEFAULT_VALUE
-                        >
-                      ? [DEFAULT_VALUE] extends [VALUES[number]]
-                        ? HasDefault<
-                            IEncodedTextColumn<NULLABLE, VALUES[number]>
-                          >
-                        : IEncodedTextColumn<NULLABLE, VALUES[number]>
-                      : D extends IRefDescriptor<
-                            infer NULLABLE,
-                            infer ABBREVIATION extends string,
-                            infer _TARGET_TABLE,
-                            infer _TARGET_COLUMN_NAME,
-                            infer _RELATION,
-                            infer _INVERSE,
-                            infer _UNIQUE
-                          >
-                        ? IEncodedTextColumn<
-                            NULLABLE,
-                            string extends ABBREVIATION
-                              ? string
-                              : `${ABBREVIATION}_${string}`
-                          >
-                        : ISqliteTextBuilder;
-
-export type InferDrizzleColumnBuildersFromShape<SHAPE extends IAnyShape> = {
-  [K in keyof SHAPE]: InferDrizzleColumnBuilderFromDescriptor<SHAPE[K]>;
-};
-
-type IDrizzleSQLiteTable<
-  MODEL_NAME extends string,
-  PROPERTIES extends IAnyShape,
-> = {
-  name: MODEL_NAME;
-  schema: undefined;
-  columns: BuildColumns<
-    MODEL_NAME,
-    InferDrizzleColumnBuildersFromShape<PROPERTIES>,
-    'sqlite'
-  >;
-  dialect: 'sqlite';
-};
 
 export type IResourceShape = {
   id: IPrimaryKeyDescriptor;
@@ -607,16 +112,16 @@ export type IResourceShape = {
 };
 
 /**
- * Full persisted row descriptors: caller-declared {@link ATTRIBUTES} plus standard metadata
+ * Full persisted row descriptors: caller-declared {@link ATTRIBUTES} plus standard framework
  * columns (abbreviation-scoped primary key replaces generic {@link IResourceShape} `id`).
  */
 export type InferProperties<
   ATTRIBUTES extends IShape,
   ABBREVIATION extends string = string,
-  METADATA extends IResourceShape = Omit<IResourceShape, 'id'> & {
+> = ATTRIBUTES &
+  Omit<IResourceShape, 'id'> & {
     id: IPrimaryKeyDescriptor<ABBREVIATION>;
-  },
-> = ATTRIBUTES & METADATA;
+  };
 
 export type IDecodedResource = InferDecodedRow<IResourceShape>;
 
@@ -624,22 +129,20 @@ export type IEncodedResourceShape = InferEncodedRow<IResourceShape> &
   Readonly<{ deletedAt?: Date | null | undefined }> &
   Record<string, unknown>;
 
+export type IEncodedDeletedResourceShape = IEncodedResourceShape &
+  Readonly<{ deletedAt: Date }>;
+
+export type IResourceDelta = Readonly<{
+  inserted: readonly IEncodedResourceShape[];
+  updated: readonly IEncodedResourceShape[];
+  deleted: readonly IEncodedDeletedResourceShape[];
+  mutations: readonly IEncodedAppliedMutation[];
+}>;
+
 export type IEncodedResource = Readonly<IEncodedResourceShape> &
   Brand<'EncodedResource'>;
 
-export type IDrizzleSchema<
-  MODEL_NAME extends string = string,
-  PROPERTIES extends IAnyShape = IShape,
-> = SQLiteTableWithColumns<IDrizzleSQLiteTable<MODEL_NAME, PROPERTIES>>;
-
-/** Widest sqlite table in a `drizzle({ schema })` record (zerospin `IDrizzleSchema`, raw `sqliteTable`, merged repo schemas). */
-export type IAnyDrizzleSchema = AnySQLiteTable;
-
-export type IAnyDrizzleSchemas = Record<string, IAnyDrizzleSchema>;
-
-export type IDrizzleResourceTable = SQLiteTableWithColumns<
-  IDrizzleSQLiteTable<string, IResourceShape>
->;
+export type IDrizzleResourceTable = IDrizzleSchema<string, IResourceShape>;
 
 /** Keys merged by {@link makeModel}; not part of payload / {@link IModel.attributesSchema}. */
 export type IModelReservedAttributeKeys =
@@ -650,28 +153,28 @@ export type IModelReservedAttributeKeys =
   | 'updatedAt'
   | 'version';
 
-/** Strips persisted metadata columns from a full {@link InferProperties} shape → declared attributes shape. */
+/** Strips framework columns from a full {@link InferProperties} shape → declared attributes shape. */
 export type InferModelAttributesShape<PROPERTIES extends IShape> = Omit<
   PROPERTIES,
   IModelReservedAttributeKeys
 >;
 
-/** Serializable model metadata and JSON Schemas for deploy specs and RPC. */
+/** Serializable model definition and JSON Schemas for deploy specs and RPC. */
 export type IModelSpec = {
   readonly modelName: string;
   readonly abbreviation: string;
   readonly version: string;
   readonly attributes: readonly string[];
-  readonly attributesJsonSchema: JSONSchema.JsonSchema7Root;
-  readonly propertiesJsonSchema: JSONSchema.JsonSchema7Root;
+  readonly attributesJsonSchema: JsonSchema.Document<'draft-2020-12'>;
+  readonly propertiesJsonSchema: JsonSchema.Document<'draft-2020-12'>;
   readonly indexes: readonly IDrizzleIndexConfig<string>[];
 };
 
 /**
- * Caller-declared attribute descriptors (`makeModel`'s `attributes` input shape).
- * {@link InferProperties}, {@link InferResource}, and Drizzle / full-row schemas incorporate metadata separately.
+ * `attributes` is the authored mutation shape. `propertiesShape` is the complete
+ * persisted row shape consumed by {@link InferResource}, Drizzle, and resource schemas.
  */
-export type IModel<
+export interface IModel<
   ATTRIBUTES extends IShape = any,
   ABBREVIATION extends string = string,
   MODEL_NAME extends string = string,
@@ -681,31 +184,27 @@ export type IModel<
     readonly attributes: IShape;
     readonly indexes: readonly IDrizzleIndexConfig<string>[];
     readonly modelName: string;
+    readonly propertiesShape: IShape;
     readonly version: string;
     readonly adaptResource: (props: {
-      resource: never;
+      resource: any;
     }) => Effect.Effect<unknown, IAnyError>;
   }[] = readonly {
     readonly abbreviation: string;
     readonly attributes: IShape;
     readonly indexes: readonly IDrizzleIndexConfig<string>[];
     readonly modelName: string;
+    readonly propertiesShape: IShape;
     readonly version: string;
     readonly adaptResource: (props: {
-      resource: never;
+      resource: any;
     }) => Effect.Effect<unknown, IAnyError>;
   }[],
-  METADATA extends IResourceShape = Omit<IResourceShape, 'id'> & {
-    id: IPrimaryKeyDescriptor<ABBREVIATION>;
-    deletedAt?: IDateDescriptor<true>;
-  },
-> = {
+  PROPERTIES_SHAPE extends IShape = InferProperties<ATTRIBUTES, ABBREVIATION>,
+> {
   abbreviation: ABBREVIATION;
   attributes: ATTRIBUTES;
-  readonly metadata: METADATA;
-  indexes: readonly IDrizzleIndexConfig<
-    keyof InferProperties<ATTRIBUTES, ABBREVIATION, METADATA> & string
-  >[];
+  indexes: readonly IDrizzleIndexConfig<keyof PROPERTIES_SHAPE & string>[];
   historicalDefinitions: HISTORICAL_DEFINITIONS;
   modelName: MODEL_NAME;
   version: VERSION;
@@ -721,81 +220,57 @@ export type IModel<
     readonly modelName: MODEL_NAME;
   };
   prefixId: (id: string) => InferIdFromAbbreviation<ABBREVIATION>;
-  propertiesShape: InferProperties<ATTRIBUTES, ABBREVIATION, METADATA>;
-  table: ITable<
-    MODEL_NAME,
-    InferProperties<ATTRIBUTES, ABBREVIATION, METADATA>
-  >;
-  drizzleSchema: IDrizzleResourceTable & {
-    [BrandTypeId]: 'drizzleSchema';
-  };
-  attributesSchema: Schema.Schema<any, any> & {
-    [BrandTypeId]: 'attributesSchema';
-  };
-  resourceSchema: Schema.Schema<any, any>;
-  spec: IModelSpec;
-} & (string extends VERSION
-  ? {
-      adaptResource: (...args: any[]) => Effect.Effect<any, IAnyError>;
-      createMutation: (...args: any[]) => Schema.Schema.AnyNoContext;
-      create: (...args: any[]) => Effect.Effect<any, any, any>;
-      updateMutation: (...args: any[]) => Schema.Schema.AnyNoContext;
-      update: (...args: any[]) => Effect.Effect<any, any, any>;
-      deleteMutation: (...args: any[]) => Schema.Schema.AnyNoContext;
-      delete: (...args: any[]) => Effect.Effect<any, any, any>;
-      moveMutation: (...args: any[]) => Schema.Schema.AnyNoContext;
-      move: (...args: any[]) => Effect.Effect<any, any, any>;
-      replicateResourceMutation: (...args: any[]) => Schema.Schema.AnyNoContext;
-      replicateResource: (...args: any[]) => Effect.Effect<any, any, any>;
-    }
-  : {
-      adaptResource: <
-        MODEL_VERSION extends
-          | VERSION
-          | HISTORICAL_DEFINITIONS[number]['version'],
-      >(props: {
-        version: MODEL_VERSION;
-        resource: InferResource<
-          IModel<
-            ATTRIBUTES,
-            ABBREVIATION,
-            MODEL_NAME,
-            VERSION,
-            HISTORICAL_DEFINITIONS,
-            METADATA
-          >
-        >;
-      }) => Effect.Effect<
-        MODEL_VERSION extends VERSION
-          ? InferEncodedRow<InferProperties<ATTRIBUTES, ABBREVIATION, METADATA>>
-          : InferEncodedRow<
-              InferProperties<
-                Extract<
-                  HISTORICAL_DEFINITIONS[number],
-                  { readonly version: MODEL_VERSION }
-                >['attributes'],
-                ABBREVIATION,
-                METADATA
-              >
-            >,
-        IAnyError
+  propertiesShape: PROPERTIES_SHAPE;
+  table: ITable<MODEL_NAME, PROPERTIES_SHAPE>;
+  drizzleSchema: IDrizzleResourceTable;
+  attributesSchema: Schema.Codec<
+    InferDecodedRow<ATTRIBUTES>,
+    InferEncodedRow<ATTRIBUTES>
+  > &
+    Schema.Struct<{
+      [K in keyof ATTRIBUTES]: Schema.Codec<
+        IPrimitiveDescriptorDecoded<ATTRIBUTES[K]>,
+        IPrimitiveDescriptorEncoded<ATTRIBUTES[K]>
       >;
-      createMutation: <
-        MODEL_VERSION extends
-          | VERSION
-          | HISTORICAL_DEFINITIONS[number]['version'],
-      >(
-        modelVersion: MODEL_VERSION,
-      ) => Schema.Schema<
-        ICreateMutation<
-          IModel<
-            ATTRIBUTES,
-            ABBREVIATION,
-            MODEL_NAME,
-            VERSION,
-            HISTORICAL_DEFINITIONS,
-            METADATA
+    }>;
+  resourceSchema: Schema.Codec<any, any>;
+  spec: IModelSpec;
+  adaptResource<
+    MODEL_VERSION extends VERSION | HISTORICAL_DEFINITIONS[number]['version'],
+  >(props: {
+    version: MODEL_VERSION;
+    resource: InferResource<
+      IModel<
+        ATTRIBUTES,
+        ABBREVIATION,
+        MODEL_NAME,
+        VERSION,
+        HISTORICAL_DEFINITIONS,
+        PROPERTIES_SHAPE
+      >
+    >;
+  }): Effect.Effect<
+    string extends VERSION
+      ? any
+      : MODEL_VERSION extends VERSION
+        ? InferEncodedRow<PROPERTIES_SHAPE>
+        : InferEncodedRow<
+            Extract<
+              HISTORICAL_DEFINITIONS[number],
+              { readonly version: MODEL_VERSION }
+            >['propertiesShape']
           >,
+    IAnyError
+  >;
+  createMutation<
+    MODEL_VERSION extends VERSION | HISTORICAL_DEFINITIONS[number]['version'],
+  >(
+    modelVersion: MODEL_VERSION,
+  ): Schema.Codec<
+    string extends VERSION
+      ? any
+      : ICreateMutation<
+          this,
           MODEL_VERSION extends VERSION
             ? ATTRIBUTES
             : Extract<
@@ -803,7 +278,9 @@ export type IModel<
                 { readonly version: MODEL_VERSION }
               >['attributes']
         >,
-        Readonly<{
+    string extends VERSION
+      ? any
+      : Readonly<{
           modelName: MODEL_NAME;
           modelVersion: MODEL_VERSION;
           operationName: 'create';
@@ -819,34 +296,27 @@ export type IModel<
             >;
           };
         }>
+  >;
+  create<
+    MODEL_VERSION extends VERSION | HISTORICAL_DEFINITIONS[number]['version'],
+  >(
+    modelVersion: MODEL_VERSION,
+    props: {
+      readonly resourceId: InferIdFromAbbreviation<ABBREVIATION>;
+      readonly attributes: InferDecodedRow<
+        MODEL_VERSION extends VERSION
+          ? ATTRIBUTES
+          : Extract<
+              HISTORICAL_DEFINITIONS[number],
+              { readonly version: MODEL_VERSION }
+            >['attributes']
       >;
-      create: <
-        MODEL_VERSION extends
-          | VERSION
-          | HISTORICAL_DEFINITIONS[number]['version'],
-      >(
-        modelVersion: MODEL_VERSION,
-        props: {
-          readonly resourceId: InferIdFromAbbreviation<ABBREVIATION>;
-          readonly attributes: InferDecodedRow<
-            MODEL_VERSION extends VERSION
-              ? ATTRIBUTES
-              : Extract<
-                  HISTORICAL_DEFINITIONS[number],
-                  { readonly version: MODEL_VERSION }
-                >['attributes']
-          >;
-        },
-      ) => Effect.Effect<
-        ICreateMutation<
-          IModel<
-            ATTRIBUTES,
-            ABBREVIATION,
-            MODEL_NAME,
-            VERSION,
-            HISTORICAL_DEFINITIONS,
-            METADATA
-          >,
+    },
+  ): Effect.Effect<
+    string extends VERSION
+      ? any
+      : ICreateMutation<
+          this,
           MODEL_VERSION extends VERSION
             ? ATTRIBUTES
             : Extract<
@@ -854,24 +324,17 @@ export type IModel<
                 { readonly version: MODEL_VERSION }
               >['attributes']
         >,
-        IAnyError
-      >;
-      updateMutation: <
-        MODEL_VERSION extends
-          | VERSION
-          | HISTORICAL_DEFINITIONS[number]['version'],
-      >(
-        modelVersion: MODEL_VERSION,
-      ) => Schema.Schema<
-        IUpdateMutation<
-          IModel<
-            ATTRIBUTES,
-            ABBREVIATION,
-            MODEL_NAME,
-            VERSION,
-            HISTORICAL_DEFINITIONS,
-            METADATA
-          >,
+    IAnyError
+  >;
+  updateMutation<
+    MODEL_VERSION extends VERSION | HISTORICAL_DEFINITIONS[number]['version'],
+  >(
+    modelVersion: MODEL_VERSION,
+  ): Schema.Codec<
+    string extends VERSION
+      ? any
+      : IUpdateMutation<
+          this,
           MODEL_VERSION extends VERSION
             ? ATTRIBUTES
             : Extract<
@@ -879,7 +342,9 @@ export type IModel<
                 { readonly version: MODEL_VERSION }
               >['attributes']
         >,
-        Readonly<{
+    string extends VERSION
+      ? any
+      : Readonly<{
           modelName: MODEL_NAME;
           modelVersion: MODEL_VERSION;
           operationName: 'update';
@@ -898,47 +363,40 @@ export type IModel<
             readonly mask?: string[];
           };
         }>
+  >;
+  update<
+    MODEL_VERSION extends VERSION | HISTORICAL_DEFINITIONS[number]['version'],
+  >(
+    modelVersion: MODEL_VERSION,
+    props: {
+      readonly resourceId: InferIdFromAbbreviation<ABBREVIATION>;
+      readonly attributes: Partial<
+        InferDecodedRow<
+          MODEL_VERSION extends VERSION
+            ? ATTRIBUTES
+            : Extract<
+                HISTORICAL_DEFINITIONS[number],
+                { readonly version: MODEL_VERSION }
+              >['attributes']
+        >
       >;
-      update: <
-        MODEL_VERSION extends
-          | VERSION
-          | HISTORICAL_DEFINITIONS[number]['version'],
-      >(
-        modelVersion: MODEL_VERSION,
-        props: {
-          readonly resourceId: InferIdFromAbbreviation<ABBREVIATION>;
-          readonly attributes: Partial<
-            InferDecodedRow<
-              MODEL_VERSION extends VERSION
-                ? ATTRIBUTES
-                : Extract<
-                    HISTORICAL_DEFINITIONS[number],
-                    { readonly version: MODEL_VERSION }
-                  >['attributes']
-            >
-          >;
-          readonly mask?: ReadonlyArray<
-            keyof InferDecodedRow<
-              MODEL_VERSION extends VERSION
-                ? ATTRIBUTES
-                : Extract<
-                    HISTORICAL_DEFINITIONS[number],
-                    { readonly version: MODEL_VERSION }
-                  >['attributes']
-            > &
-              string
-          >;
-        },
-      ) => Effect.Effect<
-        IUpdateMutation<
-          IModel<
-            ATTRIBUTES,
-            ABBREVIATION,
-            MODEL_NAME,
-            VERSION,
-            HISTORICAL_DEFINITIONS,
-            METADATA
-          >,
+      readonly mask?: ReadonlyArray<
+        keyof InferDecodedRow<
+          MODEL_VERSION extends VERSION
+            ? ATTRIBUTES
+            : Extract<
+                HISTORICAL_DEFINITIONS[number],
+                { readonly version: MODEL_VERSION }
+              >['attributes']
+        > &
+          string
+      >;
+    },
+  ): Effect.Effect<
+    string extends VERSION
+      ? any
+      : IUpdateMutation<
+          this,
           MODEL_VERSION extends VERSION
             ? ATTRIBUTES
             : Extract<
@@ -946,73 +404,44 @@ export type IModel<
                 { readonly version: MODEL_VERSION }
               >['attributes']
         >,
-        IAnyError
-      >;
-      deleteMutation: <
-        MODEL_VERSION extends
-          | VERSION
-          | HISTORICAL_DEFINITIONS[number]['version'],
-      >(
-        modelVersion: MODEL_VERSION,
-      ) => Schema.Schema<
-        IDeleteMutation<
-          IModel<
-            ATTRIBUTES,
-            ABBREVIATION,
-            MODEL_NAME,
-            VERSION,
-            HISTORICAL_DEFINITIONS,
-            METADATA
-          >
-        >,
-        Readonly<{
+    IAnyError
+  >;
+  deleteMutation<
+    MODEL_VERSION extends VERSION | HISTORICAL_DEFINITIONS[number]['version'],
+  >(
+    modelVersion: MODEL_VERSION,
+  ): Schema.Codec<
+    string extends VERSION ? any : IDeleteMutation<this>,
+    string extends VERSION
+      ? any
+      : Readonly<{
           modelName: MODEL_NAME;
           modelVersion: MODEL_VERSION;
           operationName: 'delete';
           resourceId: InferIdFromAbbreviation<ABBREVIATION>;
           operation: Record<string, never>;
         }>
-      >;
-      delete: <
-        MODEL_VERSION extends
-          | VERSION
-          | HISTORICAL_DEFINITIONS[number]['version'],
-      >(
-        modelVersion: MODEL_VERSION,
-        props: {
-          readonly resourceId: InferIdFromAbbreviation<ABBREVIATION>;
-        },
-      ) => Effect.Effect<
-        IDeleteMutation<
-          IModel<
-            ATTRIBUTES,
-            ABBREVIATION,
-            MODEL_NAME,
-            VERSION,
-            HISTORICAL_DEFINITIONS,
-            METADATA
-          >
-        >,
-        IAnyError
-      >;
-      moveMutation: <
-        MODEL_VERSION extends
-          | VERSION
-          | HISTORICAL_DEFINITIONS[number]['version'],
-      >(
-        modelVersion: MODEL_VERSION,
-      ) => Schema.Schema<
-        IMoveMutation<
-          IModel<
-            ATTRIBUTES,
-            ABBREVIATION,
-            MODEL_NAME,
-            VERSION,
-            HISTORICAL_DEFINITIONS,
-            METADATA
-          >
-        >,
-        Readonly<{
+  >;
+  delete<
+    MODEL_VERSION extends VERSION | HISTORICAL_DEFINITIONS[number]['version'],
+  >(
+    modelVersion: MODEL_VERSION,
+    props: {
+      readonly resourceId: InferIdFromAbbreviation<ABBREVIATION>;
+    },
+  ): Effect.Effect<
+    string extends VERSION ? any : IDeleteMutation<this>,
+    IAnyError
+  >;
+  moveMutation<
+    MODEL_VERSION extends VERSION | HISTORICAL_DEFINITIONS[number]['version'],
+  >(
+    modelVersion: MODEL_VERSION,
+  ): Schema.Codec<
+    string extends VERSION ? any : IMoveMutation<this>,
+    string extends VERSION
+      ? any
+      : Readonly<{
           modelName: MODEL_NAME;
           modelVersion: MODEL_VERSION;
           operationName: 'move';
@@ -1023,181 +452,197 @@ export type IModel<
             readonly nextId: string;
           };
         }>
-      >;
-      move: <
-        MODEL_VERSION extends
-          | VERSION
-          | HISTORICAL_DEFINITIONS[number]['version'],
-      >(
-        modelVersion: MODEL_VERSION,
-        props: {
-          readonly resourceId: InferIdFromAbbreviation<ABBREVIATION>;
-          readonly property: string;
-          readonly prevId: string;
-          readonly nextId: string;
-        },
-      ) => Effect.Effect<
-        IMoveMutation<
-          IModel<
-            ATTRIBUTES,
-            ABBREVIATION,
-            MODEL_NAME,
-            VERSION,
-            HISTORICAL_DEFINITIONS,
-            METADATA
-          >
-        >,
-        IAnyError
-      >;
-      replicateResourceMutation: <
-        SERVICE_NAME extends string,
-        MODEL_VERSION extends
-          | VERSION
-          | HISTORICAL_DEFINITIONS[number]['version'],
-      >(
-        this: IServiceModel<
-          IModel<
-            ATTRIBUTES,
-            ABBREVIATION,
-            MODEL_NAME,
-            VERSION,
-            HISTORICAL_DEFINITIONS,
-            METADATA
-          >,
-          SERVICE_NAME
-        >,
-        modelVersion: MODEL_VERSION,
-      ) => Schema.Schema<
-        IReplicateResourceMutation<
-          IServiceModel<
-            IModel<
-              ATTRIBUTES,
-              ABBREVIATION,
-              MODEL_NAME,
-              VERSION,
-              HISTORICAL_DEFINITIONS,
-              METADATA
-            >,
-            SERVICE_NAME
-          >,
-          MODEL_VERSION extends VERSION
-            ? ATTRIBUTES
+  >;
+  move<
+    MODEL_VERSION extends VERSION | HISTORICAL_DEFINITIONS[number]['version'],
+  >(
+    modelVersion: MODEL_VERSION,
+    props: {
+      readonly resourceId: InferIdFromAbbreviation<ABBREVIATION>;
+      readonly property: string;
+      readonly prevId: string;
+      readonly nextId: string;
+    },
+  ): Effect.Effect<
+    string extends VERSION ? any : IMoveMutation<this>,
+    IAnyError
+  >;
+  replicateResourceMutation<
+    SOURCE_MODEL extends IModel,
+    SERVICE_NAME extends string,
+    MODEL_VERSION extends
+      | SOURCE_MODEL['version']
+      | SOURCE_MODEL['historicalDefinitions'][number]['version'],
+  >(
+    this: string extends VERSION
+      ? any
+      : IModelReplica<SOURCE_MODEL, SERVICE_NAME>,
+    modelVersion: MODEL_VERSION,
+  ): Schema.Codec<
+    string extends VERSION
+      ? any
+      : IReplicateResourceMutation<
+          IModelReplica<SOURCE_MODEL, SERVICE_NAME>,
+          MODEL_VERSION extends SOURCE_MODEL['version']
+            ? IModelReplica<SOURCE_MODEL, SERVICE_NAME>['propertiesShape']
             : Extract<
-                HISTORICAL_DEFINITIONS[number],
+                IModelReplica<
+                  SOURCE_MODEL,
+                  SERVICE_NAME
+                >['historicalDefinitions'][number],
                 { readonly version: MODEL_VERSION }
-              >['attributes']
+              >['propertiesShape']
         >,
-        Readonly<{
-          modelName: MODEL_NAME;
+    string extends VERSION
+      ? any
+      : Readonly<{
+          modelName: SOURCE_MODEL['modelName'];
           modelVersion: MODEL_VERSION;
           operationName: 'replicateResource';
-          resourceId: InferIdFromAbbreviation<ABBREVIATION>;
+          resourceId: InferIdFromAbbreviation<SOURCE_MODEL['abbreviation']>;
           operation: {
             readonly serviceName: SERVICE_NAME;
             readonly resource: InferEncodedRow<
-              InferProperties<
-                MODEL_VERSION extends VERSION
-                  ? ATTRIBUTES
-                  : Extract<
-                      HISTORICAL_DEFINITIONS[number],
-                      { readonly version: MODEL_VERSION }
-                    >['attributes'],
-                ABBREVIATION,
-                METADATA
-              >
+              MODEL_VERSION extends SOURCE_MODEL['version']
+                ? IModelReplica<SOURCE_MODEL, SERVICE_NAME>['propertiesShape']
+                : Extract<
+                    IModelReplica<
+                      SOURCE_MODEL,
+                      SERVICE_NAME
+                    >['historicalDefinitions'][number],
+                    { readonly version: MODEL_VERSION }
+                  >['propertiesShape']
             >;
           };
         }>
+  >;
+  replicateResource<
+    SOURCE_MODEL extends IModel,
+    SERVICE_NAME extends string,
+    MODEL_VERSION extends
+      | SOURCE_MODEL['version']
+      | SOURCE_MODEL['historicalDefinitions'][number]['version'],
+  >(
+    this: string extends VERSION
+      ? any
+      : IModelReplica<SOURCE_MODEL, SERVICE_NAME>,
+    modelVersion: MODEL_VERSION,
+    props: {
+      readonly resource: InferDecodedRow<
+        MODEL_VERSION extends SOURCE_MODEL['version']
+          ? SOURCE_MODEL['propertiesShape']
+          : Extract<
+              SOURCE_MODEL['historicalDefinitions'][number],
+              { readonly version: MODEL_VERSION }
+            >['propertiesShape']
       >;
-      replicateResource: <
-        SERVICE_NAME extends string,
-        MODEL_VERSION extends
-          | VERSION
-          | HISTORICAL_DEFINITIONS[number]['version'],
-      >(
-        this: IServiceModel<
-          IModel<
-            ATTRIBUTES,
-            ABBREVIATION,
-            MODEL_NAME,
-            VERSION,
-            HISTORICAL_DEFINITIONS,
-            METADATA
-          >,
-          SERVICE_NAME
-        >,
-        modelVersion: MODEL_VERSION,
-        props: {
-          readonly resource: InferResource<
-            IModel<
-              ATTRIBUTES,
-              ABBREVIATION,
-              MODEL_NAME,
-              VERSION,
-              HISTORICAL_DEFINITIONS,
-              METADATA
-            >,
-            MODEL_VERSION extends VERSION
-              ? ATTRIBUTES
-              : Extract<
-                  HISTORICAL_DEFINITIONS[number],
-                  { readonly version: MODEL_VERSION }
-                >['attributes']
-          >;
-        },
-      ) => Effect.Effect<
-        IReplicateResourceMutation<
-          IServiceModel<
-            IModel<
-              ATTRIBUTES,
-              ABBREVIATION,
-              MODEL_NAME,
-              VERSION,
-              HISTORICAL_DEFINITIONS,
-              METADATA
-            >,
-            SERVICE_NAME
-          >,
-          MODEL_VERSION extends VERSION
-            ? ATTRIBUTES
+    },
+  ): Effect.Effect<
+    string extends VERSION
+      ? any
+      : IReplicateResourceMutation<
+          IModelReplica<SOURCE_MODEL, SERVICE_NAME>,
+          MODEL_VERSION extends SOURCE_MODEL['version']
+            ? IModelReplica<SOURCE_MODEL, SERVICE_NAME>['propertiesShape']
             : Extract<
-                HISTORICAL_DEFINITIONS[number],
+                IModelReplica<
+                  SOURCE_MODEL,
+                  SERVICE_NAME
+                >['historicalDefinitions'][number],
                 { readonly version: MODEL_VERSION }
-              >['attributes']
+              >['propertiesShape']
         >,
-        IAnyError
-      >;
-    });
+    IAnyError
+  >;
+}
 
-export type IServiceModel<
-  MODEL extends IModel = IModel,
+export type IModelReplica<
+  SOURCE_MODEL extends IModel = IModel,
   SERVICE_NAME extends string = string,
-> = MODEL & {
+> = IModel<
+  SOURCE_MODEL['attributes'],
+  SOURCE_MODEL['abbreviation'],
+  SOURCE_MODEL['modelName'],
+  SOURCE_MODEL['version'],
+  SOURCE_MODEL['historicalDefinitions'] extends infer HISTORICAL_DEFINITIONS extends
+    readonly {
+      readonly abbreviation: string;
+      readonly attributes: IShape;
+      readonly adaptResource: (props: {
+        resource: any;
+      }) => Effect.Effect<unknown, IAnyError>;
+      readonly indexes: readonly IDrizzleIndexConfig<string>[];
+      readonly modelName: string;
+      readonly propertiesShape: IShape;
+      readonly version: string;
+    }[]
+    ? {
+        readonly [INDEX in keyof HISTORICAL_DEFINITIONS]: HISTORICAL_DEFINITIONS[INDEX] extends infer DEFINITION extends
+          {
+            readonly attributes: IShape;
+            readonly indexes: readonly IDrizzleIndexConfig<string>[];
+            readonly propertiesShape: IShape;
+            readonly version: string;
+          }
+          ? Readonly<{
+              abbreviation: SOURCE_MODEL['abbreviation'];
+              attributes: DEFINITION['attributes'];
+              adaptResource: (props: {
+                resource: InferDecodedRow<
+                  SOURCE_MODEL['propertiesShape'] & {
+                    deletedAt: IDateDescriptor<true>;
+                  }
+                >;
+              }) => Effect.Effect<
+                InferDecodedRow<
+                  DEFINITION['propertiesShape'] & {
+                    deletedAt: IDateDescriptor<true>;
+                  }
+                >,
+                IAnyError
+              >;
+              indexes: DEFINITION['indexes'];
+              modelName: SOURCE_MODEL['modelName'];
+              propertiesShape: DEFINITION['propertiesShape'] & {
+                deletedAt: IDateDescriptor<true>;
+              };
+              version: DEFINITION['version'];
+            }>
+          : never;
+      }
+    : never,
+  SOURCE_MODEL['propertiesShape'] & {
+    deletedAt: IDateDescriptor<true>;
+  }
+> & {
+  readonly sourceModel: SOURCE_MODEL;
   readonly serviceName: SERVICE_NAME;
 };
 
 export type InferResource<
   MODEL extends IModel,
-  ATTRIBUTES extends IShape = MODEL['attributes'],
-> = IDecodedResource & InferDecodedRow<ATTRIBUTES & MODEL['metadata']>;
+  PROPERTIES_SHAPE extends IShape = MODEL['propertiesShape'],
+> = IDecodedResource & InferDecodedRow<PROPERTIES_SHAPE>;
 
-export type InferEncodedResource<MODEL extends IModel> =
-  InferEncodedRow<IResourceShape> &
-    InferEncodedRow<MODEL['attributes'] & MODEL['metadata']>;
+export type InferEncodedResource<MODEL extends IModel> = InferEncodedRow<
+  MODEL['propertiesShape']
+>;
 
 export type InferPropertiesTable<MODEL extends IModel> = IDrizzleSchema<
   MODEL['modelName'],
-  MODEL['attributes'] & MODEL['metadata']
-> & {
-  [BrandTypeId]: 'drizzleSchema';
-};
+  MODEL['propertiesShape']
+>;
 
-export type InferAttributesSchema<MODEL extends IModel> = Schema.Schema<
+export type InferAttributesSchema<MODEL extends IModel> = Schema.Codec<
   InferDecodedRow<MODEL['attributes']>,
   InferEncodedRow<MODEL['attributes']>
-> & {
-  [BrandTypeId]: 'attributesSchema';
-};
+> &
+  Schema.Struct<{
+    [K in keyof MODEL['attributes']]: Schema.Codec<
+      IPrimitiveDescriptorDecoded<MODEL['attributes'][K]>,
+      IPrimitiveDescriptorEncoded<MODEL['attributes'][K]>
+    >;
+  }>;
 
 export type IModels = Record<string, IModel>;
 
@@ -1212,8 +657,24 @@ export type IAssertValidModels<MODELS extends IModels> = {
               ? MODELS[TARGET_MODEL_NAME]['table'] extends MODELS[K]['attributes'][ATTRIBUTE_KEY]['table']
                 ? MODELS[K]['attributes'][ATTRIBUTE_KEY]['table'] extends MODELS[TARGET_MODEL_NAME]['table']
                   ? MODELS[K]
+                  : MODELS[TARGET_MODEL_NAME] extends {
+                        readonly sourceModel: infer SOURCE_MODEL extends IModel;
+                      }
+                    ? SOURCE_MODEL['table'] extends MODELS[K]['attributes'][ATTRIBUTE_KEY]['table']
+                      ? MODELS[K]['attributes'][ATTRIBUTE_KEY]['table'] extends SOURCE_MODEL['table']
+                        ? MODELS[K]
+                        : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
+                      : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
+                    : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
+                : MODELS[TARGET_MODEL_NAME] extends {
+                      readonly sourceModel: infer SOURCE_MODEL extends IModel;
+                    }
+                  ? SOURCE_MODEL['table'] extends MODELS[K]['attributes'][ATTRIBUTE_KEY]['table']
+                    ? MODELS[K]['attributes'][ATTRIBUTE_KEY]['table'] extends SOURCE_MODEL['table']
+                      ? MODELS[K]
+                      : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
+                    : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
                   : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
-                : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model must match models.${TARGET_MODEL_NAME}`>
               : ITypeError<`ref "${MODELS[K]['modelName'] & string}.${ATTRIBUTE_KEY}" target model "${MODELS[K]['attributes'][ATTRIBUTE_KEY]['targetTableName'] & string}" is not registered on controller models`>
             : MODELS[K];
         }[keyof MODELS[K]['attributes'] & string] extends infer RESULT
@@ -1297,23 +758,6 @@ export type IRelationHelpers = {
   ) => IConnectManyRelation<MODEL, OWN_REF, CONNECTED_REF>;
 };
 
-export type InferIdFromAbbreviation<ABBREVIATION extends string = string> =
-  `${ABBREVIATION}_${string}`;
-
-export type IStagedCursorId = InferIdFromAbbreviation<
-  (typeof coreAbbreviations)['stagedCursor']
->;
-export type IPushedCursorId = InferIdFromAbbreviation<
-  (typeof coreAbbreviations)['pushedCursor']
->;
-
-export type IAggregateCursor = InferIdFromAbbreviation<
-  (typeof coreAbbreviations)['aggregateCursor']
->;
-
-export type IServiceCursorId = InferIdFromAbbreviation<
-  (typeof coreAbbreviations)['serviceCursor']
->;
 export type IAggregateId = InferIdFromAbbreviation<
   (typeof coreAbbreviations)['aggregate']
 >;

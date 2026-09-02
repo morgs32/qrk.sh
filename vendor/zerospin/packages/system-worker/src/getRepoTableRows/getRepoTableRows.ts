@@ -4,9 +4,9 @@
  */
 
 import type { IDb } from '@zerospin/core/drizzle/types';
-import type { IAnyDrizzleSchemas } from '@zerospin/core/models/types';
 import type { IRepoTableData } from '@zerospin/core/system/types';
 import { ZerospinError } from '@zerospin/error';
+import type { IAnyDrizzleSchemas } from '@zerospin/schema';
 import { getTableColumns, getTableName } from 'drizzle-orm';
 import { Effect } from 'effect';
 

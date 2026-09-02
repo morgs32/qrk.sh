@@ -1,16 +1,15 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { defaultRetrySchedule } from '@zerospin/core/utils/defaultRetrySchedule';
 import type { IAnyError } from '@zerospin/error';
-import { Effect, Either, Tracer } from 'effect';
+import { Effect, Result, Semaphore, Tracer } from 'effect';
 
 const RETRY_LINKS_KEY = 'deliveryQueueRetryOf';
-const ALARM_DELAY_MS = 250;
 
 export const makeDeliveryQueue = (props: {
   hasPending?(): Effect.Effect<boolean, IAnyError, Async>;
   storage: DurableObjectStorage;
 }) => {
-  const semaphore = Effect.runSync(Effect.makeSemaphore(1));
+  const semaphore = Effect.runSync(Semaphore.make(1));
   let requestSequence = 0;
   const exhaustedRetryLinks: Array<{ traceId: string; spanId: string }> = [];
 
@@ -21,7 +20,6 @@ export const makeDeliveryQueue = (props: {
       if (previousAttempt !== undefined) {
         span.addLinks([
           {
-            _tag: 'SpanLink',
             span: Tracer.externalSpan(previousAttempt),
             attributes: { kind: 'retryOf' },
           },
@@ -43,24 +41,6 @@ export const makeDeliveryQueue = (props: {
     );
   };
 
-  const setAlarmIfEarlier = Effect.fn('DeliveryQueue.setAlarmIfEarlier')(
-    function* () {
-      const alarmAt = Date.now() + ALARM_DELAY_MS;
-      yield* Effect.promise(() =>
-        props.storage.transaction(async transaction => {
-          const currentAlarm = await transaction.getAlarm();
-          if (
-            currentAlarm === null ||
-            currentAlarm <= Date.now() ||
-            alarmAt < currentAlarm
-          ) {
-            await transaction.setAlarm(alarmAt);
-          }
-        }),
-      );
-    },
-  );
-
   const attachAlarmRetryLinks = Effect.fn(
     'DeliveryQueue.attachAlarmRetryLinks',
   )(function* () {
@@ -75,7 +55,6 @@ export const makeDeliveryQueue = (props: {
     const span = yield* Effect.currentSpan.pipe(Effect.orDie);
     span.addLinks(
       retryLinks.map(retryOf => ({
-        _tag: 'SpanLink',
         span: Tracer.externalSpan(retryOf),
         attributes: { kind: 'retryOf' },
       })),
@@ -105,73 +84,60 @@ export const makeDeliveryQueue = (props: {
   );
 
   const drain = Effect.fn('DeliveryQueue.drain')(function* (drainProps: {
-    alarm?: true;
     lanes: readonly {
       name: string;
       requested: boolean;
       drain(): Effect.Effect<void, IAnyError, Async>;
       hasPending(): Effect.Effect<boolean, IAnyError, Async>;
     }[];
-  }): Effect.fn.Return<void, IAnyError, Async> {
+  }): Effect.fn.Return<Readonly<{ pending: boolean }>, IAnyError, Async> {
     const claimedSequence = yield* Effect.sync(() => {
       requestSequence += 1;
       return requestSequence;
     });
-    yield* setAlarmIfEarlier();
-
     return yield* semaphore.withPermits(1)(
       Effect.gen(function* () {
-        if (drainProps.alarm === true) {
-          yield* attachAlarmRetryLinks().pipe(
-            Effect.catchAllCause(() => Effect.void),
-          );
-        }
+        yield* attachAlarmRetryLinks().pipe(
+          Effect.catchCause(() => Effect.void),
+        );
 
         const laneResults = yield* Effect.forEach(
           drainProps.lanes.filter(lane => lane.requested),
-          lane => lane.drain().pipe(Effect.either),
+          lane => lane.drain().pipe(Effect.result),
           { concurrency: 'unbounded' },
         );
         const pendingResults = yield* Effect.forEach(
           drainProps.lanes,
-          lane => lane.hasPending().pipe(Effect.either),
+          lane => lane.hasPending().pipe(Effect.result),
           { concurrency: 'unbounded' },
         );
         const ownerPending = yield* (
           props.hasPending?.() ?? Effect.succeed(false)
-        ).pipe(Effect.either);
+        ).pipe(Effect.result);
 
-        yield* persistRetryLinks().pipe(
-          Effect.catchAllCause(() => Effect.void),
-        );
+        yield* persistRetryLinks().pipe(Effect.catchCause(() => Effect.void));
 
-        const laneFailure = laneResults.find(Either.isLeft);
-        const pendingFailure = pendingResults.find(Either.isLeft);
+        const laneFailure = laneResults.find(Result.isFailure);
+        const pendingFailure = pendingResults.find(Result.isFailure);
         const hasPending = pendingResults.some(
-          result => Either.isRight(result) && result.right,
+          result => Result.isSuccess(result) && result.success,
         );
-        if (
-          hasPending ||
-          (Either.isRight(ownerPending) && ownerPending.right) ||
-          laneFailure !== undefined ||
-          pendingFailure !== undefined ||
-          Either.isLeft(ownerPending) ||
-          claimedSequence !== requestSequence
-        ) {
-          yield* setAlarmIfEarlier();
-        } else {
-          yield* Effect.promise(() => props.storage.deleteAlarm());
-        }
 
         if (laneFailure !== undefined) {
-          return yield* laneFailure.left;
+          return yield* laneFailure.failure;
         }
         if (pendingFailure !== undefined) {
-          return yield* pendingFailure.left;
+          return yield* pendingFailure.failure;
         }
-        if (Either.isLeft(ownerPending)) {
-          return yield* ownerPending.left;
+        if (Result.isFailure(ownerPending)) {
+          return yield* ownerPending.failure;
         }
+        return {
+          pending:
+            hasPending ||
+            ownerPending.success ||
+            claimedSequence !== requestSequence,
+        };
       }),
     );
   });

@@ -1,5 +1,9 @@
 import type { ZerospinError } from './ZerospinError.js';
 
+export type IEncodedResult<SUCCESS = unknown, FAILURE = unknown> =
+  | Readonly<{ _tag: 'Success'; success: SUCCESS }>
+  | Readonly<{ _tag: 'Failure'; failure: FAILURE }>;
+
 export type IZerospinError<T extends string = string> = {
   code: T;
   status: null | number;

@@ -4,10 +4,7 @@ import type { ISession } from '@zerospin/core/session/types';
 import { NavLink, Outlet } from 'react-router';
 import { useStore } from 'zustand/react';
 
-import type {
-  IDevtoolsServiceSessionEntry,
-  IDevtoolsWorkerState,
-} from '../../../types.js';
+import type { IDevtoolsServiceSessionEntry } from '../../../types.js';
 
 import { useAggregateSession, useServiceSession } from './useSession';
 
@@ -93,14 +90,31 @@ export function SessionPane() {
   throw new Error('Session not found');
 }
 
-function SessionWorkerState(props: {
-  readonly workerState: IDevtoolsWorkerState;
+function SessionState(props: {
+  readonly sessionStatus: string;
+  readonly backupState: Readonly<{
+    status: string;
+    failure: unknown;
+  }>;
+  readonly sourceLabel: 'aggregate index' | 'service index';
+  readonly frontendLabel: 'frontend index' | 'service frontend index';
+  readonly sourceIndex: number | null;
+  readonly frontendIndex: number | null;
+  readonly pushIndex?: number | null;
 }) {
-  const { workerState } = props;
+  const {
+    backupState,
+    frontendLabel,
+    frontendIndex,
+    pushIndex,
+    sessionStatus,
+    sourceLabel,
+    sourceIndex,
+  } = props;
 
   return (
     <div
-      data-testid="session-worker-state"
+      data-testid="session-state"
       style={{
         display: 'flex',
         flexWrap: 'wrap',
@@ -113,17 +127,22 @@ function SessionWorkerState(props: {
         fontSize: 10,
       }}
     >
-      <span>mode: {workerState.mode}</span>
-      <span>status: {workerState.status}</span>
-      <span>bootstrap: {workerState.bootstrapSource ?? 'none'}</span>
-      <span>frontend index: {workerState.frontendIndex ?? 'none'}</span>
-      <span>replica index: {workerState.replicaIndex ?? 'none'}</span>
-      <span>database: {workerState.databaseName ?? 'none'}</span>
+      <span>session: {sessionStatus}</span>
+      <span>backup: {backupState.status}</span>
+      <span>
+        {sourceLabel}: {sourceIndex ?? 'none'}
+      </span>
+      <span>
+        {frontendLabel}: {frontendIndex ?? 'none'}
+      </span>
+      {pushIndex === undefined ? null : (
+        <span>push index: {pushIndex ?? 'none'}</span>
+      )}
       <span>
         failure:{' '}
-        {workerState.failure === null
+        {backupState.failure === null
           ? 'none'
-          : JSON.stringify(workerState.failure)}
+          : JSON.stringify(backupState.failure)}
       </span>
     </div>
   );
@@ -133,15 +152,37 @@ function AggregateSessionPane(props: { readonly session: ISession }) {
   const { session } = props;
 
   const isInitialized = useStore(session.store, state => state.isInitialized);
-  const workerState = useStore(session.store, state => state.workerState);
+  const sessionStatus = useStore(session.store, state => state.sessionStatus);
+  const backupState = useStore(session.store, state => state.backupState);
+  const aggregateIndex = useStore(session.store, state => state.aggregateIndex);
+  const frontendIndex = useStore(session.store, state => state.frontendIndex);
+  const pushIndex = useStore(session.store, state => state.pushIndex);
 
   if (!isInitialized) {
-    return <SessionWorkerState workerState={workerState} />;
+    return (
+      <SessionState
+        sessionStatus={sessionStatus}
+        backupState={backupState}
+        sourceLabel="aggregate index"
+        frontendLabel="frontend index"
+        sourceIndex={aggregateIndex}
+        frontendIndex={frontendIndex}
+        pushIndex={pushIndex}
+      />
+    );
   }
 
   return (
     <div style={styles.paneRoot}>
-      <SessionWorkerState workerState={workerState} />
+      <SessionState
+        sessionStatus={sessionStatus}
+        backupState={backupState}
+        sourceLabel="aggregate index"
+        frontendLabel="frontend index"
+        sourceIndex={aggregateIndex}
+        frontendIndex={frontendIndex}
+        pushIndex={pushIndex}
+      />
       <div style={styles.tabsHeader}>
         <NavLink
           to="commands"
@@ -190,19 +231,50 @@ function ServiceSessionPane(props: {
     session.getIsInitialized,
     session.getIsInitialized,
   );
-  const workerState = useSyncExternalStore(
+  const sessionStatus = useSyncExternalStore(
     session.subscribe,
-    session.getWorkerState,
-    session.getWorkerState,
+    session.getSessionStatus,
+    session.getSessionStatus,
+  );
+  const backupState = useSyncExternalStore(
+    session.subscribe,
+    session.getBackupState,
+    session.getBackupState,
+  );
+  const serviceIndex = useSyncExternalStore(
+    session.subscribe,
+    session.getServiceIndex,
+    session.getServiceIndex,
+  );
+  const serviceFrontendIndex = useSyncExternalStore(
+    session.subscribe,
+    session.getServiceFrontendIndex,
+    session.getServiceFrontendIndex,
   );
 
   if (!isInitialized) {
-    return <SessionWorkerState workerState={workerState} />;
+    return (
+      <SessionState
+        sessionStatus={sessionStatus}
+        backupState={backupState}
+        sourceLabel="service index"
+        frontendLabel="service frontend index"
+        sourceIndex={serviceIndex}
+        frontendIndex={serviceFrontendIndex}
+      />
+    );
   }
 
   return (
     <div style={styles.paneRoot}>
-      <SessionWorkerState workerState={workerState} />
+      <SessionState
+        sessionStatus={sessionStatus}
+        backupState={backupState}
+        sourceLabel="service index"
+        frontendLabel="service frontend index"
+        sourceIndex={serviceIndex}
+        frontendIndex={serviceFrontendIndex}
+      />
       <div style={styles.tabsHeader}>
         <NavLink
           to="database"

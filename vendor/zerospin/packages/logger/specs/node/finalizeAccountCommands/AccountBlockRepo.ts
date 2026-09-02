@@ -6,7 +6,7 @@ import {
   type ITraceContext,
   type ITraceId,
 } from '@zerospin/logger';
-import { Effect, Either, Schema, Tracer } from 'effect';
+import { Effect, Result, Schema, Tracer } from 'effect';
 
 import { actorRepo } from './ActorRepo.ts';
 import { harness, queuedJobs } from './queuedJobs.ts';
@@ -17,9 +17,9 @@ const processSubscriber = Effect.fn('AccountBlockRepo.processSubscriber')(
   function* () {
     const delivery = yield* wrappedActorRepo
       .handleAccountBlocks()
-      .pipe(Effect.either);
+      .pipe(Effect.result);
 
-    if (Either.isLeft(delivery)) {
+    if (Result.isFailure(delivery)) {
       const span = yield* Effect.currentSpan.pipe(Effect.orDie);
       yield* Effect.logWarning(
         'actor delivery failed; retry scheduled for 500ms',
@@ -84,7 +84,6 @@ const drainActorOutboxHandler = makeRpcHandler(
   const span = yield* Effect.currentSpan.pipe(Effect.orDie);
   span.addLinks([
     {
-      _tag: 'SpanLink',
       span: Tracer.externalSpan({
         traceId: prior.traceId,
         spanId: prior.parentSpanId,
@@ -103,7 +102,6 @@ const alarmHandler = makeRpcHandler('AccountBlockRepo.alarm')(function* (
   const span = yield* Effect.currentSpan.pipe(Effect.orDie);
   span.addLinks([
     {
-      _tag: 'SpanLink',
       span: Tracer.externalSpan({
         traceId: prior.traceId,
         spanId: prior.parentSpanId,

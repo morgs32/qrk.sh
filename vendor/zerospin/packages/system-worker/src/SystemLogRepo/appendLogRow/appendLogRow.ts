@@ -7,23 +7,25 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { IDb } from '@zerospin/core/drizzle/types';
-import { makeAbbreviationIdSchema } from '@zerospin/core/models/makeIdSchema';
-import type { CuidFactory } from '@zerospin/core/services/CuidFactory';
 import type {
   ISystemLogLevel,
   ISystemLogRow,
 } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { dutils } from '@zerospin/core/utils/dutils';
-import { makeIdFromAbbreviation } from '@zerospin/core/utils/makeIdFromAbbreviation';
 import { mapParseError, type IAnyError } from '@zerospin/error';
+import {
+  makeAbbreviationIdSchema,
+  makeIdFromAbbreviation,
+  type CuidFactory,
+} from '@zerospin/schema';
 import { max, sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 import {
   systemLogRepoDrizzleSchemas,
   systemLogRowSchema,
-} from '../SystemLogRepo.js';
+} from '../SystemLogRepoDbConfig.js';
 
 const maxRows = 1000;
 
@@ -38,7 +40,6 @@ const maxRows = 1000;
 export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
   function* (props: {
     db: IDb;
-    generationId: string;
     level: ISystemLogLevel;
     message: string;
     payload: unknown | null;
@@ -47,8 +48,8 @@ export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
   }): Effect.fn.Return<ISystemLogRow, IAnyError, Async | CuidFactory> {
     const { db, level, message, payload, source } = props;
     // 1 — SystemLogRepo rejects identities that do not carry their locked prefixes
-    const systemId = yield* Schema.validate(
-      makeAbbreviationIdSchema(coreAbbreviations.system),
+    const systemId = yield* Schema.decodeUnknownEffect(
+      Schema.toType(makeAbbreviationIdSchema(coreAbbreviations.system)),
     )(props.systemId).pipe(
       mapParseError({
         code: 'failed-to-decode-log-row-system-id',
@@ -56,20 +57,11 @@ export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
         extra: { systemId: props.systemId },
       }),
     );
-    const generationId = yield* Schema.validate(
-      makeAbbreviationIdSchema(coreAbbreviations.generation),
-    )(props.generationId).pipe(
-      mapParseError({
-        code: 'failed-to-decode-log-row-generation-id',
-        prefix: 'Failed to decode SystemLogRepo generationId',
-        extra: { generationId: props.generationId },
-      }),
-    );
     // 2 — identity and creation time remain independent from ordering
     const createdAt = yield* dutils.date();
     const id = yield* makeIdFromAbbreviation({ abbreviation: 'log' });
     const row = yield* makeAsync(() => {
-      // 3 — each generation-scoped SystemLogRepo maintains its own monotonic sequence
+      // 3 — each system-scoped SystemLogRepo maintains its own monotonic sequence
       const [latestRow] = db
         .select({ logIndex: max(systemLogRepoDrizzleSchemas.logs.logIndex) })
         .from(systemLogRepoDrizzleSchemas.logs)
@@ -84,7 +76,6 @@ export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
         payload,
         source,
         systemId,
-        generationId,
       } satisfies ISystemLogRow;
 
       // 4 — the max read and insert are synchronous so requests cannot interleave them

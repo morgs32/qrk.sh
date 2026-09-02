@@ -1,13 +1,12 @@
 import { type IAnyError } from '@zerospin/error';
+import { makeIdFromAbbreviation, type CuidFactory } from '@zerospin/schema';
 import { Effect } from 'effect';
 
 import type {
   InferCommandPayload,
   InferPayloadInput,
 } from '../models/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
 import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
-import { makeIdFromAbbreviation } from '../utils/makeIdFromAbbreviation.ts';
 import type { Prettify } from '../utils/types';
 
 import type { ICommand, IContract } from './types.ts';

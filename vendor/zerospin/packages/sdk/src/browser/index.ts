@@ -7,10 +7,20 @@ export * from '@zerospin/core/frontendController/makeAggregateFrontendLockKey';
 export * from '@zerospin/core/frontendController/makeServiceFrontendLock';
 export * from '@zerospin/core/frontendController/makeServiceFrontendLockKey';
 export * from '@zerospin/core/models/makeModel';
+export * from '@zerospin/core/models/makeReplica';
 export * from '@zerospin/core/models/makeSelection';
-export * from '@zerospin/core/models/makeServiceModel';
-export * from '@zerospin/core/models/primitives';
+export {
+  makeIdFromAbbreviation,
+  primitives,
+  type IDrizzleBooleanColumnBuilder,
+  type IDrizzleEnumColumnBuilder,
+  type IDrizzleIntegerColumnBuilder,
+  type IDrizzleRealColumnBuilder,
+  type IDrizzleTextColumnBuilder,
+  type IDrizzleTimestampColumnBuilder,
+  type InferDrizzleColumnBuilderData,
+  type InferNullableDrizzleColumnBuilderData,
+} from '@zerospin/schema';
 export * from '@zerospin/core/utils/makeAggregateId';
-export * from '@zerospin/core/utils/makeIdFromAbbreviation';
 export * from '@zerospin/error';
 export * from '../version.js';

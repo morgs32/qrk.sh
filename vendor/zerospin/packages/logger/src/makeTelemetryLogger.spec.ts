@@ -1,4 +1,4 @@
-import { Effect, Layer, Logger } from 'effect';
+import { Effect, Layer, Logger, Tracer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { makeTelemetryLogger } from './makeTelemetryLogger.ts';
@@ -9,8 +9,10 @@ describe('makeTelemetryLogger', () => {
   it('captures logs with span ids, level, and annotations', async () => {
     const collector = makeTelemetryCollector();
     const layer = Layer.mergeAll(
-      Layer.setTracer(makeTelemetryTracer(collector)),
-      Logger.add(makeTelemetryLogger(collector)),
+      Layer.succeed(Tracer.Tracer, makeTelemetryTracer(collector)),
+      Logger.layer([makeTelemetryLogger(collector)], {
+        mergeWithExisting: true,
+      }),
     );
 
     const program = Effect.gen(function* () {
@@ -37,7 +39,9 @@ describe('makeTelemetryLogger', () => {
 
   it('captures logs outside any span with null trace ids', async () => {
     const collector = makeTelemetryCollector();
-    const layer = Logger.add(makeTelemetryLogger(collector));
+    const layer = Logger.layer([makeTelemetryLogger(collector)], {
+      mergeWithExisting: true,
+    });
 
     await Effect.runPromise(
       Effect.logError('lonely').pipe(Effect.provide(layer)),

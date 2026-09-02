@@ -1,19 +1,9 @@
 import type { IAnyError } from '@zerospin/error';
-import type { Effect } from 'effect';
+import type { Effect, JsonSchema } from 'effect';
 
-import type {
-  IContracts,
-  InferCommand,
-  IUnstagedCommand,
-} from '../contracts/types.ts';
+import type { IContracts } from '../contracts/types.ts';
 import type { IGuard } from '../guards/makeGuard.ts';
-import type {
-  IAggregateId,
-  IModels,
-  InferPayloadInput,
-} from '../models/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
-import type { ISessionId } from '../session/types.ts';
+import type { IModels } from '../models/types.ts';
 
 export type IAggregateFrontendController<
   SYSTEM_NAME extends string = string,
@@ -34,17 +24,6 @@ export type IAggregateFrontendController<
   models: MODELS;
   modelNames: readonly string[];
   guards: GUARDS;
-  makeUnstagedCommand<K extends keyof CONTRACTS & string>(props: {
-    commandName: K;
-    aggregateId: IAggregateId;
-    userId: string;
-    sessionId: ISessionId;
-    payload: InferPayloadInput<CONTRACTS[K]['payload']>;
-  }): Effect.Effect<
-    IUnstagedCommand<InferCommand<CONTRACTS[K]>>,
-    IAnyError,
-    CuidFactory
-  >;
 };
 
 export type IServiceFrontendController<
@@ -84,9 +63,6 @@ export type IAnyAggregateFrontendController = {
       }['bivarianceHack'];
     }>[]
   >;
-  makeUnstagedCommand: (
-    props: never,
-  ) => Effect.Effect<IUnstagedCommand, IAnyError, CuidFactory>;
 };
 
 export type IAnyServiceFrontendController = {
@@ -142,12 +118,12 @@ export type IFrontendControllerSpec = {
     {
       commandName: string;
       version: string;
-      payloadJsonSchema: unknown;
+      payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
       historicalDefinitions: readonly {
         commandName: string;
         version: string;
         hasDirectAdapter: boolean;
-        payloadJsonSchema: unknown;
+        payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
       }[];
     }
   >;
@@ -165,7 +141,7 @@ export type IFrontendControllerSpec = {
             modelName: string;
             abbreviation: string;
             version: string;
-            propertiesJsonSchema: unknown;
+            propertiesJsonSchema: JsonSchema.Document<'draft-2020-12'>;
             indexes: readonly {
               name: string;
               columns: readonly string[];
@@ -178,7 +154,7 @@ export type IFrontendControllerSpec = {
           {
             commandName: string;
             version: string;
-            payloadJsonSchema: unknown;
+            payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
           }
         >;
       };
@@ -198,7 +174,7 @@ export type IFrontendControllerSpec = {
             modelName: string;
             abbreviation: string;
             version: string;
-            propertiesJsonSchema: unknown;
+            propertiesJsonSchema: JsonSchema.Document<'draft-2020-12'>;
             indexes: readonly {
               name: string;
               columns: readonly string[];

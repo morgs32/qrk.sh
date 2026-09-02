@@ -3,58 +3,65 @@ import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { makeTestGateway } from '@zerospin/dev-worker/makeTestGateway';
 import { makeWorkerdE2eTestLayer } from '@zerospin/dev-worker/vitest/makeWorkerdE2eTestLayer';
-import { env } from 'cloudflare:test';
+import { newWebSocketRpcSession } from 'capnweb';
+import { env, SELF } from 'cloudflare:test';
 import { Effect } from 'effect';
+import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { SystemRepo } from 'system-worker/SystemRepo/SystemRepo';
 import { expect } from 'vitest';
 
-import { authenticationSignature } from '@/zerospin/authentication';
-import { catalogFrontend } from '@/zerospin/frontend';
+import { catalog as catalogFrontend } from '@/zerospin/frontends/catalog';
+import { signature } from '@/zerospin/signature';
 import { system } from '@/zerospin/system';
 
 const appService = system.services.app;
 const catalogServiceFrontendLock =
   makeFrontendControllerSpec(catalogFrontend).serviceFrontendLock;
-
 const TestLayer = makeWorkerdE2eTestLayer('serviceFrontendFlow1');
 
-describe('serviceFrontendFlow1: static service-owned actor projection', () => {
+describe('serviceFrontendFlow1: static service frontend', () => {
   it.layer(TestLayer)(it => {
     it.effect(
-      'authenticates exact frontend definitions and materializes isolated actor state',
+      'authenticates and serves projected service state and tickets immediately',
       () =>
         Effect.gen(function* () {
-          const { gatewayApi, generationId } = yield* Effect.acquireRelease(
-            makeAsync(makeTestGateway),
-            opened => Effect.sync(() => opened.gatewayApi[Symbol.dispose]()),
+          const gatewayApi = yield* Effect.acquireRelease(
+            makeAsync(async () => {
+              const response = await SELF.fetch(
+                new Request('https://shopping.test/rpc', {
+                  headers: { Upgrade: 'websocket' },
+                }),
+              );
+              if (response.webSocket === null) {
+                throw new Error('Shopping Worker did not return a WebSocket');
+              }
+              response.webSocket.accept();
+              return newWebSocketRpcSession<GatewayApi>(response.webSocket);
+            }),
+            gateway => Effect.sync(() => gateway[Symbol.dispose]()),
           );
-          const systemRepo = SystemRepo.getRepo({
-            systemId: env.ZEROSPIN_SYSTEM_ID,
+          const authenticationLock = makeAuthenticationLock({
+            signature,
           });
-          const authenticationLock = yield* makeAuthenticationLock({
-            signature: authenticationSignature,
-          });
-          const invalidAuthenticatedApi = yield* makeAsync(() =>
-            gatewayApi.getAuthenticatedApi({
+          const invalidFrontendApi = yield* makeAsync(() =>
+            gatewayApi.getServiceFrontendApi({
               publishableKey: 'pk_test',
+              systemName: system.name,
               authenticationLock,
               signature: { clerkUserId: 42 },
+              serviceName: appService.name,
+              frontendName: catalogFrontend.frontendName,
+              serviceFrontendLock: catalogServiceFrontendLock,
             }),
           );
           const invalidAuthentication = yield* makeAsync(() =>
-            invalidAuthenticatedApi.getAuthentication(),
-          ).pipe(Effect.flatMap(decodeRpc), Effect.either);
-          expect(invalidAuthentication._tag).toBe('Left');
-          expect(
-            yield* makeAsync(() =>
-              systemRepo.getRepoRegistrations({
-                generationId,
-                repoType: 'ServiceFrontendRepo',
-              }),
-            ).pipe(Effect.flatMap(decodeRpc)),
-          ).toEqual([]);
+            invalidFrontendApi.getState({ traceContext: null, args: [] }),
+          ).pipe(
+            Effect.flatMap(envelope => decodeRpc(envelope.result)),
+            Effect.result,
+          );
+          expect(invalidAuthentication._tag).toBe('Failure');
 
           const createProduct = yield* appService.makeCommand({
             contractName: 'createProduct',
@@ -72,81 +79,65 @@ describe('serviceFrontendFlow1: static service-owned actor projection', () => {
             }),
           };
           const systemApi = yield* makeAsync(() =>
-            gatewayApi.getSystemApi({ zerospinSecretKey: 'sk_test' }),
-          );
-          const finalizedEnvelope = yield* makeAsync(() =>
-            systemApi.finalizeServiceCommands({
-              traceContext: null,
-              args: [
-                {
-                  serviceName: appService.name,
-                  commands: [encodedCreateProduct],
-                },
-              ],
+            gatewayApi.getSystemApi({
+              zerospinSecretKey: 'sk_test_system_runtime_capability',
             }),
           );
-          const finalized = yield* decodeRpc(finalizedEnvelope.result);
-          expect(finalized.failed).toEqual([]);
+          const finalized = yield* makeAsync(() =>
+            systemApi.finalizeServiceCommand({
+              traceContext: null,
+              args: [encodedCreateProduct],
+            }),
+          ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
+          expect(finalized).toEqual(
+            expect.objectContaining({
+              id: createProduct.id,
+              serviceIndex: 1,
+              failedAt: null,
+              failure: null,
+            }),
+          );
 
           const userId = 'catalog_static_user';
-          const authenticatedApi = yield* makeAsync(() =>
-            gatewayApi.getAuthenticatedApi({
+          const frontendApi = yield* makeAsync(() =>
+            gatewayApi.getServiceFrontendApi({
               publishableKey: 'pk_test',
+              systemName: system.name,
               authenticationLock,
               signature: { clerkUserId: userId },
-            }),
-          );
-          yield* makeAsync(() => authenticatedApi.getAuthentication()).pipe(
-            Effect.flatMap(decodeRpc),
-          );
-          const frontendApi = yield* makeAsync(() =>
-            authenticatedApi.getServiceFrontendApi({
               serviceName: appService.name,
               frontendName: catalogFrontend.frontendName,
               serviceFrontendLock: catalogServiceFrontendLock,
             }),
           );
-          const admission = yield* makeAsync(() =>
-            frontendApi.getAdmission(),
-          ).pipe(Effect.flatMap(decodeRpc));
-          expect(admission).toMatchObject({
-            userId,
-            frontendName: catalogFrontend.frontendName,
-            serviceFrontendLock: catalogServiceFrontendLock,
-            serviceName: appService.name,
-          });
-
-          const stateEnvelope = yield* makeAsync(() =>
-            frontendApi.getState({
-              traceContext: null,
-              args: [],
-            }),
+          const state = yield* makeAsync(() =>
+            frontendApi.getState({ traceContext: null, args: [] }),
+          ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
+          expect(state.resources).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ name: 'Static catalog product' }),
+            ]),
           );
-          const state = yield* decodeRpc(stateEnvelope.result);
-          expect(state.resources).toEqual([
+
+          const ticket = yield* makeAsync(() =>
+            frontendApi.createWebSocketTicket({ traceContext: null, args: [] }),
+          ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
+          expect(ticket.ticket).toHaveLength(43);
+
+          const registrations = yield* makeAsync(() =>
+            SystemRepo.getRepo({
+              systemId: env.ZEROSPIN_SYSTEM_ID,
+            }).getRepoRegistrations({
+              repoType: 'MaterializedServiceFrontendRepo',
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
+          expect(registrations).toEqual([
             expect.objectContaining({
-              id: createProduct.payload.id,
-              modelName: 'product',
-              name: 'Static catalog product',
+              repoType: 'MaterializedServiceFrontendRepo',
             }),
           ]);
-          expect(
-            yield* makeAsync(() =>
-              systemRepo.getRepoRegistrations({
-                generationId,
-                repoType: 'ServiceFrontendRepo',
-              }),
-            ).pipe(Effect.flatMap(decodeRpc)),
-          ).toHaveLength(1);
-          expect(
-            yield* makeAsync(() =>
-              systemRepo.getRepoRegistrations({
-                generationId,
-                repoType: 'AggregateRepo',
-              }),
-            ).pipe(Effect.flatMap(decodeRpc)),
-          ).toEqual([]);
         }).pipe(Effect.scoped),
+      120_000,
     );
   });
 });

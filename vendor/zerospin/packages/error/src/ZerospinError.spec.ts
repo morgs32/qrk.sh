@@ -1,4 +1,4 @@
-import { Cause, Effect, Runtime, Schema } from 'effect';
+import { Cause, Effect, Schema } from 'effect';
 
 import { ZerospinError } from './ZerospinError.js';
 
@@ -180,8 +180,8 @@ describe('ZerospinError', () => {
       expect(text).toContain('Inner message');
     });
 
-    it('pretty-prints FiberFailure cause string without serializing fiber state', () => {
-      const fiberFailure = Runtime.makeFiberFailure(
+    it('pretty-prints a squashed Cause rejection without serializing fiber state', () => {
+      const rejection = Cause.squash(
         Cause.die(
           Object.assign(
             new Error('Fiber #1 cannot be resolved synchronously'),
@@ -196,7 +196,7 @@ describe('ZerospinError', () => {
       const err = new ZerospinError({
         code: 'deploy-invalid-config',
         message: 'Config load failed',
-        cause: ZerospinError.prettyUnknownFailure(fiberFailure),
+        cause: ZerospinError.prettyUnknownFailure(rejection),
       });
 
       const text = err.toString();
@@ -204,7 +204,7 @@ describe('ZerospinError', () => {
       expect(text).not.toContain('"commandName"');
       expect(text).toContain('Caused by:');
       expect(text).toMatch(/synchronously|AsyncFiber/i);
-      expect(ZerospinError.isAsyncRunSyncFailure(fiberFailure)).toBe(true);
+      expect(ZerospinError.isAsyncRunSyncFailure(rejection)).toBe(true);
     });
   });
 
@@ -340,7 +340,7 @@ describe('ZerospinError', () => {
       expect(restored.cause).toBe('underlying failure');
     });
 
-    it('stringify encodes via parseJson schema', () => {
+    it('stringify encodes via fromJsonString schema', () => {
       const err = new ZerospinError({
         code: 'UNAUTHORIZED',
         message: 'Not allowed',

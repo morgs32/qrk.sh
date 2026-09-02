@@ -1,10 +1,9 @@
 import { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
 import { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
-import { PrimitiveKind } from '@zerospin/core/models/primitiveKind';
-import { JsonSchema7RootSchema } from '@zerospin/core/utils/JsonSchema7RootSchema';
+import { PrimitiveKind } from '@zerospin/schema';
 import { Schema } from 'effect';
 
-const encodedPrimitiveDescriptorSchema = Schema.Union(
+const encodedPrimitiveDescriptorSchema = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal(PrimitiveKind.PrimaryKey),
     nullable: Schema.Literal(false),
@@ -37,58 +36,60 @@ const encodedPrimitiveDescriptorSchema = Schema.Union(
     kind: Schema.Literal(PrimitiveKind.Boolean),
     nullable: Schema.Boolean,
     unique: Schema.Boolean,
-    defaultValue: Schema.optionalWith(Schema.Boolean, { exact: true }),
+    defaultValue: Schema.optionalKey(Schema.Boolean),
   }),
   Schema.Struct({
     kind: Schema.Literal(PrimitiveKind.Integer),
     nullable: Schema.Boolean,
     unique: Schema.Boolean,
-    defaultValue: Schema.optionalWith(Schema.Number, { exact: true }),
+    defaultValue: Schema.optionalKey(Schema.Number),
   }),
   Schema.Struct({
     kind: Schema.Literal(PrimitiveKind.Number),
     nullable: Schema.Boolean,
     unique: Schema.Boolean,
-    defaultValue: Schema.optionalWith(Schema.Number, { exact: true }),
+    defaultValue: Schema.optionalKey(Schema.Number),
   }),
   Schema.Struct({
     kind: Schema.Literal(PrimitiveKind.Text),
     nullable: Schema.Boolean,
     unique: Schema.Boolean,
-    defaultValue: Schema.optionalWith(Schema.NullOr(Schema.String), {
-      exact: true,
-    }),
+    defaultValue: Schema.optionalKey(Schema.NullOr(Schema.String)),
   }),
   Schema.Struct({
     kind: Schema.Literal(PrimitiveKind.Date),
     nullable: Schema.Boolean,
     unique: Schema.Boolean,
-    defaultValue: Schema.optionalWith(Schema.Date, { exact: true }),
+    defaultValue: Schema.optionalKey(Schema.DateFromString),
   }),
   Schema.Struct({
     kind: Schema.Literal(PrimitiveKind.Enum),
     nullable: Schema.Boolean,
     unique: Schema.Boolean,
     values: Schema.NonEmptyArray(Schema.String),
-    defaultValue: Schema.optionalWith(Schema.String, { exact: true }),
+    defaultValue: Schema.optionalKey(Schema.String),
   }),
   Schema.Struct({
     kind: Schema.Literal(PrimitiveKind.Json),
     nullable: Schema.Boolean,
-    schema: JsonSchema7RootSchema,
-    defaultValue: Schema.optionalWith(Schema.Null, { exact: true }),
+    schema: Schema.Struct({
+      dialect: Schema.Literal('draft-2020-12'),
+      schema: Schema.Any,
+      definitions: Schema.Record(Schema.String, Schema.Any),
+    }),
+    defaultValue: Schema.optionalKey(Schema.Null),
   }),
-);
+]);
 
-const encodedShapeSchema = Schema.Record({
-  key: Schema.String,
-  value: encodedPrimitiveDescriptorSchema,
-});
+const encodedShapeSchema = Schema.Record(
+  Schema.String,
+  encodedPrimitiveDescriptorSchema,
+);
 
 const modelIndexSchema = Schema.Struct({
   name: Schema.String,
   columns: Schema.NonEmptyArray(Schema.String),
-  unique: Schema.optionalWith(Schema.Boolean, { exact: true }),
+  unique: Schema.optionalKey(Schema.Boolean),
 });
 
 const modelDefinitionSchema = Schema.Struct({
@@ -99,13 +100,11 @@ const modelDefinitionSchema = Schema.Struct({
   indexes: Schema.Array(modelIndexSchema),
 });
 
-const frontendModelSpecSchema = Schema.extend(
-  modelDefinitionSchema,
-  Schema.Struct({
+const frontendModelSpecSchema = modelDefinitionSchema.pipe(
+  Schema.fieldsAssign({
     historicalDefinitions: Schema.Array(
-      Schema.extend(
-        modelDefinitionSchema,
-        Schema.Struct({ hasDirectAdapter: Schema.Boolean }),
+      modelDefinitionSchema.pipe(
+        Schema.fieldsAssign({ hasDirectAdapter: Schema.Boolean }),
       ),
     ),
   }),
@@ -114,12 +113,20 @@ const frontendModelSpecSchema = Schema.extend(
 const frontendContractSpecSchema = Schema.Struct({
   commandName: Schema.String,
   version: Schema.String,
-  payloadJsonSchema: JsonSchema7RootSchema,
+  payloadJsonSchema: Schema.Struct({
+    dialect: Schema.Literal('draft-2020-12'),
+    schema: Schema.Any,
+    definitions: Schema.Record(Schema.String, Schema.Any),
+  }),
   historicalDefinitions: Schema.Array(
     Schema.Struct({
       commandName: Schema.String,
       version: Schema.String,
-      payloadJsonSchema: JsonSchema7RootSchema,
+      payloadJsonSchema: Schema.Struct({
+        dialect: Schema.Literal('draft-2020-12'),
+        schema: Schema.Any,
+        definitions: Schema.Record(Schema.String, Schema.Any),
+      }),
       hasDirectAdapter: Schema.Boolean,
     }),
   ),
@@ -131,14 +138,8 @@ export const AggregateFrontendControllerSpecSchema = Schema.Struct({
   aggregateName: Schema.String,
   frontendName: Schema.String,
   modelNames: Schema.Array(Schema.String),
-  models: Schema.Record({
-    key: Schema.String,
-    value: frontendModelSpecSchema,
-  }),
-  contracts: Schema.Record({
-    key: Schema.String,
-    value: frontendContractSpecSchema,
-  }),
+  models: Schema.Record(Schema.String, frontendModelSpecSchema),
+  contracts: Schema.Record(Schema.String, frontendContractSpecSchema),
   aggregateFrontendLock: AggregateFrontendLockSchema,
 });
 
@@ -148,14 +149,8 @@ export const ServiceFrontendControllerSpecSchema = Schema.Struct({
   serviceName: Schema.String,
   frontendName: Schema.String,
   modelNames: Schema.Array(Schema.String),
-  models: Schema.Record({
-    key: Schema.String,
-    value: frontendModelSpecSchema,
-  }),
-  contracts: Schema.Record({
-    key: Schema.String,
-    value: frontendContractSpecSchema,
-  }),
+  models: Schema.Record(Schema.String, frontendModelSpecSchema),
+  contracts: Schema.Record(Schema.String, frontendContractSpecSchema),
   serviceFrontendLock: ServiceFrontendLockSchema,
 });
 

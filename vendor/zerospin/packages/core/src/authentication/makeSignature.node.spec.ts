@@ -1,7 +1,11 @@
 import { it } from '@effect/vitest';
-import { Effect, Either, Schema } from 'effect';
+import { Effect, Result, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
+import {
+  AuthenticationLockSchema,
+  makeAuthenticationLock,
+} from './makeAuthenticationLock.ts';
 import { makeSignature } from './makeSignature.ts';
 
 describe('makeSignature', () => {
@@ -14,11 +18,38 @@ describe('makeSignature', () => {
       {
         version: '1.0.0',
         schema: Schema.Struct({ userId: Schema.String }),
-        adaptSignature: ({ signature }) =>
+        adaptSignature: ({ signature }: { signature: { userId: string } }) =>
           Effect.succeed({ subject: signature.userId, tenant: 'default' }),
       },
     ],
   );
+
+  it('generates Draft 2020-12 documents for current and historical signatures', () => {
+    expect(signature.spec.schemaJsonSchema).toMatchObject({
+      dialect: 'draft-2020-12',
+      definitions: {},
+      schema: { type: 'object' },
+    });
+    expect(
+      signature.spec.historicalDefinitions[0]?.schemaJsonSchema,
+    ).toMatchObject({
+      dialect: 'draft-2020-12',
+      definitions: {},
+      schema: { type: 'object' },
+    });
+  });
+
+  it('constructs the current authentication lock synchronously', () => {
+    const lock = makeAuthenticationLock({ signature });
+
+    expect(Schema.is(AuthenticationLockSchema)(lock)).toBe(true);
+    expect(lock).toEqual({
+      signature: {
+        version: signature.version,
+        schemaJsonSchema: signature.spec.schemaJsonSchema,
+      },
+    });
+  });
 
   it.effect('decodes current signatures without adaptation', () =>
     Effect.gen(function* () {
@@ -46,10 +77,10 @@ describe('makeSignature', () => {
     Effect.gen(function* () {
       const result = yield* signature
         .decodeAndAdaptSignature({ version: '0.1.0', signature: {} })
-        .pipe(Effect.either);
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result)) {
-        expect(result.left.code).toBe(
+        .pipe(Effect.result);
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.code).toBe(
           'authentication-signature-version-unsupported',
         );
       }

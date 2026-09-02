@@ -1,0 +1,67 @@
+{
+  "name": "epluribus-machina",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Effect-native scoped state-machine runtime",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./RouteContractViolation": {
+      "types": "./dist/RouteContractViolation.d.ts",
+      "import": "./dist/RouteContractViolation.js",
+      "default": "./dist/RouteContractViolation.js"
+    },
+    "./StateInactive": {
+      "types": "./dist/StateInactive.d.ts",
+      "import": "./dist/StateInactive.js",
+      "default": "./dist/StateInactive.js"
+    },
+    "./makeActor": {
+      "types": "./dist/makeActor/makeActor.d.ts",
+      "import": "./dist/makeActor/makeActor.js",
+      "default": "./dist/makeActor/makeActor.js"
+    },
+    "./makeMachine": {
+      "types": "./dist/makeMachine/makeMachine.d.ts",
+      "import": "./dist/makeMachine/makeMachine.js",
+      "default": "./dist/makeMachine/makeMachine.js"
+    },
+    "./makeState": {
+      "types": "./dist/makeState/makeState.d.ts",
+      "import": "./dist/makeState/makeState.js",
+      "default": "./dist/makeState/makeState.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "default": "./dist/types.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "lib": "tsc -p tsconfig.lib.json",
+    "lint": "oxlint src test vitest.config.ts --format stylish",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "es-toolkit": "^1.51.0"
+  },
+  "peerDependencies": {
+    "effect": "4.0.0-rc.111"
+  },
+  "devDependencies": {
+    "@effect/vitest": "4.0.0-rc.111",
+    "@types/node": "^24.0.0",
+    "effect": "4.0.0-rc.111",
+    "oxlint": "^1.63.0",
+    "typescript": "~5.9.2",
+    "vite": "^8.0.11",
+    "vitest": "^4.1.5",
+    "zustand": "^5.0.15"
+  }
+}

@@ -10,7 +10,7 @@ export const options = zod.object({
   clean: zod
     .boolean()
     .default(false)
-    .describe('Create and seed a detached local generation before serving'),
+    .describe('Delete local Zerospin Durable Object state before serving'),
   port: zod
     .number()
     .int()

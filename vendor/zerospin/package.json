@@ -13,7 +13,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "lint": "nx run-many -t lint --all",
-    "ci:publish": "pnpm build && pnpm publish -r --access=public",
+    "ci:publish": "pnpm build && changeset publish",
     "test": "CI=true nx run-many -t test --all",
     "test:workerd": "CI=true nx run-many -t test:workerd --all",
     "ts": "nx run-many -t ts --all --nxBail",
@@ -25,7 +25,7 @@
   "dependencies": {},
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
-    "@effect/vitest": "^0.29.0",
+    "@effect/vitest": "rc",
     "@nx/js": "23.1.0",
     "@typescript/native": "npm:typescript@^7.0.2",
     "@swc-node/register": "~1.11.1",
@@ -68,9 +68,8 @@
       "workerd"
     ],
     "overrides": {
-      "@effect/sql": "0.51.1",
-      "drizzle-orm": "1.0.0-beta.17-67b1795",
-      "effect": "^3.17.11",
+      "drizzle-orm": "1.0.0-rc.4",
+      "effect": "rc",
       "react": "19.2.7",
       "react-dom": "19.2.7",
       "vite": "^8.0.11"

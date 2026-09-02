@@ -4,20 +4,21 @@
  * Keep it focused on test/runtime plumbing rather than production workflow behavior.
  */
 
-export { AggregateBlockRepo } from './AggregateBlockRepo/AggregateBlockRepo.js';
-export { AggregateRepo } from './AggregateRepo/AggregateRepo.js';
-export { AggregateFrontendRepo } from './AggregateFrontendRepo/AggregateFrontendRepo.js';
-export { AggregateFrontendBlockRepo } from './AggregateFrontendBlockRepo/AggregateFrontendBlockRepo.js';
+export { AggregateCommandChain } from './AggregateCommandChain/AggregateCommandChain.js';
+export { MaterializedAggregateRepo } from './MaterializedAggregateRepo/MaterializedAggregateRepo.js';
+export { MaterializedAggregateFrontendRepo } from './MaterializedAggregateFrontendRepo/MaterializedAggregateFrontendRepo.js';
+export { AggregateFrontendFinalizedCommandChain } from './AggregateFrontendFinalizedCommandChain/AggregateFrontendFinalizedCommandChain.js';
+export { AggregateFrontendPushedCommandChain } from './AggregateFrontendPushedCommandChain/AggregateFrontendPushedCommandChain.js';
 export { SystemLogAgent } from './SystemLogAgent/SystemLogAgent.js';
 export { SystemLogRepo } from './SystemLogRepo/SystemLogRepo.js';
-export { SystemWorker } from './SystemWorker.js';
-export { ServiceRepo } from './ServiceRepo/ServiceRepo.js';
-export { ServiceBlockRepo } from './ServiceBlockRepo/ServiceBlockRepo.js';
-export { ServiceFrontendRepo } from './ServiceFrontendRepo/ServiceFrontendRepo.js';
-export { ServiceFrontendBlockRepo } from './ServiceFrontendBlockRepo/ServiceFrontendBlockRepo.js';
+export { MaterializedServiceRepo } from './MaterializedServiceRepo/MaterializedServiceRepo.js';
+export { ServiceCommandChain } from './ServiceCommandChain/ServiceCommandChain.js';
+export { MaterializedServiceFrontendRepo } from './MaterializedServiceFrontendRepo/MaterializedServiceFrontendRepo.js';
+export { ServiceFrontendFinalizedCommandChain } from './ServiceFrontendFinalizedCommandChain/ServiceFrontendFinalizedCommandChain.js';
 export { SystemRepo } from './SystemRepo/SystemRepo.js';
 export { FixtureRepo } from './FixtureRepo/FixtureRepo.js';
-export { BoundDORepoFixture } from './makeBoundDORepo/test/BoundDORepoFixture.js';
+export { FixedDORepoFixture } from './makeFixedDORepo/test/FixedDORepoFixture.js';
+export { EPluribusMachinaFixture } from './workerd-utils/EPluribusMachinaFixture.js';
 
 // eslint-disable-next-line no-default-export
 export default {

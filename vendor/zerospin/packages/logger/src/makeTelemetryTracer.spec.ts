@@ -7,7 +7,7 @@ import { makeTelemetryCollector } from './TelemetryCollector.ts';
 describe('makeTelemetryTracer', () => {
   it('records parent/child spans sharing one trace', async () => {
     const collector = makeTelemetryCollector();
-    const layer = Layer.setTracer(makeTelemetryTracer(collector));
+    const layer = Layer.succeed(Tracer.Tracer, makeTelemetryTracer(collector));
 
     const child = Effect.fn('test.child')(function* () {
       yield* Effect.void;
@@ -35,7 +35,7 @@ describe('makeTelemetryTracer', () => {
 
   it('marks failed spans as error and captures attributes', async () => {
     const collector = makeTelemetryCollector();
-    const layer = Layer.setTracer(makeTelemetryTracer(collector));
+    const layer = Layer.succeed(Tracer.Tracer, makeTelemetryTracer(collector));
 
     const failing = Effect.fail(new Error('boom')).pipe(
       Effect.withSpan('test.failing'),
@@ -51,13 +51,12 @@ describe('makeTelemetryTracer', () => {
 
   it('serializes span links with kind from link attributes', async () => {
     const collector = makeTelemetryCollector();
-    const layer = Layer.setTracer(makeTelemetryTracer(collector));
+    const layer = Layer.succeed(Tracer.Tracer, makeTelemetryTracer(collector));
 
     const linked = Effect.void.pipe(
       Effect.withSpan('test.linked', {
         links: [
           {
-            _tag: 'SpanLink',
             span: Tracer.externalSpan({
               traceId: 'trc_prior',
               spanId: 'spn_prior',

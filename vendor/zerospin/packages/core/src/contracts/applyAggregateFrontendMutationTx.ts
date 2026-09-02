@@ -38,18 +38,16 @@ export const applyAggregateFrontendMutationTx = Effect.fn(
   const previousResource =
     previousRow === undefined
       ? null
-      : yield* Schema.validate(mutation.model.resourceSchema)(previousRow).pipe(
+      : yield* Schema.decodeUnknownEffect(
+          Schema.toType(mutation.model.resourceSchema),
+        )(previousRow).pipe(
           mapParseError({
             code: 'replicate-resource-previous-row-invalid',
             prefix: `Failed to decode previous replicated resource "${mutation.resourceId}"`,
           }),
         );
 
-  const deletedAt =
-    mutation.operation.resource.deletedAt ??
-    (previousRow !== undefined && 'deletedAt' in previousRow
-      ? previousRow.deletedAt
-      : undefined);
+  const deletedAt = mutation.operation.resource.deletedAt;
   if (deletedAt !== null && deletedAt !== undefined) {
     return yield* new ZerospinError({
       code: 'service-resource-deleted',

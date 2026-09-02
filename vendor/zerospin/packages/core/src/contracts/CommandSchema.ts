@@ -1,348 +1,243 @@
-/* oxlint-disable typescript/no-explicit-any -- Effect Schema encoded type is invariant; any is intentional for satisfies */
-import { Schema } from 'effect';
+/* oxlint-disable typescript/no-explicit-any -- Effect Schema encoded types are invariant. */
+import { ZerospinError } from '@zerospin/error';
+import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import { Schema, Tuple } from 'effect';
 
-import { makeAbbreviationIdSchema } from '../models/makeIdSchema.ts';
-import { makeEffectSchema } from '../models/primitiveMaps.ts';
-import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
+import {
+  EmptyResourceDeltaSchema,
+  ResourceDeltaSchema,
+} from '../models/ResourceDeltaSchema.ts';
+import type { IResourceDelta } from '../models/types.ts';
 
-import { aggregateCommandShape } from './aggregateCommandShape.ts';
 import type {
   IAggregateCommand,
-  IDeploySeedCommand,
+  IChainedCommand,
   IEncodedCommand,
-  IExecutedAggregateCommand,
-  IExecutedPushedCommand,
-  IExecutedServiceCommand,
-  IFailedAggregateCommand,
-  IFailedPushedCommand,
-  IFailedServiceCommand,
-  IFailedStagedReplicaCommand,
-  IFinalizedFailedStagedReplicaCommand,
-  IPushBlock,
-  IPushedCommand,
+  ISeedCommand,
   IServiceCommand,
-  IStagedReplicaCommand,
-  IStagedSessionCommand,
+  ISessionCommand,
 } from './types.ts';
 
-export const UnknownAggregateCommandSchema = Schema.Struct({
+const positiveIndexSchema = Schema.Number.check(
+  Schema.isInt(),
+  Schema.isGreaterThan(0),
+);
+
+const EncodedZerospinErrorSchema = Schema.toEncoded(ZerospinError.schema);
+
+const UnknownAggregateCommandBaseSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.Unknown,
   contractVersion: Schema.String,
-  commandType: Schema.Literal('aggregate'),
   aggregateId: Schema.String,
   aggregateName: Schema.String,
   systemName: Schema.String,
-  sessionId: Schema.NullOr(makeAbbreviationIdSchema('sesn')),
-  userId: Schema.NullOr(Schema.String),
-  frontendName: Schema.NullOr(Schema.String),
-  pushedCursor: Schema.NullOr(
-    makeAbbreviationIdSchema(coreAbbreviations.pushedCursor),
-  ),
-}) satisfies Schema.Schema<IAggregateCommand, any>;
+});
+
+export const UnknownAggregateCommandSchema = Schema.Union([
+  Schema.fieldsAssign({
+    sessionId: Schema.Null,
+    userId: Schema.Null,
+    frontendName: Schema.Null,
+    pushIndex: Schema.Null,
+  })(UnknownAggregateCommandBaseSchema),
+  Schema.fieldsAssign({
+    sessionId: makeAbbreviationIdSchema('sesn'),
+    userId: Schema.String,
+    frontendName: Schema.String,
+    pushIndex: positiveIndexSchema,
+  })(UnknownAggregateCommandBaseSchema),
+]) satisfies Schema.Codec<IAggregateCommand, any>;
 
 export const UnknownServiceCommandSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.Unknown,
   contractVersion: Schema.String,
-  commandType: Schema.Literal('service'),
   serviceName: Schema.String,
-}) satisfies Schema.Schema<IServiceCommand, any>;
+}) satisfies Schema.Codec<IServiceCommand, any>;
 
 export const EncodedServiceCommandSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.String,
   contractVersion: Schema.String,
-  commandType: Schema.Literal('service'),
   serviceName: Schema.String,
-}) satisfies Schema.Schema<IEncodedCommand<IServiceCommand>, any>;
+}) satisfies Schema.Codec<IEncodedCommand<IServiceCommand>, any>;
 
-export const DeploySeedCommandSchema = Schema.Union(
+export const SeedCommandSchema = Schema.Union([
   UnknownAggregateCommandSchema,
   UnknownServiceCommandSchema,
-) satisfies Schema.Schema<IDeploySeedCommand, any>;
+]) satisfies Schema.Codec<ISeedCommand, any>;
 
-export const EncodedAggregateCommandSchema = makeEffectSchema(
-  aggregateCommandShape,
-) satisfies Schema.Schema<
+const EncodedAggregateCommandBaseSchema = Schema.Struct({
+  id: makeAbbreviationIdSchema('cmd'),
+  commandName: Schema.String,
+  payload: Schema.String,
+  contractVersion: Schema.String,
+  aggregateId: Schema.String,
+  aggregateName: Schema.String,
+  systemName: Schema.String,
+});
+
+export const EncodedAggregateCommandSchema = Schema.Union([
+  Schema.fieldsAssign({
+    sessionId: Schema.Null,
+    userId: Schema.Null,
+    frontendName: Schema.Null,
+    pushIndex: Schema.Null,
+  })(EncodedAggregateCommandBaseSchema),
+  Schema.fieldsAssign({
+    sessionId: makeAbbreviationIdSchema('sesn'),
+    userId: Schema.String,
+    frontendName: Schema.String,
+    pushIndex: positiveIndexSchema,
+  })(EncodedAggregateCommandBaseSchema),
+]) satisfies Schema.Codec<
   IEncodedCommand<IAggregateCommand>,
-  IEncodedCommand<IAggregateCommand>
+  any
 >;
 
-export const StagedSessionCommandSchema: Schema.Schema<
-  IEncodedCommand<IStagedSessionCommand>,
-  any
-> = Schema.Struct({
-  id: makeAbbreviationIdSchema('cmd'),
-  commandName: Schema.String,
-  payload: Schema.String,
-  systemName: Schema.String,
-  contractVersion: Schema.String,
-  commandType: Schema.Literal('frontend'),
-  aggregateId: Schema.String,
-  aggregateName: Schema.String,
-  frontendName: Schema.String,
-  userId: Schema.String,
-  sessionId: makeAbbreviationIdSchema('sesn'),
-  stagedCursor: makeAbbreviationIdSchema(coreAbbreviations.stagedCursor),
-  stagedAt: Schema.Date,
-  pushedCursor: Schema.NullOr(
-    makeAbbreviationIdSchema(coreAbbreviations.pushedCursor),
-  ),
-  status: Schema.Literal('staged'),
-});
-
-export const StagedReplicaCommandSchema: Schema.Schema<
-  IEncodedCommand<IStagedReplicaCommand>,
-  any
-> = Schema.Struct({
-  id: makeAbbreviationIdSchema('cmd'),
-  commandName: Schema.String,
-  payload: Schema.String,
-  systemName: Schema.String,
-  contractVersion: Schema.String,
-  commandType: Schema.Literal('frontend'),
-  aggregateId: Schema.String,
-  aggregateName: Schema.String,
-  frontendName: Schema.String,
-  userId: Schema.String,
-  sessionId: makeAbbreviationIdSchema('sesn'),
-  stagedCursor: makeAbbreviationIdSchema(coreAbbreviations.stagedCursor),
-  stagedAt: Schema.Date,
-  pushedCursor: Schema.NullOr(
-    makeAbbreviationIdSchema(coreAbbreviations.pushedCursor),
-  ),
-  replicaIndex: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  status: Schema.Literal('staged'),
-});
-
-export const PushedCommandSchema: Schema.Schema<
-  IEncodedCommand<IPushedCommand>,
-  any
-> = Schema.Struct({
-  id: makeAbbreviationIdSchema('cmd'),
-  commandName: Schema.String,
-  payload: Schema.String,
-  systemName: Schema.String,
-  contractVersion: Schema.String,
-  commandType: Schema.Literal('frontend'),
-  aggregateId: Schema.String,
-  aggregateName: Schema.String,
-  frontendName: Schema.String,
-  userId: Schema.String,
-  sessionId: makeAbbreviationIdSchema('sesn'),
-  stagedCursor: makeAbbreviationIdSchema(coreAbbreviations.stagedCursor),
-  stagedAt: Schema.Date,
-  replicaIndex: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  pushedAt: Schema.Date,
-  pushedCursor: makeAbbreviationIdSchema(coreAbbreviations.pushedCursor),
-  status: Schema.Literal('pushed'),
-});
-
-export const FailedStagedReplicaCommandSchema: Schema.Schema<
-  IEncodedCommand<IFailedStagedReplicaCommand>,
-  any
-> = Schema.Struct({
-  id: makeAbbreviationIdSchema('cmd'),
-  commandName: Schema.String,
-  payload: Schema.String,
-  systemName: Schema.String,
-  contractVersion: Schema.String,
-  commandType: Schema.Literal('frontend'),
-  aggregateId: Schema.String,
-  aggregateName: Schema.String,
-  frontendName: Schema.String,
-  userId: Schema.String,
-  sessionId: makeAbbreviationIdSchema('sesn'),
-  stagedCursor: makeAbbreviationIdSchema(coreAbbreviations.stagedCursor),
-  stagedAt: Schema.Date,
-  pushedCursor: Schema.NullOr(
-    makeAbbreviationIdSchema(coreAbbreviations.pushedCursor),
-  ),
-  replicaIndex: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  aggregateCursor: Schema.optional(Schema.Never),
-  aggregateIndex: Schema.optional(Schema.Never),
-  failedAt: Schema.Date,
-  failure: Schema.String,
-  status: Schema.Literal('failed'),
-});
-
-export const FinalizedFailedStagedReplicaCommandSchema: Schema.Schema<
-  IEncodedCommand<IFinalizedFailedStagedReplicaCommand>,
-  any
-> = Schema.Struct({
-  id: makeAbbreviationIdSchema('cmd'),
-  commandName: Schema.String,
-  payload: Schema.String,
-  systemName: Schema.String,
-  contractVersion: Schema.String,
-  commandType: Schema.Literal('frontend'),
-  aggregateId: Schema.String,
-  aggregateName: Schema.String,
-  frontendName: Schema.String,
-  userId: Schema.String,
-  sessionId: makeAbbreviationIdSchema('sesn'),
-  stagedCursor: makeAbbreviationIdSchema(coreAbbreviations.stagedCursor),
-  stagedAt: Schema.Date,
-  pushedCursor: Schema.NullOr(
-    makeAbbreviationIdSchema(coreAbbreviations.pushedCursor),
-  ),
-  replicaIndex: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  aggregateCursor: makeAbbreviationIdSchema(coreAbbreviations.aggregateCursor),
-  aggregateIndex: Schema.Number,
-  failedAt: Schema.Date,
-  failure: Schema.String,
-  status: Schema.Literal('failed'),
-});
-
-export const EncodedExecutedAggregateCommandSchema: Schema.Schema<
-  IEncodedCommand<IExecutedAggregateCommand>,
-  any
-> = Schema.Struct({
+export const EncodedSessionCommandSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
   commandName: Schema.String,
   payload: Schema.String,
   contractVersion: Schema.String,
-  commandType: Schema.Literal('aggregate'),
   aggregateId: Schema.String,
   aggregateName: Schema.String,
   systemName: Schema.String,
-  mode: Schema.Literal('authoritative', 'optimistic-lww'),
-  aggregateCursor: makeAbbreviationIdSchema(coreAbbreviations.aggregateCursor),
-  aggregateIndex: Schema.Number,
-  executedAt: Schema.Date,
-  status: Schema.Literal('executed'),
-  sessionId: Schema.NullOr(makeAbbreviationIdSchema('sesn')),
-  userId: Schema.NullOr(Schema.String),
-  frontendName: Schema.NullOr(Schema.String),
-  pushedCursor: Schema.NullOr(
-    makeAbbreviationIdSchema(coreAbbreviations.pushedCursor),
-  ),
-});
-
-export const ExecutedPushedCommandSchema: Schema.Schema<
-  IEncodedCommand<IExecutedPushedCommand>,
-  any
-> = Schema.Struct({
-  id: makeAbbreviationIdSchema('cmd'),
-  commandName: Schema.String,
-  payload: Schema.String,
-  contractVersion: Schema.String,
-  commandType: Schema.Literal('frontend'),
-  systemName: Schema.String,
-  aggregateId: Schema.String,
-  aggregateName: Schema.String,
   sessionId: makeAbbreviationIdSchema('sesn'),
   userId: Schema.String,
   frontendName: Schema.String,
-  stagedCursor: makeAbbreviationIdSchema(coreAbbreviations.stagedCursor),
-  stagedAt: Schema.Date,
-  replicaIndex: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  pushedAt: Schema.Date,
-  pushedCursor: makeAbbreviationIdSchema(coreAbbreviations.pushedCursor),
-  mode: Schema.Literal('authoritative', 'optimistic-lww'),
-  aggregateCursor: makeAbbreviationIdSchema(coreAbbreviations.aggregateCursor),
-  aggregateIndex: Schema.Number,
-  executedAt: Schema.Date,
-  status: Schema.Literal('executed'),
-});
+  pushIndex: Schema.NullOr(positiveIndexSchema),
+}) satisfies Schema.Codec<IEncodedCommand<ISessionCommand>, any>;
 
-export const EncodedFailedAggregateCommandSchema: Schema.Schema<
-  IEncodedCommand<IFailedAggregateCommand>,
+const chainedFields = {
+  chainedAt: Schema.DateFromString,
+};
+
+const serviceChainFields = {
+  serviceIndex: positiveIndexSchema,
+  ...chainedFields,
+};
+
+const ServicePendingCommandSchema = Schema.fieldsAssign({
+  ...serviceChainFields,
+  delta: Schema.Null,
+  failedAt: Schema.Null,
+  failure: Schema.Null,
+})(EncodedServiceCommandSchema);
+
+const ServiceSuccessfulCommandSchema = Schema.fieldsAssign({
+  ...serviceChainFields,
+  delta: ResourceDeltaSchema,
+  failedAt: Schema.Null,
+  failure: Schema.Null,
+})(EncodedServiceCommandSchema);
+
+const ServiceFailedCommandSchema = Schema.fieldsAssign({
+  ...serviceChainFields,
+  delta: EmptyResourceDeltaSchema,
+  failedAt: Schema.DateFromString,
+  failure: EncodedZerospinErrorSchema,
+})(EncodedServiceCommandSchema);
+
+export const ServiceChainedCommandSchema = Schema.Union([
+  ServicePendingCommandSchema,
+  ServiceSuccessfulCommandSchema,
+  ServiceFailedCommandSchema,
+]) satisfies Schema.Codec<
+  IEncodedCommand<
+    IChainedCommand<IServiceCommand, IResourceDelta> &
+      Readonly<{ serviceIndex: number }>
+  >,
   any
-> = Schema.Struct({
-  id: makeAbbreviationIdSchema('cmd'),
-  commandName: Schema.String,
-  payload: Schema.String,
-  contractVersion: Schema.String,
-  commandType: Schema.Literal('aggregate'),
-  aggregateId: Schema.String,
-  aggregateName: Schema.String,
-  systemName: Schema.String,
-  aggregateCursor: makeAbbreviationIdSchema(coreAbbreviations.aggregateCursor),
-  aggregateIndex: Schema.Number,
-  failedAt: Schema.Date,
-  failure: Schema.String,
-  status: Schema.Literal('failed'),
-  sessionId: Schema.NullOr(makeAbbreviationIdSchema('sesn')),
-  userId: Schema.NullOr(Schema.String),
-  frontendName: Schema.NullOr(Schema.String),
-  pushedCursor: Schema.NullOr(
-    makeAbbreviationIdSchema(coreAbbreviations.pushedCursor),
-  ),
-});
+>;
 
-export const FailedPushedCommandSchema: Schema.Schema<
-  IEncodedCommand<IFailedPushedCommand>,
-  any
-> = Schema.Struct({
-  id: makeAbbreviationIdSchema('cmd'),
-  commandName: Schema.String,
-  payload: Schema.String,
-  contractVersion: Schema.String,
-  commandType: Schema.Literal('frontend'),
-  systemName: Schema.String,
-  aggregateId: Schema.String,
-  aggregateName: Schema.String,
-  sessionId: makeAbbreviationIdSchema('sesn'),
-  userId: Schema.String,
-  frontendName: Schema.String,
-  stagedCursor: makeAbbreviationIdSchema(coreAbbreviations.stagedCursor),
-  stagedAt: Schema.Date,
-  replicaIndex: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  pushedAt: Schema.Date,
-  pushedCursor: makeAbbreviationIdSchema(coreAbbreviations.pushedCursor),
-  aggregateCursor: makeAbbreviationIdSchema(coreAbbreviations.aggregateCursor),
-  aggregateIndex: Schema.Number,
-  failedAt: Schema.Date,
-  failure: Schema.String,
-  status: Schema.Literal('failed'),
-});
+const directAggregateChainFields = {
+  aggregateIndex: positiveIndexSchema,
+  ...chainedFields,
+};
 
-export const PushBlockSchema = Schema.Struct({
-  writeIndex: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  guardedAtAggregateCursor: Schema.NullOr(
-    makeAbbreviationIdSchema(coreAbbreviations.aggregateCursor),
-  ),
-  pendingCommands: Schema.Array(PushedCommandSchema),
-  pushedCommands: Schema.Array(PushedCommandSchema),
-  executedCommands: Schema.Array(ExecutedPushedCommandSchema),
-  failedStagedCommands: Schema.Array(
-    Schema.Union(
-      FinalizedFailedStagedReplicaCommandSchema,
-      FailedStagedReplicaCommandSchema,
+const derivedAggregateChainFields = {
+  aggregateIndex: positiveIndexSchema,
+  serviceIndex: positiveIndexSchema,
+  ...chainedFields,
+};
+
+const DirectAggregatePendingCommandSchema =
+  EncodedAggregateCommandSchema.mapMembers(
+    Tuple.map(
+      Schema.fieldsAssign({
+        ...directAggregateChainFields,
+        delta: Schema.Null,
+        failedAt: Schema.Null,
+        failure: Schema.Null,
+      }),
     ),
-  ),
-  failedPushedCommands: Schema.Array(FailedPushedCommandSchema),
-}) satisfies Schema.Schema<IPushBlock, any>;
+  );
 
-export const EncodedExecutedServiceCommandSchema = Schema.Struct({
-  id: makeAbbreviationIdSchema('cmd'),
-  commandName: Schema.String,
-  payload: Schema.String,
-  contractVersion: Schema.String,
-  commandType: Schema.Literal('service'),
-  serviceName: Schema.String,
-  mode: Schema.Literal('authoritative', 'optimistic-lww'),
-  serviceCursor: makeAbbreviationIdSchema(coreAbbreviations.serviceCursor),
-  serviceIndex: Schema.Number,
-  executedAt: Schema.Date,
-  status: Schema.Literal('executed'),
-}) satisfies Schema.Schema<IEncodedCommand<IExecutedServiceCommand>, any>;
+const DirectAggregateSuccessfulCommandSchema =
+  EncodedAggregateCommandSchema.mapMembers(
+    Tuple.map(
+      Schema.fieldsAssign({
+        ...directAggregateChainFields,
+        delta: ResourceDeltaSchema,
+        failedAt: Schema.Null,
+        failure: Schema.Null,
+      }),
+    ),
+  );
 
-export const EncodedFailedServiceCommandSchema = Schema.Struct({
-  id: makeAbbreviationIdSchema('cmd'),
-  commandName: Schema.String,
-  payload: Schema.String,
-  contractVersion: Schema.String,
-  commandType: Schema.Literal('service'),
-  serviceName: Schema.String,
-  serviceCursor: makeAbbreviationIdSchema(coreAbbreviations.serviceCursor),
-  serviceIndex: Schema.Number,
-  failedAt: Schema.Date,
-  failure: Schema.String,
-  status: Schema.Literal('failed'),
-}) satisfies Schema.Schema<IEncodedCommand<IFailedServiceCommand>, any>;
+const DirectAggregateFailedCommandSchema =
+  EncodedAggregateCommandSchema.mapMembers(
+    Tuple.map(
+      Schema.fieldsAssign({
+        ...directAggregateChainFields,
+        delta: EmptyResourceDeltaSchema,
+        failedAt: Schema.DateFromString,
+        failure: EncodedZerospinErrorSchema,
+      }),
+    ),
+  );
+
+const DerivedAggregatePendingCommandSchema = Schema.fieldsAssign({
+  ...derivedAggregateChainFields,
+  delta: Schema.Null,
+  failedAt: Schema.Null,
+  failure: Schema.Null,
+})(EncodedServiceCommandSchema);
+
+const DerivedAggregateSuccessfulCommandSchema = Schema.fieldsAssign({
+  ...derivedAggregateChainFields,
+  delta: ResourceDeltaSchema,
+  failedAt: Schema.Null,
+  failure: Schema.Null,
+})(EncodedServiceCommandSchema);
+
+const DerivedAggregateFailedCommandSchema = Schema.fieldsAssign({
+  ...derivedAggregateChainFields,
+  delta: EmptyResourceDeltaSchema,
+  failedAt: Schema.DateFromString,
+  failure: EncodedZerospinErrorSchema,
+})(EncodedServiceCommandSchema);
+
+export const AggregateChainedCommandSchema = Schema.Union([
+  ...DirectAggregatePendingCommandSchema.members,
+  ...DirectAggregateSuccessfulCommandSchema.members,
+  ...DirectAggregateFailedCommandSchema.members,
+  DerivedAggregatePendingCommandSchema,
+  DerivedAggregateSuccessfulCommandSchema,
+  DerivedAggregateFailedCommandSchema,
+]) satisfies Schema.Codec<
+  | IEncodedCommand<
+      IChainedCommand<IAggregateCommand, IResourceDelta> &
+        Readonly<{ aggregateIndex: number }>
+    >
+  | IEncodedCommand<
+      IChainedCommand<IServiceCommand, IResourceDelta> &
+        Readonly<{ aggregateIndex: number; serviceIndex: number }>
+    >,
+  any
+>;

@@ -1,22 +1,20 @@
-import { Effect } from 'effect';
-import { Schema } from 'effect/Schema';
+import { Effect, Schema } from 'effect';
 
 import { mapParseError } from '../_stubs/schema';
 
 /**
- * Schema.validate accepts unknown — do not cast input to schema Type before validate.
+ * Schema.decodeUnknownEffect accepts unknown — do not cast input before decoding.
  *
- * @bad `Schema.validate(RequestSchema)(request as typeof RequestSchema.Type, ...)`.
- * @bad Use Schema.validate when transforms must run — prefer Schema.decodeUnknown instead.
+ * @bad `Schema.decodeEffect(RequestSchema)(request as typeof RequestSchema.Type, ...)` at a trust boundary.
+ * @bad Use `Schema.toType` at a wire boundary where schema transformations must run.
  */
 export const validateSystemApiRequest = Effect.fn('validateSystemApiRequest')(
   function* (props: { request: unknown }) {
-    const validatedRequest = yield* Schema.validate(SystemApiRequestSchema)(
-      props.request,
-      {
-        onExcessProperty: 'ignore',
-      },
-    ).pipe(
+    const validatedRequest = yield* Schema.decodeUnknownEffect(
+      SystemApiRequestSchema,
+    )(props.request, {
+      onExcessProperty: 'ignore',
+    }).pipe(
       mapParseError({
         code: 'failed-to-decode-system-api-request',
         prefix: 'Failed to decode SystemApi request',

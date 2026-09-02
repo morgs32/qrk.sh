@@ -1,11 +1,11 @@
 import { type IAnyError } from '@zerospin/error';
+import type { CuidFactory } from '@zerospin/schema';
 import { Effect } from 'effect';
 
 import type {
   InferCommandPayload,
   InferPayloadInput,
 } from '../models/types.ts';
-import type { CuidFactory } from '../services/CuidFactory.ts';
 
 import { makeCommand } from './makeCommand.ts';
 import type {
@@ -33,7 +33,8 @@ export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
       CONTRACT['version'],
       InferCommandPayload<CONTRACT['payload']>
     >
-  >,
+  > &
+    Readonly<{ pushIndex: null }>,
   IAnyError,
   CuidFactory
 > {
@@ -54,7 +55,7 @@ export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
     aggregateId,
     aggregateName,
     userId,
-    pushedCursor: null,
+    pushIndex: null,
     sessionId,
     frontendName,
     systemName,

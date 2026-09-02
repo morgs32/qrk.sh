@@ -1,21 +1,16 @@
 /**
- * Address the singleton SystemRepo by system ID and qualify generation-owned reads.
+ * Address the singleton SystemRepo by the configured system ID and keep reads on that singleton.
  *
- * @bad Address one SystemRepo per generation or omit the configured system ID.
- * @bad Read generation-owned rows without the generation ID that locates them.
+ * @bad Address more than one SystemRepo for a system or omit the configured system ID.
+ * @bad Add deployment or generation qualifiers to singleton SystemRepo reads.
  */
-export function loadRegisteredAggregateIds(props: {
-  systemId: string;
-  generationId: string;
-}) {
+export function loadRegisteredAggregateIds(props: { systemId: string }) {
   const systemRepo = SystemRepo.getRepo({ systemId: props.systemId });
-  return systemRepo.getAggregateIds({ generationId: props.generationId });
+  return systemRepo.getAggregateIds();
 }
 
 declare const SystemRepo: {
   getRepo: (props: { systemId: string }) => {
-    getAggregateIds: (props: {
-      generationId: string;
-    }) => Promise<readonly string[]>;
+    getAggregateIds: () => Promise<readonly string[]>;
   };
 };

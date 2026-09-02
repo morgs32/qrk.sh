@@ -1,7 +1,26 @@
+import type { ISystemSpec } from '@zerospin/core/system/types';
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { startStudio } from './startStudio.ts';
+
+const systemSpec = {
+  systemName: 'shopping',
+  version: '2.0.2',
+  authentication: {
+    signature: {
+      version: '1.0.0',
+      schemaJsonSchema: {
+        dialect: 'draft-2020-12',
+        schema: {},
+        definitions: {},
+      },
+      historicalDefinitions: [],
+    },
+  },
+  aggregates: {},
+  services: {},
+} satisfies ISystemSpec;
 
 const {
   closeMock,
@@ -79,8 +98,8 @@ describe('startStudio', () => {
   it('runs a repository-list request through the concrete traced SystemApi target', async () => {
     const getSystemReposMock = vi.fn().mockResolvedValue({
       result: {
-        _tag: 'Right',
-        right: [{ repoName: 'system-repo', tableNames: ['systems'] }],
+        _tag: 'Success',
+        success: [{ repoName: 'system-repo', tableNames: ['systems'] }],
       },
       link: {
         linkId: 'lnk_studio-system-repos',
@@ -104,8 +123,19 @@ describe('startStudio', () => {
       startStudio({
         port: 5555,
         open: false,
+        systemSpec,
         zerospinApiUrl: 'http://apis.test',
         zerospinSecretKey: 'secret-studio-key',
+      }),
+    );
+
+    expect(createServerMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        define: {
+          'import.meta.env.ZEROSPIN_SYSTEM_SPEC': JSON.stringify(
+            JSON.stringify(systemSpec),
+          ),
+        },
       }),
     );
 
@@ -159,19 +189,22 @@ describe('startStudio', () => {
   });
 
   it('runs a table-row request with the decoded route arguments', async () => {
-    const getAggregateRepoTableRowsMock = vi.fn().mockResolvedValue({
-      result: {
-        _tag: 'Right',
-        right: {
-          columns: [{ name: 'id', type: 'text' }],
-          rows: [{ id: 'aggregate-1' }],
+    const getMaterializedAggregateRepoTableRowsMock = vi
+      .fn()
+      .mockResolvedValue({
+        result: {
+          _tag: 'Success',
+          success: {
+            columns: [{ name: 'id', type: 'text' }],
+            rows: [{ id: 'aggregate-1' }],
+          },
         },
-      },
-      link: null,
-    });
+        link: null,
+      });
     newSyncRpcSessionMock.mockReturnValue({
       getSystemApi: vi.fn().mockReturnValue({
-        getAggregateRepoTableRows: getAggregateRepoTableRowsMock,
+        getMaterializedAggregateRepoTableRows:
+          getMaterializedAggregateRepoTableRowsMock,
       }),
       [Symbol.dispose]: vi.fn(),
     });
@@ -180,6 +213,7 @@ describe('startStudio', () => {
       startStudio({
         port: 5555,
         open: false,
+        systemSpec,
         zerospinApiUrl: 'http://apis.test',
         zerospinSecretKey: 'secret-studio-key',
       }),
@@ -195,14 +229,16 @@ describe('startStudio', () => {
     await middleware(
       {
         method: 'GET',
-        url: '/api/repos/AggregateRepo/aggregate%2Frepo/aggregates%20table',
+        url: '/api/repos/MaterializedAggregateRepo/aggregate%2Frepo/aggregates%20table',
       },
       response,
       vi.fn(),
     );
 
-    expect(getAggregateRepoTableRowsMock).toHaveBeenCalledTimes(1);
-    expect(getAggregateRepoTableRowsMock.mock.calls[0]![0]).toMatchObject({
+    expect(getMaterializedAggregateRepoTableRowsMock).toHaveBeenCalledTimes(1);
+    expect(
+      getMaterializedAggregateRepoTableRowsMock.mock.calls[0]![0],
+    ).toMatchObject({
       args: [
         {
           repoName: 'aggregate/repo',
@@ -226,8 +262,8 @@ describe('startStudio', () => {
   it('returns a 500 response for an encoded SystemApi domain failure', async () => {
     const getSystemReposMock = vi.fn().mockResolvedValue({
       result: {
-        _tag: 'Left',
-        left: {
+        _tag: 'Failure',
+        failure: {
           code: 'repo-read-failed',
           message: 'System repo read failed',
         },
@@ -245,6 +281,7 @@ describe('startStudio', () => {
       startStudio({
         port: 5555,
         open: false,
+        systemSpec,
         zerospinApiUrl: 'http://apis.test',
         zerospinSecretKey: 'secret-studio-key',
       }),
@@ -274,8 +311,8 @@ describe('startStudio', () => {
   it('creates isolated caller roots for concurrent middleware requests', async () => {
     const getSystemReposMock = vi.fn().mockResolvedValue({
       result: {
-        _tag: 'Right',
-        right: [{ repoName: 'system-repo', tableNames: ['systems'] }],
+        _tag: 'Success',
+        success: [{ repoName: 'system-repo', tableNames: ['systems'] }],
       },
       link: {
         linkId: 'lnk_concurrent-system-repos',
@@ -297,6 +334,7 @@ describe('startStudio', () => {
       startStudio({
         port: 5555,
         open: false,
+        systemSpec,
         zerospinApiUrl: 'http://apis.test',
         zerospinSecretKey: 'secret-studio-key',
       }),
@@ -373,6 +411,7 @@ describe('startStudio', () => {
       startStudio({
         port: 5555,
         open: false,
+        systemSpec,
         zerospinApiUrl: 'http://apis.test',
         zerospinSecretKey: 'secret-studio-key',
       }),

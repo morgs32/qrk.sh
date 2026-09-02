@@ -71,8 +71,6 @@ packages/devtools/src/**/*.d.ts.map
 # Sentry Config File
 .env.sentry-build-plugin
 
-# llm-wiki local state and per-machine obsidian workspace
+# llm-wiki local state and per-machine Obsidian configuration
 .llmwiki/state/
-.obsidian/workspace.json
-.obsidian/cache
-.obsidian/workspaces.json
+.obsidian/

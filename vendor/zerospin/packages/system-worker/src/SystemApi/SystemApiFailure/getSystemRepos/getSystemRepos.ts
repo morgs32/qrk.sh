@@ -1,4 +1,4 @@
-import { encodeLeft } from '@zerospin/core/utils/encodeLeft';
+import { encodeFailure } from '@zerospin/core/utils/encodeFailure';
 import type { IAnyError } from '@zerospin/error';
 import { Effect } from 'effect';
 
@@ -8,5 +8,8 @@ export const getSystemRepos = Effect.fn('SystemApiFailure.getSystemRepos')(
   (props: {
     error: IAnyError;
     request: Parameters<SystemApi['getSystemRepos']>[0];
-  }) => Effect.succeed({ result: encodeLeft(props.error), link: null }),
+  }) => {
+    const { error } = props;
+    return Effect.succeed({ result: encodeFailure(error), link: null });
+  },
 );

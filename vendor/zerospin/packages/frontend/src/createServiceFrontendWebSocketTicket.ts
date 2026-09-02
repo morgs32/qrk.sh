@@ -1,31 +1,53 @@
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import type { Async } from '@zerospin/core/async/Async';
+import { makeAsync } from '@zerospin/core/async/makeAsync';
+import type { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
+import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
+import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
+import {
+  ZerospinError,
+  type IAnyError,
+  type IAnyErrorJson,
+  type IEncodedResult,
+} from '@zerospin/error';
 import {
   annotateFunctionSpan,
   makeTraceableApiTarget,
   type TelemetryCollector,
 } from '@zerospin/logger';
-import { Effect } from 'effect';
-
-import type { authenticate } from './authenticate';
+import { Effect, type Schema } from 'effect';
+import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
 export const createServiceFrontendWebSocketTicket = Effect.fn(
   'createServiceFrontendWebSocketTicket',
 )(function* (props: {
-  frontendApi: Awaited<
-    ReturnType<
-      Effect.Effect.Success<
-        ReturnType<typeof authenticate>
-      >['authenticatedApi']['getServiceFrontendApi']
-    >
-  >;
+  apiUrl: string;
+  publishableKey: string;
+  systemName: string;
+  authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
+  generateSignature(): Promise<IEncodedResult<unknown, IAnyErrorJson>>;
+  serviceName: string;
+  frontendName: string;
+  serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
 }): Effect.fn.Return<
-  {
-    ticket: string;
-  },
+  Readonly<{ ticket: string }>,
   IAnyError,
-  TelemetryCollector
+  Async | TelemetryCollector
 > {
-  return yield* makeTraceableApiTarget(props.frontendApi)
+  const signature = yield* makeAsync(props.generateSignature).pipe(
+    Effect.flatMap(decodeRpc),
+  );
+  const gatewayApi = newSyncRpcSession<GatewayApi>(props.apiUrl);
+  const frontendApi = gatewayApi.getServiceFrontendApi({
+    publishableKey: props.publishableKey,
+    systemName: props.systemName,
+    authenticationLock: props.authenticationLock,
+    signature,
+    serviceName: props.serviceName,
+    frontendName: props.frontendName,
+    serviceFrontendLock: props.serviceFrontendLock,
+  });
+  return yield* makeTraceableApiTarget(frontendApi)
     .createWebSocketTicket()
     .pipe(
       Effect.mapError(error =>
@@ -33,5 +55,6 @@ export const createServiceFrontendWebSocketTicket = Effect.fn(
           ? ZerospinError.catch({ code: 'async-failed' })(error)
           : new ZerospinError(error),
       ),
+      Effect.ensuring(Effect.sync(() => gatewayApi[Symbol.dispose]())),
     );
 }, annotateFunctionSpan);

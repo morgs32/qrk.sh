@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 
 import {
   flexRender,
@@ -15,56 +15,20 @@ import { sessionsDatabaseTabStyles } from '../database/sessionsDatabaseTabStyles
 
 import { SessionsCommandsColumnPicker } from './SessionsCommandsColumnPicker';
 import {
-  defaultColumnVisibilityForStatus,
   formatCommandCellValue,
   isSessionsCommandsCopyCellColumn,
   makeSessionsCommandsTableColumns,
   truncateCommandDisplayText,
-  type IDevtoolsSessionCommandsStatus,
 } from './sessionsCommandsTableColumns';
-
-type ISessionsCommandsTableName =
-  | 'stagedCommands'
-  | 'pushedCommands'
-  | 'executedPushedCommands'
-  | 'failedCommands';
-
-function devtoolsStatusToTableNames(
-  status: IDevtoolsSessionCommandsStatus,
-): readonly ISessionsCommandsTableName[] {
-  switch (status) {
-    case 'staged':
-      return ['stagedCommands'];
-    case 'pushed':
-      return ['pushedCommands'];
-    case 'executed':
-      return ['executedPushedCommands'];
-    case 'failed':
-      return ['failedCommands'];
-    default: {
-      const exhaustive: never = status;
-      throw new Error(`Unsupported command status: ${exhaustive}`);
-    }
-  }
-}
 
 const SessionsCommandsTableBody = memo(
   function SessionsCommandsTableBody(props: {
     rows: Readonly<Record<string, unknown>>[];
-    status: IDevtoolsSessionCommandsStatus;
   }) {
-    const { rows, status } = props;
+    const { rows } = props;
     const columns = useMemo(() => makeSessionsCommandsTableColumns(), []);
-    const defaultVisibility = useMemo(
-      () => defaultColumnVisibilityForStatus(status),
-      [status],
-    );
     const [columnVisibility, setColumnVisibility] =
-      useState<VisibilityState>(defaultVisibility);
-
-    useEffect(() => {
-      setColumnVisibility(defaultVisibility);
-    }, [defaultVisibility]);
+      useState<VisibilityState>({});
 
     const table = useReactTable({
       columns,
@@ -154,31 +118,14 @@ const SessionsCommandsTableBody = memo(
 
 export function SessionsCommandsRowsTable(props: {
   readonly session: ISession;
-  readonly status: IDevtoolsSessionCommandsStatus;
 }) {
-  const { session, status } = props;
+  const { session } = props;
   const { db } = getInitializedStateOrThrow({ session });
-  const tableNames = devtoolsStatusToTableNames(status);
   const { data: rows, error } = useLiveQueryOnDb({
     db,
-    deps: [status],
-    query: db => {
-      switch (status) {
-        case 'staged':
-          return db.query.stagedCommands!.findMany();
-        case 'pushed':
-          return db.query.pushedCommands!.findMany();
-        case 'executed':
-          return db.query.executedPushedCommands!.findMany();
-        case 'failed':
-          return db.query.failedCommands!.findMany();
-        default: {
-          const exhaustive: never = status;
-          throw new Error(`Unsupported command status: ${exhaustive}`);
-        }
-      }
-    },
-    tableNames,
+    deps: [],
+    query: db => db.query.commandJournal!.findMany(),
+    tableNames: ['commandJournal'],
   });
 
   if (error !== undefined) {
@@ -195,5 +142,5 @@ export function SessionsCommandsRowsTable(props: {
     );
   }
 
-  return <SessionsCommandsTableBody rows={rows} status={status} />;
+  return <SessionsCommandsTableBody rows={rows} />;
 }

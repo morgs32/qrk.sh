@@ -1,6 +1,5 @@
+import { encodeShape } from '@zerospin/schema';
 import { mapValues } from 'es-toolkit';
-
-import { encodeShape } from '../models/encodeShape.ts';
 
 import type {
   IAggregateFrontendController,
@@ -36,10 +35,7 @@ export function makeFrontendControllerSpec(
         abbreviation: definition.abbreviation,
         version: definition.version,
         hasDirectAdapter: typeof definition.adaptResource === 'function',
-        properties: encodeShape({
-          ...model.metadata,
-          ...definition.attributes,
-        }),
+        properties: encodeShape(definition.propertiesShape),
         indexes: definition.indexes.toSorted((left, right) =>
           left.name.localeCompare(right.name),
         ),

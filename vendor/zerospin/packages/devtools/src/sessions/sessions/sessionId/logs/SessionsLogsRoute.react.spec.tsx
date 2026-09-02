@@ -4,7 +4,6 @@ import { main } from '@zerospin/core/fixtures/system';
 import { makeSession } from '@zerospin/core/session/makeSession';
 import type { ISessionId } from '@zerospin/core/session/types';
 import type { ITelemetryBatch } from '@zerospin/logger';
-import { Effect } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -152,11 +151,13 @@ describe('SessionsLogsRoute', () => {
     const session = makeSession({
       frontend: main,
       sessionId,
-      generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
+      getPushPaused: async () => ({ _tag: 'Success', success: false }),
+      setPushPaused: async () => ({ _tag: 'Success', success: undefined }),
+      pushNow: async () => ({ _tag: 'Success', success: { status: 'empty' } }),
     });
 
     const router = createMemoryRouter(
@@ -391,7 +392,6 @@ describe('SessionsLogsRoute', () => {
     const session = makeSession({
       frontend: main,
       sessionId,
-      generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({
       telemetry: {
@@ -413,6 +413,9 @@ describe('SessionsLogsRoute', () => {
     });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
+      getPushPaused: async () => ({ _tag: 'Success', success: false }),
+      setPushPaused: async () => ({ _tag: 'Success', success: undefined }),
+      pushNow: async () => ({ _tag: 'Success', success: { status: 'empty' } }),
     });
 
     const router = createMemoryRouter(
@@ -445,11 +448,13 @@ describe('SessionsLogsRoute', () => {
     const session = makeSession({
       frontend: main,
       sessionId,
-      generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
+      getPushPaused: async () => ({ _tag: 'Success', success: false }),
+      setPushPaused: async () => ({ _tag: 'Success', success: undefined }),
+      pushNow: async () => ({ _tag: 'Success', success: { status: 'empty' } }),
     });
 
     const router = createMemoryRouter(
@@ -481,11 +486,13 @@ describe('SessionsLogsRoute', () => {
     const session = makeSession({
       frontend: main,
       sessionId,
-      generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
+      getPushPaused: async () => ({ _tag: 'Success', success: false }),
+      setPushPaused: async () => ({ _tag: 'Success', success: undefined }),
+      pushNow: async () => ({ _tag: 'Success', success: { status: 'empty' } }),
     });
 
     const router = createMemoryRouter(
@@ -513,11 +520,13 @@ describe('SessionsLogsRoute', () => {
     const session = makeSession({
       frontend: main,
       sessionId,
-      generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
+      getPushPaused: async () => ({ _tag: 'Success', success: false }),
+      setPushPaused: async () => ({ _tag: 'Success', success: undefined }),
+      pushNow: async () => ({ _tag: 'Success', success: { status: 'empty' } }),
     });
 
     const router = createMemoryRouter(
@@ -544,11 +553,13 @@ describe('SessionsLogsRoute', () => {
     const session = makeSession({
       frontend: main,
       sessionId,
-      generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     session.store.setState({ telemetry: initialTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
+      getPushPaused: async () => ({ _tag: 'Success', success: false }),
+      setPushPaused: async () => ({ _tag: 'Success', success: undefined }),
+      pushNow: async () => ({ _tag: 'Success', success: { status: 'empty' } }),
     });
 
     const otherTelemetry: ITelemetryBatch = {
@@ -570,11 +581,13 @@ describe('SessionsLogsRoute', () => {
     const otherSession = makeSession({
       frontend: main,
       sessionId: otherSessionId,
-      generateSignature: () => Effect.succeed({ userId: 'usr_1' }),
     });
     otherSession.store.setState({ telemetry: otherTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session: otherSession,
+      getPushPaused: async () => ({ _tag: 'Success', success: false }),
+      setPushPaused: async () => ({ _tag: 'Success', success: undefined }),
+      pushNow: async () => ({ _tag: 'Success', success: { status: 'empty' } }),
     });
 
     const router = createMemoryRouter(

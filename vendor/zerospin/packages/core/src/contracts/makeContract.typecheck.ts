@@ -1,6 +1,5 @@
+import { primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
-
-import { primitives } from '../models/primitives.ts';
 
 import { makeContract } from './makeContract.ts';
 
@@ -51,8 +50,8 @@ makeContract(
       commandName: 'renameItem',
       version: '1.0.0',
       payload: { name: primitives.text() },
-      // @ts-expect-error adapter output must be valid input for the current payload
       adaptPayload: ({ payload }) =>
+        // @ts-expect-error adapter output must be valid input for the current payload
         Effect.succeed({ nextTitle: payload.name }),
     },
   ],

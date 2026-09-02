@@ -2,6 +2,7 @@
 
 import { act } from 'react';
 
+import { ZerospinRouteErrorBoundary } from '@zerospin/react-router/ZerospinRouteErrorBoundary';
 import { createRoot, type Root } from 'react-dom/client';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -70,12 +71,12 @@ describe('RepoExplorer JSON inspector', () => {
       vi.fn((input: string | URL | Request) => {
         const url = input instanceof Request ? input.url : String(input);
 
-        if (url === '/api/repos/AggregateRepo') {
+        if (url === '/api/repos/MaterializedAggregateRepo') {
           return Promise.resolve(
             new Response(
               JSON.stringify([
                 {
-                  repoType: 'AggregateRepo',
+                  repoType: 'MaterializedAggregateRepo',
                   repoName: 'acct_1/user',
                   tableNames: ['commands', 'metadata'],
                 },
@@ -88,7 +89,9 @@ describe('RepoExplorer JSON inspector', () => {
           );
         }
 
-        if (url === '/api/repos/AggregateRepo/acct_1%2Fuser/commands') {
+        if (
+          url === '/api/repos/MaterializedAggregateRepo/acct_1%2Fuser/commands'
+        ) {
           return Promise.resolve(
             new Response(
               JSON.stringify({
@@ -144,7 +147,9 @@ describe('RepoExplorer JSON inspector', () => {
           );
         }
 
-        if (url === '/api/repos/AggregateRepo/acct_1%2Fuser/metadata') {
+        if (
+          url === '/api/repos/MaterializedAggregateRepo/acct_1%2Fuser/metadata'
+        ) {
           return Promise.resolve(
             new Response(
               JSON.stringify({
@@ -185,6 +190,58 @@ describe('RepoExplorer JSON inspector', () => {
     vi.unstubAllGlobals();
   });
 
+  it('shows the injected authored system version under Admin', async () => {
+    const router = createMemoryRouter(
+      [
+        {
+          path: '*',
+          element: <RepoExplorer />,
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    await act(async () => {
+      root.render(<RouterProvider router={router} />);
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('h1')?.textContent).toBe('Admin');
+    expect(container.querySelector('dt')?.textContent).toBe('System version');
+    expect(container.querySelector('dd')?.textContent).toBe('2.0.2');
+    expect(container.textContent).toContain(
+      'AggregatesshoppermodelsCartItem: 1.1.0, 1.0.0contractsupdateCartItemQuantity: 2.0.0, 1.0.0',
+    );
+    expect(container.querySelectorAll('h1')[1]?.textContent).toBe('Repos');
+    expect(
+      Array.from(container.querySelectorAll('a')).some(
+        link => link.textContent === 'Admin',
+      ),
+    ).toBe(false);
+  });
+
+  it('renders the shared boundary for a Studio root route failure', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const router = createMemoryRouter([
+      {
+        path: '*',
+        ErrorBoundary: ZerospinRouteErrorBoundary,
+        Component: () => {
+          throw new Error('Studio route failed.');
+        },
+      },
+    ]);
+
+    await act(async () => {
+      root.render(<RouterProvider router={router} onError={vi.fn()} />);
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'Studio route failed.',
+    );
+  });
+
   it('opens only object and array JSON, replaces and clears the selection, and expands nested nodes', async () => {
     const router = createMemoryRouter(
       [
@@ -193,7 +250,7 @@ describe('RepoExplorer JSON inspector', () => {
           element: <RepoExplorer />,
         },
       ],
-      { initialEntries: ['/AggregateRepo/acct_1%2Fuser'] },
+      { initialEntries: ['/MaterializedAggregateRepo/acct_1%2Fuser'] },
     );
 
     await act(async () => {
@@ -381,7 +438,7 @@ describe('RepoExplorer JSON inspector', () => {
           element: <RepoExplorer />,
         },
       ],
-      { initialEntries: ['/AggregateRepo/acct_1%2Fuser'] },
+      { initialEntries: ['/MaterializedAggregateRepo/acct_1%2Fuser'] },
     );
 
     await act(async () => {

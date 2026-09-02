@@ -26,11 +26,7 @@ import { ProfilePane } from './profiler/profileId/ProfilePane.js';
 import { ProfilePropsTab } from './profiler/profileId/ProfilePropsTab.js';
 import { ProfilerDetailEmpty } from './profiler/ProfilerDetailEmpty.js';
 import { ProfilerLayout } from './profiler/ProfilerLayout.js';
-import { SessionsCommandsExecutedRoute } from './sessions/sessions/sessionId/commands/executed/SessionsCommandsExecutedRoute.js';
-import { SessionsCommandsFailedRoute } from './sessions/sessions/sessionId/commands/failed/SessionsCommandsFailedRoute.js';
-import { SessionsCommandsPushedRoute } from './sessions/sessions/sessionId/commands/pushed/SessionsCommandsPushedRoute.js';
 import { SessionsCommandsLayout } from './sessions/sessions/sessionId/commands/SessionsCommandsLayout.js';
-import { SessionsCommandsStagedRoute } from './sessions/sessions/sessionId/commands/staged/SessionsCommandsStagedRoute.js';
 import { SessionsDatabaseIndexRoute } from './sessions/sessions/sessionId/database/SessionsDatabaseIndexRoute.js';
 import { SessionsDatabaseLayout } from './sessions/sessions/sessionId/database/SessionsDatabaseLayout.js';
 import { SessionsDatabaseModelRoute } from './sessions/sessions/sessionId/database/SessionsDatabaseModelRoute.js';
@@ -41,7 +37,6 @@ import { SessionPane } from './sessions/sessions/sessionId/SessionPane.js';
 import { SessionsDetailEmpty } from './sessions/sessions/SessionsDetailEmpty.js';
 import { SessionsLayout } from './sessions/sessions/SessionsLayout.js';
 import { SettingsRoute } from './SettingsRoute.js';
-import { SharedWorkerRoute } from './sharedWorker/SharedWorkerRoute.js';
 import { devtoolsStore, getExistingStateFromStorage } from './store.js';
 import { tokens } from './styles/tokens.js';
 import type { IZerospinDevtoolsConfig } from './types.js';
@@ -160,21 +155,6 @@ function DevtoolsNavigation(props: {
             })}
           >
             Profiler
-          </NavLink>
-          <NavLink
-            to="/shared-worker"
-            style={({ isActive }) => ({
-              ...textNavigationStyle,
-              ...(isActive
-                ? {
-                    color: activeForeground,
-                    backgroundColor: activeBackground,
-                    borderBottomColor: activeForeground,
-                  }
-                : {}),
-            })}
-          >
-            Shared Worker
           </NavLink>
         </nav>
 
@@ -314,28 +294,7 @@ function DevtoolsRoutes(props: {
           <Route path=":sessionId" element={<SessionLayout />}>
             <Route index element={<SessionIndexRoute />} />
             <Route element={<SessionPane />}>
-              <Route path="commands" element={<SessionsCommandsLayout />}>
-                <Route
-                  index
-                  element={<Navigate to="staged" replace relative="path" />}
-                />
-                <Route
-                  path="staged"
-                  element={<SessionsCommandsStagedRoute />}
-                />
-                <Route
-                  path="pushed"
-                  element={<SessionsCommandsPushedRoute />}
-                />
-                <Route
-                  path="failed"
-                  element={<SessionsCommandsFailedRoute />}
-                />
-                <Route
-                  path="executed"
-                  element={<SessionsCommandsExecutedRoute />}
-                />
-              </Route>
+              <Route path="commands" element={<SessionsCommandsLayout />} />
               <Route path="database" element={<SessionsDatabaseLayout />}>
                 <Route index element={<SessionsDatabaseIndexRoute />} />
                 <Route
@@ -361,7 +320,6 @@ function DevtoolsRoutes(props: {
           </Route>
         </Route>
 
-        <Route path="/shared-worker" element={<SharedWorkerRoute />} />
         <Route
           path="/settings"
           element={<SettingsRoute configuredTheme={configuredTheme} />}

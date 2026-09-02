@@ -9,10 +9,6 @@ export default makeWorkerdVitestConfig({
   include: ['tests/workerd/ProductionWorker.system-repo.workerd.spec.ts'],
   packageRoot,
   passWithNoTests: false,
-  seedsModulePath: path.join(
-    packageRoot,
-    'tests/workerd/productionSeeds.fixture.ts',
-  ),
   systemModulePath: path.resolve(
     packageRoot,
     '../system-worker/src/fixtures/system.ts',

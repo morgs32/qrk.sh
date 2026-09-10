@@ -1,52 +1,38 @@
 import { it } from '@effect/vitest';
 import { primitives } from '@zerospin/schema';
-import { Effect, Layer, Schema } from 'effect';
+import { Effect, Layer } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { makeContract } from '../contracts/makeContract.ts';
-import { makeModel } from '../models/makeModel.ts';
+import { contracts } from '../contracts/index.ts';
+import { models } from '../models/index.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
 import { makeServiceCommand } from './makeServiceCommand.ts';
 
-const Product = makeModel(
-  {
-    abbreviation: 'prd',
-    modelName: 'product',
-    attributes: {
-      name: primitives.text(),
-      price: primitives.number(),
-    },
-    indexes: [],
-    version: '1.0.0',
-  },
-  [],
-);
+const ProductModel = models.makeModel({ name: 'product', abbreviation: 'prd' });
 
-const createProduct = makeContract({
-  commandName: 'createProduct',
-  payload: {
-    id: Product.primaryKey({ autogenerate: false }),
+const Product = models.makeVersion(ProductModel, {
+  attributes: {
     name: primitives.text(),
     price: primitives.number(),
   },
-  mutations: Schema.Struct({
-    created: Product.createMutation('1.0.0'),
-  }),
-  program: ({ payload }) =>
-    Effect.all({
-      created: Product.create('1.0.0', {
-        resourceId: payload.id,
-        attributes: {
-          name: payload.name,
-          price: payload.price,
-        },
-      }),
-    }),
+  indexes: [],
   version: '1.0.0',
 });
+
+const createProduct = contracts.makeVersion(
+  contracts.makeCommand('createProduct'),
+  {
+    payload: {
+      id: primitives.foreignKey({ abbreviation: ProductModel.abbreviation }),
+      name: primitives.text(),
+      price: primitives.number(),
+    },
+    version: '1.0.0',
+  },
+);
 
 const TestLayer = Layer.mergeAll(
   makePrefixedIncrementalIdFactory('makeServiceCommand'),
@@ -62,6 +48,7 @@ describe('makeServiceCommand', () => {
         const command = yield* makeServiceCommand({
           contracts: { createProduct },
           serviceName: 'catalog',
+          serviceVersion: '2.0.0',
           contractName: 'createProduct',
           payload: {
             id: productId,
@@ -73,6 +60,7 @@ describe('makeServiceCommand', () => {
         expect(command).toMatchObject({
           commandName: 'createProduct',
           serviceName: 'catalog',
+          serviceVersion: '2.0.0',
           payload: {
             id: productId,
             name: 'Basic T-Shirt',
@@ -90,6 +78,7 @@ describe('makeServiceCommand', () => {
         const exit = yield* makeServiceCommand({
           contracts,
           serviceName: 'catalog',
+          serviceVersion: '2.0.0',
           contractName: 'createProduct',
           payload: {
             id: Product.prefixId('product-2'),

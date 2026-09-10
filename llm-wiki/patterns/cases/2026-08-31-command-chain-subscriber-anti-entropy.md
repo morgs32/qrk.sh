@@ -2,7 +2,7 @@
 
 ## Smell
 
-A materialized Repo treats the latest-tip notification as complete history or
+A Repo treats the latest-tip notification as complete history or
 acknowledges before its state and output outbox commit.
 
 ## Pattern

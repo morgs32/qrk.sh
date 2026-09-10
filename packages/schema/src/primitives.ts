@@ -7,6 +7,7 @@ import { type Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 import type { IsUnion } from 'type-fest';
 
+import { Table } from './makeTable.ts';
 import { PrimitiveKind } from './primitiveKind.ts';
 import type {
   IAnyRefDescriptor,
@@ -15,10 +16,10 @@ import type {
   ICursorDescriptor,
   IDateDescriptor,
   IEnumDescriptor,
+  IForeignKeyDescriptor,
   IIntegerDescriptor,
   IJsonDescriptor,
   INumberDescriptor,
-  IOpaqueIdDescriptor,
   IPrimaryKeyDescriptor,
   IRefDescriptor,
   ITextDescriptor,
@@ -362,27 +363,29 @@ function cursor(props: {
   };
 }
 
-function opaqueId<const ABBREVIATION extends string>(props: {
+function foreignKey<const ABBREVIATION extends string>(props: {
   abbreviation: ABBREVIATION;
   nullable: true;
   unique?: boolean;
-}): IOpaqueIdDescriptor<true, ABBREVIATION>;
-function opaqueId<const ABBREVIATION extends string>(props: {
+}): IForeignKeyDescriptor<true, ABBREVIATION>;
+function foreignKey<const ABBREVIATION extends string>(props: {
   abbreviation: ABBREVIATION;
   nullable?: false | undefined;
   unique?: boolean;
-}): IOpaqueIdDescriptor<false, ABBREVIATION>;
-function opaqueId(props: {
+}): IForeignKeyDescriptor<false, ABBREVIATION>;
+function foreignKey(props: {
   abbreviation: string;
   nullable?: boolean | undefined;
   unique?: boolean | undefined;
-}): IOpaqueIdDescriptor<boolean, string> {
+}): IForeignKeyDescriptor<boolean, string> {
   const { abbreviation, nullable = false, unique = false } = props;
   if (abbreviation === '') {
-    throw new Error('primitives.opaqueId requires a non-empty `abbreviation`');
+    throw new Error(
+      'primitives.foreignKey requires a non-empty `abbreviation`',
+    );
   }
   return {
-    kind: PrimitiveKind.OpaqueId,
+    kind: PrimitiveKind.ForeignKey,
     nullable,
     unique,
     abbreviation,
@@ -413,12 +416,13 @@ function json<DATA, NULLABLE extends boolean = false>(props: {
   NULLABLE extends true ? DATA | null : DATA,
   NULLABLE extends true ? null | undefined : undefined
 > {
-  if (props.nullable === true) {
-    if (props.defaultValue === null) {
+  const { defaultValue, nullable, schema } = props;
+  if (nullable === true) {
+    if (defaultValue === null) {
       return {
         kind: PrimitiveKind.Json,
         nullable: true,
-        schema: props.schema,
+        schema,
         defaultValue: null,
       } as IJsonDescriptor<
         NULLABLE,
@@ -429,7 +433,7 @@ function json<DATA, NULLABLE extends boolean = false>(props: {
     return {
       kind: PrimitiveKind.Json,
       nullable: true,
-      schema: props.schema,
+      schema,
     } as IJsonDescriptor<
       NULLABLE,
       NULLABLE extends true ? DATA | null : DATA,
@@ -439,7 +443,7 @@ function json<DATA, NULLABLE extends boolean = false>(props: {
   return {
     kind: PrimitiveKind.Json,
     nullable: false,
-    schema: props.schema,
+    schema,
   } as IJsonDescriptor<
     NULLABLE,
     NULLABLE extends true ? DATA | null : DATA,
@@ -655,6 +659,9 @@ function ref(props: {
   inverse: string;
 }): IAnyRefDescriptor {
   const { table, relation, inverse, nullable = false, unique = false } = props;
+  if (!(table instanceof Table)) {
+    throw new Error('primitives.ref requires a Table instance from makeTable');
+  }
   if (relation === '') {
     throw new Error('primitives.ref requires a non-empty `relation`');
   }
@@ -759,11 +766,7 @@ function self(props: {
     nullable,
     unique,
     abbreviation: '',
-    table: {
-      name: '',
-      shape: {},
-      indexes: [],
-    },
+    table: new Table({ name: '', shape: {} }),
     targetTableName: '',
     targetColumnName: '',
     relation,
@@ -776,7 +779,7 @@ export const primitives = {
   primaryKey,
   boolean,
   cursor,
-  opaqueId,
+  foreignKey,
   integer,
   number,
   text,

@@ -1,5 +1,6 @@
 import type { InferResource } from '@zerospin/core/models/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { useLiveQuery, useSession } from '@zerospin/react';
 import { Effect } from 'effect';
 import { ShoppingCart } from 'lucide-react';
@@ -15,13 +16,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { type Product } from '@/zerospin/models/Product';
-import { type User } from '@/zerospin/models/User';
+import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/cartV1';
+import { cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/cartItemV2';
+import { type userV1 } from '@/zerospin/aggregates/shopper/models/user/userV1';
+import { type productV1 } from '@/zerospin/services/app/models/product/productV1';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function ProductCard(props: {
-  product: InferResource<typeof Product>;
-  userId: ReturnType<typeof User.prefixId>;
+  product: InferResource<typeof productV1>;
+  userId: ReturnType<typeof userV1.prefixId>;
 }) {
   const { product, userId } = props;
   const session = useSession(ZerospinApp.frontends.web);
@@ -55,7 +58,6 @@ export function ProductCard(props: {
           <CartItemQuantityControls
             amount={cartItem.amount}
             cartItemId={cartItem.id}
-            unit={cartItem.unit}
           />
         ) : (
           <Button
@@ -69,7 +71,12 @@ export function ProductCard(props: {
                   decodeRpc(
                     session.executeCommand({
                       contractName: 'createCart',
-                      payload: { userId },
+                      payload: {
+                        id: Effect.runSync(
+                          cartV1.makeId().pipe(Effect.provide(NanoIdFactory)),
+                        ),
+                        userId,
+                      },
                     }),
                   ),
                 );
@@ -80,9 +87,12 @@ export function ProductCard(props: {
                   session.executeCommand({
                     contractName: 'addToCart',
                     payload: {
+                      cartItemId: Effect.runSync(
+                        cartItemV2.makeId().pipe(Effect.provide(NanoIdFactory)),
+                      ),
                       cartId,
                       product,
-                      quantity: 1,
+                      amount: 1,
                     },
                   }),
                 ),

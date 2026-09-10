@@ -44,8 +44,9 @@ const serviceCommand = {
   payload: '{}',
   contractVersion: '1.0.0',
   serviceName: 'catalog',
+  dispositionHash: 'a'.repeat(64),
   serviceIndex: 4,
-  serviceFrontendIndex: 3,
+  serviceVersion: '1.0.0',
   chainedAt: '2026-08-31T12:00:00.000Z',
 };
 
@@ -58,15 +59,17 @@ const encodedFailure = {
 };
 
 describe('service frontend command schemas', () => {
-  it('decodes pending, successful, and failed finalized occurrences', async () => {
-    const pending = await Effect.runPromise(
-      Schema.decodeUnknownEffect(ServiceFrontendFinalizedCommandSchema)({
-        ...serviceCommand,
-        delta: null,
-        failedAt: null,
-        failure: null,
-      }),
-    );
+  it('rejects pending and decodes successful and failed finalized occurrences', async () => {
+    await expect(
+      Effect.runPromise(
+        Schema.decodeUnknownEffect(ServiceFrontendFinalizedCommandSchema)({
+          ...serviceCommand,
+          delta: null,
+          failedAt: null,
+          failure: null,
+        }),
+      ),
+    ).rejects.toThrow();
     const successful = await Effect.runPromise(
       Schema.decodeUnknownEffect(ServiceFrontendFinalizedCommandSchema)({
         ...serviceCommand,
@@ -86,7 +89,6 @@ describe('service frontend command schemas', () => {
         failedInput,
       ),
     );
-    expect(pending.delta).toBeNull();
     expect(successful.delta).toMatchObject({
       inserted: [expect.objectContaining({ id: 'prd_inserted' })],
       updated: [expect.objectContaining({ id: 'prd_updated' })],
@@ -99,11 +101,10 @@ describe('service frontend command schemas', () => {
     const state = {
       userId: 'usr_1',
       systemId: 'sys_1',
-      systemVersion: '1.0.0',
       serviceName: 'catalog',
       frontendName: 'products',
       serviceIndex: 4,
-      serviceFrontendIndex: 3,
+      serviceVersion: '1.0.0',
       resources: frontendDelta.inserted,
     };
     const finalizedState = await Effect.runPromise(
@@ -111,7 +112,7 @@ describe('service frontend command schemas', () => {
     );
     expect(finalizedState).toMatchObject({
       serviceIndex: 4,
-      serviceFrontendIndex: 3,
+      serviceVersion: '1.0.0',
       resources: [expect.objectContaining({ id: 'prd_inserted' })],
     });
   });

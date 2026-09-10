@@ -8,10 +8,7 @@ import type {
 } from '@zerospin/core/contracts/types';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
 import type { IAggregateId } from '@zerospin/core/models/types';
-import type {
-  IAggregateFrontendPushedCommand,
-  IFrontendDelta,
-} from '@zerospin/core/session/types';
+import type { IFrontendDelta } from '@zerospin/core/session/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
 import {
@@ -38,6 +35,7 @@ export const pushAggregateFrontendCommand = Effect.fn(
   generateSignature(): Promise<IEncodedResult<unknown, IAnyErrorJson>>;
   aggregateId: IAggregateId;
   aggregateName: string;
+  aggregateVersion: string;
   frontendName: string;
   aggregateFrontendLock: Schema.Schema.Type<typeof AggregateFrontendLockSchema>;
   command: IEncodedCommand<
@@ -45,26 +43,39 @@ export const pushAggregateFrontendCommand = Effect.fn(
       Readonly<{ sessionIndex: number; pushIndex: null }>
   >;
 }): Effect.fn.Return<
-  IEncodedCommand<IAggregateFrontendPushedCommand>,
+  Readonly<{ aggregateIndex: number; commandId: string }>,
   IAnyError,
   Async | TelemetryCollector
 > {
-  const signature = yield* makeAsync(props.generateSignature).pipe(
+  const {
+    aggregateFrontendLock,
+    aggregateId,
+    aggregateName,
+    apiUrl,
+    authenticationLock,
+    command,
+    frontendName,
+    generateSignature,
+    publishableKey,
+    systemName,
+  } = props;
+  const signature = yield* makeAsync(generateSignature).pipe(
     Effect.flatMap(decodeRpc),
   );
-  const gatewayApi = newSyncRpcSession<GatewayApi>(props.apiUrl);
+  const gatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
   const frontendApi = gatewayApi.getAggregateFrontendApi({
-    publishableKey: props.publishableKey,
-    systemName: props.systemName,
-    authenticationLock: props.authenticationLock,
+    aggregateVersion: props.aggregateVersion,
+    publishableKey,
+    systemName,
+    authenticationLock,
     signature,
-    aggregateId: props.aggregateId,
-    aggregateName: props.aggregateName,
-    frontendName: props.frontendName,
-    aggregateFrontendLock: props.aggregateFrontendLock,
+    aggregateId,
+    aggregateName,
+    frontendName,
+    aggregateFrontendLock,
   });
   return yield* makeTraceableApiTarget(frontendApi)
-    .pushCommand({ command: props.command })
+    .pushCommand({ command })
     .pipe(
       Effect.mapError(error =>
         error instanceof Error

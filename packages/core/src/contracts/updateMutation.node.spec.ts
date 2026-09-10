@@ -3,10 +3,12 @@ import { Effect } from 'effect';
 
 import { User } from '../fixtures/system.ts';
 
+import { makeModelMutations } from './makeModelMutations.ts';
+
 describe('updateMutation', () => {
   it.effect('returns raw update mutation', () =>
     Effect.gen(function* () {
-      const mutation = yield* User.update('1.0.0', {
+      const mutation = yield* makeModelMutations(User).update({
         resourceId: 'usr_test' as const,
         attributes: { name: 'Alice' },
       });

@@ -3,10 +3,12 @@ import { Effect } from 'effect';
 
 import { Item } from '../fixtures/system.ts';
 
+import { makeModelMutations } from './makeModelMutations.ts';
+
 describe('moveMutation', () => {
   it.effect('returns raw move mutation', () =>
     Effect.gen(function* () {
-      const mutation = yield* Item.move('1.0.0', {
+      const mutation = yield* makeModelMutations(Item).move({
         resourceId: 'tsk_test' as const,
         property: 'listId',
         prevId: 'lst_prev' as const,

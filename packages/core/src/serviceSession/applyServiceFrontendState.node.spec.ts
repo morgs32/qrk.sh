@@ -7,30 +7,27 @@ import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { makeModel } from '../models/makeModel.ts';
+import { models as modelDefinitions } from '../models/index.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
 import { applyServiceFrontendState } from './applyServiceFrontendState.ts';
 import { serviceSessionRepoTables } from './serviceSessionRepoTables.ts';
 
-const Category = makeModel(
+const Category = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'category', abbreviation: 'cat' }),
   {
-    abbreviation: 'cat',
-    modelName: 'category',
     attributes: {
       name: primitives.text(),
     },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-const Product = makeModel(
+const Product = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'product', abbreviation: 'prd' }),
   {
-    abbreviation: 'prd',
-    modelName: 'product',
     attributes: {
       categoryId: primitives.ref({
         table: Category.table,
@@ -42,7 +39,6 @@ const Product = makeModel(
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
 const models = {
@@ -52,8 +48,9 @@ const models = {
 
 const frontend = makeFrontendController({
   systemName: 'shop',
+  serviceVersion: '1.0.0',
   serviceName: 'catalog',
-  frontendName: 'catalog',
+  name: 'catalog',
   models,
 });
 
@@ -89,11 +86,10 @@ describe('applyServiceFrontendState', () => {
             frontendState: {
               userId: 'user_viewer',
               systemId: 'sys_shop',
-              systemVersion: '1.0.0',
               serviceName: 'catalog',
               frontendName: 'catalog',
               serviceIndex: 4,
-              serviceFrontendIndex: 4,
+              serviceVersion: '1.0.0',
               resources: [
                 {
                   id: 'cat_original',
@@ -127,11 +123,10 @@ describe('applyServiceFrontendState', () => {
             frontendState: {
               userId: 'user_other',
               systemId: 'sys_shop',
-              systemVersion: '1.0.0',
               serviceName: 'catalog',
               frontendName: 'catalog',
               serviceIndex: 5,
-              serviceFrontendIndex: 5,
+              serviceVersion: '1.0.0',
               resources: [],
             },
           }).pipe(Effect.result);
@@ -151,11 +146,10 @@ describe('applyServiceFrontendState', () => {
             frontendState: {
               userId: 'user_viewer',
               systemId: 'sys_shop',
-              systemVersion: '1.0.0',
               serviceName: 'catalog',
               frontendName: 'catalog',
               serviceIndex: 5,
-              serviceFrontendIndex: 5,
+              serviceVersion: '1.0.0',
               resources: [
                 {
                   id: 'cat_would_replace',
@@ -205,11 +199,10 @@ describe('applyServiceFrontendState', () => {
             frontendState: {
               userId: 'user_viewer',
               systemId: 'sys_shop',
-              systemVersion: '1.0.0',
               serviceName: 'catalog',
               frontendName: 'catalog',
               serviceIndex: 5,
-              serviceFrontendIndex: 5,
+              serviceVersion: '1.0.0',
               resources: [
                 {
                   id: 'cat_replacement',

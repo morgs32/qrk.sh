@@ -1,5 +1,5 @@
+import type { IBackupWorker } from '@zerospin/backup-worker';
 import type { Async } from '@zerospin/core/async/Async';
-import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
 import type {
   IChainedCommand,
@@ -20,45 +20,41 @@ import {
 } from '@zerospin/core/session/AggregateFrontendCommandSchema';
 import { applyAggregateFrontendCommand } from '@zerospin/core/session/applyAggregateFrontendCommand';
 import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggregateFrontendState';
-import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
+import {
+  sessionCommandJournalDrizzleSchema,
+  sessionOptimisticAppliedMutationDrizzleSchema,
+} from '@zerospin/core/session/sessionCommandShape';
 import {
   sessionMetadataDrizzleSchema,
   sessionRepoTables,
-  sessionResolvedPushDrizzleSchema,
 } from '@zerospin/core/session/sessionRepoTables';
 import type {
   IAggregateFrontendFinalizedCommand,
-  IAggregateFrontendPushedCommand,
   IFrontendDelta,
   ISession,
-  ISessionId,
 } from '@zerospin/core/session/types';
 import type { ISystemId } from '@zerospin/core/system/types';
-import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
 import {
   ZerospinError,
   type IAnyError,
   type IAnyErrorJson,
   type IEncodedResult,
 } from '@zerospin/error';
-import {
-  makeTraceableApiTarget,
-  type TelemetryCollector,
-} from '@zerospin/logger';
-import type { IOpfsBackupWorker } from '@zerospin/opfs-backup-worker';
+import { type TelemetryCollector } from '@zerospin/logger';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
-import { eq, isNull } from 'drizzle-orm';
+import { eq, getTableName, isNull, sql } from 'drizzle-orm';
 import {
+  Cause,
+  Deferred,
   Effect,
+  Exit,
   Fiber,
   Queue,
   Result,
   Schema,
+  Scope,
   Semaphore,
-  type Scope,
 } from 'effect';
-import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
 import { createAggregateFrontendWebSocketTicket } from './createAggregateFrontendWebSocketTicket.ts';
 import { fetchAggregateFrontendState } from './fetchAggregateFrontendState.ts';
@@ -66,9 +62,19 @@ import { frontendPushRetrySchedule } from './frontendPushRetrySchedule.ts';
 import { makeAggregateFrontendBackupKey } from './makeAggregateFrontendBackupKey.ts';
 import { pushAggregateFrontendCommand } from './pushAggregateFrontendCommand.ts';
 
+/*
+ * 1. Retain one synchronous live database and mounted store for this frontend.
+ * 2. Scope database release to the Provider.
+ * 3. Resolve authenticated identity, retaining the offline authentication locator.
+ * 4. Acquire on visibility/focus/restoration and pause revoked ownership in place.
+ * 5. Restore committed SQLite before establishing a fresh execution identity.
+ * 6. Serialize incremental backup delivery and repair uncertain mutations with a snapshot.
+ * 7. Publish the current period and run its scoped socket, reconciliation, and push work.
+ */
 export const bootstrapAggregateFrontendSession = Effect.fn(
   'bootstrapAggregateFrontendSession',
 )(function* <FRONTEND extends IAggregateFrontendController>(props: {
+  aggregateVersion: string;
   session: ISession<FRONTEND>;
   aggregateId: IAggregateId;
   apiUrl: string;
@@ -76,7 +82,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
   systemName: string;
   authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
   generateSignature(): Promise<IEncodedResult<unknown, IAnyErrorJson>>;
-  backupWorker: IOpfsBackupWorker;
+  backupWorker: IBackupWorker;
 }): Effect.fn.Return<
   Readonly<{
     systemId: ISystemId;
@@ -102,28 +108,22 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
   IAnyError,
   Async | Scope.Scope | TelemetryCollector
 > {
+  const {
+    apiUrl,
+    authenticationLock,
+    generateSignature,
+    publishableKey,
+    systemName,
+  } = props;
+  // 1 — Build the lock-keyed schema and in-memory SQLite database before
+  // exposing any session state or accepting backup transactions.
   const { aggregateId, backupWorker, session } = props;
   const frontend = session.frontend;
   const context = yield* Effect.context<Async | TelemetryCollector>();
-  const scope = yield* Effect.scope;
-  const completeFrontendSpec = makeFrontendControllerSpec(frontend);
-  const frontendSpec = {
-    ...completeFrontendSpec,
-    models: Object.fromEntries(
-      Object.entries(completeFrontendSpec.models).map(([key, model]) => [
-        key,
-        { ...model, historicalDefinitions: [] },
-      ]),
-    ),
-    contracts: Object.fromEntries(
-      Object.entries(completeFrontendSpec.contracts).map(([key, contract]) => [
-        key,
-        { ...contract, historicalDefinitions: [] },
-      ]),
-    ),
-  };
+  const aggregateFrontendLock =
+    makeFrontendControllerSpec(frontend).aggregateFrontendLock;
   const aggregateFrontendLockKey = yield* makeAggregateFrontendLockKey(
-    frontendSpec.aggregateFrontendLock,
+    aggregateFrontendLock,
   );
   const models = getFrontendDbModels(frontend);
   const dbConfig = makeResourceDbConfig({
@@ -131,11 +131,14 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
     otherTables: sessionRepoTables,
   });
   const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
+  const emptyDatabase = db.$client.sqlite3.serialize(db.$client.db, 'main');
+  const expectedSchema = JSON.stringify(
+    db.all<{ type: string; name: string; sql: string }>(
+      sql`SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name`,
+    ),
+  );
   let released = false;
   let pushPaused = false;
-  let socket: WebSocket | null = null;
-  let backupAccepting = false;
-  let pushFiber: Fiber.Fiber<unknown, unknown> | null = null;
   const transientCodes = new Set([
     'async-failed',
     'user-authentication-transport-failed',
@@ -152,31 +155,10 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
     backupState: { status: 'pending', failure: null },
   });
 
+  // 2 — Scoped release stops admission, closes the retained socket and database, closes SQLite, and publishes released state.
   yield* Effect.addFinalizer(() =>
     Effect.gen(function* () {
       released = true;
-      backupAccepting = false;
-      db.$client.onCommittedTransaction = null;
-      socket?.close(1000, 'released');
-      socket = null;
-      if (pushFiber !== null) yield* Fiber.interrupt(pushFiber);
-      const state = session.store.getState();
-      if (state.isInitialized) {
-        const backupKey = yield* makeAggregateFrontendBackupKey({
-          systemId: state.systemId,
-          userId: state.userId,
-          aggregateId: state.aggregateId,
-          aggregateName: state.aggregateName,
-          frontendName: state.frontendName,
-          aggregateFrontendLockKey: state.aggregateFrontendLockKey,
-        });
-        yield* backupWorker
-          .closeSessionBackup({
-            backupKey,
-            sessionId: session.sessionId,
-          })
-          .pipe(Effect.ignore);
-      }
       yield* Effect.try({
         try: () => db.$client.sqlite3.close(db.$client.db),
         catch: ZerospinError.catch({
@@ -190,59 +172,27 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
     }).pipe(Effect.catch(() => Effect.void)),
   );
 
+  // 3 — The exact offline locator supplies { systemId, userId } when present;
+  // otherwise authentication supplies them before this frontend can select a backup.
   const authenticationLocatorKey = `zerospin:authentication:${JSON.stringify({
-    apiUrl: props.apiUrl,
-    publishableKey: props.publishableKey,
-    systemName: props.systemName,
-    authenticationLock: props.authenticationLock,
+    apiUrl,
+    publishableKey,
+    systemName,
+    authenticationLock,
   })}`;
-  const initialState = yield* fetchAggregateFrontendState({
-    apiUrl: props.apiUrl,
-    publishableKey: props.publishableKey,
-    systemName: props.systemName,
-    authenticationLock: props.authenticationLock,
-    generateSignature: props.generateSignature,
-    aggregateId,
-    aggregateName: frontend.aggregateName,
-    frontendName: frontend.frontendName,
-    aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
-  }).pipe(Effect.result);
-
-  let online = Result.isSuccess(initialState);
+  // A validated locator can select an existing local backup without waiting for the server.
+  // Online recovery still authenticates and rejects a different or denied identity.
+  const persistedIdentity = yield* Effect.try({
+    try: () => localStorage.getItem(authenticationLocatorKey),
+    catch: ZerospinError.catch({
+      code: 'browser-persistence-reset-required',
+      message: 'Failed to read the browser authentication locator',
+    }),
+  });
+  let online = false;
   let systemId: ISystemId;
   let userId: string;
-  if (Result.isSuccess(initialState)) {
-    systemId = initialState.success.systemId;
-    userId = initialState.success.userId;
-    yield* Effect.try({
-      try: () => {
-        localStorage.setItem(
-          authenticationLocatorKey,
-          JSON.stringify({ systemId, userId }),
-        );
-      },
-      catch: ZerospinError.catch({
-        code: 'browser-persistence-reset-required',
-        message: 'Failed to write the browser authentication locator',
-      }),
-    });
-  } else {
-    if (!transientCodes.has(initialState.failure.code)) {
-      return yield* initialState.failure;
-    }
-    const persistedIdentity = yield* Effect.try({
-      try: () => localStorage.getItem(authenticationLocatorKey),
-      catch: ZerospinError.catch({
-        code: 'browser-persistence-reset-required',
-        message: 'Failed to read the browser authentication locator',
-      }),
-    });
-    if (persistedIdentity === null) {
-      return yield* new ZerospinError({
-        code: 'offline-user-locator-unavailable',
-        message: 'Offline startup requires a persisted authentication locator',
-      });
-    }
+  if (persistedIdentity !== null) {
     const decodedIdentity = yield* Effect.try({
       try: () => JSON.parse(persistedIdentity),
       catch: ZerospinError.catch({
@@ -269,958 +219,1114 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
     );
     systemId = decodedIdentity.systemId;
     userId = decodedIdentity.userId;
+  } else {
+    const initialState = yield* fetchAggregateFrontendState({
+      outstandingCommandIds: [],
+      aggregateVersion: props.aggregateVersion,
+      apiUrl,
+      publishableKey,
+      systemName,
+      authenticationLock,
+      generateSignature,
+      aggregateId,
+      aggregateName: frontend.aggregateName,
+      frontendName: frontend.name,
+      aggregateFrontendLock,
+    });
+    systemId = initialState.systemId;
+    userId = initialState.userId;
+    online = true;
+    yield* Effect.try({
+      try: () => {
+        localStorage.setItem(
+          authenticationLocatorKey,
+          JSON.stringify({ systemId, userId }),
+        );
+      },
+      catch: ZerospinError.catch({
+        code: 'browser-persistence-reset-required',
+        message: 'Failed to write the browser authentication locator',
+      }),
+    });
   }
 
+  // 4 — Visibility signals acquire one revocable capability for this exact key.
   const backupKey = yield* makeAggregateFrontendBackupKey({
+    aggregateVersion: props.aggregateVersion,
     systemId,
     userId,
     aggregateId,
     aggregateName: frontend.aggregateName,
-    frontendName: frontend.frontendName,
+    frontendName: frontend.name,
     aggregateFrontendLockKey,
   });
-  const sessionLocatorKey = `zerospin:frontend-session:${backupKey}`;
-  const persistedSelectedSessionId = yield* Effect.try({
-    try: () => localStorage.getItem(sessionLocatorKey),
-    catch: ZerospinError.catch({
-      code: 'browser-persistence-reset-required',
-      message: 'Failed to read the current frontend-session locator',
-    }),
-  });
-  if (
-    persistedSelectedSessionId !== null &&
-    !/^sesn_[A-Za-z0-9_-]+$/.test(persistedSelectedSessionId)
-  ) {
-    return yield* new ZerospinError({
-      code: 'browser-persistence-reset-required',
-      message: 'The current frontend-session locator is invalid',
-    });
-  }
-  const selectedSessionId =
-    persistedSelectedSessionId === null
-      ? null
-      : yield* Schema.decodeUnknownEffect(makeAbbreviationIdSchema('sesn'))(
-          persistedSelectedSessionId,
-        ).pipe(
-          Effect.mapError(
-            () =>
-              new ZerospinError({
-                code: 'browser-persistence-reset-required',
-                message: 'The current frontend-session locator is invalid',
-              }),
-          ),
-        );
-  const backupSessionIds = yield* backupWorker
-    .listSessionBackups({ backupKey })
-    .pipe(
-      Effect.retry({
-        times: 1,
-        while: error => error.code === 'opfs-backup-request-uncertain',
-      }),
-    );
-  const selectedSnapshot =
-    selectedSessionId === null
-      ? null
-      : yield* backupWorker
-          .exportSnapshot({
-            backupKey,
-            sessionId: selectedSessionId,
-          })
-          .pipe(
-            Effect.retry({
-              times: 1,
-              while: error => error.code === 'opfs-backup-request-uncertain',
-            }),
-          );
-  if (!online && selectedSnapshot === null) {
-    return yield* new ZerospinError({
-      code: 'browser-persistence-reset-required',
-      message: 'Offline startup requires the locator-selected frontend backup',
-    });
-  }
-  if (selectedSnapshot !== null) {
-    yield* Effect.try({
-      try: () => {
-        const sourceDb = db.$client.sqlite3.open_v2Sync(':memory:');
-        try {
-          const deserializeResult = db.$client.sqlite3.deserialize(
-            sourceDb,
-            'main',
-            selectedSnapshot,
-            selectedSnapshot.byteLength,
-            selectedSnapshot.byteLength,
-            1,
-          );
-          if (deserializeResult !== 0) {
-            throw new Error(
-              `sqlite3_deserialize failed with code ${deserializeResult}`,
-            );
-          }
-          const backupResult = db.$client.sqlite3.backup(
-            db.$client.db,
-            'main',
-            sourceDb,
-            'main',
-          );
-          if (backupResult !== 0) {
-            throw new Error(`sqlite3_backup failed with code ${backupResult}`);
-          }
-        } finally {
-          db.$client.sqlite3.close(sourceDb);
-        }
-        db.update(sessionMetadataDrizzleSchema)
-          .set({ sessionId: session.sessionId })
-          .run();
-        db.update(sessionResolvedPushDrizzleSchema)
-          .set({ sessionId: session.sessionId })
-          .run();
-      },
-      catch: ZerospinError.catch({
-        code: 'browser-persistence-reset-required',
-        message: 'Failed to restore the current aggregate frontend backup',
-      }),
-    });
-  }
-
-  const oldSessionFiles: Array<{
-    sessionId: ISessionId;
-    commands: IEncodedCommand<
-      IChainedCommand<ISessionCommand, IFrontendDelta> &
-        Readonly<{ sessionIndex: number; pushIndex: null }>
-    >[];
-  }> = [];
-  for (const oldSessionId of backupSessionIds) {
-    if (oldSessionId === selectedSessionId) continue;
-    const snapshot = yield* backupWorker
-      .exportSnapshot({
-        backupKey,
-        sessionId: oldSessionId,
-      })
-      .pipe(
-        Effect.retry({
-          times: 1,
-          while: error => error.code === 'opfs-backup-request-uncertain',
-        }),
-      );
-    if (snapshot === null) continue;
-    const oldDb = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
-    yield* Effect.try({
-      try: () => {
-        const result = oldDb.$client.sqlite3.deserialize(
-          oldDb.$client.db,
-          'main',
-          snapshot,
-          snapshot.byteLength,
-          snapshot.byteLength,
-          1,
-        );
-        if (result !== 0) {
-          throw new Error(`sqlite3_deserialize failed with code ${result}`);
-        }
-      },
-      catch: ZerospinError.catch({
-        code: 'browser-persistence-reset-required',
-        message: 'Failed to inspect an old aggregate frontend backup',
-      }),
-    });
-    const commands = [];
-    for (const row of oldDb
-      .select()
-      .from(sessionCommandJournalDrizzleSchema)
-      .where(isNull(sessionCommandJournalDrizzleSchema.pushIndex))
-      .all()
-      .filter(row => row.sessionIndex !== null)
-      .sort(
-        (left, right) => (left.sessionIndex ?? 0) - (right.sessionIndex ?? 0),
-      )) {
-      commands.push(
-        yield* Schema.decodeEffect(Schema.fromJsonString(SessionCommandSchema))(
-          row.command,
-        ).pipe(
-          Effect.mapError(
-            () =>
-              new ZerospinError({
-                code: 'browser-persistence-reset-required',
-                message: 'An old backup contains an invalid local command',
-              }),
-          ),
-          Effect.flatMap(command =>
-            command.pushIndex !== null
-              ? Effect.fail(
-                  new ZerospinError({
-                    code: 'browser-persistence-reset-required',
-                    message: 'An old backup contains an invalid local command',
-                  }),
-                )
-              : Effect.succeed(command),
-          ),
-        ),
-      );
-    }
-    yield* Effect.tryPromise({
-      try: () => oldDb.$client.sqlite3.close(oldDb.$client.db),
-      catch: ZerospinError.catch({ code: 'old-session-database-close-failed' }),
-    }).pipe(Effect.ignore);
-    if (!online && commands.length > 0) {
-      return yield* new ZerospinError({
-        code: 'offline-old-session-commands-unresolved',
-        message:
-          'Offline startup cannot recover unresolved old-session commands',
-      });
-    }
-    oldSessionFiles.push({ sessionId: oldSessionId, commands });
-  }
-
-  const reconnectSignal = yield* Queue.unbounded<void>();
-  const recoverySemaphore = yield* Semaphore.make(1);
-  const recoverOnline = recoverySemaphore.withPermits(1)(
-    Effect.gen(function* () {
-      const bufferedCommands: IEncodedCommand<IAggregateFrontendFinalizedCommand>[] =
-        [];
-      socket?.close(1000, 'reconnecting');
-      socket = null;
-      const ticket = yield* createAggregateFrontendWebSocketTicket({
-        apiUrl: props.apiUrl,
-        publishableKey: props.publishableKey,
-        systemName: props.systemName,
-        authenticationLock: props.authenticationLock,
-        generateSignature: props.generateSignature,
-        aggregateId,
-        aggregateName: frontend.aggregateName,
-        frontendName: frontend.frontendName,
-        aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
-      });
-      const replayComplete = Promise.withResolvers<number>();
-      const opened = Promise.withResolvers<void>();
-      socket = yield* Effect.try({
-        try: () => {
-          const url = new URL(props.apiUrl);
-          url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-          url.pathname = '/ws-aggregate-frontend-commands';
-          url.search = '';
-          url.searchParams.set('ticket', ticket.ticket);
-          const nextSocket = new WebSocket(url);
-          nextSocket.onopen = () => {
-            nextSocket.send(JSON.stringify({ frontendIndex: 0 }));
-            opened.resolve();
-          };
-          nextSocket.onerror = () =>
-            opened.reject(new Error('WebSocket open failed'));
-          nextSocket.onclose = () =>
-            replayComplete.reject(
-              new Error('WebSocket closed before finalized replay completed'),
-            );
-          nextSocket.onmessage = event => {
-            try {
-              const message = JSON.parse(String(event.data));
-              if (message.type === 'aggregateFrontendCommand') {
-                bufferedCommands.push(message.sync);
-              } else if (message.type === 'replay-complete') {
-                replayComplete.resolve(message.frontendIndex);
-              } else if (message.type === 'state-required') {
-                replayComplete.reject(
-                  new Error('Finalized socket requires state'),
-                );
-              }
-            } catch (cause) {
-              replayComplete.reject(cause);
-            }
-          };
-          return nextSocket;
-        },
-        catch: ZerospinError.catch({
-          code: 'aggregate-frontend-websocket-open-failed',
-        }),
-      });
-      yield* Effect.tryPromise({
-        try: () => opened.promise,
-        catch: ZerospinError.catch({
-          code: 'aggregate-frontend-websocket-open-failed',
-        }),
-      });
-
-      for (const oldFile of oldSessionFiles) {
-        for (const command of oldFile.commands) {
-          yield* pushAggregateFrontendCommand({
-            apiUrl: props.apiUrl,
-            publishableKey: props.publishableKey,
-            systemName: props.systemName,
-            authenticationLock: props.authenticationLock,
-            generateSignature: props.generateSignature,
-            aggregateId,
-            aggregateName: frontend.aggregateName,
-            frontendName: frontend.frontendName,
-            aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
-            command,
-          });
-        }
-      }
-
-      const recoveryState = yield* fetchAggregateFrontendState({
-        apiUrl: props.apiUrl,
-        publishableKey: props.publishableKey,
-        systemName: props.systemName,
-        authenticationLock: props.authenticationLock,
-        generateSignature: props.generateSignature,
-        aggregateId,
-        aggregateName: frontend.aggregateName,
-        frontendName: frontend.frontendName,
-        aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
-      });
-      const pushedCommands: IEncodedCommand<IAggregateFrontendPushedCommand>[] =
-        [];
-      let afterPushIndex = 0;
-      for (;;) {
-        const signature = yield* makeAsync(props.generateSignature).pipe(
-          Effect.flatMap(decodeRpc),
-        );
-        const gatewayApi = newSyncRpcSession<GatewayApi>(props.apiUrl);
-        const page = yield* makeTraceableApiTarget(
-          gatewayApi.getAggregateFrontendApi({
-            publishableKey: props.publishableKey,
-            systemName: props.systemName,
-            authenticationLock: props.authenticationLock,
-            signature,
-            aggregateId,
-            aggregateName: frontend.aggregateName,
-            frontendName: frontend.frontendName,
-            aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
-          }),
-        )
-          .getPushedCommands({ afterPushIndex })
-          .pipe(
-            Effect.mapError(error =>
-              error instanceof Error
-                ? ZerospinError.catch({ code: 'async-failed' })(error)
-                : new ZerospinError(error),
-            ),
-            Effect.ensuring(Effect.sync(() => gatewayApi[Symbol.dispose]())),
-          );
-        for (const command of page.commands) pushedCommands.push(command);
-        if (afterPushIndex === page.tip || page.commands.length === 0) break;
-        afterPushIndex = page.commands.at(-1)?.pushIndex ?? afterPushIndex;
-      }
-      const replayTip = yield* Effect.tryPromise({
-        try: () => replayComplete.promise,
-        catch: ZerospinError.catch({
-          code: 'aggregate-frontend-finalized-replay-failed',
-        }),
-      });
-      const decodedFinalized = [];
-      for (const command of bufferedCommands) {
-        decodedFinalized.push(
-          yield* Schema.decodeUnknownEffect(
-            AggregateFrontendFinalizedCommandSchema,
-          )(command).pipe(
-            Effect.mapError(
-              () =>
-                new ZerospinError({
-                  code: 'aggregate-frontend-finalized-message-invalid',
-                }),
-            ),
-          ),
-        );
-      }
-      decodedFinalized.sort(
-        (left, right) => left.frontendIndex - right.frontendIndex,
-      );
-      if (
-        replayTip < recoveryState.frontendIndex ||
-        decodedFinalized.length !== replayTip ||
-        decodedFinalized.some(
-          (command, index) => command.frontendIndex !== index + 1,
-        )
-      ) {
-        return yield* new ZerospinError({
-          code: 'aggregate-frontend-finalized-replay-invalid',
-          message: 'Finalized socket replay was incomplete or non-contiguous',
-        });
-      }
-      const resolvedPushIndexes = new Set(recoveryState.resolvedPushIndexes);
-      for (const command of decodedFinalized) {
-        if (
-          command.frontendIndex <= recoveryState.frontendIndex &&
-          'pushIndex' in command &&
-          command.pushIndex !== null &&
-          !resolvedPushIndexes.has(command.pushIndex)
-        ) {
-          return yield* new ZerospinError({
-            code: 'aggregate-frontend-finalized-replay-conflict',
-            message:
-              'Finalized replay conflicts with resolved pushed membership',
-          });
-        }
-      }
-      db.$client.onCommittedTransaction = null;
-      yield* applyAggregateFrontendState({
-        db,
-        frontend,
-        sessionId: session.sessionId,
-        models,
-        frontendState: recoveryState,
-        pushedCommands,
-        aggregateId,
-        userId,
-        systemId,
-      });
-      for (const command of decodedFinalized) {
-        if (command.frontendIndex <= recoveryState.frontendIndex) continue;
-        yield* applyAggregateFrontendCommand({
-          db,
-          frontend,
-          sessionId: session.sessionId,
-          models,
-          command,
-          aggregateId,
-          userId,
-        });
-      }
-      const currentSocket = socket;
-      if (currentSocket === null) {
-        return yield* new ZerospinError({
-          code: 'aggregate-frontend-websocket-open-failed',
-          message: 'The aggregate frontend WebSocket was not retained',
-        });
-      }
-      currentSocket.onmessage = (event: MessageEvent) => {
-        void Effect.runPromiseWith(context)(
-          Effect.gen(function* () {
-            const message = yield* Effect.try({
-              try: () => JSON.parse(String(event.data)),
-              catch: ZerospinError.catch({
-                code: 'aggregate-frontend-finalized-message-invalid',
-              }),
-            });
-            if (message.type !== 'aggregateFrontendCommand') return;
-            const command = yield* Schema.decodeUnknownEffect(
-              AggregateFrontendFinalizedCommandSchema,
-            )(message.sync).pipe(
-              Effect.mapError(
-                () =>
-                  new ZerospinError({
-                    code: 'aggregate-frontend-finalized-message-invalid',
-                  }),
-              ),
-            );
-            const applied = yield* applyAggregateFrontendCommand({
-              db,
-              frontend,
-              sessionId: session.sessionId,
-              models,
-              command,
-              aggregateId,
-              userId,
-            });
-            if (applied === 'duplicate') return;
-            const state = session.store.getState();
-            if (state.isInitialized) {
-              const nextMetadata = db
-                .select()
-                .from(sessionMetadataDrizzleSchema)
-                .where(
-                  eq(sessionMetadataDrizzleSchema.sessionId, session.sessionId),
-                )
-                .get();
-              if (nextMetadata !== undefined) {
-                session.store.setState({
-                  aggregateIndex: nextMetadata.aggregateIndex,
-                  frontendIndex: nextMetadata.frontendIndex,
-                  pushIndex: nextMetadata.pushIndex,
-                });
-              }
-            }
-          }).pipe(
-            Effect.catch(error =>
-              Effect.sync(() => {
-                const failure = Schema.encodeSync(ZerospinError.schema)(error);
-                session.store.setState({ sessionStatus: 'failed' });
-                currentSocket.close(4003, failure.code);
-              }),
-            ),
-          ),
-        );
-      };
-      currentSocket.onclose = () => {
-        if (!released && socket === currentSocket) {
-          online = false;
-          if (session.store.getState().sessionStatus === 'current') {
-            Queue.offerUnsafe(reconnectSignal, undefined);
-          }
-        }
-      };
-      online = true;
-    }),
+  const acquireSignal = yield* Queue.unbounded<void>();
+  const initialized = yield* Deferred.make<void, IAnyError>();
+  let hasOwned = false;
+  let acquiringPeriod: { revoked: boolean } | null = null;
+  let activePeriod: { revoked: boolean; scope: Scope.Closeable } | null = null;
+  let pushSignal: Queue.Queue<void> | null = null;
+  let pushFiber: Fiber.Fiber<unknown, unknown> | null = null;
+  let pushLane: Effect.Effect<never, IAnyError> | null = null;
+  let pushOne: Effect.Effect<
+    | Readonly<{ status: 'empty' }>
+    | Readonly<{ status: 'pushed' }>
+    | Readonly<{ status: 'retry-exhausted'; failure: IAnyErrorJson }>,
+    IAnyError
+  > = Effect.fail(
+    new ZerospinError({ code: 'aggregate-frontend-session-not-current' }),
   );
-
-  if (online) {
-    const recovered = yield* recoverOnline.pipe(Effect.result);
-    if (Result.isFailure(recovered)) {
+  const requestOwnership = () => {
+    if (document.visibilityState !== 'visible') {
+      if (acquiringPeriod !== null) acquiringPeriod.revoked = true;
       if (
-        selectedSnapshot === null ||
-        !transientCodes.has(recovered.failure.code)
+        activePeriod !== null &&
+        session.store.getState().sessionStatus === 'bootstrapping'
       ) {
-        return yield* recovered.failure;
+        activePeriod.revoked = true;
+        session.store.setState({ sessionStatus: 'superseded' });
+        Effect.runFork(Scope.close(activePeriod.scope, Exit.void));
       }
-      online = false;
-      if (oldSessionFiles.some(oldFile => oldFile.commands.length > 0)) {
-        return yield* new ZerospinError({
-          code: 'offline-old-session-commands-unresolved',
-          message:
-            'Offline startup cannot recover unresolved old-session commands',
-        });
-      }
+      return;
     }
-  }
-
-  const metadata = db
-    .select()
-    .from(sessionMetadataDrizzleSchema)
-    .where(eq(sessionMetadataDrizzleSchema.sessionId, session.sessionId))
-    .get();
-  if (metadata === undefined) {
-    return yield* new ZerospinError({
-      code: 'browser-persistence-reset-required',
-      message: 'The restored aggregate frontend metadata is missing',
-    });
-  }
-
-  const transactionQueue =
-    yield* Queue.unbounded<readonly ICommittedSqlStatement[]>();
-  backupAccepting = true;
-  db.$client.onCommittedTransaction = statements => {
-    if (backupAccepting) {
+    if (
+      !released &&
+      document.visibilityState === 'visible' &&
+      Queue.sizeUnsafe(acquireSignal) === 0
+    ) {
+      Queue.offerUnsafe(acquireSignal, undefined);
+    }
+  };
+  document.addEventListener('visibilitychange', requestOwnership);
+  globalThis.addEventListener('focus', requestOwnership);
+  globalThis.addEventListener('pageshow', requestOwnership);
+  const removeDisconnectListener = backupWorker.onDisconnect(() => {
+    if (activePeriod !== null) {
+      activePeriod.revoked = true;
       session.store.setState({
+        sessionStatus: 'superseded',
         backupState: { status: 'pending', failure: null },
       });
-      Queue.offerUnsafe(transactionQueue, statements);
+      Effect.runFork(Scope.close(activePeriod.scope, Exit.void));
     }
-  };
-  const baseline = yield* Effect.sync(() =>
-    db.$client.sqlite3.serialize(db.$client.db, 'main'),
+    requestOwnership();
+  });
+  yield* Effect.addFinalizer(() =>
+    Effect.gen(function* () {
+      removeDisconnectListener();
+      document.removeEventListener('visibilitychange', requestOwnership);
+      globalThis.removeEventListener('focus', requestOwnership);
+      globalThis.removeEventListener('pageshow', requestOwnership);
+      if (activePeriod !== null) {
+        activePeriod.revoked = true;
+        yield* Scope.close(activePeriod.scope, Exit.void);
+      }
+    }),
   );
-  yield* backupWorker
-    .replaceSnapshot({
-      backupKey,
-      sessionId: session.sessionId,
-      snapshot: baseline,
-    })
-    .pipe(
-      Effect.retry({
-        times: 1,
-        while: error => error.code === 'opfs-backup-request-uncertain',
-      }),
-    );
+  requestOwnership();
+
   yield* Effect.forkScoped(
     Effect.forever(
       Effect.gen(function* () {
-        const statements = yield* Queue.take(transactionQueue);
-        if (!backupAccepting) return;
-        const applied = yield* backupWorker
-          .applyTransaction({
-            backupKey,
-            sessionId: session.sessionId,
-            statements,
-          })
+        yield* Queue.take(acquireSignal);
+        if (released || document.visibilityState !== 'visible') return;
+        const period = { revoked: false, scope: yield* Scope.make() };
+        acquiringPeriod = period;
+        const revokeOwnership = () => {
+          period.revoked = true;
+          if (activePeriod === period) {
+            session.store.setState({ sessionStatus: 'superseded' });
+            Effect.runFork(Scope.close(period.scope, Exit.void));
+          }
+        };
+        const acquisition = yield* backupWorker
+          .acquireDb({ backupKey, onRevoked: revokeOwnership })
           .pipe(Effect.result);
-        if (Result.isSuccess(applied)) {
-          if (Queue.sizeUnsafe(transactionQueue) === 0) {
+        if (acquiringPeriod === period) acquiringPeriod = null;
+        if (Result.isFailure(acquisition)) {
+          yield* Scope.close(period.scope, Exit.void);
+          // Revocation waits for a new eligibility signal; worker loss has already queued reconnection.
+          if (
+            period.revoked ||
+            acquisition.failure.code === 'backup-db-revoked' ||
+            Queue.sizeUnsafe(acquireSignal) > 0
+          ) {
+            return;
+          }
+          if (!hasOwned) {
+            yield* Deferred.fail(initialized, acquisition.failure);
+          } else {
             session.store.setState({
+              ...(activePeriod === null || activePeriod.revoked
+                ? ({ sessionStatus: 'failed' } satisfies {
+                    sessionStatus: 'failed';
+                  })
+                : {}),
+              backupState: {
+                status: 'failed',
+                failure: Schema.encodeSync(ZerospinError.schema)(
+                  acquisition.failure,
+                ),
+              },
+            });
+          }
+          return;
+        }
+        if (acquisition.success.status === 'current') {
+          yield* Scope.close(period.scope, Exit.void);
+          return;
+        }
+        const backupDb = acquisition.success.db;
+        if (
+          released ||
+          period.revoked ||
+          document.visibilityState !== 'visible'
+        ) {
+          yield* backupDb.dispose().pipe(Effect.ignore);
+          yield* Scope.close(period.scope, Exit.void);
+          return;
+        }
+        if (activePeriod !== null) {
+          activePeriod.revoked = true;
+          yield* Scope.close(activePeriod.scope, Exit.void);
+        }
+        activePeriod = period;
+        session.store.setState({
+          sessionStatus: 'bootstrapping',
+          backupState: { status: 'pending', failure: null },
+        });
+        const executionSessionId = hasOwned
+          ? Schema.decodeUnknownSync(makeAbbreviationIdSchema('sesn'))(
+              `sesn_${crypto.randomUUID()}`,
+            )
+          : session.sessionId;
+        let selectedSnapshot = acquisition.success.snapshot;
+        const startupFiber = yield* Effect.forkIn(
+          Effect.gen(function* () {
+            let socket: WebSocket | null = null;
+            let backupAccepting = false;
+            const scope = yield* Effect.scope;
+            yield* Effect.addFinalizer(() =>
+              Effect.gen(function* () {
+                period.revoked = true;
+                backupAccepting = false;
+                if (activePeriod === period) {
+                  db.$client.onCommittedTransaction = null;
+                }
+                socket?.close(1000, 'ownership-ended');
+                socket = null;
+                yield* backupDb.dispose().pipe(Effect.ignore);
+              }),
+            );
+            // Replace this handle's contents even for an absent backup; obsolete RAM is never a baseline.
+            for (;;) {
+              const snapshot = selectedSnapshot ?? emptyDatabase;
+              const restored = yield* Effect.try({
+                try: () => {
+                  const sourceDb = db.$client.sqlite3.open_v2Sync(':memory:');
+                  try {
+                    const deserializeResult = db.$client.sqlite3.deserialize(
+                      sourceDb,
+                      'main',
+                      snapshot,
+                      snapshot.byteLength,
+                      snapshot.byteLength,
+                      1,
+                    );
+                    if (deserializeResult !== 0) {
+                      throw new Error(
+                        `sqlite3_deserialize failed with code ${deserializeResult}`,
+                      );
+                    }
+                    const backupResult = db.$client.sqlite3.backup(
+                      db.$client.db,
+                      'main',
+                      sourceDb,
+                      'main',
+                    );
+                    if (backupResult !== 0) {
+                      throw new Error(
+                        `sqlite3_backup failed with code ${backupResult}`,
+                      );
+                    }
+                  } finally {
+                    db.$client.sqlite3.close(sourceDb);
+                  }
+                  if (selectedSnapshot !== null) {
+                    const storedSchema = db.all<{
+                      type: string;
+                      name: string;
+                      sql: string;
+                    }>(
+                      sql`SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name != '__zerospin_backup_identity' ORDER BY name`,
+                    );
+                    if (JSON.stringify(storedSchema) !== expectedSchema) {
+                      throw new Error(
+                        'The backup SQLite schema is incompatible with this frontend',
+                      );
+                    }
+                    const identityRows = db.all<{ backupKey: string }>(
+                      sql`SELECT backupKey FROM __zerospin_backup_identity`,
+                    );
+                    if (
+                      identityRows.length !== 1 ||
+                      identityRows[0]?.backupKey !== backupKey
+                    ) {
+                      throw new Error(
+                        'The backup identity does not match this frontend',
+                      );
+                    }
+                    // Frontend backups keep one current cursor; journal occurrences retain prior identities.
+                    if (
+                      db.select().from(sessionMetadataDrizzleSchema).all()
+                        .length !== 1
+                    ) {
+                      throw new Error(
+                        'The backup must contain one current frontend metadata row',
+                      );
+                    }
+                  }
+                },
+                catch: ZerospinError.catch({
+                  code: 'browser-persistence-reset-required',
+                  message:
+                    'Failed to restore the current aggregate frontend backup',
+                }),
+              }).pipe(Effect.result);
+              if (Result.isSuccess(restored)) break;
+              if (selectedSnapshot === null) return yield* restored.failure;
+              // Incompatible disposable state is rebuilt through normal authoritative bootstrap.
+              selectedSnapshot = null;
+            }
+            if (selectedSnapshot === null) {
+              db.run(
+                sql`CREATE TABLE __zerospin_backup_identity (backupKey TEXT NOT NULL)`,
+              );
+              db.run(
+                sql`INSERT INTO __zerospin_backup_identity (backupKey) VALUES (${backupKey})`,
+              );
+            }
+            const transactionQueue =
+              yield* Queue.unbounded<readonly ICommittedSqlStatement[]>();
+            backupAccepting = true;
+            db.$client.onCommittedTransaction = statements => {
+              if (backupAccepting && !period.revoked) {
+                session.store.setState({
+                  backupState: { status: 'pending', failure: null },
+                });
+                Queue.offerUnsafe(transactionQueue, statements);
+              }
+            };
+            if (selectedSnapshot !== null) {
+              db.update(sessionMetadataDrizzleSchema)
+                .set({ sessionId: executionSessionId, nextSessionIndex: 1 })
+                .run();
+            }
+            // 5 — Capture a published snapshot, pin its version in the ticket, and
+            // replay strictly after its cursor before retaining the live socket.
+            const reconnectSignal = yield* Queue.unbounded<void>();
+            const recoverySemaphore = yield* Semaphore.make(1);
+            const recoverOnline = recoverySemaphore.withPermits(1)(
+              Effect.gen(function* () {
+                const bufferedCommands: IAggregateFrontendFinalizedCommand[] =
+                  [];
+                socket?.close(1000, 'reconnecting');
+                socket = null;
+                const recoveryState = yield* fetchAggregateFrontendState({
+                  outstandingCommandIds: db
+                    .select({
+                      id: sessionOptimisticAppliedMutationDrizzleSchema.commandId,
+                    })
+                    .from(sessionOptimisticAppliedMutationDrizzleSchema)
+                    .all()
+                    .map(row => row.id),
+                  aggregateVersion: props.aggregateVersion,
+                  apiUrl,
+                  publishableKey,
+                  systemName,
+                  authenticationLock,
+                  generateSignature,
+                  aggregateId,
+                  aggregateName: frontend.aggregateName,
+                  frontendName: frontend.name,
+                  aggregateFrontendLock,
+                });
+                const ticket = yield* createAggregateFrontendWebSocketTicket({
+                  aggregateVersion: props.aggregateVersion,
+                  apiUrl,
+                  publishableKey,
+                  systemName,
+                  authenticationLock,
+                  generateSignature,
+                  aggregateId,
+
+                  aggregateName: frontend.aggregateName,
+                  frontendName: frontend.name,
+                  aggregateFrontendLock,
+                });
+                const replayComplete = Promise.withResolvers<number>();
+                const opened = Promise.withResolvers<void>();
+                // Closing an interrupted setup must not leave an unobserved rejected promise.
+                void opened.promise.catch(() => undefined);
+                void replayComplete.promise.catch(() => undefined);
+                socket = yield* Effect.try({
+                  try: () => {
+                    const url = new URL(apiUrl);
+                    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+                    url.pathname = '/ws-aggregate-frontend-commands';
+                    url.search = '';
+                    url.searchParams.set('ticket', ticket.ticket);
+                    const nextSocket = new WebSocket(url);
+                    nextSocket.onopen = () => {
+                      nextSocket.send(
+                        JSON.stringify({
+                          userIndex: recoveryState.userIndex,
+                        }),
+                      );
+                      opened.resolve();
+                    };
+                    nextSocket.onerror = () =>
+                      opened.reject(new Error('WebSocket open failed'));
+                    nextSocket.onclose = () => {
+                      const failure = new Error(
+                        'WebSocket closed before finalized replay completed',
+                      );
+                      opened.reject(failure);
+                      replayComplete.reject(failure);
+                    };
+                    nextSocket.onmessage = event => {
+                      try {
+                        const message = JSON.parse(String(event.data));
+                        if (message.type === 'aggregateFrontendCommand') {
+                          bufferedCommands.push(message.sync);
+                        } else if (message.type === 'replay-complete') {
+                          replayComplete.resolve(message.userIndex);
+                        } else if (message.type === 'state-required') {
+                          replayComplete.reject(
+                            new Error('Finalized socket requires state'),
+                          );
+                        }
+                      } catch (cause) {
+                        replayComplete.reject(cause);
+                      }
+                    };
+                    return nextSocket;
+                  },
+                  catch: ZerospinError.catch({
+                    code: 'aggregate-frontend-websocket-open-failed',
+                    message:
+                      'Could not connect to the aggregate frontend command stream',
+                    preferCauseMessage: false,
+                  }),
+                });
+                yield* Effect.tryPromise({
+                  try: () => opened.promise,
+                  catch: ZerospinError.catch({
+                    code: 'aggregate-frontend-websocket-open-failed',
+                    message:
+                      'Could not connect to the aggregate frontend command stream',
+                    preferCauseMessage: false,
+                  }),
+                });
+
+                const replayTip = yield* Effect.tryPromise({
+                  try: () => replayComplete.promise,
+                  catch: ZerospinError.catch({
+                    code: 'aggregate-frontend-finalized-replay-failed',
+                  }),
+                });
+                const decodedFinalized = [];
+                for (const command of bufferedCommands) {
+                  decodedFinalized.push(
+                    yield* Schema.decodeUnknownEffect(
+                      AggregateFrontendFinalizedCommandSchema,
+                    )(command).pipe(
+                      Effect.mapError(
+                        () =>
+                          new ZerospinError({
+                            code: 'aggregate-frontend-finalized-message-invalid',
+                          }),
+                      ),
+                    ),
+                  );
+                }
+                decodedFinalized.sort(
+                  (left, right) => left.userIndex - right.userIndex,
+                );
+                let bufferedThroughUserIndex = recoveryState.userIndex;
+                for (const command of decodedFinalized) {
+                  if (command.userIndex <= bufferedThroughUserIndex) {
+                    continue;
+                  }
+                  if (command.userIndex !== bufferedThroughUserIndex + 1) {
+                    return yield* new ZerospinError({
+                      code: 'aggregate-frontend-finalized-replay-invalid',
+                      message:
+                        'Finalized socket replay was incomplete or non-contiguous',
+                    });
+                  }
+                  bufferedThroughUserIndex = command.userIndex;
+                }
+                if (
+                  !Number.isSafeInteger(replayTip) ||
+                  replayTip < recoveryState.userIndex ||
+                  bufferedThroughUserIndex < replayTip
+                ) {
+                  return yield* new ZerospinError({
+                    code: 'aggregate-frontend-finalized-replay-invalid',
+                    message:
+                      'Finalized socket replay was incomplete or non-contiguous',
+                  });
+                }
+                if (period.revoked) {
+                  return yield* new ZerospinError({
+                    code: 'backup-db-revoked',
+                  });
+                }
+                db.$client.onCommittedTransaction = null;
+                yield* applyAggregateFrontendState({
+                  db,
+                  frontend,
+                  sessionId: executionSessionId,
+                  models,
+                  frontendState: recoveryState,
+                  aggregateId,
+                  userId,
+                  systemId,
+                });
+                for (const command of decodedFinalized) {
+                  if (command.userIndex <= recoveryState.userIndex) {
+                    continue;
+                  }
+                  yield* applyAggregateFrontendCommand({
+                    db,
+                    frontend,
+                    sessionId: executionSessionId,
+                    models,
+                    command,
+                    aggregateId,
+                    userId,
+                  });
+                }
+                const currentSocket = socket;
+                if (currentSocket === null) {
+                  return yield* new ZerospinError({
+                    code: 'aggregate-frontend-websocket-open-failed',
+                    message:
+                      'The aggregate frontend WebSocket was not retained',
+                  });
+                }
+                currentSocket.onmessage = (event: MessageEvent) => {
+                  void Effect.runPromiseWith(context)(
+                    Effect.gen(function* () {
+                      if (period.revoked || socket !== currentSocket) return;
+                      const message = yield* Effect.try({
+                        try: () => JSON.parse(String(event.data)),
+                        catch: ZerospinError.catch({
+                          code: 'aggregate-frontend-finalized-message-invalid',
+                        }),
+                      });
+                      if (message.type !== 'aggregateFrontendCommand') return;
+                      const command = yield* Schema.decodeUnknownEffect(
+                        AggregateFrontendFinalizedCommandSchema,
+                      )(message.sync).pipe(
+                        Effect.mapError(
+                          () =>
+                            new ZerospinError({
+                              code: 'aggregate-frontend-finalized-message-invalid',
+                            }),
+                        ),
+                      );
+                      if (period.revoked || socket !== currentSocket) return;
+                      const applied = yield* applyAggregateFrontendCommand({
+                        db,
+                        frontend,
+                        sessionId: executionSessionId,
+                        models,
+                        command,
+                        aggregateId,
+                        userId,
+                      });
+                      if (
+                        period.revoked ||
+                        socket !== currentSocket ||
+                        applied === 'duplicate'
+                      ) {
+                        return;
+                      }
+                      const state = session.store.getState();
+                      if (state.isInitialized) {
+                        const nextMetadata = db
+                          .select()
+                          .from(sessionMetadataDrizzleSchema)
+                          .where(
+                            eq(
+                              sessionMetadataDrizzleSchema.sessionId,
+                              executionSessionId,
+                            ),
+                          )
+                          .get();
+                        if (nextMetadata !== undefined) {
+                          session.store.setState({
+                            aggregateIndex: nextMetadata.aggregateIndex,
+                            userIndex: nextMetadata.userIndex,
+                            pushIndex: nextMetadata.pushIndex,
+                          });
+                        }
+                      }
+                    }).pipe(
+                      Effect.catch(error =>
+                        Effect.sync(() => {
+                          const failure = Schema.encodeSync(
+                            ZerospinError.schema,
+                          )(error);
+                          if (!period.revoked && socket === currentSocket) {
+                            session.store.setState({ sessionStatus: 'failed' });
+                          }
+                          currentSocket.close(4003, failure.code);
+                        }),
+                      ),
+                      Effect.forkIn(period.scope),
+                    ),
+                  );
+                };
+                currentSocket.onclose = () => {
+                  if (
+                    !released &&
+                    !period.revoked &&
+                    socket === currentSocket
+                  ) {
+                    online = false;
+                    if (session.store.getState().sessionStatus === 'current') {
+                      Queue.offerUnsafe(reconnectSignal, undefined);
+                    }
+                  }
+                };
+                online = true;
+              }),
+            );
+            if (selectedSnapshot === null) {
+              yield* recoverOnline;
+            } else {
+              online = false;
+            }
+            if (period.revoked) {
+              return yield* new ZerospinError({ code: 'backup-db-revoked' });
+            }
+            const metadata = db
+              .select()
+              .from(sessionMetadataDrizzleSchema)
+              .where(
+                eq(sessionMetadataDrizzleSchema.sessionId, executionSessionId),
+              )
+              .get();
+            if (metadata === undefined) {
+              return yield* new ZerospinError({
+                code: 'browser-persistence-reset-required',
+                message: 'The restored aggregate frontend metadata is missing',
+              });
+            }
+            // 6 — One queue and semaphore serialize incremental delivery and snapshot repair.
+            const backupSemaphore = yield* Semaphore.make(1);
+            let backupEpoch = 0;
+            const repairBackup = Effect.gen(function* () {
+              if (period.revoked) {
+                return yield* new ZerospinError({ code: 'backup-db-revoked' });
+              }
+              backupAccepting = false;
+              backupEpoch += 1;
+              session.store.setState({
+                backupState: { status: 'repairing', failure: null },
+              });
+              const afterSnapshot: (readonly ICommittedSqlStatement[])[] = [];
+              db.$client.onCommittedTransaction = statements => {
+                if (!period.revoked) afterSnapshot.push(statements);
+              };
+              while (Queue.sizeUnsafe(transactionQueue) > 0) {
+                yield* Queue.take(transactionQueue);
+              }
+              const snapshot = db.$client.sqlite3.serialize(
+                db.$client.db,
+                'main',
+              );
+              yield* backupDb.overwriteDb({ snapshot }).pipe(
+                Effect.retry({
+                  times: 1,
+                  while: error =>
+                    error.code === 'backup-request-uncertain' &&
+                    !period.revoked,
+                }),
+              );
+              if (period.revoked) {
+                return yield* new ZerospinError({ code: 'backup-db-revoked' });
+              }
+              db.$client.onCommittedTransaction = statements => {
+                if (backupAccepting && !period.revoked) {
+                  session.store.setState({
+                    backupState: { status: 'pending', failure: null },
+                  });
+                  Queue.offerUnsafe(transactionQueue, statements);
+                }
+              };
+              for (const statements of afterSnapshot) {
+                Queue.offerUnsafe(transactionQueue, statements);
+              }
+              backupAccepting = true;
+              session.store.setState({
+                backupState: {
+                  status: afterSnapshot.length === 0 ? 'ready' : 'pending',
+                  failure: null,
+                },
+              });
+            });
+            if (selectedSnapshot === null) {
+              yield* repairBackup;
+            } else {
+              // Only renewal metadata is new; the acquired baseline already belongs to this key.
+              while (Queue.sizeUnsafe(transactionQueue) > 0) {
+                const statements = yield* Queue.take(transactionQueue);
+                yield* backupDb
+                  .applyStatements({ statements })
+                  .pipe(
+                    Effect.catch(error =>
+                      error.code === 'backup-request-uncertain' &&
+                      !period.revoked
+                        ? repairBackup
+                        : Effect.fail(error),
+                    ),
+                  );
+              }
+            }
+            yield* Effect.forkScoped(
+              Effect.forever(
+                Effect.gen(function* () {
+                  const statements = yield* Queue.take(transactionQueue);
+                  const statementEpoch = backupEpoch;
+                  if (!backupAccepting || period.revoked) return;
+                  yield* backupSemaphore
+                    .withPermits(1)(
+                      Effect.gen(function* () {
+                        if (
+                          !backupAccepting ||
+                          period.revoked ||
+                          statementEpoch !== backupEpoch
+                        ) {
+                          return;
+                        }
+                        const applied = yield* backupDb
+                          .applyStatements({ statements })
+                          .pipe(Effect.result);
+                        if (period.revoked) return;
+                        if (Result.isFailure(applied)) {
+                          if (
+                            applied.failure.code !== 'backup-request-uncertain'
+                          ) {
+                            return yield* applied.failure;
+                          }
+                          yield* repairBackup;
+                        } else if (Queue.sizeUnsafe(transactionQueue) === 0) {
+                          session.store.setState({
+                            backupState: { status: 'ready', failure: null },
+                          });
+                        }
+                      }),
+                    )
+                    .pipe(
+                      Effect.catch(error =>
+                        Effect.sync(() => {
+                          if (period.revoked) return;
+                          if (error.code === 'backup-db-revoked') {
+                            revokeOwnership();
+                            return;
+                          }
+                          backupAccepting = false;
+                          db.$client.onCommittedTransaction = null;
+                          session.store.setState({
+                            backupState: {
+                              status: 'failed',
+                              failure: Schema.encodeSync(ZerospinError.schema)(
+                                error,
+                              ),
+                            },
+                          });
+                        }),
+                      ),
+                    );
+                }),
+              ),
+            );
+            if (period.revoked) {
+              return yield* new ZerospinError({ code: 'backup-db-revoked' });
+            }
+            if (document.visibilityState !== 'visible') {
+              revokeOwnership();
+              return yield* new ZerospinError({ code: 'backup-db-revoked' });
+            }
+            // 8 — The serialized push lane selects the oldest unpushed journal command,
+            // retries transient failures, and applies the returned terminal occurrence.
+            const periodPushSignal = yield* Queue.unbounded<void>();
+            pushSignal = periodPushSignal;
+            const pushSemaphore = yield* Semaphore.make(1);
+            const periodPushOne = pushSemaphore.withPermits(1)(
+              Effect.gen(function* () {
+                if (
+                  period.revoked ||
+                  session.store.getState().sessionStatus !== 'current'
+                ) {
+                  return yield* new ZerospinError({
+                    code: 'aggregate-frontend-session-not-current',
+                  });
+                }
+                // Journal insertion order spans execution periods; sessionIndex restarts on reacquisition.
+                const row = db
+                  .select()
+                  .from(sessionCommandJournalDrizzleSchema)
+                  .where(isNull(sessionCommandJournalDrizzleSchema.pushIndex))
+                  .orderBy(sql`rowid`)
+                  .all()
+                  .find(row => row.sessionIndex !== null);
+                if (row === undefined) {
+                  return { status: 'empty' } satisfies Readonly<{
+                    status: 'empty';
+                  }>;
+                }
+                const command = yield* Schema.decodeEffect(
+                  Schema.fromJsonString(SessionCommandSchema),
+                )(row.command).pipe(
+                  Effect.mapError(
+                    () =>
+                      new ZerospinError({
+                        code: 'aggregate-frontend-local-command-invalid',
+                        message: 'The next local command is invalid',
+                      }),
+                  ),
+                  Effect.flatMap(command =>
+                    command.pushIndex !== null
+                      ? Effect.fail(
+                          new ZerospinError({
+                            code: 'aggregate-frontend-local-command-invalid',
+                            message: 'The next local command is not pushable',
+                          }),
+                        )
+                      : Effect.succeed(command),
+                  ),
+                );
+                const pushed = yield* pushAggregateFrontendCommand({
+                  aggregateVersion: props.aggregateVersion,
+                  apiUrl,
+                  publishableKey,
+                  systemName,
+                  authenticationLock,
+                  generateSignature,
+                  aggregateId,
+                  aggregateName: frontend.aggregateName,
+                  frontendName: frontend.name,
+                  aggregateFrontendLock,
+                  command,
+                }).pipe(
+                  Effect.retry({
+                    schedule: frontendPushRetrySchedule,
+                    while: error =>
+                      transientCodes.has(error.code) &&
+                      !pushPaused &&
+                      !released &&
+                      !period.revoked,
+                  }),
+                  Effect.result,
+                );
+                if (period.revoked) {
+                  return yield* new ZerospinError({
+                    code: 'backup-db-revoked',
+                  });
+                }
+                if (Result.isFailure(pushed)) {
+                  return {
+                    status: 'retry-exhausted',
+                    failure: Schema.encodeSync(ZerospinError.schema)(
+                      pushed.failure,
+                    ),
+                  } satisfies Readonly<{
+                    status: 'retry-exhausted';
+                    failure: IAnyErrorJson;
+                  }>;
+                }
+                if (pushed.success.commandId !== command.id) {
+                  return yield* new ZerospinError({
+                    code: 'aggregate-admission-receipt-conflict',
+                    message: 'Admission receipt names another command',
+                  });
+                }
+                // Admission stops resubmission but keeps optimism until its terminal resolution.
+                db.update(sessionCommandJournalDrizzleSchema)
+                  .set({ pushIndex: pushed.success.aggregateIndex })
+                  .where(eq(sessionCommandJournalDrizzleSchema.id, command.id))
+                  .run();
+                const nextMetadata = db
+                  .select()
+                  .from(sessionMetadataDrizzleSchema)
+                  .where(
+                    eq(
+                      sessionMetadataDrizzleSchema.sessionId,
+                      executionSessionId,
+                    ),
+                  )
+                  .get();
+                if (nextMetadata !== undefined) {
+                  session.store.setState({ pushIndex: nextMetadata.pushIndex });
+                }
+                return { status: 'pushed' } satisfies Readonly<{
+                  status: 'pushed';
+                }>;
+              }),
+            );
+
+            const periodPushLane = Effect.forever(
+              Effect.gen(function* () {
+                yield* Queue.take(periodPushSignal);
+                while (!pushPaused && !released && !period.revoked) {
+                  const result = yield* periodPushOne;
+                  if (result.status !== 'pushed') break;
+                }
+              }),
+            ).pipe(Effect.provide(context));
+            pushOne = periodPushOne.pipe(Effect.provide(context));
+            pushLane = periodPushLane;
+            // 7 — Publish only a restored, persisted ownership period on the original store.
+            if (period.revoked || document.visibilityState !== 'visible') {
+              revokeOwnership();
+              return yield* new ZerospinError({ code: 'backup-db-revoked' });
+            }
+            hasOwned = true;
+            session.store.setState({
+              sessionId: executionSessionId,
+              aggregateId,
+              aggregateName: frontend.aggregateName,
+              userId,
+              systemId,
+              frontendName: frontend.name,
+              aggregateFrontendLockKey,
+              db,
+              schema: dbConfig.schema,
+              models,
+              isInitialized: true,
+              aggregateIndex: metadata.aggregateIndex,
+              userIndex: metadata.userIndex,
+              pushIndex: metadata.pushIndex,
+              sessionStatus: 'current',
               backupState: { status: 'ready', failure: null },
             });
-          }
-          return;
-        }
-        session.store.setState({
-          backupState: { status: 'repairing', failure: null },
-        });
-        backupAccepting = false;
-        const repairTransactions: (readonly ICommittedSqlStatement[])[] = [];
-        db.$client.onCommittedTransaction = nextStatements => {
-          repairTransactions.push(nextStatements);
-        };
-        while (Queue.sizeUnsafe(transactionQueue) > 0) {
-          yield* Queue.take(transactionQueue);
-        }
-        const snapshot = yield* Effect.sync(() =>
-          db.$client.sqlite3.serialize(db.$client.db, 'main'),
-        );
-        const repaired = yield* backupWorker
-          .replaceSnapshot({
-            backupKey,
-            sessionId: session.sessionId,
-            snapshot,
-          })
-          .pipe(
-            Effect.retry({
-              times: 1,
-              while: error => error.code === 'opfs-backup-request-uncertain',
-            }),
-            Effect.result,
-          );
-        if (Result.isFailure(repaired)) {
-          const failure = yield* Schema.encodeEffect(ZerospinError.schema)(
-            repaired.failure,
-          );
-          session.store.setState({
-            backupState: { status: 'failed', failure },
-          });
-          db.$client.onCommittedTransaction = null;
-          return;
-        }
-        db.$client.onCommittedTransaction = nextStatements => {
-          if (backupAccepting) {
-            session.store.setState({
-              backupState: { status: 'pending', failure: null },
-            });
-            Queue.offerUnsafe(transactionQueue, nextStatements);
-          }
-        };
-        for (const repairTransaction of repairTransactions) {
-          Queue.offerUnsafe(transactionQueue, repairTransaction);
-        }
-        backupAccepting = true;
-        session.store.setState({
-          backupState: {
-            status: repairTransactions.length === 0 ? 'ready' : 'pending',
-            failure: null,
-          },
-        });
-      }),
-    ),
-  );
-
-  yield* Effect.try({
-    try: () => localStorage.setItem(sessionLocatorKey, session.sessionId),
-    catch: ZerospinError.catch({
-      code: 'browser-persistence-reset-required',
-      message: 'Failed to publish the current frontend-session locator',
-    }),
-  });
-  session.store.setState({
-    sessionId: session.sessionId,
-    aggregateId,
-    aggregateName: frontend.aggregateName,
-    userId,
-    systemId,
-    systemVersion: metadata.systemVersion,
-    frontendName: frontend.frontendName,
-    aggregateFrontendLockKey,
-    db,
-    schema: dbConfig.schema,
-    models,
-    isInitialized: true,
-    aggregateIndex: metadata.aggregateIndex,
-    frontendIndex: metadata.frontendIndex,
-    pushIndex: metadata.pushIndex,
-    sessionStatus: 'current',
-    backupState: { status: 'ready', failure: null },
-  });
-
-  for (const oldFile of oldSessionFiles) {
-    yield* backupWorker.closeSessionBackup({
-      backupKey,
-      sessionId: oldFile.sessionId,
-    });
-    yield* backupWorker
-      .deleteSessionBackup({ backupKey, sessionId: oldFile.sessionId })
-      .pipe(Effect.ignore);
-  }
-  if (selectedSessionId !== null && selectedSessionId !== session.sessionId) {
-    yield* backupWorker
-      .closeSessionBackup({ backupKey, sessionId: selectedSessionId })
-      .pipe(Effect.ignore);
-    yield* backupWorker
-      .deleteSessionBackup({ backupKey, sessionId: selectedSessionId })
-      .pipe(Effect.ignore);
-  }
-
-  const pushSignal = yield* Queue.unbounded<void>();
-  const pushSemaphore = yield* Semaphore.make(1);
-  const pushOne = pushSemaphore.withPermits(1)(
-    Effect.gen(function* () {
-      const row = db
-        .select()
-        .from(sessionCommandJournalDrizzleSchema)
-        .where(isNull(sessionCommandJournalDrizzleSchema.pushIndex))
-        .all()
-        .filter(row => row.sessionIndex !== null)
-        .sort(
-          (left, right) => (left.sessionIndex ?? 0) - (right.sessionIndex ?? 0),
-        )[0];
-      if (row === undefined) {
-        return { status: 'empty' } satisfies Readonly<{ status: 'empty' }>;
-      }
-      const command = yield* Schema.decodeEffect(
-        Schema.fromJsonString(SessionCommandSchema),
-      )(row.command).pipe(
-        Effect.mapError(
-          () =>
-            new ZerospinError({
-              code: 'aggregate-frontend-local-command-invalid',
-              message: 'The next local command is invalid',
-            }),
-        ),
-        Effect.flatMap(command =>
-          command.pushIndex !== null
-            ? Effect.fail(
-                new ZerospinError({
-                  code: 'aggregate-frontend-local-command-invalid',
-                  message: 'The next local command is not pushable',
-                }),
-              )
-            : Effect.succeed(command),
-        ),
-      );
-      const pushed = yield* pushAggregateFrontendCommand({
-        apiUrl: props.apiUrl,
-        publishableKey: props.publishableKey,
-        systemName: props.systemName,
-        authenticationLock: props.authenticationLock,
-        generateSignature: props.generateSignature,
-        aggregateId,
-        aggregateName: frontend.aggregateName,
-        frontendName: frontend.frontendName,
-        aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
-        command,
-      }).pipe(
-        Effect.retry({
-          schedule: frontendPushRetrySchedule,
-          while: error =>
-            transientCodes.has(error.code) && !pushPaused && !released,
-        }),
-        Effect.result,
-      );
-      if (Result.isFailure(pushed)) {
-        return {
-          status: 'retry-exhausted',
-          failure: Schema.encodeSync(ZerospinError.schema)(pushed.failure),
-        } satisfies Readonly<{
-          status: 'retry-exhausted';
-          failure: IAnyErrorJson;
-        }>;
-      }
-      yield* applyAggregateFrontendCommand({
-        db,
-        frontend,
-        sessionId: session.sessionId,
-        models,
-        command: pushed.success,
-        aggregateId,
-        userId,
-      });
-      const nextMetadata = db
-        .select()
-        .from(sessionMetadataDrizzleSchema)
-        .where(eq(sessionMetadataDrizzleSchema.sessionId, session.sessionId))
-        .get();
-      if (nextMetadata !== undefined) {
-        session.store.setState({ pushIndex: nextMetadata.pushIndex });
-      }
-      return { status: 'pushed' } satisfies Readonly<{ status: 'pushed' }>;
-    }),
-  );
-
-  const pushLane = Effect.forever(
-    Effect.gen(function* () {
-      yield* Queue.take(pushSignal);
-      while (!pushPaused && !released) {
-        const result = yield* pushOne;
-        if (result.status !== 'pushed') break;
-      }
-    }),
-  ).pipe(Effect.provide(context));
-  pushFiber = yield* Effect.forkIn(pushLane, scope);
-  Queue.offerUnsafe(pushSignal, undefined);
-
-  const onlineListener = () => {
-    if (!released && session.store.getState().sessionStatus === 'current') {
-      Queue.offerUnsafe(reconnectSignal, undefined);
-      Queue.offerUnsafe(pushSignal, undefined);
-    }
-  };
-  globalThis.addEventListener('online', onlineListener);
-  yield* Effect.addFinalizer(() =>
-    Effect.sync(() => globalThis.removeEventListener('online', onlineListener)),
-  );
-  if (!online) {
-    Queue.offerUnsafe(reconnectSignal, undefined);
-  }
-  yield* Effect.forkScoped(
-    Effect.forever(
-      Effect.gen(function* () {
-        yield* Queue.take(reconnectSignal);
-        while (Queue.sizeUnsafe(reconnectSignal) > 0) {
-          yield* Queue.take(reconnectSignal);
-        }
-        if (released || session.store.getState().sessionStatus !== 'current') {
-          return;
-        }
-        const recovered = yield* recoverOnline.pipe(
-          Effect.retry({
-            schedule: frontendPushRetrySchedule,
-            while: error =>
-              transientCodes.has(error.code) &&
-              !released &&
-              session.store.getState().sessionStatus === 'current',
-          }),
-          Effect.result,
-        );
-        if (Result.isFailure(recovered)) {
-          if (
-            !released &&
-            session.store.getState().sessionStatus === 'current'
-          ) {
-            session.store.setState({ sessionStatus: 'failed' });
-          }
-          return;
-        }
-        while (online && Queue.sizeUnsafe(reconnectSignal) > 0) {
-          yield* Queue.take(reconnectSignal);
-        }
-
-        const repairTransactions: (readonly ICommittedSqlStatement[])[] = [];
-        backupAccepting = false;
-        session.store.setState({
-          backupState: { status: 'repairing', failure: null },
-        });
-        db.$client.onCommittedTransaction = statements => {
-          repairTransactions.push(statements);
-        };
-        while (Queue.sizeUnsafe(transactionQueue) > 0) {
-          yield* Queue.take(transactionQueue);
-        }
-        const snapshot = yield* Effect.sync(() =>
-          db.$client.sqlite3.serialize(db.$client.db, 'main'),
-        );
-        const replaced = yield* backupWorker
-          .replaceSnapshot({
-            backupKey,
-            sessionId: session.sessionId,
-            snapshot,
-          })
-          .pipe(
-            Effect.retry({
-              times: 1,
-              while: error => error.code === 'opfs-backup-request-uncertain',
-            }),
-            Effect.result,
-          );
-        if (Result.isFailure(replaced)) {
-          db.$client.onCommittedTransaction = null;
-          session.store.setState({
-            backupState: {
-              status: 'failed',
-              failure: Schema.encodeSync(ZerospinError.schema)(
-                replaced.failure,
+            db.$client.flushTableChanges(
+              new Set(
+                Object.values(dbConfig.schema).map(table =>
+                  getTableName(table),
+                ),
               ),
-            },
-          });
-        } else {
-          db.$client.onCommittedTransaction = statements => {
-            if (backupAccepting) {
-              session.store.setState({
-                backupState: { status: 'pending', failure: null },
-              });
-              Queue.offerUnsafe(transactionQueue, statements);
+            );
+            pushFiber = yield* Effect.forkIn(periodPushLane, scope);
+            Queue.offerUnsafe(periodPushSignal, undefined);
+
+            // 9 — Browser-online and socket-close signals share serialized recovery;
+            // successful recovery replaces the shared backup baseline before refreshing frontiers.
+            const onlineListener = () => {
+              if (
+                !released &&
+                !period.revoked &&
+                session.store.getState().sessionStatus === 'current'
+              ) {
+                Queue.offerUnsafe(reconnectSignal, undefined);
+                Queue.offerUnsafe(periodPushSignal, undefined);
+              }
+            };
+            globalThis.addEventListener('online', onlineListener);
+            yield* Effect.addFinalizer(() =>
+              Effect.sync(() =>
+                globalThis.removeEventListener('online', onlineListener),
+              ),
+            );
+            if (!online) {
+              Queue.offerUnsafe(reconnectSignal, undefined);
             }
-          };
-          for (const repairTransaction of repairTransactions) {
-            Queue.offerUnsafe(transactionQueue, repairTransaction);
+            yield* Effect.forkScoped(
+              Effect.forever(
+                Effect.gen(function* () {
+                  yield* Queue.take(reconnectSignal);
+                  while (Queue.sizeUnsafe(reconnectSignal) > 0) {
+                    yield* Queue.take(reconnectSignal);
+                  }
+                  if (
+                    released ||
+                    period.revoked ||
+                    session.store.getState().sessionStatus !== 'current'
+                  ) {
+                    return;
+                  }
+                  const recovered = yield* recoverOnline.pipe(
+                    Effect.retry({
+                      schedule: frontendPushRetrySchedule,
+                      while: error =>
+                        transientCodes.has(error.code) &&
+                        !released &&
+                        !period.revoked &&
+                        session.store.getState().sessionStatus === 'current',
+                    }),
+                    Effect.result,
+                  );
+                  if (Result.isFailure(recovered)) {
+                    if (
+                      !released &&
+                      !period.revoked &&
+                      session.store.getState().sessionStatus === 'current'
+                    ) {
+                      socket?.close(4003, recovered.failure.code);
+                      socket = null;
+                      session.store.setState({ sessionStatus: 'failed' });
+                    }
+                    return;
+                  }
+                  while (online && Queue.sizeUnsafe(reconnectSignal) > 0) {
+                    yield* Queue.take(reconnectSignal);
+                  }
+
+                  yield* backupSemaphore
+                    .withPermits(1)(repairBackup)
+                    .pipe(
+                      Effect.catch(error =>
+                        Effect.sync(() => {
+                          if (period.revoked) return;
+                          if (error.code === 'backup-db-revoked') {
+                            revokeOwnership();
+                            return;
+                          }
+                          backupAccepting = false;
+                          db.$client.onCommittedTransaction = null;
+                          session.store.setState({
+                            backupState: {
+                              status: 'failed',
+                              failure: Schema.encodeSync(ZerospinError.schema)(
+                                error,
+                              ),
+                            },
+                          });
+                        }),
+                      ),
+                    );
+                  if (period.revoked) return;
+                  const recoveredMetadata = db
+                    .select()
+                    .from(sessionMetadataDrizzleSchema)
+                    .where(
+                      eq(
+                        sessionMetadataDrizzleSchema.sessionId,
+                        executionSessionId,
+                      ),
+                    )
+                    .get();
+                  if (recoveredMetadata !== undefined) {
+                    session.store.setState({
+                      aggregateIndex: recoveredMetadata.aggregateIndex,
+                      userIndex: recoveredMetadata.userIndex,
+                      pushIndex: recoveredMetadata.pushIndex,
+                    });
+                  }
+                  yield* Effect.try({
+                    try: () =>
+                      localStorage.setItem(
+                        authenticationLocatorKey,
+                        JSON.stringify({ systemId, userId }),
+                      ),
+                    catch: ZerospinError.catch({
+                      code: 'browser-persistence-reset-required',
+                      message:
+                        'Failed to refresh the browser authentication locator',
+                    }),
+                  });
+                }),
+              ),
+            );
+
+            yield* Deferred.succeed(initialized, undefined);
+          }).pipe(Effect.provideService(Scope.Scope, period.scope)),
+          period.scope,
+        );
+        const started = yield* Fiber.await(startupFiber);
+        if (Exit.isFailure(started)) {
+          const revoked = period.revoked;
+          const typedFailure = Cause.findError(started.cause);
+          const failure = Result.isSuccess(typedFailure)
+            ? typedFailure.success
+            : ZerospinError.catch({
+                code: 'frontend-ownership-startup-failed',
+              })(Cause.squash(started.cause));
+          if (activePeriod === period && !revoked) {
+            session.store.setState({
+              sessionStatus: 'failed',
+              backupState: {
+                status: 'failed',
+                failure: Schema.encodeSync(ZerospinError.schema)(failure),
+              },
+            });
           }
-          backupAccepting = true;
-          session.store.setState({
-            backupState: {
-              status: repairTransactions.length === 0 ? 'ready' : 'pending',
-              failure: null,
-            },
-          });
+          yield* Scope.close(period.scope, Exit.void);
+          if (!revoked) yield* Deferred.fail(initialized, failure);
         }
-        const recoveredMetadata = db
-          .select()
-          .from(sessionMetadataDrizzleSchema)
-          .where(eq(sessionMetadataDrizzleSchema.sessionId, session.sessionId))
-          .get();
-        if (recoveredMetadata !== undefined) {
-          session.store.setState({
-            aggregateIndex: recoveredMetadata.aggregateIndex,
-            frontendIndex: recoveredMetadata.frontendIndex,
-            pushIndex: recoveredMetadata.pushIndex,
-          });
-        }
-        yield* Effect.try({
-          try: () =>
-            localStorage.setItem(
-              authenticationLocatorKey,
-              JSON.stringify({ systemId, userId }),
-            ),
-          catch: ZerospinError.catch({
-            code: 'browser-persistence-reset-required',
-            message: 'Failed to refresh the browser authentication locator',
-          }),
-        });
       }),
     ),
   );
-
-  const storageListener = (event: StorageEvent) => {
-    if (
-      event.key === sessionLocatorKey &&
-      event.newValue !== null &&
-      event.newValue !== session.sessionId
-    ) {
-      pushPaused = false;
-      const state = session.store.getState();
-      if (state.isInitialized && state.sessionStatus === 'current') {
-        session.store.setState({ sessionStatus: 'superseded' });
-        socket?.close(1000, 'superseded');
-        socket = null;
-        Queue.offerUnsafe(pushSignal, undefined);
-        if (document.visibilityState === 'visible') {
-          globalThis.location.reload();
-        }
-      }
-    }
-  };
-  const visibilityListener = () => {
-    if (
-      document.visibilityState === 'visible' &&
-      localStorage.getItem(sessionLocatorKey) !== session.sessionId
-    ) {
-      globalThis.location.reload();
-    }
-  };
-  globalThis.addEventListener('storage', storageListener);
-  document.addEventListener('visibilitychange', visibilityListener);
-  globalThis.addEventListener('pageshow', visibilityListener);
-  yield* Effect.addFinalizer(() =>
-    Effect.sync(() => {
-      globalThis.removeEventListener('storage', storageListener);
-      document.removeEventListener('visibilitychange', visibilityListener);
-      globalThis.removeEventListener('pageshow', visibilityListener);
-    }),
-  );
-
+  yield* Deferred.await(initialized);
+  // The controls read the current ownership period each time; mounted callers retain them.
   return {
     systemId,
     userId,
     aggregateFrontendLockKey,
     executeAggregateFrontendCommand: ({ command }) =>
-      Effect.sync(() => {
+      Effect.gen(function* () {
+        if (
+          activePeriod === null ||
+          activePeriod.revoked ||
+          session.store.getState().sessionStatus !== 'current' ||
+          pushSignal === null
+        ) {
+          return yield* new ZerospinError({
+            code: 'aggregate-frontend-session-not-current',
+          });
+        }
         Queue.offerUnsafe(pushSignal, undefined);
         return { commandId: command.id };
       }),
     getPushPaused: Effect.sync(() => pushPaused),
     setPushPaused: ({ pushPaused: nextPushPaused }) =>
       Effect.gen(function* () {
+        if (
+          activePeriod === null ||
+          activePeriod.revoked ||
+          session.store.getState().sessionStatus !== 'current'
+        ) {
+          return yield* new ZerospinError({
+            code: 'aggregate-frontend-session-not-current',
+          });
+        }
         pushPaused = nextPushPaused;
         if (pushPaused && pushFiber !== null) {
-          yield* Fiber.interrupt(pushFiber);
-          pushFiber = null;
-        } else if (!pushPaused && pushFiber === null) {
-          pushFiber = yield* Effect.forkIn(pushLane, scope);
+          const pausedFiber = pushFiber;
+          yield* Fiber.interrupt(pausedFiber);
+          if (pushFiber === pausedFiber) pushFiber = null;
+        } else if (!pushPaused && pushLane !== null && pushSignal !== null) {
+          if (pushFiber === null) {
+            pushFiber = yield* Effect.forkIn(pushLane, activePeriod.scope);
+          }
           Queue.offerUnsafe(pushSignal, undefined);
         }
       }),
-    pushNow: pushOne.pipe(Effect.provide(context)),
+    pushNow: Effect.suspend(() =>
+      activePeriod === null ||
+      activePeriod.revoked ||
+      session.store.getState().sessionStatus !== 'current'
+        ? Effect.fail(
+            new ZerospinError({
+              code: 'aggregate-frontend-session-not-current',
+            }),
+          )
+        : pushOne,
+    ),
   };
 });

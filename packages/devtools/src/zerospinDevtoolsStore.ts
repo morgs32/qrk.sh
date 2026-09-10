@@ -45,7 +45,7 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
         const devtoolsEntry: IDevtoolsServiceSessionEntry = {
           sessionId: session.sessionId,
           serviceName: session.frontend.serviceName,
-          frontendName: session.frontend.frontendName,
+          frontendName: session.frontend.name,
           modelNames: session.frontend.modelNames,
           subscribe: listener =>
             session.store.subscribe(() => {
@@ -57,8 +57,7 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
           getBackupState: () => session.store.getState().backupState,
           getTelemetry: () => session.store.getState().telemetry,
           getServiceIndex: () => session.store.getState().serviceIndex,
-          getServiceFrontendIndex: () =>
-            session.store.getState().serviceFrontendIndex,
+          getServiceFrontendIndex: () => session.store.getState().serviceIndex,
           getModelAttributes: modelName =>
             Object.entries(session.frontend.models).find(
               ([name]) => name === modelName,

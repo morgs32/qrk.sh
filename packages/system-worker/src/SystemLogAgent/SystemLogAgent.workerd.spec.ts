@@ -6,14 +6,14 @@ import { Result, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { managedRuntime } from '../managedRuntime.js';
-import { getSystemLogRepo } from '../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
-import { systemLogRowSchema } from '../SystemLogRepo/SystemLogRepoDbConfig.js';
+import { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
+import { systemLogRowSchema } from '../SystemLogRepo/systemLogRepoDbConfig.js';
 
 describe('SystemLogAgent', () => {
   it('reconciles, broadcasts ordered bounded state, deduplicates retries, and rejects client writes', async () => {
     const systemId = env.ZEROSPIN_SYSTEM_ID;
     const systemLogRepo = await managedRuntime.runPromise(
-      getSystemLogRepo({ key: { systemId } }),
+      SystemLogRepo.getRepo({ key: { systemId } }),
     );
     for (let value = 1; value <= 101; value += 1) {
       await managedRuntime.runPromise(

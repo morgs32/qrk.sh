@@ -4,6 +4,7 @@ import { Effect, Schema } from 'effect';
 
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
 import { upsertHelper } from '../drizzle/upsertHelper.ts';
+import { Model } from '../models/makeModel.ts';
 
 import { applyMutationTx } from './applyMutationTx.ts';
 import { getResourceRow } from './getResourceRow.ts';
@@ -19,7 +20,7 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
     appliedAt: Date;
   }): Effect.fn.Return<IAppliedMutation, IAnyError> {
     const { appliedAt, commandId, mutation, mutationIndex, tx } = props;
-    if (mutation.operationName === 'replicateResource') {
+    if (mutation.operationName === 'replicate') {
       const table = mutation.model.drizzleSchema;
       const previousRow = tx
         .select()
@@ -37,19 +38,8 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
                 prefix: `Failed to decode previous replicated resource "${mutation.resourceId}"`,
               }),
             );
-      const deletedAt = mutation.operation.resource.deletedAt;
-      if (deletedAt !== null && deletedAt !== undefined) {
-        return yield* new ZerospinError({
-          code: 'service-resource-deleted',
-          message: `Cannot replicate deleted service resource "${mutation.resourceId}"`,
-          extra: {
-            modelName: mutation.model.modelName,
-            resourceId: mutation.resourceId,
-            operationName: mutation.operationName,
-            deletedAt,
-          },
-        });
-      }
+      // Captured service replication includes tombstones. Replaying the same
+      // prepared mutation must preserve the authoritative deletion in every replica.
       yield* Effect.try({
         try: () =>
           upsertHelper({
@@ -70,7 +60,7 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
           }
           return new ZerospinError({
             code: 'mutation-referential-integrity-failed',
-            message: `Cannot apply replicateResource mutation to "${mutation.model.modelName}.${mutation.resourceId}" because it violates a persisted reference`,
+            message: `Cannot apply replicate mutation to "${mutation.model.modelName}.${mutation.resourceId}" because it violates a persisted reference`,
             cause: failure,
             extra: {
               modelName: mutation.model.modelName,
@@ -96,7 +86,7 @@ export const applyAggregateMutationTx = Effect.fn('applyAggregateMutationTx')(
     }
 
     const { model, operationName, resourceId } = mutation;
-    if (!('sourceModel' in model)) {
+    if (!Model.isReplica(model)) {
       return yield* applyMutationTx({
         tx,
         mutation,

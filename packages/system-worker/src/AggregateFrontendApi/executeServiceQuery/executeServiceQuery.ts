@@ -15,6 +15,18 @@ import { Effect, Result, Schema } from 'effect';
 import { appendTelemetryBatch } from '../../appendTelemetryBatch/appendTelemetryBatch.js';
 import { executeServiceQuery as executeSystemWorkerServiceQuery } from '../../executeServiceQuery/executeServiceQuery.js';
 
+/*
+ * The aggregate frontend capability requests a named service query with its
+ * admitted frontend lock. The worker query path requires complete frontend context
+ * and runs the named query in the requested service.
+ *
+ * 1. Validate the request arguments.
+ * 2. Return invalid arguments immediately.
+ * 3. Collect and settle the domain operation.
+ * 4. Encode the settled domain outcome.
+ * 5. Persist telemetry and determine the trace link.
+ * 6. Return the linked RPC envelope.
+ */
 export const executeServiceQuery = Effect.fn(
   'AggregateFrontendApi.executeServiceQuery',
 )(function* (props: {
@@ -24,6 +36,7 @@ export const executeServiceQuery = Effect.fn(
   authResults: {
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
+    aggregateVersion: string;
     readonly userId: string;
     readonly frontendName: string;
     readonly aggregateFrontendLock: Schema.Schema.Type<
@@ -33,6 +46,8 @@ export const executeServiceQuery = Effect.fn(
   };
 }) {
   const { authResults, request } = props;
+
+  // 1 — decode request.args and reject excess fields
   const validatedArgs = yield* Schema.decodeUnknownEffect(
     Schema.toType(
       Schema.mutable(
@@ -53,6 +68,8 @@ export const executeServiceQuery = Effect.fn(
     }),
     Effect.result,
   );
+
+  // 2 — encode the validation failure with a null trace link
   if (Result.isFailure(validatedArgs)) {
     return {
       result: yield* encodeRpc(Effect.fail(validatedArgs.failure)),
@@ -60,8 +77,10 @@ export const executeServiceQuery = Effect.fn(
     };
   }
 
+  // 3 — settle executeSystemWorkerServiceQuery with the admitted lock
   const collector = makeTelemetryCollector();
   const settled = yield* executeSystemWorkerServiceQuery({
+    aggregateVersion: authResults.aggregateVersion,
     aggregateId: authResults.aggregateId,
     aggregateName: authResults.aggregateName,
     userId: authResults.userId,
@@ -75,11 +94,14 @@ export const executeServiceQuery = Effect.fn(
     Effect.provide(makeTelemetryLayer(collector)),
     Effect.result,
   );
+
+  // 4 — preserve success or typed failure before attempting telemetry persistence
   const result = yield* Result.match(settled, {
     onFailure: error => encodeRpc(Effect.fail(error)),
     onSuccess: value => encodeRpc(Effect.succeed(value)),
   });
 
+  // 5 — emit a link only after persistence succeeds and the root span matches this method
   const batch = collector.flush();
   const persisted = yield* appendTelemetryBatch({ batch }).pipe(Effect.result);
   const rootSpan = batch.spans.at(-1);
@@ -98,5 +120,7 @@ export const executeServiceQuery = Effect.fn(
           kind: 'causedBy',
         }
       : null;
+
+  // 6 — return the domain result even when no trace link can be emitted
   return { result, link };
 });

@@ -200,12 +200,12 @@ importers:
       '@zerospin/error':
         specifier: workspace:*
         version: link:../../packages/error
+      '@zerospin/error-boundary':
+        specifier: workspace:*
+        version: link:../../packages/error-boundary
       '@zerospin/react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@zerospin/react-router':
-        specifier: workspace:*
-        version: link:../../packages/react-router
       '@zerospin/sdk':
         specifier: workspace:2.0.1
         version: link:../../packages/sdk
@@ -273,18 +273,21 @@ importers:
       '@vitest/browser-playwright':
         specifier: 4.1.5
         version: 4.1.5(msw@2.14.5(@types/node@25.9.4)(typescript@7.0.2))(playwright@1.59.1)(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.1.5)
+      '@zerospin/backup-worker':
+        specifier: workspace:*
+        version: link:../../packages/backup-worker
       '@zerospin/cli':
         specifier: workspace:*
         version: link:../../packages/cli
       '@zerospin/dev-worker':
         specifier: workspace:*
         version: link:../../packages/dev-worker
+      '@zerospin/frontend':
+        specifier: workspace:*
+        version: link:../../packages/frontend
       '@zerospin/logger':
         specifier: workspace:*
         version: link:../../packages/logger
-      '@zerospin/opfs-backup-worker':
-        specifier: workspace:*
-        version: link:../../packages/opfs-backup-worker
       '@zerospin/schema':
         specifier: workspace:*
         version: link:../../packages/schema
@@ -330,6 +333,46 @@ importers:
       wrangler:
         specifier: ^4.127.1
         version: 4.127.1
+
+  packages/backup-worker:
+    dependencies:
+      '@zerospin/core':
+        specifier: workspace:*
+        version: link:../core
+      '@zerospin/error':
+        specifier: workspace:*
+        version: link:../error
+      capnweb:
+        specifier: ^0.12.0
+        version: 0.12.0
+      effect:
+        specifier: 4.0.0-rc.111
+        version: 4.0.0-rc.111
+      wa-sqlite:
+        specifier: github:rhashimoto/wa-sqlite#07ad48cf2f682d279f9cd69818cc1d39b2ccda86
+        version: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/07ad48cf2f682d279f9cd69818cc1d39b2ccda86
+    devDependencies:
+      '@effect/language-service':
+        specifier: ^0.87.2
+        version: 0.87.2
+      '@effect/vitest':
+        specifier: 4.0.0-rc.111
+        version: 4.0.0-rc.111(effect@4.0.0-rc.111)(vitest@4.1.5)
+      '@types/node':
+        specifier: ^25.6.2
+        version: 25.9.4
+      rimraf:
+        specifier: ^6.1.3
+        version: 6.1.3
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.21.0)(typescript@7.0.2)(yaml@2.9.0)
+      vite:
+        specifier: ^8.0.11
+        version: 8.0.11(@types/node@25.9.4)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.9.4)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1)(msw@2.14.5(@types/node@25.9.4)(typescript@7.0.2))(vite@8.0.11(@types/node@25.9.4)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
 
   packages/cli:
     dependencies:
@@ -735,8 +778,63 @@ importers:
         specifier: ^4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.9.4)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1)(msw@2.14.5(@types/node@25.9.4)(typescript@7.0.2))(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
 
+  packages/error-boundary:
+    dependencies:
+      '@zerospin/error':
+        specifier: workspace:*
+        version: link:../error
+      lucide-react:
+        specifier: ^1.24.0
+        version: 1.24.0(react@19.2.7)
+    devDependencies:
+      '@effect/language-service':
+        specifier: ^0.87.2
+        version: 0.87.2
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@types/node':
+        specifier: ^25.6.2
+        version: 25.9.4
+      '@types/react':
+        specifier: ^19.2.14
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.17)
+      jsdom:
+        specifier: ^29.1.1
+        version: 29.1.1
+      oxlint:
+        specifier: ^1.63.0
+        version: 1.63.0
+      react:
+        specifier: 19.2.7
+        version: 19.2.7
+      react-dom:
+        specifier: 19.2.7
+        version: 19.2.7(react@19.2.7)
+      react-router:
+        specifier: ^8.3.0
+        version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      rimraf:
+        specifier: ^6.1.3
+        version: 6.1.3
+      vite:
+        specifier: ^8.0.11
+        version: 8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.9.4)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1)(msw@2.14.5(@types/node@25.9.4)(typescript@7.0.2))(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
+
   packages/frontend:
     dependencies:
+      '@remix-run/route-pattern':
+        specifier: ^0.22.1
+        version: 0.22.1
+      '@zerospin/backup-worker':
+        specifier: workspace:*
+        version: link:../backup-worker
       '@zerospin/core':
         specifier: workspace:*
         version: link:../core
@@ -746,9 +844,6 @@ importers:
       '@zerospin/logger':
         specifier: workspace:*
         version: link:../logger
-      '@zerospin/opfs-backup-worker':
-        specifier: workspace:*
-        version: link:../opfs-backup-worker
       '@zerospin/schema':
         specifier: workspace:*
         version: link:../schema
@@ -845,46 +940,6 @@ importers:
         specifier: ^4.127.1
         version: 4.127.1
 
-  packages/opfs-backup-worker:
-    dependencies:
-      '@zerospin/core':
-        specifier: workspace:*
-        version: link:../core
-      '@zerospin/error':
-        specifier: workspace:*
-        version: link:../error
-      capnweb:
-        specifier: ^0.12.0
-        version: 0.12.0
-      effect:
-        specifier: 4.0.0-rc.111
-        version: 4.0.0-rc.111
-      wa-sqlite:
-        specifier: github:rhashimoto/wa-sqlite#07ad48cf2f682d279f9cd69818cc1d39b2ccda86
-        version: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/07ad48cf2f682d279f9cd69818cc1d39b2ccda86
-    devDependencies:
-      '@effect/language-service':
-        specifier: ^0.87.2
-        version: 0.87.2
-      '@effect/vitest':
-        specifier: 4.0.0-rc.111
-        version: 4.0.0-rc.111(effect@4.0.0-rc.111)(vitest@4.1.5)
-      '@types/node':
-        specifier: ^25.6.2
-        version: 25.9.4
-      rimraf:
-        specifier: ^6.1.3
-        version: 6.1.3
-      tsup:
-        specifier: ^8.5.1
-        version: 8.5.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.14)(tsx@4.21.0)(typescript@7.0.2)(yaml@2.9.0)
-      vite:
-        specifier: ^8.0.11
-        version: 8.0.11(@types/node@25.9.4)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0)
-      vitest:
-        specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.9.4)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1)(msw@2.14.5(@types/node@25.9.4)(typescript@7.0.2))(vite@8.0.11(@types/node@25.9.4)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
-
   packages/production-worker:
     dependencies:
       '@zerospin/core':
@@ -945,6 +1000,9 @@ importers:
       '@remix-run/route-pattern':
         specifier: ^0.22.1
         version: 0.22.1
+      '@zerospin/backup-worker':
+        specifier: workspace:*
+        version: link:../backup-worker
       '@zerospin/core':
         specifier: workspace:*
         version: link:../core
@@ -963,9 +1021,6 @@ importers:
       '@zerospin/logger':
         specifier: workspace:*
         version: link:../logger
-      '@zerospin/opfs-backup-worker':
-        specifier: workspace:*
-        version: link:../opfs-backup-worker
       '@zerospin/schema':
         specifier: workspace:*
         version: link:../schema
@@ -1051,55 +1106,6 @@ importers:
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
-      vite:
-        specifier: ^8.0.11
-        version: 8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0)
-      vitest:
-        specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.9.4)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1)(msw@2.14.5(@types/node@25.9.4)(typescript@7.0.2))(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
-
-  packages/react-router:
-    dependencies:
-      '@zerospin/error':
-        specifier: workspace:*
-        version: link:../error
-      lucide-react:
-        specifier: ^1.24.0
-        version: 1.24.0(react@19.2.7)
-    devDependencies:
-      '@effect/language-service':
-        specifier: ^0.87.2
-        version: 0.87.2
-      '@testing-library/react':
-        specifier: ^16.3.2
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@types/node':
-        specifier: ^25.6.2
-        version: 25.9.4
-      '@types/react':
-        specifier: ^19.2.14
-        version: 19.2.17
-      '@types/react-dom':
-        specifier: ^19.2.3
-        version: 19.2.3(@types/react@19.2.17)
-      jsdom:
-        specifier: ^29.1.1
-        version: 29.1.1
-      oxlint:
-        specifier: ^1.63.0
-        version: 1.63.0
-      react:
-        specifier: 19.2.7
-        version: 19.2.7
-      react-dom:
-        specifier: 19.2.7
-        version: 19.2.7(react@19.2.7)
-      react-router:
-        specifier: ^8.3.0
-        version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      rimraf:
-        specifier: ^6.1.3
-        version: 6.1.3
       vite:
         specifier: ^8.0.11
         version: 8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0)
@@ -1194,12 +1200,12 @@ importers:
       '@zerospin/error':
         specifier: workspace:*
         version: link:../error
+      '@zerospin/error-boundary':
+        specifier: workspace:*
+        version: link:../error-boundary
       '@zerospin/logger':
         specifier: workspace:*
         version: link:../logger
-      '@zerospin/react-router':
-        specifier: workspace:*
-        version: link:../react-router
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1392,9 +1398,6 @@ importers:
       effect:
         specifier: rc
         version: 4.0.0-rc.111
-      epluribus-machina:
-        specifier: workspace:*
-        version: link:../../vendor/epluribus-machina
       es-toolkit:
         specifier: ^1.46.1
         version: 1.46.1
@@ -1447,6 +1450,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.17)
+      '@types/sql.js':
+        specifier: ^1.4.11
+        version: 1.4.11
       '@vitejs/plugin-react':
         specifier: ^6.0.1
         version: 6.0.1(@rolldown/plugin-babel@0.2.3(@babel/core@7.29.0)(@babel/plugin-transform-runtime@7.29.0(@babel/core@7.29.0))(@babel/runtime@7.29.7)(rolldown@1.0.0)(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0)))(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
@@ -1486,37 +1492,6 @@ importers:
       wrangler:
         specifier: ^4.127.1
         version: 4.127.1
-
-  vendor/epluribus-machina:
-    dependencies:
-      es-toolkit:
-        specifier: ^1.51.0
-        version: 1.52.0
-    devDependencies:
-      '@effect/vitest':
-        specifier: 4.0.0-rc.111
-        version: 4.0.0-rc.111(effect@4.0.0-rc.111)(vitest@4.1.5)
-      '@types/node':
-        specifier: ^24.0.0
-        version: 24.12.3
-      effect:
-        specifier: 4.0.0-rc.111
-        version: 4.0.0-rc.111
-      oxlint:
-        specifier: ^1.63.0
-        version: 1.63.0
-      typescript:
-        specifier: ~5.9.2
-        version: 5.9.3
-      vite:
-        specifier: ^8.0.11
-        version: 8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0)
-      vitest:
-        specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.3)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1)(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
-      zustand:
-        specifier: ^5.0.15
-        version: 5.0.15(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7))
 
 packages:
 
@@ -6740,9 +6715,6 @@ packages:
   es-toolkit@1.46.1:
     resolution: {integrity: sha512-5eNtXOs3tbfxXOj04tjjseeWkRWaoCjdEI+96DgwzZoe6c9juL49pXlzAFTI72aWC9Y8p7168g6XIKjh7k6pyQ==}
 
-  es-toolkit@1.52.0:
-    resolution: {integrity: sha512-XTNEJQh1tY1ZJVcf6ayP/2n4ZPyaHlW2FWs7xvw5ddPuhUVjLD3olQVQS7kf58JbAB48iL0uL/jerTrjtV3lDA==}
-
   esast-util-from-estree@2.0.0:
     resolution: {integrity: sha512-4CyanoAudUSBAn5K13H4JhsMH6L9ZP7XbLVe/dKybkxMO7eDyLsT8UHl9TRNrU2Gr9nz+FovfSIjuXWJ81uVwQ==}
 
@@ -10156,7 +10128,7 @@ packages:
     resolution: {integrity: sha512-Kyybo5/BaJp76z7gDWGk2J6Hthl4NIPsE+swgraEjy3IY6r5zIR02wAs1OJH4XtJp1y3puj3Onp5eMGS0z7nUA==}
 
   wa-sqlite@https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/07ad48cf2f682d279f9cd69818cc1d39b2ccda86:
-    resolution: {gitHosted: true, integrity: sha512-CUMpsw8ldbamBHtCg9yPLsh1U5/jaCA4EkkZdABhSdaVq0Bie2lgVzYaMzQbqNMx8m/qWfvdoJ7rqFY7dK5aAw==, tarball: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/07ad48cf2f682d279f9cd69818cc1d39b2ccda86}
+    resolution: {gitHosted: true, tarball: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/07ad48cf2f682d279f9cd69818cc1d39b2ccda86}
     version: 1.1.2
 
   walk-up-path@4.0.0:
@@ -10451,24 +10423,6 @@ packages:
 
   zustand@5.0.13:
     resolution: {integrity: sha512-efI2tVaVQPqtOh114loML/Z80Y4NP3yc+Ff0fYiZJPauNeWZeIp/bRFD7I9bfmCOYBh/PHxlglQ9+wvlwnPikQ==}
-    engines: {node: '>=12.20.0'}
-    peerDependencies:
-      '@types/react': '>=18.0.0'
-      immer: '>=9.0.6'
-      react: '>=18.0.0'
-      use-sync-external-store: '>=1.2.0'
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-      immer:
-        optional: true
-      react:
-        optional: true
-      use-sync-external-store:
-        optional: true
-
-  zustand@5.0.15:
-    resolution: {integrity: sha512-MpSEjRiBkA9crSYeOUH32rJC7SVqAbm0Fqcqge/bUi2PPoLcBWKOsG+C8mevmpr8TwXHBVkChbbJiyvkE+i/3A==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
       '@types/react': '>=18.0.0'
@@ -12440,33 +12394,12 @@ snapshots:
 
   '@inquirer/ansi@2.0.5': {}
 
-  '@inquirer/confirm@6.0.13(@types/node@24.12.3)':
-    dependencies:
-      '@inquirer/core': 11.1.10(@types/node@24.12.3)
-      '@inquirer/type': 4.0.5(@types/node@24.12.3)
-    optionalDependencies:
-      '@types/node': 24.12.3
-    optional: true
-
   '@inquirer/confirm@6.0.13(@types/node@25.9.4)':
     dependencies:
       '@inquirer/core': 11.1.10(@types/node@25.9.4)
       '@inquirer/type': 4.0.5(@types/node@25.9.4)
     optionalDependencies:
       '@types/node': 25.9.4
-
-  '@inquirer/core@11.1.10(@types/node@24.12.3)':
-    dependencies:
-      '@inquirer/ansi': 2.0.5
-      '@inquirer/figures': 2.0.5
-      '@inquirer/type': 4.0.5(@types/node@24.12.3)
-      cli-width: 4.1.0
-      fast-wrap-ansi: 0.2.0
-      mute-stream: 3.0.0
-      signal-exit: 4.1.0
-    optionalDependencies:
-      '@types/node': 24.12.3
-    optional: true
 
   '@inquirer/core@11.1.10(@types/node@25.9.4)':
     dependencies:
@@ -12488,11 +12421,6 @@ snapshots:
       '@types/node': 25.9.4
 
   '@inquirer/figures@2.0.5': {}
-
-  '@inquirer/type@4.0.5(@types/node@24.12.3)':
-    optionalDependencies:
-      '@types/node': 24.12.3
-    optional: true
 
   '@inquirer/type@4.0.5(@types/node@25.9.4)':
     optionalDependencies:
@@ -14142,20 +14070,6 @@ snapshots:
     optionalDependencies:
       '@rolldown/plugin-babel': 0.2.3(@babel/core@7.29.0)(@babel/plugin-transform-runtime@7.29.0(@babel/core@7.29.0))(@babel/runtime@7.29.7)(rolldown@1.0.0)(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
 
-  '@vitest/browser-playwright@4.1.5(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(playwright@1.59.1)(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.1.5)':
-    dependencies:
-      '@vitest/browser': 4.1.5(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.1.5)
-      '@vitest/mocker': 4.1.5(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
-      playwright: 1.59.1
-      tinyrainbow: 3.1.0
-      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.3)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1)(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
-    transitivePeerDependencies:
-      - bufferutil
-      - msw
-      - utf-8-validate
-      - vite
-    optional: true
-
   '@vitest/browser-playwright@4.1.5(msw@2.14.5(@types/node@25.9.4)(@typescript/typescript6@6.0.2))(playwright@1.59.1)(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.1.5)':
     dependencies:
       '@vitest/browser': 4.1.5(msw@2.14.5(@types/node@25.9.4)(@typescript/typescript6@6.0.2))(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.1.5)
@@ -14196,24 +14110,6 @@ snapshots:
       - msw
       - utf-8-validate
       - vite
-
-  '@vitest/browser@4.1.5(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.1.5)':
-    dependencies:
-      '@blazediff/core': 1.9.1
-      '@vitest/mocker': 4.1.5(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
-      '@vitest/utils': 4.1.5
-      magic-string: 0.30.21
-      pngjs: 7.0.0
-      sirv: 3.0.2
-      tinyrainbow: 3.1.0
-      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.3)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1)(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
-      ws: 8.20.0
-    transitivePeerDependencies:
-      - bufferutil
-      - msw
-      - utf-8-validate
-      - vite
-    optional: true
 
   '@vitest/browser@4.1.5(msw@2.14.5(@types/node@25.9.4)(@typescript/typescript6@6.0.2))(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.1.5)':
     dependencies:
@@ -14292,15 +14188,6 @@ snapshots:
       '@vitest/utils': 4.1.5
       chai: 6.2.2
       tinyrainbow: 3.1.0
-
-  '@vitest/mocker@4.1.5(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))':
-    dependencies:
-      '@vitest/spy': 4.1.5
-      estree-walker: 3.0.3
-      magic-string: 0.30.21
-    optionalDependencies:
-      msw: 2.14.5(@types/node@24.12.3)(typescript@5.9.3)
-      vite: 8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0)
 
   '@vitest/mocker@4.1.5(msw@2.14.5(@types/node@25.9.4)(@typescript/typescript6@6.0.2))(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))':
     dependencies:
@@ -15502,8 +15389,6 @@ snapshots:
       is-symbol: 1.1.1
 
   es-toolkit@1.46.1: {}
-
-  es-toolkit@1.52.0: {}
 
   esast-util-from-estree@2.0.0:
     dependencies:
@@ -17512,32 +17397,6 @@ snapshots:
   msgpackr@2.0.5:
     optionalDependencies:
       msgpackr-extract: 3.0.4
-
-  msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3):
-    dependencies:
-      '@inquirer/confirm': 6.0.13(@types/node@24.12.3)
-      '@mswjs/interceptors': 0.41.8
-      '@open-draft/deferred-promise': 3.0.0
-      '@types/statuses': 2.0.6
-      cookie: 1.1.1
-      graphql: 16.14.0
-      headers-polyfill: 5.0.1
-      is-node-process: 1.2.0
-      outvariant: 1.4.3
-      path-to-regexp: 6.3.0
-      picocolors: 1.1.1
-      rettime: 0.11.11
-      statuses: 2.0.2
-      strict-event-emitter: 0.5.1
-      tough-cookie: 6.0.1
-      type-fest: 5.6.0
-      until-async: 3.0.2
-      yargs: 17.7.2
-    optionalDependencies:
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - '@types/node'
-    optional: true
 
   msw@2.14.5(@types/node@25.9.4)(@typescript/typescript6@6.0.2):
     dependencies:
@@ -19665,22 +19524,6 @@ snapshots:
       tsx: 4.21.0
       yaml: 2.9.0
 
-  vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0):
-    dependencies:
-      lightningcss: 1.32.0
-      picomatch: 4.0.4
-      postcss: 8.5.14
-      rolldown: 1.0.0-rc.18
-      tinyglobby: 0.2.16
-    optionalDependencies:
-      '@types/node': 24.12.3
-      esbuild: 0.28.1
-      fsevents: 2.3.3
-      jiti: 2.7.0
-      terser: 5.49.2
-      tsx: 4.21.0
-      yaml: 2.9.0
-
   vite@8.0.11(@types/node@25.9.4)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0):
     dependencies:
       lightningcss: 1.32.0
@@ -19725,38 +19568,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.17
       '@types/react-dom': 19.2.3(@types/react@19.2.17)
-
-  vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.3)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1)(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0)):
-    dependencies:
-      '@vitest/expect': 4.1.5
-      '@vitest/mocker': 4.1.5(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))
-      '@vitest/pretty-format': 4.1.5
-      '@vitest/runner': 4.1.5
-      '@vitest/snapshot': 4.1.5
-      '@vitest/spy': 4.1.5
-      '@vitest/utils': 4.1.5
-      es-module-lexer: 2.1.0
-      expect-type: 1.3.0
-      magic-string: 0.30.21
-      obug: 2.1.1
-      pathe: 2.0.3
-      picomatch: 4.0.4
-      std-env: 4.1.0
-      tinybench: 2.9.0
-      tinyexec: 1.1.2
-      tinyglobby: 0.2.16
-      tinyrainbow: 3.1.0
-      vite: 8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0)
-      why-is-node-running: 2.3.0
-    optionalDependencies:
-      '@opentelemetry/api': 1.9.1
-      '@types/node': 24.12.3
-      '@vitest/browser-playwright': 4.1.5(msw@2.14.5(@types/node@24.12.3)(typescript@5.9.3))(playwright@1.59.1)(vite@8.0.11(@types/node@24.12.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.1.5)
-      '@vitest/coverage-v8': 4.1.5(@vitest/browser@4.1.5)(vitest@4.1.5)
-      happy-dom: 20.9.0
-      jsdom: 29.1.1
-    transitivePeerDependencies:
-      - msw
 
   vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@25.9.4)(@vitest/browser-playwright@4.1.5)(@vitest/coverage-v8@4.1.5)(happy-dom@20.9.0)(jsdom@29.1.1)(msw@2.14.5(@types/node@25.9.4)(@typescript/typescript6@6.0.2))(vite@8.0.11(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.2)(tsx@4.21.0)(yaml@2.9.0)):
     dependencies:
@@ -20313,12 +20124,6 @@ snapshots:
   zod@4.4.3: {}
 
   zustand@5.0.13(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7)):
-    optionalDependencies:
-      '@types/react': 19.2.17
-      react: 19.2.7
-      use-sync-external-store: 1.6.0(react@19.2.7)
-
-  zustand@5.0.15(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7)):
     optionalDependencies:
       '@types/react': 19.2.17
       react: 19.2.7

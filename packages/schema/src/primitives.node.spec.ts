@@ -1,10 +1,9 @@
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
-import { Effect, Result, Schema } from 'effect';
+import { Result, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
 
 import {
-  CuidFactory,
   descriptorToEffectSchema,
   encodeShape,
   generateProvisioningSqlForDescriptor,
@@ -91,7 +90,7 @@ describe('primitives.ref', () => {
     });
   });
 
-  it('targets an integer primary key without changing opaque-id refs', () => {
+  it('targets an integer primary key without changing prefixed-ID refs', () => {
     const descriptor = primitives.ref({
       table: numericBlockTable,
       relation: 'block',
@@ -469,16 +468,16 @@ describe('scalar primitive defaults', () => {
   });
 });
 
-describe('primitives.opaqueId', () => {
+describe('primitives.foreignKey', () => {
   it('preserves abbreviation, nullability, and uniqueness', () => {
     expect(
-      primitives.opaqueId({
+      primitives.foreignKey({
         abbreviation: 'act',
         nullable: true,
         unique: true,
       }),
     ).toEqual({
-      kind: PrimitiveKind.OpaqueId,
+      kind: PrimitiveKind.ForeignKey,
       abbreviation: 'act',
       nullable: true,
       unique: true,
@@ -486,14 +485,14 @@ describe('primitives.opaqueId', () => {
   });
 
   it('requires a non-empty abbreviation', () => {
-    expect(() => primitives.opaqueId({ abbreviation: '' })).toThrow(
-      'primitives.opaqueId requires a non-empty `abbreviation`',
+    expect(() => primitives.foreignKey({ abbreviation: '' })).toThrow(
+      'primitives.foreignKey requires a non-empty `abbreviation`',
     );
   });
 
   it('requires an abbreviation-prefixed value', () => {
     const schema = descriptorToEffectSchema(
-      primitives.opaqueId({ abbreviation: 'gen' }),
+      primitives.foreignKey({ abbreviation: 'gen' }),
     );
     expect(Result.isFailure(Schema.decodeUnknownResult(schema)('foo'))).toBe(
       true,
@@ -505,7 +504,7 @@ describe('primitives.opaqueId', () => {
 
   it('accepts null only when nullable', () => {
     const schema = descriptorToEffectSchema(
-      primitives.opaqueId({ nullable: true, abbreviation: 'act' }),
+      primitives.foreignKey({ nullable: true, abbreviation: 'act' }),
     );
     expect(Result.isSuccess(Schema.decodeUnknownResult(schema)(null))).toBe(
       true,
@@ -520,34 +519,23 @@ describe('primitives.opaqueId', () => {
 });
 
 describe('descriptorToEffectSchema', () => {
-  it('autogenerates omitted, null, and undefined primary keys while preserving supplied ids', async () => {
+  it('requires caller-supplied foreign keys and preserves supplied ids', () => {
     const schema = makeEffectSchema({
-      id: {
-        ...primitives.primaryKey({ abbreviation: 'item' }),
-        autogenerate: true,
-        modelName: 'item',
-      },
+      id: primitives.foreignKey({ abbreviation: 'item' }),
     });
-    const decoded = await Effect.runPromise(
-      Effect.all([
-        Schema.decodeUnknownEffect(schema)({}),
-        Schema.decodeUnknownEffect(schema)({ id: null }),
-        Schema.decodeUnknownEffect(schema)({ id: undefined }),
-        Schema.decodeUnknownEffect(schema)({ id: 'item_supplied' }),
-      ]).pipe(
-        Effect.provideService(
-          CuidFactory,
-          CuidFactory.of(() => Effect.succeed('generated')),
-        ),
-      ),
-    );
-
-    expect(decoded).toEqual([
-      { id: 'item_generated' },
-      { id: 'item_generated' },
-      { id: 'item_generated' },
-      { id: 'item_supplied' },
-    ]);
+    for (const input of [
+      {},
+      { id: null },
+      { id: undefined },
+      { id: 'other_1' },
+    ]) {
+      expect(Result.isFailure(Schema.decodeUnknownResult(schema)(input))).toBe(
+        true,
+      );
+    }
+    expect(Schema.decodeUnknownSync(schema)({ id: 'item_supplied' })).toEqual({
+      id: 'item_supplied',
+    });
   });
 
   it('supports boolean primitives', () => {
@@ -750,7 +738,7 @@ describe('encoded primitive descriptors', () => {
     const encoded = encodeShape({
       primaryKey: primitives.primaryKey({ abbreviation: 'pk' }),
       cursor: primitives.cursor({ abbreviation: 'cur' }),
-      opaqueId: primitives.opaqueId({ abbreviation: 'ext' }),
+      foreignKey: primitives.foreignKey({ abbreviation: 'ext' }),
       userId: primitives.ref({
         table: userTable,
         relation: 'user',
@@ -761,7 +749,7 @@ describe('encoded primitive descriptors', () => {
 
     expect('primaryKey' in encoded.primaryKey).toBe(false);
     expect('primaryKey' in encoded.cursor).toBe(false);
-    expect('primaryKey' in encoded.opaqueId).toBe(false);
+    expect('primaryKey' in encoded.foreignKey).toBe(false);
     expect('primaryKey' in encoded.userId).toBe(false);
     expect('primaryKey' in encoded.text).toBe(false);
     expect('defaultValue' in encoded.text).toBe(false);
@@ -831,7 +819,7 @@ describe('primitive Drizzle columns', () => {
       shape: {
         primaryKey: primitives.primaryKey({ abbreviation: 'row' }),
         cursor: primitives.cursor({ abbreviation: 'cur' }),
-        opaqueId: primitives.opaqueId({ abbreviation: 'ext' }),
+        foreignKey: primitives.foreignKey({ abbreviation: 'ext' }),
         userId: primitives.ref({
           table: userTable,
           relation: 'user',
@@ -853,7 +841,7 @@ describe('primitive Drizzle columns', () => {
       primary: false,
     });
     expect(columns[2]).toMatchObject({
-      name: 'opaqueId',
+      name: 'foreignKey',
       notNull: true,
       primary: false,
     });
@@ -943,7 +931,7 @@ describe('generateProvisioningSqlForDescriptor', () => {
     ).toBe('cursor text NOT NULL');
     expect(
       generateProvisioningSqlForDescriptor(
-        primitives.opaqueId({ abbreviation: 'ext' }),
+        primitives.foreignKey({ abbreviation: 'ext' }),
         'externalId',
       ),
     ).toBe('externalId text NOT NULL');
@@ -956,12 +944,12 @@ describe('generateProvisioningSqlForDescriptor', () => {
     expect(
       generateProvisioningSqlForDescriptor(primitives.boolean(), 'flag'),
     ).toBe('flag integer NOT NULL');
-    expect(generateProvisioningSqlForDescriptor(primitives.text(), 'name')).toBe(
-      'name text NOT NULL',
-    );
-    expect(generateProvisioningSqlForDescriptor(tinyJsonColumn, 'payload')).toBe(
-      'payload text NOT NULL',
-    );
+    expect(
+      generateProvisioningSqlForDescriptor(primitives.text(), 'name'),
+    ).toBe('name text NOT NULL');
+    expect(
+      generateProvisioningSqlForDescriptor(tinyJsonColumn, 'payload'),
+    ).toBe('payload text NOT NULL');
     expect(
       generateProvisioningSqlForDescriptor(primitives.date(), 'createdAt'),
     ).toBe('createdAt integer NOT NULL');
@@ -1035,7 +1023,7 @@ describe('generateProvisioningSqlForDescriptor', () => {
     ).toBe('cursor text');
     expect(
       generateProvisioningSqlForDescriptor(
-        primitives.opaqueId({ abbreviation: 'ext', nullable: true }),
+        primitives.foreignKey({ abbreviation: 'ext', nullable: true }),
         'externalId',
       ),
     ).toBe('externalId text');
@@ -1098,7 +1086,7 @@ describe('generateProvisioningSqlForDescriptor', () => {
     ).toBe('userId text NOT NULL UNIQUE');
     expect(
       generateProvisioningSqlForDescriptor(
-        primitives.opaqueId({ abbreviation: 'ext', unique: true }),
+        primitives.foreignKey({ abbreviation: 'ext', unique: true }),
         'externalId',
       ),
     ).toBe('externalId text NOT NULL UNIQUE');
@@ -1175,7 +1163,7 @@ describe('generateProvisioningSqlForDescriptor', () => {
 
 describe('primitive type inference', () => {
   it('infers encoded and decoded primitive types', () => {
-    const builtinsShape = Object.freeze({
+    const builtinsShape = {
       pk: primitives.primaryKey({ abbreviation: 'pkg' }),
       int: primitives.integer(),
       defaultInt: primitives.integer({ defaultValue: 5 }),
@@ -1199,53 +1187,53 @@ describe('primitive type inference', () => {
       createdAt: primitives.date(),
       defaultCreatedAt: primitives.date({ defaultValue: new Date(0) }),
       deletedAt: primitives.date({ nullable: true }),
-    });
+    };
 
-    const refShape = Object.freeze({
+    const refShape = {
       userId: primitives.ref({
         table: userTable,
         relation: 'user',
         inverse: 'records',
       }),
-    });
+    };
 
-    const nullableRefShape = Object.freeze({
+    const nullableRefShape = {
       userId: primitives.ref({
         table: userTable,
         relation: 'user',
         inverse: 'records',
         nullable: true,
       }),
-    });
+    };
 
-    const numericRefShape = Object.freeze({
+    const numericRefShape = {
       blockIndex: primitives.ref({
         table: numericBlockTable,
         relation: 'block',
         inverse: 'commands',
       }),
-    });
+    };
 
-    const nullableNumericRefShape = Object.freeze({
+    const nullableNumericRefShape = {
       blockIndex: primitives.ref({
         table: numericBlockTable,
         relation: 'nullableBlock',
         inverse: 'nullableCommands',
         nullable: true,
       }),
-    });
+    };
 
-    const opaqueIdShape = Object.freeze({
-      userId: primitives.opaqueId({ abbreviation: 'usr' }),
-    });
+    const foreignKeyShape = {
+      userId: primitives.foreignKey({ abbreviation: 'usr' }),
+    };
 
-    const nullableOpaqueIdShape = Object.freeze({
-      userId: primitives.opaqueId({ nullable: true, abbreviation: 'act' }),
-    });
+    const nullableForeignKeyShape = {
+      userId: primitives.foreignKey({ nullable: true, abbreviation: 'act' }),
+    };
 
-    const primaryKeyShape = Object.freeze({
+    const primaryKeyShape = {
       id: primitives.primaryKey({ abbreviation: 'usr' }),
-    });
+    };
 
     const cursorShape = {
       cursor: primitives.cursor({ abbreviation: 'cur' }),
@@ -1255,34 +1243,34 @@ describe('primitive type inference', () => {
       }),
     };
 
-    const cloudRepoShape = Object.freeze({
+    const cloudRepoShape = {
       flag: primitives.boolean(),
       maybeJson: nullableTinyJsonColumn,
       defaultJson: nullableTinyJsonDefaultColumn,
       createdAt: primitives.date(),
-    });
+    };
 
     assert<
       Equals<
         InferEncodedRow<typeof builtinsShape>,
         {
-          readonly pk: `pkg_${string}`;
-          readonly int: number;
-          readonly defaultInt: number;
-          readonly maybeInt: number | null;
-          readonly defaultBool: boolean;
-          readonly num: number;
-          readonly defaultNum: number;
-          readonly maybeNum: number | null;
-          readonly text: string;
-          readonly defaultText: string;
-          readonly maybeText: string | null;
-          readonly status: 'open' | 'closed';
-          readonly defaultStatus: 'open' | 'closed';
-          readonly maybeStatus: 'open' | 'closed' | null;
-          readonly createdAt: Date;
-          readonly defaultCreatedAt: Date;
-          readonly deletedAt: Date | null;
+          pk: `pkg_${string}`;
+          int: number;
+          defaultInt: number;
+          maybeInt: number | null;
+          defaultBool: boolean;
+          num: number;
+          defaultNum: number;
+          maybeNum: number | null;
+          text: string;
+          defaultText: string;
+          maybeText: string | null;
+          status: 'open' | 'closed';
+          defaultStatus: 'open' | 'closed';
+          maybeStatus: 'open' | 'closed' | null;
+          createdAt: Date;
+          defaultCreatedAt: Date;
+          deletedAt: Date | null;
         }
       >
     >();
@@ -1290,115 +1278,97 @@ describe('primitive type inference', () => {
       Equals<
         InferDecodedRow<typeof builtinsShape>,
         {
-          readonly pk: `pkg_${string}`;
-          readonly int: number;
-          readonly defaultInt: number;
-          readonly maybeInt: number | null;
-          readonly defaultBool: boolean;
-          readonly num: number;
-          readonly defaultNum: number;
-          readonly maybeNum: number | null;
-          readonly text: string;
-          readonly defaultText: string;
-          readonly maybeText: string | null;
-          readonly status: 'open' | 'closed';
-          readonly defaultStatus: 'open' | 'closed';
-          readonly maybeStatus: 'open' | 'closed' | null;
-          readonly createdAt: Date;
-          readonly defaultCreatedAt: Date;
-          readonly deletedAt: Date | null;
+          pk: `pkg_${string}`;
+          int: number;
+          defaultInt: number;
+          maybeInt: number | null;
+          defaultBool: boolean;
+          num: number;
+          defaultNum: number;
+          maybeNum: number | null;
+          text: string;
+          defaultText: string;
+          maybeText: string | null;
+          status: 'open' | 'closed';
+          defaultStatus: 'open' | 'closed';
+          maybeStatus: 'open' | 'closed' | null;
+          createdAt: Date;
+          defaultCreatedAt: Date;
+          deletedAt: Date | null;
         }
       >
     >();
 
     assert<
-      Equals<
-        InferEncodedRow<typeof refShape>,
-        { readonly userId: `usr_${string}` }
-      >
+      Equals<InferEncodedRow<typeof refShape>, { userId: `usr_${string}` }>
     >();
     assert<
-      Equals<
-        InferDecodedRow<typeof refShape>,
-        { readonly userId: `usr_${string}` }
-      >
+      Equals<InferDecodedRow<typeof refShape>, { userId: `usr_${string}` }>
     >();
 
     assert<
       Equals<
         InferEncodedRow<typeof nullableRefShape>,
-        { readonly userId: `usr_${string}` | null }
+        { userId: `usr_${string}` | null }
       >
     >();
     assert<
       Equals<
         InferDecodedRow<typeof nullableRefShape>,
-        { readonly userId: `usr_${string}` | null }
+        { userId: `usr_${string}` | null }
       >
     >();
 
     assert<
-      Equals<
-        InferEncodedRow<typeof numericRefShape>,
-        { readonly blockIndex: number }
-      >
+      Equals<InferEncodedRow<typeof numericRefShape>, { blockIndex: number }>
     >();
     assert<
-      Equals<
-        InferDecodedRow<typeof numericRefShape>,
-        { readonly blockIndex: number }
-      >
+      Equals<InferDecodedRow<typeof numericRefShape>, { blockIndex: number }>
     >();
     assert<
       Equals<
         InferEncodedRow<typeof nullableNumericRefShape>,
-        { readonly blockIndex: number | null }
+        { blockIndex: number | null }
       >
     >();
     assert<
       Equals<
         InferDecodedRow<typeof nullableNumericRefShape>,
-        { readonly blockIndex: number | null }
+        { blockIndex: number | null }
       >
     >();
 
     assert<
       Equals<
-        InferEncodedRow<typeof opaqueIdShape>,
-        { readonly userId: `usr_${string}` }
+        InferEncodedRow<typeof foreignKeyShape>,
+        { userId: `usr_${string}` }
       >
     >();
     assert<
       Equals<
-        InferDecodedRow<typeof opaqueIdShape>,
-        { readonly userId: `usr_${string}` }
-      >
-    >();
-
-    assert<
-      Equals<
-        InferEncodedRow<typeof nullableOpaqueIdShape>,
-        { readonly userId: `act_${string}` | null }
-      >
-    >();
-    assert<
-      Equals<
-        InferDecodedRow<typeof nullableOpaqueIdShape>,
-        { readonly userId: `act_${string}` | null }
+        InferDecodedRow<typeof foreignKeyShape>,
+        { userId: `usr_${string}` }
       >
     >();
 
     assert<
       Equals<
-        InferEncodedRow<typeof primaryKeyShape>,
-        { readonly id: `usr_${string}` }
+        InferEncodedRow<typeof nullableForeignKeyShape>,
+        { userId: `act_${string}` | null }
       >
     >();
     assert<
       Equals<
-        InferDecodedRow<typeof primaryKeyShape>,
-        { readonly id: `usr_${string}` }
+        InferDecodedRow<typeof nullableForeignKeyShape>,
+        { userId: `act_${string}` | null }
       >
+    >();
+
+    assert<
+      Equals<InferEncodedRow<typeof primaryKeyShape>, { id: `usr_${string}` }>
+    >();
+    assert<
+      Equals<InferDecodedRow<typeof primaryKeyShape>, { id: `usr_${string}` }>
     >();
 
     assert<
@@ -1424,10 +1394,10 @@ describe('primitive type inference', () => {
       Equals<
         InferEncodedRow<typeof cloudRepoShape>,
         {
-          readonly flag: boolean;
-          readonly maybeJson: string | null;
-          readonly defaultJson: string | null;
-          readonly createdAt: Date;
+          flag: boolean;
+          maybeJson: string | null;
+          defaultJson: string | null;
+          createdAt: Date;
         }
       >
     >();
@@ -1435,10 +1405,10 @@ describe('primitive type inference', () => {
       Equals<
         InferDecodedRow<typeof cloudRepoShape>,
         {
-          readonly flag: boolean;
-          readonly maybeJson: { x: string } | null;
-          readonly defaultJson: { x: string } | null;
-          readonly createdAt: Date;
+          flag: boolean;
+          maybeJson: { x: string } | null;
+          defaultJson: { x: string } | null;
+          createdAt: Date;
         }
       >
     >();

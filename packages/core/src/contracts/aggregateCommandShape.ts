@@ -9,7 +9,7 @@ export const aggregateCommandShape = {
   aggregateId: primitives.text(),
   aggregateName: primitives.text(),
   systemName: primitives.text(),
-  sessionId: primitives.opaqueId({ abbreviation: 'sesn', nullable: true }),
+  sessionId: primitives.foreignKey({ abbreviation: 'sesn', nullable: true }),
   userId: primitives.text({ nullable: true }),
   frontendName: primitives.text({ nullable: true }),
   pushIndex: primitives.integer({ nullable: true }),

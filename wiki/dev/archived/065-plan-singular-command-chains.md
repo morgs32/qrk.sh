@@ -36,7 +36,7 @@ or redeployment-coordination machinery.
    typechecking passed, but its test suite still has 12 failures and important
    replacement coverage is missing.
 3. System Worker currently contains partial `AggregateCommandChain`,
-   `ServiceCommandChain`, and `MaterializedServiceRepo` implementations.
+   `ServiceAdmittedChain`, and `VersionedMaterializedServiceRepo` implementations.
    Several other directories were mechanically renamed while retaining their
    old block and batch behavior. `AggregateFrontendPushedCommandChain` does not
    yet exist.
@@ -89,8 +89,8 @@ The resulting boundary is:
    concurrent and failure-prone work inside the one deployment.
 8. Pushed and service-derived forwarding carries the complete command only.
    The downstream chain acknowledges only after its own durable admission.
-9. The user-facing APIs are exactly `finalizeAggregateCommand(command)`,
-   `finalizeServiceCommand(command)`, and `pushCommand({ command })`. Caller
+9. The user-facing APIs are exactly `executeAggregateCommand(command)`,
+   `admitServiceCommand(command)`, and `pushCommand({ command })`. Caller
    trace context and the RPC argument envelope are injected by the traceable
    RPC adapter.
 
@@ -167,15 +167,15 @@ The resulting boundary is:
    focused tests. They have no schema target, migration history, or versioned
    admission path:
    1. `AggregateCommandChain`
-   2. `ServiceCommandChain`
+   2. `ServiceAdmittedChain`
    3. `AggregateFrontendPushedCommandChain`
    4. `AggregateFrontendFinalizedCommandChain`
-   5. `ServiceFrontendFinalizedCommandChain`
+   5. `FrontendServiceChain`
 2. Implement these as the only materialized domain Repos:
-   1. `MaterializedAggregateRepo`
-   2. `MaterializedServiceRepo`
+   1. `VersionedMaterializedAggregateRepo`
+   2. `VersionedMaterializedServiceRepo`
    3. `MaterializedAggregateFrontendRepo`
-   4. `MaterializedServiceFrontendRepo`
+   4. `VersionedMaterializedServiceReplicaRepo`
 3. Admit multiple complete commands durably, assigning the next chain-owned
    index and one persisted `chainedAt` in the admission transaction. Preserve
    canonical encoded bytes separately from decoded query fields.
@@ -212,7 +212,7 @@ The resulting boundary is:
 
 1. Move service subscription ownership to `AggregateCommandChain`. Remove
    service-block handling and subscription state from
-   `MaterializedAggregateRepo`.
+   `VersionedMaterializedAggregateRepo`.
 2. For each consecutive terminal service occurrence, atomically advance the
    aggregate chain's retained `serviceIndex` before admitting later direct
    aggregate work.
@@ -248,7 +248,7 @@ The resulting boundary is:
    never the visible post-rebase net delta.
 5. Emit a finalized occurrence for every originating `pushIndex`, including
    empty-delta success and failure. Keep unrelated frontends sparse.
-6. `MaterializedServiceFrontendRepo` advances `serviceIndex` for every source
+6. `VersionedMaterializedServiceReplicaRepo` advances `serviceIndex` for every source
    occurrence, emits only relevant changes, and atomically commits its state
    plus finalized-command outbox. Irrelevant service commands consume no
    `serviceFrontendIndex`.

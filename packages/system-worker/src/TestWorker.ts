@@ -4,21 +4,22 @@
  * Keep it focused on test/runtime plumbing rather than production workflow behavior.
  */
 
-export { AggregateCommandChain } from './AggregateCommandChain/AggregateCommandChain.js';
-export { MaterializedAggregateRepo } from './MaterializedAggregateRepo/MaterializedAggregateRepo.js';
-export { MaterializedAggregateFrontendRepo } from './MaterializedAggregateFrontendRepo/MaterializedAggregateFrontendRepo.js';
-export { AggregateFrontendFinalizedCommandChain } from './AggregateFrontendFinalizedCommandChain/AggregateFrontendFinalizedCommandChain.js';
-export { AggregateFrontendPushedCommandChain } from './AggregateFrontendPushedCommandChain/AggregateFrontendPushedCommandChain.js';
+export { AggregateChain } from './AggregateChain/AggregateChain.js';
+export { VersionedAggregateRepo } from './VersionedAggregateRepo/VersionedAggregateRepo.js';
+export { UserVersionedAggregateRepo } from './UserVersionedAggregateRepo/UserVersionedAggregateRepo.js';
+export { UserVersionedAggregateChain } from './UserVersionedAggregateChain/UserVersionedAggregateChain.js';
+export { VersionedAggregateChain } from './VersionedAggregateChain/VersionedAggregateChain.js';
+export { VersionedServiceChain } from './VersionedServiceChain/VersionedServiceChain.js';
 export { SystemLogAgent } from './SystemLogAgent/SystemLogAgent.js';
 export { SystemLogRepo } from './SystemLogRepo/SystemLogRepo.js';
-export { MaterializedServiceRepo } from './MaterializedServiceRepo/MaterializedServiceRepo.js';
-export { ServiceCommandChain } from './ServiceCommandChain/ServiceCommandChain.js';
-export { MaterializedServiceFrontendRepo } from './MaterializedServiceFrontendRepo/MaterializedServiceFrontendRepo.js';
-export { ServiceFrontendFinalizedCommandChain } from './ServiceFrontendFinalizedCommandChain/ServiceFrontendFinalizedCommandChain.js';
+export { VersionedServiceRepo } from './VersionedServiceRepo/VersionedServiceRepo.js';
+export { ServiceAdmittedChain } from './ServiceAdmittedChain/ServiceAdmittedChain.js';
+export { FrontendVersionedServiceRepo } from './FrontendVersionedServiceRepo/FrontendVersionedServiceRepo.js';
+export { FrontendServiceChain } from './FrontendServiceChain/FrontendServiceChain.js';
 export { SystemRepo } from './SystemRepo/SystemRepo.js';
 export { FixtureRepo } from './FixtureRepo/FixtureRepo.js';
 export { FixedDORepoFixture } from './makeFixedDORepo/test/FixedDORepoFixture.js';
-export { EPluribusMachinaFixture } from './workerd-utils/EPluribusMachinaFixture.js';
+export { VersionedDORepoFixture } from './makeVersionedDORepo/test/VersionedDORepoFixture.js';
 
 // eslint-disable-next-line no-default-export
 export default {
@@ -26,3 +27,8 @@ export default {
     return new Response('ok');
   },
 };
+
+export {
+  OutboxSenderFixture,
+  OutboxReceiverFixture,
+} from './workerd-utils/OutboxFixture.js';

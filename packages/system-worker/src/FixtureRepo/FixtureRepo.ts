@@ -37,23 +37,34 @@ const fixtureFixedDORepoConfig = makeFixedDORepoConfig({
   abbreviation: undefined,
   namePattern: RoutePattern.parse('/:scope/:id'),
   managedRuntime,
-  getDbConfig: Effect.fn('FixtureRepo.getDbConfig')(function* (_props) {
-    yield* Effect.void;
-    return fixtureRepoDbConfig;
-  }),
+  dbConfig: fixtureRepoDbConfig,
 });
 
 export class FixtureRepo extends makeFixedDORepo({
+  namespaceBinding: 'FIXTURE_REPO',
   fixedDORepoConfig: fixtureFixedDORepoConfig,
 }) {
+  /*
+   * FixtureRepo.getOpenedName is the runtime boundary for the same-named operation.
+   *
+   * 1. Validate and return the opened physical name.
+   */
   async getOpenedName(): Promise<string> {
+    // 1 — require ctx.id.name from getByName
     const name = this.ctx.id.name;
     invariant(name, 'FixtureRepo must be accessed via getByName');
     return name;
   }
 
+  /*
+   * FixtureRepo.writeValue is the runtime boundary for the same-named operation.
+   *
+   * 1. Write the fixture value.
+   */
   async writeValue(props: { value: string }): Promise<void> {
     const { value } = props;
+
+    // 1 — use the bound scope and id in fixtureValues
     await this.db
       .insert(this.schema.fixtureValues)
       .values({
@@ -65,13 +76,29 @@ export class FixtureRepo extends makeFixedDORepo({
   }
 
   /** Clears alarms created by direct-effect queue acceptance cases. */
+  /*
+   * FixtureRepo.alarm is the runtime boundary for the same-named operation.
+   *
+   * 1. Clear the fixture alarm.
+   */
   async alarm(): Promise<void> {
+    // 1 — delete the Durable Object alarm
     await this.ctx.storage.deleteAlarm();
   }
 
+  /*
+   * FixtureRepo.inspectAsyncTransactionRollback is the runtime boundary for the same-named operation.
+   *
+   * 1. Open the outer transaction probe.
+   * 2. Roll back the nested write.
+   * 3. Read state after the nested rollback.
+   * 4. Probe rollback of the outer transaction.
+   * 5. Return both rollback observations.
+   */
   async inspectAsyncTransactionRollback() {
     return managedRuntime.runPromise(
       Effect.gen({ self: this }, function* () {
+        // 1 — write outer-committed before entering the nested transaction
         const nested = yield* makeAsyncTx({
           storage: this.ctx.storage,
           program: () =>
@@ -81,6 +108,8 @@ export class FixtureRepo extends makeFixedDORepo({
                 .set({ value: 'outer-committed' })
                 .where(eq(this.schema.fixtureValues.id, this.key.id))
                 .run();
+
+              // 2 — fail fixture-nested-transaction-failure and settle its outcome
               const nestedResult = yield* makeAsyncTx({
                 storage: this.ctx.storage,
                 program: () =>
@@ -96,6 +125,8 @@ export class FixtureRepo extends makeFixedDORepo({
                     });
                   }),
               }).pipe(Effect.result);
+
+              // 3 — return the outer transaction value and nested failure code
               const row = this.db
                 .select({ value: this.schema.fixtureValues.value })
                 .from(this.schema.fixtureValues)
@@ -110,6 +141,7 @@ export class FixtureRepo extends makeFixedDORepo({
             }),
         });
 
+        // 4 — write outer-rolled-back then fail the outer transaction
         const outerResult = yield* makeAsyncTx({
           storage: this.ctx.storage,
           program: () =>
@@ -130,6 +162,8 @@ export class FixtureRepo extends makeFixedDORepo({
           .from(this.schema.fixtureValues)
           .where(eq(this.schema.fixtureValues.id, this.key.id))
           .get();
+
+        // 5 — report nested and outer failure codes with persisted readback
         return {
           ...nested,
           outerFailureCode: Result.isFailure(outerResult)

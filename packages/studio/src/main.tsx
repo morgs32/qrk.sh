@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 
-import { ZerospinRouteErrorBoundary } from '@zerospin/react-router/ZerospinRouteErrorBoundary';
+import { ZerospinRouteErrorBoundary } from '@zerospin/error-boundary/ZerospinRouteErrorBoundary';
 import { createRoot } from 'react-dom/client';
 import 'react-json-view-lite/dist/index.css';
 import { createBrowserRouter, RouterProvider } from 'react-router';

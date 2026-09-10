@@ -1,25 +1,43 @@
-import type { IContracts } from '@zerospin/core/contracts/types';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
 import { makeAggregateFrontendLockKey } from '@zerospin/core/frontendController/makeAggregateFrontendLockKey';
-import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { ZerospinError } from '@zerospin/error';
-import { descriptorToJsonEffectSchema, encodeShape } from '@zerospin/schema';
-import { Effect, Schema } from 'effect';
-import { isEqual, mapValues } from 'es-toolkit';
+import { encodeShape } from '@zerospin/schema';
+import { Effect, type Schema } from 'effect';
+import { isEqual } from 'es-toolkit';
 import { system } from 'system';
 
+/*
+ * Frontend admission and read paths validate the submitted aggregate lock
+ * against authored definitions here. Selected aggregate definitions
+ * must match exactly; the result carries the selected lock and frontend spec.
+ *
+ * 1. Canonicalize the submitted lock for diagnostics.
+ * 2. Resolve the selected aggregate version.
+ * 3. Check the logical frontend identity.
+ * 4. Accept a subset of aggregate models.
+ * 5. Resolve and compare every selected model definition.
+ * 6. Accept a subset of aggregate contracts.
+ * 7. Resolve and compare each selected command definition.
+ * 8. Compare the complete reconstructed lock.
+ * 9. Return the selected frontend spec.
+ */
 export const validateAggregateFrontendLock = Effect.fn(
   'StaticSystem.validateAggregateFrontendLock',
 )(function* (props: {
   aggregateName: string;
+  aggregateVersion: string;
   frontendName: string;
   aggregateFrontendLock: Schema.Schema.Type<typeof AggregateFrontendLockSchema>;
 }) {
   const { aggregateFrontendLock, aggregateName, frontendName } = props;
+
+  // 1 — derive the lock key used in unsupported-definition errors
   const aggregateFrontendLockKey = yield* makeAggregateFrontendLockKey(
     aggregateFrontendLock,
   );
-  const aggregate = system.aggregates[aggregateName];
+
+  // 2 — reject missing aggregate versions
+  const aggregate = system.aggregates[aggregateName]?.[props.aggregateVersion];
   if (aggregate === undefined) {
     return yield* new ZerospinError({
       code: 'aggregate-frontend-lock-unsupported',
@@ -27,8 +45,8 @@ export const validateAggregateFrontendLock = Effect.fn(
         'The requested aggregate frontend owner is unavailable in the active System',
       extra: {
         target: {
-          aggregateName: aggregateName,
-          frontendName: frontendName,
+          aggregateName,
+          frontendName,
         },
         aggregateFrontendLockKey,
         definitionPath: `aggregates.${aggregateName}`,
@@ -36,28 +54,11 @@ export const validateAggregateFrontendLock = Effect.fn(
       },
     });
   }
-  const frontendBinding = aggregate.frontends[frontendName];
-  if (frontendBinding === undefined) {
-    return yield* new ZerospinError({
-      code: 'aggregate-frontend-lock-unsupported',
-      message:
-        'The requested aggregate frontend is unavailable in the active System',
-      extra: {
-        target: {
-          aggregateName: aggregateName,
-          frontendName: frontendName,
-        },
-        aggregateFrontendLockKey,
-        definitionPath: `aggregates.${aggregateName}.frontends.${frontendName}`,
-        reason: 'frontend-missing',
-      },
-    });
-  }
-  const controller = frontendBinding.controller;
+
+  // 3 — compare the requested system and frontend identity
   if (
-    controller.kind !== 'aggregate' ||
-    aggregateFrontendLock.systemName !== controller.systemName ||
-    aggregateFrontendLock.frontendName !== controller.frontendName
+    aggregateFrontendLock.systemName !== system.name ||
+    aggregateFrontendLock.frontendName !== frontendName
   ) {
     return yield* new ZerospinError({
       code: 'aggregate-frontend-lock-unsupported',
@@ -65,8 +66,8 @@ export const validateAggregateFrontendLock = Effect.fn(
         'The requested aggregate frontend lock belongs to another logical frontend',
       extra: {
         target: {
-          aggregateName: aggregateName,
-          frontendName: frontendName,
+          aggregateName,
+          frontendName,
         },
         aggregateFrontendLockKey,
         definitionPath: 'lock.systemName|lock.frontendName',
@@ -74,40 +75,23 @@ export const validateAggregateFrontendLock = Effect.fn(
       },
     });
   }
+
+  // 4 — collect the exact selected model definitions
   const resolvedModels: Record<string, unknown> = {};
   const selectedSpecModels: Record<string, unknown> = {};
-  if (
-    !isEqual(
-      Object.keys(aggregateFrontendLock.models).toSorted(),
-      Object.keys(controller.models).toSorted(),
-    )
-  ) {
-    return yield* new ZerospinError({
-      code: 'aggregate-frontend-lock-unsupported',
-      message: 'The requested frontend model key set is unavailable',
-      extra: {
-        target: {
-          aggregateName: aggregateName,
-          frontendName: frontendName,
-        },
-        aggregateFrontendLockKey,
-        definitionPath: 'lock.models',
-        reason: 'selection-key-set-mismatch',
-      },
-    });
-  }
+  // 5 — match exact version, encoded primitive descriptors, abbreviation, and sorted indexes
   for (const [modelKey, requestedModel] of Object.entries(
     aggregateFrontendLock.models,
   )) {
-    const model = controller.models[modelKey];
+    const model = aggregate.models[modelKey];
     if (model === undefined) {
       return yield* new ZerospinError({
         code: 'aggregate-frontend-lock-unsupported',
         message: `Frontend model "${modelKey}" is unavailable`,
         extra: {
           target: {
-            aggregateName: aggregateName,
-            frontendName: frontendName,
+            aggregateName,
+            frontendName,
           },
           aggregateFrontendLockKey,
           definitionPath: `models.${modelKey}`,
@@ -116,20 +100,15 @@ export const validateAggregateFrontendLock = Effect.fn(
       });
     }
     const definition =
-      requestedModel.version === model.version
-        ? model
-        : model.historicalDefinitions.find(
-            historicalDefinition =>
-              historicalDefinition.version === requestedModel.version,
-          );
+      requestedModel.version === model.version ? model : undefined;
     if (definition === undefined) {
       return yield* new ZerospinError({
         code: 'aggregate-frontend-lock-unsupported',
         message: `Frontend model ${modelKey}@${requestedModel.version} is unavailable`,
         extra: {
           target: {
-            aggregateName: aggregateName,
-            frontendName: frontendName,
+            aggregateName,
+            frontendName,
           },
           aggregateFrontendLockKey,
           definitionPath: `models.${modelKey}@${requestedModel.version}`,
@@ -141,13 +120,7 @@ export const validateAggregateFrontendLock = Effect.fn(
       modelName: model.modelName,
       abbreviation: model.abbreviation,
       version: definition.version,
-      propertiesJsonSchema: Schema.toJsonSchemaDocument(
-        Schema.Struct(
-          mapValues(definition.propertiesShape, descriptor =>
-            descriptorToJsonEffectSchema(descriptor),
-          ),
-        ),
-      ),
+      propertiesShape: encodeShape(definition.propertiesShape),
       indexes: definition.indexes
         .toSorted((left, right) => left.name.localeCompare(right.name))
         .map(index => ({
@@ -162,8 +135,8 @@ export const validateAggregateFrontendLock = Effect.fn(
         message: `Frontend model ${modelKey}@${requestedModel.version} changed after publication`,
         extra: {
           target: {
-            aggregateName: aggregateName,
-            frontendName: frontendName,
+            aggregateName,
+            frontendName,
           },
           aggregateFrontendLockKey,
           definitionPath: `models.${modelKey}@${requestedModel.version}`,
@@ -176,56 +149,32 @@ export const validateAggregateFrontendLock = Effect.fn(
       modelName: model.modelName,
       abbreviation: model.abbreviation,
       version: definition.version,
-      properties: encodeShape(definition.propertiesShape),
+      properties: resolvedModel.propertiesShape,
       indexes: definition.indexes,
-      historicalDefinitions: [],
     };
   }
 
+  // 6 — resolve selected names from aggregate.contracts
   const resolvedContracts: Record<string, unknown> = {};
   const selectedSpecContracts: Record<string, unknown> = {};
-  const contracts: IContracts = controller.contracts;
-  if (
-    !isEqual(
-      Object.keys(aggregateFrontendLock.contracts).toSorted(),
-      Object.keys(contracts).toSorted(),
-    )
-  ) {
-    return yield* new ZerospinError({
-      code: 'aggregate-frontend-lock-unsupported',
-      message: 'The requested frontend contract key set is unavailable',
-      extra: {
-        target: {
-          aggregateName: aggregateName,
-          frontendName: frontendName,
-        },
-        aggregateFrontendLockKey,
-        definitionPath: 'lock.contracts',
-        reason: 'selection-key-set-mismatch',
-      },
-    });
-  }
+  const contracts = aggregate.contracts;
+  // 7 — match commandName, version, and payload encoded primitive descriptors
   for (const [contractKey, requestedContract] of Object.entries(
     aggregateFrontendLock.contracts,
   )) {
-    const contract = contracts[contractKey];
+    const contract = contracts[contractKey]?.contract;
     const definition =
-      contract === undefined
-        ? undefined
-        : requestedContract.version === contract.version
-          ? contract.spec
-          : contract.spec.historicalDefinitions.find(
-              historicalDefinition =>
-                historicalDefinition.version === requestedContract.version,
-            );
+      contract?.version === requestedContract.version
+        ? contract.spec
+        : undefined;
     if (contract === undefined || definition === undefined) {
       return yield* new ZerospinError({
         code: 'aggregate-frontend-lock-unsupported',
         message: `Frontend contract ${contractKey}@${requestedContract.version} is unavailable`,
         extra: {
           target: {
-            aggregateName: aggregateName,
-            frontendName: frontendName,
+            aggregateName,
+            frontendName,
           },
           aggregateFrontendLockKey,
           definitionPath: `contracts.${contractKey}@${requestedContract.version}`,
@@ -236,7 +185,7 @@ export const validateAggregateFrontendLock = Effect.fn(
     const resolvedContract = {
       commandName: contract.commandName,
       version: definition.version,
-      payloadJsonSchema: definition.payloadJsonSchema,
+      payloadShape: definition.payloadShape,
     };
     if (!isEqual(resolvedContract, requestedContract)) {
       return yield* new ZerospinError({
@@ -244,8 +193,8 @@ export const validateAggregateFrontendLock = Effect.fn(
         message: `Frontend contract ${contractKey}@${requestedContract.version} changed after publication`,
         extra: {
           target: {
-            aggregateName: aggregateName,
-            frontendName: frontendName,
+            aggregateName,
+            frontendName,
           },
           aggregateFrontendLockKey,
           definitionPath: `contracts.${contractKey}@${requestedContract.version}`,
@@ -253,16 +202,30 @@ export const validateAggregateFrontendLock = Effect.fn(
         },
       });
     }
+    for (const { modelName } of Object.values(definition.models)) {
+      if (!Object.hasOwn(aggregateFrontendLock.models, modelName)) {
+        return yield* new ZerospinError({
+          code: 'aggregate-frontend-lock-unsupported',
+          message: `Contract ${contractKey} requires selected model ${modelName}`,
+          extra: {
+            aggregateFrontendLockKey,
+            definitionPath: `contracts.${contractKey}.models.${modelName}`,
+            reason: 'mutation-model-missing',
+          },
+        });
+      }
+    }
     resolvedContracts[contractKey] = resolvedContract;
     selectedSpecContracts[contractKey] = {
       ...resolvedContract,
-      historicalDefinitions: [],
+      models: definition.models,
     };
   }
 
+  // 8 — reject any remaining difference from the submitted lock
   const resolvedLock = {
-    systemName: controller.systemName,
-    frontendName: controller.frontendName,
+    systemName: system.name,
+    frontendName,
     models: resolvedModels,
     contracts: resolvedContracts,
   };
@@ -273,8 +236,8 @@ export const validateAggregateFrontendLock = Effect.fn(
         'The requested aggregate frontend lock does not match the running System definitions',
       extra: {
         target: {
-          aggregateName: aggregateName,
-          frontendName: frontendName,
+          aggregateName,
+          frontendName,
         },
         aggregateFrontendLockKey,
         definitionPath: 'lock',
@@ -282,11 +245,16 @@ export const validateAggregateFrontendLock = Effect.fn(
       },
     });
   }
-  const currentSpec = makeFrontendControllerSpec(controller);
+
+  // 9 — replace model and contract definitions with the checked selections
   return {
     aggregateFrontendLock: resolvedLock,
     frontendSpec: {
-      ...currentSpec,
+      kind: 'aggregate',
+      systemName: system.name,
+      aggregateName,
+      aggregateVersion: props.aggregateVersion,
+      name: frontendName,
       models: selectedSpecModels,
       contracts: selectedSpecContracts,
       modelNames: Object.keys(selectedSpecModels).toSorted(),

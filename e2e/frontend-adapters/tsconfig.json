@@ -36,7 +36,12 @@
       "system-worker": ["../../packages/system-worker/src/index.ts"]
     }
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.workerd.config.ts"],
+  "include": [
+    "zerospin.config.ts",
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "vitest.workerd.config.ts"
+  ],
   "references": [
     {
       "path": "../../packages/system-worker"

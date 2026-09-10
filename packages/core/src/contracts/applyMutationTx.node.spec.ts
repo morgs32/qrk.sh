@@ -1,33 +1,33 @@
 import { it } from '@effect/vitest';
 import { primitives } from '@zerospin/schema';
 import { eq } from 'drizzle-orm';
-import { Effect } from 'effect';
+import { Context, Effect } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemorySqljsDb } from '../drizzle/makeProvisionedInMemorySqljsDb.ts';
 import { makeTx } from '../drizzle/makeTx.ts';
+import type { IDbConfig, ITx } from '../drizzle/types.ts';
 import { Item, List, mainModels, User } from '../fixtures/system.ts';
-import { makeModel } from '../models/makeModel.ts';
+import { models } from '../models/index.ts';
 
 import { applyMutationInverseTx } from './applyMutationInverseTx.ts';
 import { applyMutationTx } from './applyMutationTx.ts';
+import { makeModelMutations } from './makeModelMutations.ts';
 
 const testUserId = 'usr_pushedinv001' as const;
 const testListId = 'lst_pushedinv001' as const;
 const testItemId = 'tsk_pushedinv001' as const;
 const now = new Date('2020-01-01T00:00:00.000Z');
 const appliedAt = new Date('2020-01-02T00:00:00.000Z');
-const Product = makeModel(
+const Product = models.makeVersion(
+  models.makeModel({ name: 'product', abbreviation: 'prd' }),
   {
-    abbreviation: 'prd',
-    modelName: 'product',
     attributes: { name: primitives.text() },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 const dbConfig = makeResourceDbConfig({ models: mainModels });
 const productDbConfig = makeResourceDbConfig({ models: { product: Product } });
@@ -37,33 +37,41 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
     Effect.gen(function* () {
       const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
-      const mutation = yield* User.create('1.0.0', {
+      const mutation = yield* makeModelMutations(User).create({
         resourceId: testUserId,
         attributes: { name: 'Alice' },
       });
 
-      const applied = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.applyCreate.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation,
-              commandId: 'cmd_pushedinv001',
-              mutationIndex: 0,
-              appliedAt,
-            });
-          },
-        ),
-      });
-      yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.inverseCreate.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationInverseTx({ tx, mutation: applied });
-          },
-        ),
-      });
+      class Db extends Context.Service<Db, typeof db>()(
+        'core/src/contracts/applyMutationTx.node.spec/Db',
+      ) {
+        static readonly Tx = Context.Service<
+          'core/src/contracts/applyMutationTx.node.spec/Db.Tx',
+          ITx<IDbConfig<IDbConfig['schema'], (typeof db)['_']['relations']>>
+        >('core/src/contracts/applyMutationTx.node.spec/Db.Tx');
+      }
+
+      const applied = yield* makeTx(
+        'applyMutationTxSpec.applyCreate.transaction',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationTx({
+          tx,
+          mutation,
+          commandId: 'cmd_pushedinv001',
+          mutationIndex: 0,
+          appliedAt,
+        });
+      })().pipe(Effect.provideService(Db, db));
+
+      yield* makeTx(
+        'applyMutationTxSpec.inverseCreate.transaction',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationInverseTx({ tx, mutation: applied });
+      })().pipe(Effect.provideService(Db, db));
 
       const row = db
         .select()
@@ -92,25 +100,35 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
         })
         .run();
 
-      const mutation = yield* User.create('1.0.0', {
+      const mutation = yield* makeModelMutations(User).create({
         resourceId: testUserId,
         attributes: { name: 'Bob' },
       });
 
-      const exit = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.failCreate.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation,
-              commandId: 'cmd_pushedinv001',
-              mutationIndex: 0,
-              appliedAt,
-            });
-          },
-        ),
-      }).pipe(Effect.exit);
+      class Db extends Context.Service<Db, typeof db>()(
+        'core/src/contracts/applyMutationTx.node.spec/Db',
+      ) {
+        static readonly Tx = Context.Service<
+          'core/src/contracts/applyMutationTx.node.spec/Db.Tx',
+          ITx<IDbConfig<IDbConfig['schema'], (typeof db)['_']['relations']>>
+        >('core/src/contracts/applyMutationTx.node.spec/Db.Tx');
+      }
+
+      const exit = yield* makeTx(
+        'applyMutationTxSpec.failCreate.transaction',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationTx({
+          tx,
+          mutation,
+          commandId: 'cmd_pushedinv001',
+          mutationIndex: 0,
+          appliedAt,
+        });
+      })()
+        .pipe(Effect.provideService(Db, db))
+        .pipe(Effect.exit);
 
       expect(exit._tag).toBe('Failure');
     }).pipe(Effect.provide(AsyncLive)),
@@ -120,25 +138,33 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
     Effect.gen(function* () {
       const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
-      const mutation = yield* User.update('1.0.0', {
+      const mutation = yield* makeModelMutations(User).update({
         resourceId: testUserId,
         attributes: { name: 'Bob' },
       });
 
-      const result = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.missingUpdate.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation,
-              commandId: 'cmd_pushedinv001',
-              mutationIndex: 0,
-              appliedAt,
-            }).pipe(Effect.result);
-          },
-        ),
-      });
+      class Db extends Context.Service<Db, typeof db>()(
+        'core/src/contracts/applyMutationTx.node.spec/Db',
+      ) {
+        static readonly Tx = Context.Service<
+          'core/src/contracts/applyMutationTx.node.spec/Db.Tx',
+          ITx<IDbConfig<IDbConfig['schema'], (typeof db)['_']['relations']>>
+        >('core/src/contracts/applyMutationTx.node.spec/Db.Tx');
+      }
+
+      const result = yield* makeTx(
+        'applyMutationTxSpec.missingUpdate.transaction',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationTx({
+          tx,
+          mutation,
+          commandId: 'cmd_pushedinv001',
+          mutationIndex: 0,
+          appliedAt,
+        }).pipe(Effect.result);
+      })().pipe(Effect.provideService(Db, db));
 
       expect(result._tag).toBe('Failure');
       if (result._tag === 'Failure') {
@@ -162,33 +188,41 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
         })
         .run();
 
-      const mutation = yield* User.update('1.0.0', {
+      const mutation = yield* makeModelMutations(User).update({
         resourceId: testUserId,
         attributes: { name: 'Bob' },
       });
 
-      const applied = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.applyUpdate.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation,
-              commandId: 'cmd_pushedinv001',
-              mutationIndex: 0,
-              appliedAt,
-            });
-          },
-        ),
-      });
-      yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.inverseUpdate.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationInverseTx({ tx, mutation: applied });
-          },
-        ),
-      });
+      class Db extends Context.Service<Db, typeof db>()(
+        'core/src/contracts/applyMutationTx.node.spec/Db',
+      ) {
+        static readonly Tx = Context.Service<
+          'core/src/contracts/applyMutationTx.node.spec/Db.Tx',
+          ITx<IDbConfig<IDbConfig['schema'], (typeof db)['_']['relations']>>
+        >('core/src/contracts/applyMutationTx.node.spec/Db.Tx');
+      }
+
+      const applied = yield* makeTx(
+        'applyMutationTxSpec.applyUpdate.transaction',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationTx({
+          tx,
+          mutation,
+          commandId: 'cmd_pushedinv001',
+          mutationIndex: 0,
+          appliedAt,
+        });
+      })().pipe(Effect.provideService(Db, db));
+
+      yield* makeTx(
+        'applyMutationTxSpec.inverseUpdate.transaction',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationInverseTx({ tx, mutation: applied });
+      })().pipe(Effect.provideService(Db, db));
 
       const row = db
         .select()
@@ -253,35 +287,43 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
         })
         .run();
 
-      const mutation = yield* Item.move('1.0.0', {
+      const mutation = yield* makeModelMutations(Item).move({
         resourceId: testItemId,
         property: 'listId',
         prevId: testListId,
         nextId: 'lst_other000001',
       });
 
-      const applied = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.applyMove.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation,
-              commandId: 'cmd_pushedinv001',
-              mutationIndex: 0,
-              appliedAt,
-            });
-          },
-        ),
-      });
-      yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.inverseMove.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationInverseTx({ tx, mutation: applied });
-          },
-        ),
-      });
+      class Db extends Context.Service<Db, typeof db>()(
+        'core/src/contracts/applyMutationTx.node.spec/Db',
+      ) {
+        static readonly Tx = Context.Service<
+          'core/src/contracts/applyMutationTx.node.spec/Db.Tx',
+          ITx<IDbConfig<IDbConfig['schema'], (typeof db)['_']['relations']>>
+        >('core/src/contracts/applyMutationTx.node.spec/Db.Tx');
+      }
+
+      const applied = yield* makeTx(
+        'applyMutationTxSpec.applyMove.transaction',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationTx({
+          tx,
+          mutation,
+          commandId: 'cmd_pushedinv001',
+          mutationIndex: 0,
+          appliedAt,
+        });
+      })().pipe(Effect.provideService(Db, db));
+
+      yield* makeTx(
+        'applyMutationTxSpec.inverseMove.transaction',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationInverseTx({ tx, mutation: applied });
+      })().pipe(Effect.provideService(Db, db));
 
       const row = db
         .select()
@@ -314,24 +356,32 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
         })
         .run();
 
-      const mutation = yield* User.delete('1.0.0', {
+      const mutation = yield* makeModelMutations(User).delete({
         resourceId: testUserId,
       });
 
-      const applied = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.applyDelete.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation,
-              commandId: 'cmd_pushedinv001',
-              mutationIndex: 0,
-              appliedAt,
-            });
-          },
-        ),
-      });
+      class Db extends Context.Service<Db, typeof db>()(
+        'core/src/contracts/applyMutationTx.node.spec/Db',
+      ) {
+        static readonly Tx = Context.Service<
+          'core/src/contracts/applyMutationTx.node.spec/Db.Tx',
+          ITx<IDbConfig<IDbConfig['schema'], (typeof db)['_']['relations']>>
+        >('core/src/contracts/applyMutationTx.node.spec/Db.Tx');
+      }
+
+      const applied = yield* makeTx(
+        'applyMutationTxSpec.applyDelete.transaction',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationTx({
+          tx,
+          mutation,
+          commandId: 'cmd_pushedinv001',
+          mutationIndex: 0,
+          appliedAt,
+        });
+      })().pipe(Effect.provideService(Db, db));
 
       const deletedRow = db
         .select()
@@ -347,14 +397,13 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
         }),
       });
 
-      yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.inverseDelete.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationInverseTx({ tx, mutation: applied });
-          },
-        ),
-      });
+      yield* makeTx(
+        'applyMutationTxSpec.inverseDelete.transaction',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationInverseTx({ tx, mutation: applied });
+      })().pipe(Effect.provideService(Db, db));
 
       const restoredRow = db
         .select()
@@ -374,24 +423,32 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
     Effect.gen(function* () {
       const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
 
-      const mutation = yield* User.delete('1.0.0', {
+      const mutation = yield* makeModelMutations(User).delete({
         resourceId: testUserId,
       });
 
-      const result = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.deleteMissing.transaction')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation,
-              commandId: 'cmd_pushedinv001',
-              mutationIndex: 0,
-              appliedAt,
-            }).pipe(Effect.result);
-          },
-        ),
-      });
+      class Db extends Context.Service<Db, typeof db>()(
+        'core/src/contracts/applyMutationTx.node.spec/Db',
+      ) {
+        static readonly Tx = Context.Service<
+          'core/src/contracts/applyMutationTx.node.spec/Db.Tx',
+          ITx<IDbConfig<IDbConfig['schema'], (typeof db)['_']['relations']>>
+        >('core/src/contracts/applyMutationTx.node.spec/Db.Tx');
+      }
+
+      const result = yield* makeTx(
+        'applyMutationTxSpec.deleteMissing.transaction',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationTx({
+          tx,
+          mutation,
+          commandId: 'cmd_pushedinv001',
+          mutationIndex: 0,
+          appliedAt,
+        }).pipe(Effect.result);
+      })().pipe(Effect.provideService(Db, db));
 
       expect(result._tag).toBe('Failure');
       if (result._tag === 'Failure') {
@@ -408,24 +465,32 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
           dbConfig: productDbConfig,
         });
         const productId = 'prd_terminal001';
-        const createMutation = yield* Product.create('1.0.0', {
+        const createMutation = yield* makeModelMutations(Product).create({
           resourceId: productId,
           attributes: { name: 'Original' },
         });
-        yield* makeTx({
-          db,
-          program: Effect.fn('applyMutationTxSpec.createServiceResource')(
-            function* ({ tx }) {
-              return yield* applyMutationTx({
-                tx,
-                mutation: createMutation,
-                commandId: 'cmd_service_create',
-                mutationIndex: 0,
-                appliedAt: now,
-              });
-            },
-          ),
-        });
+        class Db extends Context.Service<Db, typeof db>()(
+          'core/src/contracts/applyMutationTx.node.spec/Db',
+        ) {
+          static readonly Tx = Context.Service<
+            'core/src/contracts/applyMutationTx.node.spec/Db.Tx',
+            ITx<IDbConfig<IDbConfig['schema'], (typeof db)['_']['relations']>>
+          >('core/src/contracts/applyMutationTx.node.spec/Db.Tx');
+        }
+
+        yield* makeTx(
+          'applyMutationTxSpec.createServiceResource',
+          Db,
+        )(function* () {
+          const tx = yield* Db.Tx;
+          return yield* applyMutationTx({
+            tx,
+            mutation: createMutation,
+            commandId: 'cmd_service_create',
+            mutationIndex: 0,
+            appliedAt: now,
+          });
+        })().pipe(Effect.provideService(Db, db));
         expect(
           db
             .select()
@@ -434,23 +499,22 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
             .get(),
         ).toMatchObject({ name: 'Original' });
 
-        const deleteMutation = yield* Product.delete('1.0.0', {
+        const deleteMutation = yield* makeModelMutations(Product).delete({
           resourceId: productId,
         });
-        const appliedDelete = yield* makeTx({
-          db,
-          program: Effect.fn('applyMutationTxSpec.deleteServiceResource')(
-            function* ({ tx }) {
-              return yield* applyMutationTx({
-                tx,
-                mutation: deleteMutation,
-                commandId: 'cmd_service_delete',
-                mutationIndex: 0,
-                appliedAt,
-              });
-            },
-          ),
-        });
+        const appliedDelete = yield* makeTx(
+          'applyMutationTxSpec.deleteServiceResource',
+          Db,
+        )(function* () {
+          const tx = yield* Db.Tx;
+          return yield* applyMutationTx({
+            tx,
+            mutation: deleteMutation,
+            commandId: 'cmd_service_delete',
+            mutationIndex: 0,
+            appliedAt,
+          });
+        })().pipe(Effect.provideService(Db, db));
         expect(
           db
             .select()
@@ -466,44 +530,43 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
           }),
         });
 
-        const missingDelete = yield* makeTx({
-          db,
-          program: Effect.fn(
-            'applyMutationTxSpec.deleteMissingServiceResource',
-          )(function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation: deleteMutation,
-              commandId: 'cmd_service_delete_missing',
-              mutationIndex: 0,
-              appliedAt: new Date('2020-01-03T00:00:00.000Z'),
-            }).pipe(Effect.result);
-          }),
-        });
+        const missingDelete = yield* makeTx(
+          'applyMutationTxSpec.deleteMissingServiceResource',
+          Db,
+        )(function* () {
+          const tx = yield* Db.Tx;
+          return yield* applyMutationTx({
+            tx,
+            mutation: deleteMutation,
+            commandId: 'cmd_service_delete_missing',
+            mutationIndex: 0,
+            appliedAt: new Date('2020-01-03T00:00:00.000Z'),
+          }).pipe(Effect.result);
+        })().pipe(Effect.provideService(Db, db));
         expect(missingDelete._tag).toBe('Failure');
         if (missingDelete._tag === 'Failure') {
           expect(missingDelete.failure.code).toBe('mutation-row-not-found');
         }
 
         const recreatedAt = new Date('2020-01-04T00:00:00.000Z');
-        const recreateMutation = yield* Product.create('1.0.0', {
+        const recreateMutation = yield* makeModelMutations(Product).create({
           resourceId: productId,
           attributes: { name: 'Replacement' },
         });
-        yield* makeTx({
-          db,
-          program: Effect.fn('applyMutationTxSpec.recreateServiceResource')(
-            function* ({ tx }) {
-              return yield* applyMutationTx({
-                tx,
-                mutation: recreateMutation,
-                commandId: 'cmd_service_recreate',
-                mutationIndex: 0,
-                appliedAt: recreatedAt,
-              });
-            },
-          ),
-        });
+
+        yield* makeTx(
+          'applyMutationTxSpec.recreateServiceResource',
+          Db,
+        )(function* () {
+          const tx = yield* Db.Tx;
+          return yield* applyMutationTx({
+            tx,
+            mutation: recreateMutation,
+            commandId: 'cmd_service_recreate',
+            mutationIndex: 0,
+            appliedAt: recreatedAt,
+          });
+        })().pipe(Effect.provideService(Db, db));
         expect(
           db
             .select()
@@ -524,24 +587,32 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
       const db = yield* makeProvisionedInMemorySqljsDb({
         dbConfig,
       });
-      const invalidItem = yield* Item.create('1.0.0', {
+      const invalidItem = yield* makeModelMutations(Item).create({
         resourceId: testItemId,
         attributes: { name: 'Orphan', listId: testListId },
       });
-      const invalidInsert = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.rejectOrphanInsert')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation: invalidItem,
-              commandId: 'cmd_orphan_insert',
-              mutationIndex: 0,
-              appliedAt,
-            }).pipe(Effect.result);
-          },
-        ),
-      });
+      class Db extends Context.Service<Db, typeof db>()(
+        'core/src/contracts/applyMutationTx.node.spec/Db',
+      ) {
+        static readonly Tx = Context.Service<
+          'core/src/contracts/applyMutationTx.node.spec/Db.Tx',
+          ITx<IDbConfig<IDbConfig['schema'], (typeof db)['_']['relations']>>
+        >('core/src/contracts/applyMutationTx.node.spec/Db.Tx');
+      }
+
+      const invalidInsert = yield* makeTx(
+        'applyMutationTxSpec.rejectOrphanInsert',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationTx({
+          tx,
+          mutation: invalidItem,
+          commandId: 'cmd_orphan_insert',
+          mutationIndex: 0,
+          appliedAt,
+        }).pipe(Effect.result);
+      })().pipe(Effect.provideService(Db, db));
       expect(invalidInsert._tag).toBe('Failure');
       if (invalidInsert._tag === 'Failure') {
         expect(invalidInsert.failure.code).toBe(
@@ -554,24 +625,23 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
         });
       }
 
-      const referencedUser = yield* User.create('1.0.0', {
+      const referencedUser = yield* makeModelMutations(User).create({
         resourceId: testUserId,
         attributes: { name: 'Referenced' },
       });
-      const appliedReferencedUser = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.createReferencedUser')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation: referencedUser,
-              commandId: 'cmd_create_referenced_user',
-              mutationIndex: 0,
-              appliedAt,
-            });
-          },
-        ),
-      });
+      const appliedReferencedUser = yield* makeTx(
+        'applyMutationTxSpec.createReferencedUser',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationTx({
+          tx,
+          mutation: referencedUser,
+          commandId: 'cmd_create_referenced_user',
+          mutationIndex: 0,
+          appliedAt,
+        });
+      })().pipe(Effect.provideService(Db, db));
       db.insert(dbConfig.schema.list)
         .values({
           id: testListId,
@@ -583,23 +653,22 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
           userId: testUserId,
         })
         .run();
-      const deleteUser = yield* User.delete('1.0.0', {
+      const deleteUser = yield* makeModelMutations(User).delete({
         resourceId: testUserId,
       });
-      const invalidDelete = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.rejectReferencedDelete')(
-          function* ({ tx }) {
-            return yield* applyMutationTx({
-              tx,
-              mutation: deleteUser,
-              commandId: 'cmd_referenced_delete',
-              mutationIndex: 0,
-              appliedAt,
-            }).pipe(Effect.result);
-          },
-        ),
-      });
+      const invalidDelete = yield* makeTx(
+        'applyMutationTxSpec.rejectReferencedDelete',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationTx({
+          tx,
+          mutation: deleteUser,
+          commandId: 'cmd_referenced_delete',
+          mutationIndex: 0,
+          appliedAt,
+        }).pipe(Effect.result);
+      })().pipe(Effect.provideService(Db, db));
       expect(invalidDelete._tag).toBe('Failure');
       if (invalidDelete._tag === 'Failure') {
         expect(invalidDelete.failure.code).toBe(
@@ -607,17 +676,16 @@ describe('applyMutationTx + applyMutationInverseTx', () => {
         );
       }
 
-      const invalidInverse = yield* makeTx({
-        db,
-        program: Effect.fn('applyMutationTxSpec.rejectReferencedInverse')(
-          function* ({ tx }) {
-            return yield* applyMutationInverseTx({
-              tx,
-              mutation: appliedReferencedUser,
-            }).pipe(Effect.result);
-          },
-        ),
-      });
+      const invalidInverse = yield* makeTx(
+        'applyMutationTxSpec.rejectReferencedInverse',
+        Db,
+      )(function* () {
+        const tx = yield* Db.Tx;
+        return yield* applyMutationInverseTx({
+          tx,
+          mutation: appliedReferencedUser,
+        }).pipe(Effect.result);
+      })().pipe(Effect.provideService(Db, db));
       expect(invalidInverse._tag).toBe('Failure');
       if (invalidInverse._tag === 'Failure') {
         expect(invalidInverse.failure.code).toBe(

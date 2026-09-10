@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AggregateFrontendFinalizedCommandSchema,
-  AggregateFrontendPushedCommandSchema,
   AggregateFrontendSyncStateSchema,
   SessionCommandSchema,
 } from './AggregateFrontendCommandSchema.ts';
@@ -53,14 +52,6 @@ const sessionCommand = {
   frontendName: 'main',
 };
 
-const serviceCommand = {
-  id: 'cmd_service',
-  commandName: 'updateProduct',
-  payload: '{}',
-  contractVersion: '1.0.0',
-  serviceName: 'catalog',
-};
-
 const encodedFailure = {
   cause: null,
   code: 'rejected',
@@ -70,123 +61,54 @@ const encodedFailure = {
 };
 
 describe('aggregate frontend command schemas', () => {
-  it('decodes pending, successful, and failed pushed occurrences with complete provenance', async () => {
-    const common = {
-      ...sessionCommand,
-      pushIndex: 2,
-      chainedAt: '2026-08-31T12:00:00.000Z',
-    };
-    const pending = await Effect.runPromise(
-      Schema.decodeUnknownEffect(AggregateFrontendPushedCommandSchema)({
-        ...common,
+  it('decodes per-command deltas with complete originating resolutions and empty progress', async () => {
+    const resolution = {
+      sourceCommand: JSON.stringify(sessionCommand),
+      command: {
+        ...sessionCommand,
+        pushIndex: null,
+        aggregateIndex: 3,
+        chainedAt: '2026-08-31T12:00:00.000Z',
         delta: null,
         failedAt: null,
         failure: null,
-      }),
-    );
-    const successful = await Effect.runPromise(
-      Schema.decodeUnknownEffect(AggregateFrontendPushedCommandSchema)({
-        ...common,
-        delta: frontendDelta,
-        failedAt: null,
-        failure: null,
-      }),
-    );
-    const failed = await Effect.runPromise(
-      Schema.decodeUnknownEffect(AggregateFrontendPushedCommandSchema)({
-        ...common,
-        delta: emptyDelta,
-        failedAt: '2026-08-31T12:00:01.000Z',
-        failure: encodedFailure,
-      }),
-    );
-
-    expect(pending.delta).toBeNull();
-    expect(successful).toMatchObject({
-      sessionId: 'sesn_1',
-      userId: 'usr_1',
-      frontendName: 'main',
-      pushIndex: 2,
-      delta: {
-        inserted: [expect.objectContaining({ id: 'lst_inserted' })],
-        updated: [expect.objectContaining({ id: 'lst_updated' })],
-        deleted: [{ id: 'lst_deleted', modelName: 'list' }],
+        dispositionHash: 'a'.repeat(64),
       },
-    });
-    expect(failed.failure).toEqual(encodedFailure);
-  });
-
-  it('decodes complete direct and service-derived finalized occurrences', async () => {
-    const pending = await Effect.runPromise(
+      mutations: [],
+      preparationVersion: '1.0.0',
+      executionTimestamp: '2026-08-31T12:00:00.000Z',
+    };
+    const output = await Effect.runPromise(
       Schema.decodeUnknownEffect(AggregateFrontendFinalizedCommandSchema)(
         {
-          ...sessionCommand,
-          pushIndex: 2,
+          userIndex: 6,
           aggregateIndex: 3,
-          frontendIndex: 2,
-          chainedAt: '2026-08-31T12:00:00.000Z',
-          delta: null,
-          failedAt: null,
-          failure: null,
-        },
-        { onExcessProperty: 'error' },
-      ),
-    );
-    const direct = await Effect.runPromise(
-      Schema.decodeUnknownEffect(AggregateFrontendFinalizedCommandSchema)(
-        {
-          ...sessionCommand,
-          pushIndex: 2,
-          aggregateIndex: 3,
-          frontendIndex: 2,
-          chainedAt: '2026-08-31T12:00:00.000Z',
           delta: frontendDelta,
-          failedAt: null,
-          failure: null,
+          resolution,
         },
         { onExcessProperty: 'error' },
       ),
     );
-    const derived = await Effect.runPromise(
-      Schema.decodeUnknownEffect(AggregateFrontendFinalizedCommandSchema)({
-        ...serviceCommand,
-        serviceIndex: 4,
-        aggregateIndex: 5,
-        frontendIndex: 3,
-        chainedAt: '2026-08-31T12:00:01.000Z',
-        delta: emptyDelta,
-        failedAt: null,
-        failure: null,
-      }),
-    );
-    const failedDerived = await Effect.runPromise(
-      Schema.decodeUnknownEffect(AggregateFrontendFinalizedCommandSchema)({
-        ...serviceCommand,
-        serviceIndex: 5,
-        aggregateIndex: 6,
-        frontendIndex: 4,
-        chainedAt: '2026-08-31T12:00:02.000Z',
-        delta: emptyDelta,
-        failedAt: '2026-08-31T12:00:03.000Z',
-        failure: encodedFailure,
-      }),
-    );
-
-    expect(pending.delta).toBeNull();
-    expect(direct).toMatchObject({
+    expect(output.resolution?.sourceCommand).toBe(resolution.sourceCommand);
+    expect(output.resolution?.command).toMatchObject({
+      id: 'cmd_session',
       aggregateIndex: 3,
-      frontendIndex: 2,
-      pushIndex: 2,
-      sessionId: 'sesn_1',
     });
-    expect('serviceIndex' in direct).toBe(false);
-    expect(derived).toMatchObject({
-      serviceName: 'catalog',
-      serviceIndex: 4,
-      aggregateIndex: 5,
-      frontendIndex: 3,
+    expect(
+      await Effect.runPromise(
+        Schema.decodeUnknownEffect(AggregateFrontendFinalizedCommandSchema)({
+          userIndex: 7,
+          aggregateIndex: 3,
+          delta: emptyDelta,
+          resolution: null,
+        }),
+      ),
+    ).toEqual({
+      userIndex: 7,
+      aggregateIndex: 3,
+      delta: emptyDelta,
+      resolution: null,
     });
-    expect(failedDerived.failure).toEqual(encodedFailure);
   });
 
   it('decodes pending, successful, and failed local session occurrences', async () => {
@@ -231,13 +153,29 @@ describe('aggregate frontend command schemas', () => {
       aggregateId: 'acct_1',
       userId: 'usr_1',
       systemId: 'sys_1',
-      systemVersion: '1.0.0',
       aggregateName: 'user',
       frontendName: 'main',
       aggregateIndex: 5,
-      frontendIndex: 3,
-      pushIndex: 2,
-      resolvedPushIndexes: [1, 2],
+      userIndex: 8,
+      aggregateVersion: '1.0.0',
+      resolutions: [
+        {
+          sourceCommand: JSON.stringify(sessionCommand),
+          command: {
+            ...sessionCommand,
+            pushIndex: null,
+            aggregateIndex: 3,
+            chainedAt: '2026-08-31T12:00:00.000Z',
+            delta: null,
+            failedAt: null,
+            failure: null,
+            dispositionHash: 'a'.repeat(64),
+          },
+          mutations: [],
+          preparationVersion: '1.0.0',
+          executionTimestamp: '2026-08-31T12:00:00.000Z',
+        },
+      ],
       resources: frontendDelta.inserted,
     };
     const syncState = await Effect.runPromise(
@@ -246,9 +184,9 @@ describe('aggregate frontend command schemas', () => {
 
     expect(syncState).toMatchObject({
       aggregateIndex: 5,
-      frontendIndex: 3,
-      pushIndex: 2,
-      resolvedPushIndexes: [1, 2],
+      userIndex: 8,
+      aggregateVersion: '1.0.0',
+      resolutions: [{ command: { id: 'cmd_session' } }],
     });
   });
 });

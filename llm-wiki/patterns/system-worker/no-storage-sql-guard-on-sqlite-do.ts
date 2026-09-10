@@ -4,7 +4,7 @@
  * @bad Guard with `invariant(storage.sql, …)` or `if (!storage.sql)` at repo init.
  * @bad Fail with `aggregate-frontend-repo-initialize-failed` when SQL is missing on a SQLite class.
  */
-export function initMaterializedAggregateFrontendRepoDb(props: {
+export function initUserVersionedAggregateRepoDb(props: {
   storage: { sql: unknown };
   schema: Record<string, unknown>;
   relations: Record<string, unknown>;

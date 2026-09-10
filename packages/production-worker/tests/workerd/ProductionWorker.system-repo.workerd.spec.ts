@@ -20,6 +20,9 @@ describe('ProductionWorker static Gateway', () => {
       }),
     );
     expect(response.status).toBe(101);
+    expect(response.headers.get('X-Zerospin-Worker-Version')).toMatch(
+      /^[0-9a-f-]{36}$/i,
+    );
     response.webSocket!.accept();
     using gatewayApi = newWebSocketRpcSession<GatewayApi>(response.webSocket!);
     using systemApi = await gatewayApi.getSystemApi({
@@ -43,18 +46,25 @@ describe('ProductionWorker static Gateway', () => {
     );
     response.webSocket!.accept();
     using gatewayApi = newWebSocketRpcSession<GatewayApi>(response.webSocket!);
+    using systemApi = await gatewayApi.getSystemApi({
+      zerospinSecretKey: 'sk_live_production_test',
+    });
+    const accepted = await systemApi.checkSystemSpec({
+      args: [],
+      traceContext: null,
+    });
+    await Effect.runPromise(decodeRpc(accepted.result));
     using serviceFrontendApi = await gatewayApi.getServiceFrontendApi({
       publishableKey: 'pk_live_production_test',
       systemName: system.name,
-      authenticationLock: makeAuthenticationLock({
-        signature: authenticationSignature,
-      }),
+      authenticationLock: makeAuthenticationLock(authenticationSignature),
       signature: { userId: 'usr_production_socket' },
       frontendName: 'products',
       serviceFrontendLock: makeServiceFrontendLock({
-        frontend: system.services.app.frontends.products.controller,
+        frontend: system.services.app['1.0.0'].frontends.products.controller,
       }),
       serviceName: 'app',
+      serviceVersion: '1.0.0',
     });
     const stateEnvelope = await serviceFrontendApi.getState({
       args: [],
@@ -62,7 +72,7 @@ describe('ProductionWorker static Gateway', () => {
     });
     await Effect.runPromise(decodeRpc(stateEnvelope.result));
     const ticketEnvelope = await serviceFrontendApi.createWebSocketTicket({
-      args: [],
+      args: [{ serviceVersion: '1.0.0' }],
       traceContext: null,
     });
     const ticket = await Effect.runPromise(decodeRpc(ticketEnvelope.result));

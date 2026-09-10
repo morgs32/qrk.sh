@@ -1,17 +1,17 @@
 ---
 title: SystemRepo Durable Architecture
-updated: 2026-09-01
+updated: 2026-09-09
 ---
 
 # SystemRepo Durable Architecture
 
 Zerospin runs one static Worker bundle containing the authored System,
-GatewayApi, SystemApi, five command chains, four materialized domain Repos,
+GatewayApi, SystemApi, six command chains, four domain Repos,
 SystemRepo, and logging. Each command boundary carries one complete encoded
-occurrence; command history and materialized state are separate durable owners.
+occurrence; command history and resource state are separate durable owners.
 
-- [`index.ts:1-12`](../packages/system-worker/src/index.ts#L1-L12) — exports the complete static Durable Object topology.
-- [`Worker.ts:8-40`](../examples/shopping/src/Worker.ts#L8-L40) — exports those classes from the consumer Worker and separates Gateway RPC from singular WebSocket routes.
+- [`index.ts`](../packages/system-worker/src/index.ts) — exports the complete static Durable Object topology.
+- [`Worker.ts`](../examples/shopping/src/Worker.ts) — exports those classes from the consumer Worker and separates Gateway RPC from singular WebSocket routes.
 
 ## Runtime topology
 
@@ -19,31 +19,30 @@ occurrence; command history and materialized state are separate durable owners.
 flowchart TB
   Source["Authored System + current Repo schemas"] --> Worker["DevWorker / ProductionWorker"]
   Browser["React + main-thread frontend replicas"] --> Gateway[GatewayApi]
-  Browser --> BackupRouter["OPFS backup SharedWorker mediator"]
-  BackupRouter --> BackupLeader["Web-Lock-elected dedicated backup Worker"]
-  BackupLeader --> OPFS[(OPFS SQLite files)]
+  Browser --> BackupWorker["Stable SharedWorker: BackupWorkerApi + BackupDbApi"]
+  BackupWorker --> IndexedDB[(IDBBatchAtomicVFS backups)]
   Operator["server caller"] --> Gateway
   Worker --> Gateway
   Gateway --> SystemApi
   Gateway --> AggregateFrontendApi
   Gateway --> ServiceFrontendApi
 
-  SystemApi --> AggregateCommandChain
-  SystemApi --> ServiceCommandChain
-  AggregateFrontendApi --> AggregateFrontendPushedCommandChain
+  SystemApi --> AggregateChain
+  SystemApi --> ServiceAdmittedChain
+  AggregateFrontendApi --> AggregateChain
 
-  AggregateCommandChain --> MaterializedAggregateRepo
-  ServiceCommandChain --> MaterializedServiceRepo
-  ServiceCommandChain --> AggregateCommandChain
-  AggregateFrontendPushedCommandChain --> MaterializedAggregateFrontendRepo
-  AggregateFrontendPushedCommandChain --> AggregateCommandChain
-  AggregateCommandChain --> MaterializedAggregateFrontendRepo
-  ServiceCommandChain --> MaterializedServiceFrontendRepo
+  AggregateChain --> VersionedAggregateRepo
+  ServiceAdmittedChain --> VersionedServiceRepo
+  ServiceAdmittedChain --> AggregateChain
+  VersionedAggregateRepo --> VersionedAggregateChain
+  VersionedAggregateChain --> UserVersionedAggregateRepo
+  VersionedServiceRepo --> VersionedServiceChain
+  VersionedServiceChain --> FrontendVersionedServiceRepo
 
-  MaterializedAggregateFrontendRepo --> AggregateFrontendFinalizedCommandChain
-  MaterializedServiceFrontendRepo --> ServiceFrontendFinalizedCommandChain
-  AggregateFrontendFinalizedCommandChain --> Browser
-  ServiceFrontendFinalizedCommandChain --> Browser
+  UserVersionedAggregateRepo --> UserVersionedAggregateChain
+  FrontendVersionedServiceRepo --> FrontendServiceChain
+  UserVersionedAggregateChain --> Browser
+  FrontendServiceChain --> Browser
 
   Gateway --> SystemRepo
   SystemRepo --> SystemLogRepo
@@ -52,8 +51,8 @@ flowchart TB
 Gateway exposes SystemApi to secret-key callers and independently acquired
 aggregate or service frontend capabilities to publishable-key callers.
 
-- [`GatewayApi.ts:27-74`](../packages/system-worker/src/GatewayApi/GatewayApi.ts#L27-L74) — defines the three root capability getters.
-- [`getSystemApi.ts:17-32`](../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts#L17-L32) — validates the secret key and binds SystemApi to configured `systemId`.
+- [`GatewayApi.ts`](../packages/system-worker/src/GatewayApi/GatewayApi.ts) — defines the three root capability getters.
+- [`getSystemApi.ts`](../packages/system-worker/src/GatewayApi/getSystemApi/getSystemApi.ts) — validates the secret key and binds SystemApi to configured `systemId`.
 
 ## Durable identity and fixed schemas
 
@@ -63,71 +62,93 @@ on later cold activations. Authored materializers derive their one fixed
 database configuration from the aggregate, service, and frontend names in the
 instance identity; there is no separate schema target or history.
 
-| Repo                                   | Durable identity                                                 |
-| -------------------------------------- | ---------------------------------------------------------------- |
-| AggregateCommandChain                  | `{ systemId, aggregateId, aggregateName }`                       |
-| ServiceCommandChain                    | `{ systemId, serviceName }`                                      |
-| AggregateFrontendPushedCommandChain    | `{ systemId, aggregateId, aggregateName, userId, frontendName }` |
-| AggregateFrontendFinalizedCommandChain | `{ systemId, aggregateId, aggregateName, userId, frontendName }` |
-| ServiceFrontendFinalizedCommandChain   | `{ systemId, serviceName, userId, frontendName }`                |
-| MaterializedAggregateRepo              | `{ systemId, aggregateId, aggregateName }`                       |
-| MaterializedServiceRepo                | `{ systemId, serviceName }`                                      |
-| MaterializedAggregateFrontendRepo      | `{ systemId, aggregateId, aggregateName, userId, frontendName }` |
-| MaterializedServiceFrontendRepo        | `{ systemId, serviceName, userId, frontendName }`                |
-| SystemRepo and SystemLogRepo           | `{ systemId }`                                                   |
+| Repo                         | Durable identity                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
+| AggregateChain               | `{ systemId, aggregateId, aggregateName }`                                         |
+| ServiceAdmittedChain         | `{ systemId, serviceName }`                                                        |
+| VersionedAggregateChain      | `{ systemId, aggregateId, aggregateName, aggregateVersion }`                       |
+| UserVersionedAggregateChain  | `{ systemId, aggregateId, aggregateName, aggregateVersion, userId, frontendName }` |
+| FrontendServiceChain         | `{ systemId, serviceName, serviceVersion, userId, frontendName }`                  |
+| VersionedAggregateRepo       | `{ systemId, aggregateId, aggregateName, aggregateVersion }`                       |
+| VersionedServiceRepo         | `{ systemId, serviceName, serviceVersion }`                                        |
+| UserVersionedAggregateRepo   | `{ systemId, aggregateId, aggregateName, aggregateVersion, userId, frontendName }` |
+| FrontendVersionedServiceRepo | `{ systemId, serviceName, serviceVersion, userId, frontendName }`                  |
+| VersionedServiceChain        | `{ systemId, serviceName, serviceVersion }`                                        |
+| SystemRepo and SystemLogRepo | `{ systemId }`                                                                     |
 
-- [`types.ts:35-52`](../packages/core/src/system/types.ts#L35-L52) — defines the current Repo kinds and registration shape without schema targets.
-- [`AggregateCommandChain.ts:32-47`](../packages/system-worker/src/AggregateCommandChain/AggregateCommandChain.ts#L32-L47) — configures the aggregate chain through `makeFixedDORepoConfig`.
-- [`MaterializedAggregateFrontendRepo.ts:48-81`](../packages/system-worker/src/MaterializedAggregateFrontendRepo/MaterializedAggregateFrontendRepo.ts#L48-L81) — derives the frontend materializer's fixed database config from its exact identity.
-- [`makeFixedDORepo.ts:69-94`](../packages/system-worker/src/makeFixedDORepo/makeFixedDORepo.ts#L69-L94) — skips provisioning after the durable bootstrap marker is present.
+- [`types.ts`](../packages/core/src/system/types.ts) — defines the current Repo kinds and registration shape without schema targets.
+- [`aggregateChainFixedDORepoConfig.ts`](../packages/system-worker/src/AggregateChain/aggregateChainFixedDORepoConfig.ts) — keeps AggregateChain on the unversioned `{ systemId, aggregateId, aggregateName }` name.
+- [`VersionedAggregateRepo.ts`](../packages/system-worker/src/VersionedAggregateRepo/VersionedAggregateRepo.ts) — binds each aggregate implementation to `{ systemId, aggregateId, aggregateName, aggregateVersion }`.
+- [`UserVersionedAggregateRepo.ts`](../packages/system-worker/src/UserVersionedAggregateRepo/UserVersionedAggregateRepo.ts) — derives the frontend materializer's fixed database config from its exact identity.
+- [`makeFixedDORepo.ts`](../packages/system-worker/src/makeFixedDORepo/makeFixedDORepo.ts) — skips provisioning after the durable bootstrap marker is present.
 
 ## SystemRepo boundary and command execution
 
-SystemRepo is the singleton keyed by `{ systemId }`. It owns aggregate IDs,
-Repo registrations, one-time frontend WebSocket tickets, and WebSocket routing.
-It does not choose or proxy materializer code.
+SystemRepo is the singleton keyed by `{ systemId }`. It owns Repo inspection, one-time frontend
+WebSocket tickets, and WebSocket routing. AC reconciles its VAR destinations
+from deployed aggregate definitions during activation. Commands and direct RPCs
+activate VARs.
 
-- [`SystemRepo.ts:65-119`](../packages/system-worker/src/SystemRepo/SystemRepo.ts#L65-L119) — validates singleton identity and provisions its current schema once.
-- [`SystemRepo.ts:185-339`](../packages/system-worker/src/SystemRepo/SystemRepo.ts#L185-L339) — exposes aggregate lookup, one-time tickets, and Repo-catalog operations.
-- [`SystemRepoDbConfig.ts:8-89`](../packages/system-worker/src/SystemRepo/SystemRepoDbConfig.ts#L8-L89) — defines only frontend-ticket, aggregate, and Repo-registration tables.
+- [`SystemRepo.ts`](../packages/system-worker/src/SystemRepo/SystemRepo.ts) — Owns Repo registration, inspection, and singleton ticket routing.
+- [`systemRepoDbConfig.ts`](../packages/system-worker/src/SystemRepo/systemRepoDbConfig.ts) — Persists tickets and Repo registrations.
+- [`onDOActivation.ts`](../packages/system-worker/src/AggregateChain/onDOActivation/onDOActivation.ts) — Reconciles supported destinations while preserving retained command progress.
+- [`onDOActivation.ts`](../packages/system-worker/src/VersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Initializes declared service pins and subscribes during activation; the registered outbox independently resumes publication.
 
-Aggregate, service, and pushed chains admit complete commands independently,
-enforce canonical-byte idempotency, execute their lowest pending occurrence,
-retain terminal results, and fan out durable tips. For one `systemId`, the
-application and physical schemas are immutable after the initial deployment.
+AC admits complete aggregate inputs with exact-byte idempotency. Each VAR
+prepares inputs for its own aggregateVersion and commits terminal execution
+entries to an outbox; VAC retains those entries. Direct requests and retries
+use the current base VAR. Manual cutover compares parallel base/candidate
+flushes through one sampled admitted position. Additive authored aggregate versions retain the same systemId and command
+history. Existing physical schemas remain immutable; changing one requires
+empty storage.
 The CLI therefore uploads and promotes the static Worker directly, then
 health-checks preview and production without any redeployment lock, drain,
 fence, reopen, or compatibility path.
 
-- [`finalizeAggregateCommand.ts:64-214`](../packages/system-worker/src/AggregateCommandChain/finalizeAggregateCommand/finalizeAggregateCommand.ts#L64-L214) — performs durable aggregate admission, scheduled execution, and terminal return without consulting SystemRepo.
-- [`deployWranglerFn.ts:395-505`](../packages/cli/src/deploy/deployWranglerFn.ts#L395-L505) — promotes the uploaded version and then health-checks preview and production directly.
+- [`onDOActivation.ts`](../packages/system-worker/src/SystemRepo/onDOActivation/onDOActivation.ts) — Adds current and historical supported aggregate versions without deleting retained catalog rows.
+- [`makeFixedDORepo.ts`](../packages/system-worker/src/makeFixedDORepo/makeFixedDORepo.ts) — Provisions fresh storage once and performs no schema migration after bootstrap.
+- [`executeAggregateCommand.ts`](../packages/system-worker/src/AggregateChain/executeAggregateCommand/executeAggregateCommand.ts) — admits once and recovers the current base VAR result.
+- [`deployWranglerFn.ts`](../packages/cli/src/deploy/deployWranglerFn.ts) — promotes the uploaded version and then health-checks preview and production directly.
 
 ## Browser convergence and backup
 
-Each selected frontend owns an in-memory wa-sqlite replica, finalized-command
-socket, and recovery loop on the page main thread. Aggregate recovery
-subscribes from zero before fetching current state, then validates complete
-pushed history and the socket replay before reconstructing authoritative,
-`pushIndex`, and local `sessionIndex` layers. Service recovery uses the same
-socket-before-state boundary without aggregate optimism.
+Each selected frontend owns an in-memory wa-sqlite replica, finalized-output
+socket, and recovery loop on the page main thread. Aggregate recovery fetches
+a published UVAR snapshot, pins its aggregateVersion in the ticket, and replays
+UVAC outputs strictly after the captured frontend cursor. Snapshot resolved
+command IDs and per-command originating resolutions reconcile local optimism.
+Service recovery captures a published FVSR snapshot, pins its serviceVersion,
+and replays FSC strictly after its serviceIndex.
 
-- [`bootstrapAggregateFrontendSession.ts:458-662`](../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L458-L662) — subscribes before state, pulls pushed history, validates replay, and reconstructs the aggregate session.
-- [`bootstrapServiceFrontendSession.ts:292-429`](../packages/frontend/src/bootstrapServiceFrontendSession.ts#L292-L429) — performs service socket-first recovery and state installation.
+- [`getState.ts`](../packages/system-worker/src/UserVersionedAggregateRepo/getState/getState.ts) — captures state and cursor together and awaits bounded UVAC publication.
+- [`bootstrapAggregateFrontendSession.ts`](../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — installs published state, validates contiguous replay, and retains the live socket.
+- [`bootstrapServiceFrontendSession.ts`](../packages/frontend/src/bootstrapServiceFrontendSession.ts) — captures the service snapshot before obtaining its version-pinned ticket.
 
-The page owns one narrow connection to an OPFS backup SharedWorker mediator.
-The mediator never owns SQLite, authentication, Gateway capabilities, live
-sockets, command execution, or replica state. One Web-Lock-elected dedicated
-Worker runs synchronous wa-sqlite with `OPFSCoopSyncVFS`, stores per-session
-SQLite backup files, and accepts routed full baselines or FIFO committed SQL
-from every page in that emitted worker graph.
+The page shares one connection to `/__zerospin/backup-worker.js`, named
+`zerospin-backups`, across its selected frontends. That SharedWorker owns
+asynchronous backup SQLite and `IDBBatchAtomicVFS`. Each exact frontend backup
+key selects one database independently of the app build and execution session
+ID. A takeover revokes the previous database capability before waiting for its
+in-flight SQLite operation and returns the committed baseline to the new owner.
 
-- [`acquireOpfsBackupWorker.ts:59-78`](../packages/opfs-backup-worker/src/acquireOpfsBackupWorker/acquireOpfsBackupWorker.ts#L59-L78) — derives the graph-qualified router, leader, WASM, and Web Lock identities.
-- [`opfsBackupWorker.entry.ts:45-106`](../packages/opfs-backup-worker/src/opfsBackupWorker.entry.ts#L45-L106) — assigns per-client router targets and distinguishes pending from dispatched requests.
-- [`opfsBackupLeader.entry.ts:14-37`](../packages/opfs-backup-worker/src/opfsBackupLeader.entry.ts#L14-L37) — initializes the synchronous VFS and leader-local operation turn and claim map.
-- [`bootstrapAggregateFrontendSession.ts:771-869`](../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L771-L869) — acknowledges a baseline before publication and repairs only the affected backup from a current snapshot.
+- [`backupWorker.entry.ts`](../packages/backup-worker/src/backupWorker.entry.ts) — initializes the package-owned IndexedDB namespace and one semaphore for asynchronous SQLite.
+- [`acquireDb.ts`](../packages/backup-worker/src/BackupWorkerApi/acquireDb/acquireDb.ts) — reuses current ownership or revokes the prior target and returns its successor's committed snapshot.
+- [`applyStatements.ts`](../packages/backup-worker/src/BackupDbApi/applyStatements/applyStatements.ts) — rechecks ownership inside the SQLite turn and applies each batch atomically.
+
+The mounted page keeps its synchronous live SQLite, session, and store across
+ownership changes. Reacquisition restores committed backup contents and renews
+execution identity; commands already retained in the journal preserve their
+original occurrence bytes. Revocation pauses only the affected frontend.
+
+- [`makeAggregateSession.ts`](../packages/core/src/session/makeAggregateSession.ts) — reads the current execution identity from session state and captures it for synchronous command construction and metadata writes.
+- [`makeZerospinApp.tsx`](../packages/react/src/makeZerospinApp.tsx) — shares the page connection and moves DevTools registrations when the retained session's ID changes.
+- [`bootstrapAggregateFrontendSession.ts`](../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — owns acquisition, in-place restoration, per-period sockets, pushes, and ordered backup capture.
+- [`bootstrapServiceFrontendSession.ts`](../packages/frontend/src/bootstrapServiceFrontendSession.ts) — owns equivalent service acquisition and delivery independently of aggregate frontends.
 
 See [Authored System](./architecture/AuthoredSystem.md),
 [System API](./architecture/SystemApi.md),
-[Command Chains](./architecture/CommandChains.md),
-[OPFS Backup Coordination](./architecture/browser/OpfsBackupCoordination.md), and the browser/server
+[Command Chains](./architecture/server/admitCommands.md),
+[IndexedDB Backup Coordination](./architecture/browser/IndexedDbBackupCoordination.md), and the browser/server
 workflow pages for method-level paths.
+
+The complete service path is described in [Versioned Service Execution and Delivery](./architecture/server/serviceExecution.md).

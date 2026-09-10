@@ -1,23 +1,16 @@
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import type { ITypeError } from '@zerospin/schema';
-import { Effect, type Schema } from 'effect';
+import { Effect } from 'effect';
 
-import type { IModel, IModelReplica, IModels } from '../models/types.ts';
+import { Model } from '../models/makeModel.ts';
+import type { IAnyModels, IModel, IModelReplica } from '../models/types.ts';
 
-import type { MutationValues } from './makeContract.ts';
-import type { IAnyMutation, IContract, IContracts } from './types.ts';
+import type { MutationValues } from './makeVersion.ts';
+import type { IAnyContracts, IAnyMutation, IContract } from './types.ts';
 
-type InferContractMutations<CONTRACT extends IContract> =
-  CONTRACT extends IContract<
-    string,
-    infer _PAYLOAD,
-    string,
-    infer MUTATIONS_SCHEMA
-  >
-    ? MUTATIONS_SCHEMA extends Schema.Codec<unknown, unknown>
-      ? Schema.Schema.Type<MUTATIONS_SCHEMA>
-      : never
-    : never;
+type InferContractMutations<CONTRACT extends IContract> = Effect.Success<
+  ReturnType<CONTRACT['program']>
+>;
 
 type InferContractReturnedMutations<CONTRACT extends IContract> =
   MutationValues<InferContractMutations<CONTRACT>>;
@@ -25,13 +18,26 @@ type InferContractReturnedMutations<CONTRACT extends IContract> =
 export const assertMutationsUseModels = Effect.fn('assertMutationsUseModels')(
   function* (props: {
     mutations: readonly IAnyMutation[];
-    models: IModels;
-    owner: { kind: 'aggregate' } | { kind: 'service'; serviceName: string };
+    models: IAnyModels;
     commandName: string;
   }): Effect.fn.Return<void, IAnyError> {
-    const { mutations, models, owner, commandName } = props;
+    const { mutations, models, commandName } = props;
 
     for (const mutation of mutations) {
+      if (
+        mutation === null ||
+        typeof mutation !== 'object' ||
+        !(mutation.model instanceof Model) ||
+        mutation.modelVersion !== mutation.model.version ||
+        !['create', 'update', 'delete', 'move', 'replicate'].includes(
+          mutation.operationName,
+        )
+      ) {
+        return yield* new ZerospinError({
+          code: 'contract-program-mutation-invalid',
+          message: `Contract "${commandName}" must return mutations bound to their exact model version`,
+        });
+      }
       const modelName = mutation.model.modelName;
       const controllerModel = models[modelName];
       if (controllerModel !== mutation.model) {
@@ -45,41 +51,43 @@ export const assertMutationsUseModels = Effect.fn('assertMutationsUseModels')(
         });
       }
 
-      const isReplica = 'sourceModel' in mutation.model;
-      if (owner.kind === 'aggregate') {
-        if (mutation.operationName === 'replicateResource' && isReplica) {
-          continue;
-        }
-        if (mutation.operationName !== 'replicateResource' && !isReplica) {
-          continue;
-        }
-      } else if (mutation.operationName !== 'replicateResource' && !isReplica) {
+      const isReplica = Model.isReplica(mutation.model);
+      if ((mutation.operationName === 'replicate') === isReplica) {
         continue;
       }
 
       return yield* new ZerospinError({
-        code: 'contract-mutation-model-owner-mismatch',
-        message: `Contract "${commandName}" emitted ${mutation.operationName} for model "${modelName}" outside its ${owner.kind} mutation ownership`,
+        code: 'contract-mutation-model-operation-mismatch',
+        message: `Contract "${commandName}" emitted ${mutation.operationName} for model "${modelName}" with an operation incompatible with that model`,
         extra: { commandName, modelName },
       });
     }
   },
 );
 
-export type AssertMutationModelInModels<
+export type AssertMutationModelInModels<MUTATION, MODELS extends IAnyModels> = [
   MUTATION,
-  MODELS extends IModels,
-  OWNER extends 'aggregate' | 'service' = 'aggregate',
-> = [MUTATION] extends [never]
+] extends [never]
   ? MODELS
   : MUTATION extends {
-        readonly operationName: 'replicateResource';
+        readonly operationName: 'replicate';
         readonly model: infer MODEL extends IModel;
       }
-    ? OWNER extends 'service'
-      ? ITypeError<'service contracts cannot replicate resources'>
-      : MODEL extends IModelReplica
-        ? string extends MODEL['modelName']
+    ? MODEL extends IModelReplica
+      ? string extends MODEL['modelName']
+        ? MODELS
+        : MODEL['modelName'] extends keyof MODELS & string
+          ? MODELS[MODEL['modelName']] extends MODEL
+            ? MODEL extends MODELS[MODEL['modelName']]
+              ? MODELS
+              : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
+            : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
+          : ITypeError<`mutation model "${MODEL['modelName']}" is not registered on controller models`>
+      : ITypeError<'replicate requires a model replica'>
+    : MUTATION extends { readonly model: infer MODEL extends IModel }
+      ? MODEL extends IModelReplica
+        ? ITypeError<`model replica "${MODEL['modelName']}" can only use replicate`>
+        : string extends MODEL['modelName']
           ? MODELS
           : MODEL['modelName'] extends keyof MODELS & string
             ? MODELS[MODEL['modelName']] extends MODEL
@@ -88,42 +96,15 @@ export type AssertMutationModelInModels<
                 : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
               : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
             : ITypeError<`mutation model "${MODEL['modelName']}" is not registered on controller models`>
-        : ITypeError<'replicateResource requires a model replica'>
-    : MUTATION extends { readonly model: infer MODEL extends IModel }
-      ? OWNER extends 'aggregate'
-        ? MODEL extends IModelReplica
-          ? ITypeError<`model replica "${MODEL['modelName']}" can only use replicateResource in aggregate contracts`>
-          : string extends MODEL['modelName']
-            ? MODELS
-            : MODEL['modelName'] extends keyof MODELS & string
-              ? MODELS[MODEL['modelName']] extends MODEL
-                ? MODEL extends MODELS[MODEL['modelName']]
-                  ? MODELS
-                  : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
-                : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
-              : ITypeError<`mutation model "${MODEL['modelName']}" is not registered on controller models`>
-        : MODEL extends IModelReplica
-          ? ITypeError<`service contracts cannot mutate model replica "${MODEL['modelName']}"`>
-          : string extends MODEL['modelName']
-            ? MODELS
-            : MODEL['modelName'] extends keyof MODELS & string
-              ? MODELS[MODEL['modelName']] extends MODEL
-                ? MODEL extends MODELS[MODEL['modelName']]
-                  ? MODELS
-                  : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
-                : ITypeError<`mutation model "${MODEL['modelName']}" must match the registered controller model`>
-              : ITypeError<`mutation model "${MODEL['modelName']}" is not registered on controller models`>
       : ITypeError<'contract program returned a non-mutation'>;
 
 export type AssertContractMutationsInModels<
   CONTRACT extends IContract,
-  MODELS extends IModels,
-  OWNER extends 'aggregate' | 'service' = 'aggregate',
+  MODELS extends IAnyModels,
 > =
   AssertMutationModelInModels<
     InferContractReturnedMutations<CONTRACT>,
-    MODELS,
-    OWNER
+    MODELS
   > extends infer RESULT
     ? Exclude<RESULT, MODELS> extends never
       ? CONTRACT
@@ -133,16 +114,14 @@ export type AssertContractMutationsInModels<
     : never;
 
 export type AssertContractsMutationsInModels<
-  CONTRACTS extends IContracts,
-  MODELS extends IModels,
-  OWNER extends 'aggregate' | 'service' = 'aggregate',
+  CONTRACTS extends IAnyContracts,
+  MODELS extends IAnyModels,
 > = [keyof CONTRACTS & string] extends [never]
   ? CONTRACTS
   : {
         [K in keyof CONTRACTS & string]: AssertContractMutationsInModels<
           CONTRACTS[K],
-          MODELS,
-          OWNER
+          MODELS
         >;
       }[keyof CONTRACTS & string] extends infer RESULT
     ? Exclude<RESULT, CONTRACTS[keyof CONTRACTS & string]> extends never

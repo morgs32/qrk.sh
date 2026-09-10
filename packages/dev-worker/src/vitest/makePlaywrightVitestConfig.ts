@@ -7,12 +7,14 @@ export function makePlaywrightVitestConfig(props: {
   packageRoot: string;
   include?: readonly string[];
 }) {
-  const { include = ['src/mainThreadFrontendFlow.playwright.spec.ts'] } =
-    props;
-  const repoRoot = path.resolve(props.packageRoot, '../..');
+  const {
+    include = ['src/mainThreadFrontendFlow.playwright.spec.ts'],
+    packageRoot,
+  } = props;
+  const repoRoot = path.resolve(packageRoot, '../..');
 
   return defineConfig({
-    root: props.packageRoot,
+    root: packageRoot,
     server: {
       headers: {
         'Cross-Origin-Embedder-Policy': 'require-corp',
@@ -23,7 +25,7 @@ export function makePlaywrightVitestConfig(props: {
       alias: [
         {
           find: /^@\/(.+)$/,
-          replacement: `${path.join(props.packageRoot, 'src')}/$1`,
+          replacement: `${path.join(packageRoot, 'src')}/$1`,
         },
         {
           find: /^@zerospin\/core\/(.+)$/,

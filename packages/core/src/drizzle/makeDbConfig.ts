@@ -2,7 +2,8 @@ import type { IAnyTable, IAnyTables } from '@zerospin/schema';
 import { Brand } from 'effect';
 import { mapValues } from 'es-toolkit';
 
-import type { IModels } from '../models/types.ts';
+import { Model } from '../models/makeModel.ts';
+import type { IAnyModels } from '../models/types.ts';
 
 import { makeDrizzleRelationsFromTables } from './makeDrizzleRelations.ts';
 import { makeDrizzleSchemasRecordFromTables } from './makeDrizzleSchemas.ts';
@@ -15,29 +16,28 @@ export function makeDbConfig<TABLES extends IAnyTables>(props: {
 }): IDbConfig<
   ReturnType<typeof makeDrizzleSchemasRecordFromTables<TABLES>>,
   ReturnType<typeof makeDrizzleRelationsFromTables<TABLES>>
-> {
-  const { tables } = props;
-  return {
+> {  const { physicalTableNames, tableAliases, tables } = props;
+return {
     schema: makeDrizzleSchemasRecordFromTables(
       tables,
-      props.physicalTableNames,
-      props.tableAliases,
+      physicalTableNames,
+      tableAliases,
     ),
     relations: makeDrizzleRelationsFromTables(
       tables,
-      props.physicalTableNames,
-      props.tableAliases,
+      physicalTableNames,
+      tableAliases,
     ),
   };
 }
 
-export function makeResourceDbConfig<MODELS extends IModels>(props: {
+export function makeResourceDbConfig<MODELS extends IAnyModels>(props: {
   models: MODELS;
   otherTables?: undefined;
 }): IResourceDbConfig<MODELS, Record<never, never>>;
 
 export function makeResourceDbConfig<
-  MODELS extends IModels,
+  MODELS extends IAnyModels,
   OTHER_TABLES extends IAnyTables,
 >(props: {
   models: MODELS;
@@ -45,32 +45,20 @@ export function makeResourceDbConfig<
 }): IResourceDbConfig<MODELS, OTHER_TABLES>;
 
 export function makeResourceDbConfig<
-  MODELS extends IModels,
+  MODELS extends IAnyModels,
   OTHER_TABLES extends IAnyTables,
->(props: { models: MODELS; otherTables?: OTHER_TABLES }) {
-  const modelTables: {
+>(props: { models: MODELS; otherTables?: OTHER_TABLES }) {  const { models, otherTables } = props;
+const modelTables: {
     [K in keyof MODELS]: MODELS[K]['table'];
-  } = mapValues(props.models, model => model.table);
+  } = mapValues(models, model => model.table);
   const tableAliases = new Map<unknown, IAnyTable>();
-  for (const model of Object.values(props.models)) {
-    if ('sourceModel' in model) {
-      const sourceModel = Reflect.get(model, 'sourceModel');
-      if (typeof sourceModel !== 'object' || sourceModel === null) {
-        throw new Error(
-          `makeResourceDbConfig: replica model "${model.modelName}" has no source model`,
-        );
-      }
-      const sourceTable = Reflect.get(sourceModel, 'table');
-      if (sourceTable === undefined) {
-        throw new Error(
-          `makeResourceDbConfig: replica model "${model.modelName}" source has no table`,
-        );
-      }
-      tableAliases.set(sourceTable, model.table);
+  for (const model of Object.values(models)) {
+    if (Model.isReplica(model)) {
+      tableAliases.set(model.sourceModel.table, model.table);
     }
   }
 
-  if (props.otherTables === undefined) {
+  if (otherTables === undefined) {
     return Brand.nominal<IResourceDbConfig<MODELS, Record<never, never>>>()(
       makeDbConfig({ tables: modelTables, tableAliases }),
     );
@@ -78,7 +66,7 @@ export function makeResourceDbConfig<
 
   const tables = {
     ...modelTables,
-    ...props.otherTables,
+    ...otherTables,
   };
 
   return Brand.nominal<IResourceDbConfig<MODELS, OTHER_TABLES>>()({

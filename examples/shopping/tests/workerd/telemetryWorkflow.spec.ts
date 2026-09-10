@@ -1,6 +1,7 @@
 import { describe, it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
+import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
 import { makeWorkerdE2eTestLayer } from '@zerospin/dev-worker/vitest/makeWorkerdE2eTestLayer';
@@ -10,9 +11,18 @@ import { Effect } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { expect } from 'vitest';
 
-import { web as shopperFrontend } from '@/zerospin/frontends/web';
-import { User } from '@/zerospin/models/User';
+import { userV1 } from '@/zerospin/aggregates/shopper/models/user/userV1';
+import { shopperV2 } from '@/zerospin/aggregates/shopper/shopperV2';
 import { system } from '@/zerospin/system';
+
+const WebV2 = makeFrontendController({
+  systemName: 'shopping',
+  aggregateName: shopperV2.name,
+  aggregateVersion: shopperV2.version,
+  name: 'web',
+  models: shopperV2.models,
+  contracts: shopperV2.contracts,
+});
 
 const TestLayer = makeWorkerdE2eTestLayer('telemetryWorkflow');
 
@@ -43,28 +53,36 @@ describe('public SystemApi telemetry boundary', () => {
             }),
           );
           const aggregateId = makeAggregateId({ id: 'telemetry' });
-          const command = yield* system.aggregates.shopper.makeCommand({
-            contractName: 'createUser',
-            aggregateId,
-            systemName: shopperFrontend.systemName,
-            systemVersion: system.version,
-            payload: {
-              id: User.prefixId('user_telemetry'),
-              clerkUserId: 'user_telemetry',
+          const command = yield* system.aggregates.shopper['2.0.0'].makeCommand(
+            {
+              contractName: 'createUser',
+              aggregateId,
+              systemName: WebV2.systemName,
+              payload: {
+                id: userV1.prefixId('user_telemetry'),
+                clerkUserId: 'user_telemetry',
+              },
             },
-          });
+          );
           const encodedCommand = {
             ...command,
-            payload:
-              yield* system.aggregates.shopper.contracts.createUser.encodePayload(
-                { payload: command.payload },
-              ),
+            payload: yield* system.aggregates.shopper[
+              '2.0.0'
+            ].contracts.createUser.contract.encodePayload({
+              version: command.contractVersion,
+              payload: command.payload,
+            }),
           };
 
           const finalized = yield* makeAsync(() =>
-            systemApi.finalizeAggregateCommand({
+            systemApi.executeAggregateCommand({
               traceContext: null,
-              args: [encodedCommand],
+              args: [
+                {
+                  aggregateVersion: WebV2.aggregateVersion,
+                  command: encodedCommand,
+                },
+              ],
             }),
           ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
           expect(finalized).toMatchObject({

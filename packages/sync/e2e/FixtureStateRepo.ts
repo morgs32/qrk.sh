@@ -19,10 +19,11 @@ export class FixtureStateRepo extends DurableObject<Env> {
   }
 
   async bump(props: { value: string }): Promise<ISnapshot> {
+    const { value } = props;
     const current = await this.getSnapshot();
     const snapshot: ISnapshot = {
       version: current.version + 1,
-      value: props.value,
+      value,
     };
     await this.ctx.storage.kv.put(snapshotKey, snapshot);
 

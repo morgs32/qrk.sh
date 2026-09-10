@@ -22,7 +22,7 @@ export type IFixedDORepoConfig<
   readonly namePattern: string;
   managedRuntime: ManagedRuntime.ManagedRuntime<SERVICES, never>;
   nameUtils: IRepoNameUtils<PATTERN>;
-  getDbConfig: (props: {
+  dbConfig: (props: {
     name: string;
     key: MatchParams<PATTERN>;
     storage: DurableObjectStorage;

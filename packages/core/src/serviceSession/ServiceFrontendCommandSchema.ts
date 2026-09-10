@@ -49,16 +49,10 @@ const EmptyServiceFrontendDeltaSchema = Schema.Struct({
 
 const serviceFrontendFields = {
   serviceIndex: positiveIndexSchema,
-  serviceFrontendIndex: positiveIndexSchema,
+  serviceVersion: Schema.String,
+  dispositionHash: Schema.String,
   chainedAt: Schema.DateFromString,
 };
-
-const ServiceFrontendPendingCommandSchema = Schema.fieldsAssign({
-  ...serviceFrontendFields,
-  delta: Schema.Null,
-  failedAt: Schema.Null,
-  failure: Schema.Null,
-})(EncodedServiceCommandSchema);
 
 const ServiceFrontendSuccessfulCommandSchema = Schema.fieldsAssign({
   ...serviceFrontendFields,
@@ -75,7 +69,6 @@ const ServiceFrontendFailedCommandSchema = Schema.fieldsAssign({
 })(EncodedServiceCommandSchema);
 
 export const ServiceFrontendFinalizedCommandSchema = Schema.Union([
-  ServiceFrontendPendingCommandSchema,
   ServiceFrontendSuccessfulCommandSchema,
   ServiceFrontendFailedCommandSchema,
 ]) satisfies Schema.Codec<
@@ -86,10 +79,9 @@ export const ServiceFrontendFinalizedCommandSchema = Schema.Union([
 export const ServiceFrontendStateSchema = Schema.Struct({
   userId: Schema.NonEmptyString,
   systemId: makeAbbreviationIdSchema(coreAbbreviations.system),
-  systemVersion: Schema.String,
   serviceName: Schema.String,
   frontendName: Schema.String,
   serviceIndex: nonNegativeIndexSchema,
-  serviceFrontendIndex: nonNegativeIndexSchema,
+  serviceVersion: Schema.String,
   resources: Schema.Array(EncodedResourceSchema),
 }) satisfies Schema.Codec<IServiceFrontendState, any>;

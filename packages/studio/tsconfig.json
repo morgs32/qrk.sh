@@ -42,7 +42,7 @@
       "path": "../system-worker"
     },
     {
-      "path": "../react-router"
+      "path": "../error-boundary"
     },
     {
       "path": "../logger"

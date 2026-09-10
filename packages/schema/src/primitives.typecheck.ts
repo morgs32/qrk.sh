@@ -136,3 +136,17 @@ primitives.ref({
   relation: 'multipleKeys',
   inverse: 'commands',
 });
+
+const structuralTable = {
+  name: 'structural',
+  shape: { id: primitives.primaryKey({ abbreviation: 'str' }) },
+  indexes: [],
+};
+primitives.ref({
+  // @ts-expect-error Table construction cannot be bypassed with a structural object.
+  table: structuralTable,
+  relation: 'structural',
+  inverse: 'sources',
+});
+void (userTable.name satisfies 'user');
+void (refDescriptor.targetColumnName satisfies 'id');

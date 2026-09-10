@@ -27,6 +27,7 @@ export const fetchServiceFrontendState = Effect.fn('fetchServiceFrontendState')(
     authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
     generateSignature(): Promise<IEncodedResult<unknown, IAnyErrorJson>>;
     serviceName: string;
+    serviceVersion: string;
     frontendName: string;
     serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
   }): Effect.fn.Return<
@@ -34,18 +35,29 @@ export const fetchServiceFrontendState = Effect.fn('fetchServiceFrontendState')(
     IAnyError,
     Async | TelemetryCollector
   > {
-    const signature = yield* makeAsync(props.generateSignature).pipe(
+    const {
+      apiUrl,
+      authenticationLock,
+      frontendName,
+      generateSignature,
+      publishableKey,
+      serviceFrontendLock,
+      serviceName,
+      systemName,
+    } = props;
+    const signature = yield* makeAsync(generateSignature).pipe(
       Effect.flatMap(decodeRpc),
     );
-    const gatewayApi = newSyncRpcSession<GatewayApi>(props.apiUrl);
+    const gatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
     const frontendApi = gatewayApi.getServiceFrontendApi({
-      publishableKey: props.publishableKey,
-      systemName: props.systemName,
-      authenticationLock: props.authenticationLock,
+      serviceVersion: props.serviceVersion,
+      publishableKey,
+      systemName,
+      authenticationLock,
       signature,
-      serviceName: props.serviceName,
-      frontendName: props.frontendName,
-      serviceFrontendLock: props.serviceFrontendLock,
+      serviceName,
+      frontendName,
+      serviceFrontendLock,
     });
     return yield* makeTraceableApiTarget(frontendApi)
       .getState()

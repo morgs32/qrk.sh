@@ -11,17 +11,25 @@ import {
   type RelationsBuilderColumnBase,
 } from 'drizzle-orm';
 
-import type { IModels } from '../models/types.ts';
+import type { IAnyModels } from '../models/types.ts';
 
 import { makeDrizzleSchemasRecordFromTables } from './makeDrizzleSchemas.ts';
 import type { IDrizzleRelationsFromModels } from './types.ts';
 
-/** Derives and validates all Drizzle relations from one concrete table graph. */
+/**
+ * Derives and validates all Drizzle relations from one concrete table graph.
+ *
+ * 1. Register table identities and unique physical names.
+ * 2. Locate the single primary key available on each table.
+ * 3. Validate refs and reserve forward and inverse relation names.
+ * 4. Reject cycles across the validated cross-table ref graph.
+ * 5. Build matching forward and inverse Drizzle relations.
+ */
 export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
   tables: TABLES,
   physicalTableNames?: Partial<Record<keyof TABLES & string, string>>,
   tableAliases?: ReadonlyMap<unknown, IAnyTable>,
-): IDrizzleRelationsFromModels<IModels, TABLES>;
+): IDrizzleRelationsFromModels<IAnyModels, TABLES>;
 export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
   tables: TABLES,
   physicalTableNames: Partial<Record<keyof TABLES & string, string>> = {},
@@ -43,9 +51,8 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
     }
   }
 
-  // Step 1: register every table object and physical table name. Relation
-  // targets are resolved by concrete object identity, while duplicate physical
-  // names are rejected independently of the record keys.
+  // 1 — Register every table object and physical table name. Relation targets
+  // resolve by concrete object identity; record keys do not excuse duplicates.
   for (const tableKey of tableKeys) {
     const table = tables[tableKey];
     if (table === undefined) {
@@ -64,9 +71,8 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
     targetsBySourceTableKey.set(tableKey, new Set());
   }
 
-  // Step 2: inspect every column on every table. Zero primary keys are valid
-  // until another table references that table; multiple primary keys are never
-  // a valid table shape for this database configuration.
+  // 2 — Inspect every column. Zero primary keys remain valid until referenced;
+  // multiple primary keys are invalid for this database configuration.
   for (const tableKey of tableKeys) {
     const table = tables[tableKey];
     if (table === undefined) {
@@ -92,8 +98,8 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
     }
   }
 
-  // Step 3: validate each forward ref and reserve both its forward and inverse
-  // relation names on their respective source/target tables.
+  // 3 — Validate target identity and key metadata for every ref, then reserve
+  // its forward and inverse names on the source and target tables.
   for (const sourceTableKey of tableKeys) {
     const sourceTable = tables[sourceTableKey];
     if (sourceTable === undefined) {
@@ -184,8 +190,8 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
     }
   }
 
-  // Step 4: perform an explicit depth-first traversal over the validated ref
-  // edges. A table re-entered while still visiting proves a cycle.
+  // 4 — Traverse validated cross-table edges depth-first; re-entering a table
+  // that is still visiting proves a cycle. Self refs remain valid metadata.
   const visitingTableKeys = new Set<keyof TABLES & string>();
   const visitedTableKeys = new Set<keyof TABLES & string>();
   for (const tableKey of tableKeys) {
@@ -237,9 +243,8 @@ export function makeDrizzleRelationsFromTables<TABLES extends IAnyTables>(
     tableAliases,
   );
 
-  // Step 5: construct one forward relation and one inverse relation for every
-  // ref. Unique refs produce inverse one relations; all other refs produce
-  // inverse many relations.
+  // 5 — Construct one forward and one inverse relation per ref. Unique refs
+  // produce inverse one relations; all other refs produce inverse many relations.
   return defineRelations(schema, (builder: RelationsBuilder<typeof schema>) => {
     const result: Record<string, Record<string, AnyRelation>> = {};
     for (const tableKey of tableKeys) {

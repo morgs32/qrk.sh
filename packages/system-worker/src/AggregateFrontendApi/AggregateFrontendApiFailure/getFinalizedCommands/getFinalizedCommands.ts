@@ -4,9 +4,22 @@ import { Effect } from 'effect';
 
 import type { AggregateFrontendApi } from '../../AggregateFrontendApi.js';
 
+/*
+ * AggregateFrontendApiFailure.getFinalizedCommands answers calls on a rejected capability.
+ * It returns the original admission error without executing the requested operation.
+ *
+ * 1. Read the retained admission error.
+ * 2. Return the linked RPC failure envelope.
+ */
 export const getFinalizedCommands = Effect.fn(
   'AggregateFrontendApiFailure.getFinalizedCommands',
 )((props: {
   error: IAnyError;
   request: Parameters<AggregateFrontendApi['getFinalizedCommands']>[0];
-}) => Effect.succeed({ result: encodeFailure(props.error), link: null }));
+}) => {
+  // 1 — ignore operation arguments because this capability was never granted
+  const { error } = props;
+
+  // 2 — encode the retained error and leave the trace link null
+  return Effect.succeed({ result: encodeFailure(error), link: null });
+});

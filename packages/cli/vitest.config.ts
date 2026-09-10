@@ -14,5 +14,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // Jiti and Vitest must share core's canonical class identities.
+    server: { deps: { external: [/\/packages\/core\//] } },
+    include: ['src/**/*.spec.ts'],
   },
 });

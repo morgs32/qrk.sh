@@ -1,4 +1,3 @@
-import * as NodeChildProcessSpawner from '@effect/platform-node-shared/NodeChildProcessSpawner';
 import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
 import * as NodePath from '@effect/platform-node-shared/NodePath';
 import * as NodeTerminal from '@effect/platform-node-shared/NodeTerminal';
@@ -23,14 +22,10 @@ export function Dev(props: {
     fetcher: () =>
       devFn({ clean, port, systemId }).pipe(
         Effect.provide(
-          NodeChildProcessSpawner.layer.pipe(
-            Layer.provideMerge(
-              Layer.mergeAll(
-                NodeFileSystem.layer,
-                NodePath.layer,
-                NodeTerminal.layer,
-              ),
-            ),
+          Layer.mergeAll(
+            NodeFileSystem.layer,
+            NodePath.layer,
+            NodeTerminal.layer,
           ),
         ),
       ),

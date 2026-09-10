@@ -6,7 +6,7 @@ export enum PrimitiveKind {
   Integer = 'integer',
   Json = 'json',
   Number = 'number',
-  OpaqueId = 'opaqueId',
+  ForeignKey = 'foreignKey',
   PrimaryKey = 'primaryKey',
   Ref = 'ref',
   Text = 'text',

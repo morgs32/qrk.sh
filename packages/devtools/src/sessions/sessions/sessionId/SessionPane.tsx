@@ -99,13 +99,13 @@ function SessionState(props: {
   readonly sourceLabel: 'aggregate index' | 'service index';
   readonly frontendLabel: 'frontend index' | 'service frontend index';
   readonly sourceIndex: number | null;
-  readonly frontendIndex: number | null;
+  readonly userIndex: number | null;
   readonly pushIndex?: number | null;
 }) {
   const {
     backupState,
     frontendLabel,
-    frontendIndex,
+    userIndex,
     pushIndex,
     sessionStatus,
     sourceLabel,
@@ -133,7 +133,7 @@ function SessionState(props: {
         {sourceLabel}: {sourceIndex ?? 'none'}
       </span>
       <span>
-        {frontendLabel}: {frontendIndex ?? 'none'}
+        {frontendLabel}: {userIndex ?? 'none'}
       </span>
       {pushIndex === undefined ? null : (
         <span>push index: {pushIndex ?? 'none'}</span>
@@ -155,7 +155,7 @@ function AggregateSessionPane(props: { readonly session: ISession }) {
   const sessionStatus = useStore(session.store, state => state.sessionStatus);
   const backupState = useStore(session.store, state => state.backupState);
   const aggregateIndex = useStore(session.store, state => state.aggregateIndex);
-  const frontendIndex = useStore(session.store, state => state.frontendIndex);
+  const userIndex = useStore(session.store, state => state.userIndex);
   const pushIndex = useStore(session.store, state => state.pushIndex);
 
   if (!isInitialized) {
@@ -166,7 +166,7 @@ function AggregateSessionPane(props: { readonly session: ISession }) {
         sourceLabel="aggregate index"
         frontendLabel="frontend index"
         sourceIndex={aggregateIndex}
-        frontendIndex={frontendIndex}
+        userIndex={userIndex}
         pushIndex={pushIndex}
       />
     );
@@ -180,7 +180,7 @@ function AggregateSessionPane(props: { readonly session: ISession }) {
         sourceLabel="aggregate index"
         frontendLabel="frontend index"
         sourceIndex={aggregateIndex}
-        frontendIndex={frontendIndex}
+        userIndex={userIndex}
         pushIndex={pushIndex}
       />
       <div style={styles.tabsHeader}>
@@ -246,12 +246,6 @@ function ServiceSessionPane(props: {
     session.getServiceIndex,
     session.getServiceIndex,
   );
-  const serviceFrontendIndex = useSyncExternalStore(
-    session.subscribe,
-    session.getServiceFrontendIndex,
-    session.getServiceFrontendIndex,
-  );
-
   if (!isInitialized) {
     return (
       <SessionState
@@ -260,7 +254,7 @@ function ServiceSessionPane(props: {
         sourceLabel="service index"
         frontendLabel="service frontend index"
         sourceIndex={serviceIndex}
-        frontendIndex={serviceFrontendIndex}
+        userIndex={serviceIndex}
       />
     );
   }
@@ -273,7 +267,7 @@ function ServiceSessionPane(props: {
         sourceLabel="service index"
         frontendLabel="service frontend index"
         sourceIndex={serviceIndex}
-        frontendIndex={serviceFrontendIndex}
+        userIndex={serviceIndex}
       />
       <div style={styles.tabsHeader}>
         <NavLink

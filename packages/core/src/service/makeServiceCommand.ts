@@ -4,8 +4,8 @@ import { Effect } from 'effect';
 
 import { makeCommand } from '../contracts/makeCommand.ts';
 import type {
+  IAnyContracts,
   ICommand,
-  IContracts,
   IServiceCommand,
 } from '../contracts/types.ts';
 import type {
@@ -15,11 +15,13 @@ import type {
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 
 export const makeServiceCommand = Effect.fn('makeServiceCommand')(function* <
-  CONTRACTS extends IContracts,
+  SERVICE_NAME extends string,
+  CONTRACTS extends IAnyContracts,
   CONTRACT_NAME extends keyof CONTRACTS & string,
 >(props: {
   contracts: CONTRACTS;
-  serviceName: string;
+  serviceVersion: string;
+  serviceName: SERVICE_NAME;
   contractName: CONTRACT_NAME;
   payload: InferPayloadInput<CONTRACTS[CONTRACT_NAME]['payload']>;
 }): Effect.fn.Return<
@@ -28,7 +30,8 @@ export const makeServiceCommand = Effect.fn('makeServiceCommand')(function* <
       CONTRACTS[CONTRACT_NAME]['commandName'],
       CONTRACTS[CONTRACT_NAME]['version'],
       InferCommandPayload<CONTRACTS[CONTRACT_NAME]['payload']>
-    >
+    >,
+    SERVICE_NAME
   >,
   IAnyError,
   CuidFactory
@@ -47,6 +50,7 @@ export const makeServiceCommand = Effect.fn('makeServiceCommand')(function* <
 
   return {
     ...command,
+    serviceVersion: props.serviceVersion,
     serviceName,
   };
 });

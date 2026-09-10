@@ -16,13 +16,15 @@ export function makeSystemWorkerName(
         systemEnvironmentId: 'production';
       },
 ): string {
-  if (props.systemEnvironmentId === 'dev') {
-    if (props.clerkUserId.length === 0) {
+  const { systemEnvironmentId, systemId } = props;
+  if (systemEnvironmentId === 'dev') {
+    const { clerkUserId } = props;
+    if (clerkUserId.length === 0) {
       throw new Error(
         'Hosted development system worker name requires a non-empty clerkUserId.',
       );
     }
-    return `${props.systemId}:${props.clerkUserId}`;
+    return `${systemId}:${clerkUserId}`;
   }
-  return props.systemId;
+  return systemId;
 }

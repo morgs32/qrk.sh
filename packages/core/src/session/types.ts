@@ -2,15 +2,14 @@ import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
 import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
 import type { InferIdFromAbbreviation } from '@zerospin/schema';
 import type { AnyRelations } from 'drizzle-orm';
+import type { Schema } from 'effect';
 import type { StoreApi } from 'zustand';
 
+import type { AggregateExecutionEntrySchema } from '../contracts/CommandSchema.ts';
 import type {
-  IAggregateCommand,
   IChainedCommand,
   IEncodedAppliedMutation,
   InferCommand,
-  IServiceCommand,
-  ISessionCommand,
 } from '../contracts/types.ts';
 import type {
   IDb,
@@ -25,8 +24,8 @@ import type {
 } from '../frontendController/types.ts';
 import type {
   IAggregateId,
+  IAnyModels,
   IEncodedResourceShape,
-  IModels,
   InferPayloadInput,
   IRef,
 } from '../models/types.ts';
@@ -36,16 +35,16 @@ import { type sessionRepoSchema } from './sessionRepoTables.ts';
 
 export type ISessionRepoSchema = typeof sessionRepoSchema;
 
-export type ISessionSchema<MODELS extends IModels = IModels> =
+export type ISessionSchema<MODELS extends IAnyModels = IAnyModels> =
   IResourceDrizzleSchemasFromModels<MODELS> & ISessionRepoSchema;
 
 export type ISessionDrizzleDb<
-  MODELS extends IModels = IModels,
+  MODELS extends IAnyModels = IAnyModels,
   RELATIONS extends AnyRelations = AnyRelations,
 > = IDb<IDbConfig<ISessionSchema<MODELS>, RELATIONS>>;
 
 export type ISessionWaSqliteDb<
-  MODELS extends IModels = IModels,
+  MODELS extends IAnyModels = IAnyModels,
   RELATIONS extends AnyRelations = AnyRelations,
 > = IWaSqliteDrizzleDb<IDbConfig<ISessionSchema<MODELS>, RELATIONS>>;
 
@@ -58,47 +57,37 @@ export type IFrontendDelta = Readonly<{
   mutations: readonly IEncodedAppliedMutation[];
 }>;
 
-export type IAggregateFrontendPushedCommand = IChainedCommand<
-  ISessionCommand,
-  IFrontendDelta
-> &
-  Readonly<{ pushIndex: number }>;
-
-export type IAggregateFrontendFinalizedCommand =
-  | (IChainedCommand<IAggregateCommand, IFrontendDelta> &
-      Readonly<{
-        aggregateIndex: number;
-        frontendIndex: number;
-      }>)
-  | (IChainedCommand<IServiceCommand, IFrontendDelta> &
-      Readonly<{
-        aggregateIndex: number;
-        serviceIndex: number;
-        frontendIndex: number;
-      }>);
+export type IAggregateFrontendFinalizedCommand = Readonly<{
+  userIndex: number;
+  aggregateIndex: number;
+  delta: IFrontendDelta;
+  resolution: Schema.Schema.Type<typeof AggregateExecutionEntrySchema> | null;
+}>;
 
 /** Complete server-owned aggregate frontend state used for creation and repair. */
 export type IAggregateFrontendSyncState = Readonly<{
   aggregateId: IAggregateId;
   userId: string;
   systemId: ISystemId;
-  systemVersion: string;
   aggregateName: string;
+  aggregateVersion: string;
+  resolutions: readonly Schema.Schema.Type<
+    typeof AggregateExecutionEntrySchema
+  >[];
   frontendName: string;
   aggregateIndex: number;
-  frontendIndex: number;
-  pushIndex: number;
-  resolvedPushIndexes: readonly number[];
+  userIndex: number;
   resources: readonly IEncodedResourceShape[];
 }>;
 
-export interface IInitializedSessionState<MODELS extends IModels = IModels> {
+export interface IInitializedSessionState<
+  MODELS extends IAnyModels = IAnyModels,
+> {
   sessionId: ISessionId;
   aggregateId: IAggregateId;
   aggregateName: string;
   userId: string;
   systemId: ISystemId;
-  systemVersion: string;
   frontendName: string;
   aggregateFrontendLockKey: string;
   db: IWaSqliteDrizzleDb<
@@ -108,7 +97,7 @@ export interface IInitializedSessionState<MODELS extends IModels = IModels> {
   models: MODELS;
   isInitialized: true;
   aggregateIndex: number;
-  frontendIndex: number;
+  userIndex: number;
   pushIndex: number;
   sessionStatus:
     | 'bootstrapping'
@@ -130,7 +119,6 @@ type IUninitializedSessionState = {
   aggregateName: null;
   userId: null;
   systemId: null;
-  systemVersion: null;
   frontendName: null;
   aggregateFrontendLockKey: null;
   db: null;
@@ -138,7 +126,7 @@ type IUninitializedSessionState = {
   models: null;
   isInitialized: false;
   aggregateIndex: null;
-  frontendIndex: null;
+  userIndex: null;
   pushIndex: null;
   sessionStatus:
     | 'bootstrapping'
@@ -154,11 +142,11 @@ type IUninitializedSessionState = {
   telemetryCollector: ITelemetryCollector;
 };
 
-export type ISessionState<MODELS extends IModels = IModels> =
+export type ISessionState<MODELS extends IAnyModels = IAnyModels> =
   | IInitializedSessionState<MODELS>
   | IUninitializedSessionState;
 
-type ISessionStoreApi<MODELS extends IModels = IModels> = StoreApi<
+type ISessionStoreApi<MODELS extends IAnyModels = IAnyModels> = StoreApi<
   ISessionState<MODELS>
 >;
 
@@ -166,6 +154,7 @@ export type ISession<
   FRONTEND extends IAggregateFrontendController = IAggregateFrontendController,
 > = {
   frontend: FRONTEND;
+
   /**
    * One-shot readiness callback. Registration after initialization invokes
    * the handler synchronously; registration before it fires once in the next
@@ -177,15 +166,22 @@ export type ISession<
       state: IInitializedSessionState<InferFrontendModels<FRONTEND>>;
     }) => void,
   ): () => void;
-  sessionId: ISessionId;
+  readonly sessionId: ISessionId;
   executeCommand<
     CONTRACT_NAME extends keyof FRONTEND['contracts'] & string,
   >(props: {
     contractName: CONTRACT_NAME;
-    payload: InferPayloadInput<FRONTEND['contracts'][CONTRACT_NAME]['payload']>;
+    payload: InferPayloadInput<
+      NonNullable<
+        FRONTEND['contracts'][CONTRACT_NAME]['contract']['__payloads']
+      >[FRONTEND['contracts'][CONTRACT_NAME]['contract']['version']]
+    >;
   }): IEncodedResult<
     IChainedCommand<
-      InferCommand<FRONTEND['contracts'][CONTRACT_NAME]>,
+      InferCommand<
+        FRONTEND['contracts'][CONTRACT_NAME]['contract'],
+        FRONTEND['contracts'][CONTRACT_NAME]['contract']['version']
+      >,
       IFrontendDelta
     > &
       Readonly<{ sessionIndex: number }>,

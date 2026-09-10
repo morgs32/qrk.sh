@@ -74,3 +74,10 @@ packages/devtools/src/**/*.d.ts.map
 # llm-wiki local state and per-machine Obsidian configuration
 .llmwiki/state/
 .obsidian/
+
+# Scoped CLI entrypoints and configuration test workspaces
+.zerospin-entry-*/
+.typed-config-e2e-*/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/

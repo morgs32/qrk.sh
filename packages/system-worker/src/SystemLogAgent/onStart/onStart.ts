@@ -6,10 +6,13 @@ import { mapParseError, ZerospinError } from '@zerospin/error';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { Effect, Result, Schema } from 'effect';
 
-import { getSystemLogRepo } from '../../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
-import { systemLogRowSchema } from '../../SystemLogRepo/SystemLogRepoDbConfig.js';
+import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
+import { systemLogRowSchema } from '../../SystemLogRepo/systemLogRepoDbConfig.js';
 
 /*
+ * SystemLogAgent activation replaces its persisted live-tail projection with
+ * the newest authoritative SystemLogRepo rows for the configured systemId.
+ *
  * 1. Read the Agent instance name.
  * 2. Validate the name as the configured system id.
  * 3. Resolve the authoritative SystemLogRepo.
@@ -21,8 +24,11 @@ export const onStart = Effect.fn('SystemLogAgent.onStart')(function* (props: {
   systemId: string;
   setState: (state: ISystemLogState) => void;
 }) {
+  const { setState } = props;
+
   // 1 — Agent names stay aligned with the static SystemLogRepo name
   const { name, systemId } = props;
+
   // 2 — reject unnamed or malformed activations before any repo lookup
   const agentSystemId = yield* Schema.decodeUnknownEffect(
     Schema.toType(makeAbbreviationIdSchema(coreAbbreviations.system)),
@@ -40,10 +46,12 @@ export const onStart = Effect.fn('SystemLogAgent.onStart')(function* (props: {
       extra: { agentSystemId, systemId },
     });
   }
+
   // 3 — preserve SystemLogRepo naming policy by using the lookup boundary
-  const systemLogRepo = yield* getSystemLogRepo({
+  const systemLogRepo = yield* SystemLogRepo.getRepo({
     key: { systemId },
   });
+
   // 4 — activation performs one SystemLogRepo read
   const rows = yield* makeAsync(() =>
     systemLogRepo.getSystemLogRows({ limit: 100 }),
@@ -72,6 +80,7 @@ export const onStart = Effect.fn('SystemLogAgent.onStart')(function* (props: {
         : Effect.succeed(result.success),
     ),
   );
+
   // 5 — authoritative startup always replaces, rather than merges with, persisted state
-  yield* Effect.sync(() => props.setState({ rows, syncedAt: Date.now() }));
+  yield* Effect.sync(() => setState({ rows, syncedAt: Date.now() }));
 });

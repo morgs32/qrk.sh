@@ -4,10 +4,12 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { main, mainModels } from '@zerospin/core/fixtures/system';
-import { makeSession } from '@zerospin/core/session/makeSession';
+import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
 import type { ISessionId } from '@zerospin/core/session/types';
-import { Effect } from 'effect';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
+import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
+import { Effect, Exit, Layer, ManagedRuntime, Scope } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import {
   createMemoryRouter,
@@ -15,11 +17,28 @@ import {
   Route,
   RouterProvider,
 } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import { zerospinDevtoolsStore } from '../../../../zerospinDevtoolsStore.js';
 
 import { SessionsCommandsLayout } from './SessionsCommandsLayout';
+const guardTestRuntime = ManagedRuntime.make(
+  Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
+);
+
+const sessionScope = Scope.makeUnsafe();
+Effect.runSync(
+  Scope.addFinalizer(sessionScope, guardTestRuntime.disposeEffect),
+);
+afterAll(() => Effect.runPromise(Scope.close(sessionScope, Exit.void)));
 
 const sessionId = 'sesn_commands_layout' as ISessionId;
 
@@ -49,7 +68,6 @@ describe('SessionsCommandsLayout', () => {
       models,
       otherTables: sessionRepoTables,
     });
-    const schema = dbConfig.schema;
     const db = await Effect.runPromise(
       makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
         Effect.provide(AsyncLive),
@@ -58,10 +76,16 @@ describe('SessionsCommandsLayout', () => {
 
     expect(typeof db.query.commandJournal!.findMany).toBe('function');
 
-    const session = makeSession({
-      frontend: main,
-      sessionId,
-    });
+    const session = Effect.runSync(
+      Effect.map(main.initializeGuards, guards =>
+        makeAggregateSession({
+          runtime: guardTestRuntime,
+          guards,
+          frontend: main,
+          sessionId,
+        }),
+      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+    );
 
     session.store.setState({
       sessionId,
@@ -69,15 +93,14 @@ describe('SessionsCommandsLayout', () => {
       aggregateName: main.aggregateName,
       userId: 'usr_1',
       systemId: 'sys_commands_layout',
-      systemVersion: '1.0.0',
-      frontendName: main.frontendName,
+      frontendName: main.name,
       aggregateFrontendLockKey: 'a'.repeat(64),
       db,
-      schema,
+      schema: dbConfig.schema,
       models,
       isInitialized: true,
       aggregateIndex: 0,
-      frontendIndex: 0,
+      userIndex: 0,
       pushIndex: 0,
       sessionStatus: 'current',
       backupState: { status: 'ready', failure: null },

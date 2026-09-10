@@ -19,6 +19,22 @@
       }
     },
     {
+      "files": ["**/zerospin.config.ts"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/src/**", "!./src/**"],
+                "message": "Project configs may import their local source. Use package entrypoints for other packages."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["tests/**/*.ts", "tests/**/*.tsx"],
       "rules": {
         "eslint/no-restricted-imports": "off"

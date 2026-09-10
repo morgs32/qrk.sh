@@ -31,7 +31,9 @@ describe('frontendAdapters: static aggregate finalization', () => {
       () =>
         Effect.gen(function* () {
           const itemId = yield* SourceItem.makeId();
-          const createItem = yield* system.aggregates.aggregate.makeCommand({
+          const createItem = yield* system.aggregates.aggregate[
+            '1.0.0'
+          ]!.makeCommand({
             contractName: 'createSourceItem',
             aggregateId: E2E_AGGREGATE_ID,
             systemName: projection.systemName,
@@ -43,10 +45,12 @@ describe('frontendAdapters: static aggregate finalization', () => {
           });
           const encodedCreateItem = {
             ...createItem,
-            payload:
-              yield* system.aggregates.aggregate.contracts.createSourceItem.encodePayload(
-                { payload: createItem.payload },
-              ),
+            payload: yield* system.aggregates.aggregate[
+              '1.0.0'
+            ]!.contracts.createSourceItem.contract.encodePayload({
+              version: createItem.contractVersion,
+              payload: createItem.payload,
+            }),
           };
 
           const gatewayApi = yield* Effect.acquireRelease(
@@ -70,9 +74,9 @@ describe('frontendAdapters: static aggregate finalization', () => {
             using systemApi = await gatewayApi.getSystemApi({
               zerospinSecretKey: 'sk_test_system_runtime_capability',
             });
-            return systemApi.finalizeAggregateCommand({
+            return systemApi.executeAggregateCommand({
               traceContext: null,
-              args: [encodedCreateItem],
+              args: [{ aggregateVersion: '1.0.0', command: encodedCreateItem }],
             });
           });
           const finalized = yield* decodeRpc(finalizedEnvelope.result);
@@ -86,28 +90,29 @@ describe('frontendAdapters: static aggregate finalization', () => {
           );
           expect(finalized.aggregateIndex).toBe(1);
 
-          const authenticationLock = makeAuthenticationLock({
-            signature: authenticationSignature,
-          });
+          const authenticationLock = makeAuthenticationLock(
+            authenticationSignature,
+          );
           const frontendResults = yield* makeAsync(async () => {
             using frontendApi = await gatewayApi.getAggregateFrontendApi({
+              aggregateVersion: '1.0.0',
               publishableKey: 'pk_test',
               systemName: system.name,
               authenticationLock,
               signature: { clerkUserId: E2E_CLERK_USER_ID },
               aggregateId: E2E_AGGREGATE_ID,
               aggregateName: projection.aggregateName,
-              frontendName: projection.frontendName,
+              frontendName: projection.name,
               aggregateFrontendLock,
             });
             return {
               state: await frontendApi.getState({
                 traceContext: null,
-                args: [],
+                args: [{ outstandingCommandIds: [] }],
               }),
               ticket: await frontendApi.createWebSocketTicket({
                 traceContext: null,
-                args: [],
+                args: [{ aggregateVersion: '1.0.0' }],
               }),
             };
           });
@@ -121,18 +126,18 @@ describe('frontendAdapters: static aggregate finalization', () => {
           const ticket = yield* decodeRpc(frontendResults.ticket.result);
           expect(ticket.ticket).toHaveLength(43);
 
-          const systemRepo = SystemRepo.getRepo({
-            systemId: env.ZEROSPIN_SYSTEM_ID,
+          const systemRepo = yield* SystemRepo.getRepo({
+            key: { systemId: env.ZEROSPIN_SYSTEM_ID },
           });
           expect(
             yield* makeAsync(() =>
               systemRepo.getRepoRegistrations({
-                repoType: 'MaterializedAggregateFrontendRepo',
+                repoType: 'UserVersionedAggregateRepo',
               }),
             ).pipe(Effect.flatMap(decodeRpc)),
           ).toEqual([
             expect.objectContaining({
-              repoType: 'MaterializedAggregateFrontendRepo',
+              repoType: 'UserVersionedAggregateRepo',
             }),
           ]);
         }).pipe(Effect.provide(AsyncLive), Effect.scoped),

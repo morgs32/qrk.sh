@@ -1,11 +1,13 @@
 import { readFileSync } from 'node:fs';
 
 import { primitives } from '@zerospin/schema';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeModel } from './makeModel.ts';
+import { Model } from './makeModel.ts';
 import { makeReplica } from './makeReplica.ts';
+
+import { models } from './index.ts';
 
 describe('makeReplica', () => {
   it('does not import the server-only marker', () => {
@@ -18,34 +20,70 @@ describe('makeReplica', () => {
   });
 
   it('creates a client-safe replica with immutable source and service ownership', () => {
-    const Product = makeModel({
-      abbreviation: 'prd',
-      modelName: 'product',
-      attributes: { name: primitives.text() },
-      indexes: [],
-      version: '1.0.0',
-    });
-    const ProductReplica = makeReplica({
-      sourceModel: Product,
-      serviceName: 'app',
-    });
-    const CartItem = makeModel({
-      abbreviation: 'cit',
-      modelName: 'cartItem',
-      attributes: {
-        productId: primitives.ref({
-          table: Product.table,
-          relation: 'product',
-          inverse: 'cartItems',
-        }),
+    const Product = models.makeVersion(
+      models.makeModel({ name: 'product', abbreviation: 'prd' }),
+      {
+        attributes: { name: primitives.text() },
+        indexes: [],
+        version: '1.0.0',
       },
-      indexes: [],
-      version: '1.0.0',
-    });
+    );
+    const replicaProps = {
+      sourceModel: Product,
+      modelVersion: Product.version,
+      serviceName: 'app',
+    };
+    const ProductReplica = makeReplica(replicaProps);
+    const CartItem = models.makeVersion(
+      models.makeModel({ name: 'cartItem', abbreviation: 'cit' }),
+      {
+        attributes: {
+          productId: primitives.ref({
+            table: Product.table,
+            relation: 'product',
+            inverse: 'cartItems',
+          }),
+        },
+        indexes: [],
+        version: '1.0.0',
+      },
+    );
 
     expect(ProductReplica.sourceModel).toBe(Product);
+    expect(ProductReplica).toBeInstanceOf(Model);
+    expect(Model.isReplica(ProductReplica)).toBe(true);
+    expect(Model.isReplica(Product)).toBe(false);
     expect(ProductReplica.serviceName).toBe('app');
-    expect(ProductReplica.attributes).toBe(Product.attributes);
+    replicaProps.serviceName = 'mutated';
+    expect(ProductReplica.serviceName).toBe('app');
+    expect(() =>
+      makeReplica({
+        sourceModel: ProductReplica,
+        modelVersion: ProductReplica.version,
+        serviceName: 'app',
+      }),
+    ).toThrow(Schema.SchemaError);
+    expect(() =>
+      makeReplica({
+        sourceModel: ProductReplica,
+        modelVersion: ProductReplica.version,
+        serviceName: 'app',
+      }),
+    ).toThrow(/sourceModel must be an authored model/);
+    expect(() =>
+      makeReplica({
+        sourceModel: Product,
+        modelVersion: Product.version,
+        serviceName: 'app',
+        extra: true,
+      } as {
+        sourceModel: typeof Product;
+        serviceName: string;
+        modelVersion: typeof Product.version;
+      }),
+    ).toThrow(Schema.SchemaError);
+    expect(ProductReplica.attributes).not.toBe(Product.attributes);
+    expect(ProductReplica.attributes).toEqual(Product.attributes);
     expect(Object.keys(ProductReplica.propertiesShape)).toEqual([
       'id',
       'modelName',
@@ -54,6 +92,7 @@ describe('makeReplica', () => {
       'version',
       'name',
       'deletedAt',
+      'serviceIndex',
     ]);
     expect(ProductReplica.propertiesShape.deletedAt).toMatchObject({
       kind: 'date',
@@ -62,27 +101,48 @@ describe('makeReplica', () => {
     expect(CartItem.attributes.productId.table).toBe(Product.table);
     expect(
       Object.getOwnPropertyDescriptor(ProductReplica, 'sourceModel'),
-    ).toEqual({
-      configurable: false,
-      enumerable: true,
-      value: Product,
-      writable: false,
-    });
+    ).toBeUndefined();
     expect(
       Object.getOwnPropertyDescriptor(ProductReplica, 'serviceName'),
-    ).toEqual({
-      configurable: false,
-      enumerable: true,
-      value: 'app',
-      writable: false,
+    ).toBeUndefined();
+    expect(
+      Object.getOwnPropertyDescriptor(Model.prototype, 'sourceModel'),
+    ).toMatchObject({
+      configurable: true,
+      enumerable: false,
+      get: expect.any(Function),
     });
+    expect(
+      Object.getOwnPropertyDescriptor(Model.prototype, 'serviceName'),
+    ).toMatchObject({
+      configurable: true,
+      enumerable: false,
+      get: expect.any(Function),
+    });
+    expect('sourceModel' in Product).toBe(true);
+    expect(Reflect.get(Product, 'sourceModel')).toBeUndefined();
+    expect(Object.keys(ProductReplica)).not.toContain('sourceModel');
+    expect(Object.keys(ProductReplica)).not.toContain('serviceName');
+    expect({ ...ProductReplica }).not.toHaveProperty('sourceModel');
+    expect({ ...ProductReplica }).not.toHaveProperty('serviceName');
+    expect(JSON.stringify(Object.create(ProductReplica))).toBe('{}');
+    expect(Reflect.set(ProductReplica, 'sourceModel', CartItem)).toBe(false);
+    expect(Reflect.set(ProductReplica, 'serviceName', 'other')).toBe(false);
+    expect(ProductReplica.sourceModel).toBe(Product);
+    expect(ProductReplica.serviceName).toBe('app');
+
+    expect(() =>
+      Model.markReplica(ProductReplica, {
+        sourceModel: CartItem,
+        serviceName: 'other',
+      }),
+    ).toThrow('Model is already marked as a replica');
   });
 
-  it('preserves deletion state while adapting every historical definition', async () => {
-    const Product = makeModel(
+  it('preserves deletion and source position when encoding the selected version', async () => {
+    const Product = models.makeVersion(
+      models.makeModel({ name: 'product', abbreviation: 'prd' }),
       {
-        abbreviation: 'prd',
-        modelName: 'product',
         attributes: {
           description: primitives.text(),
           name: primitives.text(),
@@ -90,53 +150,17 @@ describe('makeReplica', () => {
         indexes: [],
         version: '2.0.0',
       },
-      [
-        {
-          abbreviation: 'prd',
-          modelName: 'product',
-          attributes: { name: primitives.text() },
-          indexes: [],
-          version: '1.0.0',
-          adaptResource: ({ resource }) =>
-            Effect.succeed({
-              id: resource.id,
-              modelName: resource.modelName,
-              createdAt: resource.createdAt,
-              updatedAt: resource.updatedAt,
-              version: '1.0.0',
-              name: resource.name,
-            }),
-        },
-      ],
     );
     const ProductReplica = makeReplica({
       sourceModel: Product,
+      modelVersion: Product.version,
       serviceName: 'catalog',
     });
     const deletedAt = new Date('2026-08-30T01:00:00.000Z');
 
-    expect(ProductReplica.historicalDefinitions).toHaveLength(1);
-    const historicalDefinition = ProductReplica.historicalDefinitions[0];
-    if (historicalDefinition === undefined) {
-      throw new Error('expected historical replica definition');
-    }
-    expect(Object.keys(historicalDefinition.propertiesShape)).toEqual([
-      'id',
-      'modelName',
-      'createdAt',
-      'updatedAt',
-      'version',
-      'name',
-      'deletedAt',
-    ]);
-    expect(historicalDefinition.propertiesShape.deletedAt).toMatchObject({
-      kind: 'date',
-      nullable: true,
-    });
-
     const adapted = await Effect.runPromise(
       ProductReplica.adaptResource({
-        version: '1.0.0',
+        version: '2.0.0',
         resource: {
           id: 'prd_historical_replica',
           modelName: 'product',
@@ -146,6 +170,7 @@ describe('makeReplica', () => {
           description: 'Current-only description',
           name: 'Historical product',
           deletedAt,
+          serviceIndex: 42,
         },
       }),
     );
@@ -155,11 +180,22 @@ describe('makeReplica', () => {
       modelName: 'product',
       createdAt: '2026-08-29T01:00:00.000Z',
       updatedAt: deletedAt.toISOString(),
-      version: '1.0.0',
+      version: '2.0.0',
       name: 'Historical product',
+      description: 'Current-only description',
       deletedAt: deletedAt.toISOString(),
+      serviceIndex: 42,
     });
     expect(ProductReplica.sourceModel).toBe(Product);
     expect(ProductReplica.serviceName).toBe('catalog');
+
+    expect(() =>
+      makeReplica({
+        sourceModel: Product,
+        // @ts-expect-error the runtime boundary also rejects unavailable versions
+        modelVersion: '9.0.0',
+        serviceName: 'catalog',
+      }),
+    ).toThrow(/model-version-unsupported/);
   });
 });

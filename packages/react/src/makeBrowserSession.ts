@@ -15,7 +15,9 @@ export function makeBrowserSession<
     coreSession: session,
     frontend: session.frontend,
     onInitialized: session.onInitialized,
-    sessionId: session.sessionId,
+    get sessionId() {
+      return session.sessionId;
+    },
     executeCommand(executeProps) {
       const result = session.executeCommand(executeProps);
       if (result._tag === 'Success') {

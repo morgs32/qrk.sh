@@ -1,6 +1,6 @@
 ---
 title: Index
-updated: 2026-09-01
+updated: 2026-09-08
 ---
 
 # Index
@@ -11,7 +11,7 @@ Organised by category. Pages are `[[wiki-links]]` without the `.md` extension.
 
 ## Getting oriented
 
-- [[overview|SystemRepo Durable Architecture]] — how authoring, fixed-schema command chains, materialized Repos, and browser replicas interact
+- [[overview|SystemRepo Durable Architecture]] — how authoring, fixed-schema command chains, Repos, and browser replicas interact
 - [[glossary]] — domain terms discovered from the code
 - [[log]] — chronological record of every ingest, lint, and query
 
@@ -22,7 +22,7 @@ Organised by category. Pages are `[[wiki-links]]` without the `.md` extension.
 
 ## Architecture
 
-- [[architecture/CommandChains]] — five singular command chains, four materialized Repos, service ordering, and durable anti-entropy
+- [[architecture/server/admitCommands]] — aggregate admission, materialization, and durable delivery
 - [[architecture/AuthoredSystem]] — static authored-System deployment and provision-once Repo schemas
 - [[architecture/SystemApi]] — singular static queries, command admission, health, and Repo inspection
 
@@ -30,13 +30,13 @@ Organised by category. Pages are `[[wiki-links]]` without the `.md` extension.
 
 - [[architecture/browser/Authentication|Direct Exact Frontend Authentication]] — direct Gateway authentication, owner authorization, and aggregate/service child capability surfaces
 - [[architecture/browser/FrontendWebSocket]] — singular finalized-command routes, exact opaque one-use tickets, and contiguous replay
-- [[architecture/browser/OpfsBackupCoordination]] — graph-scoped dedicated OPFS leader election, routed storage RPC, typed uncertainty, and session-local rebaseline
+- [[architecture/browser/IndexedDbBackupCoordination]] — stable SharedWorker, revocable per-key capabilities, atomic IndexedDB backup, and in-place frontend handoff
 - [[architecture/browser/PushSequence]] — local aggregate occurrence, singular push, authoritative forwarding, and exact-origin finalization
-- [[architecture/browser/bootstrapBrowserSession]] — main-thread socket-first recovery, OPFS backup, promotion, and supersession
+- [[architecture/browser/bootstrapBrowserSession]] — main-thread recovery, shared IndexedDB backup, renewable execution identity, and scoped ownership
 
 ### Server
 
-- [[architecture/server/finalizeAggregateCommand]] — one direct aggregate command through terminal history and singular client delivery
+- [[architecture/server/executeAggregateCommand]] — one direct aggregate command through terminal history and singular client delivery
 
 ## Decisions
 
@@ -49,3 +49,5 @@ _No pages yet._
 ## Sources
 
 _No pages yet. One page is created per significant source file or module as the codebase grows._
+
+- [[architecture/server/serviceExecution]] — versioned service execution, cutover ranges, replication adaptation, and frontend delivery

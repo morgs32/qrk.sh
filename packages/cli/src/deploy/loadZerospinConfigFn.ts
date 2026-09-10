@@ -1,14 +1,14 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { type ISystemConfig } from '@zerospin/core/system/types';
+import type { ISystemConfig } from '@zerospin/core/system/types';
 import { ZerospinConfigSchema } from '@zerospin/core/system/ZerospinConfigSchema';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
-import { loadConfig } from 'c12';
 import { Effect, FileSystem, Path, Schema } from 'effect';
+import { createJiti } from 'jiti';
 
-/**
- * Load and validate the project's root zerospin.jsonc file.
- */
+import { jitiAliasesFromTsconfigPaths } from './jitiAliasesFromTsconfigPaths.js';
+
+/** Import the exact root configuration without running a typechecker or seeds. */
 export const loadZerospinConfigFn = Effect.fn('loadZerospinConfigFn')(
   function* (
     cwd: string = process.cwd(),
@@ -18,23 +18,28 @@ export const loadZerospinConfigFn = Effect.fn('loadZerospinConfigFn')(
     Async | FileSystem.FileSystem | Path.Path
   > {
     const pathApi = yield* Path.Path;
-    yield* FileSystem.FileSystem;
-    const configPath = pathApi.join(cwd, 'zerospin.jsonc');
-
-    const result = yield* makeAsync(() =>
-      loadConfig<Record<string, unknown>>({
-        cwd,
-        name: 'zerospin',
-        configFile: configPath,
-        configFileRequired: true,
-        dotenv: false,
-        envName: false,
-        rcFile: false,
-        giget: false,
-        extend: false,
-        packageJson: false,
-      }),
-    ).pipe(
+    const fileSystem = yield* FileSystem.FileSystem;
+    const configPath = pathApi.resolve(cwd, 'zerospin.config.ts');
+    const config = yield* Effect.gen(function* () {
+      // An explicit existence check prevents jiti from trying other extensions.
+      if (!(yield* fileSystem.exists(configPath))) {
+        return yield* new ZerospinError({
+          code: 'deploy-invalid-config',
+          message: `Missing project configuration: ${configPath}.`,
+        });
+      }
+      const alias = yield* jitiAliasesFromTsconfigPaths(cwd);
+      const loadedModule = yield* makeAsync(() =>
+        createJiti(configPath, {
+          alias,
+          moduleCache: false,
+          tryNative: false,
+        }).import(configPath),
+      );
+      return yield* Schema.decodeUnknownEffect(
+        Schema.Struct({ default: ZerospinConfigSchema }),
+      )(loadedModule, { onExcessProperty: 'ignore' });
+    }).pipe(
       Effect.mapError(
         cause =>
           new ZerospinError({
@@ -44,20 +49,6 @@ export const loadZerospinConfigFn = Effect.fn('loadZerospinConfigFn')(
           }),
       ),
     );
-
-    return yield* Schema.decodeUnknownEffect(ZerospinConfigSchema)(
-      result.config,
-      {
-        onExcessProperty: 'error',
-      },
-    ).pipe(
-      Effect.mapError(
-        cause =>
-          new ZerospinError({
-            code: 'deploy-invalid-config',
-            message: `Failed to decode ${configPath}: ${cause.message}`,
-          }),
-      ),
-    );
+    return config.default;
   },
 );

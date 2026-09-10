@@ -7,14 +7,12 @@ import { makeSystem } from '@zerospin/sdk';
  */
 export const system = makeSystem({
   name: 'shopping',
-  version: '1.0.0',
   aggregates: {},
   services: {},
 });
 
 declare function makeSystem(props: {
   name: string;
-  version: string;
   aggregates: Record<string, unknown>;
   services: Record<string, unknown>;
 }): unknown;

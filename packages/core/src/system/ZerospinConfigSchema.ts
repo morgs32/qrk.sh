@@ -1,40 +1,37 @@
-import { Effect, Schema, SchemaTransformation } from 'effect';
+import { Exit, Schema } from 'effect';
 
-/* oxlint-disable typescript/no-explicit-any -- Effect Schema encoded type is invariant; any is intentional for satisfies */
-import type { ISystemConfig } from './types.ts';
+import { AuthenticationSchema } from '../authentication/makeVersion.ts';
 
-export const ZerospinConfigSchema = Schema.Struct({
-  $schema: Schema.optionalKey(Schema.String),
-  entry: Schema.String,
-  seeds: Schema.Struct({
-    dev: Schema.NullOr(Schema.String),
-    production: Schema.NullOr(Schema.String).pipe(
-      Schema.withDecodingDefaultKey(Effect.succeed(null)),
-    ),
-  }),
-}).pipe(
-  Schema.decodeTo(
-    Schema.Struct({
-      entry: Schema.String,
-      seeds: Schema.Struct({
-        dev: Schema.NullOr(Schema.String),
-        production: Schema.NullOr(Schema.String),
-      }),
-    }),
-    SchemaTransformation.transform({
-      decode: config => ({
-        entry: config.entry,
-        seeds: config.seeds,
-      }),
-      encode: config => ({
-        entry: config.entry,
-        seeds: config.seeds,
-      }),
-    }),
-  ),
-) satisfies Schema.Codec<ISystemConfig, any>;
+import type { ISystem, ISystemConfig } from './types.ts';
 
-const _check1: typeof ZerospinConfigSchema.Type = {} as ISystemConfig;
-const _check2: ISystemConfig = {} as typeof ZerospinConfigSchema.Type;
-void _check1;
-void _check2;
+/** Validate live configuration capabilities without copying or executing them. */
+export const ZerospinConfigSchema = Schema.declare<ISystemConfig>(
+  (input): input is ISystemConfig => {
+    const decoded = Schema.decodeUnknownExit(
+      Schema.Struct({
+        system: Schema.declare<ISystem>((value): value is ISystem =>
+          Schema.is(
+            Schema.Struct({
+              name: Schema.String,
+              authentication: Schema.Array(AuthenticationSchema),
+              aggregates: Schema.Record(
+                Schema.String,
+                Schema.Record(
+                  Schema.String,
+                  Schema.Struct({ version: Schema.String }),
+                ),
+              ),
+              services: Schema.Record(Schema.String, Schema.Struct({})),
+              config: Schema.declare(
+                (fn): fn is (...args: never[]) => unknown =>
+                  typeof fn === 'function',
+              ),
+            }),
+          )(value),
+        ),
+      }),
+    )(input, { onExcessProperty: 'error' });
+    if (Exit.isFailure(decoded)) return false;
+    return true;
+  },
+);

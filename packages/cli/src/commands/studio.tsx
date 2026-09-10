@@ -8,7 +8,6 @@ import { Box, Text } from 'ink';
 import { ErrorBoundary } from '../components/ErrorBoundary.js';
 import { Header } from '../components/Header.js';
 import { loadConfigFn } from '../deploy/loadConfigFn.js';
-import { loadSystemFn } from '../deploy/loadSystemFn.js';
 import { ProcedureStep } from '../ProcedureStep/ProcedureStep.js';
 import { ProcedureStepError } from '../ProcedureStep/ProcedureStepError.js';
 import { ProcedureStepLoading } from '../ProcedureStep/ProcedureStepLoading.js';
@@ -21,11 +20,10 @@ export default function Studio() {
       Effect.gen(function* () {
         const { config, zerospinApiUrl, zerospinSecretKey } =
           yield* loadConfigFn();
-        const system = yield* loadSystemFn(config);
         return yield* startStudio({
           port: 5555,
           open: true,
-          systemSpec: makeSystemSpec({ system }),
+          systemSpec: makeSystemSpec({ system: config.system }),
           zerospinApiUrl,
           zerospinSecretKey,
         });

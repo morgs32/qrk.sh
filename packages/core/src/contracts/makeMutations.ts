@@ -1,16 +1,15 @@
-import { mapParseError, type IAnyError } from '@zerospin/error';
+import { ZerospinError, type IAnyError } from '@zerospin/error';
 import type { CuidFactory } from '@zerospin/schema';
-import { Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 
-import type { IModels } from '../models/types.ts';
+import type { IAnyModels } from '../models/types.ts';
 
 import { assertMutationsUseModels } from './assertMutationsUseModels.ts';
 import type { IAnyMutation, ICommand, IContract } from './types.ts';
 
 export const makeMutations = Effect.fn('makeMutations')(function* (props: {
   contract: IContract;
-  models: IModels;
-  owner: { kind: 'aggregate' } | { kind: 'service'; serviceName: string };
+  models: IAnyModels;
   command: ICommand;
 }): Effect.fn.Return<
   Readonly<{
@@ -20,43 +19,31 @@ export const makeMutations = Effect.fn('makeMutations')(function* (props: {
   IAnyError,
   CuidFactory
 > {
-  const { contract, models, owner, command } = props;
+  const { contract, models, command } = props;
 
   const payload = yield* contract.validatePayload({
+    version: contract.version,
     payload: command.payload,
   });
   const commandMutations = yield* contract.program({ payload });
-  const validatedMutations =
-    contract.mutations === null
-      ? {}
-      : yield* Schema.decodeUnknownEffect(Schema.toType(contract.mutations))(
-          commandMutations,
-          {
-            onExcessProperty: 'error',
-          },
-        ).pipe(
-          mapParseError({
-            code: 'validate-contract-mutations-failed',
-            prefix: `Contract "${command.commandName}" program output did not match its mutations schema`,
-            extra: { commandName: command.commandName },
-          }),
-        );
-
-  // The contract declaration owns application order. Arrays and tuples already
-  // carry that order; structs preserve their declaration order through the
-  // decoded object's property order. This is the sole flattening boundary.
-  const mutations = Array.isArray(validatedMutations)
-    ? validatedMutations
-    : validatedMutations &&
-        typeof validatedMutations === 'object' &&
-        'operationName' in validatedMutations
-      ? [validatedMutations]
-      : Object.values(validatedMutations);
+  if (commandMutations === null || typeof commandMutations !== 'object') {
+    return yield* new ZerospinError({
+      code: 'contract-program-result-invalid',
+      message: `Contract "${command.commandName}" must return a mutation, array, or record`,
+    });
+  }
+  // Program result order is application order. This is the sole flattening boundary.
+  const mutations = Array.isArray(commandMutations)
+    ? commandMutations
+    : commandMutations &&
+        typeof commandMutations === 'object' &&
+        'operationName' in commandMutations
+      ? [commandMutations]
+      : Object.values(commandMutations);
 
   yield* assertMutationsUseModels({
     mutations,
     models,
-    owner,
     commandName: command.commandName,
   });
 

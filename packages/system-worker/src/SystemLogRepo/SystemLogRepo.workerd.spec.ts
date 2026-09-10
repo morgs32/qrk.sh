@@ -13,7 +13,6 @@ import { describe, expect } from 'vitest';
 
 import { SystemRepo } from '../SystemRepo/SystemRepo.js';
 
-import { getSystemLogRepo } from './getSystemLogRepo/getSystemLogRepo.js';
 import { SystemLogRepo } from './SystemLogRepo.js';
 
 describe('SystemLogRepo telemetry', () => {
@@ -24,8 +23,8 @@ describe('SystemLogRepo telemetry', () => {
         yield* SystemLogRepo.fixedDORepoConfig.nameUtils.makeName({
           systemId,
         });
-      expect(facetName).toBe('syslogrepo_sys_local');
-      const systemLogRepo = yield* getSystemLogRepo({ key: { systemId } });
+      expect(facetName).toBe(`syslogrepo_${systemId}`);
+      const systemLogRepo = yield* SystemLogRepo.getRepo({ key: { systemId } });
 
       const first = yield* Effect.promise(() =>
         systemLogRepo.appendLogRow({
@@ -66,8 +65,9 @@ describe('SystemLogRepo telemetry', () => {
       expect(rows[1]?.logIndex).toBe(2);
       expect(rows[2]?.id).toBe(first.id);
       expect(rows[2]?.logIndex).toBe(1);
+      const systemRepo = yield* SystemRepo.getRepo({ key: { systemId } });
       const registrations = yield* Effect.promise(() =>
-        SystemRepo.getRepo({ systemId: 'sys_local' }).getRepoRegistrations({
+        systemRepo.getRepoRegistrations({
           repoType: 'SystemLogRepo',
         }),
       ).pipe(Effect.flatMap(decodeRpc));
@@ -83,7 +83,7 @@ describe('SystemLogRepo telemetry', () => {
   it.effect('stores one row per stable ID when a batch is retried', () =>
     Effect.gen(function* () {
       const systemId = env.ZEROSPIN_SYSTEM_ID;
-      const systemLogRepo = yield* getSystemLogRepo({ key: { systemId } });
+      const systemLogRepo = yield* SystemLogRepo.getRepo({ key: { systemId } });
       const batch = {
         spans: [
           {
@@ -172,7 +172,7 @@ describe('SystemLogRepo telemetry', () => {
 
   it.effect('rolls back the entire batch when one encoded row fails', () =>
     Effect.gen(function* () {
-      const systemLogRepo = yield* getSystemLogRepo({
+      const systemLogRepo = yield* SystemLogRepo.getRepo({
         key: { systemId: env.ZEROSPIN_SYSTEM_ID },
       });
       const result = yield* Effect.promise(() =>
@@ -233,7 +233,7 @@ describe('SystemLogRepo telemetry', () => {
     'keeps every row kind for only the newest one thousand traces',
     () =>
       Effect.gen(function* () {
-        const systemLogRepo = yield* getSystemLogRepo({
+        const systemLogRepo = yield* SystemLogRepo.getRepo({
           key: { systemId: env.ZEROSPIN_SYSTEM_ID },
         });
         const values = Array.from({ length: 1_001 }, (_, value) => value);

@@ -2,7 +2,7 @@
 
 import { act } from 'react';
 
-import { ZerospinRouteErrorBoundary } from '@zerospin/react-router/ZerospinRouteErrorBoundary';
+import { ZerospinRouteErrorBoundary } from '@zerospin/error-boundary/ZerospinRouteErrorBoundary';
 import { createRoot, type Root } from 'react-dom/client';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -71,12 +71,12 @@ describe('RepoExplorer JSON inspector', () => {
       vi.fn((input: string | URL | Request) => {
         const url = input instanceof Request ? input.url : String(input);
 
-        if (url === '/api/repos/MaterializedAggregateRepo') {
+        if (url === '/api/repos/VersionedAggregateRepo') {
           return Promise.resolve(
             new Response(
               JSON.stringify([
                 {
-                  repoType: 'MaterializedAggregateRepo',
+                  repoType: 'VersionedAggregateRepo',
                   repoName: 'acct_1/user',
                   tableNames: ['commands', 'metadata'],
                 },
@@ -90,7 +90,7 @@ describe('RepoExplorer JSON inspector', () => {
         }
 
         if (
-          url === '/api/repos/MaterializedAggregateRepo/acct_1%2Fuser/commands'
+          url === '/api/repos/VersionedAggregateRepo/acct_1%2Fuser/commands'
         ) {
           return Promise.resolve(
             new Response(
@@ -148,7 +148,7 @@ describe('RepoExplorer JSON inspector', () => {
         }
 
         if (
-          url === '/api/repos/MaterializedAggregateRepo/acct_1%2Fuser/metadata'
+          url === '/api/repos/VersionedAggregateRepo/acct_1%2Fuser/metadata'
         ) {
           return Promise.resolve(
             new Response(
@@ -190,7 +190,7 @@ describe('RepoExplorer JSON inspector', () => {
     vi.unstubAllGlobals();
   });
 
-  it('shows the injected authored system version under Admin', async () => {
+  it('shows authored versions and service pins under Admin', async () => {
     const router = createMemoryRouter(
       [
         {
@@ -207,10 +207,12 @@ describe('RepoExplorer JSON inspector', () => {
     });
 
     expect(container.querySelector('h1')?.textContent).toBe('Admin');
-    expect(container.querySelector('dt')?.textContent).toBe('System version');
-    expect(container.querySelector('dd')?.textContent).toBe('2.0.2');
+    expect(container.textContent).toContain('Aggregatesshopper: 2.0.0');
+    expect(container.textContent).toContain('service pinscatalog: 5.0.0');
+    expect(container.textContent).toContain('Product: 2.0.0');
+    expect(container.textContent).toContain('CartItem: 1.1.0');
     expect(container.textContent).toContain(
-      'AggregatesshoppermodelsCartItem: 1.1.0, 1.0.0contractsupdateCartItemQuantity: 2.0.0, 1.0.0',
+      'contractsupdateCartItemQuantity: 2.0.0',
     );
     expect(container.querySelectorAll('h1')[1]?.textContent).toBe('Repos');
     expect(
@@ -250,7 +252,7 @@ describe('RepoExplorer JSON inspector', () => {
           element: <RepoExplorer />,
         },
       ],
-      { initialEntries: ['/MaterializedAggregateRepo/acct_1%2Fuser'] },
+      { initialEntries: ['/VersionedAggregateRepo/acct_1%2Fuser'] },
     );
 
     await act(async () => {
@@ -438,7 +440,7 @@ describe('RepoExplorer JSON inspector', () => {
           element: <RepoExplorer />,
         },
       ],
-      { initialEntries: ['/MaterializedAggregateRepo/acct_1%2Fuser'] },
+      { initialEntries: ['/VersionedAggregateRepo/acct_1%2Fuser'] },
     );
 
     await act(async () => {

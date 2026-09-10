@@ -7,27 +7,26 @@ import { describe, expect } from 'vitest';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 
-import { makeModel } from './makeModel.ts';
+import { Model } from './makeModel.ts';
 import { makeReplica } from './makeReplica.ts';
 import { applySelection, makeSelection } from './makeSelection.ts';
 
-const User = makeModel(
+import { models as modelDefinitions } from './index.ts';
+
+const User = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'user', abbreviation: 'usr' }),
   {
-    abbreviation: 'usr',
-    modelName: 'user',
     attributes: {
       name: primitives.text({ nullable: true }),
     },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-const Cart = makeModel(
+const Cart = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'cart', abbreviation: 'crt' }),
   {
-    abbreviation: 'crt',
-    modelName: 'cart',
     attributes: {
       userId: primitives.ref({
         table: User.table,
@@ -39,24 +38,20 @@ const Cart = makeModel(
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-const Product = makeModel(
+const Product = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'product', abbreviation: 'prd' }),
   {
-    abbreviation: 'prd',
-    modelName: 'product',
     attributes: { name: primitives.text() },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-const CartItem = makeModel(
+const CartItem = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'cartItem', abbreviation: 'cit' }),
   {
-    abbreviation: 'cit',
-    modelName: 'cartItem',
     attributes: {
       cartId: primitives.ref({
         table: Cart.table,
@@ -73,7 +68,6 @@ const CartItem = makeModel(
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
 const testUserId = 'usr_selectionspec001' as const;
@@ -163,6 +157,7 @@ describe('makeSelection', () => {
         models,
         selection,
         userId: testUserId,
+        where: undefined,
       });
       const { sql } = query.toSQL();
 
@@ -199,6 +194,7 @@ describe('makeSelection', () => {
           }),
         }),
         userId: testUserId,
+        where: undefined,
       }).all();
       expect(productRows).toHaveLength(1);
       expect(productRows[0]).toEqual(
@@ -211,20 +207,23 @@ describe('makeSelection', () => {
     'selects through exact authoritative source-table refs between replicas',
     () =>
       Effect.gen(function* () {
-        const ProductSelectionSource = makeModel(
-          {
+        const ProductSelectionSource = modelDefinitions.makeVersion(
+          modelDefinitions.makeModel({
+            name: 'selectionProduct',
             abbreviation: 'sprd',
-            modelName: 'selectionProduct',
+          }),
+          {
             attributes: { name: primitives.text() },
             indexes: [],
             version: '1.0.0',
           },
-          [],
         );
-        const CartItemSelectionSource = makeModel(
-          {
+        const CartItemSelectionSource = modelDefinitions.makeVersion(
+          modelDefinitions.makeModel({
+            name: 'selectionCartItem',
             abbreviation: 'scit',
-            modelName: 'selectionCartItem',
+          }),
+          {
             attributes: {
               productId: primitives.ref({
                 table: ProductSelectionSource.table,
@@ -236,14 +235,15 @@ describe('makeSelection', () => {
             indexes: [],
             version: '1.0.0',
           },
-          [],
         );
         const ProductReplica = makeReplica({
           sourceModel: ProductSelectionSource,
+          modelVersion: ProductSelectionSource.version,
           serviceName: 'catalog',
         });
         const CartItemReplica = makeReplica({
           sourceModel: CartItemSelectionSource,
+          modelVersion: CartItemSelectionSource.version,
           serviceName: 'catalog',
         });
         const models = {
@@ -286,6 +286,7 @@ describe('makeSelection', () => {
             where: () => ({ product: { name: 'Replica product' } }),
           }),
           userId: testUserId,
+          where: undefined,
         }).all();
         const products = applySelection({
           db,
@@ -295,6 +296,7 @@ describe('makeSelection', () => {
             where: () => ({ cartItems: { quantity: 2 } }),
           }),
           userId: testUserId,
+          where: undefined,
         }).all();
 
         expect(cartItems).toEqual([
@@ -303,6 +305,35 @@ describe('makeSelection', () => {
         expect(products).toEqual([
           expect.objectContaining({ id: 'sprd_selectionspec001' }),
         ]);
+
+        const DerivedProduct = {
+          ...ProductReplica,
+          sourceModel: ProductReplica.sourceModel,
+          serviceName: ProductReplica.serviceName,
+        };
+        const DerivedCartItem = {
+          ...CartItemReplica,
+          sourceModel: CartItemReplica.sourceModel,
+          serviceName: CartItemReplica.serviceName,
+        };
+        const derivedModels = {
+          selectionCartItem: DerivedCartItem,
+          selectionProduct: DerivedProduct,
+        };
+
+        expect(Model.isReplica(DerivedProduct)).toBe(false);
+        expect(
+          applySelection({
+            db,
+            models: derivedModels,
+            selection: makeSelection({
+              model: DerivedProduct,
+              where: () => ({ cartItems: { quantity: 2 } }),
+            }),
+            userId: testUserId,
+            where: undefined,
+          }).all(),
+        ).toEqual([expect.objectContaining({ id: 'sprd_selectionspec001' })]);
       }).pipe(Effect.provide(AsyncLive)),
   );
 });

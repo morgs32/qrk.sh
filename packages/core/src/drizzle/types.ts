@@ -12,7 +12,7 @@ import type { SQLiteAsyncTransaction } from 'drizzle-orm/sqlite-core/async/sessi
 import type { Brand } from 'effect';
 import type { UnionToIntersection } from 'type-fest';
 
-import type { IModels } from '../models/types.ts';
+import type { IAnyModels } from '../models/types.ts';
 
 import type { makeInMemorySQLite3 } from './makeInMemorySQLite3.ts';
 
@@ -103,7 +103,7 @@ export type InferDrizzleSchemaFromTables<TABLES extends IAnyTables> = {
   >;
 };
 
-export type IResourceDrizzleSchemasFromModels<MODELS extends IModels> = {
+export type IResourceDrizzleSchemasFromModels<MODELS extends IAnyModels> = {
   [K in keyof MODELS]: IDrizzleSchema<
     MODELS[K]['table']['name'],
     MODELS[K]['table']['shape']
@@ -111,13 +111,13 @@ export type IResourceDrizzleSchemasFromModels<MODELS extends IModels> = {
 };
 
 export type IFullDrizzleSchema<
-  MODELS extends IModels,
+  MODELS extends IAnyModels,
   OTHER_TABLES extends IAnyTables,
 > = IResourceDrizzleSchemasFromModels<MODELS> &
   InferDrizzleSchemaFromTables<OTHER_TABLES>;
 
 export type IDrizzleRelationsFromModels<
-  MODELS extends IModels,
+  MODELS extends IAnyModels,
   TABLES extends IAnyTables = {
     [MODEL_KEY in keyof MODELS]: MODELS[MODEL_KEY]['table'];
   },
@@ -159,7 +159,7 @@ export type IDbConfigSchema<CONFIG extends IDbConfig> = CONFIG['schema'];
 export type IDbConfigRelations<CONFIG extends IDbConfig> = CONFIG['relations'];
 
 export type IResourceDbConfig<
-  MODELS extends IModels = IModels,
+  MODELS extends IAnyModels = IAnyModels,
   OTHER_TABLES extends IAnyTables = IAnyTables,
 > = IDbConfig<
   IFullDrizzleSchema<MODELS, OTHER_TABLES>,
@@ -189,7 +189,7 @@ export type IResourceDb<
   CONFIG extends IResourceDbConfig = IResourceDbConfig<any, any>,
 > = IDb<CONFIG> & Brand.Brand<'ResourceDb'>;
 
-/** Branded `IDrizzleTransaction` — only produced inside an open `makeTx` transaction. */
+/** Synchronous Drizzle transaction supplied by Db.Tx or an explicit savepoint. */
 type IDrizzleTransaction<CONFIG extends IDbConfig> = SQLiteAsyncTransaction<
   'sync',
   unknown,

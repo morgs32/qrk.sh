@@ -2,26 +2,24 @@ import { primitives } from '@zerospin/schema';
 
 import type { IDb } from '../drizzle/types.ts';
 
-import { makeModel } from './makeModel.ts';
 import { applySelection, makeSelection } from './makeSelection.ts';
 
-const User = makeModel(
+import { models } from './index.ts';
+
+const User = models.makeVersion(
+  models.makeModel({ name: 'user', abbreviation: 'usr' }),
   {
-    abbreviation: 'usr',
-    modelName: 'user',
     attributes: {
       name: primitives.text({ nullable: true }),
     },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-const Cart = makeModel(
+const Cart = models.makeVersion(
+  models.makeModel({ name: 'cart', abbreviation: 'crt' }),
   {
-    abbreviation: 'crt',
-    modelName: 'cart',
     attributes: {
       userId: primitives.ref({
         table: User.table,
@@ -33,26 +31,23 @@ const Cart = makeModel(
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-const CartItem = makeModel(
+const CartItem = models.makeVersion(
+  models.makeModel({ name: 'cartItem', abbreviation: 'cit' }),
   {
-    abbreviation: 'cit',
-    modelName: 'cartItem',
     attributes: {
       cartId: primitives.ref({
         table: Cart.table,
         relation: 'cart',
         inverse: 'items',
       }),
-      productId: primitives.opaqueId({ abbreviation: 'prd' }),
+      productId: primitives.foreignKey({ abbreviation: 'prd' }),
       quantity: primitives.integer(),
     },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
 const testUserId = 'usr_typecheck0001' as string;
@@ -92,4 +87,5 @@ void applySelection({
   models: { cart: Cart, cartItem: CartItem, user: User },
   selection: cartItemSelection,
   userId: testUserId,
+  where: undefined,
 });

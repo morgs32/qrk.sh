@@ -1,4 +1,15 @@
-import { Effect } from 'effect';
+import { makeTx } from '@zerospin/core/drizzle/makeTx';
+import type { IDb, ITx } from '@zerospin/core/drizzle/types';
+import type { IAnyDrizzleSchema } from '@zerospin/schema';
+import { Context, Effect } from 'effect';
+
+class AuthorizationDb extends Context.Service<AuthorizationDb, IDb>()(
+  'AuthorizationDb',
+) {
+  static readonly Tx = Context.Service<'AuthorizationDb.Tx', ITx>(
+    'AuthorizationDb.Tx',
+  );
+}
 
 /**
  * Use `makeTx` only when multiple Drizzle statements must commit or roll back together.
@@ -27,11 +38,11 @@ export const rememberAggregate = Effect.fn('Repo.rememberAggregate')(
 
 export const recordAuthorization = Effect.fn('Repo.recordAuthorization')(
   function* (props: {
-    db: unknown;
-    authorizationAttempts: unknown;
-    authorizations: unknown;
-    attemptRow: unknown;
-    authorizationRow: unknown;
+    db: IDb;
+    authorizationAttempts: IAnyDrizzleSchema;
+    authorizations: IAnyDrizzleSchema;
+    attemptRow: Record<string, unknown>;
+    authorizationRow: Record<string, unknown>;
   }) {
     const {
       attemptRow,
@@ -41,25 +52,13 @@ export const recordAuthorization = Effect.fn('Repo.recordAuthorization')(
       db,
     } = props;
 
-    return yield* makeTx({
-      db,
-      program: Effect.fn('Repo.recordAuthorization.transaction')(function* ({
-        tx,
-      }) {
-        tx.insert(authorizationAttempts).values(attemptRow).run();
-        tx.insert(authorizations).values(authorizationRow).run();
-      }),
-    });
+    return yield* makeTx(
+      'Repo.recordAuthorization.transaction',
+      AuthorizationDb,
+    )(function* () {
+      const tx = yield* AuthorizationDb.Tx;
+      tx.insert(authorizationAttempts).values(attemptRow).run();
+      tx.insert(authorizations).values(authorizationRow).run();
+    })().pipe(Effect.provideService(AuthorizationDb, db));
   },
 );
-
-declare const makeTx: (props: {
-  db: unknown;
-  program: (props: {
-    tx: {
-      insert: (table: unknown) => {
-        values: (row: unknown) => { run: () => void };
-      };
-    };
-  }) => Effect.Effect<void, unknown, never>;
-}) => Effect.Effect<void, unknown, never>;

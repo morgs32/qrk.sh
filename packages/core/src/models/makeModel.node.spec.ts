@@ -1,31 +1,37 @@
-import { makeEffectSchema, PrimitiveKind, primitives } from '@zerospin/schema';
+import {
+  makeEffectSchema,
+  makeTable,
+  PrimitiveKind,
+  primitives,
+} from '@zerospin/schema';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
 
-import { makeModel } from './makeModel.ts';
+import { makeModelMutations } from '../contracts/makeModelMutations.ts';
+
+import { Model } from './makeModel.ts';
 import type { IModel, InferResource } from './types.ts';
+
+import { models } from './index.ts';
 
 const namePropertySchema = primitives.text();
 
-const User = makeModel(
+const User = models.makeVersion(
+  models.makeModel({ name: 'user', abbreviation: 'usr' }),
   {
-    abbreviation: 'usr',
-    modelName: 'user',
     attributes: {
       name: namePropertySchema,
     },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-const Todo = makeModel(
+const Todo = models.makeVersion(
+  models.makeModel({ name: 'todo', abbreviation: 'todo' }),
   {
-    abbreviation: 'todo',
-    modelName: 'todo',
     attributes: {
       title: primitives.text(),
       completed: primitives.boolean(),
@@ -33,47 +39,24 @@ const Todo = makeModel(
     indexes: [],
     version: '2.0.0',
   },
-  [
-    {
-      abbreviation: 'todo',
-      modelName: 'todo',
-      attributes: {
-        title: primitives.text(),
-      },
-      indexes: [],
-      version: '1.0.0',
-      adaptResource: ({ resource }) =>
-        Effect.succeed({
-          id: resource.id,
-          modelName: resource.modelName,
-          createdAt: resource.createdAt,
-          updatedAt: resource.updatedAt,
-          version: '1.0.0',
-          title: resource.title,
-        }),
-    },
-    {
-      abbreviation: 'todo',
-      modelName: 'todo',
-      attributes: {
-        description: primitives.text({ nullable: true }),
-      },
-      indexes: [],
-      version: '0.5.0',
-      adaptResource: ({ resource }) =>
-        Effect.succeed({
-          id: resource.id,
-          modelName: resource.modelName,
-          createdAt: resource.createdAt,
-          updatedAt: resource.updatedAt,
-          version: '0.5.0',
-          description: resource.title,
-        }),
-    },
-  ],
 );
 
 describe('makeModel', () => {
+  it('constructs a canonical Model and rejects excess props', () => {
+    expect(User).toBeInstanceOf(Model);
+    expect(() =>
+      models.makeVersion(
+        models.makeModel({ name: 'user', abbreviation: 'usr' }),
+        {
+          attributes: { name: namePropertySchema },
+          indexes: [],
+          version: '1.0.0',
+          // @ts-expect-error Unknown definition fields are rejected at runtime too.
+          extra: true,
+        },
+      ),
+    ).toThrow(Schema.SchemaError);
+  });
   it('types id as InferIdFromAbbreviation from model abbreviation (shape, resource, Drizzle select)', () => {
     type UserRow = InferResource<typeof User>;
     assert<Equals<UserRow['id'], `usr_${string}`>>();
@@ -110,12 +93,209 @@ describe('makeModel', () => {
     expect(User.spec.abbreviation).toBe('usr');
     expect(User.spec.version).toBe('1.0.0');
     expect(User.spec.attributes).toEqual(['name']);
-    expect(User.spec.propertiesJsonSchema).toMatchObject({
-      dialect: 'draft-2020-12',
-      definitions: {},
-      schema: { type: 'object' },
+    expect(User.spec.attributesShape).toEqual({ name: namePropertySchema });
+    expect(User.spec.propertiesShape).toMatchObject({
+      name: { kind: 'text', nullable: false },
     });
     expect(() => structuredClone(User.spec)).not.toThrow();
+  });
+
+  it('snapshots factory-owned model data', () => {
+    const enumValues: [string, string] = ['open', 'closed'];
+    const status = primitives.enum({ values: enumValues });
+    const dueAtDefault = new Date('2026-09-01T00:00:00.000Z');
+    const dueAt = primitives.date({ defaultValue: dueAtDefault });
+    const settingsSchema = Schema.Struct({ enabled: Schema.Boolean });
+    const settings = primitives.json({ schema: settingsSchema });
+    const externalTable = makeTable({
+      name: 'external',
+      shape: { id: primitives.primaryKey({ abbreviation: 'ext' }) },
+      indexes: [],
+    });
+    const externalId = primitives.ref({
+      table: externalTable,
+      relation: 'external',
+      inverse: 'snapshots',
+    });
+    const attributes = { dueAt, externalId, settings, status };
+    const indexColumns: ['status'] = ['status'];
+    const indexes = [{ name: 'by-status', columns: indexColumns }];
+    const props = {
+      attributes,
+      indexes,
+      version: '1.0.0',
+    };
+    const identity = { name: 'snapshot', abbreviation: 'snp' };
+    const Snapshot = models.makeVersion(models.makeModel(identity), props);
+
+    expect(Snapshot.attributes).not.toBe(attributes);
+    expect(Snapshot.attributes.status).not.toBe(status);
+    expect(Snapshot.attributes.status.values).not.toBe(enumValues);
+    expect(Snapshot.indexes).not.toBe(indexes);
+    expect(Snapshot.indexes[0]).not.toBe(indexes[0]);
+    expect(Snapshot.indexes[0]?.columns).not.toBe(indexColumns);
+    expect(Snapshot.attributes.settings.schema).toBe(settingsSchema);
+    expect(Snapshot.attributes.dueAt.defaultValue).toBe(dueAtDefault);
+    expect(Snapshot.attributes.externalId.table).toBe(externalTable);
+
+    enumValues[0] = 'mutated';
+    status.unique = true;
+    indexes[0]!.name = 'mutated-index';
+    indexColumns.push('status');
+    Reflect.set(attributes, 'status', primitives.text());
+    identity.name = 'mutated-model';
+
+    expect(Snapshot.modelName).toBe('snapshot');
+    expect(Snapshot.attributes.status.values).toEqual(['open', 'closed']);
+    expect(Snapshot.attributes.status.unique).toBe(false);
+    expect(Snapshot.indexes[0]).toEqual({
+      name: 'by-status',
+      columns: ['status'],
+    });
+  });
+
+  it('snapshots independently authored version property graphs', () => {
+    const currentValues: [string, string] = ['active', 'archived'];
+    const historicalValues: [string, string] = ['open', 'closed'];
+    const currentStatus = primitives.enum({ values: currentValues });
+    const historicalStatus = primitives.enum({ values: historicalValues });
+    const currentAttributes = { status: currentStatus };
+    const historicalAttributes = { status: historicalStatus };
+    const currentPropertiesShape = {
+      id: primitives.primaryKey({ abbreviation: 'exp' }),
+      modelName: primitives.text(),
+      createdAt: primitives.date(),
+      updatedAt: primitives.date(),
+      version: primitives.text(),
+      status: currentStatus,
+    };
+    const historicalPropertiesShape = {
+      id: primitives.primaryKey({ abbreviation: 'exp' }),
+      modelName: primitives.text(),
+      createdAt: primitives.date(),
+      updatedAt: primitives.date(),
+      version: primitives.text(),
+      status: historicalStatus,
+    };
+    const currentIndexColumns: ['status'] = ['status'];
+    const historicalIndexColumns: ['status'] = ['status'];
+    const currentIndexes = [
+      { name: 'by-current-status', columns: currentIndexColumns },
+    ];
+    const historicalIndexes = [
+      { name: 'by-historical-status', columns: historicalIndexColumns },
+    ];
+    const ownedHistory = models.makeVersion(
+      models.makeModel({ name: 'explicit', abbreviation: 'exp' }),
+      {
+        attributes: historicalAttributes,
+        propertiesShape: historicalPropertiesShape,
+        indexes: historicalIndexes,
+        version: '1.0.0',
+      },
+    );
+
+    const Explicit = models.makeVersion(
+      models.makeModel({ name: 'explicit', abbreviation: 'exp' }),
+      {
+        attributes: currentAttributes,
+        propertiesShape: currentPropertiesShape,
+        indexes: currentIndexes,
+        version: '2.0.0',
+      },
+    );
+
+    expect(Explicit.propertiesShape).not.toBe(currentPropertiesShape);
+    expect(ownedHistory.attributes).not.toBe(historicalAttributes);
+    expect(ownedHistory.propertiesShape).not.toBe(historicalPropertiesShape);
+    expect(ownedHistory.indexes).not.toBe(historicalIndexes);
+
+    currentValues[0] = 'mutated-current';
+    historicalValues[0] = 'mutated-historical';
+    currentPropertiesShape.modelName = primitives.text({ unique: true });
+    historicalPropertiesShape.modelName = primitives.text({ unique: true });
+    currentIndexes[0]!.name = 'mutated-current-index';
+    historicalIndexes[0]!.name = 'mutated-historical-index';
+    historicalIndexColumns.push('status');
+
+    expect(Explicit.propertiesShape.status.values).toEqual([
+      'active',
+      'archived',
+    ]);
+    expect(Explicit.propertiesShape.modelName.unique).toBe(false);
+    expect(Explicit.indexes[0]?.name).toBe('by-current-status');
+    expect(ownedHistory.propertiesShape.status.values).toEqual([
+      'open',
+      'closed',
+    ]);
+    expect(ownedHistory.propertiesShape.modelName.unique).toBe(false);
+    expect(ownedHistory.indexes[0]).toEqual({
+      name: 'by-historical-status',
+      columns: ['status'],
+    });
+  });
+
+  it('resolves a cloned self reference without mutating caller data', () => {
+    const parentId = primitives.self({
+      nullable: true,
+      relation: 'parent',
+      inverse: 'children',
+    });
+    const attributes = { parentId };
+    const Tree = models.makeVersion(
+      models.makeModel({ name: 'tree', abbreviation: 'tree' }),
+      {
+        attributes,
+        indexes: [],
+        version: '1.0.0',
+      },
+    );
+
+    expect(Tree.attributes.parentId).not.toBe(parentId);
+    expect(Tree.attributes.parentId.table).toBe(Tree.table);
+    expect(Tree.attributes.parentId.targetTableName).toBe('tree');
+    expect(Object.hasOwn(Tree.attributes.parentId, 'self')).toBe(false);
+
+    expect(Object.hasOwn(parentId, 'self')).toBe(true);
+    expect(parentId.targetTableName).toBe('');
+  });
+
+  it('binds self references to each independently authored version table', () => {
+    const Tree = models.makeVersion(
+      models.makeModel({ name: 'tree', abbreviation: 'tree' }),
+      {
+        version: '2.0.0',
+        indexes: [],
+        attributes: {
+          parentId: primitives.self({
+            relation: 'parent',
+            inverse: 'children',
+            nullable: true,
+          }),
+        },
+      },
+    );
+    const historical = models.makeVersion(
+      models.makeModel({ name: 'tree', abbreviation: 'tree' }),
+      {
+        version: '1.0.0',
+        indexes: [],
+        attributes: {
+          parentId: primitives.self({
+            relation: 'parent',
+            inverse: 'children',
+            nullable: true,
+          }),
+        },
+      },
+    );
+    expect(historical.attributes.parentId.table).toBe(historical.table);
+    expect(historical.propertiesShape.parentId.table).toBe(historical.table);
+    expect(historical.table.shape.parentId.table).toBe(historical.table);
+    expect(historical.table).not.toBe(Tree.table);
+    expect(historical.getVersion('1.0.0')).toBe(historical);
+    expect(Object.hasOwn(historical.attributes.parentId, 'self')).toBe(false);
+    expect(historical.drizzleSchema).toBeDefined();
   });
 
   it('structuredClone of model sans runtime schemas works', () => {
@@ -124,19 +304,9 @@ describe('makeModel', () => {
       attributesSchema: _attributes,
       drizzleSchema: _drizzle,
       makeId: _makeId,
-      create: _create,
-      createMutation: _createMutation,
-      delete: _delete,
-      deleteMutation: _deleteMutation,
-      move: _move,
-      moveMutation: _moveMutation,
-      primaryKey: _primaryKey,
       prefixId: _prefixId,
-      replicateResource: _replicateResource,
-      replicateResourceMutation: _replicateResourceMutation,
       resourceSchema: _resourceSchema,
-      update: _update,
-      updateMutation: _updateMutation,
+      getVersion: _getVersion,
       ...cloneable
     } = User;
     expect(() => structuredClone(cloneable)).not.toThrow();
@@ -158,38 +328,13 @@ describe('makeModel', () => {
     expect(cloned).not.toBe(plain);
   });
 
-  it('retains complete historical definitions independently of their input order', () => {
-    expect(Todo.historicalDefinitions).toEqual([
-      {
-        abbreviation: 'todo',
-        modelName: 'todo',
-        attributes: {
-          title: expect.objectContaining({ kind: PrimitiveKind.Text }),
-        },
-        propertiesShape: expect.objectContaining({
-          title: expect.objectContaining({ kind: PrimitiveKind.Text }),
-        }),
-        indexes: [],
-        version: '1.0.0',
-        adaptResource: expect.any(Function),
-      },
-      {
-        abbreviation: 'todo',
-        modelName: 'todo',
-        attributes: {
-          description: expect.objectContaining({ kind: PrimitiveKind.Text }),
-        },
-        propertiesShape: expect.objectContaining({
-          description: expect.objectContaining({ kind: PrimitiveKind.Text }),
-        }),
-        indexes: [],
-        version: '0.5.0',
-        adaptResource: expect.any(Function),
-      },
-    ]);
+  it('retains only its own version definition', () => {
+    expect(Todo).not.toHaveProperty('historicalDefinitions');
+    expect(Todo.getVersion('2.0.0')).toBe(Todo);
+    expect(() => Todo.getVersion('1.0.0')).toThrow('model-version-unsupported');
   });
 
-  it('validates the complete current resource and directly encodes current or historical resources', () => {
+  it('validates and encodes the exact resource version', () => {
     const createdAt = new Date('2026-08-05T12:00:00.123Z');
     const updatedAt = new Date('2026-08-05T13:00:00.456Z');
     const currentResource = {
@@ -231,495 +376,135 @@ describe('makeModel', () => {
       createdAt: createdAt.toISOString(),
       updatedAt: updatedAt.toISOString(),
     });
-    const historicalResource = Effect.runSync(
-      Todo.adaptResource({
-        version: '1.0.0',
-        resource: currentResource,
-      }),
-    );
-    expect(historicalResource).toEqual({
-      id: 'todo_current',
-      modelName: 'todo',
-      createdAt: createdAt.toISOString(),
-      updatedAt: updatedAt.toISOString(),
-      version: '1.0.0',
-      title: 'Current todo',
-    });
-    expect(historicalResource.id).toBe(currentResource.id);
-
     expect(() =>
       Effect.runSync(
         Todo.adaptResource({
+          // @ts-expect-error runtime validation rejects unavailable versions too
           version: '1.0.0',
+          resource: currentResource,
+        }),
+      ),
+    ).toThrow('model-resource-version-unsupported');
+    expect(() =>
+      Effect.runSync(
+        Todo.adaptResource({
+          version: '2.0.0',
           resource: { ...currentResource, version: '1.0.0' },
         }),
       ),
-    ).toThrow(/model-current-resource-identity-invalid/);
+    ).toThrow('model-current-resource-identity-invalid');
   });
 
-  it('selects one exact historical adapter without chaining', () => {
-    let versionOneCalls = 0;
-    let versionZeroCalls = 0;
-    const Direct = makeModel(
-      {
-        abbreviation: 'dir',
-        modelName: 'direct',
-        attributes: { currentValue: primitives.text() },
-        indexes: [],
-        version: '2.0.0',
-      },
-      [
-        {
-          abbreviation: 'dir',
-          modelName: 'direct',
-          attributes: { prior: primitives.text() },
-          indexes: [],
-          version: '1.0.0',
-          adaptResource: ({ resource }) =>
-            Effect.sync(() => {
-              versionOneCalls += 1;
-              return {
-                id: resource.id,
-                modelName: resource.modelName,
-                createdAt: resource.createdAt,
-                updatedAt: resource.updatedAt,
-                version: '1.0.0',
-                prior: resource.currentValue,
-              };
-            }),
-        },
-        {
-          abbreviation: 'dir',
-          modelName: 'direct',
-          attributes: { original: primitives.text() },
-          indexes: [],
-          version: '0.5.0',
-          adaptResource: ({ resource }) =>
-            Effect.sync(() => {
-              versionZeroCalls += 1;
-              return {
-                id: resource.id,
-                modelName: resource.modelName,
-                createdAt: resource.createdAt,
-                updatedAt: resource.updatedAt,
-                version: '0.5.0',
-                original: resource.currentValue,
-              };
-            }),
-        },
-      ],
-    );
-
-    Effect.runSync(
-      Direct.adaptResource({
-        version: '0.5.0',
-        resource: {
-          id: 'dir_test',
-          modelName: 'direct',
-          createdAt: new Date(0),
-          updatedAt: new Date(0),
-          version: '2.0.0',
-          currentValue: 'current',
-        },
-      }),
-    );
-
-    expect(versionOneCalls).toBe(0);
-    expect(versionZeroCalls).toBe(1);
-  });
-
-  it('surfaces adapter throws and invalid exact output as invariant failures', () => {
-    const Throwing = makeModel(
-      {
-        abbreviation: 'thr',
-        modelName: 'throwing',
-        attributes: { value: primitives.integer() },
-        indexes: [],
-        version: '2.0.0',
-      },
-      [
-        {
-          abbreviation: 'thr',
-          modelName: 'throwing',
-          attributes: { value: primitives.integer() },
-          indexes: [],
-          version: '1.0.0',
-          adaptResource: () => {
-            throw new Error('adapter exploded');
-          },
-        },
-      ],
-    );
-    const Invalid = makeModel(
-      // @ts-expect-error runtime validation protects invalid historical adapter output
-      {
-        abbreviation: 'inv',
-        modelName: 'invalidOutput',
-        attributes: { value: primitives.integer() },
-        indexes: [],
-        version: '2.0.0',
-      },
-      [
-        {
-          abbreviation: 'inv',
-          modelName: 'invalidOutput',
-          attributes: { value: primitives.text() },
-          indexes: [],
-          version: '1.0.0',
-          adaptResource: ({ resource }) =>
-            Effect.succeed({
-              id: resource.id,
-              modelName: resource.modelName,
-              createdAt: resource.createdAt,
-              updatedAt: resource.updatedAt,
-              version: '1.0.0',
-              value: Reflect.get(resource, 'value'),
-            }),
-        },
-      ],
-    );
-
+  it('rejects a resource belonging to another model', () => {
     expect(() =>
       Effect.runSync(
-        Throwing.adaptResource({
-          version: '1.0.0',
+        Todo.adaptResource({
+          version: '2.0.0',
           resource: {
-            id: 'thr_test',
-            modelName: 'throwing',
+            id: 'todo_test',
+            modelName: 'other',
             createdAt: new Date(0),
             updatedAt: new Date(0),
             version: '2.0.0',
-            value: 1,
+            title: 'todo',
+            completed: false,
           },
         }),
       ),
-    ).toThrow(/model-resource-adapter-invariant-failed/);
+    ).toThrow('model-current-resource-identity-invalid');
+  });
+
+  it('rejects invalid current resource attributes', () => {
     expect(() =>
       Effect.runSync(
-        Invalid.adaptResource({
-          version: '1.0.0',
+        Todo.adaptResource({
+          version: '2.0.0',
           resource: {
-            id: 'inv_test',
-            modelName: 'invalidOutput',
-            createdAt: new Date(0),
-            updatedAt: new Date(0),
-            version: '2.0.0',
-            value: 1,
-          },
-        }),
-      ),
-    ).toThrow(/model-resource-adapter-output-invariant-failed/);
-  });
-
-  it('encodes and decodes versioned create, update, delete, and move mutations', () => {
-    const created = Effect.runSync(
-      Todo.create('1.0.0', {
-        resourceId: 'todo_old',
-        attributes: { title: 'Old todo' },
-      }),
-    );
-    const encodedCreate = Schema.encodeSync(Todo.createMutation('1.0.0'))(
-      created,
-    );
-    expect(encodedCreate).toEqual({
-      modelName: 'todo',
-      modelVersion: '1.0.0',
-      operationName: 'create',
-      resourceId: 'todo_old',
-      operation: { attributes: { title: 'Old todo' } },
-    });
-    expect(
-      Schema.decodeSync(Todo.createMutation('1.0.0'))(encodedCreate).model,
-    ).toBe(Todo);
-
-    const updated = Effect.runSync(
-      Todo.update('2.0.0', {
-        resourceId: 'todo_current',
-        attributes: { completed: true },
-        mask: ['completed'],
-      }),
-    );
-    expect(Schema.encodeSync(Todo.updateMutation('2.0.0'))(updated)).toEqual({
-      modelName: 'todo',
-      modelVersion: '2.0.0',
-      operationName: 'update',
-      resourceId: 'todo_current',
-      operation: { attributes: { completed: true }, mask: ['completed'] },
-    });
-
-    const deleted = Effect.runSync(
-      Todo.delete('1.0.0', { resourceId: 'todo_old' }),
-    );
-    expect(Schema.encodeSync(Todo.deleteMutation('1.0.0'))(deleted)).toEqual({
-      modelName: 'todo',
-      modelVersion: '1.0.0',
-      operationName: 'delete',
-      resourceId: 'todo_old',
-      operation: {},
-    });
-
-    const moved = Effect.runSync(
-      Todo.move('2.0.0', {
-        resourceId: 'todo_current',
-        property: 'parentId',
-        prevId: 'todo_prev',
-        nextId: 'todo_next',
-      }),
-    );
-    expect(Schema.encodeSync(Todo.moveMutation('2.0.0'))(moved)).toEqual({
-      modelName: 'todo',
-      modelVersion: '2.0.0',
-      operationName: 'move',
-      resourceId: 'todo_current',
-      operation: {
-        property: 'parentId',
-        prevId: 'todo_prev',
-        nextId: 'todo_next',
-      },
-    });
-  });
-
-  it('rejects unknown operation versions before schema or Effect construction', () => {
-    const erasedTodo: IModel = Todo;
-
-    expect(() => erasedTodo.createMutation('9.0.0')).toThrow(
-      /Unknown model version "9.0.0" for "todo"/,
-    );
-    expect(() =>
-      erasedTodo.create('9.0.0', {
-        resourceId: 'todo_unknown',
-        attributes: { title: 'Unknown' },
-      }),
-    ).toThrow(/Unknown model version "9.0.0" for "todo"/);
-    expect(() => erasedTodo.updateMutation('9.0.0')).toThrow(
-      /Unknown model version "9.0.0" for "todo"/,
-    );
-    expect(() =>
-      erasedTodo.update('9.0.0', {
-        resourceId: 'todo_unknown',
-        attributes: {},
-      }),
-    ).toThrow(/Unknown model version "9.0.0" for "todo"/);
-    expect(() => erasedTodo.deleteMutation('9.0.0')).toThrow(
-      /Unknown model version "9.0.0" for "todo"/,
-    );
-    expect(() =>
-      erasedTodo.delete('9.0.0', { resourceId: 'todo_unknown' }),
-    ).toThrow(/Unknown model version "9.0.0" for "todo"/);
-    expect(() => erasedTodo.moveMutation('9.0.0')).toThrow(
-      /Unknown model version "9.0.0" for "todo"/,
-    );
-    expect(() =>
-      erasedTodo.move('9.0.0', {
-        resourceId: 'todo_unknown',
-        property: 'parentId',
-        prevId: 'todo_prev',
-        nextId: 'todo_next',
-      }),
-    ).toThrow(/Unknown model version "9.0.0" for "todo"/);
-  });
-
-  it('rejects invalid and duplicate current or historical SemVers', () => {
-    expect(() =>
-      makeModel(
-        {
-          abbreviation: 'bad',
-          modelName: 'badSemver',
-          attributes: {},
-          indexes: [],
-          version: '1',
-        },
-        [],
-      ),
-    ).toThrow(/expected SemVer/);
-
-    expect(() =>
-      makeModel(
-        {
-          abbreviation: 'bad',
-          modelName: 'badHistoricalSemver',
-          attributes: {},
-          indexes: [],
-          version: '2.0.0',
-        },
-        [
-          {
-            abbreviation: 'bad',
-            modelName: 'badHistoricalSemver',
-            attributes: {},
-            indexes: [],
-            version: '1',
-            adaptResource: ({ resource }) =>
-              Effect.succeed({ ...resource, version: '1' }),
-          },
-        ],
-      ),
-    ).toThrow(/Invalid historical model version "1"/);
-
-    expect(() =>
-      makeModel(
-        {
-          abbreviation: 'dup',
-          modelName: 'duplicateVersion',
-          attributes: {},
-          indexes: [],
-          version: '2.0.0',
-        },
-        [
-          {
-            abbreviation: 'dup',
-            modelName: 'duplicateVersion',
-            attributes: {},
-            indexes: [],
-            version: '2.0.0',
-            adaptResource: ({ resource }) => Effect.succeed(resource),
-          },
-        ],
-      ),
-    ).toThrow(/Duplicate model version "2.0.0"/);
-
-    expect(() =>
-      makeModel(
-        {
-          abbreviation: 'dup',
-          modelName: 'duplicateHistory',
-          attributes: {},
-          indexes: [],
-          version: '3.0.0',
-        },
-        [
-          {
-            abbreviation: 'dup',
-            modelName: 'duplicateHistory',
-            attributes: {},
-            indexes: [],
-            version: '1.0.0',
-            adaptResource: ({ resource }) =>
-              Effect.succeed({ ...resource, version: '1.0.0' }),
-          },
-          {
-            abbreviation: 'dup',
-            modelName: 'duplicateHistory',
-            attributes: {},
-            indexes: [],
-            version: '1.0.0',
-            adaptResource: ({ resource }) =>
-              Effect.succeed({ ...resource, version: '1.0.0' }),
-          },
-        ],
-      ),
-    ).toThrow(/Duplicate model version "1.0.0"/);
-
-    expect(() =>
-      makeModel(
-        {
-          abbreviation: 'new',
-          modelName: 'newerHistory',
-          attributes: {},
-          indexes: [],
-          version: '2.0.0',
-        },
-        [
-          {
-            abbreviation: 'new',
-            modelName: 'newerHistory',
-            attributes: {},
-            indexes: [],
-            version: '3.0.0',
-            adaptResource: ({ resource }) =>
-              Effect.succeed({ ...resource, version: '3.0.0' }),
-          },
-        ],
-      ),
-    ).toThrow(/must be older than current version "2.0.0"/);
-
-    const missingAdapter = {
-      abbreviation: 'mis',
-      modelName: 'missingAdapter',
-      attributes: {},
-      indexes: [],
-      version: '1.0.0',
-      adaptResource: () =>
-        Effect.succeed({
-          id: 'mis_test',
-          modelName: 'missingAdapter',
-          createdAt: new Date(0),
-          updatedAt: new Date(0),
-          version: '1.0.0',
-        }),
-    };
-    Reflect.deleteProperty(missingAdapter, 'adaptResource');
-    expect(() =>
-      makeModel(
-        // @ts-expect-error runtime validation protects a missing historical adapter
-        {
-          abbreviation: 'mis',
-          modelName: 'missingAdapter',
-          attributes: {},
-          indexes: [],
-          version: '2.0.0',
-        },
-        [missingAdapter],
-      ),
-    ).toThrow(/requires adaptResource/);
-  });
-
-  it('rejects historical identity mismatches', () => {
-    expect(() =>
-      makeModel(
-        // @ts-expect-error runtime validation protects untyped historical definitions
-        {
-          abbreviation: 'todo',
-          modelName: 'todo',
-          attributes: {},
-          indexes: [],
-          version: '2.0.0',
-        },
-        [
-          {
-            abbreviation: 'todo',
-            modelName: 'task',
-            attributes: {},
-            indexes: [],
-            version: '1.0.0',
-            adaptResource: ({ resource }) =>
-              Effect.succeed({ ...resource, version: '1.0.0' }),
-          },
-        ],
-      ),
-    ).toThrow(/has modelName "task", not "todo"/);
-
-    expect(() =>
-      makeModel(
-        // @ts-expect-error runtime validation protects untyped historical definitions
-        {
-          abbreviation: 'todo',
-          modelName: 'todo',
-          attributes: {},
-          indexes: [],
-          version: '2.0.0',
-        },
-        [
-          {
-            abbreviation: 'tsk',
+            id: 'todo_test',
             modelName: 'todo',
+            createdAt: new Date(0),
+            updatedAt: new Date(0),
+            version: '2.0.0',
+            // @ts-expect-error runtime validation rejects invalid attributes too
+            title: 42,
+            completed: false,
+          },
+        }),
+      ),
+    ).toThrow('model-current-resource-invalid');
+  });
+
+  it('binds every mutation operation to the exact model version', () => {
+    const mutations = [
+      Effect.runSync(
+        makeModelMutations(Todo).create({
+          resourceId: 'todo_test',
+          attributes: { title: 'Todo', completed: false },
+        }),
+      ),
+      Effect.runSync(
+        makeModelMutations(Todo).update({
+          resourceId: 'todo_test',
+          attributes: { completed: true },
+        }),
+      ),
+      Effect.runSync(
+        makeModelMutations(Todo).delete({ resourceId: 'todo_test' }),
+      ),
+    ];
+    expect(mutations.map(mutation => mutation.operationName)).toEqual([
+      'create',
+      'update',
+      'delete',
+    ]);
+    for (const mutation of mutations) {
+      expect(mutation.model).toBe(Todo);
+      expect(mutation.modelVersion).toBe('2.0.0');
+    }
+  });
+
+  it('rejects selecting an unavailable version before constructing mutations', () => {
+    const erasedTodo: IModel = Todo;
+    expect(() => makeModelMutations(erasedTodo.getVersion('9.0.0'))).toThrow(
+      'model-version-unsupported',
+    );
+  });
+
+  it('rejects invalid version strings', () => {
+    for (const version of ['1', '01.0.0', '1.0', '1.0.0-01']) {
+      expect(() =>
+        models.makeVersion(
+          models.makeModel({ name: 'badSemver', abbreviation: 'bad' }),
+          {
             attributes: {},
             indexes: [],
-            version: '1.0.0',
-            adaptResource: ({ resource }) =>
-              Effect.succeed({ ...resource, version: '1.0.0' }),
+            version,
           },
-        ],
-      ),
-    ).toThrow(/has abbreviation "tsk", not "todo"/);
+        ),
+      ).toThrow(/expected SemVer/);
+    }
+  });
+
+  it('keeps separately authored model identities independent', () => {
+    const Other = models.makeVersion(
+      models.makeModel({ name: 'other', abbreviation: 'oth' }),
+      {
+        attributes: {},
+        indexes: [],
+        version: '2.0.0',
+      },
+    );
+    expect(Other.modelName).toBe('other');
+    expect(Other.abbreviation).toBe('oth');
+    expect(Todo.modelName).toBe('todo');
+    expect(Todo.abbreviation).toBe('todo');
   });
 
   it('invalid attributes (e.g. Schema instead of descriptor) throw at runtime', () => {
     expect(() =>
-      makeModel(
+      models.makeVersion(
+        models.makeModel({ name: 'bad', abbreviation: 'bad' }),
         {
-          abbreviation: 'bad',
-          modelName: 'bad',
           attributes: {
             // @ts-expect-error - reserved keys cannot be used as property keys
             id: Schema.String,
@@ -727,17 +512,15 @@ describe('makeModel', () => {
           indexes: [],
           version: '1.0.0',
         },
-        [],
       ),
     ).toThrow();
   });
 
   it('reserves the replica deletion property on authored models', () => {
     expect(() =>
-      makeModel(
+      models.makeVersion(
+        models.makeModel({ name: 'reservedDeletedAt', abbreviation: 'bad' }),
         {
-          abbreviation: 'bad',
-          modelName: 'reservedDeletedAt',
           attributes: {
             // @ts-expect-error deletedAt is reserved replica framework state on authored models
             deletedAt: primitives.date({ nullable: true }),
@@ -745,54 +528,29 @@ describe('makeModel', () => {
           indexes: [],
           version: '1.0.0',
         },
-        [],
       ),
     ).toThrow(/framework property keys are reserved/);
   });
 
-  it('rejects payload primary keys on attributes', () => {
-    expect(() =>
-      makeModel(
-        {
-          abbreviation: 'xid',
-          modelName: 'withAutogeneratedAttribute',
-          attributes: {
-            // @ts-expect-error makeModel attributes cannot autogenerate payload identities
-            otherId: Object.assign(
-              primitives.opaqueId({ abbreviation: 'usr' }),
-              { autogenerate: true },
-            ),
-          },
-          indexes: [],
-          version: '1.0.0',
-        },
-        [],
-      ),
-    ).toThrow(/autogeneration belongs to contract payload primary keys/);
-  });
-
-  it('allows opaque IDs on attributes', () => {
-    const model = makeModel(
+  it('allows foreign keys on attributes', () => {
+    const model = models.makeVersion(
+      models.makeModel({ name: 'withAbbrevId', abbreviation: 'xid' }),
       {
-        abbreviation: 'xid',
-        modelName: 'withAbbrevId',
         attributes: {
-          userId: primitives.opaqueId({ abbreviation: 'uid' }),
+          userId: primitives.foreignKey({ abbreviation: 'uid' }),
         },
         indexes: [],
         version: '1.0.0',
       },
-      [],
     );
-    expect(model.attributes.userId.kind).toBe(PrimitiveKind.OpaqueId);
+    expect(model.attributes.userId.kind).toBe(PrimitiveKind.ForeignKey);
   });
 
   it('rejects primary-key attributes because the model owns its synthesized id', () => {
     expect(() =>
-      makeModel(
+      models.makeVersion(
+        models.makeModel({ name: 'withExtraPrimaryKey', abbreviation: 'xpk' }),
         {
-          abbreviation: 'xpk',
-          modelName: 'withExtraPrimaryKey',
           attributes: {
             // @ts-expect-error makeModel attributes cannot declare a primary key
             versionName: primitives.primaryKey({ abbreviation: 'vrsn' }),
@@ -800,16 +558,14 @@ describe('makeModel', () => {
           indexes: [],
           version: '1.0.0',
         },
-        [],
       ),
-    ).toThrow(/makeModel synthesizes the model id primary key/);
+    ).toThrow(/makeVersion synthesizes the model id primary key/);
   });
 
   it('accepts indexes on the complete properties shape', () => {
-    const IndexedUser = makeModel(
+    const IndexedUser = models.makeVersion(
+      models.makeModel({ name: 'indexedUser', abbreviation: 'usr' }),
       {
-        abbreviation: 'usr',
-        modelName: 'indexedUser',
         attributes: {
           name: primitives.text(),
         },
@@ -826,7 +582,6 @@ describe('makeModel', () => {
         ],
         version: '1.0.0',
       },
-      [],
     );
 
     expect(IndexedUser.indexes).toEqual([
@@ -863,5 +618,13 @@ describe('makeModel', () => {
         unique: true,
       },
     ]);
+  });
+
+  it('returns its exact table-capable version and rejects other versions', () => {
+    expect(Todo.getVersion('2.0.0')).toBe(Todo);
+    expect(Todo.drizzleSchema).toHaveProperty('completed');
+    expect(Todo.drizzleSchema).toHaveProperty('title');
+    expect(() => Todo.getVersion('1.0.0')).toThrow('model-version-unsupported');
+    expect(() => Todo.getVersion('9.0.0')).toThrow('model-version-unsupported');
   });
 });

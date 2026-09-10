@@ -1,255 +1,110 @@
-import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
-import { makeSignature } from '../authentication/makeSignature.ts';
-import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { makeModel } from '../models/makeModel.ts';
-import { makeReplica } from '../models/makeReplica.ts';
+import { aggregates } from '../aggregate/index.ts';
+import { authentication } from '../authentication/index.ts';
+import { makeService } from '../service/makeService.ts';
 
 import { makeSystem } from './makeSystem.ts';
+import { makeSystemSpec } from './makeSystemSpec.ts';
 
-const authenticationSignature = makeSignature(
-  {
-    version: '1.0.0',
-    schema: Schema.Struct({ userId: Schema.String }),
-  },
-  [],
-);
-const authentication = {
-  signature: authenticationSignature,
+const authenticationSignature = {
+  version: '1.0.0',
+  signature: Schema.Struct({ userId: Schema.String }),
+};
+const authenticationV1 = authentication.makeVersion({
+  version: authenticationSignature.version,
+  signature: authenticationSignature.signature,
   authenticate: ({
     signature,
   }: {
-    signature: Schema.Schema.Type<typeof authenticationSignature.schema>;
+    signature: Schema.Schema.Type<typeof authenticationSignature.signature>;
   }) => Effect.succeed(signature.userId),
-};
+});
 
+const catalog = makeService({
+  name: 'catalog',
+  version: '1.0.0',
+  models: {},
+  contracts: {},
+  queries: {
+    products: {
+      paramsSchema: Schema.Struct({}),
+      query: () => Effect.succeed([] as string[]),
+    },
+  },
+  frontends: {},
+});
+const user = aggregates.makeVersion(
+  aggregates.makeAggregate({ name: 'user' }),
+  {
+    version: '1.0.0',
+    models: {},
+    contracts: {},
+    selections: {},
+  },
+);
 const system = makeSystem({
   name: 'test',
-  version: '1.2.3',
-  authentication,
-  aggregates: {
-    user: {
-      models: {},
-      contracts: {},
-      selections: {},
-      frontends: {},
-    },
-  },
-  services: {
-    catalog: {
-      models: {},
-      contracts: {},
-      frontends: {},
-    },
-  },
+  authentication: [authenticationV1],
+  aggregates: { user: [user] },
+  services: { catalog: [catalog] },
 });
 
-const systemName: 'test' = system.name;
-const systemVersion: '1.2.3' = system.version;
-const aggregateName: 'user' = system.aggregates.user.name;
-const serviceName: 'catalog' = system.services.catalog.name;
-void systemName;
-void systemVersion;
-void aggregateName;
-void serviceName;
+assert<Equals<typeof system.name, 'test'>>();
+assert<Equals<(typeof system.aggregates.user)['1.0.0']['name'], 'user'>>();
+assert<Equals<(typeof system.services.catalog)['1.0.0']['name'], 'catalog'>>();
 
-const ownerServiceController = makeFrontendController({
-  systemName: 'service-owner-type-test',
-  serviceName: 'catalog',
-  frontendName: 'browse',
-  models: {},
-});
+// @ts-expect-error systems are immutable after construction
+system.name = 'test';
+// @ts-expect-error system authentication is immutable after construction
+system.authentication[0].authenticate = authenticationV1.authenticate;
+// @ts-expect-error system aggregate registries are immutable after construction
+system.aggregates.user = { ...system.aggregates.user };
+// @ts-expect-error system service registries are immutable after construction
+system.services.catalog = { ...system.services.catalog };
+// @ts-expect-error resolved service query definitions are immutable
+system.services.catalog['1.0.0'].queries.products.name = 'products';
 
-makeSystem({
-  name: 'service-owner-type-test',
-  version: '1.0.0',
-  authentication,
-  aggregates: {},
-  services: {
-    // @ts-expect-error — a service with a frontend requires owner authentication
-    catalog: {
-      models: {},
-      contracts: {},
-      frontends: { browse: { controller: ownerServiceController } },
-    },
-  },
-});
+const spec = makeSystemSpec({ system });
+// @ts-expect-error generated system specs are immutable
+spec.systemName = 'test';
+// @ts-expect-error generated authentication specs are immutable
+spec.authentication[0]!.version = '1.0.0';
+// @ts-expect-error generated aggregate spec registries are immutable
+spec.aggregates.user = { ...spec.aggregates.user };
+// @ts-expect-error generated authentication JSON Schema roots are immutable
+spec.authentication[0]!.signatureJsonSchema.schema.type = 'string';
+// @ts-expect-error generated query JSON Schema roots are immutable
+spec.services.catalog.queries.products.paramsJsonSchema.schema.type = 'string';
 
-const ServiceProduct = makeModel({
-  abbreviation: 'prd',
-  modelName: 'product',
-  attributes: { name: primitives.text() },
-  indexes: [],
-  version: '1.0.0',
-});
-const AggregateProduct = makeReplica({
-  sourceModel: ServiceProduct,
-  serviceName: 'catalog',
-});
-const directSourceAggregateController = makeFrontendController({
-  systemName: 'direct-source-frontend-type-test',
-  aggregateName: 'account',
-  frontendName: 'web',
-  contracts: {},
-  models: { product: ServiceProduct },
-});
-
-makeSystem({
-  name: 'invalid-service-replica',
-  version: '1.0.0',
-  authentication,
-  aggregates: {},
-  services: {
-    catalog: {
-      models: {
-        // @ts-expect-error services require authoritative source models
-        product: AggregateProduct,
-      },
-      contracts: {},
-      frontends: {},
-    },
-  },
-});
-
-const replicaSystem = makeSystem({
-  name: 'replica-system',
-  version: '1.0.0',
-  authentication,
-  aggregates: {
-    account: {
-      models: { product: AggregateProduct },
-      contracts: {},
-      selections: {
-        product: {
-          model: AggregateProduct,
-          where: () => ({}),
-        },
-      },
-      frontends: {},
-    },
-  },
-  services: {
-    catalog: {
-      models: { product: ServiceProduct },
-      contracts: {},
-      frontends: {},
-    },
-  },
-});
-
-assert<
-  Equals<
-    typeof replicaSystem.services.catalog.models.product,
-    typeof ServiceProduct
-  >
->();
-assert<
-  Equals<
-    typeof replicaSystem.aggregates.account.models.product,
-    typeof AggregateProduct
-  >
->();
-
-makeSystem({
-  name: 'direct-source-frontend-type-test',
-  version: '1.0.0',
-  authentication,
-  aggregates: {
-    account: {
-      authorize: () => Effect.void,
-      models: { product: AggregateProduct },
-      contracts: {},
-      selections: {
-        product: { model: AggregateProduct, where: () => ({}) },
-      },
-      frontends: {
-        web: {
-          // @ts-expect-error aggregate frontends cannot identity-bind the authoritative source model over its replica
-          controller: directSourceAggregateController,
-        },
-      },
-    },
-  },
-  services: {
-    catalog: {
-      models: { product: ServiceProduct },
-      contracts: {},
-      frontends: {},
-    },
-  },
-});
-
-// @ts-expect-error — version is required at the factory call site
 makeSystem({
   name: 'test',
-  authentication,
+  authentication: [authenticationV1],
   aggregates: {},
 });
 
-const VersionedItem = makeModel(
-  {
-    abbreviation: 'itm',
-    modelName: 'item',
-    attributes: { amount: primitives.integer() },
-    indexes: [],
-    version: '2.0.0',
+makeSystem({
+  name: 'key-test',
+  authentication: [authenticationV1],
+  aggregates: {
+    // @ts-expect-error aggregate registry keys must equal aggregate.name
+    account: [user],
   },
-  [
-    {
-      abbreviation: 'itm',
-      modelName: 'item',
-      attributes: { quantity: primitives.integer() },
-      indexes: [],
-      version: '1.0.0',
-      adaptResource: ({ resource }) =>
-        Effect.succeed({
-          id: resource.id,
-          modelName: resource.modelName,
-          createdAt: resource.createdAt,
-          updatedAt: resource.updatedAt,
-          version: '1.0.0',
-          quantity: resource.amount,
-        }),
-    },
-  ],
-);
+  services: { catalog: [catalog] },
+});
 
 makeSystem({
-  name: 'historical-mutation-adapter-test',
-  version: '2.0.0',
-  authentication,
-  aggregates: {
-    list: {
-      models: { item: VersionedItem },
-      contracts: {},
-      mutationAdapters: {
-        item: {
-          update: [
-            {
-              source: VersionedItem.updateMutation('1.0.0'),
-              destination: VersionedItem.updateMutation('2.0.0'),
-              adapter: mutation => {
-                assert<Equals<typeof mutation.resourceId, `itm_${string}`>>();
-                assert<Equals<typeof mutation.operationName, 'update'>>();
-                mutation.operation.mask?.forEach(attribute => {
-                  assert<Equals<typeof attribute, string>>();
-                });
-
-                return VersionedItem.update('2.0.0', {
-                  resourceId: mutation.resourceId,
-                  attributes: {
-                    amount: mutation.operation.attributes.quantity,
-                  },
-                });
-              },
-            },
-          ],
-        },
-      },
-      selections: {},
-      frontends: {},
-    },
+  name: 'key-test',
+  authentication: [authenticationV1],
+  aggregates: {},
+  services: {
+    // @ts-expect-error service registry keys must equal service.name
+    inventory: [catalog],
   },
 });
+
+// Note: controller.systemName is not checked at compile-time in makeSystem because
+// makeService cannot carry SYSTEM_NAME through its controller constraint
+// — the literal is erased during FRONTENDS inference. systemName correctness is enforced
+// at runtime instead.

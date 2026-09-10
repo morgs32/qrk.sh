@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { List, mainModels, User } from '../fixtures/system.ts';
-import { makeModel } from '../models/makeModel.ts';
+import { models } from '../models/index.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 import { sessionRepoTables } from '../session/sessionRepoTables.ts';
 
@@ -59,20 +59,17 @@ describe('makeResourceDbConfig', () => {
   });
 
   it('queries exact authoritative source-table refs between replicas', async () => {
-    const ProductSource = makeModel(
+    const ProductSource = models.makeVersion(
+      models.makeModel({ name: 'product', abbreviation: 'prd' }),
       {
-        abbreviation: 'prd',
-        modelName: 'product',
         attributes: { name: primitives.text() },
         indexes: [],
         version: '1.0.0',
       },
-      [],
     );
-    const CartItemSource = makeModel(
+    const CartItemSource = models.makeVersion(
+      models.makeModel({ name: 'cartItem', abbreviation: 'cit' }),
       {
-        abbreviation: 'cit',
-        modelName: 'cartItem',
         attributes: {
           productId: primitives.ref({
             table: ProductSource.table,
@@ -83,14 +80,15 @@ describe('makeResourceDbConfig', () => {
         indexes: [],
         version: '1.0.0',
       },
-      [],
     );
     const ProductReplica = makeReplica({
       sourceModel: ProductSource,
+      modelVersion: ProductSource.version,
       serviceName: 'catalog',
     });
     const CartItemReplica = makeReplica({
       sourceModel: CartItemSource,
+      modelVersion: CartItemSource.version,
       serviceName: 'catalog',
     });
     const dbConfig = makeResourceDbConfig({
@@ -561,7 +559,7 @@ describe('makeDbConfig table graph validation', () => {
     );
   });
 
-  it('rejects erased cyclic table graphs', () => {
+  it('rejects a cyclic ref added to an already constructed table', () => {
     const teams = makeTable({
       name: 'teams',
       shape: {
@@ -580,16 +578,13 @@ describe('makeDbConfig table graph validation', () => {
       },
     });
     Object.assign(teams.shape, {
-      leadMemberId: primitives.ref({
-        table: members,
-        relation: 'leadMember',
-        inverse: 'ledTeam',
-        unique: true,
-      }),
-    });
-
-    expect(() => makeDbConfig({ tables: { teams, members } })).toThrow(
-      /cyclic ref graph/,
-    );
+        leadMemberId: primitives.ref({
+          table: members,
+          relation: 'leadMember',
+          inverse: 'ledTeam',
+          unique: true,
+        }),
+      });
+    expect(() => makeDbConfig({ tables: { teams, members } })).toThrow(/cyclic ref graph/);
   });
 });

@@ -5,12 +5,12 @@ import {
   type ISelection,
   type ISelectionDb,
 } from './makeSelection.ts';
-import type { IEncodedResourceShape, IModel, IModels } from './types.ts';
+import type { IAnyModels, IEncodedResourceShape, IModel } from './types.ts';
 
 export const getGraph = (props: {
   db: ISelectionDb;
   userId: string;
-  models: IModels;
+  models: IAnyModels;
   selections: Record<string, ISelection<IModel>>;
   whereByModelName?: Readonly<
     Record<string, Readonly<Record<string, unknown>>>

@@ -1,11 +1,14 @@
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 
-import { ProjectedItem, updateProjectedItemQuantity } from './projectionDomain';
+import { SourceItem, updateSourceItemQuantity } from './domain';
 
 export const projection = makeFrontendController({
-  contracts: { updateSourceItemQuantity: updateProjectedItemQuantity },
+  aggregateVersion: '1.0.0',
+  contracts: {
+    updateSourceItemQuantity: { contract: updateSourceItemQuantity },
+  },
   aggregateName: 'aggregate',
-  frontendName: 'projection',
+  name: 'projection',
   systemName: 'frontendAdapters',
-  models: { projectedItem: ProjectedItem },
+  models: { sourceItem: SourceItem },
 });

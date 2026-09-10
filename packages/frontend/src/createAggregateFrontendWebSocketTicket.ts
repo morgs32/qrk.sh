@@ -29,6 +29,7 @@ export const createAggregateFrontendWebSocketTicket = Effect.fn(
   generateSignature(): Promise<IEncodedResult<unknown, IAnyErrorJson>>;
   aggregateId: IAggregateId;
   aggregateName: string;
+  aggregateVersion: string;
   frontendName: string;
   aggregateFrontendLock: Schema.Schema.Type<typeof AggregateFrontendLockSchema>;
 }): Effect.fn.Return<
@@ -36,22 +37,34 @@ export const createAggregateFrontendWebSocketTicket = Effect.fn(
   IAnyError,
   Async | TelemetryCollector
 > {
-  const signature = yield* makeAsync(props.generateSignature).pipe(
+  const {
+    aggregateFrontendLock,
+    aggregateId,
+    aggregateName,
+    apiUrl,
+    authenticationLock,
+    frontendName,
+    generateSignature,
+    publishableKey,
+    systemName,
+  } = props;
+  const signature = yield* makeAsync(generateSignature).pipe(
     Effect.flatMap(decodeRpc),
   );
-  const gatewayApi = newSyncRpcSession<GatewayApi>(props.apiUrl);
+  const gatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
   const frontendApi = gatewayApi.getAggregateFrontendApi({
-    publishableKey: props.publishableKey,
-    systemName: props.systemName,
-    authenticationLock: props.authenticationLock,
+    aggregateVersion: props.aggregateVersion,
+    publishableKey,
+    systemName,
+    authenticationLock,
     signature,
-    aggregateId: props.aggregateId,
-    aggregateName: props.aggregateName,
-    frontendName: props.frontendName,
-    aggregateFrontendLock: props.aggregateFrontendLock,
+    aggregateId,
+    aggregateName,
+    frontendName,
+    aggregateFrontendLock,
   });
   return yield* makeTraceableApiTarget(frontendApi)
-    .createWebSocketTicket()
+    .createWebSocketTicket({ aggregateVersion: props.aggregateVersion })
     .pipe(
       Effect.mapError(error =>
         error instanceof Error

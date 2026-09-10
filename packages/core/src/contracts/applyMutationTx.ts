@@ -17,6 +17,7 @@ import { Effect, Schema, Struct } from 'effect';
 import { pick } from 'es-toolkit';
 
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
+import { Model } from '../models/makeModel.ts';
 import type { IModel, InferAttributesSchema } from '../models/types.ts';
 
 import { getResourceRow } from './getResourceRow.ts';
@@ -26,10 +27,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
   CONFIG extends IDbConfig,
 >(props: {
   tx: ITx<CONFIG>;
-  mutation: Exclude<
-    IAnyMutation,
-    { readonly operationName: 'replicateResource' }
-  >;
+  mutation: Exclude<IAnyMutation, { readonly operationName: 'replicate' }>;
   commandId: string;
   mutationIndex: number;
   appliedAt: Date;
@@ -102,7 +100,7 @@ export const applyMutationTx = Effect.fn('applyMutationTx')(function* <
               updatedAt: appliedAt,
               modelName: model.modelName,
               version: mutation.modelVersion,
-              ...('sourceModel' in model ? { deletedAt: null } : {}),
+              ...(Model.isReplica(model) ? { deletedAt: null } : {}),
               ...encodedAttributes,
             })
             .run(),

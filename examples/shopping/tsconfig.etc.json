@@ -6,8 +6,8 @@
     "paths": {
       "*": ["./*"],
       "@/*": ["./src/*"],
-      "@zerospin/opfs-backup-worker": [
-        "../../packages/opfs-backup-worker/dist/index.d.ts"
+      "@zerospin/backup-worker": [
+        "../../packages/backup-worker/dist/index.d.ts"
       ],
       "virtual:pwa-register/react": [
         "./node_modules/vite-plugin-pwa/react.d.ts"
@@ -22,6 +22,7 @@
     ]
   },
   "include": [
+    "zerospin.config.ts",
     "e2e.playwright.config.ts",
     "e2e.preview.playwright.config.ts",
     "e2e/**/*.ts",

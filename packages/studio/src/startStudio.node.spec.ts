@@ -6,8 +6,16 @@ import { startStudio } from './startStudio.ts';
 
 const systemSpec = {
   systemName: 'shopping',
-  version: '2.0.2',
   authentication: {
+    version: {
+      version: '1.0.0',
+      schemaJsonSchema: {
+        dialect: 'draft-2020-12',
+        schema: {},
+        definitions: {},
+      },
+      historicalDefinitions: [],
+    }.version,
     signature: {
       version: '1.0.0',
       schemaJsonSchema: {
@@ -16,7 +24,7 @@ const systemSpec = {
         definitions: {},
       },
       historicalDefinitions: [],
-    },
+    }.signature,
   },
   aggregates: {},
   services: {},
@@ -189,22 +197,20 @@ describe('startStudio', () => {
   });
 
   it('runs a table-row request with the decoded route arguments', async () => {
-    const getMaterializedAggregateRepoTableRowsMock = vi
-      .fn()
-      .mockResolvedValue({
-        result: {
-          _tag: 'Success',
-          success: {
-            columns: [{ name: 'id', type: 'text' }],
-            rows: [{ id: 'aggregate-1' }],
-          },
+    const getVersionedAggregateRepoTableRowsMock = vi.fn().mockResolvedValue({
+      result: {
+        _tag: 'Success',
+        success: {
+          columns: [{ name: 'id', type: 'text' }],
+          rows: [{ id: 'aggregate-1' }],
         },
-        link: null,
-      });
+      },
+      link: null,
+    });
     newSyncRpcSessionMock.mockReturnValue({
       getSystemApi: vi.fn().mockReturnValue({
-        getMaterializedAggregateRepoTableRows:
-          getMaterializedAggregateRepoTableRowsMock,
+        getVersionedAggregateRepoTableRows:
+          getVersionedAggregateRepoTableRowsMock,
       }),
       [Symbol.dispose]: vi.fn(),
     });
@@ -229,15 +235,15 @@ describe('startStudio', () => {
     await middleware(
       {
         method: 'GET',
-        url: '/api/repos/MaterializedAggregateRepo/aggregate%2Frepo/aggregates%20table',
+        url: '/api/repos/VersionedAggregateRepo/aggregate%2Frepo/aggregates%20table',
       },
       response,
       vi.fn(),
     );
 
-    expect(getMaterializedAggregateRepoTableRowsMock).toHaveBeenCalledTimes(1);
+    expect(getVersionedAggregateRepoTableRowsMock).toHaveBeenCalledTimes(1);
     expect(
-      getMaterializedAggregateRepoTableRowsMock.mock.calls[0]![0],
+      getVersionedAggregateRepoTableRowsMock.mock.calls[0]![0],
     ).toMatchObject({
       args: [
         {

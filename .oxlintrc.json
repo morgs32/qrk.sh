@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["vendor/**"],
   "plugins": ["react", "typescript", "import", "jsx-a11y"],
   "jsPlugins": ["eslint-plugin-perfectionist"],
   "env": {
@@ -35,6 +36,33 @@
     "window": "readonly"
   },
   "overrides": [
+    {
+      "files": ["**/zerospin.config.ts"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@zerospin/sdk",
+                "message": "Import @zerospin/sdk only in examples/shopping. Use the matching @zerospin/core/* module elsewhere."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "**/src/**",
+                  "!./src/**",
+                  "!../src/**",
+                  "!../**/src/**"
+                ],
+                "message": "Project configs may import relative source. Use package entrypoints for package imports."
+              }
+            ]
+          }
+        ]
+      }
+    },
     {
       "files": ["**/*.config.js", "**/*.config.mjs", "**/*.config.ts"],
       "rules": {
@@ -420,7 +448,10 @@
         ],
         "patterns": [
           {
-            "group": ["**/src/**"],
+            "group": [
+              "**/src/**",
+              "!wa-sqlite/src/examples/IDBBatchAtomicVFS.js"
+            ],
             "message": "Do not import from any /src/ path. Use the owning package alias or public entrypoint instead."
           }
         ]

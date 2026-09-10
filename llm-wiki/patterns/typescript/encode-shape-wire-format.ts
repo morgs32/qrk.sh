@@ -1,3 +1,4 @@
+import { primitives } from '@zerospin/schema';
 import {
   PrimitiveKind,
   type IAnyShape,
@@ -11,6 +12,9 @@ import { mapValues } from 'es-toolkit';
  *
  * @bad Do not add `decodeShape` when the worker can consume the encoded descriptor shape directly.
  * @bad Do not send `primitives.json({ schema })` descriptors with the Effect `Schema` object across RPC.
+ * Model and contract specs and frontend locks use encoded primitive descriptors.
+ * Only nested JSON keeps JSON Schema; date defaults serialize as ISO strings.
+ *
  * @bad Do not emit a bare schema root; preserve the draft-2020-12 document metadata.
  * @bad Do not send a ref's runtime `table` object across RPC instead of its stable target and relation metadata.
  * @bad Do not encode legacy `modelName`, `inverse.kind`, or `primaryKey` flags instead of distinct ref and primary-key descriptors.
@@ -32,6 +36,7 @@ export function encodeShape(shape: IAnyShape): IEncodedShape {
           kind,
           nullable,
           relation,
+          targetKind,
           targetColumnName,
           targetTableName,
           unique,
@@ -42,18 +47,27 @@ export function encodeShape(shape: IAnyShape): IEncodedShape {
           kind,
           nullable,
           relation,
+          ...(targetKind === PrimitiveKind.Integer ? { targetKind } : {}),
           targetColumnName,
           targetTableName,
           unique,
         };
       }
+      case PrimitiveKind.Date: {
+        const { defaultValue, ...date } = descriptor;
+        return {
+          ...date,
+          ...(defaultValue === undefined
+            ? {}
+            : { defaultValue: defaultValue.toISOString() }),
+        };
+      }
       case PrimitiveKind.Boolean:
       case PrimitiveKind.Cursor:
-      case PrimitiveKind.Date:
       case PrimitiveKind.Enum:
       case PrimitiveKind.Integer:
       case PrimitiveKind.Number:
-      case PrimitiveKind.OpaqueId:
+      case PrimitiveKind.ForeignKey:
       case PrimitiveKind.PrimaryKey:
       case PrimitiveKind.Text: {
         return descriptor;

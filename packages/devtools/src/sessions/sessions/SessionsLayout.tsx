@@ -168,10 +168,9 @@ export function SessionsLayout() {
     if (sessionIdParam === undefined) {
       const firstAggregateSession = aggregateSessions[0];
       if (firstAggregateSession !== undefined) {
-        void navigate(
-          `/sessions/${firstAggregateSession.sessionId}/commands`,
-          { replace: true },
-        );
+        void navigate(`/sessions/${firstAggregateSession.sessionId}/commands`, {
+          replace: true,
+        });
         return;
       }
 
@@ -190,10 +189,9 @@ export function SessionsLayout() {
     if (!idIsValid) {
       const firstAggregateSession = aggregateSessions[0];
       if (firstAggregateSession !== undefined) {
-        void navigate(
-          `/sessions/${firstAggregateSession.sessionId}/commands`,
-          { replace: true },
-        );
+        void navigate(`/sessions/${firstAggregateSession.sessionId}/commands`, {
+          replace: true,
+        });
         return;
       }
 
@@ -266,10 +264,10 @@ export function SessionsLayout() {
                         <td style={styles.tdKind}>aggregate</td>
                         <td
                           style={styles.tdFrontend}
-                          title={`${session.frontend.aggregateName}/${session.frontend.frontendName}`}
+                          title={`${session.frontend.aggregateName}/${session.frontend.name}`}
                         >
                           {session.frontend.aggregateName}/
-                          {session.frontend.frontendName}
+                          {session.frontend.name}
                         </td>
                         <SessionsDataCell
                           text={session.sessionId}

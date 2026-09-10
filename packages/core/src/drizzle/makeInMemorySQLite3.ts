@@ -16,7 +16,7 @@ export async function makeInMemorySQLite3(
   subscribeToTableChanges(
     listener: (changedTableNames: ReadonlySet<string>) => void,
   ): () => void;
-  flushTableChanges(): void;
+  flushTableChanges(restoredTableNames?: ReadonlySet<string>): void;
   onCommittedTransaction:
     | ((statements: readonly ICommittedSqlStatement[]) => void)
     | null;
@@ -57,14 +57,16 @@ export async function makeInMemorySQLite3(
         tableChangeListeners.delete(listener);
       };
     },
-    flushTableChanges() {
+    flushTableChanges(restoredTableNames) {
       // 3 — BEGIN and savepoints keep autocommit disabled. Retain the complete
       // transaction's table set until COMMIT or ROLLBACK finishes stepping.
       if (sqlite3.get_autocommit(db) === 0) {
         return;
       }
 
-      const shouldNotifyListeners = didCommit;
+      // A completed backup restore replaces pages without running update_hook.
+      // Its caller publishes the restored tables after the live database is ready.
+      const shouldNotifyListeners = didCommit || restoredTableNames !== undefined;
       didCommit = false;
 
       if (!shouldNotifyListeners) {
@@ -72,6 +74,10 @@ export async function makeInMemorySQLite3(
         // were never notified about its intermediate rows, so no rerun is due.
         pendingTableNames.clear();
         return;
+      }
+
+      for (const tableName of restoredTableNames ?? []) {
+        pendingTableNames.add(tableName);
       }
 
       if (pendingTableNames.size === 0) {

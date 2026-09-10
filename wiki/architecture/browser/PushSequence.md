@@ -1,162 +1,82 @@
 ---
-title: Aggregate Frontend Push and Finalization
-updated: 2026-09-01
+title: Aggregate Frontend Submission
+updated: 2026-09-09
 ---
 
-# Aggregate Frontend Push and Finalization
+# Aggregate Frontend Submission
 
-The page-owned aggregate session executes an authored command synchronously in
-its in-memory database. One transaction commits the complete terminal session
-occurrence, optimistic mutations, and monotonic `sessionIndex`; committed SQL
-is then queued through the OPFS SharedWorker mediator to its elected dedicated
-storage Worker. A separate Effect lane pushes unresolved occurrences by
-`sessionIndex` through a freshly authenticated HTTP-batch RPC session.
-
-- [`makeSession.ts:177-212`](../../../packages/core/src/session/makeSession.ts#L177-L212) — gates local execution on an initialized current session.
-- [`makeSession.ts:247-504`](../../../packages/core/src/session/makeSession.ts#L247-L504) — applies the local transaction and retains the full occurrence by `sessionIndex`.
-- [`bootstrapAggregateFrontendSession.ts:937-1021`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L937-L1021) — selects the earliest unresolved session occurrence and drives the push lane.
-
-AggregateFrontendPushedCommandChain assigns `pushIndex`, executes server-side
-optimism, and returns one terminal pushed occurrence. A successful push
-forwards the complete aggregate command to AggregateCommandChain for
-authoritative execution; finalized socket delivery resolves the exact origin
-through `pushIndex`.
+Server execution starts in VAR after AC admission. The browser owns optimism; UVAR computes authoritative per-command view changes.
 
 ## Trigger
 
-1. `session.executeCommand(...)` commits a complete local occurrence and
-   signals the aggregate push lane after commit.
-   - [`makeSession.ts:507-553`](../../../packages/core/src/session/makeSession.ts#L507-L553) — commits locally, validates the returned receipt identity, and starts the post-commit push signal.
+1. The local session executes the frontend command and commits its complete occurrence, optimistic mutations, and inverse journal.
+   - [`makeAggregateSession.ts`](../../../packages/core/src/session/makeAggregateSession.ts) — Requires current ownership and captures the current execution ID before constructing the complete command.
 
 ```mermaid
 sequenceDiagram
-  participant Session as Main-thread aggregate session
-  participant Backup as OPFS backup router and leader
-  participant FrontendApi as Fresh AggregateFrontendApi capability
-  participant Pushed as AggregateFrontendPushedCommandChain
-  participant Frontend as MaterializedAggregateFrontendRepo
-  participant Aggregate as AggregateCommandChain
-  participant Finalized as AggregateFrontendFinalizedCommandChain
-
+  participant Browser
+  participant AggregateSession
+  participant AggregateFrontendApi
+  participant AggregateChain
+  participant UserVersionedAggregateChain
   autonumber 1
-  Session->>Session: session.executeCommand(...)
+  Browser->>AggregateSession: session.executeCommand(...)
   autonumber 2
-  Session->>Session: local transaction committed
+  AggregateSession->>AggregateFrontendApi: frontendApi.pushCommand(...)
   autonumber 3
-  Session->>Backup: backupWorker.applyTransaction(...)
+  AggregateFrontendApi->>AggregateChain: chain.admitCommands(...)
   autonumber 4
-  Session->>FrontendApi: frontendApi.pushCommand(...)
+  AggregateChain-->>Browser: admission receipt
   autonumber 5
-  FrontendApi->>Pushed: pushedChain.pushCommand(...)
+  UserVersionedAggregateChain-->>Browser: aggregateFrontendCommand
   autonumber 6
-  Pushed->>Frontend: materializedFrontendRepo.executePushedCommand(...)
-  autonumber 7
-  Frontend-->>Pushed: terminal pushed occurrence
-  autonumber 8
-  Pushed-->>FrontendApi: terminal pushed occurrence
-  autonumber 9
-  FrontendApi-->>Session: terminal pushed occurrence
-  autonumber 10
-  Pushed->>Aggregate: aggregateChain.receivePushedCommand(...)
-  autonumber 11
-  Aggregate-->>Pushed: durable aggregate admission acknowledgement
-  autonumber 12
-  Aggregate->>Frontend: materializedFrontendRepo.catchup(...)
-  autonumber 13
-  Frontend->>Finalized: finalizedChain.publishCommand(...)
-  autonumber 14
-  Finalized-->>Session: aggregateFrontendCommand
-  autonumber 15
-  Session->>Session: applyAggregateFrontendCommand(...)
+  Browser->>Browser: apply authoritative output and reconcile optimism
 ```
 
 ## Annotated workflow steps
 
-1. The browser calls the synchronous session boundary. It rejects any
-   `bootstrapping`, `superseded`, `failed`, or `released` session before
-   constructing a command.
-   - [`makeSession.ts:177-212`](../../../packages/core/src/session/makeSession.ts#L177-L212) — enforces initialization and current-session admission.
-2. One local transaction assigns `sessionIndex`, applies optimistic mutations,
-   stores the complete command bytes and mutation journal, and advances
-   `nextSessionIndex`; the browser has no second command-order frontier.
-   - [`makeSession.ts:247-334`](../../../packages/core/src/session/makeSession.ts#L247-L334) — persists terminal local failures as complete occurrences.
-   - [`makeSession.ts:336-504`](../../../packages/core/src/session/makeSession.ts#L336-L504) — persists successful optimism, command bytes, and session metadata atomically.
-3. The wa-sqlite driver reports only a committed outer transaction; the backup
-   lane routes its ordered SQL statements through the mediator to the dedicated
-   leader holding the current OPFS claim. An uncertain dispatched batch is
-   never replayed; that session replaces a full live snapshot instead.
-   - [`WaSqliteSession.ts:345-383`](../../../packages/core/src/drizzle/WaSqliteSession.ts#L345-L383) — emits statements after commit and discards them after rollback.
-   - [`bootstrapAggregateFrontendSession.ts:813-888`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L813-L888) — applies queued SQL once and replaces a full snapshot after failure.
-   - [`opfsBackupWorker.entry.ts:65-106`](../../../packages/opfs-backup-worker/src/opfsBackupWorker.entry.ts#L65-L106) — distinguishes undispatched FIFO work from dispatched calls that can only settle or fail uncertain.
-4. The push lane selects the lowest unresolved occurrence by `sessionIndex`,
-   creates a fresh signature and capability, and calls
-   `frontendApi.pushCommand({ command })`. Transient failures use exponential
-   Effect retry capped at 30 seconds; pause, release, or a terminal result stops
-   automatic retry.
-   - [`bootstrapAggregateFrontendSession.ts:937-984`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L937-L984) — selects and pushes the complete earliest session occurrence.
-   - [`frontendPushRetrySchedule.ts:1-7`](../../../packages/frontend/src/frontendPushRetrySchedule.ts#L1-L7) — defines the capped exponential retry schedule.
-   - [`pushAggregateFrontendCommand.ts:52-75`](../../../packages/frontend/src/pushAggregateFrontendCommand.ts#L52-L75) — authenticates, pushes once, and disposes the fresh RPC session.
-5. AggregateFrontendApi verifies that command identity matches its six bound
-   fields and resolves the pushed chain identified by `{ systemId,
-aggregateId, aggregateName, userId, frontendName }`.
-   - [`pushCommand.ts:35-102`](../../../packages/system-worker/src/AggregateFrontendApi/pushCommand/pushCommand.ts#L35-L102) — decodes the request and rejects a mismatched or pending occurrence.
-   - [`pushCommand.ts:104-127`](../../../packages/system-worker/src/AggregateFrontendApi/pushCommand/pushCommand.ts#L104-L127) — invokes the exact pushed chain with the unchanged command.
-6. AggregateFrontendPushedCommandChain enforces canonical-byte idempotency,
-   assigns the next `pushIndex`, and dispatches only the lowest pending
-   occurrence to its retained MaterializedAggregateFrontendRepo.
-   - [`pushCommand.ts:75-210`](../../../packages/system-worker/src/AggregateFrontendPushedCommandChain/pushCommand/pushCommand.ts#L75-L210) — admits the complete pushed command under the chain semaphore.
-   - [`runScheduledWork.ts:62-105`](../../../packages/system-worker/src/AggregateFrontendPushedCommandChain/runScheduledWork/runScheduledWork.ts#L62-L105) — dispatches the lowest pending push.
-7. The frontend materializer returns one terminal pushed occurrence; a success
-   causes the pushed chain to retain a complete aggregate-forwarding outbox.
-   - [`runScheduledWork.ts:130-261`](../../../packages/system-worker/src/AggregateFrontendPushedCommandChain/runScheduledWork/runScheduledWork.ts#L130-L261) — validates terminal output and atomically stores forwarding work.
-8. The pushed chain returns only its retained terminal occurrence to
-   AggregateFrontendApi.
-   - [`pushCommand.ts:218-251`](../../../packages/system-worker/src/AggregateFrontendPushedCommandChain/pushCommand/pushCommand.ts#L218-L251) — decodes the retained terminal result.
-9. AggregateFrontendApi returns the complete pushed occurrence. The main-thread
-   session applies it exactly once, assigning `pushIndex` to the retained local
-   command or retaining a failed push.
-   - [`pushCommand.ts:113-132`](../../../packages/system-worker/src/AggregateFrontendApi/pushCommand/pushCommand.ts#L113-L132) — returns the singular pushed result.
-   - [`bootstrapAggregateFrontendSession.ts:993-1019`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L993-L1019) — applies the pushed occurrence and refreshes the visible push frontier.
-10. The pushed chain forwards each successful complete output, including flat
-    `{ sessionId, userId, frontendName, pushIndex }` provenance.
-    - [`runScheduledWork.ts:285-328`](../../../packages/system-worker/src/AggregateFrontendPushedCommandChain/runScheduledWork/runScheduledWork.ts#L285-L328) — calls `receivePushedCommand({ command })` with the complete occurrence.
-11. AggregateCommandChain durably accepts the occurrence before the pushed
-    chain marks its aggregate-forward outbox row complete.
-    - [`receivePushedCommand.ts:47-160`](../../../packages/system-worker/src/AggregateCommandChain/receivePushedCommand/receivePushedCommand.ts#L47-L160) — enforces exact-byte idempotency and durably appends a new pushed aggregate occurrence.
-    - [`runScheduledWork.ts:329-346`](../../../packages/system-worker/src/AggregateFrontendPushedCommandChain/runScheduledWork/runScheduledWork.ts#L329-L346) — records the forwarding acknowledgement or retained failure.
-12. AggregateCommandChain later notifies MaterializedAggregateFrontendRepo,
-    which pulls contiguous aggregate history and checks its durable execution
-    claim before projection.
-    - [`catchup.ts:215-390`](../../../packages/system-worker/src/MaterializedAggregateFrontendRepo/catchup/catchup.ts#L215-L390) — validates source history and reuses, halts, or creates the exact claim.
-13. The materialized frontend commits authoritative state, finalized output,
-    completed claim result, and frontiers atomically, then publishes pending
-    output in `frontendIndex` order.
-    - [`catchup.ts:392-917`](../../../packages/system-worker/src/MaterializedAggregateFrontendRepo/catchup/catchup.ts#L392-L917) — owns projection, optimistic replay, known failure, outbox, and frontier commit.
-    - [`runScheduledWork.ts:38-106`](../../../packages/system-worker/src/MaterializedAggregateFrontendRepo/runScheduledWork/runScheduledWork.ts#L38-L106) — publishes ordered finalized output.
-14. AggregateFrontendFinalizedCommandChain emits one complete
-    `aggregateFrontendCommand` over each live session socket.
-    - [`AggregateFrontendFinalizedCommandChain.ts:58-98`](../../../packages/system-worker/src/AggregateFrontendFinalizedCommandChain/AggregateFrontendFinalizedCommandChain.ts#L58-L98) — broadcasts one singular command and fences replay races.
-15. The main-thread session validates exact duplicate bytes and contiguous
-    source frontiers, rewinds unresolved optimism, applies the authoritative
-    delta, resolves the exact push, replays survivors by `pushIndex` then
-    `sessionIndex`, and commits the result before updating visible frontiers.
-    - [`applyAggregateFrontendCommand.ts:152-238`](../../../packages/core/src/session/applyAggregateFrontendCommand.ts#L152-L238) — validates duplicate and next-index semantics and orders active commands.
-    - [`applyAggregateFrontendCommand.ts:240-420`](../../../packages/core/src/session/applyAggregateFrontendCommand.ts#L240-L420) — rewinds, applies, resolves, replays, and updates metadata in one transaction.
-    - [`bootstrapAggregateFrontendSession.ts:685-741`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L685-L741) — applies live socket occurrences and publishes their frontiers.
+1. The local session executes the frontend command and commits its complete occurrence, optimistic mutations, and inverse journal.
+   - [`makeAggregateSession.ts`](../../../packages/core/src/session/makeAggregateSession.ts) — Requires current ownership and captures the current execution ID before constructing the complete command.
+2. The browser submits that complete occurrence through its authenticated frontend capability.
+   - [`pushAggregateFrontendCommand.ts`](../../../packages/frontend/src/pushAggregateFrontendCommand.ts) — Sends the full encoded session command.
+3. The API checks the bound aggregate/user/frontend fields and admits the unchanged input.
+   - [`pushCommand.ts`](../../../packages/system-worker/src/AggregateFrontendApi/pushCommand/pushCommand.ts) — Returns only the assigned aggregate index and command ID.
+4. An admission receipt stops resubmission; it does not resolve optimism.
+   - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — Stores receipt progress in the journal while retaining optimistic mutation rows.
+5. A durable output supplies the per-command delta and complete originating resolution for this view.
+   - [`receiveDeltas.ts`](../../../packages/system-worker/src/UserVersionedAggregateChain/receiveDeltas/receiveDeltas.ts) — Validates the resolution target and persists output before broadcasting.
+6. The session rewinds optimism, applies the authoritative delta, resolves that command ID, and replays the remaining optimism in one transaction.
+   - [`applyAggregateFrontendCommandTx.ts`](../../../packages/core/src/session/applyAggregateFrontendCommandTx.ts) — Rejects gaps, ignores committed duplicates, and advances the aggregate cursor after application.
 
-## Socket-before-response race
+## Ownership and execution identity
 
-The same local transaction procedure handles either arrival order. If finalized
-delivery resolves an origin before its push response, the later pushed result
-must match retained command bytes and exact `pushIndex`; it advances pushed
-state without reapplying resolved optimism.
+Local execution captures `sessionId` from the current session state and uses
+that same ID for the occurrence and durable command position. Reacquisition
+publishes a fresh execution ID, while retained journal occurrences keep their
+original session ID, positions, and payload bytes. A superseded frontend rejects
+new execution and submission; DevTools push controls resolve the current
+ownership period each time they run.
 
-- [`applyAggregateFrontendCommand.ts:194-221`](../../../packages/core/src/session/applyAggregateFrontendCommand.ts#L194-L221) — validates exact duplicate pushed bytes and contiguous `pushIndex`.
-- [`applyAggregateFrontendCommand.ts:295-420`](../../../packages/core/src/session/applyAggregateFrontendCommand.ts#L295-L420) — resolves finalized origins and reapplies only surviving optimism.
+- [`makeAggregateSession.ts`](../../../packages/core/src/session/makeAggregateSession.ts) — captures execution identity only after checking current session status.
+- [`executeCommandTx.ts`](../../../packages/core/src/session/executeCommandTx.ts) — reads the durable next position for that captured ID in the command transaction.
+- [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — fences push work by ownership period and returns controls that consult the current lane.
+- [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — retains bootstrap control callbacks while moving DevTools registration between current execution IDs.
+- [`makeAggregateSession.node.spec.ts`](../../../packages/core/src/session/makeAggregateSession.node.spec.ts) — verifies fresh session indexing, rejection while superseded, and unchanged original journal rows.
 
-## Callers
+Unadmitted optimism replays in durable journal insertion order across execution
+periods. Admitted occurrences retain `pushIndex` order. `sessionIndex` orders
+commands within their original execution identity and does not reorder pending
+commands from older periods.
 
-- [Browser session bootstrap](./bootstrapBrowserSession.md)
-- [OPFS backup coordination](./OpfsBackupCoordination.md)
-- [Frontend WebSocket](./FrontendWebSocket.md)
-- [Command chains and materialization](../CommandChains.md)
+- [`applyAggregateFrontendStateTx.ts`](../../../packages/core/src/session/applyAggregateFrontendStateTx.ts) — sorts admitted commands before unadmitted commands and uses SQLite row identity to retain cross-period insertion order.
+- [`applyAggregateFrontendCommandTx.ts`](../../../packages/core/src/session/applyAggregateFrontendCommandTx.ts) — uses the same ordering before rewinding active optimism.
+- [`applyAggregateFrontendCommandTx.ts`](../../../packages/core/src/session/applyAggregateFrontendCommandTx.ts) — reapplies surviving commands in admitted/insertion order after authoritative state changes.
+- [`makeAggregateSession.node.spec.ts`](../../../packages/core/src/session/makeAggregateSession.node.spec.ts) — preserves the latest optimistic update through snapshot and finalized replay after execution indices restart.
+
+## Reconnect
+
+A published UVAR snapshot carries `aggregateVersion`, cursor `n`, and complete resolutions for the requested outstanding command IDs. The browser installs that state, retains unresolved local optimism, and consumes UVAC output strictly after `n`.
+
+- [`getState.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/getState/getState.ts) — Captures state and cursor together and awaits publication outside the execution semaphore.
+- [`applyAggregateFrontendStateTx.ts`](../../../packages/core/src/session/applyAggregateFrontendStateTx.ts) — Records full outcomes and their admission indices, then replays surviving local optimism.
+- [`frontendReplica.node.spec.ts`](../../../packages/system-worker/src/frontendReplica.node.spec.ts) — Verifies rejection resolution, surviving optimism, duplicate delivery, empty progress, and gap rejection.

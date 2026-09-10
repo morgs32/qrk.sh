@@ -4,11 +4,11 @@
   "plugins": [
     {
       "plugin": "nx/plugins/package-json",
-      "exclude": ["vendor/**", "!vendor/epluribus-machina/**"]
+      "exclude": ["vendor/**"]
     },
     {
       "plugin": "@nx/js/typescript",
-      "exclude": ["vendor/**", "!vendor/epluribus-machina/**"],
+      "exclude": ["vendor/**"],
       "options": {
         "typecheck": {
           "targetName": "tsc:typecheck"

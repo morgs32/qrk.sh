@@ -8,7 +8,7 @@ import {
 } from '@zerospin/error';
 import { Effect, Schema, type Context } from 'effect';
 
-import { getSystemLogRepo } from '../../SystemLogRepo/getSystemLogRepo/getSystemLogRepo.js';
+import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
 import { SystemRepo } from '../../SystemRepo/SystemRepo.js';
 import {
   makeApiHandler,
@@ -16,6 +16,18 @@ import {
 } from '../makeApiHandler/makeApiHandler.js';
 import type { SystemApi } from '../SystemApi.js';
 
+/*
+ * SystemApi exposes registered SystemLogRepo tables to secret-key
+ * inspection callers. The catalog check precedes the Repo lookup; systemId
+ * comes from the granted capability, while repoName and tableName come from the request.
+ *
+ * 1. Validate the inspection request.
+ * 2. Read the bound deployment identity.
+ * 3. Load registrations for this Repo kind.
+ * 4. Reject an unregistered Repo name.
+ * 5. Resolve the registered log Repo.
+ * 6. Return the selected table rows.
+ */
 export const getSystemLogRepoTableRows = Effect.fn(
   'SystemApi.getSystemLogRepoTableRows',
 )(function* (props: {
@@ -23,6 +35,8 @@ export const getSystemLogRepoTableRows = Effect.fn(
   authResults: Context.Service.Shape<typeof SystemApiAuthResults>;
 }) {
   const { request, authResults } = props;
+
+  // 1 — decode repoName and tableName through the linked SystemApi handler
   return yield* makeApiHandler({
     name: 'SystemApi.getSystemLogRepoTableRows',
     argsSchema: Schema.mutable(
@@ -36,13 +50,21 @@ export const getSystemLogRepoTableRows = Effect.fn(
     handler: handlerProps =>
       Effect.gen(function* () {
         const { repoName, tableName } = handlerProps;
+
+        // 2 — resolve SystemRepo using capability-bound systemId
         const authResults = yield* SystemApiAuthResults;
-        const systemRepo = SystemRepo.getRepo({
-          systemId: authResults.systemId,
+        const systemRepo = yield* SystemRepo.getRepo({
+          key: {
+            systemId: authResults.systemId,
+          },
         });
+
+        // 3 — query SystemRepo for SystemLogRepo registrations
         const registrations = yield* makeAsync(() =>
           systemRepo.getRepoRegistrations({ repoType: 'SystemLogRepo' }),
         ).pipe(Effect.flatMap(decodeRpc));
+
+        // 4 — return repo-explorer-repo-not-found before opening the requested Repo
         if (
           registrations.find(
             registration => registration.repoName === repoName,
@@ -54,9 +76,13 @@ export const getSystemLogRepoTableRows = Effect.fn(
             extra: { repoName, repoType: 'SystemLogRepo' },
           });
         }
-        const repo = yield* getSystemLogRepo({
+
+        // 5 — use the capability-bound systemId for SystemLogRepo
+        const repo = yield* SystemLogRepo.getRepo({
           key: { systemId: authResults.systemId },
         });
+
+        // 6 — decode getRepoTableRows; the Repo owns table-name validation
         return yield* makeAsync<IEncodedResult<IRepoTableData, IAnyErrorJson>>(
           () => repo.getRepoTableRows({ tableName }),
         ).pipe(Effect.flatMap(decodeRpc));

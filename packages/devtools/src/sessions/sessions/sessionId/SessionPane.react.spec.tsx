@@ -49,18 +49,17 @@ describe('SessionPane service surface', () => {
         frontendName: 'browse',
         kind: 'service',
         contracts: {},
-        guards: {},
         models,
         modelNames: [],
         signature: Schema.Struct({ userId: Schema.String }),
       },
+      models,
       sessionId: serviceSessionId,
     });
     session.store.setState({
       sessionId: serviceSessionId,
       userId: 'user_service_pane',
       systemId: 'sys_service_pane',
-      systemVersion: '1.0.0',
       serviceName: 'catalog',
       frontendName: 'browse',
       serviceFrontendLockKey: 'b'.repeat(64),
@@ -68,8 +67,7 @@ describe('SessionPane service surface', () => {
       schema: dbConfig.schema,
       models,
       isInitialized: true,
-      serviceIndex: 14,
-      serviceFrontendIndex: 12,
+      serviceIndex: 12,
       sessionStatus: 'current',
       backupState: { status: 'repairing', failure: null },
     });
@@ -97,7 +95,7 @@ describe('SessionPane service surface', () => {
     expect(container.textContent).not.toContain('Push');
     expect(container.textContent).toContain('session: current');
     expect(container.textContent).toContain('backup: repairing');
-    expect(container.textContent).toContain('service index: 14');
+    expect(container.textContent).toContain('service index: 12');
     expect(container.textContent).toContain('service frontend index: 12');
   });
 });

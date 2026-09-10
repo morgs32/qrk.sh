@@ -8,7 +8,6 @@ packages:
   - 'e2e/*'
   - 'packages/*'
   - 'examples/*'
-  - 'vendor/epluribus-machina'
 allowBuilds:
   '@clerk/shared': true
   '@parcel/watcher': true

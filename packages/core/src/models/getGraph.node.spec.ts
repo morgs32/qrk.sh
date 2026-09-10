@@ -8,20 +8,19 @@ import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 
 import { getGraph } from './getGraph.ts';
-import { makeModel } from './makeModel.ts';
 import { makeSelection } from './makeSelection.ts';
 
-const User = makeModel(
+import { models as modelDefinitions } from './index.ts';
+
+const User = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'user', abbreviation: 'usr' }),
   {
-    abbreviation: 'usr',
-    modelName: 'user',
     attributes: {
       name: primitives.text({ nullable: true }),
     },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
 const testUserId = 'usr_getgraphspec001' as const;

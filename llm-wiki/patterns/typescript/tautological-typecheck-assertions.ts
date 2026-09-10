@@ -8,7 +8,7 @@ import { assert, type Equals } from 'tsafe';
  * @bad assert<Equals<typeof promise, ReturnType<typeof fn>>> right after calling fn.
  */
 const finalizeListPromise =
-  systemApi.finalizeAggregateCommand(encodedListCommand);
+  systemApi.executeAggregateCommand(encodedListCommand);
 
 assert<
   Equals<
@@ -18,6 +18,6 @@ assert<
 >();
 
 declare const systemApi: {
-  finalizeAggregateCommand: (command: unknown) => Promise<unknown>;
+  executeAggregateCommand: (command: unknown) => Promise<unknown>;
 };
 declare const encodedListCommand: unknown;

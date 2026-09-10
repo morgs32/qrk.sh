@@ -17,13 +17,13 @@ export const makeAsyncTx = Effect.fn('makeAsyncTx')(function* <
     ) => Promise<TRANSACTION_SUCCESS>;
   };
   program: () => Effect.Effect<SUCCESS, ERROR, PROGRAM_REQUIREMENTS>;
-}): Effect.fn.Return<SUCCESS, IAnyError, Async | PROGRAM_REQUIREMENTS> {
-  const context = yield* Effect.context<PROGRAM_REQUIREMENTS>();
+}): Effect.fn.Return<SUCCESS, IAnyError, Async | PROGRAM_REQUIREMENTS> {  const { program, storage } = props;
+const context = yield* Effect.context<PROGRAM_REQUIREMENTS>();
 
   return yield* makeAsync(
     () =>
-      props.storage.transaction(async () => {
-        const exit = await Effect.runPromiseExitWith(context)(props.program());
+      storage.transaction(async () => {
+        const exit = await Effect.runPromiseExitWith(context)(program());
         if (Exit.isFailure(exit)) {
           throw exit;
         }

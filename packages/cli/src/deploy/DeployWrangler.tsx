@@ -53,9 +53,9 @@ export function DeployWrangler() {
         <ProcedureStepSuccess>
           <Box flexDirection="column">
             <Text>Production Zerospin deploy succeeded.</Text>
-            <Text>Worker: {data.workerUrl}</Text>
+            <Text>Worker: {data.workerName}</Text>
+            <Text>Version: {data.versionId}</Text>
             <Text>Application variables:</Text>
-            <Text>ZEROSPIN_API_URL={data.workerUrl}</Text>
             <Text>ZEROSPIN_PUBLISHABLE_KEY={data.zerospinPublishableKey}</Text>
           </Box>
         </ProcedureStepSuccess>

@@ -13,7 +13,14 @@ export type ISystemRuntime = ManagedRuntime.ManagedRuntime<
 
 // Do not attach makePostHogLogsLayer here: OtlpLogger.layer is Scope/async and
 // breaks ManagedRuntime under Workers (AsyncFiberException / runSync).
+/*
+ * Gateway capabilities use this runtime for ID generation and the async
+ * bridge. Its layers can initialize synchronously in the Worker boundary.
+ *
+ * 1. Create the capability runtime.
+ */
 export function makeSystemRuntime(): ISystemRuntime {
+  // 1 — merge NanoIdFactory, UlidMonotonicFactory, and AsyncLive
   return ManagedRuntime.make(
     Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory, AsyncLive),
   );

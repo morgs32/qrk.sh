@@ -51,7 +51,7 @@
       "path": "../../packages/sdk"
     },
     {
-      "path": "../../packages/react-router"
+      "path": "../../packages/error-boundary"
     },
     {
       "path": "../../packages/error"
@@ -60,7 +60,7 @@
       "path": "../../packages/devtools"
     },
     {
-      "path": "../../packages/opfs-backup-worker"
+      "path": "../../packages/backup-worker"
     },
     {
       "path": "../../packages/schema"

@@ -32,11 +32,7 @@ describe('loadConfigFn', () => {
     loadZerospinConfigMock.mockReset();
     loadZerospinConfigMock.mockReturnValue(
       Effect.succeed({
-        entry: 'src/system.ts',
-        seeds: {
-          dev: null,
-          production: null,
-        },
+        system: { name: 'config-fixture' },
       }),
     );
   });

@@ -9,7 +9,7 @@ import {
 
 import { ProductCard } from './ProductCard';
 
-import { User } from '@/zerospin/models/User';
+import { userV1 } from '@/zerospin/aggregates/shopper/models/user/userV1';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function ProductList() {
@@ -36,7 +36,7 @@ export function ProductList() {
     const result = session.executeCommand({
       contractName: 'createUser',
       payload: {
-        id: User.prefixId(userId),
+        id: userV1.prefixId(userId),
         clerkUserId: userId,
       },
     });

@@ -14,17 +14,18 @@ if (
 }
 
 const systemRuntime = makeSystemRuntime();
-export { AggregateCommandChain } from 'system-worker';
-export { AggregateFrontendFinalizedCommandChain } from 'system-worker';
-export { AggregateFrontendPushedCommandChain } from 'system-worker';
-export { MaterializedAggregateFrontendRepo } from 'system-worker';
-export { MaterializedAggregateRepo } from 'system-worker';
-export { MaterializedServiceFrontendRepo } from 'system-worker';
-export { MaterializedServiceRepo } from 'system-worker';
+export { AggregateChain } from 'system-worker';
+export { UserVersionedAggregateChain } from 'system-worker';
+export { VersionedAggregateChain } from 'system-worker';
+export { VersionedServiceChain } from 'system-worker';
+export { UserVersionedAggregateRepo } from 'system-worker';
+export { VersionedAggregateRepo } from 'system-worker';
+export { FrontendVersionedServiceRepo } from 'system-worker';
+export { VersionedServiceRepo } from 'system-worker';
 export { SystemLogAgent } from 'system-worker';
 export { SystemLogRepo } from 'system-worker';
-export { ServiceCommandChain } from 'system-worker';
-export { ServiceFrontendFinalizedCommandChain } from 'system-worker';
+export { ServiceAdmittedChain } from 'system-worker';
+export { FrontendServiceChain } from 'system-worker';
 export { SystemRepo } from 'system-worker';
 
 // oxlint-disable-next-line import/no-default-export -- Cloudflare Worker entrypoints are default exports.
@@ -60,11 +61,16 @@ export default class ProductionWorker extends WorkerEntrypoint {
     if (isSystemLogSocket || isFrontendSocket) {
       return env.SYSTEM_REPO.getByName(env.ZEROSPIN_SYSTEM_ID).fetch(request);
     }
-    return newWorkersRpcResponse(
+    const response = await newWorkersRpcResponse(
       request,
       new GatewayApi({
         runtime: systemRuntime,
       }),
     );
+    response.headers.set(
+      'X-Zerospin-Worker-Version',
+      env.ZEROSPIN_VERSION_METADATA.id,
+    );
+    return response;
   }
 }

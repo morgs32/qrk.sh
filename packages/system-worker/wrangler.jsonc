@@ -7,35 +7,45 @@
   "durable_objects": {
     "bindings": [
       { "name": "SYSTEM_REPO", "class_name": "SystemRepo" },
-      { "name": "MATERIALIZED_AGGREGATE_REPO", "class_name": "MaterializedAggregateRepo" },
-      { "name": "MATERIALIZED_SERVICE_REPO", "class_name": "MaterializedServiceRepo" },
       {
-        "name": "AGGREGATE_COMMAND_CHAIN",
-        "class_name": "AggregateCommandChain",
+        "name": "VERSIONED_AGGREGATE_REPO",
+        "class_name": "VersionedAggregateRepo",
       },
       {
-        "name": "AGGREGATE_FRONTEND_PUSHED_COMMAND_CHAIN",
-        "class_name": "AggregateFrontendPushedCommandChain",
+        "name": "VERSIONED_SERVICE_REPO",
+        "class_name": "VersionedServiceRepo",
       },
       {
-        "name": "MATERIALIZED_AGGREGATE_FRONTEND_REPO",
-        "class_name": "MaterializedAggregateFrontendRepo",
+        "name": "AGGREGATE_CHAIN",
+        "class_name": "AggregateChain",
       },
       {
-        "name": "AGGREGATE_FRONTEND_FINALIZED_COMMAND_CHAIN",
-        "class_name": "AggregateFrontendFinalizedCommandChain",
+        "name": "VERSIONED_AGGREGATE_CHAIN",
+        "class_name": "VersionedAggregateChain",
       },
       {
-        "name": "SERVICE_COMMAND_CHAIN",
-        "class_name": "ServiceCommandChain",
+        "name": "VERSIONED_SERVICE_CHAIN",
+        "class_name": "VersionedServiceChain",
       },
       {
-        "name": "MATERIALIZED_SERVICE_FRONTEND_REPO",
-        "class_name": "MaterializedServiceFrontendRepo",
+        "name": "USER_VERSIONED_AGGREGATE_REPO",
+        "class_name": "UserVersionedAggregateRepo",
       },
       {
-        "name": "SERVICE_FRONTEND_FINALIZED_COMMAND_CHAIN",
-        "class_name": "ServiceFrontendFinalizedCommandChain",
+        "name": "USER_VERSIONED_AGGREGATE_CHAIN",
+        "class_name": "UserVersionedAggregateChain",
+      },
+      {
+        "name": "SERVICE_ADMITTED_CHAIN",
+        "class_name": "ServiceAdmittedChain",
+      },
+      {
+        "name": "FRONTEND_VERSIONED_SERVICE_REPO",
+        "class_name": "FrontendVersionedServiceRepo",
+      },
+      {
+        "name": "FRONTEND_SERVICE_CHAIN",
+        "class_name": "FrontendServiceChain",
       },
       { "name": "SYSTEM_LOG_REPO", "class_name": "SystemLogRepo" },
       { "name": "SYSTEM_LOG_AGENT", "class_name": "SystemLogAgent" },
@@ -43,27 +53,37 @@
   },
   "exports": {
     "SystemRepo": { "type": "durable-object", "storage": "sqlite" },
-    "MaterializedAggregateRepo": { "type": "durable-object", "storage": "sqlite" },
-    "MaterializedServiceRepo": { "type": "durable-object", "storage": "sqlite" },
-    "AggregateCommandChain": { "type": "durable-object", "storage": "sqlite" },
-    "AggregateFrontendPushedCommandChain": {
+    "VersionedAggregateRepo": {
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "MaterializedAggregateFrontendRepo": {
+    "VersionedServiceRepo": {
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "AggregateFrontendFinalizedCommandChain": {
+    "AggregateChain": { "type": "durable-object", "storage": "sqlite" },
+    "VersionedAggregateChain": {
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "ServiceCommandChain": { "type": "durable-object", "storage": "sqlite" },
-    "MaterializedServiceFrontendRepo": {
+    "VersionedServiceChain": {
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "ServiceFrontendFinalizedCommandChain": {
+    "UserVersionedAggregateRepo": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "UserVersionedAggregateChain": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "ServiceAdmittedChain": { "type": "durable-object", "storage": "sqlite" },
+    "FrontendVersionedServiceRepo": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "FrontendServiceChain": {
       "type": "durable-object",
       "storage": "sqlite",
     },
@@ -85,6 +105,6 @@
   },
   "vars": {
     "ZEROSPIN_ENVIRONMENT": "dev",
-    "ZEROSPIN_SYSTEM_ID": "sys_local",
+    "ZEROSPIN_SYSTEM_ID": "sys_local_20260907_fanout",
   },
 }

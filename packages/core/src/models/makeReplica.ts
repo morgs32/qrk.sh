@@ -1,83 +1,67 @@
 import { primitives } from '@zerospin/schema';
-import { Effect } from 'effect';
+import { Schema } from 'effect';
 
-import { makeModel } from './makeModel.ts';
+import { Model } from './makeModel.ts';
 import type { IModel, IModelReplica } from './types.ts';
+
+import { models } from './index.ts';
+
+const MakeReplicaPropsSchema = Schema.Struct({
+  sourceModel: Schema.declare(
+    (input: unknown): input is IModel => input instanceof Model,
+  ).check(
+    Schema.makeFilter(
+      (model: IModel) =>
+        !Model.isReplica(model) || 'sourceModel must be an authored model',
+    ),
+  ),
+  serviceName: Schema.String,
+  modelVersion: Schema.String,
+});
 
 export function makeReplica<
   SOURCE_MODEL extends IModel,
   SERVICE_NAME extends string,
+  MODEL_VERSION extends SOURCE_MODEL['version'],
 >(props: {
   sourceModel: SOURCE_MODEL;
   serviceName: SERVICE_NAME;
-}): IModelReplica<SOURCE_MODEL, SERVICE_NAME>;
+  modelVersion: MODEL_VERSION;
+}): IModelReplica<SOURCE_MODEL, SERVICE_NAME, MODEL_VERSION>;
 
 export function makeReplica(props: {
   sourceModel: IModel;
   serviceName: string;
+  modelVersion: string;
 }): unknown {
-  const { sourceModel, serviceName } = props;
-  if ('sourceModel' in sourceModel) {
-    throw new Error('makeReplica sourceModel must be an authored model');
-  }
+  const { sourceModel, serviceName, modelVersion } = Schema.decodeUnknownSync(
+    MakeReplicaPropsSchema,
+    {
+      onExcessProperty: 'error',
+    },
+  )(props);
 
   const deletedAt = primitives.date({ nullable: true });
-  const historicalDefinitions = sourceModel.historicalDefinitions.map(
-    definition => ({
-      abbreviation: definition.abbreviation,
-      attributes: definition.attributes,
-      indexes: definition.indexes,
-      modelName: definition.modelName,
-      propertiesShape: {
-        ...definition.propertiesShape,
-        deletedAt,
-      },
-      version: definition.version,
-      adaptResource: (props: {
-        resource: Readonly<Record<string, unknown>>;
-      }) => {
-        const { deletedAt: resourceDeletedAt, ...sourceResource } =
-          props.resource;
-        return definition
-          .adaptResource({ resource: sourceResource })
-          .pipe(
-            Effect.map(adaptedResource =>
-              typeof adaptedResource === 'object' && adaptedResource !== null
-                ? { ...adaptedResource, deletedAt: resourceDeletedAt }
-                : adaptedResource,
-            ),
-          );
-      },
-    }),
-  );
-  const replica = makeModel(
-    {
+  const serviceIndex = primitives.integer({ nullable: true });
+  const replica = models.makeVersion(
+    models.makeModel({
+      name: sourceModel.modelName,
       abbreviation: sourceModel.abbreviation,
-      modelName: sourceModel.modelName,
+    }),
+    {
       attributes: sourceModel.attributes,
       propertiesShape: {
         ...sourceModel.propertiesShape,
         deletedAt,
+        serviceIndex,
       },
       indexes: sourceModel.indexes,
       version: sourceModel.version,
     },
-    historicalDefinitions,
   );
-  Object.defineProperties(replica, {
-    sourceModel: {
-      configurable: false,
-      enumerable: true,
-      value: sourceModel,
-      writable: false,
-    },
-    serviceName: {
-      configurable: false,
-      enumerable: true,
-      value: serviceName,
-      writable: false,
-    },
+  Model.markReplica(replica, {
+    sourceModel,
+    serviceName,
   });
-
-  return replica;
+  return replica.getVersion(modelVersion);
 }

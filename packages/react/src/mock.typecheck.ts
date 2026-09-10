@@ -4,27 +4,33 @@ import {
   main,
   User,
 } from '@zerospin/core/fixtures/system';
-import { Effect } from 'effect';
+import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
+import type { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
+import type { IAnyError } from '@zerospin/error';
+import { Effect, type Layer } from 'effect';
 
 import { makeZerospinApp } from './makeZerospinApp';
 import { makeMockProvider } from './mock';
-import type { ISessionProviderRuntime } from './types';
 
-declare const sessionRuntime: ISessionProviderRuntime;
+declare const sessionRuntimeLayer: Layer.Layer<
+  PublishableKey | ZerospinApiUrl,
+  IAnyError
+>;
 
 const ZerospinApp = makeZerospinApp({
   systemName: 'system-worker',
-  authentication: { signature: authenticationSignature },
-  frontends: {
-    main: {
-      controller: main,
-    },
+  authentication: {
+    version: authenticationSignature.version,
+    signature: authenticationSignature.signature,
   },
-  runtime: sessionRuntime,
+  frontends: {
+    main,
+  },
+  layer: sessionRuntimeLayer,
 });
 const MockMainProvider = makeMockProvider({
   frontend: ZerospinApp.frontends.main,
-  runtime: sessionRuntime,
+  layer: sessionRuntimeLayer,
 });
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
 
@@ -33,7 +39,6 @@ MockMainProvider({
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
   aggregateIds: { user: 'acct_1' },
   userId: 'user_1',
-  systemVersion: '1.0.0',
   resources: {
     user: [
       {
@@ -65,7 +70,6 @@ MockMainProvider({
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
   aggregateIds: { user: 'acct_1' },
   userId: 'user_1',
-  systemVersion: '1.0.0',
 });
 
 MockMainProvider({
@@ -73,7 +77,6 @@ MockMainProvider({
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
   aggregateIds: { user: 'acct_1' },
   userId: 'user_1',
-  systemVersion: '1.0.0',
   resources: {
     // @ts-expect-error Mock resources only accept the frontend's model keys.
     missing: [],
@@ -85,7 +88,6 @@ MockMainProvider({
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
   aggregateIds: { user: 'acct_1' },
   userId: 'user_1',
-  systemVersion: '1.0.0',
   resources: {
     user: [
       {
@@ -108,10 +110,8 @@ MockMainProvider({
   // @ts-expect-error aggregateIds must contain the configured aggregate name.
   aggregateIds: {},
   userId: 'user_1',
-  systemVersion: '1.0.0',
 });
 
-// @ts-expect-error systemVersion is required observed metadata.
 MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),

@@ -7,16 +7,16 @@ import { Effect, Result } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { system } from './fixtures/system.js';
-import { authorizeAggregateFrontend } from './MaterializedAggregateRepo/authorizeAggregateFrontend/authorizeAggregateFrontend.js';
-import { authorizeServiceFrontend } from './MaterializedServiceRepo/authorizeServiceFrontend/authorizeServiceFrontend.js';
-import { executeServiceQuery } from './MaterializedServiceRepo/executeServiceQuery/executeServiceQuery.js';
+import { authorizeAggregateFrontend } from './VersionedAggregateRepo/authorizeAggregateFrontend/authorizeAggregateFrontend.js';
+import { authorizeServiceFrontend } from './VersionedServiceRepo/authorizeServiceFrontend/authorizeServiceFrontend.js';
+import { executeServiceQuery } from './VersionedServiceRepo/executeServiceQuery/executeServiceQuery.js';
 
 describe('owner-local authored queries', () => {
   it.effect(
     'runs aggregate authorization against the authoritative aggregate model query',
     () =>
       Effect.gen(function* () {
-        const aggregate = system.aggregates.user;
+        const aggregate = system.aggregates.user['1.0.0'];
         const db = yield* makeProvisionedInMemorySqljsDb({
           dbConfig: makeResourceDbConfig({ models: aggregate.models }),
         });
@@ -36,6 +36,7 @@ describe('owner-local authored queries', () => {
         yield* authorizeAggregateFrontend({
           aggregateId: makeAggregateId({ id: 'owner-local-query' }),
           aggregateName: aggregate.name,
+          aggregateVersion: aggregate.version,
           frontendName: 'main',
           userId,
           db,
@@ -45,6 +46,7 @@ describe('owner-local authored queries', () => {
         const missing = yield* authorizeAggregateFrontend({
           aggregateId: makeAggregateId({ id: 'owner-local-query' }),
           aggregateName: aggregate.name,
+          aggregateVersion: aggregate.version,
           frontendName: 'main',
           userId,
           db,
@@ -60,7 +62,7 @@ describe('owner-local authored queries', () => {
     'runs service authorization and queries against only service model queries',
     () =>
       Effect.gen(function* () {
-        const service = system.services.app;
+        const service = system.services.app['1.0.0'];
         const db = yield* makeProvisionedInMemorySqljsDb({
           dbConfig: makeResourceDbConfig({ models: service.models }),
         });
@@ -79,12 +81,14 @@ describe('owner-local authored queries', () => {
 
         yield* authorizeServiceFrontend({
           serviceName: service.name,
+          serviceVersion: service.version,
           frontendName: 'products',
           userId: 'owner-local-user',
           db,
         });
         const products = yield* executeServiceQuery({
           serviceName: service.name,
+          serviceVersion: service.version,
           queryName: 'getProducts',
           params: {},
           db,

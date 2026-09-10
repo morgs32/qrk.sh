@@ -27,6 +27,16 @@ const sourceExtensions = new Set([
   '.tsx',
 ]);
 const forbidden = [
+  /\bServiceCommandChain\b/,
+  /\bMaterializedServiceRepo\b/,
+  /\bMaterializedServiceFrontendRepo\b/,
+  /Materialized(?:Aggregate|Service|Repo)/,
+  /materialized(?:Aggregate|Service|Repo)/,
+  /MATERIALIZED_(?:AGGREGATE|SERVICE)/,
+  /materialized-(?:aggregate|service)/,
+  /\bvm(?:arr?|srr?)(?:\b|_)/i,
+  /\bServiceFrontendFinalizedCommandChain\b/,
+  /\bserviceFrontendIndex\b/,
   /generationId/i,
   /GenerationManifest/,
   /generation-drained/i,

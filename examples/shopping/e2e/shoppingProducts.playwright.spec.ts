@@ -1,6 +1,7 @@
 import { clerk } from '@clerk/testing/playwright';
 import { expect, test } from '@playwright/test';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
+import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import {
   makeTelemetryCollector,
@@ -11,17 +12,25 @@ import { newWebSocketRpcSession } from 'capnweb';
 import { Effect } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
+import { shopperV2 } from '@/zerospin/aggregates/shopper/shopperV2';
+import { appV1 } from '@/zerospin/services/app/appV1';
 import { signature } from '@/zerospin/signature';
-import { catalog as catalogFrontend } from '@/zerospin/frontends/catalog';
-import { web as shopperFrontend } from '@/zerospin/frontends/web';
+
+const WebV2 = makeFrontendController({
+  systemName: 'shopping',
+  aggregateName: shopperV2.name,
+  aggregateVersion: shopperV2.version,
+  name: 'web',
+  models: shopperV2.models,
+  contracts: shopperV2.contracts,
+});
+const CatalogV1 = appV1.frontends.catalog.controller;
 
 const shopperAggregateFrontendLock =
-  makeFrontendControllerSpec(shopperFrontend).aggregateFrontendLock;
+  makeFrontendControllerSpec(WebV2).aggregateFrontendLock;
 const catalogServiceFrontendLock =
-  makeFrontendControllerSpec(catalogFrontend).serviceFrontendLock;
-const authenticationLock = makeAuthenticationLock({
-  signature,
-});
+  makeFrontendControllerSpec(CatalogV1).serviceFrontendLock;
+const authenticationLock = makeAuthenticationLock(signature);
 
 test('signed-in e2e user can read products through the service-owned catalog frontend', async ({
   page,
@@ -62,27 +71,29 @@ test('signed-in e2e user can read products through the service-owned catalog fro
     using gatewayApi = newWebSocketRpcSession<GatewayApi>(apiWebSocketUrl.href);
     const aggregateFrontendApi = await gatewayApi.getAggregateFrontendApi({
       publishableKey,
-      systemName: shopperFrontend.systemName,
+      systemName: WebV2.systemName,
       authenticationLock,
       signature: { clerkUserId },
       aggregateId: 'acct_1',
-      aggregateName: shopperFrontend.aggregateName,
+      aggregateName: WebV2.aggregateName,
+      aggregateVersion: WebV2.aggregateVersion,
       frontendName: 'web',
       aggregateFrontendLock: shopperAggregateFrontendLock,
     });
     const aggregateState = await Effect.runPromise(
       makeTraceableApiTarget(aggregateFrontendApi)
-        .getState()
+        .getState({ outstandingCommandIds: [] })
         .pipe(Effect.provide(makeTelemetryLayer(telemetryCollector))),
     );
     expect(aggregateState.userId).toBe(clerkUserId);
 
     const serviceFrontendApi = await gatewayApi.getServiceFrontendApi({
       publishableKey,
-      systemName: catalogFrontend.systemName,
+      systemName: CatalogV1.systemName,
       authenticationLock,
       signature: { clerkUserId },
       serviceName: 'app',
+      serviceVersion: '1.0.0',
       frontendName: 'catalog',
       serviceFrontendLock: catalogServiceFrontendLock,
     });

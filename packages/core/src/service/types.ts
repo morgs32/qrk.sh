@@ -1,12 +1,10 @@
 import type { IAnyError } from '@zerospin/error';
 import type { CuidFactory } from '@zerospin/schema';
-import type { Effect, Schema } from 'effect';
+import { type Effect, type Layer, type Schema, type Scope } from 'effect';
 
 import type {
-  IAnyMutation,
+  IAnyContracts,
   ICommand,
-  IContracts,
-  IOperationName,
   IServiceCommand,
 } from '../contracts/types.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
@@ -14,14 +12,15 @@ import type {
   IAnyServiceFrontendBinding,
   IServiceAuthorization,
 } from '../frontendBinding/types.ts';
+import type { initializeGuards } from '../guards/initializeGuards.ts';
 import type {
-  IModels,
+  IAnyModels,
   InferCommandPayload,
   InferPayloadInput,
 } from '../models/types.ts';
 
 export type IServiceQuery<
-  MODELS extends IModels = IModels,
+  MODELS extends IAnyModels = IAnyModels,
   PARAMS_SCHEMA extends Schema.Codec<unknown, unknown> = Schema.Codec<
     unknown,
     unknown
@@ -42,24 +41,24 @@ export type IServiceQuery<
 export type IResolvedServiceQuery<
   SERVICE_NAME extends string = string,
   QUERY_NAME extends string = string,
-  MODELS extends IModels = IModels,
+  MODELS extends IAnyModels = IAnyModels,
   PARAMS_SCHEMA extends Schema.Codec<unknown, unknown> = Schema.Codec<
     unknown,
     unknown
   >,
   RESULT = unknown,
-> = IServiceQuery<MODELS, PARAMS_SCHEMA, RESULT> & {
-  kind: 'service';
-  name: QUERY_NAME;
-  serviceName: SERVICE_NAME;
+> = Readonly<IServiceQuery<MODELS, PARAMS_SCHEMA, RESULT>> & {
+  readonly kind: 'service';
+  readonly name: QUERY_NAME;
+  readonly serviceName: SERVICE_NAME;
 };
 
 export type IAnyServiceQuery = {
-  kind: 'service';
-  name: string;
-  serviceName: string;
-  paramsSchema: Schema.Codec<unknown, unknown>;
-  query: {
+  readonly kind: 'service';
+  readonly name: string;
+  readonly serviceName: string;
+  readonly paramsSchema: Schema.Codec<unknown, unknown>;
+  readonly query: {
     bivarianceHack(props: {
       db: Readonly<Pick<IDb, 'query'>>;
       params: unknown;
@@ -69,33 +68,8 @@ export type IAnyServiceQuery = {
 
 export type IService<
   NAME extends string = string,
-  MODELS extends IModels = IModels,
-  CONTRACTS extends IContracts = IContracts,
-  MUTATION_ADAPTERS extends Record<
-    string,
-    Partial<
-      Record<
-        IOperationName,
-        readonly {
-          source: Schema.Codec<IAnyMutation, unknown>;
-          destination: Schema.Codec<IAnyMutation, unknown> | null;
-          adapter?: unknown;
-        }[]
-      >
-    >
-  > = Record<
-    string,
-    Partial<
-      Record<
-        IOperationName,
-        readonly {
-          source: Schema.Codec<IAnyMutation, unknown>;
-          destination: Schema.Codec<IAnyMutation, unknown> | null;
-          adapter?: unknown;
-        }[]
-      >
-    >
-  >,
+  MODELS extends IAnyModels = IAnyModels,
+  CONTRACTS extends IAnyContracts = IAnyContracts,
   QUERIES extends Record<string, IAnyServiceQuery> = Record<
     string,
     IAnyServiceQuery
@@ -106,14 +80,43 @@ export type IService<
   >,
   AUTHORIZE extends IServiceAuthorization<FRONTENDS, MODELS, never> =
     IServiceAuthorization<FRONTENDS, MODELS, never>,
+  VERSION extends string = string,
+  LAYER_SERVICES = never,
+  LAYER_REQUIREMENTS = unknown,
+  GUARD_REQUIREMENTS = Effect.Services<
+    ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['guard']>>
+  >,
 > = {
-  name: NAME;
-  models: MODELS;
-  contracts: CONTRACTS;
-  mutationAdapters: MUTATION_ADAPTERS | undefined;
-  queries: QUERIES;
-  frontends: FRONTENDS;
-  makeCommand: <CONTRACT_NAME extends keyof CONTRACTS & string>(props: {
+  readonly initializeGuards: ReturnType<
+    typeof initializeGuards<
+      LAYER_SERVICES,
+      LAYER_REQUIREMENTS,
+      GUARD_REQUIREMENTS
+    >
+  >;
+  readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
+  readonly name: NAME;
+  readonly version: VERSION;
+  readonly historicalDefinitions: readonly Readonly<{
+    readonly version: string;
+    readonly models: Readonly<Record<string, string>>;
+    readonly contracts: Readonly<Record<string, string>>;
+  }>[];
+  readonly models: Readonly<MODELS>;
+  readonly contracts: Readonly<CONTRACTS>;
+  readonly queries: Readonly<QUERIES>;
+  readonly frontends: Readonly<FRONTENDS>;
+  readonly getVersion: (
+    snapshotVersion: string,
+  ) => IAnyService<
+    GUARD_REQUIREMENTS,
+    LAYER_SERVICES,
+    LAYER_REQUIREMENTS,
+    LAYER_REQUIREMENTS | Exclude<GUARD_REQUIREMENTS, LAYER_SERVICES>
+  >;
+  readonly makeCommand: <
+    CONTRACT_NAME extends keyof CONTRACTS & string,
+  >(props: {
     contractName: CONTRACT_NAME;
     payload: InferPayloadInput<CONTRACTS[CONTRACT_NAME]['payload']>;
   }) => Effect.Effect<
@@ -122,40 +125,57 @@ export type IService<
         CONTRACTS[CONTRACT_NAME]['commandName'],
         CONTRACTS[CONTRACT_NAME]['version'],
         InferCommandPayload<CONTRACTS[CONTRACT_NAME]['payload']>
-      >
+      >,
+      NAME
     >,
     IAnyError,
     CuidFactory
   >;
 } & ([keyof FRONTENDS] extends [never]
-  ? { authorize?: never }
-  : { authorize: AUTHORIZE });
+  ? { readonly authorize?: never }
+  : { readonly authorize: AUTHORIZE });
 
-export type IAnyService = {
-  name: string;
-  models: IModels;
-  contracts: IContracts;
-  mutationAdapters:
-    | Record<
-        string,
-        Partial<
-          Record<
-            IOperationName,
-            readonly {
-              source: Schema.Codec<IAnyMutation, unknown>;
-              destination: Schema.Codec<IAnyMutation, unknown> | null;
-              adapter?: unknown;
-            }[]
-          >
-        >
-      >
-    | undefined;
-  queries: Record<string, IAnyServiceQuery>;
-  frontends: Record<string, IAnyServiceFrontendBinding>;
-  authorize?: {
+export type IAnyService<
+  GUARD_REQUIREMENTS = unknown,
+  LAYER_SERVICES = never,
+  LAYER_REQUIREMENTS = unknown,
+  INITIALIZE_REQUIREMENTS = unknown,
+> = {
+  readonly initializeGuards: Effect.Effect<
+    Effect.Success<
+      ReturnType<typeof initializeGuards<never, unknown, unknown>>
+    >,
+    IAnyError,
+    INITIALIZE_REQUIREMENTS | Scope.Scope
+  >;
+  readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
+  readonly name: string;
+  readonly version: string;
+  readonly historicalDefinitions: readonly Readonly<{
+    readonly version: string;
+    readonly models: Readonly<Record<string, string>>;
+    readonly contracts: Readonly<Record<string, string>>;
+  }>[];
+  readonly models: IAnyModels;
+  readonly contracts: IAnyContracts<GUARD_REQUIREMENTS>;
+  readonly queries: Readonly<Record<string, IAnyServiceQuery>>;
+  readonly frontends: Readonly<Record<string, IAnyServiceFrontendBinding>>;
+  readonly authorize?: {
     bivarianceHack(props: unknown): Effect.Effect<void, IAnyError, never>;
   }['bivarianceHack'];
-  makeCommand: (props: never) => Effect.Effect<unknown, IAnyError, CuidFactory>;
+  readonly getVersion: (
+    snapshotVersion: string,
+  ) => IAnyService<
+    GUARD_REQUIREMENTS,
+    LAYER_SERVICES,
+    LAYER_REQUIREMENTS,
+    INITIALIZE_REQUIREMENTS
+  >;
+  readonly makeCommand: (
+    props: never,
+  ) => Effect.Effect<unknown, IAnyError, CuidFactory>;
 };
 
-export type IServices = Record<string, IAnyService>;
+export type IAnyServices<GUARD_REQUIREMENTS = unknown> = Readonly<
+  Record<string, IAnyService<GUARD_REQUIREMENTS>>
+>;

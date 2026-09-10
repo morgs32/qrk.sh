@@ -3,21 +3,19 @@ import { useSession } from '@zerospin/react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { type CartItem } from '@/zerospin/models/CartItem';
+import { type cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/cartItemV2';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 interface IProps {
-  cartItemId: InferResource<typeof CartItem>['id'];
+  cartItemId: InferResource<typeof cartItemV2>['id'];
   amount: number;
-  unit: InferResource<typeof CartItem>['unit'];
 }
 
-export function CartItemQuantityControls({ amount, cartItemId, unit }: IProps) {
+export function CartItemQuantityControls({ amount, cartItemId }: IProps) {
   const session = useSession(ZerospinApp.frontends.web);
-  const quantity = unit === 'case' ? amount * 12 : amount;
 
   const onDecrement = () => {
-    if (quantity <= 1) {
+    if (amount <= 1) {
       void session.executeCommand({
         contractName: 'removeFromCart',
         payload: { id: cartItemId },
@@ -28,7 +26,7 @@ export function CartItemQuantityControls({ amount, cartItemId, unit }: IProps) {
       contractName: 'updateCartItemQuantity',
       payload: {
         cartItemId,
-        quantity: quantity - 1,
+        amount: amount - 1,
       },
     });
   };
@@ -38,7 +36,7 @@ export function CartItemQuantityControls({ amount, cartItemId, unit }: IProps) {
       contractName: 'updateCartItemQuantity',
       payload: {
         cartItemId,
-        quantity: quantity + 1,
+        amount: amount + 1,
       },
     });
   };
@@ -61,7 +59,7 @@ export function CartItemQuantityControls({ amount, cartItemId, unit }: IProps) {
         <Minus className="h-3 w-3" />
       </Button>
       <span className="min-w-[2rem] text-center text-sm font-medium">
-        {quantity}
+        {amount}
       </span>
       <Button
         variant="outline"

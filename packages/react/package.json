@@ -38,7 +38,7 @@
     "@zerospin/frontend": "workspace:*",
     "@zerospin/live-query": "workspace:*",
     "@zerospin/logger": "workspace:*",
-    "@zerospin/opfs-backup-worker": "workspace:*",
+    "@zerospin/backup-worker": "workspace:*",
     "@zerospin/schema": "workspace:*",
     "@zerospin/sdk": "workspace:*",
     "capnweb": "^0.12.0",

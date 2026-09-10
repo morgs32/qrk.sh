@@ -1,94 +1,67 @@
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeSignature } from '../../authentication/makeSignature.ts';
+import { aggregates } from '../../aggregate/index.ts';
+import { authentication } from '../../authentication/index.ts';
+import { makeService } from '../../service/makeService.ts';
 import { makeSystem } from '../makeSystem.ts';
+import { makeSystemSpec } from '../makeSystemSpec.ts';
 
 describe('makeSystem', () => {
   it('normalizes aggregate and service definitions under their registry keys', () => {
     const system = makeSystem({
       name: 'test',
-      version: '1.2.3',
-      authentication: {
-        signature: makeSignature(
-          {
-            version: '1.0.0',
-            schema: Schema.Struct({ userId: Schema.NonEmptyString }),
-          },
-          [],
-        ),
-        authenticate: ({ signature }) => Effect.succeed(signature.userId),
-      },
+      authentication: [
+        authentication.makeVersion({
+          version: '1.0.0',
+          signature: Schema.Struct({ userId: Schema.NonEmptyString }),
+          authenticate: ({ signature }) => Effect.succeed(signature.userId),
+        }),
+      ],
       aggregates: {
-        user: {
-          models: {},
-          contracts: {},
-          selections: {},
-          frontends: {},
-        },
+        user: [
+          aggregates.makeVersion(aggregates.makeAggregate({ name: 'user' }), {
+            version: '1.0.0',
+            models: {},
+            contracts: {},
+            selections: {},
+          }),
+        ],
       },
       services: {
-        catalog: {
-          models: {},
-          contracts: {},
-          frontends: {},
-        },
+        catalog: [
+          makeService({
+            name: 'catalog',
+            version: '1.0.0',
+            models: {},
+            contracts: {},
+            queries: {
+              products: {
+                paramsSchema: Schema.Struct({}),
+                query: () => Effect.succeed([]),
+              },
+            },
+            frontends: {},
+          }),
+        ],
       },
     });
 
     expect(system.name).toBe('test');
-    expect(system.version).toBe('1.2.3');
-    expect(system.aggregates.user.name).toBe('user');
-    expect(system.services.catalog.name).toBe('catalog');
-  });
-
-  it('resolves aggregate query grants directly to service queries', () => {
-    const system = makeSystem({
-      name: 'test',
-      version: '1.0.0',
-      authentication: {
-        signature: makeSignature(
-          {
-            version: '1.0.0',
-            schema: Schema.Struct({ userId: Schema.NonEmptyString }),
-          },
-          [],
-        ),
-        authenticate: ({ signature }) => Effect.succeed(signature.userId),
-      },
-      aggregates: {
-        user: {
-          models: {},
-          contracts: {},
-          selections: {},
-          queries: {
-            products: { service: 'catalog', query: 'products' },
-          },
-          frontends: {},
-        },
-      },
-      services: {
-        catalog: {
-          models: {},
-          contracts: {},
-          queries: {
-            products: {
-              paramsSchema: Schema.Struct({}),
-              query: () => Effect.succeed([]),
-            },
-          },
-          frontends: {},
-        },
-      },
-    });
-
-    expect(system.aggregates.user.queries.products).toBe(
-      system.services.catalog.queries.products,
-    );
-    expect(system.aggregates.user.queries.products).toMatchObject({
+    expect(system).not.toHaveProperty('version');
+    expect(system.aggregates.user['1.0.0'].name).toBe('user');
+    expect(system.services.catalog['1.0.0'].name).toBe('catalog');
+    expect(system.services.catalog['1.0.0'].queries.products).toMatchObject({
       kind: 'service',
       name: 'products',
       serviceName: 'catalog',
     });
+    const spec = makeSystemSpec({ system });
+    expect(spec).not.toHaveProperty('version');
+    expect(spec.services.catalog?.['1.0.0']?.queries.products).toMatchObject({
+      name: 'products',
+      serviceName: 'catalog',
+    });
+    expect(spec.aggregates.user?.['1.0.0']).not.toHaveProperty('queries');
   });
 });

@@ -3,10 +3,12 @@ import { Effect } from 'effect';
 
 import { List } from '../fixtures/system.ts';
 
+import { makeModelMutations } from './makeModelMutations.ts';
+
 describe('deleteMutation', () => {
   it.effect('returns raw delete mutation', () =>
     Effect.gen(function* () {
-      const mutation = yield* List.delete('1.0.0', {
+      const mutation = yield* makeModelMutations(List).delete({
         resourceId: 'lst_test' as const,
       });
 

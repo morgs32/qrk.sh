@@ -1,13 +1,22 @@
 import type { IAnyError } from '@zerospin/error';
-import type { InferIdFromAbbreviation } from '@zerospin/schema';
-import type { Brand, Effect, JsonSchema, Schema } from 'effect';
+import type {
+  CuidFactory,
+  IEncodedShape,
+  InferIdFromAbbreviation,
+} from '@zerospin/schema';
+import type { Brand, JsonSchema, Layer } from 'effect';
 
-import type { IAggregates } from '../aggregate/types.ts';
-import type { IAuthenticationSignature } from '../authentication/types.ts';
-import type { IOperationName } from '../contracts/types.ts';
+import type { IAnyAggregate, IAnyAggregates } from '../aggregate/types.ts';
+import type { Async } from '../async/Async.ts';
+import type { IAuthentication } from '../authentication/types.ts';
 import type { IFrontendControllerSpec } from '../frontendController/types.ts';
-import type { IEncodedResourceShape, IRef } from '../models/types.ts';
-import type { IServices } from '../service/types.ts';
+import type {
+  IEncodedResourceShape,
+  IModelSpec,
+  IRef,
+} from '../models/types.ts';
+import type { IAnyService, IAnyServices } from '../service/types.ts';
+import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
 
 export type IRefRecord = Record<string, IRef>;
 
@@ -17,13 +26,9 @@ export type IUnstableGraph = Record<string, IEncodedResourceShape>;
 
 export type ISystemEnvironmentId = 'dev' | 'production';
 
-export type ISystemConfig = {
-  entry: string;
-  seeds: {
-    dev: string | null;
-    production: string | null;
-  };
-};
+export type ISystemConfig<SYSTEM = ISystem> = Readonly<{
+  system: SYSTEM;
+}>;
 
 export type IEncodedQuery = {
   readonly Brand?: Brand.Brand<'IEncodedQuery'>;
@@ -34,15 +39,16 @@ export type IEncodedQuery = {
 
 export type IRepoType =
   | 'SystemRepo'
-  | 'AggregateCommandChain'
-  | 'MaterializedAggregateRepo'
-  | 'ServiceCommandChain'
-  | 'MaterializedServiceRepo'
-  | 'AggregateFrontendPushedCommandChain'
-  | 'AggregateFrontendFinalizedCommandChain'
-  | 'ServiceFrontendFinalizedCommandChain'
-  | 'MaterializedAggregateFrontendRepo'
-  | 'MaterializedServiceFrontendRepo'
+  | 'AggregateChain'
+  | 'VersionedAggregateRepo'
+  | 'ServiceAdmittedChain'
+  | 'VersionedServiceRepo'
+  | 'VersionedAggregateChain'
+  | 'VersionedServiceChain'
+  | 'UserVersionedAggregateChain'
+  | 'FrontendServiceChain'
+  | 'UserVersionedAggregateRepo'
+  | 'FrontendVersionedServiceRepo'
   | 'SystemLogRepo';
 
 export type IRepoRegistration = Readonly<{
@@ -63,153 +69,114 @@ export type IRepoTableData = Readonly<{
 
 export type ISystemId = InferIdFromAbbreviation<'sys'>;
 
-type ISystemModelSpec = {
-  modelName: string;
-  abbreviation: string;
-  version: string;
+type ISystemModelSpec = Readonly<{
+  readonly modelName: string;
+  readonly abbreviation: string;
+  readonly version: string;
   properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-  indexes: readonly {
-    name: string;
-    columns: readonly string[];
-    unique?: boolean;
-  }[];
-  historicalDefinitions: readonly {
-    modelName: string;
-    abbreviation: string;
-    version: string;
-    hasDirectAdapter: boolean;
-    properties: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-    indexes: readonly {
-      name: string;
-      columns: readonly string[];
-      unique?: boolean;
-    }[];
-  }[];
-};
+  readonly indexes: readonly Readonly<{
+    readonly name: string;
+    readonly columns: readonly string[];
+    readonly unique?: boolean;
+  }>[];
+}>;
 
-type ISystemContractSpec = {
-  commandName: string;
-  version: string;
-  payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
-  historicalDefinitions: readonly {
-    commandName: string;
-    version: string;
-    hasDirectAdapter: boolean;
-    payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
-  }[];
-};
+type ISystemContractSpec = Readonly<{
+  readonly commandName: string;
+  readonly version: string;
+  readonly payloadShape: Readonly<IEncodedShape>;
+  readonly models: Readonly<Record<string, IModelSpec>>;
+}>;
 
-type ISystemMutationAdaptersSpec = Record<
-  string,
-  Partial<
+export type ISystemSpec = Readonly<{
+  readonly systemName: string;
+  readonly authentication: readonly IAuthentication['spec'][];
+  readonly aggregates: Readonly<
     Record<
-      IOperationName,
-      readonly {
-        source: {
-          modelName: string;
-          modelVersion: string;
-          operationName: IOperationName;
-          jsonSchema: JsonSchema.Document<'draft-2020-12'>;
-        };
-        destination: {
-          modelName: string;
-          modelVersion: string;
-          operationName: IOperationName;
-          jsonSchema: JsonSchema.Document<'draft-2020-12'>;
-        } | null;
-      }[]
+      string,
+      Readonly<
+        Record<
+          string,
+          Readonly<{
+            readonly name: string;
+            readonly version: string;
+            readonly services: Readonly<Record<string, string>>;
+            readonly models: Readonly<Record<string, ISystemModelSpec>>;
+            readonly contracts: Readonly<Record<string, ISystemContractSpec>>;
+            readonly selections: Readonly<
+              Record<string, Readonly<{ readonly modelName: string }>>
+            >;
+          }>
+        >
+      >
     >
-  >
->;
-
-export type ISystemSpec = {
-  systemName: string;
-  version: string;
-  authentication: {
-    signature: {
-      version: string;
-      schemaJsonSchema: JsonSchema.Document<'draft-2020-12'>;
-      historicalDefinitions: readonly {
-        version: string;
-        schemaJsonSchema: JsonSchema.Document<'draft-2020-12'>;
-        hasDirectAdapter: boolean;
-      }[];
-    };
-  };
-  aggregates: Record<
-    string,
-    {
-      name: string;
-      models: Record<string, ISystemModelSpec>;
-      contracts: Record<string, ISystemContractSpec>;
-      mutationAdapters: ISystemMutationAdaptersSpec;
-      selections: Record<string, { modelName: string }>;
-      queries: Record<
-        string,
-        {
-          name: string;
-          serviceName: string;
-          paramsJsonSchema: JsonSchema.Document<'draft-2020-12'>;
-        }
-      >;
-      frontends: Record<
-        string,
-        {
-          name: string;
-          models: Record<
-            string,
-            { modelName: string; hasProjectionAdapter: boolean }
-          >;
-          contracts: Record<
-            string,
-            {
-              commandName: string;
-              version: string;
-              hasAuthoritativeAdapter: boolean;
-            }
-          >;
-          controller: IFrontendControllerSpec;
-        }
-      >;
-    }
   >;
-  services: Record<
-    string,
-    {
-      name: string;
-      models: Record<string, ISystemModelSpec>;
-      contracts: Record<string, ISystemContractSpec>;
-      mutationAdapters: ISystemMutationAdaptersSpec;
-      queries: Record<
-        string,
-        {
-          name: string;
-          serviceName: string;
-          paramsJsonSchema: JsonSchema.Document<'draft-2020-12'>;
-        }
-      >;
-      frontends: Record<
-        string,
-        {
-          name: string;
-          models: Record<
-            string,
-            { modelName: string; hasProjectionAdapter: boolean }
-          >;
-          contracts: Record<
-            string,
-            {
-              commandName: string;
-              version: string;
-              hasAuthoritativeAdapter: boolean;
-            }
-          >;
-          controller: IFrontendControllerSpec;
-        }
-      >;
-    }
+  readonly services: Readonly<
+    Record<
+      string,
+      Readonly<
+        Record<
+          string,
+          Readonly<{
+            readonly name: string;
+            readonly version: string;
+            readonly historicalDefinitions: readonly Readonly<{
+              readonly version: string;
+              readonly models: Readonly<Record<string, string>>;
+              readonly contracts: Readonly<Record<string, string>>;
+            }>[];
+            readonly models: Readonly<Record<string, ISystemModelSpec>>;
+            readonly contracts: Readonly<Record<string, ISystemContractSpec>>;
+            readonly queries: Readonly<
+              Record<
+                string,
+                Readonly<{
+                  readonly name: string;
+                  readonly serviceName: string;
+                  readonly paramsJsonSchema: Readonly<{
+                    dialect: 'draft-2020-12';
+                    schema: Readonly<JsonSchema.JsonSchema>;
+                    definitions: Readonly<
+                      Record<string, Readonly<JsonSchema.JsonSchema>>
+                    >;
+                  }>;
+                }>
+              >
+            >;
+            readonly frontends: Readonly<
+              Record<
+                string,
+                Readonly<{
+                  readonly name: string;
+                  readonly models: Readonly<
+                    Record<
+                      string,
+                      Readonly<{
+                        readonly modelName: string;
+                        readonly hasProjectionAdapter: boolean;
+                      }>
+                    >
+                  >;
+                  readonly contracts: Readonly<
+                    Record<
+                      string,
+                      Readonly<{
+                        readonly commandName: string;
+                        readonly version: string;
+                        readonly hasAuthoritativeAdapter: boolean;
+                      }>
+                    >
+                  >;
+                  readonly controller: IFrontendControllerSpec;
+                }>
+              >
+            >;
+          }>
+        >
+      >
+    >
   >;
-};
+}>;
 
 export type ISystemLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -230,24 +197,55 @@ export type ISystemLogState = Readonly<{
 }>;
 
 export type ISystem<
-  AGGREGATES extends IAggregates = IAggregates,
-  SERVICES extends IServices = IServices,
+  AGGREGATES extends Readonly<Record<string, IAnyAggregates>> = Readonly<
+    Record<string, IAnyAggregates>
+  >,
+  SERVICES extends Readonly<Record<string, IAnyServices>> = Readonly<
+    Record<string, IAnyServices>
+  >,
   SYSTEM_NAME extends string = string,
-  VERSION extends string = string,
-  AUTHENTICATION_SIGNATURE extends IAuthenticationSignature =
-    IAuthenticationSignature,
-  AUTHENTICATE extends (props: {
-    signature: Schema.Schema.Type<AUTHENTICATION_SIGNATURE['schema']>;
-  }) => Effect.Effect<string, IAnyError> = (props: {
-    signature: Schema.Schema.Type<AUTHENTICATION_SIGNATURE['schema']>;
-  }) => Effect.Effect<string, IAnyError>,
+  AUTHENTICATION extends readonly IAuthentication[] =
+    readonly IAuthentication[],
+  LAYER_SERVICES = never,
 > = {
-  name: SYSTEM_NAME;
-  authentication: {
-    signature: AUTHENTICATION_SIGNATURE;
-    authenticate: AUTHENTICATE;
-  };
-  aggregates: AGGREGATES & IAggregates;
-  services: SERVICES & IServices;
-  version: VERSION;
+  readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError>;
+  readonly config: () => ISystemConfig<
+    ISystem<AGGREGATES, SERVICES, SYSTEM_NAME, AUTHENTICATION, LAYER_SERVICES>
+  >;
+  readonly name: SYSTEM_NAME;
+  readonly authentication: Readonly<AUTHENTICATION>;
+  readonly aggregates: Readonly<
+    AGGREGATES &
+      Record<
+        string,
+        Readonly<
+          Record<
+            string,
+            IAnyAggregate<
+              unknown,
+              never,
+              unknown,
+              LAYER_SERVICES | CuidFactory | MonotonicFactory | Async
+            >
+          >
+        >
+      >
+  >;
+  readonly services: Readonly<
+    SERVICES &
+      Record<
+        string,
+        Readonly<
+          Record<
+            string,
+            IAnyService<
+              unknown,
+              never,
+              unknown,
+              LAYER_SERVICES | CuidFactory | MonotonicFactory | Async
+            >
+          >
+        >
+      >
+  >;
 };

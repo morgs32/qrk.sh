@@ -8,13 +8,11 @@ import {
   uniqueIndex,
   type AnySQLiteColumn,
 } from 'drizzle-orm/sqlite-core';
-import { Effect, Schema, SchemaIssue, SchemaTransformation } from 'effect';
+import { Effect, Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
-import type { CuidFactory } from './CuidFactory.ts';
 import type { IEncodedShape } from './encodeShape.ts';
 import { makeAbbreviationIdSchema } from './makeAbbreviationIdSchema.ts';
-import { makeIdFromAbbreviation } from './makeIdFromAbbreviation.ts';
 import { PrimitiveKind } from './primitiveKind.ts';
 import type {
   IAnyDrizzleSchema,
@@ -28,7 +26,6 @@ import type {
   InferDrizzleColumnBuildersFromShape,
   InferEncodedRow,
   InferIdFromAbbreviation,
-  IPrimaryKeyDescriptor,
   IPrimitiveDescriptorDecoded,
   IPrimitiveDescriptorEncoded,
   IShape,
@@ -80,20 +77,21 @@ export function isAttributeDescriptor(
   return primitiveKindValues.has(String(value.kind));
 }
 
-export function descriptorToEffectSchema<
-  D extends IPrimaryKeyDescriptor & {
-    autogenerate: true;
-    modelName: string;
-  },
->(descriptor: D): Schema.Codec<unknown, unknown, CuidFactory>;
-export function descriptorToEffectSchema<D extends IAnyPrimitiveDescriptor>(
-  descriptor: D,
-): Schema.Codec<unknown, unknown>;
+/*
+ * 1. Resolve whether the descriptor accepts null.
+ * 2. Map booleans and non-primary identifier descriptors.
+ * 3. Build primary-key decoding.
+ * 4. Map scalar, JSON, date, enum, and reference descriptors.
+ * 5. Reject descriptor kinds outside the supported primitive set.
+ */
 export function descriptorToEffectSchema(
   descriptor: IAnyPrimitiveDescriptor,
-): Schema.Codec<unknown, unknown, CuidFactory | never> {
+): Schema.Codec<unknown, unknown> {
+  // 1 — Nullable descriptors wrap their concrete codec in Schema.NullOr.
   const nullable = descriptor.nullable === true;
   switch (descriptor.kind) {
+    // 2 — Boolean and opaque identifier families map directly to their runtime
+    // value schema, preserving the descriptor's abbreviation where applicable.
     case PrimitiveKind.Boolean: {
       return nullable ? Schema.NullOr(Schema.Boolean) : Schema.Boolean;
     }
@@ -101,55 +99,18 @@ export function descriptorToEffectSchema(
       const cursorSchema = makeAbbreviationIdSchema(descriptor.abbreviation);
       return nullable ? Schema.NullOr(cursorSchema) : cursorSchema;
     }
-    case PrimitiveKind.OpaqueId: {
-      const opaqueIdSchema = makeAbbreviationIdSchema(descriptor.abbreviation);
-      return nullable ? Schema.NullOr(opaqueIdSchema) : opaqueIdSchema;
+    case PrimitiveKind.ForeignKey: {
+      const foreignKeySchema = makeAbbreviationIdSchema(
+        descriptor.abbreviation,
+      );
+      return nullable ? Schema.NullOr(foreignKeySchema) : foreignKeySchema;
     }
+    // 3 — Primary keys require a caller-supplied prefixed ID.
     case PrimitiveKind.PrimaryKey: {
-      const { abbreviation } = descriptor;
-      const primaryKeySchema = makeAbbreviationIdSchema(abbreviation);
-      if (
-        'autogenerate' in descriptor &&
-        descriptor.autogenerate === true &&
-        'modelName' in descriptor
-      ) {
-        // Accept a missing/`null`/`undefined` model primary key and fill it
-        // with the model abbreviation through CuidFactory during decode.
-        return Schema.NullishOr(primaryKeySchema).pipe(
-          Schema.decodeTo(
-            Schema.toType(primaryKeySchema),
-            SchemaTransformation.transformOrFail({
-              decode: value =>
-                value == null
-                  ? makeIdFromAbbreviation({ abbreviation }).pipe(
-                      Effect.mapError(
-                        error =>
-                          new SchemaIssue.InvalidValue({
-                            message: error.message,
-                          }),
-                      ),
-                    )
-                  : Effect.succeed(value),
-              encode: value => Effect.succeed(value),
-            }),
-          ),
-          Schema.optional,
-          Schema.withDecodingDefaultType(
-            makeIdFromAbbreviation({ abbreviation }).pipe(
-              Effect.mapError(
-                error =>
-                  new Schema.SchemaError(
-                    new SchemaIssue.InvalidValue({
-                      message: error.message,
-                    }),
-                  ),
-              ),
-            ),
-          ),
-        );
-      }
-      return primaryKeySchema;
+      return makeAbbreviationIdSchema(descriptor.abbreviation);
     }
+    // 4 — Remaining scalar, structured, temporal, enum, and ref descriptors
+    // choose their value codec and then apply nullable semantics.
     case PrimitiveKind.Integer: {
       return nullable ? Schema.NullOr(Schema.Number) : Schema.Number;
     }
@@ -177,6 +138,7 @@ export function descriptorToEffectSchema(
       const idSchema = makeAbbreviationIdSchema(descriptor.abbreviation);
       return nullable ? Schema.NullOr(idSchema) : idSchema;
     }
+    // 5 — A descriptor that reaches this branch violated the primitive contract.
     default: {
       throw new Error(
         `Invalid attribute descriptor: ${JSON.stringify(descriptor)}`,
@@ -185,18 +147,9 @@ export function descriptorToEffectSchema(
   }
 }
 
-export function descriptorToJsonEffectSchema<
-  D extends IPrimaryKeyDescriptor & {
-    autogenerate: true;
-    modelName: string;
-  },
->(descriptor: D): Schema.Codec<unknown, unknown, CuidFactory>;
-export function descriptorToJsonEffectSchema<D extends IAnyPrimitiveDescriptor>(
-  descriptor: D,
-): Schema.Codec<unknown, unknown>;
 export function descriptorToJsonEffectSchema(
   descriptor: IAnyPrimitiveDescriptor,
-): Schema.Codec<unknown, unknown, CuidFactory | never> {
+): Schema.Codec<unknown, unknown> {
   switch (descriptor.kind) {
     case PrimitiveKind.Date: {
       return descriptor.nullable === true
@@ -221,15 +174,28 @@ export function descriptorToDrizzleColumn(props: {
   descriptor: IEncodedShape[string];
   reference?: () => AnySQLiteColumn;
 }): ColumnBuilderBase;
+/*
+ * 1. Resolve column name and nullability.
+ * 2. Build boolean, integer, and real columns with defaults and uniqueness.
+ * 3. Build text and JSON storage columns.
+ * 4. Build timestamp and enum columns.
+ * 5. Build references with optional foreign-key callbacks.
+ * 6. Build opaque identifiers and primary keys.
+ * 7. Return the selected Drizzle column builder.
+ */
 export function descriptorToDrizzleColumn(props: {
   key: string;
   descriptor: IAnyPrimitiveDescriptor | IEncodedShape[string];
   reference?: () => AnySQLiteColumn;
 }): ColumnBuilderBase {
+  const { reference } = props;
+  // 1 — Every branch shares the authored column key and nullable flag.
   const { key, descriptor } = props;
   const nullable = descriptor.nullable === true;
   const column: ColumnBuilderBase = (() => {
     switch (descriptor.kind) {
+      // 2 — Numeric-backed primitives preserve defaults, uniqueness, and the
+      // integer descriptor's optional physical primary-key role.
       case PrimitiveKind.Boolean: {
         let col = nullable
           ? drizzleInteger(key, { mode: 'boolean' })
@@ -258,6 +224,8 @@ export function descriptorToDrizzleColumn(props: {
         }
         return descriptor.unique === true ? col.unique() : col;
       }
+      // 3 — Text applies scalar defaults; JSON deliberately stores encoded
+      // strings and only permits the documented nullable-null default.
       case PrimitiveKind.Text: {
         if (nullable) {
           let col = drizzleText(key).$type<string | null>();
@@ -286,12 +254,18 @@ export function descriptorToDrizzleColumn(props: {
         }
         return drizzleText(key).$type<string>().notNull();
       }
+      // 4 — Dates use millisecond integers while enums retain literal values
+      // in typed text columns; both preserve defaults and uniqueness.
       case PrimitiveKind.Date: {
         let col = nullable
           ? drizzleInteger(key, { mode: 'timestamp_ms' })
           : drizzleInteger(key, { mode: 'timestamp_ms' }).notNull();
         if (descriptor.defaultValue !== undefined) {
-          col = col.default(descriptor.defaultValue);
+          col = col.default(
+            typeof descriptor.defaultValue === 'string'
+              ? new Date(descriptor.defaultValue)
+              : descriptor.defaultValue,
+          );
         }
         return descriptor.unique === true ? col.unique() : col;
       }
@@ -305,13 +279,15 @@ export function descriptorToDrizzleColumn(props: {
         }
         return descriptor.unique === true ? col.unique() : col;
       }
+      // 5 — Refs select integer or prefixed-text storage and attach the lazy
+      // foreign-key target only when the caller resolved one.
       case PrimitiveKind.Ref: {
         if (descriptor.targetKind === PrimitiveKind.Integer) {
           let col = nullable
             ? drizzleInteger(key)
             : drizzleInteger(key).notNull();
-          if (props.reference !== undefined) {
-            col = col.references(props.reference);
+          if (reference !== undefined) {
+            col = col.references(reference);
           }
           return descriptor.unique === true ? col.unique() : col;
         }
@@ -322,13 +298,14 @@ export function descriptorToDrizzleColumn(props: {
           : drizzleText(key)
               .$type<InferIdFromAbbreviation<typeof descriptor.abbreviation>>()
               .notNull();
-        if (props.reference !== undefined) {
-          col = col.references(props.reference);
+        if (reference !== undefined) {
+          col = col.references(reference);
         }
         return descriptor.unique === true ? col.unique() : col;
       }
+      // 6 — Cursor and foreign keys are typed text; model IDs are text primary keys.
       case PrimitiveKind.Cursor:
-      case PrimitiveKind.OpaqueId: {
+      case PrimitiveKind.ForeignKey: {
         const col = nullable
           ? drizzleText(key).$type<
               InferIdFromAbbreviation<typeof descriptor.abbreviation>
@@ -348,16 +325,27 @@ export function descriptorToDrizzleColumn(props: {
       }
     }
   })();
+  // 7 — Return the builder after the exhaustive descriptor dispatch.
   return column;
 }
 
+/*
+ * 1. Resolve nullability and reusable UNIQUE SQL.
+ * 2. Emit numeric and boolean column declarations.
+ * 3. Emit text, JSON, date, and enum declarations with defaults.
+ * 4. Emit reference and opaque identifier declarations.
+ * 5. Emit primary keys or the defensive text fallback.
+ */
 export function generateProvisioningSqlForDescriptor(
   descriptor: IAnyPrimitiveDescriptor,
   columnName: string,
 ): string {
+  // 1 — UNIQUE is valid for every supported non-JSON, non-primary descriptor.
   const nullable = descriptor.nullable === true;
   const uniqueSql = uniqueConstraintSql(descriptor);
   switch (descriptor.kind) {
+    // 2 — Boolean, integer, and real descriptors use SQLite numeric storage
+    // with encoded defaults, NOT NULL, uniqueness, and integer PK semantics.
     case PrimitiveKind.Boolean: {
       const defaultSql =
         descriptor.defaultValue === undefined
@@ -388,6 +376,8 @@ export function generateProvisioningSqlForDescriptor(
         ? `${columnName} real${defaultSql}${uniqueSql}`
         : `${columnName} real NOT NULL${defaultSql}${uniqueSql}`;
     }
+    // 3 — Text-like, JSON, timestamp, and enum descriptors escape or encode
+    // their authored defaults into the physical column declaration.
     case PrimitiveKind.Text: {
       const defaultSql =
         descriptor.defaultValue === undefined
@@ -424,6 +414,7 @@ export function generateProvisioningSqlForDescriptor(
         ? `${columnName} text${defaultSql}${uniqueSql}`
         : `${columnName} text NOT NULL${defaultSql}${uniqueSql}`;
     }
+    // 4 — References follow their target key kind; cursor and foreign keys use text.
     case PrimitiveKind.Ref: {
       if (descriptor.targetKind === PrimitiveKind.Integer) {
         return nullable
@@ -435,11 +426,13 @@ export function generateProvisioningSqlForDescriptor(
         : `${columnName} text NOT NULL${uniqueSql}`;
     }
     case PrimitiveKind.Cursor:
-    case PrimitiveKind.OpaqueId: {
+    case PrimitiveKind.ForeignKey: {
       return nullable
         ? `${columnName} text${uniqueSql}`
         : `${columnName} text NOT NULL${uniqueSql}`;
     }
+    // 5 — Model primary keys are non-null text; unknown descriptors retain the
+    // defensive plain-text fallback used by this SQL generator.
     case PrimitiveKind.PrimaryKey: {
       return `${columnName} text PRIMARY KEY NOT NULL`;
     }

@@ -1,7 +1,9 @@
 import { describe, expect, it } from '@effect/vitest';
-import { Effect } from 'effect';
+import { primitives } from '@zerospin/schema';
+import { Effect, Schema } from 'effect';
 
 import { User } from '../fixtures/system.ts';
+import { models } from '../models/index.ts';
 
 import { makeModelMutations } from './makeModelMutations.ts';
 
@@ -39,3 +41,23 @@ describe('createMutation', () => {
     }),
   );
 });
+
+it.effect('creates a mutation with decoded JSON attributes', () =>
+  Effect.gen(function* () {
+    const member = models.makeVersion(
+      models.makeModel({ name: 'member', abbreviation: 'mem' }),
+      {
+        version: '1.0.0',
+        indexes: [],
+        attributes: {
+          cities: primitives.json({ schema: Schema.Array(Schema.String) }),
+        },
+      },
+    );
+    const mutation = yield* makeModelMutations(member).create({
+      resourceId: member.prefixId('test'),
+      attributes: { cities: ['Chicago'] },
+    });
+    expect(mutation.operation.attributes.cities).toEqual(['Chicago']);
+  }),
+);

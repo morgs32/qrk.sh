@@ -18,12 +18,11 @@ export function makeModelMutations(model: IModel): IModelMutations<IModel> {
       const modelVersion = version;
 
       return Effect.gen(function* () {
-        yield* Schema.decodeUnknownEffect(makeEffectSchema(declaredAttributes))(
-          props.attributes,
-          {
-            onExcessProperty: 'error',
-          },
-        ).pipe(
+        yield* Schema.decodeUnknownEffect(
+          Schema.toType(makeEffectSchema(declaredAttributes)),
+        )(props.attributes, {
+          onExcessProperty: 'error',
+        }).pipe(
           mapParseError({
             code: 'create-resource-missing-attributes',
             prefix: `createMutation requires all model attributes for "${modelName}"`,

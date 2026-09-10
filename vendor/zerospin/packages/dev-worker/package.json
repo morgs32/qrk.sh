@@ -6,10 +6,14 @@
   "sideEffects": false,
   "files": [
     "dist",
-    "src",
-    "wrangler.vitest.jsonc"
+    "src"
   ],
   "exports": {
+    "./makeWranglerConfig": {
+      "types": "./dist/makeWranglerConfig.d.ts",
+      "import": "./dist/makeWranglerConfig.js",
+      "default": "./dist/makeWranglerConfig.js"
+    },
     "./DevWorker": {
       "types": "./dist/DevWorker.d.ts",
       "import": "./dist/DevWorker.js",
@@ -63,7 +67,8 @@
     "playwright": "1.59.1",
     "system": "workspace:*",
     "system-worker": "workspace:*",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "wrangler": "4.127.1"
   },
   "devDependencies": {
     "@types/node": "^25.9.4",

@@ -10,7 +10,6 @@
     "zerospin:dev": "zerospin dev --port ${ZEROSPIN_PORT:-3005}",
     "deploy:app": "wrangler deploy -c ./dist/wrangler.json",
     "deploy:zerospin": "zerospin deploy",
-    "types": "wrangler types -c ./wrangler.jsonc",
     "ts": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.etc.json --noEmit",
     "lint": "oxlint . --format stylish",
     "test": "vitest",

@@ -28,6 +28,7 @@ export type ISystemEnvironmentId = 'dev' | 'production';
 
 export type ISystemConfig<SYSTEM = ISystem> = Readonly<{
   system: SYSTEM;
+  systemId: ISystemId;
 }>;
 
 export type IEncodedQuery = {
@@ -209,7 +210,9 @@ export type ISystem<
   LAYER_SERVICES = never,
 > = {
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError>;
-  readonly config: () => ISystemConfig<
+  readonly config: (
+    options: Readonly<{ systemId: ISystemId }>,
+  ) => ISystemConfig<
     ISystem<AGGREGATES, SERVICES, SYSTEM_NAME, AUTHENTICATION, LAYER_SERVICES>
   >;
   readonly name: SYSTEM_NAME;

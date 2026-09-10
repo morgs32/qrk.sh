@@ -11,7 +11,7 @@ SystemRepo, and logging. Each command boundary carries one complete encoded
 occurrence; command history and resource state are separate durable owners.
 
 - [`index.ts`](../packages/system-worker/src/index.ts) — exports the complete static Durable Object topology.
-- [`Worker.ts`](../examples/shopping/src/Worker.ts) — exports those classes from the consumer Worker and separates Gateway RPC from singular WebSocket routes.
+- [`DevWorker.ts`](../packages/dev-worker/src/DevWorker.ts) — exports those classes from the framework Worker and separates Gateway RPC from singular WebSocket routes.
 
 ## Runtime topology
 

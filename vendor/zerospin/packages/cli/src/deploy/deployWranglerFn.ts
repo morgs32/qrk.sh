@@ -2,18 +2,15 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import type { EventEmitter } from 'node:events';
 import fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import os from 'node:os';
 import path from 'node:path';
 
 import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
 import * as NodePath from '@effect/platform-node-shared/NodePath';
 import type { Async } from '@zerospin/core/async/Async';
-import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
+import { makeWranglerConfig } from '@zerospin/dev-worker/makeWranglerConfig';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
-import { loadConfig } from 'c12';
 import { config as loadEnv } from 'dotenv';
 import { Effect, Fiber, Layer, Schema, Stream, type Scope } from 'effect';
 import {
@@ -131,73 +128,12 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
         }),
     });
 
-    yield* loadZerospinConfigFn(cwd).pipe(
+    const config = yield* loadZerospinConfigFn(cwd).pipe(
       Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
     );
     const systemEntry = yield* makeSystemEntry(cwd).pipe(
       Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
     );
-    const wranglerConfigResult = yield* Effect.tryPromise({
-      try: () =>
-        loadConfig<Record<string, unknown>>({
-          cwd,
-          name: 'wrangler',
-          configFile: 'wrangler.jsonc',
-          configFileRequired: true,
-          dotenv: false,
-          envName: false,
-          rcFile: false,
-          packageJson: false,
-          giget: false,
-          extend: false,
-          merger: (highestPriority, main) => highestPriority ?? main ?? {},
-        }),
-      catch: cause =>
-        new ZerospinError({
-          code: 'zerospin-wrangler-config-load-failed',
-          message: 'Failed to load wrangler.jsonc for production deployment.',
-          cause: ZerospinError.prettyUnknownFailure(cause),
-        }),
-    });
-    const wranglerConfig = wranglerConfigResult.config;
-
-    const workerName = wranglerConfig['name'];
-    if (
-      typeof workerName !== 'string' ||
-      !/^[a-z][a-z0-9_-]*$/.test(workerName)
-    ) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-config-invalid',
-        message:
-          'wrangler.jsonc name must be a lowercase Worker name suitable for a version override.',
-      });
-    }
-
-    const rawVars = wranglerConfig['vars'];
-    if (
-      rawVars === null ||
-      typeof rawVars !== 'object' ||
-      Array.isArray(rawVars)
-    ) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-system-id-missing',
-        message: 'wrangler.jsonc vars must contain ZEROSPIN_SYSTEM_ID.',
-      });
-    }
-    const systemId = yield* Schema.decodeUnknownEffect(
-      makeAbbreviationIdSchema(coreAbbreviations.system),
-    )(Reflect.get(rawVars, 'ZEROSPIN_SYSTEM_ID')).pipe(
-      Effect.mapError(
-        cause =>
-          new ZerospinError({
-            code: 'zerospin-wrangler-system-id-missing',
-            message:
-              'wrangler.jsonc vars.ZEROSPIN_SYSTEM_ID must be a sys_-prefixed id.',
-            cause: cause.message,
-          }),
-      ),
-    );
-
     const productionWorkerPath = yield* Effect.try({
       try: () =>
         require.resolve('@zerospin/production-worker/ProductionWorker'),
@@ -209,62 +145,31 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
           cause: ZerospinError.prettyUnknownFailure(cause),
         }),
     });
-    const rawAlias = wranglerConfig['alias'];
-    if (
-      rawAlias !== undefined &&
-      rawAlias !== null &&
-      (typeof rawAlias !== 'object' || Array.isArray(rawAlias))
-    ) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-config-invalid',
-        message: 'wrangler.jsonc alias must be an object when present.',
-      });
-    }
-    const rawExports = wranglerConfig['exports'];
-    if (
-      rawExports === null ||
-      typeof rawExports !== 'object' ||
-      Array.isArray(rawExports)
-    ) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-config-invalid',
-        message: 'wrangler.jsonc exports must declare the Durable Objects.',
-      });
-    }
-    const systemRepoExport = Reflect.get(rawExports, 'SystemRepo');
-    if (
-      systemRepoExport === null ||
-      typeof systemRepoExport !== 'object' ||
-      Array.isArray(systemRepoExport) ||
-      Reflect.get(systemRepoExport, 'type') !== 'durable-object' ||
-      Reflect.get(systemRepoExport, 'storage') !== 'sqlite'
-    ) {
-      return yield* new ZerospinError({
-        code: 'zerospin-wrangler-config-invalid',
-        message:
-          'wrangler.jsonc exports.SystemRepo must be a live SQLite Durable Object.',
-      });
-    }
-    const generatedVars = { ...rawVars };
-    Reflect.deleteProperty(generatedVars, 'CLERK_JWT_KEY');
-    Reflect.deleteProperty(generatedVars, 'ZEROSPIN_API_URL');
-    Reflect.set(generatedVars, 'ZEROSPIN_SYSTEM_ID', systemId);
-    Reflect.set(generatedVars, 'ZEROSPIN_ENVIRONMENT', 'production');
-
-    const generatedAlias = { ...rawAlias };
-    Reflect.set(generatedAlias, 'system', systemEntry);
-
-    const generatedConfig = {
-      ...wranglerConfig,
-      main: productionWorkerPath,
-      version_metadata: { binding: 'ZEROSPIN_VERSION_METADATA' },
-      alias: generatedAlias,
-      vars: generatedVars,
-    };
-
+    const generatedConfig = yield* Effect.try({
+      try: () =>
+        makeWranglerConfig({
+          config,
+          main: productionWorkerPath,
+          systemModulePath: systemEntry,
+          environment: 'production',
+        }),
+      catch: cause =>
+        ZerospinError.isZerospinError(cause)
+          ? cause
+          : new ZerospinError({
+              code: 'zerospin-wrangler-config-invalid',
+              message: 'Failed to generate backend configuration.',
+              cause: ZerospinError.prettyUnknownFailure(cause),
+            }),
+    });
+    const workerName = generatedConfig.name;
     const tempDirectory = yield* Effect.acquireRelease(
       Effect.tryPromise({
-        try: () => fs.mkdtemp(path.join(os.tmpdir(), 'zerospin-wrangler-')),
+        try: async () => {
+          const generatedRoot = path.join(cwd, '.wrangler', 'zerospin');
+          await fs.mkdir(generatedRoot, { recursive: true });
+          return fs.mkdtemp(path.join(generatedRoot, 'deploy-'));
+        },
         catch: cause =>
           new ZerospinError({
             code: 'zerospin-wrangler-temp-directory-failed',
@@ -624,8 +529,7 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
                 JSON.stringify({
                   name: `zerospin-preflight-${randomBytes(8).toString('hex')}`,
                   main: forwarderPath,
-                  account_id: wranglerConfig['account_id'],
-                  compatibility_date: wranglerConfig['compatibility_date'],
+                  compatibility_date: generatedConfig.compatibility_date,
                   services: [
                     {
                       binding: 'PRODUCTION',

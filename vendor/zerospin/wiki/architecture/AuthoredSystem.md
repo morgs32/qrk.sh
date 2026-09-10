@@ -6,7 +6,8 @@ updated: 2026-09-10
 # Authored System and Static Worker
 
 The root `zerospin.config.ts` imports an authored System and default-exports
-`system.config()`. Configuration retains the live System capability. Seed modules
+`system.config({ systemId })`. Configuration retains the live System capability
+and its explicit deployment identity. Seed modules
 are selected separately by the seed CLI's file-path argument.
 
 - [`makeSystem.ts`](../../packages/core/src/system/makeSystem.ts) — constructs configuration around the authored System.
@@ -23,6 +24,37 @@ imports its selected command module separately.
 - [`makeSystemEntry.ts`](../../packages/cli/src/deploy/makeSystemEntry.ts) — owns the adapter through the caller's scope.
 - [`makeSystemEntry.spec.ts`](../../packages/cli/src/deploy/makeSystemEntry.spec.ts) — verifies success, failure, and interruption cleanup.
 - [`e2eFn.spec.ts`](../../packages/cli/src/e2e/e2eFn.spec.ts) — runs the shared fixture through the CLI and workerd using the generated adapter.
+
+## Generated backend configuration
+
+The CLI and workerd test setup share `makeWranglerConfig`. It derives
+`zerospin-${system.name}`, validates the resulting Worker name, and owns the
+entrypoint, system alias, compatibility settings, static DO bindings, SQLite
+exports, observability defaults, environment, and production version metadata.
+Project configuration exposes `systemId`; it has no Wrangler overrides.
+
+- [`makeWranglerConfig.ts`](../../packages/dev-worker/src/makeWranglerConfig.ts) — produces the common backend configuration.
+- [`ZerospinConfigSchema.ts`](../../packages/core/src/system/ZerospinConfigSchema.ts) — validates the explicit system ID and live System.
+
+Generated configs and Worker adapters live in unique directories under
+`.wrangler/zerospin/`. CLI scopes and the test plugin dispose generated files;
+local dev persistence remains in `dev-worker/<systemId>` under that same root.
+Dev and tests resolve `.env`/`.dev.vars` against the project root using Wrangler's
+loader. Deployment continues to load project keys separately and writes a
+scoped mode-0600 secrets file.
+
+- [`makeSystemEntry.ts`](../../packages/cli/src/deploy/makeSystemEntry.ts) — owns the generated adapter directory through the calling scope.
+- [`devFn.ts`](../../packages/cli/src/dev/devFn.ts) — preserves the selected system's persistence path and binds project-root local variables.
+- [`deployWranglerFn.ts`](../../packages/cli/src/deploy/deployWranglerFn.ts) — generates production configuration and separate secrets with scoped cleanup.
+- [`makeWorkerdVitestConfig.ts`](../../packages/dev-worker/src/vitest/makeWorkerdVitestConfig.ts) — generates test configuration, supports internal fixture entrypoints/bindings, and disposes its files.
+
+Workerd tests explicitly receive the project `config` and need no prior CLI run.
+Shopping owns its frontend hosting configuration, but has no backend Worker,
+backend Wrangler files, or generated backend type declarations.
+
+- [`vitest.zerospin.config.ts`](../../examples/shopping/vitest.zerospin.config.ts) — passes Shopping's configuration to the test helper.
+- [`vite.config.ts`](../../examples/shopping/vite.config.ts) — retains the app-owned frontend Wrangler configuration.
+- [`tsconfig.json`](../../examples/shopping/tsconfig.json) — checks application sources without generated backend declarations.
 
 `makeSystem` collects authored definitions without a root version. Aggregate,
 service, contract, model, and authentication versions remain attached
@@ -406,13 +438,11 @@ look up the named service, aggregate, and query from that authored graph.
 
 ## Trigger: `zerospin dev`
 
-1. The `dev` command parses `--clean` and `--port`, validates the project
-   Wrangler contract, and waits for the validated `systemId` before mounting
-   the long-running development step.
-   - [`dev.tsx`](../../packages/cli/src/commands/dev.tsx) — declares both command options and gates `DevStep` behind `CheckWranglerConfig`.
-2. The development step runs `devFn(...)` with the selected options and
-   validated `systemId` under the required Node services.
-   - [`Dev.tsx`](../../packages/cli/src/dev/Dev.tsx) — supplies filesystem, path, terminal, and child-process services to the development Effect.
+1. The `dev` command parses `--clean` and `--port` and mounts the development step.
+   - [`dev.tsx`](../../packages/cli/src/commands/dev.tsx) — passes both options to `DevStep`.
+2. The development step runs `devFn(...)` under Node services; the Effect loads and validates the project configuration before starting Wrangler.
+   - [`Dev.tsx`](../../packages/cli/src/dev/Dev.tsx) — supplies filesystem, path, and terminal services.
+   - [`devFn.ts`](../../packages/cli/src/dev/devFn.ts) — obtains `systemId` from the loaded configuration.
 
 ```mermaid
 sequenceDiagram
@@ -449,8 +479,8 @@ sequenceDiagram
 
 ## Annotated workflow steps
 
-1. The operator supplies optional `--clean` and `--port`; config validation supplies systemId.
-   - [`dev.tsx`](../../packages/cli/src/commands/dev.tsx) — gates development startup on `CheckWranglerConfig`.
+1. The operator supplies optional `--clean` and `--port`.
+   - [`dev.tsx`](../../packages/cli/src/commands/dev.tsx) — starts the development step with these options.
 2. The CLI runs `devFn` under Node filesystem, path, and terminal services.
    - [`Dev.tsx`](../../packages/cli/src/dev/Dev.tsx) — starts the scoped Effect and presents failures.
 3. The programmatic environment comes from the consumer's resolved Wrangler package; reload, error, and teardown listeners are attached before startup.
@@ -569,7 +599,7 @@ SystemRepo and all other requests to GatewayApi.
 - [`DevWorker.ts`](../../packages/dev-worker/src/DevWorker.ts) — exports and routes the development bundle.
 - [`ProductionWorker.ts`](../../packages/production-worker/src/ProductionWorker.ts) — validates production keys and frontend socket tickets before applying the same topology.
 - [`index.ts`](../../packages/system-worker/src/index.ts) — exports the complete System Worker Repo topology.
-- [`wrangler.jsonc`](../../examples/shopping/wrangler.jsonc) — binds and declares the static Durable Object classes.
+- [`makeWranglerConfig.ts`](../../packages/dev-worker/src/makeWranglerConfig.ts) — generates the static Durable Object bindings and SQLite exports for CLI and workerd tests.
 
 ## Seeds
 

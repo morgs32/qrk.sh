@@ -25,10 +25,16 @@ const mocks = vi.hoisted(() => ({
   startWorker: vi.fn(),
   teardown: vi.fn(),
   drained: vi.fn(),
+  getVarsForDev: vi.fn(),
+  systemName: 'dev-test',
   disposeSession: vi.fn(),
 }));
 vi.mock('../deploy/loadZerospinConfigFn.js', () => ({
-  loadZerospinConfigFn: () => Effect.void,
+  loadZerospinConfigFn: () =>
+    Effect.succeed({
+      system: { name: mocks.systemName },
+      systemId: 'sys_test',
+    }),
 }));
 vi.mock('@zerospin/core/utils/newSyncRpcSession', () => ({
   newSyncRpcSession: () => ({
@@ -48,23 +54,24 @@ let environment: EventEmitter;
 
 beforeEach(async () => {
   vi.resetAllMocks();
+  mocks.systemName = 'dev-test';
   directory = await mkdtemp(
     join(new URL('../../test/', import.meta.url).pathname, '.dev-test-'),
   );
   await mkdir(join(directory, 'node_modules', 'wrangler'), { recursive: true });
   await writeFile(
     join(directory, 'node_modules', 'wrangler', 'index.js'),
-    'module.exports = { unstable_DevEnv: globalThis[Symbol.for("zerospin.dev-test")] };',
+    'module.exports = { unstable_DevEnv: globalThis[Symbol.for("zerospin.dev-test")], unstable_getVarsForDev: globalThis[Symbol.for("zerospin.dev-env-test")] };',
   );
-  await writeFile(
-    join(directory, 'wrangler.jsonc'),
-    JSON.stringify({
-      compatibility_date: '2026-09-10',
-      alias: { existing: './existing.ts' },
-      vars: { ZEROSPIN_SYSTEM_ID: 'sys_test', EXISTING: 'value' },
-      migrations: [{ tag: 'v1', new_sqlite_classes: ['SystemRepo'] }],
-    }),
+  Reflect.set(
+    globalThis,
+    Symbol.for('zerospin.dev-env-test'),
+    mocks.getVarsForDev,
   );
+  mocks.getVarsForDev.mockReturnValue({
+    EXISTING: { type: 'secret_text', value: 'value' },
+    ZEROSPIN_SYSTEM_ID: { type: 'secret_text', value: 'sys_wrong' },
+  });
   environment = new EventEmitter();
   Reflect.set(
     globalThis,
@@ -98,15 +105,14 @@ beforeEach(async () => {
 afterEach(async () => {
   vi.restoreAllMocks();
   Reflect.deleteProperty(globalThis, Symbol.for('zerospin.dev-test'));
+  Reflect.deleteProperty(globalThis, Symbol.for('zerospin.dev-env-test'));
   await rm(directory, { recursive: true, force: true });
 });
 
 describe('development spec acceptance', () => {
   it('checks the initial bundle and every compatible reload, preserving config and scoped persistence', async () => {
     const fiber = Effect.runFork(
-      devFn({ clean: false, port: 3210, systemId: 'sys_test' }).pipe(
-        Effect.provide(platform),
-      ),
+      devFn({ clean: false, port: 3210 }).pipe(Effect.provide(platform)),
     );
     await vi.waitFor(() =>
       expect(mocks.checkSystemSpec).toHaveBeenCalledTimes(1),
@@ -126,16 +132,31 @@ describe('development spec acceptance', () => {
       watch: true,
     });
     const config = JSON.parse(await readFile(options.config, 'utf8'));
-    expect(config.alias).toMatchObject({ existing: './existing.ts' });
-    expect(config.alias.system).toContain('.zerospin-entry-');
+    expect(config.alias.system).toContain('/.wrangler/zerospin/entry-');
+    expect(config.name).toBe('zerospin-dev-test');
+    expect(config.main).toBe(options.entrypoint);
+    expect(mocks.getVarsForDev).toHaveBeenCalledWith(
+      join(directory, 'zerospin.config.ts'),
+      undefined,
+      {},
+      undefined,
+      true,
+    );
+    expect(options.bindings.EXISTING).toEqual({
+      type: 'secret_text',
+      value: 'value',
+    });
+    expect(options.bindings.ZEROSPIN_SYSTEM_ID.value).toBe('sys_test');
     expect(config.vars).toEqual({
       ZEROSPIN_SYSTEM_ID: 'sys_test',
-      EXISTING: 'value',
       ZEROSPIN_ENVIRONMENT: 'dev',
     });
-    expect(config.migrations).toEqual([
-      { tag: 'v1', new_sqlite_classes: ['SystemRepo'] },
-    ]);
+    expect(config.exports.SystemRepo).toEqual({
+      type: 'durable-object',
+      storage: 'sqlite',
+    });
+    expect(config.durable_objects.bindings).toHaveLength(13);
+    expect(config.migrations).toBeUndefined();
     environment.emit('reloadComplete');
     environment.emit('reloadComplete');
     await vi.waitFor(() =>
@@ -146,10 +167,8 @@ describe('development spec acceptance', () => {
     expect(mocks.teardown).toHaveBeenCalledOnce();
     expect(mocks.disposeSession).toHaveBeenCalled();
     expect(
-      (await readdir(directory)).filter(
-        file =>
-          file.startsWith('.zerospin-entry-') ||
-          file.startsWith('wrangler.zerospin-dev'),
+      (await readdir(join(directory, '.wrangler/zerospin'))).filter(file =>
+        file.startsWith('entry-'),
       ),
     ).toEqual([]);
   });
@@ -165,7 +184,7 @@ describe('development spec acceptance', () => {
         });
       }
       const promise = Effect.runPromise(
-        devFn({ clean: false, port: 3210, systemId: 'sys_test' }).pipe(
+        devFn({ clean: false, port: 3210 }).pipe(
           Effect.provide(platform),
           Effect.flip,
         ),
@@ -184,10 +203,8 @@ describe('development spec acceptance', () => {
       expect(mocks.teardown).toHaveBeenCalledOnce();
       expect(mocks.disposeSession).toHaveBeenCalled();
       expect(
-        (await readdir(directory)).filter(
-          file =>
-            file.startsWith('.zerospin-entry-') ||
-            file.startsWith('wrangler.zerospin-dev'),
+        (await readdir(join(directory, '.wrangler/zerospin'))).filter(file =>
+          file.startsWith('entry-'),
         ),
       ).toEqual([]);
     },
@@ -196,9 +213,7 @@ describe('development spec acceptance', () => {
   it('stops and disposes a pending acceptance request', async () => {
     mocks.checkSystemSpec.mockImplementation(() => new Promise(() => {}));
     const fiber = Effect.runFork(
-      devFn({ clean: false, port: 3210, systemId: 'sys_test' }).pipe(
-        Effect.provide(platform),
-      ),
+      devFn({ clean: false, port: 3210 }).pipe(Effect.provide(platform)),
     );
     await vi.waitFor(() =>
       expect(mocks.checkSystemSpec).toHaveBeenCalledOnce(),
@@ -212,7 +227,7 @@ describe('development spec acceptance', () => {
   it('disposes the environment when Wrangler reports an error during startup', async () => {
     mocks.startWorker.mockImplementation(() => new Promise(() => {}));
     const promise = Effect.runPromise(
-      devFn({ clean: false, port: 3210, systemId: 'sys_test' }).pipe(
+      devFn({ clean: false, port: 3210 }).pipe(
         Effect.provide(platform),
         Effect.flip,
       ),
@@ -269,9 +284,7 @@ describe('development spec acceptance', () => {
       return { url: Promise.resolve(new URL('http://127.0.0.1:3210')) };
     });
     const fiber = Effect.runFork(
-      devFn({ clean: false, port: 3210, systemId: 'sys_test' }).pipe(
-        Effect.provide(platform),
-      ),
+      devFn({ clean: false, port: 3210 }).pipe(Effect.provide(platform)),
     );
     try {
       await vi.waitFor(() =>
@@ -295,6 +308,22 @@ describe('development spec acceptance', () => {
     }
   });
 
+  it.each(['UPPERCASE', 'contains space', 'x'.repeat(64)])(
+    'rejects an invalid derived Worker name: %s',
+    async systemName => {
+      mocks.systemName = systemName;
+      const failure = await Effect.runPromise(
+        devFn({ clean: false, port: 3210 }).pipe(
+          Effect.provide(platform),
+          Effect.flip,
+        ),
+      );
+      expect(failure.code).toBe('zerospin-worker-name-invalid');
+      expect(mocks.startWorker).not.toHaveBeenCalled();
+      expect(await readdir(join(directory, '.wrangler/zerospin'))).toEqual([]);
+    },
+  );
+
   it('cleans only the selected system when --clean is requested', async () => {
     const persistence = join(directory, '.wrangler/zerospin/dev-worker');
     await mkdir(join(persistence, 'sys_test'), { recursive: true });
@@ -307,7 +336,7 @@ describe('development spec acceptance', () => {
       link: null,
     });
     await Effect.runPromise(
-      devFn({ clean: true, port: 3210, systemId: 'sys_test' }).pipe(
+      devFn({ clean: true, port: 3210 }).pipe(
         Effect.provide(platform),
         Effect.flip,
       ),
@@ -317,9 +346,7 @@ describe('development spec acceptance', () => {
 
   it('cleans the environment and generated files when interrupted', async () => {
     const fiber = Effect.runFork(
-      devFn({ clean: false, port: 3210, systemId: 'sys_test' }).pipe(
-        Effect.provide(platform),
-      ),
+      devFn({ clean: false, port: 3210 }).pipe(Effect.provide(platform)),
     );
     await vi.waitFor(() =>
       expect(mocks.checkSystemSpec).toHaveBeenCalledTimes(1),
@@ -328,10 +355,8 @@ describe('development spec acceptance', () => {
     expect(mocks.teardown).toHaveBeenCalledOnce();
     expect(mocks.disposeSession).toHaveBeenCalled();
     expect(
-      (await readdir(directory)).filter(
-        file =>
-          file.startsWith('.zerospin-entry-') ||
-          file.startsWith('wrangler.zerospin-dev'),
+      (await readdir(join(directory, '.wrangler/zerospin'))).filter(file =>
+        file.startsWith('entry-'),
       ),
     ).toEqual([]);
   });

@@ -1,6 +1,6 @@
 ---
 title: Glossary
-updated: 2026-09-09
+updated: 2026-09-10
 ---
 
 # Glossary
@@ -16,10 +16,12 @@ root version.
 
 ## systemId
 
-The `sys_`-prefixed deployment identifier supplied by Worker configuration. It
+The `sys_`-prefixed deployment identifier supplied through
+`system.config({ systemId })` and embedded in generated Worker configuration. It
 keys the singleton SystemRepo and is the first identity field for every direct
 Repo.
 
+- [`makeWranglerConfig.ts`](../packages/dev-worker/src/makeWranglerConfig.ts) — embeds the configured system ID as the Worker binding.
 - [`SystemRepo.ts`](../packages/system-worker/src/SystemRepo/SystemRepo.ts) — addresses the singleton SystemRepo by the decoded configured system id.
 - [`AggregateChain.ts`](../packages/system-worker/src/AggregateChain/AggregateChain.ts) — includes `systemId` in aggregate-chain instance identity and configures one fixed schema.
 
@@ -30,7 +32,7 @@ and its deferred work. The static runtime has SystemRepo, five command chains,
 four domain Repos, and SystemLogRepo.
 
 - [`types.ts`](../packages/core/src/system/types.ts) — enumerates the eleven registered Repo kinds.
-- [`Worker.ts`](../examples/shopping/src/Worker.ts) — exports every direct Repo class from a static Worker.
+- [`DevWorker.ts`](../packages/dev-worker/src/DevWorker.ts) — exports the direct Repo classes from the framework Worker.
 
 ## SystemRepo
 

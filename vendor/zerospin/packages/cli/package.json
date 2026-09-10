@@ -32,7 +32,6 @@
     "@zerospin/production-worker": "workspace:*",
     "@zerospin/schema": "workspace:*",
     "@zerospin/studio": "workspace:*",
-    "c12": "4.0.0-beta.5",
     "capnweb": "^0.12.0",
     "cfonts": "^2.10.1",
     "dotenv": "^17.4.2",

@@ -8,9 +8,11 @@ export const makeSystemEntry = Effect.fn('makeSystemEntry')(function* (
   const fileSystem = yield* FileSystem.FileSystem;
   const pathApi = yield* Path.Path;
   return yield* Effect.gen(function* () {
+    const generatedRoot = pathApi.join(cwd, '.wrangler', 'zerospin');
+    yield* fileSystem.makeDirectory(generatedRoot, { recursive: true });
     const directory = yield* fileSystem.makeTempDirectoryScoped({
-      directory: cwd,
-      prefix: '.zerospin-entry-',
+      directory: generatedRoot,
+      prefix: 'entry-',
     });
     const entryPath = pathApi.join(directory, 'system.ts');
     const configPath = pathApi.resolve(cwd, 'zerospin.config.ts');

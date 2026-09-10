@@ -58,7 +58,11 @@ describe('owner guard layers', () => {
     expect(system.layer).toBe(layer);
     expect(makeSystemSpec({ system })).not.toHaveProperty('layer');
     expect(acquired).toBe(false);
-    expect(Schema.is(ZerospinConfigSchema)(system.config())).toBe(true);
+    expect(
+      Schema.is(ZerospinConfigSchema)(
+        system.config({ systemId: 'sys_owner_layers' }),
+      ),
+    ).toBe(true);
     expect(() =>
       Reflect.apply(makeSystem, undefined, [
         { name: 'test', authentication: [], aggregates: {}, runtime: {} },

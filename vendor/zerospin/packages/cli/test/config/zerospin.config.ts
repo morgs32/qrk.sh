@@ -50,4 +50,4 @@ export const system = makeSystem({
   },
 });
 
-export default system.config();
+export default system.config({ systemId: 'sys_typed_config_fixture' });

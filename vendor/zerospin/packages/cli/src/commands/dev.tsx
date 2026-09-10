@@ -3,7 +3,6 @@ import zod from 'zod';
 
 import { ErrorBoundary } from '../components/ErrorBoundary.js';
 import { Header } from '../components/Header.js';
-import { CheckWranglerConfig } from '../dev/CheckWranglerConfig.js';
 import { Dev as DevStep } from '../dev/Dev.js';
 
 export const options = zod.object({
@@ -32,15 +31,7 @@ export default function Dev(props: {
     <ErrorBoundary>
       <Box flexDirection="column">
         <Header />
-        <CheckWranglerConfig>
-          {systemId => (
-            <DevStep
-              clean={options.clean}
-              port={options.port}
-              systemId={systemId}
-            />
-          )}
-        </CheckWranglerConfig>
+        <DevStep clean={options.clean} port={options.port} />
       </Box>
     </ErrorBoundary>
   );

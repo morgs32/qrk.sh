@@ -2,11 +2,10 @@ import type { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 
 import type { Async } from '@zerospin/core/async/Async';
-import type { ISystemId } from '@zerospin/core/system/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
+import { makeWranglerConfig } from '@zerospin/dev-worker/makeWranglerConfig';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
-import { loadConfig } from 'c12';
 import { config as loadEnv } from 'dotenv';
 import {
   Config,
@@ -29,13 +28,12 @@ const require = createRequire(import.meta.url);
 export const devFn = Effect.fn('devFn')(function* (props: {
   clean: boolean;
   port: number | undefined;
-  systemId: ISystemId;
 }): Effect.fn.Return<
   Readonly<{ port: number | undefined }>,
   IAnyError,
   Async | Scope.Scope | FileSystem.FileSystem | Path.Path | Terminal.Terminal
 > {
-  const { clean, port: portOption, systemId } = props;
+  const { clean, port: portOption } = props;
   let port = portOption;
   const stopped = yield* Deferred.make<void, IAnyError>();
   const stop = () => Deferred.doneUnsafe(stopped, Effect.void);
@@ -106,14 +104,22 @@ export const devFn = Effect.fn('devFn')(function* (props: {
       port = Option.getOrUndefined(configuredPort);
     }
 
-    const WranglerDevEnv = yield* Effect.try({
+    const wrangler = yield* Effect.try({
       try: () => {
         const wranglerPath = require.resolve('wrangler', { paths: [cwd] });
         const wrangler: {
+          unstable_getVarsForDev(
+            configPath: string,
+            envFiles: undefined,
+            vars: Record<string, string>,
+            env: undefined,
+            silent: boolean,
+          ): Record<string, { type: string; value: unknown }>;
           unstable_DevEnv: new () => EventEmitter & {
             startWorker(options: {
               config: string;
               entrypoint: string;
+              bindings: Record<string, { type: string; value: unknown }>;
               dev: {
                 server: { hostname: string; port: number | undefined };
                 persist: string;
@@ -127,7 +133,7 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         if (typeof wrangler.unstable_DevEnv !== 'function') {
           throw new Error('Wrangler does not expose unstable_DevEnv.');
         }
-        return wrangler.unstable_DevEnv;
+        return wrangler;
       },
       catch: cause =>
         new ZerospinError({
@@ -147,69 +153,51 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         }),
     });
 
-    yield* loadZerospinConfigFn(cwd);
+    const config = yield* loadZerospinConfigFn(cwd);
+    const { systemId } = config;
     const systemEntry = yield* makeSystemEntry(cwd);
-    const wranglerConfigResult = yield* Effect.tryPromise({
+    const generatedConfig = yield* Effect.try({
       try: () =>
-        loadConfig<Record<string, unknown>>({
-          cwd,
-          name: 'wrangler',
-          configFile: 'wrangler.jsonc',
-          configFileRequired: true,
-          dotenv: false,
-          envName: false,
-          rcFile: false,
-          packageJson: false,
-          giget: false,
-          extend: false,
-          merger: (highestPriority, main) => highestPriority ?? main ?? {},
+        makeWranglerConfig({
+          config,
+          main: devWorkerPath,
+          systemModulePath: systemEntry,
+          environment: 'dev',
         }),
       catch: cause =>
+        ZerospinError.isZerospinError(cause)
+          ? cause
+          : new ZerospinError({
+              code: 'zerospin-dev-config-failed',
+              message: 'Failed to generate backend configuration.',
+              cause: ZerospinError.prettyUnknownFailure(cause),
+            }),
+    });
+    const generatedConfigPath = pathApi.join(
+      pathApi.dirname(systemEntry),
+      'wrangler.json',
+    );
+    // Resolve local secrets against the project root, independently of the
+    // generated config directory. Wrangler retains its .dev.vars/.env precedence.
+    const bindings = yield* Effect.try({
+      try: () => ({
+        ...wrangler.unstable_getVarsForDev(
+          pathApi.join(cwd, 'zerospin.config.ts'),
+          undefined,
+          {},
+          undefined,
+          true,
+        ),
+        ZEROSPIN_ENVIRONMENT: { type: 'plain_text', value: 'dev' },
+        ZEROSPIN_SYSTEM_ID: { type: 'plain_text', value: systemId },
+      }),
+      catch: cause =>
         new ZerospinError({
-          code: 'zerospin-dev-wrangler-config-load-failed',
-          message: 'Failed to load wrangler.jsonc for zerospin dev.',
+          code: 'zerospin-dev-env-load-failed',
+          message: 'Failed to load project environment bindings.',
           cause: ZerospinError.prettyUnknownFailure(cause),
         }),
     });
-    const wranglerConfig = wranglerConfigResult.config;
-    const authoredAlias = wranglerConfig['alias'];
-    if (
-      authoredAlias !== undefined &&
-      (authoredAlias === null ||
-        typeof authoredAlias !== 'object' ||
-        Array.isArray(authoredAlias))
-    ) {
-      return yield* new ZerospinError({
-        code: 'zerospin-dev-wrangler-config-invalid',
-        message: 'wrangler.jsonc alias must be an object when present.',
-      });
-    }
-    const authoredVars = wranglerConfig['vars'];
-    if (
-      authoredVars !== undefined &&
-      (authoredVars === null ||
-        typeof authoredVars !== 'object' ||
-        Array.isArray(authoredVars))
-    ) {
-      return yield* new ZerospinError({
-        code: 'zerospin-dev-wrangler-config-invalid',
-        message: 'wrangler.jsonc vars must be an object when present.',
-      });
-    }
-
-    const generatedConfigName = `wrangler.zerospin-dev.${process.pid}.local.json`;
-    const generatedConfigPath = pathApi.join(cwd, generatedConfigName);
-    const generatedConfig = {
-      ...wranglerConfig,
-      alias: {
-        ...authoredAlias,
-        system: systemEntry,
-      },
-      vars: {
-        ...authoredVars,
-        ZEROSPIN_ENVIRONMENT: 'dev',
-      },
-    };
     const persistPath = pathApi.join(
       cwd,
       '.wrangler',
@@ -232,22 +220,6 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         );
     }
 
-    const removeGeneratedConfig = fileSystem
-      .remove(generatedConfigPath, { force: true })
-      .pipe(
-        Effect.mapError(
-          cause =>
-            new ZerospinError({
-              code: 'zerospin-dev-generated-config-remove-failed',
-              message: `Failed to remove generated Wrangler config ${generatedConfigName}.`,
-              cause: ZerospinError.prettyUnknownFailure(cause),
-            }),
-        ),
-      );
-
-    yield* Effect.addFinalizer(() =>
-      removeGeneratedConfig.pipe(Effect.catch(error => Effect.logError(error))),
-    );
     yield* fileSystem
       .writeFileString(
         generatedConfigPath,
@@ -259,7 +231,7 @@ export const devFn = Effect.fn('devFn')(function* (props: {
           cause =>
             new ZerospinError({
               code: 'zerospin-dev-generated-config-write-failed',
-              message: `Failed to write generated Wrangler config ${generatedConfigName}.`,
+              message: `Failed to write generated Wrangler config ${generatedConfigPath}.`,
               cause: ZerospinError.prettyUnknownFailure(cause),
             }),
         ),
@@ -267,7 +239,7 @@ export const devFn = Effect.fn('devFn')(function* (props: {
 
     const reloads = yield* Queue.make<void>();
     const devEnv = yield* Effect.acquireRelease(
-      Effect.sync(() => new WranglerDevEnv()),
+      Effect.sync(() => new wrangler.unstable_DevEnv()),
       environment =>
         Effect.tryPromise(() => environment.teardown()).pipe(
           Effect.catch(cause =>
@@ -305,6 +277,7 @@ export const devFn = Effect.fn('devFn')(function* (props: {
         devEnv.startWorker({
           config: generatedConfigPath,
           entrypoint: devWorkerPath,
+          bindings,
           dev: {
             server: { hostname: '127.0.0.1', port },
             persist: persistPath,

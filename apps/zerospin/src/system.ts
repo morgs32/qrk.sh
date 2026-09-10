@@ -7,7 +7,6 @@ import {
   makeSystem,
   ZerospinError,
 } from "@zerospin/sdk";
-import { env } from "cloudflare:workers";
 import { Effect } from "effect";
 
 import { createGrid, createPage, createSite, createUser, updateGrid } from "./contracts";
@@ -25,6 +24,7 @@ export const system = makeSystem({
       version: "1.0.0",
       signature,
       authenticate: Effect.fn("user.authenticate")(function* ({ signature }) {
+        const { env } = yield* Effect.promise(() => import("cloudflare:workers"));
         const verifiedToken = yield* Effect.tryPromise({
           try: () =>
             verifyToken(signature.sessionToken, {

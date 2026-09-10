@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "zerospin dev --clean",
     "lint": "oxlint . --format stylish",
     "test:workerd": "vitest run --config vitest.workerd.config.ts",
-    "types": "wrangler types ./worker-configuration.d.ts -c wrangler.vitest.jsonc",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -21,6 +21,7 @@
   "devDependencies": {
     "@effect/vitest": "rc",
     "@types/node": "^25.5.2",
+    "@zerospin/cli": "workspace:*",
     "@zerospin/dev-worker": "workspace:*",
     "cloudflare": "^6.1.0",
     "drizzle-orm": "1.0.0-rc.4",
@@ -32,6 +33,10 @@
   },
   "nx": {
     "targets": {
+      "dev": {
+        "continuous": true,
+        "dependsOn": ["^lib"]
+      },
       "typecheck": {
         "dependsOn": [
           "^lib"

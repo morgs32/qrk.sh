@@ -4,15 +4,22 @@
   "targets": {
     "dev": {
       "continuous": true,
-      "dependsOn": ["^lib", "zerospin:dev", "astrobook:dev"]
-    },
-    "zerospin:dev": {
-      "continuous": true,
-      "dependsOn": ["^lib"]
+      "dependsOn": [
+        "^lib",
+        {
+          "projects": [
+            "@qrk.sh/zerospin"
+          ],
+          "target": "dev"
+        },
+        "astrobook:dev"
+      ]
     },
     "astrobook:dev": {
       "continuous": true,
-      "dependsOn": ["^lib"]
+      "dependsOn": [
+        "^lib"
+      ]
     }
   }
 }

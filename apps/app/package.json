@@ -3,7 +3,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "zerospin:dev": "zerospin dev --clean",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
@@ -69,7 +68,6 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@zerospin/cli": "workspace:*",
     "astro": "7.1.1",
     "astrobook": "0.13.2",
     "oxfmt": "^0.44.0",

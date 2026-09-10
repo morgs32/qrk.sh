@@ -15,7 +15,7 @@
     "exactOptionalPropertyTypes": true,
     "disableSourceOfProjectReferenceRedirect": true
   },
-  "include": ["src/**/*.ts", "*.ts", "worker-configuration.d.ts"],
+  "include": ["src/**/*.ts", "*.ts"],
   "references": [
     {
       "path": "../../vendor/zerospin/packages/system-worker"

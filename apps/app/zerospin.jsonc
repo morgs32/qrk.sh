@@ -1,4 +1,0 @@
-{
-  "$schema": "./node_modules/@zerospin/sdk/zerospin.schema.json",
-  "entry": "../../packages/zerospin/src/system.ts",
-}

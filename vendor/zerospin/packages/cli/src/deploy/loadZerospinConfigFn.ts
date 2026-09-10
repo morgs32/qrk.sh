@@ -9,7 +9,13 @@ import { createJiti } from 'jiti';
 import { jitiAliasesFromTsconfigPaths } from './jitiAliasesFromTsconfigPaths.js';
 
 /** Import the exact root configuration without running a typechecker or seeds. */
-export const loadZerospinConfigFn = Effect.fn('loadZerospinConfigFn')(
+export const loadZerospinConfigFn: (
+  cwd?: string,
+) => Effect.Effect<
+  ISystemConfig,
+  IAnyError,
+  Async | FileSystem.FileSystem | Path.Path
+> = Effect.fn('loadZerospinConfigFn')(
   function* (
     cwd: string = process.cwd(),
   ): Effect.fn.Return<

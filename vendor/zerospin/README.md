@@ -147,3 +147,8 @@ existing pre-cutover Worker or deploy under a new Worker name before running
 `zerospin deploy`. `--clean` starts a detached, predecessor-free
 generation inside SystemRepo; it does not reset Cloudflare's Durable Object
 class-migration history.
+
+## Zerospin subrepo metadata
+
+- Upstream: https://github.com/morgs32/zerospin.git
+- Branch: main

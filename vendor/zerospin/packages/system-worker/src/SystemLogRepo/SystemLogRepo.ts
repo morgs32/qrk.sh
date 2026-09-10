@@ -23,61 +23,86 @@ import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 import { appendLogRow } from './appendLogRow/appendLogRow.js';
 import { appendTelemetryBatch } from './appendTelemetryBatch/appendTelemetryBatch.js';
 import { getSystemLogRows } from './getSystemLogRows/getSystemLogRows.js';
-import { systemLogRepoDbConfig } from './SystemLogRepoDbConfig.js';
+import { systemLogRepoDbConfig } from './systemLogRepoDbConfig.js';
 
 const systemLogFixedDORepoConfig = makeFixedDORepoConfig({
   abbreviation: systemWorkerAbbreviations.systemLogRepo,
   repoType: 'SystemLogRepo',
   namePattern: RoutePattern.parse('/:systemId'),
   managedRuntime,
-  getDbConfig: Effect.fn('SystemLogRepo.getDbConfig')(function* () {
-    yield* Effect.void;
-    return systemLogRepoDbConfig;
-  }),
+  dbConfig: systemLogRepoDbConfig,
 });
 
 export class SystemLogRepo extends makeFixedDORepo({
+  namespaceBinding: 'SYSTEM_LOG_REPO',
   fixedDORepoConfig: systemLogFixedDORepoConfig,
 }) {
   static override readonly fixedDORepoConfig = systemLogFixedDORepoConfig;
 
+  /*
+   * SystemLogRepo.appendLogRow is the runtime boundary for the same-named operation.
+   *
+   * 1. Run the bound domain operation.
+   */
   async appendLogRow(props: {
     level: ISystemLogLevel;
     message: string;
     payload?: unknown | null;
     source: string;
   }): Promise<IEncodedResult<ISystemLogRow, IAnyErrorJson>> {
+    const { level, message, payload, source } = props;
+
+    // 1 — run appendLogRow with the instance-bound dependencies and encode its RPC outcome
     return managedRuntime.runPromise(
       appendLogRow({
         db: this.db,
-        level: props.level,
-        message: props.message,
-        payload: props.payload ?? null,
-        source: props.source,
+        level,
+        message,
+        payload: payload ?? null,
+        source,
         systemId: this.env.ZEROSPIN_SYSTEM_ID,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }
 
+  /*
+   * Linked RPC handlers persist completed telemetry batches in SystemLogRepo.
+   * Stable record IDs make retries idempotent, and retention removes old trace
+   * links, logs, and spans in the same transaction as the incoming batch.
+   *
+   * 1. Run the bound domain operation.
+   */
   async appendTelemetryBatch(props: {
     batch: ITelemetryBatch;
   }): Promise<IEncodedResult<void, IAnyErrorJson>> {
+    const { batch } = props;
+
+    // 1 — run appendTelemetryBatch with the instance-bound dependencies and encode its RPC outcome
     return managedRuntime.runPromise(
       appendTelemetryBatch({
-        batch: props.batch,
+        batch,
         db: this.db,
         systemId: this.env.ZEROSPIN_SYSTEM_ID,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }
 
+  /*
+   * Log dashboard and live-tail bootstrap read newest retained log rows here.
+   * The reader caps the requested window and validates each persisted row.
+   *
+   * 1. Run the bound domain operation.
+   */
   async getSystemLogRows(props: {
     limit: number;
   }): Promise<IEncodedResult<readonly ISystemLogRow[], IAnyErrorJson>> {
+    const { limit } = props;
+
+    // 1 — run getSystemLogRows with the instance-bound dependencies and encode its RPC outcome
     return managedRuntime.runPromise(
       getSystemLogRows({
         db: this.db,
-        limit: props.limit,
+        limit,
       }).pipe(Effect.provide(AsyncLive), encodeRpc),
     );
   }

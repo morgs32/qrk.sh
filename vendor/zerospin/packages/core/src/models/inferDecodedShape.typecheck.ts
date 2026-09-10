@@ -1,34 +1,27 @@
 import { primitives, type InferDecodedRow } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 
-import { makeModel } from './makeModel.ts';
 import type { InferCommandPayload, InferPayloadInput } from './types.ts';
 
-const Widget = makeModel(
-  {
-    abbreviation: 'wdg',
-    modelName: 'widget',
-    attributes: {
-      title: primitives.text(),
-    },
-    indexes: [],
-    version: '1.0.0',
+import { models } from './index.ts';
+
+const WidgetModel = models.makeModel({ name: 'widget', abbreviation: 'wdg' });
+
+const _Widget = models.makeVersion(WidgetModel, {
+  attributes: {
+    title: primitives.text(),
   },
-  [],
-);
+  indexes: [],
+  version: '1.0.0',
+});
 
 const widgetPayloadShape = {
-  id: Widget.primaryKey({ autogenerate: false }),
-  title: primitives.text(),
-} as const;
-
-const widgetAutogeneratePayloadShape = {
-  id: Widget.primaryKey({ autogenerate: true }),
+  id: primitives.foreignKey({ abbreviation: WidgetModel.abbreviation }),
   title: primitives.text(),
 } as const;
 
 const widgetDefaultedPayloadShape = {
-  id: Widget.primaryKey({ autogenerate: false }),
+  id: primitives.foreignKey({ abbreviation: WidgetModel.abbreviation }),
   enabled: primitives.boolean({ defaultValue: true }),
   count: primitives.integer({ defaultValue: 5 }),
   ratio: primitives.number({ defaultValue: 1.5 }),
@@ -56,35 +49,11 @@ assert<
   >
 >();
 
-// `autogenerate` does not affect nullability in the decoded shape
-assert<
-  Equals<
-    InferDecodedRow<typeof widgetAutogeneratePayloadShape>,
-    {
-      readonly id: `wdg_${string}`;
-      readonly title: string;
-    }
-  >
->();
-
-// `autogenerate: true` ids are optional in the payload input
-assert<
-  Equals<
-    InferPayloadInput<typeof widgetAutogeneratePayloadShape>,
-    {
-      readonly id?: `wdg_${string}` | null | undefined;
-      readonly title: string;
-    }
-  >
->();
-
-// `autogenerate: true` id may be omitted entirely
-const omittedAutogenerateId: InferPayloadInput<
-  typeof widgetAutogeneratePayloadShape
-> = {
+// @ts-expect-error Contract input requires a caller-supplied ID.
+const missingPayloadId: InferPayloadInput<typeof widgetPayloadShape> = {
   title: 'Widget',
 };
-void omittedAutogenerateId;
+void missingPayloadId;
 
 assert<
   Equals<

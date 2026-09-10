@@ -1,57 +1,45 @@
 import { type IAnyError } from '@zerospin/error';
-import type { CuidFactory } from '@zerospin/schema';
+import { makeIdFromAbbreviation, type CuidFactory } from '@zerospin/schema';
 import { Effect } from 'effect';
 
-import type {
-  InferCommandPayload,
-  InferPayloadInput,
-} from '../models/types.ts';
+import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
 
-import { makeCommand } from './makeCommand.ts';
-import type {
-  ICommand,
-  IContract,
-  ISessionCommand,
-  ISessionId,
-} from './types.ts';
+import type { IContract, InferCommand, ISessionId } from './types.ts';
 
 export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
   CONTRACT extends IContract,
+  VERSION extends keyof NonNullable<CONTRACT['__payloads']> & string,
 >(props: {
   aggregateId: string;
   aggregateName: string;
   userId: string;
   contract: CONTRACT;
-  payload: InferPayloadInput<CONTRACT['payload']>;
+  version: VERSION;
+  validatedPayload: InferCommand<CONTRACT, VERSION>['payload'];
   sessionId: ISessionId;
   frontendName: string;
   systemName: string;
-}): Effect.fn.Return<
-  ISessionCommand<
-    ICommand<
-      CONTRACT['commandName'],
-      CONTRACT['version'],
-      InferCommandPayload<CONTRACT['payload']>
-    >
-  > &
-    Readonly<{ pushIndex: null }>,
-  IAnyError,
-  CuidFactory
-> {
+}): Effect.fn.Return<InferCommand<CONTRACT, VERSION>, IAnyError, CuidFactory> {
   const {
     aggregateId,
     aggregateName,
     userId,
     contract,
-    payload,
+    version,
+    validatedPayload,
     sessionId,
     frontendName,
     systemName,
   } = props;
-  const command = yield* makeCommand({ contract, payload });
+  const commandId = yield* makeIdFromAbbreviation({
+    abbreviation: coreAbbreviations.command,
+  });
 
   return {
-    ...command,
+    commandName: contract.commandName,
+    contractVersion: version,
+    id: commandId,
+    payload: validatedPayload,
     aggregateId,
     aggregateName,
     userId,

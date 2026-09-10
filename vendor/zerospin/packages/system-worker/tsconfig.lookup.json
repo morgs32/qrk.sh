@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.etc.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false
+  },
+  "include": [
+    "src/workerd-utils/repoLookup.typecheck.ts",
+    "src/**/*.d.ts",
+    "vitest-env.d.ts",
+    "worker-configuration.d.ts",
+    "env-types.d.ts"
+  ],
+  "exclude": []
+}

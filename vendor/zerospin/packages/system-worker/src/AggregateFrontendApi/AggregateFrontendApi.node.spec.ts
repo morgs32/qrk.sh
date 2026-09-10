@@ -13,12 +13,12 @@ import { AggregateFrontendApiFailure } from './AggregateFrontendApiFailure/Aggre
 const {
   appendTelemetryBatch,
   executeServiceQuery,
-  getMaterializedServiceRepoByName,
+  getVersionedServiceRepoByName,
   getSystemLogRepoByName,
 } = vi.hoisted(() => ({
   appendTelemetryBatch: vi.fn(),
   executeServiceQuery: vi.fn(),
-  getMaterializedServiceRepoByName: vi.fn(),
+  getVersionedServiceRepoByName: vi.fn(),
   getSystemLogRepoByName: vi.fn(),
 }));
 
@@ -27,7 +27,17 @@ vi.mock('cloudflare:workers', () => ({
   RpcTarget: class {},
   WorkerEntrypoint: class {},
   env: {
-    MATERIALIZED_SERVICE_REPO: { getByName: getMaterializedServiceRepoByName },
+    SERVICE_ADMITTED_CHAIN: {
+      getByName: () => ({
+        getBaseServiceVersion: async () => ({
+          _tag: 'Success',
+          success: '1.0.0',
+        }),
+      }),
+    },
+    VERSIONED_SERVICE_REPO: {
+      getByName: getVersionedServiceRepoByName,
+    },
     SYSTEM_LOG_REPO: { getByName: getSystemLogRepoByName },
     ZEROSPIN_SYSTEM_ID: 'sys_1',
   },
@@ -46,9 +56,11 @@ describe('AggregateFrontendApi', () => {
   beforeEach(() => {
     appendTelemetryBatch.mockReset();
     executeServiceQuery.mockReset();
-    getMaterializedServiceRepoByName.mockReset();
+    getVersionedServiceRepoByName.mockReset();
     getSystemLogRepoByName.mockReset();
-    getMaterializedServiceRepoByName.mockReturnValue({ executeServiceQuery });
+    getVersionedServiceRepoByName.mockReturnValue({
+      executeServiceQuery,
+    });
     getSystemLogRepoByName.mockReturnValue({ appendTelemetryBatch });
     executeServiceQuery.mockResolvedValue(encodeSuccess({ count: 2 }));
     appendTelemetryBatch.mockResolvedValue(encodeSuccess(undefined));
@@ -58,11 +70,12 @@ describe('AggregateFrontendApi', () => {
     await runtime.dispose();
   });
 
-  it('executes a frontend-bound service query directly through MaterializedServiceRepo', async () => {
+  it('executes a frontend-bound service query directly through VersionedServiceRepo', async () => {
     const api = new AggregateFrontendApi({
       authResults: {
         aggregateId: 'acct_1',
-        aggregateName: 'shopping',
+        aggregateName: 'user',
+        aggregateVersion: '1.0.0',
         userId: 'user_1',
         frontendName: 'web',
         aggregateFrontendLock,
@@ -72,22 +85,20 @@ describe('AggregateFrontendApi', () => {
     });
 
     const envelope = await api.executeServiceQuery({
-      args: [
-        { serviceName: 'products', queryName: 'list', params: { limit: 2 } },
-      ],
+      args: [{ serviceName: 'app', queryName: 'getProducts', params: {} }],
       traceContext: null,
     });
 
     await expect(
       Effect.runPromise(decodeRpc(envelope.result)),
     ).resolves.toEqual({ count: 2 });
-    expect(getMaterializedServiceRepoByName).toHaveBeenCalledWith(
-      'matsvcrepo_sys_1/products',
+    expect(getVersionedServiceRepoByName).toHaveBeenCalledWith(
+      'vsr_sys_1/app/1.0.0',
     );
     expect(executeServiceQuery).toHaveBeenCalledWith({
-      serviceName: 'products',
-      queryName: 'list',
-      params: { limit: 2 },
+      serviceName: 'app',
+      queryName: 'getProducts',
+      params: {},
     });
     expect(appendTelemetryBatch).toHaveBeenCalledOnce();
   });
@@ -96,7 +107,8 @@ describe('AggregateFrontendApi', () => {
     const api = new AggregateFrontendApi({
       authResults: {
         aggregateId: 'acct_1',
-        aggregateName: 'shopping',
+        aggregateName: 'user',
+        aggregateVersion: '1.0.0',
         userId: 'user_1',
         frontendName: 'web',
         aggregateFrontendLock,
@@ -117,7 +129,7 @@ describe('AggregateFrontendApi', () => {
         'aggregate-frontend-api-arguments-invalid',
       );
     }
-    expect(getMaterializedServiceRepoByName).not.toHaveBeenCalled();
+    expect(getVersionedServiceRepoByName).not.toHaveBeenCalled();
     expect(appendTelemetryBatch).not.toHaveBeenCalled();
   });
 
@@ -130,7 +142,7 @@ describe('AggregateFrontendApi', () => {
     );
 
     const envelope = await api.executeServiceQuery({
-      args: [{ serviceName: 'products', queryName: 'list', params: null }],
+      args: [{ serviceName: 'app', queryName: 'getProducts', params: null }],
       traceContext: null,
     });
     const result = await Effect.runPromise(
@@ -138,7 +150,7 @@ describe('AggregateFrontendApi', () => {
     );
 
     expect(Result.isFailure(result)).toBe(true);
-    expect(getMaterializedServiceRepoByName).not.toHaveBeenCalled();
+    expect(getVersionedServiceRepoByName).not.toHaveBeenCalled();
     expect(appendTelemetryBatch).not.toHaveBeenCalled();
   });
 });

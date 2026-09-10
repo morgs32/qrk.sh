@@ -2,7 +2,7 @@ import { StrictMode, Suspense } from 'react';
 
 import '@fontsource-variable/geist/wght.css';
 import '@fontsource-variable/geist-mono/wght.css';
-import { ZerospinRouteErrorBoundary } from '@zerospin/react-router/ZerospinRouteErrorBoundary';
+import { ZerospinRouteErrorBoundary } from '@zerospin/error-boundary/ZerospinRouteErrorBoundary';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 

@@ -9,10 +9,10 @@ import type {
 } from '@zerospin/core/drizzle/types';
 import type {
   IAggregateFrontendController,
-  IFrontendController,
-  InferFrontendModels,
+  IAnyFrontendController,
   IServiceFrontendController,
 } from '@zerospin/core/frontendController/types';
+import type { IAnyModels } from '@zerospin/core/models/types';
 import type { ISessionWaSqliteDb } from '@zerospin/core/session/types';
 
 import { useLiveQueryOnDb } from './useLiveQueryOnDb';
@@ -20,16 +20,14 @@ import { ZerospinProviderContext } from './ZerospinProviderContext';
 
 export function useLiveQuery<
   FRONTEND extends IAggregateFrontendController,
+  MODELS extends IAnyModels,
   QUERY extends ILiveRelationalQuery,
 >(
-  selector: Readonly<{ frontend: FRONTEND }>,
+  selector: Readonly<{ frontend: FRONTEND; models: MODELS }>,
   props: {
     deps?: readonly unknown[];
     query(
-      db: ISessionWaSqliteDb<
-        InferFrontendModels<FRONTEND>,
-        IDrizzleRelationsFromModels<InferFrontendModels<FRONTEND>>
-      >,
+      db: ISessionWaSqliteDb<MODELS, IDrizzleRelationsFromModels<MODELS>>,
     ): QUERY;
     tableNames?: readonly string[];
   },
@@ -40,15 +38,14 @@ export function useLiveQuery<
 };
 export function useLiveQuery<
   FRONTEND extends IServiceFrontendController,
+  MODELS extends IAnyModels,
   QUERY extends ILiveRelationalQuery,
 >(
-  selector: Readonly<{ frontend: FRONTEND }>,
+  selector: Readonly<{ frontend: FRONTEND; models: MODELS }>,
   props: {
     deps?: readonly unknown[];
     query(
-      db: IWaSqliteDrizzleDb<
-        IResourceDbConfig<FRONTEND['models'], Record<never, never>>
-      >,
+      db: IWaSqliteDrizzleDb<IResourceDbConfig<MODELS, Record<never, never>>>,
     ): QUERY;
     tableNames?: readonly string[];
   },
@@ -59,7 +56,8 @@ export function useLiveQuery<
 };
 export function useLiveQuery(
   selector: Readonly<{
-    frontend: IFrontendController | IServiceFrontendController;
+    frontend: IAnyFrontendController | IServiceFrontendController;
+    models: IAnyModels;
   }>,
   props: {
     deps?: readonly unknown[];
@@ -78,7 +76,7 @@ export function useLiveQuery(
   const entry = provider.sessions.get(selector);
   if (entry === undefined) {
     throw new Error(
-      `ZerospinApp.Provider has no mounted session for frontend "${selector.frontend.frontendName}". Use the matching ZerospinApp.frontends entry.`,
+      `ZerospinApp.Provider has no mounted session for frontend "${selector.frontend.name}". Use the matching ZerospinApp.frontends entry.`,
     );
   }
   const { deps = [], query, tableNames = [] } = props;

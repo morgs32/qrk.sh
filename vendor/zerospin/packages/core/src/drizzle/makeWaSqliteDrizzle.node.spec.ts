@@ -15,7 +15,6 @@ const usersTable = makeTable({
   },
 });
 const dbConfig = makeDbConfig({ tables: { users: usersTable } });
-const users = dbConfig.schema.users;
 
 async function makeTestDatabase() {
   const client = await makeInMemorySQLite3();
@@ -36,6 +35,28 @@ async function makeTestDatabase() {
 }
 
 describe('makeWaSqliteDrizzle', () => {
+  it('invalidates mounted queries once when a restored database reports its tables', async () => {
+    const { client, db } = await makeTestDatabase();
+    const notifications: ReadonlySet<string>[] = [];
+    const unsubscribe = client.subscribeToTableChanges(tableNames => {
+      notifications.push(tableNames);
+      // A notification must arrive outside SQLite execution: listeners read
+      // synchronously through the same connection used for restored pages.
+      expect(db.query.users.findMany().sync()).toEqual([]);
+    });
+    try {
+      client.flushTableChanges(new Set(['users']));
+      client.flushTableChanges();
+      expect(notifications).toEqual([new Set(['users'])]);
+      unsubscribe();
+      client.flushTableChanges(new Set(['users']));
+      expect(notifications).toHaveLength(1);
+    } finally {
+      unsubscribe();
+      await client.sqlite3.close(client.db);
+    }
+  });
+
   it('enables immediate SQLite foreign-key enforcement', async () => {
     const { client, db } = await makeTestDatabase();
 
@@ -73,7 +94,7 @@ describe('makeWaSqliteDrizzle', () => {
 
     try {
       const insertAda = db
-        .insert(users)
+        .insert(dbConfig.schema.users)
         .values({
           id: 'usr_ada',
           name: 'Ada Lovelace',
@@ -81,7 +102,7 @@ describe('makeWaSqliteDrizzle', () => {
         })
         .run();
       const insertGrace = db
-        .insert(users)
+        .insert(dbConfig.schema.users)
         .values({
           id: 'usr_grace',
           name: 'Grace Hopper',
@@ -89,26 +110,26 @@ describe('makeWaSqliteDrizzle', () => {
         })
         .run();
       const updateGrace = db
-        .update(users)
+        .update(dbConfig.schema.users)
         .set({ name: 'Rear Admiral Grace Hopper' })
-        .where(eq(users.email, 'grace@example.com'))
+        .where(eq(dbConfig.schema.users.email, 'grace@example.com'))
         .run();
       const deleteAda = db
-        .delete(users)
-        .where(eq(users.email, 'ada@example.com'))
+        .delete(dbConfig.schema.users)
+        .where(eq(dbConfig.schema.users.email, 'ada@example.com'))
         .run();
 
-      const allUsers = db.select().from(users).orderBy(users.id).all();
+      const allUsers = db.select().from(dbConfig.schema.users).orderBy(dbConfig.schema.users.id).all();
       const firstUser = db
         .select()
-        .from(users)
-        .where(eq(users.email, 'grace@example.com'))
+        .from(dbConfig.schema.users)
+        .where(eq(dbConfig.schema.users.email, 'grace@example.com'))
         .limit(1)
         .get();
       const values = db
-        .select({ id: users.id, email: users.email })
-        .from(users)
-        .orderBy(users.id)
+        .select({ id: dbConfig.schema.users.id, email: dbConfig.schema.users.email })
+        .from(dbConfig.schema.users)
+        .orderBy(dbConfig.schema.users.id)
         .values();
 
       expect(insertAda).toMatchObject({ changes: 1 });
@@ -137,7 +158,7 @@ describe('makeWaSqliteDrizzle', () => {
     const { client, db } = await makeTestDatabase();
 
     try {
-      db.insert(users)
+      db.insert(dbConfig.schema.users)
         .values([
           {
             id: 'usr_ada',
@@ -191,7 +212,7 @@ describe('makeWaSqliteDrizzle', () => {
 
     try {
       const committedUsers = db.transaction(tx => {
-        tx.insert(users)
+        tx.insert(dbConfig.schema.users)
           .values({
             id: 'usr_ada',
             name: 'Ada Lovelace',
@@ -199,7 +220,7 @@ describe('makeWaSqliteDrizzle', () => {
           })
           .run();
 
-        return tx.select().from(users).orderBy(users.id).all();
+        return tx.select().from(dbConfig.schema.users).orderBy(dbConfig.schema.users.id).all();
       });
 
       expect(committedUsers).toEqual([
@@ -212,7 +233,7 @@ describe('makeWaSqliteDrizzle', () => {
 
       expect(() =>
         db.transaction(tx => {
-          tx.insert(users)
+          tx.insert(dbConfig.schema.users)
             .values({
               id: 'usr_grace',
               name: 'Grace Hopper',
@@ -223,7 +244,7 @@ describe('makeWaSqliteDrizzle', () => {
         }),
       ).toThrow('rollback outer transaction');
 
-      const afterRollback = db.select().from(users).orderBy(users.id).all();
+      const afterRollback = db.select().from(dbConfig.schema.users).orderBy(dbConfig.schema.users.id).all();
       expect(afterRollback).toEqual([
         {
           id: 'usr_ada',
@@ -233,7 +254,7 @@ describe('makeWaSqliteDrizzle', () => {
       ]);
 
       const afterNestedRollback = db.transaction(tx => {
-        tx.insert(users)
+        tx.insert(dbConfig.schema.users)
           .values({
             id: 'usr_katherine',
             name: 'Katherine Johnson',
@@ -244,7 +265,7 @@ describe('makeWaSqliteDrizzle', () => {
         expect(() =>
           tx.transaction(nestedTransaction => {
             nestedTransaction
-              .insert(users)
+              .insert(dbConfig.schema.users)
               .values({
                 id: 'usr_nested',
                 name: 'Nested User',
@@ -255,7 +276,7 @@ describe('makeWaSqliteDrizzle', () => {
           }),
         ).toThrow('rollback nested transaction');
 
-        return tx.select().from(users).orderBy(users.id).all();
+        return tx.select().from(dbConfig.schema.users).orderBy(dbConfig.schema.users.id).all();
       });
 
       expect(afterNestedRollback).toEqual([
@@ -347,14 +368,14 @@ describe('makeWaSqliteDrizzle', () => {
         committedTransactions.push(statements);
       };
 
-      db.insert(users)
+      db.insert(dbConfig.schema.users)
         .values({
           id: 'usr_run',
           name: 'Run',
           email: 'run@example.com',
         })
         .run();
-      db.insert(users)
+      db.insert(dbConfig.schema.users)
         .values({
           id: 'usr_get',
           name: sql`${param([1, 2, 3])}`,
@@ -362,13 +383,13 @@ describe('makeWaSqliteDrizzle', () => {
         })
         .returning()
         .get();
-      db.update(users)
+      db.update(dbConfig.schema.users)
         .set({ name: 'All' })
-        .where(eq(users.id, 'usr_run'))
+        .where(eq(dbConfig.schema.users.id, 'usr_run'))
         .returning()
         .all();
-      db.delete(users)
-        .where(eq(users.id, 'usr_run'))
+      db.delete(dbConfig.schema.users)
+        .where(eq(dbConfig.schema.users.id, 'usr_run'))
         .returning()
         .values();
 
@@ -408,7 +429,7 @@ describe('makeWaSqliteDrizzle', () => {
       };
 
       db.transaction(tx => {
-        tx.insert(users)
+        tx.insert(dbConfig.schema.users)
           .values({
             id: 'usr_outer',
             name: 'Outer',
@@ -418,16 +439,16 @@ describe('makeWaSqliteDrizzle', () => {
         tx.run(sql.raw('PRAGMA defer_foreign_keys = ON;'));
         tx.transaction(nestedTx => {
           nestedTx
-            .update(users)
+            .update(dbConfig.schema.users)
             .set({ name: 'Nested' })
-            .where(eq(users.id, 'usr_outer'))
+            .where(eq(dbConfig.schema.users.id, 'usr_outer'))
             .run();
         });
         expect(() =>
           tx.transaction(nestedTx => {
             nestedTx
-              .delete(users)
-              .where(eq(users.id, 'usr_outer'))
+              .delete(dbConfig.schema.users)
+              .where(eq(dbConfig.schema.users.id, 'usr_outer'))
               .run();
             throw new Error('discard nested statements');
           }),
@@ -445,7 +466,7 @@ describe('makeWaSqliteDrizzle', () => {
 
       expect(() =>
         db.transaction(tx => {
-          tx.delete(users).where(eq(users.id, 'usr_outer')).run();
+          tx.delete(dbConfig.schema.users).where(eq(dbConfig.schema.users.id, 'usr_outer')).run();
           throw new Error('discard outer statements');
         }),
       ).toThrow('discard outer statements');

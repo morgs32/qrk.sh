@@ -4,26 +4,27 @@ import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { User } from '../fixtures/system.ts';
-import { makeModel } from '../models/makeModel.ts';
+import { models } from '../models/index.ts';
 
 import { decodeAppliedMutation } from './decodeAppliedMutation.ts';
 import {
-  encodeAggregateFrontendMutation,
   encodeAppliedMutation,
-  EncodedAggregateFrontendMutationSchema,
+  EncodedMutationSchema,
+  encodeMutation,
 } from './encodeAppliedMutation.ts';
+import { makeModelMutations } from './makeModelMutations.ts';
 
 describe('encodeAppliedMutation + decodeAppliedMutation', () => {
   it.effect(
     'encodes a pre-application mutation without fabricated apply metadata',
     () =>
       Effect.gen(function* () {
-        const mutation = yield* User.update('1.0.0', {
+        const mutation = yield* makeModelMutations(User).update({
           resourceId: User.prefixId('aggregate-frontend-mutation-001'),
           attributes: { name: 'Prepared name' },
         });
 
-        const encoded = yield* encodeAggregateFrontendMutation({
+        const encoded = yield* encodeMutation({
           commandId: 'cmd_aggregate-frontend-mutation-001',
           mutationIndex: 3,
           mutation,
@@ -57,13 +58,12 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
     };
 
     expect(
-      Schema.decodeUnknownSync(EncodedAggregateFrontendMutationSchema)(
-        encodedFrontendMutation,
-        { onExcessProperty: 'error' },
-      ),
+      Schema.decodeUnknownSync(EncodedMutationSchema)(encodedFrontendMutation, {
+        onExcessProperty: 'error',
+      }),
     ).toEqual(encodedFrontendMutation);
     expect(() =>
-      Schema.decodeUnknownSync(EncodedAggregateFrontendMutationSchema)(
+      Schema.decodeUnknownSync(EncodedMutationSchema)(
         {
           ...encodedFrontendMutation,
           appliedAt: new Date('2020-01-01T00:00:00.000Z'),
@@ -76,7 +76,7 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
   it.effect('round-trips create with null inverse', () =>
     Effect.gen(function* () {
       const appliedAt = new Date('2020-01-01T00:00:00.000Z');
-      const mutation = yield* User.create('1.0.0', {
+      const mutation = yield* makeModelMutations(User).create({
         resourceId: 'usr_encode001' as const,
         attributes: { name: 'Alice' },
       });
@@ -111,7 +111,7 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
     Effect.gen(function* () {
       const appliedAt = new Date('2020-01-01T00:00:00.000Z');
       const lastAppliedAt = new Date('2019-12-31T00:00:00.000Z');
-      const mutation = yield* User.update('1.0.0', {
+      const mutation = yield* makeModelMutations(User).update({
         resourceId: 'usr_encode002' as const,
         attributes: { name: 'Bob' },
       });
@@ -151,41 +151,20 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
   );
 
   it.effect(
-    'decodes historical operation and inverse shapes with the stored modelVersion',
+    'decodes operation and inverse shapes using the exact stored model version',
     () =>
       Effect.gen(function* () {
-        const VersionedUser = makeModel(
+        const VersionedUser = models.makeVersion(
+          models.makeModel({ name: 'versionedUser', abbreviation: 'vusr' }),
           {
-            abbreviation: 'vusr',
-            modelName: 'versionedUser',
             attributes: {
-              displayName: primitives.text(),
+              name: primitives.text(),
             },
             indexes: [],
-            version: '2.0.0',
+            version: '1.0.0',
           },
-          [
-            {
-              abbreviation: 'vusr',
-              modelName: 'versionedUser',
-              attributes: {
-                name: primitives.text(),
-              },
-              indexes: [],
-              version: '1.0.0',
-              adaptResource: ({ resource }) =>
-                Effect.succeed({
-                  id: resource.id,
-                  modelName: resource.modelName,
-                  createdAt: resource.createdAt,
-                  updatedAt: resource.updatedAt,
-                  version: '1.0.0',
-                  name: resource.displayName,
-                }),
-            },
-          ],
         );
-        const mutation = yield* VersionedUser.update('1.0.0', {
+        const mutation = yield* makeModelMutations(VersionedUser).update({
           resourceId: VersionedUser.prefixId('historical001'),
           attributes: { name: 'New legacy name' },
         });

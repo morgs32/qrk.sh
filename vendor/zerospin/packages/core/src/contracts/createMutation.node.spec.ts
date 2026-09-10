@@ -3,10 +3,12 @@ import { Effect } from 'effect';
 
 import { User } from '../fixtures/system.ts';
 
+import { makeModelMutations } from './makeModelMutations.ts';
+
 describe('createMutation', () => {
   it.effect('returns raw create mutation', () =>
     Effect.gen(function* () {
-      const mutation = yield* User.create('1.0.0', {
+      const mutation = yield* makeModelMutations(User).create({
         resourceId: 'usr_test' as const,
         attributes: { name: 'Alice' },
       });
@@ -19,11 +21,13 @@ describe('createMutation', () => {
 
   it.effect('fails when attributes incomplete', () =>
     Effect.gen(function* () {
-      const maybeMutation = yield* User.create('1.0.0', {
-        resourceId: 'usr_test' as const,
-        // @ts-expect-error runtime validation rejects incomplete attributes
-        attributes: {},
-      }).pipe(Effect.result);
+      const maybeMutation = yield* makeModelMutations(User)
+        .create({
+          resourceId: 'usr_test' as const,
+          // @ts-expect-error runtime validation rejects incomplete attributes
+          attributes: {},
+        })
+        .pipe(Effect.result);
 
       expect(maybeMutation._tag).toBe('Failure');
       if (maybeMutation._tag === 'Failure') {

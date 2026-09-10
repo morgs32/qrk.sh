@@ -1,26 +1,25 @@
+import { contracts } from '@zerospin/core/contracts/index';
+
 /**
- * `makeContract` enforces mutation-only program return at definition time.
+ * `contracts.makeVersion` enforces mutation-only program return at definition time.
  *
  * @bad Duplicate mutation-only type checks while normalizing a `makeSystem` frontend binding.
  */
-export const updateListContract = makeContract({
-  commandName: 'updateList',
-  payloadSchema: UpdateListPayloadSchema,
-  program: ({ payload }) =>
-    Effect.all({
-      updated: updateMutation({
-        model: List,
-        resourceId: payload.id,
-        attributes: { name: payload.name },
+export const updateListContract = contracts.makeVersion(
+  contracts.makeCommand('updateList'),
+  {
+    payloadSchema: UpdateListPayloadSchema,
+    program: ({ payload }) =>
+      Effect.all({
+        updated: updateMutation({
+          model: List,
+          resourceId: payload.id,
+          attributes: { name: payload.name },
+        }),
       }),
-    }),
-});
+  },
+);
 
-declare function makeContract<PROGRAM>(props: {
-  commandName: string;
-  payloadSchema: unknown;
-  program: PROGRAM;
-}): unknown;
 declare const UpdateListPayloadSchema: unknown;
 declare const List: unknown;
 declare function updateMutation(props: unknown): unknown;

@@ -1,4 +1,3 @@
-import { encodeShape } from '@zerospin/schema';
 import { mapValues } from 'es-toolkit';
 
 import type {
@@ -24,28 +23,19 @@ export function makeFrontendControllerSpec(
     modelName: model.modelName,
     abbreviation: model.abbreviation,
     version: model.version,
-    properties: encodeShape(model.propertiesShape),
-    indexes: model.indexes.toSorted((left, right) =>
-      left.name.localeCompare(right.name),
-    ),
-    historicalDefinitions: model.historicalDefinitions
-      .toSorted((left, right) => left.version.localeCompare(right.version))
-      .map(definition => ({
-        modelName: definition.modelName,
-        abbreviation: definition.abbreviation,
-        version: definition.version,
-        hasDirectAdapter: typeof definition.adaptResource === 'function',
-        properties: encodeShape(definition.propertiesShape),
-        indexes: definition.indexes.toSorted((left, right) =>
-          left.name.localeCompare(right.name),
-        ),
+    properties: structuredClone(model.spec.propertiesShape),
+    indexes: model.indexes
+      .toSorted((left, right) => left.name.localeCompare(right.name))
+      .map(index => ({
+        ...index,
+        columns: [...index.columns],
       })),
   }));
   const lockedModels = mapValues(frontendController.models, model => ({
     modelName: model.modelName,
     abbreviation: model.abbreviation,
     version: model.version,
-    propertiesJsonSchema: model.spec.propertiesJsonSchema,
+    propertiesShape: structuredClone(model.spec.propertiesShape),
     indexes: model.indexes
       .toSorted((left, right) => left.name.localeCompare(right.name))
       .map(index => ({
@@ -55,53 +45,58 @@ export function makeFrontendControllerSpec(
       })),
   }));
   if (frontendController.kind === 'service') {
-    return {
+    const spec: Extract<IFrontendControllerSpec, { kind: 'service' }> = {
       kind: 'service',
       systemName: frontendController.systemName,
       serviceName: frontendController.serviceName,
-      frontendName: frontendController.frontendName,
+      serviceVersion: frontendController.serviceVersion,
+      name: frontendController.name,
       modelNames: frontendController.modelNames.toSorted(),
       models,
       contracts: {},
       serviceFrontendLock: {
         systemName: frontendController.systemName,
-        frontendName: frontendController.frontendName,
+        frontendName: frontendController.name,
         models: lockedModels,
       },
     };
+
+    return spec;
   }
 
-  const contracts = mapValues(frontendController.contracts, contract => ({
-    ...contract.spec,
-    historicalDefinitions: contract.spec.historicalDefinitions.map(
-      definition => ({
-        ...definition,
-        hasDirectAdapter: contract.historicalDefinitions.some(
-          historicalDefinition =>
-            historicalDefinition.version === definition.version &&
-            typeof historicalDefinition.adaptPayload === 'function',
-        ),
-      }),
-    ),
-  }));
+  const contracts = mapValues(frontendController.contracts, binding => {
+    const { contract } = binding;
+    return {
+      commandName: contract.spec.commandName,
+      version: contract.spec.version,
+      payloadShape: structuredClone(contract.spec.payloadShape),
+      models: structuredClone(contract.spec.models),
+    };
+  });
 
-  return {
+  const spec: Extract<IFrontendControllerSpec, { kind: 'aggregate' }> = {
     kind: 'aggregate',
     systemName: frontendController.systemName,
     aggregateName: frontendController.aggregateName,
-    frontendName: frontendController.frontendName,
+    name: frontendController.name,
+    aggregateVersion: frontendController.aggregateVersion,
     modelNames: frontendController.modelNames.toSorted(),
     models,
     contracts,
     aggregateFrontendLock: {
       systemName: frontendController.systemName,
-      frontendName: frontendController.frontendName,
+      frontendName: frontendController.name,
       models: lockedModels,
-      contracts: mapValues(frontendController.contracts, contract => ({
-        commandName: contract.commandName,
-        version: contract.version,
-        payloadJsonSchema: contract.spec.payloadJsonSchema,
-      })),
+      contracts: mapValues(frontendController.contracts, binding => {
+        const { contract } = binding;
+        return {
+          commandName: contract.commandName,
+          version: contract.version,
+          payloadShape: structuredClone(contract.spec.payloadShape),
+        };
+      }),
     },
   };
+
+  return spec;
 }

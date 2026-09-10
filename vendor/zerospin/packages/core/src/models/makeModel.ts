@@ -1,6 +1,7 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import {
   descriptorToJsonEffectSchema,
+  encodeShape,
   isAttributeDescriptor,
   makeDrizzleSchemaFromTable,
   makeEffectSchema,
@@ -10,18 +11,18 @@ import {
   primitives,
   type IDrizzleIndexConfig,
   type IDrizzleSchema,
-  type InferDecodedRow,
   type IPrimaryKeyDescriptor,
   type IShape,
   type ITypeError,
 } from '@zerospin/schema';
-import { Effect, Schema, SchemaTransformation, Struct } from 'effect';
+import { Effect, Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 /* oxlint-disable typescript/no-explicit-any -- complete resolved definitions span model-specific resource shapes */
 
 import type {
   IModel,
   IModelReplica,
+  IModelReservedAttributeKeys,
   InferAttributesSchema,
   InferProperties,
   IResourceShape,
@@ -32,6 +33,7 @@ type IReservedKeys =
   | 'aggregateIndex'
   | 'createdAt'
   | 'deletedAt'
+  | 'serviceIndex'
   | 'id'
   | 'modelName'
   | 'updatedAt'
@@ -185,16 +187,15 @@ type IReservedKeys =
   | 'with'
   | 'without';
 
-const replicaBrand = Symbol('Model.replica');
+const replicaMetadata = new WeakMap<
+  object,
+  Readonly<{
+    sourceModel: IModel;
+    serviceName: string;
+  }>
+>();
 
 const AttributeDescriptorSchema = Schema.declare(isAttributeDescriptor);
-
-const AdaptResourceSchema = Schema.declare(
-  (
-    input: unknown,
-  ): input is (props: { resource: any }) => Effect.Effect<any, IAnyError> =>
-    typeof input === 'function',
-);
 
 const SemVerSchema = Schema.String.check(
   Schema.makeFilter((version: string) => {
@@ -225,9 +226,7 @@ const DrizzleIndexConfigSchema = Schema.Struct({
   unique: Schema.optionalKey(Schema.Boolean),
 });
 
-const MakeModelPropsSchema = Schema.Struct({
-  abbreviation: Schema.String,
-  modelName: Schema.String,
+const MakeVersionPropsSchema = Schema.Struct({
   attributes: Schema.Record(Schema.String, AttributeDescriptorSchema),
   propertiesShape: Schema.optionalKey(
     Schema.Record(Schema.String, AttributeDescriptorSchema),
@@ -236,19 +235,15 @@ const MakeModelPropsSchema = Schema.Struct({
   version: SemVerSchema,
 });
 
-const HistoricalModelDefinitionSchema = Schema.Struct({
-  abbreviation: Schema.String,
-  attributes: Schema.Record(Schema.String, AttributeDescriptorSchema),
-  adaptResource: Schema.optionalKey(AdaptResourceSchema),
-  indexes: Schema.Array(DrizzleIndexConfigSchema),
-  modelName: Schema.String,
-  propertiesShape: Schema.optionalKey(
-    Schema.Record(Schema.String, AttributeDescriptorSchema),
-  ),
-  version: Schema.String,
-});
-
 export class Model {
+  get sourceModel(): IModel | undefined {
+    return replicaMetadata.get(this)?.sourceModel;
+  }
+
+  get serviceName(): string | undefined {
+    return replicaMetadata.get(this)?.serviceName;
+  }
+
   static markReplica(
     model: IModel,
     props: {
@@ -257,60 +252,44 @@ export class Model {
     },
   ): IModel {
     const { sourceModel, serviceName } = props;
-    Object.defineProperty(model, replicaBrand, {
-      configurable: false,
-      enumerable: false,
-      value: true,
-      writable: false,
-    });
-    Object.defineProperties(model, {
-      sourceModel: {
-        configurable: false,
-        enumerable: true,
-        value: sourceModel,
-        writable: false,
-      },
-      serviceName: {
-        configurable: false,
-        enumerable: true,
-        value: serviceName,
-        writable: false,
-      },
-    });
+    if (replicaMetadata.has(model)) {
+      throw new Error('Model is already marked as a replica');
+    }
+    replicaMetadata.set(model, { sourceModel, serviceName });
     return model;
   }
 
-  static isReplica(model: IModel): boolean {
-    return replicaBrand in model;
+  static isReplica(model: IModel): model is IModelReplica {
+    return replicaMetadata.has(model);
   }
 }
 
 export function makeModel<
+  const NAME extends string,
+  const ABBREVIATION extends string,
+>(props: { name: NAME; abbreviation: ABBREVIATION }) {
+  Schema.decodeUnknownSync(
+    Schema.Struct({ name: Schema.String, abbreviation: Schema.String }),
+    {
+      onExcessProperty: 'error',
+    },
+  )(props);
+  return { name: props.name, abbreviation: props.abbreviation };
+}
+
+export function makeVersion<
   MODEL_NAME extends string,
   ABBREVIATION extends string,
   ATTRIBUTES extends IShape,
   const VERSION extends string,
-  const HISTORICAL_DEFINITIONS extends readonly Readonly<{
-    readonly abbreviation: ABBREVIATION;
-    readonly attributes: IShape;
-    readonly adaptResource: (props: {
-      resource: InferDecodedRow<InferProperties<ATTRIBUTES, ABBREVIATION>>;
-    }) => Effect.Effect<unknown, IAnyError>;
-    readonly indexes: readonly IDrizzleIndexConfig<string>[];
-    readonly modelName: MODEL_NAME;
-    readonly version: string;
-  }>[] = readonly [],
 >(
+  identity: Readonly<{ name: MODEL_NAME; abbreviation: ABBREVIATION }>,
   props: {
-    abbreviation: ABBREVIATION;
-    modelName: MODEL_NAME;
     attributes: ATTRIBUTES & {
       [K in keyof ATTRIBUTES &
         string]: ATTRIBUTES[K] extends IPrimaryKeyDescriptor
-        ? ITypeError<`Attribute "${K}" on makeModel cannot be a primary key because makeModel synthesizes the model id primary key`>
-        : ATTRIBUTES[K] extends { autogenerate: boolean }
-          ? ITypeError<`Attribute "${K}" on makeModel cannot autogenerate because autogeneration belongs to contract payload primary keys`>
-          : ATTRIBUTES[K];
+        ? ITypeError<`Attribute "${K}" on makeVersion cannot be a primary key because makeVersion synthesizes the model id primary key`>
+        : ATTRIBUTES[K];
     } & {
       [K in IReservedKeys]?: never;
     };
@@ -319,96 +298,43 @@ export function makeModel<
     >[];
     version: VERSION;
   },
-  historicalDefinitions?: HISTORICAL_DEFINITIONS & {
-    readonly [INDEX in keyof HISTORICAL_DEFINITIONS]: Readonly<{
-      abbreviation: ABBREVIATION;
-      attributes: HISTORICAL_DEFINITIONS[INDEX]['attributes'];
-      adaptResource: (props: {
-        resource: InferDecodedRow<InferProperties<ATTRIBUTES, ABBREVIATION>>;
-      }) => Effect.Effect<
-        InferDecodedRow<
-          InferProperties<
-            HISTORICAL_DEFINITIONS[INDEX]['attributes'],
-            ABBREVIATION
-          >
-        >,
-        IAnyError
-      >;
-      indexes: readonly IDrizzleIndexConfig<
-        keyof InferProperties<
-          HISTORICAL_DEFINITIONS[INDEX]['attributes'],
-          ABBREVIATION
-        > &
-          string
-      >[];
-      modelName: MODEL_NAME;
-      version: HISTORICAL_DEFINITIONS[INDEX]['version'];
-    }>;
-  },
 ): IModel<
-  ATTRIBUTES,
+  {
+    readonly [KEY in keyof ATTRIBUTES]: ATTRIBUTES[KEY] extends infer DESCRIPTOR
+      ? DESCRIPTOR extends IShape[string]
+        ? Readonly<DESCRIPTOR>
+        : never
+      : never;
+  },
   ABBREVIATION,
   MODEL_NAME,
   VERSION,
   {
-    readonly [INDEX in keyof HISTORICAL_DEFINITIONS]: Readonly<{
-      abbreviation: ABBREVIATION;
-      attributes: HISTORICAL_DEFINITIONS[INDEX]['attributes'];
-      adaptResource: (props: {
-        resource: InferDecodedRow<InferProperties<ATTRIBUTES, ABBREVIATION>>;
-      }) => Effect.Effect<
-        InferDecodedRow<
-          InferProperties<
-            HISTORICAL_DEFINITIONS[INDEX]['attributes'],
-            ABBREVIATION
-          >
-        >,
-        IAnyError
-      >;
-      indexes: readonly IDrizzleIndexConfig<
-        keyof InferProperties<
-          HISTORICAL_DEFINITIONS[INDEX]['attributes'],
-          ABBREVIATION
-        > &
-          string
-      >[];
-      modelName: MODEL_NAME;
-      propertiesShape: InferProperties<
-        HISTORICAL_DEFINITIONS[INDEX]['attributes'],
-        ABBREVIATION
-      >;
-      version: HISTORICAL_DEFINITIONS[INDEX]['version'];
-    }>;
-  },
-  InferProperties<ATTRIBUTES, ABBREVIATION>
+    readonly [KEY in keyof InferProperties<
+      ATTRIBUTES,
+      ABBREVIATION
+    >]: InferProperties<ATTRIBUTES, ABBREVIATION>[KEY] extends infer DESCRIPTOR
+      ? DESCRIPTOR extends IShape[string]
+        ? Readonly<DESCRIPTOR>
+        : never
+      : never;
+  }
 >;
 
-export function makeModel<
+export function makeVersion<
   MODEL_NAME extends string,
   ABBREVIATION extends string,
   ATTRIBUTES extends IShape,
   PROPERTIES_SHAPE extends InferProperties<ATTRIBUTES, ABBREVIATION>,
   const VERSION extends string,
-  const HISTORICAL_DEFINITIONS extends readonly {
-    readonly abbreviation: ABBREVIATION;
-    readonly attributes: IShape;
-    readonly adaptResource: IModel['historicalDefinitions'][number]['adaptResource'];
-    readonly indexes: readonly IDrizzleIndexConfig<string>[];
-    readonly modelName: MODEL_NAME;
-    readonly propertiesShape: IShape;
-    readonly version: string;
-  }[] = readonly [],
 >(
+  identity: Readonly<{ name: MODEL_NAME; abbreviation: ABBREVIATION }>,
   props: {
-    abbreviation: ABBREVIATION;
-    modelName: MODEL_NAME;
     attributes: ATTRIBUTES & {
       [K in keyof ATTRIBUTES &
         string]: ATTRIBUTES[K] extends IPrimaryKeyDescriptor
-        ? ITypeError<`Attribute "${K}" on makeModel cannot be a primary key because makeModel synthesizes the model id primary key`>
-        : ATTRIBUTES[K] extends { autogenerate: boolean }
-          ? ITypeError<`Attribute "${K}" on makeModel cannot autogenerate because autogeneration belongs to contract payload primary keys`>
-          : ATTRIBUTES[K];
+        ? ITypeError<`Attribute "${K}" on makeVersion cannot be a primary key because makeVersion synthesizes the model id primary key`>
+        : ATTRIBUTES[K];
     } & {
       [K in IReservedKeys]?: never;
     };
@@ -416,51 +342,71 @@ export function makeModel<
     indexes: readonly IDrizzleIndexConfig<keyof PROPERTIES_SHAPE & string>[];
     version: VERSION;
   },
-  historicalDefinitions?: HISTORICAL_DEFINITIONS,
 ): IModel<
-  ATTRIBUTES,
+  {
+    readonly [KEY in keyof ATTRIBUTES]: ATTRIBUTES[KEY] extends infer DESCRIPTOR
+      ? DESCRIPTOR extends IShape[string]
+        ? Readonly<DESCRIPTOR>
+        : never
+      : never;
+  },
   ABBREVIATION,
   MODEL_NAME,
   VERSION,
-  HISTORICAL_DEFINITIONS,
-  PROPERTIES_SHAPE
+  {
+    readonly [KEY in keyof PROPERTIES_SHAPE]: PROPERTIES_SHAPE[KEY] extends infer DESCRIPTOR
+      ? DESCRIPTOR extends IShape[string]
+        ? Readonly<DESCRIPTOR>
+        : never
+      : never;
+  }
 >;
 
-export function makeModel<
+/*
+ * 1. Validate authored props and compose the complete property shape.
+ * 2. Build resource schemas, the table, and the public spec.
+ * 3. Define identity helpers and exact-version resource encoding.
+ * 4. Attach Drizzle and Effect schemas to the canonical Model instance.
+ */
+export function makeVersion<
   MODEL_NAME extends string,
   ABBREVIATION extends string,
   ATTRIBUTES extends IShape,
 >(
+  identity: Readonly<{ name: MODEL_NAME; abbreviation: ABBREVIATION }>,
   props: {
-    abbreviation: ABBREVIATION;
-    modelName: MODEL_NAME;
     attributes: ATTRIBUTES;
     propertiesShape?: IShape;
     indexes: readonly IDrizzleIndexConfig<string>[];
     version: string;
   },
-  historicalDefinitions: readonly {
-    readonly abbreviation: string;
-    readonly attributes: IShape;
-    readonly adaptResource: (props: {
-      resource: any;
-    }) => Effect.Effect<any, IAnyError>;
-    readonly indexes: readonly IDrizzleIndexConfig<string>[];
-    readonly modelName: string;
-    readonly propertiesShape?: IShape;
-    readonly version: string;
-  }[] = [],
-): IModel {
-  Schema.decodeUnknownSync(MakeModelPropsSchema, {
+): unknown {
+  // 1 — Strictly decode the current definition, synthesize framework fields,
+  // and use an explicit propertiesShape only when the author supplied one.
+  const { name: modelName, abbreviation } = makeModel(identity);
+  const decodedProps = Schema.decodeUnknownSync(MakeVersionPropsSchema, {
     onExcessProperty: 'error',
   })(props);
   const {
-    abbreviation,
-    modelName,
-    attributes: declaredAttributes,
-    indexes,
+    attributes: decodedAttributes,
+    indexes: decodedIndexes,
     version,
-  } = props;
+  } = decodedProps;
+  const declaredAttributes = mapValues(decodedAttributes, descriptor => {
+    if (descriptor.kind === PrimitiveKind.Enum) {
+      const values: typeof descriptor.values = [...descriptor.values];
+      return { ...descriptor, values };
+    }
+    return { ...descriptor };
+  });
+  const indexes = decodedIndexes.map(index => {
+    const columns: typeof index.columns = [...index.columns];
+    return {
+      ...index,
+      columns,
+    };
+  });
+
   const standardProperties = {
     id: primitives.primaryKey({ abbreviation }),
     modelName: primitives.text({ nullable: false }),
@@ -468,179 +414,19 @@ export function makeModel<
     updatedAt: primitives.date({ nullable: false }),
     version: primitives.text({ nullable: false }),
   };
-  const propertiesShape = props.propertiesShape ?? {
-    ...standardProperties,
-    ...declaredAttributes,
-  };
-  Schema.decodeUnknownSync(
-    Schema.Array(HistoricalModelDefinitionSchema).check(
-      Schema.makeFilter(definitions => {
-        const currentVersionMatch =
-          /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
-            version,
-          );
-        if (currentVersionMatch === null) {
-          return `Invalid model version "${version}" for "${modelName}": expected SemVer`;
+  const propertiesShape =
+    decodedProps.propertiesShape === undefined
+      ? {
+          ...standardProperties,
+          ...declaredAttributes,
         }
-        const currentMajor = Number(currentVersionMatch[1]);
-        const currentMinor = Number(currentVersionMatch[2]);
-        const currentPatch = Number(currentVersionMatch[3]);
-        const versions = new Set<string>([version]);
-        for (const historicalDefinition of definitions) {
-          if (historicalDefinition.modelName !== modelName) {
-            return `Historical model version "${historicalDefinition.version}" has modelName "${historicalDefinition.modelName}", not "${modelName}"`;
+      : mapValues(decodedProps.propertiesShape, descriptor => {
+          if (descriptor.kind === PrimitiveKind.Enum) {
+            const values: typeof descriptor.values = [...descriptor.values];
+            return { ...descriptor, values };
           }
-          if (historicalDefinition.abbreviation !== abbreviation) {
-            return `Historical model version "${historicalDefinition.version}" has abbreviation "${historicalDefinition.abbreviation}", not "${abbreviation}"`;
-          }
-          if (typeof historicalDefinition.adaptResource !== 'function') {
-            return `Historical model version "${historicalDefinition.version}" for "${modelName}" requires adaptResource`;
-          }
-          if (
-            !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(
-              historicalDefinition.version,
-            )
-          ) {
-            return `Invalid historical model version "${historicalDefinition.version}" for "${modelName}": expected SemVer`;
-          }
-          if (versions.has(historicalDefinition.version)) {
-            return `Duplicate model version "${historicalDefinition.version}" for "${modelName}"`;
-          }
-          versions.add(historicalDefinition.version);
-          const historicalVersionMatch =
-            /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
-              historicalDefinition.version,
-            );
-          if (historicalVersionMatch === null) {
-            return `Invalid historical model version "${historicalDefinition.version}" for "${modelName}": expected SemVer`;
-          }
-          const historicalMajor = Number(historicalVersionMatch[1]);
-          const historicalMinor = Number(historicalVersionMatch[2]);
-          const historicalPatch = Number(historicalVersionMatch[3]);
-          let historicalIsOlder = historicalMajor < currentMajor;
-          let versionsHaveEqualPrecedence = historicalMajor === currentMajor;
-          if (versionsHaveEqualPrecedence) {
-            historicalIsOlder = historicalMinor < currentMinor;
-            versionsHaveEqualPrecedence = historicalMinor === currentMinor;
-          }
-          if (versionsHaveEqualPrecedence) {
-            historicalIsOlder = historicalPatch < currentPatch;
-            versionsHaveEqualPrecedence = historicalPatch === currentPatch;
-          }
-          if (versionsHaveEqualPrecedence) {
-            const historicalPrerelease = historicalVersionMatch[4];
-            const currentPrerelease = currentVersionMatch[4];
-            if (
-              historicalPrerelease !== undefined &&
-              currentPrerelease === undefined
-            ) {
-              historicalIsOlder = true;
-              versionsHaveEqualPrecedence = false;
-            } else if (
-              historicalPrerelease === undefined &&
-              currentPrerelease !== undefined
-            ) {
-              historicalIsOlder = false;
-              versionsHaveEqualPrecedence = false;
-            } else if (
-              historicalPrerelease !== undefined &&
-              currentPrerelease !== undefined
-            ) {
-              const historicalIdentifiers = historicalPrerelease.split('.');
-              const currentIdentifiers = currentPrerelease.split('.');
-              let identifierIndex = 0;
-              while (
-                identifierIndex < historicalIdentifiers.length &&
-                identifierIndex < currentIdentifiers.length &&
-                versionsHaveEqualPrecedence
-              ) {
-                const historicalIdentifier =
-                  historicalIdentifiers[identifierIndex];
-                const currentIdentifier = currentIdentifiers[identifierIndex];
-                if (
-                  historicalIdentifier !== undefined &&
-                  currentIdentifier !== undefined &&
-                  historicalIdentifier !== currentIdentifier
-                ) {
-                  const historicalIsNumeric = /^(0|[1-9]\d*)$/.test(
-                    historicalIdentifier,
-                  );
-                  const currentIsNumeric = /^(0|[1-9]\d*)$/.test(
-                    currentIdentifier,
-                  );
-                  if (historicalIsNumeric && !currentIsNumeric) {
-                    historicalIsOlder = true;
-                  } else if (!historicalIsNumeric && currentIsNumeric) {
-                    historicalIsOlder = false;
-                  } else if (historicalIsNumeric && currentIsNumeric) {
-                    historicalIsOlder =
-                      historicalIdentifier.length < currentIdentifier.length ||
-                      (historicalIdentifier.length ===
-                        currentIdentifier.length &&
-                        historicalIdentifier < currentIdentifier);
-                  } else {
-                    historicalIsOlder =
-                      historicalIdentifier < currentIdentifier;
-                  }
-                  versionsHaveEqualPrecedence = false;
-                }
-                identifierIndex += 1;
-              }
-              if (versionsHaveEqualPrecedence) {
-                historicalIsOlder =
-                  historicalIdentifiers.length < currentIdentifiers.length;
-                versionsHaveEqualPrecedence =
-                  historicalIdentifiers.length === currentIdentifiers.length;
-              }
-            }
-          }
-          if (!historicalIsOlder || versionsHaveEqualPrecedence) {
-            return `Historical model version "${historicalDefinition.version}" for "${modelName}" must be older than current version "${version}"`;
-          }
-        }
-        return true;
-      }),
-    ),
-    { onExcessProperty: 'error' },
-  )(historicalDefinitions);
-  const resolvedHistoricalDefinitions = historicalDefinitions.map(
-    definition => ({
-      ...definition,
-      propertiesShape: definition.propertiesShape ?? {
-        ...standardProperties,
-        ...definition.attributes,
-      },
-    }),
-  );
-
-  const definitionsByVersion = new Map<
-    string,
-    {
-      readonly abbreviation: string;
-      readonly attributes: IShape;
-      readonly adaptResource?: (typeof historicalDefinitions)[number]['adaptResource'];
-      readonly indexes: readonly IDrizzleIndexConfig<string>[];
-      readonly modelName: string;
-      readonly propertiesShape: IShape;
-      readonly version: string;
-    }
-  >();
-  definitionsByVersion.set(version, {
-    abbreviation,
-    attributes: declaredAttributes,
-    indexes,
-    modelName,
-    propertiesShape,
-    version,
-  });
-
-  for (const historicalDefinition of resolvedHistoricalDefinitions) {
-    definitionsByVersion.set(
-      historicalDefinition.version,
-      historicalDefinition,
-    );
-  }
-
+          return { ...descriptor };
+        });
   Schema.decodeUnknownSync(
     Schema.Record(Schema.String, AttributeDescriptorSchema).check(
       Schema.makeFilter((shape: Record<string, unknown>) => {
@@ -652,6 +438,7 @@ export function makeModel<
             key in declaredAttributes &&
             (key === 'createdAt' ||
               key === 'deletedAt' ||
+              key === 'serviceIndex' ||
               key === 'id' ||
               key === 'modelName' ||
               key === 'updatedAt' ||
@@ -664,14 +451,7 @@ export function makeModel<
             isAttributeDescriptor(value) &&
             value.kind === PrimitiveKind.PrimaryKey
           ) {
-            return `Invalid attribute "${key}" on model "${modelName}": makeModel synthesizes the model id primary key`;
-          }
-          if (
-            key in declaredAttributes &&
-            isAttributeDescriptor(value) &&
-            'autogenerate' in value
-          ) {
-            return `Invalid attribute "${key}" on model "${modelName}": autogeneration belongs to contract payload primary keys`;
+            return `Invalid attribute "${key}" on model "${modelName}": makeVersion synthesizes the model id primary key`;
           }
         }
         return true;
@@ -680,82 +460,71 @@ export function makeModel<
     { onExcessProperty: 'error' },
   )(propertiesShape);
 
-  const resourceSchemasByVersion = new Map<
-    string,
-    Schema.Codec<Record<string, unknown>, unknown>
-  >();
-  for (const [definitionVersion, definition] of definitionsByVersion) {
-    const propertySchemas: Record<
-      string,
-      Schema.Codec<unknown, unknown>
-    > = mapValues(definition.propertiesShape, descriptor =>
-      descriptorToJsonEffectSchema(descriptor),
-    );
-    resourceSchemasByVersion.set(
-      definitionVersion,
-      Schema.Struct(propertySchemas),
-    );
-  }
-
+  // 2 — Resolve self refs against the Model-owned table, prepare its complete
+  // authored graph, then derive schemas and serializable metadata.
   const table = makeTable({
     name: modelName,
     shape: propertiesShape,
     indexes,
   });
+  for (const key in declaredAttributes) {
+    const descriptor = declaredAttributes[key];
+    if (
+      descriptor !== undefined &&
+      descriptor.kind === PrimitiveKind.Ref &&
+      'self' in descriptor
+    ) {
+      Object.assign(descriptor, table.shape[key]);
+      Reflect.deleteProperty(descriptor, 'self');
+    }
+  }
+  Object.assign(propertiesShape, table.shape);
 
   const spec = {
     modelName,
     abbreviation,
     version,
     attributes: Object.keys(declaredAttributes),
-    attributesJsonSchema: Schema.toJsonSchemaDocument(
-      Schema.Struct(
-        mapValues(declaredAttributes, descriptor =>
-          descriptorToJsonEffectSchema(descriptor),
-        ),
-      ),
-    ),
-    propertiesJsonSchema: Schema.toJsonSchemaDocument(
-      Schema.Struct(
-        mapValues(propertiesShape, descriptor =>
-          descriptorToJsonEffectSchema(descriptor),
-        ),
-      ),
-    ),
+    attributesShape: encodeShape(declaredAttributes),
+    propertiesShape: encodeShape(propertiesShape),
     indexes,
   };
+
+  let model: IModel;
 
   const fields: IModel = {
     abbreviation,
     attributes: declaredAttributes,
     indexes,
-    historicalDefinitions: resolvedHistoricalDefinitions,
     modelName,
     version,
     makeId: () => makeIdFromAbbreviation({ abbreviation }),
-    primaryKey: ({ autogenerate }) => ({
-      ...primitives.primaryKey({ abbreviation }),
-      autogenerate,
-      modelName,
-    }),
     prefixId: id => `${abbreviation}_${id}`,
     propertiesShape,
     table,
     spec,
+    getVersion(requestedVersion) {
+      if (requestedVersion !== version) {
+        throw new ZerospinError({
+          code: 'model-version-unsupported',
+          message: `Model ${modelName} is version ${version}, not ${requestedVersion}`,
+          extra: { modelName, currentVersion: version, requestedVersion },
+        });
+      }
+      return model;
+    },
     adaptResource: Effect.fn(`adaptResource/${modelName}`)(function* (props: {
       version: string;
       resource: unknown;
     }): Effect.fn.Return<unknown, IAnyError> {
       const { resource, version: targetVersion } = props;
-      const currentResourceSchema = resourceSchemasByVersion.get(version);
-      if (currentResourceSchema === undefined) {
+      if (targetVersion !== version) {
         return yield* new ZerospinError({
-          code: 'model-current-resource-schema-missing',
-          message: `Current resource schema for ${modelName}@${version} is missing`,
-          extra: { modelName, modelVersion: version },
+          code: 'model-resource-version-unsupported',
+          message: `Model ${modelName} is version ${version}, not ${targetVersion}`,
+          extra: { modelName, currentVersion: version, targetVersion },
         });
       }
-
       const currentResource = yield* Schema.decodeUnknownEffect(
         Schema.toType(makeEffectSchema(propertiesShape)),
       )(resource, { onExcessProperty: 'error' }).pipe(
@@ -781,99 +550,9 @@ export function makeModel<
         });
       }
 
-      const targetDefinition = definitionsByVersion.get(targetVersion);
-      const targetResourceSchema = resourceSchemasByVersion.get(targetVersion);
-      if (
-        targetDefinition === undefined ||
-        targetResourceSchema === undefined
-      ) {
-        return yield* new ZerospinError({
-          code: 'model-resource-version-unsupported',
-          message: `Model ${modelName} does not support resource version ${targetVersion}`,
-          extra: {
-            modelName,
-            currentVersion: version,
-            targetVersion,
-          },
-        });
-      }
-
-      let targetResource: unknown = currentResource;
-      if (targetVersion !== version) {
-        const targetHistoricalDefinition = resolvedHistoricalDefinitions.find(
-          definition => definition.version === targetVersion,
-        );
-        if (targetHistoricalDefinition === undefined) {
-          return yield* new ZerospinError({
-            code: 'model-resource-adapter-missing',
-            message: `Historical model ${modelName}@${targetVersion} has no direct adaptResource from current version ${version}`,
-            extra: {
-              modelName,
-              currentVersion: version,
-              targetVersion,
-            },
-          });
-        }
-        const adaptedResource: Effect.Effect<unknown, IAnyError> =
-          Effect.suspend(() =>
-            targetHistoricalDefinition.adaptResource({
-              resource: currentResource,
-            }),
-          ).pipe(
-            Effect.catchCause(
-              cause =>
-                new ZerospinError({
-                  code: 'model-resource-adapter-invariant-failed',
-                  message: `Direct resource adapter from ${modelName}@${version} to ${modelName}@${targetVersion} failed`,
-                  cause: ZerospinError.prettyUnknownFailure(cause),
-                  extra: {
-                    modelName,
-                    currentVersion: version,
-                    targetVersion,
-                  },
-                }),
-            ),
-          );
-        targetResource = yield* adaptedResource;
-      }
-
-      const validatedTargetResource = yield* Schema.decodeUnknownEffect(
-        Schema.toType(targetResourceSchema),
-      )(targetResource, { onExcessProperty: 'error' }).pipe(
-        mapParseError({
-          code: 'model-resource-adapter-output-invariant-failed',
-          prefix: `Resource adapter output did not match ${modelName}@${targetVersion}`,
-          extra: {
-            modelName,
-            currentVersion: version,
-            targetVersion,
-          },
-        }),
-      );
-      if (
-        Reflect.get(validatedTargetResource, 'modelName') !== modelName ||
-        Reflect.get(validatedTargetResource, 'version') !== targetVersion
-      ) {
-        return yield* new ZerospinError({
-          code: 'model-resource-adapter-output-invariant-failed',
-          message: `Resource adapter output must identify ${modelName}@${targetVersion}`,
-          extra: {
-            modelName,
-            currentVersion: version,
-            targetVersion,
-            resourceModelName: Reflect.get(
-              validatedTargetResource,
-              'modelName',
-            ),
-            resourceVersion: Reflect.get(validatedTargetResource, 'version'),
-          },
-        });
-      }
-
-      return yield* Schema.encodeEffect(targetResourceSchema)(
-        validatedTargetResource,
-        { onExcessProperty: 'error' },
-      ).pipe(
+      return yield* Schema.encodeEffect(model.resourceSchema)(currentResource, {
+        onExcessProperty: 'error',
+      }).pipe(
         mapParseError({
           code: 'model-resource-encode-invariant-failed',
           prefix: `Failed to encode resource for ${modelName}@${targetVersion}`,
@@ -885,466 +564,8 @@ export function makeModel<
         }),
       );
     }),
-    createMutation(modelVersion) {
-      const definition = definitionsByVersion.get(modelVersion);
-      if (definition === undefined) {
-        throw new Error(
-          `Unknown model version "${modelVersion}" for "${modelName}"`,
-        );
-      }
-
-      const attributeSchemas: Record<
-        string,
-        Schema.Codec<unknown, unknown>
-      > = mapValues(definition.attributes, descriptor =>
-        descriptorToJsonEffectSchema(descriptor),
-      );
-      const attributesSchema = Schema.Struct(attributeSchemas);
-      const resourceIdSchema = descriptorToJsonEffectSchema(
-        primitives.primaryKey({ abbreviation }),
-      );
-
-      return Schema.Struct({
-        modelName: Schema.Literal(modelName),
-        modelVersion: Schema.Literal(modelVersion),
-        operationName: Schema.Literal('create'),
-        resourceId: resourceIdSchema,
-        operation: Schema.Struct({ attributes: attributesSchema }),
-      }).pipe(
-        Schema.decodeTo(
-          Schema.Struct({
-            model: Schema.declare<IModel>(
-              (input): input is IModel => input === model,
-            ),
-            modelVersion: Schema.Literal(modelVersion),
-            operationName: Schema.Literal('create'),
-            resourceId: resourceIdSchema,
-            operation: Schema.Struct({
-              attributes: Schema.toType(attributesSchema),
-            }),
-          }),
-          SchemaTransformation.transform({
-            decode: mutation => ({
-              model,
-              modelVersion: mutation.modelVersion,
-              operationName: mutation.operationName,
-              resourceId: mutation.resourceId,
-              operation: mutation.operation,
-            }),
-            encode: mutation => ({
-              modelName,
-              modelVersion: mutation.modelVersion,
-              operationName: mutation.operationName,
-              resourceId: mutation.resourceId,
-              operation: mutation.operation,
-            }),
-          }),
-        ),
-      );
-    },
-    create(modelVersion, props) {
-      const definition = definitionsByVersion.get(modelVersion);
-      if (definition === undefined) {
-        throw new Error(
-          `Unknown model version "${modelVersion}" for "${modelName}"`,
-        );
-      }
-
-      return Effect.gen(function* () {
-        yield* Schema.decodeUnknownEffect(
-          makeEffectSchema(definition.attributes),
-        )(props.attributes, {
-          onExcessProperty: 'error',
-        }).pipe(
-          mapParseError({
-            code: 'create-resource-missing-attributes',
-            prefix: `createMutation requires all model attributes for "${modelName}"`,
-            extra: { modelName },
-          }),
-          Effect.asVoid,
-        );
-
-        return {
-          model,
-          modelVersion,
-          operationName: 'create',
-          resourceId: props.resourceId,
-          operation: { attributes: props.attributes },
-        };
-      });
-    },
-    updateMutation(modelVersion) {
-      const definition = definitionsByVersion.get(modelVersion);
-      if (definition === undefined) {
-        throw new Error(
-          `Unknown model version "${modelVersion}" for "${modelName}"`,
-        );
-      }
-
-      const attributeSchemas: Record<
-        string,
-        Schema.Codec<unknown, unknown>
-      > = mapValues(definition.attributes, descriptor =>
-        descriptorToJsonEffectSchema(descriptor),
-      );
-      const attributesSchema = Schema.Struct(attributeSchemas);
-      const partialAttributesSchema = attributesSchema.mapFields(
-        Struct.map(Schema.optional),
-      );
-      const resourceIdSchema = descriptorToJsonEffectSchema(
-        primitives.primaryKey({ abbreviation }),
-      );
-
-      return Schema.Struct({
-        modelName: Schema.Literal(modelName),
-        modelVersion: Schema.Literal(modelVersion),
-        operationName: Schema.Literal('update'),
-        resourceId: resourceIdSchema,
-        operation: Schema.Struct({
-          attributes: partialAttributesSchema,
-          mask: Schema.optional(Schema.Array(Schema.String)),
-        }),
-      }).pipe(
-        Schema.decodeTo(
-          Schema.Struct({
-            model: Schema.declare<IModel>(
-              (input): input is IModel => input === model,
-            ),
-            modelVersion: Schema.Literal(modelVersion),
-            operationName: Schema.Literal('update'),
-            resourceId: resourceIdSchema,
-            operation: Schema.Struct({
-              attributes: Schema.toType(partialAttributesSchema),
-              mask: Schema.optional(Schema.Array(Schema.String)),
-            }),
-          }),
-          SchemaTransformation.transform({
-            decode: mutation => ({
-              model,
-              modelVersion: mutation.modelVersion,
-              operationName: mutation.operationName,
-              resourceId: mutation.resourceId,
-              operation: mutation.operation,
-            }),
-            encode: mutation => ({
-              modelName,
-              modelVersion: mutation.modelVersion,
-              operationName: mutation.operationName,
-              resourceId: mutation.resourceId,
-              operation: mutation.operation,
-            }),
-          }),
-        ),
-      );
-    },
-    update(modelVersion, props) {
-      if (!definitionsByVersion.has(modelVersion)) {
-        throw new Error(
-          `Unknown model version "${modelVersion}" for "${modelName}"`,
-        );
-      }
-
-      return Effect.gen(function* () {
-        yield* Effect.void;
-        const filteredAttributes = props.mask
-          ? props.mask.reduce(
-              (attributes: Record<string, unknown>, key: string) => {
-                attributes[key] = props.attributes[key];
-                return attributes;
-              },
-              {},
-            )
-          : props.attributes;
-
-        return {
-          model,
-          modelVersion,
-          operationName: 'update',
-          resourceId: props.resourceId,
-          operation: props.mask
-            ? { attributes: filteredAttributes, mask: [...props.mask] }
-            : { attributes: filteredAttributes },
-        };
-      });
-    },
-    deleteMutation(modelVersion) {
-      if (!definitionsByVersion.has(modelVersion)) {
-        throw new Error(
-          `Unknown model version "${modelVersion}" for "${modelName}"`,
-        );
-      }
-
-      const resourceIdSchema = descriptorToJsonEffectSchema(
-        primitives.primaryKey({ abbreviation }),
-      );
-
-      return Schema.Struct({
-        modelName: Schema.Literal(modelName),
-        modelVersion: Schema.Literal(modelVersion),
-        operationName: Schema.Literal('delete'),
-        resourceId: resourceIdSchema,
-        operation: Schema.Struct({}),
-      }).pipe(
-        Schema.decodeTo(
-          Schema.Struct({
-            model: Schema.declare<IModel>(
-              (input): input is IModel => input === model,
-            ),
-            modelVersion: Schema.Literal(modelVersion),
-            operationName: Schema.Literal('delete'),
-            resourceId: resourceIdSchema,
-            operation: Schema.Struct({}),
-          }),
-          SchemaTransformation.transform({
-            decode: mutation => ({
-              model,
-              modelVersion: mutation.modelVersion,
-              operationName: mutation.operationName,
-              resourceId: mutation.resourceId,
-              operation: mutation.operation,
-            }),
-            encode: mutation => ({
-              modelName,
-              modelVersion: mutation.modelVersion,
-              operationName: mutation.operationName,
-              resourceId: mutation.resourceId,
-              operation: mutation.operation,
-            }),
-          }),
-        ),
-      );
-    },
-    delete(modelVersion, props) {
-      if (!definitionsByVersion.has(modelVersion)) {
-        throw new Error(
-          `Unknown model version "${modelVersion}" for "${modelName}"`,
-        );
-      }
-
-      return Effect.gen(function* () {
-        yield* Effect.void;
-
-        return {
-          model,
-          modelVersion,
-          operationName: 'delete',
-          resourceId: props.resourceId,
-          operation: {},
-        };
-      });
-    },
-    moveMutation(modelVersion) {
-      if (!definitionsByVersion.has(modelVersion)) {
-        throw new Error(
-          `Unknown model version "${modelVersion}" for "${modelName}"`,
-        );
-      }
-
-      const resourceIdSchema = descriptorToJsonEffectSchema(
-        primitives.primaryKey({ abbreviation }),
-      );
-      const operationSchema = Schema.Struct({
-        property: Schema.String,
-        prevId: Schema.String,
-        nextId: Schema.String,
-      });
-
-      return Schema.Struct({
-        modelName: Schema.Literal(modelName),
-        modelVersion: Schema.Literal(modelVersion),
-        operationName: Schema.Literal('move'),
-        resourceId: resourceIdSchema,
-        operation: operationSchema,
-      }).pipe(
-        Schema.decodeTo(
-          Schema.Struct({
-            model: Schema.declare<IModel>(
-              (input): input is IModel => input === model,
-            ),
-            modelVersion: Schema.Literal(modelVersion),
-            operationName: Schema.Literal('move'),
-            resourceId: resourceIdSchema,
-            operation: operationSchema,
-          }),
-          SchemaTransformation.transform({
-            decode: mutation => ({
-              model,
-              modelVersion: mutation.modelVersion,
-              operationName: mutation.operationName,
-              resourceId: mutation.resourceId,
-              operation: mutation.operation,
-            }),
-            encode: mutation => ({
-              modelName,
-              modelVersion: mutation.modelVersion,
-              operationName: mutation.operationName,
-              resourceId: mutation.resourceId,
-              operation: mutation.operation,
-            }),
-          }),
-        ),
-      );
-    },
-    move(modelVersion, props) {
-      if (!definitionsByVersion.has(modelVersion)) {
-        throw new Error(
-          `Unknown model version "${modelVersion}" for "${modelName}"`,
-        );
-      }
-
-      return Effect.gen(function* () {
-        yield* Effect.void;
-
-        return {
-          model,
-          modelVersion,
-          operationName: 'move',
-          resourceId: props.resourceId,
-          operation: {
-            property: props.property,
-            prevId: props.prevId,
-            nextId: props.nextId,
-          },
-        };
-      });
-    },
-    replicateResourceMutation(this: IModelReplica, modelVersion) {
-      const definition = definitionsByVersion.get(modelVersion);
-      if (definition === undefined) {
-        throw new Error(
-          `Unknown model version "${modelVersion}" for "${modelName}"`,
-        );
-      }
-
-      const resourceIdSchema = descriptorToJsonEffectSchema(
-        primitives.primaryKey({ abbreviation }),
-      );
-      const resourcePropertySchemas: Record<
-        string,
-        Schema.Codec<unknown, unknown>
-      > = mapValues(definition.propertiesShape, descriptor =>
-        descriptorToJsonEffectSchema(descriptor),
-      );
-      const resourceSchema = Schema.Struct(resourcePropertySchemas);
-      const operationSchema = Schema.Struct({
-        serviceName: Schema.Literal(this.serviceName),
-        resource: resourceSchema,
-      });
-      const decodedOperationSchema = Schema.Struct({
-        serviceName: Schema.Literal(this.serviceName),
-        resource: Schema.toType(resourceSchema),
-      });
-
-      return Schema.Struct({
-        modelName: Schema.Literal(modelName),
-        modelVersion: Schema.Literal(modelVersion),
-        operationName: Schema.Literal('replicateResource'),
-        resourceId: resourceIdSchema,
-        operation: operationSchema,
-      }).pipe(
-        Schema.decodeTo(
-          Schema.Struct({
-            model: Schema.declare<IModelReplica>(
-              (input): input is IModelReplica => input === this,
-            ),
-            modelVersion: Schema.Literal(modelVersion),
-            operationName: Schema.Literal('replicateResource'),
-            resourceId: resourceIdSchema,
-            operation: decodedOperationSchema,
-          }),
-          SchemaTransformation.transform({
-            decode: mutation => ({
-              model: this,
-              modelVersion: mutation.modelVersion,
-              operationName: mutation.operationName,
-              resourceId: mutation.resourceId,
-              operation: mutation.operation,
-            }),
-            encode: mutation => ({
-              modelName,
-              modelVersion: mutation.modelVersion,
-              operationName: mutation.operationName,
-              resourceId: mutation.resourceId,
-              operation: mutation.operation,
-            }),
-          }),
-        ),
-      );
-    },
-    replicateResource(this: IModelReplica, modelVersion, props) {
-      const definition = definitionsByVersion.get(modelVersion);
-      if (definition === undefined) {
-        throw new Error(
-          `Unknown model version "${modelVersion}" for "${modelName}"`,
-        );
-      }
-
-      const sourceDefinition =
-        modelVersion === this.sourceModel.version
-          ? this.sourceModel
-          : this.sourceModel.historicalDefinitions.find(
-              historicalDefinition =>
-                historicalDefinition.version === modelVersion,
-            );
-      if (sourceDefinition === undefined) {
-        throw new Error(
-          `Unknown source model version "${modelVersion}" for "${modelName}"`,
-        );
-      }
-
-      // oxlint-disable-next-line typescript/no-this-alias -- Effect.gen's generator needs the receiver captured lexically.
-      const replica = this;
-      return Effect.gen(function* () {
-        const sourceResource = yield* Schema.decodeUnknownEffect(
-          Schema.toType(makeEffectSchema(sourceDefinition.propertiesShape)),
-        )(props.resource, { onExcessProperty: 'error' }).pipe(
-          mapParseError({
-            code: 'replicate-resource-invalid-resource',
-            prefix: `replicateResource requires a complete resource for model "${modelName}"`,
-            extra: { modelName, serviceName: replica.serviceName },
-          }),
-        );
-
-        if (sourceResource.modelName !== modelName) {
-          return yield* new ZerospinError({
-            code: 'replicate-resource-model-name-mismatch',
-            message: `Resource ${sourceResource.id} has modelName "${sourceResource.modelName}", not "${modelName}"`,
-            extra: {
-              modelName,
-              resourceModelName: sourceResource.modelName,
-              serviceName: replica.serviceName,
-            },
-          });
-        }
-
-        if (sourceResource.version !== modelVersion) {
-          return yield* new ZerospinError({
-            code: 'replicate-resource-model-version-mismatch',
-            message: `Resource ${sourceResource.id} has model version ${sourceResource.version}, not ${modelVersion}`,
-            extra: {
-              modelName,
-              modelVersion,
-              resourceVersion: sourceResource.version,
-              serviceName: replica.serviceName,
-            },
-          });
-        }
-
-        return {
-          model: replica,
-          modelVersion,
-          operationName: 'replicateResource',
-          resourceId: sourceResource.id,
-          operation: {
-            serviceName: replica.serviceName,
-            resource: {
-              ...sourceResource,
-              deletedAt: null,
-            },
-          },
-        };
-      });
-    },
+    // 4 — Attach current table, attribute, and resource codecs before stamping
+    // the canonical Model prototype; the existing casts erase generic variance.
     // ALLOWED_CAST: model-specific Drizzle table must satisfy erased IDrizzleResourceTable on IModel.
     drizzleSchema: makeDrizzleSchemaFromTable(table) as never as IDrizzleSchema<
       string,
@@ -1362,6 +583,125 @@ export function makeModel<
     ) as unknown as Schema.Codec<any, any>,
   };
 
-  const model = Object.assign(new Model(), fields);
+  model = Object.assign(new Model(), fields);
   return model;
+}
+
+export function upgradeVersion<
+  ATTRIBUTES extends IShape,
+  ABBREVIATION extends string,
+  MODEL_NAME extends string,
+  VERSION extends string,
+  PROPERTIES_SHAPE extends IShape,
+  PATCH extends Record<string, IShape[string] | null>,
+  const NEXT_VERSION extends string,
+>(
+  previous: IModel<
+    ATTRIBUTES,
+    ABBREVIATION,
+    MODEL_NAME,
+    VERSION,
+    PROPERTIES_SHAPE
+  >,
+  props: {
+    attributes: PATCH & {
+      [K in keyof PATCH]: PATCH[K] extends null
+        ? K extends keyof ATTRIBUTES
+          ? null
+          : never
+        : PATCH[K] extends IPrimaryKeyDescriptor
+          ? never
+          : K extends IModelReservedAttributeKeys
+            ? never
+            : PATCH[K];
+    };
+    version: NEXT_VERSION;
+    indexes?: readonly IDrizzleIndexConfig<
+      (
+        | Exclude<keyof PROPERTIES_SHAPE, keyof PATCH>
+        | {
+            [K in keyof PATCH]: PATCH[K] extends null ? never : K;
+          }[keyof PATCH]
+      ) &
+        string
+    >[];
+  },
+): string extends VERSION
+  ? IModel
+  : IModel<
+      {
+        readonly [K in keyof ATTRIBUTES | keyof PATCH as K extends keyof PATCH
+          ? PATCH[K] extends null
+            ? never
+            : K
+          : K]: K extends keyof PATCH
+          ? Exclude<PATCH[K], null>
+          : K extends keyof ATTRIBUTES
+            ? ATTRIBUTES[K]
+            : never;
+      },
+      ABBREVIATION,
+      MODEL_NAME,
+      NEXT_VERSION,
+      {
+        readonly [K in
+          | keyof PROPERTIES_SHAPE
+          | keyof PATCH as K extends keyof PATCH
+          ? PATCH[K] extends null
+            ? never
+            : K
+          : K]: K extends keyof PATCH
+          ? Exclude<PATCH[K], null>
+          : K extends keyof PROPERTIES_SHAPE
+            ? PROPERTIES_SHAPE[K]
+            : never;
+      }
+    >;
+
+export function upgradeVersion(
+  previous: IModel,
+  props: {
+    attributes: Record<string, IShape[string] | null>;
+    version: string;
+    indexes?: readonly IDrizzleIndexConfig<string>[];
+  },
+): unknown {
+  const { modelName, abbreviation } = previous;
+  const attributes: IShape = { ...previous.attributes };
+  const nextProperties: InferProperties<IShape> = {
+    ...previous.propertiesShape,
+  };
+  for (const [key, descriptor] of Object.entries(props.attributes)) {
+    if (descriptor === null) {
+      if (!Object.hasOwn(previous.attributes, key)) {
+        throw new Error(
+          `Cannot remove unknown attribute "${key}" from ${modelName}`,
+        );
+      }
+      delete attributes[key];
+      delete nextProperties[key];
+    } else {
+      attributes[key] = descriptor;
+      nextProperties[key] = descriptor;
+    }
+  }
+  const nextIndexes = props.indexes ?? previous.indexes;
+  for (const index of nextIndexes) {
+    for (const column of index.columns) {
+      if (!Object.hasOwn(nextProperties, column)) {
+        throw new Error(
+          `Index "${index.name}" references missing attribute "${column}"`,
+        );
+      }
+    }
+  }
+  return makeVersion(
+    { name: modelName, abbreviation },
+    {
+      attributes,
+      propertiesShape: nextProperties,
+      indexes: nextIndexes,
+      version: props.version,
+    },
+  );
 }

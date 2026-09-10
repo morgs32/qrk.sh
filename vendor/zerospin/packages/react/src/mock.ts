@@ -1,47 +1,42 @@
 'use client';
 
-import {
-  createElement,
-  useEffect,
-  useMemo,
-  useRef,
-  type ReactNode,
-} from 'react';
+import { createElement, useEffect, useRef, type ReactNode } from 'react';
 
 import type { Async } from '@zerospin/core/async/Async';
+import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
-import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
 import { makeAggregateFrontendLockKey } from '@zerospin/core/frontendController/makeAggregateFrontendLockKey';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
-import type {
-  IAggregateFrontendController,
-  InferFrontendModels,
-} from '@zerospin/core/frontendController/types';
+import { type IAnyAggregateFrontendController } from '@zerospin/core/frontendController/types';
 import type {
   IAggregateId,
+  IAnyModels,
   IEncodedResourceShape,
   InferResource,
 } from '@zerospin/core/models/types';
+import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
+import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
+import type { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggregateFrontendState';
 import { getInitializedStateOrThrow } from '@zerospin/core/session/getInitializedStateOrThrow';
-import { makeSession } from '@zerospin/core/session/makeSession';
+import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
-import type { ISystemId } from '@zerospin/core/system/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import type { ISignatureFactory } from '@zerospin/core/utils/types';
+import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import {
   makeAbbreviationIdSchema,
   makeIdFromAbbreviation,
+  type CuidFactory,
 } from '@zerospin/schema';
-import { Effect, Schema } from 'effect';
+import { Effect, Exit, Layer, ManagedRuntime, Schema, Scope } from 'effect';
 import useSWRImmutable from 'swr/immutable';
-import { useStore } from 'zustand/react';
 
 import { makeBrowserSession } from './makeBrowserSession';
-import type { IBrowserSession, ISessionProviderRuntime } from './types';
 import { ZerospinProviderContext } from './ZerospinProviderContext';
 
 /*
@@ -53,12 +48,27 @@ import { ZerospinProviderContext } from './ZerospinProviderContext';
  * 6. Render the supplied frontend selector through the session registry.
  */
 export function makeMockProvider<
-  FRONTEND extends IAggregateFrontendController,
+  APP_SERVICES,
+  FRONTEND extends IAnyAggregateFrontendController<
+    unknown,
+    never,
+    unknown,
+    | APP_SERVICES
+    | Async
+    | CuidFactory
+    | MonotonicFactory
+    | PublishableKey
+    | ZerospinApiUrl
+  >,
+  MODELS extends IAnyModels,
 >(props: {
-  frontend: Readonly<{ frontend: FRONTEND }>;
-  runtime: ISessionProviderRuntime;
+  frontend: Readonly<{
+    frontend: FRONTEND;
+    models: MODELS;
+  }>;
+  layer: Layer.Layer<APP_SERVICES | PublishableKey | ZerospinApiUrl, IAnyError>;
 }) {
-  const { frontend: selector, runtime: sessionRuntime } = props;
+  const { frontend: selector, layer: applicationLayer } = props;
 
   return function MockProvider(providerProps: {
     children: ReactNode;
@@ -67,11 +77,8 @@ export function makeMockProvider<
     aggregateIds: {
       readonly [AGGREGATE_NAME in FRONTEND['aggregateName']]: IAggregateId;
     };
-    systemVersion: string;
     resources?: Partial<{
-      [K in keyof InferFrontendModels<FRONTEND>]: readonly InferResource<
-        InferFrontendModels<FRONTEND>[K]
-      >[];
+      [K in keyof MODELS]: readonly InferResource<MODELS[K]>[];
     }>;
   }) {
     const { children } = providerProps;
@@ -80,68 +87,43 @@ export function makeMockProvider<
     const releaseMockSessionRef = useRef<Effect.Effect<
       void,
       never,
-      Async
+      never
     > | null>(null);
 
     // 2 — the mock keeps the normal browser-session hook surface, but creates
-    // no queue, websocket, OPFS backup worker, RPC, or DevTools entry.
-    const coreSession = useMemo(() => {
-      const sessionId = sessionRuntime.runSync(
-        makeIdFromAbbreviation({
-          abbreviation: coreAbbreviations.session,
-        }),
-      );
-      return makeSession({
-        frontend: selector.frontend,
-        runtime: sessionRuntime,
-        sessionId,
-      });
-    }, []);
-    const session = useMemo(
-      () =>
-        makeBrowserSession({
-          session: coreSession,
-        }),
-      [coreSession],
-    );
-    const registryEntry = useMemo(
-      () => ({
-        session,
-        subscribe: (onStoreChange: () => void) =>
-          coreSession.store.subscribe(onStoreChange),
-        getState: () => coreSession.store.getState(),
-        getLiveQueryDb: () =>
-          getInitializedStateOrThrow({ session: coreSession }).db,
-      }),
-      [coreSession, session],
-    );
-    const providerContext = useMemo(
-      () => ({
-        mountedFrontends: {
-          [selector.frontend.frontendName]: selector,
-        },
-        sessions: new Map([[selector, registryEntry]]),
-        sessionRuntime,
-      }),
-      [registryEntry],
-    );
-
-    // 3 — applyAggregateFrontendState owns provisioning and the production insert
-    // path. Fixture identity changes after this fetch begins are ignored.
-    const { error: initializationError } = useSWRImmutable<
-      {
-        releaseMockSession: Effect.Effect<void, never, Async>;
-        systemId: ISystemId;
-      },
-      IAnyError,
-      IBrowserSession<FRONTEND>
-    >(
-      session,
-      () => {
+    // no queue, websocket, backup worker, RPC, or DevTools entry.
+    // 3 — build the guard layer and database before publishing the session.
+    const { data: initialized, error: initializationError } = useSWRImmutable(
+      initializationPropsRef,
+      async () => {
+        const scope = Scope.makeUnsafe();
+        const sessionRuntime = ManagedRuntime.make(
+          Layer.mergeAll(
+            NanoIdFactory,
+            UlidMonotonicFactory,
+            AsyncLive,
+            applicationLayer,
+          ),
+        );
         const initializationProps = initializationPropsRef.current;
         return sessionRuntime
           .runPromise(
             Effect.gen(function* () {
+              const sessionId = yield* makeIdFromAbbreviation({
+                abbreviation: coreAbbreviations.session,
+              });
+              const guards = yield* selector.frontend.initializeGuards;
+              const coreSession = makeAggregateSession({
+                guards,
+                frontend: selector.frontend,
+                runtime: sessionRuntime,
+                sessionId,
+              });
+              yield* Effect.addFinalizer(() =>
+                Effect.sync(() => {
+                  coreSession.store.setState({ sessionStatus: 'released' });
+                }),
+              );
               if (initializationProps.userId === undefined) {
                 return yield* new ZerospinError({
                   code: 'mock-session-user-id-required',
@@ -163,13 +145,23 @@ export function makeMockProvider<
                   prefix: `MockProvider requires aggregateIds.${selector.frontend.aggregateName}`,
                 }),
               );
-              const models = getFrontendDbModels(selector.frontend);
+              const models = selector.models;
               const dbConfig = makeResourceDbConfig({
                 models,
                 otherTables: sessionRepoTables,
               });
-              const schema = dbConfig.schema;
-              const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
+              const db = yield* makeProvisionedInMemoryWasmSqliteDb({
+                dbConfig,
+              });
+              yield* Effect.addFinalizer(() =>
+                makeAsync(
+                  () => db.$client.sqlite3.close(db.$client.db),
+                  ZerospinError.catch({
+                    code: 'failed-to-close-mock-session-database',
+                    message: 'Failed to close mock session database',
+                  }),
+                ).pipe(Effect.asVoid, Effect.ignore),
+              );
               const systemId = yield* makeIdFromAbbreviation({
                 abbreviation: coreAbbreviations.system,
               });
@@ -178,13 +170,9 @@ export function makeMockProvider<
                   makeFrontendControllerSpec(selector.frontend)
                     .aggregateFrontendLock,
                 );
-              const releaseMockSession = makeAsync(
-                () => db.$client.sqlite3.close(db.$client.db),
-                ZerospinError.catch({
-                  code: 'failed-to-close-mock-session-database',
-                  message: 'Failed to close mock session database',
-                }),
-              ).pipe(Effect.asVoid, Effect.ignore);
+              const releaseMockSession = Scope.close(scope, Exit.void).pipe(
+                Effect.ensuring(sessionRuntime.disposeEffect),
+              );
 
               return yield* Effect.gen(function* () {
                 const resources: IEncodedResourceShape[] = [];
@@ -194,8 +182,7 @@ export function makeMockProvider<
                   if (modelResources !== undefined) {
                     const [firstResource] = modelResources;
                     if (firstResource !== undefined) {
-                      const model =
-                        selector.frontend.models[firstResource.modelName];
+                      const model = selector.models[firstResource.modelName];
                       if (model === undefined) {
                         return yield* new ZerospinError({
                           code: 'mock-session-resource-model-not-found',
@@ -236,38 +223,45 @@ export function makeMockProvider<
                     aggregateName: selector.frontend.aggregateName,
                     userId,
                     aggregateIndex: 0,
-                    frontendIndex: 0,
-                    frontendName: selector.frontend.frontendName,
-                    pushIndex: 0,
-                    resolvedPushIndexes: [],
+                    userIndex: 0,
+                    frontendName: selector.frontend.name,
+                    aggregateVersion: selector.frontend.aggregateVersion,
+                    resolutions: [],
                     resources,
                     systemId,
-                    systemVersion: initializationProps.systemVersion,
                   },
                   models,
-                  pushedCommands: [],
                 });
 
                 return {
+                  coreSession,
                   aggregateId,
                   db,
                   aggregateFrontendLockKey,
                   models,
                   releaseMockSession,
-                  schema,
+                  schema: dbConfig.schema,
                   systemId,
-                  systemVersion: initializationProps.systemVersion,
                   userId,
                 };
-              }).pipe(Effect.tapError(() => releaseMockSession));
-            }),
+              });
+            }).pipe(Effect.provideService(Scope.Scope, scope)),
           )
+          .catch(async error => {
+            await Effect.runPromise(
+              Scope.close(scope, Exit.fail(error)).pipe(
+                Effect.ensuring(sessionRuntime.disposeEffect),
+              ),
+            );
+            throw error;
+          })
           .then(data => {
+            const coreSession = data.coreSession;
             // 4 — a provider removed while WASM initializes owns no published
             // session; close its completed database immediately.
             if (isUnmountedRef.current) {
-              sessionRuntime.runFork(data.releaseMockSession);
-              return data;
+              Effect.runFork(data.releaseMockSession);
+              return null;
             }
 
             releaseMockSessionRef.current = data.releaseMockSession;
@@ -277,33 +271,44 @@ export function makeMockProvider<
               userId: data.userId,
               db: data.db,
               aggregateIndex: 0,
-              frontendIndex: 0,
+              userIndex: 0,
               pushIndex: 0,
-              frontendName: selector.frontend.frontendName,
+              frontendName: selector.frontend.name,
               aggregateFrontendLockKey: data.aggregateFrontendLockKey,
               isInitialized: true,
               models: data.models,
               schema: data.schema,
               sessionId: coreSession.sessionId,
               systemId: data.systemId,
-              systemVersion: data.systemVersion,
               sessionStatus: 'current',
               backupState: {
                 status: 'ready',
                 failure: null,
               },
             });
-            return data;
+            const session = makeBrowserSession({ session: coreSession });
+            return {
+              mountedFrontends: { [selector.frontend.name]: selector },
+              sessions: new Map([
+                [
+                  selector,
+                  {
+                    session,
+                    subscribe: (onStoreChange: () => void) =>
+                      coreSession.store.subscribe(onStoreChange),
+                    getState: () => coreSession.store.getState(),
+                    getLiveQueryDb: () =>
+                      getInitializedStateOrThrow({ session: coreSession }).db,
+                  },
+                ],
+              ]),
+              sessionRuntime,
+            };
           });
       },
       {
         shouldRetryOnError: false,
       },
-    );
-
-    const isInitialized = useStore(
-      coreSession.store,
-      state => state.isInitialized,
     );
 
     useEffect(() => {
@@ -317,7 +322,7 @@ export function makeMockProvider<
           // 5 — child live-query effects release in this unmount pass before
           // the single SQLite close runs in the following microtask.
           queueMicrotask(() => {
-            sessionRuntime.runFork(releaseMockSession);
+            Effect.runFork(releaseMockSession);
           });
         }
       };
@@ -327,7 +332,7 @@ export function makeMockProvider<
       throw initializationError;
     }
 
-    if (!isInitialized) {
+    if (!initialized) {
       return null;
     }
 
@@ -335,7 +340,7 @@ export function makeMockProvider<
     // production Provider; unsupported remote work fails at its signature seam.
     return createElement(
       ZerospinProviderContext.Provider,
-      { value: providerContext },
+      { value: initialized },
       children,
     );
   };

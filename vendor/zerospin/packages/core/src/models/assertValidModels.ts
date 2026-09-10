@@ -1,8 +1,8 @@
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 
-import type { IModels } from './types.ts';
+import type { IAnyModels } from './types.ts';
 
-export function assertValidModels<MODELS extends IModels>(props: {
+export function assertValidModels<MODELS extends IAnyModels>(props: {
   models: MODELS;
   context: string;
 }): void {

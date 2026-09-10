@@ -16,6 +16,19 @@ import { checkAuthentication } from '../checkAuthentication/checkAuthentication.
 import { checkAuthorization } from '../checkAuthorization/checkAuthorization.js';
 import { checkPublishableApiKey } from '../checkPublishableApiKey/checkPublishableApiKey.js';
 
+/*
+ * GatewayApi grants a aggregate frontend capability after checking the submitted
+ * locks, authentication result, and owner authorization. The capability binds
+ * the configured systemId and authenticated userId to the admitted frontend.
+ *
+ * 1. Capture the request and runtime.
+ * 2. Decode the request envelope.
+ * 3. Decode both submitted locks.
+ * 4. Authenticate the publishable-key caller.
+ * 5. Authorize the requested frontend.
+ * 6. Bind the successful capability.
+ * 7. Return a failure capability on rejection.
+ */
 export const getAggregateFrontendApi = Effect.fn(
   'GatewayApi.getAggregateFrontendApi',
   { root: true },
@@ -27,6 +40,7 @@ export const getAggregateFrontendApi = Effect.fn(
     signature: unknown;
     aggregateId: IAggregateId;
     aggregateName: string;
+    aggregateVersion: string;
     frontendName: string;
     aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
@@ -34,8 +48,10 @@ export const getAggregateFrontendApi = Effect.fn(
   };
   runtime: ISystemRuntime;
 }) {
+  // 1 — keep the caller request separate from the runtime bound to the capability
   const { request, runtime } = props;
   return yield* Effect.gen(function* () {
+    // 2 — reject unknown request fields before reading either lock
     const validated = yield* Schema.decodeUnknownEffect(
       Schema.toType(
         Schema.Struct({
@@ -45,6 +61,7 @@ export const getAggregateFrontendApi = Effect.fn(
           signature: Schema.Unknown,
           aggregateId: makeAbbreviationIdSchema(coreAbbreviations.aggregate),
           aggregateName: Schema.String,
+          aggregateVersion: Schema.String,
           frontendName: Schema.String,
           aggregateFrontendLock: Schema.Unknown,
         }),
@@ -55,6 +72,8 @@ export const getAggregateFrontendApi = Effect.fn(
         prefix: 'Failed to decode getAggregateFrontendApi arguments',
       }),
     );
+
+    // 3 — validate AuthenticationLockSchema and AggregateFrontendLockSchema
     const authenticationLock = yield* Schema.decodeUnknownEffect(
       AuthenticationLockSchema,
     )(validated.authenticationLock, { onExcessProperty: 'error' }).pipe(
@@ -73,6 +92,8 @@ export const getAggregateFrontendApi = Effect.fn(
           'getAggregateFrontendApi received an invalid aggregate frontend lock',
       }),
     );
+
+    // 4 — validate the API key, adapt the signature, and check the returned userId and lock
     yield* checkPublishableApiKey(validated.publishableKey);
     const authentication = yield* authenticate({
       authenticationLock,
@@ -83,7 +104,10 @@ export const getAggregateFrontendApi = Effect.fn(
       authenticationLock,
       systemName: validated.systemName,
     });
+
+    // 5 — ask the owner to admit the frontend, then compare its returned target and lock
     const authorization = yield* authorizeAggregateFrontend({
+      aggregateVersion: validated.aggregateVersion,
       aggregateId: validated.aggregateId,
       aggregateName: validated.aggregateName,
       frontendName: validated.frontendName,
@@ -92,6 +116,7 @@ export const getAggregateFrontendApi = Effect.fn(
     });
     yield* checkAuthorization({
       kind: 'aggregate',
+      aggregateVersion: validated.aggregateVersion,
       authorization,
       userId,
       aggregateId: validated.aggregateId,
@@ -100,8 +125,11 @@ export const getAggregateFrontendApi = Effect.fn(
       frontendName: validated.frontendName,
       aggregateFrontendLock,
     });
+
+    // 6 — bind the admitted fields into the successful capability
     return new AggregateFrontendApi({
       authResults: {
+        aggregateVersion: validated.aggregateVersion,
         aggregateId: authorization.aggregateId,
         aggregateName: authorization.aggregateName,
         userId: authorization.userId,
@@ -112,6 +140,7 @@ export const getAggregateFrontendApi = Effect.fn(
       runtime,
     });
   }).pipe(
+    // 7 — preserve the admission error in AggregateFrontendApiFailure
     Effect.catch(error =>
       Effect.succeed(new AggregateFrontendApiFailure(error)),
     ),

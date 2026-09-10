@@ -19,7 +19,7 @@ export const applyAggregateFrontendMutationTx = Effect.fn(
   appliedAt: Date;
 }): Effect.fn.Return<IAppliedMutation, IAnyError> {
   const { appliedAt, commandId, mutation, mutationIndex, tx } = props;
-  if (mutation.operationName !== 'replicateResource') {
+  if (mutation.operationName !== 'replicate') {
     return yield* applyMutationTx({
       tx,
       mutation,
@@ -79,7 +79,7 @@ export const applyAggregateFrontendMutationTx = Effect.fn(
       }
       return new ZerospinError({
         code: 'mutation-referential-integrity-failed',
-        message: `Cannot apply replicateResource mutation to "${mutation.model.modelName}.${mutation.resourceId}" because it violates a persisted reference`,
+        message: `Cannot apply replicate mutation to "${mutation.model.modelName}.${mutation.resourceId}" because it violates a persisted reference`,
         cause: failure,
         extra: {
           modelName: mutation.model.modelName,

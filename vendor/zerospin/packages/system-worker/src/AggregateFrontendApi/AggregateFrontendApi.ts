@@ -7,7 +7,6 @@ import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendControl
 import type { IAggregateId } from '@zerospin/core/models/types';
 import type {
   IAggregateFrontendFinalizedCommand,
-  IAggregateFrontendPushedCommand,
   IAggregateFrontendSyncState,
   IFrontendDelta,
 } from '@zerospin/core/session/types';
@@ -20,10 +19,8 @@ import type { Schema } from 'effect';
 import type { ISystemRuntime } from '../makeSystemRuntime.js';
 
 import { createWebSocketTicket } from './createWebSocketTicket/createWebSocketTicket.js';
-import { executeAggregateQuery } from './executeAggregateQuery/executeAggregateQuery.js';
 import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.js';
 import { getFinalizedCommands } from './getFinalizedCommands/getFinalizedCommands.js';
-import { getPushedCommands } from './getPushedCommands/getPushedCommands.js';
 import { getState } from './getState/getState.js';
 import { pushCommand } from './pushCommand/pushCommand.js';
 
@@ -31,6 +28,7 @@ export class AggregateFrontendApi extends RpcTarget {
   readonly #authResults: {
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
+    aggregateVersion: string;
     readonly userId: string;
     readonly frontendName: string;
     readonly aggregateFrontendLock: Schema.Schema.Type<
@@ -40,10 +38,16 @@ export class AggregateFrontendApi extends RpcTarget {
   };
   readonly #runtime: ISystemRuntime;
 
+  /*
+   * Constructs AggregateFrontendApi with its bound runtime and instance state.
+   *
+   * 1. Initialize and bind the instance.
+   */
   constructor(props: {
     authResults: {
       readonly aggregateId: IAggregateId;
       readonly aggregateName: string;
+      aggregateVersion: string;
       readonly userId: string;
       readonly frontendName: string;
       readonly aggregateFrontendLock: Schema.Schema.Type<
@@ -53,11 +57,20 @@ export class AggregateFrontendApi extends RpcTarget {
     };
     runtime: ISystemRuntime;
   }) {
+    // 1 — construct the base and retain the supplied capability state
     super();
-    this.#authResults = props.authResults;
-    this.#runtime = props.runtime;
+    const { authResults, runtime } = props;
+    this.#authResults = authResults;
+    this.#runtime = runtime;
   }
 
+  /*
+   * The aggregate frontend capability admits a complete locally committed
+   * occurrence into AggregateChain. It returns the admission receipt;
+   * version-owned server execution and frontend publication happen downstream.
+   *
+   * 1. Run the bound domain operation.
+   */
   async pushCommand(
     request: IRpcRequest<
       [
@@ -71,74 +84,86 @@ export class AggregateFrontendApi extends RpcTarget {
     >,
   ): Promise<
     ILinkedRpcEnvelope<
-      IEncodedCommand<IAggregateFrontendPushedCommand>,
+      Readonly<{ aggregateIndex: number; commandId: string }>,
       IAnyErrorJson
     >
   > {
+    // 1 — run pushCommand with the instance-bound dependencies
     return this.#runtime.runPromise(
       pushCommand({ request, authResults: this.#authResults }),
     );
   }
 
+  /*
+   * AggregateFrontendApi serves reconnect history from UserVersionedAggregateChain.
+   * The capability binds the frontend identity; the request supplies the replay
+   * cursor and aggregateVersion.
+   *
+   * 1. Run the bound domain operation.
+   */
   async getFinalizedCommands(
-    request: IRpcRequest<[{ afterFrontendIndex: number }]>,
+    request: IRpcRequest<
+      [{ afterUserIndex: number; aggregateVersion: string }]
+    >,
   ): Promise<
     ILinkedRpcEnvelope<
       Readonly<{
-        commands: readonly IEncodedCommand<IAggregateFrontendFinalizedCommand>[];
+        commands: readonly IAggregateFrontendFinalizedCommand[];
         tip: number;
       }>,
       IAnyErrorJson
     >
   > {
+    // 1 — run getFinalizedCommands with the instance-bound dependencies
     return this.#runtime.runPromise(
       getFinalizedCommands({ request, authResults: this.#authResults }),
     );
   }
 
-  async getPushedCommands(
-    request: IRpcRequest<[{ afterPushIndex: number }]>,
-  ): Promise<
-    ILinkedRpcEnvelope<
-      Readonly<{
-        commands: readonly IEncodedCommand<IAggregateFrontendPushedCommand>[];
-        tip: number;
-      }>,
-      IAnyErrorJson
-    >
-  > {
-    return this.#runtime.runPromise(
-      getPushedCommands({ request, authResults: this.#authResults }),
-    );
-  }
-
+  /*
+   * The aggregate frontend capability requests a named service query with its
+   * admitted frontend lock. The worker query path requires complete frontend context
+   * and runs the named query in the requested service.
+   *
+   * 1. Run the bound domain operation.
+   */
   async executeServiceQuery(
     request: IRpcRequest<
       [{ serviceName: string; queryName: string; params: unknown }]
     >,
   ): Promise<ILinkedRpcEnvelope<unknown, IAnyErrorJson>> {
+    // 1 — run executeServiceQuery with the instance-bound dependencies
     return this.#runtime.runPromise(
       executeServiceQuery({ request, authResults: this.#authResults }),
     );
   }
 
-  async executeAggregateQuery(
-    request: IRpcRequest<[{ queryName: string; params: unknown }]>,
-  ): Promise<ILinkedRpcEnvelope<unknown, IAnyErrorJson>> {
-    return this.#runtime.runPromise(
-      executeAggregateQuery({ request, authResults: this.#authResults }),
-    );
-  }
-
+  /*
+   * The aggregate frontend capability selects the current base version and
+   * requests its user/frontend snapshot from ReplicaRepo. The Replica
+   * Repo owns catch-up and projected state.
+   *
+   * 1. Run the bound domain operation.
+   */
   async getState(
-    request: IRpcRequest<[]>,
+    request: IRpcRequest<[{ outstandingCommandIds: readonly string[] }]>,
   ): Promise<ILinkedRpcEnvelope<IAggregateFrontendSyncState, IAnyErrorJson>> {
+    // 1 — run getState with the instance-bound dependencies
     return this.#runtime.runPromise(
       getState({ request, authResults: this.#authResults }),
     );
   }
 
-  async createWebSocketTicket(request: IRpcRequest<[]>): Promise<
+  /*
+   * The aggregate frontend capability requests a ticket for a caller-selected
+   * aggregateVersion, using its bound aggregate, user, frontend, and system fields.
+   * SystemRepo owns ticket persistence and later consumption.
+   *
+   * 1. Run the bound domain operation.
+   */
+  async createWebSocketTicket(
+    request: IRpcRequest<[{ aggregateVersion: string }]>,
+  ): Promise<
     ILinkedRpcEnvelope<
       Readonly<{
         ticket: string;
@@ -146,6 +171,7 @@ export class AggregateFrontendApi extends RpcTarget {
       IAnyErrorJson
     >
   > {
+    // 1 — run createWebSocketTicket with the instance-bound dependencies
     return this.#runtime.runPromise(
       createWebSocketTicket({
         request,

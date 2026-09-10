@@ -654,6 +654,10 @@ export function ZerospinDevtools({
     panelPositionStyle.bottom = 0;
   }
 
+  // 2 — One MemoryRouter owns the route tree for this mounted shell and is
+  // portaled unchanged between the host document and detached popup.
+  // 6 — Closing only translates that mounted tree; remounting this component
+  // recreates the router from its /sessions initial entry.
   return (
     <MemoryRouter initialEntries={['/sessions']}>
       {createPortal(

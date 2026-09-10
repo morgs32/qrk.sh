@@ -28,15 +28,15 @@ bounded archive pages returned by `getCommands()` during catch-up.
 The resulting topology is:
 
 ```text
-AggregateCommandChain -> MaterializedAggregateRepo
-ServiceCommandChain -> MaterializedServiceRepo
+AggregateCommandChain -> VersionedMaterializedAggregateRepo
+ServiceAdmittedChain -> VersionedMaterializedServiceRepo
 
 AggregateFrontendPushedCommandChain -> MaterializedAggregateFrontendRepo
 AggregateCommandChain -> MaterializedAggregateFrontendRepo
 MaterializedAggregateFrontendRepo -> AggregateFrontendFinalizedCommandChain
 
-ServiceCommandChain -> MaterializedServiceFrontendRepo
-MaterializedServiceFrontendRepo -> ServiceFrontendFinalizedCommandChain
+ServiceAdmittedChain -> VersionedMaterializedServiceReplicaRepo
+VersionedMaterializedServiceReplicaRepo -> FrontendServiceChain
 ```
 
 The names `Block`, `Blockchain`, batch, and plural command methods no longer
@@ -49,25 +49,25 @@ command and these chain fields:
 
 ```ts
 type IChainedCommand<COMMAND, DELTA> = COMMAND & {
-  readonly chainedAt: Date
-  readonly delta: DELTA | null
-  readonly failedAt: Date | null
-  readonly failure: string | null
-}
+  readonly chainedAt: Date;
+  readonly delta: DELTA | null;
+  readonly failedAt: Date | null;
+  readonly failure: string | null;
+};
 ```
 
 The concrete occurrence also carries exactly one index owned and named by its
 chain. There is no generic `chainIndex`:
 
-| Chain or replica history | Ordered index |
-| --- | --- |
-| `AggregateCommandChain` | `aggregateIndex` |
-| `ServiceCommandChain` | `serviceIndex` |
-| `AggregateFrontendPushedCommandChain` | `pushIndex` |
-| `AggregateFrontendFinalizedCommandChain` | `frontendIndex` |
-| `ServiceFrontendFinalizedCommandChain` | `serviceFrontendIndex` |
-| SharedWorker replica commits | `replicaIndex` |
-| Browser session commits | `sessionIndex` |
+| Chain or replica history                 | Ordered index          |
+| ---------------------------------------- | ---------------------- |
+| `AggregateCommandChain`                  | `aggregateIndex`       |
+| `ServiceAdmittedChain`                   | `serviceIndex`         |
+| `AggregateFrontendPushedCommandChain`    | `pushIndex`            |
+| `AggregateFrontendFinalizedCommandChain` | `frontendIndex`        |
+| `FrontendServiceChain`                   | `serviceFrontendIndex` |
+| SharedWorker replica commits             | `replicaIndex`         |
+| Browser session commits                  | `sessionIndex`         |
 
 The three valid occurrence states are structural:
 
@@ -110,9 +110,9 @@ metadata.
 The public command surface is singular:
 
 ```ts
-systemApi.finalizeAggregateCommand({ command })
-systemApi.finalizeServiceCommand({ command })
-aggregateFrontendApi.pushCommand({ command })
+systemApi.executeAggregateCommand({ command });
+systemApi.admitServiceCommand({ command });
+aggregateFrontendApi.pushCommand({ command });
 ```
 
 Each call returns the corresponding terminal `IChainedCommand` as its ordinary
@@ -186,8 +186,8 @@ Publication from that outbox into an output chain continues asynchronously.
 
 ## Aggregate and Service Ordering
 
-`ServiceCommandChain` terminalizes service commands in `serviceIndex` order.
-`AggregateCommandChain`, not `MaterializedAggregateRepo`, owns subscriptions to
+`ServiceAdmittedChain` terminalizes service commands in `serviceIndex` order.
+`AggregateCommandChain`, not `VersionedMaterializedAggregateRepo`, owns subscriptions to
 that chain. This gives direct aggregate commands and service-derived aggregate
 work one serialized aggregate admission lane.
 
@@ -240,11 +240,11 @@ one singular finalized occurrence per message.
 
 ## Service Frontend Finalization
 
-`MaterializedServiceFrontendRepo` subscribes to `ServiceCommandChain`, catches
+`VersionedMaterializedServiceReplicaRepo` subscribes to `ServiceAdmittedChain`, catches
 up gaps by `serviceIndex`, and atomically commits its projection plus a durable
 finalized-command outbox. Irrelevant service commands advance its source
 frontier without consuming `serviceFrontendIndex`. Relevant commands publish
-through `ServiceFrontendFinalizedCommandChain` in
+through `FrontendServiceChain` in
 `serviceFrontendIndex` order.
 
 Service frontends have no pushed chain or optimistic overlay.

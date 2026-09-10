@@ -12,6 +12,13 @@ import { Effect, Schema } from 'effect';
 
 const RepoTableNames = Schema.fromJsonString(Schema.Array(Schema.String));
 
+/*
+ * Secret-key inspection reads one concrete Repo kind from the singleton
+ * SystemRepo catalog of explicit registrations.
+ *
+ * 1. Read explicit registrations for the requested Repo kind.
+ * 2. Decode retained registrations and report malformed catalog data.
+ */
 export const getRepoRegistrations = Effect.fn(
   'SystemRepo.getRepoRegistrations',
 )(function* (props: {
@@ -21,9 +28,10 @@ export const getRepoRegistrations = Effect.fn(
     repoName: AnyColumn;
   };
   repoType: IRepoType;
+  systemId: string;
 }) {
   const { db, repoTable, repoType } = props;
-  yield* Effect.void;
+  // 1 — filter repoType and order by physical repoName
   const rows = db
     .select()
     .from(repoTable)
@@ -31,6 +39,7 @@ export const getRepoRegistrations = Effect.fn(
     .orderBy(asc(repoTable.repoName))
     .all();
 
+  // 2 — validate known Repo kinds and decode each JSON tableNames array
   return yield* Effect.try({
     try: () =>
       Schema.decodeUnknownSync(
@@ -38,15 +47,15 @@ export const getRepoRegistrations = Effect.fn(
           Schema.Struct({
             repoType: Schema.Literals([
               'SystemRepo',
-              'MaterializedAggregateRepo',
-              'MaterializedAggregateFrontendRepo',
-              'MaterializedServiceFrontendRepo',
-              'MaterializedServiceRepo',
-              'AggregateCommandChain',
-              'AggregateFrontendPushedCommandChain',
-              'AggregateFrontendFinalizedCommandChain',
-              'ServiceFrontendFinalizedCommandChain',
-              'ServiceCommandChain',
+              'VersionedAggregateRepo',
+              'UserVersionedAggregateRepo',
+              'FrontendVersionedServiceRepo',
+              'VersionedServiceRepo',
+              'AggregateChain',
+              'VersionedAggregateChain',
+              'UserVersionedAggregateChain',
+              'FrontendServiceChain',
+              'ServiceAdmittedChain',
               'SystemLogRepo',
             ]),
             repoName: Schema.String,
@@ -57,6 +66,8 @@ export const getRepoRegistrations = Effect.fn(
         ...row,
         tableNames: Schema.decodeUnknownSync(RepoTableNames)(row.tableNames),
       })),
+
+    // Retain the requested repoType and original decoding failure.
     catch: failure =>
       new ZerospinError({
         code: 'repo-registration-table-names-invalid',

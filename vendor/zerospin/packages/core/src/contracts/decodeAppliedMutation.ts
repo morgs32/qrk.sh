@@ -24,12 +24,7 @@ export const decodeAppliedMutation = Effect.fn('decodeAppliedMutation')(
   }): Effect.fn.Return<IAppliedMutation, IAnyError> {
     const { mutation, model } = props;
     const definition =
-      model.version === mutation.modelVersion
-        ? model
-        : model.historicalDefinitions.find(
-            historicalDefinition =>
-              historicalDefinition.version === mutation.modelVersion,
-          );
+      model.version === mutation.modelVersion ? model : undefined;
     if (definition === undefined) {
       return yield* new ZerospinError({
         code: 'unknown-applied-mutation-model-version',
@@ -150,16 +145,16 @@ export const decodeAppliedMutation = Effect.fn('decodeAppliedMutation')(
           inverseOperation,
         };
       }
-      case 'replicateResource': {
+      case 'replicate': {
         const replication = decoded as IMutation<
           IModel,
-          'replicateResource'
+          'replicate'
         >['operation'];
         const inverseOperation = (yield* Schema.decodeEffect(
           makeInverseOperationJsonSchema({
             model,
             modelVersion: mutation.modelVersion,
-            operationName: 'replicateResource',
+            operationName: 'replicate',
           }),
         )(mutation.inverseOperation).pipe(
           mapParseError({
@@ -170,7 +165,7 @@ export const decodeAppliedMutation = Effect.fn('decodeAppliedMutation')(
         return {
           model,
           resourceId,
-          operationName: 'replicateResource',
+          operationName: 'replicate',
           operation: replication,
           ...appliedFields,
           inverseOperation,

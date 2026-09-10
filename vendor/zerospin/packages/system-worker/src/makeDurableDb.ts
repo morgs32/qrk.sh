@@ -7,13 +7,17 @@
 import type { IDb, IDbConfig } from '@zerospin/core/drizzle/types';
 import { drizzle } from 'drizzle-orm/durable-sqlite';
 
+/*
+ * Bind Drizzle without accessing storage. The common Repo activation gate
+ * enables foreign keys and provisions the schema after spec acceptance.
+ */
 export function makeDurableDb<CONFIG extends IDbConfig>(props: {
   storage: DurableObjectStorage;
   dbConfig: CONFIG;
 }): IDb<CONFIG> {
   const { dbConfig, storage } = props;
-  storage.sql.exec('PRAGMA foreign_keys = ON;');
 
+  // Pass the configured relations to the durable-sqlite driver without SQL.
   return drizzle(storage, {
     relations: dbConfig.relations,
   }) as unknown as IDb<CONFIG>;

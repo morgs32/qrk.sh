@@ -1,13 +1,23 @@
 import { it } from '@effect/vitest';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
+import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { ZerospinError } from '@zerospin/error';
-import { Effect, Layer, Result, Schema } from 'effect';
-import { describe, expect } from 'vitest';
+import { primitives } from '@zerospin/schema';
+import { Effect, Exit, Layer, ManagedRuntime, Result, Scope } from 'effect';
+import { afterAll, describe, expect } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
-import { makeContract } from '../contracts/makeContract.ts';
+import { contracts } from '../contracts/index.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
-import { List, main, mainModels, User } from '../fixtures/system.ts';
+import {
+  List,
+  ListModel,
+  main,
+  mainModels,
+  User,
+  UserModel,
+} from '../fixtures/system.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { IncrementalMonotonicFactory } from '../test-utils/IncrementalMonotonicFactory.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
@@ -15,7 +25,7 @@ import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
 import { decodeRpc } from '../utils/decodeRpc.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
-import { makeSession } from './makeSession.ts';
+import { makeAggregateSession } from './makeAggregateSession.ts';
 import {
   sessionCommandJournalDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
@@ -24,6 +34,15 @@ import {
   sessionMetadataDrizzleSchema,
   sessionRepoTables,
 } from './sessionRepoTables.ts';
+const guardTestRuntime = ManagedRuntime.make(
+  Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
+);
+
+const sessionScope = Scope.makeUnsafe();
+Effect.runSync(
+  Scope.addFinalizer(sessionScope, guardTestRuntime.disposeEffect),
+);
+afterAll(() => Effect.runPromise(Scope.close(sessionScope, Exit.void)));
 
 const TestLayer = Layer.mergeAll(
   makePrefixedIncrementalIdFactory('sessionCreateList'),
@@ -35,16 +54,12 @@ const TestLayer = Layer.mergeAll(
 
 const now = new Date('2026-01-01T00:00:00.000Z');
 
-const rejectList = makeContract({
-  commandName: 'rejectList',
+const rejectList = contracts.makeVersion(contracts.makeCommand('rejectList'), {
   payload: {
-    id: List.primaryKey({ autogenerate: false }),
+    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
     name: List.propertiesShape.name,
-    userId: User.primaryKey({ autogenerate: false }),
+    userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
   },
-  mutations: Schema.Struct({
-    created: List.createMutation('1.0.0'),
-  }),
   program: () =>
     Effect.fail(
       new ZerospinError({
@@ -56,9 +71,10 @@ const rejectList = makeContract({
 });
 
 const rejectingFrontend = makeFrontendController({
-  contracts: { rejectList },
+  aggregateVersion: '1.0.0',
+  contracts: { rejectList: { contract: rejectList } },
   aggregateName: main.aggregateName,
-  frontendName: main.frontendName,
+  name: main.name,
   systemName: main.systemName,
   models: mainModels,
 });
@@ -74,9 +90,8 @@ describe('local session command journal', () => {
             models,
             otherTables: sessionRepoTables,
           });
-          const { schema } = dbConfig;
           const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
-          db.insert(schema.user)
+          db.insert(dbConfig.schema.user)
             .values({
               id: 'usr_1',
               modelName: User.modelName,
@@ -87,30 +102,35 @@ describe('local session command journal', () => {
             })
             .run();
           const submitted: number[] = [];
-          const session = makeSession({
-            frontend: main,
-            sessionId: 'sesn_commands',
-            executeAggregateFrontendCommand: ({ command }) =>
-              Effect.sync(() => {
-                submitted.push(command.sessionIndex);
-                return { commandId: command.id };
+          const session = Effect.runSync(
+            Effect.map(main.initializeGuards, guards =>
+              makeAggregateSession({
+                runtime: guardTestRuntime,
+                guards,
+                frontend: main,
+                sessionId: 'sesn_commands',
+                executeAggregateFrontendCommand: ({ command }) =>
+                  Effect.sync(() => {
+                    submitted.push(command.sessionIndex);
+                    return { commandId: command.id };
+                  }),
               }),
-          });
+            ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+          );
           session.store.setState({
             sessionId: 'sesn_commands',
             aggregateId: 'acct_1',
             aggregateName: main.aggregateName,
             userId: 'user_1',
             systemId: 'sys_1',
-            systemVersion: '1.0.0',
-            frontendName: main.frontendName,
+            frontendName: main.name,
             aggregateFrontendLockKey: 'aggregate-lock-key',
             db,
-            schema,
+            schema: dbConfig.schema,
             models,
             isInitialized: true,
             aggregateIndex: 0,
-            frontendIndex: 0,
+            userIndex: 0,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {
@@ -162,7 +182,7 @@ describe('local session command journal', () => {
           expect(
             db.select().from(sessionMetadataDrizzleSchema).get(),
           ).toMatchObject({ nextSessionIndex: 3 });
-          expect(db.select().from(schema.list).all()).toHaveLength(2);
+          expect(db.select().from(dbConfig.schema.list).all()).toHaveLength(2);
           expect(
             db
               .select()
@@ -175,10 +195,16 @@ describe('local session command journal', () => {
           );
           expect(submitted).toEqual([1, 2]);
 
-          const resumed = makeSession({
-            frontend: main,
-            sessionId: 'sesn_commands',
-          });
+          const resumed = Effect.runSync(
+            Effect.map(main.initializeGuards, guards =>
+              makeAggregateSession({
+                runtime: guardTestRuntime,
+                guards,
+                frontend: main,
+                sessionId: 'sesn_commands',
+              }),
+            ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+          );
           resumed.store.setState({
             ...session.store.getState(),
             telemetry: resumed.store.getState().telemetry,
@@ -210,27 +236,31 @@ describe('local session command journal', () => {
             models,
             otherTables: sessionRepoTables,
           });
-          const { schema } = dbConfig;
           const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
-          const session = makeSession({
-            frontend: main,
-            sessionId: 'sesn_rollback',
-          });
+          const session = Effect.runSync(
+            Effect.map(main.initializeGuards, guards =>
+              makeAggregateSession({
+                runtime: guardTestRuntime,
+                guards,
+                frontend: main,
+                sessionId: 'sesn_rollback',
+              }),
+            ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+          );
           session.store.setState({
             sessionId: 'sesn_rollback',
             aggregateId: 'acct_1',
             aggregateName: main.aggregateName,
             userId: 'user_1',
             systemId: 'sys_1',
-            systemVersion: '1.0.0',
-            frontendName: main.frontendName,
+            frontendName: main.name,
             aggregateFrontendLockKey: 'aggregate-lock-key',
             db,
-            schema,
+            schema: dbConfig.schema,
             models,
             isInitialized: true,
             aggregateIndex: 0,
-            frontendIndex: 0,
+            userIndex: 0,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {
@@ -269,35 +299,39 @@ describe('local session command journal', () => {
             models,
             otherTables: sessionRepoTables,
           });
-          const { schema } = dbConfig;
           const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
           const submittedFailures: string[] = [];
-          const session = makeSession({
-            frontend: rejectingFrontend,
-            sessionId: 'sesn_failure',
-            executeAggregateFrontendCommand: ({ command }) =>
-              Effect.sync(() => {
-                if (command.failure !== null) {
-                  submittedFailures.push(command.failure.code);
-                }
-                return { commandId: command.id };
+          const session = Effect.runSync(
+            Effect.map(rejectingFrontend.initializeGuards, guards =>
+              makeAggregateSession({
+                runtime: guardTestRuntime,
+                guards,
+                frontend: rejectingFrontend,
+                sessionId: 'sesn_failure',
+                executeAggregateFrontendCommand: ({ command }) =>
+                  Effect.sync(() => {
+                    if (command.failure !== null) {
+                      submittedFailures.push(command.failure.code);
+                    }
+                    return { commandId: command.id };
+                  }),
               }),
-          });
+            ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+          );
           session.store.setState({
             sessionId: 'sesn_failure',
             aggregateId: 'acct_1',
             aggregateName: rejectingFrontend.aggregateName,
             userId: 'user_1',
             systemId: 'sys_1',
-            systemVersion: '1.0.0',
-            frontendName: rejectingFrontend.frontendName,
+            frontendName: rejectingFrontend.name,
             aggregateFrontendLockKey: 'aggregate-lock-key',
             db,
-            schema,
+            schema: dbConfig.schema,
             models,
             isInitialized: true,
             aggregateIndex: 0,
-            frontendIndex: 0,
+            userIndex: 0,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {
@@ -358,27 +392,31 @@ describe('local session command journal', () => {
           models,
           otherTables: sessionRepoTables,
         });
-        const { schema } = dbConfig;
         const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
-        const session = makeSession({
-          frontend: main,
-          sessionId: 'sesn_blocked',
-        });
+        const session = Effect.runSync(
+          Effect.map(main.initializeGuards, guards =>
+            makeAggregateSession({
+              runtime: guardTestRuntime,
+              guards,
+              frontend: main,
+              sessionId: 'sesn_blocked',
+            }),
+          ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+        );
         session.store.setState({
           sessionId: 'sesn_blocked',
           aggregateId: 'acct_1',
           aggregateName: main.aggregateName,
           userId: 'user_1',
           systemId: 'sys_1',
-          systemVersion: '1.0.0',
-          frontendName: main.frontendName,
+          frontendName: main.name,
           aggregateFrontendLockKey: 'aggregate-lock-key',
           db,
-          schema,
+          schema: dbConfig.schema,
           models,
           isInitialized: true,
           aggregateIndex: 0,
-          frontendIndex: 0,
+          userIndex: 0,
           pushIndex: 0,
           sessionStatus: 'bootstrapping',
           backupState: {
@@ -429,9 +467,8 @@ describe('local session command journal', () => {
             models,
             otherTables: sessionRepoTables,
           });
-          const { schema } = dbConfig;
           const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
-          db.insert(schema.user)
+          db.insert(dbConfig.schema.user)
             .values({
               id: 'usr_1',
               modelName: User.modelName,
@@ -442,34 +479,39 @@ describe('local session command journal', () => {
             })
             .run();
           let attempts = 0;
-          const session = makeSession({
-            frontend: main,
-            sessionId: 'sesn_handoff',
-            executeAggregateFrontendCommand: () => {
-              attempts += 1;
-              return Effect.fail(
-                new ZerospinError({
-                  code: 'handoff-failed',
-                  message: 'Handoff failed',
-                }),
-              );
-            },
-          });
+          const session = Effect.runSync(
+            Effect.map(main.initializeGuards, guards =>
+              makeAggregateSession({
+                runtime: guardTestRuntime,
+                guards,
+                frontend: main,
+                sessionId: 'sesn_handoff',
+                executeAggregateFrontendCommand: () => {
+                  attempts += 1;
+                  return Effect.fail(
+                    new ZerospinError({
+                      code: 'handoff-failed',
+                      message: 'Handoff failed',
+                    }),
+                  );
+                },
+              }),
+            ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+          );
           session.store.setState({
             sessionId: 'sesn_handoff',
             aggregateId: 'acct_1',
             aggregateName: main.aggregateName,
             userId: 'user_1',
             systemId: 'sys_1',
-            systemVersion: '1.0.0',
-            frontendName: main.frontendName,
+            frontendName: main.name,
             aggregateFrontendLockKey: 'aggregate-lock-key',
             db,
-            schema,
+            schema: dbConfig.schema,
             models,
             isInitialized: true,
             aggregateIndex: 0,
-            frontendIndex: 0,
+            userIndex: 0,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {
@@ -496,7 +538,7 @@ describe('local session command journal', () => {
           expect(
             db.select().from(sessionCommandJournalDrizzleSchema).all(),
           ).toHaveLength(1);
-          expect(db.select().from(schema.list).all()).toHaveLength(1);
+          expect(db.select().from(dbConfig.schema.list).all()).toHaveLength(1);
           expect(session.store.getState().sessionStatus).toBe('current');
         }),
     );

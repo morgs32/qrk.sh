@@ -1,36 +1,37 @@
 declare module 'cloudflare:workers' {
   export const env: {
-    AGGREGATE_COMMAND_CHAIN: DurableObjectNamespace<
-      Rpc.DurableObjectBranded & import('system-worker').AggregateCommandChain
+    AGGREGATE_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').AggregateChain
     >;
-    SERVICE_COMMAND_CHAIN: DurableObjectNamespace<
-      Rpc.DurableObjectBranded & import('system-worker').ServiceCommandChain
+    SERVICE_ADMITTED_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').ServiceAdmittedChain
     >;
-    AGGREGATE_FRONTEND_PUSHED_COMMAND_CHAIN: DurableObjectNamespace<
+    VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').VersionedAggregateChain
+    >;
+    VERSIONED_SERVICE_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').VersionedServiceChain
+    >;
+    USER_VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
       Rpc.DurableObjectBranded &
-        import('system-worker').AggregateFrontendPushedCommandChain
+        import('system-worker').UserVersionedAggregateChain
     >;
-    AGGREGATE_FRONTEND_FINALIZED_COMMAND_CHAIN: DurableObjectNamespace<
+    FRONTEND_SERVICE_CHAIN: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').FrontendServiceChain
+    >;
+    VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').VersionedAggregateRepo
+    >;
+    VERSIONED_SERVICE_REPO: DurableObjectNamespace<
+      Rpc.DurableObjectBranded & import('system-worker').VersionedServiceRepo
+    >;
+    USER_VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded &
-        import('system-worker').AggregateFrontendFinalizedCommandChain
+        import('system-worker').UserVersionedAggregateRepo
     >;
-    SERVICE_FRONTEND_FINALIZED_COMMAND_CHAIN: DurableObjectNamespace<
+    FRONTEND_VERSIONED_SERVICE_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded &
-        import('system-worker').ServiceFrontendFinalizedCommandChain
-    >;
-    MATERIALIZED_AGGREGATE_REPO: DurableObjectNamespace<
-      Rpc.DurableObjectBranded & import('system-worker').MaterializedAggregateRepo
-    >;
-    MATERIALIZED_SERVICE_REPO: DurableObjectNamespace<
-      Rpc.DurableObjectBranded & import('system-worker').MaterializedServiceRepo
-    >;
-    MATERIALIZED_AGGREGATE_FRONTEND_REPO: DurableObjectNamespace<
-      Rpc.DurableObjectBranded &
-        import('system-worker').MaterializedAggregateFrontendRepo
-    >;
-    MATERIALIZED_SERVICE_FRONTEND_REPO: DurableObjectNamespace<
-      Rpc.DurableObjectBranded &
-        import('system-worker').MaterializedServiceFrontendRepo
+        import('system-worker').FrontendVersionedServiceRepo
     >;
     SYSTEM_LOG_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded & import('system-worker').SystemLogRepo

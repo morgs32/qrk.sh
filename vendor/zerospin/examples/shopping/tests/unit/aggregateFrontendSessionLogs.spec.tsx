@@ -1,17 +1,19 @@
-// @vitest-environment jsdom
-
 import { act } from 'react';
 
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
+// @vitest-environment jsdom
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
+import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
-import { makeSession } from '@zerospin/core/session/makeSession';
+import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
 import { encodeFailure } from '@zerospin/core/utils/encodeFailure';
 import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
+import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { ZerospinDevtools } from '@zerospin/devtools/ZerospinDevtools';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import { ZerospinError } from '@zerospin/error';
@@ -22,37 +24,64 @@ import {
   type ITelemetryBatch,
 } from '@zerospin/logger';
 import { env } from 'cloudflare:workers';
-import { Effect, Result, Schema } from 'effect';
+import {
+  Effect,
+  Exit,
+  Layer,
+  ManagedRuntime,
+  Result,
+  Schema,
+  Scope,
+} from 'effect';
 import { createRoot } from 'react-dom/client';
 import { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { makeSystemRuntime } from 'system-worker/makeSystemRuntime';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 
-import { web as shopperFrontend } from '@/zerospin/frontends/web';
-import { ClerkUserIdSchema, User } from '@/zerospin/models/User';
+import {
+  ClerkUserIdSchema,
+  userV1,
+} from '@/zerospin/aggregates/shopper/models/user/userV1';
+import { shopperV2 } from '@/zerospin/aggregates/shopper/shopperV2';
 import { system } from '@/zerospin/system';
+const WebV2 = makeFrontendController({
+  systemName: 'shopping',
+  aggregateName: shopperV2.name,
+  aggregateVersion: shopperV2.version,
+  name: 'web',
+  models: shopperV2.models,
+  contracts: shopperV2.contracts,
+});
+
+const guardTestRuntime = ManagedRuntime.make(
+  Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
+);
+
+const sessionScope = Scope.makeUnsafe();
+Effect.runSync(
+  Scope.addFinalizer(sessionScope, guardTestRuntime.disposeEffect),
+);
+afterAll(() => Effect.runPromise(Scope.close(sessionScope, Exit.void)));
 
 describe('aggregate frontend session logs integration', () => {
   it('links persisted server roots into one browser session and renders them in DevTools', async () => {
     const clerkUserId =
       Schema.decodeUnknownSync(ClerkUserIdSchema)('user_logs');
     const persistedBatches: ITelemetryBatch[] = [];
-    const frontendSpec = makeFrontendControllerSpec(shopperFrontend);
-    const authenticationLock = makeAuthenticationLock({
-      signature: system.authentication.signature,
-    });
-    Reflect.set(env, 'MATERIALIZED_AGGREGATE_REPO', {
+    const frontendSpec = makeFrontendControllerSpec(WebV2);
+    const authenticationLock = makeAuthenticationLock(system.authentication[0]);
+    Reflect.set(env, 'VERSIONED_AGGREGATE_REPO', {
       getByName: () => ({
         authorizeAggregateFrontend: async () => encodeSuccess(undefined),
       }),
     });
-    Reflect.set(env, 'MATERIALIZED_SERVICE_REPO', {
+    Reflect.set(env, 'VERSIONED_SERVICE_REPO', {
       getByName: () => ({
         executeServiceQuery: async () =>
           encodeFailure(
             new ZerospinError({
               code: 'integration-query-failed',
-              message: 'Expected aggregate query failure',
+              message: 'Expected service query failure',
             }),
           ),
       }),
@@ -72,36 +101,47 @@ describe('aggregate frontend session logs integration', () => {
     });
     const aggregateFrontendApi = await gatewayApi.getAggregateFrontendApi({
       publishableKey: 'pk_logs',
-      systemName: shopperFrontend.systemName,
+      systemName: WebV2.systemName,
       authenticationLock,
       signature: { clerkUserId: 'user_logs' },
       aggregateId: 'acct_1',
-      aggregateName: shopperFrontend.aggregateName,
-      frontendName: shopperFrontend.frontendName,
+      aggregateName: WebV2.aggregateName,
+      frontendName: WebV2.name,
+      aggregateVersion: WebV2.aggregateVersion,
       aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
     });
-    const session = makeSession({
-      frontend: shopperFrontend,
-      sessionId: 'sesn_aggregate_frontend_logs',
-    });
-    const otherSession = makeSession({
-      frontend: shopperFrontend,
-      sessionId: 'sesn_other_aggregate_frontend_logs',
-    });
+    const session = Effect.runSync(
+      Effect.map(WebV2.initializeGuards, guards =>
+        makeAggregateSession({
+          runtime: guardTestRuntime,
+          guards,
+          frontend: WebV2,
+          sessionId: 'sesn_aggregate_frontend_logs',
+        }),
+      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+    );
+    const otherSession = Effect.runSync(
+      Effect.map(WebV2.initializeGuards, guards =>
+        makeAggregateSession({
+          runtime: guardTestRuntime,
+          guards,
+          frontend: WebV2,
+          sessionId: 'sesn_other_aggregate_frontend_logs',
+        }),
+      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+    );
     const tracedAggregateFrontendApi =
       makeTraceableApiTarget(aggregateFrontendApi);
 
     const outcome = await Effect.runPromise(
       Effect.gen(function* () {
         const failedQuery = yield* tracedAggregateFrontendApi
-          .executeAggregateQuery({
+          .executeServiceQuery({
+            serviceName: 'app',
             queryName: 'getProducts',
             params: {},
           })
-          .pipe(
-            Effect.withSpan('browser.executeAggregateQuery'),
-            Effect.result,
-          );
+          .pipe(Effect.withSpan('browser.executeServiceQuery'), Effect.result);
         return { failedQuery };
       }).pipe(
         Effect.provide(
@@ -121,7 +161,7 @@ describe('aggregate frontend session logs integration', () => {
     expect(session.store.getState().telemetry.spans).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          name: 'browser.executeAggregateQuery',
+          name: 'browser.executeServiceQuery',
           status: 'error',
         }),
       ]),
@@ -129,10 +169,10 @@ describe('aggregate frontend session logs integration', () => {
     const browserQuerySpan = session.store
       .getState()
       .telemetry.spans.find(
-        span => span.name === 'browser.executeAggregateQuery',
+        span => span.name === 'browser.executeServiceQuery',
       );
     const serverQueryRoot = persistedBatches[0]?.spans.find(
-      span => span.name === 'AggregateFrontendApi.executeAggregateQuery',
+      span => span.name === 'AggregateFrontendApi.executeServiceQuery',
     );
     expect(session.store.getState().telemetry.links[0]).toEqual(
       expect.objectContaining({
@@ -158,16 +198,15 @@ describe('aggregate frontend session logs integration', () => {
     );
     session.store.setState({
       aggregateId: 'acct_1',
-      aggregateName: shopperFrontend.aggregateName,
+      aggregateName: WebV2.aggregateName,
       userId: 'user_logs',
-      systemId: 'sys_shopping',
-      systemVersion: system.version,
-      frontendName: shopperFrontend.frontendName,
+      systemId: 'sys_shopping_20260904',
+      frontendName: WebV2.name,
       db,
       schema: dbConfig.schema,
       models,
       isInitialized: true,
-      frontendIndex: 0,
+      userIndex: 0,
       sessionStatus: 'current',
       backupState: { status: 'ready', failure: null },
     });
@@ -175,10 +214,10 @@ describe('aggregate frontend session logs integration', () => {
     db.insert(dbConfig.schema.user)
       .values({
         id: 'usr_logs',
-        modelName: User.modelName,
+        modelName: userV1.modelName,
         createdAt: seededAt,
         updatedAt: seededAt,
-        version: User.version,
+        version: userV1.version,
         clerkUserId,
         name: null,
       })

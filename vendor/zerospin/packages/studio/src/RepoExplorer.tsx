@@ -31,22 +31,19 @@ import {
   TableHeader,
   TableRow,
 } from './components/ui/table.js';
-import {
-  LeadingField,
-  LeadingFieldList,
-} from './leading-field/leading-field.js';
 
 const repoTypes = [
   'SystemRepo',
-  'MaterializedAggregateRepo',
-  'MaterializedAggregateFrontendRepo',
-  'MaterializedServiceFrontendRepo',
-  'MaterializedServiceRepo',
-  'AggregateCommandChain',
-  'AggregateFrontendPushedCommandChain',
-  'AggregateFrontendFinalizedCommandChain',
-  'ServiceFrontendFinalizedCommandChain',
-  'ServiceCommandChain',
+  'VersionedAggregateRepo',
+  'UserVersionedAggregateRepo',
+  'FrontendVersionedServiceRepo',
+  'VersionedServiceRepo',
+  'AggregateChain',
+  'VersionedAggregateChain',
+  'VersionedServiceChain',
+  'UserVersionedAggregateChain',
+  'FrontendServiceChain',
+  'ServiceAdmittedChain',
   'SystemLogRepo',
 ] satisfies readonly IRepoType[];
 
@@ -209,54 +206,53 @@ export function RepoExplorer() {
           <span>1</span>
           <div className="min-w-0 flex-1">
             <h1>Admin</h1>
-            <LeadingFieldList className="mt-3">
-              <LeadingField label="System version" value={systemSpec.version} />
-            </LeadingFieldList>
             <ol className="ml-5 mt-5 list-[upper-alpha] space-y-3">
               <li>
                 Aggregates
                 <ol className="ml-5 mt-1 list-decimal space-y-2">
-                  {Object.values(systemSpec.aggregates).map(aggregate => (
-                    <li key={aggregate.name}>
-                      {aggregate.name}
-                      <ol className="ml-5 mt-1 list-[lower-alpha] space-y-1">
-                        <li>
-                          models
-                          <ol className="ml-5 list-decimal">
-                            {Object.values(aggregate.models).map(model => (
-                              <li key={model.modelName}>
-                                {model.modelName}:{' '}
-                                {[
-                                  model.version,
-                                  ...model.historicalDefinitions
-                                    .toReversed()
-                                    .map(definition => definition.version),
-                                ].join(', ')}
-                              </li>
-                            ))}
-                          </ol>
-                        </li>
-                        <li>
-                          contracts
-                          <ol className="ml-5 list-decimal">
-                            {Object.values(aggregate.contracts).map(
-                              contract => (
-                                <li key={contract.commandName}>
-                                  {contract.commandName}:{' '}
-                                  {[
-                                    contract.version,
-                                    ...contract.historicalDefinitions
-                                      .toReversed()
-                                      .map(definition => definition.version),
-                                  ].join(', ')}
+                  {Object.values(systemSpec.aggregates)
+                    .flatMap(versions => Object.values(versions))
+                    .map(aggregate => (
+                      <li key={`${aggregate.name}@${aggregate.version}`}>
+                        {aggregate.name}: {aggregate.version}
+                        <ol className="ml-5 mt-1 list-[lower-alpha] space-y-1">
+                          <li>
+                            service pins
+                            <ol className="ml-5 list-decimal">
+                              {Object.entries(aggregate.services).map(
+                                ([serviceName, serviceVersion]) => (
+                                  <li key={serviceName}>
+                                    {serviceName}: {serviceVersion}
+                                  </li>
+                                ),
+                              )}
+                            </ol>
+                          </li>
+                          <li>
+                            models
+                            <ol className="ml-5 list-decimal">
+                              {Object.values(aggregate.models).map(model => (
+                                <li key={model.modelName}>
+                                  {model.modelName}: {model.version}
                                 </li>
-                              ),
-                            )}
-                          </ol>
-                        </li>
-                      </ol>
-                    </li>
-                  ))}
+                              ))}
+                            </ol>
+                          </li>
+                          <li>
+                            contracts
+                            <ol className="ml-5 list-decimal">
+                              {Object.values(aggregate.contracts).map(
+                                contract => (
+                                  <li key={contract.commandName}>
+                                    {contract.commandName}: {contract.version}
+                                  </li>
+                                ),
+                              )}
+                            </ol>
+                          </li>
+                        </ol>
+                      </li>
+                    ))}
                 </ol>
               </li>
             </ol>

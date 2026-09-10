@@ -23,6 +23,7 @@ const frontendStateRequest = {
     {
       aggregateId: 'acct_1',
       aggregateName: 'shopping',
+      aggregateVersion: '1.0.0',
       userId: 'user_1',
       frontendName: 'web',
       aggregateFrontendLock: {
@@ -37,20 +38,28 @@ const frontendStateRequest = {
 } satisfies Parameters<SystemApi['getAggregateFrontendState']>[0];
 
 const serviceQueryRequest = {
-  args: [{ serviceName: 'catalog', queryName: 'list', params: null }],
+  args: [
+    {
+      serviceName: 'catalog',
+      serviceVersion: '1.0.0',
+      queryName: 'list',
+      params: null,
+    },
+  ],
   traceContext: null,
 } satisfies Parameters<SystemApi['executeServiceQuery']>[0];
 
 const finalizeAggregateRequest = {
-  args: [aggregateCommand],
+  args: [{ command: aggregateCommand, aggregateVersion: '1.0.0' }],
   traceContext: null,
-} satisfies Parameters<SystemApi['finalizeAggregateCommand']>[0];
+} satisfies Parameters<SystemApi['executeAggregateCommand']>[0];
 
 const selectQueryRequest = {
   args: [
     {
       aggregateId: 'acct_1',
       aggregateName: 'shopping',
+      aggregateVersion: '1.0.0',
       query: { method: 'all', params: [], rawSql: 'SELECT 1' },
     },
   ],
@@ -58,9 +67,9 @@ const selectQueryRequest = {
 } satisfies Parameters<SystemApi['executeSelectQuery']>[0];
 
 const finalizeServiceRequest = {
-  args: [serviceCommand],
+  args: [{ command: serviceCommand, serviceVersion: '1.0.0' }],
   traceContext: null,
-} satisfies Parameters<SystemApi['finalizeServiceCommand']>[0];
+} satisfies Parameters<SystemApi['executeServiceCommand']>[0];
 
 const repoTableRequest = {
   args: [{ repoName: 'repo', tableName: 'table' }],
@@ -70,90 +79,75 @@ const repoTableRequest = {
 void systemApi.healthcheck(emptyRequest);
 void systemApi.getAggregateFrontendState(frontendStateRequest);
 void systemApi.executeServiceQuery(serviceQueryRequest);
-void systemApi.finalizeAggregateCommand(finalizeAggregateRequest);
+void systemApi.executeAggregateCommand(finalizeAggregateRequest);
 void systemApi.executeSelectQuery(selectQueryRequest);
-void systemApi.finalizeServiceCommand(finalizeServiceRequest);
+void systemApi.executeServiceCommand(finalizeServiceRequest);
 void systemApi.getSystemRepos(emptyRequest);
 void systemApi.getSystemRepoTableRows(repoTableRequest);
-void systemApi.getMaterializedAggregateRepos(emptyRequest);
-void systemApi.getMaterializedAggregateRepoTableRows(repoTableRequest);
-void systemApi.getMaterializedAggregateFrontendRepos(emptyRequest);
-void systemApi.getMaterializedAggregateFrontendRepoTableRows(repoTableRequest);
-void systemApi.getMaterializedServiceFrontendRepos(emptyRequest);
-void systemApi.getMaterializedServiceFrontendRepoTableRows(repoTableRequest);
-void systemApi.getMaterializedServiceRepos(emptyRequest);
-void systemApi.getMaterializedServiceRepoTableRows(repoTableRequest);
-void systemApi.getAggregateCommandChains(emptyRequest);
-void systemApi.getAggregateCommandChainTableRows(repoTableRequest);
-void systemApi.getAggregateFrontendFinalizedCommandChains(emptyRequest);
-void systemApi.getAggregateFrontendFinalizedCommandChainTableRows(
-  repoTableRequest,
-);
-void systemApi.getAggregateFrontendPushedCommandChains(emptyRequest);
-void systemApi.getAggregateFrontendPushedCommandChainTableRows(
-  repoTableRequest,
-);
-void systemApi.getServiceFrontendFinalizedCommandChains(emptyRequest);
-void systemApi.getServiceFrontendFinalizedCommandChainTableRows(
-  repoTableRequest,
-);
-void systemApi.getServiceCommandChains(emptyRequest);
-void systemApi.getServiceCommandChainTableRows(repoTableRequest);
+void systemApi.getVersionedAggregateRepos(emptyRequest);
+void systemApi.getVersionedAggregateRepoTableRows(repoTableRequest);
+void systemApi.getUserVersionedAggregateRepos(emptyRequest);
+void systemApi.getUserVersionedAggregateRepoTableRows(repoTableRequest);
+void systemApi.getFrontendVersionedServiceRepos(emptyRequest);
+void systemApi.getFrontendVersionedServiceRepoTableRows(repoTableRequest);
+void systemApi.getVersionedServiceRepos(emptyRequest);
+void systemApi.getVersionedServiceRepoTableRows(repoTableRequest);
+void systemApi.getAggregateChains(emptyRequest);
+void systemApi.getAggregateChainTableRows(repoTableRequest);
+void systemApi.getUserVersionedAggregateChains(emptyRequest);
+void systemApi.getUserVersionedAggregateChainTableRows(repoTableRequest);
+void systemApi.getVersionedAggregateChains(emptyRequest);
+void systemApi.getVersionedAggregateChainTableRows(repoTableRequest);
+void systemApi.getFrontendServiceChains(emptyRequest);
+void systemApi.getFrontendServiceChainTableRows(repoTableRequest);
+void systemApi.getServiceAdmittedChains(emptyRequest);
+void systemApi.getServiceAdmittedChainTableRows(repoTableRequest);
 void systemApi.getSystemLogRepos(emptyRequest);
 void systemApi.getSystemLogRepoTableRows(repoTableRequest);
 void systemApi.makeSystemSpec(emptyRequest);
+void systemApi.checkSystemSpec(emptyRequest);
+void systemApi.initialize(emptyRequest);
 
 void systemApiFailure.healthcheck(emptyRequest);
+void systemApiFailure.initialize(emptyRequest);
 void systemApiFailure.getAggregateFrontendState(frontendStateRequest);
 void systemApiFailure.executeServiceQuery(serviceQueryRequest);
-void systemApiFailure.finalizeAggregateCommand(finalizeAggregateRequest);
+void systemApiFailure.executeAggregateCommand(finalizeAggregateRequest);
 void systemApiFailure.executeSelectQuery(selectQueryRequest);
-void systemApiFailure.finalizeServiceCommand(finalizeServiceRequest);
+void systemApiFailure.executeServiceCommand(finalizeServiceRequest);
 void systemApiFailure.getSystemRepos(emptyRequest);
 void systemApiFailure.getSystemRepoTableRows(repoTableRequest);
-void systemApiFailure.getMaterializedAggregateRepos(emptyRequest);
-void systemApiFailure.getMaterializedAggregateRepoTableRows(repoTableRequest);
-void systemApiFailure.getMaterializedAggregateFrontendRepos(emptyRequest);
-void systemApiFailure.getMaterializedAggregateFrontendRepoTableRows(
+void systemApiFailure.getVersionedAggregateRepos(emptyRequest);
+void systemApiFailure.getVersionedAggregateRepoTableRows(repoTableRequest);
+void systemApiFailure.getUserVersionedAggregateRepos(emptyRequest);
+void systemApiFailure.getUserVersionedAggregateRepoTableRows(repoTableRequest);
+void systemApiFailure.getFrontendVersionedServiceRepos(emptyRequest);
+void systemApiFailure.getFrontendVersionedServiceRepoTableRows(
   repoTableRequest,
 );
-void systemApiFailure.getMaterializedServiceFrontendRepos(emptyRequest);
-void systemApiFailure.getMaterializedServiceFrontendRepoTableRows(
-  repoTableRequest,
-);
-void systemApiFailure.getMaterializedServiceRepos(emptyRequest);
-void systemApiFailure.getMaterializedServiceRepoTableRows(repoTableRequest);
-void systemApiFailure.getAggregateCommandChains(emptyRequest);
-void systemApiFailure.getAggregateCommandChainTableRows(repoTableRequest);
-void systemApiFailure.getAggregateFrontendFinalizedCommandChains(emptyRequest);
-void systemApiFailure.getAggregateFrontendFinalizedCommandChainTableRows(
-  repoTableRequest,
-);
-void systemApiFailure.getAggregateFrontendPushedCommandChains(emptyRequest);
-void systemApiFailure.getAggregateFrontendPushedCommandChainTableRows(
-  repoTableRequest,
-);
-void systemApiFailure.getServiceFrontendFinalizedCommandChains(emptyRequest);
-void systemApiFailure.getServiceFrontendFinalizedCommandChainTableRows(
-  repoTableRequest,
-);
-void systemApiFailure.getServiceCommandChains(emptyRequest);
-void systemApiFailure.getServiceCommandChainTableRows(repoTableRequest);
+void systemApiFailure.getVersionedServiceRepos(emptyRequest);
+void systemApiFailure.getVersionedServiceRepoTableRows(repoTableRequest);
+void systemApiFailure.getAggregateChains(emptyRequest);
+void systemApiFailure.getAggregateChainTableRows(repoTableRequest);
+void systemApiFailure.getUserVersionedAggregateChains(emptyRequest);
+void systemApiFailure.getUserVersionedAggregateChainTableRows(repoTableRequest);
+void systemApiFailure.getVersionedAggregateChains(emptyRequest);
+void systemApiFailure.getVersionedAggregateChainTableRows(repoTableRequest);
+void systemApiFailure.getFrontendServiceChains(emptyRequest);
+void systemApiFailure.getFrontendServiceChainTableRows(repoTableRequest);
+void systemApiFailure.getServiceAdmittedChains(emptyRequest);
+void systemApiFailure.getServiceAdmittedChainTableRows(repoTableRequest);
 void systemApiFailure.getSystemLogRepos(emptyRequest);
 void systemApiFailure.getSystemLogRepoTableRows(repoTableRequest);
 void systemApiFailure.makeSystemSpec(emptyRequest);
+void systemApiFailure.checkSystemSpec(emptyRequest);
 
 void systemApiUnion.healthcheck(emptyRequest);
+void systemApiUnion.initialize(emptyRequest);
 void systemApiUnion.getAggregateFrontendState(frontendStateRequest);
-void systemApiUnion.getMaterializedServiceFrontendRepos(emptyRequest);
-void systemApiUnion.getMaterializedServiceFrontendRepoTableRows(
-  repoTableRequest,
-);
-void systemApiUnion.getServiceFrontendFinalizedCommandChains(emptyRequest);
-void systemApiUnion.getServiceFrontendFinalizedCommandChainTableRows(
-  repoTableRequest,
-);
-void systemApiUnion.getAggregateFrontendPushedCommandChains(emptyRequest);
-void systemApiUnion.getAggregateFrontendPushedCommandChainTableRows(
-  repoTableRequest,
-);
+void systemApiUnion.getFrontendVersionedServiceRepos(emptyRequest);
+void systemApiUnion.getFrontendVersionedServiceRepoTableRows(repoTableRequest);
+void systemApiUnion.getFrontendServiceChains(emptyRequest);
+void systemApiUnion.getFrontendServiceChainTableRows(repoTableRequest);
+void systemApiUnion.getVersionedAggregateChains(emptyRequest);
+void systemApiUnion.getVersionedAggregateChainTableRows(repoTableRequest);

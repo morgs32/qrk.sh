@@ -6,27 +6,28 @@ import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
-import { Effect, Layer, ManagedRuntime, Redacted } from 'effect';
+import { Effect, Layer, Redacted } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeZerospinApp } from './makeZerospinApp';
 
-const sessionRuntime = ManagedRuntime.make(
-  Layer.mergeAll(
-    AsyncLive,
-    NanoIdFactory,
-    UlidMonotonicFactory,
-    Layer.succeed(PublishableKey, Redacted.make('pk_test')),
-    Layer.succeed(ZerospinApiUrl, 'https://api.example.test'),
-  ),
+const sessionRuntimeLayer = Layer.mergeAll(
+  AsyncLive,
+  NanoIdFactory,
+  UlidMonotonicFactory,
+  Layer.succeed(PublishableKey, Redacted.make('pk_test')),
+  Layer.succeed(ZerospinApiUrl, 'https://api.example.test'),
 );
 
 const ZerospinApp = makeZerospinApp({
   systemName: 'system-worker',
-  authentication: { signature: authenticationSignature },
+  authentication: {
+    version: authenticationSignature.version,
+    signature: authenticationSignature.signature,
+  },
   frontends: {},
-  runtime: sessionRuntime,
+  layer: sessionRuntimeLayer,
 });
 
 const fakeImport = vi.hoisted(() => ({ attempts: 0 }));

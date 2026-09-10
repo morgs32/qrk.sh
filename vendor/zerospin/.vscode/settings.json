@@ -40,5 +40,6 @@
   "editor.formatOnSave": true,
   "oxc.fmt.configPath": ".oxfmtrc.json",
   "postman.settings.dotenv-detection-notification-visibility": false,
-  "npm.exclude": ["**/packages/react/package.json"]
+  "npm.exclude": ["**/packages/react/package.json"],
+  "vitest.configSearchPatternExclude": "{**/node_modules/**,**/vendor/**,**/.*/**,**/*.d.ts,**/examples/capnweb-counter/vite.config.ts}"
 }

@@ -37,7 +37,7 @@
   "exclude": ["**/*.spec.ts", "**/*.typecheck.ts"],
   "references": [
     {
-      "path": "../opfs-backup-worker"
+      "path": "../backup-worker"
     },
     {
       "path": "../core"

@@ -3,7 +3,7 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Layer } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { makeContract } from '../contracts/makeContract.ts';
+import { contracts } from '../contracts/index.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
@@ -11,11 +11,9 @@ import { makeAggregateId } from '../utils/makeAggregateId.ts';
 
 import { makeAggregateCommand } from './makeAggregateCommand.ts';
 
-const renameUser = makeContract({
-  commandName: 'renameUser',
+const renameUser = contracts.makeVersion(contracts.makeCommand('renameUser'), {
   version: '1.0.0',
   payload: { name: primitives.text() },
-  mutations: null,
 });
 
 const TestLayer = Layer.mergeAll(
@@ -35,6 +33,7 @@ describe('makeAggregateCommand', () => {
             contract: renameUser,
             aggregateId,
             aggregateName: 'user',
+            aggregateVersion: '2.0.0',
             systemName: 'shopping',
             payload: { name: 'Ada' },
           });
@@ -43,6 +42,7 @@ describe('makeAggregateCommand', () => {
             commandName: 'renameUser',
             aggregateId,
             aggregateName: 'user',
+            aggregateVersion: '2.0.0',
             systemName: 'shopping',
             payload: { name: 'Ada' },
             userId: null,

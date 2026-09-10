@@ -11,7 +11,7 @@
       "path": "./tsconfig.json"
     },
     {
-      "path": "../opfs-backup-worker"
+      "path": "../backup-worker"
     },
     {
       "path": "../core"

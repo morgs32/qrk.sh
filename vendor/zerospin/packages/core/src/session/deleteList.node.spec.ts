@@ -1,6 +1,8 @@
 import { it } from '@effect/vitest';
-import { Effect, Layer, Result } from 'effect';
-import { describe, expect } from 'vitest';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
+import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
+import { Effect, Exit, Layer, ManagedRuntime, Result, Scope } from 'effect';
+import { afterAll, describe, expect } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
@@ -12,12 +14,21 @@ import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
 import { decodeRpc } from '../utils/decodeRpc.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
-import { makeSession } from './makeSession.ts';
+import { makeAggregateSession } from './makeAggregateSession.ts';
 import {
   sessionCommandJournalDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
 } from './sessionCommandShape.ts';
 import { sessionRepoTables } from './sessionRepoTables.ts';
+const guardTestRuntime = ManagedRuntime.make(
+  Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
+);
+
+const sessionScope = Scope.makeUnsafe();
+Effect.runSync(
+  Scope.addFinalizer(sessionScope, guardTestRuntime.disposeEffect),
+);
+afterAll(() => Effect.runPromise(Scope.close(sessionScope, Exit.void)));
 
 const TestLayer = Layer.mergeAll(
   makePrefixedIncrementalIdFactory('sessionDeleteList'),
@@ -40,9 +51,8 @@ describe('deleteList local occurrence', () => {
             models,
             otherTables: sessionRepoTables,
           });
-          const { schema } = dbConfig;
           const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
-          db.insert(schema.user)
+          db.insert(dbConfig.schema.user)
             .values({
               id: 'usr_1',
               modelName: User.modelName,
@@ -52,25 +62,30 @@ describe('deleteList local occurrence', () => {
               name: 'User',
             })
             .run();
-          const session = makeSession({
-            frontend: main,
-            sessionId: 'sesn_delete',
-          });
+          const session = Effect.runSync(
+            Effect.map(main.initializeGuards, guards =>
+              makeAggregateSession({
+                runtime: guardTestRuntime,
+                guards,
+                frontend: main,
+                sessionId: 'sesn_delete',
+              }),
+            ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+          );
           session.store.setState({
             sessionId: 'sesn_delete',
             aggregateId: 'acct_1',
             aggregateName: main.aggregateName,
             userId: 'user_1',
             systemId: 'sys_1',
-            systemVersion: '1.0.0',
-            frontendName: main.frontendName,
+            frontendName: main.name,
             aggregateFrontendLockKey: 'aggregate-lock-key',
             db,
-            schema,
+            schema: dbConfig.schema,
             models,
             isInitialized: true,
             aggregateIndex: 0,
-            frontendIndex: 0,
+            userIndex: 0,
             pushIndex: 0,
             sessionStatus: 'current',
             backupState: {
@@ -131,27 +146,31 @@ describe('deleteList local occurrence', () => {
           models,
           otherTables: sessionRepoTables,
         });
-        const { schema } = dbConfig;
         const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
-        const session = makeSession({
-          frontend: main,
-          sessionId: 'sesn_missing_delete',
-        });
+        const session = Effect.runSync(
+          Effect.map(main.initializeGuards, guards =>
+            makeAggregateSession({
+              runtime: guardTestRuntime,
+              guards,
+              frontend: main,
+              sessionId: 'sesn_missing_delete',
+            }),
+          ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+        );
         session.store.setState({
           sessionId: 'sesn_missing_delete',
           aggregateId: 'acct_1',
           aggregateName: main.aggregateName,
           userId: 'user_1',
           systemId: 'sys_1',
-          systemVersion: '1.0.0',
-          frontendName: main.frontendName,
+          frontendName: main.name,
           aggregateFrontendLockKey: 'aggregate-lock-key',
           db,
-          schema,
+          schema: dbConfig.schema,
           models,
           isInitialized: true,
           aggregateIndex: 0,
-          frontendIndex: 0,
+          userIndex: 0,
           pushIndex: 0,
           sessionStatus: 'current',
           backupState: {

@@ -12,8 +12,7 @@ const serviceSessionMetadataTable = makeTable({
   shape: {
     sessionId: primitives.primaryKey({ abbreviation: 'sesn' }),
     serviceIndex: primitives.integer(),
-    serviceFrontendIndex: primitives.integer(),
-    systemVersion: primitives.text(),
+    serviceVersion: primitives.text(),
   },
 });
 

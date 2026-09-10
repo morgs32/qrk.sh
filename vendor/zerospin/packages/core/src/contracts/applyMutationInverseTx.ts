@@ -222,7 +222,7 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
         });
         return;
       }
-      case 'replicateResource': {
+      case 'replicate': {
         if (mutation.inverseOperation === null) {
           yield* Effect.try({
             try: () => tx.delete(table).where(eq(table.id, resourceId)).run(),
@@ -239,7 +239,7 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
               }
               return new ZerospinError({
                 code: 'mutation-referential-integrity-failed',
-                message: `Cannot apply replicateResource mutation inverse to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+                message: `Cannot apply replicate mutation inverse to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
                 cause: failure,
                 extra: {
                   modelName: model.modelName,
@@ -255,7 +255,7 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
           return yield* new ZerospinError({
             code: 'invalid-inverse-operation',
             message:
-              'applyMutationInverseTx: replicateResource inverseOperation must include resource',
+              'applyMutationInverseTx: replicate inverseOperation must include resource',
           });
         }
         const inverseResource = mutation.inverseOperation.resource;
@@ -279,7 +279,7 @@ export const applyMutationInverseTx = Effect.fn('applyMutationInverseTx')(
             }
             return new ZerospinError({
               code: 'mutation-referential-integrity-failed',
-              message: `Cannot apply replicateResource mutation inverse to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
+              message: `Cannot apply replicate mutation inverse to "${model.modelName}.${resourceId}" because it violates a persisted reference`,
               cause: failure,
               extra: { modelName: model.modelName, resourceId, operationName },
             });

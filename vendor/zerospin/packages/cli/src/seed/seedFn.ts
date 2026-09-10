@@ -1,117 +1,151 @@
 import type { Async } from '@zerospin/core/async/Async';
+import { makeAsync } from '@zerospin/core/async/makeAsync';
+import {
+  UnknownAggregateCommandSchema,
+  UnknownServiceCommandSchema,
+} from '@zerospin/core/contracts/CommandSchema';
 import type {
   IAggregateCommand,
   IEncodedCommand,
   IServiceCommand,
 } from '@zerospin/core/contracts/types';
-import type { ISystemEnvironmentId } from '@zerospin/core/system/types';
 import { executeRpc } from '@zerospin/core/utils/executeRpc';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
-import { Effect, Path, type FileSystem } from 'effect';
+import type { CuidFactory } from '@zerospin/schema';
+import { Effect, FileSystem, Path, Schema } from 'effect';
 import { createJiti } from 'jiti';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
 import { jitiAliasesFromTsconfigPaths } from '../deploy/jitiAliasesFromTsconfigPaths.js';
 import { loadConfigFn } from '../deploy/loadConfigFn.js';
-import { loadSystemFn } from '../deploy/loadSystemFn.js';
 
 export const seedFn = Effect.fn('seedFn')(function* (props: {
-  environmentId: ISystemEnvironmentId;
+  filePath: string;
   cwd?: string;
 }): Effect.fn.Return<
-  Readonly<{ commandsFinalized: number }>,
+  Readonly<{ commandsSubmitted: number }>,
   IAnyError,
   Async | FileSystem.FileSystem | Path.Path
 > {
-  const cwd = props.cwd ?? process.cwd();
-  const pathApi = yield* Path.Path;
-  const { config, zerospinApiUrl, zerospinSecretKey } = yield* loadConfigFn();
-  const seedsEntry = config.seeds[props.environmentId];
-  if (seedsEntry === null) {
-    return yield* new ZerospinError({
-      code: 'seed-module-not-configured',
-      message: `No seed module is configured for ${props.environmentId}.`,
-    });
-  }
-  const system = yield* loadSystemFn(config, cwd);
-  const seedsPath = pathApi.resolve(cwd, seedsEntry);
-  const jitiAliases = yield* jitiAliasesFromTsconfigPaths(cwd).pipe(
-    Effect.mapError(
-      cause =>
-        new ZerospinError({
-          code: 'seed-module-import-failed',
-          message: 'Failed to read tsconfig.json aliases for the seed module.',
-          cause: ZerospinError.prettyUnknownFailure(cause),
-        }),
-    ),
-  );
-  const loadedModule = yield* Effect.tryPromise({
-    try: () =>
-      createJiti(seedsPath, {
-        alias: jitiAliases,
+  const { cwd = process.cwd(), filePath } = props;
+  const {
+    config,
+    zerospinApiUrl: defaultApiUrl,
+    zerospinSecretKey,
+  } = yield* loadConfigFn(cwd);
+  const zerospinApiUrl =
+    process.env['ZEROSPIN_API_URL'] ??
+    process.env['VITE_ZEROSPIN_API_URL'] ??
+    process.env['NEXT_PUBLIC_ZEROSPIN_API_URL'] ??
+    defaultApiUrl;
+  const { system } = config;
+  const path = yield* Path.Path;
+  const fs = yield* FileSystem.FileSystem;
+  const modulePath = path.resolve(cwd, filePath);
+  const commands = yield* Effect.gen(function* () {
+    if (!(yield* fs.exists(modulePath))) {
+      return yield* new ZerospinError({
+        code: 'seed-file-missing',
+        message: `Seed file does not exist: ${modulePath}.`,
+      });
+    }
+    const alias = yield* jitiAliasesFromTsconfigPaths(cwd);
+    const loaded = yield* makeAsync(() =>
+      createJiti(modulePath, {
+        alias,
         moduleCache: false,
         tryNative: false,
-      }).import(seedsPath),
-    catch: cause =>
-      new ZerospinError({
-        code: 'seed-module-import-failed',
-        message: `Failed to import ${seedsEntry}.`,
-        cause: ZerospinError.prettyUnknownFailure(cause),
-      }),
-  });
-  const seeds =
-    loadedModule !== null && typeof loadedModule === 'object'
-      ? Reflect.get(loadedModule, 'seeds')
-      : undefined;
-  if (!Effect.isEffect(seeds)) {
-    return yield* new ZerospinError({
-      code: 'seed-module-invalid',
-      message: `${seedsEntry} must export const seeds as a makeSeeds Effect.`,
-    });
-  }
-  const commands = yield* seeds.pipe(
+      }).import(modulePath),
+    ).pipe(
+      Effect.mapError(
+        cause =>
+          new ZerospinError({
+            code: 'seed-load-failed',
+            message: `Failed to import ${modulePath}.`,
+            cause: ZerospinError.prettyUnknownFailure(cause),
+          }),
+      ),
+    );
+    const exports = yield* Schema.decodeUnknownEffect(
+      Schema.Record(Schema.String, Schema.Unknown),
+    )(loaded);
+    const resolved: (IAggregateCommand | IServiceCommand)[] = [];
+    for (const [name, value] of Object.entries(exports)) {
+      if (name === 'default' || !Effect.isEffect(value)) continue;
+      const commandEffect = yield* Schema.decodeUnknownEffect(
+        Schema.declare<Effect.Effect<unknown, unknown, CuidFactory>>(
+          Effect.isEffect,
+        ),
+      )(value);
+      const command = yield* commandEffect.pipe(
+        Effect.flatMap(command =>
+          Schema.decodeUnknownEffect(
+            Schema.Union([
+              UnknownAggregateCommandSchema,
+              UnknownServiceCommandSchema,
+            ]),
+          )(command, { onExcessProperty: 'error' }),
+        ),
+        Effect.mapError(
+          cause =>
+            new ZerospinError({
+              code: 'seed-command-invalid',
+              message: `Invalid seed export "${name}" in ${modulePath}.`,
+              cause: ZerospinError.prettyUnknownFailure(cause),
+            }),
+        ),
+      );
+      resolved.push(command);
+    }
+    if (resolved.length === 0) {
+      return yield* new ZerospinError({
+        code: 'seed-no-commands',
+        message: `No named command Effects exported by ${modulePath}.`,
+      });
+    }
+    return resolved;
+  }).pipe(
     Effect.provide(NanoIdFactory),
     Effect.mapError(cause =>
       ZerospinError.isZerospinError(cause)
         ? cause
         : new ZerospinError({
-            code: 'seed-module-invalid',
-            message: `Failed to resolve seeds from ${seedsEntry}.`,
+            code: 'seed-load-failed',
+            message: `Failed to load seeds from ${modulePath}.`,
             cause: ZerospinError.prettyUnknownFailure(cause),
           }),
     ),
   );
-  if (!Array.isArray(commands)) {
-    return yield* new ZerospinError({
-      code: 'seed-module-invalid',
-      message: `${seedsEntry} did not resolve to a command array.`,
-    });
-  }
 
-  const aggregateCommands: IEncodedCommand<IAggregateCommand>[] = [];
-  const serviceCommands: IEncodedCommand<IServiceCommand>[] = [];
+  const aggregateCommands: {
+    aggregateVersion: string;
+    command: IEncodedCommand<IAggregateCommand>;
+  }[] = [];
+  const serviceCommands: {
+    serviceVersion: string;
+    command: IEncodedCommand<IServiceCommand>;
+  }[] = [];
   for (const command of commands) {
-    if (command === null || typeof command !== 'object') {
-      return yield* new ZerospinError({
-        code: 'seed-command-invalid',
-        message: 'Seed modules must resolve only command objects.',
-      });
-    }
-    const commandName = Reflect.get(command, 'commandName');
-    const contractVersion = Reflect.get(command, 'contractVersion');
-    const aggregateName = Reflect.get(command, 'aggregateName');
-    const serviceName = Reflect.get(command, 'serviceName');
-    if (typeof aggregateName === 'string' && serviceName === undefined) {
+    const { commandName, contractVersion } = command;
+    if ('aggregateVersion' in command) {
+      const { aggregateName } = command;
+      if (command.systemName !== system.name) {
+        return yield* new ZerospinError({
+          code: 'seed-command-invalid',
+          message: `Seed command targets system "${command.systemName}", expected "${system.name}".`,
+        });
+      }
       const aggregate =
-        system.aggregates[aggregateName];
-      const contract = aggregate
+        system.aggregates[aggregateName]?.[command.aggregateVersion];
+      const contractBinding = aggregate
         ? Object.values(aggregate.contracts).find(
             candidate =>
-              candidate.commandName === commandName &&
-              candidate.version === contractVersion,
+              candidate.contract.commandName === commandName &&
+              candidate.contract.version === contractVersion,
           )
         : undefined;
+      const contract = contractBinding?.contract;
       if (contract === undefined) {
         return yield* new ZerospinError({
           code: 'seed-command-invalid',
@@ -121,15 +155,19 @@ export const seedFn = Effect.fn('seedFn')(function* (props: {
       const encoded = {
         ...command,
         payload: yield* contract.encodePayload({
-          payload: Reflect.get(command, 'payload'),
+          version: contract.version,
+          payload: command.payload,
         }),
       };
-      aggregateCommands.push(encoded);
+      aggregateCommands.push({
+        aggregateVersion: command.aggregateVersion,
+        command: encoded,
+      });
       continue;
     }
-    if (typeof serviceName === 'string' && aggregateName === undefined) {
-      const service =
-        system.services[serviceName];
+    if ('serviceVersion' in command) {
+      const { serviceName } = command;
+      const service = system.services[serviceName]?.[command.serviceVersion];
       const contract = service
         ? Object.values(service.contracts).find(
             candidate =>
@@ -146,15 +184,19 @@ export const seedFn = Effect.fn('seedFn')(function* (props: {
       const encoded = {
         ...command,
         payload: yield* contract.encodePayload({
-          payload: Reflect.get(command, 'payload'),
+          version: contract.version,
+          payload: command.payload,
         }),
       };
-      serviceCommands.push(encoded);
+      serviceCommands.push({
+        serviceVersion: command.serviceVersion,
+        command: encoded,
+      });
       continue;
     }
     return yield* new ZerospinError({
       code: 'seed-command-invalid',
-      message: 'Seed command must identify exactly one aggregate or service.',
+      message: 'Seed command must identify an aggregate or service version.',
     });
   }
 
@@ -164,12 +206,12 @@ export const seedFn = Effect.fn('seedFn')(function* (props: {
       [
         Effect.forEach(
           aggregateCommands,
-          command => systemApi.finalizeAggregateCommand(command),
+          command => systemApi.executeAggregateCommand(command),
           { concurrency: 'unbounded' },
         ),
         Effect.forEach(
           serviceCommands,
-          command => systemApi.finalizeServiceCommand(command),
+          command => systemApi.executeServiceCommand(command),
           { concurrency: 'unbounded' },
         ),
       ],
@@ -186,5 +228,5 @@ export const seedFn = Effect.fn('seedFn')(function* (props: {
     ),
   );
 
-  return { commandsFinalized: commands.length };
+  return { commandsSubmitted: commands.length };
 });

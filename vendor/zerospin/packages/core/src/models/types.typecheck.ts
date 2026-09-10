@@ -40,8 +40,7 @@ assert<
       createdAt: Date;
       updatedAt: Date;
       version: string;
-    } &
-      Readonly<{ deletedAt?: Date | null | undefined }> &
+    } & Readonly<{ deletedAt?: Date | null | undefined }> &
       Record<string, unknown>
   >
 >();

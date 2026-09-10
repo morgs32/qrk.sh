@@ -4,6 +4,11 @@
       "type": "local",
       "command": ["npx", "nx", "mcp"],
       "enabled": true
+    },
+    "graft": {
+      "type": "local",
+      "command": ["graft", "mcp"],
+      "enabled": true
     }
   }
 }

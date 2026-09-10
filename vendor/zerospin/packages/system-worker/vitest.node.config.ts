@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,13 +13,18 @@ const cloudflareWorkersVirtualId = '\0cloudflare:workers-stub';
 function cloudflareWorkersStub(): Plugin {
   return {
     name: 'cloudflare-workers-stub',
+    enforce: 'pre',
     resolveId(source) {
+      if (source.endsWith('/sql-wasm.wasm')) return '\0sql-wasm';
       if (source === 'cloudflare:workers') {
         return cloudflareWorkersVirtualId;
       }
       return null;
     },
     load(id) {
+      if (id === '\0sql-wasm') {
+        return `export default new WebAssembly.Module(Uint8Array.from(Buffer.from('${readFileSync(path.join(__dirname, 'node_modules/sql.js/dist/sql-wasm.wasm')).toString('base64')}', 'base64')))`;
+      }
       if (id === cloudflareWorkersVirtualId) {
         return [
           'export class DurableObject {}',
@@ -44,9 +50,10 @@ const resolveAlias = {
   alias: {
     internal: path.resolve(__dirname, 'src'),
     system: path.resolve(__dirname, 'src/fixtures/system.ts'),
+    '@zerospin/core': path.resolve(__dirname, '../core/src'),
     '@livestore/wa-sqlite/dist/wa-sqlite.mjs': path.resolve(
       __dirname,
-      'node_modules/@livestore/wa-sqlite/dist/wa-sqlite.node.mjs',
+      '../core/node_modules/@livestore/wa-sqlite/dist/wa-sqlite.node.mjs',
     ),
   },
 };
@@ -56,7 +63,7 @@ export default defineConfig({
   resolve: resolveAlias,
   plugins: [cloudflareWorkersStub()],
   ssr: {
-    noExternal: ['partyserver'],
+    noExternal: ['partyserver', 'sql.js'],
   },
   test: {
     name: 'core-node',

@@ -6,7 +6,7 @@ import { primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { makeModel } from '../models/makeModel.ts';
+import { models } from '../models/index.ts';
 
 import { makeResourceDbConfig } from './makeDbConfig.ts';
 import { makeProvisionedInMemorySqljsDb } from './makeProvisionedInMemorySqljsDb.ts';
@@ -16,23 +16,20 @@ const dateWithMilliseconds = new Date('2026-08-24T12:34:56.123Z');
 const namePropertySchema = primitives.text();
 const TinyJsonRowSchema = Schema.Struct({ x: Schema.String });
 
-const User = makeModel(
+const User = models.makeVersion(
+  models.makeModel({ name: 'user', abbreviation: 'usr' }),
   {
-    abbreviation: 'usr',
-    modelName: 'user',
     attributes: {
       name: namePropertySchema,
     },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-const Item = makeModel(
+const Item = models.makeVersion(
+  models.makeModel({ name: 'item', abbreviation: 'tsk' }),
   {
-    abbreviation: 'tsk',
-    modelName: 'item',
     attributes: {
       enabledDefault: primitives.boolean({ defaultValue: true }),
       count: primitives.integer(),
@@ -75,7 +72,6 @@ const Item = makeModel(
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 const itemDrizzleSchema = makeResourceDbConfig({
   models: { user: User, item: Item },
@@ -83,7 +79,9 @@ const itemDrizzleSchema = makeResourceDbConfig({
 
 describe('makeTableProvisioningSQL (models from makeModel)', () => {
   it('provisioningSQL contains CREATE TABLE for the model table name', () => {
-    expect(makeTableProvisioningSQL(User.drizzleSchema)).toContain('CREATE TABLE');
+    expect(makeTableProvisioningSQL(User.drizzleSchema)).toContain(
+      'CREATE TABLE',
+    );
     expect(makeTableProvisioningSQL(User.drizzleSchema)).toContain('user');
   });
 

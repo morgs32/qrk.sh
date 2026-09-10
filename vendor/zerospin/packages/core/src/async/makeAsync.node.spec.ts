@@ -101,12 +101,8 @@ describe('makeAsync', () => {
       return;
     }
 
-    expect(error.code).toBe(
-      'failed-to-apply-session-batch-update',
-    );
-    expect(error.rawMessage).toBe(
-      'Failed to apply session batch update',
-    );
+    expect(error.code).toBe('failed-to-apply-session-batch-update');
+    expect(error.rawMessage).toBe('Failed to apply session batch update');
     expect(error.cause).not.toBeNull();
   });
 

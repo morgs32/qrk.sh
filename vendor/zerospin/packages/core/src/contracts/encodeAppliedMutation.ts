@@ -8,12 +8,12 @@ import type { IModel } from '../models/types.ts';
 import type {
   IAnyMutation,
   IAppliedMutation,
-  IEncodedAggregateFrontendMutation,
   IEncodedAppliedMutation,
+  IEncodedMutation,
   IOperationName,
 } from './types.ts';
 
-export const EncodedAggregateFrontendMutationSchema = Schema.Struct({
+export const EncodedMutationSchema = Schema.Struct({
   commandId: Schema.String,
   mutationIndex: Schema.Number,
   modelName: Schema.String,
@@ -23,11 +23,11 @@ export const EncodedAggregateFrontendMutationSchema = Schema.Struct({
     'create',
     'delete',
     'move',
-    'replicateResource',
+    'replicate',
     'update',
   ]),
   operation: Schema.String,
-}) satisfies Schema.Codec<IEncodedAggregateFrontendMutation, unknown>;
+}) satisfies Schema.Codec<IEncodedMutation, unknown>;
 
 export const EncodedAppliedMutationSchema = Schema.Struct({
   commandId: Schema.String,
@@ -39,7 +39,7 @@ export const EncodedAppliedMutationSchema = Schema.Struct({
     'create',
     'delete',
     'move',
-    'replicateResource',
+    'replicate',
     'update',
   ]),
   operation: Schema.String,
@@ -48,24 +48,30 @@ export const EncodedAppliedMutationSchema = Schema.Struct({
   inverseOperation: Schema.String,
 }) satisfies Schema.Codec<IEncodedAppliedMutation, unknown>;
 
+/*
+ * 1. Resolve the exact model definition.
+ * 2. Build the operation's attribute schema.
+ * 3. Build the complete resource schema used by replication.
+ * 4. Select the forward-operation shape by operation name.
+ * 5. Wrap the selected operation as canonical JSON.
+ */
 export const makeOperationJsonSchema = (props: {
   model: IModel;
   modelVersion: string;
   operationName: IOperationName;
 }): Schema.Codec<unknown, string> => {
+  // 1 — Operation bytes are version-specific, so resolve the exact model
+  // definition before mapping any descriptor.
   const { model, modelVersion, operationName } = props;
-  const definition =
-    model.version === modelVersion
-      ? model
-      : model.historicalDefinitions.find(
-          historicalDefinition => historicalDefinition.version === modelVersion,
-        );
+  const definition = model.version === modelVersion ? model : undefined;
   if (definition === undefined) {
     throw new Error(
       `Unknown model version "${modelVersion}" for "${model.modelName}"`,
     );
   }
 
+  // 2 — Map authored attributes to their JSON-facing scalar, ID, date, enum,
+  // or structured codecs while preserving nullable semantics.
   const attributesSchema = Schema.Struct(
     mapValues(definition.attributes, descriptor => {
       switch (descriptor.kind) {
@@ -74,7 +80,7 @@ export const makeOperationJsonSchema = (props: {
             ? Schema.NullOr(Schema.Boolean)
             : Schema.Boolean;
         case PrimitiveKind.Cursor:
-        case PrimitiveKind.OpaqueId:
+        case PrimitiveKind.ForeignKey:
         case PrimitiveKind.Ref: {
           const idSchema = makeAbbreviationIdSchema(descriptor.abbreviation);
           return descriptor.nullable ? Schema.NullOr(idSchema) : idSchema;
@@ -111,6 +117,7 @@ export const makeOperationJsonSchema = (props: {
       }
     }),
   );
+  // 3 — Replication uses the same mapping over the complete resource shape.
   const resourceSchema = Schema.Struct(
     mapValues(definition.propertiesShape, descriptor => {
       switch (descriptor.kind) {
@@ -119,7 +126,7 @@ export const makeOperationJsonSchema = (props: {
             ? Schema.NullOr(Schema.Boolean)
             : Schema.Boolean;
         case PrimitiveKind.Cursor:
-        case PrimitiveKind.OpaqueId:
+        case PrimitiveKind.ForeignKey:
         case PrimitiveKind.Ref: {
           const idSchema = makeAbbreviationIdSchema(descriptor.abbreviation);
           return descriptor.nullable ? Schema.NullOr(idSchema) : idSchema;
@@ -157,6 +164,8 @@ export const makeOperationJsonSchema = (props: {
     }),
   );
 
+  // 4 — Each operation retains only its wire fields; update uses a partial
+  // attribute struct and replication carries the complete resource.
   const innerOperationSchema = (() => {
     switch (operationName) {
       case 'create':
@@ -175,9 +184,11 @@ export const makeOperationJsonSchema = (props: {
           nextId: Schema.String,
           property: Schema.String,
         });
-      case 'replicateResource':
+      case 'replicate':
         return Schema.Struct({
           serviceName: Schema.String,
+          serviceVersion: Schema.optionalKey(Schema.String),
+          serviceIndex: Schema.optionalKey(Schema.Number),
           resource: resourceSchema,
         });
       default: {
@@ -187,27 +198,32 @@ export const makeOperationJsonSchema = (props: {
     }
   })();
 
+  // 5 — Persist and transport the operation as one canonical JSON string.
   return Schema.fromJsonString(innerOperationSchema);
 };
 
+/*
+ * 1. Resolve the exact model definition.
+ * 2. Build the inverse attribute schema.
+ * 3. Build the complete resource schema used to restore deleted state.
+ * 4. Select the nullable inverse shape by operation name.
+ * 5. Wrap the selected inverse as canonical JSON.
+ */
 export const makeInverseOperationJsonSchema = (props: {
   model: IModel;
   modelVersion: string;
   operationName: IOperationName;
 }): Schema.Codec<unknown, string> => {
+  // 1 — Inverse bytes use the exact model version that produced the mutation.
   const { model, modelVersion, operationName } = props;
-  const definition =
-    model.version === modelVersion
-      ? model
-      : model.historicalDefinitions.find(
-          historicalDefinition => historicalDefinition.version === modelVersion,
-        );
+  const definition = model.version === modelVersion ? model : undefined;
   if (definition === undefined) {
     throw new Error(
       `Unknown model version "${modelVersion}" for "${model.modelName}"`,
     );
   }
 
+  // 2 — Map the version's authored attributes for update restoration.
   const attributesSchema = Schema.Struct(
     mapValues(definition.attributes, descriptor => {
       switch (descriptor.kind) {
@@ -216,7 +232,7 @@ export const makeInverseOperationJsonSchema = (props: {
             ? Schema.NullOr(Schema.Boolean)
             : Schema.Boolean;
         case PrimitiveKind.Cursor:
-        case PrimitiveKind.OpaqueId:
+        case PrimitiveKind.ForeignKey:
         case PrimitiveKind.Ref: {
           const idSchema = makeAbbreviationIdSchema(descriptor.abbreviation);
           return descriptor.nullable ? Schema.NullOr(idSchema) : idSchema;
@@ -253,6 +269,7 @@ export const makeInverseOperationJsonSchema = (props: {
       }
     }),
   );
+  // 3 — Map the full versioned resource for delete and replication restoration.
   const resourceSchema = Schema.Struct(
     mapValues(definition.propertiesShape, descriptor => {
       switch (descriptor.kind) {
@@ -261,7 +278,7 @@ export const makeInverseOperationJsonSchema = (props: {
             ? Schema.NullOr(Schema.Boolean)
             : Schema.Boolean;
         case PrimitiveKind.Cursor:
-        case PrimitiveKind.OpaqueId:
+        case PrimitiveKind.ForeignKey:
         case PrimitiveKind.Ref: {
           const idSchema = makeAbbreviationIdSchema(descriptor.abbreviation);
           return descriptor.nullable ? Schema.NullOr(idSchema) : idSchema;
@@ -299,6 +316,8 @@ export const makeInverseOperationJsonSchema = (props: {
     }),
   );
 
+  // 4 — Create has only a null inverse; every other operation permits null or
+  // the minimal data required to restore its prior state.
   const innerInverseOperationSchema = (() => {
     switch (operationName) {
       case 'create':
@@ -324,7 +343,7 @@ export const makeInverseOperationJsonSchema = (props: {
             prevId: Schema.String,
           }),
         );
-      case 'replicateResource':
+      case 'replicate':
         return Schema.NullOr(
           Schema.Struct({
             resource: resourceSchema,
@@ -337,17 +356,26 @@ export const makeInverseOperationJsonSchema = (props: {
     }
   })();
 
+  // 5 — Persist and transport the inverse as one canonical JSON string.
   return Schema.fromJsonString(innerInverseOperationSchema);
 };
 
-/** Encodes a contract-produced mutation before any database applies it. */
-export const encodeAggregateFrontendMutation = Effect.fn(
-  'encodeAggregateFrontendMutation',
-)(function* (props: {
+/**
+ * Encodes a contract-produced mutation before any database applies it.
+ *
+ * 1. Capture the mutation identity shared by every operation.
+ * 2. Encode create and delete operations.
+ * 3. Apply an update mask before encoding changed attributes.
+ * 4. Encode move and replication operations.
+ * 5. Reject operation names outside the mutation union.
+ */
+export const encodeMutation = Effect.fn('encodeMutation')(function* (props: {
   commandId: string;
   mutationIndex: number;
   mutation: IAnyMutation;
-}): Effect.fn.Return<IEncodedAggregateFrontendMutation, IAnyError> {
+}): Effect.fn.Return<IEncodedMutation, IAnyError> {
+  // 1 — Keep command, mutation, model, version, resource, and operation identity
+  // unchanged while only the operation payload becomes JSON.
   const { commandId, mutation, mutationIndex } = props;
   const { model, modelVersion, operationName, resourceId } = mutation;
   const encodedBase = {
@@ -360,6 +388,7 @@ export const encodeAggregateFrontendMutation = Effect.fn(
   };
 
   switch (operationName) {
+    // 2 — Delete encodes an empty operation; create encodes all authored attributes.
     case 'delete':
       return {
         ...encodedBase,
@@ -392,6 +421,7 @@ export const encodeAggregateFrontendMutation = Effect.fn(
           }),
         ),
       };
+    // 3 — Update persists only masked attributes when a mask is present.
     case 'update': {
       const filtered = mutation.operation.mask
         ? pick(mutation.operation.attributes, mutation.operation.mask)
@@ -412,6 +442,7 @@ export const encodeAggregateFrontendMutation = Effect.fn(
         ),
       };
     }
+    // 4 — Move and replication preserve their complete operation objects.
     case 'move':
       return {
         ...encodedBase,
@@ -428,14 +459,14 @@ export const encodeAggregateFrontendMutation = Effect.fn(
           }),
         ),
       };
-    case 'replicateResource':
+    case 'replicate':
       return {
         ...encodedBase,
         operation: yield* Schema.encodeEffect(
           makeOperationJsonSchema({
             model,
             modelVersion,
-            operationName: 'replicateResource',
+            operationName: 'replicate',
           }),
         )(mutation.operation).pipe(
           mapParseError({
@@ -444,21 +475,33 @@ export const encodeAggregateFrontendMutation = Effect.fn(
           }),
         ),
       };
+    // 5 — Exhaustiveness failures become a typed unsupported-operation error.
     default: {
       const _exhaustive: never = operationName;
       return yield* new ZerospinError({
         code: 'unsupported-mutation-operation',
-        message: `encodeAggregateFrontendMutation: unsupported operationName "${String(_exhaustive)}"`,
+        message: `encodeMutation: unsupported operationName "${String(_exhaustive)}"`,
       });
     }
   }
 });
 
-/** Encodes an applied mutation for ledger, persistence, or rollback storage. */
+/**
+ * Encodes an applied mutation for ledger, persistence, or rollback storage.
+ *
+ * 1. Capture applied mutation identity and timestamps.
+ * 2. Encode the forward operation by operation name.
+ * 3. Encode a null inverse when the mutation changed no prior state.
+ * 4. Validate and mask update inverses.
+ * 5. Validate and encode move, replication, and delete inverses.
+ * 6. Reject impossible create inverses and unsupported operations.
+ */
 export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
   function* (props: {
     mutation: IAppliedMutation;
   }): Effect.fn.Return<IEncodedAppliedMutation, IAnyError> {
+    // 1 — Preserve command, mutation, model, resource, version, and application
+    // timestamps while encoding forward and inverse operation payloads.
     const { mutation } = props;
     const {
       appliedAt,
@@ -481,6 +524,8 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
       appliedAt,
       lastAppliedAt,
     };
+    // 2 — Encode the forward operation exactly as the pre-application mutation
+    // encoder does, retaining update masks and complete move/replication data.
     const encoded = yield* Effect.gen(function* () {
       switch (operationName) {
         case 'delete':
@@ -551,14 +596,14 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
               }),
             ),
           };
-        case 'replicateResource':
+        case 'replicate':
           return {
             ...encodedBase,
             operation: yield* Schema.encodeEffect(
               makeOperationJsonSchema({
                 model,
                 modelVersion,
-                operationName: 'replicateResource',
+                operationName: 'replicate',
               }),
             )(mutation.operation).pipe(
               mapParseError({
@@ -577,6 +622,8 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
       }
     });
 
+    // 3 — Null inverse is a valid encoded value for operations that changed no
+    // prior resource state.
     if (inverseOperation === null) {
       return {
         ...encoded,
@@ -596,6 +643,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
     }
 
     switch (operationName) {
+      // 4 — Update inverses must contain attributes and obey the forward mask.
       case 'update': {
         if (!('attributes' in inverseOperation)) {
           return yield* new ZerospinError({
@@ -623,6 +671,8 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
           ),
         };
       }
+      // 5 — Move, replication, and delete each validate their required restore
+      // fields before encoding through the matching inverse schema.
       case 'move':
         if (!('property' in inverseOperation)) {
           return yield* new ZerospinError({
@@ -646,12 +696,12 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
             }),
           ),
         };
-      case 'replicateResource':
+      case 'replicate':
         if (!('resource' in inverseOperation)) {
           return yield* new ZerospinError({
             code: 'invalid-inverse-operation',
             message:
-              'encodeAppliedMutation: replicateResource inverseOperation must include resource',
+              'encodeAppliedMutation: replicate inverseOperation must include resource',
           });
         }
         return {
@@ -660,7 +710,7 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
             makeInverseOperationJsonSchema({
               model,
               modelVersion,
-              operationName: 'replicateResource',
+              operationName: 'replicate',
             }),
           )(inverseOperation).pipe(
             mapParseError({
@@ -692,6 +742,8 @@ export const encodeAppliedMutation = Effect.fn('encodeAppliedMutation')(
             }),
           ),
         };
+      // 6 — A non-null create inverse is impossible; unknown operations remain
+      // a typed unsupported-operation failure.
       case 'create':
         return yield* new ZerospinError({
           code: 'invalid-inverse-operation',

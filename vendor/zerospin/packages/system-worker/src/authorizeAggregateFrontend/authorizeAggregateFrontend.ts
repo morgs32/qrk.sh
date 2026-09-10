@@ -3,18 +3,26 @@ import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
 import type { IFrontendControllerSpec } from '@zerospin/core/frontendController/types';
 import type { IAggregateId } from '@zerospin/core/models/types';
-import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { mapParseError, type IAnyError } from '@zerospin/error';
 import { env } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
-import { system } from 'system';
 
-import { getMaterializedAggregateRepo } from '../MaterializedAggregateRepo/getMaterializedAggregateRepo/getMaterializedAggregateRepo.js';
-import { MaterializedAggregateRepo } from '../MaterializedAggregateRepo/MaterializedAggregateRepo.js';
 import { SelectedAggregateFrontendLockSchema } from '../StaticSystem/frontendSpecSchemas.js';
 import { validateAggregateFrontendLock } from '../StaticSystem/validateAggregateFrontendLock/validateAggregateFrontendLock.js';
+import { VersionedAggregateRepo } from '../VersionedAggregateRepo/VersionedAggregateRepo.js';
 
+/*
+ * GatewayApi uses this operation to admit a aggregate frontend for an
+ * authenticated userId and caller-selected owner/frontend fields.
+ * The aggregate Repo runs authorization against its local resource state.
+ *
+ * 1. Validate the requested frontend lock.
+ * 2. Decode the selected frontend definition.
+ * 3. Resolve the current base version.
+ * 4. Authorize against owner-local state.
+ * 5. Return the admitted frontend definition.
+ */
 export const authorizeAggregateFrontend = Effect.fn(
   'SystemWorker.authorizeAggregateFrontend',
   { root: true },
@@ -22,18 +30,19 @@ export const authorizeAggregateFrontend = Effect.fn(
   userId: string;
   aggregateId: IAggregateId;
   aggregateName: string;
+  aggregateVersion: string;
   frontendName: string;
   aggregateFrontendLock: Schema.Schema.Type<typeof AggregateFrontendLockSchema>;
 }): Effect.fn.Return<
   Readonly<{
     aggregateId: IAggregateId;
     aggregateName: string;
+    aggregateVersion: string;
     userId: string;
     aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
     >;
     frontendSpec: IFrontendControllerSpec;
-    systemVersion: string;
   }>,
   IAnyError,
   Async
@@ -45,12 +54,16 @@ export const authorizeAggregateFrontend = Effect.fn(
     frontendName,
     aggregateFrontendLock,
   } = props;
-  const systemSpec = makeSystemSpec({ system });
+
+  // 1 — resolve the authored aggregate frontend and its supported lock
   const selectedUnknown = yield* validateAggregateFrontendLock({
+    aggregateVersion: props.aggregateVersion,
     aggregateName,
     frontendName,
     aggregateFrontendLock,
   });
+
+  // 2 — check the selected lock and frontendSpec shape before returning admission
   const selected = yield* Schema.decodeUnknownEffect(
     SelectedAggregateFrontendLockSchema,
   )(selectedUnknown, { onExcessProperty: 'error' }).pipe(
@@ -60,17 +73,19 @@ export const authorizeAggregateFrontend = Effect.fn(
         'The static System returned an invalid selected aggregate frontend lock',
     }),
   );
-  const aggregateRepo = yield* getMaterializedAggregateRepo({
+
+  // 3 — read AggregateChain.getBaseAggregateVersion for the requested aggregate
+  const aggregateVersion = props.aggregateVersion;
+  const aggregateRepo = yield* VersionedAggregateRepo.getRepo({
     key: {
       systemId: env.ZEROSPIN_SYSTEM_ID,
       aggregateId,
       aggregateName,
+      aggregateVersion,
     },
   });
   yield* makeAsync<
-    Awaited<
-      ReturnType<MaterializedAggregateRepo['authorizeAggregateFrontend']>
-    >
+    Awaited<ReturnType<VersionedAggregateRepo['authorizeAggregateFrontend']>>
   >(() =>
     aggregateRepo.authorizeAggregateFrontend({
       aggregateId,
@@ -79,12 +94,14 @@ export const authorizeAggregateFrontend = Effect.fn(
       userId,
     }),
   ).pipe(Effect.flatMap(decodeRpc));
+
+  // 5 — return the checked lock, frontendSpec
   return {
+    aggregateVersion,
     aggregateId,
     aggregateName,
     userId,
     aggregateFrontendLock: selected.aggregateFrontendLock,
     frontendSpec: selected.frontendSpec,
-    systemVersion: systemSpec.version,
   };
 });

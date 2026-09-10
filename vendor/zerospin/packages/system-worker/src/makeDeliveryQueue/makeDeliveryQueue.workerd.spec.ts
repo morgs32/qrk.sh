@@ -6,7 +6,7 @@ import { Effect } from 'effect';
 import { describe, expect, vi } from 'vitest';
 
 import { managedRuntime } from '../FixtureRepo/FixtureRepo.js';
-import { makeFanoutQueue } from '../makeFanoutQueue/makeFanoutQueue.js';
+import { makeAlarmRegistry } from '../makeAlarmRegistry/makeAlarmRegistry.js';
 
 import { makeDeliveryQueue } from './makeDeliveryQueue.js';
 
@@ -211,62 +211,89 @@ describe('makeDeliveryQueue workerd acceptance', () => {
             let active = 0;
             let maximumActive = 0;
             let failedAttempts = 0;
+            let alarmAt: number | null = null;
             const queue = makeDeliveryQueue({ storage: state.storage });
-            const lane = makeFanoutQueue({
-              deliveryQueue: queue,
+            const alarmRegistry = makeAlarmRegistry({
+              storage: state.storage,
+            });
+            const lane = {
               name: 'DeliveryQueueAcceptance.fanout',
-              readSubscribers: () =>
-                Effect.sync(() =>
-                  subscribers.filter(subscriber => subscriber.remaining > 0),
-                ),
-              subscriberKey: subscriber => String(subscriber.id),
-              processSubscriber: (subscriber, retry) =>
-                Effect.gen(function* () {
-                  active += 1;
-                  maximumActive = Math.max(maximumActive, active);
-                  const delivery = yield* retry(
-                    subscriber.id === 0
-                      ? Effect.suspend(() => {
-                          failedAttempts += 1;
-                          return Effect.fail(
-                            new ZerospinError({
-                              code: 'delivery-queue-acceptance-fanout-failure',
-                              message: 'Fail only subscriber zero',
-                            }),
-                          );
-                        })
-                      : Effect.sleep(5),
-                  ).pipe(Effect.result);
-                  active -= 1;
-                  if (delivery._tag === 'Failure') {
-                    return false;
+              drain: Effect.fn('DeliveryQueueAcceptance.fanout.drain')(
+                function* () {
+                  yield* alarmRegistry.hold('DeliveryQueueAcceptance.fanout');
+                  const skipped = new Set<number>();
+                  while (true) {
+                    const batch = subscribers
+                      .filter(
+                        subscriber =>
+                          subscriber.remaining > 0 &&
+                          !skipped.has(subscriber.id),
+                      )
+                      .slice(0, 100);
+                    if (batch.length === 0) {
+                      break;
+                    }
+                    yield* Effect.forEach(
+                      batch,
+                      subscriber =>
+                        Effect.gen(function* () {
+                          active += 1;
+                          maximumActive = Math.max(maximumActive, active);
+                          const delivery = yield* queue
+                            .retry(
+                              subscriber.id === 0
+                                ? Effect.suspend(() => {
+                                    failedAttempts += 1;
+                                    return Effect.fail(
+                                      new ZerospinError({
+                                        code: 'delivery-queue-acceptance-fanout-failure',
+                                        message: 'Fail only subscriber zero',
+                                      }),
+                                    );
+                                  })
+                                : Effect.sleep(5),
+                            )
+                            .pipe(Effect.result);
+                          active -= 1;
+                          if (delivery._tag === 'Failure') {
+                            skipped.add(subscriber.id);
+                            return;
+                          }
+                          const deliveredIndex = 3 - subscriber.remaining;
+                          const subscriberOutcomes =
+                            outcomes.get(subscriber.id) ?? [];
+                          subscriberOutcomes.push(deliveredIndex);
+                          outcomes.set(subscriber.id, subscriberOutcomes);
+                          subscriber.remaining -= 1;
+                        }),
+                      { concurrency: 100 },
+                    );
                   }
-                  const subscriberOutcomes = outcomes.get(subscriber.id) ?? [];
-                  subscriberOutcomes.push(3 - subscriber.remaining);
-                  outcomes.set(subscriber.id, subscriberOutcomes);
-                  subscriber.remaining -= 1;
-                  return true;
-                }),
+                  yield* alarmRegistry.release(
+                    'DeliveryQueueAcceptance.fanout',
+                  );
+                },
+              ),
               hasPending: () =>
                 Effect.sync(() =>
                   subscribers.some(subscriber => subscriber.remaining > 0),
                 ),
-            });
-            for (let turn = 0; turn < 4; turn += 1) {
-              await managedRuntime.runPromise(
-                queue
-                  .drain({ lanes: [{ ...lane, requested: true }] })
-                  .pipe(Effect.withSpan('DeliveryQueueAcceptance.fanoutDrain')),
-              );
-            }
+            };
+            await managedRuntime.runPromise(
+              queue
+                .drain({ lanes: [{ ...lane, requested: true }] })
+                .pipe(Effect.withSpan('DeliveryQueueAcceptance.fanoutDrain')),
+            );
+            alarmAt = await state.storage.getAlarm();
 
             expect(maximumActive).toBe(100);
-            expect(failedAttempts).toBe(12);
+            expect(failedAttempts).toBe(3);
             expect(subscribers[0]?.remaining).toBe(2);
             for (const subscriber of subscribers.slice(1)) {
               expect(subscriber.remaining).toBe(0);
               expect(outcomes.get(subscriber.id)).toEqual([1, 2]);
             }
+            expect(alarmAt).toBeNull();
           },
         ),
       ),

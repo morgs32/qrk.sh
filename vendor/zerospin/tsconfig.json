@@ -44,7 +44,7 @@
       "path": "./packages/dispatch-worker"
     },
     {
-      "path": "./packages/opfs-backup-worker"
+      "path": "./packages/backup-worker"
     },
     {
       "path": "./packages/live-query"
@@ -59,7 +59,7 @@
       "path": "./packages/schema"
     },
     {
-      "path": "./packages/react-router"
+      "path": "./packages/error-boundary"
     }
   ]
 }

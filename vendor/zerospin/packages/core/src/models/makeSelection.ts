@@ -26,7 +26,8 @@ import type { UnionToIntersection } from 'type-fest';
 
 import type { IDb } from '../drizzle/types.ts';
 
-import type { IModel, IModels, InferProperties } from './types.ts';
+import { Model } from './makeModel.ts';
+import type { IAnyModels, IModel, InferProperties } from './types.ts';
 
 type InferPropertiesShape<MODEL extends IModel> = InferProperties<
   MODEL['attributes'],
@@ -75,7 +76,7 @@ type SelectionScalarWhere<PROPS extends IAnyShape> = {
     : K]?: ScalarWhereEntry<PROPS, K>;
 };
 
-type SelectionRelationWhere<MODEL extends IModel, MODELS extends IModels> = {
+type SelectionRelationWhere<MODEL extends IModel, MODELS extends IAnyModels> = {
   [REL in RefRelationNames<MODEL['attributes']> as REL extends string
     ? REL
     : never]?: MODEL['attributes'] extends infer _PROPS
@@ -112,7 +113,7 @@ type SelectionRelationWhere<MODEL extends IModel, MODELS extends IModels> = {
 
 type ISelectionWhereForRef<
   REF extends IAnyRefDescriptor,
-  MODELS extends IModels,
+  MODELS extends IAnyModels,
 > = ISelectionWhere<
   | Extract<MODELS[keyof MODELS], { table: REF['table'] }>
   | Extract<MODELS[keyof MODELS], { sourceModel: { table: REF['table'] } }>,
@@ -121,7 +122,7 @@ type ISelectionWhereForRef<
 
 export type ISelectionWhere<
   MODEL extends IModel = IModel,
-  MODELS extends IModels = IModels,
+  MODELS extends IAnyModels = IAnyModels,
 > = SelectionScalarWhere<
   InferProperties<MODEL['attributes'], MODEL['abbreviation']>
 > &
@@ -133,7 +134,7 @@ export type ISelectionWhereProps<USER_ID extends string = string> = {
 
 export type ISelectionWhereFn<
   MODEL extends IModel,
-  MODELS extends IModels = IModels,
+  MODELS extends IAnyModels = IAnyModels,
   USER_ID extends string = string,
 > = (props: ISelectionWhereProps<USER_ID>) => ISelectionWhere<MODEL, MODELS>;
 
@@ -171,14 +172,18 @@ function isRefDescriptor(
 
 function getRefModelWithTable(props: {
   ref: IAnyRefDescriptor;
-  models: IModels;
+  models: IAnyModels;
 }): IModel {
   const { ref, models } = props;
   const model = models[ref.targetTableName];
   const sourceModel =
-    model !== undefined && 'sourceModel' in model
-      ? Reflect.get(model, 'sourceModel')
-      : undefined;
+    model === undefined
+      ? undefined
+      : Model.isReplica(model)
+        ? model.sourceModel
+        : Object.hasOwn(model, 'sourceModel')
+          ? Reflect.get(model, 'sourceModel')
+          : undefined;
   const sourceTable =
     typeof sourceModel === 'object' && sourceModel !== null
       ? Reflect.get(sourceModel, 'table')
@@ -276,7 +281,7 @@ type ICompileWhereContext = {
 
 function compileWhereForModel(props: {
   model: IModel;
-  models: IModels;
+  models: IAnyModels;
   table: unknown;
   where: Record<string, unknown> | undefined;
   context: ICompileWhereContext;
@@ -332,8 +337,11 @@ function compileWhereForModel(props: {
           sourceColumnName: string;
         }
       | undefined;
-    const sourceModel =
-      'sourceModel' in model ? Reflect.get(model, 'sourceModel') : undefined;
+    const sourceModel = Model.isReplica(model)
+      ? model.sourceModel
+      : Object.hasOwn(model, 'sourceModel')
+        ? Reflect.get(model, 'sourceModel')
+        : undefined;
     const sourceTable =
       typeof sourceModel === 'object' && sourceModel !== null
         ? Reflect.get(sourceModel, 'table')
@@ -411,14 +419,14 @@ export function makeSelection<
   USER_ID extends string = string,
   WHERE extends (
     props: ISelectionWhereProps<USER_ID>,
-  ) => Record<string, unknown> = ISelectionWhereFn<MODEL, IModels, USER_ID>,
+  ) => Record<string, unknown> = ISelectionWhereFn<MODEL, IAnyModels, USER_ID>,
 >(props: { model: MODEL; where: WHERE }): ISelection<MODEL, WHERE>;
 export function makeSelection<
   MODEL extends IModel,
   USER_ID extends string = string,
 >(props: {
   model: MODEL;
-  where?: ISelectionWhereFn<MODEL, IModels, USER_ID>;
+  where?: ISelectionWhereFn<MODEL, IAnyModels, USER_ID>;
 }): ISelection<MODEL>;
 export function makeSelection<MODEL extends IModel>(props: {
   model: MODEL;
@@ -433,10 +441,10 @@ export function makeSelection<MODEL extends IModel>(props: {
 
 export function applySelection<MODEL extends IModel>(props: {
   db: ISelectionDb;
-  models: IModels;
+  models: IAnyModels;
   selection: ISelection<MODEL>;
   userId: string;
-  where?: Record<string, unknown>;
+  where: Record<string, unknown> | undefined;
   extraPredicates?: readonly SQL[];
 }): IFlatSelectBuilder {
   const { db, models, selection, userId, extraPredicates = [], where } = props;
@@ -496,7 +504,7 @@ export function applySelection<MODEL extends IModel>(props: {
 
 export function selectAllFromSelection<MODEL extends IModel>(props: {
   db: ISelectionDb;
-  models: IModels;
+  models: IAnyModels;
   selection: ISelection<MODEL>;
   userId: string;
   where?: Record<string, unknown>;
@@ -510,6 +518,6 @@ export function selectAllFromSelection<MODEL extends IModel>(props: {
       where: selection.where,
     },
     userId,
-    ...(where === undefined ? {} : { where }),
+    where,
   });
 }

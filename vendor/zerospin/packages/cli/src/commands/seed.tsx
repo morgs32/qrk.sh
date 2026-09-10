@@ -13,17 +13,16 @@ import { ProcedureStepSuccess } from '../ProcedureStep/ProcedureStepSuccess.js';
 import { useProgram } from '../ProcedureStep/useProgram.js';
 import { seedFn } from '../seed/seedFn.js';
 
-export const options = zod.object({
-  env: zod
-    .enum(['dev', 'production'])
-    .default('dev')
-    .describe('Configured seed environment'),
-});
+export const args = zod.tuple([
+  zod
+    .string()
+    .describe('Path to a module exporting individual command Effects'),
+]);
 
-export default function Seed(props: { options: zod.infer<typeof options> }) {
+export default function Seed(props: { args: zod.infer<typeof args> }) {
   const { data, error, status } = useProgram({
     fetcher: () =>
-      seedFn({ environmentId: props.options.env }).pipe(
+      seedFn({ filePath: props.args[0] }).pipe(
         Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
       ),
   });
@@ -39,7 +38,7 @@ export default function Seed(props: { options: zod.infer<typeof options> }) {
           />
           {data && (
             <ProcedureStepSuccess>
-              <Text>{data.commandsFinalized} seed commands finalized</Text>
+              <Text>{data.commandsSubmitted} seed commands submitted</Text>
             </ProcedureStepSuccess>
           )}
           <ProcedureStepLoading message="Finalizing seed commands..." />

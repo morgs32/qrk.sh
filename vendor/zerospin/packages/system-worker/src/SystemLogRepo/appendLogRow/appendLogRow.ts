@@ -23,13 +23,16 @@ import { max, sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
 import {
-  systemLogRepoDrizzleSchemas,
+  systemLogRepoDbConfig,
   systemLogRowSchema,
-} from '../SystemLogRepoDbConfig.js';
+} from '../systemLogRepoDbConfig.js';
 
 const maxRows = 1000;
 
 /*
+ * Worker log appenders retain one authoritative row in SystemLogRepo.
+ * The Repo assigns its monotonic logIndex and enforces bounded row retention.
+ *
  * 1. Validate the system identity.
  * 2. Allocate immutable row identity and time.
  * 3. Read the current system-local maximum index.
@@ -46,25 +49,27 @@ export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
     source: string;
     systemId: string;
   }): Effect.fn.Return<ISystemLogRow, IAnyError, Async | CuidFactory> {
-    const { db, level, message, payload, source } = props;
+    const { db, level, message, payload, source, systemId } = props;
+
     // 1 — SystemLogRepo rejects identities that do not carry their locked prefixes
-    const systemId = yield* Schema.decodeUnknownEffect(
+    const decodedSystemId = yield* Schema.decodeUnknownEffect(
       Schema.toType(makeAbbreviationIdSchema(coreAbbreviations.system)),
-    )(props.systemId).pipe(
+    )(systemId).pipe(
       mapParseError({
         code: 'failed-to-decode-log-row-system-id',
         prefix: 'Failed to decode SystemLogRepo systemId',
-        extra: { systemId: props.systemId },
+        extra: { systemId },
       }),
     );
+
     // 2 — identity and creation time remain independent from ordering
     const createdAt = yield* dutils.date();
     const id = yield* makeIdFromAbbreviation({ abbreviation: 'log' });
     const row = yield* makeAsync(() => {
       // 3 — each system-scoped SystemLogRepo maintains its own monotonic sequence
       const [latestRow] = db
-        .select({ logIndex: max(systemLogRepoDrizzleSchemas.logs.logIndex) })
-        .from(systemLogRepoDrizzleSchemas.logs)
+        .select({ logIndex: max(systemLogRepoDbConfig.schema.logs.logIndex) })
+        .from(systemLogRepoDbConfig.schema.logs)
         .all();
       const logIndex = (latestRow?.logIndex ?? 0) + 1;
       const nextRow = {
@@ -75,24 +80,25 @@ export const appendLogRow = Effect.fn('SystemLogRepo.appendLogRow')(
         message,
         payload,
         source,
-        systemId,
+        systemId: decodedSystemId,
       } satisfies ISystemLogRow;
 
       // 4 — the max read and insert are synchronous so requests cannot interleave them
-      db.insert(systemLogRepoDrizzleSchemas.logs)
+      db.insert(systemLogRepoDbConfig.schema.logs)
         .values(Schema.encodeSync(systemLogRowSchema)(nextRow))
         .run();
       return Promise.resolve(nextRow);
     });
+
     // 5 — retention uses the same exclusive ordering key exposed to readers
     yield* makeAsync(() =>
       Promise.resolve(
         db.run(sql`
-        DELETE FROM ${systemLogRepoDrizzleSchemas.logs}
-        WHERE ${systemLogRepoDrizzleSchemas.logs.id} NOT IN (
-          SELECT ${systemLogRepoDrizzleSchemas.logs.id}
-          FROM ${systemLogRepoDrizzleSchemas.logs}
-          ORDER BY ${systemLogRepoDrizzleSchemas.logs.logIndex} DESC
+        DELETE FROM ${systemLogRepoDbConfig.schema.logs}
+        WHERE ${systemLogRepoDbConfig.schema.logs.id} NOT IN (
+          SELECT ${systemLogRepoDbConfig.schema.logs.id}
+          FROM ${systemLogRepoDbConfig.schema.logs}
+          ORDER BY ${systemLogRepoDbConfig.schema.logs.logIndex} DESC
           LIMIT ${maxRows}
         )
       `),

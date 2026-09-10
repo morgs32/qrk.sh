@@ -1,5 +1,6 @@
 import {
   makeDrizzleSchemaFromTable,
+  makeTable,
   type IAnyDrizzleSchemas,
   type IAnyTable,
   type IAnyTables,
@@ -35,14 +36,14 @@ export function makeDrizzleSchemasRecordFromTables<TABLES extends IAnyTables>(
     drizzleSchemas[tableKey] = makeDrizzleSchemaFromTable(
       physicalTableName === table.name
         ? table
-        : {
+        : makeTable({
             ...table,
             name: physicalTableName,
             indexes: table.indexes.map(indexConfig => ({
               ...indexConfig,
               name: `${physicalTableName}_${indexConfig.name}`,
             })),
-          },
+          }),
       descriptor => () => {
         const targetTableKey = tableKeysByIdentity.get(
           tableAliases.get(descriptor.table) ?? descriptor.table,

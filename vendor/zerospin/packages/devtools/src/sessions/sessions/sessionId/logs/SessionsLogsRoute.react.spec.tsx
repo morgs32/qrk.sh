@@ -1,16 +1,36 @@
 import { act } from 'react';
 
 import { main } from '@zerospin/core/fixtures/system';
-import { makeSession } from '@zerospin/core/session/makeSession';
+import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import type { ISessionId } from '@zerospin/core/session/types';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
+import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import type { ITelemetryBatch } from '@zerospin/logger';
+import { Effect, Exit, Layer, ManagedRuntime, Scope } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import { zerospinDevtoolsStore } from '../../../../zerospinDevtoolsStore.js';
 
 import { SessionsLogsRoute } from './SessionsLogsRoute';
+const guardTestRuntime = ManagedRuntime.make(
+  Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
+);
+
+const sessionScope = Scope.makeUnsafe();
+Effect.runSync(
+  Scope.addFinalizer(sessionScope, guardTestRuntime.disposeEffect),
+);
+afterAll(() => Effect.runPromise(Scope.close(sessionScope, Exit.void)));
 
 const sessionId: ISessionId = 'sesn_logs';
 const otherSessionId: ISessionId = 'sesn_other_logs';
@@ -148,10 +168,16 @@ describe('SessionsLogsRoute', () => {
   });
 
   it('renders and updates session-owned traces without losing the active selection', async () => {
-    const session = makeSession({
-      frontend: main,
-      sessionId,
-    });
+    const session = Effect.runSync(
+      Effect.map(main.initializeGuards, guards =>
+        makeAggregateSession({
+          runtime: guardTestRuntime,
+          guards,
+          frontend: main,
+          sessionId,
+        }),
+      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+    );
     session.store.setState({ telemetry: initialTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
@@ -389,10 +415,16 @@ describe('SessionsLogsRoute', () => {
   });
 
   it('keeps a zero-duration span visible on the one millisecond fallback range', async () => {
-    const session = makeSession({
-      frontend: main,
-      sessionId,
-    });
+    const session = Effect.runSync(
+      Effect.map(main.initializeGuards, guards =>
+        makeAggregateSession({
+          runtime: guardTestRuntime,
+          guards,
+          frontend: main,
+          sessionId,
+        }),
+      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+    );
     session.store.setState({
       telemetry: {
         spans: [
@@ -445,10 +477,16 @@ describe('SessionsLogsRoute', () => {
   });
 
   it('selects the exact trace named by a valid traceId query parameter', async () => {
-    const session = makeSession({
-      frontend: main,
-      sessionId,
-    });
+    const session = Effect.runSync(
+      Effect.map(main.initializeGuards, guards =>
+        makeAggregateSession({
+          runtime: guardTestRuntime,
+          guards,
+          frontend: main,
+          sessionId,
+        }),
+      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+    );
     session.store.setState({ telemetry: initialTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
@@ -483,10 +521,16 @@ describe('SessionsLogsRoute', () => {
   });
 
   it('selects the newest trace when the traceId query parameter is absent', async () => {
-    const session = makeSession({
-      frontend: main,
-      sessionId,
-    });
+    const session = Effect.runSync(
+      Effect.map(main.initializeGuards, guards =>
+        makeAggregateSession({
+          runtime: guardTestRuntime,
+          guards,
+          frontend: main,
+          sessionId,
+        }),
+      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+    );
     session.store.setState({ telemetry: initialTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
@@ -517,10 +561,16 @@ describe('SessionsLogsRoute', () => {
   });
 
   it('falls back to the newest trace for a stale traceId query parameter', async () => {
-    const session = makeSession({
-      frontend: main,
-      sessionId,
-    });
+    const session = Effect.runSync(
+      Effect.map(main.initializeGuards, guards =>
+        makeAggregateSession({
+          runtime: guardTestRuntime,
+          guards,
+          frontend: main,
+          sessionId,
+        }),
+      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+    );
     session.store.setState({ telemetry: initialTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
@@ -550,10 +600,16 @@ describe('SessionsLogsRoute', () => {
   });
 
   it('clears only the selected session telemetry and trace query', async () => {
-    const session = makeSession({
-      frontend: main,
-      sessionId,
-    });
+    const session = Effect.runSync(
+      Effect.map(main.initializeGuards, guards =>
+        makeAggregateSession({
+          runtime: guardTestRuntime,
+          guards,
+          frontend: main,
+          sessionId,
+        }),
+      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+    );
     session.store.setState({ telemetry: initialTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session,
@@ -578,10 +634,16 @@ describe('SessionsLogsRoute', () => {
       logs: [],
       links: [],
     };
-    const otherSession = makeSession({
-      frontend: main,
-      sessionId: otherSessionId,
-    });
+    const otherSession = Effect.runSync(
+      Effect.map(main.initializeGuards, guards =>
+        makeAggregateSession({
+          runtime: guardTestRuntime,
+          guards,
+          frontend: main,
+          sessionId: otherSessionId,
+        }),
+      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+    );
     otherSession.store.setState({ telemetry: otherTelemetry });
     zerospinDevtoolsStore.getState().addAggregateSession({
       session: otherSession,

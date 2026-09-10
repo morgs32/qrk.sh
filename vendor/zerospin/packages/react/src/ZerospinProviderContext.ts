@@ -1,7 +1,8 @@
 import { createContext } from 'react';
 
 import type { IWaSqliteClient } from '@zerospin/core/drizzle/types';
-import type { IFrontendController } from '@zerospin/core/frontendController/types';
+import type { IAnyFrontendController } from '@zerospin/core/frontendController/types';
+import type { IAnyModels } from '@zerospin/core/models/types';
 
 import type { ISessionProviderRuntime } from './types';
 
@@ -17,7 +18,8 @@ export const ZerospinProviderContext = createContext<Readonly<{
     Record<
       string,
       Readonly<{
-        frontend: IFrontendController;
+        frontend: IAnyFrontendController;
+        models: Readonly<IAnyModels>;
       }>
     >
   >;

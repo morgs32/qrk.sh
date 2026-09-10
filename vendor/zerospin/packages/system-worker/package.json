@@ -95,12 +95,24 @@
       "workerd": "./src/makeFixedDORepo/makeFixedDORepoConfig.ts",
       "import": "./src/makeFixedDORepo/makeFixedDORepoConfig.ts",
       "default": "./src/makeFixedDORepo/makeFixedDORepoConfig.ts"
+    },
+    "./makeVersionedDORepo/makeVersionedDORepo": {
+      "types": "./src/makeVersionedDORepo/makeVersionedDORepo.ts",
+      "workerd": "./src/makeVersionedDORepo/makeVersionedDORepo.ts",
+      "import": "./src/makeVersionedDORepo/makeVersionedDORepo.ts",
+      "default": "./src/makeVersionedDORepo/makeVersionedDORepo.ts"
+    },
+    "./makeVersionedDORepo/makeVersionedDORepoConfig": {
+      "types": "./src/makeVersionedDORepo/makeVersionedDORepoConfig.ts",
+      "workerd": "./src/makeVersionedDORepo/makeVersionedDORepoConfig.ts",
+      "import": "./src/makeVersionedDORepo/makeVersionedDORepoConfig.ts",
+      "default": "./src/makeVersionedDORepo/makeVersionedDORepoConfig.ts"
     }
   },
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "lib": "pnpm run clean && tsc -b tsconfig.json --emitDeclarationOnly",
-    "ts": "tsc -p tsconfig.etc.json --noEmit",
+    "ts": "tsc -p tsconfig.etc.json --noEmit && tsc -p tsconfig.lookup.json --noEmit",
     "test": "vitest run --config vitest.node.config.ts",
     "test:workerd": "vitest run --config vitest.workerd.config.ts",
     "test:watch": "vitest --config vitest.node.config.ts",
@@ -122,7 +134,6 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "1.0.0-rc.4",
     "effect": "rc",
-    "epluribus-machina": "workspace:*",
     "es-toolkit": "^1.46.1",
     "partyserver": "^0.5.8",
     "solid-js": "^1.9.12",
@@ -142,6 +153,7 @@
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.5",
     "happy-dom": "^20.9.0",

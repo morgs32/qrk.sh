@@ -1,12 +1,8 @@
-import { makeSignature } from '@zerospin/sdk/browser';
 import { Schema } from 'effect';
 
-import { ClerkUserIdSchema } from './models/User';
+import { ClerkUserIdSchema } from './aggregates/shopper/models/user/UserV1';
 
-export const signature = makeSignature(
-  {
-    version: '1.0.0',
-    schema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
-  },
-  [],
-);
+export const signature = {
+  version: '1.0.0',
+  signature: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
+};

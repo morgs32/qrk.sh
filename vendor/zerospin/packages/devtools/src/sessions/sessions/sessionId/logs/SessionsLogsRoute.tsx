@@ -68,6 +68,18 @@ export function SessionsLogsRoute() {
   return null;
 }
 
+/*
+ * 1. Group local spans by browser trace.
+ * 2. Group scoped logs and retain unscoped logs separately.
+ * 3. Group server boundary links by their prior browser trace.
+ * 4. Order traces and select the requested or newest trace.
+ * 5. Index selected spans and derive the trace timing range.
+ * 6. Attach logs to known spans and retain diagnostic orphans.
+ * 7. Attach links to known prior spans and retain diagnostic orphans.
+ * 8. Render the selected trace waterfall and fixed details pane.
+ * 9. Render selected span identity, timing, and attributes.
+ * 10. Render diagnostic logs and server links for the selected span.
+ */
 function SessionsLogsRouteBody(props: {
   readonly telemetry: ITelemetryBatch;
   readonly onClear: () => void;

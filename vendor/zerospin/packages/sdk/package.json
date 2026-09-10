@@ -5,8 +5,7 @@
   "description": "Zerospin system barrel (re-exports from core)",
   "files": [
     "dist",
-    "src",
-    "zerospin.schema.json"
+    "src"
   ],
   "type": "module",
   "sideEffects": false,
@@ -22,8 +21,7 @@
       "types": "./dist/browser/index.d.ts",
       "import": "./dist/browser/index.js",
       "default": "./dist/browser/index.js"
-    },
-    "./zerospin.schema.json": "./zerospin.schema.json"
+    }
   },
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",

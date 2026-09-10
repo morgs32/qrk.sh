@@ -2,79 +2,40 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeSignature } from '../../authentication/makeSignature.ts';
-import { makeContract } from '../../contracts/makeContract.ts';
+import { aggregates } from '../../aggregate/index.ts';
+import { authentication } from '../../authentication/index.ts';
+import { contracts } from '../../contracts/index.ts';
 import { makeFrontendController } from '../../frontendController/makeFrontendController.ts';
-import { makeModel } from '../../models/makeModel.ts';
-import { makeReplica } from '../../models/makeReplica.ts';
+import { models } from '../../models/index.ts';
 import { makeSelection } from '../../models/makeSelection.ts';
+import { makeService } from '../../service/makeService.ts';
 import { makeSystem } from '../makeSystem.ts';
 import { makeSystemSpec } from '../makeSystemSpec.ts';
+import { ZerospinConfigSchema } from '../ZerospinConfigSchema.ts';
 
-const authentication = {
-  signature: makeSignature(
-    { version: '1.0.0', schema: Schema.Struct({}) },
-    [],
-  ),
+const authenticationV1 = authentication.makeVersion({
+  version: '1.0.0',
+  signature: Schema.Struct({}),
   authenticate: () => Effect.succeed('user'),
-};
-
-const Item = makeModel(
-  {
-    abbreviation: 'itm',
-    modelName: 'item',
-    attributes: { amount: primitives.integer() },
-    indexes: [],
-    version: '2.0.0',
-  },
-  [
-    {
-      abbreviation: 'itm',
-      modelName: 'item',
-      attributes: { quantity: primitives.integer() },
-      indexes: [],
-      version: '1.0.0',
-      adaptResource: ({ resource }) =>
-        Effect.succeed({
-          id: resource.id,
-          modelName: resource.modelName,
-          createdAt: resource.createdAt,
-          updatedAt: resource.updatedAt,
-          version: '1.0.0',
-          quantity: resource.amount,
-        }),
-    },
-  ],
-);
-
-const Note = makeModel({
-  abbreviation: 'nte',
-  modelName: 'note',
-  attributes: { body: primitives.text() },
-  indexes: [],
-  version: '1.0.0',
 });
 
-const Retired = makeModel({
-  abbreviation: 'rtd',
-  modelName: 'retired',
-  attributes: { body: primitives.text() },
+const ItemModel = models.makeModel({ name: 'item', abbreviation: 'itm' });
+
+const Item = models.makeVersion(ItemModel, {
+  attributes: { amount: primitives.integer() },
   indexes: [],
-  version: '1.0.0',
+  version: '2.0.0',
 });
 
-const renameItem = makeContract({
-  commandName: 'renameItem',
+const renameItem = contracts.makeVersion(contracts.makeCommand('renameItem'), {
   payload: {
-    id: Item.primaryKey({ autogenerate: false }),
+    id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
     amount: primitives.integer(),
   },
-  mutations: Schema.Struct({
-    updated: Item.updateMutation('2.0.0'),
-  }),
-  program: ({ payload }) =>
+  models: { item: Item },
+  program: ({ payload, models }) =>
     Effect.all({
-      updated: Item.update('2.0.0', {
+      updated: models.item.update({
         resourceId: payload.id,
         attributes: { amount: payload.amount },
       }),
@@ -83,490 +44,236 @@ const renameItem = makeContract({
 });
 
 describe('makeSystem schema validation', () => {
-  it('rejects structural copies of canonical leaves', () => {
-    const controller = makeFrontendController({
-      systemName: 'copy-system',
-      aggregateName: 'list',
-      frontendName: 'web',
-      models: { item: Item },
-      contracts: { renameItem },
+  it('accepts a system-only config for an aggregate-free System', () => {
+    const system = makeSystem({
+      name: 'empty',
+      authentication: [authenticationV1],
+      aggregates: {},
+    });
+    const config = system.config();
+    expect(config.system).toBe(system);
+    expect(config).toEqual({ system });
+    expect(Schema.is(ZerospinConfigSchema)(config)).toBe(true);
+    expect(Schema.is(ZerospinConfigSchema)({ system })).toBe(true);
+    expect(
+      Schema.is(ZerospinConfigSchema)({
+        ...config,
+        aggregates: { unknown: { canonical: '1.0.0' } },
+      }),
+    ).toBe(false);
+  });
+  it('rejects structural copies of canonical authentication and owner factories', () => {
+    const aggregate = aggregates.makeVersion(
+      aggregates.makeAggregate({ name: 'list' }),
+      {
+        version: '1.0.0',
+        models: {},
+        contracts: {},
+        selections: {},
+      },
+    );
+    const service = makeService({
+      name: 'catalog',
+      version: '1.0.0',
+      models: {},
+      contracts: {},
+      frontends: {},
     });
 
     expect(() =>
       makeSystem({
         name: 'copy-system',
-        version: '1.0.0',
-        authentication: {
-          ...authentication,
-          signature: {
-            ...authentication.signature,
-          } as typeof authentication.signature,
-        },
-        aggregates: {
-          list: {
-            authorize: () => Effect.void,
-            models: { item: Item },
-            contracts: { renameItem },
-            selections: {
-              item: makeSelection({ model: Item, where: () => ({}) }),
-            },
-            frontends: { web: { controller } },
-          },
-        },
+        authentication: [{ ...authenticationV1 }],
+        aggregates: { list: [aggregate] },
+        services: { catalog: [service] },
       }),
     ).toThrow(Schema.SchemaError);
-
     expect(() =>
       makeSystem({
         name: 'copy-system',
-        version: '1.0.0',
-        authentication,
+        authentication: [authenticationV1],
         aggregates: {
-          list: {
-            authorize: () => Effect.void,
-            models: { item: { ...Item } as typeof Item },
-            contracts: { renameItem },
-            selections: {
-              item: makeSelection({ model: Item, where: () => ({}) }),
-            },
-            frontends: { web: { controller } },
-          },
+          list: [{ ...aggregate } as typeof aggregate],
         },
+        services: { catalog: [service] },
       }),
     ).toThrow(Schema.SchemaError);
-
     expect(() =>
       makeSystem({
         name: 'copy-system',
-        version: '1.0.0',
-        authentication,
-        aggregates: {
-          list: {
-            authorize: () => Effect.void,
-            models: { item: Item },
-            contracts: { renameItem: { ...renameItem } as typeof renameItem },
-            selections: {
-              item: makeSelection({ model: Item, where: () => ({}) }),
-            },
-            frontends: { web: { controller } },
-          },
-        },
-      }),
-    ).toThrow(Schema.SchemaError);
-
-    expect(() =>
-      makeSystem({
-        name: 'copy-system',
-        version: '1.0.0',
-        authentication,
-        aggregates: {
-          list: {
-            authorize: () => Effect.void,
-            models: { item: Item },
-            contracts: { renameItem },
-            selections: {
-              item: makeSelection({ model: Item, where: () => ({}) }),
-            },
-            frontends: {
-              web: { controller: { ...controller } as typeof controller },
-            },
-          },
+        authentication: [authenticationV1],
+        aggregates: { list: [aggregate] },
+        services: {
+          catalog: [{ ...service } as typeof service],
         },
       }),
     ).toThrow(Schema.SchemaError);
   });
 
-  it('keeps canonical leaf identity and snapshots authored containers', () => {
-    const models = { item: Item };
-    const contracts = { renameItem };
-    const controller = makeFrontendController({
-      systemName: 'identity-system',
-      aggregateName: 'list',
-      frontendName: 'web',
-      models,
-      contracts,
+  it('preserves service identity and canonical aggregate definitions', () => {
+    const service = makeService({
+      name: 'catalog',
+      version: '1.0.0',
+      models: {},
+      contracts: {},
+      queries: {
+        products: {
+          paramsSchema: Schema.Struct({}),
+          query: () => Effect.succeed([]),
+        },
+      },
+      frontends: {},
     });
-    const frontends = { web: { controller } };
+    const aggregate = aggregates.makeVersion(
+      aggregates.makeAggregate({ name: 'list' }),
+      {
+        version: '1.0.0',
+        authorize: () => Effect.void,
+        models: { item: Item },
+        contracts: { renameItem: { contract: renameItem } },
+        selections: {
+          item: makeSelection({ model: Item, where: () => ({}) }),
+        },
+      },
+    );
+
+    const aggregateDefinitions = { list: [aggregate] };
+    const serviceDefinitions = { catalog: [service] };
     const system = makeSystem({
       name: 'identity-system',
-      version: '1.0.0',
-      authentication,
-      aggregates: {
-        list: {
-          authorize: () => Effect.void,
-          models,
-          contracts,
-          selections: {
-            item: makeSelection({ model: Item, where: () => ({}) }),
-          },
-          frontends,
-        },
-      },
+      authentication: [authenticationV1],
+      aggregates: aggregateDefinitions,
+      services: serviceDefinitions,
     });
 
-    expect(system.aggregates.list.models.item).toBe(Item);
-    expect(system.aggregates.list.contracts.renameItem).toBe(renameItem);
-    expect(system.aggregates.list.frontends.web?.controller).toBe(controller);
-    expect(system.aggregates.list.models).not.toBe(models);
-    expect(system.aggregates.list.contracts).not.toBe(contracts);
-    expect(system.aggregates.list.frontends).not.toBe(frontends);
-
-    const extra = makeModel({
-      abbreviation: 'xtr',
-      modelName: 'extra',
-      attributes: { name: primitives.text() },
-      indexes: [],
-      version: '1.0.0',
-    });
-    Object.assign(models, { extra });
-    Object.assign(contracts, { extra: renameItem });
-    Reflect.deleteProperty(frontends, 'web');
-
-    expect(system.aggregates.list.models.item).toBe(Item);
-    expect(system.aggregates.list.models).not.toHaveProperty('extra');
-    expect(system.aggregates.list.contracts).not.toHaveProperty('extra');
-    expect(system.aggregates.list.frontends.web?.controller).toBe(controller);
+    expect(system.services.catalog['1.0.0']).toBe(service);
+    expect(system.aggregates.list).not.toBe(aggregate);
+    expect(system.aggregates.list['1.0.0'].models).toBe(aggregate.models);
+    expect(system.aggregates.list['1.0.0'].contracts).toBe(aggregate.contracts);
+    expect(system.aggregates.list['1.0.0'].selections).toBe(
+      aggregate.selections,
+    );
+    expect(system.aggregates.list['1.0.0'].models.item).toBe(Item);
+    expect(system.aggregates.list['1.0.0'].contracts.renameItem.contract).toBe(
+      renameItem,
+    );
   });
 
-  it('rejects authentication, ownership, replica, frontend, stamping, and authorization failures as Schema errors', () => {
-    const Product = makeModel({
-      abbreviation: 'prd',
-      modelName: 'product',
-      attributes: { name: primitives.text() },
-      indexes: [],
+  it('rejects owner key/name and frontend systemName mismatches as Schema errors', () => {
+    const aggregate = aggregates.makeVersion(
+      aggregates.makeAggregate({ name: 'account' }),
+      {
+        version: '1.0.0',
+        models: {},
+        contracts: {},
+        selections: {},
+      },
+    );
+    const service = makeService({
+      name: 'catalog',
       version: '1.0.0',
-    });
-    const ProductReplica = makeReplica({
-      sourceModel: Product,
-      serviceName: 'catalog',
-    });
-    const serviceController = makeFrontendController({
-      systemName: 'graph-system',
-      serviceName: 'catalog',
-      frontendName: 'browse',
-      models: { product: Product },
-    });
-    const aggregateController = makeFrontendController({
-      systemName: 'graph-system',
-      aggregateName: 'account',
-      frontendName: 'web',
-      models: { product: ProductReplica },
+      models: {},
       contracts: {},
+      frontends: {},
     });
-    const stampedWrong = makeFrontendController({
+
+    expect(() =>
+      makeSystem({
+        name: 'graph-system',
+        authentication: [authenticationV1],
+        aggregates: {
+          // @ts-expect-error aggregate registry keys must equal aggregate.name
+          other: [aggregate],
+        },
+        services: { catalog: [service] },
+      }),
+    ).toThrow(Schema.SchemaError);
+    expect(() =>
+      makeSystem({
+        name: 'graph-system',
+        authentication: [authenticationV1],
+        aggregates: { account: [aggregate] },
+        services: {
+          // @ts-expect-error service registry keys must equal service.name
+          other: [service],
+        },
+      }),
+    ).toThrow(Schema.SchemaError);
+
+    const wrongServiceController = makeFrontendController({
       systemName: 'other-system',
-      aggregateName: 'account',
-      frontendName: 'web',
-      models: { product: ProductReplica },
+      serviceVersion: '1.0.0',
+      serviceName: 'catalog',
+      name: 'browse',
+      models: {},
+    });
+    const wrongServiceSystem = makeService({
+      name: 'catalog',
+      version: '1.0.0',
+      authorize: () => Effect.void,
+      models: {},
       contracts: {},
+      frontends: {
+        browse: {
+          controller: wrongServiceController,
+        },
+      },
     });
 
     expect(() =>
       makeSystem({
         name: 'graph-system',
-        version: '1.0.0',
-        authentication: {
-          signature: {
-            ...authentication.signature,
-          } as typeof authentication.signature,
-          authenticate: authentication.authenticate,
-        },
-        aggregates: {},
-      }),
-    ).toThrow(Schema.SchemaError);
-
-    expect(() =>
-      makeSystem({
-        name: 'graph-system',
-        version: '1.0.0',
-        authentication,
-        aggregates: {},
+        authentication: [authenticationV1],
+        aggregates: { account: [aggregate] },
         services: {
-          catalog: {
-            // @ts-expect-error services require authoritative models
-            models: { product: ProductReplica },
-            contracts: {},
-            frontends: {},
-          },
+          catalog: [wrongServiceSystem],
         },
       }),
     ).toThrow(Schema.SchemaError);
-
-    expect(() =>
-      makeSystem({
-        name: 'graph-system',
-        version: '1.0.0',
-        authentication,
-        aggregates: {
-          account: {
-            models: { product: Product },
-            contracts: {},
-            selections: {},
-            frontends: {},
-          },
-        },
-        services: {
-          catalog: {
-            models: { product: Product },
-            contracts: {},
-            frontends: {},
-          },
-        },
-      }),
-    ).toThrow(Schema.SchemaError);
-
-    expect(() =>
-      makeSystem({
-        name: 'graph-system',
-        version: '1.0.0',
-        authentication,
-        aggregates: {
-          account: {
-            authorize: () => Effect.void,
-            models: { product: ProductReplica },
-            contracts: {},
-            selections: {
-              product: makeSelection({
-                model: ProductReplica,
-                where: () => ({}),
-              }),
-            },
-            frontends: { web: { controller: stampedWrong as never } },
-          },
-        },
-        services: {
-          catalog: {
-            models: { product: Product },
-            contracts: {},
-            frontends: {},
-          },
-        },
-      }),
-    ).toThrow(Schema.SchemaError);
-
-    expect(() =>
-      makeSystem({
-        name: 'graph-system',
-        version: '1.0.0',
-        authentication,
-        aggregates: {
-          // @ts-expect-error aggregate frontends require owner authorization
-          account: {
-            models: { product: ProductReplica },
-            contracts: {},
-            selections: {
-              product: makeSelection({
-                model: ProductReplica,
-                where: () => ({}),
-              }),
-            },
-            frontends: { web: { controller: aggregateController } },
-          },
-        },
-        services: {
-          // @ts-expect-error service frontends require owner authorization
-          catalog: {
-            models: { product: Product },
-            contracts: {},
-            frontends: { browse: { controller: serviceController } },
-          },
-        },
-      }),
-    ).toThrow(Schema.SchemaError);
-  });
-
-  it('rejects mutation-history invariants as Schema errors', () => {
-    const validAdapter = {
-      source: Item.updateMutation('1.0.0'),
-      destination: Item.updateMutation('2.0.0'),
-      adapter: (mutation: {
-        resourceId: `itm_${string}`;
-        operation: { attributes: { quantity: number } };
-      }) =>
-        Item.update('2.0.0', {
-          resourceId: mutation.resourceId,
-          attributes: { amount: mutation.operation.attributes.quantity },
-        }),
-    };
-
-    const expectMutationError = (
-      mutationAdapters: unknown,
-      message: RegExp,
-    ) => {
-      const run = () =>
-        makeSystem({
-          name: 'mutation-system',
-          version: '1.0.0',
-          authentication,
-          aggregates: {
-            list: {
-              models: { item: Item },
-              contracts: {},
-              mutationAdapters: mutationAdapters as never,
-              selections: {
-                item: makeSelection({ model: Item, where: () => ({}) }),
-              },
-              frontends: {},
-            },
-          },
-        });
-      expect(run).toThrow(Schema.SchemaError);
-      expect(run).toThrow(message);
-    };
-
-    expectMutationError(
-      {
-        item: {
-          update: [{ source: Schema.Struct({}), destination: null }],
-        },
-      },
-      /has no mutation identity/,
-    );
-    expectMutationError(
-      {
-        item: {
-          patch: [validAdapter],
-        },
-      },
-      /is not a supported mutation operation/,
-    );
-    expectMutationError(
-      {
-        item: {
-          update: [
-            {
-              source: Item.updateMutation('2.0.0'),
-              destination: Item.updateMutation('2.0.0'),
-              adapter: validAdapter.adapter,
-            },
-          ],
-        },
-      },
-      /source version "2.0.0" is current/,
-    );
-    expectMutationError(
-      {
-        item: {
-          update: [
-            {
-              source: Item.updateMutation('1.0.0'),
-              destination: Item.updateMutation('1.0.0'),
-              adapter: validAdapter.adapter,
-            },
-          ],
-        },
-      },
-      /is not current version "2.0.0"/,
-    );
-    expectMutationError(
-      {
-        item: {
-          update: [validAdapter, validAdapter],
-        },
-      },
-      /repeats source version "1.0.0"/,
-    );
-    expectMutationError(
-      {
-        item: {
-          update: [
-            {
-              source: Item.updateMutation('1.0.0'),
-              destination: Note.updateMutation('1.0.0'),
-              adapter: validAdapter.adapter,
-            },
-          ],
-        },
-      },
-      /destination model "note" is not an aggregate model/,
-    );
-    expectMutationError(
-      {
-        retired: {
-          create: [
-            { source: Retired.createMutation('1.0.0'), destination: null },
-          ],
-        },
-      },
-      /retired model "retired" must exhaustively adapt or discard every create\/update\/delete\/move source version/,
-    );
   });
 
   it('preserves valid specs and stamped owner identities', () => {
-    const controller = makeFrontendController({
-      systemName: 'valid-system',
-      aggregateName: 'list',
-      frontendName: 'web',
-      models: { item: Item },
-      contracts: { renameItem },
+    const aggregate = aggregates.makeVersion(
+      aggregates.makeAggregate({ name: 'list' }),
+      {
+        version: '1.0.0',
+        authorize: () => Effect.void,
+        models: { item: Item },
+        contracts: { renameItem: { contract: renameItem } },
+        selections: {
+          item: makeSelection({ model: Item, where: () => ({}) }),
+        },
+      },
+    );
+    const service = makeService({
+      name: 'catalog',
+      version: '1.0.0',
+      models: {},
+      contracts: {},
+      queries: {
+        products: {
+          paramsSchema: Schema.Struct({}),
+          query: () => Effect.succeed([]),
+        },
+      },
+      frontends: {},
     });
     const system = makeSystem({
       name: 'valid-system',
-      version: '1.0.0',
-      authentication,
-      aggregates: {
-        list: {
-          authorize: () => Effect.void,
-          models: { item: Item },
-          contracts: { renameItem },
-          mutationAdapters: {
-            item: {
-              update: [
-                {
-                  source: Item.updateMutation('1.0.0'),
-                  destination: Item.updateMutation('2.0.0'),
-                  adapter: mutation =>
-                    Item.update('2.0.0', {
-                      resourceId: mutation.resourceId,
-                      attributes: {
-                        amount: mutation.operation.attributes.quantity,
-                      },
-                    }),
-                },
-              ],
-            },
-          },
-          selections: {
-            item: makeSelection({ model: Item, where: () => ({}) }),
-          },
-          queries: {
-            products: { service: 'catalog', query: 'products' },
-          },
-          frontends: { web: { controller } },
-        },
-      },
-      services: {
-        catalog: {
-          models: {},
-          contracts: {},
-          queries: {
-            products: {
-              paramsSchema: Schema.Struct({}),
-              query: () => Effect.succeed([]),
-            },
-          },
-          frontends: {},
-        },
-      },
+      authentication: [authenticationV1],
+      aggregates: { list: [aggregate] },
+      services: { catalog: [service] },
     });
 
-    expect(system.aggregates.list.name).toBe('list');
-    expect(system.services.catalog.name).toBe('catalog');
-    expect(system.aggregates.list.queries.products).toBe(
-      system.services.catalog.queries.products,
-    );
+    expect(system.aggregates.list['1.0.0'].name).toBe('list');
+    expect(system.services.catalog['1.0.0'].name).toBe('catalog');
     expect(makeSystemSpec({ system })).toMatchObject({
       systemName: 'valid-system',
-      version: '1.0.0',
       aggregates: {
-        list: {
-          name: 'list',
-        },
+        list: { '1.0.0': { name: 'list' } },
       },
       services: {
-        catalog: {
-          name: 'catalog',
-        },
+        catalog: { '1.0.0': { name: 'catalog' } },
       },
     });
   });

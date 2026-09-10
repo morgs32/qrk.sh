@@ -1,17 +1,16 @@
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeContract } from './makeContract.ts';
 import {
   identityContractAdapt,
   makeContractAdapter,
 } from './makeContractAdapter.ts';
 
-const contract = makeContract({
-  commandName: 'createItem',
+import { contracts } from './index.ts';
+
+const contract = contracts.makeVersion(contracts.makeCommand('createItem'), {
   version: '1.0.0',
   payload: {},
-  mutations: null,
 });
 
 describe('makeContractAdapter', () => {

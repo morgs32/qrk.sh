@@ -18,33 +18,13 @@ const sessionMetadataTable = makeTable({
     sessionId: primitives.primaryKey({ abbreviation: 'sesn' }),
     nextSessionIndex: primitives.integer(),
     aggregateIndex: primitives.integer(),
-    frontendIndex: primitives.integer(),
-    pushIndex: primitives.integer(),
-    systemVersion: primitives.text(),
-  },
-});
-
-const sessionResolvedPushTable = makeTable({
-  name: 'sessionResolvedPush',
-  shape: {
-    sessionId: primitives.opaqueId({ abbreviation: 'sesn' }),
+    userIndex: primitives.integer(),
     pushIndex: primitives.integer(),
   },
-  indexes: [
-    {
-      name: 'session_resolved_push_session_push_unique',
-      columns: ['sessionId', 'pushIndex'],
-      unique: true,
-    },
-  ],
 });
 
 export const sessionMetadataDrizzleSchema =
   makeDrizzleSchemaFromTable(sessionMetadataTable);
-
-export const sessionResolvedPushDrizzleSchema = makeDrizzleSchemaFromTable(
-  sessionResolvedPushTable,
-);
 
 /** Non-model tables merged with `frontend.models` for session DB adapters. */
 export const sessionRepoTables = {
@@ -64,7 +44,6 @@ export const sessionRepoTables = {
     shape: sessionOptimisticAppliedMutationShape,
   }),
   sessionMetadata: sessionMetadataTable,
-  sessionResolvedPush: sessionResolvedPushTable,
 } satisfies IAnyTables;
 
 export const sessionRepoSchema =

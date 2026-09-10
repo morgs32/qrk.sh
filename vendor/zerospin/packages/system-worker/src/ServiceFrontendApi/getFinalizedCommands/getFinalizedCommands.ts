@@ -7,18 +7,31 @@ import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import {
   mapParseError,
+  ZerospinError,
   type IAnyErrorJson,
   type IEncodedResult,
 } from '@zerospin/error';
 import type { IRpcRequest } from '@zerospin/logger';
 import { Effect, Result, Schema } from 'effect';
+import { system } from 'system';
 
-import { getServiceFrontendFinalizedCommandChain } from '../../ServiceFrontendFinalizedCommandChain/getServiceFrontendFinalizedCommandChain/getServiceFrontendFinalizedCommandChain.js';
+import { FrontendServiceChain } from '../../FrontendServiceChain/FrontendServiceChain.js';
 
+/*
+ * ServiceFrontendApi serves reconnect history from FrontendServiceChain.
+ * The capability binds the frontend identity; the request supplies the replay
+ * cursor.
+ *
+ * 1. Validate the replay request.
+ * 2. Return invalid replay arguments.
+ * 3. Resolve the retained frontend log.
+ * 4. Read and settle the retained suffix.
+ * 5. Return the replay result.
+ */
 export const getFinalizedCommands = Effect.fn(
   'ServiceFrontendApi.getFinalizedCommands',
 )(function* (props: {
-  request: IRpcRequest<[{ afterServiceFrontendIndex: number }]>;
+  request: IRpcRequest<[{ afterServiceIndex: number; serviceVersion: string }]>;
   authResults: {
     readonly userId: string;
     readonly frontendName: string;
@@ -26,16 +39,20 @@ export const getFinalizedCommands = Effect.fn(
       typeof ServiceFrontendLockSchema
     >;
     readonly serviceName: string;
+    serviceVersion: string;
     readonly systemId: ISystemId;
   };
 }) {
   const { authResults, request } = props;
+
+  // 1 — require an integer, nonnegative afterServiceIndex
   const validated = yield* Schema.decodeUnknownEffect(
     Schema.toType(
       Schema.mutable(
         Schema.Tuple([
           Schema.Struct({
-            afterServiceFrontendIndex: Schema.Number.check(
+            serviceVersion: Schema.String,
+            afterServiceIndex: Schema.Number.check(
               Schema.isInt(),
               Schema.isGreaterThanOrEqualTo(0),
             ),
@@ -51,6 +68,8 @@ export const getFinalizedCommands = Effect.fn(
     }),
     Effect.result,
   );
+
+  // 2 — encode the argument failure with a null link
   if (Result.isFailure(validated)) {
     return {
       result: yield* encodeRpc(Effect.fail(validated.failure)),
@@ -58,14 +77,39 @@ export const getFinalizedCommands = Effect.fn(
     };
   }
 
-  const chain = yield* getServiceFrontendFinalizedCommandChain({
+  if (
+    !Object.hasOwn(
+      system.services[authResults.serviceName] ?? {},
+      authResults.serviceVersion,
+    ) ||
+    validated.success[0].serviceVersion !== authResults.serviceVersion
+  ) {
+    return {
+      result: yield* encodeRpc(
+        Effect.fail(
+          new ZerospinError({
+            code: 'service-version-unavailable',
+            message:
+              'The requested version is not available through this capability',
+          }),
+        ),
+      ),
+      link: null,
+    };
+  }
+
+  // 3 — use the capability-bound frontend fields
+  const chain = yield* FrontendServiceChain.getRepo({
     key: {
       systemId: authResults.systemId,
       serviceName: authResults.serviceName,
+      serviceVersion: validated.success[0].serviceVersion,
       userId: authResults.userId,
       frontendName: authResults.frontendName,
     },
   });
+
+  // 4 — decode chain.getCommands after the requested cursor
   const settled = yield* makeAsync<
     IEncodedResult<
       Readonly<{
@@ -76,10 +120,11 @@ export const getFinalizedCommands = Effect.fn(
     >
   >(() =>
     chain.getCommands({
-      afterServiceFrontendIndex:
-        validated.success[0].afterServiceFrontendIndex,
+      afterServiceIndex: validated.success[0].afterServiceIndex,
     }),
   ).pipe(Effect.flatMap(decodeRpc), Effect.result);
+
+  // 5 — encode the commands/tip or failure without emitting a trace link
   return {
     result: yield* Result.match(settled, {
       onFailure: error => encodeRpc(Effect.fail(error)),

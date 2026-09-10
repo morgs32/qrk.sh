@@ -13,6 +13,7 @@ import type {
 } from 'drizzle-orm/sqlite-core';
 import type { Effect, Schema } from 'effect';
 
+import type { Table } from './makeTable.ts';
 import type { PrimitiveKind } from './primitiveKind.ts';
 
 /** Compile-time-only error brand for generic constraints (`@ts-expect-error CoreTypeError`). */
@@ -32,11 +33,11 @@ export type IPrimaryKeyDescriptor<ABBREVIATION extends string = string> = {
 };
 
 /** An opaque abbreviation-prefixed value with no relational meaning. */
-export type IOpaqueIdDescriptor<
+export type IForeignKeyDescriptor<
   NULLABLE extends boolean = boolean,
   ABBREVIATION extends string = string,
 > = {
-  kind: PrimitiveKind.OpaqueId;
+  kind: PrimitiveKind.ForeignKey;
   nullable: NULLABLE;
   unique: boolean;
   abbreviation: ABBREVIATION;
@@ -170,7 +171,7 @@ type IAnyJsonDescriptor = IJsonDescriptor<boolean, any>;
 
 export type IPrimitiveDescriptor =
   | IPrimaryKeyDescriptor
-  | IOpaqueIdDescriptor
+  | IForeignKeyDescriptor
   | IBooleanDescriptor
   | ICursorDescriptor
   | IIntegerDescriptor
@@ -183,7 +184,7 @@ export type IPrimitiveDescriptor =
 
 export type IAnyPrimitiveDescriptor =
   | IPrimaryKeyDescriptor
-  | IOpaqueIdDescriptor
+  | IForeignKeyDescriptor
   | IBooleanDescriptor
   | ICursorDescriptor
   | IIntegerDescriptor
@@ -238,11 +239,7 @@ export type IDrizzleTableConfig<SHAPE extends IAnyShape = IAnyShape> = {
 export type ITable<
   TABLE_NAME extends string = string,
   SHAPE extends IAnyShape = IAnyShape,
-> = {
-  name: TABLE_NAME;
-  shape: SHAPE;
-  indexes: readonly IDrizzleIndexConfig<keyof SHAPE & string>[];
-};
+> = Table<TABLE_NAME, SHAPE>;
 
 export type IAnyTable = ITable<string, IAnyShape>;
 
@@ -257,7 +254,7 @@ export type IPrimitiveKindDecodedMap = {
   [PrimitiveKind.Date]: Date;
   [PrimitiveKind.Enum]: string;
   [PrimitiveKind.Json]: never;
-  [PrimitiveKind.OpaqueId]: string;
+  [PrimitiveKind.ForeignKey]: string;
   [PrimitiveKind.PrimaryKey]: string;
   [PrimitiveKind.Ref]: string;
 };
@@ -274,7 +271,7 @@ export type IPrimitiveKindEncodedMap = {
   [PrimitiveKind.Date]: Date;
   [PrimitiveKind.Enum]: string;
   [PrimitiveKind.Json]: string;
-  [PrimitiveKind.OpaqueId]: string;
+  [PrimitiveKind.ForeignKey]: string;
   [PrimitiveKind.PrimaryKey]: string;
   [PrimitiveKind.Ref]: string;
 };
@@ -286,7 +283,7 @@ export type IPrimitiveKindEncoded =
 export type IPrimitiveDescriptorDecoded<T extends IAnyPrimitiveDescriptor> =
   T extends
     | IPrimaryKeyDescriptor
-    | IOpaqueIdDescriptor
+    | IForeignKeyDescriptor
     | ICursorDescriptor
     | IAnyRefDescriptor
     ? T extends IAnyRefDescriptor & { targetKind: PrimitiveKind.Integer }
@@ -335,7 +332,7 @@ export type IPrimitiveDescriptorDecoded<T extends IAnyPrimitiveDescriptor> =
 export type IPrimitiveDescriptorEncoded<T extends IAnyPrimitiveDescriptor> =
   T extends
     | IPrimaryKeyDescriptor
-    | IOpaqueIdDescriptor
+    | IForeignKeyDescriptor
     | ICursorDescriptor
     | IAnyRefDescriptor
     ? T extends IAnyRefDescriptor & { targetKind: PrimitiveKind.Integer }
@@ -452,7 +449,7 @@ export type InferDrizzleColumnBuilderFromDescriptor<
             NULLABLE,
             string extends ABBREVIATION ? string : `${ABBREVIATION}_${string}`
           >
-        : D extends IOpaqueIdDescriptor<infer NULLABLE, infer ABBREVIATION>
+        : D extends IForeignKeyDescriptor<infer NULLABLE, infer ABBREVIATION>
           ? IEncodedTextColumn<
               NULLABLE,
               string extends ABBREVIATION ? string : `${ABBREVIATION}_${string}`

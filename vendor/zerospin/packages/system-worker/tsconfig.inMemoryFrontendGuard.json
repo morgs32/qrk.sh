@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.etc.json",
+  "include": [
+    "src/inMemoryFrontendGuard.workerd.spec.ts",
+    "src/inMemoryFrontendGuard.wasm.d.ts"
+  ],
+  "exclude": []
+}

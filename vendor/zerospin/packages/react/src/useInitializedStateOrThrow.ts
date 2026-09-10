@@ -2,10 +2,10 @@ import { useContext, useSyncExternalStore } from 'react';
 
 import type {
   IAggregateFrontendController,
-  IFrontendController,
-  InferFrontendModels,
+  IAnyFrontendController,
   IServiceFrontendController,
 } from '@zerospin/core/frontendController/types';
+import type { IAnyModels } from '@zerospin/core/models/types';
 import type { IInitializedServiceSessionState } from '@zerospin/core/serviceSession/types';
 import type { IInitializedSessionState } from '@zerospin/core/session/types';
 import { ZerospinError } from '@zerospin/error';
@@ -14,17 +14,20 @@ import { ZerospinProviderContext } from './ZerospinProviderContext';
 
 export function useInitializedStateOrThrow<
   FRONTEND extends IAggregateFrontendController,
+  MODELS extends IAnyModels,
 >(
-  selector: Readonly<{ frontend: FRONTEND }>,
-): IInitializedSessionState<InferFrontendModels<FRONTEND>>;
+  selector: Readonly<{ frontend: FRONTEND; models: MODELS }>,
+): IInitializedSessionState<MODELS>;
 export function useInitializedStateOrThrow<
   FRONTEND extends IServiceFrontendController,
+  MODELS extends IAnyModels,
 >(
-  selector: Readonly<{ frontend: FRONTEND }>,
-): IInitializedServiceSessionState<FRONTEND['models']>;
+  selector: Readonly<{ frontend: FRONTEND; models: MODELS }>,
+): IInitializedServiceSessionState<MODELS>;
 export function useInitializedStateOrThrow(
   selector: Readonly<{
-    frontend: IFrontendController | IServiceFrontendController;
+    frontend: IAnyFrontendController | IServiceFrontendController;
+    models: IAnyModels;
   }>,
 ): object {
   const provider = useContext(ZerospinProviderContext);
@@ -36,7 +39,7 @@ export function useInitializedStateOrThrow(
   const entry = provider.sessions.get(selector);
   if (entry === undefined) {
     throw new Error(
-      `ZerospinApp.Provider has no mounted session for frontend "${selector.frontend.frontendName}". Use the matching ZerospinApp.frontends entry.`,
+      `ZerospinApp.Provider has no mounted session for frontend "${selector.frontend.name}". Use the matching ZerospinApp.frontends entry.`,
     );
   }
   const state = useSyncExternalStore(

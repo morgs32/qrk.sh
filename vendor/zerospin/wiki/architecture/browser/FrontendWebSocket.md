@@ -1,124 +1,107 @@
 ---
-title: Frontend Finalized-Command WebSocket
-updated: 2026-09-01
+title: Frontend WebSocket Delivery
+updated: 2026-09-10
 ---
 
-# Frontend Finalized-Command WebSocket
+# Frontend WebSocket Delivery
 
-A main-thread frontend session authenticates through a fresh HTTP-batch RPC
-session and requests a one-time ticket for its exact finalized command chain.
-The RPC session closes after ticket creation. The frontend session then owns
-one per-session WebSocket: aggregate sessions connect to
-`/ws-aggregate-frontend-commands`, while service sessions connect to
-`/ws-service-frontend-commands`. Each data message carries one complete
-`aggregateFrontendCommand` or `serviceFrontendCommand` occurrence.
-
-- [`Worker.ts:24-40`](../../../examples/shopping/src/Worker.ts#L24-L40) — routes only the two singular frontend-command paths and system-log paths through SystemRepo.
-- [`fetch.ts:58-84`](../../../packages/system-worker/src/SystemRepo/fetch/fetch.ts#L58-L84) — accepts exactly the two command routes, a WebSocket upgrade, and one opaque ticket query parameter.
+Aggregate sessions use `/ws-aggregate-frontend-commands`; service sessions use `/ws-service-frontend-commands`. Aggregate tickets pin the version captured by the snapshot, so a cutover between snapshot and socket creation cannot mix histories.
 
 ## Trigger
 
-1. A main-thread bootstrap calls
-   `createAggregateFrontendWebSocketTicket(...)` or
-   `createServiceFrontendWebSocketTicket(...)`, then opens the matching
-   singular command route itself.
-   - [`bootstrapAggregateFrontendSession.ts:440-504`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L440-L504) — obtains the aggregate ticket, constructs the WebSocket URL, and subscribes from zero.
-   - [`bootstrapServiceFrontendSession.ts:282-344`](../../../packages/frontend/src/bootstrapServiceFrontendSession.ts#L282-L344) — performs the equivalent service connection.
+1. Before opening the aggregate socket, the browser fetches a snapshot with its published user position, consumed aggregate position, and aggregate version.
+   - [`getState.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/getState/getState.ts) — Captures graph and both indices together, awaits publication outside the execution permit, then retrieves requested outcomes through that user position.
 
 ```mermaid
 sequenceDiagram
-  participant Session as Main-thread frontend session
-  participant FrontendApi as Exact frontend capability
-  participant Ticket as Static System ticket Effect
+  participant Browser
+  participant UserVersionedAggregateRepo
+  participant AggregateFrontendApi
   participant SystemRepo
-  participant Worker as DevWorker or ProductionWorker
-  participant Finalized as Exact finalized command chain
-
+  participant UserVersionedAggregateChain
   autonumber 1
-  Session->>FrontendApi: frontendApi.createWebSocketTicket(...)
+  Browser->>UserVersionedAggregateRepo: frontendApi.getState(...)
   autonumber 2
-  FrontendApi->>Ticket: create*FrontendWebSocketTicket(...)
+  Browser->>AggregateFrontendApi: frontendApi.createWebSocketTicket(...)
   autonumber 3
-  Ticket->>SystemRepo: systemRepo.create*FrontendWebSocketTicket(...)
+  AggregateFrontendApi->>SystemRepo: systemRepo.createAggregateFrontendWebSocketTicket(...)
   autonumber 4
-  SystemRepo-->>Session: opaque one-time ticket
+  SystemRepo-->>Browser: ticket
   autonumber 5
-  Session->>Worker: WebSocket singular-command route
+  Browser->>SystemRepo: systemRepo.fetch(...)
   autonumber 6
-  Worker->>SystemRepo: systemRepo.fetch(...)
+  SystemRepo->>UserVersionedAggregateChain: repo.fetch(...)
   autonumber 7
-  SystemRepo->>SystemRepo: consume*FrontendWebSocketTicket(...)
+  Browser->>UserVersionedAggregateChain: socket.send(...)
   autonumber 8
-  SystemRepo->>Finalized: finalizedCommandChain.fetch(...)
-  autonumber 9
-  Session->>Finalized: socket.send(resume index)
-  autonumber 10
-  Finalized->>Finalized: finalizedCommandChain.getCommands(...)
-  autonumber 11
-  Finalized-->>Session: singular finalized command
-  autonumber 12
-  Finalized-->>Session: replay-complete watermark
-  autonumber 13
-  Finalized-->>Session: next singular finalized command
+  UserVersionedAggregateChain-->>Browser: aggregateFrontendCommand / replay-complete
 ```
 
 ## Annotated workflow steps
 
-1. The exact child capability accepts an empty ticket request; its bound fields
-   are not resubmitted by the caller.
-   - [`createWebSocketTicket.ts:18-50`](../../../packages/system-worker/src/AggregateFrontendApi/createWebSocketTicket/createWebSocketTicket.ts#L18-L50) — validates the empty aggregate request against the capability binding.
-   - [`createWebSocketTicket.ts:17-47`](../../../packages/system-worker/src/ServiceFrontendApi/createWebSocketTicket/createWebSocketTicket.ts#L17-L47) — validates the empty service request.
-2. The API delegates to the static System ticket Effect with its bound target,
-   user, lock, and configured `systemId`.
-   - [`createWebSocketTicket.ts:51-65`](../../../packages/system-worker/src/AggregateFrontendApi/createWebSocketTicket/createWebSocketTicket.ts#L51-L65) — forwards the aggregate binding unchanged.
-   - [`createWebSocketTicket.ts:49-62`](../../../packages/system-worker/src/ServiceFrontendApi/createWebSocketTicket/createWebSocketTicket.ts#L49-L62) — forwards the service binding.
-3. The System Effect derives the exact finalized-chain name, verifies only the
-   matching materialized frontend registration, and asks SystemRepo to mint a
-   ticket for that name. It deliberately does not require the sparse finalized
-   chain to be registered before its first connection.
-   - [`createAggregateFrontendWebSocketTicket.ts:58-108`](../../../packages/system-worker/src/createAggregateFrontendWebSocketTicket/createAggregateFrontendWebSocketTicket.ts#L58-L108) — derives both names, checks only MaterializedAggregateFrontendRepo readiness, and stores the finalized-chain target in the ticket request.
-   - [`createServiceFrontendWebSocketTicket.ts:55-103`](../../../packages/system-worker/src/createServiceFrontendWebSocketTicket/createServiceFrontendWebSocketTicket.ts#L55-L103) — applies the same materialized-only readiness check for the service target.
-4. SystemRepo returns the opaque one-time ticket; the ticket row retains the
-   exact target fields, lock, chain name, and expiry.
-   - [`SystemRepoDbConfig.ts:34-78`](../../../packages/system-worker/src/SystemRepo/SystemRepoDbConfig.ts#L34-L78) — defines both bound ticket row shapes.
-5. The main-thread frontend session opens the aggregate or service
-   singular-command route with that ticket.
-   - [`Worker.ts:24-40`](../../../examples/shopping/src/Worker.ts#L24-L40) — routes these WebSocket paths to the configured SystemRepo.
-6. The Worker forwards the exact request to `SystemRepo(systemId)`.
-   - [`ProductionWorker.ts:33-62`](../../../packages/production-worker/src/ProductionWorker.ts#L33-L62) — validates the WebSocket and ticket query before delegating to SystemRepo.
-7. SystemRepo consumes the matching ticket exactly once and rejects an invalid
-   or expired ticket.
-   - [`fetch.ts:84-106`](../../../packages/system-worker/src/SystemRepo/fetch/fetch.ts#L84-L106) — consumes and validates a service ticket.
-   - [`fetch.ts:145-166`](../../../packages/system-worker/src/SystemRepo/fetch/fetch.ts#L145-L166) — consumes and validates an aggregate ticket.
-8. SystemRepo resolves the finalized chain from the consumed target and
-   activates it lazily by installing bound identity headers and forwarding the
-   WebSocket request.
-   - [`fetch.ts:107-142`](../../../packages/system-worker/src/SystemRepo/fetch/fetch.ts#L107-L142) — resolves the exact ServiceFrontendFinalizedCommandChain and forwards `fetch(...)` without a registration prerequisite.
-   - [`fetch.ts:167-204`](../../../packages/system-worker/src/SystemRepo/fetch/fetch.ts#L167-L204) — performs the same lazy resolution and fetch for AggregateFrontendFinalizedCommandChain.
-9. Once connected, bootstrap sends zero so the new in-memory replica receives a
-   complete replay before admission.
-   - [`onMessage.ts:38-65`](../../../packages/system-worker/src/AggregateFrontendFinalizedCommandChain/onMessage/onMessage.ts#L38-L65) — accepts exactly one initial aggregate resume message from the bound connection.
-   - [`onMessage.ts:33-60`](../../../packages/system-worker/src/ServiceFrontendFinalizedCommandChain/onMessage/onMessage.ts#L33-L60) — accepts the service resume watermark.
-10. The chain repeatedly pulls paginated contiguous history after the delivered
-    index until it reaches the observed tip.
-    - [`onMessage.ts:67-102`](../../../packages/system-worker/src/AggregateFrontendFinalizedCommandChain/onMessage/onMessage.ts#L67-L102) — replays aggregate finalized history and rejects gaps or regressed tips.
-    - [`onMessage.ts:62-101`](../../../packages/system-worker/src/ServiceFrontendFinalizedCommandChain/onMessage/onMessage.ts#L62-L101) — replays service finalized history.
-11. Each replay item is one singular message with the matching discriminant and
-    complete encoded command under `sync`.
-    - [`onMessage.ts:77-95`](../../../packages/system-worker/src/AggregateFrontendFinalizedCommandChain/onMessage/onMessage.ts#L77-L95) — sends one `aggregateFrontendCommand` at a time.
-    - [`onMessage.ts:73-94`](../../../packages/system-worker/src/ServiceFrontendFinalizedCommandChain/onMessage/onMessage.ts#L73-L94) — sends one `serviceFrontendCommand` at a time.
-12. The chain emits one replay-complete watermark and marks the connection live.
-    - [`onMessage.ts:104-110`](../../../packages/system-worker/src/AggregateFrontendFinalizedCommandChain/onMessage/onMessage.ts#L104-L110) — completes aggregate replay at the delivered `frontendIndex`.
-    - [`onMessage.ts:103-109`](../../../packages/system-worker/src/ServiceFrontendFinalizedCommandChain/onMessage/onMessage.ts#L103-L109) — completes service replay at `serviceFrontendIndex`.
-13. A new persisted finalized occurrence is broadcast as one singular message
-    only to live connections. The main-thread session applies it directly to
-    its in-memory SQLite database; a replay race closes for recovery.
-    - [`AggregateFrontendFinalizedCommandChain.ts:58-98`](../../../packages/system-worker/src/AggregateFrontendFinalizedCommandChain/AggregateFrontendFinalizedCommandChain.ts#L58-L98) — broadcasts aggregate commands and fences replay races.
-    - [`ServiceFrontendFinalizedCommandChain.ts:57-93`](../../../packages/system-worker/src/ServiceFrontendFinalizedCommandChain/ServiceFrontendFinalizedCommandChain.ts#L57-L93) — broadcasts service commands with the service discriminant.
-    - [`bootstrapAggregateFrontendSession.ts:649-712`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts#L649-L712) — validates and applies each live aggregate occurrence and reconnects after close.
+1. Before opening the aggregate socket, the browser fetches a snapshot with its published user position, consumed aggregate position, and aggregate version.
+   - [`getState.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/getState/getState.ts) — Captures graph and both indices together, awaits publication outside the execution permit, then retrieves requested outcomes through that user position.
+2. The browser requests a ticket for the snapshot aggregateVersion; target and user fields remain capability-bound.
+   - [`createWebSocketTicket.ts`](../../../packages/system-worker/src/AggregateFrontendApi/createWebSocketTicket/createWebSocketTicket.ts) — Decodes the version and passes it with the bound view.
+3. The ticket procedure verifies the matching UVAR registration and persists the exact versioned UVAC name.
+   - [`createWebSocketTicket.ts`](../../../packages/system-worker/src/AggregateFrontendApi/createWebSocketTicket/createWebSocketTicket.ts) — Constructs version-bound UVAR and UVAC names and asks SystemRepo for a ticket.
+4. SystemRepo returns an opaque one-use ticket.
+   - [`createAggregateFrontendWebSocketTicket.ts`](../../../packages/system-worker/src/SystemRepo/createAggregateFrontendWebSocketTicket/createAggregateFrontendWebSocketTicket.ts) — Retains the target, frontend lock, and expiry with the token.
+5. The Worker forwards the upgrade request to the configured singleton SystemRepo.
+   - [`fetch.ts`](../../../packages/system-worker/src/SystemRepo/fetch/fetch.ts) — Consumes the ticket and routes using its retained versioned repoName.
+   - [`consumeAggregateFrontendWebSocketTicket.ts`](../../../packages/system-worker/src/SystemRepo/consumeAggregateFrontendWebSocketTicket/consumeAggregateFrontendWebSocketTicket.ts) — Atomically spends the ticket and returns every required stored-row field, including aggregateVersion; the schema checks projection completeness at compile time and stored values at runtime.
+   - [`consumeServiceFrontendWebSocketTicket.ts`](../../../packages/system-worker/src/SystemRepo/consumeServiceFrontendWebSocketTicket/consumeServiceFrontendWebSocketTicket.ts) — Applies the same schema-derived projection check to service tickets, including serviceVersion.
+6. The exact UVAC accepts the bound connection and waits for a resume cursor.
+   - [`onConnect.ts`](../../../packages/system-worker/src/UserVersionedAggregateChain/onConnect/onConnect.ts) — Validates headers and records awaiting-resume connection state.
+7. The browser sends the snapshot `userIndex`; replay and completion use that user position independently of `aggregateIndex`.
+   - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — Pins the snapshot version in the ticket and sends its user resume position.
+   - [`onMessage.ts`](../../../packages/system-worker/src/UserVersionedAggregateChain/onMessage/onMessage.ts) — Replays contiguous retained outputs strictly after the supplied user position and returns `replay-complete`.
+8. UVAC sends retained replay, then committed live outputs. A service-only output advances `userIndex`, retains the aggregate watermark, and has no command resolution. Browser participation never gates the internal pipeline.
+   - [`UserVersionedAggregateChain.ts`](../../../packages/system-worker/src/UserVersionedAggregateChain/UserVersionedAggregateChain.ts) — Broadcasts committed output only to live connections and closes a replay race for reconnect.
+   - [`AggregateFrontendCommandSchema.ts`](../../../packages/core/src/session/AggregateFrontendCommandSchema.ts) — Decodes a positive user position, nonnegative aggregate watermark, and nullable full originating execution entry.
 
-## Callers
+## Shared aggregate delivery
 
-- [Browser session bootstrap](./bootstrapBrowserSession.md)
-- [Aggregate command finalization](../server/finalizeAggregateCommand.md)
-- [Command chains and materialization](../CommandChains.md)
+UVAR and UVAC share the key `{ systemId, aggregateId, aggregateName, aggregateVersion, userId }`. Worker configuration supplies `systemId`, authentication supplies `userId`, and admission validates and authorizes the caller's aggregate fields. The capability and socket retain their own `frontendName` and compatible lock. Snapshots and stream deltas expose only locked models; pushes require a locked contract version. Empty filtered entries still advance the shared `userIndex`. Resolutions retain the complete occurrence and are sent only to its originating frontend.
+
+- [`userVersionedAggregateRepoFixedDORepoConfig.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/userVersionedAggregateRepoFixedDORepoConfig.ts) — defines shared identity and the aggregate version's complete model schema.
+- [`getCommands.ts`](../../../packages/system-worker/src/UserVersionedAggregateChain/getCommands/getCommands.ts) — filters replay and performs indexed, cursor-bounded command reconciliation.
+- [`UserVersionedAggregateChain.ts`](../../../packages/system-worker/src/UserVersionedAggregateChain/UserVersionedAggregateChain.ts) — filters committed live output independently for each socket.
+- [`pushCommand.ts`](../../../packages/system-worker/src/AggregateFrontendApi/pushCommand/pushCommand.ts) — restricts pushes to the admitted contract selection.
+
+A changed lock selects a separate browser backup and a freshly admitted connection. Recovery replaces that view with a fresh filtered snapshot and resumes strictly after its `userIndex`. The user chain retains history indefinitely; no bounded window or frontend-specific server replica is created.
+
+- [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — obtains the lock-specific backup, requests outstanding outcomes, installs the snapshot, and opens replay.
+
+## Service frontend delivery
+
+The service route captures a published snapshot before opening its socket. Its
+ticket pins that snapshot's `serviceVersion`; FSC replays strictly after
+`serviceIndex`. Later online recovery can update the retained session's version
+by installing a newly fetched snapshot and its matching socket.
+
+- [`createWebSocketTicket.ts`](../../../packages/system-worker/src/ServiceFrontendApi/createWebSocketTicket/createWebSocketTicket.ts) — Binds the snapshot serviceVersion, service target, and frontend lock to its opaque ticket.
+- [`onMessage.ts`](../../../packages/system-worker/src/FrontendServiceChain/onMessage/onMessage.ts) — Replays service frontend occurrences from the service cursor.
+- [`bootstrapServiceFrontendSession.ts`](../../../packages/frontend/src/bootstrapServiceFrontendSession.ts) — recovers through a snapshot and version-pinned socket, then publishes the recovered metadata on the existing session store.
+
+## Ownership periods
+
+Each live socket belongs to the currently acquired frontend backup capability.
+Revocation closes that socket and interrupts recovery and live-message fibers;
+callbacks check period and socket identity again before publishing frontiers.
+A new acquisition restores the retained live database, renews execution
+identity, and creates a fresh socket through the same authenticated ticket flow.
+
+- [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — closes sockets in the ownership-period finalizer and fences delivery callbacks by current period and socket identity.
+- [`bootstrapServiceFrontendSession.ts`](../../../packages/frontend/src/bootstrapServiceFrontendSession.ts) — applies the equivalent service socket and replay fencing independently.
+- [IndexedDB backup coordination](./IndexedDbBackupCoordination.md) — describes per-key acquisition and worker-loss recovery.
+
+## Verification
+
+- [`consumeAggregateFrontendWebSocketTicket.node.spec.ts`](../../../packages/system-worker/src/SystemRepo/consumeAggregateFrontendWebSocketTicket/consumeAggregateFrontendWebSocketTicket.node.spec.ts) — Verifies a real SQLite ticket round trip retains the aggregate version and lock, deletes the ticket, and rejects reuse.
+
+- [`UserVersionedAggregateChain.workerd.spec.ts`](../../../packages/system-worker/src/UserVersionedAggregateChain/UserVersionedAggregateChain.workerd.spec.ts) — Tests durable service-only output with aggregate watermark zero, exact duplicate delivery, gap rejection, and real WebSocket replay after a nonzero user position.
+
+- [`frontendPrograms.node.spec.ts`](../../../packages/frontend/src/frontendPrograms.node.spec.ts) — Verifies snapshot-first bootstrap and reconnect send the independent user position and accept duplicate buffered delivery.
+
+See [Versioned Service Execution and Delivery](../server/serviceExecution.md) for projection, publication, and cutover routing.

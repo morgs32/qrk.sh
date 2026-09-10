@@ -12,39 +12,38 @@ export type ILoadConfigResults = {
   config: ISystemConfig;
 };
 
-export const loadConfigFn = Effect.fn('loadConfigFn')(
-  function* (): Effect.fn.Return<
-    ILoadConfigResults,
-    IAnyError,
-    Async | FileSystem.FileSystem | Path.Path
-  > {
-    const cwd = process.cwd();
-    const path = yield* Path.Path;
-    const envPath = path.join(cwd, '.env');
-    const envLocalPath = path.join(cwd, '.env.local');
-    yield* Effect.sync(() => {
-      loadEnv({ path: envLocalPath });
-      loadEnv({ path: envPath });
+export const loadConfigFn = Effect.fn('loadConfigFn')(function* (
+  cwd: string = process.cwd(),
+): Effect.fn.Return<
+  ILoadConfigResults,
+  IAnyError,
+  Async | FileSystem.FileSystem | Path.Path
+> {
+  const path = yield* Path.Path;
+  const envPath = path.join(cwd, '.env');
+  const envLocalPath = path.join(cwd, '.env.local');
+  yield* Effect.sync(() => {
+    loadEnv({ path: envLocalPath });
+    loadEnv({ path: envPath });
+  });
+
+  const zerospinSecretKey = process.env['ZEROSPIN_SECRET_KEY'];
+  if (!zerospinSecretKey) {
+    return yield* new ZerospinError({
+      code: 'deploy-missing-env',
+      message: 'Missing ZEROSPIN_SECRET_KEY env var.',
     });
+  }
+  const zerospinApiUrl =
+    process.env['ZEROSPIN_API_URL'] ?? 'https://api.zerospin.dev';
 
-    const zerospinSecretKey = process.env['ZEROSPIN_SECRET_KEY'];
-    if (!zerospinSecretKey) {
-      return yield* new ZerospinError({
-        code: 'deploy-missing-env',
-        message: 'Missing ZEROSPIN_SECRET_KEY env var.',
-      });
-    }
-    const zerospinApiUrl =
-      process.env['ZEROSPIN_API_URL'] ?? 'https://api.zerospin.dev';
+  const config = yield* loadZerospinConfigFn(cwd);
 
-    const config = yield* loadZerospinConfigFn(cwd);
+  const results: ILoadConfigResults = {
+    zerospinSecretKey,
+    zerospinApiUrl,
+    config,
+  };
 
-    const results: ILoadConfigResults = {
-      zerospinSecretKey,
-      zerospinApiUrl,
-      config,
-    };
-
-    return results;
-  },
-);
+  return results;
+});

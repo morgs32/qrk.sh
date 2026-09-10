@@ -34,7 +34,6 @@ test('standalone static system api exposes its spec and direct repos', async () 
     );
 
     expect(systemSpec.systemName).toBe(system.name);
-    expect(systemSpec.version).toBe(system.version);
     expect(systemSpecEnvelope.link).toBeNull();
 
     using serviceQueryGatewayApi = newSyncRpcSession<GatewayApi>(apiUrl);
@@ -45,6 +44,7 @@ test('standalone static system api exposes its spec and direct repos', async () 
         args: [
           {
             serviceName: 'app',
+            serviceVersion: '1.0.0',
             queryName: 'getProducts',
             params: {},
           },
@@ -55,7 +55,6 @@ test('standalone static system api exposes its spec and direct repos', async () 
     );
 
     expect(serviceQueryResult).toEqual([]);
-
   }).toPass({
     intervals: [1_000, 2_000, 5_000],
     timeout: 30_000,

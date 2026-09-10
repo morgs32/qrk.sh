@@ -85,113 +85,118 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                         ),
                       );
                       break;
-                    case 'MaterializedAggregateRepo':
+                    case 'VersionedAggregateRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getMaterializedAggregateRepos()
+                          .getVersionedAggregateRepos()
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getMaterializedAggregateRepos',
+                              'Studio.getVersionedAggregateRepos',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'MaterializedAggregateFrontendRepo':
+                    case 'UserVersionedAggregateRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getMaterializedAggregateFrontendRepos()
+                          .getUserVersionedAggregateRepos()
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getMaterializedAggregateFrontendRepos',
+                              'Studio.getUserVersionedAggregateRepos',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'MaterializedServiceFrontendRepo':
+                    case 'FrontendVersionedServiceRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getMaterializedServiceFrontendRepos()
+                          .getFrontendVersionedServiceRepos()
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getMaterializedServiceFrontendRepos',
+                              'Studio.getFrontendVersionedServiceRepos',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'MaterializedServiceRepo':
+                    case 'VersionedServiceRepo':
                       data = await Effect.runPromise(
-                        systemApi
-                          .getMaterializedServiceRepos()
-                          .pipe(
-                            Effect.withSpan(
-                              'Studio.getMaterializedServiceRepos',
-                              { root: true },
-                            ),
-                            Effect.provide(makeTelemetryLayer(collector)),
-                          ),
-                      );
-                      break;
-                    case 'AggregateCommandChain':
-                      data = await Effect.runPromise(
-                        systemApi.getAggregateCommandChains().pipe(
-                          Effect.withSpan('Studio.getAggregateCommandChains', {
+                        systemApi.getVersionedServiceRepos().pipe(
+                          Effect.withSpan('Studio.getVersionedServiceRepos', {
                             root: true,
                           }),
                           Effect.provide(makeTelemetryLayer(collector)),
                         ),
                       );
                       break;
-                    case 'AggregateFrontendPushedCommandChain':
+                    case 'AggregateChain':
+                      data = await Effect.runPromise(
+                        systemApi.getAggregateChains().pipe(
+                          Effect.withSpan('Studio.getAggregateChains', {
+                            root: true,
+                          }),
+                          Effect.provide(makeTelemetryLayer(collector)),
+                        ),
+                      );
+                      break;
+                    case 'VersionedAggregateChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getAggregateFrontendPushedCommandChains()
+                          .getVersionedAggregateChains()
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getAggregateFrontendPushedCommandChains',
+                              'Studio.getVersionedAggregateChains',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'AggregateFrontendFinalizedCommandChain':
+                    case 'VersionedServiceChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getAggregateFrontendFinalizedCommandChains()
+                          .getVersionedServiceChains()
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getAggregateFrontendFinalizedCommandChains',
-                              {
-                                root: true,
-                              },
-                            ),
-                            Effect.provide(makeTelemetryLayer(collector)),
-                          ),
-                      );
-                      break;
-                    case 'ServiceFrontendFinalizedCommandChain':
-                      data = await Effect.runPromise(
-                        systemApi
-                          .getServiceFrontendFinalizedCommandChains()
-                          .pipe(
-                            Effect.withSpan(
-                              'Studio.getServiceFrontendFinalizedCommandChains',
+                              'Studio.getVersionedServiceChains',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'ServiceCommandChain':
+                    case 'UserVersionedAggregateChain':
                       data = await Effect.runPromise(
-                        systemApi.getServiceCommandChains().pipe(
-                          Effect.withSpan('Studio.getServiceCommandChains', {
+                        systemApi.getUserVersionedAggregateChains().pipe(
+                          Effect.withSpan(
+                            'Studio.getUserVersionedAggregateChains',
+                            {
+                              root: true,
+                            },
+                          ),
+                          Effect.provide(makeTelemetryLayer(collector)),
+                        ),
+                      );
+                      break;
+                    case 'FrontendServiceChain':
+                      data = await Effect.runPromise(
+                        systemApi.getFrontendServiceChains().pipe(
+                          Effect.withSpan('Studio.getFrontendServiceChains', {
+                            root: true,
+                          }),
+                          Effect.provide(makeTelemetryLayer(collector)),
+                        ),
+                      );
+                      break;
+                    case 'ServiceAdmittedChain':
+                      data = await Effect.runPromise(
+                        systemApi.getServiceAdmittedChains().pipe(
+                          Effect.withSpan('Studio.getServiceAdmittedChains', {
                             root: true,
                           }),
                           Effect.provide(makeTelemetryLayer(collector)),
@@ -236,32 +241,32 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                           ),
                       );
                       break;
-                    case 'MaterializedAggregateRepo':
+                    case 'VersionedAggregateRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getMaterializedAggregateRepoTableRows({
+                          .getVersionedAggregateRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getMaterializedAggregateRepoTableRows',
+                              'Studio.getVersionedAggregateRepoTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'MaterializedAggregateFrontendRepo':
+                    case 'UserVersionedAggregateRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getMaterializedAggregateFrontendRepoTableRows({
+                          .getUserVersionedAggregateRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getMaterializedAggregateFrontendRepoTableRows',
+                              'Studio.getUserVersionedAggregateRepoTableRows',
                               {
                                 root: true,
                               },
@@ -270,112 +275,128 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                           ),
                       );
                       break;
-                    case 'MaterializedServiceFrontendRepo':
+                    case 'FrontendVersionedServiceRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getMaterializedServiceFrontendRepoTableRows({
+                          .getFrontendVersionedServiceRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getMaterializedServiceFrontendRepoTableRows',
+                              'Studio.getFrontendVersionedServiceRepoTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'MaterializedServiceRepo':
+                    case 'VersionedServiceRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getMaterializedServiceRepoTableRows({
+                          .getVersionedServiceRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getMaterializedServiceRepoTableRows',
+                              'Studio.getVersionedServiceRepoTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'AggregateCommandChain':
+                    case 'AggregateChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getAggregateCommandChainTableRows({
+                          .getAggregateChainTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getAggregateCommandChainTableRows',
+                              'Studio.getAggregateChainTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'AggregateFrontendPushedCommandChain':
+                    case 'VersionedAggregateChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getAggregateFrontendPushedCommandChainTableRows({
+                          .getVersionedAggregateChainTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getAggregateFrontendPushedCommandChainTableRows',
+                              'Studio.getVersionedAggregateChainTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'AggregateFrontendFinalizedCommandChain':
+                    case 'VersionedServiceChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getAggregateFrontendFinalizedCommandChainTableRows({
+                          .getVersionedServiceChainTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getAggregateFrontendFinalizedCommandChainTableRows',
+                              'Studio.getVersionedServiceChainTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'ServiceFrontendFinalizedCommandChain':
+                    case 'UserVersionedAggregateChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getServiceFrontendFinalizedCommandChainTableRows({
+                          .getUserVersionedAggregateChainTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getServiceFrontendFinalizedCommandChainTableRows',
+                              'Studio.getUserVersionedAggregateChainTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
                           ),
                       );
                       break;
-                    case 'ServiceCommandChain':
+                    case 'FrontendServiceChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getServiceCommandChainTableRows({
+                          .getFrontendServiceChainTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getServiceCommandChainTableRows',
+                              'Studio.getFrontendServiceChainTableRows',
+                              { root: true },
+                            ),
+                            Effect.provide(makeTelemetryLayer(collector)),
+                          ),
+                      );
+                      break;
+                    case 'ServiceAdmittedChain':
+                      data = await Effect.runPromise(
+                        systemApi
+                          .getServiceAdmittedChainTableRows({
+                            repoName,
+                            tableName,
+                          })
+                          .pipe(
+                            Effect.withSpan(
+                              'Studio.getServiceAdmittedChainTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),

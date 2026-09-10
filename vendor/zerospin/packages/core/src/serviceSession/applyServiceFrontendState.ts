@@ -1,15 +1,16 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { makeEffectSchema } from '@zerospin/schema';
-import { sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
-import { makeTx } from '../drizzle/makeTx.ts';
 import type { IServiceFrontendController } from '../frontendController/types.ts';
 import type { ISessionId } from '../session/types.ts';
 import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 
+import {
+  applyServiceFrontendStateTx,
+  Db,
+} from './applyServiceFrontendStateTx.ts';
 import { ServiceFrontendStateSchema } from './ServiceFrontendCommandSchema.ts';
-import { serviceSessionMetadataDrizzleSchema } from './serviceSessionRepoTables.ts';
 import type {
   IServiceFrontendState,
   IServiceSessionDrizzleDb,
@@ -46,7 +47,7 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
       frontendState.userId !== userId ||
       frontendState.systemId !== systemId ||
       frontendState.serviceName !== frontend.serviceName ||
-      frontendState.frontendName !== frontend.frontendName
+      frontendState.frontendName !== frontend.name
     ) {
       return yield* new ZerospinError({
         code: 'service-frontend-state-target-mismatch',
@@ -55,7 +56,7 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
           expectedUserId: userId,
           expectedSystemId: systemId,
           expectedServiceName: frontend.serviceName,
-          expectedFrontendName: frontend.frontendName,
+          expectedFrontendName: frontend.name,
           actualUserId: frontendState.userId,
           actualSystemId: frontendState.systemId,
           actualServiceName: frontendState.serviceName,
@@ -81,45 +82,10 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
       );
     }
 
-    yield* makeTx({
-      db,
-      program: Effect.fn('applyServiceFrontendState.replaceResources')(
-        function* ({ tx }) {
-          yield* Effect.sync(() => {
-            tx.run(sql.raw('PRAGMA defer_foreign_keys = ON;'));
-          });
-
-          for (const model of Object.values(models)) {
-            tx.delete(model.drizzleSchema).run();
-          }
-
-          for (const resource of frontendState.resources) {
-            const model = yield* getByKeyOrThrow({
-              record: models,
-              key: resource.modelName,
-              recordKind: 'service frontend models',
-            });
-            tx.insert(model.drizzleSchema).values(resource).run();
-          }
-
-          tx.insert(serviceSessionMetadataDrizzleSchema)
-            .values({
-              sessionId,
-              serviceIndex: frontendState.serviceIndex,
-              serviceFrontendIndex: frontendState.serviceFrontendIndex,
-              systemVersion: frontendState.systemVersion,
-            })
-            .onConflictDoUpdate({
-              target: serviceSessionMetadataDrizzleSchema.sessionId,
-              set: {
-                serviceIndex: frontendState.serviceIndex,
-                serviceFrontendIndex: frontendState.serviceFrontendIndex,
-                systemVersion: frontendState.systemVersion,
-              },
-            })
-            .run();
-        },
-      ),
-    });
+    yield* applyServiceFrontendStateTx({
+      models,
+      frontendState,
+      sessionId,
+    }).pipe(Effect.provideService(Db, db));
   },
 );

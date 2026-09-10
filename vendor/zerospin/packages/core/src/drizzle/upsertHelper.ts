@@ -8,7 +8,7 @@ import { getTableColumns, sql, type InferInsertModel } from 'drizzle-orm';
 import type { SQLiteAsyncDatabase } from 'drizzle-orm/sqlite-core/async/db';
 import { mapValues } from 'es-toolkit';
 
-import type { IModels } from '../models/types.ts';
+import type { IAnyModels } from '../models/types.ts';
 
 import type {
   IDbConfigRelations,
@@ -19,7 +19,7 @@ type IUpsertShape = IAnyShape & {
   id: IAnyPrimitiveDescriptor;
 };
 
-type IUpsertTx<MODELS extends IModels, OTHER_TABLES extends IAnyTables> = Pick<
+type IUpsertTx<MODELS extends IAnyModels, OTHER_TABLES extends IAnyTables> = Pick<
   SQLiteAsyncDatabase<
     'sync' | 'async',
     unknown,
@@ -29,7 +29,7 @@ type IUpsertTx<MODELS extends IModels, OTHER_TABLES extends IAnyTables> = Pick<
 >;
 
 export function upsertHelper<
-  MODELS extends IModels,
+  MODELS extends IAnyModels,
   OTHER_TABLES extends IAnyTables,
   TABLE_NAME extends string,
   PROPERTIES extends IUpsertShape,

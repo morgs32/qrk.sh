@@ -1,4 +1,5 @@
-import { Schema, type JsonSchema } from 'effect';
+import { encodedShapeSchema, type IEncodedShape } from '@zerospin/schema';
+import { Schema } from 'effect';
 
 import type { IServiceFrontendController } from './types.ts';
 
@@ -11,11 +12,7 @@ export const ServiceFrontendLockSchema = Schema.Struct({
       modelName: Schema.String,
       abbreviation: Schema.String,
       version: Schema.String,
-      propertiesJsonSchema: Schema.Struct({
-        dialect: Schema.Literal('draft-2020-12'),
-        schema: Schema.Any,
-        definitions: Schema.Record(Schema.String, Schema.Any),
-      }),
+      propertiesShape: encodedShapeSchema,
       indexes: Schema.Array(
         Schema.Struct({
           name: Schema.String,
@@ -30,14 +27,14 @@ export const ServiceFrontendLockSchema = Schema.Struct({
 export const makeServiceFrontendLock = (props: {
   frontend: IServiceFrontendController;
 }): Schema.Schema.Type<typeof ServiceFrontendLockSchema> => {
-  const frontend = props.frontend;
+  const { frontend } = props;
   const models: Record<
     string,
     {
       modelName: string;
       abbreviation: string;
       version: string;
-      propertiesJsonSchema: JsonSchema.Document<'draft-2020-12'>;
+      propertiesShape: Readonly<IEncodedShape>;
       indexes: {
         name: string;
         columns: readonly string[];
@@ -52,7 +49,7 @@ export const makeServiceFrontendLock = (props: {
       modelName: model.modelName,
       abbreviation: model.abbreviation,
       version: model.version,
-      propertiesJsonSchema: model.spec.propertiesJsonSchema,
+      propertiesShape: model.spec.propertiesShape,
       indexes: model.indexes
         .toSorted((left, right) => left.name.localeCompare(right.name))
         .map(index => ({
@@ -65,7 +62,7 @@ export const makeServiceFrontendLock = (props: {
 
   return {
     systemName: frontend.systemName,
-    frontendName: frontend.frontendName,
+    frontendName: frontend.name,
     models,
   };
 };

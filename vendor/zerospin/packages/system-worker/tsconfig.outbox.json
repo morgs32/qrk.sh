@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.etc.json",
+  "include": [
+    "src/makeOutboxQueue/*.ts",
+    "src/makeOutboxSubscriber/*.ts",
+    "src/makeAlarmRegistry/*.ts",
+    "src/managedRuntime.ts",
+    "src/workerd-utils/OutboxFixture.ts",
+    "worker-configuration.d.ts"
+  ],
+  "exclude": []
+}

@@ -3,17 +3,22 @@ import { fileURLToPath } from 'node:url';
 import { cloudflare } from '@cloudflare/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { backupWorkerPlugin } from '@zerospin/backup-worker/vite';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   plugins: [
+    backupWorkerPlugin(),
     cloudflare({ configPath: 'wrangler.app.jsonc' }),
     react(),
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm}'],
+      },
       devOptions: { enabled: false },
       manifest: {
         name: 'Zerospin Shopping',

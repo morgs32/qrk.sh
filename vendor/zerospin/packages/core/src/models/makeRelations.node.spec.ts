@@ -2,27 +2,25 @@ import { primitives } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
 
-import { makeModel } from './makeModel.ts';
 import { makeRelations } from './makeRelations.ts';
 import { makeReplica } from './makeReplica.ts';
 
-const User = makeModel(
+import { models as modelDefinitions } from './index.ts';
+
+const User = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'user', abbreviation: 'usr' }),
   {
-    abbreviation: 'usr',
-    modelName: 'user',
     attributes: {
       name: primitives.text(),
     },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-const List = makeModel(
+const List = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'list', abbreviation: 'lst' }),
   {
-    abbreviation: 'lst',
-    modelName: 'list',
     attributes: {
       name: primitives.text(),
       userId: primitives.ref({
@@ -34,13 +32,11 @@ const List = makeModel(
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-const Item = makeModel(
+const Item = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'item', abbreviation: 'itm' }),
   {
-    abbreviation: 'itm',
-    modelName: 'item',
     attributes: {
       listId: primitives.ref({
         table: List.table,
@@ -51,7 +47,6 @@ const Item = makeModel(
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
 const models = {
@@ -60,23 +55,20 @@ const models = {
   user: User,
 };
 
-const ProductSource = makeModel(
+const ProductSource = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'product', abbreviation: 'prd' }),
   {
-    abbreviation: 'prd',
-    modelName: 'product',
     attributes: {
       name: primitives.text(),
     },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-const CartItemSource = makeModel(
+const CartItemSource = modelDefinitions.makeVersion(
+  modelDefinitions.makeModel({ name: 'cartItem', abbreviation: 'cit' }),
   {
-    abbreviation: 'cit',
-    modelName: 'cartItem',
     attributes: {
       productId: primitives.ref({
         table: ProductSource.table,
@@ -87,16 +79,17 @@ const CartItemSource = makeModel(
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
 const ProductReplica = makeReplica({
   sourceModel: ProductSource,
+  modelVersion: ProductSource.version,
   serviceName: 'catalog',
 });
 
 const CartItemReplica = makeReplica({
   sourceModel: CartItemSource,
+  modelVersion: CartItemSource.version,
   serviceName: 'catalog',
 });
 
@@ -188,22 +181,19 @@ describe('makeRelations', () => {
   });
 
   it('rejects same-name source tables that are not the exact replica source', () => {
-    const UnrelatedProductSource = makeModel(
+    const UnrelatedProductSource = modelDefinitions.makeVersion(
+      modelDefinitions.makeModel({ name: 'product', abbreviation: 'prd' }),
       {
-        abbreviation: 'prd',
-        modelName: 'product',
         attributes: {
           name: primitives.text(),
         },
         indexes: [],
         version: '1.0.0',
       },
-      [],
     );
-    const UnrelatedCartItemSource = makeModel(
+    const UnrelatedCartItemSource = modelDefinitions.makeVersion(
+      modelDefinitions.makeModel({ name: 'cartItem', abbreviation: 'cit' }),
       {
-        abbreviation: 'cit',
-        modelName: 'cartItem',
         attributes: {
           productId: primitives.ref({
             table: UnrelatedProductSource.table,
@@ -214,10 +204,10 @@ describe('makeRelations', () => {
         indexes: [],
         version: '1.0.0',
       },
-      [],
     );
     const UnrelatedCartItemReplica = makeReplica({
       sourceModel: UnrelatedCartItemSource,
+      modelVersion: UnrelatedCartItemSource.version,
       serviceName: 'catalog',
     });
     const replicaModels = {

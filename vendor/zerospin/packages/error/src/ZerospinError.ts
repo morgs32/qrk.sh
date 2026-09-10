@@ -47,13 +47,14 @@ export class ZerospinError<T extends string = never> extends Data.TaggedError(
       });
       this.#rawMessage = props;
     } else {
-      const rawMessage = props.message ?? props.code;
+      const { cause, code, extra, message, status } = props;
+      const rawMessage = message ?? code;
       super({
-        cause: props.cause ?? null,
-        code: props.code,
-        extra: props.extra ?? null,
-        message: formatDisplayMessage(props.code, rawMessage),
-        status: props.status ?? null,
+        cause: cause ?? null,
+        code,
+        extra: extra ?? null,
+        message: formatDisplayMessage(code, rawMessage),
+        status: status ?? null,
       });
       this.#rawMessage = rawMessage;
     }
@@ -87,10 +88,11 @@ export class ZerospinError<T extends string = never> extends Data.TaggedError(
           status?: null | number;
         } = {},
       ) {
+        const { message: messageOverride } = props;
         super({
           ...props,
           code,
-          message: props.message ?? message ?? code,
+          message: messageOverride ?? message ?? code,
         });
       }
     };

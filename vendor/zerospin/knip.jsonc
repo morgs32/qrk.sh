@@ -41,9 +41,9 @@
     "examples/shopping": {
       "entry": [
         "src/zerospin/session.worker.ts",
-        "zerospin.jsonc",
+        "zerospin.config.ts",
         "vitest.config.ts",
-        // Referenced as string paths from zerospin.jsonc
+        // Imported by zerospin.config.ts
         "src/zerospin/system.ts",
         "src/zerospin/seeds.ts",
         "src/zerospin/models.ts",
@@ -56,7 +56,7 @@
       "entry": [
         "src/zerospin/provider.session.worker.ts",
         "src/zerospin/owner.session.worker.ts",
-        "zerospin.jsonc",
+        "zerospin.config.ts",
         "vitest.config.ts",
         "src/zerospin/system.ts",
         "src/zerospin/seeds.ts",

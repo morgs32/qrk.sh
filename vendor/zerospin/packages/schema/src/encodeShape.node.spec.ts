@@ -1,8 +1,11 @@
+import { getTableConfig } from 'drizzle-orm/sqlite-core';
 import { Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
+  encodedShapeSchema,
   encodeShape,
+  makeDrizzleSchemaFromEncodedTable,
   makeTable,
   PrimitiveKind,
   primitives,
@@ -52,7 +55,7 @@ describe('encodeShape', () => {
   it('omits absent primary-key state from encoded descriptors', () => {
     const encoded = encodeShape({
       cursor: primitives.cursor({ abbreviation: 'cur' }),
-      id: primitives.opaqueId({ abbreviation: 'item' }),
+      id: primitives.foreignKey({ abbreviation: 'item' }),
       primaryKey: primitives.primaryKey({ abbreviation: 'pk' }),
       text: primitives.text(),
     });
@@ -188,4 +191,71 @@ describe('encodeShape', () => {
     expect(encoded.settings.kind).toBe(PrimitiveKind.Json);
     expect(encoded.teamId.kind).toBe(PrimitiveKind.Ref);
   });
+});
+
+it('round-trips every primitive as JSON, including date defaults and numeric refs', () => {
+  const shape = {
+    id: primitives.primaryKey({ abbreviation: 'row' }),
+    foreignId: primitives.foreignKey({ abbreviation: 'usr' }),
+    cursor: primitives.cursor({ abbreviation: 'cur' }),
+    enabled: primitives.boolean({ defaultValue: true }),
+    count: primitives.integer({ primaryKey: true }),
+    amount: primitives.number({ defaultValue: 1.5 }),
+    title: primitives.text({ nullable: true, defaultValue: null }),
+    createdAt: primitives.date({
+      defaultValue: new Date('2026-09-01T00:00:00.000Z'),
+    }),
+    status: primitives.enum({ values: ['open', 'closed'] }),
+    settings: primitives.json({ schema: JsonSettingsSchema }),
+    blockIndex: primitives.ref({
+      table: numericBlockTable,
+      relation: 'block',
+      inverse: 'rows',
+    }),
+  };
+  const encoded = encodeShape(shape);
+  expect(
+    Schema.decodeUnknownSync(encodedShapeSchema)(
+      JSON.parse(JSON.stringify(encoded)),
+    ),
+  ).toEqual(encoded);
+  const table = makeDrizzleSchemaFromEncodedTable({
+    name: 'roundTrip',
+    shape: encoded,
+    indexes: [],
+  });
+  expect(
+    getTableConfig(table).columns.find(column => column.name === 'createdAt')
+      ?.default,
+  ).toEqual(new Date('2026-09-01T00:00:00.000Z'));
+  expect(encoded.createdAt).toEqual({
+    kind: PrimitiveKind.Date,
+    nullable: false,
+    unique: false,
+    defaultValue: '2026-09-01T00:00:00.000Z',
+  });
+  expect(encoded.blockIndex).not.toHaveProperty('table');
+});
+
+it('rejects malformed primitive metadata in serialized shapes', () => {
+  expect(
+    Schema.is(encodedShapeSchema)({
+      dueAt: {
+        kind: 'date',
+        nullable: false,
+        unique: false,
+        defaultValue: 'invalid',
+      },
+    }),
+  ).toBe(false);
+  expect(
+    Schema.is(encodedShapeSchema)({
+      title: { kind: 'text', nullable: 'yes', unique: false },
+    }),
+  ).toBe(false);
+  expect(
+    Schema.is(encodedShapeSchema)({
+      value: { kind: 'unsupported', nullable: false },
+    }),
+  ).toBe(false);
 });

@@ -349,7 +349,7 @@ one-time ticket and forwards the socket to the exact hibernating PartyServer:
 
 1. `AggregateFrontendFinalizedCommandChain` is keyed by
    `{ systemId, aggregateId, aggregateName, userId, frontendName }`.
-2. `ServiceFrontendFinalizedCommandChain` is keyed by
+2. `FrontendServiceChain` is keyed by
    `{ systemId, serviceName, userId, frontendName }`.
 
 The ticket is still required even though the HTTP request creating it carries

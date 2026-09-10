@@ -28,10 +28,13 @@ export const makeCommand = Effect.fn('makeCommand')(function* <
   CuidFactory
 > {
   const { contract, payload } = props;
+  const decodedPayload = yield* contract.validatePayload({
+    version: contract.version,
+    payload,
+  });
   const commandId = yield* makeIdFromAbbreviation({
     abbreviation: coreAbbreviations.command,
   });
-  const decodedPayload = yield* contract.validatePayload({ payload });
 
   return {
     commandName: contract.commandName,

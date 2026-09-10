@@ -8,40 +8,44 @@
     "bindings": [
       { "name": "SYSTEM_REPO", "class_name": "SystemRepo" },
       {
-        "name": "MATERIALIZED_AGGREGATE_REPO",
-        "class_name": "MaterializedAggregateRepo",
+        "name": "VERSIONED_AGGREGATE_REPO",
+        "class_name": "VersionedAggregateRepo",
       },
       {
-        "name": "MATERIALIZED_SERVICE_REPO",
-        "class_name": "MaterializedServiceRepo",
+        "name": "VERSIONED_SERVICE_REPO",
+        "class_name": "VersionedServiceRepo",
       },
       {
-        "name": "AGGREGATE_COMMAND_CHAIN",
-        "class_name": "AggregateCommandChain",
+        "name": "AGGREGATE_CHAIN",
+        "class_name": "AggregateChain",
       },
       {
-        "name": "AGGREGATE_FRONTEND_PUSHED_COMMAND_CHAIN",
-        "class_name": "AggregateFrontendPushedCommandChain",
+        "name": "VERSIONED_AGGREGATE_CHAIN",
+        "class_name": "VersionedAggregateChain",
       },
       {
-        "name": "MATERIALIZED_AGGREGATE_FRONTEND_REPO",
-        "class_name": "MaterializedAggregateFrontendRepo",
+        "name": "VERSIONED_SERVICE_CHAIN",
+        "class_name": "VersionedServiceChain",
       },
       {
-        "name": "AGGREGATE_FRONTEND_FINALIZED_COMMAND_CHAIN",
-        "class_name": "AggregateFrontendFinalizedCommandChain",
+        "name": "USER_VERSIONED_AGGREGATE_REPO",
+        "class_name": "UserVersionedAggregateRepo",
       },
       {
-        "name": "SERVICE_COMMAND_CHAIN",
-        "class_name": "ServiceCommandChain",
+        "name": "USER_VERSIONED_AGGREGATE_CHAIN",
+        "class_name": "UserVersionedAggregateChain",
       },
       {
-        "name": "MATERIALIZED_SERVICE_FRONTEND_REPO",
-        "class_name": "MaterializedServiceFrontendRepo",
+        "name": "SERVICE_ADMITTED_CHAIN",
+        "class_name": "ServiceAdmittedChain",
       },
       {
-        "name": "SERVICE_FRONTEND_FINALIZED_COMMAND_CHAIN",
-        "class_name": "ServiceFrontendFinalizedCommandChain",
+        "name": "FRONTEND_VERSIONED_SERVICE_REPO",
+        "class_name": "FrontendVersionedServiceRepo",
+      },
+      {
+        "name": "FRONTEND_SERVICE_CHAIN",
+        "class_name": "FrontendServiceChain",
       },
       { "name": "SYSTEM_LOG_AGENT", "class_name": "SystemLogAgent" },
       { "name": "SYSTEM_LOG_REPO", "class_name": "SystemLogRepo" },
@@ -49,33 +53,37 @@
   },
   "exports": {
     "SystemRepo": { "type": "durable-object", "storage": "sqlite" },
-    "MaterializedAggregateRepo": {
+    "VersionedAggregateRepo": {
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "MaterializedServiceRepo": {
+    "VersionedServiceRepo": {
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "AggregateCommandChain": { "type": "durable-object", "storage": "sqlite" },
-    "AggregateFrontendPushedCommandChain": {
+    "AggregateChain": { "type": "durable-object", "storage": "sqlite" },
+    "VersionedAggregateChain": {
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "MaterializedAggregateFrontendRepo": {
+    "VersionedServiceChain": {
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "AggregateFrontendFinalizedCommandChain": {
+    "UserVersionedAggregateRepo": {
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "ServiceCommandChain": { "type": "durable-object", "storage": "sqlite" },
-    "MaterializedServiceFrontendRepo": {
+    "UserVersionedAggregateChain": {
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "ServiceFrontendFinalizedCommandChain": {
+    "ServiceAdmittedChain": { "type": "durable-object", "storage": "sqlite" },
+    "FrontendVersionedServiceRepo": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "FrontendServiceChain": {
       "type": "durable-object",
       "storage": "sqlite",
     },
@@ -85,6 +93,6 @@
   "vars": {
     "ZEROSPIN_ENVIRONMENT": "dev",
     "ZEROSPIN_SECRET_KEY": "sk_test_system_runtime_capability",
-    "ZEROSPIN_SYSTEM_ID": "sys_shopping",
+    "ZEROSPIN_SYSTEM_ID": "sys_shopping_20260907_pinned_replicas",
   },
 }

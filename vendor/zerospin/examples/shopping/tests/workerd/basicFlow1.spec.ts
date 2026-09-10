@@ -1,6 +1,7 @@
 import { describe, it } from '@effect/vitest';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
+import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
@@ -11,15 +12,25 @@ import { Effect } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { expect } from 'vitest';
 
-import { web as shopperFrontend } from '@/zerospin/frontends/web';
-import { User } from '@/zerospin/models/User';
+import { userV1 } from '@/zerospin/aggregates/shopper/models/user/userV1';
+import { shopperV2 } from '@/zerospin/aggregates/shopper/shopperV2';
+import { productV1 } from '@/zerospin/services/app/models/product/productV1';
 import { signature } from '@/zerospin/signature';
 import { system } from '@/zerospin/system';
 
-const appService = system.services.app;
-const shopperAggregate = system.aggregates.shopper;
+const WebV2 = makeFrontendController({
+  systemName: 'shopping',
+  aggregateName: shopperV2.name,
+  aggregateVersion: shopperV2.version,
+  name: 'web',
+  models: shopperV2.models,
+  contracts: shopperV2.contracts,
+});
+
+const appService = system.services.app['1.0.0'];
+const shopperAggregate = system.aggregates.shopper['2.0.0'];
 const shopperAggregateFrontendLock =
-  makeFrontendControllerSpec(shopperFrontend).aggregateFrontendLock;
+  makeFrontendControllerSpec(WebV2).aggregateFrontendLock;
 const aggregateId = makeAggregateId({ id: '1' });
 const clerkUserId = 'user_e2e_1';
 const TestLayer = makeWorkerdE2eTestLayer('basicFlow1');
@@ -27,7 +38,7 @@ const TestLayer = makeWorkerdE2eTestLayer('basicFlow1');
 describe('basicFlow1: static shopping system workerd flow', () => {
   it.layer(TestLayer)(it => {
     it.effect(
-      'serves finalization, queries, authentication, and frontend state immediately',
+      'admits service commands, awaits queries, and serves aggregate frontend state',
       () =>
         Effect.gen(function* () {
           const gatewayApi = yield* Effect.acquireRelease(
@@ -53,8 +64,8 @@ describe('basicFlow1: static shopping system workerd flow', () => {
 
           const createProduct = yield* appService.makeCommand({
             contractName: 'createProduct',
-            systemVersion: system.version,
             payload: {
+              id: yield* productV1.makeId(),
               name: 'E2E Product',
               description: 'statically bundled service command',
               price: 10,
@@ -63,62 +74,79 @@ describe('basicFlow1: static shopping system workerd flow', () => {
           const encodedProduct = {
             ...createProduct,
             payload: yield* appService.contracts.createProduct.encodePayload({
+              version: createProduct.contractVersion,
               payload: createProduct.payload,
             }),
           };
-          const serviceFinalization = yield* makeAsync(() =>
-            systemApi.finalizeServiceCommand({
-              traceContext: null,
-              args: [encodedProduct],
-            }),
-          ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
-          expect(serviceFinalization).toEqual(
-            expect.objectContaining({
-              id: createProduct.id,
-              serviceIndex: 1,
-              failedAt: null,
-              failure: null,
-            }),
-          );
-
-          const serviceProducts = yield* makeAsync(() =>
-            systemApi.executeServiceQuery({
+          const admission = yield* makeAsync(() =>
+            systemApi.executeServiceCommand({
               traceContext: null,
               args: [
-                {
-                  serviceName: appService.name,
-                  queryName: 'getProducts',
-                  params: {},
-                },
+                { serviceVersion: appService.version, command: encodedProduct },
               ],
             }),
           ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
-          expect(serviceProducts).toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({ name: 'E2E Product' }),
-            ]),
+          expect(admission).toEqual(
+            expect.objectContaining({
+              id: createProduct.id,
+              serviceIndex: 1,
+            }),
           );
 
-          const userId = User.prefixId(clerkUserId);
+          yield* makeAsync(() =>
+            expect
+              .poll(
+                () =>
+                  systemApi
+                    .executeServiceQuery({
+                      traceContext: null,
+                      args: [
+                        {
+                          serviceName: appService.name,
+                          serviceVersion: appService.version,
+                          queryName: 'getProducts',
+                          params: {},
+                        },
+                      ],
+                    })
+                    .then(envelope =>
+                      Effect.runPromise(decodeRpc(envelope.result)),
+                    ),
+                { timeout: 10_000 },
+              )
+              .toEqual(
+                expect.arrayContaining([
+                  expect.objectContaining({ name: 'E2E Product' }),
+                ]),
+              ),
+          );
+
+          const userId = userV1.prefixId(clerkUserId);
           const createUser = yield* shopperAggregate.makeCommand({
             contractName: 'createUser',
             aggregateId,
-            systemName: shopperFrontend.systemName,
-            systemVersion: system.version,
+            systemName: WebV2.systemName,
             payload: { id: userId, clerkUserId },
           });
           const encodedUser = {
             ...createUser,
-            payload: yield* shopperAggregate.contracts.createUser.encodePayload(
-              {
-                payload: createUser.payload,
-              },
-            ),
+            payload:
+              yield* shopperAggregate.contracts.createUser.contract.encodePayload(
+                {
+                  version: createUser.contractVersion,
+                  payload: createUser.payload,
+                },
+              ),
           };
           const aggregateFinalization = yield* makeAsync(() =>
-            systemApi.finalizeAggregateCommand({
+            systemApi.executeAggregateCommand({
               traceContext: null,
-              args: [encodedUser],
+              args: [
+                {
+                  aggregateVersion: WebV2.aggregateVersion,
+                  command: encodedUser,
+                },
+              ],
             }),
           ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
           expect(aggregateFinalization).toMatchObject({
@@ -128,9 +156,7 @@ describe('basicFlow1: static shopping system workerd flow', () => {
             failure: null,
           });
 
-          const authenticationLock = makeAuthenticationLock({
-            signature,
-          });
+          const authenticationLock = makeAuthenticationLock(signature);
           const frontendApi = yield* makeAsync(() =>
             gatewayApi.getAggregateFrontendApi({
               publishableKey: 'pk_test',
@@ -138,17 +164,22 @@ describe('basicFlow1: static shopping system workerd flow', () => {
               authenticationLock,
               signature: { clerkUserId },
               aggregateId,
-              aggregateName: shopperFrontend.aggregateName,
-              frontendName: shopperFrontend.frontendName,
+              aggregateName: WebV2.aggregateName,
+              aggregateVersion: WebV2.aggregateVersion,
+              frontendName: WebV2.name,
               aggregateFrontendLock: shopperAggregateFrontendLock,
             }),
           );
           const state = yield* makeAsync(() =>
-            frontendApi.getState({ traceContext: null, args: [] }),
+            frontendApi.getState({
+              traceContext: null,
+              args: [{ outstandingCommandIds: [] }],
+            }),
           ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
           expect(state).toMatchObject({
             aggregateId,
-            aggregateName: shopperFrontend.aggregateName,
+            aggregateName: WebV2.aggregateName,
+            aggregateVersion: WebV2.aggregateVersion,
             userId: clerkUserId,
           });
         }).pipe(Effect.scoped),

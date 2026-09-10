@@ -7,15 +7,14 @@
 export class AggregateFrontendApi {
   /**
    * Aggregate frontend push: AggregateFrontendApi →
-   * AggregateFrontendPushedCommandChain →
-   * MaterializedAggregateFrontendRepo.
+   * AggregateChain admission; VAR executes asynchronously.
    * See Command Chains and Push Sequence.
    */
   async pushCommand(props: { command: unknown }) {
-    return pushedCommandChain.pushCommand(props);
+    return admittedChain.admitCommands({ commands: [props.command] });
   }
 }
 
-declare const pushedCommandChain: {
-  pushCommand: (props: { command: unknown }) => Promise<unknown>;
+declare const admittedChain: {
+  admitCommands: (props: { commands: readonly unknown[] }) => Promise<unknown>;
 };

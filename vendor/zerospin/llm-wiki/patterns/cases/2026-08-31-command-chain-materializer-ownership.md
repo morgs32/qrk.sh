@@ -2,15 +2,15 @@
 
 ## Smell
 
-The history owner executes authored code, or the materialized Repo assigns the
+The history owner executes authored code, or the Repo assigns the
 source index and owns admission order.
 
 ## Pattern
 
 Keep ordered admission and retained terminal history in the named command
-chain. Execute one occurrence in the selected materialized Repo and return its
+chain. Execute one occurrence in the selected Repo and return its
 command-local delta. See
-`system-worker/aggregate-command-chain-materialization.ts`.
+`system-worker/aggregate-chain-materialization.ts`.
 
 ## When to apply
 

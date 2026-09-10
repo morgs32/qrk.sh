@@ -8,7 +8,7 @@ import {
   User,
 } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
-import { makeModel } from '@zerospin/core/models/makeModel';
+import { models } from '@zerospin/core/models/index';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import {
@@ -17,9 +17,9 @@ import {
 } from '@zerospin/core/session/sessionCommandShape';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
-import { primitives } from '@zerospin/schema';
+import { CuidFactory, primitives } from '@zerospin/schema';
 import type * as Capnweb from 'capnweb';
-import { Effect, Layer, ManagedRuntime, Redacted, Schema } from 'effect';
+import { Effect, Layer, Redacted, Schema } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -68,35 +68,33 @@ vi.mock('capnweb', async importOriginal => {
   };
 });
 
-const sessionRuntime = ManagedRuntime.make(
-  Layer.mergeAll(
-    AsyncLive,
-    NanoIdFactory,
-    UlidMonotonicFactory,
-    Layer.succeed(PublishableKey, Redacted.make('pk_test')),
-    Layer.succeed(ZerospinApiUrl, 'https://api.example.test'),
-  ),
+const sessionRuntimeLayer = Layer.mergeAll(
+  AsyncLive,
+  NanoIdFactory,
+  UlidMonotonicFactory,
+  Layer.succeed(PublishableKey, Redacted.make('pk_test')),
+  Layer.succeed(ZerospinApiUrl, 'https://api.example.test'),
 );
 
 const ZerospinMain = makeZerospinApp({
   systemName: 'system-worker',
-  authentication: { signature: authenticationSignature },
-  frontends: {
-    main: {
-      controller: main,
-    },
+  authentication: {
+    version: authenticationSignature.version,
+    signature: authenticationSignature.signature,
   },
-  runtime: sessionRuntime,
+  frontends: {
+    main,
+  },
+  layer: sessionRuntimeLayer,
 });
 const MockMainProvider = makeMockProvider({
   frontend: ZerospinMain.frontends.main,
-  runtime: sessionRuntime,
+  layer: sessionRuntimeLayer,
 });
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
-const JsonDocument = makeModel(
+const JsonDocument = models.makeVersion(
+  models.makeModel({ name: 'document', abbreviation: 'doc' }),
   {
-    abbreviation: 'doc',
-    modelName: 'document',
     attributes: {
       metadata: primitives.json({
         schema: Schema.Struct({
@@ -107,30 +105,31 @@ const JsonDocument = makeModel(
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 const jsonFrontend = makeFrontendController({
+  aggregateVersion: '1.0.0',
   contracts: {},
   models: {
     document: JsonDocument,
   },
   aggregateName: 'user',
-  frontendName: 'main',
+  name: 'main',
   systemName: 'mock-json-fixture-test',
 });
 const ZerospinJsonFixture = makeZerospinApp({
   systemName: 'mock-json-fixture-test',
-  authentication: { signature: authenticationSignature },
-  frontends: {
-    main: {
-      controller: jsonFrontend,
-    },
+  authentication: {
+    version: authenticationSignature.version,
+    signature: authenticationSignature.signature,
   },
-  runtime: sessionRuntime,
+  frontends: {
+    main: jsonFrontend,
+  },
+  layer: sessionRuntimeLayer,
 });
 const MockJsonFixtureProvider = makeMockProvider({
   frontend: ZerospinJsonFixture.frontends.main,
-  runtime: sessionRuntime,
+  layer: sessionRuntimeLayer,
 });
 
 describe('makeMockProvider', () => {
@@ -165,9 +164,69 @@ describe('makeMockProvider', () => {
     container.remove();
   });
 
+  it('releases local and application services when initialization fails before publication', async () => {
+    const events: string[] = [];
+    const frontend = makeFrontendController({
+      systemName: 'mock-lifecycle',
+      aggregateName: 'account',
+      aggregateVersion: '1.0.0',
+      name: 'web',
+      models: {},
+      contracts: {},
+      layer: Layer.effect(
+        CuidFactory,
+        Effect.gen(function* () {
+          const applicationId = yield* CuidFactory;
+          events.push(yield* applicationId());
+          return yield* Effect.acquireRelease(
+            Effect.succeed(() => Effect.succeed('local')),
+            () =>
+              Effect.sync(() => {
+                events.push('release-local');
+              }),
+          );
+        }),
+      ),
+    });
+    const Mock = makeMockProvider({
+      frontend: { frontend, models: frontend.models },
+      layer: Layer.mergeAll(
+        sessionRuntimeLayer,
+        Layer.effect(
+          CuidFactory,
+          Effect.acquireRelease(
+            Effect.succeed(() => Effect.succeed('application')),
+            () =>
+              Effect.sync(() => {
+                events.push('release-app');
+              }),
+          ),
+        ),
+      ),
+    });
+    await expect(
+      act(async () =>
+        root.render(
+          <Mock
+            aggregateIds={{ account: 'acct_1' }}
+            generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          >
+            Never published
+          </Mock>,
+        ),
+      ),
+    ).rejects.toThrow('MockProvider requires userId');
+    expect(events).toEqual(['application', 'release-local', 'release-app']);
+    expect(sqliteInitialization.entered).not.toHaveBeenCalled();
+    expect(container.textContent).toBe('');
+  });
+
   it('gates children until real SQLite initialization and publishes typed seeded and empty models', async () => {
     const Probe = () => {
       const session = useSession(ZerospinMain.frontends.main);
+      expect(session.coreSession.frontend.aggregateVersion).toBe(
+        main.aggregateVersion,
+      );
       const state = useInitializedStateOrThrow(ZerospinMain.frontends.main);
       const users = useLiveQuery(ZerospinMain.frontends.main, {
         query: db =>
@@ -191,7 +250,6 @@ describe('makeMockProvider', () => {
           data-user-id={state.userId}
           data-session-id={session.sessionId}
           data-session-status={state.sessionStatus}
-          data-system-version={state.systemVersion}
         >
           {JSON.stringify({
             accounts: accounts.data,
@@ -208,7 +266,6 @@ describe('makeMockProvider', () => {
           userId="user_1"
           aggregateIds={{ user: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          systemVersion="1.0.0"
           resources={{
             user: [
               {
@@ -254,7 +311,6 @@ describe('makeMockProvider', () => {
     expect(output?.getAttribute('data-user-id')).toBe('user_1');
     expect(output?.getAttribute('data-session-id')).toMatch(/^sesn_/);
     expect(output?.getAttribute('data-session-status')).toBe('current');
-    expect(output?.getAttribute('data-system-version')).toBe('1.0.0');
     expect(output?.textContent).toContain('User 1');
     expect(output?.textContent).toContain('List 1');
     expect(output?.textContent).toContain('"items":[]');
@@ -304,7 +360,6 @@ describe('makeMockProvider', () => {
           userId="user_1"
           aggregateIds={{ user: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          systemVersion="1.0.0"
         >
           <EmptyModelsProbe />
         </MockMainProvider>,
@@ -342,7 +397,6 @@ describe('makeMockProvider', () => {
           userId="user_1"
           aggregateIds={{ user: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          systemVersion="1.0.0"
           resources={{
             document: [
               {
@@ -435,7 +489,6 @@ describe('makeMockProvider', () => {
           userId="user_1"
           aggregateIds={{ user: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          systemVersion="1.0.0"
           resources={{
             user: [
               {
@@ -485,7 +538,6 @@ describe('makeMockProvider', () => {
           data-testid="identity"
           data-aggregate-id={state.aggregateId}
           data-user-id={state.userId}
-          data-system-version={state.systemVersion}
         >
           {users.data.map(user => user.name).join(',')}
         </output>
@@ -498,7 +550,6 @@ describe('makeMockProvider', () => {
           userId="user_1"
           aggregateIds={{ user: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          systemVersion="1.0.0"
           resources={{
             user: [
               {
@@ -534,7 +585,6 @@ describe('makeMockProvider', () => {
           userId="user_2"
           aggregateIds={{ user: 'acct_2' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
-          systemVersion="2.0.0"
           resources={{
             user: [
               {
@@ -558,7 +608,6 @@ describe('makeMockProvider', () => {
     const unchangedOutput = container.querySelector('[data-testid="identity"]');
     expect(unchangedOutput?.getAttribute('data-aggregate-id')).toBe('acct_1');
     expect(unchangedOutput?.getAttribute('data-user-id')).toBe('user_1');
-    expect(unchangedOutput?.getAttribute('data-system-version')).toBe('1.0.0');
     expect(unchangedOutput?.textContent).toContain('Original User');
     expect(unchangedOutput?.textContent).not.toContain('Replacement User');
 
@@ -569,7 +618,6 @@ describe('makeMockProvider', () => {
           userId="user_2"
           aggregateIds={{ user: 'acct_2' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
-          systemVersion="2.0.0"
           resources={{
             user: [
               {
@@ -595,7 +643,6 @@ describe('makeMockProvider', () => {
         const resetOutput = container.querySelector('[data-testid="identity"]');
         expect(resetOutput?.getAttribute('data-aggregate-id')).toBe('acct_2');
         expect(resetOutput?.getAttribute('data-user-id')).toBe('user_2');
-        expect(resetOutput?.getAttribute('data-system-version')).toBe('2.0.0');
         expect(resetOutput?.textContent).toContain('Replacement User');
         expect(sqliteCloseBoundary).toHaveBeenCalledTimes(1);
       },
@@ -620,7 +667,6 @@ describe('makeMockProvider', () => {
           userId="user_1"
           aggregateIds={{ user: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          systemVersion="1.0.0"
           resources={{
             user: [
               {
@@ -678,7 +724,6 @@ describe('makeMockProvider', () => {
           userId="user_1"
           aggregateIds={{ user: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          systemVersion="1.0.0"
         >
           <div data-testid="late-child" />
         </MockMainProvider>,

@@ -14,14 +14,16 @@ describe('service frontend lock', () => {
     Effect.gen(function* () {
       const left = makeFrontendController({
         systemName: 'shopping',
+        serviceVersion: '1.0.0',
         serviceName: 'catalog',
-        frontendName: 'web',
+        name: 'web',
         models: {},
       });
       const right = makeFrontendController({
         systemName: 'shopping',
+        serviceVersion: '1.0.0',
         serviceName: 'inventory',
-        frontendName: 'web',
+        name: 'web',
         models: {},
       });
 

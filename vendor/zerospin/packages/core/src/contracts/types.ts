@@ -1,31 +1,88 @@
-/* oxlint-disable typescript/no-explicit-any -- payload/mutation erased defaults */
+/* oxlint-disable typescript/no-explicit-any -- payload/mutation/guard erased defaults */
 import type { IAnyError, IAnyErrorJson } from '@zerospin/error';
 import {
-  type CuidFactory,
   type IAnyShape,
+  type IEncodedShape,
   type InferDecodedRow,
   type InferIdFromAbbreviation,
 } from '@zerospin/schema';
-import type { Effect, JsonSchema, Schema } from 'effect';
+import type { Effect } from 'effect';
 
 import type {
+  IAnyModels,
   IModel,
+  IModelReplica,
+  IModelSpec,
   InferCommandPayload,
+  InferPayloadInput,
   InferResource,
 } from '../models/types.ts';
 
 import type { ICreateMutation } from './createMutation.ts';
 import type { IDeleteMutation } from './deleteMutation.ts';
-import type { InferContractProgram } from './makeContract.ts';
+import type { IMutations, InferContractProgram } from './makeVersion.ts';
 import type { IMoveMutation } from './moveMutation.ts';
-import type { IReplicateResourceMutation } from './replicateResource.ts';
+import type { IReplicateMutation } from './replicate.ts';
 import type { IUpdateMutation } from './updateMutation.ts';
+
+export interface IModelMutations<MODEL extends IModel> {
+  create(props: {
+    readonly resourceId: InferIdFromAbbreviation<MODEL['abbreviation']>;
+    readonly attributes: InferDecodedRow<MODEL['attributes']>;
+  }): Effect.Effect<
+    string extends MODEL['version']
+      ? any
+      : ICreateMutation<MODEL, MODEL['attributes']>,
+    IAnyError
+  >;
+
+  update(props: {
+    readonly resourceId: InferIdFromAbbreviation<MODEL['abbreviation']>;
+    readonly attributes: Partial<InferDecodedRow<MODEL['attributes']>>;
+    readonly mask?: ReadonlyArray<
+      keyof InferDecodedRow<MODEL['attributes']> & string
+    >;
+  }): Effect.Effect<
+    string extends MODEL['version']
+      ? any
+      : IUpdateMutation<MODEL, MODEL['attributes']>,
+    IAnyError
+  >;
+
+  delete(props: {
+    readonly resourceId: InferIdFromAbbreviation<MODEL['abbreviation']>;
+  }): Effect.Effect<
+    string extends MODEL['version'] ? any : IDeleteMutation<MODEL>,
+    IAnyError
+  >;
+
+  move(props: {
+    readonly resourceId: InferIdFromAbbreviation<MODEL['abbreviation']>;
+    readonly property: string;
+    readonly prevId: string;
+    readonly nextId: string;
+  }): Effect.Effect<
+    string extends MODEL['version'] ? any : IMoveMutation<MODEL>,
+    IAnyError
+  >;
+
+  replicate(
+    resource: string extends MODEL['version']
+      ? InferResource<IModel>
+      : MODEL extends IModelReplica
+        ? InferDecodedRow<MODEL['sourceModel']['propertiesShape']>
+        : never,
+  ): Effect.Effect<
+    string extends MODEL['version'] ? any : IReplicateMutation<MODEL>,
+    IAnyError
+  >;
+}
 
 export type IOperationName =
   | 'create'
   | 'delete'
   | 'move'
-  | 'replicateResource'
+  | 'replicate'
   | 'update';
 
 type InferModelAttributesShape<MODEL extends IModel> = MODEL['attributes'];
@@ -38,7 +95,7 @@ export type IMutation<
   | IUpdateMutation<MODEL>
   | IDeleteMutation<MODEL>
   | IMoveMutation<MODEL>
-  | IReplicateResourceMutation<MODEL>,
+  | IReplicateMutation<MODEL>,
   { operationName: OPERATION_NAME }
 >;
 
@@ -62,23 +119,51 @@ export type IAppliedMutation = IAnyMutation &
     inverseOperation: IInverseOperation | null;
   }>;
 
-export type IContracts = Record<string, IContract>;
+export type IAnyContracts<GUARD_REQUIREMENTS = any> = Readonly<
+  Record<
+    string,
+    IContract<
+      string,
+      IAnyShape,
+      string,
+      IMutations,
+      Record<string, IAnyShape>,
+      (...args: any[]) => Effect.Effect<void, IAnyError, GUARD_REQUIREMENTS>
+    >
+  >
+>;
+
+export type IContractBinding<
+  CONTRACT extends IContract = IContract,
+  GUARD extends (...args: any[]) => Effect.Effect<void, IAnyError, any> = (
+    ...args: any[]
+  ) => Effect.Effect<void, IAnyError, any>,
+> = Readonly<{
+  contract: CONTRACT;
+  guard?: GUARD;
+}>;
+
+export type IAnyContractBindings<GUARD_REQUIREMENTS = any> = Readonly<
+  Record<
+    string,
+    IContractBinding<
+      IAnyContracts<GUARD_REQUIREMENTS>[string],
+      (...args: any[]) => Effect.Effect<void, IAnyError, GUARD_REQUIREMENTS>
+    >
+  >
+>;
 
 // --- Contracts & validation
 
-export type IContractSpec = {
-  readonly commandName: string;
-  readonly version: string;
-  readonly payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
-  readonly historicalDefinitions: readonly Readonly<{
-    commandName: string;
-    version: string;
-    payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
-  }>[];
-};
+export type IContractSpec = Readonly<{
+  commandName: string;
+  version: string;
+  payloadShape: Readonly<IEncodedShape>;
+  models: Readonly<Record<string, IModelSpec>>;
+}>;
 
 /** Encoded optimistic mutation before worker application adds apply metadata. */
-export type IEncodedAggregateFrontendMutation = Readonly<{
+export type IEncodedMutation = Readonly<{
   commandId: string;
   mutationIndex: number;
   modelName: string;
@@ -102,30 +187,39 @@ export type IEncodedAppliedMutation = Readonly<{
   inverseOperation: string;
 }>;
 
-export type IContract<
+export interface IContract<
   COMMAND_NAME extends string = string,
   PAYLOAD extends IAnyShape = IAnyShape,
   VERSION extends string = string,
-  MUTATIONS_SCHEMA extends Schema.Codec<any, any> | null = Schema.Codec<
-    any,
-    any
-  > | null,
-  HISTORICAL_DEFINITIONS extends readonly Readonly<{
-    commandName: string;
-    payload: IAnyShape;
-    version: string;
-    adaptPayload: (props: { payload: any }) => Effect.Effect<any, IAnyError>;
-  }>[] = readonly Readonly<{
-    commandName: string;
-    payload: IAnyShape;
-    version: string;
-    adaptPayload: (props: { payload: any }) => Effect.Effect<any, IAnyError>;
-  }>[],
-> = {
-  commandName: COMMAND_NAME;
-  payload: PAYLOAD;
-  historicalDefinitions: HISTORICAL_DEFINITIONS;
-  decodeAndAdaptPayload: (props: {
+  MUTATIONS = IMutations,
+  PAYLOADS extends Record<string, IAnyShape> = { [K in VERSION]: PAYLOAD },
+  GUARD extends (...args: any[]) => Effect.Effect<void, IAnyError, any> = (
+    ...args: any[]
+  ) => Effect.Effect<void, IAnyError, any>,
+  MODELS extends IAnyModels = IAnyModels,
+  HISTORICAL_GUARD_REQUIREMENTS = Effect.Services<ReturnType<GUARD>>,
+> {
+  readonly models: MODELS;
+  readonly previous: IContract | undefined;
+  readonly next: IContract | undefined;
+  readonly guard?: GUARD;
+  readonly commandName: COMMAND_NAME;
+  readonly payload: PAYLOAD;
+  readonly __payloads?: PAYLOADS;
+  adaptPayload<
+    FROM extends keyof PAYLOADS & string,
+    TO extends keyof PAYLOADS & string,
+  >(props: {
+    fromVersion: FROM;
+    toVersion: TO;
+    payload: IAnyShape extends PAYLOADS[FROM]
+      ? any
+      : InferCommandPayload<PAYLOADS[FROM]>;
+  }): Effect.Effect<
+    IAnyShape extends PAYLOADS[TO] ? any : InferCommandPayload<PAYLOADS[TO]>,
+    IAnyError
+  >;
+  readonly decodePayload: (props: {
     command: {
       readonly commandName: string;
       readonly contractVersion: string;
@@ -133,23 +227,44 @@ export type IContract<
       readonly payload: string;
     };
   }) => Effect.Effect<InferCommandPayload<PAYLOAD>, IAnyError>;
-  encodePayload: (props: { payload: any }) => Effect.Effect<string, IAnyError>;
-  validatePayload: (props: {
-    payload: any;
-  }) => Effect.Effect<any, IAnyError, CuidFactory>;
-  mutations: MUTATIONS_SCHEMA;
-  version: VERSION;
-  program: InferContractProgram<
-    PAYLOAD,
-    MUTATIONS_SCHEMA extends Schema.Codec<unknown, unknown>
-      ? Schema.Schema.Type<MUTATIONS_SCHEMA>
-      : Record<string, never>
+  readonly encodePayload: {
+    bivarianceHack<SOURCE_VERSION extends keyof PAYLOADS & string>(props: {
+      version: SOURCE_VERSION;
+      payload: IAnyShape extends PAYLOADS[SOURCE_VERSION]
+        ? any
+        : InferCommandPayload<PAYLOADS[SOURCE_VERSION]>;
+    }): Effect.Effect<string, IAnyError>;
+  }['bivarianceHack'];
+  readonly validatePayload: {
+    bivarianceHack<SOURCE_VERSION extends keyof PAYLOADS & string>(props: {
+      version: SOURCE_VERSION;
+      payload: IAnyShape extends PAYLOADS[SOURCE_VERSION]
+        ? any
+        : InferPayloadInput<PAYLOADS[SOURCE_VERSION]>;
+    }): Effect.Effect<
+      IAnyShape extends PAYLOADS[SOURCE_VERSION]
+        ? any
+        : InferCommandPayload<PAYLOADS[SOURCE_VERSION]>,
+      IAnyError
+    >;
+  }['bivarianceHack'];
+  readonly version: VERSION;
+  readonly program: InferContractProgram<PAYLOAD, MUTATIONS>;
+  readonly spec: IContractSpec;
+  readonly getVersion: (
+    contractVersion: string,
+  ) => IContract<
+    COMMAND_NAME,
+    IAnyShape,
+    string,
+    MUTATIONS,
+    Record<string, IAnyShape>,
+    NonNullable<IAnyContracts<HISTORICAL_GUARD_REQUIREMENTS>[string]['guard']>,
+    IAnyModels,
+    HISTORICAL_GUARD_REQUIREMENTS
   >;
-  spec: IContractSpec;
-  readonly __mutations?: MUTATIONS_SCHEMA extends Schema.Codec<unknown, unknown>
-    ? Schema.Schema.Type<MUTATIONS_SCHEMA>
-    : never;
-};
+  readonly __mutations?: MUTATIONS;
+}
 
 // --- Command pipeline types
 
@@ -173,23 +288,32 @@ export type IEncodedCommand<COMMAND extends ICommand> = {
     : COMMAND[KEY];
 };
 
-export type InferCommand<CONTRACT extends IContract> = ISessionCommand<
+export type InferCommand<
+  CONTRACT extends IContract,
+  VERSION extends keyof NonNullable<CONTRACT['__payloads']> & string =
+    CONTRACT['version'],
+> = ISessionCommand<
   ICommand<
     CONTRACT['commandName'],
-    CONTRACT['version'],
-    InferCommandPayload<CONTRACT['payload']>
+    VERSION,
+    InferCommandPayload<NonNullable<CONTRACT['__payloads']>[VERSION]>
   >
 > &
   Readonly<{ pushIndex: null }>;
 
-export type IAggregateCommand<COMMAND extends ICommand = ICommand> = COMMAND &
+export type IAggregateCommand<
+  COMMAND extends ICommand = ICommand,
+  AGGREGATE_NAME extends string = string,
+  SYSTEM_NAME extends string = string,
+> = COMMAND &
   Readonly<{
     aggregateId: string;
-    aggregateName: string;
-    systemName: string;
+    aggregateName: AGGREGATE_NAME;
+    systemName: SYSTEM_NAME;
   }> &
   (
     | Readonly<{
+        aggregateVersion: string;
         sessionId: null;
         userId: null;
         frontendName: null;
@@ -199,16 +323,18 @@ export type IAggregateCommand<COMMAND extends ICommand = ICommand> = COMMAND &
         sessionId: ISessionId;
         userId: string;
         frontendName: string;
-        pushIndex: number;
+        pushIndex: number | null;
       }>
   );
 
-export type IServiceCommand<COMMAND extends ICommand = ICommand> = COMMAND &
+export type IServiceCommand<
+  COMMAND extends ICommand = ICommand,
+  SERVICE_NAME extends string = string,
+> = COMMAND &
   Readonly<{
-    serviceName: string;
+    serviceName: SERVICE_NAME;
+    serviceVersion: string;
   }>;
-
-export type ISeedCommand = IAggregateCommand | IServiceCommand;
 
 export type ISessionCommand<COMMAND extends ICommand = ICommand> = COMMAND &
   Readonly<{

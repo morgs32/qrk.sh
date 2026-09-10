@@ -85,20 +85,12 @@
       "options": {
         "script": "test:vitest:browser:main"
       },
-      "dependsOn": ["^lib", "test:vitest:browser:operator-reset"]
+      "dependsOn": ["^lib"]
     },
     "test:vitest:browser:main": {
       "executor": "nx:run-script",
       "options": {
         "script": "test:vitest:browser:main"
-      },
-      "dependsOn": ["^lib"]
-    },
-    "test:vitest:browser:operator-reset": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "vitest run --config vitest.operator-reset.playwright.config.ts",
-        "cwd": "{projectRoot}"
       },
       "dependsOn": ["^lib"]
     },

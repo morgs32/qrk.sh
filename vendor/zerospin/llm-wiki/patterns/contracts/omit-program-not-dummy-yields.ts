@@ -1,3 +1,4 @@
+import { contracts } from '@zerospin/core/contracts/index';
 import { Effect } from 'effect';
 
 /**
@@ -5,18 +6,15 @@ import { Effect } from 'effect';
  *
  * @bad Dummy `program: () => Effect.gen(function* () { yield* Effect.void })`.
  */
-export const pingContract = makeContract({
-  commandName: 'ping',
-  payloadSchema: PingPayloadSchema,
-});
+export const pingContract = contracts.makeVersion(
+  contracts.makeCommand('ping'),
+  {
+    payloadSchema: PingPayloadSchema,
+  },
+);
 
-declare function makeContract(props: {
-  commandName: string;
-  payloadSchema: unknown;
-  program?: never;
-}): unknown;
 declare const PingPayloadSchema: unknown;
 
-declare const makeContractWithDefaultProgram: typeof makeContract;
+declare const makeContractWithDefaultProgram: typeof contracts.makeVersion;
 
 export const internalDefault = Effect.succeed({});

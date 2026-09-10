@@ -1,5 +1,5 @@
-import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import type { IEncodedCommand } from '@zerospin/core/contracts/types';
+import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import type {
   IServiceFrontendFinalizedCommand,
   IServiceFrontendState,
@@ -24,10 +24,16 @@ export class ServiceFrontendApi extends RpcTarget {
       typeof ServiceFrontendLockSchema
     >;
     readonly serviceName: string;
+    serviceVersion: string;
     readonly systemId: ISystemId;
   };
   readonly #runtime: ISystemRuntime;
 
+  /*
+   * Constructs ServiceFrontendApi with its bound runtime and instance state.
+   *
+   * 1. Initialize and bind the instance.
+   */
   constructor(props: {
     authResults: {
       readonly userId: string;
@@ -36,25 +42,45 @@ export class ServiceFrontendApi extends RpcTarget {
         typeof ServiceFrontendLockSchema
       >;
       readonly serviceName: string;
+      serviceVersion: string;
       readonly systemId: ISystemId;
     };
     runtime: ISystemRuntime;
   }) {
+    // 1 — construct the base and retain the supplied capability state
     super();
-    this.#authResults = props.authResults;
-    this.#runtime = props.runtime;
+    const { authResults, runtime } = props;
+    this.#authResults = authResults;
+    this.#runtime = runtime;
   }
 
+  /*
+   * The service frontend capability requests its snapshot from
+   * FrontendVersionedServiceRepo and adapts resources to the exact
+   * frontend selection. The materializer owns catch-up and frontend state.
+   *
+   * 1. Run the bound domain operation.
+   */
   async getState(
     request: IRpcRequest<[]>,
   ): Promise<ILinkedRpcEnvelope<IServiceFrontendState, IAnyErrorJson>> {
+    // 1 — run getState with the instance-bound dependencies
     return this.#runtime.runPromise(
       getState({ request, authResults: this.#authResults }),
     );
   }
 
+  /*
+   * ServiceFrontendApi serves reconnect history from FrontendServiceChain.
+   * The capability binds the frontend identity; the request supplies the replay
+   * cursor.
+   *
+   * 1. Run the bound domain operation.
+   */
   async getFinalizedCommands(
-    request: IRpcRequest<[{ afterServiceFrontendIndex: number }]>,
+    request: IRpcRequest<
+      [{ afterServiceIndex: number; serviceVersion: string }]
+    >,
   ): Promise<
     ILinkedRpcEnvelope<
       Readonly<{
@@ -64,12 +90,22 @@ export class ServiceFrontendApi extends RpcTarget {
       IAnyErrorJson
     >
   > {
+    // 1 — run getFinalizedCommands with the instance-bound dependencies
     return this.#runtime.runPromise(
       getFinalizedCommands({ request, authResults: this.#authResults }),
     );
   }
 
-  async createWebSocketTicket(request: IRpcRequest<[]>): Promise<
+  /*
+   * The service frontend capability requests a WebSocket ticket using its
+   * bound service, user, frontend, and system fields. SystemRepo owns ticket
+   * persistence and later consumption.
+   *
+   * 1. Run the bound domain operation.
+   */
+  async createWebSocketTicket(
+    request: IRpcRequest<[{ serviceVersion: string }]>,
+  ): Promise<
     ILinkedRpcEnvelope<
       {
         ticket: string;
@@ -77,6 +113,7 @@ export class ServiceFrontendApi extends RpcTarget {
       IAnyErrorJson
     >
   > {
+    // 1 — run createWebSocketTicket with the instance-bound dependencies
     return this.#runtime.runPromise(
       createWebSocketTicket({
         request,

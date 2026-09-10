@@ -1,8 +1,9 @@
-import type { IFrontendControllerSpec } from '@zerospin/core/frontendController/types';
+import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
 import { ZerospinError } from '@zerospin/error';
 import { Effect, Result } from 'effect';
+import { system } from 'system';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeSystemRuntime } from '../makeSystemRuntime.js';
@@ -12,14 +13,16 @@ import { ServiceFrontendApiFailure } from './ServiceFrontendApiFailure/ServiceFr
 
 const {
   appendTelemetryBatch,
-  getMaterializedServiceFrontendRepoByName,
+  getFrontendVersionedServiceRepoByName,
   getState,
   getSystemLogRepoByName,
+  flush,
 } = vi.hoisted(() => ({
   appendTelemetryBatch: vi.fn(),
-  getMaterializedServiceFrontendRepoByName: vi.fn(),
+  getFrontendVersionedServiceRepoByName: vi.fn(),
   getState: vi.fn(),
   getSystemLogRepoByName: vi.fn(),
+  flush: vi.fn(),
 }));
 
 vi.mock('cloudflare:workers', () => ({
@@ -27,39 +30,51 @@ vi.mock('cloudflare:workers', () => ({
   RpcTarget: class {},
   WorkerEntrypoint: class {},
   env: {
-    MATERIALIZED_SERVICE_FRONTEND_REPO: { getByName: getMaterializedServiceFrontendRepoByName },
+    SERVICE_ADMITTED_CHAIN: {
+      getByName: () => ({
+        getBaseServiceVersion: async () => encodeSuccess('1.0.0'),
+        serviceFanoutQueue: Promise.resolve({
+          getPage: async () => encodeSuccess({ rows: [], lastIndex: 1 }),
+        }),
+      }),
+    },
+    VERSIONED_SERVICE_REPO: {
+      getByName: () => ({ flush }),
+    },
+    FRONTEND_VERSIONED_SERVICE_REPO: {
+      getByName: getFrontendVersionedServiceRepoByName,
+    },
     SYSTEM_LOG_REPO: { getByName: getSystemLogRepoByName },
     ZEROSPIN_SYSTEM_ID: 'sys_1',
   },
   exports: {},
 }));
 
-const serviceFrontendLock = {
-  systemName: 'shopping',
-  frontendName: 'catalog',
-  models: {},
-} satisfies Extract<
-  IFrontendControllerSpec,
-  { kind: 'service' }
->['serviceFrontendLock'];
+const { serviceFrontendLock } = makeFrontendControllerSpec(
+  system.services.app['1.0.0'].frontends.products.controller,
+);
 const runtime = makeSystemRuntime();
 
 describe('ServiceFrontendApi', () => {
   beforeEach(() => {
     appendTelemetryBatch.mockReset();
-    getMaterializedServiceFrontendRepoByName.mockReset();
+    getFrontendVersionedServiceRepoByName.mockReset();
     getState.mockReset();
     getSystemLogRepoByName.mockReset();
-    getMaterializedServiceFrontendRepoByName.mockReturnValue({ getState });
+    flush.mockReset();
+    flush.mockResolvedValue(encodeSuccess(undefined));
+    getFrontendVersionedServiceRepoByName.mockReturnValue({
+      getState,
+    });
     getSystemLogRepoByName.mockReturnValue({ appendTelemetryBatch });
     getState.mockResolvedValue(
       encodeSuccess({
-        serviceName: 'products',
+        serviceName: 'app',
         userId: 'user_1',
         systemId: 'sys_1',
-        systemVersion: '1.0.0',
-        frontendName: 'catalog',
-        frontendIndex: 1,
+        frontendName: 'products',
+        serviceVersion: '1.0.0',
+        serviceIndex: 1,
         resources: [],
       }),
     );
@@ -70,37 +85,44 @@ describe('ServiceFrontendApi', () => {
     await runtime.dispose();
   });
 
-  it('loads state directly from MaterializedServiceFrontendRepo', async () => {
+  it('returns a published versioned service snapshot', async () => {
     const api = new ServiceFrontendApi({
       authResults: {
         userId: 'user_1',
-        frontendName: 'catalog',
+        frontendName: 'products',
         serviceFrontendLock,
-        serviceName: 'products',
+        serviceName: 'app',
+        serviceVersion: '1.0.0',
         systemId: 'sys_1',
       },
       runtime,
     });
 
-    const envelope = await api.getState({ args: [], traceContext: null });
+    const envelope = await api.getState({
+      args: [],
+      traceContext: { traceId: 'trc_caller', parentSpanId: 'spn_caller' },
+    });
 
     await expect(
       Effect.runPromise(decodeRpc(envelope.result)),
     ).resolves.toMatchObject({
-      serviceName: 'products',
-      frontendName: 'catalog',
-      frontendIndex: 1,
+      serviceName: 'app',
+      frontendName: 'products',
+      serviceIndex: 1,
+      serviceVersion: '1.0.0',
     });
-    expect(getMaterializedServiceFrontendRepoByName).toHaveBeenCalledWith(
-      'matsvcfrtrepo_sys_1/products/user_1/catalog',
-    );
+    expect(flush).toHaveBeenCalledWith(1);
     expect(getState).toHaveBeenCalledWith({
-      systemId: 'sys_1',
-      serviceName: 'products',
+      serviceName: 'app',
+      frontendName: 'products',
       userId: 'user_1',
-      frontendName: 'catalog',
     });
     expect(appendTelemetryBatch).toHaveBeenCalledOnce();
+    expect(envelope.link).toMatchObject({
+      priorTraceId: 'trc_caller',
+      priorSpanId: 'spn_caller',
+      kind: 'causedBy',
+    });
   });
 
   it('returns a captured capability failure without Repo work', async () => {
@@ -117,7 +139,7 @@ describe('ServiceFrontendApi', () => {
     );
 
     expect(Result.isFailure(result)).toBe(true);
-    expect(getMaterializedServiceFrontendRepoByName).not.toHaveBeenCalled();
+    expect(getFrontendVersionedServiceRepoByName).not.toHaveBeenCalled();
     expect(appendTelemetryBatch).not.toHaveBeenCalled();
   });
 });

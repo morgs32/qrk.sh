@@ -90,7 +90,7 @@ For every schema table:
    for table relationships.
 2. Keep each diagram focused; split persistence, lifecycle, and request flow
    rather than producing one unreadable graph.
-3. Use exact owner names such as SystemRepo, MaterializedServiceRepo, and
+3. Use exact owner names such as SystemRepo, VersionedServiceRepo, and
    AggregateCommandChain.
 4. For every message, enumerate the exact target fields at first use and state
    which boundary supplies them.

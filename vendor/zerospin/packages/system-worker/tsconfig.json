@@ -53,7 +53,9 @@
     "tests/workerd/**",
     "src/TestWorker.ts",
     "src/FixtureRepo/**",
+    "src/fixtures/**",
     "src/makeFixedDORepo/test/**",
+    "src/makeVersionedDORepo/test/**",
     "src/workerd-utils/**"
   ],
   "references": [

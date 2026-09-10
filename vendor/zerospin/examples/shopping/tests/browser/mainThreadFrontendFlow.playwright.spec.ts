@@ -10,7 +10,6 @@ import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessi
 import { IncrementalMonotonicFactory } from '@zerospin/core/test-utils/IncrementalMonotonicFactory';
 import { makePrefixedIncrementalIdFactory } from '@zerospin/core/test-utils/makePrefixedIncrementalIdFactory';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import { makeZerospinApp } from '@zerospin/react/makeZerospinApp';
 import type {
@@ -19,23 +18,27 @@ import type {
 } from '@zerospin/react/types';
 import { useLiveQuery } from '@zerospin/react/useLiveQuery';
 import { useSession } from '@zerospin/react/useSession';
-import {
-  newMessagePortRpcSession,
-  newWebSocketRpcSession,
-  RpcTarget,
-} from 'capnweb';
+import { newWebSocketRpcSession } from 'capnweb';
 import { eq } from 'drizzle-orm';
 import { Effect, Layer, ManagedRuntime, Redacted, Schema } from 'effect';
 import { createRoot } from 'react-dom/client';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { createProduct } from '@/zerospin/contracts/createProduct';
-import { deleteProduct } from '@/zerospin/contracts/deleteProduct';
-import { catalog as catalogFrontend } from '@/zerospin/frontends/catalog';
-import { web as shopperFrontend } from '@/zerospin/frontends/web';
-import { ClerkUserIdSchema, User } from '@/zerospin/models/User';
+import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/cartV1';
+import { cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/cartItemV2';
+import {
+  ClerkUserIdSchema,
+  userV1,
+} from '@/zerospin/aggregates/shopper/models/user/userV1';
+import { createProductV1 } from '@/zerospin/services/app/contracts/createProduct/createProductV1';
+import { deleteProductV1 } from '@/zerospin/services/app/contracts/deleteProduct/deleteProductV1';
+import { productV1 } from '@/zerospin/services/app/models/product/productV1';
 import { signature } from '@/zerospin/signature';
+import { ZerospinApp } from '@/zerospin/ZerospinApp';
+
+const WebV2 = ZerospinApp.frontends.web.frontend;
+const CatalogV1 = ZerospinApp.frontends.catalog.frontend;
 
 Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', {
   configurable: true,
@@ -49,27 +52,26 @@ const clerkUserId = Schema.decodeUnknownSync(ClerkUserIdSchema)(
   `browser-aggregate-${testRunId}`,
 );
 
-const testRuntime = ManagedRuntime.make(
-  Layer.mergeAll(
+const testRuntimeLayer = Layer.mergeAll(
     AsyncLive,
     makePrefixedIncrementalIdFactory('mainThreadFrontendFlow'),
     IncrementalMonotonicFactory,
     Layer.succeed(ZerospinApiUrl, 'http://127.0.0.1:3035/'),
     Layer.succeed(PublishableKey, Redacted.make('pk_test')),
   ),
-);
+  testRuntime = ManagedRuntime.make(testRuntimeLayer);
 
 const FlowZerospinApp = makeZerospinApp({
   systemName: 'shopping',
-  authentication: { signature },
-  frontends: {
-    web: {
-      controller: shopperFrontend,
-      contracts: { updateCartItemQuantity: '1.0.0' },
-    },
-    catalog: { controller: catalogFrontend },
+  authentication: {
+    version: signature.version,
+    signature: signature.signature,
   },
-  runtime: testRuntime,
+  frontends: {
+    web: WebV2,
+    catalog: CatalogV1,
+  },
+  layer: testRuntimeLayer,
 });
 
 function FlowSessionsProbe(props: {
@@ -77,7 +79,7 @@ function FlowSessionsProbe(props: {
     aggregateSession: IBrowserSession<
       typeof FlowZerospinApp.frontends.web.frontend
     >,
-    serviceSession: IBrowserServiceSession<typeof catalogFrontend>,
+    serviceSession: IBrowserServiceSession<typeof CatalogV1>,
   ): void;
 }) {
   const aggregateSession = useSession(FlowZerospinApp.frontends.web);
@@ -102,8 +104,7 @@ function FlowSessionsProbe(props: {
       total:
         cartItem === undefined
           ? null
-          : cartItem.product.price *
-            (cartItem.unit === 'case' ? cartItem.amount * 12 : cartItem.amount),
+          : cartItem.product.price * cartItem.amount,
     }),
   );
 }
@@ -141,10 +142,12 @@ describe('main-thread frontend flow', () => {
 
     const seedProductCommand = await testRuntime.runPromise(
       makeServiceCommand({
-        contracts: { createProduct },
+        contracts: { createProduct: createProductV1 },
         serviceName: 'app',
+        serviceVersion: '1.0.0',
         contractName: 'createProduct',
         payload: {
+          id: productV1.prefixId(testRunId),
           description: `Browser acceptance product ${testRunId}`,
           name: `Browser Product ${testRunId}`,
           price: 20,
@@ -154,7 +157,10 @@ describe('main-thread frontend flow', () => {
     const encodedSeedProductCommand = {
       ...seedProductCommand,
       payload: await testRuntime.runPromise(
-        createProduct.encodePayload({ payload: seedProductCommand.payload }),
+        createProductV1.encodePayload({
+          version: seedProductCommand.contractVersion,
+          payload: seedProductCommand.payload,
+        }),
       ),
     };
     using seedGatewayApi = newWebSocketRpcSession<GatewayApi>(
@@ -166,9 +172,11 @@ describe('main-thread frontend flow', () => {
     await Effect.runPromise(
       decodeRpc(
         (
-          await seedSystemApi.finalizeServiceCommand({
+          await seedSystemApi.executeServiceCommand({
             traceContext: null,
-            args: [encodedSeedProductCommand],
+            args: [
+              { serviceVersion: '1.0.0', command: encodedSeedProductCommand },
+            ],
           })
         ).result,
       ),
@@ -181,7 +189,7 @@ describe('main-thread frontend flow', () => {
       aggregate: IBrowserSession<
         typeof FlowZerospinApp.frontends.web.frontend
       > | null;
-      service: IBrowserServiceSession<typeof catalogFrontend> | null;
+      service: IBrowserServiceSession<typeof CatalogV1> | null;
     } = { aggregate: null, service: null };
     let signatureCallCount = 0;
     const legacyLocatorKey = `zerospin:user-locator:${JSON.stringify([
@@ -255,7 +263,7 @@ describe('main-thread frontend flow', () => {
       const createdUser = await aggregateSession.executeCommand({
         contractName: 'createUser',
         payload: {
-          id: User.prefixId(clerkUserId),
+          id: userV1.prefixId(clerkUserId),
           clerkUserId,
         },
       });
@@ -289,7 +297,7 @@ describe('main-thread frontend flow', () => {
       const updatedUser = await aggregateSession.executeCommand({
         contractName: 'updateUser',
         payload: {
-          id: User.prefixId(clerkUserId),
+          id: userV1.prefixId(clerkUserId),
           name: updatedName,
         },
       });
@@ -301,7 +309,7 @@ describe('main-thread frontend flow', () => {
             if (!state.isInitialized) return undefined;
             return state.db.query.user
               ?.findFirst({
-                where: { id: { eq: User.prefixId(clerkUserId) } },
+                where: { id: { eq: userV1.prefixId(clerkUserId) } },
               })
               .sync()?.name;
           },
@@ -321,7 +329,10 @@ describe('main-thread frontend flow', () => {
         decodeRpc(
           cartAggregateSession.executeCommand({
             contractName: 'createCart',
-            payload: { userId: User.prefixId(clerkUserId) },
+            payload: {
+              id: cartV1.prefixId(testRunId),
+              userId: userV1.prefixId(clerkUserId),
+            },
           }),
         ),
       );
@@ -353,9 +364,10 @@ describe('main-thread frontend flow', () => {
           addToCartAggregateSession.executeCommand({
             contractName: 'addToCart',
             payload: {
+              cartItemId: cartItemV2.prefixId(testRunId),
               cartId: createdCart.payload.id,
               product: catalogProduct,
-              quantity: 2,
+              amount: 2,
             },
           }),
         ),
@@ -400,6 +412,7 @@ describe('main-thread frontend flow', () => {
               Schema.fromJsonString(AggregateFrontendJournalCommandSchema),
             )(retainedCommand.command);
             if (
+              !('id' in command) ||
               command.id !== addedToCart.id ||
               retainedCommand.sessionId !== currentAggregateSession.sessionId ||
               !('pushIndex' in command) ||
@@ -449,8 +462,9 @@ describe('main-thread frontend flow', () => {
       });
       const deleteProductCommand = await testRuntime.runPromise(
         makeServiceCommand({
-          contracts: { deleteProduct },
+          contracts: { deleteProduct: deleteProductV1 },
           serviceName: 'app',
+          serviceVersion: '1.0.0',
           contractName: 'deleteProduct',
           payload: { id: catalogProduct.id },
         }),
@@ -458,14 +472,17 @@ describe('main-thread frontend flow', () => {
       const encodedDeleteProductCommand = {
         ...deleteProductCommand,
         payload: await testRuntime.runPromise(
-          deleteProduct.encodePayload({
+          deleteProductV1.encodePayload({
+            version: deleteProductCommand.contractVersion,
             payload: deleteProductCommand.payload,
           }),
         ),
       };
-      const deletedEnvelope = await systemApi.finalizeServiceCommand({
+      const deletedEnvelope = await systemApi.executeServiceCommand({
         traceContext: null,
-        args: [encodedDeleteProductCommand],
+        args: [
+          { serviceVersion: '1.0.0', command: encodedDeleteProductCommand },
+        ],
       });
       const deletedCommand = await Effect.runPromise(
         decodeRpc(deletedEnvelope.result),
@@ -473,8 +490,6 @@ describe('main-thread frontend flow', () => {
       expect(deletedCommand).toEqual(
         expect.objectContaining({
           id: encodedDeleteProductCommand.id,
-          failedAt: null,
-          failure: null,
         }),
       );
       const retainedDeleteResultBytes = JSON.stringify(deletedEnvelope.result);
@@ -576,8 +591,9 @@ describe('main-thread frontend flow', () => {
       const recreatedPrice = catalogProduct.price + 7;
       const recreateProductCommand = await testRuntime.runPromise(
         makeServiceCommand({
-          contracts: { createProduct },
+          contracts: { createProduct: createProductV1 },
           serviceName: 'app',
+          serviceVersion: '1.0.0',
           contractName: 'createProduct',
           payload: {
             id: catalogProduct.id,
@@ -590,14 +606,17 @@ describe('main-thread frontend flow', () => {
       const encodedRecreateProductCommand = {
         ...recreateProductCommand,
         payload: await testRuntime.runPromise(
-          createProduct.encodePayload({
+          createProductV1.encodePayload({
+            version: recreateProductCommand.contractVersion,
             payload: recreateProductCommand.payload,
           }),
         ),
       };
-      const recreatedEnvelope = await systemApi.finalizeServiceCommand({
+      const recreatedEnvelope = await systemApi.executeServiceCommand({
         traceContext: null,
-        args: [encodedRecreateProductCommand],
+        args: [
+          { serviceVersion: '1.0.0', command: encodedRecreateProductCommand },
+        ],
       });
       const recreatedCommand = await Effect.runPromise(
         decodeRpc(recreatedEnvelope.result),
@@ -605,8 +624,6 @@ describe('main-thread frontend flow', () => {
       expect(recreatedCommand).toEqual(
         expect.objectContaining({
           id: encodedRecreateProductCommand.id,
-          failedAt: null,
-          failure: null,
         }),
       );
 
@@ -675,7 +692,6 @@ describe('main-thread frontend flow', () => {
                       id: revivedCartItem.id,
                       productId: revivedCartItem.productId,
                       productName: revivedCartItem.product.name,
-                      unit: revivedCartItem.unit,
                     },
               rendered: container.querySelector('[data-testid="cart-summary"]')
                 ?.textContent,
@@ -703,7 +719,6 @@ describe('main-thread frontend flow', () => {
             id: originalCartItem.id,
             productId: originalCartItem.productId,
             productName: recreatedName,
-            unit: originalCartItem.unit,
           },
           rendered: JSON.stringify({
             name: recreatedName,
@@ -711,7 +726,7 @@ describe('main-thread frontend flow', () => {
           }),
         });
 
-      const serviceChainsEnvelope = await systemApi.getServiceCommandChains({
+      const serviceChainsEnvelope = await systemApi.getServiceAdmittedChains({
         traceContext: null,
         args: [],
       });
@@ -723,11 +738,11 @@ describe('main-thread frontend flow', () => {
       );
       if (serviceChainRegistration === undefined) {
         throw new Error(
-          'Expected the current ServiceCommandChain registration',
+          'Expected the current ServiceAdmittedChain registration',
         );
       }
       const commandsBeforeOldDeleteRetryEnvelope =
-        await systemApi.getServiceCommandChainTableRows({
+        await systemApi.getServiceAdmittedChainTableRows({
           traceContext: null,
           args: [
             {
@@ -740,15 +755,17 @@ describe('main-thread frontend flow', () => {
         decodeRpc(commandsBeforeOldDeleteRetryEnvelope.result),
       );
 
-      const retriedDeleteEnvelope = await systemApi.finalizeServiceCommand({
+      const retriedDeleteEnvelope = await systemApi.executeServiceCommand({
         traceContext: null,
-        args: [encodedDeleteProductCommand],
+        args: [
+          { serviceVersion: '1.0.0', command: encodedDeleteProductCommand },
+        ],
       });
       expect(JSON.stringify(retriedDeleteEnvelope.result)).toBe(
         retainedDeleteResultBytes,
       );
       const commandsAfterOldDeleteRetryEnvelope =
-        await systemApi.getServiceCommandChainTableRows({
+        await systemApi.getServiceAdmittedChainTableRows({
           traceContext: null,
           args: [
             {
@@ -808,7 +825,6 @@ describe('main-thread frontend flow', () => {
         id: originalCartItem.id,
         modelName: originalCartItem.modelName,
         productId: originalCartItem.productId,
-        unit: originalCartItem.unit,
         version: originalCartItem.version,
       });
       expect(
@@ -831,128 +847,70 @@ describe('main-thread frontend flow', () => {
         )
         .toEqual({ aggregate: 'ready', service: 'ready' });
 
-      const observedBackupStates = [
-        finalAggregateSession.store.getState().backupState.status,
-      ];
-      const unsubscribe = finalAggregateSession.store.subscribe(state => {
-        observedBackupStates.push(state.backupState.status);
-      });
+      const aggregateExecutionId = finalAggregateSession.sessionId;
+      const serviceExecutionId = finalServiceSession.sessionId;
+      const aggregateDb = finalAggregateState.db;
+      const serviceDb = finalServiceState.db;
       const { cdp } = await import('vitest/browser');
       const targets = await cdp().send('Target.getTargets');
-      const routerTarget = targets.targetInfos.find(
+      const workerTarget = targets.targetInfos.find(
         target =>
           target.type === 'shared_worker' &&
-          target.url.includes('opfsBackupWorker.bundle.js'),
+          target.url.endsWith('/__zerospin/backup-worker.js'),
       );
-      if (routerTarget === undefined) {
-        throw new Error('Chromium must expose the OPFS backup mediator');
+      if (workerTarget === undefined) {
+        throw new Error('Expected the IndexedDB backup SharedWorker');
       }
-      const faultControl = new SharedWorker(routerTarget.url, {
-        name: 'zerospin:opfs-backup-router',
-        type: 'module',
-      });
-      const routerReady = Promise.withResolvers<void>();
-      faultControl.port.addEventListener('message', event => {
-        if (event.data?.type === 'RouterReady') routerReady.resolve();
-      });
-      faultControl.port.start();
-      await Promise.race([
-        routerReady.promise,
-        new Promise<never>((_, reject) =>
-          setTimeout(
-            () => reject(new Error('Injected client did not reach router')),
-            30_000,
-          ),
-        ),
-      ]);
-
-      const applyDispatched = Promise.withResolvers<void>();
-      const blockedApply = Promise.withResolvers<never>();
-      const leaderChannel = new MessageChannel();
-      leaderChannel.port1.start();
-      const injectedLeader = newMessagePortRpcSession(
-        leaderChannel.port1,
-        new (class extends RpcTarget {
-          async applyTransaction() {
-            applyDispatched.resolve();
-            return blockedApply.promise;
-          }
-
-          async releaseClient() {
-            return encodeSuccess(undefined);
-          }
-        })(),
-      );
-      faultControl.port.postMessage(
-        { type: 'InstallLeader', port: leaderChannel.port2 },
-        [leaderChannel.port2],
-      );
-
-      try {
-        const faultedUpdate = await finalAggregateSession.executeCommand({
-          contractName: 'updateUser',
-          payload: {
-            id: User.prefixId(clerkUserId),
-            name: `Recovered backup ${testRunId}`,
-          },
-        });
-        expect(faultedUpdate._tag).toBe('Success');
-        await Promise.race([
-          applyDispatched.promise,
-          new Promise<never>((_, reject) =>
-            setTimeout(
-              () => reject(new Error('Aggregate backup was not dispatched')),
-              30_000,
-            ),
-          ),
-        ]);
-        const closedTarget = await cdp().send('Target.closeTarget', {
-          targetId: routerTarget.targetId,
-        });
-        expect(closedTarget.success).toBe(true);
-        await expect
-          .poll(
-            async () => {
-              const remainingTargets = await cdp().send('Target.getTargets');
-              return remainingTargets.targetInfos.some(
-                target => target.targetId === routerTarget.targetId,
-              );
-            },
-            { interval: 50, timeout: 30_000 },
-          )
-          .toBe(false);
-        await expect
-          .poll(() => observedBackupStates.includes('repairing'), {
-            interval: 10,
-            timeout: 30_000,
+      expect(
+        (
+          await cdp().send('Target.closeTarget', {
+            targetId: workerTarget.targetId,
           })
-          .toBe(true);
-
-        const serviceDuringAggregateRepair =
-          finalServiceSession.store.getState();
-        if (!serviceDuringAggregateRepair.isInitialized) {
-          throw new Error(
-            'The unrelated service session must remain initialized',
-          );
-        }
-        expect(serviceDuringAggregateRepair.sessionStatus).toBe('current');
-        expect(serviceDuringAggregateRepair.backupState.status).toBe('ready');
-        expect(
-          serviceDuringAggregateRepair.db.query.product.findFirst().sync(),
-        ).toBeDefined();
-
-        await expect
-          .poll(
-            () => finalAggregateSession.store.getState().backupState.status,
-            { interval: 25, timeout: 60_000 },
-          )
-          .toBe('ready');
-      } finally {
-        injectedLeader[Symbol.dispose]();
-        leaderChannel.port1.close();
-        faultControl.port.close();
-        unsubscribe();
+        ).success,
+      ).toBe(true);
+      await expect
+        .poll(
+          () => ({
+            aggregate: finalAggregateSession.store.getState().sessionStatus,
+            service: finalServiceSession.store.getState().sessionStatus,
+            renewedAggregate:
+              finalAggregateSession.sessionId !== aggregateExecutionId,
+            renewedService:
+              finalServiceSession.sessionId !== serviceExecutionId,
+            aggregateBackup:
+              finalAggregateSession.store.getState().backupState.status,
+            serviceBackup:
+              finalServiceSession.store.getState().backupState.status,
+          }),
+          { timeout: 60_000 },
+        )
+        .toEqual({
+          aggregate: 'current',
+          service: 'current',
+          renewedAggregate: true,
+          renewedService: true,
+          aggregateBackup: 'ready',
+          serviceBackup: 'ready',
+        });
+      const renewedAggregate = finalAggregateSession.store.getState();
+      const renewedService = finalServiceSession.store.getState();
+      if (!renewedAggregate.isInitialized || !renewedService.isInitialized) {
+        throw new Error('Both replicas must resume');
       }
+      expect(sessions.aggregate).toBe(finalAggregateSession);
+      expect(sessions.service).toBe(finalServiceSession);
+      expect(renewedAggregate.db).toBe(aggregateDb);
+      expect(renewedService.db).toBe(serviceDb);
+      expect(
+        zerospinDevtoolsStore
+          .getState()
+          .aggregateSessionsById.has(aggregateExecutionId),
+      ).toBe(false);
+      expect(
+        zerospinDevtoolsStore
+          .getState()
+          .aggregateSessionsById.has(finalAggregateSession.sessionId),
+      ).toBe(true);
     } finally {
       await act(async () => {
         root.unmount();

@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 
 /**
- * Each materialized runtime boundary owns one models map and one contracts map.
+ * Each Repo runtime boundary owns one models map and one contracts map.
  *
  * @bad Build module-level `systemModels` by reducing aggregate and service registries.
  * @bad Fall back to all service models when `aggregateName` is missing on aggregate paths.

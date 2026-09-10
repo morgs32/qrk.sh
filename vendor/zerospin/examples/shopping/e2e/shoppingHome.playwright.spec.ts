@@ -298,12 +298,16 @@ test('main-thread push applies inverse deletes without reentering SQLite', async
       });
       devtools = page.getByRole('region', { name: 'Zerospin DevTools' });
       await expect(devtools).toBeVisible();
-      await devtools.getByRole('link', { name: 'Sessions', exact: true }).click();
+      await devtools
+        .getByRole('link', { name: 'Sessions', exact: true })
+        .click();
       const cleanupSessionRow = devtools
         .getByRole('cell', { name: 'shopper/web', exact: true })
         .locator('..');
       await cleanupSessionRow.click();
-      await devtools.getByRole('link', { name: 'Commands', exact: true }).click();
+      await devtools
+        .getByRole('link', { name: 'Commands', exact: true })
+        .click();
       const resumePush = devtools.getByRole('button', {
         name: 'Resume push',
         exact: true,

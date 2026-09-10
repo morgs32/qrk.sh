@@ -27,8 +27,9 @@ const SessionsCommandsTableBody = memo(
   }) {
     const { rows } = props;
     const columns = useMemo(() => makeSessionsCommandsTableColumns(), []);
-    const [columnVisibility, setColumnVisibility] =
-      useState<VisibilityState>({});
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+      {},
+    );
 
     const table = useReactTable({
       columns,

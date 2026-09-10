@@ -1,24 +1,46 @@
-// @vitest-environment jsdom
-
 import { act } from 'react';
 
 import { waitFor } from '@testing-library/react';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+// @vitest-environment jsdom
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
 import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggregateFrontendState';
-import { makeSession } from '@zerospin/core/session/makeSession';
+import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
-import { Effect, Schema } from 'effect';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
+import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
+import { Effect, Exit, Layer, ManagedRuntime, Schema, Scope } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import { ProductList } from '@/components/ProductList';
-import { web as shopperFrontend } from '@/zerospin/frontends/web';
-import { Product } from '@/zerospin/models/Product';
-import { ClerkUserIdSchema, User } from '@/zerospin/models/User';
+import {
+  ClerkUserIdSchema,
+  userV1,
+} from '@/zerospin/aggregates/shopper/models/user/userV1';
+import { productV1 } from '@/zerospin/services/app/models/product/productV1';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
+const WebV2 = ZerospinApp.frontends.web.frontend;
+
+const guardTestRuntime = ManagedRuntime.make(
+  Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
+);
+
+const sessionScope = Scope.makeUnsafe();
+Effect.runSync(
+  Scope.addFinalizer(sessionScope, guardTestRuntime.disposeEffect),
+);
+afterAll(() => Effect.runPromise(Scope.close(sessionScope, Exit.void)));
 
 const useInitializedStateOrThrow = vi.hoisted(() => vi.fn());
 const useLiveQuery = vi.hoisted(() => vi.fn());
@@ -36,7 +58,7 @@ vi.mock('@zerospin/react', async importOriginal => ({
   useSession,
 }));
 const clerkUserId = Schema.decodeUnknownSync(ClerkUserIdSchema)('test');
-const userRowId = User.prefixId(clerkUserId);
+const userRowId = userV1.prefixId(clerkUserId);
 const now = new Date('2026-01-01T00:00:00.000Z');
 
 describe('ProductList', () => {
@@ -48,11 +70,17 @@ describe('ProductList', () => {
     executeAggregateFrontendCommand.mockImplementation(props =>
       Effect.succeed({ commandId: props.command.id }),
     );
-    const session = makeSession({
-      frontend: shopperFrontend,
-      sessionId: 'sesn_product_list',
-      executeAggregateFrontendCommand,
-    });
+    const session = Effect.runSync(
+      Effect.map(WebV2.initializeGuards, guards =>
+        makeAggregateSession({
+          runtime: guardTestRuntime,
+          guards,
+          frontend: WebV2,
+          sessionId: 'sesn_product_list',
+          executeAggregateFrontendCommand,
+        }),
+      ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
+    );
     await Effect.runPromise(
       Effect.gen(function* () {
         const models = getFrontendDbModels(session.frontend);
@@ -69,24 +97,22 @@ describe('ProductList', () => {
           aggregateId: 'acct_1',
           userId: clerkUserId,
           systemId: 'sys_test',
-          pushedCommands: [],
           frontendState: {
             aggregateId: 'acct_1',
-            aggregateName: shopperFrontend.aggregateName,
+            aggregateName: WebV2.aggregateName,
             userId: clerkUserId,
-            frontendName: shopperFrontend.frontendName,
-            frontendIndex: 0,
+            frontendName: WebV2.name,
+            userIndex: 0,
             systemId: 'sys_test',
-            systemVersion: '1.1.0',
             aggregateIndex: 0,
-            pushIndex: 0,
-            resolvedPushIndexes: [],
+            aggregateVersion: WebV2.aggregateVersion,
+            resolutions: [],
             resources: [
               {
                 id: userRowId,
                 clerkUserId,
-                modelName: User.modelName,
-                version: User.version,
+                modelName: userV1.modelName,
+                version: userV1.version,
                 createdAt: now,
                 updatedAt: now,
                 name: null,
@@ -96,18 +122,17 @@ describe('ProductList', () => {
         });
         session.store.setState({
           aggregateId: 'acct_1',
-          aggregateName: shopperFrontend.aggregateName,
+          aggregateName: WebV2.aggregateName,
           userId: clerkUserId,
-          frontendName: shopperFrontend.frontendName,
+          frontendName: WebV2.name,
           systemId: 'sys_test',
-          systemVersion: '1.1.0',
           aggregateFrontendLockKey: 'a'.repeat(64),
           db,
           schema: dbConfig.schema,
           models,
           isInitialized: true,
           aggregateIndex: 0,
-          frontendIndex: 0,
+          userIndex: 0,
           pushIndex: 0,
           sessionStatus: 'current',
           backupState: { status: 'ready', failure: null },
@@ -121,9 +146,9 @@ describe('ProductList', () => {
         return {
           data: [
             {
-              id: Product.prefixId('test'),
-              modelName: Product.modelName,
-              version: Product.version,
+              id: productV1.prefixId('test'),
+              modelName: productV1.modelName,
+              version: productV1.version,
               createdAt: now,
               updatedAt: now,
               description: 'Test product',
@@ -138,8 +163,8 @@ describe('ProductList', () => {
           data: {
             id: userRowId,
             clerkUserId,
-            modelName: User.modelName,
-            version: User.version,
+            modelName: userV1.modelName,
+            version: userV1.version,
             createdAt: now,
             updatedAt: now,
             name: null,
@@ -205,7 +230,7 @@ describe('ProductList', () => {
       userId: userRowId,
     });
     expect(JSON.parse(addToCartCommand?.payload ?? '{}')).toMatchObject({
-      quantity: 1,
+      amount: 1,
       product: expect.stringContaining('prd_test'),
     });
   });

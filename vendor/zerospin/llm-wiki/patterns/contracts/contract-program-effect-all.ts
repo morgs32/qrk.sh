@@ -1,3 +1,4 @@
+import { contracts } from '@zerospin/core/contracts/index';
 import { Effect } from 'effect';
 
 /**
@@ -5,22 +6,23 @@ import { Effect } from 'effect';
  *
  * @bad Hide mutations inside `Effect.gen` with bare `yield* createMutation(...)`.
  */
-export const createListContract = makeContract({
-  commandName: 'createList',
-  payloadSchema: CreateListPayloadSchema,
-  program: ({ payload }) => {
-    const { id, name, userId } = payload;
-    return Effect.all({
-      created: createMutation({
-        model: List,
-        resourceId: id,
-        attributes: { name, userId },
-      }),
-    });
+export const createListContract = contracts.makeVersion(
+  contracts.makeCommand('createList'),
+  {
+    payloadSchema: CreateListPayloadSchema,
+    program: ({ payload }) => {
+      const { id, name, userId } = payload;
+      return Effect.all({
+        created: createMutation({
+          model: List,
+          resourceId: id,
+          attributes: { name, userId },
+        }),
+      });
+    },
   },
-});
+);
 
-declare function makeContract(props: unknown): unknown;
 declare const CreateListPayloadSchema: unknown;
 declare const List: unknown;
 declare function createMutation(

@@ -1,77 +1,75 @@
-import { makeContract } from '@zerospin/core/contracts/makeContract';
-import { makeModel } from '@zerospin/core/models/makeModel';
+import { contracts } from '@zerospin/core/contracts/index';
+import { models } from '@zerospin/core/models/index';
 import { primitives } from '@zerospin/schema';
-import { Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 
-export const SourceItem = makeModel(
+export const SourceItem = models.makeVersion(
+  models.makeModel({ name: 'sourceItem', abbreviation: 'sitm' }),
   {
-    abbreviation: 'sitm',
-    modelName: 'sourceItem',
     attributes: {
-      userId: primitives.opaqueId({ abbreviation: 'uid' }),
+      userId: primitives.foreignKey({ abbreviation: 'uid' }),
       quantity: primitives.integer(),
     },
     indexes: [],
     version: '1.0.0',
   },
-  [],
 );
 
-export const createSourceItem = makeContract({
-  commandName: 'createSourceItem',
-  payload: {
-    id: SourceItem.primaryKey({ autogenerate: true }),
-    userId: primitives.opaqueId({ abbreviation: 'uid' }),
-    quantity: primitives.integer(),
-  },
-  mutations: Schema.Struct({
-    created: SourceItem.createMutation('1.0.0'),
-  }),
-  program: ({ payload }) =>
-    Effect.all({
-      created: SourceItem.create('1.0.0', {
-        resourceId: payload.id,
-        attributes: {
-          userId: payload.userId,
-          quantity: payload.quantity,
-        },
+export const createSourceItem = contracts.makeVersion(
+  contracts.makeCommand('createSourceItem'),
+  {
+    payload: {
+      id: primitives.foreignKey({ abbreviation: SourceItem.abbreviation }),
+      userId: primitives.foreignKey({ abbreviation: 'uid' }),
+      quantity: primitives.integer(),
+    },
+    models: { sourceItem: SourceItem },
+    program: ({ payload, models }) =>
+      Effect.all({
+        created: models.sourceItem.create({
+          resourceId: payload.id,
+          attributes: {
+            userId: payload.userId,
+            quantity: payload.quantity,
+          },
+        }),
       }),
-    }),
-  version: '1.0.0',
-});
+    version: '1.0.0',
+  },
+);
 
-export const updateSourceItemQuantity = makeContract({
-  commandName: 'updateSourceItemQuantity',
-  payload: {
-    id: SourceItem.primaryKey({ autogenerate: false }),
-    quantity: primitives.integer(),
-  },
-  mutations: Schema.Struct({
-    updated: SourceItem.updateMutation('1.0.0'),
-  }),
-  program: ({ payload }) =>
-    Effect.all({
-      updated: SourceItem.update('1.0.0', {
-        resourceId: payload.id,
-        attributes: { quantity: payload.quantity },
+export const updateSourceItemQuantity = contracts.makeVersion(
+  contracts.makeCommand('updateSourceItemQuantity'),
+  {
+    payload: {
+      id: primitives.foreignKey({ abbreviation: SourceItem.abbreviation }),
+      quantity: primitives.integer(),
+    },
+    models: { sourceItem: SourceItem },
+    program: ({ payload, models }) =>
+      Effect.all({
+        updated: models.sourceItem.update({
+          resourceId: payload.id,
+          attributes: { quantity: payload.quantity },
+        }),
       }),
-    }),
-  version: '1.0.0',
-});
+    version: '1.0.0',
+  },
+);
 
-export const deleteSourceItem = makeContract({
-  commandName: 'deleteSourceItem',
-  payload: {
-    id: SourceItem.primaryKey({ autogenerate: false }),
-  },
-  mutations: Schema.Struct({
-    deleted: SourceItem.deleteMutation('1.0.0'),
-  }),
-  program: ({ payload }) =>
-    Effect.all({
-      deleted: SourceItem.delete('1.0.0', {
-        resourceId: payload.id,
+export const deleteSourceItem = contracts.makeVersion(
+  contracts.makeCommand('deleteSourceItem'),
+  {
+    payload: {
+      id: primitives.foreignKey({ abbreviation: SourceItem.abbreviation }),
+    },
+    models: { sourceItem: SourceItem },
+    program: ({ payload, models }) =>
+      Effect.all({
+        deleted: models.sourceItem.delete({
+          resourceId: payload.id,
+        }),
       }),
-    }),
-  version: '1.0.0',
-});
+    version: '1.0.0',
+  },
+);

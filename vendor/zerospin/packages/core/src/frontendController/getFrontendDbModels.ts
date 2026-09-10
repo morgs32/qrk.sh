@@ -1,6 +1,6 @@
-import type { IFrontendController, InferFrontendModels } from './types.ts';
+import type { IAnyFrontendController, InferFrontendModels } from './types.ts';
 
-export function getFrontendDbModels<FRONTEND extends IFrontendController>(
+export function getFrontendDbModels<FRONTEND extends IAnyFrontendController>(
   frontend: FRONTEND,
 ): InferFrontendModels<FRONTEND> {
   return frontend.models;

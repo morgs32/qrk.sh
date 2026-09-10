@@ -64,7 +64,6 @@ export function ShoppingCartSidebar() {
                   <CartItemQuantityControls
                     amount={cartItem.amount}
                     cartItemId={cartItem.id}
-                    unit={cartItem.unit}
                   />
                 </div>
               ))}
@@ -82,11 +81,7 @@ export function ShoppingCartSidebar() {
             }).format(
               cartItems.reduce(
                 (acc, cartItem) =>
-                  acc +
-                  cartItem.product.price *
-                    (cartItem.unit === 'case'
-                      ? cartItem.amount * 12
-                      : cartItem.amount),
+                  acc + cartItem.product.price * cartItem.amount,
                 0,
               ),
             )}

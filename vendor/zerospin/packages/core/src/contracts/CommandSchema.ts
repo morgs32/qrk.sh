@@ -9,11 +9,11 @@ import {
 } from '../models/ResourceDeltaSchema.ts';
 import type { IResourceDelta } from '../models/types.ts';
 
+import { EncodedMutationSchema } from './encodeAppliedMutation.ts';
 import type {
   IAggregateCommand,
   IChainedCommand,
   IEncodedCommand,
-  ISeedCommand,
   IServiceCommand,
   ISessionCommand,
 } from './types.ts';
@@ -37,6 +37,7 @@ const UnknownAggregateCommandBaseSchema = Schema.Struct({
 
 export const UnknownAggregateCommandSchema = Schema.Union([
   Schema.fieldsAssign({
+    aggregateVersion: Schema.String,
     sessionId: Schema.Null,
     userId: Schema.Null,
     frontendName: Schema.Null,
@@ -46,7 +47,7 @@ export const UnknownAggregateCommandSchema = Schema.Union([
     sessionId: makeAbbreviationIdSchema('sesn'),
     userId: Schema.String,
     frontendName: Schema.String,
-    pushIndex: positiveIndexSchema,
+    pushIndex: Schema.NullOr(positiveIndexSchema),
   })(UnknownAggregateCommandBaseSchema),
 ]) satisfies Schema.Codec<IAggregateCommand, any>;
 
@@ -56,6 +57,7 @@ export const UnknownServiceCommandSchema = Schema.Struct({
   payload: Schema.Unknown,
   contractVersion: Schema.String,
   serviceName: Schema.String,
+  serviceVersion: Schema.String,
 }) satisfies Schema.Codec<IServiceCommand, any>;
 
 export const EncodedServiceCommandSchema = Schema.Struct({
@@ -64,12 +66,8 @@ export const EncodedServiceCommandSchema = Schema.Struct({
   payload: Schema.String,
   contractVersion: Schema.String,
   serviceName: Schema.String,
+  serviceVersion: Schema.String,
 }) satisfies Schema.Codec<IEncodedCommand<IServiceCommand>, any>;
-
-export const SeedCommandSchema = Schema.Union([
-  UnknownAggregateCommandSchema,
-  UnknownServiceCommandSchema,
-]) satisfies Schema.Codec<ISeedCommand, any>;
 
 const EncodedAggregateCommandBaseSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
@@ -83,6 +81,7 @@ const EncodedAggregateCommandBaseSchema = Schema.Struct({
 
 export const EncodedAggregateCommandSchema = Schema.Union([
   Schema.fieldsAssign({
+    aggregateVersion: Schema.String,
     sessionId: Schema.Null,
     userId: Schema.Null,
     frontendName: Schema.Null,
@@ -92,12 +91,9 @@ export const EncodedAggregateCommandSchema = Schema.Union([
     sessionId: makeAbbreviationIdSchema('sesn'),
     userId: Schema.String,
     frontendName: Schema.String,
-    pushIndex: positiveIndexSchema,
+    pushIndex: Schema.NullOr(positiveIndexSchema),
   })(EncodedAggregateCommandBaseSchema),
-]) satisfies Schema.Codec<
-  IEncodedCommand<IAggregateCommand>,
-  any
->;
+]) satisfies Schema.Codec<IEncodedCommand<IAggregateCommand>, any>;
 
 export const EncodedSessionCommandSchema = Schema.Struct({
   id: makeAbbreviationIdSchema('cmd'),
@@ -122,7 +118,12 @@ const serviceChainFields = {
   ...chainedFields,
 };
 
+const LowercaseSha256Schema = Schema.String.check(
+  Schema.isPattern(/^[a-f0-9]{64}$/u),
+);
+
 const ServicePendingCommandSchema = Schema.fieldsAssign({
+  dispositionHash: Schema.Null,
   ...serviceChainFields,
   delta: Schema.Null,
   failedAt: Schema.Null,
@@ -130,6 +131,7 @@ const ServicePendingCommandSchema = Schema.fieldsAssign({
 })(EncodedServiceCommandSchema);
 
 const ServiceSuccessfulCommandSchema = Schema.fieldsAssign({
+  dispositionHash: LowercaseSha256Schema,
   ...serviceChainFields,
   delta: ResourceDeltaSchema,
   failedAt: Schema.Null,
@@ -137,6 +139,7 @@ const ServiceSuccessfulCommandSchema = Schema.fieldsAssign({
 })(EncodedServiceCommandSchema);
 
 const ServiceFailedCommandSchema = Schema.fieldsAssign({
+  dispositionHash: LowercaseSha256Schema,
   ...serviceChainFields,
   delta: EmptyResourceDeltaSchema,
   failedAt: Schema.DateFromString,
@@ -160,12 +163,6 @@ const directAggregateChainFields = {
   ...chainedFields,
 };
 
-const derivedAggregateChainFields = {
-  aggregateIndex: positiveIndexSchema,
-  serviceIndex: positiveIndexSchema,
-  ...chainedFields,
-};
-
 const DirectAggregatePendingCommandSchema =
   EncodedAggregateCommandSchema.mapMembers(
     Tuple.map(
@@ -174,6 +171,7 @@ const DirectAggregatePendingCommandSchema =
         delta: Schema.Null,
         failedAt: Schema.Null,
         failure: Schema.Null,
+        dispositionHash: Schema.Null,
       }),
     ),
   );
@@ -183,9 +181,10 @@ const DirectAggregateSuccessfulCommandSchema =
     Tuple.map(
       Schema.fieldsAssign({
         ...directAggregateChainFields,
-        delta: ResourceDeltaSchema,
+        delta: Schema.Null,
         failedAt: Schema.Null,
         failure: Schema.Null,
+        dispositionHash: LowercaseSha256Schema,
       }),
     ),
   );
@@ -195,49 +194,54 @@ const DirectAggregateFailedCommandSchema =
     Tuple.map(
       Schema.fieldsAssign({
         ...directAggregateChainFields,
-        delta: EmptyResourceDeltaSchema,
+        delta: Schema.Null,
         failedAt: Schema.DateFromString,
         failure: EncodedZerospinErrorSchema,
+        dispositionHash: LowercaseSha256Schema,
       }),
     ),
   );
-
-const DerivedAggregatePendingCommandSchema = Schema.fieldsAssign({
-  ...derivedAggregateChainFields,
-  delta: Schema.Null,
-  failedAt: Schema.Null,
-  failure: Schema.Null,
-})(EncodedServiceCommandSchema);
-
-const DerivedAggregateSuccessfulCommandSchema = Schema.fieldsAssign({
-  ...derivedAggregateChainFields,
-  delta: ResourceDeltaSchema,
-  failedAt: Schema.Null,
-  failure: Schema.Null,
-})(EncodedServiceCommandSchema);
-
-const DerivedAggregateFailedCommandSchema = Schema.fieldsAssign({
-  ...derivedAggregateChainFields,
-  delta: EmptyResourceDeltaSchema,
-  failedAt: Schema.DateFromString,
-  failure: EncodedZerospinErrorSchema,
-})(EncodedServiceCommandSchema);
 
 export const AggregateChainedCommandSchema = Schema.Union([
   ...DirectAggregatePendingCommandSchema.members,
   ...DirectAggregateSuccessfulCommandSchema.members,
   ...DirectAggregateFailedCommandSchema.members,
-  DerivedAggregatePendingCommandSchema,
-  DerivedAggregateSuccessfulCommandSchema,
-  DerivedAggregateFailedCommandSchema,
 ]) satisfies Schema.Codec<
-  | IEncodedCommand<
-      IChainedCommand<IAggregateCommand, IResourceDelta> &
-        Readonly<{ aggregateIndex: number }>
-    >
-  | IEncodedCommand<
-      IChainedCommand<IServiceCommand, IResourceDelta> &
-        Readonly<{ aggregateIndex: number; serviceIndex: number }>
-    >,
+  IEncodedCommand<
+    IChainedCommand<IAggregateCommand, IResourceDelta | null> &
+      Readonly<{ aggregateIndex: number }>
+  > &
+    Readonly<{ dispositionHash: string | null }>,
   any
 >;
+
+/** Authoritative replication copy read by a version-owned materializer. */
+export const ReplicatedResourceMutationSchema = Schema.Struct({
+  modelName: Schema.String,
+  modelVersion: Schema.String,
+  operationName: Schema.Literal('replicate'),
+  resourceId: Schema.String,
+  operation: Schema.Struct({
+    serviceName: Schema.String,
+    serviceVersion: Schema.String,
+    serviceIndex: Schema.Number,
+    resource: Schema.Unknown,
+  }),
+});
+
+export const AggregateExecutionEntrySchema = Schema.Struct({
+  sourceCommand: Schema.String,
+  command: AggregateChainedCommandSchema,
+  mutations: Schema.Array(EncodedMutationSchema),
+  preparationVersion: Schema.String,
+  executionTimestamp: Schema.DateFromString,
+});
+
+/** Version-owned service execution, retained after the producer outbox is deleted. */
+export const ServiceExecutionEntrySchema = Schema.Struct({
+  sourceCommand: Schema.String,
+  command: ServiceChainedCommandSchema,
+  mutations: Schema.Array(EncodedMutationSchema),
+  preparationVersion: Schema.String,
+  executionTimestamp: Schema.DateFromString,
+});

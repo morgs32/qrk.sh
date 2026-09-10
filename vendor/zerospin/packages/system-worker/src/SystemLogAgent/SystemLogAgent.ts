@@ -16,7 +16,13 @@ export class SystemLogAgent extends Agent<Cloudflare.Env, ISystemLogState> {
     syncedAt: 0,
   };
 
+  /*
+   * SystemLogAgent.onStart is the runtime boundary for the same-named operation.
+   *
+   * 1. Run the bound domain operation.
+   */
   override onStart(): Promise<void> {
+    // 1 — run onStart with the instance-bound dependencies
     return managedRuntime.runPromise(
       onStart({
         name: this.name,
@@ -26,16 +32,29 @@ export class SystemLogAgent extends Agent<Cloudflare.Env, ISystemLogState> {
     );
   }
 
+  /*
+   * The log agent exposes read-only client connections through its lifecycle
+   * policy hook.
+   *
+   * 1. Run the bound domain operation.
+   */
   override shouldConnectionBeReadonly(
     connection: Connection,
     context: ConnectionContext,
   ): boolean {
+    // 1 — run shouldConnectionBeReadonly with the instance-bound dependencies
     return managedRuntime.runSync(
       shouldConnectionBeReadonly({ connection, context }),
     );
   }
 
+  /*
+   * SystemLogAgent.pushLogRows is the runtime boundary for the same-named operation.
+   *
+   * 1. Run the bound domain operation.
+   */
   pushLogRows(rows: readonly ISystemLogRow[]): Promise<void> {
+    // 1 — run pushLogRows with the instance-bound dependencies
     return managedRuntime.runPromise(
       pushLogRows({
         currentRows: this.state.rows,

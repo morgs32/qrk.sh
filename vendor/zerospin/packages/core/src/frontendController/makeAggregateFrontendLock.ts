@@ -1,4 +1,5 @@
-import { Schema, type JsonSchema } from 'effect';
+import { encodedShapeSchema, type IEncodedShape } from '@zerospin/schema';
+import { Schema } from 'effect';
 
 import type { IAggregateFrontendController } from './types.ts';
 
@@ -11,11 +12,7 @@ export const AggregateFrontendLockSchema = Schema.Struct({
       modelName: Schema.String,
       abbreviation: Schema.String,
       version: Schema.String,
-      propertiesJsonSchema: Schema.Struct({
-        dialect: Schema.Literal('draft-2020-12'),
-        schema: Schema.Any,
-        definitions: Schema.Record(Schema.String, Schema.Any),
-      }),
+      propertiesShape: encodedShapeSchema,
       indexes: Schema.Array(
         Schema.Struct({
           name: Schema.String,
@@ -30,11 +27,7 @@ export const AggregateFrontendLockSchema = Schema.Struct({
     Schema.Struct({
       commandName: Schema.String,
       version: Schema.String,
-      payloadJsonSchema: Schema.Struct({
-        dialect: Schema.Literal('draft-2020-12'),
-        schema: Schema.Any,
-        definitions: Schema.Record(Schema.String, Schema.Any),
-      }),
+      payloadShape: encodedShapeSchema,
     }),
   ),
 });
@@ -42,14 +35,14 @@ export const AggregateFrontendLockSchema = Schema.Struct({
 export const makeAggregateFrontendLock = (props: {
   frontend: IAggregateFrontendController;
 }): Schema.Schema.Type<typeof AggregateFrontendLockSchema> => {
-  const frontend = props.frontend;
+  const { frontend } = props;
   const models: Record<
     string,
     {
       modelName: string;
       abbreviation: string;
       version: string;
-      propertiesJsonSchema: JsonSchema.Document<'draft-2020-12'>;
+      propertiesShape: Readonly<IEncodedShape>;
       indexes: {
         name: string;
         columns: readonly string[];
@@ -64,7 +57,7 @@ export const makeAggregateFrontendLock = (props: {
       modelName: model.modelName,
       abbreviation: model.abbreviation,
       version: model.version,
-      propertiesJsonSchema: model.spec.propertiesJsonSchema,
+      propertiesShape: model.spec.propertiesShape,
       indexes: model.indexes
         .toSorted((left, right) => left.name.localeCompare(right.name))
         .map(index => ({
@@ -80,22 +73,23 @@ export const makeAggregateFrontendLock = (props: {
     {
       commandName: string;
       version: string;
-      payloadJsonSchema: JsonSchema.Document<'draft-2020-12'>;
+      payloadShape: Readonly<IEncodedShape>;
     }
   > = {};
-  for (const [contractKey, contract] of Object.entries(
+  for (const [contractKey, binding] of Object.entries(
     frontend.contracts,
   ).toSorted(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))) {
+    const { contract } = binding;
     contracts[contractKey] = {
       commandName: contract.commandName,
       version: contract.version,
-      payloadJsonSchema: contract.spec.payloadJsonSchema,
+      payloadShape: contract.spec.payloadShape,
     };
   }
 
   return {
     systemName: frontend.systemName,
-    frontendName: frontend.frontendName,
+    frontendName: frontend.name,
     models,
     contracts,
   };

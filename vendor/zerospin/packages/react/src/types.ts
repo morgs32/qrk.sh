@@ -3,6 +3,7 @@ import type {
   IAggregateFrontendController,
   IServiceFrontendController,
 } from '@zerospin/core/frontendController/types';
+import type { IAnyModels } from '@zerospin/core/models/types';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import type { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
@@ -18,13 +19,20 @@ export type IBrowserSession<
   coreSession: ISession<FRONTEND>;
 };
 
-export type ISessionProviderRuntime = ManagedRuntime.ManagedRuntime<
-  Async | CuidFactory | MonotonicFactory | PublishableKey | ZerospinApiUrl,
-  IAnyError
->;
+export type ISessionProviderRuntime<SERVICES = never> =
+  ManagedRuntime.ManagedRuntime<
+    | Async
+    | CuidFactory
+    | MonotonicFactory
+    | PublishableKey
+    | ZerospinApiUrl
+    | SERVICES,
+    IAnyError
+  >;
 
 export type IBrowserServiceSession<
   FRONTEND extends IServiceFrontendController = IServiceFrontendController,
-> = IServiceSession<FRONTEND> & {
-  coreSession: IServiceSession<FRONTEND>;
+  MODELS extends IAnyModels = FRONTEND['models'],
+> = IServiceSession<FRONTEND, MODELS> & {
+  coreSession: IServiceSession<FRONTEND, MODELS>;
 };

@@ -1,27 +1,29 @@
 import { primitives } from '@zerospin/schema';
 
-import { makeContract } from '../contracts/makeContract.ts';
+import { contracts } from '../contracts/index.ts';
 
-import { makeModel } from './makeModel.ts';
+import { models } from './index.ts';
 
-const User = makeModel(
-  {
-    abbreviation: 'usr',
-    modelName: 'user',
-    attributes: {
-      name: primitives.text(),
-    },
-    indexes: [],
-    version: '1.0.0',
+const UserModel = models.makeModel({ name: 'user', abbreviation: 'usr' });
+
+const User = models.makeVersion(UserModel, {
+  attributes: {
+    name: primitives.text(),
   },
-  [],
-);
+  indexes: [],
+  version: '1.0.0',
+});
 
-// @ts-expect-error CoreTypeError — model payload keys require an explicit autogeneration decision
-User.primaryKey({});
+// @ts-expect-error Model payload-key wrappers have been removed.
+void models.primaryKey;
 
-makeContract({
-  commandName: 'rawPrimaryKeyPayload',
+primitives.foreignKey({
+  abbreviation: UserModel.abbreviation,
+  // @ts-expect-error Foreign keys require callers to supply IDs.
+  autogenerate: true,
+});
+
+contracts.makeVersion(contracts.makeCommand('rawPrimaryKeyPayload'), {
   payload: {
     // @ts-expect-error CoreTypeError — raw table primary keys are not payload descriptors
     id: primitives.primaryKey({ abbreviation: 'raw' }),
@@ -30,8 +32,7 @@ makeContract({
   version: '1.0.0',
 });
 
-makeContract({
-  commandName: 'refPayload',
+contracts.makeVersion(contracts.makeCommand('refPayload'), {
   payload: {
     // @ts-expect-error CoreTypeError — refs belong to persisted table/model shapes
     userId: primitives.ref({

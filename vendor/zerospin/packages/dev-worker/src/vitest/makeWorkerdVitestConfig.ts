@@ -24,6 +24,7 @@ export function makeWorkerdVitestConfig(props: {
     packageRoot = process.cwd(),
     passWithNoTests = true,
     setupFiles = [],
+    workerBindings,
     wranglerConfigPath,
   } = props;
   const systemModulePath =
@@ -81,7 +82,8 @@ export function makeWorkerdVitestConfig(props: {
 
   const wasmToSqljsAdapterShim: Plugin = {
     name: 'wasm-to-sqljs-adapter-shim',
-    resolveId(source) {
+    enforce: 'pre',
+    resolveId(source, importer) {
       if (
         source ===
           '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb' ||
@@ -90,7 +92,13 @@ export function makeWorkerdVitestConfig(props: {
       ) {
         return wasmAdapterShimPath;
       }
-      if (source === 'sql.js') {
+      // The test's plain in-memory initializer uses asm; Repos that provide a
+      // compiled Wasm module must keep SQL.js's matching Wasm runtime.
+      if (
+        source === 'sql.js' &&
+        importer !== undefined &&
+        /\/drizzle\/makeInMemorySqlJsDatabase\.(?:ts|js)$/.test(importer)
+      ) {
         return sqlJsAsmPath;
       }
       return null;
@@ -103,10 +111,18 @@ export function makeWorkerdVitestConfig(props: {
       conditions: ['workerd'],
       alias: [
         {
+          find: /^capnweb$/,
+          replacement: path.join(
+            path.dirname(
+              require.resolve('capnweb', { paths: [systemWorkerSrcRoot] }),
+            ),
+            'index-workers.js',
+          ),
+        },
+        {
           find: '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb',
           replacement: wasmAdapterShimPath,
         },
-        { find: /^sql\.js$/, replacement: sqlJsAsmPath },
         {
           find: /^@\/(.+)$/,
           replacement: `${path.join(packageRoot, 'src')}/$1`,
@@ -131,9 +147,9 @@ export function makeWorkerdVitestConfig(props: {
       wasmToSqljsAdapterShim,
       cloudflareTest({
         main: workerMainPath,
-        ...(props.workerBindings === undefined
+        ...(workerBindings === undefined
           ? {}
-          : { miniflare: { bindings: props.workerBindings } }),
+          : { miniflare: { bindings: workerBindings } }),
         wrangler: { configPath: wranglerVitestPath },
       }),
     ],

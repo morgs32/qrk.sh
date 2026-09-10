@@ -1,23 +1,21 @@
 import { Effect } from 'effect';
 
 /**
- * Let `makeAsync` infer the RPC success shape from the promise-returning chain method.
+ * Let `makeAsync` infer the RPC success shape from the promise-returning queue method.
  *
  * @bad Force a wire-envelope generic onto `makeAsync`.
  * @bad Keep RPC result imports only to annotate `makeAsync`.
  */
-export const readNextCommands = Effect.fn('MaterializedRepo.readNextCommands')(
+export const readNextCommands = Effect.fn('Repo.readNextCommands')(
   function* (props: {
-    chain: {
-      getCommands(props: {
-        afterAggregateIndex: number | null;
-      }): PromiseLike<unknown>;
+    queue: {
+      getPage(props: { afterIndex: number }): PromiseLike<unknown>;
     };
     afterAggregateIndex: number | null;
   }) {
     return yield* makeAsync(() =>
-      props.chain.getCommands({
-        afterAggregateIndex: props.afterAggregateIndex,
+      props.queue.getPage({
+        afterIndex: props.afterAggregateIndex ?? 0,
       }),
     ).pipe(Effect.flatMap(decodeRpc));
   },

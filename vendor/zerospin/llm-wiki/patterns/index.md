@@ -4,32 +4,33 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 ## system-worker
 
-| Keywords                                                                                         | File                                                                     |
-| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| storage.sql guard, SQLite DO, makeDurableDb                                                      | `system-worker/no-storage-sql-guard-on-sqlite-do.ts`                     |
-| systemModels, merge contracts, aggregate boundaries                                              | `system-worker/never-merge-models-or-contracts.ts`                       |
-| command chain history pull, materialized Repo catch-up, subscriber acknowledgement, anti-entropy | `system-worker/command-chain-subscriber-anti-entropy.ts`                 |
-| makeDeliveryQueue, default retry, outbox diagnostic, no retry counters                           | `system-worker/effect-retry-no-persisted-counters.ts`                    |
-| materialized aggregate, aggregate.contracts, contract lookup                                     | `system-worker/materialized-aggregate-repo-contract-lookup.ts`           |
-| command chain admission, materialized Repo execution, terminal history, subscriber fanout        | `system-worker/aggregate-command-chain-materialization.ts`               |
-| complete command occurrence, chain, outbox, RPC, websocket, replica journal                      | `system-worker/preserve-command-payloads-across-chains.ts`               |
-| repo DB init, table graph, makeDbConfig                                                          | `system-worker/repo-db-init-merged-schema.ts`                            |
-| makeFixedDORepoConfig, getDbConfig, contextual callbacks                                         | `system-worker/make-fixed-do-repo-config-contextual-callbacks.ts`        |
-| repo abbreviation, persisted \*RepoName, delivery                                                | `system-worker/persist-prefixed-repo-name-delivery.ts`                   |
-| makeAsync, decodeRpc, IEncodedResult inference                                                   | `system-worker/makeasync-infer-rpc-success.ts`                           |
-| commands insert, SQL variables limit                                                             | `system-worker/commands-inserts-one-row-per-statement.ts`                |
-| SYSTEM_REPO, SystemRepo.getRepo, systemId, singleton                                             | `system-worker/system-repo-lookup-ownership.ts`                          |
-| vitest node workerd, spec suffix                                                                 | `system-worker/vitest-runtime-boundaries.ts`                             |
-| get\*Repo helper, fixedDORepoConfig statics                                                      | `system-worker/use-fixed-do-repo-config-static-access.ts`                |
-| inline non-public repo helper                                                                    | `system-worker/inline-small-repo-logic-into-do-method.ts`                |
-| Repo JSDoc, architecture sync                                                                    | `system-worker/repo-and-api-jsdoc-in-sync.ts`                            |
-| MaterializedAggregateFrontendRepo push, optimistic journal, aggregate forwarding                 | `system-worker/materialized-aggregate-frontend-repo-owned-push.ts`       |
-| MaterializedAggregateFrontendRepo selection, source replica, projection, optimistic replay       | `system-worker/materialized-aggregate-frontend-repo-owned-projection.ts` |
-| makeTx program, Effect.fn transaction                                                            | `system-worker/maketx-program-effect-fn.ts`                              |
-| makeTx atomic writes, single statement write                                                     | `system-worker/maketx-only-for-atomic-multi-statement-writes.ts`         |
-| Effect.sync drizzle, sync db query, tx.select                                                    | `tooling/sync-drizzle-no-effect-sync.ts`                                 |
-| read-only Drizzle, makeTx                                                                        | `system-worker/read-only-drizzle-on-db-not-maketx.ts`                    |
-| Drizzle table alias single use                                                                   | `system-worker/no-const-alias-single-use-drizzle-table.ts`               |
+| Keywords                                                                                                                                                                                                                                                                                                          | File                                                              |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| storage.sql guard, SQLite DO, makeDurableDb                                                                                                                                                                                                                                                                       | `system-worker/no-storage-sql-guard-on-sqlite-do.ts`              |
+| systemModels, merge contracts, aggregate boundaries                                                                                                                                                                                                                                                               | `system-worker/never-merge-models-or-contracts.ts`                |
+| command chain history pull, Repo catch-up, subscriber acknowledgement, anti-entropy                                                                                                                                                                                                                               | `system-worker/command-chain-subscriber-anti-entropy.ts`          |
+| makeDeliveryQueue, default retry, outbox diagnostic, no retry counters                                                                                                                                                                                                                                            | `system-worker/effect-retry-no-persisted-counters.ts`             |
+| aggregate Repo, aggregate.contracts, contract lookup                                                                                                                                                                                                                                                              | `system-worker/versioned-aggregate-repo-contract-lookup.ts`       |
+| command chain admission, Repo execution, terminal history, subscriber fanout                                                                                                                                                                                                                                      | `system-worker/aggregate-chain-materialization.ts`                |
+| complete command occurrence, chain, outbox, RPC, websocket, replica journal                                                                                                                                                                                                                                       | `system-worker/preserve-command-payloads-across-chains.ts`        |
+| repo DB init, table graph, makeDbConfig                                                                                                                                                                                                                                                                           | `system-worker/repo-db-init-merged-schema.ts`                     |
+| makeFixedDORepoConfig, getDbConfig, contextual callbacks                                                                                                                                                                                                                                                          | `system-worker/make-fixed-do-repo-config-contextual-callbacks.ts` |
+| repo abbreviation, persisted \*RepoName, delivery                                                                                                                                                                                                                                                                 | `system-worker/persist-prefixed-repo-name-delivery.ts`            |
+| makeAsync, decodeRpc, IEncodedResult inference                                                                                                                                                                                                                                                                    | `system-worker/makeasync-infer-rpc-success.ts`                    |
+| commands insert, SQL variables limit                                                                                                                                                                                                                                                                              | `system-worker/commands-inserts-one-row-per-statement.ts`         |
+| Repo.getRepo, namespaceBinding, DORepoNamespaces, SystemRepo singleton                                                                                                                                                                                                                                            | `system-worker/repo-lookup-ownership.ts`                          |
+| vitest node workerd, spec suffix                                                                                                                                                                                                                                                                                  | `system-worker/vitest-runtime-boundaries.ts`                      |
+| Repo.getRepo, namespaceBinding, fixedDORepoConfig statics                                                                                                                                                                                                                                                         | `system-worker/use-fixed-do-repo-config-static-access.ts`         |
+| inline non-public repo helper                                                                                                                                                                                                                                                                                     | `system-worker/inline-small-repo-logic-into-do-method.ts`         |
+| IOutboxRepo, IOutboxSubscriberRepo, makeOutboxQueue, makeOutboxSubscriber, IFanoutRepo, IFanoutSubscriberRepo, IFanoutDelivery, fanout queue getter, sourceKey method accessor, getPage, fixed-destination catchup, subscribe, makeFanoutQueue, makeFanoutSubscriber, inline queue, no one-consumer queue factory | `system-worker/i-fanout-repo.ts`                                  |
+| Repo JSDoc, architecture sync                                                                                                                                                                                                                                                                                     | `system-worker/repo-and-api-jsdoc-in-sync.ts`                     |
+| UserVersionedAggregateRepo push, optimistic journal, aggregate forwarding                                                                                                                                                                                                                                         | `system-worker/aggregate-frontend-admission.ts`                   |
+| UserVersionedAggregateRepo selection, source replica, projection, optimistic replay                                                                                                                                                                                                                               | `system-worker/versioned-aggregate-replica-owned-projection.ts`   |
+| makeTx program, Db.Tx, typed database service                                                                                                                                                                                                                                                                     | `system-worker/maketx-program-effect-fn.ts`                       |
+| makeTx atomic writes, single statement write                                                                                                                                                                                                                                                                      | `system-worker/maketx-only-for-atomic-multi-statement-writes.ts`  |
+| Effect.sync drizzle, sync db query, tx.select                                                                                                                                                                                                                                                                     | `tooling/sync-drizzle-no-effect-sync.ts`                          |
+| read-only Drizzle, makeTx                                                                                                                                                                                                                                                                                         | `system-worker/read-only-drizzle-on-db-not-maketx.ts`             |
+| DbConfig.schema, DrizzleSchemas, schema alias, relations alias, Drizzle table alias                                                                                                                                                                                                                               | `system-worker/no-dbconfig-prop-alias.ts`                         |
 
 ## rpc
 
@@ -51,18 +52,16 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 | Keywords                                 | File                                                   |
 | ---------------------------------------- | ------------------------------------------------------ |
 | Effect.all program                       | `contracts/contract-program-effect-all.ts`             |
-| makeContract mutation only               | `contracts/make-contract-mutation-only-return.ts`      |
+| makeVersion mutation only                | `contracts/make-contract-mutation-only-return.ts`      |
 | registry model scope, contract mutations | `contracts/contract-mutations-stay-in-owner-models.ts` |
 | IEncodedCommand boundary                 | `contracts/iencoded-command-at-boundary-only.ts`       |
 | omit program payload-only                | `contracts/omit-program-not-dummy-yields.ts`           |
-| historical contract, adaptPayload, up    | `contracts/contract-history-adapts-up.ts`              |
 
 ## models
 
-| Keywords                                                                       | File                                        |
-| ------------------------------------------------------------------------------ | ------------------------------------------- |
-| historical model, adaptResource, down, direct                                  | `models/model-history-adapts-down.ts`       |
-| makeReplica, authoritative service model, aggregate replica, replica tombstone | `models/authoritative-model-and-replica.ts` |
+| Keywords                                                                                                                  | File                                        |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| makeReplica, authoritative service model, aggregate replica, replica tombstone, Model.isReplica, immutable authored model | `models/authoritative-model-and-replica.ts` |
 
 ## react
 
@@ -106,27 +105,27 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 
 ## typescript
 
-| Keywords                                                   | File                                                         |
-| ---------------------------------------------------------- | ------------------------------------------------------------ |
-| typecheck after core edit                                  | `typescript/typecheck-consumer-after-core-edit.ts`           |
-| lib after new types                                        | `typescript/run-lib-after-adding-types.ts`                   |
-| stale dist exports                                         | `typescript/dont-match-stale-dist.ts`                        |
-| paths vs references                                        | `typescript/paths-with-project-references.ts`                |
-| project reference flags                                    | `typescript/project-reference-performance-flags.ts`          |
-| IConfig satisfies                                          | `typescript/fixing-vs-coercing-config.ts`                    |
-| redundant export annotation                                | `typescript/redundant-annotations-on-inferred-exports.ts`    |
-| encodeShape, table-bound ref metadata, no decodeShape      | `typescript/encode-shape-wire-format.ts`                     |
-| IShape satisfies, IAnyTables, as const satisfies           | `typescript/shape-table-satisfies-without-as-const.ts`       |
-| table ref, opaque ID, Model.primaryKey, payload key        | `typescript/table-ref-opaque-id-and-payload-primary-key.ts`  |
-| makeSystem id inference                                    | `typescript/makesystem-system-entry-exports.ts`              |
-| owner authenticate, userId, aggregate authorization target | `typescript/owner-authentication-returns-user-id.ts`         |
-| intersection factory return                                | `typescript/intersection-return-types-on-factories.ts`       |
-| frontend binding source model, aggregate model consistency | `typescript/aggregate-frontend-binding-model-consistency.ts` |
-| unprompted type JSDoc                                      | `typescript/unrequested-annotations-on-types.ts`             |
-| tautological typecheck                                     | `typescript/tautological-typecheck-assertions.ts`            |
-| Equals inline expected                                     | `typescript/equals-expectations-in-typecheck.ts`             |
-| Equals not extends ternary                                 | `typescript/use-equals-not-ternary-assignability.ts`         |
-| single-consumer type shapes                                | `typescript/single-consumer-types.ts`                        |
+| Keywords                                                                                     | File                                                         |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| typecheck after core edit                                                                    | `typescript/typecheck-consumer-after-core-edit.ts`           |
+| lib after new types                                                                          | `typescript/run-lib-after-adding-types.ts`                   |
+| stale dist exports                                                                           | `typescript/dont-match-stale-dist.ts`                        |
+| paths vs references                                                                          | `typescript/paths-with-project-references.ts`                |
+| project reference flags                                                                      | `typescript/project-reference-performance-flags.ts`          |
+| IConfig satisfies                                                                            | `typescript/fixing-vs-coercing-config.ts`                    |
+| redundant export annotation                                                                  | `typescript/redundant-annotations-on-inferred-exports.ts`    |
+| encodeShape, encodedShapeSchema, ISO date defaults, table-bound ref metadata, no decodeShape | `typescript/encode-shape-wire-format.ts`                     |
+| IShape satisfies, IAnyTables, as const satisfies                                             | `typescript/shape-table-satisfies-without-as-const.ts`       |
+| table ref, foreign key, foreignKey, payload key                                              | `typescript/table-ref-and-foreign-key.ts`                    |
+| makeSystem id inference                                                                      | `typescript/makesystem-system-entry-exports.ts`              |
+| owner authenticate, userId, aggregate authorization target                                   | `typescript/owner-authentication-returns-user-id.ts`         |
+| intersection factory return                                                                  | `typescript/intersection-return-types-on-factories.ts`       |
+| frontend binding source model, aggregate model consistency                                   | `typescript/aggregate-frontend-binding-model-consistency.ts` |
+| unprompted type JSDoc                                                                        | `typescript/unrequested-annotations-on-types.ts`             |
+| tautological typecheck                                                                       | `typescript/tautological-typecheck-assertions.ts`            |
+| Equals inline expected                                                                       | `typescript/equals-expectations-in-typecheck.ts`             |
+| Equals not extends ternary                                                                   | `typescript/use-equals-not-ternary-assignability.ts`         |
+| single-consumer type shapes                                                                  | `typescript/single-consumer-types.ts`                        |
 
 ## cases
 

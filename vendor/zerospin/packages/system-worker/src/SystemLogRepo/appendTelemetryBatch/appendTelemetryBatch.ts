@@ -1,22 +1,31 @@
+import type { IDb } from '@zerospin/core/drizzle/types';
 /*
  * System-worker annotation:
  * Persists one completed telemetry batch atomically. Stable logger IDs make
  * retries idempotent, and retention removes all owned rows for old traces.
  */
-
-import { makeTx } from '@zerospin/core/drizzle/makeTx';
-import type { IDb } from '@zerospin/core/drizzle/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { mapParseError, type IAnyError } from '@zerospin/error';
 import type { ITelemetryBatch } from '@zerospin/logger';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
-import { sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
 
-import { systemLogRepoDrizzleSchemas } from '../SystemLogRepoDbConfig.js';
+import { SystemLogRepoDb } from '../systemLogRepoDbConfig.js';
 
-const maxTraces = 1000;
+import { appendTelemetryBatchTx } from './appendTelemetryBatchTx.js';
 
+/*
+ * Linked RPC handlers persist completed telemetry batches in SystemLogRepo.
+ * Stable record IDs make retries idempotent, and retention removes old trace
+ * links, logs, and spans in the same transaction as the incoming batch.
+ *
+ * 1. Validate the telemetry deployment ID.
+ * 2. Open the batch and retention transaction.
+ * 3. Retain spans idempotently.
+ * 4. Retain log records idempotently.
+ * 5. Retain trace links idempotently.
+ * 6. Prune data belonging to traces beyond retention.
+ */
 export const appendTelemetryBatch = Effect.fn(
   'SystemLogRepo.appendTelemetryBatch',
 )(function* (props: {
@@ -24,100 +33,21 @@ export const appendTelemetryBatch = Effect.fn(
   db: IDb;
   systemId: string;
 }): Effect.fn.Return<void, IAnyError> {
-  const { batch, db } = props;
-  const systemId = yield* Schema.decodeUnknownEffect(
+  const { batch, db, systemId } = props;
+
+  // 1 — decode the bound system abbreviation ID
+  const decodedSystemId = yield* Schema.decodeUnknownEffect(
     Schema.toType(makeAbbreviationIdSchema(coreAbbreviations.system)),
-  )(props.systemId).pipe(
+  )(systemId).pipe(
     mapParseError({
       code: 'failed-to-decode-telemetry-batch-system-id',
       prefix: 'Failed to decode SystemLogRepo telemetry systemId',
-      extra: { systemId: props.systemId },
+      extra: { systemId },
     }),
   );
-  yield* makeTx({
-    db,
-    program: Effect.fn('SystemLogRepo.appendTelemetryBatch.transaction')(
-      function* ({ tx }) {
-        yield* Effect.void;
 
-        for (const span of batch.spans) {
-          tx.insert(systemLogRepoDrizzleSchemas.telemetrySpans)
-            .values({
-              ...span,
-              attributes:
-                span.attributes === null
-                  ? null
-                  : Schema.encodeSync(
-                      Schema.fromJsonString(
-                        Schema.Record(Schema.String, Schema.Unknown),
-                      ),
-                    )(span.attributes),
-              systemId,
-            })
-            .onConflictDoNothing()
-            .run();
-        }
-
-        for (const log of batch.logs) {
-          tx.insert(systemLogRepoDrizzleSchemas.telemetryLogs)
-            .values({
-              ...log,
-              payload:
-                log.payload === null
-                  ? null
-                  : Schema.encodeSync(Schema.fromJsonString(Schema.Unknown))(
-                      log.payload,
-                    ),
-              systemId,
-            })
-            .onConflictDoNothing()
-            .run();
-        }
-
-        for (const link of batch.links) {
-          tx.insert(systemLogRepoDrizzleSchemas.telemetryLinks)
-            .values({
-              ...link,
-              systemId,
-            })
-            .onConflictDoNothing()
-            .run();
-        }
-
-        tx.run(sql`
-            DELETE FROM ${systemLogRepoDrizzleSchemas.telemetryLinks}
-            WHERE ${systemLogRepoDrizzleSchemas.telemetryLinks.traceId} IN (
-              SELECT ${systemLogRepoDrizzleSchemas.telemetrySpans.traceId}
-              FROM ${systemLogRepoDrizzleSchemas.telemetrySpans}
-              GROUP BY ${systemLogRepoDrizzleSchemas.telemetrySpans.traceId}
-              ORDER BY MAX(${systemLogRepoDrizzleSchemas.telemetrySpans.endedAt}) DESC,
-                ${systemLogRepoDrizzleSchemas.telemetrySpans.traceId} DESC
-              LIMIT -1 OFFSET ${maxTraces}
-            )
-          `);
-        tx.run(sql`
-            DELETE FROM ${systemLogRepoDrizzleSchemas.telemetryLogs}
-            WHERE ${systemLogRepoDrizzleSchemas.telemetryLogs.traceId} IN (
-              SELECT ${systemLogRepoDrizzleSchemas.telemetrySpans.traceId}
-              FROM ${systemLogRepoDrizzleSchemas.telemetrySpans}
-              GROUP BY ${systemLogRepoDrizzleSchemas.telemetrySpans.traceId}
-              ORDER BY MAX(${systemLogRepoDrizzleSchemas.telemetrySpans.endedAt}) DESC,
-                ${systemLogRepoDrizzleSchemas.telemetrySpans.traceId} DESC
-              LIMIT -1 OFFSET ${maxTraces}
-            )
-          `);
-        tx.run(sql`
-            DELETE FROM ${systemLogRepoDrizzleSchemas.telemetrySpans}
-            WHERE ${systemLogRepoDrizzleSchemas.telemetrySpans.traceId} IN (
-              SELECT ${systemLogRepoDrizzleSchemas.telemetrySpans.traceId}
-              FROM ${systemLogRepoDrizzleSchemas.telemetrySpans}
-              GROUP BY ${systemLogRepoDrizzleSchemas.telemetrySpans.traceId}
-              ORDER BY MAX(${systemLogRepoDrizzleSchemas.telemetrySpans.endedAt}) DESC,
-                ${systemLogRepoDrizzleSchemas.telemetrySpans.traceId} DESC
-              LIMIT -1 OFFSET ${maxTraces}
-            )
-          `);
-      },
-    ),
-  });
+  // 2 — commit incoming records and trace cleanup together
+  yield* appendTelemetryBatchTx({ batch, decodedSystemId }).pipe(
+    Effect.provideService(SystemLogRepoDb, db),
+  );
 });

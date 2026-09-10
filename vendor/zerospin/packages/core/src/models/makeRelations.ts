@@ -2,6 +2,7 @@ import { PrimitiveKind } from '@zerospin/schema';
 import { mapValues } from 'es-toolkit';
 import invariant from 'tiny-invariant';
 
+import { Model } from './makeModel.ts';
 import type {
   IAnyConnectRelation,
   IModel,
@@ -41,13 +42,12 @@ function validateOwnRef(props: {
       `makeRelations: ${parentModelKey}.${relationName} (${relationKind}) ownRef "${ownRef}" must be a ref`,
     );
   }
-  const connectedSourceModel =
-    'sourceModel' in connectedModel ? connectedModel.sourceModel : undefined;
+  const connectedSourceModel = Model.isReplica(connectedModel)
+    ? connectedModel.sourceModel
+    : undefined;
   if (
     parentRef.table !== connectedModel.table &&
-    (typeof connectedSourceModel !== 'object' ||
-      connectedSourceModel === null ||
-      !('table' in connectedSourceModel) ||
+    (connectedSourceModel === undefined ||
       parentRef.table !== connectedSourceModel.table)
   ) {
     throw new Error(
@@ -83,13 +83,12 @@ function validateConnectedRef(props: {
       `makeRelations: ${parentModelKey}.${relationName} (${relationKind}) connectedRef "${connectedRef}" must be a ref`,
     );
   }
-  const parentSourceModel =
-    'sourceModel' in parentModel ? parentModel.sourceModel : undefined;
+  const parentSourceModel = Model.isReplica(parentModel)
+    ? parentModel.sourceModel
+    : undefined;
   if (
     connectedRefProperty.table !== parentModel.table &&
-    (typeof parentSourceModel !== 'object' ||
-      parentSourceModel === null ||
-      !('table' in parentSourceModel) ||
+    (parentSourceModel === undefined ||
       connectedRefProperty.table !== parentSourceModel.table)
   ) {
     throw new Error(
@@ -143,16 +142,14 @@ export function makeRelations<
 ): RELATIONS {
   const relations = builder({
     connectOne: ((props: Parameters<IRelationHelpers['connectOne']>[0]) => {
-      const { model } = props;
+      const { connectedRef, model, ownRef } = props;
       if ('ownRef' in props) {
-        const ownRef = props.ownRef;
         return {
           kind: 'one',
           model,
           ownRef,
         };
       }
-      const connectedRef = props.connectedRef;
       return {
         kind: 'one',
         model,
@@ -160,16 +157,14 @@ export function makeRelations<
       };
     }) as IRelationHelpers['connectOne'],
     connectMany: ((props: Parameters<IRelationHelpers['connectMany']>[0]) => {
-      const { model } = props;
+      const { connectedRef, model, ownRef } = props;
       if ('ownRef' in props) {
-        const ownRef = props.ownRef;
         return {
           kind: 'many',
           model,
           ownRef,
         };
       }
-      const connectedRef = props.connectedRef;
       return {
         kind: 'many',
         model,

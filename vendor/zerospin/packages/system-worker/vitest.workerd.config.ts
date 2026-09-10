@@ -14,6 +14,13 @@ export default defineConfig({
     conditions: ['workerd'],
     alias: [
       {
+        find: /^capnweb$/,
+        replacement: path.join(
+          __dirname,
+          'node_modules/capnweb/dist/index-workers.js',
+        ),
+      },
+      {
         find: /^@zerospin\/core\/(.+)$/,
         replacement: `${path.join(repoRoot, 'packages/core/src')}/$1`,
       },
@@ -37,6 +44,7 @@ export default defineConfig({
   ssr: { noExternal: ['drizzle-orm'] },
   test: {
     include: ['src/**/*.workerd.spec.ts'],
+    setupFiles: ['./src/workerd-utils/acceptSystemSpec.ts'],
     isolate: true,
     maxWorkers: 1,
     passWithNoTests: false,

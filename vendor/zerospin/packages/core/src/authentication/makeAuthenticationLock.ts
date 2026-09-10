@@ -1,19 +1,14 @@
 import { Schema } from 'effect';
 
-import type { IAuthenticationSignature } from './types.ts';
-
 export const AuthenticationLockSchema = Schema.Struct({
-  signature: Schema.Struct({
-    version: Schema.String,
-    schemaJsonSchema: Schema.Unknown,
-  }),
+  version: Schema.String,
+  signatureJsonSchema: Schema.Unknown,
 });
 
 export const makeAuthenticationLock = (props: {
-  signature: IAuthenticationSignature;
+  version: string;
+  signature: Schema.Codec<unknown, unknown>;
 }): Schema.Schema.Type<typeof AuthenticationLockSchema> => ({
-  signature: {
-    version: props.signature.version,
-    schemaJsonSchema: props.signature.spec.schemaJsonSchema,
-  },
+  version: props.version,
+  signatureJsonSchema: Schema.toJsonSchemaDocument(props.signature),
 });

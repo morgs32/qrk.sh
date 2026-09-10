@@ -27,7 +27,7 @@
       "@zerospin/server-only": "workspace:*",
       "@zerospin/shared-worker": "workspace:*",
       "@zerospin/studio": "workspace:*",
-      "effect": "rc"
+      "effect": "4.0.0-rc.112"
     }
   }
 }

@@ -7,6 +7,7 @@ if (mapboxToken === undefined || mapboxToken.length === 0) {
 }
 
 const nextConfig: NextConfig = {
+  assetPrefix: "/app-static",
   devIndicators: {
     position: "bottom-left",
   },

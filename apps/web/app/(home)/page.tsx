@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Inter, Silkscreen } from "next/font/google";
+import { Darker_Grotesque, Silkscreen } from "next/font/google";
 import { Show } from "@clerk/nextjs";
 
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,9 @@ const silkscreen = Silkscreen({
   weight: "400",
 });
 
-const inter = Inter({
+const darkerGrotesque = Darker_Grotesque({
   subsets: ["latin"],
-  weight: "700",
+  weight: "900",
 });
 
 const occupiedPixelCells = [
@@ -109,20 +109,6 @@ export default function HomePage() {
         </Show>
       </header>
 
-      <section
-        aria-labelledby="home-hero-heading"
-        className="pointer-events-none fixed inset-x-0 top-16 bottom-0 z-10 flex items-center px-6 md:px-8 lg:px-10"
-      >
-        <h1
-          className={`${inter.className} text-[clamp(4rem,18vw,8rem)] leading-[0.85] font-bold tracking-[-0.08em] text-[#E86F3A] uppercase md:text-[clamp(3.25rem,7vw,6rem)] lg:text-[clamp(3rem,5vw,5rem)]`}
-          id="home-hero-heading"
-        >
-          <span className="block">Make</span>
-          <span className="block">your</span>
-          <span className="block">mark.</span>
-        </h1>
-      </section>
-
       <div
         aria-label="QRK.SH pixel wordmark"
         className="relative z-0 grid h-[calc(100svh-4rem)] w-max"
@@ -131,6 +117,20 @@ export default function HomePage() {
           gridTemplateRows: "repeat(6, calc((100svh - 4rem) / 6))",
         }}
       >
+        <section
+          aria-labelledby="home-hero-heading"
+          className="pointer-events-none @container col-start-2 col-end-4 row-start-2 row-end-5 flex items-center justify-start p-6"
+        >
+          <h1
+            className={`${darkerGrotesque.className} text-[30cqw] leading-[0.85] font-black tracking-[-0.08em] text-[#E86F3A] uppercase`}
+            id="home-hero-heading"
+          >
+            <span className="block">Be a</span>
+            <span className="block">little</span>
+            <span className="block">much</span>
+          </h1>
+        </section>
+
         {occupiedPixelCells.map((pixel, index) => (
           <a
             aria-label={`QRK.SH pixel ${index + 1}`}

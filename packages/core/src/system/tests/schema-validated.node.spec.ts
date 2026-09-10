@@ -1,6 +1,6 @@
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { aggregates } from '../../aggregate/index.ts';
 import { authentication } from '../../authentication/index.ts';
@@ -44,17 +44,21 @@ const renameItem = contracts.makeVersion(contracts.makeCommand('renameItem'), {
 });
 
 describe('makeSystem schema validation', () => {
-  it('accepts a system-only config for an aggregate-free System', () => {
+  it('accepts a deployment config for an aggregate-free System', () => {
     const system = makeSystem({
       name: 'empty',
       authentication: [authenticationV1],
       aggregates: {},
     });
-    const config = system.config();
+    const config = system.config({ systemId: 'sys_config_test' });
     expect(config.system).toBe(system);
-    expect(config).toEqual({ system });
+    expect(config).toEqual({ system, systemId: 'sys_config_test' });
+    expectTypeOf(config.system.name).toEqualTypeOf<'empty'>();
     expect(Schema.is(ZerospinConfigSchema)(config)).toBe(true);
-    expect(Schema.is(ZerospinConfigSchema)({ system })).toBe(true);
+    expect(Schema.is(ZerospinConfigSchema)({ system })).toBe(false);
+    for (const systemId of ['', 'shopping', null, 42]) {
+      expect(Schema.is(ZerospinConfigSchema)({ system, systemId })).toBe(false);
+    }
     expect(
       Schema.is(ZerospinConfigSchema)({
         ...config,

@@ -32,7 +32,6 @@
     "types": [
       "vite/client",
       "node",
-      "./worker-configuration.d.ts",
       "./src/cloudflare-workers.d.ts",
       "vite-plugin-pwa/react"
     ],
@@ -44,7 +43,7 @@
       ]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "worker-configuration.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["dist", "node_modules", "**/*.spec.ts", "**/*.spec.tsx"],
   "references": [
     {

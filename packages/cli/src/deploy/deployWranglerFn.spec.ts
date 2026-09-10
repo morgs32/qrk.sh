@@ -33,19 +33,12 @@ vi.mock('node:module', () => ({
     ),
 }));
 vi.mock('dotenv', () => ({ config: vi.fn() }));
-vi.mock('c12', () => ({
-  loadConfig: async () => ({
-    config: {
-      name: 'production-fixture',
-      compatibility_date: '2026-01-20',
-      account_id: 'fixture-account',
-      vars: { ZEROSPIN_SYSTEM_ID: 'sys_production_fixture' },
-      exports: { SystemRepo: { type: 'durable-object', storage: 'sqlite' } },
-    },
-  }),
-}));
 vi.mock('./loadZerospinConfigFn.js', () => ({
-  loadZerospinConfigFn: () => Effect.void,
+  loadZerospinConfigFn: () =>
+    Effect.succeed({
+      system: { name: 'production-fixture' },
+      systemId: 'sys_production_fixture',
+    }),
 }));
 vi.mock('./makeSystemEntry.js', () => ({
   makeSystemEntry: () => Effect.succeed('/fixture/system.ts'),
@@ -113,6 +106,23 @@ beforeEach(() => {
       const configPath = args[args.indexOf('--config') + 1]!;
       generatedPaths.push(configPath);
       const config = JSON.parse(await readFile(configPath, 'utf8'));
+      expect(configPath).toContain('/.wrangler/zerospin/deploy-');
+      expect(config).toMatchObject({
+        name: 'zerospin-production-fixture',
+        main: '/fixture/@zerospin/production-worker/ProductionWorker',
+        compatibility_date: '2026-01-20',
+        compatibility_flags: ['nodejs_compat'],
+        alias: { system: '/fixture/system.ts' },
+        vars: {
+          ZEROSPIN_SYSTEM_ID: 'sys_production_fixture',
+          ZEROSPIN_ENVIRONMENT: 'production',
+        },
+        version_metadata: { binding: 'ZEROSPIN_VERSION_METADATA' },
+        exports: { SystemRepo: { type: 'durable-object', storage: 'sqlite' } },
+      });
+      expect(config.durable_objects.bindings).toHaveLength(13);
+      expect(config.vars).not.toHaveProperty('ZEROSPIN_SECRET_KEY');
+
       expect(config.version_metadata).toEqual({
         binding: 'ZEROSPIN_VERSION_METADATA',
       });
@@ -195,11 +205,15 @@ beforeEach(() => {
   mocks.start.mockImplementation(async ({ config }: { config: string }) => {
     generatedPaths.push(config);
     const configuration = JSON.parse(await readFile(config, 'utf8'));
-    expect(configuration.name).not.toBe('production-fixture');
+    expect(configuration.name).not.toBe('zerospin-production-fixture');
     expect(configuration.services).toEqual([
-      { binding: 'PRODUCTION', service: 'production-fixture', remote: true },
+      {
+        binding: 'PRODUCTION',
+        service: 'zerospin-production-fixture',
+        remote: true,
+      },
     ]);
-    expect(configuration.account_id).toBe('fixture-account');
+    expect(configuration.account_id).toBeUndefined();
     forwarderSource = await readFile(configuration.main, 'utf8');
     order.push('forwarder');
     return { url: Promise.resolve(new URL('http://127.0.0.1:9191')) };
@@ -246,7 +260,7 @@ describe('production preflight deployment', () => {
     );
     expect(result).toEqual({
       status: 'deployed',
-      workerName: 'production-fixture',
+      workerName: 'zerospin-production-fixture',
       versionId: candidateVersion,
       zerospinPublishableKey: 'pk_live_fixture',
     });
@@ -528,7 +542,7 @@ describe('production preflight deployment', () => {
     const remote = vi.fn(async (request: Request) => {
       expect(request.headers.get('authorization')).toBe('Bearer fixture');
       expect(request.headers.get('Cloudflare-Workers-Version-Overrides')).toBe(
-        `production-fixture="${candidateVersion}"`,
+        `zerospin-production-fixture="${candidateVersion}"`,
       );
       received.push(await request.text());
       return new Response('rpc-result', {

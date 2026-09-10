@@ -18,7 +18,7 @@ import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
 import { decodeSystemProps } from './decodeSystemProps.ts';
 import { resolveSystemAggregate } from './resolveSystemAggregate.ts';
 import { resolveSystemService } from './resolveSystemService.ts';
-import type { ISystem, ISystemConfig } from './types.ts';
+import type { ISystem, ISystemConfig, ISystemId } from './types.ts';
 import { ZerospinConfigSchema } from './ZerospinConfigSchema.ts';
 
 type IResolvedAggregates<
@@ -202,8 +202,8 @@ export function makeSystem(props: {
     },
   );
   const system = {
-    config(): ISystemConfig<unknown> {
-      const config = { system };
+    config(options: Readonly<{ systemId: ISystemId }>): ISystemConfig<unknown> {
+      const config = { system, systemId: options.systemId };
       Schema.decodeUnknownSync(ZerospinConfigSchema)(config);
       return config;
     },

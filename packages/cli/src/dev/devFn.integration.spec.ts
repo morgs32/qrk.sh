@@ -13,7 +13,6 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
-import { loadConfig } from 'c12';
 import { expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
@@ -26,10 +25,12 @@ it('checks real Wrangler initial/reloaded bundles and exits nonzero with all lis
     '../../../../examples/shopping/',
     import.meta.url,
   ).pathname;
-  const configSource = await readFile(
-    new URL('../../test/config/zerospin.config.ts', import.meta.url),
-    'utf8',
-  );
+  const configSource = (
+    await readFile(
+      new URL('../../test/config/zerospin.config.ts', import.meta.url),
+      'utf8',
+    )
+  ).replace('sys_typed_config_fixture', 'sys_dev_reload_fixture');
   const configPath = join(directory, 'zerospin.config.ts');
   await mkdir(join(directory, 'node_modules'), { recursive: true });
   await symlink(
@@ -37,28 +38,6 @@ it('checks real Wrangler initial/reloaded bundles and exits nonzero with all lis
       require.resolve('wrangler/package.json', { paths: [shoppingRoot] }),
     ),
     join(directory, 'node_modules/wrangler'),
-  );
-  const shopping = await loadConfig<Record<string, unknown>>({
-    cwd: shoppingRoot,
-    name: 'wrangler',
-    configFile: 'wrangler.jsonc',
-    dotenv: false,
-    envName: false,
-    rcFile: false,
-    packageJson: false,
-    giget: false,
-    extend: false,
-  });
-  await writeFile(
-    join(directory, 'wrangler.jsonc'),
-    JSON.stringify({
-      ...shopping.config,
-      name: 'zerospin-dev-reload-fixture',
-      main: undefined,
-      alias: {},
-      vars: { ZEROSPIN_SYSTEM_ID: 'sys_dev_reload_fixture' },
-      dev: { port: 0, inspector_port: 0 },
-    }),
   );
   await writeFile(configPath, configSource);
   await writeFile(
@@ -71,7 +50,7 @@ import * as NodeTerminal from '@effect/platform-node-shared/NodeTerminal';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { Effect, Layer } from 'effect';
 const { devFn } = await createJiti(import.meta.url).import(${JSON.stringify(new URL('./devFn.ts', import.meta.url).pathname)});
-await Effect.runPromise(devFn({ clean: false, port: 0, systemId: 'sys_dev_reload_fixture' }).pipe(
+await Effect.runPromise(devFn({ clean: false, port: 0 }).pipe(
   Effect.provide(Layer.mergeAll(AsyncLive, NodeFileSystem.layer, NodePath.layer, NodeTerminal.layer)),
   Effect.catch(error => Effect.sync(() => { console.error(error); process.exitCode = 1; })),
 ));
@@ -131,10 +110,8 @@ await Effect.runPromise(devFn({ clean: false, port: 0, systemId: 'sys_dev_reload
     await exited;
     expect(output).toContain('aggregate-spec-mismatch');
     expect(
-      (await readdir(directory)).filter(
-        file =>
-          file.startsWith('.zerospin-entry-') ||
-          file.startsWith('wrangler.zerospin-dev'),
+      (await readdir(join(directory, '.wrangler/zerospin'))).filter(file =>
+        file.startsWith('entry-'),
       ),
     ).toEqual([]);
     await expect(fetch(apiUrl ?? '')).rejects.toThrow();
@@ -221,10 +198,8 @@ await Effect.runPromise(devFn({ clean: false, port: 0, systemId: 'sys_dev_reload
           await expect(fetch(restartedUrl ?? '')).rejects.toThrow();
         }
         expect(
-          (await readdir(directory)).filter(
-            file =>
-              file.startsWith('.zerospin-entry-') ||
-              file.startsWith('wrangler.zerospin-dev'),
+          (await readdir(join(directory, '.wrangler/zerospin'))).filter(file =>
+            file.startsWith('entry-'),
           ),
         ).toEqual([]);
       } catch (error) {

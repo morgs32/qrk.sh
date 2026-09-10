@@ -6,6 +6,12 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
+    "./fixtures/system": {
+      "types": "./src/fixtures/system.ts",
+      "workerd": "./src/fixtures/system.ts",
+      "import": "./src/fixtures/system.ts",
+      "default": "./src/fixtures/system.ts"
+    },
     ".": {
       "types": "./src/index.ts",
       "workerd": "./src/index.ts",

@@ -4,12 +4,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { cloudflareTest } from '@cloudflare/vitest-plugin';
+import type { ISystemConfig } from '@zerospin/core/system/types';
 import { defineConfig, type Plugin } from 'vitest/config';
+import { unstable_getVarsForDev } from 'wrangler';
+
+import { makeWranglerConfig } from '../makeWranglerConfig.js';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function makeWorkerdVitestConfig(props: {
+  config: ISystemConfig;
   packageRoot?: string;
   systemModulePath?: string;
   include?: readonly string[];
@@ -17,7 +22,6 @@ export function makeWorkerdVitestConfig(props: {
   setupFiles?: readonly string[];
   workerBindings?: Readonly<Record<string, string | boolean>>;
   workerMainPath?: string;
-  wranglerConfigPath?: string;
 }) {
   const {
     include = ['src/**/*.workerd.spec.ts'],
@@ -25,15 +29,10 @@ export function makeWorkerdVitestConfig(props: {
     passWithNoTests = true,
     setupFiles = [],
     workerBindings,
-    wranglerConfigPath,
+    config,
   } = props;
-  const systemModulePath =
-    props.systemModulePath ??
-    process.env['ZEROSPIN_E2E_SYSTEM_MODULE_PATH'] ??
-    path.join(packageRoot, 'src/zerospin/system.ts');
   const repoRoot = path.resolve(packageRoot, '../..');
   const devWorkerRuntimeRoot = path.resolve(__dirname, '..');
-  const devWorkerPackageRoot = path.resolve(devWorkerRuntimeRoot, '..');
   const devWorkerRuntimeExtension =
     path.basename(devWorkerRuntimeRoot) === 'dist' ? '.js' : '.ts';
   const workerMainPath =
@@ -44,9 +43,6 @@ export function makeWorkerdVitestConfig(props: {
     'vitest',
     `workerdSetup${devWorkerRuntimeExtension}`,
   );
-  const wranglerVitestPath =
-    wranglerConfigPath ??
-    path.join(devWorkerPackageRoot, 'wrangler.vitest.jsonc');
   let coreSrcRoot = path.join(repoRoot, 'packages/core/src');
   if (!fs.existsSync(coreSrcRoot)) {
     const coreTypesPath = require.resolve('@zerospin/core/system/types');
@@ -105,61 +101,125 @@ export function makeWorkerdVitestConfig(props: {
     },
   };
 
-  return defineConfig({
-    root: packageRoot,
-    resolve: {
-      conditions: ['workerd'],
-      alias: [
-        {
-          find: /^capnweb$/,
-          replacement: path.join(
-            path.dirname(
-              require.resolve('capnweb', { paths: [systemWorkerSrcRoot] }),
+  const generatedRoot = path.join(packageRoot, '.wrangler', 'zerospin');
+  fs.mkdirSync(generatedRoot, { recursive: true });
+  const directory = fs.mkdtempSync(path.join(generatedRoot, 'vitest-'));
+  // Vite owns normal shutdown; the exit hook also handles configuration/startup
+  // failures before Vite has installed its plugin disposal lifecycle.
+  const generatedFiles = {
+    name: 'zerospin-generated-worker-config',
+    closeBundle() {
+      process.off('exit', generatedFiles.closeBundle);
+      fs.rmSync(directory, { force: true, recursive: true });
+    },
+  };
+  process.once('exit', generatedFiles.closeBundle);
+  try {
+    const systemModulePath = path.resolve(
+      props.systemModulePath ??
+        process.env['ZEROSPIN_E2E_SYSTEM_MODULE_PATH'] ??
+        path.join(directory, 'system.ts'),
+    );
+    if (
+      !props.systemModulePath &&
+      !process.env['ZEROSPIN_E2E_SYSTEM_MODULE_PATH']
+    ) {
+      fs.writeFileSync(
+        systemModulePath,
+        `import configuration from ${JSON.stringify(path.resolve(packageRoot, 'zerospin.config.ts'))};\nexport const config = configuration;\nexport const system = config.system;\n`,
+        { mode: 0o600 },
+      );
+    }
+    const generatedConfig = makeWranglerConfig({
+      config,
+      main: path.resolve(packageRoot, workerMainPath),
+      systemModulePath,
+      environment:
+        workerBindings?.['ZEROSPIN_ENVIRONMENT'] === 'production'
+          ? 'production'
+          : 'dev',
+    });
+    const wranglerVitestPath = path.join(directory, 'wrangler.json');
+    fs.writeFileSync(
+      wranglerVitestPath,
+      JSON.stringify(generatedConfig, null, 2),
+      { mode: 0o600 },
+    );
+    const localBindings = Object.fromEntries(
+      Object.entries(
+        unstable_getVarsForDev(
+          path.join(packageRoot, 'zerospin.config.ts'),
+          undefined,
+          {},
+          undefined,
+          true,
+        ),
+      ).map(([name, binding]) => [name, binding.value]),
+    );
+    return defineConfig({
+      root: packageRoot,
+      resolve: {
+        conditions: ['workerd'],
+        alias: [
+          {
+            find: /^capnweb$/,
+            replacement: path.join(
+              path.dirname(
+                require.resolve('capnweb', { paths: [systemWorkerSrcRoot] }),
+              ),
+              'index-workers.js',
             ),
-            'index-workers.js',
-          ),
-        },
-        {
-          find: '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb',
-          replacement: wasmAdapterShimPath,
-        },
-        {
-          find: /^@\/(.+)$/,
-          replacement: `${path.join(packageRoot, 'src')}/$1`,
-        },
-        {
-          find: /^@zerospin\/core\/(.+)$/,
-          replacement: `${coreSrcRoot}/$1`,
-        },
-        {
-          find: /^@zerospin\/dev-worker\/(.+)$/,
-          replacement: `${devWorkerRuntimeRoot}/$1`,
-        },
-        { find: 'system', replacement: systemModulePath },
-        {
-          find: /^system-worker\/(.+)$/,
-          replacement: `${systemWorkerSrcRoot}/$1`,
-        },
-        { find: 'system-worker', replacement: systemWorkerEntryPath },
+          },
+          {
+            find: '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb',
+            replacement: wasmAdapterShimPath,
+          },
+          {
+            find: /^@\/(.+)$/,
+            replacement: `${path.join(packageRoot, 'src')}/$1`,
+          },
+          {
+            find: /^@zerospin\/core\/(.+)$/,
+            replacement: `${coreSrcRoot}/$1`,
+          },
+          {
+            find: /^@zerospin\/dev-worker\/(.+)$/,
+            replacement: `${devWorkerRuntimeRoot}/$1`,
+          },
+          { find: 'system', replacement: systemModulePath },
+          {
+            find: /^system-worker\/(.+)$/,
+            replacement: `${systemWorkerSrcRoot}/$1`,
+          },
+          { find: 'system-worker', replacement: systemWorkerEntryPath },
+        ],
+      },
+      plugins: [
+        generatedFiles,
+        wasmToSqljsAdapterShim,
+        cloudflareTest({
+          main: generatedConfig.main,
+          miniflare: {
+            bindings: {
+              ...localBindings,
+              ...workerBindings,
+              ...generatedConfig.vars,
+            },
+          },
+          wrangler: { configPath: wranglerVitestPath },
+        }),
       ],
-    },
-    plugins: [
-      wasmToSqljsAdapterShim,
-      cloudflareTest({
-        main: workerMainPath,
-        ...(workerBindings === undefined
-          ? {}
-          : { miniflare: { bindings: workerBindings } }),
-        wrangler: { configPath: wranglerVitestPath },
-      }),
-    ],
-    test: {
-      include: [...include],
-      isolate: true,
-      maxWorkers: 1,
-      passWithNoTests,
-      setupFiles: [workerdSetupPath, ...setupFiles],
-      testTimeout: 300_000,
-    },
-  });
+      test: {
+        include: [...include],
+        isolate: true,
+        maxWorkers: 1,
+        passWithNoTests,
+        setupFiles: [workerdSetupPath, ...setupFiles],
+        testTimeout: 300_000,
+      },
+    });
+  } catch (cause) {
+    generatedFiles.closeBundle();
+    throw cause;
+  }
 }

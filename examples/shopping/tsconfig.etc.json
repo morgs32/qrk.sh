@@ -4,6 +4,7 @@
     "rootDir": ".",
     "noEmit": true,
     "paths": {
+      "cloudflare:workers": ["./tests/unit/cloudflareWorkers.ts"],
       "*": ["./*"],
       "@/*": ["./src/*"],
       "@zerospin/backup-worker": [
@@ -17,7 +18,6 @@
       "vite/client",
       "node",
       "vitest/globals",
-      "./worker-configuration.d.ts",
       "./src/cloudflare-workers.d.ts"
     ]
   },

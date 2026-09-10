@@ -7,43 +7,84 @@
   "alias": {
     "system": "../../packages/zerospin/src/system.ts",
   },
-  "rules": [{ "type": "Text", "globs": ["**/*.sql"], "fallthrough": false }],
   "durable_objects": {
     "bindings": [
-      { "name": "ACTOR_REPO", "class_name": "ActorRepo" },
       { "name": "SYSTEM_REPO", "class_name": "SystemRepo" },
-      { "name": "ACCOUNT_REPO", "class_name": "AccountRepo" },
-      { "name": "SERVICE_REPO", "class_name": "ServiceRepo" },
-      { "name": "ACCOUNT_BLOCK_REPO", "class_name": "AccountBlockRepo" },
-      { "name": "ACTOR_BLOCK_REPO", "class_name": "ActorBlockRepo" },
-      { "name": "FRONTEND_REPO", "class_name": "FrontendRepo" },
-      { "name": "FRONTEND_BLOCK_REPO", "class_name": "FrontendBlockRepo" },
-      { "name": "SERVICE_BLOCK_REPO", "class_name": "ServiceBlockRepo" },
-      { "name": "AUTHORIZATION_REPO", "class_name": "AuthorizationRepo" },
+      {
+        "name": "MATERIALIZED_AGGREGATE_REPO",
+        "class_name": "MaterializedAggregateRepo",
+      },
+      {
+        "name": "MATERIALIZED_SERVICE_REPO",
+        "class_name": "MaterializedServiceRepo",
+      },
+      {
+        "name": "AGGREGATE_COMMAND_CHAIN",
+        "class_name": "AggregateCommandChain",
+      },
+      {
+        "name": "AGGREGATE_FRONTEND_PUSHED_COMMAND_CHAIN",
+        "class_name": "AggregateFrontendPushedCommandChain",
+      },
+      {
+        "name": "MATERIALIZED_AGGREGATE_FRONTEND_REPO",
+        "class_name": "MaterializedAggregateFrontendRepo",
+      },
+      {
+        "name": "AGGREGATE_FRONTEND_FINALIZED_COMMAND_CHAIN",
+        "class_name": "AggregateFrontendFinalizedCommandChain",
+      },
+      {
+        "name": "SERVICE_COMMAND_CHAIN",
+        "class_name": "ServiceCommandChain",
+      },
+      {
+        "name": "MATERIALIZED_SERVICE_FRONTEND_REPO",
+        "class_name": "MaterializedServiceFrontendRepo",
+      },
+      {
+        "name": "SERVICE_FRONTEND_FINALIZED_COMMAND_CHAIN",
+        "class_name": "ServiceFrontendFinalizedCommandChain",
+      },
       { "name": "SYSTEM_LOG_REPO", "class_name": "SystemLogRepo" },
       { "name": "SYSTEM_LOG_AGENT", "class_name": "SystemLogAgent" },
     ],
   },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": [
-        "ActorRepo",
-        "SystemRepo",
-        "AccountRepo",
-        "ServiceRepo",
-        "AccountBlockRepo",
-        "ActorBlockRepo",
-        "AuthorizationRepo",
-        "SystemLogRepo",
-        "SystemLogAgent",
-      ],
+  "exports": {
+    "SystemRepo": { "type": "durable-object", "storage": "sqlite" },
+    "MaterializedAggregateRepo": {
+      "type": "durable-object",
+      "storage": "sqlite",
     },
-    {
-      "tag": "v2",
-      "new_sqlite_classes": ["FrontendRepo", "FrontendBlockRepo", "ServiceBlockRepo"],
+    "MaterializedServiceRepo": {
+      "type": "durable-object",
+      "storage": "sqlite",
     },
-  ],
+    "AggregateCommandChain": { "type": "durable-object", "storage": "sqlite" },
+    "AggregateFrontendPushedCommandChain": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "MaterializedAggregateFrontendRepo": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "AggregateFrontendFinalizedCommandChain": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "ServiceCommandChain": { "type": "durable-object", "storage": "sqlite" },
+    "MaterializedServiceFrontendRepo": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "ServiceFrontendFinalizedCommandChain": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "SystemLogRepo": { "type": "durable-object", "storage": "sqlite" },
+    "SystemLogAgent": { "type": "durable-object", "storage": "sqlite" },
+  },
   "observability": {
     "enabled": false,
     "head_sampling_rate": 1,
@@ -58,10 +99,8 @@
     },
   },
   "vars": {
-    "TESTING": false,
     "CLERK_AUTHORIZED_PARTY": "http://localhost:4000",
-    "ZEROSPIN_ENVIRONMENT_ID": "zerospin-dev",
+    "ZEROSPIN_ENVIRONMENT": "dev",
     "ZEROSPIN_SYSTEM_ID": "sys_qrk_sh_1",
-    "ZEROSPIN_SYSTEM_VERSION": "3.0.0",
   },
 }

@@ -5,7 +5,7 @@ import { ScrapeError } from "./ScrapeError";
 import { YouTubePayloadSchema } from "./schemas";
 
 export const parseYouTubePayload = Effect.fn("parseYouTubePayload")(function* (props: { payload: unknown; handle: string }) {
-  const payload = yield* Schema.decodeUnknown(YouTubePayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
+  const payload = yield* Schema.decodeUnknownEffect(YouTubePayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
     Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "YouTube ytInitialData was unsupported" })),
   );
   if (payload.handle.toLowerCase() !== props.handle.toLowerCase()) {

@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest";
 import { AsyncLive } from "@zerospin/core/async/AsyncLive";
 import { makeResourceDbConfig } from "@zerospin/core/drizzle/makeDbConfig";
-import { makeMigratedInMemorySqljsDb } from "@zerospin/core/drizzle/makeMigratedInMemorySqljsDb";
+import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb";
 import { DateTime, Effect } from "effect";
 import { describe, expect } from "vitest";
 
@@ -107,7 +107,7 @@ describe("aggregate Grid contracts", () => {
           },
         },
       });
-    }),
+    }).pipe(Effect.scoped),
   );
 
   it.effect("createGrid with no Bricks emits only the Grid mutation", () =>
@@ -126,7 +126,7 @@ describe("aggregate Grid contracts", () => {
       expect(mutations[0]?.model).toBe(Grid);
       expect(mutations[0]?.operationName).toBe("create");
       expect(mutations[0]?.resourceId).toBe("grd_contract_create_empty");
-    }),
+    }).pipe(Effect.scoped),
   );
 
   it.effect("updateGrid emits one mixed create/update/delete set and omits unchanged Bricks", () =>
@@ -245,7 +245,7 @@ describe("aggregate Grid contracts", () => {
         operation: {},
       });
       expect(mutations.some((mutation) => mutation.resourceId === unchangedBrickId)).toBe(false);
-    }),
+    }).pipe(Effect.scoped),
   );
 
   it.effect("updateGrid advances the aggregate revision for a Brick-only update", () =>
@@ -294,7 +294,7 @@ describe("aggregate Grid contracts", () => {
       expect(mutations[1]?.model).toBe(Brick);
       expect(mutations[1]?.operationName).toBe("update");
       expect(mutations[1]?.resourceId).toBe(brickId);
-    }),
+    }).pipe(Effect.scoped),
   );
 
   it.effect("updateGrid emits no mutation for an unchanged Grid and unchanged Bricks", () =>
@@ -325,7 +325,7 @@ describe("aggregate Grid contracts", () => {
       });
 
       expect(mutations).toEqual([]);
-    }),
+    }).pipe(Effect.scoped),
   );
 });
 
@@ -342,10 +342,12 @@ describe("user frontend Grid guards", () => {
       const dbConfig = makeResourceDbConfig({
         models: userFrontend.models,
       });
-      const db = yield* makeMigratedInMemorySqljsDb({ dbConfig }).pipe(Effect.provide(AsyncLive));
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      );
 
       // 1 — build the owned User -> Site -> Page graph used by both Grid guards.
-      db.insert(User.drizzleSchema)
+      db.insert(dbConfig.schema.user)
         .values({
           id: userId,
           modelName: User.modelName,
@@ -358,7 +360,7 @@ describe("user frontend Grid guards", () => {
           displayName: null,
         })
         .run();
-      db.insert(Site.drizzleSchema)
+      db.insert(dbConfig.schema.site)
         .values({
           id: siteId,
           modelName: Site.modelName,
@@ -371,7 +373,7 @@ describe("user frontend Grid guards", () => {
           description: null,
         })
         .run();
-      db.insert(Page.drizzleSchema)
+      db.insert(dbConfig.schema.page)
         .values({
           id: pageId,
           modelName: Page.modelName,
@@ -386,14 +388,14 @@ describe("user frontend Grid guards", () => {
         })
         .run();
 
-      const [createGuard] = userFrontend.guards.createGrid;
+      const createGuard = createGrid.guard;
       if (createGuard === undefined) {
         throw new Error("Expected userFrontend createGrid guard");
       }
 
       // 2 — Grid and Brick ids are deterministic parts of the aggregate boundary.
       const noncanonicalGridError = yield* createGuard({
-        actorId,
+        userId: "grid_guard_user",
         db,
         payload: {
           id: "grd_grid_guard_noncanonical",
@@ -410,7 +412,7 @@ describe("user frontend Grid guards", () => {
       });
 
       const noncanonicalBrickError = yield* createGuard({
-        actorId,
+        userId: "grid_guard_user",
         db,
         payload: {
           id: gridId,
@@ -439,7 +441,7 @@ describe("user frontend Grid guards", () => {
       });
 
       // 3 — complete the owned Page -> Grid -> Brick graph for update checks.
-      db.insert(Grid.drizzleSchema)
+      db.insert(dbConfig.schema.grid)
         .values({
           id: gridId,
           modelName: Grid.modelName,
@@ -452,7 +454,7 @@ describe("user frontend Grid guards", () => {
           revision: 0,
         })
         .run();
-      db.insert(Brick.drizzleSchema)
+      db.insert(dbConfig.schema.brick)
         .values({
           id: brickId,
           modelName: Brick.modelName,
@@ -471,14 +473,14 @@ describe("user frontend Grid guards", () => {
         })
         .run();
 
-      const [guard] = userFrontend.guards.updateGrid;
+      const guard = updateGrid.guard;
       if (guard === undefined) {
         throw new Error("Expected userFrontend updateGrid guard");
       }
 
       // 4 — unchanged attributes paired with update intent must fail before mutation generation.
       const error = yield* guard({
-        actorId,
+        userId: "grid_guard_user",
         db,
         payload: {
           id: gridId,
@@ -511,7 +513,7 @@ describe("user frontend Grid guards", () => {
 
       // 5 — a desired item id must be canonical before resource identity is inspected.
       const noncanonicalUpdateItemError = yield* guard({
-        actorId,
+        userId: "grid_guard_user",
         db,
         payload: {
           id: gridId,
@@ -544,7 +546,7 @@ describe("user frontend Grid guards", () => {
 
       // 6 — a canonical desired item cannot claim a missing Brick resource.
       const foreignIdentityError = yield* guard({
-        actorId,
+        userId: "grid_guard_user",
         db,
         payload: {
           id: gridId,
@@ -577,7 +579,7 @@ describe("user frontend Grid guards", () => {
 
       // 7 — every persisted Brick must be kept or explicitly deleted.
       const incompleteSnapshotError = yield* guard({
-        actorId,
+        userId: "grid_guard_user",
         db,
         payload: {
           id: gridId,
@@ -597,7 +599,7 @@ describe("user frontend Grid guards", () => {
 
       // 8 — a draft loaded before the current aggregate revision cannot overwrite it.
       const staleSnapshotError = yield* guard({
-        actorId,
+        userId: "grid_guard_user",
         db,
         payload: {
           id: gridId,
@@ -627,6 +629,6 @@ describe("user frontend Grid guards", () => {
         code: "update-grid-stale",
         status: 409,
       });
-    }),
+    }).pipe(Effect.scoped),
   );
 });

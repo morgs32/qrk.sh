@@ -2,7 +2,7 @@ import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { env, SELF } from "cloudflare:test";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ScraperApi } from "./ScraperApi";
+import type { ScraperApi } from "scraper/ScraperApi";
 
 const RPC_URL = "http://scraper.invalid/";
 

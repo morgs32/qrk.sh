@@ -1,4 +1,4 @@
-import { primitives } from "@zerospin/core/models/primitives";
+import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 import { ScraperApi } from "scraper/ScraperApi";

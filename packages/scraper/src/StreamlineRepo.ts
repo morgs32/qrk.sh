@@ -1,6 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { Either, Schema } from "effect";
-import { BrandTypeId } from "effect/Brand";
+import { Result, Schema } from "effect";
 
 import type { IJsonValue, IRpcEither, IScraperEnv } from "./types";
 
@@ -29,8 +28,6 @@ const StreamlineIconResponse = Schema.Struct({
 });
 
 export class StreamlineRepo extends DurableObject<IScraperEnv> {
-  declare [BrandTypeId]: "TargetApi";
-
   async search(
     query: string,
     offset: number,
@@ -119,11 +116,11 @@ export class StreamlineRepo extends DurableObject<IScraperEnv> {
       }
 
       const responseJson: unknown = await response.json();
-      const decoded = Schema.decodeUnknownEither(StreamlineSearchResponse)(responseJson, {
+      const decoded = Schema.decodeUnknownResult(StreamlineSearchResponse)(responseJson, {
         onExcessProperty: "ignore",
       });
 
-      if (Either.isLeft(decoded)) {
+      if (Result.isFailure(decoded)) {
         return {
           _tag: "Left",
           left: {
@@ -134,7 +131,7 @@ export class StreamlineRepo extends DurableObject<IScraperEnv> {
         };
       }
 
-      return { _tag: "Right", right: decoded.right };
+      return { _tag: "Right", right: decoded.success };
     } catch (cause) {
       return {
         _tag: "Left",
@@ -190,11 +187,11 @@ export class StreamlineRepo extends DurableObject<IScraperEnv> {
       }
 
       const iconResponseJson: unknown = await iconResponse.json();
-      const decodedIcon = Schema.decodeUnknownEither(StreamlineIconResponse)(iconResponseJson, {
+      const decodedIcon = Schema.decodeUnknownResult(StreamlineIconResponse)(iconResponseJson, {
         onExcessProperty: "ignore",
       });
 
-      if (Either.isLeft(decodedIcon)) {
+      if (Result.isFailure(decodedIcon)) {
         return {
           _tag: "Left",
           left: {
@@ -242,8 +239,8 @@ export class StreamlineRepo extends DurableObject<IScraperEnv> {
       return {
         _tag: "Right",
         right: {
-          hash: decodedIcon.right.hash,
-          name: decodedIcon.right.name,
+          hash: decodedIcon.success.hash,
+          name: decodedIcon.success.name,
           svg,
         },
       };

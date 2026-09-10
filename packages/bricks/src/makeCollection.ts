@@ -1,5 +1,6 @@
 import { mapValues } from "es-toolkit/object";
-import type { IShape } from "@zerospin/core/models/types";
+import type { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
+import type { IShape } from "@zerospin/schema";
 import type { ReactNode } from "react";
 import type { ScraperApi } from "scraper/ScraperApi";
 import type { IRpcEither } from "scraper/types";
@@ -54,7 +55,10 @@ export function makeCollection(props: {
         };
         dataShape: IShape;
         defaultData: unknown;
-        getData: (props: { api: ScraperApi; payload: unknown }) => Promise<IRpcEither<unknown>>;
+        getData: (props: {
+          api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
+          payload: unknown;
+        }) => Promise<IRpcEither<unknown>>;
         sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
       }
   >;

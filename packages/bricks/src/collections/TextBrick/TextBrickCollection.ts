@@ -1,4 +1,4 @@
-import { primitives } from "@zerospin/core/models/primitives";
+import { primitives } from "@zerospin/schema";
 import type { JSONContent } from "@tiptap/react";
 import { Schema } from "effect";
 

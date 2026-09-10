@@ -4,7 +4,7 @@ import { env, SELF } from "cloudflare:test";
 import { Effect } from "effect";
 import { beforeEach, describe, expect, vi } from "vitest";
 
-import type { ScraperApi } from "./ScraperApi";
+import type { ScraperApi } from "scraper/ScraperApi";
 import { parseFigmaFilePreviewPayload } from "./scrapeFigma";
 
 const RPC_URL = "http://scraper.invalid/";
@@ -69,7 +69,7 @@ describe("Figma file repository", () => {
           provider_name: "Figma",
         });
 
-        const emptyCanonicalUrl = yield* Effect.either(
+        const emptyCanonicalUrl = yield* Effect.result(
           parseFigmaFilePreviewPayload({
             payload: {
               title: "Missing canonical URL",
@@ -79,8 +79,8 @@ describe("Figma file repository", () => {
           }),
         );
         expect(emptyCanonicalUrl).toMatchObject({
-          _tag: "Left",
-          left: { code: "unsupported-page-shape" },
+          _tag: "Failure",
+          failure: { code: "unsupported-page-shape" },
         });
       }),
   );

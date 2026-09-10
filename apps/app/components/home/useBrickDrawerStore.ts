@@ -1,4 +1,4 @@
-import { Either, Schema } from "effect";
+import { Result, Schema } from "effect";
 import { create } from "zustand";
 import type { ICollectionBrickDef } from "@qrk.sh/bricks";
 
@@ -24,7 +24,7 @@ export function getActiveBrickDragGridShape(): { w: number; h: number } | null {
   return useBrickDrawerStore.getState().activeBrickDragGridShape;
 }
 
-const BrickDragDefFromJsonStringSchema = Schema.parseJson(
+const BrickDragDefFromJsonStringSchema = Schema.fromJsonString(
   Schema.Struct({
     collectionName: Schema.String,
     collectionLabel: Schema.String,
@@ -47,9 +47,9 @@ export function parseBrickDefFromDataTransfer(
   if (!raw) {
     return null;
   }
-  const decoded = Schema.decodeUnknownEither(BrickDragDefFromJsonStringSchema)(raw);
-  if (Either.isLeft(decoded)) {
+  const decoded = Schema.decodeUnknownResult(BrickDragDefFromJsonStringSchema)(raw);
+  if (Result.isFailure(decoded)) {
     return null;
   }
-  return decoded.right;
+  return decoded.success;
 }

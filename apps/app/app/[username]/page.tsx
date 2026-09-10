@@ -3,12 +3,13 @@
 import { Schema } from "effect";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "@zerospin/react/useSession";
+import { useInitializedStateOrThrow, useSession } from "@zerospin/react";
+import { ZerospinError } from "@zerospin/sdk/browser";
 
 import { User } from "@qrk.sh/zerospin/src/models/User";
 
 import { Button } from "@/components/ui/button";
-import { ZerospinUser } from "@/components/ZerospinUser";
+import { ZerospinApp } from "@/components/ZerospinUser";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { Header } from "./Header";
@@ -20,7 +21,8 @@ const ParamsSchema = Schema.Struct({
 export default function UsernameDashboardPage() {
   const { username } = useValidatedParams(ParamsSchema);
   const router = useRouter();
-  const session = useSession(ZerospinUser);
+  const session = useSession(ZerospinApp.frontends.web);
+  const { userId } = useInitializedStateOrThrow(ZerospinApp.frontends.web);
   const [error, setError] = useState<string | null>(null);
 
   return (
@@ -36,41 +38,32 @@ export default function UsernameDashboardPage() {
                 onClick={() => {
                   setError(null);
 
-                  void session
-                    .stageCommand({
-                      contractName: "createSite",
-                      payload: {
-                        userId: User.prefixId(session.browserUserController.userId),
-                      },
-                    })
-                    .then((result) => {
-                      if (result._tag === "Left") {
-                        setError(result.left.message);
-                        return;
-                      }
+                  const siteResult = session.executeCommand({
+                    contractName: "createSite",
+                    payload: {
+                      userId: User.prefixId(userId),
+                    },
+                  });
+                  if (siteResult._tag === "Failure") {
+                    setError(new ZerospinError(siteResult.failure).message);
+                    return;
+                  }
 
-                      const siteId = result.right.payload.id;
+                  const siteId = siteResult.success.payload.id;
+                  const pageResult = session.executeCommand({
+                    contractName: "createPage",
+                    payload: {
+                      siteId,
+                      slug: "home",
+                      pageType: "split-scroll",
+                    },
+                  });
+                  if (pageResult._tag === "Failure") {
+                    setError(new ZerospinError(pageResult.failure).message);
+                    return;
+                  }
 
-                      void session
-                        .stageCommand({
-                          contractName: "createPage",
-                          payload: {
-                            siteId,
-                            slug: "home",
-                            pageType: "split-scroll",
-                          },
-                        })
-                        .then((pageResult) => {
-                          if (pageResult._tag === "Left") {
-                            setError(pageResult.left.message);
-                            return;
-                          }
-
-                          router.push(
-                            `/${username}/site/${siteId}/page/${pageResult.right.payload.id}`,
-                          );
-                        });
-                    });
+                  router.push(`/${username}/site/${siteId}/page/${pageResult.success.payload.id}`);
                 }}
               >
                 Create site

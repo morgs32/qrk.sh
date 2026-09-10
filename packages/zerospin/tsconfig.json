@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "lib": ["ES2024", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "paths": {
+      "system": ["./src/system.ts"]
+    },
+    "exactOptionalPropertyTypes": true,
+    "disableSourceOfProjectReferenceRedirect": true
+  },
+  "include": ["src/**/*.ts", "*.ts", "worker-configuration.d.ts"],
+  "references": [
+    {
+      "path": "../../vendor/zerospin/packages/system-worker"
+    }
+  ]
+}

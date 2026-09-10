@@ -1,4 +1,4 @@
-import { primitives } from "@zerospin/core/models/primitives";
+import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
 import { makeCollection } from "../../makeCollection";
@@ -35,7 +35,7 @@ export const githubCollection = makeCollection({
               Schema.Struct({
                 date: Schema.String,
                 count: Schema.Int,
-                level: Schema.Literal(0, 1, 2, 3, 4),
+                level: Schema.Literals([0, 1, 2, 3, 4]),
               }),
             ),
           ),

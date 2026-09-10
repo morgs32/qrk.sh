@@ -4,7 +4,6 @@ import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Effect } from "effect";
-import { BrandTypeId } from "effect/Brand";
 
 import { encodeRpc } from "./encodeRpc";
 import { ScrapeError } from "./ScrapeError";
@@ -32,14 +31,12 @@ CREATE TABLE figma_cache (
 };
 
 export class FigmaRepo extends DurableObject<IScraperEnv> {
-  declare [BrandTypeId]: "TargetApi";
-
   readonly #db;
   readonly #inFlightScrapes = new Map<string, Promise<IRpcEither<IFigmaFilePreviewPayload>>>();
 
   constructor(ctx: DurableObjectState, env: IScraperEnv) {
     super(ctx, env);
-    this.#db = drizzle(ctx.storage, { schema: { figmaCache } });
+    this.#db = drizzle(ctx.storage);
     ctx.blockConcurrencyWhile(async () => {
       migrate(this.#db, { migrations: figmaMigrations });
     });

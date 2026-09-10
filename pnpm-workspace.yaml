@@ -2,3 +2,4 @@ packages:
   - "apps/*"
   - "packages/*"
   - "vendor/zerospin/packages/*"
+  - "vendor/zerospin/vendor/epluribus-machina"

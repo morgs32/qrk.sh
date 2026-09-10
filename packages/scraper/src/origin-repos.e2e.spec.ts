@@ -4,7 +4,7 @@ import { env, SELF } from "cloudflare:test";
 import { Effect } from "effect";
 import { beforeEach, describe, expect, vi } from "vitest";
 
-import type { ScraperApi } from "./ScraperApi";
+import type { ScraperApi } from "scraper/ScraperApi";
 import {
   beaconsFixture,
   gitHubFixture,

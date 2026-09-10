@@ -7,7 +7,7 @@ export const parseGitHubPayload = Effect.fn("parseGitHubPayload")(function* (pro
   payload: unknown;
   login: string;
 }) {
-  const payload = yield* Schema.decodeUnknown(GitHubPayloadSchema)(props.payload, {
+  const payload = yield* Schema.decodeUnknownEffect(GitHubPayloadSchema)(props.payload, {
     onExcessProperty: "preserve",
   }).pipe(
     Effect.mapError(
@@ -155,7 +155,7 @@ export const scrapeGitHub = Effect.fn("scrapeGitHub")(function* (props: {
         message: "GitHub contributions returned malformed JSON",
       }),
   });
-  const decodedContributions = yield* Schema.decodeUnknown(
+  const decodedContributions = yield* Schema.decodeUnknownEffect(
     Schema.Struct({
       data: Schema.Struct({
         user: Schema.Struct({
@@ -168,13 +168,13 @@ export const scrapeGitHub = Effect.fn("scrapeGitHub")(function* (props: {
                     Schema.Struct({
                       date: Schema.String,
                       contributionCount: Schema.Int,
-                      contributionLevel: Schema.Literal(
+                      contributionLevel: Schema.Literals([
                         "NONE",
                         "FIRST_QUARTILE",
                         "SECOND_QUARTILE",
                         "THIRD_QUARTILE",
                         "FOURTH_QUARTILE",
-                      ),
+                      ]),
                     }),
                   ),
                 }),

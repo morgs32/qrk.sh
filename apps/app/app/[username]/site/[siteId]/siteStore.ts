@@ -1,4 +1,4 @@
-import { Either, Schema } from "effect";
+import { Result, Schema } from "effect";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -74,20 +74,20 @@ interface ISiteStoreState {
 const SITE_STORE_STORAGE_KEY = "qrk-site-editor-drafts";
 
 const PersistedSiteEditorStateSchema = Schema.Struct({
-  owners: Schema.Record({
-    key: Schema.String,
-    value: Schema.Struct({
-      sites: Schema.Record({
-        key: Schema.String,
-        value: Schema.Struct({
+  owners: Schema.Record(
+    Schema.String,
+    Schema.Struct({
+      sites: Schema.Record(
+        Schema.String,
+        Schema.Struct({
           name: Schema.String,
           description: Schema.String,
-          pages: Schema.Record({
-            key: Schema.String,
-            value: Schema.Struct({
+          pages: Schema.Record(
+            Schema.String,
+            Schema.Struct({
               title: Schema.String,
               description: Schema.String,
-              pageType: Schema.Literal("split-scroll", "shared-scroll"),
+              pageType: Schema.Literals(["split-scroll", "shared-scroll"]),
               layout: Schema.Array(
                 Schema.Struct({
                   i: Schema.String,
@@ -113,18 +113,18 @@ const PersistedSiteEditorStateSchema = Schema.Struct({
                 }),
               ),
               breakpointGridColumnCounts: Schema.Struct({
-                sm: Schema.Literal(1, 2),
-                md: Schema.Literal(1, 2),
-                lg: Schema.Literal(1, 2),
-                xl: Schema.Literal(1, 2),
-                "2xl": Schema.Literal(1, 2),
+                sm: Schema.Literals([1, 2]),
+                md: Schema.Literals([1, 2]),
+                lg: Schema.Literals([1, 2]),
+                xl: Schema.Literals([1, 2]),
+                "2xl": Schema.Literals([1, 2]),
               }),
             }),
-          }),
+          ),
         }),
-      }),
+      ),
     }),
-  }),
+  ),
 }) satisfies Schema.Schema<{
   readonly owners: Readonly<Record<string, IOwnerDraft>>;
 }>;
@@ -516,18 +516,18 @@ export const useSiteStore = create<ISiteStoreState>()(
       partialize: (state) => ({ owners: state.owners }),
       skipHydration: true,
       merge: (persistedState, currentState) => {
-        const decoded = Schema.decodeUnknownEither(PersistedSiteEditorStateSchema)(persistedState, {
+        const decoded = Schema.decodeUnknownResult(PersistedSiteEditorStateSchema, {
           onExcessProperty: "error",
-        });
+        })(persistedState);
 
-        if (Either.isLeft(decoded)) {
+        if (Result.isFailure(decoded)) {
           localStorage.removeItem(SITE_STORE_STORAGE_KEY);
           return currentState;
         }
 
         return {
           ...currentState,
-          owners: decoded.right.owners,
+          owners: decoded.success.owners,
         };
       },
       onRehydrateStorage: () => (_state, error) => {

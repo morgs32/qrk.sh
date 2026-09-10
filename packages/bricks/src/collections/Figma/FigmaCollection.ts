@@ -1,4 +1,4 @@
-import { primitives } from "@zerospin/core/models/primitives";
+import { primitives } from "@zerospin/schema";
 
 import { makeCollection } from "../../makeCollection";
 import { makeVariant } from "../../makeVariant";

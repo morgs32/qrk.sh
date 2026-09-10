@@ -5,7 +5,7 @@ import { ScrapeError } from "./ScrapeError";
 import { BeaconsPayloadSchema } from "./schemas";
 
 export const parseBeaconsPayload = Effect.fn("parseBeaconsPayload")(function* (props: { payload: unknown; username: string }) {
-  const payload = yield* Schema.decodeUnknown(BeaconsPayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
+  const payload = yield* Schema.decodeUnknownEffect(BeaconsPayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
     Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "Beacons page did not expose supported profile data" })),
   );
   if (payload.username.toLowerCase() !== props.username.toLowerCase()) {

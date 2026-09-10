@@ -4,7 +4,6 @@ import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Effect, Schema } from "effect";
-import { BrandTypeId } from "effect/Brand";
 
 import { encodeRpc } from "./encodeRpc";
 import { normalizeTikTokUrl } from "./normalizeTikTokUrl";
@@ -34,14 +33,12 @@ CREATE TABLE tiktok_cache (
 };
 
 export class TikTokRepo extends DurableObject<IScraperEnv> {
-  declare [BrandTypeId]: "TargetApi";
-
   readonly #db;
   readonly #inFlightScrapes = new Map<string, Promise<IRpcEither<ITikTokScrapePayload>>>();
 
   constructor(ctx: DurableObjectState, env: IScraperEnv) {
     super(ctx, env);
-    this.#db = drizzle(ctx.storage, { schema: { tikTokCache } });
+    this.#db = drizzle(ctx.storage);
     ctx.blockConcurrencyWhile(async () => {
       migrate(this.#db, { migrations: tikTokMigrations });
     });
@@ -59,7 +56,7 @@ export class TikTokRepo extends DurableObject<IScraperEnv> {
       if (existingScrape === undefined) {
         const refreshPromise = this.env.BROWSER_HOST.getByName(GLOBAL_BROWSER_HOST_NAME).scrapeTikTok(canonicalUrl).then(async result => {
           if (result._tag === "Left") return result;
-          const decoded = await Effect.runPromise(Schema.decodeUnknown(Schema.parseJson(TikTokPayloadSchema))(result.right, { onExcessProperty: "preserve" }).pipe(
+          const decoded = await Effect.runPromise(Schema.decodeUnknownEffect(Schema.fromJsonString(TikTokPayloadSchema))(result.right, { onExcessProperty: "preserve" }).pipe(
             Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "BrowserHost returned an invalid TikTok payload" })),
             encodeRpc,
           ));
@@ -82,7 +79,7 @@ export class TikTokRepo extends DurableObject<IScraperEnv> {
     if (existingScrape !== undefined) return existingScrape;
     const scrapePromise = this.env.BROWSER_HOST.getByName(GLOBAL_BROWSER_HOST_NAME).scrapeTikTok(canonicalUrl).then(async result => {
       if (result._tag === "Left") return result;
-      const decoded = await Effect.runPromise(Schema.decodeUnknown(Schema.parseJson(TikTokPayloadSchema))(result.right, { onExcessProperty: "preserve" }).pipe(
+      const decoded = await Effect.runPromise(Schema.decodeUnknownEffect(Schema.fromJsonString(TikTokPayloadSchema))(result.right, { onExcessProperty: "preserve" }).pipe(
         Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "BrowserHost returned an invalid TikTok payload" })),
         encodeRpc,
       ));

@@ -1,13 +1,10 @@
 import { RpcTarget } from "capnweb";
-import { BrandTypeId } from "effect/Brand";
 
 import type { IScraperEnv } from "./types";
 
 const GLOBAL_REPO_NAME = "global";
 
 export class ScraperApi extends RpcTarget {
-  declare [BrandTypeId]: "Apis";
-
   constructor(private readonly workerEnv: IScraperEnv) {
     super();
   }

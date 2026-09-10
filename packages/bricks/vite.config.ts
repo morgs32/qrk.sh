@@ -28,8 +28,7 @@ export default defineConfig(({ mode }) => {
         external: [
           "@radix-ui/react-slot",
           "@unpic/react",
-          "@zerospin/core/models/primitiveMaps",
-          "@zerospin/core/models/primitives",
+          "@zerospin/schema",
           "class-variance-authority",
           "clsx",
           "effect",

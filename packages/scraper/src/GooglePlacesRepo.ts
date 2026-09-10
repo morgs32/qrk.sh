@@ -3,8 +3,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { BrandTypeId } from "effect/Brand";
-import { Either, Schema } from "effect";
+import { Result, Schema } from "effect";
 
 import type { IGooglePlaceDetails, IGooglePlaceSuggestion, IRpcEither, IScraperEnv } from "./types";
 
@@ -60,14 +59,12 @@ CREATE TABLE google_places_cache (
 };
 
 export class GooglePlacesRepo extends DurableObject<IScraperEnv> {
-  declare [BrandTypeId]: "TargetApi";
-
   readonly #db;
   readonly #inFlightPlaceRequests = new Map<string, Promise<IRpcEither<IGooglePlaceDetails>>>();
 
   constructor(ctx: DurableObjectState, env: IScraperEnv) {
     super(ctx, env);
-    this.#db = drizzle(ctx.storage, { schema: { googlePlacesCache } });
+    this.#db = drizzle(ctx.storage);
     ctx.blockConcurrencyWhile(async () => {
       migrate(this.#db, { migrations: googlePlacesMigrations });
     });
@@ -113,11 +110,11 @@ export class GooglePlacesRepo extends DurableObject<IScraperEnv> {
       }
 
       const responseJson: unknown = await response.json();
-      const decoded = Schema.decodeUnknownEither(GoogleAutocompleteResponse)(responseJson, {
+      const decoded = Schema.decodeUnknownResult(GoogleAutocompleteResponse)(responseJson, {
         onExcessProperty: "ignore",
       });
 
-      if (Either.isLeft(decoded)) {
+      if (Result.isFailure(decoded)) {
         return {
           _tag: "Left",
           left: {
@@ -130,7 +127,7 @@ export class GooglePlacesRepo extends DurableObject<IScraperEnv> {
 
       const suggestions: Array<IGooglePlaceSuggestion> = [];
 
-      for (const suggestion of decoded.right.suggestions ?? []) {
+      for (const suggestion of decoded.success.suggestions ?? []) {
         if (suggestion.placePrediction === undefined) {
           continue;
         }
@@ -229,11 +226,11 @@ export class GooglePlacesRepo extends DurableObject<IScraperEnv> {
       }
 
       const responseJson: unknown = await response.json();
-      const decoded = Schema.decodeUnknownEither(GooglePlaceDetailsResponse)(responseJson, {
+      const decoded = Schema.decodeUnknownResult(GooglePlaceDetailsResponse)(responseJson, {
         onExcessProperty: "ignore",
       });
 
-      if (Either.isLeft(decoded)) {
+      if (Result.isFailure(decoded)) {
         return {
           _tag: "Left",
           left: {
@@ -245,11 +242,11 @@ export class GooglePlacesRepo extends DurableObject<IScraperEnv> {
       }
 
       const payload: IGooglePlaceDetails = {
-        googlePlaceId: decoded.right.id,
-        name: decoded.right.displayName.text,
-        address: decoded.right.formattedAddress ?? "",
-        latitude: decoded.right.location.latitude,
-        longitude: decoded.right.location.longitude,
+        googlePlaceId: decoded.success.id,
+        name: decoded.success.displayName.text,
+        address: decoded.success.formattedAddress ?? "",
+        latitude: decoded.success.location.latitude,
+        longitude: decoded.success.location.longitude,
       };
       const refreshedAt = Date.now();
 

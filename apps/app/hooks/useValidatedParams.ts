@@ -3,10 +3,9 @@
 import { Schema } from "effect";
 import { useParams } from "next/navigation";
 
-// oxlint-disable-next-line typescript/no-explicit-any
-export function useValidatedParams<SCHEMA extends Schema.Schema<any, any>>(
+export function useValidatedParams<SCHEMA extends Schema.ConstraintDecoder<unknown>>(
   schema: SCHEMA,
-): Schema.Schema.Type<SCHEMA> {
+): SCHEMA["Type"] {
   const params = useParams();
   return Schema.decodeUnknownSync(schema)(params, {
     onExcessProperty: "ignore",

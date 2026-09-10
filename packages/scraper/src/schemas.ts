@@ -30,7 +30,7 @@ export const LinktreePayloadSchema = Schema.Struct({
 
 export const BeaconsPayloadSchema = Schema.Struct({
   username: Schema.String,
-  source: Schema.Literal("embedded", "rendered"),
+  source: Schema.Literals(["embedded", "rendered"]),
   data: JsonValueSchema,
 }) satisfies Schema.Schema<IBeaconsScrapePayload>;
 
@@ -51,7 +51,7 @@ export const GitHubPayloadSchema = Schema.Struct({
       Schema.Struct({
         date: Schema.String,
         count: Schema.Int,
-        level: Schema.Literal(0, 1, 2, 3, 4),
+        level: Schema.Literals([0, 1, 2, 3, 4]),
       }),
     ),
   ),

@@ -4,53 +4,102 @@
   "main": "./src/Worker.ts",
   "compatibility_date": "2026-01-20",
   "compatibility_flags": ["nodejs_compat"],
-  "rules": [{ "type": "Text", "globs": ["**/*.sql"] }],
   "durable_objects": {
     "bindings": [
-      { "name": "ACTOR_REPO", "class_name": "ActorRepo" },
+      { "name": "VERSIONED_SERVICE_CHAIN", "class_name": "VersionedServiceChain" },
       { "name": "SYSTEM_REPO", "class_name": "SystemRepo" },
-      { "name": "ACCOUNT_REPO", "class_name": "AccountRepo" },
-      { "name": "SERVICE_REPO", "class_name": "ServiceRepo" },
-      { "name": "ACCOUNT_BLOCK_REPO", "class_name": "AccountBlockRepo" },
-      { "name": "ACTOR_BLOCK_REPO", "class_name": "ActorBlockRepo" },
-      { "name": "FRONTEND_REPO", "class_name": "FrontendRepo" },
-      { "name": "FRONTEND_BLOCK_REPO", "class_name": "FrontendBlockRepo" },
-      { "name": "SERVICE_BLOCK_REPO", "class_name": "ServiceBlockRepo" },
-      { "name": "AUTHORIZATION_REPO", "class_name": "AuthorizationRepo" },
+      {
+        "name": "VERSIONED_AGGREGATE_REPO",
+        "class_name": "VersionedAggregateRepo",
+      },
+      {
+        "name": "VERSIONED_SERVICE_REPO",
+        "class_name": "VersionedServiceRepo",
+      },
+      {
+        "name": "AGGREGATE_CHAIN",
+        "class_name": "AggregateChain",
+      },
+      {
+        "name": "VERSIONED_AGGREGATE_CHAIN",
+        "class_name": "VersionedAggregateChain",
+      },
+      {
+        "name": "USER_VERSIONED_AGGREGATE_REPO",
+        "class_name": "UserVersionedAggregateRepo",
+      },
+      {
+        "name": "USER_VERSIONED_AGGREGATE_CHAIN",
+        "class_name": "UserVersionedAggregateChain",
+      },
+      {
+        "name": "SERVICE_ADMITTED_CHAIN",
+        "class_name": "ServiceAdmittedChain",
+      },
+      {
+        "name": "FRONTEND_VERSIONED_SERVICE_REPO",
+        "class_name": "FrontendVersionedServiceRepo",
+      },
+      {
+        "name": "FRONTEND_SERVICE_CHAIN",
+        "class_name": "FrontendServiceChain",
+      },
       { "name": "SYSTEM_LOG_REPO", "class_name": "SystemLogRepo" },
       { "name": "SYSTEM_LOG_AGENT", "class_name": "SystemLogAgent" },
     ],
   },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": [
-        "ActorRepo",
-        "SystemRepo",
-        "AccountRepo",
-        "ServiceRepo",
-        "AccountBlockRepo",
-        "ActorBlockRepo",
-        "AuthorizationRepo",
-        "SystemLogRepo",
-        "SystemLogAgent",
-      ],
+  "exports": {
+    "VersionedServiceChain": { "type": "durable-object", "storage": "sqlite" },
+    "SystemRepo": { "type": "durable-object", "storage": "sqlite" },
+    "VersionedAggregateRepo": {
+      "type": "durable-object",
+      "storage": "sqlite",
     },
-    {
-      "tag": "v2",
-      "new_sqlite_classes": ["FrontendRepo", "FrontendBlockRepo", "ServiceBlockRepo"],
+    "VersionedServiceRepo": {
+      "type": "durable-object",
+      "storage": "sqlite",
     },
-  ],
+    "AggregateChain": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "VersionedAggregateChain": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "UserVersionedAggregateRepo": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "UserVersionedAggregateChain": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "ServiceAdmittedChain": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "FrontendVersionedServiceRepo": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "FrontendServiceChain": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
+    "SystemLogRepo": { "type": "durable-object", "storage": "sqlite" },
+    "SystemLogAgent": { "type": "durable-object", "storage": "sqlite" },
+  },
+  "version_metadata": { "binding": "ZEROSPIN_VERSION_METADATA" },
   "vars": {
-    "TESTING": true,
+    "ZEROSPIN_PUBLISHABLE_KEY": "pk_test_qrk_workerd",
     "CLERK_AUTHORIZED_PARTY": "http://localhost:4000",
     "CLERK_SECRET_KEY": "sk_test_qrk_workerd",
-    "ZEROSPIN_ENVIRONMENT_ID": "zerospin-dev",
+    "ZEROSPIN_ENVIRONMENT": "dev",
+    "ZEROSPIN_SECRET_KEY": "sk_test_qrk_system_runtime",
     "ZEROSPIN_SYSTEM_ID": "sys_qrk_sh_1",
-    "ZEROSPIN_SYSTEM_VERSION": "3.0.0",
   },
   "alias": {
-    "@zerospin/core/drizzle/makeMigratedInMemoryWasmSqliteDbAdapter": "./src/shims/makeMigratedInMemoryWasmSqliteDbAdapter.ts",
     "system": "./src/system.ts",
   },
 }

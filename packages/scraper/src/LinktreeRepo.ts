@@ -4,7 +4,6 @@ import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Effect, Schema } from "effect";
-import { BrandTypeId } from "effect/Brand";
 
 import { encodeRpc } from "./encodeRpc";
 import { normalizeLinktreeUrl } from "./normalizeLinktreeUrl";
@@ -34,14 +33,12 @@ CREATE TABLE linktree_cache (
 };
 
 export class LinktreeRepo extends DurableObject<IScraperEnv> {
-  declare [BrandTypeId]: "TargetApi";
-
   readonly #db;
   readonly #inFlightScrapes = new Map<string, Promise<IRpcEither<ILinktreeScrapePayload>>>();
 
   constructor(ctx: DurableObjectState, env: IScraperEnv) {
     super(ctx, env);
-    this.#db = drizzle(ctx.storage, { schema: { linktreeCache } });
+    this.#db = drizzle(ctx.storage);
     ctx.blockConcurrencyWhile(async () => {
       migrate(this.#db, { migrations: linktreeMigrations });
     });
@@ -65,7 +62,7 @@ export class LinktreeRepo extends DurableObject<IScraperEnv> {
           if (result._tag === "Left") {
             return result;
           }
-          const decoded = await Effect.runPromise(Schema.decodeUnknown(Schema.parseJson(LinktreePayloadSchema))(result.right, { onExcessProperty: "preserve" }).pipe(
+          const decoded = await Effect.runPromise(Schema.decodeUnknownEffect(Schema.fromJsonString(LinktreePayloadSchema))(result.right, { onExcessProperty: "preserve" }).pipe(
             Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "BrowserHost returned an invalid Linktree payload" })),
             encodeRpc,
           ));
@@ -97,7 +94,7 @@ export class LinktreeRepo extends DurableObject<IScraperEnv> {
       if (result._tag === "Left") {
         return result;
       }
-      const decoded = await Effect.runPromise(Schema.decodeUnknown(Schema.parseJson(LinktreePayloadSchema))(result.right, { onExcessProperty: "preserve" }).pipe(
+      const decoded = await Effect.runPromise(Schema.decodeUnknownEffect(Schema.fromJsonString(LinktreePayloadSchema))(result.right, { onExcessProperty: "preserve" }).pipe(
         Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "BrowserHost returned an invalid Linktree payload" })),
         encodeRpc,
       ));

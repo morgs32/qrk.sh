@@ -1,5 +1,4 @@
 import { RpcTarget } from "capnweb";
-import { BrandTypeId } from "effect/Brand";
 
 import type {
   IBeaconsScrapePayload,
@@ -17,64 +16,51 @@ import type {
 } from "./types.public";
 
 export declare class ScraperApi extends RpcTarget {
-  declare [BrandTypeId]: "Apis";
-
-  linktreeRepo(): {
-    [BrandTypeId]: "TargetApi";
+  linktreeRepo(): RpcTarget & {
     scrape(url: string): Promise<IRpcEither<ILinktreeScrapePayload>>;
   };
 
-  beaconsRepo(): {
-    [BrandTypeId]: "TargetApi";
+  beaconsRepo(): RpcTarget & {
     scrape(url: string): Promise<IRpcEither<IBeaconsScrapePayload>>;
   };
 
-  instagramRepo(): {
-    [BrandTypeId]: "TargetApi";
+  instagramRepo(): RpcTarget & {
     scrape(url: string): Promise<IRpcEither<IInstagramScrapePayload>>;
   };
 
-  githubRepo(): {
-    [BrandTypeId]: "TargetApi";
+  githubRepo(): RpcTarget & {
     getProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>>;
   };
 
-  figmaRepo(): {
-    [BrandTypeId]: "TargetApi";
+  figmaRepo(): RpcTarget & {
     getDesign(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
     getBoard(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
     getSlides(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
     getPrototype(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
   };
 
-  googlePlacesRepo(): {
-    [BrandTypeId]: "TargetApi";
+  googlePlacesRepo(): RpcTarget & {
     autocomplete(query: string): Promise<IRpcEither<ReadonlyArray<IGooglePlaceSuggestion>>>;
     getPlace(googlePlaceId: string): Promise<IRpcEither<IGooglePlaceDetails>>;
   };
 
-  linkRepo(): {
-    [BrandTypeId]: "TargetApi";
+  linkRepo(): RpcTarget & {
     getPreview(url: string): Promise<IRpcEither<ILinkPreview>>;
   };
 
-  tiktokRepo(): {
-    [BrandTypeId]: "TargetApi";
+  tiktokRepo(): RpcTarget & {
     scrape(url: string): Promise<IRpcEither<ITikTokScrapePayload>>;
   };
 
-  youtubeRepo(): {
-    [BrandTypeId]: "TargetApi";
+  youtubeRepo(): RpcTarget & {
     scrape(url: string): Promise<IRpcEither<IYouTubeScrapePayload>>;
   };
 
-  truthSocialRepo(): {
-    [BrandTypeId]: "TargetApi";
+  truthSocialRepo(): RpcTarget & {
     scrape(url: string): Promise<IRpcEither<ITruthSocialScrapePayload>>;
   };
 
-  streamlineRepo(): {
-    [BrandTypeId]: "TargetApi";
+  streamlineRepo(): RpcTarget & {
     search(
       query: string,
       offset: number,

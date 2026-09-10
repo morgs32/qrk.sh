@@ -22,13 +22,13 @@
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.1.0",
-    "capnweb": "^0.7.0",
-    "drizzle-orm": "1.0.0-beta.17-67b1795",
-    "effect": "^3.21.0"
+    "capnweb": "^0.12.0",
+    "drizzle-orm": "1.0.0-rc.4",
+    "effect": "rc"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.3",
-    "@effect/vitest": "^0.29.0",
+    "@effect/vitest": "rc",
     "@types/node": "^25.5.2",
     "@zerospin/core": "workspace:*",
     "dotenv": "^17.4.2",

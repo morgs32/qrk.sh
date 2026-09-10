@@ -4,7 +4,9 @@
     "dev": "nx run @qrk.sh/app:dev"
   },
   "devDependencies": {
-    "nx": "^22.7.7"
+    "effect": "rc",
+    "nx": "23.1.0",
+    "typescript": "^6.0.2"
   },
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
@@ -14,6 +16,8 @@
       "@zerospin/devtools": "workspace:*",
       "@zerospin/error": "workspace:*",
       "@zerospin/react": "workspace:*",
+      "@zerospin/schema": "workspace:*",
+      "@zerospin/sdk": "workspace:*",
       "system": "workspace:*",
       "system-worker": "workspace:*",
       "@zerospin/dispatch-worker": "workspace:*",
@@ -22,7 +26,8 @@
       "@zerospin/logger": "workspace:*",
       "@zerospin/server-only": "workspace:*",
       "@zerospin/shared-worker": "workspace:*",
-      "@zerospin/studio": "workspace:*"
+      "@zerospin/studio": "workspace:*",
+      "effect": "rc"
     }
   }
 }

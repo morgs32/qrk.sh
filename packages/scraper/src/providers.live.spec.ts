@@ -2,7 +2,7 @@ import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, expect, it, vi } from "vitest";
 
-import type { ScraperApi } from "./ScraperApi";
+import type { ScraperApi } from "scraper/ScraperApi";
 import type { IRpcEither } from "./types";
 
 const RPC_URL = "http://scraper.invalid/";
@@ -46,15 +46,12 @@ it.skipIf(process.env.SCRAPER_LIVE_BEACONS_URL === undefined)(
 it.skipIf(
   process.env.SCRAPER_LIVE_INSTAGRAM_URL === undefined ||
     process.env.SCRAPER_LIVE_INSTAGRAM_URL === "missing-live-instagram-url",
-)(
-  "scrapes a live Instagram profile",
-  async () => {
-    const url = process.env.SCRAPER_LIVE_INSTAGRAM_URL;
-    if (url === undefined) throw new Error("SCRAPER_LIVE_INSTAGRAM_URL is required");
-    using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-    expect(getRight(await api.instagramRepo().scrape(url))).toHaveProperty("username");
-  },
-);
+)("scrapes a live Instagram profile", async () => {
+  const url = process.env.SCRAPER_LIVE_INSTAGRAM_URL;
+  if (url === undefined) throw new Error("SCRAPER_LIVE_INSTAGRAM_URL is required");
+  using api = newSyncRpcSession<ScraperApi>(RPC_URL);
+  expect(getRight(await api.instagramRepo().scrape(url))).toHaveProperty("username");
+});
 
 it.skipIf(process.env.SCRAPER_LIVE_TIKTOK_URL === undefined)(
   "scrapes a live TikTok profile",

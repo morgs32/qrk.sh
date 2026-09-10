@@ -1,6 +1,6 @@
 import { collectionsHash } from "@qrk.sh/bricks";
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
-import { PrimitiveKind } from "@zerospin/core/models/primitiveKind";
+import { PrimitiveKind } from "@zerospin/schema";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { JsonEditor } from "json-edit-react";
 import { ArrowLeft } from "lucide-react";

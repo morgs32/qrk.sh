@@ -8,7 +8,7 @@ export const parseInstagramPayload = Effect.fn("parseInstagramPayload")(function
   payload: unknown;
   username: string;
 }) {
-  const payload = yield* Schema.decodeUnknown(InstagramPayloadSchema)(props.payload, {
+  const payload = yield* Schema.decodeUnknownEffect(InstagramPayloadSchema)(props.payload, {
     onExcessProperty: "preserve",
   }).pipe(
     Effect.mapError(
@@ -72,13 +72,13 @@ export const scrapeInstagram = Effect.fn("scrapeInstagram")(function* (props: {
         });
       }, username);
       const browserPayload = await Effect.runPromise(
-        Schema.decodeUnknown(
-          Schema.parseJson(
+        Schema.decodeUnknownEffect(
+          Schema.fromJsonString(
             Schema.Struct({
               username: Schema.String,
               profileImageUrl: Schema.String,
               followersText: Schema.String,
-              timelineText: Schema.parseJson(
+              timelineText: Schema.fromJsonString(
                 Schema.Struct({
                   items: Schema.Array(
                     Schema.Struct({

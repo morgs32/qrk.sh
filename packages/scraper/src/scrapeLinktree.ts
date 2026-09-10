@@ -12,7 +12,7 @@ export const parseLinktreePayload = Effect.fn("parseLinktreePayload")(function* 
     try: (): unknown => JSON.parse(props.json),
     catch: () => new ScrapeError({ code: "unsupported-page-shape", message: "Linktree __NEXT_DATA__ was malformed" }),
   });
-  const payload = yield* Schema.decodeUnknown(LinktreePayloadSchema)(parsed, { onExcessProperty: "preserve" }).pipe(
+  const payload = yield* Schema.decodeUnknownEffect(LinktreePayloadSchema)(parsed, { onExcessProperty: "preserve" }).pipe(
     Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "Linktree __NEXT_DATA__ did not contain an account" })),
   );
   if (payload.props.pageProps.account.username.toLowerCase() !== props.username.toLowerCase()) {

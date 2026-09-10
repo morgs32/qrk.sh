@@ -1,5 +1,5 @@
-import { makeEffectSchema } from "@zerospin/core/models/primitiveMaps";
-import type { IShape, InferDecodedRow } from "@zerospin/core/models/types";
+import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
+import type { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { Effect, Schema } from "effect";
 import type { ReactNode } from "react";
 import type { ScraperApi } from "scraper/ScraperApi";
@@ -100,7 +100,7 @@ export function makeVariant<
   dataShape: DATA_SHAPE;
   defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
   getData: (props: {
-    api: ScraperApi;
+    api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
     payload: InferDecodedRow<PAYLOAD_SHAPE>;
   }) => Promise<IRpcEither<IJsonValue>>;
   sizes: SIZES & {
@@ -135,7 +135,7 @@ export function makeVariant<
   dataShape: DATA_SHAPE;
   defaultData: InferDecodedRow<DATA_SHAPE>;
   getData: (props: {
-    api: ScraperApi;
+    api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
     payload: unknown;
   }) => Promise<IRpcEither<InferDecodedRow<DATA_SHAPE>>>;
   sizes: SIZES;
@@ -157,7 +157,10 @@ export function makeVariant(props: {
   dataShape?: IShape;
   defaultData?: unknown;
   getData?: {
-    bivarianceHack(props: { api: ScraperApi; payload: unknown }): Promise<IRpcEither<IJsonValue>>;
+    bivarianceHack(props: {
+      api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
+      payload: unknown;
+    }): Promise<IRpcEither<IJsonValue>>;
   }["bivarianceHack"];
   sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
 }): object {
@@ -192,7 +195,7 @@ export function makeVariant(props: {
 
   const payloadSchema = makeEffectSchema(props.payloadShape);
   const dataSchema = makeEffectSchema(props.dataShape);
-  const decodedDataSchema = Schema.typeSchema(dataSchema);
+  const decodedDataSchema = Schema.toType(dataSchema);
   const defaultData = Schema.decodeUnknownSync(decodedDataSchema)(props.defaultData, {
     onExcessProperty: "preserve",
   });
@@ -204,9 +207,12 @@ export function makeVariant(props: {
     payloadForm: props.payloadForm,
     dataShape: props.dataShape,
     defaultData,
-    getData: async (request: { api: ScraperApi; payload: unknown }) => {
+    getData: async (request: {
+      api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
+      payload: unknown;
+    }) => {
       const decodedPayload = await Effect.runPromise(
-        Schema.decodeUnknown(payloadSchema)(request.payload, {
+        Schema.decodeUnknownEffect(payloadSchema)(request.payload, {
           onExcessProperty: "error",
         }),
       );
@@ -221,7 +227,7 @@ export function makeVariant(props: {
       }
 
       const data = await Effect.runPromise(
-        Schema.decodeUnknown(decodedDataSchema)(result.right, {
+        Schema.decodeUnknownEffect(decodedDataSchema)(result.right, {
           onExcessProperty: "preserve",
         }),
       );

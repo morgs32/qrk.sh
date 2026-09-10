@@ -4,7 +4,7 @@ import { ScrapeError } from "./ScrapeError";
 import { TruthSocialPayloadSchema } from "./schemas";
 
 export const parseTruthSocialPayload = Effect.fn("parseTruthSocialPayload")(function* (props: { payload: unknown; username: string }) {
-  const payload = yield* Schema.decodeUnknown(TruthSocialPayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
+  const payload = yield* Schema.decodeUnknownEffect(TruthSocialPayloadSchema)(props.payload, { onExcessProperty: "preserve" }).pipe(
     Effect.mapError(() => new ScrapeError({ code: "unsupported-page-shape", message: "Truth Social account response was unsupported" })),
   );
   if (payload.username.toLowerCase() !== props.username.toLowerCase()) {

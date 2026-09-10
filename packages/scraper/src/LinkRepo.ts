@@ -3,8 +3,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { Either, Schema } from "effect";
-import { BrandTypeId } from "effect/Brand";
+import { Result, Schema } from "effect";
 
 import { LinkPreviewSchema } from "./schemas";
 import type { ILinkPreview, IRpcEither, IScraperEnv } from "./types";
@@ -16,15 +15,19 @@ const JsonLdPreviewObjectSchema = Schema.Struct({
   headline: Schema.optional(Schema.String),
   description: Schema.optional(Schema.String),
   image: Schema.optional(
-    Schema.Union(Schema.String, Schema.Array(Schema.String), Schema.Struct({ url: Schema.String })),
+    Schema.Union([
+      Schema.String,
+      Schema.Array(Schema.String),
+      Schema.Struct({ url: Schema.String }),
+    ]),
   ),
-  publisher: Schema.optional(Schema.Union(Schema.String, Schema.Struct({ name: Schema.String }))),
+  publisher: Schema.optional(Schema.Union([Schema.String, Schema.Struct({ name: Schema.String })])),
 });
 
-const JsonLdPreviewDocumentSchema = Schema.Union(
+const JsonLdPreviewDocumentSchema = Schema.Union([
   JsonLdPreviewObjectSchema,
   Schema.Array(JsonLdPreviewObjectSchema),
-);
+]);
 
 const linkPreviewCache = sqliteTable("link_preview_cache", {
   url: text("url").primaryKey(),
@@ -45,14 +48,12 @@ CREATE TABLE link_preview_cache (
 };
 
 export class LinkRepo extends DurableObject<IScraperEnv> {
-  declare [BrandTypeId]: "TargetApi";
-
   readonly #db;
   readonly #inFlightPreviews = new Map<string, Promise<IRpcEither<ILinkPreview>>>();
 
   constructor(ctx: DurableObjectState, env: IScraperEnv) {
     super(ctx, env);
-    this.#db = drizzle(ctx.storage, { schema: { linkPreviewCache } });
+    this.#db = drizzle(ctx.storage);
     ctx.blockConcurrencyWhile(async () => {
       migrate(this.#db, { migrations: linkPreviewMigrations });
     });
@@ -208,15 +209,15 @@ export class LinkRepo extends DurableObject<IScraperEnv> {
         if (jsonLdText.trim().length > 0) {
           try {
             const jsonLdUnknown: unknown = JSON.parse(jsonLdText);
-            const decodedJsonLd = Schema.decodeUnknownEither(JsonLdPreviewDocumentSchema)(
+            const decodedJsonLd = Schema.decodeUnknownResult(JsonLdPreviewDocumentSchema)(
               jsonLdUnknown,
               { onExcessProperty: "ignore" },
             );
 
-            if (Either.isRight(decodedJsonLd)) {
-              const jsonLd = Array.isArray(decodedJsonLd.right)
-                ? decodedJsonLd.right[0]
-                : decodedJsonLd.right;
+            if (Result.isSuccess(decodedJsonLd)) {
+              const jsonLd = Array.isArray(decodedJsonLd.success)
+                ? decodedJsonLd.success[0]
+                : decodedJsonLd.success;
 
               if (jsonLd !== undefined) {
                 jsonLdTitle = jsonLd.headline ?? jsonLd.name ?? "";
@@ -272,11 +273,11 @@ export class LinkRepo extends DurableObject<IScraperEnv> {
           imageUrl: resolvedImageUrl,
           iconUrl: resolvedIconUrl,
         };
-        const decodedPreview = Schema.decodeUnknownEither(LinkPreviewSchema)(previewCandidate, {
+        const decodedPreview = Schema.decodeUnknownResult(LinkPreviewSchema)(previewCandidate, {
           onExcessProperty: "error",
         });
 
-        if (Either.isLeft(decodedPreview) || decodedPreview.right.title.length === 0) {
+        if (Result.isFailure(decodedPreview) || decodedPreview.success.title.length === 0) {
           return {
             _tag: "Left",
             left: {
@@ -292,21 +293,21 @@ export class LinkRepo extends DurableObject<IScraperEnv> {
           .insert(linkPreviewCache)
           .values({
             url: canonicalUrl,
-            payload: decodedPreview.right,
+            payload: decodedPreview.success,
             refreshedAt,
             expiresAt: refreshedAt + CACHE_TTL_MS,
           })
           .onConflictDoUpdate({
             target: linkPreviewCache.url,
             set: {
-              payload: decodedPreview.right,
+              payload: decodedPreview.success,
               refreshedAt,
               expiresAt: refreshedAt + CACHE_TTL_MS,
             },
           })
           .run();
 
-        return { _tag: "Right", right: decodedPreview.right };
+        return { _tag: "Right", right: decodedPreview.success };
       } catch (cause) {
         return {
           _tag: "Left",

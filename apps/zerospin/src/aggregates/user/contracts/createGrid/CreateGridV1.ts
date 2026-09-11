@@ -37,11 +37,11 @@ export const createGridV1 = makeContractVersion(createGrid, {
   payload: createGridPayload,
   models: { brick: Brick, grid: Grid, page: Page, site: Site, user: User },
   guard: Effect.fn("createGrid.guard")(function* ({
-    userId,
+    authentication,
     db,
     payload,
   }: {
-    userId: string | null;
+    authentication: Readonly<Record<string, unknown>> | null;
     db: Readonly<
       Pick<
         IDb<
@@ -61,6 +61,15 @@ export const createGridV1 = makeContractVersion(createGrid, {
     >;
     payload: InferCommandPayload<typeof createGridPayload>;
   }) {
+    const clerkUserId = authentication?.clerkUserId;
+    if (typeof clerkUserId !== "string") {
+      return yield* new ZerospinError({
+        code: "create-grid-user-mismatch",
+        message: "A Clerk user is required",
+        status: 403,
+      });
+    }
+
     const page = db.query.page
       .findFirst({
         where: { id: { eq: payload.pageId } },
@@ -92,10 +101,10 @@ export const createGridV1 = makeContractVersion(createGrid, {
             })
             .sync();
 
-    if (site === undefined || user === undefined || user.clerkUserId !== userId) {
+    if (site === undefined || user === undefined || user.clerkUserId !== clerkUserId) {
       return yield* new ZerospinError({
         code: "create-grid-user-mismatch",
-        message: `Page ${payload.pageId} does not belong to user ${userId}`,
+        message: `Page ${payload.pageId} does not belong to identity ${clerkUserId}`,
         status: 403,
       });
     }

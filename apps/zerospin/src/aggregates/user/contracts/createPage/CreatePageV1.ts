@@ -29,11 +29,11 @@ export const createPageV1 = makeContractVersion(createPage, {
   payload: createPagePayload,
   models: { site: Site, user: User, page: Page },
   guard: Effect.fn("createPage.guard")(function* ({
-    userId,
+    authentication,
     db,
     payload,
   }: {
-    userId: string | null;
+    authentication: Readonly<Record<string, unknown>> | null;
     db: Readonly<
       Pick<
         IDb<IResourceDbConfig<{ site: typeof Site; user: typeof User }, Record<never, never>>>,
@@ -42,6 +42,15 @@ export const createPageV1 = makeContractVersion(createPage, {
     >;
     payload: InferCommandPayload<typeof createPagePayload>;
   }) {
+    const clerkUserId = authentication?.clerkUserId;
+    if (typeof clerkUserId !== "string") {
+      return yield* new ZerospinError({
+        code: "create-page-user-mismatch",
+        message: "A Clerk user is required",
+        status: 403,
+      });
+    }
+
     const site = db.query.site
       .findFirst({
         where: { id: { eq: payload.siteId } },
@@ -65,10 +74,10 @@ export const createPageV1 = makeContractVersion(createPage, {
             })
             .sync();
 
-    if (user === undefined || user.clerkUserId !== userId) {
+    if (user === undefined || user.clerkUserId !== clerkUserId) {
       return yield* new ZerospinError({
         code: "create-page-user-mismatch",
-        message: `Site ${payload.siteId} does not belong to user ${userId}`,
+        message: `Site ${payload.siteId} does not belong to identity ${clerkUserId}`,
         status: 403,
       });
     }

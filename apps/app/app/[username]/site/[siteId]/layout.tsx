@@ -25,14 +25,14 @@ export default function PageLayout({
   const { user } = useUser();
   const initializePageDraft = useSiteStore((state) => state.initializePageDraft);
   const [readyRoute, setReadyRoute] = useState<{
-    userId: string;
+    identityKey: string;
     siteId: string;
     pageId: string;
   } | null>(null);
 
-  const userId = user?.id;
+  const identityKey = user?.id;
   useEffect(() => {
-    if (userId === undefined || pageId === undefined) {
+    if (identityKey === undefined || pageId === undefined) {
       return;
     }
 
@@ -40,13 +40,13 @@ export default function PageLayout({
       useSiteStore.persist.rehydrate();
     }
 
-    initializePageDraft(userId, siteId, pageId);
-    setReadyRoute({ userId, siteId, pageId });
-  }, [initializePageDraft, pageId, siteId, userId]);
+    initializePageDraft(identityKey, siteId, pageId);
+    setReadyRoute({ identityKey, siteId, pageId });
+  }, [initializePageDraft, pageId, siteId, identityKey]);
 
   const isCurrentRouteReady =
     readyRoute !== null &&
-    readyRoute.userId === userId &&
+    readyRoute.identityKey === identityKey &&
     readyRoute.siteId === siteId &&
     readyRoute.pageId === pageId;
 

@@ -24,7 +24,7 @@ describe("aggregate Grid contracts", () => {
       const secondBrickId = "brck_contract_create_second";
 
       const mutations = yield* createGrid.program({
-        userId: null,
+        authentication: null,
         payload: {
           id: gridId,
           pageId,
@@ -116,7 +116,7 @@ describe("aggregate Grid contracts", () => {
   it.effect("createGrid with no Bricks emits only the Grid mutation", () =>
     Effect.gen(function* () {
       const mutations = yield* createGrid.program({
-        userId: null,
+        authentication: null,
         payload: {
           id: "grd_contract_create_empty",
           pageId: "pag_contract_create_empty",
@@ -143,7 +143,7 @@ describe("aggregate Grid contracts", () => {
       const expectedRevision = 3;
 
       const mutations = yield* updateGrid.program({
-        userId: null,
+        authentication: null,
         payload: {
           id: gridId,
           name: "Renamed grid",
@@ -258,7 +258,7 @@ describe("aggregate Grid contracts", () => {
       const gridId = "grd_contract_brick_only_update";
       const brickId = "brck_contract_brick_only_update";
       const mutations = yield* updateGrid.program({
-        userId: null,
+        authentication: null,
         payload: {
           id: gridId,
           name: "Unchanged grid",
@@ -306,7 +306,7 @@ describe("aggregate Grid contracts", () => {
   it.effect("updateGrid emits no mutation for an unchanged Grid and unchanged Bricks", () =>
     Effect.gen(function* () {
       const mutations = yield* updateGrid.program({
-        userId: null,
+        authentication: null,
         payload: {
           id: "grd_contract_update_none",
           name: "Unchanged grid",
@@ -399,13 +399,13 @@ describe("user frontend Grid guards", () => {
       }
 
       yield* createGuard({
-        userId: "grid_guard_user",
+        authentication: { clerkUserId: "grid_guard_user" },
         db,
         payload: { id: gridId, pageId, name: "Home grid", columnCount: 8, bricks: [] },
       });
-      for (const authenticatedUserId of ["different_grid_user", null]) {
+      for (const authenticatedIdentityKey of ["different_grid_user", null]) {
         const ownershipError = yield* createGuard({
-          userId: authenticatedUserId,
+          authentication: { clerkUserId: authenticatedIdentityKey },
           db,
           payload: { id: gridId, pageId, name: "Home grid", columnCount: 8, bricks: [] },
         }).pipe(Effect.flip);
@@ -414,7 +414,7 @@ describe("user frontend Grid guards", () => {
 
       // 2 — Grid and Brick ids are deterministic parts of the aggregate boundary.
       const noncanonicalGridError = yield* createGuard({
-        userId: "grid_guard_user",
+        authentication: { clerkUserId: "grid_guard_user" },
         db,
         payload: {
           id: "grd_grid_guard_noncanonical",
@@ -431,7 +431,7 @@ describe("user frontend Grid guards", () => {
       });
 
       const noncanonicalBrickError = yield* createGuard({
-        userId: "grid_guard_user",
+        authentication: { clerkUserId: "grid_guard_user" },
         db,
         payload: {
           id: gridId,
@@ -498,7 +498,7 @@ describe("user frontend Grid guards", () => {
       }
 
       yield* guard({
-        userId: "grid_guard_user",
+        authentication: { clerkUserId: "grid_guard_user" },
         db,
         payload: {
           id: gridId,
@@ -510,9 +510,9 @@ describe("user frontend Grid guards", () => {
           deletedBrickIds: [brickId],
         },
       });
-      for (const authenticatedUserId of ["different_grid_user", null]) {
+      for (const authenticatedIdentityKey of ["different_grid_user", null]) {
         const ownershipError = yield* guard({
-          userId: authenticatedUserId,
+          authentication: { clerkUserId: authenticatedIdentityKey },
           db,
           payload: {
             id: gridId,
@@ -529,7 +529,7 @@ describe("user frontend Grid guards", () => {
 
       // 4 — unchanged attributes paired with update intent must fail before mutation generation.
       const error = yield* guard({
-        userId: "grid_guard_user",
+        authentication: { clerkUserId: "grid_guard_user" },
         db,
         payload: {
           id: gridId,
@@ -562,7 +562,7 @@ describe("user frontend Grid guards", () => {
 
       // 5 — a desired item id must be canonical before resource identity is inspected.
       const noncanonicalUpdateItemError = yield* guard({
-        userId: "grid_guard_user",
+        authentication: { clerkUserId: "grid_guard_user" },
         db,
         payload: {
           id: gridId,
@@ -595,7 +595,7 @@ describe("user frontend Grid guards", () => {
 
       // 6 — a canonical desired item cannot claim a missing Brick resource.
       const foreignIdentityError = yield* guard({
-        userId: "grid_guard_user",
+        authentication: { clerkUserId: "grid_guard_user" },
         db,
         payload: {
           id: gridId,
@@ -628,7 +628,7 @@ describe("user frontend Grid guards", () => {
 
       // 7 — every persisted Brick must be kept or explicitly deleted.
       const incompleteSnapshotError = yield* guard({
-        userId: "grid_guard_user",
+        authentication: { clerkUserId: "grid_guard_user" },
         db,
         payload: {
           id: gridId,
@@ -648,7 +648,7 @@ describe("user frontend Grid guards", () => {
 
       // 8 — a draft loaded before the current aggregate revision cannot overwrite it.
       const staleSnapshotError = yield* guard({
-        userId: "grid_guard_user",
+        authentication: { clerkUserId: "grid_guard_user" },
         db,
         payload: {
           id: gridId,

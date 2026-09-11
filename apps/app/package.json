@@ -10,8 +10,6 @@
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "astrobook:dev": "ASTRO_DEV_BACKGROUND=false astro dev --port 6006",
-    "build-astrobook": "astro build",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
@@ -61,16 +59,12 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@astrojs/react": "6.0.1",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.2",
-    "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^25.5.2",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "astro": "7.1.1",
-    "astrobook": "0.13.2",
     "oxfmt": "^0.44.0",
     "oxlint": "^1.59.0",
     "tailwindcss": "^4.2.2",

@@ -23,7 +23,7 @@ import { userFrontend } from "./aggregates/user/userFrontend";
 describe("site and page creation contracts", () => {
   it.effect("stages a Site and its initial Page with caller-supplied IDs", () =>
     Effect.gen(function* () {
-      const userId = "usr_site_contract_user";
+      const userId = "usr_independent_site_owner";
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
         models: userFrontend.models,
@@ -64,7 +64,10 @@ describe("site and page creation contracts", () => {
         sessionId,
         aggregateId: "acct_site_contract_user",
         aggregateName: userFrontend.aggregateName,
-        userId: "site_contract_user",
+        authentication: {
+          aggregateId: "acct_site_contract_user",
+          clerkUserId: "site_contract_user",
+        },
         systemId: "sys_site_contract",
         frontendName: userFrontend.name,
         aggregateFrontendLockKey: "site-contract-lock-key",
@@ -81,7 +84,7 @@ describe("site and page creation contracts", () => {
 
       const staged = session.executeCommand({
         contractName: "createSite",
-        payload: { id: "sit_site_contract" },
+        payload: { id: "sit_site_contract", userId },
       });
 
       expect(staged._tag).toBe("Success");
@@ -93,7 +96,7 @@ describe("site and page creation contracts", () => {
 
       expect(staged.success.contractVersion).toBe("2.0.0");
       expect(staged.success.payload.id).toBe("sit_site_contract");
-      expect(staged.success.payload).not.toHaveProperty("userId");
+      expect(staged.success.payload.userId).toBe(userId);
       expect(staged.success.payload).toMatchObject({
         slug: null,
         name: null,
@@ -246,15 +249,18 @@ describe("site and page creation contracts", () => {
 
   it.effect("rejects site program execution without an authenticated user", () =>
     Effect.gen(function* () {
-      const error = yield* createSite.program({
-        userId: null,
-        payload: {
-          id: "sit_unauthenticated",
-          slug: null,
-          name: null,
-          description: null,
-        },
-      }).pipe(Effect.flip);
+      const error = yield* createSite
+        .program({
+          authentication: null,
+          payload: {
+            id: "sit_unauthenticated",
+            userId: "usr_independent_site_owner",
+            slug: null,
+            name: null,
+            description: null,
+          },
+        })
+        .pipe(Effect.flip);
 
       expect(error).toMatchObject({
         code: "create-site-user-mismatch",
@@ -263,32 +269,31 @@ describe("site and page creation contracts", () => {
     }),
   );
 
-  it.effect("accepts a site payload without userId", () =>
+  it.effect("rejects a site payload without userId", () =>
     Effect.gen(function* () {
       const validation = yield* validatePayload(createSite, {
-          version: "2.0.0",
-          payload: {
-            id: "sit_missing_user",
-          },
-        })
-        .pipe(Effect.result);
+        version: "2.0.0",
+        // @ts-expect-error Intentionally omit the required owner ID to exercise runtime validation.
+        payload: {
+          id: "sit_missing_user",
+        },
+      }).pipe(Effect.result);
 
-      expect(Result.isSuccess(validation)).toBe(true);
+      expect(Result.isFailure(validation)).toBe(true);
     }).pipe(Effect.scoped),
   );
 
   it.effect("rejects a Page payload that omits siteId", () =>
     Effect.gen(function* () {
       const validation = yield* validatePayload(createPage, {
-          version: "1.1.0",
-          // @ts-expect-error Intentionally omit the required parent ID to exercise runtime validation.
-          payload: {
-            id: "pag_missing_site",
-            slug: "home",
-            pageType: "split-scroll",
-          },
-        })
-        .pipe(Effect.result);
+        version: "1.1.0",
+        // @ts-expect-error Intentionally omit the required parent ID to exercise runtime validation.
+        payload: {
+          id: "pag_missing_site",
+          slug: "home",
+          pageType: "split-scroll",
+        },
+      }).pipe(Effect.result);
 
       expect(Result.isFailure(validation)).toBe(true);
     }).pipe(Effect.scoped),
@@ -298,7 +303,7 @@ describe("site and page creation contracts", () => {
 describe("user frontend creation guards", () => {
   it.effect("rejects a User that does not belong to the authenticated user", () =>
     Effect.gen(function* () {
-      const userId = "usr_site_guard_user";
+      const userId = "usr_independent_guard_owner";
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
         models: userFrontend.models,
@@ -326,22 +331,24 @@ describe("user frontend creation guards", () => {
       }
 
       yield* guard({
-        userId: "site_guard_user",
+        authentication: { clerkUserId: "site_guard_user" },
         db,
         payload: {
           id: "sit_site_guard_user",
+          userId,
           slug: null,
           name: null,
           description: null,
         },
       });
 
-      for (const authenticatedUserId of ["different_site_user", null]) {
+      for (const authenticatedIdentityKey of ["different_site_user", null]) {
         const error = yield* guard({
-          userId: authenticatedUserId,
+          authentication: { clerkUserId: authenticatedIdentityKey },
           db,
           payload: {
             id: "sit_site_guard_user",
+            userId,
             slug: null,
             name: null,
             description: null,
@@ -401,7 +408,7 @@ describe("user frontend creation guards", () => {
       }
 
       yield* guard({
-        userId: "page_guard_user",
+        authentication: { clerkUserId: "page_guard_user" },
         db,
         payload: {
           id: "pag_page_guard_user",
@@ -413,9 +420,9 @@ describe("user frontend creation guards", () => {
         },
       });
 
-      for (const authenticatedUserId of ["different_page_user", null]) {
+      for (const authenticatedIdentityKey of ["different_page_user", null]) {
         const error = yield* guard({
-          userId: authenticatedUserId,
+          authentication: { clerkUserId: authenticatedIdentityKey },
           db,
           payload: {
             id: "pag_page_guard_user",

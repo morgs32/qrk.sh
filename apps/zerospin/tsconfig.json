@@ -10,7 +10,7 @@
     "allowImportingTsExtensions": true,
     "types": ["node"],
     "paths": {
-      "system": ["./src/system.ts"]
+      "config": ["./zerospin.config.ts"]
     },
     "exactOptionalPropertyTypes": true,
     "disableSourceOfProjectReferenceRedirect": true

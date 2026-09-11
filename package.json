@@ -18,7 +18,7 @@
       "@zerospin/react": "workspace:*",
       "@zerospin/schema": "workspace:*",
       "@zerospin/sdk": "workspace:*",
-      "system": "workspace:*",
+      "config": "workspace:*",
       "system-worker": "workspace:*",
       "@zerospin/dispatch-worker": "workspace:*",
       "@zerospin/frontend": "workspace:*",

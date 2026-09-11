@@ -3,7 +3,7 @@
 import { Schema } from "effect";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useSession } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
@@ -23,6 +23,25 @@ export default function UsernameDashboardPage() {
   const { username } = useValidatedParams(ParamsSchema);
   const router = useRouter();
   const session = useSession(ZerospinApp.frontends.web);
+  const { data: user, error } = useLiveQuery(ZerospinApp.frontends.web, {
+    query: (db) => {
+      const state = session.store.getState();
+      if (!state.isInitialized) {
+        throw new Error("Your session is not ready");
+      }
+      return db.query.user.findFirst({
+        where: { clerkUserId: { eq: state.authentication.clerkUserId } },
+      });
+    },
+  });
+
+  if (error !== undefined) {
+    throw error;
+  }
+
+  if (user === undefined) {
+    return <p role="alert">User not found</p>;
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -35,10 +54,16 @@ export default function UsernameDashboardPage() {
               <Button
                 type="button"
                 onClick={() => {
+                  const state = session.store.getState();
+                  if (!state.isInitialized) {
+                    toast.error("Your session is not ready");
+                    return;
+                  }
                   const siteResult = session.executeCommand({
                     contractName: "createSite",
                     payload: {
                       id: session.makeId(Site),
+                      userId: user.id,
                     },
                   });
                   if (siteResult._tag === "Failure") {

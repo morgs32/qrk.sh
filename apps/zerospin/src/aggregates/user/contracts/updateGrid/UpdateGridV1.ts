@@ -44,11 +44,11 @@ export const updateGridV1 = makeContractVersion(updateGrid, {
   payload: updateGridPayload,
   models: { brick: Brick, grid: Grid, page: Page, site: Site, user: User },
   guard: Effect.fn("updateGrid.guard")(function* ({
-    userId,
+    authentication,
     db,
     payload,
   }: {
-    userId: string | null;
+    authentication: Readonly<Record<string, unknown>> | null;
     db: Readonly<
       Pick<
         IDb<
@@ -68,6 +68,15 @@ export const updateGridV1 = makeContractVersion(updateGrid, {
     >;
     payload: InferCommandPayload<typeof updateGridPayload>;
   }) {
+    const clerkUserId = authentication?.clerkUserId;
+    if (typeof clerkUserId !== "string") {
+      return yield* new ZerospinError({
+        code: "update-grid-user-mismatch",
+        message: "A Clerk user is required",
+        status: 403,
+      });
+    }
+
     const grid = db.query.grid
       .findFirst({
         where: { id: { eq: payload.id } },
@@ -111,11 +120,11 @@ export const updateGridV1 = makeContractVersion(updateGrid, {
       page === undefined ||
       site === undefined ||
       user === undefined ||
-      user.clerkUserId !== userId
+      user.clerkUserId !== clerkUserId
     ) {
       return yield* new ZerospinError({
         code: "update-grid-user-mismatch",
-        message: `Grid ${payload.id} does not belong to user ${userId}`,
+        message: `Grid ${payload.id} does not belong to identity ${clerkUserId}`,
         status: 403,
       });
     }

@@ -38,32 +38,42 @@ interface IOwnerDraft {
 
 interface ISiteStoreState {
   readonly owners: Readonly<Record<string, IOwnerDraft>>;
-  readonly initializePageDraft: (userId: string, siteId: string, pageId: string) => void;
-  readonly setSiteDescription: (userId: string, siteId: string, description: string) => void;
-  readonly setPageTitle: (userId: string, siteId: string, pageId: string, title: string) => void;
+  readonly initializePageDraft: (identityKey: string, siteId: string, pageId: string) => void;
+  readonly setSiteDescription: (identityKey: string, siteId: string, description: string) => void;
+  readonly setPageTitle: (
+    identityKey: string,
+    siteId: string,
+    pageId: string,
+    title: string,
+  ) => void;
   readonly setPageDescription: (
-    userId: string,
+    identityKey: string,
     siteId: string,
     pageId: string,
     description: string,
   ) => void;
-  readonly setGridLayout: (userId: string, siteId: string, pageId: string, layout: ILayout) => void;
-  readonly addComposeBlock: (userId: string, siteId: string, pageId: string) => void;
+  readonly setGridLayout: (
+    identityKey: string,
+    siteId: string,
+    pageId: string,
+    layout: ILayout,
+  ) => void;
+  readonly addComposeBlock: (identityKey: string, siteId: string, pageId: string) => void;
   readonly updateComposeBlock: (
-    userId: string,
+    identityKey: string,
     siteId: string,
     pageId: string,
     blockId: string,
     content: string,
   ) => void;
   readonly removeComposeBlock: (
-    userId: string,
+    identityKey: string,
     siteId: string,
     pageId: string,
     blockId: string,
   ) => void;
   readonly setBreakpointGridColumnCount: (
-    userId: string,
+    identityKey: string,
     siteId: string,
     pageId: string,
     prefix: BreakpointPrefix,
@@ -133,15 +143,15 @@ export const useSiteStore = create<ISiteStoreState>()(
   persist(
     (set) => ({
       owners: {},
-      initializePageDraft: (userId, siteId, pageId) => {
+      initializePageDraft: (identityKey, siteId, pageId) => {
         set((state) => {
-          const ownerDraft = state.owners[userId];
+          const ownerDraft = state.owners[identityKey];
 
           if (ownerDraft === undefined) {
             return {
               owners: {
                 ...state.owners,
-                [userId]: {
+                [identityKey]: {
                   sites: {
                     [siteId]: {
                       name: "Make it Rainey",
@@ -177,7 +187,7 @@ export const useSiteStore = create<ISiteStoreState>()(
             return {
               owners: {
                 ...state.owners,
-                [userId]: {
+                [identityKey]: {
                   sites: {
                     ...ownerDraft.sites,
                     [siteId]: {
@@ -215,7 +225,7 @@ export const useSiteStore = create<ISiteStoreState>()(
           return {
             owners: {
               ...state.owners,
-              [userId]: {
+              [identityKey]: {
                 sites: {
                   ...ownerDraft.sites,
                   [siteId]: {
@@ -245,9 +255,9 @@ export const useSiteStore = create<ISiteStoreState>()(
           };
         });
       },
-      setSiteDescription: (userId, siteId, description) => {
+      setSiteDescription: (identityKey, siteId, description) => {
         set((state) => {
-          const ownerDraft = state.owners[userId];
+          const ownerDraft = state.owners[identityKey];
           const siteDraft = ownerDraft?.sites[siteId];
 
           if (ownerDraft === undefined || siteDraft === undefined) {
@@ -257,7 +267,7 @@ export const useSiteStore = create<ISiteStoreState>()(
           return {
             owners: {
               ...state.owners,
-              [userId]: {
+              [identityKey]: {
                 sites: {
                   ...ownerDraft.sites,
                   [siteId]: {
@@ -270,9 +280,9 @@ export const useSiteStore = create<ISiteStoreState>()(
           };
         });
       },
-      setPageTitle: (userId, siteId, pageId, title) => {
+      setPageTitle: (identityKey, siteId, pageId, title) => {
         set((state) => {
-          const ownerDraft = state.owners[userId];
+          const ownerDraft = state.owners[identityKey];
           const siteDraft = ownerDraft?.sites[siteId];
           const pageDraft = siteDraft?.pages[pageId];
 
@@ -283,7 +293,7 @@ export const useSiteStore = create<ISiteStoreState>()(
           return {
             owners: {
               ...state.owners,
-              [userId]: {
+              [identityKey]: {
                 sites: {
                   ...ownerDraft.sites,
                   [siteId]: {
@@ -302,9 +312,9 @@ export const useSiteStore = create<ISiteStoreState>()(
           };
         });
       },
-      setPageDescription: (userId, siteId, pageId, description) => {
+      setPageDescription: (identityKey, siteId, pageId, description) => {
         set((state) => {
-          const ownerDraft = state.owners[userId];
+          const ownerDraft = state.owners[identityKey];
           const siteDraft = ownerDraft?.sites[siteId];
           const pageDraft = siteDraft?.pages[pageId];
 
@@ -315,7 +325,7 @@ export const useSiteStore = create<ISiteStoreState>()(
           return {
             owners: {
               ...state.owners,
-              [userId]: {
+              [identityKey]: {
                 sites: {
                   ...ownerDraft.sites,
                   [siteId]: {
@@ -334,9 +344,9 @@ export const useSiteStore = create<ISiteStoreState>()(
           };
         });
       },
-      setGridLayout: (userId, siteId, pageId, layout) => {
+      setGridLayout: (identityKey, siteId, pageId, layout) => {
         set((state) => {
-          const ownerDraft = state.owners[userId];
+          const ownerDraft = state.owners[identityKey];
           const siteDraft = ownerDraft?.sites[siteId];
           const pageDraft = siteDraft?.pages[pageId];
 
@@ -347,7 +357,7 @@ export const useSiteStore = create<ISiteStoreState>()(
           return {
             owners: {
               ...state.owners,
-              [userId]: {
+              [identityKey]: {
                 sites: {
                   ...ownerDraft.sites,
                   [siteId]: {
@@ -366,9 +376,9 @@ export const useSiteStore = create<ISiteStoreState>()(
           };
         });
       },
-      addComposeBlock: (userId, siteId, pageId) => {
+      addComposeBlock: (identityKey, siteId, pageId) => {
         set((state) => {
-          const ownerDraft = state.owners[userId];
+          const ownerDraft = state.owners[identityKey];
           const siteDraft = ownerDraft?.sites[siteId];
           const pageDraft = siteDraft?.pages[pageId];
 
@@ -379,7 +389,7 @@ export const useSiteStore = create<ISiteStoreState>()(
           return {
             owners: {
               ...state.owners,
-              [userId]: {
+              [identityKey]: {
                 sites: {
                   ...ownerDraft.sites,
                   [siteId]: {
@@ -401,9 +411,9 @@ export const useSiteStore = create<ISiteStoreState>()(
           };
         });
       },
-      updateComposeBlock: (userId, siteId, pageId, blockId, content) => {
+      updateComposeBlock: (identityKey, siteId, pageId, blockId, content) => {
         set((state) => {
-          const ownerDraft = state.owners[userId];
+          const ownerDraft = state.owners[identityKey];
           const siteDraft = ownerDraft?.sites[siteId];
           const pageDraft = siteDraft?.pages[pageId];
 
@@ -414,7 +424,7 @@ export const useSiteStore = create<ISiteStoreState>()(
           return {
             owners: {
               ...state.owners,
-              [userId]: {
+              [identityKey]: {
                 sites: {
                   ...ownerDraft.sites,
                   [siteId]: {
@@ -437,9 +447,9 @@ export const useSiteStore = create<ISiteStoreState>()(
           };
         });
       },
-      removeComposeBlock: (userId, siteId, pageId, blockId) => {
+      removeComposeBlock: (identityKey, siteId, pageId, blockId) => {
         set((state) => {
-          const ownerDraft = state.owners[userId];
+          const ownerDraft = state.owners[identityKey];
           const siteDraft = ownerDraft?.sites[siteId];
           const pageDraft = siteDraft?.pages[pageId];
 
@@ -450,7 +460,7 @@ export const useSiteStore = create<ISiteStoreState>()(
           return {
             owners: {
               ...state.owners,
-              [userId]: {
+              [identityKey]: {
                 sites: {
                   ...ownerDraft.sites,
                   [siteId]: {
@@ -473,9 +483,9 @@ export const useSiteStore = create<ISiteStoreState>()(
           };
         });
       },
-      setBreakpointGridColumnCount: (userId, siteId, pageId, prefix, count) => {
+      setBreakpointGridColumnCount: (identityKey, siteId, pageId, prefix, count) => {
         set((state) => {
-          const ownerDraft = state.owners[userId];
+          const ownerDraft = state.owners[identityKey];
           const siteDraft = ownerDraft?.sites[siteId];
           const pageDraft = siteDraft?.pages[pageId];
 
@@ -486,7 +496,7 @@ export const useSiteStore = create<ISiteStoreState>()(
           return {
             owners: {
               ...state.owners,
-              [userId]: {
+              [identityKey]: {
                 sites: {
                   ...ownerDraft.sites,
                   [siteId]: {

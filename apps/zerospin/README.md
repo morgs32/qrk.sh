@@ -22,9 +22,23 @@ QRK's scraper keeps its separate Worker configuration in `packages/scraper`.
 
 ## Source layout
 
-`src/system.ts` composes authentication and the user aggregate.
+`src/system.ts` registers the user aggregate.
+`authentication.clerkUserId` is the verified Clerk identity; `userId` refers to an independently
+generated User resource ID (`usr_…`), including site ownership references.
+`UserV4.authentication.authenticate` verifies Clerk and awaits `executeCommand` for `createUser`.
+Each attempt generates independent command and user resource IDs. The transactional
+guard rejects an existing `clerkUserId` with `user-already-exists`; authentication accepts
+only that rejection as successful provisioning and preserves the first user ID.
+Other failures prevent authentication from completing. Site creation passes that
+stored resource ID, and its guard verifies ownership against the Clerk identity.
 `src/aggregates/user/user.ts` declares its identity; `UserV4.ts` defines version 4.
 Models live under `aggregates/user/models/<model>/`, and contracts under
 `aggregates/user/contracts/<command>/`, with separate identity and version files.
 `aggregates/user/userFrontend.ts` exposes the web frontend.
 The existing Workerd integration suites remain in `src/`.
+
+Authentication returns `{ aggregateId, clerkUserId }`, deriving the aggregate ID
+from the verified Clerk subject. Selections use only `{ clerkUserId }` and partition
+replicas by `/:clerkUserId`. The web frontend declares the same schemas; its Provider
+signs through `generateSignature.web` and receives its aggregate ID from authentication.
+The changed fixed schemas require empty affected storage; this update does not reset it.

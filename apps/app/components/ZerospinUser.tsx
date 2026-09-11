@@ -7,12 +7,11 @@ import { ZerospinApiUrl } from "@zerospin/core/services/ZerospinApiUrl";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
 import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory";
 import { checkZerospinApp, makeZerospinApp } from "@zerospin/react";
-import { makeAggregateId, ZerospinError } from "@zerospin/sdk/browser";
+import { ZerospinError } from "@zerospin/sdk/browser";
 import { Effect, Layer, Redacted } from "effect";
 import type { ReactNode } from "react";
 
 import { userFrontend } from "@qrk.sh/zerospin/src/aggregates/user/userFrontend";
-import { signature } from "@qrk.sh/zerospin/src/signature";
 import type { system } from "@qrk.sh/zerospin/src/system";
 
 const zerospinApiUrl = process.env.NEXT_PUBLIC_ZEROSPIN_API_URL;
@@ -36,10 +35,6 @@ const sessionLayer = Layer.mergeAll(
 
 export const ZerospinApp = makeZerospinApp({
   systemName: "qrk-sh",
-  authentication: {
-    version: "1.0.0",
-    signature,
-  },
   frontends: {
     web: userFrontend,
   },
@@ -63,24 +58,24 @@ export function ZerospinUserProvider({ children }: { children: ReactNode }) {
   return (
     <ZerospinApp.Provider
       key={user.id}
-      aggregateIds={{ web: makeAggregateId({ id: user.id }) }}
-      generateSignature={() =>
-        Effect.tryPromise({
-          try: async () => {
-            const sessionToken = await getToken();
-            if (sessionToken === null) {
-              throw new Error("Clerk did not return a session token");
-            }
-            return { sessionToken };
-          },
-          catch: (cause) =>
-            new ZerospinError({
-              code: "user-session-token-unavailable",
-              message: "The Clerk session token could not be loaded",
-              cause: ZerospinError.prettyUnknownFailure(cause),
-            }),
-        })
-      }
+      generateSignature={{
+        web: () =>
+          Effect.tryPromise({
+            try: async () => {
+              const sessionToken = await getToken();
+              if (sessionToken === null) {
+                throw new Error("Clerk did not return a session token");
+              }
+              return { sessionToken };
+            },
+            catch: (cause) =>
+              new ZerospinError({
+                code: "user-session-token-unavailable",
+                message: "The Clerk session token could not be loaded",
+                cause: ZerospinError.prettyUnknownFailure(cause),
+              }),
+          }),
+      }}
     >
       {children}
     </ZerospinApp.Provider>

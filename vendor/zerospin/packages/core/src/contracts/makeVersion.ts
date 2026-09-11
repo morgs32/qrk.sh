@@ -48,6 +48,7 @@ export type InferContractProgram<
   PAYLOAD extends IAnyShape = IAnyShape,
   MUTATIONS = IMutations,
 > = (props: {
+  userId: string | null;
   payload: IsErasedPayloadShape<PAYLOAD> extends true
     ? // oxlint-disable-next-line typescript/no-explicit-any -- erased payload shape intentionally accepts any payload
       any
@@ -59,6 +60,7 @@ type IContractProgramFn<
   MUTATIONS,
   MODELS extends IAnyModels,
 > = (props: {
+  userId: string | null;
   models: { readonly [K in keyof MODELS]: IModelMutations<MODELS[K]> };
   payload: InferCommandPayload<PAYLOAD>;
 }) => Effect.Effect<MUTATIONS, IAnyError>;
@@ -121,6 +123,7 @@ const ContractProgramSchema = Schema.declare(
     input: unknown,
   ): input is (props: {
     payload: unknown;
+    userId: string | null;
     models: Readonly<Record<string, IModelMutations<IModel>>>;
   }) => Effect.Effect<IMutations, IAnyError> => typeof input === 'function',
 );
@@ -292,8 +295,8 @@ export function makeContractVersion(command: Command, props: unknown): unknown {
   const models = { ...decodedProps.models };
   const modelMutations = mapValues(models, makeModelMutations);
   const authoredProgram = decodedProps.program ?? noOpProgram;
-  const program: IContract['program'] = ({ payload }) =>
-    authoredProgram({ payload, models: modelMutations });
+  const program: IContract['program'] = ({ payload, userId }) =>
+    authoredProgram({ payload, userId, models: modelMutations });
   // 3 — Expose authored content and the serializable specification.
   const spec = {
     commandName,

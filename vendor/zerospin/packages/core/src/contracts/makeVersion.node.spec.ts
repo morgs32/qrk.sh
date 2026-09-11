@@ -114,6 +114,7 @@ describe('makeContractVersion', () => {
     expect(V3.spec).not.toHaveProperty('historicalDefinitions');
     const mutation = await Effect.runPromise(
       V3.program({
+        userId: null,
         payload: {
           id: prefixId(Item, 'test'),
           quantity: 4,
@@ -347,8 +348,8 @@ describe('contract upgrade edges', () => {
     );
     expect(adapted).toEqual({ ...payload, quantity: 1 });
     expect(
-      (await Effect.runPromise(V3.program({ payload: adapted }))).operation
-        .attributes,
+      (await Effect.runPromise(V3.program({ userId: null, payload: adapted })))
+        .operation.attributes,
     ).toEqual({ quantity: 1 });
     expect(
       await Effect.runPromise(

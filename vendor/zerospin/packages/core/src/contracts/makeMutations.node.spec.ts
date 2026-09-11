@@ -72,6 +72,38 @@ const replicateServiceProduct = makeContractVersion(
 
 describe('makeMutations', () => {
   it.layer(makePrefixedIncrementalIdFactory('makeMutations'))(it => {
+    it.effect('passes execution identity to programs without adding it to payloads', () =>
+      Effect.gen(function* () {
+        const contract = makeContractVersion(defineCommand('createOwnedProduct'), {
+          payload: {},
+          models: { serviceProduct: ServiceProduct },
+          version: '1.0.0',
+          program: ({ models, userId }) =>
+            models.serviceProduct.create({
+              resourceId: 'sprd_identity',
+              attributes: { name: userId ?? 'system' },
+            }),
+        });
+        for (const userId of ['authenticated-user', null]) {
+          const result = yield* makeMutations({
+            contract,
+            models: { serviceProduct: ServiceProduct },
+            userId,
+            command: {
+              id: 'cmd_identity',
+              commandName: contract.commandName,
+              contractVersion: contract.version,
+              payload: {},
+            },
+          });
+          expect(result.payload).toEqual({});
+          expect(result.mutations[0]).toMatchObject({
+            operation: { attributes: { name: userId ?? 'system' } },
+          });
+        }
+      }),
+    );
+
     it.effect('runs aggregate contracts', () =>
       Effect.gen(function* () {
         const aggregate = system.aggregates.user['1.0.0'];
@@ -89,6 +121,7 @@ describe('makeMutations', () => {
         };
 
         const result = yield* makeMutations({
+          userId: null,
           contract: aggregate.contracts.createList.contract,
           models: aggregate.models,
           command,
@@ -118,6 +151,7 @@ describe('makeMutations', () => {
         };
 
         const result = yield* makeMutations({
+          userId: null,
           contract: main.contracts.createList.contract,
           models: main.models,
           command,
@@ -143,6 +177,7 @@ describe('makeMutations', () => {
         };
 
         const result = yield* makeMutations({
+          userId: null,
           contract: createServiceProduct,
           models: { serviceProduct: ServiceProduct },
           command,
@@ -184,6 +219,7 @@ describe('makeMutations', () => {
         };
 
         const result = yield* makeMutations({
+          userId: null,
           contract: createSingleList,
           models: {
             list: List,
@@ -229,6 +265,7 @@ describe('makeMutations', () => {
         );
 
         const result = yield* makeMutations({
+          userId: null,
           contract: tupleContract,
           models: { list: List },
           command: {
@@ -279,6 +316,7 @@ describe('makeMutations', () => {
         );
 
         const result = yield* makeMutations({
+          userId: null,
           contract: arrayContract,
           models: { list: List },
           command: {
@@ -319,6 +357,7 @@ describe('makeMutations', () => {
           );
 
           const result = yield* makeMutations({
+            userId: null,
             contract: invalidOutputContract,
             models: { list: List },
             command: {
@@ -351,6 +390,7 @@ describe('makeMutations', () => {
         });
 
         const result = yield* makeMutations({
+          userId: null,
           contract: nullContract,
           models: { list: List },
           command: {
@@ -381,6 +421,7 @@ describe('makeMutations', () => {
         };
 
         const maybeMutations = yield* makeMutations({
+          userId: null,
           contract: createList,
           models: { serviceProduct: ServiceProduct },
           command,
@@ -425,6 +466,7 @@ describe('makeMutations', () => {
         };
 
         const maybeMutations = yield* makeMutations({
+          userId: null,
           contract: createServiceProductReplica,
           models: { serviceProduct: ServiceProductReplica },
           command,

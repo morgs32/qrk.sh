@@ -1,10 +1,10 @@
-import { models, primitives } from "@zerospin/sdk/browser";
+import { makeModelVersion, primitives } from "@zerospin/sdk/browser";
 
 import { siteV1 as Site } from "../site/SiteV1";
 
 import { page } from "./page";
 
-export const pageV1 = models.makeVersion(page, {
+export const pageV1 = makeModelVersion(page, {
   attributes: {
     siteId: primitives.ref({
       table: Site.table,

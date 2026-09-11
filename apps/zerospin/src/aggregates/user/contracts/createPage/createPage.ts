@@ -1,3 +1,3 @@
-import { contracts } from "@zerospin/sdk/browser";
+import { defineCommand } from "@zerospin/sdk/browser";
 
-export const createPage = contracts.makeCommand("createPage");
+export const createPage = defineCommand("createPage");

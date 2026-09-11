@@ -1,5 +1,5 @@
 import { verifyToken } from "@clerk/backend";
-import { authentication, makeSystem, ZerospinError } from "@zerospin/sdk";
+import { makeAuthenticationVersion, makeSystem, ZerospinError } from "@zerospin/sdk";
 import { Effect } from "effect";
 
 import { userV3 } from "./aggregates/user/UserV3";
@@ -8,7 +8,7 @@ import { signature } from "./signature";
 export const system = makeSystem({
   name: "qrk-sh",
   authentication: [
-    authentication.makeVersion({
+    makeAuthenticationVersion({
       version: "1.0.0",
       signature,
       authenticate: Effect.fn("user.authenticate")(function* ({ signature }) {

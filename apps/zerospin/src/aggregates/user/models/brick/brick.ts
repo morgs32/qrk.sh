@@ -1,3 +1,3 @@
-import { models } from "@zerospin/sdk/browser";
+import { makeModel } from "@zerospin/sdk/browser";
 
-export const brick = models.makeModel({ name: "brick", abbreviation: "brck" });
+export const brick = makeModel({ name: "brick", abbreviation: "brck" });

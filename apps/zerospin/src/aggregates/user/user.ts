@@ -1,3 +1,3 @@
-import { aggregates } from "@zerospin/sdk";
+import { makeAggregate } from "@zerospin/sdk";
 
-export const user = aggregates.makeAggregate({ name: "user" });
+export const user = makeAggregate({ name: "user" });

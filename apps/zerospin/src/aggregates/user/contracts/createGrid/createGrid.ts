@@ -1,3 +1,3 @@
-import { contracts } from "@zerospin/sdk/browser";
+import { defineCommand } from "@zerospin/sdk/browser";
 
-export const createGrid = contracts.makeCommand("createGrid");
+export const createGrid = defineCommand("createGrid");

@@ -1,10 +1,10 @@
-import { models, primitives } from "@zerospin/sdk/browser";
+import { makeModelVersion, primitives } from "@zerospin/sdk/browser";
 
 import { pageV1 as Page } from "../page/PageV1";
 
 import { grid } from "./grid";
 
-export const gridV1 = models.makeVersion(grid, {
+export const gridV1 = makeModelVersion(grid, {
   attributes: {
     pageId: primitives.ref({
       table: Page.table,

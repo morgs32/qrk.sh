@@ -1,3 +1,5 @@
+import { makeSystemConfig } from "@zerospin/sdk";
+
 import { system } from "./src/system";
 
-export default system.config({ systemId: "sys_qrk_sh_1" });
+export default makeSystemConfig(system, { systemId: "sys_qrk_sh_1" });

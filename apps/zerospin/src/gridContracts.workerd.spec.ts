@@ -1,3 +1,4 @@
+import { prefixId } from "@zerospin/sdk/browser";
 import { it } from "@effect/vitest";
 import { AsyncLive } from "@zerospin/core/async/AsyncLive";
 import { makeResourceDbConfig } from "@zerospin/core/drizzle/makeDbConfig";
@@ -336,8 +337,8 @@ describe("user frontend Grid guards", () => {
       const userId = "usr_grid_guard_user";
       const siteId = "sit_grid_guard_site";
       const pageId = "pag_grid_guard_page";
-      const gridId = Grid.prefixId(`${pageId}/main`);
-      const brickId = Brick.prefixId(`${gridId}/orange-flag--0`);
+      const gridId = prefixId(Grid, `${pageId}/main`);
+      const brickId = prefixId(Brick, `${gridId}/orange-flag--0`);
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
         models: userFrontend.models,
@@ -600,7 +601,7 @@ describe("user frontend Grid guards", () => {
           bricks: [
             {
               intent: "none",
-              id: Brick.prefixId(`${gridId}/missing-brick`),
+              id: prefixId(Brick, `${gridId}/missing-brick`),
               brickKey: "missing-brick",
               x: 0,
               y: 0,

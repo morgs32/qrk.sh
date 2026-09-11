@@ -1,10 +1,10 @@
-import { models, primitives } from "@zerospin/sdk/browser";
+import { makeModelVersion, primitives } from "@zerospin/sdk/browser";
 
 import { gridV1 as Grid } from "../grid/GridV1";
 
 import { brick } from "./brick";
 
-export const brickV1 = models.makeVersion(brick, {
+export const brickV1 = makeModelVersion(brick, {
   attributes: {
     gridId: primitives.ref({
       table: Grid.table,

@@ -1,8 +1,8 @@
-import { models, primitives } from "@zerospin/sdk/browser";
+import { makeModelVersion, primitives } from "@zerospin/sdk/browser";
 
 import { user } from "./user";
 
-export const userV1 = models.makeVersion(user, {
+export const userV1 = makeModelVersion(user, {
   attributes: {
     clerkUserId: primitives.text({
       unique: true,

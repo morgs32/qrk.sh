@@ -1,3 +1,6 @@
+import { validatePayload } from "@zerospin/core/contracts/validatePayload";
+import { initializeGuards } from "@zerospin/core/frontendController/initializeGuards";
+import { prefixId } from "@zerospin/sdk/browser";
 import { it } from "@effect/vitest";
 import { AsyncLive } from "@zerospin/core/async/AsyncLive";
 import { makeResourceDbConfig } from "@zerospin/core/drizzle/makeDbConfig";
@@ -49,7 +52,7 @@ describe("site and page creation contracts", () => {
         Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
         (runtime) => runtime.disposeEffect,
       );
-      const guards = yield* userFrontend.initializeGuards;
+      const guards = yield* initializeGuards(userFrontend);
       const session = makeAggregateSession({
         runtime,
         guards,
@@ -164,8 +167,8 @@ describe("site and page creation contracts", () => {
       expect(missingPageId._tag).toBe("Failure");
       expect(db.select().from(dbConfig.schema.page).all()).toHaveLength(1);
 
-      const gridId = Grid.prefixId(`${stagedPage.success.payload.id}/main`);
-      const brickId = Brick.prefixId(`${gridId}/first`);
+      const gridId = prefixId(Grid, `${stagedPage.success.payload.id}/main`);
+      const brickId = prefixId(Brick, `${gridId}/first`);
       const grid = session.executeCommand({
         contractName: "createGrid",
         payload: {
@@ -243,8 +246,7 @@ describe("site and page creation contracts", () => {
 
   it.effect("rejects a payload that omits userId", () =>
     Effect.gen(function* () {
-      const validation = yield* createSite
-        .validatePayload({
+      const validation = yield* validatePayload(createSite, {
           version: "1.1.0",
           // @ts-expect-error Intentionally omit the required parent ID to exercise runtime validation.
           payload: {
@@ -259,8 +261,7 @@ describe("site and page creation contracts", () => {
 
   it.effect("rejects a Page payload that omits siteId", () =>
     Effect.gen(function* () {
-      const validation = yield* createPage
-        .validatePayload({
+      const validation = yield* validatePayload(createPage, {
           version: "1.1.0",
           // @ts-expect-error Intentionally omit the required parent ID to exercise runtime validation.
           payload: {

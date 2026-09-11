@@ -1,7 +1,9 @@
 import { it } from "@effect/vitest";
+import { initializeGuards as initializeAggregateGuards } from "@zerospin/core/aggregate/initializeGuards";
 import { AsyncLive } from "@zerospin/core/async/AsyncLive";
 import { makeResourceDbConfig } from "@zerospin/core/drizzle/makeDbConfig";
 import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb";
+import { initializeGuards as initializeFrontendGuards } from "@zerospin/core/frontendController/initializeGuards";
 import { makeAggregateId } from "@zerospin/sdk";
 import { Effect, Schema } from "effect";
 import { describe, expect } from "vitest";
@@ -45,8 +47,8 @@ describe("QRK system", () => {
       expect(failure).toMatchObject({ code: "user-aggregate-mismatch", status: 403 });
 
       // Both owners initialize the same contract guard for command admission.
-      const backendGuards = yield* aggregate.initializeGuards;
-      const frontendGuards = yield* userFrontend.initializeGuards;
+      const backendGuards = yield* initializeAggregateGuards(aggregate);
+      const frontendGuards = yield* initializeFrontendGuards(userFrontend);
       for (const guards of [backendGuards, frontendGuards]) {
         const rejected = yield* guards
           .run("createUser", {

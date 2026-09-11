@@ -1,7 +1,7 @@
 import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
 import { makeModelIdSchema } from "@zerospin/core/models/makeIdSchema";
-import { contracts, primitives, ZerospinError } from "@zerospin/sdk/browser";
+import { prefixId, makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect, Schema } from "effect";
 import { gridV1 as Grid } from "../../models/grid/GridV1";
 import { brickV1 as Brick } from "../../models/brick/BrickV1";
@@ -33,7 +33,7 @@ const createGridPayload = {
   }),
 };
 
-export const createGridV1 = contracts.makeVersion(createGrid, {
+export const createGridV1 = makeContractVersion(createGrid, {
   payload: createGridPayload,
   models: { brick: Brick, grid: Grid, page: Page, site: Site, user: User },
   guard: Effect.fn("createGrid.guard")(function* ({
@@ -100,7 +100,7 @@ export const createGridV1 = contracts.makeVersion(createGrid, {
       });
     }
 
-    const canonicalGridId = Grid.prefixId(`${payload.pageId}/main`);
+    const canonicalGridId = prefixId(Grid, `${payload.pageId}/main`);
     if (payload.id !== canonicalGridId) {
       return yield* new ZerospinError({
         code: "create-grid-id-not-canonical",
@@ -130,7 +130,7 @@ export const createGridV1 = contracts.makeVersion(createGrid, {
         continue;
       }
 
-      const canonicalBrickId = Brick.prefixId(`${payload.id}/${brick.brickKey}`);
+      const canonicalBrickId = prefixId(Brick, `${payload.id}/${brick.brickKey}`);
       if (brick.id !== canonicalBrickId) {
         return yield* new ZerospinError({
           code: "create-brick-id-not-canonical",

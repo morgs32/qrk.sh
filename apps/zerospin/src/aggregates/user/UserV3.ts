@@ -1,4 +1,4 @@
-import { aggregates, makeAggregateId, makeSelection, ZerospinError } from "@zerospin/sdk";
+import { makeAggregateVersion, makeAggregateId, makeSelection, ZerospinError } from "@zerospin/sdk";
 import { Effect } from "effect";
 
 import { createGridV1 as createGrid } from "./contracts/createGrid/CreateGridV1";
@@ -13,7 +13,7 @@ import { siteV1 as Site } from "./models/site/SiteV1";
 import { userV1 as User } from "./models/user/UserV1";
 import { user } from "./user";
 
-export const userV3 = aggregates.makeVersion(user, {
+export const userV3 = makeAggregateVersion(user, {
   version: "3.0.0",
   authorize: Effect.fn("user.authorize")(function* ({ aggregateId, userId }) {
     const expectedAggregateId = makeAggregateId({ id: userId });

@@ -1,6 +1,6 @@
 import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { contracts, primitives, ZerospinError } from "@zerospin/sdk/browser";
+import { prefixId, makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
 import { userV1 as User } from "../../models/user/UserV1";
 
@@ -17,7 +17,7 @@ const createUserPayload = {
   }),
 };
 
-export const createUserV1 = contracts.makeVersion(createUser, {
+export const createUserV1 = makeContractVersion(createUser, {
   payload: createUserPayload,
   models: { user: User },
   guard: Effect.fn("createUser.guard")(function* ({
@@ -30,7 +30,7 @@ export const createUserV1 = contracts.makeVersion(createUser, {
     >;
     payload: InferCommandPayload<typeof createUserPayload>;
   }) {
-    if (userId === null || payload.id !== User.prefixId(userId) || payload.clerkUserId !== userId) {
+    if (userId === null || payload.id !== prefixId(User, userId) || payload.clerkUserId !== userId) {
       return yield* new ZerospinError({
         code: "create-user-identity-mismatch",
         message: `User ${payload.id} does not match authenticated user ${userId}`,

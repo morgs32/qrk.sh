@@ -1,6 +1,6 @@
 import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { contracts, primitives, ZerospinError } from "@zerospin/sdk/browser";
+import { makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect } from "effect";
 import { pageV1 as Page } from "../../models/page/PageV1";
 import { siteV1 as Site } from "../../models/site/SiteV1";
@@ -25,7 +25,7 @@ const createPagePayload = {
   }),
 };
 
-export const createPageV1 = contracts.makeVersion(createPage, {
+export const createPageV1 = makeContractVersion(createPage, {
   payload: createPagePayload,
   models: { site: Site, user: User, page: Page },
   guard: Effect.fn("createPage.guard")(function* ({

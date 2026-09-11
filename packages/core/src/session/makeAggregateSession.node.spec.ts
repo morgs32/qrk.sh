@@ -2,7 +2,7 @@ import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
-import { main, mainModels, User } from '@zerospin/core/fixtures/system';
+import { List, main, mainModels, User } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import type { InferFrontendModels } from '@zerospin/core/frontendController/types';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
@@ -23,6 +23,7 @@ import {
   type ILogRecord,
   type ISpanRecord,
 } from '@zerospin/logger';
+import { CuidFactory } from '@zerospin/schema';
 import { Effect, Exit, Layer, ManagedRuntime, Scope } from 'effect';
 import { afterAll, describe, expect } from 'vitest';
 
@@ -47,6 +48,62 @@ const frontend = makeFrontendController({
   aggregateName: 'user',
   name: 'web',
   systemName: 'make-session-push-queue-test',
+});
+
+describe('makeAggregateSession.makeId', () => {
+  it.effect(
+    'uses the session generator for any model without changing session state',
+    () =>
+      Effect.gen(function* () {
+        let generated = 0;
+        const runtime = ManagedRuntime.make(
+          Layer.mergeAll(
+            UlidMonotonicFactory,
+            Layer.succeed(CuidFactory, () =>
+              Effect.sync(() => `generated-${++generated}`),
+            ),
+          ),
+        );
+        yield* Effect.addFinalizer(() => runtime.disposeEffect);
+        const guards = yield* frontend.initializeGuards;
+        const session = makeAggregateSession({
+          runtime,
+          guards,
+          frontend,
+          sessionId: 'sesn_ids',
+        });
+        const state = session.store.getState();
+
+        expect(session.makeId(User)).toBe('usr_generated-1');
+        expect(session.makeId(List)).toBe('lst_generated-2');
+        expect(session.makeId(User)).toBe('usr_generated-3');
+        expect(generated).toBe(3);
+        expect(session.store.getState()).toBe(state);
+      }),
+  );
+
+  it.effect('throws when the configured generator fails', () =>
+    Effect.gen(function* () {
+      const runtime = ManagedRuntime.make(
+        Layer.mergeAll(
+          UlidMonotonicFactory,
+          Layer.succeed(CuidFactory, () =>
+            Effect.die(new Error('ID generation failed')),
+          ),
+        ),
+      );
+      yield* Effect.addFinalizer(() => runtime.disposeEffect);
+      const guards = yield* frontend.initializeGuards;
+      const session = makeAggregateSession({
+        runtime,
+        guards,
+        frontend,
+        sessionId: 'sesn_failed_ids',
+      });
+
+      expect(() => session.makeId(User)).toThrow('ID generation failed');
+    }),
+  );
 });
 
 describe('makeAggregateSession telemetry', () => {

@@ -258,6 +258,9 @@ export function makeAggregateSession<
   });
 
   const session: ISession<FRONTEND> = {
+    makeId(model) {
+      return runtime.runSync(model.makeId());
+    },
     executeCommand(commandProps) {
       let committedCommand:
         | IEncodedCommand<

@@ -14,6 +14,7 @@ export function makeBrowserSession<
   return {
     coreSession: session,
     frontend: session.frontend,
+    makeId: session.makeId,
     onInitialized: session.onInitialized,
     get sessionId() {
       return session.sessionId;

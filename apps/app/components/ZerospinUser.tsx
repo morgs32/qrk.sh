@@ -122,7 +122,7 @@ export function ZerospinUserProvider({ children }: { children: ReactNode }) {
   return (
     <ZerospinApp.Provider
       key={user.id}
-      aggregateIds={{ user: makeAggregateId({ id: user.id }) }}
+      aggregateIds={{ web: makeAggregateId({ id: user.id }) }}
       generateSignature={() =>
         Effect.tryPromise({
           try: async () => {
@@ -158,7 +158,7 @@ export function MockZerospinUserProvider({ children }: { children: ReactNode }) 
 
   return (
     <MockProvider
-      aggregateIds={{ user: makeAggregateId({ id: userId }) }}
+      aggregateIds={{ web: makeAggregateId({ id: userId }) }}
       generateSignature={() => Effect.succeed({ sessionToken: "mock-session-token" })}
       userId={userId}
       resources={{

@@ -7,42 +7,42 @@ import type { IDevtoolsServiceSessionEntry } from '../types.js';
 
 import { SessionsDataCell } from './SessionsDataCell';
 
-export function SessionsUserIdCell(props: {
+export function SessionsIdentityKeyCell(props: {
   readonly session: ISession;
   readonly tdStyle: CSSProperties;
 }) {
   const { session, tdStyle } = props;
 
-  const userId = useStore(
+  const identityKey = useStore(
     session.store,
-    state => state.userId ?? 'Initializing...',
+    state => state.identityKey ?? 'Initializing...',
   );
 
   return (
     <SessionsDataCell
-      text={userId}
-      ariaLabel="Copy user id"
+      text={identityKey}
+      ariaLabel="Copy identity key"
       tdStyle={tdStyle}
     />
   );
 }
 
-export function ServiceSessionsUserIdCell(props: {
+export function ServiceSessionsIdentityKeyCell(props: {
   readonly session: IDevtoolsServiceSessionEntry;
   readonly tdStyle: CSSProperties;
 }) {
   const { session, tdStyle } = props;
 
-  const userId = useSyncExternalStore(
+  const identityKey = useSyncExternalStore(
     session.subscribe,
-    session.getUserId,
-    session.getUserId,
+    session.getIdentityKey,
+    session.getIdentityKey,
   );
 
   return (
     <SessionsDataCell
-      text={userId ?? 'Initializing...'}
-      ariaLabel="Copy user id"
+      text={identityKey ?? 'Initializing...'}
+      ariaLabel="Copy identity key"
       tdStyle={tdStyle}
     />
   );

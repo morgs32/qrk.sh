@@ -51,7 +51,7 @@ const aggregateCommand = {
   aggregateVersion: '2.0.0',
   systemName: 'shopping',
   sessionId: null,
-  userId: null,
+  identityKey: null,
   frontendName: null,
   pushIndex: null,
 };
@@ -69,7 +69,7 @@ const dispositionHash =
 
 describe('singular command schemas', () => {
   it('preserves authenticated identity on a command without a frontend session', () => {
-    const command = { ...aggregateCommand, userId: 'clerk_user' };
+    const command = { ...aggregateCommand, identityKey: 'clerk_user' };
     const decoded = Schema.decodeUnknownSync(UnknownAggregateCommandSchema)(
       command,
     );

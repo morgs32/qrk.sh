@@ -48,7 +48,7 @@ const sessionCommand = {
   aggregateName: 'user',
   systemName: 'shopping',
   sessionId: 'sesn_1',
-  userId: 'usr_1',
+  identityKey: 'usr_1',
   frontendName: 'main',
 };
 
@@ -151,7 +151,7 @@ describe('aggregate frontend command schemas', () => {
   it('decodes complete sync state frontiers', async () => {
     const state = {
       aggregateId: 'acct_1',
-      userId: 'usr_1',
+      identityKey: 'usr_1',
       systemId: 'sys_1',
       aggregateName: 'user',
       frontendName: 'main',

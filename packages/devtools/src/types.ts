@@ -79,7 +79,7 @@ export interface IDevtoolsServiceSessionEntry {
   readonly frontendName: string;
   readonly modelNames: readonly string[];
   readonly subscribe: (listener: () => void) => () => void;
-  readonly getUserId: () => string | null;
+  readonly getIdentityKey: () => string | null;
   readonly getIsInitialized: () => boolean;
   readonly getSessionStatus: () => ReturnType<
     IServiceSession['store']['getState']

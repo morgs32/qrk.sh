@@ -14,7 +14,7 @@ export type IAggregateAuthorization<
   MODELS extends IAnyModels,
   AUTHORIZATION_CONTEXT = never,
 > = (props: {
-  userId: string;
+  identityKey: string;
   aggregateId: IAggregateId;
   db: Readonly<
     Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>

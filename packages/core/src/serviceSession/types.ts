@@ -44,7 +44,7 @@ export type IServiceFrontendFinalizedCommand = IChainedCommand<
   }>;
 
 export type IServiceFrontendState = Readonly<{
-  userId: string;
+  identityKey: string;
   systemId: ISystemId;
   serviceName: string;
   frontendName: string;
@@ -57,7 +57,7 @@ export type IInitializedServiceSessionState<
   MODELS extends IAnyModels = IAnyModels,
 > = Readonly<{
   sessionId: ISessionId;
-  userId: string;
+  identityKey: string;
   systemId: ISystemId;
   serviceName: string;
   frontendName: string;
@@ -86,7 +86,7 @@ export type IServiceSessionState<MODELS extends IAnyModels = IAnyModels> =
   | IInitializedServiceSessionState<MODELS>
   | Readonly<{
       sessionId: ISessionId;
-      userId: null;
+      identityKey: null;
       systemId: null;
       serviceName: null;
       frontendName: null;

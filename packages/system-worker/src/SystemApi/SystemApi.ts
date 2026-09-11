@@ -115,7 +115,7 @@ export class SystemApi extends RpcTarget {
   /*
    * Secret-key callers request an aggregate frontend snapshot through SystemApi.
    * The API handler selects the base version, reads its Replica Repo, and adapts
-   * resources to the requested lock; userId and frontend fields are caller arguments.
+   * resources to the requested lock; identityKey and frontend fields are caller arguments.
    *
    * 1. Run the bound domain operation.
    */
@@ -126,7 +126,7 @@ export class SystemApi extends RpcTarget {
           aggregateId: IAggregateId;
           aggregateName: string;
           aggregateVersion: string;
-          userId: string;
+          identityKey: string;
           frontendName: string;
           aggregateFrontendLock: Schema.Schema.Type<
             typeof AggregateFrontendLockSchema

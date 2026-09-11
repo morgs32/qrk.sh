@@ -223,7 +223,7 @@ function publishInitializedState(props: {
     sessionId: session.sessionId,
     aggregateId: 'acct_1',
     aggregateName: main.aggregateName,
-    userId: 'usr_1',
+    identityKey: 'usr_1',
     systemId: 'sys_test',
     frontendName: main.name,
     aggregateFrontendLockKey: 'aggregate-lock-key',
@@ -457,7 +457,7 @@ describe('renewable execution identity', () => {
       sessionId: session.sessionId,
       models: mainModels,
       aggregateId: 'acct_1',
-      userId: 'usr_1',
+      identityKey: 'usr_1',
       systemId: 'sys_test',
     } satisfies Omit<
       Parameters<typeof applyAggregateFrontendState<typeof main>>[0],
@@ -469,7 +469,7 @@ describe('renewable execution identity', () => {
         frontendState: {
           aggregateId: target.aggregateId,
           aggregateName: main.aggregateName,
-          userId: target.userId,
+          identityKey: target.identityKey,
           systemId: target.systemId,
           frontendName: main.name,
           aggregateVersion: '1.0.0',

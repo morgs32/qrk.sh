@@ -123,7 +123,7 @@ describe('flat SDK authoring', () => {
         aggregateVersion: '3.0.0',
         aggregateId: 'acct_shopper',
         systemName: 'shopping',
-        userId: null,
+        identityKey: null,
         pushIndex: null,
         sessionId: null,
         frontendName: null,

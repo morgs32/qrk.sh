@@ -46,7 +46,7 @@ export const getState = Effect.fn('UserVersionedAggregateRepo.getState')(
       requested: {
         aggregateId: string;
         aggregateName: string;
-        userId: string;
+        identityKey: string;
         frontendName: string;
         outstandingCommandIds: readonly string[];
       };
@@ -55,11 +55,11 @@ export const getState = Effect.fn('UserVersionedAggregateRepo.getState')(
   ) {
     const { key, requested } = props;
 
-    // 1 — compare aggregateId, aggregateName, and userId with the bound key
+    // 1 — compare aggregateId, aggregateName, and identityKey with the bound key
     if (
       requested.aggregateId !== key.aggregateId ||
       requested.aggregateName !== key.aggregateName ||
-      requested.userId !== key.userId
+      requested.identityKey !== key.identityKey
     ) {
       return yield* new ZerospinError({
         code: 'replica-state-target-mismatch',

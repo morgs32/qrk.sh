@@ -33,7 +33,7 @@ export const getState = Effect.fn('FrontendVersionedServiceRepo.getState')(
       execution: Semaphore.Semaphore;
       requested: {
         serviceName: string;
-        userId: string;
+        identityKey: string;
         frontendName: string;
       };
       deltas: FrontendVersionedServiceRepo['deltas'];
@@ -41,10 +41,10 @@ export const getState = Effect.fn('FrontendVersionedServiceRepo.getState')(
   ) {
     const { key, requested } = props;
 
-    // 1 — compare serviceName, userId, and frontendName with the bound key
+    // 1 — compare serviceName, identityKey, and frontendName with the bound key
     if (
       requested.serviceName !== key.serviceName ||
-      requested.userId !== key.userId ||
+      requested.identityKey !== key.identityKey ||
       requested.frontendName !== key.frontendName
     ) {
       return yield* new ZerospinError({

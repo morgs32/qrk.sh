@@ -34,7 +34,7 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
     repoName: AnyColumn;
     serviceName: AnyColumn;
     serviceVersion: AnyColumn;
-    userId: AnyColumn;
+    identityKey: AnyColumn;
     frontendName: AnyColumn;
     serviceFrontendLock: AnyColumn;
   }>;
@@ -75,7 +75,7 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
     repoName: Schema.String,
     serviceName: Schema.String,
     serviceVersion: Schema.String,
-    userId: Schema.String,
+    identityKey: Schema.String,
     frontendName: Schema.String,
     serviceFrontendLock: Schema.fromJsonString(ServiceFrontendLockSchema),
     expiresAt: Schema.Date,
@@ -89,7 +89,7 @@ export const consumeServiceFrontendWebSocketTicket = Effect.fn(
           repoName: serviceFrontendWebSocketTicketColumns.repoName,
           serviceName: serviceFrontendWebSocketTicketColumns.serviceName,
           serviceVersion: serviceFrontendWebSocketTicketColumns.serviceVersion,
-          userId: serviceFrontendWebSocketTicketColumns.userId,
+          identityKey: serviceFrontendWebSocketTicketColumns.identityKey,
           frontendName: serviceFrontendWebSocketTicketColumns.frontendName,
           serviceFrontendLock:
             serviceFrontendWebSocketTicketColumns.serviceFrontendLock,

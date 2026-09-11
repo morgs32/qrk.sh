@@ -16,7 +16,7 @@ import { checkPublishableApiKey } from '../checkPublishableApiKey/checkPublishab
 /*
  * GatewayApi grants a service frontend capability after checking the submitted
  * locks, authentication result, and owner authorization. The capability binds
- * the configured systemId and authenticated userId to the admitted frontend.
+ * the configured systemId and authenticated identityKey to the admitted frontend.
  *
  * 1. Capture the request and runtime.
  * 2. Decode the request envelope.
@@ -85,13 +85,13 @@ export const getServiceFrontendApi = Effect.fn(
       }),
     );
 
-    // 4 — validate the API key, adapt the signature, and check the returned userId and lock
+    // 4 — validate the API key, adapt the signature, and check the returned identityKey and lock
     yield* checkPublishableApiKey(validated.publishableKey);
     const authentication = yield* authenticate({
       authenticationLock,
       signature: validated.signature,
     });
-    const userId = yield* checkAuthentication({
+    const identityKey = yield* checkAuthentication({
       authentication,
       authenticationLock,
       systemName: validated.systemName,
@@ -103,20 +103,20 @@ export const getServiceFrontendApi = Effect.fn(
       serviceName: validated.serviceName,
       frontendName: validated.frontendName,
       serviceFrontendLock,
-      userId,
+      identityKey,
     });
     yield* checkAuthorization({
       kind: 'service',
       serviceVersion: validated.serviceVersion,
       authorization,
-      userId,
+      identityKey,
       systemName: validated.systemName,
       serviceName: validated.serviceName,
       frontendName: validated.frontendName,
       serviceFrontendLock,
     });
 
-    // 6 — retain the admitted lock, authenticated userId, and configured systemId
+    // 6 — retain the admitted lock, authenticated identityKey, and configured systemId
     return new ServiceFrontendApi({
       authResults: {
         serviceVersion: validated.serviceVersion,
@@ -124,7 +124,7 @@ export const getServiceFrontendApi = Effect.fn(
         serviceFrontendLock: authorization.serviceFrontendLock,
         serviceName: validated.serviceName,
         systemId: env.ZEROSPIN_SYSTEM_ID,
-        userId,
+        identityKey,
       },
       runtime,
     });

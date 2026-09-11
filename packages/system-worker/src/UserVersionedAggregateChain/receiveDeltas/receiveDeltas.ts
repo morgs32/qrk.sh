@@ -29,7 +29,7 @@ export const receiveDeltas = Effect.fn(
   key: {
     aggregateId: string;
     aggregateName: string;
-    userId: string;
+    identityKey: string;
   };
   broadcast(output: IAggregateFrontendFinalizedCommand): void;
 }) {
@@ -63,7 +63,7 @@ export const receiveDeltas = Effect.fn(
               output.resolution.command.aggregateIndex !==
                 output.aggregateIndex ||
               output.resolution.command.dispositionHash === null ||
-              output.resolution.command.userId !== props.key.userId)
+              output.resolution.command.identityKey !== props.key.identityKey)
           ) {
             throw new ZerospinError({
               code: 'frontend-output-resolution-conflict',

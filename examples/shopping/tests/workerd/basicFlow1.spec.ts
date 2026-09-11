@@ -184,7 +184,7 @@ describe('basicFlow1: static shopping system workerd flow', () => {
             aggregateId,
             aggregateName: WebV2.aggregateName,
             aggregateVersion: WebV2.aggregateVersion,
-            userId: clerkUserId,
+            identityKey: clerkUserId,
           });
         }).pipe(Effect.scoped),
       120_000,

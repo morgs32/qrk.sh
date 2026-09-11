@@ -99,7 +99,7 @@ describe('service frontend command schemas', () => {
 
   it('decodes complete finalized state frontiers', async () => {
     const state = {
-      userId: 'usr_1',
+      identityKey: 'usr_1',
       systemId: 'sys_1',
       serviceName: 'catalog',
       frontendName: 'products',

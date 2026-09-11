@@ -33,7 +33,7 @@ export const getFinalizedCommands = Effect.fn(
 )(function* (props: {
   request: IRpcRequest<[{ afterServiceIndex: number; serviceVersion: string }]>;
   authResults: {
-    readonly userId: string;
+    readonly identityKey: string;
     readonly frontendName: string;
     readonly serviceFrontendLock: Schema.Schema.Type<
       typeof ServiceFrontendLockSchema
@@ -104,7 +104,7 @@ export const getFinalizedCommands = Effect.fn(
       systemId: authResults.systemId,
       serviceName: authResults.serviceName,
       serviceVersion: validated.success[0].serviceVersion,
-      userId: authResults.userId,
+      identityKey: authResults.identityKey,
       frontendName: authResults.frontendName,
     },
   });

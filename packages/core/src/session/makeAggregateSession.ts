@@ -117,7 +117,7 @@ export function makeAggregateSession<
         sessionId: initialSessionId,
         aggregateId: null,
         aggregateName: null,
-        userId: null,
+        identityKey: null,
         systemId: null,
         frontendName: null,
         aggregateFrontendLockKey: null,
@@ -220,7 +220,7 @@ export function makeAggregateSession<
       payload: commandProps.payload,
     });
     yield* guards.run(commandProps.contractName, {
-      userId: state.userId,
+      identityKey: state.identityKey,
       db: state.db,
       payload: validatedPayload,
     });
@@ -231,7 +231,7 @@ export function makeAggregateSession<
       frontendName: frontend.name,
       sessionId,
       systemName: frontend.systemName,
-      userId: state.userId,
+      identityKey: state.identityKey,
       validatedPayload,
       version,
     });
@@ -239,7 +239,7 @@ export function makeAggregateSession<
     const encodedCommand = yield* encodeCommand({ contract, command });
 
     const madeMutations = yield* makeMutations({
-      userId: state.userId,
+      identityKey: state.identityKey,
       contract,
       models: frontend.models,
       command,

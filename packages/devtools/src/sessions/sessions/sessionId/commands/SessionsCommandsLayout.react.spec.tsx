@@ -92,7 +92,7 @@ describe('SessionsCommandsLayout', () => {
       sessionId,
       aggregateId: 'acct_1',
       aggregateName: main.aggregateName,
-      userId: 'usr_1',
+      identityKey: 'usr_1',
       systemId: 'sys_commands_layout',
       frontendName: main.name,
       aggregateFrontendLockKey: 'a'.repeat(64),

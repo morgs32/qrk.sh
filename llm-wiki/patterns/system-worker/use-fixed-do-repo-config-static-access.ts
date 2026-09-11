@@ -15,7 +15,7 @@ export const useUserVersionedAggregateRepo = Effect.fn(
     aggregateId: 'acct_1',
     aggregateName: 'shopper',
     aggregateVersion: '1.0.0',
-    userId: 'user_owner',
+    identityKey: 'user_owner',
     frontendName: 'default',
   };
   const name =
@@ -33,7 +33,7 @@ declare const UserVersionedAggregateRepo: {
       aggregateId: string;
       aggregateName: string;
       aggregateVersion: string;
-      userId: string;
+      identityKey: string;
       frontendName: string;
     };
   }): Effect.Effect<unknown>;
@@ -44,7 +44,7 @@ declare const UserVersionedAggregateRepo: {
         aggregateId: string;
         aggregateName: string;
         aggregateVersion: string;
-        userId: string;
+        identityKey: string;
         frontendName: string;
       }): Effect.Effect<string>;
     };

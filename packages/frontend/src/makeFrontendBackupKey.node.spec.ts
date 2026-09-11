@@ -12,7 +12,7 @@ import {
 
 const aggregate = {
   systemId: 'sys_one',
-  userId: 'user_one',
+  identityKey: 'user_one',
   aggregateId: 'acct_one',
   aggregateName: 'account',
   aggregateVersion: '1.0.0',
@@ -21,7 +21,7 @@ const aggregate = {
 } satisfies IAggregateFrontendBackupIdentity;
 const service = {
   systemId: 'sys_one',
-  userId: 'user_one',
+  identityKey: 'user_one',
   serviceName: 'catalog',
   serviceVersion: '1.0.0',
   frontendName: 'web',
@@ -42,7 +42,7 @@ describe('exact frontend backup routes', () => {
     const identities: IAggregateFrontendBackupIdentity[] = [
       aggregate,
       { ...aggregate, systemId: 'sys_two' },
-      { ...aggregate, userId: 'user_two' },
+      { ...aggregate, identityKey: 'user_two' },
       { ...aggregate, aggregateId: 'acct_two' },
       { ...aggregate, aggregateName: 'account-two' },
       { ...aggregate, aggregateVersion: '2.0.0' },
@@ -62,7 +62,7 @@ describe('exact frontend backup routes', () => {
     const identities: IServiceFrontendBackupIdentity[] = [
       service,
       { ...service, systemId: 'sys_two' },
-      { ...service, userId: 'user_two' },
+      { ...service, identityKey: 'user_two' },
       { ...service, serviceName: 'inventory' },
       { ...service, serviceVersion: '2.0.0' },
       { ...service, frontendName: 'mobile' },
@@ -92,16 +92,18 @@ describe('exact frontend backup routes', () => {
       '../../x',
       '%2e%2e',
     ];
-    const keys = values.map(userId =>
-      Effect.runSync(makeAggregateFrontendBackupKey({ ...aggregate, userId })),
+    const keys = values.map(identityKey =>
+      Effect.runSync(
+        makeAggregateFrontendBackupKey({ ...aggregate, identityKey }),
+      ),
     );
     expect(new Set(keys).size).toBe(values.length);
     for (const [index, key] of keys.entries()) {
       expect(new URL(key, 'file:///').pathname).toBe(key);
       expect(decodeURIComponent(key.split('/')[3]!)).toBe(values[index]);
     }
-    const serviceKeys = values.map(userId =>
-      Effect.runSync(makeServiceFrontendBackupKey({ ...service, userId })),
+    const serviceKeys = values.map(identityKey =>
+      Effect.runSync(makeServiceFrontendBackupKey({ ...service, identityKey })),
     );
     expect(new Set(serviceKeys).size).toBe(values.length);
     for (const [index, key] of serviceKeys.entries()) {
@@ -112,11 +114,11 @@ describe('exact frontend backup routes', () => {
 
   it.each(['', '.', '..', '\n', 'a\tb', '\u0000', '\u007f', '\ud800'])(
     'rejects the invalid identity segment %j before URL normalization',
-    userId => {
+    identityKey => {
       expect(
         Result.isFailure(
           Effect.runSync(
-            makeAggregateFrontendBackupKey({ ...aggregate, userId }).pipe(
+            makeAggregateFrontendBackupKey({ ...aggregate, identityKey }).pipe(
               Effect.result,
             ),
           ),
@@ -125,7 +127,7 @@ describe('exact frontend backup routes', () => {
       expect(
         Result.isFailure(
           Effect.runSync(
-            makeServiceFrontendBackupKey({ ...service, userId }).pipe(
+            makeServiceFrontendBackupKey({ ...service, identityKey }).pipe(
               Effect.result,
             ),
           ),

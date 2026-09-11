@@ -4,7 +4,7 @@ import { Effect, Schema } from 'effect';
 
 /*
  * Gateway admission checks the authored authenticator result against the
- * submitted authentication lock and systemName before binding a userId.
+ * submitted authentication lock and systemName before binding a identityKey.
  *
  * 1. Read the expected authentication context.
  * 2. Decode the returned user identity.
@@ -15,7 +15,7 @@ import { Effect, Schema } from 'effect';
 export const checkAuthentication = Effect.fn('GatewayApi.checkAuthentication')(
   function* (props: {
     authentication: {
-      userId: unknown;
+      identityKey: unknown;
       authenticationLock: unknown;
       systemName: unknown;
     };
@@ -25,13 +25,13 @@ export const checkAuthentication = Effect.fn('GatewayApi.checkAuthentication')(
     // 1 — compare the authenticator result with the submitted lock and systemName
     const { authentication, authenticationLock, systemName } = props;
 
-    // 2 — require a nonempty userId or return authenticated-user-id-invalid
-    const userId = yield* Schema.decodeUnknownEffect(Schema.NonEmptyString)(
-      authentication.userId,
-    ).pipe(
+    // 2 — require a nonempty identityKey or return authenticated-identity-key-invalid
+    const identityKey = yield* Schema.decodeUnknownEffect(
+      Schema.NonEmptyString,
+    )(authentication.identityKey).pipe(
       mapParseError({
-        code: 'authenticated-user-id-invalid',
-        prefix: 'SystemWorker returned an invalid userId',
+        code: 'authenticated-identity-key-invalid',
+        prefix: 'SystemWorker returned an invalid identityKey',
       }),
     );
 
@@ -56,7 +56,7 @@ export const checkAuthentication = Effect.fn('GatewayApi.checkAuthentication')(
       });
     }
 
-    // 5 — pass the decoded userId to frontend authorization
-    return userId;
+    // 5 — pass the decoded identityKey to frontend authorization
+    return identityKey;
   },
 );

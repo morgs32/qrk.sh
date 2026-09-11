@@ -72,7 +72,7 @@ export function makeServiceSession<
 
     return {
       sessionId,
-      userId: null,
+      identityKey: null,
       systemId: null,
       serviceName: null,
       frontendName: null,

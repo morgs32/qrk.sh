@@ -51,7 +51,7 @@ export const createWebSocketTicket = Effect.fn(
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
     aggregateVersion: string;
-    readonly userId: string;
+    readonly identityKey: string;
     readonly frontendName: string;
     readonly aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
@@ -114,7 +114,7 @@ export const createWebSocketTicket = Effect.fn(
       aggregateId,
       aggregateName,
       frontendName,
-      userId,
+      identityKey,
       systemId: configuredSystemId,
     } = authResults;
     const { aggregateVersion } = validatedArgs.success[0];
@@ -152,7 +152,7 @@ export const createWebSocketTicket = Effect.fn(
       aggregateId,
       aggregateName,
       aggregateVersion,
-      userId,
+      identityKey,
     };
     const repoName =
       yield* UserVersionedAggregateChain.fixedDORepoConfig.nameUtils.makeName(
@@ -188,7 +188,7 @@ export const createWebSocketTicket = Effect.fn(
           'Frontend state must initialize before a WebSocket ticket can be created',
         extra: {
           aggregateId,
-          userId,
+          identityKey,
           frontendName,
         },
       });
@@ -201,7 +201,7 @@ export const createWebSocketTicket = Effect.fn(
         repoName,
         aggregateId,
         aggregateName,
-        userId,
+        identityKey,
         frontendName,
         aggregateFrontendLock: selected.aggregateFrontendLock,
       }),

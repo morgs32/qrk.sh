@@ -239,7 +239,7 @@ export const system = makeSystem({
       makeAggregateVersion(makeAggregate({ name: 'user' }), {
         version: '1.0.0',
         authorize: (props: {
-          userId: string;
+          identityKey: string;
           aggregateId: IAggregateId;
           db: Readonly<
             Pick<
@@ -248,11 +248,11 @@ export const system = makeSystem({
             >
           >;
         }) => {
-          const { db, userId: requestedUserId } = props;
+          const { db, identityKey: requestedIdentityKey } = props;
           return Effect.gen(function* () {
             const userId = yield* Schema.decodeUnknownEffect(
               makeModelIdSchema(User),
-            )(requestedUserId).pipe(
+            )(requestedIdentityKey).pipe(
               mapParseError({
                 code: 'fixture-user-id-invalid',
                 prefix: 'Failed to decode the fixture authorization userId',
@@ -276,7 +276,7 @@ export const system = makeSystem({
             if (user === undefined) {
               return yield* new ZerospinError({
                 code: 'user-not-found',
-                message: `User ${requestedUserId} was not found`,
+                message: `User ${requestedIdentityKey} was not found`,
               });
             }
             return yield* Effect.void;
@@ -298,18 +298,18 @@ export const system = makeSystem({
         selections: {
           user: makeSelection({
             model: User,
-            where: ({ userId }) => ({ id: userId }),
+            where: ({ identityKey }) => ({ id: identityKey }),
           }),
           list: makeSelection({
             model: List,
-            where: ({ userId }) => ({
-              user: { id: userId },
+            where: ({ identityKey }) => ({
+              user: { id: identityKey },
             }),
           }),
           item: makeSelection({
             model: Item,
-            where: ({ userId }) => ({
-              list: { user: { id: userId } },
+            where: ({ identityKey }) => ({
+              list: { user: { id: identityKey } },
             }),
           }),
           account: makeSelection({

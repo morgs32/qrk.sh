@@ -18,7 +18,7 @@ import { getState } from './getState/getState.js';
 
 export class ServiceFrontendApi extends RpcTarget {
   readonly #authResults: {
-    readonly userId: string;
+    readonly identityKey: string;
     readonly frontendName: string;
     readonly serviceFrontendLock: Schema.Schema.Type<
       typeof ServiceFrontendLockSchema
@@ -36,7 +36,7 @@ export class ServiceFrontendApi extends RpcTarget {
    */
   constructor(props: {
     authResults: {
-      readonly userId: string;
+      readonly identityKey: string;
       readonly frontendName: string;
       readonly serviceFrontendLock: Schema.Schema.Type<
         typeof ServiceFrontendLockSchema

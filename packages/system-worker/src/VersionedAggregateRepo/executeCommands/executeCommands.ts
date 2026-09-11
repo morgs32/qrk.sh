@@ -118,7 +118,7 @@ export const executeCommands = Effect.fn(
               command,
             });
             const made = yield* makeMutations({
-              userId: command.userId,
+              identityKey: command.identityKey,
               contract: contractBinding.contract,
               models: aggregate.models,
               command: { ...command, payload },

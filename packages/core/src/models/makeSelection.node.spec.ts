@@ -77,7 +77,7 @@ describe('makeSelection', () => {
   it('defaults where to select-all when omitted', () => {
     const selection = makeSelection({ model: User });
 
-    expect(selection.where({ userId: testUserId })).toEqual({});
+    expect(selection.where({ identityKey: testUserId })).toEqual({});
   });
 
   it.effect('applies forward-ref joins and filters by nested user fields', () =>
@@ -141,10 +141,10 @@ describe('makeSelection', () => {
 
       const selection = makeSelection({
         model: CartItem,
-        where: ({ userId }) => ({
+        where: ({ identityKey }) => ({
           cart: {
             user: {
-              id: userId,
+              id: identityKey,
             },
           },
         }),
@@ -154,7 +154,7 @@ describe('makeSelection', () => {
         db,
         models,
         selection,
-        userId: testUserId,
+        identityKey: testUserId,
         where: undefined,
       });
       const { sql } = query.toSQL();
@@ -187,11 +187,11 @@ describe('makeSelection', () => {
         models,
         selection: makeSelection({
           model: Product,
-          where: ({ userId }) => ({
-            cartItems: { cart: { user: { id: userId } } },
+          where: ({ identityKey }) => ({
+            cartItems: { cart: { user: { id: identityKey } } },
           }),
         }),
-        userId: testUserId,
+        identityKey: testUserId,
         where: undefined,
       }).all();
       expect(productRows).toHaveLength(1);
@@ -283,7 +283,7 @@ describe('makeSelection', () => {
             model: CartItemReplica,
             where: () => ({ product: { name: 'Replica product' } }),
           }),
-          userId: testUserId,
+          identityKey: testUserId,
           where: undefined,
         }).all();
         const products = applySelection({
@@ -293,7 +293,7 @@ describe('makeSelection', () => {
             model: ProductReplica,
             where: () => ({ cartItems: { quantity: 2 } }),
           }),
-          userId: testUserId,
+          identityKey: testUserId,
           where: undefined,
         }).all();
 
@@ -328,7 +328,7 @@ describe('makeSelection', () => {
               model: DerivedProduct,
               where: () => ({ cartItems: { quantity: 2 } }),
             }),
-            userId: testUserId,
+            identityKey: testUserId,
             where: undefined,
           }).all(),
         ).toEqual([expect.objectContaining({ id: 'sprd_selectionspec001' })]);

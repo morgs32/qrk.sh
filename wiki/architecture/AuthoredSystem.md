@@ -264,7 +264,7 @@ serialize `name` and the selected `aggregateVersion` or `serviceVersion`; locks 
 query stamping, frontend binding, projection-adapter, record
 snapshot, and command-construction integrity. `makeAggregateVersion` owns aggregate-local model, selection, guard,
 service-pin, and command-construction checks. Its optional `authorize` callback
-receives `{ userId, aggregateId, db }`, with `db` limited to model queries.
+receives `{ identityKey, aggregateId, db }`, with `db` limited to model queries.
 Omitting it allows access without an authored authorization check. Aggregate
 definitions do not configure frontend bindings or adapters. Each constructs its decoded registries and
 the binding, adapter, query, selection, and grant containers it owns.
@@ -333,12 +333,12 @@ persistence, and frontend inputs retain their normal boundary validation.
 - [`resolveSystemAggregate.ts`](../../packages/core/src/system/resolveSystemAggregate.ts) — validates service pins and returns the original Aggregate definition.
 - [`makeSystem.ts`](../../packages/core/src/system/makeSystem.ts) — resolves services before aggregates and assembles authentication and owner registries into the completed `ISystem` graph.
 
-Contract programs receive `{ payload, models, userId }`. Browser execution uses
-the authenticated session user ID; aggregate execution preserves the admitted
-command's user ID, including `null` for system commands. Service programs receive
+Contract programs receive `{ payload, models, identityKey }`. Browser execution uses
+the authenticated session identity key; aggregate execution preserves the admitted
+command's identity key, including `null` for system commands. Service programs receive
 `null`. The identity is execution context and does not belong in command payloads.
 
-Contracts own an optional synchronous `guard({ payload, db, userId })`. The
+Contracts own an optional synchronous `guard({ payload, db, identityKey })`. The
 payload belongs to that contract version; the database exposes read-only
 `query` access. Each upgrade explicitly supplies its guard alongside its new
 program. Shopping's AddToCart upgrades reuse the prior guard because `cartId`
@@ -369,7 +369,7 @@ initialized guards are executable configuration, excluded from specs and locks.
 application and local contexts before heterogeneous registry lookup. A local
 service overrides the matching application tag for that execution. It does not
 rebuild an application service that captured the original dependency during
-application initialization. Invocation `db`, `userId`, and `payload` remain fresh
+application initialization. Invocation `db`, `identityKey`, and `payload` remain fresh
 arguments to every guard call.
 
 - [`initializeGuards.ts`](../../packages/core/src/guards/initializeGuards.ts) — builds a fresh local layer in the caller's scope and retains typed provision around synchronous guards.
@@ -421,7 +421,7 @@ from the enclosing Effect environment before entering its synchronous runner;
 callers provide owner services around execution rather than passing a context
 argument to each guard. `runGuard` preserves the guard's
 typed failure and maps Effect suspension to `guard-must-be-synchronous`. They
-execute in the local aggregate session and in VAR. VAR runs the aggregate binding and contract guards against its command transaction, then the originating frontend contract guard against the projected in-memory SQLite view. Service execution runs its contract guard in the command savepoint with `userId: null`; authored rejection becomes a terminal failure, while asynchronous guards remain execution failures. Authoritative replica copies and provisional enrollment are installed before guards; aggregate-owned mutations follow. Independent VSC updates do not run aggregate guards.
+execute in the local aggregate session and in VAR. VAR runs the aggregate binding and contract guards against its command transaction, then the originating frontend contract guard against the projected in-memory SQLite view. Service execution runs its contract guard in the command savepoint with `identityKey: null`; authored rejection becomes a terminal failure, while asynchronous guards remain execution failures. Authoritative replica copies and provisional enrollment are installed before guards; aggregate-owned mutations follow. Independent VSC updates do not run aggregate guards.
 
 - [`executeCommandsTx.ts`](../../packages/system-worker/src/VersionedServiceRepo/executeCommands/executeCommandsTx.ts) — runs service guards inside the command savepoint and classifies authored failures.
 - [`runGuard.ts`](../../packages/core/src/guards/runGuard.ts) — runs the guard to a synchronous exit, interrupts async fibers, and rethrows typed failures.

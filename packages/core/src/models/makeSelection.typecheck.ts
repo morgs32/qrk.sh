@@ -53,10 +53,10 @@ const testUserId = 'usr_typecheck0001' as string;
 
 void makeSelection({
   model: CartItem,
-  where: ({ userId }) => ({
+  where: ({ identityKey }) => ({
     cart: {
       user: {
-        id: userId,
+        id: identityKey,
       },
     },
   }),
@@ -74,7 +74,7 @@ declare const cartItemSelection: ReturnType<
 >;
 declare const db: IDb;
 
-// @ts-expect-error CoreTypeError — userId is required
+// @ts-expect-error CoreTypeError — identityKey is required
 void applySelection({
   db,
   models: { cart: Cart, cartItem: CartItem, user: User },
@@ -85,6 +85,6 @@ void applySelection({
   db,
   models: { cart: Cart, cartItem: CartItem, user: User },
   selection: cartItemSelection,
-  userId: testUserId,
+  identityKey: testUserId,
   where: undefined,
 });

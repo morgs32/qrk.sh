@@ -68,7 +68,7 @@ export type IAggregateFrontendFinalizedCommand = Readonly<{
 /** Complete server-owned aggregate frontend state used for creation and repair. */
 export type IAggregateFrontendSyncState = Readonly<{
   aggregateId: IAggregateId;
-  userId: string;
+  identityKey: string;
   systemId: ISystemId;
   aggregateName: string;
   aggregateVersion: string;
@@ -87,7 +87,7 @@ export interface IInitializedSessionState<
   sessionId: ISessionId;
   aggregateId: IAggregateId;
   aggregateName: string;
-  userId: string;
+  identityKey: string;
   systemId: ISystemId;
   frontendName: string;
   aggregateFrontendLockKey: string;
@@ -118,7 +118,7 @@ type IUninitializedSessionState = {
   sessionId: ISessionId;
   aggregateId: null;
   aggregateName: null;
-  userId: null;
+  identityKey: null;
   systemId: null;
   frontendName: null;
   aggregateFrontendLockKey: null;

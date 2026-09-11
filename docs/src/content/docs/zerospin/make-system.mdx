@@ -179,26 +179,26 @@ export const listFrontend = sdk.makeFrontendController({
 
 ## System authentication and aggregate authorization
 
-Authentication produces a user ID. The selected aggregate authorizes that user against its database. Selections define visible resources for snapshots and live updates; the frontend lock further narrows the delivered models and accepted commands.
+Authentication produces an `identityKey`, an opaque identity string. `userId` remains the name for a User resource ID. The selected aggregate authorizes that user against its database. Selections define visible resources for snapshots and live updates; the frontend lock further narrows the delivered models and accepted commands.
 
 ```ts
 export const user = sdk.makeAggregateVersion(
   sdk.makeAggregate({ name: 'user' }),
   {
     version: '1.0.0',
-    authorize: ({ userId, db }) =>
+    authorize: ({ identityKey, db }) =>
       Effect.gen(function* () {
         const row = yield* Effect.sync(() =>
           db.query.user
             .findFirst({
-              where: { id: { eq: userId } },
+              where: { id: { eq: identityKey } },
             })
             .sync(),
         );
         if (row === undefined) {
           return yield* new sdk.ZerospinError({
             code: 'user-not-found',
-            message: `User ${userId} was not found`,
+            message: `User ${identityKey} was not found`,
           });
         }
       }),
@@ -211,15 +211,15 @@ export const user = sdk.makeAggregateVersion(
     selections: {
       user: sdk.makeSelection({
         model: User,
-        where: ({ userId }) => ({ id: userId }),
+        where: ({ identityKey }) => ({ id: identityKey }),
       }),
       list: sdk.makeSelection({
         model: List,
-        where: ({ userId }) => ({ user: { id: userId } }),
+        where: ({ identityKey }) => ({ user: { id: identityKey } }),
       }),
       item: sdk.makeSelection({
         model: Item,
-        where: ({ userId }) => ({ list: { user: { id: userId } } }),
+        where: ({ identityKey }) => ({ list: { user: { id: identityKey } } }),
       }),
     },
   },

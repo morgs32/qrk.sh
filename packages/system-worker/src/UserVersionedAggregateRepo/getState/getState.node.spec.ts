@@ -79,7 +79,7 @@ it('catches up without resubscribing and waits for the captured frontend index',
     aggregateId: 'acct_snapshot',
     aggregateName: 'user',
     aggregateVersion: '1.0.0',
-    userId: 'usr_a',
+    identityKey: 'usr_a',
   };
   const props = {
     db,

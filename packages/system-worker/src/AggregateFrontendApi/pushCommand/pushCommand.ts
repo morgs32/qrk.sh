@@ -60,7 +60,7 @@ export const pushCommand = Effect.fn('AggregateFrontendApi.pushCommand')(
       readonly aggregateId: IAggregateId;
       readonly aggregateName: string;
       aggregateVersion: string;
-      readonly userId: string;
+      readonly identityKey: string;
       readonly frontendName: string;
       readonly aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema
@@ -113,12 +113,12 @@ export const pushCommand = Effect.fn('AggregateFrontendApi.pushCommand')(
       };
     }
 
-    // 3 — compare aggregateId, aggregateName, userId, frontendName, systemName, pushIndex, and delta
+    // 3 — compare aggregateId, aggregateName, identityKey, frontendName, systemName, pushIndex, and delta
     const command = validated.success[0].command;
     if (
       command.aggregateId !== authResults.aggregateId ||
       command.aggregateName !== authResults.aggregateName ||
-      command.userId !== authResults.userId ||
+      command.identityKey !== authResults.identityKey ||
       command.frontendName !== authResults.frontendName ||
       command.systemName !== authResults.aggregateFrontendLock.systemName ||
       command.pushIndex !== null ||

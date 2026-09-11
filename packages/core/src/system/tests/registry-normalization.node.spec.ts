@@ -15,8 +15,9 @@ describe('makeSystem', () => {
       authentication: [
         makeAuthenticationVersion({
           version: '1.0.0',
-          signature: Schema.Struct({ userId: Schema.NonEmptyString }),
-          authenticate: ({ signature }) => Effect.succeed(signature.userId),
+          signature: Schema.Struct({ identityKey: Schema.NonEmptyString }),
+          authenticate: ({ signature }) =>
+            Effect.succeed(signature.identityKey),
         }),
       ],
       aggregates: {

@@ -36,7 +36,7 @@ export const getFinalizedCommands = Effect.fn(
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
     aggregateVersion: string;
-    readonly userId: string;
+    readonly identityKey: string;
     readonly frontendName: string;
     readonly aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
@@ -106,7 +106,7 @@ export const getFinalizedCommands = Effect.fn(
       aggregateVersion: validated.success[0].aggregateVersion,
       aggregateId: authResults.aggregateId,
       aggregateName: authResults.aggregateName,
-      userId: authResults.userId,
+      identityKey: authResults.identityKey,
     },
   });
 

@@ -24,7 +24,7 @@ describe('frontend authentication lock in Workers', () => {
       ),
     );
     expect(result).toEqual({
-      userId: 'usr_authentication',
+      identityKey: 'usr_authentication',
       authenticationLock,
       systemName: 'system-worker',
     });

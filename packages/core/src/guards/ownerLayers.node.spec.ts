@@ -97,12 +97,12 @@ describe('owner guard layers', () => {
         const guards = yield* initializeAggregateGuards(aggregate);
         yield* guards.run('check', {
           db: { query: {} },
-          userId: null,
+          identityKey: null,
           payload: {},
         });
         yield* guards.run('check', {
           db: { query: {} },
-          userId: null,
+          identityKey: null,
           payload: {},
         });
       }).pipe(Effect.scoped),
@@ -154,12 +154,12 @@ describe('owner guard layers', () => {
           const guards = yield* initializeServiceGuards(service);
           yield* guards.run('check', {
             db: { query: {} },
-            userId: null,
+            identityKey: null,
             payload: {},
           });
           yield* guards.run('check', {
             db: { query: {} },
-            userId: null,
+            identityKey: null,
             payload: {},
           });
         }).pipe(Effect.scoped),
@@ -353,7 +353,7 @@ describe('owner guard layers', () => {
           sessionId: 'sesn_guard',
           aggregateId: 'acct_guard',
           aggregateName: 'account',
-          userId: 'usr_guard',
+          identityKey: 'usr_guard',
           systemId: 'sys_guard',
           frontendName: 'web',
           aggregateFrontendLockKey: 'lock',
@@ -440,12 +440,12 @@ describe('owner guard layers', () => {
         const rightGuards = yield* initializeFrontendGuards(right);
         yield* leftGuards.run('check', {
           db: { query: {} },
-          userId: null,
+          identityKey: null,
           payload: {},
         });
         yield* rightGuards.run('check', {
           db: { query: {} },
-          userId: null,
+          identityKey: null,
           payload: {},
         });
       }).pipe(Effect.scoped, Effect.provide(app)),

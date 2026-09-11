@@ -100,7 +100,7 @@ export const AggregateFrontendJournalCommandSchema = Schema.Union([
 
 export const AggregateFrontendSyncStateSchema = Schema.Struct({
   aggregateId: makeAbbreviationIdSchema(coreAbbreviations.aggregate),
-  userId: Schema.NonEmptyString,
+  identityKey: Schema.NonEmptyString,
   systemId: makeAbbreviationIdSchema(coreAbbreviations.system),
   aggregateName: Schema.String,
   aggregateVersion: Schema.String,

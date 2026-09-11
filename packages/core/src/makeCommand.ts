@@ -100,7 +100,7 @@ export function makeCommand(
         aggregateVersion: owner.version,
         aggregateId: props.aggregateId,
         aggregateName: owner.name,
-        userId: null,
+        identityKey: null,
         pushIndex: null,
         sessionId: null,
         frontendName: null,

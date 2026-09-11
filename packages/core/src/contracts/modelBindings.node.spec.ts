@@ -43,7 +43,7 @@ describe('contract model bindings', () => {
     });
     Reflect.deleteProperty(declarations, 'cart');
     const mutation = await Effect.runPromise(
-      contract.program({ userId: null, payload: {} }),
+      contract.program({ identityKey: null, payload: {} }),
     );
     expect(mutation.model).toBe(CartV1);
     expect(mutation.modelVersion).toBe('1.0.0');
@@ -93,14 +93,17 @@ describe('contract model bindings', () => {
           }),
         }),
     });
-    expect((await Effect.runPromise(v1.program({ userId: null, payload: {} }))).model).toBe(
-      CartV1,
-    );
-    expect((await Effect.runPromise(v2.program({ userId: null, payload: {} }))).model).toBe(
-      CartV1,
-    );
     expect(
-      (await Effect.runPromise(v3.program({ userId: null, payload: {} }))).current.model,
+      (await Effect.runPromise(v1.program({ identityKey: null, payload: {} })))
+        .model,
+    ).toBe(CartV1);
+    expect(
+      (await Effect.runPromise(v2.program({ identityKey: null, payload: {} })))
+        .model,
+    ).toBe(CartV1);
+    expect(
+      (await Effect.runPromise(v3.program({ identityKey: null, payload: {} })))
+        .current.model,
     ).toBe(CartV2);
     expect(v1.spec.models).toEqual({ cart: CartV1.spec, removed: CartV1.spec });
     expect(v2.spec.models).toEqual(v1.spec.models);
@@ -127,7 +130,7 @@ describe('contract model bindings', () => {
         return Effect.succeed({});
       },
     });
-    await Effect.runPromise(empty.program({ userId: null, payload: {} }));
+    await Effect.runPromise(empty.program({ identityKey: null, payload: {} }));
     expect(empty.spec.models).toEqual({});
     expect(() =>
       makeContractVersion(defineCommand('invalid'), {
@@ -158,7 +161,7 @@ describe('contract model bindings', () => {
     } satisfies Parameters<typeof makeMutations>[0]['command'];
     const result = await Effect.runPromise(
       makeMutations({
-        userId: null,
+        identityKey: null,
         contract,
         command,
         models: { cart: CartV1 },
@@ -170,7 +173,7 @@ describe('contract model bindings', () => {
     await expect(
       Effect.runPromise(
         makeMutations({
-          userId: null,
+          identityKey: null,
           contract,
           command,
           models: {},
@@ -219,7 +222,7 @@ describe('contract model bindings', () => {
       program: ({ models }) => models.cart.replicate(resource),
     });
     const mutation = await Effect.runPromise(
-      contract.program({ userId: null, payload: {} }),
+      contract.program({ identityKey: null, payload: {} }),
     );
     expect(mutation.model).toBe(replica);
     expect(mutation.operation.serviceName).toBe('catalog');

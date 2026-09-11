@@ -42,7 +42,7 @@ export const getState = Effect.fn('AggregateFrontendApi.getState')(
       readonly aggregateId: IAggregateId;
       readonly aggregateName: string;
       aggregateVersion: string;
-      readonly userId: string;
+      readonly identityKey: string;
       readonly frontendName: string;
       readonly aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema
@@ -87,7 +87,7 @@ export const getState = Effect.fn('AggregateFrontendApi.getState')(
         aggregateVersion,
         aggregateId: authResults.aggregateId,
         aggregateName: authResults.aggregateName,
-        userId: authResults.userId,
+        identityKey: authResults.identityKey,
       },
     });
 
@@ -99,7 +99,7 @@ export const getState = Effect.fn('AggregateFrontendApi.getState')(
       aggregateFrontendRepo.getState({
         aggregateId: authResults.aggregateId,
         aggregateName: authResults.aggregateName,
-        userId: authResults.userId,
+        identityKey: authResults.identityKey,
         frontendName: authResults.frontendName,
         outstandingCommandIds: validatedArgs.success[0].outstandingCommandIds,
       }),

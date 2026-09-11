@@ -121,7 +121,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     bootstrapAggregateFrontendSessionMock.mockReturnValue(
       Effect.succeed({
         systemId: 'sys_1',
-        userId: 'usr_1',
+        identityKey: 'usr_1',
         aggregateFrontendLockKey: 'aggregate-lock-1',
         executeAggregateFrontendCommand: ({ command }) =>
           Effect.succeed({ commandId: command.id }),
@@ -132,7 +132,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     );
     bootstrapServiceFrontendSessionMock.mockReset();
     bootstrapServiceFrontendSessionMock.mockReturnValue(
-      Effect.succeed({ systemId: 'sys_1', userId: 'usr_1' }),
+      Effect.succeed({ systemId: 'sys_1', identityKey: 'usr_1' }),
     );
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -211,7 +211,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
 
   it('mounts empty providers without acquiring storage and lazily opens DevTools once', async () => {
     const generateSignature = vi.fn(() =>
-      Effect.succeed({ userId: 'usr_unused' }),
+      Effect.succeed({ identityKey: 'usr_unused' }),
     );
     await act(async () => {
       root.render(
@@ -644,7 +644,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       Effect.acquireRelease(
         Effect.succeed({
           systemId: 'sys_1',
-          userId: 'usr_1',
+          identityKey: 'usr_1',
           aggregateFrontendLockKey: 'aggregate-lock-1',
           executeAggregateFrontendCommand: ({ command }) =>
             Effect.succeed({ commandId: command.id }),
@@ -657,7 +657,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     );
     bootstrapServiceFrontendSessionMock.mockReturnValueOnce(
       Effect.acquireRelease(
-        Effect.succeed({ systemId: 'sys_1', userId: 'usr_1' }),
+        Effect.succeed({ systemId: 'sys_1', identityKey: 'usr_1' }),
         () => Effect.sync(() => releases.push('service')),
       ),
     );
@@ -767,7 +767,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       Effect.acquireRelease(
         Effect.succeed({
           systemId: 'sys_1',
-          userId: 'usr_1',
+          identityKey: 'usr_1',
           aggregateFrontendLockKey: 'aggregate-lock-1',
           executeAggregateFrontendCommand: ({ command }) =>
             Effect.succeed({ commandId: command.id }),
@@ -780,7 +780,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     );
     bootstrapServiceFrontendSessionMock.mockReturnValueOnce(
       Effect.acquireRelease(
-        Effect.succeed({ systemId: 'sys_1', userId: 'usr_other' }),
+        Effect.succeed({ systemId: 'sys_1', identityKey: 'usr_other' }),
         () => Effect.sync(() => releases.push('service')),
       ),
     );

@@ -200,7 +200,7 @@ describe('aggregate frontend session logs integration', () => {
     session.store.setState({
       aggregateId: 'acct_1',
       aggregateName: WebV2.aggregateName,
-      userId: 'user_logs',
+      identityKey: 'user_logs',
       systemId: 'sys_shopping_20260904',
       frontendName: WebV2.name,
       db,

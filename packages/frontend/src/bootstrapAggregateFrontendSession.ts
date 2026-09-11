@@ -86,7 +86,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
 }): Effect.fn.Return<
   Readonly<{
     systemId: ISystemId;
-    userId: string;
+    identityKey: string;
     aggregateFrontendLockKey: string;
     executeAggregateFrontendCommand(props: {
       command: IEncodedCommand<
@@ -172,7 +172,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
     }).pipe(Effect.catch(() => Effect.void)),
   );
 
-  // 3 — The exact offline locator supplies { systemId, userId } when present;
+  // 3 — The exact offline locator supplies { systemId, identityKey } when present;
   // otherwise authentication supplies them before this frontend can select a backup.
   const authenticationLocatorKey = `zerospin:authentication:${JSON.stringify({
     apiUrl,
@@ -191,7 +191,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
   });
   let online = false;
   let systemId: ISystemId;
-  let userId: string;
+  let identityKey: string;
   if (persistedIdentity !== null) {
     const decodedIdentity = yield* Effect.try({
       try: () => JSON.parse(persistedIdentity),
@@ -204,7 +204,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
         Schema.decodeUnknownEffect(
           Schema.Struct({
             systemId: makeAbbreviationIdSchema('sys'),
-            userId: Schema.String,
+            identityKey: Schema.String,
           }),
         )(value, { onExcessProperty: 'error' }).pipe(
           Effect.mapError(
@@ -218,7 +218,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
       ),
     );
     systemId = decodedIdentity.systemId;
-    userId = decodedIdentity.userId;
+    identityKey = decodedIdentity.identityKey;
   } else {
     const initialState = yield* fetchAggregateFrontendState({
       outstandingCommandIds: [],
@@ -234,13 +234,13 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
       aggregateFrontendLock,
     });
     systemId = initialState.systemId;
-    userId = initialState.userId;
+    identityKey = initialState.identityKey;
     online = true;
     yield* Effect.try({
       try: () => {
         localStorage.setItem(
           authenticationLocatorKey,
-          JSON.stringify({ systemId, userId }),
+          JSON.stringify({ systemId, identityKey }),
         );
       },
       catch: ZerospinError.catch({
@@ -254,7 +254,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
   const backupKey = yield* makeAggregateFrontendBackupKey({
     aggregateVersion: props.aggregateVersion,
     systemId,
-    userId,
+    identityKey,
     aggregateId,
     aggregateName: frontend.aggregateName,
     frontendName: frontend.name,
@@ -691,7 +691,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                   models,
                   frontendState: recoveryState,
                   aggregateId,
-                  userId,
+                  identityKey,
                   systemId,
                 });
                 for (const command of decodedFinalized) {
@@ -705,7 +705,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                     models,
                     command,
                     aggregateId,
-                    userId,
+                    identityKey,
                   });
                 }
                 const currentSocket = socket;
@@ -745,7 +745,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                         models,
                         command,
                         aggregateId,
-                        userId,
+                        identityKey,
                       });
                       if (
                         period.revoked ||
@@ -1101,7 +1101,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
               sessionId: executionSessionId,
               aggregateId,
               aggregateName: frontend.aggregateName,
-              userId,
+              identityKey,
               systemId,
               frontendName: frontend.name,
               aggregateFrontendLockKey,
@@ -1232,7 +1232,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
                     try: () =>
                       localStorage.setItem(
                         authenticationLocatorKey,
-                        JSON.stringify({ systemId, userId }),
+                        JSON.stringify({ systemId, identityKey }),
                       ),
                     catch: ZerospinError.catch({
                       code: 'browser-persistence-reset-required',
@@ -1276,7 +1276,7 @@ export const bootstrapAggregateFrontendSession = Effect.fn(
   // The controls read the current ownership period each time; mounted callers retain them.
   return {
     systemId,
-    userId,
+    identityKey,
     aggregateFrontendLockKey,
     executeAggregateFrontendCommand: ({ command }) =>
       Effect.gen(function* () {

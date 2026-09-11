@@ -29,7 +29,7 @@ export const createServiceFrontendWebSocketTicket = Effect.fn(
   repoName: string;
   serviceName: string;
   serviceVersion: string;
-  userId: string;
+  identityKey: string;
   frontendName: string;
   serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
   serviceFrontendWebSocketTicketTable: IAnyDrizzleSchema;
@@ -45,7 +45,7 @@ export const createServiceFrontendWebSocketTicket = Effect.fn(
     serviceFrontendWebSocketTicketColumns,
     serviceFrontendWebSocketTicketTable,
     serviceName,
-    userId,
+    identityKey,
   } = props;
 
   // 1 — encode 32 random bytes as unpadded base64url
@@ -98,7 +98,7 @@ export const createServiceFrontendWebSocketTicket = Effect.fn(
             repoName,
             serviceName,
             serviceVersion: props.serviceVersion,
-            userId,
+            identityKey,
             frontendName,
             serviceFrontendLock: encodedServiceFrontendLock,
             expiresAt: new Date(now.getTime() + 30_000),

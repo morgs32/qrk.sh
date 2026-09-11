@@ -73,7 +73,7 @@ export function makeMockProvider<
   return function MockProvider(providerProps: {
     children: ReactNode;
     generateSignature: ISignatureFactory;
-    userId?: string;
+    identityKey?: string;
     aggregateIds: {
       readonly [FRONTEND_NAME in FRONTEND['name']]: IAggregateId;
     };
@@ -124,14 +124,14 @@ export function makeMockProvider<
                   coreSession.store.setState({ sessionStatus: 'released' });
                 }),
               );
-              if (initializationProps.userId === undefined) {
+              if (initializationProps.identityKey === undefined) {
                 return yield* new ZerospinError({
-                  code: 'mock-session-user-id-required',
+                  code: 'mock-session-identity-key-required',
                   message:
-                    'MockProvider requires userId because it does not simulate authentication',
+                    'MockProvider requires identityKey because it does not simulate authentication',
                 });
               }
-              const userId = initializationProps.userId;
+              const identityKey = initializationProps.identityKey;
               const aggregateId = yield* Schema.decodeUnknownEffect(
                 makeAbbreviationIdSchema(coreAbbreviations.aggregate),
               )(
@@ -216,12 +216,12 @@ export function makeMockProvider<
                   frontend: selector.frontend,
                   sessionId: coreSession.sessionId,
                   aggregateId,
-                  userId,
+                  identityKey,
                   systemId,
                   frontendState: {
                     aggregateId,
                     aggregateName: selector.frontend.aggregateName,
-                    userId,
+                    identityKey,
                     aggregateIndex: 0,
                     userIndex: 0,
                     frontendName: selector.frontend.name,
@@ -242,7 +242,7 @@ export function makeMockProvider<
                   releaseMockSession,
                   schema: dbConfig.schema,
                   systemId,
-                  userId,
+                  identityKey,
                 };
               });
             }).pipe(Effect.provideService(Scope.Scope, scope)),
@@ -268,7 +268,7 @@ export function makeMockProvider<
             coreSession.store.setState({
               aggregateId: data.aggregateId,
               aggregateName: selector.frontend.aggregateName,
-              userId: data.userId,
+              identityKey: data.identityKey,
               db: data.db,
               aggregateIndex: 0,
               userIndex: 0,

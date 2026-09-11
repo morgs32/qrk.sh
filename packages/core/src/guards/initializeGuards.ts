@@ -17,7 +17,7 @@ export const initializeGuards = Effect.fn('initializeGuards')(function* <
       string,
       readonly ((props: {
         db: Readonly<Pick<IDb, 'query'>>;
-        userId: string | null;
+        identityKey: string | null;
         payload: unknown;
       }) => Effect.Effect<void, IAnyError, REQUIREMENTS>)[]
     >
@@ -32,7 +32,7 @@ export const initializeGuards = Effect.fn('initializeGuards')(function* <
       commandName: string,
       inputs: {
         db: Readonly<Pick<IDb, 'query'>>;
-        userId: string | null;
+        identityKey: string | null;
         payload: unknown;
       },
     ) =>

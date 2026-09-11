@@ -8,7 +8,7 @@ import { system } from 'system';
 /*
  * Frontend admission runs aggregate authorization against the selected
  * version-owned materializer. The authorizer receives only queries for models
- * owned by that aggregate, plus the requested frontend, aggregateId, and userId.
+ * owned by that aggregate, plus the requested frontend, aggregateId, and identityKey.
  *
  * 1. Resolve the requested aggregate version.
  * 2. Allow access when authorization is omitted.
@@ -22,7 +22,7 @@ export const authorizeAggregateFrontend = Effect.fn(
   aggregateName: string;
   aggregateVersion: string;
   frontendName: string;
-  userId: string;
+  identityKey: string;
   db: IDb;
 }): Effect.fn.Return<void, IAnyError> {
   const {
@@ -31,7 +31,7 @@ export const authorizeAggregateFrontend = Effect.fn(
     aggregateVersion,
     db,
     frontendName,
-    userId,
+    identityKey,
   } = props;
 
   // 1 — select aggregateVersion from the authored aggregate definition
@@ -67,10 +67,10 @@ export const authorizeAggregateFrontend = Effect.fn(
     Reflect.set(query, modelName, modelQuery);
   }
 
-  // 4 — supply aggregateId, userId, and the restricted query object
+  // 4 — supply aggregateId, identityKey, and the restricted query object
   yield* aggregate.authorize({
     aggregateId,
-    userId,
+    identityKey,
     db: { query },
   });
 });

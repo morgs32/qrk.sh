@@ -228,7 +228,7 @@ export class UserVersionedAggregateRepo extends RpcTarget {
     aggregateId: 'acct',
     aggregateName: 'user',
     aggregateVersion: '1.0.0',
-    userId: 'user_1',
+    identityKey: 'user_1',
     frontendName: 'main',
   };
 

@@ -209,7 +209,7 @@ export class SystemRepo extends makeFixedDORepo({
     aggregateId: IAggregateId;
     aggregateName: string;
     aggregateVersion: string;
-    userId: string;
+    identityKey: string;
     frontendName: string;
     aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
@@ -264,7 +264,7 @@ export class SystemRepo extends makeFixedDORepo({
     repoName: string;
     serviceName: string;
     serviceVersion: string;
-    userId: string;
+    identityKey: string;
     frontendName: string;
     serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
   }): Promise<IEncodedResult<string, IAnyErrorJson>> {

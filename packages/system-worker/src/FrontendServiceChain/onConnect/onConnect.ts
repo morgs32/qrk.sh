@@ -19,7 +19,7 @@ export const onConnect = Effect.fn('FrontendServiceChain.onConnect')(
       phase: 'awaiting-resume' | 'replaying' | 'live';
       serviceName: string;
       serviceVersion: string;
-      userId: string;
+      identityKey: string;
       frontendName: string;
       serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
     }>;
@@ -28,17 +28,17 @@ export const onConnect = Effect.fn('FrontendServiceChain.onConnect')(
       systemId: string;
       serviceName: string;
       serviceVersion: string;
-      userId: string;
+      identityKey: string;
       frontendName: string;
     };
   }) {
     const { connection, key, request } = props;
     yield* Effect.void;
 
-    // 1 — extract owner, userId, frontendName, and the encoded frontend lock
+    // 1 — extract owner, identityKey, frontendName, and the encoded frontend lock
     const serviceVersion = request.headers.get('x-zerospin-service-version');
     const serviceName = request.headers.get('x-zerospin-service-name');
-    const userId = request.headers.get('x-zerospin-user-id');
+    const identityKey = request.headers.get('x-zerospin-identity-key');
     const frontendName = request.headers.get('x-zerospin-frontend-name');
     const encodedServiceFrontendLock = request.headers.get(
       'x-zerospin-service-frontend-lock',
@@ -48,7 +48,7 @@ export const onConnect = Effect.fn('FrontendServiceChain.onConnect')(
     if (
       serviceVersion !== key.serviceVersion ||
       serviceName !== key.serviceName ||
-      userId !== key.userId ||
+      identityKey !== key.identityKey ||
       frontendName !== key.frontendName ||
       encodedServiceFrontendLock === null
     ) {
@@ -74,7 +74,7 @@ export const onConnect = Effect.fn('FrontendServiceChain.onConnect')(
       phase: 'awaiting-resume',
       serviceVersion,
       serviceName,
-      userId,
+      identityKey,
       frontendName,
       serviceFrontendLock: serviceFrontendLockResult.success,
     });

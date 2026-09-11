@@ -197,7 +197,7 @@ export const executeCommandsTx = makeTx(
           yield* guards
             .run(command.commandName, {
               db: commandTx,
-              userId: command.userId,
+              identityKey: command.identityKey,
               payload,
             })
             .pipe(

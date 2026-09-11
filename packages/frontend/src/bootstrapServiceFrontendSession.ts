@@ -72,7 +72,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
   generateSignature(): Promise<IEncodedResult<unknown, IAnyErrorJson>>;
   backupWorker: IBackupWorker;
 }): Effect.fn.Return<
-  Readonly<{ systemId: ISystemId; userId: string }>,
+  Readonly<{ systemId: ISystemId; identityKey: string }>,
   IAnyError,
   Async | Scope.Scope | TelemetryCollector
 > {
@@ -162,7 +162,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
     }).pipe(Effect.catch(() => Effect.void)),
   );
 
-  // 3 — The exact offline locator supplies { systemId, userId } when present;
+  // 3 — The exact offline locator supplies { systemId, identityKey } when present;
   // otherwise authentication supplies them before this frontend can select a backup.
   const authenticationLocatorKey = `zerospin:authentication:${JSON.stringify({
     apiUrl,
@@ -181,7 +181,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
   });
   let online = false;
   let systemId: ISystemId;
-  let userId: string;
+  let identityKey: string;
   if (persistedIdentity !== null) {
     const decodedIdentity = yield* Effect.try({
       try: () => JSON.parse(persistedIdentity),
@@ -194,7 +194,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
         Schema.decodeUnknownEffect(
           Schema.Struct({
             systemId: makeAbbreviationIdSchema('sys'),
-            userId: Schema.String,
+            identityKey: Schema.String,
           }),
         )(value, { onExcessProperty: 'error' }).pipe(
           Effect.mapError(
@@ -208,7 +208,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
       ),
     );
     systemId = decodedIdentity.systemId;
-    userId = decodedIdentity.userId;
+    identityKey = decodedIdentity.identityKey;
   } else {
     const initialState = yield* fetchServiceFrontendState({
       serviceVersion: props.serviceVersion,
@@ -222,13 +222,13 @@ export const bootstrapServiceFrontendSession = Effect.fn(
       serviceFrontendLock,
     });
     systemId = initialState.systemId;
-    userId = initialState.userId;
+    identityKey = initialState.identityKey;
     online = true;
     yield* Effect.try({
       try: () => {
         localStorage.setItem(
           authenticationLocatorKey,
-          JSON.stringify({ systemId, userId }),
+          JSON.stringify({ systemId, identityKey }),
         );
       },
       catch: ZerospinError.catch({
@@ -242,7 +242,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
   const backupKey = yield* makeServiceFrontendBackupKey({
     serviceVersion: props.serviceVersion,
     systemId,
-    userId,
+    identityKey,
     serviceName: frontend.serviceName,
     frontendName: frontend.name,
     serviceFrontendLockKey,
@@ -648,7 +648,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
                 yield* applyServiceFrontendState({
                   frontend,
                   sessionId: executionSessionId,
-                  userId,
+                  identityKey,
                   systemId,
                   db,
                   models,
@@ -922,7 +922,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
             session.store.setState({
               sessionId: executionSessionId,
               serviceName: frontend.serviceName,
-              userId,
+              identityKey,
               systemId,
               frontendName: frontend.name,
               serviceFrontendLockKey,
@@ -1047,7 +1047,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
                     try: () =>
                       localStorage.setItem(
                         authenticationLocatorKey,
-                        JSON.stringify({ systemId, userId }),
+                        JSON.stringify({ systemId, identityKey }),
                       ),
                     catch: ZerospinError.catch({
                       code: 'browser-persistence-reset-required',
@@ -1088,5 +1088,5 @@ export const bootstrapServiceFrontendSession = Effect.fn(
     ),
   );
   yield* Deferred.await(initialized);
-  return { systemId, userId };
+  return { systemId, identityKey };
 });

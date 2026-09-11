@@ -38,7 +38,7 @@ MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
   aggregateIds: { main: 'acct_1' },
-  userId: 'user_1',
+  identityKey: 'user_1',
   resources: {
     user: [
       {
@@ -69,14 +69,14 @@ MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
   aggregateIds: { main: 'acct_1' },
-  userId: 'user_1',
+  identityKey: 'user_1',
 });
 
 MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
   aggregateIds: { main: 'acct_1' },
-  userId: 'user_1',
+  identityKey: 'user_1',
   resources: {
     // @ts-expect-error Mock resources only accept the frontend's model keys.
     missing: [],
@@ -87,7 +87,7 @@ MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
   aggregateIds: { main: 'acct_1' },
-  userId: 'user_1',
+  identityKey: 'user_1',
   resources: {
     user: [
       {
@@ -109,14 +109,14 @@ MockMainProvider({
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
   // @ts-expect-error aggregateIds must contain the configured aggregate frontend name.
   aggregateIds: {},
-  userId: 'user_1',
+  identityKey: 'user_1',
 });
 
 MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
   aggregateIds: { main: 'acct_1' },
-  userId: 'user_1',
+  identityKey: 'user_1',
 });
 
 MockMainProvider({
@@ -124,5 +124,5 @@ MockMainProvider({
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
   // @ts-expect-error aggregate names are not frontend-name keys.
   aggregateIds: { user: 'acct_1' },
-  userId: 'user_1',
+  identityKey: 'user_1',
 });

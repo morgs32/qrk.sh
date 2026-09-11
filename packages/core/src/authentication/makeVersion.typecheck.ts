@@ -5,19 +5,19 @@ import { makeSystem } from '../system/makeSystem.ts';
 
 import { makeAuthenticationVersion } from './makeVersion.ts';
 
-const UserId = Schema.String.pipe(Schema.brand('UserId'));
+const IdentityKey = Schema.String.pipe(Schema.brand('IdentityKey'));
 const v1 = makeAuthenticationVersion({
   version: '1.0.0',
-  signature: Schema.Struct({ userId: UserId }),
+  signature: Schema.Struct({ identityKey: IdentityKey }),
   authenticate: ({ signature }) => {
-    assert<Equals<typeof signature.userId, typeof UserId.Type>>();
-    return Effect.succeed(signature.userId);
+    assert<Equals<typeof signature.identityKey, typeof IdentityKey.Type>>();
+    return Effect.succeed(signature.identityKey);
   },
   onAuthentication: Effect.fn('test.onAuthentication')(function* ({
-    userId,
+    identityKey,
     executeAggregateCommand,
   }) {
-    assert<Equals<typeof userId, string>>();
+    assert<Equals<typeof identityKey, string>>();
     const result = yield* executeAggregateCommand({
       id: 'cmd_test',
       commandName: 'createUser',
@@ -27,7 +27,7 @@ const v1 = makeAuthenticationVersion({
       aggregateName: 'user',
       aggregateVersion: '1.0.0',
       systemName: 'auth',
-      userId: null,
+      identityKey: null,
       sessionId: null,
       frontendName: null,
       pushIndex: null,
@@ -47,7 +47,10 @@ const system = makeSystem({
 });
 assert<Equals<typeof v1.version, '1.0.0'>>();
 assert<
-  Equals<Effect.Success<ReturnType<typeof v1.authenticate>>, typeof UserId.Type>
+  Equals<
+    Effect.Success<ReturnType<typeof v1.authenticate>>,
+    typeof IdentityKey.Type
+  >
 >();
 assert<Equals<typeof system.authentication, readonly [typeof v1, typeof v2]>>();
 
@@ -58,6 +61,6 @@ v1.authenticate({ signature: { subject: 'user' } });
 makeAuthenticationVersion({
   version: '1.0.0',
   signature: Schema.String,
-  // @ts-expect-error authentication must return a user ID string
+  // @ts-expect-error authentication must return an identity key string
   authenticate: () => Effect.succeed(1),
 });

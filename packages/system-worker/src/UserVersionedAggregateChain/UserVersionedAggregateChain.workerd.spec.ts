@@ -17,7 +17,7 @@ it('shares one history across concurrent frontend locks and filters replay and l
     aggregateId: 'acct_shared_locks',
     aggregateName: 'user',
     aggregateVersion: '1.0.0',
-    userId: 'usr_shared',
+    identityKey: 'usr_shared',
   };
   const repo = await Effect.runPromise(
     UserVersionedAggregateChain.getRepo({ key }),
@@ -26,7 +26,7 @@ it('shares one history across concurrent frontend locks and filters replay and l
   const time = '2026-09-09T12:00:00.000Z';
   const resources = [
     {
-      id: key.userId,
+      id: key.identityKey,
       modelName: 'user',
       version: '1.0.0',
       createdAt: time,
@@ -40,7 +40,7 @@ it('shares one history across concurrent frontend locks and filters replay and l
       createdAt: time,
       updatedAt: time,
       name: 'Shared list',
-      userId: key.userId,
+      identityKey: key.identityKey,
     },
   ];
   const rows = [1, 2, 3].map(userIndex => ({
@@ -64,7 +64,7 @@ it('shares one history across concurrent frontend locks and filters replay and l
           aggregateId: key.aggregateId,
           aggregateName: key.aggregateName,
           systemName: 'system-worker',
-          userId: key.userId,
+          identityKey: key.identityKey,
           frontendName: 'main',
           sessionId: 'sesn_shared',
           pushIndex: userIndex,
@@ -93,7 +93,7 @@ it('shares one history across concurrent frontend locks and filters replay and l
           'x-zerospin-aggregate-id': key.aggregateId,
           'x-zerospin-aggregate-name': key.aggregateName,
           'x-zerospin-aggregate-version': key.aggregateVersion,
-          'x-zerospin-user-id': key.userId,
+          'x-zerospin-identity-key': key.identityKey,
           'x-zerospin-frontend-name': name,
           'x-zerospin-aggregate-frontend-lock': JSON.stringify(lock),
         },
@@ -154,7 +154,7 @@ it('persists before acknowledgement and replays strictly after the supplied snap
         aggregateId: 'acct_replay069',
         aggregateName: 'user',
         aggregateVersion: '1.0.0',
-        userId: 'usr_replay069',
+        identityKey: 'usr_replay069',
         frontendName: 'main',
       };
       const repo = yield* UserVersionedAggregateChain.getRepo({ key });
@@ -199,7 +199,7 @@ it('persists before acknowledgement and replays strictly after the supplied snap
               'x-zerospin-aggregate-id': key.aggregateId,
               'x-zerospin-aggregate-name': key.aggregateName,
               'x-zerospin-aggregate-version': key.aggregateVersion,
-              'x-zerospin-user-id': key.userId,
+              'x-zerospin-identity-key': key.identityKey,
               'x-zerospin-frontend-name': key.frontendName,
               'x-zerospin-aggregate-frontend-lock': JSON.stringify(
                 makeAggregateFrontendLock({ frontend: main }),

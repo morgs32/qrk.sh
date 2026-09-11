@@ -118,7 +118,7 @@ Keyword → pattern file routing. Code shows good; `@bad` JSDoc tags document an
 | IShape satisfies, IAnyTables, as const satisfies                                             | `typescript/shape-table-satisfies-without-as-const.ts`       |
 | table ref, foreign key, foreignKey, payload key                                              | `typescript/table-ref-and-foreign-key.ts`                    |
 | makeSystem id inference                                                                      | `typescript/makesystem-system-entry-exports.ts`              |
-| owner authenticate, userId, aggregate authorization target                                   | `typescript/owner-authentication-returns-user-id.ts`         |
+| owner authenticate, identityKey, aggregate authorization target                              | `typescript/owner-authentication-returns-identity-key.ts`    |
 | intersection factory return                                                                  | `typescript/intersection-return-types-on-factories.ts`       |
 | frontend binding source model, aggregate model consistency                                   | `typescript/aggregate-frontend-binding-model-consistency.ts` |
 | unprompted type JSDoc                                                                        | `typescript/unrequested-annotations-on-types.ts`             |

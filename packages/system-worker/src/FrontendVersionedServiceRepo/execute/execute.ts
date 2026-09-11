@@ -17,7 +17,7 @@ export const execute = Effect.fn('FrontendVersionedServiceRepo.execute')(
       systemId: string;
       serviceName: string;
       serviceVersion: string;
-      userId: string;
+      identityKey: string;
       frontendName: string;
     };
   }) {

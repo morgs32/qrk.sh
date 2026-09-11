@@ -25,14 +25,21 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
   function* <FRONTEND extends IServiceFrontendController>(props: {
     frontend: FRONTEND;
     sessionId: ISessionId;
-    userId: IServiceFrontendState['userId'];
+    identityKey: IServiceFrontendState['identityKey'];
     systemId: IServiceFrontendState['systemId'];
     db: IServiceSessionDrizzleDb<FRONTEND['models'], Record<never, never>>;
     models: FRONTEND['models'];
     frontendState: IServiceFrontendState;
   }): Effect.fn.Return<void, IAnyError> {
-    const { db, frontend, frontendState, models, sessionId, systemId, userId } =
-      props;
+    const {
+      db,
+      frontend,
+      frontendState,
+      models,
+      sessionId,
+      systemId,
+      identityKey,
+    } = props;
 
     yield* Schema.encodeEffect(ServiceFrontendStateSchema)(frontendState, {
       onExcessProperty: 'error',
@@ -44,7 +51,7 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
     );
 
     if (
-      frontendState.userId !== userId ||
+      frontendState.identityKey !== identityKey ||
       frontendState.systemId !== systemId ||
       frontendState.serviceName !== frontend.serviceName ||
       frontendState.frontendName !== frontend.name
@@ -53,11 +60,11 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
         code: 'service-frontend-state-target-mismatch',
         message: 'Service frontend state does not match the bound target',
         extra: {
-          expectedUserId: userId,
+          expectedIdentityKey: identityKey,
           expectedSystemId: systemId,
           expectedServiceName: frontend.serviceName,
           expectedFrontendName: frontend.name,
-          actualUserId: frontendState.userId,
+          actualIdentityKey: frontendState.identityKey,
           actualSystemId: frontendState.systemId,
           actualServiceName: frontendState.serviceName,
           actualFrontendName: frontendState.frontendName,

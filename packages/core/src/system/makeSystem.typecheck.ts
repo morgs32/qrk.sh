@@ -11,7 +11,7 @@ import { makeSystemSpec } from './makeSystemSpec.ts';
 
 const authenticationSignature = {
   version: '1.0.0',
-  signature: Schema.Struct({ userId: Schema.String }),
+  signature: Schema.Struct({ identityKey: Schema.String }),
 };
 const authenticationV1 = makeAuthenticationVersion({
   version: authenticationSignature.version,
@@ -20,7 +20,7 @@ const authenticationV1 = makeAuthenticationVersion({
     signature,
   }: {
     signature: Schema.Schema.Type<typeof authenticationSignature.signature>;
-  }) => Effect.succeed(signature.userId),
+  }) => Effect.succeed(signature.identityKey),
 });
 
 const catalog = makeService({

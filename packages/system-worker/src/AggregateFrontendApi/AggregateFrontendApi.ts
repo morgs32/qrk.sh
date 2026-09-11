@@ -29,7 +29,7 @@ export class AggregateFrontendApi extends RpcTarget {
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
     aggregateVersion: string;
-    readonly userId: string;
+    readonly identityKey: string;
     readonly frontendName: string;
     readonly aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
@@ -48,7 +48,7 @@ export class AggregateFrontendApi extends RpcTarget {
       readonly aggregateId: IAggregateId;
       readonly aggregateName: string;
       aggregateVersion: string;
-      readonly userId: string;
+      readonly identityKey: string;
       readonly frontendName: string;
       readonly aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema

@@ -51,14 +51,14 @@ describe('SessionPane service surface', () => {
         contracts: {},
         models,
         modelNames: [],
-        signature: Schema.Struct({ userId: Schema.String }),
+        signature: Schema.Struct({ identityKey: Schema.String }),
       },
       models,
       sessionId: serviceSessionId,
     });
     session.store.setState({
       sessionId: serviceSessionId,
-      userId: 'user_service_pane',
+      identityKey: 'user_service_pane',
       systemId: 'sys_service_pane',
       serviceName: 'catalog',
       frontendName: 'browse',

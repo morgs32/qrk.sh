@@ -61,7 +61,7 @@ const testFanoutDbConfig = makeDbConfig({
 const nameUtils = makeRepoNameUtils({
   abbreviation: 'testsub',
   namePattern: RoutePattern.parse(
-    '/:systemId/:aggregateId/:aggregateName/:userId/:frontendName',
+    '/:systemId/:aggregateId/:aggregateName/:identityKey/:frontendName',
   ),
 });
 
@@ -305,7 +305,7 @@ describe('makeFanoutQueue', () => {
       systemId: 'sys_test',
       aggregateId: 'acct_test',
       aggregateName: 'user',
-      userId: 'user_owner',
+      identityKey: 'user_owner',
       frontendName: 'main',
       currentIndex: 3,
     });
@@ -322,7 +322,7 @@ describe('makeFanoutQueue', () => {
       systemId: 'sys_test',
       aggregateId: 'acct_other',
       aggregateName: 'user',
-      userId: 'user_owner',
+      identityKey: 'user_owner',
       frontendName: 'main',
       currentIndex: null,
     });
@@ -385,7 +385,7 @@ describe('makeFanoutQueue', () => {
       systemId: 'sys_test',
       aggregateId: 'acct_test',
       aggregateName: 'user',
-      userId: 'user_owner',
+      identityKey: 'user_owner',
       frontendName: 'main',
       currentIndex: 0,
     });

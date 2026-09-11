@@ -39,7 +39,7 @@ describe('owner-local authored queries', () => {
           aggregateName: aggregate.name,
           aggregateVersion: aggregate.version,
           frontendName: 'main',
-          userId,
+          identityKey: userId,
           db,
         });
 
@@ -49,7 +49,7 @@ describe('owner-local authored queries', () => {
           aggregateName: aggregate.name,
           aggregateVersion: aggregate.version,
           frontendName: 'main',
-          userId,
+          identityKey: userId,
           db,
         }).pipe(Effect.result);
         expect(Result.isFailure(missing)).toBe(true);
@@ -84,7 +84,7 @@ describe('owner-local authored queries', () => {
           serviceName: service.name,
           serviceVersion: service.version,
           frontendName: 'products',
-          userId: 'owner-local-user',
+          identityKey: 'owner-local-user',
           db,
         });
         const products = yield* executeServiceQuery({

@@ -25,7 +25,7 @@ export const frontendVersionedServiceRepoFixedDORepoConfig =
     abbreviation: systemWorkerAbbreviations.frontendVersionedServiceRepo,
     repoType: 'FrontendVersionedServiceRepo',
     namePattern: RoutePattern.parse(
-      '/:systemId/:serviceName/:serviceVersion/:userId/:frontendName',
+      '/:systemId/:serviceName/:serviceVersion/:identityKey/:frontendName',
     ),
     managedRuntime,
     dbConfig: Effect.fn('FrontendVersionedServiceRepo.dbConfig')(function* ({

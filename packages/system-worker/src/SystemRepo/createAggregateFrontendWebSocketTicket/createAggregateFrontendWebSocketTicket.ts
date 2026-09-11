@@ -30,7 +30,7 @@ export const createAggregateFrontendWebSocketTicket = Effect.fn(
   aggregateId: string;
   aggregateName: string;
   aggregateVersion: string;
-  userId: string;
+  identityKey: string;
   frontendName: string;
   aggregateFrontendLock: Schema.Schema.Type<typeof AggregateFrontendLockSchema>;
   aggregateFrontendWebSocketTicketTable: IAnyDrizzleSchema;
@@ -47,7 +47,7 @@ export const createAggregateFrontendWebSocketTicket = Effect.fn(
     db,
     frontendName,
     repoName,
-    userId,
+    identityKey,
   } = props;
 
   // 1 — encode 32 random bytes as unpadded base64url
@@ -101,7 +101,7 @@ export const createAggregateFrontendWebSocketTicket = Effect.fn(
             aggregateId,
             aggregateName,
             aggregateVersion: props.aggregateVersion,
-            userId,
+            identityKey,
             frontendName,
             aggregateFrontendLock: encodedAggregateFrontendLock,
             expiresAt: new Date(now.getTime() + 30_000),

@@ -93,7 +93,7 @@ export const getUserVersionedAggregateRepoTableRows = Effect.fn(
             aggregateId: key.aggregateId,
             aggregateName: key.aggregateName,
             aggregateVersion: key.aggregateVersion,
-            userId: key.userId,
+            identityKey: key.identityKey,
           },
         });
 

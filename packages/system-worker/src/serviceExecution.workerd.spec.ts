@@ -20,7 +20,11 @@ it('executes, publishes, projects, and recovers an exact admission receipt after
     serviceName: 'app',
     serviceVersion: '1.0.0',
   };
-  const view = { ...key, userId: 'usr_pipeline071', frontendName: 'products' };
+  const view = {
+    ...key,
+    identityKey: 'usr_pipeline071',
+    frontendName: 'products',
+  };
   const command = Schema.decodeUnknownSync(EncodedServiceCommandSchema)({
     id: 'cmd_pipeline071',
     serviceVersion: '1.0.0',

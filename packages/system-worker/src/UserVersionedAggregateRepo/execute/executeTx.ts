@@ -43,7 +43,7 @@ export const executeTx = makeTx(
     aggregateId: string;
     aggregateName: string;
     aggregateVersion: string;
-    userId: string;
+    identityKey: string;
   };
   source: { serviceName: string; serviceVersion: string } | undefined;
 }) {
@@ -231,7 +231,7 @@ export const executeTx = makeTx(
       db: tx,
       models: aggregate.models,
       selections: aggregate.selections,
-      userId: key.userId,
+      identityKey: key.identityKey,
     });
     const nextGraph = [];
     for (const resource of Object.values(selected)) {
@@ -308,7 +308,8 @@ export const executeTx = makeTx(
 
     // 8 — emit progress even for an empty delta; include the full entry only for this user
     const resolution =
-      aggregateEntry !== null && aggregateEntry.command.userId === key.userId
+      aggregateEntry !== null &&
+      aggregateEntry.command.identityKey === key.identityKey
         ? aggregateEntry
         : null;
     const output = yield* Schema.encodeEffect(

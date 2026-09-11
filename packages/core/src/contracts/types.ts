@@ -279,13 +279,13 @@ export type IAggregateCommand<
     | Readonly<{
         aggregateVersion: string;
         sessionId: null;
-        userId: string | null;
+        identityKey: string | null;
         frontendName: null;
         pushIndex: null;
       }>
     | Readonly<{
         sessionId: ISessionId;
-        userId: string;
+        identityKey: string;
         frontendName: string;
         pushIndex: number | null;
       }>
@@ -305,7 +305,7 @@ export type ISessionCommand<COMMAND extends ICommand = ICommand> = COMMAND &
     aggregateId: string;
     aggregateName: string;
     systemName: string;
-    userId: string;
+    identityKey: string;
     frontendName: string;
     sessionId: ISessionId;
     pushIndex: number | null;

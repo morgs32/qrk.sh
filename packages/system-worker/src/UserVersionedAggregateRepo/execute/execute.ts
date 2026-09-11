@@ -55,7 +55,7 @@ export const execute = Effect.fn('UserVersionedAggregateRepo.execute')(
       aggregateId: string;
       aggregateName: string;
       aggregateVersion: string;
-      userId: string;
+      identityKey: string;
     };
   }): Effect.fn.Return<void, IAnyError, Async> {
     const { rows, db, key } = props;

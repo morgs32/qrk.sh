@@ -92,7 +92,7 @@ export const getFrontendVersionedServiceRepoTableRows = Effect.fn(
             systemId: authResults.systemId,
             serviceName: key.serviceName,
             serviceVersion: key.serviceVersion,
-            userId: key.userId,
+            identityKey: key.identityKey,
             frontendName: key.frontendName,
           },
         });

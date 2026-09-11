@@ -31,7 +31,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
     aggregateName: 'user',
     aggregateVersion: '1.0.0',
   };
-  const view = { ...key, userId: 'usr_pinned' };
+  const view = { ...key, identityKey: 'usr_pinned' };
   const serviceKey = {
     systemId: key.systemId,
     serviceName: 'app',
@@ -74,7 +74,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
               aggregateVersion: '1.0.0',
               aggregateName: 'user',
               systemName: 'system-worker',
-              userId: null,
+              identityKey: null,
               sessionId: null,
               frontendName: null,
               pushIndex: null,
@@ -354,7 +354,7 @@ it('rolls back resource enrollment while preserving activation-declared sources 
               aggregateVersion: '1.0.0',
               aggregateName: 'user',
               systemName: 'system-worker',
-              userId: null,
+              identityKey: null,
               sessionId: null,
               frontendName: null,
               pushIndex: null,

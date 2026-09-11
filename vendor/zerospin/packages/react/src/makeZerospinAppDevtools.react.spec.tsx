@@ -177,6 +177,38 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     ).toThrow('belongs to system');
   });
 
+  it('rejects a different Effect layer prototype before acquiring storage', async () => {
+    const applicationLayer = Layer.mergeAll(sessionRuntimeLayer, Layer.empty);
+    // Model a second Effect copy with the same layer protocol but its own prototype.
+    Object.setPrototypeOf(applicationLayer, {
+      ...Object.getPrototypeOf(applicationLayer),
+    });
+    const App = makeZerospinApp({
+      systemName: 'system-worker',
+      authentication: {
+        version: authenticationSignature.version,
+        signature: authenticationSignature.signature,
+      },
+      frontends: {},
+      layer: applicationLayer,
+    });
+
+    await expect(
+      act(async () => {
+        root.render(
+          <App.Provider
+            aggregateIds={{}}
+            generateSignature={() => Effect.succeed({ userId: 'usr_unused' })}
+          >
+            <div>Ready</div>
+          </App.Provider>,
+        );
+      }),
+    ).rejects.toThrow('zerospin-app-effect-runtime-mismatch');
+    expect(acquireBackupWorkerMock).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain('Ready');
+  });
+
   it('mounts empty providers without acquiring storage and lazily opens DevTools once', async () => {
     const generateSignature = vi.fn(() =>
       Effect.succeed({ userId: 'usr_unused' }),

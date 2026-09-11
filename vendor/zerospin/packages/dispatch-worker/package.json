@@ -36,12 +36,15 @@
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
     "@zerospin/schema": "workspace:*",
-    "effect": "rc",
     "system-worker": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.9.4",
+    "effect": "rc",
     "rimraf": "^6.1.3",
     "vitest": "^4.1.5"
+  },
+  "peerDependencies": {
+    "effect": "^4.0.0-rc.111"
   }
 }

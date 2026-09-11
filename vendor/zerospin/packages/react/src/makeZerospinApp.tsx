@@ -37,6 +37,7 @@ import {
   type CuidFactory,
 } from '@zerospin/schema';
 import {
+  Cause,
   Effect,
   Exit,
   Fiber,
@@ -160,6 +161,18 @@ export function makeZerospinApp<
     };
     children: ReactNode;
   }) {
+    // 2 — reject a different Effect copy before building any application layers.
+    if (
+      Object.getPrototypeOf(applicationLayer) !==
+      Object.getPrototypeOf(Layer.empty)
+    ) {
+      throw new ZerospinError({
+        code: 'zerospin-app-effect-runtime-mismatch',
+        message:
+          'The application layer was created by a different Effect runtime than Zerospin React. Ensure the app and Zerospin resolve to the same Effect installation, then rebuild.',
+      });
+    }
+
     // 2 — reject nesting; retain the latest signature factory across renders.
     const parentProvider = useContext(ZerospinProviderContext);
     if (parentProvider !== null) {
@@ -552,12 +565,22 @@ export function makeZerospinApp<
             }),
           ).pipe(Effect.provideContext(application)),
       ).pipe(
-        // 8 — clear the registry on typed failure and always release the page claim.
-        Effect.catch(error =>
+        // 8 — surface typed failures and defects; always release the page claim.
+        Effect.catchCause(cause =>
           Effect.sync(() => {
             if (!cancelled) {
+              const error = Cause.squash(cause);
               setSessions(new Map());
-              setStartupError(error);
+              setStartupError(
+                ZerospinError.isZerospinError(error)
+                  ? error
+                  : new ZerospinError({
+                      code: 'zerospin-app-startup-failed',
+                      message:
+                        error instanceof Error ? error.message : String(error),
+                      cause: ZerospinError.prettyUnknownFailure(cause),
+                    }),
+              );
             }
           }),
         ),

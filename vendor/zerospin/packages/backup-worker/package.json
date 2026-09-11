@@ -33,13 +33,13 @@
     "@zerospin/core": "workspace:*",
     "@zerospin/error": "workspace:*",
     "capnweb": "^0.12.0",
-    "effect": "4.0.0-rc.111",
     "wa-sqlite": "github:rhashimoto/wa-sqlite#07ad48cf2f682d279f9cd69818cc1d39b2ccda86"
   },
   "devDependencies": {
     "@effect/language-service": "^0.87.2",
     "@effect/vitest": "4.0.0-rc.111",
     "@types/node": "^25.6.2",
+    "effect": "4.0.0-rc.111",
     "rimraf": "^6.1.3",
     "tsup": "^8.5.1",
     "vite": "^8.0.11",

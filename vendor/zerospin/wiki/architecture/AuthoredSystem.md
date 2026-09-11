@@ -73,23 +73,35 @@ requires empty storage, without a schema-upgrade or compatibility path.
 
 Each production Repo, including SystemRepo, provisions its current Drizzle schema
 on first activation. The retained `_isBootstrapped` marker makes later cold
-activations reopen that database without performing schema work.
+activations reopen that database without provisioning. SystemRepo has one explicit
+exception: before common-base initialization it transactionally renames
+`aggregateSpecLocks` / `serviceSpecLocks` to `lockedAggregateVersions` /
+`lockedServiceVersions`, retaining rows and unique `(name, version)` indexes.
+Repeated activation is a no-op after the rename. If both names for either kind
+exist, activation fails and rolls back the entire migration.
 
 - [`VersionedAggregateRepo.ts`](../../packages/system-worker/src/VersionedAggregateRepo/VersionedAggregateRepo.ts) — Resolves the physical schema from the aggregateVersion carried in its name and declares its Repo type for common-base inspection registration.
 - [`makeFixedDORepo.ts`](../../packages/system-worker/src/makeFixedDORepo/makeFixedDORepo.ts) — Skips provisioning for a marked database and supplies this policy to the common Repo base.
 - [`SystemRepo.ts`](../../packages/system-worker/src/SystemRepo/SystemRepo.ts) — Uses the shared fixed-schema base while validating the exact configured singleton name.
 
-SystemRepo retains immutable aggregate and service definition locks. Their
+SystemRepo retains immutable definitions in `lockedAggregateVersions` and
+`lockedServiceVersions`, each with `name`, `version`, and `spec`. Their
 logical identity is `{ systemId, kind, name, version }`: the configured/authenticated
 system selects the singleton SystemRepo; the executing Worker's serialized
 candidate supplies kind, name, and version. Acceptance compares all candidates
 in one transaction and inserts new versions only if every existing lock matches.
 Removed definitions retain their locks. Structural equality ignores object-key
 order and preserves array order. Executable bodies, root authentication definitions,
-and framework-owned physical schemas are outside this comparison.
+and framework-owned physical schemas are outside this comparison. Stored specs
+are decoded with the JSON-column codecs. `assertAcceptedSpec` compares
+JSON-compatible definitions with `JsonPatch.get(accepted, incoming)`; mismatches
+retain their error code and include formatted patch JSON in the message and the
+patch array in `extra.changes`.
 
 - [`checkSystemSpec.ts`](../../packages/system-worker/src/SystemRepo/checkSystemSpec/checkSystemSpec.ts) — validates the candidate and atomically compares or inserts its definitions.
-- [`systemRepoDbConfig.ts`](../../packages/system-worker/src/SystemRepo/systemRepoDbConfig.ts) — stores aggregate and service locks independently of registration.
+- [`systemRepoDbConfig.ts`](../../packages/system-worker/src/SystemRepo/systemRepoDbConfig.ts) — stores aggregate and service versions independently of registration.
+- [`assertAcceptedSpec.ts`](../../packages/system-worker/src/SystemRepo/assertAcceptedSpec/assertAcceptedSpec.ts) — produces descriptive patch failures shared by acceptance and registration.
+- [`ProcedureStepError.tsx`](../../packages/cli/src/ProcedureStep/ProcedureStepError.tsx) — renders the mismatch message and saves the message and structured error details.
 - [`makeSystemSpec.ts`](../../packages/core/src/system/makeSystemSpec.ts) — defines the serialized aggregate/service fields.
 
 Every common Repo activation serializes its executing bundle and requests

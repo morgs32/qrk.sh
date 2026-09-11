@@ -145,6 +145,37 @@ assert<
 
 export const systemLogRepoDbConfig = makeDbConfig({
   tables: {
+    authenticationAttempts: makeTable({
+      name: 'authenticationAttempts',
+      shape: {
+        attemptId: primitives.primaryKey({ abbreviation: 'aat' }),
+        ownerKind: primitives.enum({ values: ['aggregate', 'service'] }),
+        ownerName: primitives.text(),
+        ownerVersion: primitives.text(),
+        startedAt: primitives.date(),
+        completedAt: primitives.date({ nullable: true }),
+        status: primitives.enum({
+          values: ['unfinished', 'succeeded', 'failed'],
+        }),
+        authentication: primitives.json({
+          schema: Schema.Record(Schema.String, Schema.Unknown),
+          nullable: true,
+        }),
+        authenticationHash: primitives.text({ nullable: true }),
+        selection: primitives.json({
+          schema: Schema.Record(Schema.String, Schema.String),
+          nullable: true,
+        }),
+        selectionPath: primitives.text({ nullable: true }),
+        failure: primitives.json({
+          schema: Schema.Struct({
+            code: Schema.String,
+            message: Schema.String,
+          }),
+          nullable: true,
+        }),
+      },
+    }),
     logs: makeTable({
       name: 'logs',
       shape: logRowShape,

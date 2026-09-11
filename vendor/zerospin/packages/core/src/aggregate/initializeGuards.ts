@@ -17,6 +17,7 @@ export function initializeGuards<AGGREGATE extends IAnyAuthoredAggregate>(
 export function initializeGuards(aggregate: IAnyAuthoredAggregate) {
   return initializeOwnerGuards({
     layer: aggregate.layer,
+    guardLayer: aggregate.guardLayer,
     guards: Object.fromEntries(
       Object.entries(aggregate.contracts).map(([name, binding]) => [
         name,

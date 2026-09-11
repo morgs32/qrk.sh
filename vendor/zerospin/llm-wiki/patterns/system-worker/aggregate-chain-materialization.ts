@@ -16,12 +16,12 @@
  * service subscriptions, without AC self-enrollment. SystemRepo inspection
  * reads explicit Repo registrations.
  *
- * AC contains aggregate commands only. VAR and UVAR consume their authored
+ * AC contains aggregate commands only. VAR and AVAR consume their authored
  * service-version pins directly from VSC, using independent service cursors
  * and resource enrollment. VAR installs authoritative replicas before guards;
  * successful finalized replicate mutations carry the effective resource,
  * serviceVersion, and serviceIndex. Service updates never create VAC entries.
- * UVAR publishes aggregate and service progress through one UVAC history,
+ * AVAR publishes aggregate and service progress through one AVAC history,
  * ordered by userIndex with a separate aggregateIndex watermark.
  *
  * Direct retries select the current base and return its retained result.

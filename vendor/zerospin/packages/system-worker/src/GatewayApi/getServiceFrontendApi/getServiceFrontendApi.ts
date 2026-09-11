@@ -1,6 +1,5 @@
-import { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
-import { mapParseError } from '@zerospin/error';
+import { mapParseError, ZerospinError } from '@zerospin/error';
 import { env } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
 
@@ -9,14 +8,13 @@ import { authorizeServiceFrontend } from '../../authorizeServiceFrontend/authori
 import type { ISystemRuntime } from '../../makeSystemRuntime.js';
 import { ServiceFrontendApi } from '../../ServiceFrontendApi/ServiceFrontendApi.js';
 import { ServiceFrontendApiFailure } from '../../ServiceFrontendApi/ServiceFrontendApiFailure/ServiceFrontendApiFailure.js';
-import { checkAuthentication } from '../checkAuthentication/checkAuthentication.js';
 import { checkAuthorization } from '../checkAuthorization/checkAuthorization.js';
 import { checkPublishableApiKey } from '../checkPublishableApiKey/checkPublishableApiKey.js';
 
 /*
  * GatewayApi grants a service frontend capability after checking the submitted
  * locks, authentication result, and owner authorization. The capability binds
- * the configured systemId and authenticated identityKey to the admitted frontend.
+ * the configured systemId and authenticated authentication to the admitted frontend.
  *
  * 1. Capture the request and runtime.
  * 2. Decode the request envelope.
@@ -33,7 +31,6 @@ export const getServiceFrontendApi = Effect.fn(
   request: {
     publishableKey: string;
     systemName: string;
-    authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
     signature: unknown;
     serviceName: string;
     serviceVersion: string;
@@ -51,7 +48,6 @@ export const getServiceFrontendApi = Effect.fn(
         Schema.Struct({
           publishableKey: Schema.String,
           systemName: Schema.String,
-          authenticationLock: Schema.Unknown,
           signature: Schema.Unknown,
           serviceName: Schema.String,
           serviceVersion: Schema.String,
@@ -66,15 +62,6 @@ export const getServiceFrontendApi = Effect.fn(
       }),
     );
 
-    // 3 — validate AuthenticationLockSchema and ServiceFrontendLockSchema
-    const authenticationLock = yield* Schema.decodeUnknownEffect(
-      AuthenticationLockSchema,
-    )(validated.authenticationLock, { onExcessProperty: 'error' }).pipe(
-      mapParseError({
-        code: 'authentication-lock-invalid',
-        prefix: 'getServiceFrontendApi received an invalid authentication lock',
-      }),
-    );
     const serviceFrontendLock = yield* Schema.decodeUnknownEffect(
       ServiceFrontendLockSchema,
     )(validated.serviceFrontendLock, { onExcessProperty: 'error' }).pipe(
@@ -85,17 +72,21 @@ export const getServiceFrontendApi = Effect.fn(
       }),
     );
 
-    // 4 — validate the API key, adapt the signature, and check the returned identityKey and lock
+    // 4 — validate the API key, adapt the signature, and check the returned authentication and lock
     yield* checkPublishableApiKey(validated.publishableKey);
-    const authentication = yield* authenticate({
-      authenticationLock,
+    const authenticated = yield* authenticate({
+      ownerKind: 'service',
+      ownerName: validated.serviceName,
+      ownerVersion: validated.serviceVersion,
       signature: validated.signature,
     });
-    const identityKey = yield* checkAuthentication({
-      authentication,
-      authenticationLock,
-      systemName: validated.systemName,
-    });
+    if (authenticated.systemName !== validated.systemName) {
+      return yield* new ZerospinError({
+        code: 'authentication-system-name-mismatch',
+        message: 'Requested system differs from the authenticated owner',
+      });
+    }
+    const authentication = authenticated.authentication;
 
     // 5 — ask the owner to admit the frontend, then compare its returned target and lock
     const authorization = yield* authorizeServiceFrontend({
@@ -103,20 +94,20 @@ export const getServiceFrontendApi = Effect.fn(
       serviceName: validated.serviceName,
       frontendName: validated.frontendName,
       serviceFrontendLock,
-      identityKey,
+      authentication,
     });
     yield* checkAuthorization({
       kind: 'service',
       serviceVersion: validated.serviceVersion,
       authorization,
-      identityKey,
+      authentication,
       systemName: validated.systemName,
       serviceName: validated.serviceName,
       frontendName: validated.frontendName,
       serviceFrontendLock,
     });
 
-    // 6 — retain the admitted lock, authenticated identityKey, and configured systemId
+    // 6 — retain the admitted lock, authenticated authentication, and configured systemId
     return new ServiceFrontendApi({
       authResults: {
         serviceVersion: validated.serviceVersion,
@@ -124,7 +115,8 @@ export const getServiceFrontendApi = Effect.fn(
         serviceFrontendLock: authorization.serviceFrontendLock,
         serviceName: validated.serviceName,
         systemId: env.ZEROSPIN_SYSTEM_ID,
-        identityKey,
+        authentication,
+        selectionPath: authenticated.selectionPath,
       },
       runtime,
     });

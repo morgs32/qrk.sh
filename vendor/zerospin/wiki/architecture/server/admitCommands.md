@@ -1,11 +1,11 @@
 ---
 title: Command Chains and Materialization
-updated: 2026-09-09
+updated: 2026-09-11
 ---
 
 # Command Chains and Materialization
 
-The aggregate path is AC → VAR → VAC → UVAR → UVAC → browser. VAR and UVAR also consume the service histories pinned by their aggregate definition. UVAR combines those sources into one user stream with its own output index.
+The aggregate path is AC → VAR → VAC → AVAR → AVAC → browser. VAR and AVAR also consume the service histories pinned by their aggregate definition. AVAR combines those sources into one user stream with its own output index.
 
 ## Trigger
 
@@ -20,8 +20,8 @@ sequenceDiagram
   participant VersionedServiceRepo
   participant VersionedAggregateChain
   participant VersionedServiceChain
-  participant UserVersionedAggregateRepo
-  participant UserVersionedAggregateChain
+  participant AuthenticatedVersionedAggregateRepo
+  participant AuthenticatedVersionedAggregateChain
   participant Browser
   autonumber 1
   AggregateFrontendApi->>AggregateChain: chain.admitCommands(...)
@@ -34,15 +34,15 @@ sequenceDiagram
   autonumber 5
   VersionedAggregateRepo->>VersionedAggregateChain: subscriber.receive(...)
   autonumber 6
-  VersionedAggregateChain->>UserVersionedAggregateRepo: receiver.receive(...)
+  VersionedAggregateChain->>AuthenticatedVersionedAggregateRepo: receiver.receive(...)
   autonumber 7
   VersionedServiceChain->>VersionedAggregateRepo: receiver.receive(...)
   autonumber 8
-  VersionedServiceChain->>UserVersionedAggregateRepo: receiver.receive(...)
+  VersionedServiceChain->>AuthenticatedVersionedAggregateRepo: receiver.receive(...)
   autonumber 9
-  UserVersionedAggregateRepo->>UserVersionedAggregateChain: subscriber.receive(...)
+  AuthenticatedVersionedAggregateRepo->>AuthenticatedVersionedAggregateChain: subscriber.receive(...)
   autonumber 10
-  UserVersionedAggregateChain-->>Browser: aggregateFrontendCommand
+  AuthenticatedVersionedAggregateChain-->>Browser: aggregateFrontendCommand
 ```
 
 ## Annotated workflow steps
@@ -59,16 +59,16 @@ sequenceDiagram
    - [`executeCommandsTx.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/executeCommands/executeCommandsTx.ts) — Retains a newer enrolled copy, runs guards against provisional replicas, and applies aggregate-owned mutations afterward.
 5. VAR publishes complete terminal entries through its `executedCommands` outbox. Successful replication mutations include the effective resource, service version, and source position.
    - [`receiveExecutedCommands.ts`](../../../packages/system-worker/src/VersionedAggregateChain/receiveExecutedCommands/receiveExecutedCommands.ts) — Checks version, aggregate identity, duplicate bytes, contiguous position, and rolling disposition hash before retaining history.
-6. VAC fans terminal aggregate entries to UVAR. Initial service copies come from these mutations; UVAR closes a new enrollment's missing retained suffix before committing if its source cursor is already ahead.
-   - [`execute.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/execute/execute.ts) and [`executeTx.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/execute/executeTx.ts) — Prepares bounded late enrollment outside the transaction and replays successful aggregate mutations without programs or guards.
+6. VAC fans terminal aggregate entries to AVAR. Initial service copies come from these mutations; AVAR closes a new enrollment's missing retained suffix before committing if its source cursor is already ahead.
+   - [`execute.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/execute.ts) and [`executeTx.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/executeTx.ts) — Prepares bounded late enrollment outside the transaction and replays successful aggregate mutations without programs or guards.
 7. The pinned VSC independently sends complete service entries to VAR. Only enrolled resources change; failed and unrelated occurrences still advance the service cursor without creating VAC entries.
    - [`VersionedAggregateRepo.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/VersionedAggregateRepo.ts) and [`receiveServiceCommandsTx.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/receiveServiceCommandsTx.ts) — Validates and commits source delivery under the same execution permit used for aggregate commands.
-8. VSC also sends complete entries to UVAR. It serializes both input streams and commits each occurrence's graph, source progress, and outgoing delta together.
-   - [`UserVersionedAggregateRepo.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/UserVersionedAggregateRepo.ts) — Binds the direct source subscriber and shared execution permit.
-9. UVAR publishes one output per consumed occurrence, including empty deltas. `userIndex` advances; service-only outputs retain `aggregateIndex` and have no resolution.
-   - [`executeTx.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/execute/executeTx.ts) — Stores the graph and delta outbox row in the source application transaction.
-10. UVAC retains each contiguous frontend output before broadcasting it. Reconnect replay uses the same durable output order.
-    - [`receiveDeltas.ts`](../../../packages/system-worker/src/UserVersionedAggregateChain/receiveDeltas/receiveDeltas.ts) — Validates frontend positions and aggregate watermarks before exact-byte retention and broadcast.
+8. VSC also sends complete entries to AVAR. It serializes both input streams and commits each occurrence's graph, source progress, and outgoing delta together.
+   - [`AuthenticatedVersionedAggregateRepo.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.ts) — Binds the direct source subscriber and shared execution permit.
+9. AVAR publishes one output per consumed occurrence, including empty deltas. `userIndex` advances; service-only outputs retain `aggregateIndex` and have no resolution.
+   - [`executeTx.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/executeTx.ts) — Stores the graph and delta outbox row in the source application transaction.
+10. AVAC retains each contiguous frontend output before broadcasting it. Reconnect replay uses the same durable output order.
+    - [`receiveDeltas.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateChain/receiveDeltas/receiveDeltas.ts) — Validates frontend positions and aggregate watermarks before exact-byte retention and broadcast.
 
 ## Atomic batch admission
 
@@ -83,16 +83,16 @@ AC validates each input's aggregate fields and encodes the complete occurrence b
 
 ## Identity and ownership
 
-AC uses `{ systemId, aggregateId, aggregateName }`. Worker configuration supplies `systemId`; direct command callers supply the aggregate fields, while frontend APIs bind those fields after admission checks. VAR and VAC add `aggregateVersion`, selected explicitly for execution or from the deployed aggregate definitions for destination enrollment. UVAR and UVAC add `identityKey`, supplied by authentication. Their complete shared key is `{ systemId, aggregateId, aggregateName, aggregateVersion, identityKey }`. Frontend names and locks belong to admitted capabilities and connections. Snapshot tickets retain that exact versioned UVAC name.
+AC uses `{ systemId, aggregateId, aggregateName }`. Worker configuration supplies `systemId`; direct command callers supply the aggregate fields, while frontend APIs bind those fields after admission checks. VAR and VAC add `aggregateVersion`, selected explicitly for execution or from the deployed aggregate definitions for destination enrollment. AuthenticatedVersionedAggregateRepo and AuthenticatedVersionedAggregateChain add `selectionPath`, formatted from validated selection claims. Their complete shared key is `{ systemId, aggregateId, aggregateName, aggregateVersion, selectionPath }`. Frontend names and locks belong to admitted capabilities and connections. Snapshot tickets retain that exact versioned AVAC name.
 
 - [`aggregateChainFixedDORepoConfig.ts`](../../../packages/system-worker/src/AggregateChain/aggregateChainFixedDORepoConfig.ts) — Defines the unversioned admitted-chain name.
 - [`VersionedAggregateRepo.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/VersionedAggregateRepo.ts) — Defines version-owned execution identity.
-- [`userVersionedAggregateRepoFixedDORepoConfig.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/userVersionedAggregateRepoFixedDORepoConfig.ts) — Defines the five-field shared user replica name.
+- [`authenticatedVersionedAggregateRepoFixedDORepoConfig.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/authenticatedVersionedAggregateRepoFixedDORepoConfig.ts) — Defines the five-field shared user replica name.
 
-AC retains inputs only. VAR keeps terminal entries pending publication; VAC owns retained execution history after outbox deletion. VAR and UVAR retain one `services.lastIndex` per declared service. Replica-model rows and tombstones establish resource membership and retain their own `serviceIndex`. UVAR also owns the preceding projected graph, both progress indices and pending output. UVAC owns browser output history. There is no downstream frontend materializer or server optimism.
+AC retains inputs only. VAR keeps terminal entries pending publication; VAC owns retained execution history after outbox deletion. VAR and AVAR retain one `services.lastIndex` per declared service. Replica-model rows and tombstones establish resource membership and retain their own `serviceIndex`. AVAR also owns the preceding projected graph, both progress indices and pending output. AVAC owns browser output history. There is no downstream frontend materializer or server optimism.
 
 - [`versionedAggregateRepoDbConfig.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/versionedAggregateRepoDbConfig.ts) — Results are an outbox alongside resource state and the durable head.
-- [`userVersionedAggregateRepoDbConfig.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/userVersionedAggregateRepoDbConfig.ts) — Defines projection state, source cursors, and the delivery outbox.
+- [`authenticatedVersionedAggregateRepoDbConfig.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/authenticatedVersionedAggregateRepoDbConfig.ts) — Defines projection state, source cursors, and the delivery outbox.
 
 ## Deployed destination enrollment
 
@@ -214,9 +214,9 @@ An empty suffix pauses source delivery until another drain call rereads the pers
 - [`ServiceAdmittedChain.ts`](../../../packages/system-worker/src/ServiceAdmittedChain/ServiceAdmittedChain.ts) — Holds the durable alarm and schedules fanout independently of the admission response.
 - [`serviceExecution.workerd.spec.ts`](../../../packages/system-worker/src/serviceExecution.workerd.spec.ts) — Observes fanout publication without directly executing the materializer and checks receipt recovery after cold activation.
 
-ServiceAdmittedChain admits service commands and feeds registered service materializers. VAR and UVAR subscribe directly to the VSC selected by their aggregate service pins; changing SAC’s base does not switch those consumers. Standalone service frontend delivery retains FVSR. Aggregate domain rejection advances one position after rolling back that command; infrastructure failure aborts the execution page. No transaction spans an RPC. Internal fanout and outbox progress do not depend on browser connections.
+ServiceAdmittedChain admits service commands and feeds registered service materializers. VAR and AVAR subscribe directly to the VSC selected by their aggregate service pins; changing SAC’s base does not switch those consumers. Standalone service frontend delivery retains FVSR. Aggregate domain rejection advances one position after rolling back that command; infrastructure failure aborts the execution page. No transaction spans an RPC. Internal fanout and outbox progress do not depend on browser connections.
 
-- [`VersionedServiceChain.ts`](../../../packages/system-worker/src/VersionedServiceChain/VersionedServiceChain.ts) — Owns separate typed fanout queues for VAR, UVAR, and FVSR.
+- [`VersionedServiceChain.ts`](../../../packages/system-worker/src/VersionedServiceChain/VersionedServiceChain.ts) — Owns separate typed fanout queues for VAR, AVAR, and FVSR.
 - [`VersionedServiceRepo.ts`](../../../packages/system-worker/src/VersionedServiceRepo/VersionedServiceRepo.ts) — Uses the bound subscriber to replay and enroll a pinned version during activation; resource reads catch up without re-enrollment.
 - [`executeCommandsTx.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/executeCommands/executeCommandsTx.ts) — Separates per-command savepoints from the page transaction.
 - [`makeOutboxQueue.ts`](../../../packages/system-worker/src/makeOutboxQueue/makeOutboxQueue.ts) — Serializes bounded SQL delivery, exact-page acknowledgements, retry metadata, and queue-specific alarm leases.
@@ -271,28 +271,28 @@ sequenceDiagram
 8. Successful receipt advances source acknowledgement to the delivered row tail. A failure leaves delivery progress unchanged and enters the queue's existing terminal failure path.
    - [`makeFanoutQueue.ts`](../../../packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.ts) — Decodes receipt, persists the delivered cursor, and records delivery failures.
 
-VAR and UVAR initialize every declared service source during activation. Each target binds `{ systemId, serviceName, serviceVersion }`: `systemId` comes from the physical Repo key; the service name/version come from `aggregate.services` on the snapshot selected by `aggregateName` and `aggregateVersion`. Missing source rows start at cursor zero; existing cursors survive reactivation. Activation catches up and subscribes each source without an execution permit or database transaction spanning RPCs. Later commands enroll resources, not services, and do not rewind feed cursors.
+VAR and AVAR initialize every declared service source during activation. Each target binds `{ systemId, serviceName, serviceVersion }`: `systemId` comes from the physical Repo key; the service name/version come from `aggregate.services` on the snapshot selected by `aggregateName` and `aggregateVersion`. Missing source rows start at cursor zero; existing cursors survive reactivation. Activation catches up and subscribes each source without an execution permit or database transaction spanning RPCs. Later commands enroll resources, not services, and do not rewind feed cursors.
 
 - [`onDOActivation.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Declares all pinned VAR sources before catch-up and enrollment.
-- [`onDOActivation.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Declares service sources, subscribes finalized aggregate history, then subscribes the service feeds.
-- [`sourceReplay.node.spec.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/execute/sourceReplay.node.spec.ts) — Preserves late-resource replay behind an already advanced source cursor.
+- [`onDOActivation.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Declares service sources, subscribes finalized aggregate history, then subscribes the service feeds.
+- [`sourceReplay.node.spec.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/sourceReplay.node.spec.ts) — Preserves late-resource replay behind an already advanced source cursor.
 
-Snapshots capture the graph and both indices under execution exclusivity. After releasing that permit they await UVAC publication through the captured user position, then reconcile only requested outstanding command IDs from retained UVAC entries through that position. Full resolutions are restricted to the requesting frontend.
+Snapshots capture the graph and both indices under execution exclusivity. After releasing that permit they await AVAC publication through the captured user position, then reconcile only requested outstanding command IDs from retained AVAC entries through that position. Full resolutions are restricted to the requesting frontend.
 
-- [`getState.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/getState/getState.ts) — Captures a coherent view and waits for its captured delta publication before returning.
+- [`getState.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/getState/getState.ts) — Captures a coherent view and waits for its captured delta publication before returning.
 
 ## Verification
 
 - [`onDOActivation.node.spec.ts`](../../../packages/system-worker/src/AggregateChain/onDOActivation/onDOActivation.node.spec.ts) — Exercises deployed destination reconciliation during activation.
 - [`onDOActivation.node.spec.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/onDOActivation/onDOActivation.node.spec.ts) — Declares all service dependencies before resource enrollment and resumes subscription from committed cursors.
-- [`getState.node.spec.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/getState/getState.node.spec.ts) — Catches up both aggregate and service feeds without resubscribing and waits for the captured output position.
+- [`getState.node.spec.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/getState/getState.node.spec.ts) — Catches up both aggregate and service feeds without resubscribing and waits for the captured output position.
 
 - [`makeFanoutSubscriber.node.spec.ts`](../../../packages/system-worker/src/makeFanoutSubscriber/makeFanoutSubscriber.node.spec.ts) — Exercises fixed destinations, source paging failures, overlapping delivery, subscription handoff, and independent source cursors.
 - [`makeFanoutQueue.node.spec.ts`](../../../packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.node.spec.ts) — Verifies bounded pages during a held drain, complete source-key routing, cached envelope tips, and acknowledgement of the row tail.
 - [`preparedExecution.workerd.spec.ts`](../../../packages/system-worker/src/preparedExecution.workerd.spec.ts) — Exercises API admission, both guards, publication, snapshots, and cold retry.
 - [`pinnedServiceReplicas.workerd.spec.ts`](../../../packages/system-worker/src/pinnedServiceReplicas.workerd.spec.ts) — Exercises authoritative replicas before guards, historical subscription without prior registration, rejection rollback, independent pinned updates, tombstones, and cold recovery.
 - [`serviceReplication.node.spec.ts`](../../../packages/system-worker/src/serviceReplication.node.spec.ts) — Uses actual VAR executions to show that different replica observations under the same guard invalidate aggregate cutover.
-- [`sourceReplay.node.spec.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/execute/sourceReplay.node.spec.ts) — Covers late enrollment, duplicate and invalid source delivery, future copies, tombstones, and transaction rollback.
+- [`sourceReplay.node.spec.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/sourceReplay.node.spec.ts) — Covers late enrollment, duplicate and invalid source delivery, future copies, tombstones, and transaction rollback.
 
 ## Prepared execution payloads
 

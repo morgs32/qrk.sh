@@ -1,3 +1,4 @@
+import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
@@ -63,6 +64,7 @@ const SetV2 = upgradeContractVersion(SetV1, {
     }),
 });
 const AppV1 = makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'app',
   version: '1.0.0',
   models: {},
@@ -70,6 +72,7 @@ const AppV1 = makeService({
   frontends: {},
 });
 const V1 = makeAggregateVersion(makeAggregate({ name: 'cart' }), {
+  authentication: authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: { item: ItemV1 },
   contracts: { setQuantity: { contract: SetV1 } },

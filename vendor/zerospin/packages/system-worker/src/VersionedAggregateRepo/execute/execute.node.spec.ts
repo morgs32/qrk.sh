@@ -2,9 +2,9 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/makeProvisionedInMemorySqljsDb';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
+import config from 'config';
 import { Effect, Semaphore } from 'effect';
 import initSqlJs from 'sql.js';
-import { system } from 'system';
 import { expect, expectTypeOf, it, vi } from 'vitest';
 
 import { AggregateChain } from '../../AggregateChain/AggregateChain.js';
@@ -19,6 +19,8 @@ import {
 } from '../versionedAggregateRepoDbConfig.js';
 
 import { execute } from './execute.js';
+
+const { system } = config;
 const inputs = vi.hoisted(
   (): {
     rows: {
@@ -131,7 +133,7 @@ it('fetches bounded pages, commits all terminal occurrences, and never reruns al
       aggregateVersion: '1.0.0',
       aggregateName: 'user',
       systemName: 'system-worker',
-      identityKey: null,
+      authentication: null,
       sessionId: null,
       frontendName: null,
       pushIndex: null,
@@ -249,7 +251,7 @@ it.each(['direct', 'subscriber'])(
           aggregateVersion: '1.0.0',
           aggregateName: 'user',
           systemName: 'system-worker',
-          identityKey: null,
+          authentication: null,
           sessionId: null,
           frontendName: null,
           pushIndex: null,
@@ -360,7 +362,7 @@ it.each(['direct', 'subscriber'])(
           aggregateVersion: '1.0.0',
           aggregateName: 'user',
           systemName: 'system-worker',
-          identityKey: null,
+          authentication: null,
           sessionId: null,
           frontendName: null,
           pushIndex: null,

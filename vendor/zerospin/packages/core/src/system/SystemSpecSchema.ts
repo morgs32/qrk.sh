@@ -4,12 +4,6 @@ import { Schema } from 'effect';
 import { AggregateFrontendLockSchema } from '../frontendController/makeAggregateFrontendLock.ts';
 import { ServiceFrontendLockSchema } from '../frontendController/makeServiceFrontendLock.ts';
 
-const authenticationVersionSchema = Schema.String.check(
-  Schema.isPattern(
-    /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-dev\.[0-9a-f]{12})?$/u,
-  ),
-);
-
 const indexSchema = Schema.Struct({
   name: Schema.String,
   columns: Schema.Array(Schema.String),
@@ -46,15 +40,6 @@ const contractSchema = Schema.Struct({
       ),
     }),
   ),
-});
-
-const authenticationSchema = Schema.Struct({
-  version: authenticationVersionSchema,
-  signatureJsonSchema: Schema.Struct({
-    dialect: Schema.Literal('draft-2020-12'),
-    schema: Schema.Any,
-    definitions: Schema.Record(Schema.String, Schema.Any),
-  }),
 });
 
 const frontendControllerSchema = Schema.Union([
@@ -114,7 +99,6 @@ const querySchema = Schema.Struct({
 
 export const SystemSpecSchema = Schema.Struct({
   systemName: Schema.String,
-  authentication: Schema.Array(authenticationSchema),
   aggregates: Schema.Record(
     Schema.String,
     Schema.Record(
@@ -122,6 +106,7 @@ export const SystemSpecSchema = Schema.Struct({
       Schema.Struct({
         name: Schema.String,
         version: Schema.String,
+        authentication: AggregateFrontendLockSchema.fields.authentication,
         services: Schema.Record(Schema.String, Schema.String),
         models: Schema.Record(Schema.String, modelSchema),
         contracts: Schema.Record(Schema.String, contractSchema),
@@ -139,6 +124,7 @@ export const SystemSpecSchema = Schema.Struct({
       Schema.Struct({
         name: Schema.String,
         version: Schema.String,
+        authentication: AggregateFrontendLockSchema.fields.authentication,
         models: Schema.Record(Schema.String, modelSchema),
         contracts: Schema.Record(Schema.String, contractSchema),
         queries: Schema.Record(Schema.String, querySchema),

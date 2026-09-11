@@ -1,6 +1,5 @@
 import { describe, it } from '@effect/vitest';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { encodePayload } from '@zerospin/core/contracts/encodePayload';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { makeCommand } from '@zerospin/core/makeCommand';
@@ -16,7 +15,6 @@ import { expect } from 'vitest';
 
 import { appV1 } from '@/zerospin/services/app/AppV1';
 import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
-import { signature } from '@/zerospin/signature';
 import { system } from '@/zerospin/system';
 
 const CatalogV1 = appV1.frontends.appFrontend.controller;
@@ -47,12 +45,11 @@ describe('serviceFrontendFlow1: static service frontend', () => {
             }),
             gateway => Effect.sync(() => gateway[Symbol.dispose]()),
           );
-          const authenticationLock = makeAuthenticationLock(signature);
           const invalidFrontendApi = yield* makeAsync(() =>
             gatewayApi.getServiceFrontendApi({
               publishableKey: 'pk_test',
               systemName: system.name,
-              authenticationLock,
+
               signature: { clerkUserId: 42 },
               serviceName: appService.name,
               serviceVersion: appService.version,
@@ -107,13 +104,13 @@ describe('serviceFrontendFlow1: static service frontend', () => {
             }),
           );
 
-          const identityKey = 'catalog_static_user';
+          const clerkUserId = 'catalog_static_user';
           const frontendApi = yield* makeAsync(() =>
             gatewayApi.getServiceFrontendApi({
               publishableKey: 'pk_test',
               systemName: system.name,
-              authenticationLock,
-              signature: { clerkUserId: identityKey },
+
+              signature: { clerkUserId },
               serviceName: appService.name,
               serviceVersion: appService.version,
               frontendName: CatalogV1.name,

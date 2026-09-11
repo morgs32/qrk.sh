@@ -12,9 +12,9 @@ declare module 'cloudflare:workers' {
     VERSIONED_SERVICE_CHAIN: DurableObjectNamespace<
       Rpc.DurableObjectBranded & import('system-worker').VersionedServiceChain
     >;
-    USER_VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
+    AUTHENTICATED_VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
       Rpc.DurableObjectBranded &
-        import('system-worker').UserVersionedAggregateChain
+        import('system-worker').AuthenticatedVersionedAggregateChain
     >;
     FRONTEND_SERVICE_CHAIN: DurableObjectNamespace<
       Rpc.DurableObjectBranded & import('system-worker').FrontendServiceChain
@@ -25,9 +25,9 @@ declare module 'cloudflare:workers' {
     VERSIONED_SERVICE_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded & import('system-worker').VersionedServiceRepo
     >;
-    USER_VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
+    AUTHENTICATED_VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded &
-        import('system-worker').UserVersionedAggregateRepo
+        import('system-worker').AuthenticatedVersionedAggregateRepo
     >;
     FRONTEND_VERSIONED_SERVICE_REPO: DurableObjectNamespace<
       Rpc.DurableObjectBranded &

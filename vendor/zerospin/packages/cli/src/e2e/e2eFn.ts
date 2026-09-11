@@ -11,7 +11,6 @@ import { Effect, Layer } from 'effect';
 import { ChildProcess } from 'effect/unstable/process';
 
 import { loadZerospinConfigFn } from '../deploy/loadZerospinConfigFn.js';
-import { makeSystemEntry } from '../deploy/makeSystemEntry.js';
 
 const require = createRequire(import.meta.url);
 const platformLayer = Layer.mergeAll(NodeFileSystem.layer, NodePath.layer);
@@ -20,9 +19,6 @@ export const e2eFn = Effect.fn('e2eFn')(function* (
   cwd: string = process.cwd(),
 ) {
   yield* loadZerospinConfigFn(cwd).pipe(Effect.provide(platformLayer));
-  const systemModulePath = yield* makeSystemEntry(cwd).pipe(
-    Effect.provide(platformLayer),
-  );
   const vitestConfigPath = path.join(cwd, 'vitest.zerospin.config.ts');
 
   yield* makeAsync(
@@ -47,7 +43,6 @@ export const e2eFn = Effect.fn('e2eFn')(function* (
       cwd,
       env: {
         ...process.env,
-        ZEROSPIN_E2E_SYSTEM_MODULE_PATH: systemModulePath,
       },
       stdin: 'inherit',
       stdout: 'inherit',

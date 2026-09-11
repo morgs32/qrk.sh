@@ -5,8 +5,8 @@ import {
 } from '@zerospin/core/contracts/CommandSchema';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/makeProvisionedInMemorySqljsDb';
+import config from 'config';
 import { Effect, Schema, Semaphore } from 'effect';
-import { system } from 'system';
 import { beforeEach, expect, it, vi } from 'vitest';
 
 import { genesisDispositionHash } from './aggregateDispositionHash/aggregateDispositionHash.js';
@@ -21,6 +21,8 @@ import {
   versionedServiceRepoTables,
 } from './VersionedServiceRepo/versionedServiceRepoDbConfig.js';
 
+const { system } = config;
+
 const observations = vi.hoisted(
   (): {
     guardServices: string[];
@@ -34,6 +36,7 @@ const observations = vi.hoisted(
     adapters: string[];
     programs: unknown[];
     guards: unknown[];
+    guardAuthentications: unknown[];
     reject: boolean;
     suspend: boolean;
   } => ({
@@ -48,12 +51,13 @@ const observations = vi.hoisted(
     adapters: [],
     programs: [],
     guards: [],
+    guardAuthentications: [],
     reject: false,
     suspend: false,
   }),
 );
 
-vi.mock('system', async () => {
+vi.mock('config', async () => {
   const { MonotonicFactory } =
     await import('@zerospin/core/services/MonotonicFactory');
   const { defineCommand } = await import('@zerospin/core/contracts/Command');
@@ -64,7 +68,7 @@ vi.mock('system', async () => {
   const { prefixId } = await import('@zerospin/core/models/prefixId');
   const { primitives, CuidFactory } = await import('@zerospin/schema');
   const { ZerospinError } = await import('@zerospin/error');
-  const { Effect, Layer } = await import('effect');
+  const { Effect, Layer, Schema } = await import('effect');
   const product = makeModelVersion(
     makeModel({ name: 'product', abbreviation: 'prd' }),
     {
@@ -140,123 +144,147 @@ vi.mock('system', async () => {
       }),
   });
   return {
-    system: {
-      name: 'prepared',
-      layer: Layer.mergeAll(
-        Layer.effect(
-          CuidFactory,
-          Effect.acquireRelease(
-            Effect.sync(() => {
-              observations.appAcquisitions++;
-              return () => Effect.succeed('application');
-            }),
-            () =>
+    default: {
+      system: {
+        name: 'prepared',
+        layer: Layer.mergeAll(
+          Layer.effect(
+            CuidFactory,
+            Effect.acquireRelease(
               Effect.sync(() => {
-                observations.releasedLayers.push('application');
+                observations.appAcquisitions++;
+                return () => Effect.succeed('application');
               }),
-          ).pipe(
-            Effect.flatMap(service =>
-              observations.failApplication
-                ? Effect.fail(
-                    new ZerospinError({
-                      code: 'layer-failed',
-                      message: 'Application failed',
-                    }),
-                  )
-                : Effect.succeed(service),
+              () =>
+                Effect.sync(() => {
+                  observations.releasedLayers.push('application');
+                }),
+            ).pipe(
+              Effect.flatMap(service =>
+                observations.failApplication
+                  ? Effect.fail(
+                      new ZerospinError({
+                        code: 'layer-failed',
+                        message: 'Application failed',
+                      }),
+                    )
+                  : Effect.succeed(service),
+              ),
             ),
           ),
+          Layer.succeed(MonotonicFactory, () => Effect.succeed('app-clock')),
         ),
-        Layer.succeed(MonotonicFactory, () => Effect.succeed('app-clock')),
-      ),
-      aggregates: {
-        user: Object.fromEntries(
-          [first, next].map(contract => [
-            contract.version,
-            {
-              layer: Layer.effect(
-                CuidFactory,
-                Effect.acquireRelease(
-                  Effect.gen(function* () {
-                    const applicationId = yield* CuidFactory;
-                    observations.localInputs.push(yield* applicationId());
-                    yield* Effect.promise(async () => undefined);
-                    return () =>
-                      Effect.succeed(`aggregate-${contract.version}`);
-                  }),
-                  () =>
-                    Effect.sync(() => {
-                      observations.releasedLayers.push(
-                        `aggregate-${contract.version}`,
-                      );
+        aggregates: {
+          user: Object.fromEntries(
+            [first, next].map(contract => [
+              contract.version,
+              {
+                layer: Layer.effect(
+                  CuidFactory,
+                  Effect.acquireRelease(
+                    Effect.gen(function* () {
+                      const applicationId = yield* CuidFactory;
+                      observations.localInputs.push(yield* applicationId());
+                      yield* Effect.promise(async () => undefined);
+                      return () =>
+                        Effect.succeed(`aggregate-${contract.version}`);
                     }),
-                ).pipe(
-                  Effect.flatMap(service =>
-                    observations.interruptAcquisition
-                      ? Effect.never
-                      : observations.failAcquisition
-                        ? Effect.fail(
-                            new ZerospinError({
-                              code: 'layer-failed',
-                              message: 'Layer failed',
-                            }),
-                          )
-                        : Effect.succeed(service),
+                    () =>
+                      Effect.sync(() => {
+                        observations.releasedLayers.push(
+                          `aggregate-${contract.version}`,
+                        );
+                      }),
+                  ).pipe(
+                    Effect.flatMap(service =>
+                      observations.interruptAcquisition
+                        ? Effect.never
+                        : observations.failAcquisition
+                          ? Effect.fail(
+                              new ZerospinError({
+                                code: 'layer-failed',
+                                message: 'Layer failed',
+                              }),
+                            )
+                          : Effect.succeed(service),
+                    ),
                   ),
                 ),
-              ),
-              name: 'user',
-              version: contract.version,
-              models: { product },
-              services: {},
-              contracts: { rename: { contract } },
-              selections: {},
-            },
-          ]),
-        ),
-      },
-      services: {
-        app: Object.fromEntries(
-          [first, next].map(contract => [
-            contract.version,
-            {
-              layer: Layer.effect(
-                CuidFactory,
-                Effect.acquireRelease(
-                  Effect.gen(function* () {
-                    const applicationId = yield* CuidFactory;
-                    observations.localInputs.push(yield* applicationId());
-                    yield* Effect.promise(async () => undefined);
-                    return () => Effect.succeed(`service-${contract.version}`);
+                authentication: {
+                  authenticationSchema: Schema.Struct({
+                    userId: Schema.String,
+                    aggregateId: Schema.String,
+                    role: Schema.Literal('writer'),
                   }),
-                  () =>
-                    Effect.sync(() => {
-                      observations.releasedLayers.push(
-                        `service-${contract.version}`,
-                      );
+                },
+                guardLayer: ({
+                  authentication,
+                }: {
+                  authentication: unknown;
+                }) => {
+                  observations.guardAuthentications.push(authentication);
+                  return Layer.empty;
+                },
+                name: 'user',
+                version: contract.version,
+                models: { product },
+                services: {},
+                contracts: { rename: { contract } },
+                selections: {},
+              },
+            ]),
+          ),
+        },
+        services: {
+          app: Object.fromEntries(
+            [first, next].map(contract => [
+              contract.version,
+              {
+                layer: Layer.effect(
+                  CuidFactory,
+                  Effect.acquireRelease(
+                    Effect.gen(function* () {
+                      const applicationId = yield* CuidFactory;
+                      observations.localInputs.push(yield* applicationId());
+                      yield* Effect.promise(async () => undefined);
+                      return () =>
+                        Effect.succeed(`service-${contract.version}`);
                     }),
-                ).pipe(
-                  Effect.flatMap(service =>
-                    observations.interruptAcquisition
-                      ? Effect.never
-                      : observations.failAcquisition
-                        ? Effect.fail(
-                            new ZerospinError({
-                              code: 'layer-failed',
-                              message: 'Layer failed',
-                            }),
-                          )
-                        : Effect.succeed(service),
+                    () =>
+                      Effect.sync(() => {
+                        observations.releasedLayers.push(
+                          `service-${contract.version}`,
+                        );
+                      }),
+                  ).pipe(
+                    Effect.flatMap(service =>
+                      observations.interruptAcquisition
+                        ? Effect.never
+                        : observations.failAcquisition
+                          ? Effect.fail(
+                              new ZerospinError({
+                                code: 'layer-failed',
+                                message: 'Layer failed',
+                              }),
+                            )
+                          : Effect.succeed(service),
+                    ),
                   ),
                 ),
-              ),
-              name: 'app',
-              version: contract.version,
-              models: { product },
-              contracts: { rename: contract },
-            },
-          ]),
-        ),
+                name: 'app',
+                version: contract.version,
+                authentication: {
+                  authenticationSchema: Schema.Struct({
+                    userId: Schema.String,
+                    aggregateId: Schema.String,
+                  }),
+                },
+                models: { product },
+                contracts: { rename: contract },
+              },
+            ]),
+          ),
+        },
       },
     },
   };
@@ -274,6 +302,7 @@ beforeEach(() => {
   observations.adapters.length = 0;
   observations.programs.length = 0;
   observations.guards.length = 0;
+  observations.guardAuthentications.length = 0;
   observations.reject = false;
   observations.suspend = false;
 });
@@ -324,6 +353,7 @@ it.each([
       observations.adapters.length = 0;
       observations.programs.length = 0;
       observations.guards.length = 0;
+      observations.guardAuthentications.length = 0;
       observations.reject = outcome === 'rejected';
       observations.suspend = outcome === 'rollback';
       observations.failAcquisition = outcome === 'acquisition-failed';
@@ -363,7 +393,7 @@ it.each([
               aggregateName: 'user',
               aggregateVersion: scenario.version,
               aggregateId: 'acct_prepared',
-              identityKey: null,
+              authentication: null,
               sessionId: null,
               frontendName: null,
               pushIndex: null,
@@ -489,6 +519,11 @@ it.each([
           : Schema.decodeUnknownSync(
               Schema.fromJsonString(ServiceExecutionEntrySchema),
             )(retained.entry);
+      if (scenario.kind === 'aggregate') {
+        expect(observations.guardAuthentications).toEqual(
+          Array.from({ length: outcome === 'rollback' ? 2 : 1 }, () => null),
+        );
+      }
       expect(entry.sourceCommand).toBe(command);
       expect(entry.command.payload).toBe(JSON.stringify(scenario.payload));
       expect(entry.command.contractVersion).toBe(scenario.sourceVersion);
@@ -530,7 +565,11 @@ it.each([false, true])(
       systemName: 'prepared',
       aggregateName: 'user',
       aggregateId: 'acct_prepared',
-      identityKey: 'user_test',
+      authentication: {
+        userId: 'user_test',
+        aggregateId: 'acct_prepared',
+        role: 'writer',
+      },
       sessionId: 'sesn_test',
       frontendName: 'web',
       pushIndex: 1,
@@ -549,6 +588,9 @@ it.each([false, true])(
       }).pipe(Effect.provide(AsyncLive)),
     );
     expect(observations.guardServices).toEqual(['aggregate-1.0.0']);
+    expect(observations.guardAuthentications).toEqual([
+      { userId: 'user_test', aggregateId: 'acct_prepared', role: 'writer' },
+    ]);
     expect(observations.releasedLayers).toEqual([
       'aggregate-1.0.0',
       'application',

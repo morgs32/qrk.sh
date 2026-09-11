@@ -19,7 +19,8 @@ export const getAggregateFrontendApi = Effect.fn(
   const authentication = yield* authenticate(validated.signature);
   const authorization = yield* authorizeAggregateFrontend({
     ...validated,
-    identityKey: authentication.identityKey,
+    authentication: authentication.authentication,
+    aggregateId: authentication.authentication.aggregateId,
   });
 
   return aggregateFrontendApiFactory(authorization);
@@ -31,10 +32,10 @@ declare function mapParseError(props: {
 }): (effect: unknown) => unknown;
 declare function aggregateFrontendApiFactory(props: unknown): unknown;
 declare function authenticate(signature: unknown): Effect.Effect<{
-  identityKey: string;
+  authentication: { aggregateId: string; subject: string };
 }>;
 declare function authorizeAggregateFrontend(props: unknown): Effect.Effect<{
   aggregateId: string;
   aggregateName: string;
-  identityKey: string;
+  authentication: { aggregateId: string; subject: string };
 }>;

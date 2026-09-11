@@ -1,6 +1,6 @@
 ---
 title: IndexedDB Backup Coordination
-updated: 2026-09-07
+updated: 2026-09-11
 ---
 
 # IndexedDB Backup Coordination
@@ -119,18 +119,19 @@ sequenceDiagram
 
 ## Exact keys and fixed storage
 
-The aggregate key contains `{ systemId, identityKey, aggregateId, aggregateName,
+The aggregate key contains `{ systemId, authenticationHash, aggregateId, aggregateName, aggregateVersion,
 frontendName, aggregateFrontendLockKey }`; the service key contains
-`{ systemId, identityKey, serviceName, frontendName, serviceFrontendLockKey }`.
-Authentication/admission or the offline authentication locator supplies
-system/user identity; the caller selects aggregate ID; authored frontend
-controllers supply names and the complete canonical frontend lock hash.
+`{ systemId, authenticationHash, serviceName, serviceVersion, frontendName, serviceFrontendLockKey }`.
+Worker configuration supplies systemId; authentication supplies aggregateId
+and the canonical hash of full encoded claims. An offline locator retains those
+coordinates. Authored frontend controllers supply names, versions, and the complete
+canonical frontend lock hash.
 Route parameters encode separators, percent signs, and Unicode. Empty values,
 dot segments, controls, malformed Unicode, and oversized keys are rejected
 before they can alias another logical VFS path.
 
-- [`makeAggregateFrontendBackupKey.ts`](../../../packages/frontend/src/makeAggregateFrontendBackupKey.ts) — builds `/zerospin/:systemId/:identityKey/aggregate/:aggregateName/:aggregateId/:frontendName/:aggregateFrontendLockKey/backup.sqlite3` with RoutePattern.
-- [`makeServiceFrontendBackupKey.ts`](../../../packages/frontend/src/makeServiceFrontendBackupKey.ts) — builds the corresponding `/service/:serviceName/:frontendName/:serviceFrontendLockKey/backup.sqlite3` route.
+- [`makeAggregateFrontendBackupKey.ts`](../../../packages/frontend/src/makeAggregateFrontendBackupKey.ts) — builds `/zerospin/:systemId/:authenticationHash/aggregate/:aggregateName/:aggregateVersion/:aggregateId/:frontendName/:aggregateFrontendLockKey/backup.sqlite3` with RoutePattern.
+- [`makeServiceFrontendBackupKey.ts`](../../../packages/frontend/src/makeServiceFrontendBackupKey.ts) — builds the corresponding `/service/:serviceName/:serviceVersion/:frontendName/:serviceFrontendLockKey/backup.sqlite3` route.
 - [`acquireDb.ts`](../../../packages/backup-worker/src/BackupWorkerApi/acquireDb/acquireDb.ts) — rejects noncanonical paths and keys whose UTF-8 length reaches the VFS's 4096-byte path limit.
 
 The package uses the fresh `zerospin-backups-idb-v1` IndexedDB namespace and the

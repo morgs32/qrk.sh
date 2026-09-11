@@ -21,7 +21,6 @@ import {
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
 import { loadZerospinConfigFn } from '../deploy/loadZerospinConfigFn.js';
-import { makeSystemEntry } from '../deploy/makeSystemEntry.js';
 
 const require = createRequire(import.meta.url);
 
@@ -155,13 +154,12 @@ export const devFn = Effect.fn('devFn')(function* (props: {
 
     const config = yield* loadZerospinConfigFn(cwd);
     const { systemId } = config;
-    const systemEntry = yield* makeSystemEntry(cwd);
     const generatedConfig = yield* Effect.try({
       try: () =>
         makeWranglerConfig({
           config,
           main: devWorkerPath,
-          systemModulePath: systemEntry,
+          configModulePath: pathApi.resolve(cwd, 'zerospin.config.ts'),
           environment: 'dev',
         }),
       catch: cause =>
@@ -173,8 +171,27 @@ export const devFn = Effect.fn('devFn')(function* (props: {
               cause: ZerospinError.prettyUnknownFailure(cause),
             }),
     });
+    const generatedRoot = pathApi.join(cwd, '.wrangler', 'zerospin');
+    const generatedDirectory = yield* fileSystem
+      .makeDirectory(generatedRoot, { recursive: true })
+      .pipe(
+        Effect.flatMap(() =>
+          fileSystem.makeTempDirectoryScoped({
+            directory: generatedRoot,
+            prefix: 'dev-config-',
+          }),
+        ),
+        Effect.mapError(
+          cause =>
+            new ZerospinError({
+              code: 'zerospin-dev-generated-config-write-failed',
+              message: `Failed to prepare generated Wrangler config under ${generatedRoot}.`,
+              cause: ZerospinError.prettyUnknownFailure(cause),
+            }),
+        ),
+      );
     const generatedConfigPath = pathApi.join(
-      pathApi.dirname(systemEntry),
+      generatedDirectory,
       'wrangler.json',
     );
     // Resolve local secrets against the project root, independently of the

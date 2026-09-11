@@ -1,4 +1,4 @@
-import { authenticationSignature, main } from '@zerospin/core/fixtures/system';
+import { main } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
 import { makeReplica } from '@zerospin/core/models/makeReplica';
@@ -18,6 +18,7 @@ declare const sessionRuntimeLayer: Layer.Layer<
 >;
 
 const products = makeFrontendController({
+  authentication: main.authentication,
   serviceVersion: '1.0.0',
   systemName: 'system-worker',
   serviceName: 'catalog',
@@ -27,10 +28,7 @@ const products = makeFrontendController({
 
 const ZerospinApp = makeZerospinApp({
   systemName: 'system-worker',
-  authentication: {
-    version: '1.0.0',
-    signature: authenticationSignature.signature,
-  },
+
   frontends: {
     main,
     products,
@@ -41,9 +39,11 @@ const ZerospinApp = makeZerospinApp({
 const exactProvider = (
   <ZerospinApp.Provider
     // @ts-expect-error — production Provider identity is returned by frontend bootstrap.
-    identityKey="user_1"
-    aggregateIds={{ main: 'acct_1' }}
-    generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+    userId="user_1"
+    generateSignature={{
+      main: () => Effect.succeed({ userId: 'usr_1' }),
+      products: () => Effect.succeed({ userId: 'usr_1' }),
+    }}
   >
     {null}
   </ZerospinApp.Provider>
@@ -52,34 +52,32 @@ void exactProvider;
 
 const providerWithoutDeclaredUser = (
   <ZerospinApp.Provider
-    aggregateIds={{ main: 'acct_1' }}
-    generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+    generateSignature={{
+      main: () => Effect.succeed({ userId: 'usr_1' }),
+      products: () => Effect.succeed({ userId: 'usr_1' }),
+    }}
   >
     {null}
   </ZerospinApp.Provider>
 );
 void providerWithoutDeclaredUser;
 
-const missingAggregateTarget = (
+const missingSignature = (
   <ZerospinApp.Provider
-    // @ts-expect-error — aggregateIds must contain each configured aggregate frontend name.
-    aggregateIds={{}}
-    generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+    // @ts-expect-error Every frontend requires its own signature generator.
+    generateSignature={{ main: () => Effect.succeed({ userId: 'usr_1' }) }}
   >
     {null}
   </ZerospinApp.Provider>
 );
-void missingAggregateTarget;
-
+void missingSignature;
 const wrongAuthenticationSignature = (
   <ZerospinApp.Provider
-    aggregateIds={{ main: 'acct_1' }}
-    generateSignature={() =>
-      Effect.succeed({
-        // @ts-expect-error — Provider signatures must match the selected universal signature.
-        identityKey: 1,
-      })
-    }
+    generateSignature={{
+      // @ts-expect-error Each signer must match its frontend's decoded signature schema.
+      main: () => Effect.succeed({ userId: 1 }),
+      products: () => Effect.succeed({ userId: 'usr_1' }),
+    }}
   >
     {null}
   </ZerospinApp.Provider>
@@ -88,10 +86,7 @@ void wrongAuthenticationSignature;
 
 const mismatchedFrontendKey = makeZerospinApp({
   systemName: 'system-worker',
-  authentication: {
-    version: authenticationSignature.version,
-    signature: authenticationSignature.signature,
-  },
+
   frontends: {
     // @ts-expect-error — configured key must equal the controller name.
     wrong: main,
@@ -102,10 +97,7 @@ void mismatchedFrontendKey;
 
 const mismatchedSystem = makeZerospinApp({
   systemName: 'another-system',
-  authentication: {
-    version: authenticationSignature.version,
-    signature: authenticationSignature.signature,
-  },
+
   frontends: {
     // @ts-expect-error — every configured controller must match makeZerospinApp.systemName.
     main,
@@ -125,10 +117,7 @@ assert<
 
 const emptyFrontends = makeZerospinApp({
   systemName: 'system-worker',
-  authentication: {
-    version: authenticationSignature.version,
-    signature: authenticationSignature.signature,
-  },
+
   frontends: {},
   layer: sessionRuntimeLayer,
 });
@@ -151,6 +140,7 @@ const VersionedProductReplica = makeReplica({
   serviceName: 'catalog',
 });
 const historicalServiceProducts = makeFrontendController({
+  authentication: main.authentication,
   serviceVersion: '1.0.0',
   systemName: 'historical-app',
   serviceName: 'catalog',
@@ -158,6 +148,7 @@ const historicalServiceProducts = makeFrontendController({
   models: { versionedProduct: VersionedProduct },
 });
 const historicalAggregateProducts = makeFrontendController({
+  authentication: main.authentication,
   aggregateVersion: '1.0.0',
   systemName: 'historical-app',
   aggregateName: 'account',
@@ -167,10 +158,7 @@ const historicalAggregateProducts = makeFrontendController({
 });
 const historicalApp = makeZerospinApp({
   systemName: 'historical-app',
-  authentication: {
-    version: authenticationSignature.version,
-    signature: authenticationSignature.signature,
-  },
+
   frontends: {
     'aggregate-products': historicalAggregateProducts,
     'service-products': historicalServiceProducts,
@@ -188,7 +176,7 @@ assert<
     'deletedAt' extends keyof typeof selectedServiceProduct.propertiesShape
       ? true
       : false,
-    true
+    false
   >
 >();
 assert<
@@ -226,6 +214,7 @@ assert<
 >();
 
 const requiresRequestInit = makeFrontendController({
+  authentication: main.authentication,
   systemName: 'system-worker',
   aggregateName: 'user',
   aggregateVersion: '1.0.0',
@@ -239,7 +228,7 @@ const requiresRequestInit = makeFrontendController({
 });
 makeZerospinApp({
   systemName: 'system-worker',
-  authentication: authenticationSignature,
+
   // @ts-expect-error The application must supply inputs of a frontend-local layer.
   frontends: { request: requiresRequestInit },
   layer: sessionRuntimeLayer,
@@ -250,13 +239,13 @@ const withRequestInit = Layer.mergeAll(
 );
 makeZerospinApp({
   systemName: 'system-worker',
-  authentication: authenticationSignature,
+
   frontends: { request: requiresRequestInit },
   layer: withRequestInit,
 });
 makeZerospinApp({
   systemName: 'system-worker',
-  authentication: authenticationSignature,
+
   frontends: { request: requiresRequestInit },
   layer: Layer.mergeAll(
     sessionRuntimeLayer,
@@ -266,9 +255,11 @@ makeZerospinApp({
 
 const obsoleteAggregateKey = (
   <ZerospinApp.Provider
-    // @ts-expect-error aggregate names are not frontend-name keys.
-    aggregateIds={{ user: 'acct_1' }}
-    generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+    generateSignature={{
+      // @ts-expect-error aggregate names are not frontend signer keys.
+      user: () => Effect.succeed({ userId: 'usr_1' }),
+      products: () => Effect.succeed({ userId: 'usr_1' }),
+    }}
   >
     {null}
   </ZerospinApp.Provider>

@@ -1,6 +1,6 @@
+import { RoutePattern } from '@remix-run/route-pattern';
 import { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
 import { makeAggregateVersion } from '@zerospin/core/aggregate/makeVersion';
-import { makeAuthenticationVersion } from '@zerospin/core/authentication/makeVersion';
 import { defineCommand } from '@zerospin/core/contracts/Command';
 import { makeContractVersion } from '@zerospin/core/contracts/makeVersion';
 import type { InferCommand } from '@zerospin/core/contracts/types';
@@ -603,14 +603,19 @@ export const deleteList = makeContractVersion(defineCommand('deleteList'), {
   version: '1.0.0',
 });
 
-export const authenticationSignature = {
-  version: '1.0.0',
-  signature: Schema.Struct({
-    userId: makeModelIdSchema(User),
-  }),
-};
-
 export const main = makeFrontendController({
+  authentication: {
+    signatureSchema: Schema.Struct({
+      userId: Schema.String,
+      aggregateId: Schema.String,
+    }),
+    authenticationSchema: Schema.Struct({
+      aggregateId: Schema.String,
+      userId: Schema.String,
+    }),
+    selectionSchema: Schema.Struct({ userId: Schema.String }),
+    pattern: RoutePattern.parse('/:userId'),
+  },
   aggregateVersion: '1.0.0',
   contracts: {
     createList: {
@@ -646,6 +651,12 @@ export const main = makeFrontendController({
 export const mainModels = getFrontendDbModels(main);
 
 const products = makeFrontendController({
+  authentication: {
+    signatureSchema: Schema.Struct({ userId: Schema.String }),
+    authenticationSchema: Schema.Struct({ userId: Schema.String }),
+    selectionSchema: Schema.Struct({ userId: Schema.String }),
+    pattern: RoutePattern.parse('/:userId'),
+  },
   systemName: 'system-worker',
   serviceVersion: '1.0.0',
   serviceName: 'app',
@@ -654,6 +665,13 @@ const products = makeFrontendController({
 });
 
 const app = makeService({
+  authentication: {
+    signatureSchema: Schema.Struct({ userId: Schema.String }),
+    authenticationSchema: Schema.Struct({ userId: Schema.String }),
+    selectionSchema: Schema.Struct({ userId: Schema.String }),
+    pattern: RoutePattern.parse('/:userId'),
+    authenticate: ({ signature }) => Effect.succeed(signature),
+  },
   name: 'app',
   version: '1.0.0',
   /*
@@ -664,7 +682,7 @@ const app = makeService({
    */
   authorize: (props: {
     frontendName: 'products';
-    identityKey: string;
+    authentication: Readonly<Record<string, unknown>>;
     db: Readonly<
       Pick<
         IDb<
@@ -741,6 +759,13 @@ const app = makeService({
   },
 });
 const inventory = makeService({
+  authentication: {
+    signatureSchema: Schema.Struct({ userId: Schema.String }),
+    authenticationSchema: Schema.Struct({ userId: Schema.String }),
+    selectionSchema: Schema.Struct({ userId: Schema.String }),
+    pattern: RoutePattern.parse('/:userId'),
+    authenticate: ({ signature }) => Effect.succeed(signature),
+  },
   name: 'inventory',
   version: '1.0.0',
   models: { stock: Stock },
@@ -750,18 +775,22 @@ const inventory = makeService({
 });
 
 export const system = makeSystem({
-  authentication: [
-    makeAuthenticationVersion({
-      version: authenticationSignature.version,
-      signature: authenticationSignature.signature,
-      authenticate: ({ signature }) =>
-        // 1 — pass signature.userId into the authentication result
-        Effect.succeed(signature.userId),
-    }),
-  ],
   aggregates: {
     notes: ['0.8.0', '0.9.0', '1.0.0'].map(version =>
       makeAggregateVersion(makeAggregate({ name: 'notes' }), {
+        authentication: {
+          signatureSchema: Schema.Struct({
+            userId: Schema.String,
+            aggregateId: Schema.String,
+          }),
+          authenticationSchema: Schema.Struct({
+            aggregateId: Schema.String,
+            userId: Schema.String,
+          }),
+          selectionSchema: Schema.Struct({ userId: Schema.String }),
+          pattern: RoutePattern.parse('/:userId'),
+          authenticate: ({ signature }) => Effect.succeed(signature),
+        },
         version,
         services: {},
         models: { user: User, preference: Preference },
@@ -774,6 +803,19 @@ export const system = makeSystem({
     ),
     user: [
       makeAggregateVersion(makeAggregate({ name: 'user' }), {
+        authentication: {
+          signatureSchema: Schema.Struct({
+            userId: Schema.String,
+            aggregateId: Schema.String,
+          }),
+          authenticationSchema: Schema.Struct({
+            aggregateId: Schema.String,
+            userId: Schema.String,
+          }),
+          selectionSchema: Schema.Struct({ userId: Schema.String }),
+          pattern: RoutePattern.parse('/:userId'),
+          authenticate: ({ signature }) => Effect.succeed(signature),
+        },
         services: { app, inventory },
 
         version: '1.0.0',
@@ -787,7 +829,7 @@ export const system = makeSystem({
          * 5. Accept the existing user.
          */
         authorize: (props: {
-          identityKey: string;
+          authentication: Readonly<Record<string, unknown>>;
           aggregateId: IAggregateId;
           db: Readonly<
             Pick<
@@ -796,8 +838,9 @@ export const system = makeSystem({
             >
           >;
         }) => {
-          // 1 — take the database and requested identityKey from the caller context
-          const { db, identityKey: requestedIdentityKey } = props;
+          // 1 — take the database and requested authentication from the caller context
+          const { db, authentication } = props;
+          const requestedIdentityKey = authentication.userId;
           return Effect.gen(function* () {
             // 2 — map invalid user ids to fixture-user-id-invalid
             const userId = yield* Schema.decodeUnknownEffect(
@@ -859,10 +902,10 @@ export const system = makeSystem({
              */
             guard: ({
               payload,
-              identityKey,
+              authentication,
             }: {
               payload: InferCommand<typeof createList>['payload'];
-              identityKey: string | null;
+              authentication: Readonly<Record<string, unknown>> | null;
             }) =>
               Effect.gen(function* () {
                 // 1 — return aggregate-list-name-rejected from the aggregate guard
@@ -873,18 +916,18 @@ export const system = makeSystem({
                   });
                 }
 
-                // 2 — distinguish null identityKey from unexpected non-null provenance through the failure code
+                // 2 — distinguish null authentication from unexpected non-null provenance through the failure code
                 if (payload.name === 'direct-null-provenance') {
-                  if (identityKey === null) {
+                  if (authentication === null) {
                     return yield* new ZerospinError({
-                      code: 'direct-null-identity-key-observed',
+                      code: 'direct-null-authentication-observed',
                       message:
-                        'Aggregate guard observed direct-command identityKey null.',
+                        'Aggregate guard observed direct-command authentication null.',
                     });
                   }
                   return yield* new ZerospinError({
-                    code: 'direct-identity-key-was-not-null',
-                    message: `Direct aggregate guard received identityKey ${identityKey}.`,
+                    code: 'direct-authentication-was-not-null',
+                    message: `Direct aggregate guard received authentication ${authentication}.`,
                   });
                 }
               }).pipe(Effect.withSpan('aggregateCreateListGuard')),
@@ -947,9 +990,9 @@ export const system = makeSystem({
              *
              * 1. Build the selection predicate.
              */
-            where: ({ identityKey }) =>
+            where: ({ authentication }) =>
               // 1 — scope the selected model through its user relationship
-              ({ id: identityKey }),
+              ({ id: authentication.userId }),
           }),
           list: makeSelection({
             model: List,
@@ -958,10 +1001,10 @@ export const system = makeSystem({
              *
              * 1. Build the selection predicate.
              */
-            where: ({ identityKey }) =>
+            where: ({ authentication }) =>
               // 1 — scope the selected model through its user relationship
               ({
-                user: { id: identityKey },
+                user: { id: authentication.userId },
               }),
           }),
           item: makeSelection({
@@ -971,10 +1014,10 @@ export const system = makeSystem({
              *
              * 1. Build the selection predicate.
              */
-            where: ({ identityKey }) =>
+            where: ({ authentication }) =>
               // 1 — scope the selected model through its user relationship
               ({
-                list: { user: { id: identityKey } },
+                list: { user: { id: authentication.userId } },
               }),
           }),
           account: makeSelection({
@@ -1029,6 +1072,8 @@ export const system = makeSystem({
   name: 'system-worker',
 });
 
-export const config = makeSystemConfig(system, {
+const config = makeSystemConfig(system, {
   systemId: 'sys_local_plan071',
 });
+
+export default config;

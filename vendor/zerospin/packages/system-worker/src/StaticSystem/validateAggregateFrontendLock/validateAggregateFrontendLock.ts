@@ -2,9 +2,11 @@ import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendControl
 import { makeAggregateFrontendLockKey } from '@zerospin/core/frontendController/makeAggregateFrontendLockKey';
 import { ZerospinError } from '@zerospin/error';
 import { encodeShape } from '@zerospin/schema';
-import { Effect, type Schema } from 'effect';
+import config from 'config';
+import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
-import { system } from 'system';
+
+const { system } = config;
 
 /*
  * Frontend admission and read paths validate the submitted aggregate lock
@@ -52,6 +54,27 @@ export const validateAggregateFrontendLock = Effect.fn(
         definitionPath: `aggregates.${aggregateName}`,
         reason: 'owner-missing',
       },
+    });
+  }
+
+  if (
+    !isEqual(aggregateFrontendLock.authentication, {
+      signatureJsonSchema: Schema.toJsonSchemaDocument(
+        aggregate.authentication.signatureSchema,
+      ),
+      authenticationJsonSchema: Schema.toJsonSchemaDocument(
+        aggregate.authentication.authenticationSchema,
+      ),
+      selectionJsonSchema: Schema.toJsonSchemaDocument(
+        aggregate.authentication.selectionSchema,
+      ),
+      pattern: aggregate.authentication.pattern.source,
+    })
+  ) {
+    return yield* new ZerospinError({
+      code: 'aggregate-frontend-lock-unsupported',
+      message:
+        'Frontend authentication declarations differ from the selected owner version',
     });
   }
 
@@ -224,6 +247,7 @@ export const validateAggregateFrontendLock = Effect.fn(
 
   // 8 — reject any remaining difference from the submitted lock
   const resolvedLock = {
+    authentication: aggregateFrontendLock.authentication,
     systemName: system.name,
     frontendName,
     models: resolvedModels,

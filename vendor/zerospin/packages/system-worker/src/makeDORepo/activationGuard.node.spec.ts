@@ -6,14 +6,16 @@ import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { encodeFailure } from '@zerospin/core/utils/encodeFailure';
 import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
 import { ZerospinError } from '@zerospin/error';
+import config from 'config';
 import { Effect, ManagedRuntime } from 'effect';
-import { system } from 'system';
 import { expect, it, vi } from 'vitest';
 
 import * as durableDb from '../makeDurableDb.js';
 
 import { makeDORepo } from './makeDORepo.js';
 import { makeRepoNameUtils } from './makeRepoNameUtils.js';
+
+const { system } = config;
 
 it.each(['unlocked', 'mismatch', 'transport', 'bootstrap retry', 'cold alarm'])(
   'guards storage, bootstrap and activation: %s',

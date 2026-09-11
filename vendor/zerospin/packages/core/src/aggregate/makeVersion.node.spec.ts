@@ -1,3 +1,4 @@
+import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
 import { Effect, Layer, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
@@ -15,12 +16,14 @@ assert<Equals<typeof shopper.name, 'shopper'>>();
 describe('aggregate identity and versions', () => {
   it('shares an identity between independent exact versions', () => {
     const first = makeAggregateVersion(shopper, {
+      authentication: authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models: {},
       contracts: {},
       selections: {},
     });
     const second = makeAggregateVersion(shopper, {
+      authentication: authenticationFixtureOwner.authentication,
       version: '2.0.0',
       models: {},
       contracts: {},
@@ -50,6 +53,7 @@ describe('aggregate identity and versions', () => {
     expect(() => makeAggregate({ name: 42 })).toThrow(Schema.SchemaError);
     expect(() =>
       makeAggregateVersion(shopper, {
+        authentication: authenticationFixtureOwner.authentication,
         // @ts-expect-error The identity supplies the name.
         name: 'other',
         version: '1.0.0',
@@ -62,6 +66,7 @@ describe('aggregate identity and versions', () => {
 
   it('rejects structural copies without authored upgrade inputs', () => {
     const first = makeAggregateVersion(shopper, {
+      authentication: authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models: {},
       contracts: {},

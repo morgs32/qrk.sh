@@ -1,47 +1,69 @@
+import type { RoutePattern } from '@remix-run/route-pattern';
+import type { MatchParams } from '@remix-run/route-pattern/match';
 import type { IAnyError } from '@zerospin/error';
 import type { CuidFactory } from '@zerospin/schema';
-import type { Effect, JsonSchema, Schema } from 'effect';
+import type { Effect, Schema } from 'effect';
 
 import type { Async } from '../async/Async.ts';
 import type { AggregateChainedCommandSchema } from '../contracts/CommandSchema.ts';
-import type { IAggregateCommand, IEncodedCommand } from '../contracts/types.ts';
+import type { IContract } from '../contracts/types.ts';
+import type { InferPayloadInput } from '../models/types.ts';
 
+/** Authentication belongs to an owner version; selection claims identify its shared replica. */
 export type IAuthentication<
-  VERSION extends string = string,
   SIGNATURE extends Schema.Codec<unknown, unknown> = Schema.Codec<
     unknown,
     unknown
   >,
-  IDENTITY_KEY extends string = string,
+  AUTHENTICATION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
+  SELECTION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
+  PATTERN extends string = string,
 > = Readonly<{
-  version: VERSION;
-  signature: SIGNATURE;
-  /** Returns the external identity key, independent of any User resource ID. */
+  signatureSchema: SIGNATURE;
+  authenticationSchema: AUTHENTICATION;
+  selectionSchema: SELECTION &
+    (string extends keyof SELECTION['fields']
+      ? unknown
+      : {
+          fields: {
+            [K in keyof SELECTION['fields']]: SELECTION['fields'][K] &
+              Schema.Codec<string, string> &
+              (K extends keyof AUTHENTICATION['Type']
+                ? AUTHENTICATION['Type'][K] extends SELECTION['Type'][K &
+                    keyof SELECTION['Type']]
+                  ? unknown
+                  : never
+                : never);
+          };
+        });
+  pattern: RoutePattern<PATTERN> &
+    (string extends PATTERN
+      ? unknown
+      : PATTERN extends `${string}${'(' | ')' | '*' | '?' | '#' | '://'}${string}`
+        ? never
+        : [keyof MatchParams<PATTERN>] extends [keyof SELECTION['Type']]
+          ? [keyof SELECTION['Type']] extends [keyof MatchParams<PATTERN>]
+            ? unknown
+            : never
+          : never);
   authenticate(props: {
     signature: Schema.Schema.Type<SIGNATURE>;
-  }): Effect.Effect<IDENTITY_KEY, IAnyError>;
-  /** Awaited after identity validation, before granting any frontend capability. */
-  onAuthentication?:
-    | ((props: {
-        identityKey: string;
-        /** Binds the verified identityKey and waits for the selected aggregate's terminal result. */
-        executeAggregateCommand(
-          command: IEncodedCommand<
-            Extract<IAggregateCommand, { sessionId: null }>
-          >,
-        ): Effect.Effect<
-          Schema.Schema.Type<typeof AggregateChainedCommandSchema>,
-          IAnyError,
-          Async
-        >;
-      }) => Effect.Effect<void, IAnyError, Async | CuidFactory>)
-    | undefined;
-  spec: Readonly<{
-    version: VERSION;
-    signatureJsonSchema: Readonly<{
-      dialect: 'draft-2020-12';
-      schema: Readonly<JsonSchema.JsonSchema>;
-      definitions: Readonly<Record<string, Readonly<JsonSchema.JsonSchema>>>;
-    }>;
-  }>;
+    executeCommand<CONTRACT extends IContract>(props: {
+      aggregateId: string;
+      contract: CONTRACT;
+      payload: InferPayloadInput<CONTRACT['payload']>;
+    }): Effect.Effect<
+      Schema.Schema.Type<typeof AggregateChainedCommandSchema>,
+      IAnyError,
+      Async | CuidFactory
+    >;
+  }): Effect.Effect<
+    Schema.Schema.Type<AUTHENTICATION>,
+    IAnyError,
+    Async | CuidFactory
+  >;
 }>;

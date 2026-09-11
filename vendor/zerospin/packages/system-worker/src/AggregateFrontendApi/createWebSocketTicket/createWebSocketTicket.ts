@@ -14,15 +14,17 @@ import {
   type ISpanLinkRecord,
 } from '@zerospin/logger';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import config from 'config';
 import { Effect, Result, Schema } from 'effect';
-import { system } from 'system';
 
 import { appendTelemetryBatch } from '../../appendTelemetryBatch/appendTelemetryBatch.js';
+import { AuthenticatedVersionedAggregateChain } from '../../AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
+import { AuthenticatedVersionedAggregateRepo } from '../../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
 import { SelectedAggregateFrontendLockSchema } from '../../StaticSystem/frontendSpecSchemas.js';
 import { validateAggregateFrontendLock } from '../../StaticSystem/validateAggregateFrontendLock/validateAggregateFrontendLock.js';
 import { SystemRepo } from '../../SystemRepo/SystemRepo.js';
-import { UserVersionedAggregateChain } from '../../UserVersionedAggregateChain/UserVersionedAggregateChain.js';
-import { UserVersionedAggregateRepo } from '../../UserVersionedAggregateRepo/UserVersionedAggregateRepo.js';
+
+const { system } = config;
 
 /*
  * The aggregate frontend capability requests a ticket for a caller-selected
@@ -51,7 +53,8 @@ export const createWebSocketTicket = Effect.fn(
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
     aggregateVersion: string;
-    readonly identityKey: string;
+    readonly authentication: Readonly<Record<string, unknown>>;
+    readonly selectionPath: string;
     readonly frontendName: string;
     readonly aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
@@ -114,7 +117,9 @@ export const createWebSocketTicket = Effect.fn(
       aggregateId,
       aggregateName,
       frontendName,
-      identityKey,
+      authentication,
+      selectionPath,
+
       systemId: configuredSystemId,
     } = authResults;
     const { aggregateVersion } = validatedArgs.success[0];
@@ -152,14 +157,14 @@ export const createWebSocketTicket = Effect.fn(
       aggregateId,
       aggregateName,
       aggregateVersion,
-      identityKey,
+      selectionPath,
     };
     const repoName =
-      yield* UserVersionedAggregateChain.fixedDORepoConfig.nameUtils.makeName(
+      yield* AuthenticatedVersionedAggregateChain.fixedDORepoConfig.nameUtils.makeName(
         key,
       );
-    const userVersionedAggregateRepoName =
-      yield* UserVersionedAggregateRepo.fixedDORepoConfig.nameUtils.makeName(
+    const authenticatedVersionedAggregateRepoName =
+      yield* AuthenticatedVersionedAggregateRepo.fixedDORepoConfig.nameUtils.makeName(
         key,
       );
 
@@ -171,7 +176,7 @@ export const createWebSocketTicket = Effect.fn(
     });
     const aggregateFrontendRegistrations = yield* makeAsync(() =>
       systemRepo.getRepoRegistrations({
-        repoType: 'UserVersionedAggregateRepo',
+        repoType: 'AuthenticatedVersionedAggregateRepo',
       }),
     ).pipe(Effect.flatMap(decodeRpc));
 
@@ -179,7 +184,7 @@ export const createWebSocketTicket = Effect.fn(
     if (
       !aggregateFrontendRegistrations.some(
         registration =>
-          registration.repoName === userVersionedAggregateRepoName,
+          registration.repoName === authenticatedVersionedAggregateRepoName,
       )
     ) {
       return yield* new ZerospinError({
@@ -188,7 +193,8 @@ export const createWebSocketTicket = Effect.fn(
           'Frontend state must initialize before a WebSocket ticket can be created',
         extra: {
           aggregateId,
-          identityKey,
+          authentication,
+          selectionPath,
           frontendName,
         },
       });
@@ -201,7 +207,8 @@ export const createWebSocketTicket = Effect.fn(
         repoName,
         aggregateId,
         aggregateName,
-        identityKey,
+        authentication,
+        selectionPath,
         frontendName,
         aggregateFrontendLock: selected.aggregateFrontendLock,
       }),

@@ -1,10 +1,13 @@
+import {
+  main as authenticationFixtureFrontend,
+  userAggregate as authenticationFixtureOwner,
+} from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { makeAggregate } from '../aggregate/makeAggregate.ts';
 import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
-import { makeAuthenticationVersion } from '../authentication/makeVersion.ts';
 import { defineCommand } from '../contracts/Command.ts';
 import { makeContractVersion } from '../contracts/makeVersion.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
@@ -44,17 +47,11 @@ describe('makeSystemSpec', () => {
   it('serializes the system spec', () => {
     const system = makeSystem({
       name: 'shopping',
-      authentication: [
-        makeAuthenticationVersion({
-          version: '1.0.0',
-          signature: Schema.Struct({ identityKey: Schema.NonEmptyString }),
-          authenticate: ({ signature }) =>
-            Effect.succeed(signature.identityKey),
-        }),
-      ],
+
       aggregates: {
         shopper: [
           makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+            authentication: authenticationFixtureOwner.authentication,
             version: '2.0.0',
             authorize: () => Effect.void,
             models: { item: Item },
@@ -68,6 +65,7 @@ describe('makeSystemSpec', () => {
       services: {
         catalog: [
           makeService({
+            authentication: authenticationFixtureOwner.authentication,
             name: 'catalog',
             version: '1.0.0',
             authorize: () => Effect.void,
@@ -76,6 +74,7 @@ describe('makeSystemSpec', () => {
             frontends: {
               browse: {
                 controller: makeFrontendController({
+                  authentication: authenticationFixtureFrontend.authentication,
                   systemName: 'shopping',
                   serviceVersion: '1.0.0',
                   serviceName: 'catalog',
@@ -98,6 +97,59 @@ describe('makeSystemSpec', () => {
         "aggregates": {
           "shopper": {
             "2.0.0": {
+              "authentication": {
+                "authenticationJsonSchema": {
+                  "definitions": {},
+                  "dialect": "draft-2020-12",
+                  "schema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "aggregateId": {
+                        "type": "string",
+                      },
+                      "userId": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "aggregateId",
+                      "userId",
+                    ],
+                    "type": "object",
+                  },
+                },
+                "pattern": "/:userId",
+                "selectionJsonSchema": {
+                  "definitions": {},
+                  "dialect": "draft-2020-12",
+                  "schema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "userId": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "userId",
+                    ],
+                    "type": "object",
+                  },
+                },
+                "signatureJsonSchema": {
+                  "definitions": {},
+                  "dialect": "draft-2020-12",
+                  "schema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "userId": {},
+                    },
+                    "required": [
+                      "userId",
+                    ],
+                    "type": "object",
+                  },
+                },
+              },
               "contracts": {
                 "addItem": {
                   "commandName": "addItem",
@@ -220,31 +272,62 @@ describe('makeSystemSpec', () => {
             },
           },
         },
-        "authentication": [
-          {
-            "signatureJsonSchema": {
-              "definitions": {},
-              "dialect": "draft-2020-12",
-              "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "identityKey": {
-                    "minLength": 1,
-                    "type": "string",
-                  },
-                },
-                "required": [
-                  "identityKey",
-                ],
-                "type": "object",
-              },
-            },
-            "version": "1.0.0",
-          },
-        ],
         "services": {
           "catalog": {
             "1.0.0": {
+              "authentication": {
+                "authenticationJsonSchema": {
+                  "definitions": {},
+                  "dialect": "draft-2020-12",
+                  "schema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "aggregateId": {
+                        "type": "string",
+                      },
+                      "userId": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "aggregateId",
+                      "userId",
+                    ],
+                    "type": "object",
+                  },
+                },
+                "pattern": "/:userId",
+                "selectionJsonSchema": {
+                  "definitions": {},
+                  "dialect": "draft-2020-12",
+                  "schema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "userId": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "userId",
+                    ],
+                    "type": "object",
+                  },
+                },
+                "signatureJsonSchema": {
+                  "definitions": {},
+                  "dialect": "draft-2020-12",
+                  "schema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "userId": {},
+                    },
+                    "required": [
+                      "userId",
+                    ],
+                    "type": "object",
+                  },
+                },
+              },
               "contracts": {},
               "frontends": {
                 "browse": {
@@ -256,6 +339,59 @@ describe('makeSystemSpec', () => {
                     "models": {},
                     "name": "browse",
                     "serviceFrontendLock": {
+                      "authentication": {
+                        "authenticationJsonSchema": {
+                          "definitions": {},
+                          "dialect": "draft-2020-12",
+                          "schema": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "aggregateId": {
+                                "type": "string",
+                              },
+                              "userId": {
+                                "type": "string",
+                              },
+                            },
+                            "required": [
+                              "aggregateId",
+                              "userId",
+                            ],
+                            "type": "object",
+                          },
+                        },
+                        "pattern": "/:userId",
+                        "selectionJsonSchema": {
+                          "definitions": {},
+                          "dialect": "draft-2020-12",
+                          "schema": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "userId": {
+                                "type": "string",
+                              },
+                            },
+                            "required": [
+                              "userId",
+                            ],
+                            "type": "object",
+                          },
+                        },
+                        "signatureJsonSchema": {
+                          "definitions": {},
+                          "dialect": "draft-2020-12",
+                          "schema": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "userId": {},
+                            },
+                            "required": [
+                              "userId",
+                            ],
+                            "type": "object",
+                          },
+                        },
+                      },
                       "frontendName": "browse",
                       "models": {},
                       "systemName": "shopping",
@@ -294,11 +430,12 @@ it('decodes primitive payload specs without stripping nested JSON Schema', () =>
   });
   const system = makeSystem({
     name: 'primitive-spec',
-    authentication: [],
+
     services: {},
     aggregates: {
       shopper: [
         makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+          authentication: authenticationFixtureOwner.authentication,
           version: '1.0.0',
           authorize: () => Effect.void,
           models: {},

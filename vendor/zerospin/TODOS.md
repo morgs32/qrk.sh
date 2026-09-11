@@ -49,19 +49,19 @@ The transaction formerly inside `applyAggregateFrontendCommand.ts` now lives in
 [`applyAggregateFrontendCommandTx.ts`](./packages/core/src/session/applyAggregateFrontendCommandTx.ts);
 the measurements below predate that extraction.
 
-| Complexity | File                                                                                                                  |
-| ---------: | --------------------------------------------------------------------------------------------------------------------- |
-|        160 | [`bootstrapAggregateFrontendSession.ts`](./packages/frontend/src/bootstrapAggregateFrontendSession.ts)                |
-|        135 | [`UserVersionedAggregateRepo/catchup.ts`](./packages/system-worker/src/UserVersionedAggregateRepo/catchup/catchup.ts) |
-|        125 | [`primitiveMaps.ts`](./packages/schema/src/primitiveMaps.ts)                                                          |
-|        112 | [`makeModel.ts`](./packages/core/src/models/makeModel.ts)                                                             |
-|        110 | [`VersionedAggregateRepo/execute.ts`](./packages/system-worker/src/VersionedAggregateRepo/execute/execute.ts)         |
-|        106 | [`prepareReplayAppliedMutation.ts`](./packages/core/src/contracts/prepareReplayAppliedMutation.ts)                    |
-|        103 | [`bootstrapServiceFrontendSession.ts`](./packages/frontend/src/bootstrapServiceFrontendSession.ts)                    |
-|         93 | [`makeDrizzleRelations.ts`](./packages/core/src/drizzle/makeDrizzleRelations.ts)                                      |
-|         92 | [`encodeAppliedMutation.ts`](./packages/core/src/contracts/encodeAppliedMutation.ts)                                  |
-|         89 | [`makeVersion.ts`](./packages/core/src/contracts/makeVersion.ts)                                                      |
-|         88 | [`applyAggregateFrontendCommand.ts`](./packages/core/src/session/applyAggregateFrontendCommand.ts)                    |
-|         86 | [`makeLiveQuery.ts`](./packages/live-query/src/makeLiveQuery.ts)                                                      |
-|         84 | [`SessionsLogsRoute.tsx`](./packages/devtools/src/sessions/sessions/sessionId/logs/SessionsLogsRoute.tsx)             |
-|         72 | [`ZerospinDevtools.tsx`](./packages/devtools/src/ZerospinDevtools.tsx)                                                |
+| Complexity | File                                                                                                                                    |
+| ---------: | --------------------------------------------------------------------------------------------------------------------------------------- |
+|        160 | [`bootstrapAggregateFrontendSession.ts`](./packages/frontend/src/bootstrapAggregateFrontendSession.ts)                                  |
+|        135 | [`AuthenticatedVersionedAggregateRepo/catchup.ts`](./packages/system-worker/src/AuthenticatedVersionedAggregateRepo/catchup/catchup.ts) |
+|        125 | [`primitiveMaps.ts`](./packages/schema/src/primitiveMaps.ts)                                                                            |
+|        112 | [`makeModel.ts`](./packages/core/src/models/makeModel.ts)                                                                               |
+|        110 | [`VersionedAggregateRepo/execute.ts`](./packages/system-worker/src/VersionedAggregateRepo/execute/execute.ts)                           |
+|        106 | [`prepareReplayAppliedMutation.ts`](./packages/core/src/contracts/prepareReplayAppliedMutation.ts)                                      |
+|        103 | [`bootstrapServiceFrontendSession.ts`](./packages/frontend/src/bootstrapServiceFrontendSession.ts)                                      |
+|         93 | [`makeDrizzleRelations.ts`](./packages/core/src/drizzle/makeDrizzleRelations.ts)                                                        |
+|         92 | [`encodeAppliedMutation.ts`](./packages/core/src/contracts/encodeAppliedMutation.ts)                                                    |
+|         89 | [`makeVersion.ts`](./packages/core/src/contracts/makeVersion.ts)                                                                        |
+|         88 | [`applyAggregateFrontendCommand.ts`](./packages/core/src/session/applyAggregateFrontendCommand.ts)                                      |
+|         86 | [`makeLiveQuery.ts`](./packages/live-query/src/makeLiveQuery.ts)                                                                        |
+|         84 | [`SessionsLogsRoute.tsx`](./packages/devtools/src/sessions/sessions/sessionId/logs/SessionsLogsRoute.tsx)                               |
+|         72 | [`ZerospinDevtools.tsx`](./packages/devtools/src/ZerospinDevtools.tsx)                                                                  |

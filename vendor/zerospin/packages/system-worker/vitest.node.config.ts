@@ -49,7 +49,7 @@ const resolveAlias = {
   conditions: ['node'],
   alias: {
     internal: path.resolve(__dirname, 'src'),
-    system: path.resolve(__dirname, 'src/fixtures/system.ts'),
+    config: path.resolve(__dirname, 'src/fixtures/system.ts'),
     '@zerospin/core': path.resolve(__dirname, '../core/src'),
     '@livestore/wa-sqlite/dist/wa-sqlite.mjs': path.resolve(
       __dirname,

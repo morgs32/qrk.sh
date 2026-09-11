@@ -1,26 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-
-import { prefixId } from '@zerospin/core/models/prefixId';
-import { ZerospinError } from '@zerospin/error';
-import {
-  useInitializedStateOrThrow,
-  useLiveQuery,
-  useSession,
-} from '@zerospin/react';
+import { useInitializedStateOrThrow, useLiveQuery } from '@zerospin/react';
 
 import { ProductCard } from './ProductCard';
 
-import { userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function ProductList() {
-  const { identityKey } = useInitializedStateOrThrow(
+  const { authentication } = useInitializedStateOrThrow(
     ZerospinApp.frontends.shopperFrontend,
   );
-  const session = useSession(ZerospinApp.frontends.shopperFrontend);
-  const userCreationStarted = useRef(false);
-  const [userCreationFailure, setUserCreationFailure] =
-    useState<ZerospinError<string> | null>(null);
   const { data: products } = useLiveQuery(ZerospinApp.frontends.appFrontend, {
     query: db => db.query.product.findMany(),
   });
@@ -28,29 +15,10 @@ export function ProductList() {
   const { data: user } = useLiveQuery(ZerospinApp.frontends.shopperFrontend, {
     query: db =>
       db.query.user.findFirst({
-        where: { clerkUserId: { eq: identityKey } },
+        where: { clerkUserId: { eq: authentication.clerkUserId } },
       }),
-    deps: [identityKey],
+    deps: [authentication.clerkUserId],
   });
-
-  useEffect(() => {
-    if (user !== undefined || userCreationStarted.current) return;
-    userCreationStarted.current = true;
-    const result = session.executeCommand({
-      contractName: 'createUser',
-      payload: {
-        id: prefixId(userV1, identityKey),
-        clerkUserId: identityKey,
-      },
-    });
-    if (result._tag === 'Failure') {
-      setUserCreationFailure(new ZerospinError(result.failure));
-    }
-  }, [session, user, identityKey]);
-
-  if (userCreationFailure !== null) {
-    throw userCreationFailure;
-  }
 
   if (user === undefined) {
     return null;

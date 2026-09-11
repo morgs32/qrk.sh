@@ -28,8 +28,8 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../../packages/core/src'),
       },
       {
-        find: 'system',
-        replacement: path.resolve(__dirname, 'src/zerospin/system.ts'),
+        find: 'config',
+        replacement: path.resolve(__dirname, 'zerospin.config.ts'),
       },
       {
         find: '@livestore/wa-sqlite/dist/wa-sqlite.mjs',

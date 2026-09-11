@@ -1,6 +1,6 @@
 ---
 title: SystemRepo Durable Architecture
-updated: 2026-09-09
+updated: 2026-09-11
 ---
 
 # SystemRepo Durable Architecture
@@ -35,13 +35,13 @@ flowchart TB
   ServiceAdmittedChain --> VersionedServiceRepo
   ServiceAdmittedChain --> AggregateChain
   VersionedAggregateRepo --> VersionedAggregateChain
-  VersionedAggregateChain --> UserVersionedAggregateRepo
+  VersionedAggregateChain --> AuthenticatedVersionedAggregateRepo
   VersionedServiceRepo --> VersionedServiceChain
   VersionedServiceChain --> FrontendVersionedServiceRepo
 
-  UserVersionedAggregateRepo --> UserVersionedAggregateChain
+  AuthenticatedVersionedAggregateRepo --> AuthenticatedVersionedAggregateChain
   FrontendVersionedServiceRepo --> FrontendServiceChain
-  UserVersionedAggregateChain --> Browser
+  AuthenticatedVersionedAggregateChain --> Browser
   FrontendServiceChain --> Browser
 
   Gateway --> SystemRepo
@@ -62,24 +62,24 @@ on later cold activations. Authored materializers derive their one fixed
 database configuration from the aggregate, service, and frontend names in the
 instance identity; there is no separate schema target or history.
 
-| Repo                         | Durable identity                                                                        |
-| ---------------------------- | --------------------------------------------------------------------------------------- |
-| AggregateChain               | `{ systemId, aggregateId, aggregateName }`                                              |
-| ServiceAdmittedChain         | `{ systemId, serviceName }`                                                             |
-| VersionedAggregateChain      | `{ systemId, aggregateId, aggregateName, aggregateVersion }`                            |
-| UserVersionedAggregateChain  | `{ systemId, aggregateId, aggregateName, aggregateVersion, identityKey, frontendName }` |
-| FrontendServiceChain         | `{ systemId, serviceName, serviceVersion, identityKey, frontendName }`                  |
-| VersionedAggregateRepo       | `{ systemId, aggregateId, aggregateName, aggregateVersion }`                            |
-| VersionedServiceRepo         | `{ systemId, serviceName, serviceVersion }`                                             |
-| UserVersionedAggregateRepo   | `{ systemId, aggregateId, aggregateName, aggregateVersion, identityKey, frontendName }` |
-| FrontendVersionedServiceRepo | `{ systemId, serviceName, serviceVersion, identityKey, frontendName }`                  |
-| VersionedServiceChain        | `{ systemId, serviceName, serviceVersion }`                                             |
-| SystemRepo and SystemLogRepo | `{ systemId }`                                                                          |
+| Repo                                 | Durable identity                                                                        |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| AggregateChain                       | `{ systemId, aggregateId, aggregateName }`                                              |
+| ServiceAdmittedChain                 | `{ systemId, serviceName }`                                                             |
+| VersionedAggregateChain              | `{ systemId, aggregateId, aggregateName, aggregateVersion }`                            |
+| AuthenticatedVersionedAggregateChain | `{ systemId, aggregateId, aggregateName, aggregateVersion, identityKey, frontendName }` |
+| FrontendServiceChain                 | `{ systemId, serviceName, serviceVersion, identityKey, frontendName }`                  |
+| VersionedAggregateRepo               | `{ systemId, aggregateId, aggregateName, aggregateVersion }`                            |
+| VersionedServiceRepo                 | `{ systemId, serviceName, serviceVersion }`                                             |
+| AuthenticatedVersionedAggregateRepo  | `{ systemId, aggregateId, aggregateName, aggregateVersion, identityKey, frontendName }` |
+| FrontendVersionedServiceRepo         | `{ systemId, serviceName, serviceVersion, identityKey, frontendName }`                  |
+| VersionedServiceChain                | `{ systemId, serviceName, serviceVersion }`                                             |
+| SystemRepo and SystemLogRepo         | `{ systemId }`                                                                          |
 
 - [`types.ts`](../packages/core/src/system/types.ts) — defines the current Repo kinds and registration shape without schema targets.
 - [`aggregateChainFixedDORepoConfig.ts`](../packages/system-worker/src/AggregateChain/aggregateChainFixedDORepoConfig.ts) — keeps AggregateChain on the unversioned `{ systemId, aggregateId, aggregateName }` name.
 - [`VersionedAggregateRepo.ts`](../packages/system-worker/src/VersionedAggregateRepo/VersionedAggregateRepo.ts) — binds each aggregate implementation to `{ systemId, aggregateId, aggregateName, aggregateVersion }`.
-- [`UserVersionedAggregateRepo.ts`](../packages/system-worker/src/UserVersionedAggregateRepo/UserVersionedAggregateRepo.ts) — derives the frontend materializer's fixed database config from its exact identity.
+- [`AuthenticatedVersionedAggregateRepo.ts`](../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.ts) — derives the frontend materializer's fixed database config from its exact identity.
 - [`makeFixedDORepo.ts`](../packages/system-worker/src/makeFixedDORepo/makeFixedDORepo.ts) — skips provisioning after the durable bootstrap marker is present.
 
 ## SystemRepo boundary and command execution
@@ -120,7 +120,7 @@ command IDs and per-command originating resolutions reconcile local optimism.
 Service recovery captures a published FVSR snapshot, pins its serviceVersion,
 and replays FSC strictly after its serviceIndex.
 
-- [`getState.ts`](../packages/system-worker/src/UserVersionedAggregateRepo/getState/getState.ts) — captures state and cursor together and awaits bounded UVAC publication.
+- [`getState.ts`](../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/getState/getState.ts) — captures state and cursor together and awaits bounded UVAC publication.
 - [`bootstrapAggregateFrontendSession.ts`](../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — installs published state, validates contiguous replay, and retains the live socket.
 - [`bootstrapServiceFrontendSession.ts`](../packages/frontend/src/bootstrapServiceFrontendSession.ts) — captures the service snapshot before obtaining its version-pinned ticket.
 

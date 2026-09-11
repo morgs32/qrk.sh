@@ -18,8 +18,12 @@ export const shopperV2 = sdk.upgradeAggregateVersion(shopperV1, {
   selections: {
     cartItem: sdk.makeSelection({
       model: cartItemV2,
-      where: ({ identityKey }: { identityKey: IClerkUserId }) => ({
-        cart: { user: { clerkUserId: identityKey } },
+      where: ({
+        authentication,
+      }: {
+        authentication: { clerkUserId: IClerkUserId };
+      }) => ({
+        cart: { user: { clerkUserId: authentication.clerkUserId } },
       }),
     }),
   },

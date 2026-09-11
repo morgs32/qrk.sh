@@ -32,12 +32,14 @@ export const registerRepos = Effect.fn('SystemRepo.registerRepos')(
       tableNames: AnyColumn;
     };
     frontendRepo: {
-      repoType: 'UserVersionedAggregateRepo' | 'FrontendVersionedServiceRepo';
+      repoType:
+        | 'AuthenticatedVersionedAggregateRepo'
+        | 'FrontendVersionedServiceRepo';
       repoName: string;
       tableNames: readonly string[];
     };
     finalizedCommandChain: {
-      repoType: 'UserVersionedAggregateChain' | 'FrontendServiceChain';
+      repoType: 'AuthenticatedVersionedAggregateChain' | 'FrontendServiceChain';
       repoName: string;
       tableNames: readonly string[];
     };
@@ -46,8 +48,9 @@ export const registerRepos = Effect.fn('SystemRepo.registerRepos')(
 
     // 1 — reject aggregate/service Repo-kind mismatches before the transaction
     if (
-      (frontendRepo.repoType === 'UserVersionedAggregateRepo' &&
-        finalizedCommandChain.repoType !== 'UserVersionedAggregateChain') ||
+      (frontendRepo.repoType === 'AuthenticatedVersionedAggregateRepo' &&
+        finalizedCommandChain.repoType !==
+          'AuthenticatedVersionedAggregateChain') ||
       (frontendRepo.repoType === 'FrontendVersionedServiceRepo' &&
         finalizedCommandChain.repoType !== 'FrontendServiceChain')
     ) {

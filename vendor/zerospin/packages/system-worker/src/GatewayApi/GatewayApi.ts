@@ -1,7 +1,5 @@
-import type { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
 import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
-import type { IAggregateId } from '@zerospin/core/models/types';
 import { RpcTarget } from 'capnweb';
 import type { Schema } from 'effect';
 
@@ -36,16 +34,14 @@ export class GatewayApi extends RpcTarget {
   /*
    * GatewayApi grants a aggregate frontend capability after checking the submitted
    * locks, authentication result, and owner authorization. The capability binds
-   * the configured systemId and authenticated identityKey to the admitted frontend.
+   * the configured systemId and authenticated selectionPath to the admitted frontend.
    *
    * 1. Run the bound domain operation.
    */
   async getAggregateFrontendApi(props: {
     publishableKey: string;
     systemName: string;
-    authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
     signature: unknown;
-    aggregateId: IAggregateId;
     aggregateName: string;
     aggregateVersion: string;
     frontendName: string;
@@ -65,14 +61,13 @@ export class GatewayApi extends RpcTarget {
   /*
    * GatewayApi grants a service frontend capability after checking the submitted
    * locks, authentication result, and owner authorization. The capability binds
-   * the configured systemId and authenticated identityKey to the admitted frontend.
+   * the configured systemId and authenticated selectionPath to the admitted frontend.
    *
    * 1. Run the bound domain operation.
    */
   async getServiceFrontendApi(props: {
     publishableKey: string;
     systemName: string;
-    authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
     signature: unknown;
     serviceName: string;
     serviceVersion: string;

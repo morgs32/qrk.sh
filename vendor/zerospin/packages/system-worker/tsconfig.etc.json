@@ -34,7 +34,7 @@
       "path": "../../packages/error"
     },
     {
-      "path": "../system"
+      "path": "../config"
     }
   ]
 }

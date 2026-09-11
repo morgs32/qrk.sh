@@ -1,9 +1,17 @@
 import { RoutePattern } from '@remix-run/route-pattern';
+import { createHref } from '@remix-run/route-pattern/href';
+import { createMatcher } from '@remix-run/route-pattern/match';
 import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import type { IServiceFrontendFinalizedCommand } from '@zerospin/core/serviceSession/types';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
-import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
-import { Effect, type Schema } from 'effect';
+import {
+  mapParseError,
+  ZerospinError,
+  type IAnyErrorJson,
+  type IEncodedResult,
+} from '@zerospin/error';
+import config from 'config';
+import { Effect, Schema } from 'effect';
 import {
   Server,
   type Connection,
@@ -27,10 +35,52 @@ const frontendServiceChainFixedDORepoConfig = makeFixedDORepoConfig({
   abbreviation: systemWorkerAbbreviations.frontendServiceChain,
   repoType: 'FrontendServiceChain',
   namePattern: RoutePattern.parse(
-    '/:systemId/:serviceName/:serviceVersion/:identityKey/:frontendName',
+    '/:systemId/:serviceName/:serviceVersion/:selectionPath/:frontendName',
   ),
   managedRuntime,
-  dbConfig: frontendServiceChainDbConfig,
+  dbConfig: Effect.fn('FrontendServiceChain.dbConfig')(function* ({ key }) {
+    const owner = config.system.services[key.serviceName]?.[key.serviceVersion];
+    if (owner === undefined) {
+      return yield* new ZerospinError({ code: 'selection-owner-unavailable' });
+    }
+    const matched = yield* Effect.try({
+      try: () =>
+        createMatcher(owner.authentication.pattern).match(
+          new URL(key.selectionPath, 'https://selection.invalid'),
+        ),
+      catch: () => new ZerospinError({ code: 'selection-path-invalid' }),
+    });
+    const selection = yield* Schema.decodeUnknownEffect(
+      owner.authentication.selectionSchema,
+    )(matched?.params, { onExcessProperty: 'error' }).pipe(
+      mapParseError({
+        code: 'selection-path-invalid',
+        prefix: 'Invalid chain selection fields',
+      }),
+    );
+    const encoded = yield* Schema.encodeEffect(
+      owner.authentication.selectionSchema,
+    )(selection).pipe(
+      mapParseError({
+        code: 'selection-path-invalid',
+        prefix: 'Invalid chain selection encoding',
+      }),
+    );
+    const strings = yield* Schema.decodeUnknownEffect(
+      Schema.Record(Schema.String, Schema.String),
+    )(encoded).pipe(
+      mapParseError({
+        code: 'selection-path-invalid',
+        prefix: 'Encoded selection fields must be strings',
+      }),
+    );
+    if (
+      createHref(owner.authentication.pattern, strings) !== key.selectionPath
+    ) {
+      return yield* new ZerospinError({ code: 'selection-path-noncanonical' });
+    }
+    return frontendServiceChainDbConfig;
+  }),
 });
 
 export class FrontendServiceChain extends makeFixedDORepo({
@@ -57,7 +107,8 @@ export class FrontendServiceChain extends makeFixedDORepo({
             phase: 'awaiting-resume' | 'replaying' | 'live';
             serviceName: string;
             serviceVersion: string;
-            identityKey: string;
+            selectionPath: string;
+            authentication: Readonly<Record<string, unknown>>;
             frontendName: string;
             serviceFrontendLock: Schema.Schema.Type<
               typeof ServiceFrontendLockSchema
@@ -131,7 +182,8 @@ export class FrontendServiceChain extends makeFixedDORepo({
       phase: 'awaiting-resume' | 'replaying' | 'live';
       serviceName: string;
       serviceVersion: string;
-      identityKey: string;
+      selectionPath: string;
+      authentication: Readonly<Record<string, unknown>>;
       frontendName: string;
       serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
     }>,
@@ -155,7 +207,8 @@ export class FrontendServiceChain extends makeFixedDORepo({
       phase: 'awaiting-resume' | 'replaying' | 'live';
       serviceName: string;
       serviceVersion: string;
-      identityKey: string;
+      selectionPath: string;
+      authentication: Readonly<Record<string, unknown>>;
       frontendName: string;
       serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
     }>,

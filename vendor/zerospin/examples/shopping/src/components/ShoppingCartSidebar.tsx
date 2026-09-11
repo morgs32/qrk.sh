@@ -12,7 +12,7 @@ import {
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function ShoppingCartSidebar() {
-  const { identityKey } = useInitializedStateOrThrow(
+  const { authentication } = useInitializedStateOrThrow(
     ZerospinApp.frontends.shopperFrontend,
   );
 
@@ -21,7 +21,7 @@ export function ShoppingCartSidebar() {
     {
       query: db =>
         db.query.user.findFirst({
-          where: { clerkUserId: { eq: identityKey } },
+          where: { clerkUserId: { eq: authentication.clerkUserId } },
           with: {
             cart: {
               with: {
@@ -34,7 +34,7 @@ export function ShoppingCartSidebar() {
             },
           },
         }),
-      deps: [identityKey],
+      deps: [authentication.clerkUserId],
     },
   );
 
@@ -52,8 +52,8 @@ export function ShoppingCartSidebar() {
         <div className="flex min-w-0 flex-col gap-2 p-3">
           {cartItems.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center text-sm leading-relaxed">
-              Your cart is empty for {identityKey}. Add products from the
-              catalog.
+              Your cart is empty for {authentication.clerkUserId}. Add products
+              from the catalog.
             </p>
           ) : (
             <div className="space-y-2">

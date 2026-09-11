@@ -22,7 +22,7 @@ it('executes, publishes, projects, and recovers an exact admission receipt after
   };
   const view = {
     ...key,
-    identityKey: 'usr_pipeline071',
+    selectionPath: '/usr_pipeline071',
     frontendName: 'products',
   };
   const command = Schema.decodeUnknownSync(EncodedServiceCommandSchema)({

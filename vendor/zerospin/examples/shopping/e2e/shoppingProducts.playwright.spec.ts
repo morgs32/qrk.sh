@@ -1,6 +1,6 @@
 import { clerk } from '@clerk/testing/playwright';
 import { expect, test } from '@playwright/test';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
+import { RoutePattern } from '@remix-run/route-pattern';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import {
@@ -14,15 +14,20 @@ import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
 import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
 import { appV1 } from '@/zerospin/services/app/AppV1';
-import { signature } from '@/zerospin/signature';
 
 const WebV2 = makeFrontendController({
   systemName: 'shopping',
   aggregateName: shopperV2.name,
   aggregateVersion: shopperV2.version,
   name: 'web',
-  models: shopperV2.models,
-  contracts: shopperV2.contracts,
+  models: {},
+  contracts: {},
+  authentication: {
+    signatureSchema: shopperV2.authentication.signatureSchema,
+    authenticationSchema: shopperV2.authentication.authenticationSchema,
+    selectionSchema: shopperV2.authentication.selectionSchema,
+    pattern: RoutePattern.parse('/:clerkUserId'),
+  },
 });
 const CatalogV1 = appV1.frontends.appFrontend.controller;
 
@@ -30,7 +35,6 @@ const shopperAggregateFrontendLock =
   makeFrontendControllerSpec(WebV2).aggregateFrontendLock;
 const catalogServiceFrontendLock =
   makeFrontendControllerSpec(CatalogV1).serviceFrontendLock;
-const authenticationLock = makeAuthenticationLock(signature);
 
 test('signed-in e2e user can read products through the service-owned catalog frontend', async ({
   page,
@@ -72,12 +76,12 @@ test('signed-in e2e user can read products through the service-owned catalog fro
     const aggregateFrontendApi = await gatewayApi.getAggregateFrontendApi({
       publishableKey,
       systemName: WebV2.systemName,
-      authenticationLock,
+
       signature: { clerkUserId },
-      aggregateId: 'acct_1',
+
       aggregateName: WebV2.aggregateName,
       aggregateVersion: WebV2.aggregateVersion,
-      frontendName: 'web',
+      frontendName: WebV2.name,
       aggregateFrontendLock: shopperAggregateFrontendLock,
     });
     const aggregateState = await Effect.runPromise(
@@ -85,16 +89,16 @@ test('signed-in e2e user can read products through the service-owned catalog fro
         .getState({ outstandingCommandIds: [] })
         .pipe(Effect.provide(makeTelemetryLayer(telemetryCollector))),
     );
-    expect(aggregateState.identityKey).toBe(clerkUserId);
+    expect(aggregateState.authentication.clerkUserId).toBe(clerkUserId);
 
     const serviceFrontendApi = await gatewayApi.getServiceFrontendApi({
       publishableKey,
       systemName: CatalogV1.systemName,
-      authenticationLock,
+
       signature: { clerkUserId },
       serviceName: 'app',
       serviceVersion: '1.0.0',
-      frontendName: 'catalog',
+      frontendName: CatalogV1.name,
       serviceFrontendLock: catalogServiceFrontendLock,
     });
 
@@ -110,8 +114,8 @@ test('signed-in e2e user can read products through the service-owned catalog fro
     );
 
     expect(productRows.serviceName).toBe('app');
-    expect(productRows.identityKey).toBe(clerkUserId);
-    expect(productRows.frontendName).toBe('catalog');
+    expect(productRows.authentication.clerkUserId).toBe(clerkUserId);
+    expect(productRows.frontendName).toBe(CatalogV1.name);
     expect(productRows.resources).toEqual(expect.any(Array));
   }).toPass({
     intervals: [1_000, 2_000, 5_000],

@@ -2,6 +2,7 @@ import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
 import { productV1 } from '../../../../services/app/models/product/ProductV1';
+import { CurrentUser } from '../../CurrentUser';
 import { cart } from '../../models/cart/cart';
 import { type cartV1 } from '../../models/cart/CartV1';
 import { cartItem } from '../../models/cartItem/cartItem';
@@ -33,6 +34,8 @@ export const addToCartV1 = sdk.makeContractVersion(addToCart, {
     payload: { cartId: sdk.InferResource<typeof cartV1>['id'] };
   }) =>
     Effect.gen(function* () {
+      const currentUser = yield* CurrentUser;
+      const authenticatedUser = yield* currentUser;
       const resource = yield* Effect.try({
         try: () =>
           db.query.cart
@@ -47,6 +50,12 @@ export const addToCartV1 = sdk.makeContractVersion(addToCart, {
         return yield* new sdk.ZerospinError({
           code: 'cart-not-found',
           message: `cart ${payload.cartId} was not found`,
+        });
+      }
+      if (resource.userId !== authenticatedUser.id) {
+        return yield* new sdk.ZerospinError({
+          code: 'cart-owner-mismatch',
+          message: 'The cart belongs to another User',
         });
       }
     }),

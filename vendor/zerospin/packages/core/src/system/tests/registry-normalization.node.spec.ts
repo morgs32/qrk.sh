@@ -1,9 +1,9 @@
+import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { makeAggregate } from '../../aggregate/makeAggregate.ts';
 import { makeAggregateVersion } from '../../aggregate/makeVersion.ts';
-import { makeAuthenticationVersion } from '../../authentication/makeVersion.ts';
 import { makeService } from '../../service/makeService.ts';
 import { makeSystem } from '../makeSystem.ts';
 import { makeSystemSpec } from '../makeSystemSpec.ts';
@@ -12,17 +12,11 @@ describe('makeSystem', () => {
   it('normalizes aggregate and service definitions under their registry keys', () => {
     const system = makeSystem({
       name: 'test',
-      authentication: [
-        makeAuthenticationVersion({
-          version: '1.0.0',
-          signature: Schema.Struct({ identityKey: Schema.NonEmptyString }),
-          authenticate: ({ signature }) =>
-            Effect.succeed(signature.identityKey),
-        }),
-      ],
+
       aggregates: {
         user: [
           makeAggregateVersion(makeAggregate({ name: 'user' }), {
+            authentication: authenticationFixtureOwner.authentication,
             version: '1.0.0',
             models: {},
             contracts: {},
@@ -33,6 +27,7 @@ describe('makeSystem', () => {
       services: {
         catalog: [
           makeService({
+            authentication: authenticationFixtureOwner.authentication,
             name: 'catalog',
             version: '1.0.0',
             models: {},

@@ -1,3 +1,7 @@
+import {
+  main as authenticationFixtureFrontend,
+  userAggregate as authenticationFixtureOwner,
+} from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
@@ -31,6 +35,7 @@ const refreshCatalog = makeContractVersion(defineCommand('refreshCatalog'), {
 describe('makeService', () => {
   it('exposes data-only exact versions and constructs typed commands', () => {
     const service = makeService({
+      authentication: authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '2.0.0',
       models: {},
@@ -103,6 +108,7 @@ describe('makeService', () => {
   it('rejects removed service history authoring', () => {
     expect(() =>
       makeService({
+        authentication: authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '2.0.0',
         models: {},
@@ -118,6 +124,7 @@ describe('makeService', () => {
       makeService({
         name: 'empty',
         version: '1.0.0',
+        authentication: authenticationFixtureOwner.authentication,
         models: {},
         contracts: {},
         frontends: {},
@@ -136,6 +143,7 @@ describe('makeService', () => {
       },
     };
     const controller = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'shopping',
       serviceVersion: '1.0.0',
       serviceName: 'catalog',
@@ -145,6 +153,7 @@ describe('makeService', () => {
     const frontends = { browse: { controller } };
 
     const service = makeService({
+      authentication: authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       models,
@@ -185,6 +194,7 @@ describe('makeService', () => {
 
   it('rejects structural copies of canonical local leaves', () => {
     const controller = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'shopping',
       serviceVersion: '1.0.0',
       serviceName: 'catalog',
@@ -194,6 +204,7 @@ describe('makeService', () => {
 
     expect(() =>
       makeService({
+        authentication: authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '1.0.0',
         models: { product: { ...Product } as typeof Product },
@@ -203,6 +214,7 @@ describe('makeService', () => {
     ).toThrow(Schema.SchemaError);
     expect(() =>
       makeService({
+        authentication: authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '1.0.0',
         models: { product: Product },
@@ -216,6 +228,7 @@ describe('makeService', () => {
     ).toThrow(Schema.SchemaError);
     expect(() =>
       makeService({
+        authentication: authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '1.0.0',
         models: { product: Product },
@@ -232,6 +245,7 @@ describe('makeService', () => {
 
   it('enforces service authorization, authoritative models, and frontend identity', () => {
     const controller = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'shopping',
       serviceVersion: '1.0.0',
       serviceName: 'catalog',
@@ -239,6 +253,7 @@ describe('makeService', () => {
       models: { product: Product },
     });
     const wrongNameController = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'shopping',
       serviceVersion: '1.0.0',
       serviceName: 'catalog',
@@ -254,6 +269,7 @@ describe('makeService', () => {
     expect(() =>
       // @ts-expect-error service frontends require owner authorization
       makeService({
+        authentication: authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '1.0.0',
         models: { product: Product },
@@ -263,6 +279,7 @@ describe('makeService', () => {
     ).toThrow(/authorize must be a function when the service has frontends/);
     expect(() =>
       makeService({
+        authentication: authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '1.0.0',
         models: { product: Product },
@@ -274,6 +291,7 @@ describe('makeService', () => {
     ).toThrow(/must omit authorize when it has no frontends/);
     expect(() =>
       makeService({
+        authentication: authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '1.0.0',
         models: {
@@ -286,6 +304,7 @@ describe('makeService', () => {
     ).toThrow(/must be the authoritative source model, not a replica/);
     expect(() =>
       makeService({
+        authentication: authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '1.0.0',
         models: { product: Product },
@@ -311,6 +330,7 @@ describe('makeService', () => {
       },
     );
     const controller = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'shopping',
       serviceVersion: '1.0.0',
       serviceName: 'catalog',
@@ -320,6 +340,7 @@ describe('makeService', () => {
 
     expect(() =>
       makeService({
+        authentication: authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '1.0.0',
         models: { product: Product },
@@ -335,6 +356,7 @@ describe('makeService', () => {
     ).toThrow(/projectionAdapters.productCard is required/);
 
     const identityController = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'shopping',
       serviceVersion: '1.0.0',
       serviceName: 'catalog',
@@ -343,6 +365,7 @@ describe('makeService', () => {
     });
     expect(() =>
       makeService({
+        authentication: authenticationFixtureOwner.authentication,
         name: 'catalog',
         version: '1.0.0',
         models: { product: Product },

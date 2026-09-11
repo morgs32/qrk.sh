@@ -1,11 +1,13 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { ZerospinError } from '@zerospin/error';
+import config from 'config';
 import { Effect } from 'effect';
-import { system } from 'system';
 
 import type { IAlarmRegistry } from '../../makeAlarmRegistry/makeAlarmRegistry.js';
 import { VersionedAggregateRepo } from '../../VersionedAggregateRepo/VersionedAggregateRepo.js';
 import { aggregateChainDbConfig } from '../aggregateChainDbConfig.js';
+
+const { system } = config;
 
 /** Reconcile deployed membership, preserving retained cursors and failure state. */
 export const onDOActivation = Effect.fn('AggregateChain.onDOActivation')(

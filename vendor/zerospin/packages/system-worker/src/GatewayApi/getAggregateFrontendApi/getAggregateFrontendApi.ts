@@ -1,8 +1,6 @@
-import { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
-import type { IAggregateId } from '@zerospin/core/models/types';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
-import { mapParseError } from '@zerospin/error';
+import { mapParseError, ZerospinError } from '@zerospin/error';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { env } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
@@ -12,14 +10,13 @@ import { AggregateFrontendApiFailure } from '../../AggregateFrontendApi/Aggregat
 import { authenticate } from '../../authenticate/authenticate.js';
 import { authorizeAggregateFrontend } from '../../authorizeAggregateFrontend/authorizeAggregateFrontend.js';
 import type { ISystemRuntime } from '../../makeSystemRuntime.js';
-import { checkAuthentication } from '../checkAuthentication/checkAuthentication.js';
 import { checkAuthorization } from '../checkAuthorization/checkAuthorization.js';
 import { checkPublishableApiKey } from '../checkPublishableApiKey/checkPublishableApiKey.js';
 
 /*
  * GatewayApi grants a aggregate frontend capability after checking the submitted
  * locks, authentication result, and owner authorization. The capability binds
- * the configured systemId and authenticated identityKey to the admitted frontend.
+ * the configured systemId and authenticated authentication to the admitted frontend.
  *
  * 1. Capture the request and runtime.
  * 2. Decode the request envelope.
@@ -36,9 +33,7 @@ export const getAggregateFrontendApi = Effect.fn(
   request: {
     publishableKey: string;
     systemName: string;
-    authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
     signature: unknown;
-    aggregateId: IAggregateId;
     aggregateName: string;
     aggregateVersion: string;
     frontendName: string;
@@ -57,9 +52,7 @@ export const getAggregateFrontendApi = Effect.fn(
         Schema.Struct({
           publishableKey: Schema.String,
           systemName: Schema.String,
-          authenticationLock: Schema.Unknown,
           signature: Schema.Unknown,
-          aggregateId: makeAbbreviationIdSchema(coreAbbreviations.aggregate),
           aggregateName: Schema.String,
           aggregateVersion: Schema.String,
           frontendName: Schema.String,
@@ -73,16 +66,6 @@ export const getAggregateFrontendApi = Effect.fn(
       }),
     );
 
-    // 3 — validate AuthenticationLockSchema and AggregateFrontendLockSchema
-    const authenticationLock = yield* Schema.decodeUnknownEffect(
-      AuthenticationLockSchema,
-    )(validated.authenticationLock, { onExcessProperty: 'error' }).pipe(
-      mapParseError({
-        code: 'authentication-lock-invalid',
-        prefix:
-          'getAggregateFrontendApi received an invalid authentication lock',
-      }),
-    );
     const aggregateFrontendLock = yield* Schema.decodeUnknownEffect(
       AggregateFrontendLockSchema,
     )(validated.aggregateFrontendLock, { onExcessProperty: 'error' }).pipe(
@@ -93,33 +76,45 @@ export const getAggregateFrontendApi = Effect.fn(
       }),
     );
 
-    // 4 — validate the API key, adapt the signature, and check the returned identityKey and lock
+    // 4 — validate the API key, adapt the signature, and check the returned authentication and lock
     yield* checkPublishableApiKey(validated.publishableKey);
-    const authentication = yield* authenticate({
-      authenticationLock,
+    const authenticated = yield* authenticate({
+      ownerKind: 'aggregate',
+      ownerName: validated.aggregateName,
+      ownerVersion: validated.aggregateVersion,
       signature: validated.signature,
     });
-    const identityKey = yield* checkAuthentication({
-      authentication,
-      authenticationLock,
-      systemName: validated.systemName,
-    });
+    if (authenticated.systemName !== validated.systemName) {
+      return yield* new ZerospinError({
+        code: 'authentication-system-name-mismatch',
+        message: 'Requested system differs from the authenticated owner',
+      });
+    }
+    const authentication = authenticated.authentication;
+    const aggregateId = yield* Schema.decodeUnknownEffect(
+      makeAbbreviationIdSchema(coreAbbreviations.aggregate),
+    )(authentication.aggregateId).pipe(
+      mapParseError({
+        code: 'authentication-aggregate-id-invalid',
+        prefix: 'Invalid authenticated aggregate ID',
+      }),
+    );
 
     // 5 — ask the owner to admit the frontend, then compare its returned target and lock
     const authorization = yield* authorizeAggregateFrontend({
       aggregateVersion: validated.aggregateVersion,
-      aggregateId: validated.aggregateId,
+      aggregateId,
       aggregateName: validated.aggregateName,
       frontendName: validated.frontendName,
       aggregateFrontendLock,
-      identityKey,
+      authentication,
     });
     yield* checkAuthorization({
       kind: 'aggregate',
       aggregateVersion: validated.aggregateVersion,
       authorization,
-      identityKey,
-      aggregateId: validated.aggregateId,
+      authentication,
+      aggregateId,
       aggregateName: validated.aggregateName,
       systemName: validated.systemName,
       frontendName: validated.frontendName,
@@ -132,7 +127,8 @@ export const getAggregateFrontendApi = Effect.fn(
         aggregateVersion: validated.aggregateVersion,
         aggregateId: authorization.aggregateId,
         aggregateName: authorization.aggregateName,
-        identityKey: authorization.identityKey,
+        authentication: authorization.authentication,
+        selectionPath: authenticated.selectionPath,
         aggregateFrontendLock: authorization.aggregateFrontendLock,
         frontendName: validated.frontendName,
         systemId: env.ZEROSPIN_SYSTEM_ID,

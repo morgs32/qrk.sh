@@ -1,15 +1,19 @@
+import { RoutePattern } from '@remix-run/route-pattern';
+import { createHref } from '@remix-run/route-pattern/href';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
 import { ZerospinError } from '@zerospin/error';
+import config from 'config';
 import { Effect, Result } from 'effect';
-import { system } from 'system';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeSystemRuntime } from '../makeSystemRuntime.js';
 
 import { ServiceFrontendApi } from './ServiceFrontendApi.js';
 import { ServiceFrontendApiFailure } from './ServiceFrontendApiFailure/ServiceFrontendApiFailure.js';
+
+const { system } = config;
 
 const {
   appendTelemetryBatch,
@@ -70,7 +74,7 @@ describe('ServiceFrontendApi', () => {
     getState.mockResolvedValue(
       encodeSuccess({
         serviceName: 'app',
-        identityKey: 'user_1',
+        selectionPath: '/user_1',
         systemId: 'sys_1',
         frontendName: 'products',
         serviceVersion: '1.0.0',
@@ -88,7 +92,10 @@ describe('ServiceFrontendApi', () => {
   it('returns a published versioned service snapshot', async () => {
     const api = new ServiceFrontendApi({
       authResults: {
-        identityKey: 'user_1',
+        authentication: { userId: 'user_1' },
+        selectionPath: createHref(RoutePattern.parse('/:userId'), {
+          userId: 'user_1',
+        }),
         frontendName: 'products',
         serviceFrontendLock,
         serviceName: 'app',
@@ -115,7 +122,7 @@ describe('ServiceFrontendApi', () => {
     expect(getState).toHaveBeenCalledWith({
       serviceName: 'app',
       frontendName: 'products',
-      identityKey: 'user_1',
+      selectionPath: '/user_1',
     });
     expect(appendTelemetryBatch).toHaveBeenCalledOnce();
     expect(envelope.link).toMatchObject({

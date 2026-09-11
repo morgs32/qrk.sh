@@ -1,13 +1,15 @@
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
+import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-import { system } from 'system';
 
 import { genesisDispositionHash } from '../../aggregateDispositionHash/aggregateDispositionHash.js';
 import type { VersionedAggregateRepo } from '../VersionedAggregateRepo.js';
 import { versionedAggregateRepoDbConfig } from '../versionedAggregateRepoDbConfig.js';
+
+const { system } = config;
 
 /** Initialize the execution head and sources after common spec acceptance, then catch up and enroll. */
 export const onDOActivation = Effect.fn(

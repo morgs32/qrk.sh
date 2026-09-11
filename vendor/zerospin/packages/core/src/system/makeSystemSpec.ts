@@ -1,27 +1,33 @@
 import { Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 
-import type { IAuthentication } from '../authentication/types.ts';
 import { makeFrontendControllerSpec } from '../frontendController/makeFrontendControllerSpec.ts';
 
 import type { ISystem, ISystemSpec } from './types.ts';
 
 export function makeSystemSpec<
-  SYSTEM extends Pick<ISystem, 'name' | 'aggregates' | 'services'> & {
-    authentication: readonly IAuthentication[];
-  },
+  SYSTEM extends Pick<ISystem, 'name' | 'aggregates' | 'services'>,
 >(props: { system: SYSTEM }): ISystemSpec {
   const { system } = props;
 
   const spec: ISystemSpec = {
     systemName: system.name,
-    authentication: system.authentication
-      .map(definition => structuredClone(definition.spec))
-      .toSorted((left, right) => left.version.localeCompare(right.version)),
     aggregates: mapValues(system.aggregates, versions =>
       mapValues(versions, aggregate => ({
         name: aggregate.name,
         version: aggregate.version,
+        authentication: {
+          signatureJsonSchema: Schema.toJsonSchemaDocument(
+            aggregate.authentication.signatureSchema,
+          ),
+          authenticationJsonSchema: Schema.toJsonSchemaDocument(
+            aggregate.authentication.authenticationSchema,
+          ),
+          selectionJsonSchema: Schema.toJsonSchemaDocument(
+            aggregate.authentication.selectionSchema,
+          ),
+          pattern: aggregate.authentication.pattern.source,
+        },
         services: { ...aggregate.services },
         models: mapValues(aggregate.models, model => ({
           modelName: model.modelName,
@@ -48,6 +54,18 @@ export function makeSystemSpec<
       mapValues(versions, service => ({
         name: service.name,
         version: service.version,
+        authentication: {
+          signatureJsonSchema: Schema.toJsonSchemaDocument(
+            service.authentication.signatureSchema,
+          ),
+          authenticationJsonSchema: Schema.toJsonSchemaDocument(
+            service.authentication.authenticationSchema,
+          ),
+          selectionJsonSchema: Schema.toJsonSchemaDocument(
+            service.authentication.selectionSchema,
+          ),
+          pattern: service.authentication.pattern.source,
+        },
         models: mapValues(service.models, model => ({
           modelName: model.modelName,
           abbreviation: model.abbreviation,

@@ -29,8 +29,11 @@ const resolveAlias = {
       replacement: path.resolve(__dirname, 'src'),
     },
     {
-      find: 'system',
-      replacement: path.resolve(__dirname, 'src/fixtures/system.ts'),
+      find: 'config',
+      replacement: path.resolve(
+        __dirname,
+        '../system-worker/src/fixtures/system.ts',
+      ),
     },
     {
       find: '@livestore/wa-sqlite/dist/wa-sqlite.mjs',

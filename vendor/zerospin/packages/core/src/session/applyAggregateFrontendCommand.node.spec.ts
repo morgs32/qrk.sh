@@ -63,7 +63,7 @@ describe('independent frontend progress', () => {
                 frontend,
                 sessionId: 'sesn_progress',
                 aggregateId: 'acct_1',
-                identityKey: 'user_1',
+                authentication: { userId: 'user_1', aggregateId: 'acct_1' },
                 systemId: 'sys_1',
                 db,
                 models: mainModels,
@@ -75,7 +75,7 @@ describe('independent frontend progress', () => {
               >;
               const snapshot = {
                 aggregateId: 'acct_1',
-                identityKey: 'user_1',
+                authentication: { userId: 'user_1', aggregateId: 'acct_1' },
                 systemId: 'sys_1',
                 aggregateName: main.aggregateName,
                 frontendName: main.name,
@@ -121,7 +121,10 @@ describe('independent frontend progress', () => {
                 aggregateName: frontend.aggregateName,
                 systemName: frontend.systemName,
                 sessionId: target.sessionId,
-                identityKey: target.identityKey,
+                authentication: {
+                  userId: target.authentication.userId,
+                  aggregateId: target.aggregateId,
+                },
                 frontendName: frontend.name,
                 pushIndex: null,
               });
@@ -175,7 +178,12 @@ describe('independent frontend progress', () => {
                   failure: null,
                 }).pipe(Effect.orDie);
                 tx.insert(sessionCommandJournalDrizzleSchema)
-                  .values({ ...local, sessionIndex: 1, command })
+                  .values({
+                    ...local,
+                    authentication: JSON.stringify(local.authentication),
+                    sessionIndex: 1,
+                    command,
+                  })
                   .run();
                 const mutations = yield* Schema.encodeEffect(
                   Schema.fromJsonString(

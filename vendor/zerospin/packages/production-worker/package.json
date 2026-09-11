@@ -29,7 +29,7 @@
     "@zerospin/schema": "workspace:*",
     "capnweb": "^0.12.0",
     "cloudflare": "^6.1.0",
-    "system": "workspace:*",
+    "config": "workspace:*",
     "system-worker": "workspace:*"
   },
   "devDependencies": {

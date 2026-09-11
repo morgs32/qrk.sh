@@ -12,10 +12,12 @@ import {
   type IEncodedResult,
 } from '@zerospin/error';
 import type { IRpcRequest } from '@zerospin/logger';
+import config from 'config';
 import { Effect, Result, Schema } from 'effect';
-import { system } from 'system';
 
 import { FrontendServiceChain } from '../../FrontendServiceChain/FrontendServiceChain.js';
+
+const { system } = config;
 
 /*
  * ServiceFrontendApi serves reconnect history from FrontendServiceChain.
@@ -33,7 +35,8 @@ export const getFinalizedCommands = Effect.fn(
 )(function* (props: {
   request: IRpcRequest<[{ afterServiceIndex: number; serviceVersion: string }]>;
   authResults: {
-    readonly identityKey: string;
+    readonly authentication: Readonly<Record<string, unknown>>;
+    readonly selectionPath: string;
     readonly frontendName: string;
     readonly serviceFrontendLock: Schema.Schema.Type<
       typeof ServiceFrontendLockSchema
@@ -104,7 +107,7 @@ export const getFinalizedCommands = Effect.fn(
       systemId: authResults.systemId,
       serviceName: authResults.serviceName,
       serviceVersion: validated.success[0].serviceVersion,
-      identityKey: authResults.identityKey,
+      selectionPath: authResults.selectionPath,
       frontendName: authResults.frontendName,
     },
   });

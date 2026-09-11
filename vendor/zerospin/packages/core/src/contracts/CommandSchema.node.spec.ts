@@ -51,7 +51,7 @@ const aggregateCommand = {
   aggregateVersion: '2.0.0',
   systemName: 'shopping',
   sessionId: null,
-  identityKey: null,
+  authentication: null,
   frontendName: null,
   pushIndex: null,
 };
@@ -68,12 +68,14 @@ const dispositionHash =
   '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
 describe('singular command schemas', () => {
-  it('preserves authenticated identity on a command without a frontend session', () => {
-    const command = { ...aggregateCommand, identityKey: 'clerk_user' };
-    const decoded = Schema.decodeUnknownSync(UnknownAggregateCommandSchema)(
-      command,
-    );
-    expect(decoded).toEqual(command);
+  it('requires null authentication on a trusted command without a frontend session', () => {
+    const command = {
+      ...aggregateCommand,
+      authentication: { userId: 'clerk_user', aggregateId: 'acct_1' },
+    };
+    expect(() =>
+      Schema.decodeUnknownSync(UnknownAggregateCommandSchema)(command),
+    ).toThrow();
     const terminal = {
       ...command,
       aggregateIndex: 1,
@@ -85,7 +87,7 @@ describe('singular command schemas', () => {
     };
     expect(
       Schema.is(Schema.toEncoded(AggregateChainedCommandSchema))(terminal),
-    ).toBe(true);
+    ).toBe(false);
   });
   it('accepts aggregate and service seeds without a commandType discriminator', async () => {
     await expect(

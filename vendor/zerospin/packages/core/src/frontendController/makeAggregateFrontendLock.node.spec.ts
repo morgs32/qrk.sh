@@ -1,4 +1,5 @@
 import { it } from '@effect/vitest';
+import { main as authenticationFixtureFrontend } from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
@@ -48,6 +49,7 @@ describe('aggregate frontend lock', () => {
     () =>
       Effect.gen(function* () {
         const left = makeFrontendController({
+          authentication: authenticationFixtureFrontend.authentication,
           aggregateVersion: '1.0.0',
           systemName: 'shopping',
           aggregateName: 'shopper',
@@ -59,6 +61,7 @@ describe('aggregate frontend lock', () => {
           },
         });
         const right = makeFrontendController({
+          authentication: authenticationFixtureFrontend.authentication,
           aggregateVersion: '1.0.0',
           systemName: 'shopping',
           aggregateName: 'customer',
@@ -91,7 +94,7 @@ describe('aggregate frontend lock', () => {
         });
         expect(leftKey).toBe(rightKey);
         expect(leftKey).toBe(
-          'faf30649ae37f6d601e9d00fd12e69783299ab4345d777140ee3632eb3666cbd',
+          '86c92d519ec18a25794d79276e5e3c6de4c065482eccc284e933b0a4d67450aa',
         );
         expect(leftLock).not.toHaveProperty('version');
       }),
@@ -100,6 +103,7 @@ describe('aggregate frontend lock', () => {
   it.effect('changes the key when an exact selected definition changes', () =>
     Effect.gen(function* () {
       const baseline = makeFrontendController({
+        authentication: authenticationFixtureFrontend.authentication,
         aggregateVersion: '1.0.0',
         systemName: 'shopping',
         aggregateName: 'shopper',
@@ -116,6 +120,7 @@ describe('aggregate frontend lock', () => {
         },
       );
       const changed = makeFrontendController({
+        authentication: authenticationFixtureFrontend.authentication,
         aggregateVersion: '1.0.0',
         systemName: 'shopping',
         aggregateName: 'shopper',

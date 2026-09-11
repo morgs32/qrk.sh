@@ -1,3 +1,4 @@
+import { main as authenticationFixtureFrontend } from '@zerospin/core/fixtures/system';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import {
@@ -89,6 +90,7 @@ makeAggregateSession({
   runtime: guardTestRuntime,
 });
 const localFrontend = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'test',
   aggregateName: 'account',
   aggregateVersion: '1.0.0',

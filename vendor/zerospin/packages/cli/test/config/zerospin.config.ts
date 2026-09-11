@@ -1,6 +1,6 @@
+import { RoutePattern } from '@remix-run/route-pattern';
 import { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
 import { makeAggregateVersion } from '@zerospin/core/aggregate/makeVersion';
-import { makeAuthenticationVersion } from '@zerospin/core/authentication/makeVersion';
 import { defineCommand } from '@zerospin/core/contracts/Command';
 import { makeContractVersion } from '@zerospin/core/contracts/makeVersion';
 import { makeService } from '@zerospin/core/service/makeService';
@@ -20,16 +20,22 @@ const createProduct = makeContractVersion(defineCommand('createProduct'), {
 
 export const system = makeSystem({
   name: 'typed-config-fixture',
-  authentication: [
-    makeAuthenticationVersion({
-      version: '1.0.0',
-      signature: Schema.String,
-      authenticate: ({ signature }) => Effect.succeed(signature),
-    }),
-  ],
   aggregates: {
     user: [
       makeAggregateVersion(makeAggregate({ name: 'user' }), {
+        authentication: {
+          signatureSchema: Schema.Struct({
+            userId: Schema.String,
+            aggregateId: Schema.String,
+          }),
+          authenticationSchema: Schema.Struct({
+            userId: Schema.String,
+            aggregateId: Schema.String,
+          }),
+          selectionSchema: Schema.Struct({ userId: Schema.String }),
+          pattern: RoutePattern.parse('/:userId'),
+          authenticate: ({ signature }) => Effect.succeed(signature),
+        },
         version: '2.0.0',
         models: {},
         contracts: { createUser: { contract: createUser } },
@@ -41,6 +47,19 @@ export const system = makeSystem({
     app: [
       makeService({
         name: 'app',
+        authentication: {
+          signatureSchema: Schema.Struct({
+            userId: Schema.String,
+            aggregateId: Schema.String,
+          }),
+          authenticationSchema: Schema.Struct({
+            userId: Schema.String,
+            aggregateId: Schema.String,
+          }),
+          selectionSchema: Schema.Struct({ userId: Schema.String }),
+          pattern: RoutePattern.parse('/:userId'),
+          authenticate: ({ signature }) => Effect.succeed(signature),
+        },
         version: '2.0.0',
         models: {},
         contracts: { createProduct },

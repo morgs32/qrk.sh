@@ -67,7 +67,7 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         sessionId: 'sesn_resolution',
         aggregateId: 'acct_1',
         aggregateName: main.aggregateName,
-        identityKey: 'usr_1',
+        authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
         systemId: 'sys_1',
         frontendName: main.name,
         aggregateFrontendLockKey: 'lock',
@@ -133,7 +133,7 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         frontend: main,
         models: mainModels,
         aggregateId: 'acct_1',
-        identityKey: 'usr_1',
+        authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
         sessionId: session.sessionId,
         command: output,
       };

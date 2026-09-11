@@ -1,6 +1,6 @@
 ---
 title: Glossary
-updated: 2026-09-10
+updated: 2026-09-11
 ---
 
 # Glossary
@@ -80,13 +80,13 @@ SystemWorker route. It serves state and WebSocket tickets.
 A durable ordered history owner. AC retains immutable admitted aggregate inputs. VAC retains terminal execution entries per aggregate version. UVAC retains independent frontend output positions. ServiceAdmittedChain and the versioned service finalized chains retain service admission, execution outcomes, and service frontend output.
 
 - [`aggregateChainDbConfig.ts`](../packages/system-worker/src/AggregateChain/aggregateChainDbConfig.ts) — Stores immutable aggregate inputs with their admitted position and canonical bytes.
-- [`userVersionedAggregateChainDbConfig.ts`](../packages/system-worker/src/UserVersionedAggregateChain/userVersionedAggregateChainDbConfig.ts) — Stores each frontend output by its independent primary-key position and retains its aggregate watermark.
+- [`authenticatedVersionedAggregateChainDbConfig.ts`](../packages/system-worker/src/AuthenticatedVersionedAggregateChain/authenticatedVersionedAggregateChainDbConfig.ts) — Stores each frontend output by its independent primary-key position and retains its aggregate watermark.
 
 ## aggregate and service Repos
 
 Durable resource-state owners. VAR prepares and executes admitted commands per aggregate version. UVAR replays those terminal entries into aggregate replica state and emits one selected/projected frontend delta per input position. Service Repos retain their separate role.
 
-- [`execute.ts`](../packages/system-worker/src/UserVersionedAggregateRepo/execute/execute.ts) — Defines the current ownership and execution contract.
+- [`execute.ts`](../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/execute.ts) — Defines the current ownership and execution contract.
 
 ## suffix
 

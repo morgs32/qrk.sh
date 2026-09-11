@@ -3,9 +3,11 @@ import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendControlle
 import { makeServiceFrontendLockKey } from '@zerospin/core/frontendController/makeServiceFrontendLockKey';
 import { ZerospinError } from '@zerospin/error';
 import { encodeShape } from '@zerospin/schema';
-import { Effect, type Schema } from 'effect';
+import config from 'config';
+import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
-import { system } from 'system';
+
+const { system } = config;
 
 /*
  * Frontend admission and read paths validate the submitted service lock
@@ -52,6 +54,27 @@ export const validateServiceFrontendLock = Effect.fn(
       },
     });
   }
+  if (
+    !isEqual(serviceFrontendLock.authentication, {
+      signatureJsonSchema: Schema.toJsonSchemaDocument(
+        service.authentication.signatureSchema,
+      ),
+      authenticationJsonSchema: Schema.toJsonSchemaDocument(
+        service.authentication.authenticationSchema,
+      ),
+      selectionJsonSchema: Schema.toJsonSchemaDocument(
+        service.authentication.selectionSchema,
+      ),
+      pattern: service.authentication.pattern.source,
+    })
+  ) {
+    return yield* new ZerospinError({
+      code: 'service-frontend-lock-unsupported',
+      message:
+        'Frontend authentication declarations differ from the selected owner version',
+    });
+  }
+
   const frontendBinding = service.frontends[frontendName];
   if (frontendBinding === undefined) {
     return yield* new ZerospinError({
@@ -194,6 +217,7 @@ export const validateServiceFrontendLock = Effect.fn(
 
   // 6 — reject any remaining difference from the submitted lock
   const resolvedLock = {
+    authentication: serviceFrontendLock.authentication,
     systemName: controller.systemName,
     frontendName: controller.name,
     models: resolvedModels,

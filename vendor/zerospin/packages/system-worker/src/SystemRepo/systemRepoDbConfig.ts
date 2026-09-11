@@ -52,7 +52,10 @@ export const systemRepoTables = {
       }),
       aggregateName: primitives.text(),
       aggregateVersion: primitives.text(),
-      identityKey: primitives.text(),
+      selectionPath: primitives.text(),
+      authentication: primitives.json({
+        schema: Schema.Record(Schema.String, Schema.Unknown),
+      }),
       frontendName: primitives.text(),
       aggregateFrontendLock: primitives.json({
         schema: AggregateFrontendLockSchema,
@@ -74,7 +77,10 @@ export const systemRepoTables = {
       repoName: primitives.text(),
       serviceName: primitives.text(),
       serviceVersion: primitives.text(),
-      identityKey: primitives.text(),
+      selectionPath: primitives.text(),
+      authentication: primitives.json({
+        schema: Schema.Record(Schema.String, Schema.Unknown),
+      }),
       frontendName: primitives.text(),
       serviceFrontendLock: primitives.json({
         schema: ServiceFrontendLockSchema,

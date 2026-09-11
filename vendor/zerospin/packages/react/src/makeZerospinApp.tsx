@@ -11,10 +11,8 @@ import {
 import { acquireBackupWorker } from '@zerospin/backup-worker';
 import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import type { IAnyFrontendController } from '@zerospin/core/frontendController/types';
-import type { IAggregateId } from '@zerospin/core/models/types';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
@@ -24,18 +22,13 @@ import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSessio
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { encodeRpc } from '@zerospin/core/utils/encodeRpc';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
-import type { ISignatureFactory } from '@zerospin/core/utils/types';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
 import { bootstrapAggregateFrontendSession } from '@zerospin/frontend/bootstrapAggregateFrontendSession';
 import { bootstrapServiceFrontendSession } from '@zerospin/frontend/bootstrapServiceFrontendSession';
 import { makeTelemetryLayer } from '@zerospin/logger';
-import {
-  makeAbbreviationIdSchema,
-  makeIdFromAbbreviation,
-  type CuidFactory,
-} from '@zerospin/schema';
+import { makeIdFromAbbreviation, type CuidFactory } from '@zerospin/schema';
 import {
   Cause,
   Effect,
@@ -85,8 +78,6 @@ const pageProviderOwnerKey = Symbol.for('@zerospin/react/page-provider-owner');
  */
 export function makeZerospinApp<
   const SYSTEM_NAME extends string,
-  const AUTHENTICATION_VERSION extends string,
-  SIGNATURE extends Schema.Codec<unknown, unknown>,
   APP_SERVICES,
   const FRONTENDS extends Readonly<
     Record<
@@ -103,10 +94,6 @@ export function makeZerospinApp<
   >,
 >(props: {
   systemName: SYSTEM_NAME;
-  authentication: Readonly<{
-    signature: SIGNATURE;
-    version: AUTHENTICATION_VERSION;
-  }>;
   frontends: FRONTENDS & {
     readonly [FRONTEND_NAME in keyof FRONTENDS]: FRONTENDS[FRONTEND_NAME] extends infer FRONTEND extends
       IAnyFrontendController
@@ -121,7 +108,6 @@ export function makeZerospinApp<
 }) {
   // 1 — resolve mounts once against their configured names and systemName.
   const {
-    authentication,
     frontends: sourceFrontends,
     layer: applicationLayer,
     systemName,
@@ -149,15 +135,13 @@ export function makeZerospinApp<
   const mountedFrontends = frontends;
 
   function Provider(providerProps: {
-    generateSignature: ISignatureFactory &
-      (() => Effect.Effect<Schema.Schema.Type<SIGNATURE>, IAnyError>);
-    aggregateIds: {
-      readonly [ENTRY in FRONTENDS[keyof FRONTENDS] as ENTRY extends {
-        kind: 'aggregate';
-        name: infer FRONTEND_NAME extends string;
-      }
-        ? FRONTEND_NAME
-        : never]: IAggregateId;
+    generateSignature: {
+      readonly [NAME in keyof FRONTENDS]: () => Effect.Effect<
+        Schema.Schema.Type<
+          FRONTENDS[NAME]['authentication']['signatureSchema']
+        >,
+        IAnyError
+      >;
     };
     children: ReactNode;
   }) {
@@ -181,10 +165,9 @@ export function makeZerospinApp<
       );
     }
 
-    const { aggregateIds, children, generateSignature } = providerProps;
+    const { children, generateSignature } = providerProps;
     const generateSignatureRef = useRef(generateSignature);
     generateSignatureRef.current = generateSignature;
-    const aggregateIdsKey = JSON.stringify(aggregateIds);
     const [sessions, setSessions] = useState<
       ReadonlyMap<object, ISessionRegistryEntry>
     >(() => new Map());
@@ -219,7 +202,7 @@ export function makeZerospinApp<
       if (providerRuntime === null) return;
       const sessionRuntime = providerRuntime.runtime;
       const sessionScope = Effect.runSync(Scope.fork(providerRuntime.scope));
-      // 2 — claim the page until this aggregateIdsKey scope ends.
+      // 2 — claim the page until this provider scope ends.
       const pageProviderOwner = {};
       if (Reflect.get(globalThis, pageProviderOwnerKey) !== undefined) {
         setStartupError(
@@ -274,23 +257,6 @@ export function makeZerospinApp<
               }
 
               // 3 — encode fresh signatures and share one backup worker connection.
-              const authenticationLock = makeAuthenticationLock(authentication);
-              const generateValidatedSignature = () =>
-                generateSignatureRef.current().pipe(
-                  Effect.flatMap(
-                    Schema.encodeUnknownEffect(authentication.signature),
-                  ),
-                  Effect.mapError(error =>
-                    ZerospinError.isZerospinError(error)
-                      ? error
-                      : new ZerospinError({
-                          code: 'authentication-signature-invalid',
-                          message:
-                            'Generated authentication signature does not match the selected schema',
-                          cause: ZerospinError.prettyUnknownFailure(error),
-                        }),
-                  ),
-                );
               const apiUrl = yield* ZerospinApiUrl;
               const publishableKey = Redacted.value(yield* PublishableKey);
               const backupWorker = yield* acquireBackupWorker();
@@ -303,21 +269,38 @@ export function makeZerospinApp<
                       abbreviation: coreAbbreviations.session,
                     });
                     const frontend = selector.frontend;
-                    if (frontend.kind === 'aggregate') {
-                      // 4 — validate the aggregate ID; commands fail until bootstrap binds execution.
-                      const aggregateId = yield* Schema.decodeUnknownEffect(
-                        makeAbbreviationIdSchema(coreAbbreviations.aggregate),
-                      )(
-                        Reflect.get(JSON.parse(aggregateIdsKey), frontendName),
-                      ).pipe(
-                        Effect.mapError(
-                          () =>
-                            new ZerospinError({
-                              code: 'aggregate-target-required',
-                              message: `Provider requires aggregateIds.${frontendName} for frontend "${frontendName}"`,
-                            }),
+                    const generateValidatedSignature = () =>
+                      Effect.suspend(() => {
+                        const generateSignature =
+                          generateSignatureRef.current[frontendName];
+                        if (generateSignature === undefined) {
+                          return new ZerospinError({
+                            code: 'frontend-signature-missing',
+                            message: `Missing signature generator for ${frontendName}`,
+                          });
+                        }
+                        return generateSignature();
+                      }).pipe(
+                        Effect.flatMap(
+                          Schema.encodeUnknownEffect(
+                            frontend.authentication.signatureSchema,
+                          ),
+                        ),
+                        Effect.mapError(error =>
+                          ZerospinError.isZerospinError(error)
+                            ? error
+                            : new ZerospinError({
+                                code: 'authentication-signature-invalid',
+                                message:
+                                  'Generated authentication signature does not match the selected schema',
+                                cause:
+                                  ZerospinError.prettyUnknownFailure(error),
+                              }),
                         ),
                       );
+
+                    if (frontend.kind === 'aggregate') {
+                      // 4 — validate the aggregate ID; commands fail until bootstrap binds execution.
                       let executeAggregateFrontendCommand: NonNullable<
                         Parameters<
                           typeof makeAggregateSession
@@ -354,11 +337,9 @@ export function makeZerospinApp<
                         yield* bootstrapAggregateFrontendSession({
                           aggregateVersion: frontend.aggregateVersion,
                           session: coreSession,
-                          aggregateId,
                           apiUrl,
                           publishableKey,
                           systemName,
-                          authenticationLock,
                           generateSignature: () =>
                             sessionRuntime.runPromise(
                               generateValidatedSignature().pipe(encodeRpc),
@@ -429,7 +410,7 @@ export function makeZerospinApp<
                               .db,
                         } satisfies ISessionRegistryEntry,
                         systemId: bootstrap.systemId,
-                        identityKey: bootstrap.identityKey,
+                        authentication: bootstrap.authentication,
                       };
                     }
 
@@ -455,7 +436,6 @@ export function makeZerospinApp<
                       apiUrl,
                       publishableKey,
                       systemName,
-                      authenticationLock,
                       generateSignature: () =>
                         sessionRuntime.runPromise(
                           generateValidatedSignature().pipe(encodeRpc),
@@ -513,14 +493,14 @@ export function makeZerospinApp<
                         },
                       } satisfies ISessionRegistryEntry,
                       systemId: bootstrap.systemId,
-                      identityKey: bootstrap.identityKey,
+                      authentication: bootstrap.authentication,
                     };
                   }),
                 ),
                 { concurrency: 'unbounded' },
               );
 
-              // 6 — compare bootstrap systemId and identityKey before exposing any session.
+              // 6 — compare bootstrap systemId before exposing any session.
               const firstInitializedSession = initializedSessions[0];
               if (firstInitializedSession === undefined) {
                 return yield* new ZerospinError({
@@ -529,16 +509,11 @@ export function makeZerospinApp<
                 });
               }
               const systemId = firstInitializedSession.systemId;
-              const resolvedIdentityKey = firstInitializedSession.identityKey;
               for (const initializedSession of initializedSessions) {
-                if (
-                  initializedSession.systemId !== systemId ||
-                  initializedSession.identityKey !== resolvedIdentityKey
-                ) {
+                if (initializedSession.systemId !== systemId) {
                   return yield* new ZerospinError({
                     code: 'frontend-session-identity-mismatch',
-                    message:
-                      'Selected frontends resolved to different identities',
+                    message: 'Selected frontends resolved to different systems',
                   });
                 }
               }
@@ -593,7 +568,7 @@ export function makeZerospinApp<
         Effect.runFork(Scope.close(sessionScope, Exit.void));
         releasePageProviderOwner();
       };
-    }, [aggregateIdsKey, providerRuntime]);
+    }, [providerRuntime]);
 
     // 9 — throw startup errors during render and gate children on registry size.
     const providerContext = useMemo(
@@ -619,5 +594,5 @@ export function makeZerospinApp<
     );
   }
 
-  return { systemName, authentication, frontends, Provider };
+  return { systemName, frontends, Provider };
 }

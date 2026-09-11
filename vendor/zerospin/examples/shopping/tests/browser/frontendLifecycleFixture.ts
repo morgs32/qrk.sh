@@ -1,8 +1,6 @@
 import { acquireBackupWorker, type IBackupDb } from '@zerospin/backup-worker';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
-import { prefixId } from '@zerospin/core/models/prefixId';
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
@@ -22,11 +20,7 @@ import {
   Scope,
 } from 'effect';
 
-import {
-  ClerkUserIdSchema,
-  userV1,
-} from '../../src/zerospin/aggregates/shopper/models/user/UserV1';
-import { signature } from '../../src/zerospin/signature';
+import { ClerkUserIdSchema } from '../../src/zerospin/aggregates/shopper/models/user/UserV1';
 
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 const WebV2 = ZerospinApp.frontends.shopperFrontend.frontend;
@@ -99,7 +93,6 @@ const props = {
   apiUrl: 'http://127.0.0.1:3035/',
   publishableKey: 'pk_test',
   systemName: 'shopping',
-  authenticationLock: makeAuthenticationLock(signature),
   generateSignature: () =>
     Effect.runPromise(encodeRpc(Effect.succeed({ clerkUserId }))),
 };
@@ -148,7 +141,6 @@ const ready = Effect.runPromise(
               ...props,
               session: aggregate,
               aggregateVersion: WebV2.aggregateVersion,
-              aggregateId: 'acct_1',
               backupWorker,
             }),
         selection === 'aggregate'
@@ -186,6 +178,12 @@ export const frontendLifecycleFixture = {
     aggregate: {
       id: aggregate.sessionId,
       status: aggregate.store.getState().sessionStatus,
+      backupStatus: aggregate.store.getState().backupState.status,
+      journal: aggregate.store
+        .getState()
+        .db?.select()
+        .from(sessionCommandJournalDrizzleSchema)
+        .all(),
       sameDb: aggregate.store.getState().db === initialAggregateDb,
     },
     service: {
@@ -208,18 +206,27 @@ export const frontendLifecycleFixture = {
     holdAcquisitions = false;
     grantGate.resolve();
   },
-  async holdLocalCommand() {
+  async holdLocalCommand(persist = false) {
     if (controls === undefined) {
       throw new Error('Frontend has not bootstrapped');
     }
-    await Effect.runPromise(controls.setPushPaused({ pushPaused: true }));
-    holdBackup = true;
+    if (aggregate.store.getState().sessionStatus === 'current') {
+      await Effect.runPromise(controls.setPushPaused({ pushPaused: true }));
+    }
+    holdBackup = !persist;
     backupGate = Promise.withResolvers<void>();
+    const user = aggregate.store
+      .getState()
+      .db?.query.user.findFirst({ where: { clerkUserId } })
+      .sync();
+    if (user === undefined) {
+      throw new Error('Authentication must provision the User');
+    }
     const result = aggregate.executeCommand({
-      contractName: 'createUser',
+      contractName: 'updateUser',
       payload: {
-        id: prefixId(userV1, clerkUserId),
-        clerkUserId,
+        id: user.id,
+        name: 'Held local change',
       },
     });
     const { db } = aggregate.store.getState();
@@ -239,11 +246,11 @@ export const frontendLifecycleFixture = {
   hasUser() {
     const { db } = aggregate.store.getState();
     if (db === null) throw new Error('Expected live database');
-    return db
-      .select()
-      .from(userV1.drizzleSchema)
-      .all()
-      .some(row => row.id === prefixId(userV1, clerkUserId));
+    return (
+      db.query.user
+        .findFirst({ where: { clerkUserId, name: 'Held local change' } })
+        .sync() !== undefined
+    );
   },
   async overwriteFromPreviousOwner() {
     if (previousBackup === undefined || previousSnapshot === undefined) {

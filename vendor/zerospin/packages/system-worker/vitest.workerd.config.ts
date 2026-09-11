@@ -31,7 +31,7 @@ export default defineConfig({
       { find: /^drizzle-orm$/, replacement: `${drizzleOrmRoot}/index.js` },
       { find: 'internal', replacement: path.resolve(__dirname, 'src') },
       {
-        find: 'system',
+        find: 'config',
         replacement: path.resolve(__dirname, 'src/fixtures/system.ts'),
       },
     ],

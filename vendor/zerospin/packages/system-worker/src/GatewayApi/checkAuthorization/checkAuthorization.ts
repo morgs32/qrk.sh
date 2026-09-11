@@ -6,10 +6,11 @@ import type { IFrontendControllerSpec } from '@zerospin/core/frontendController/
 import type { IAggregateId } from '@zerospin/core/models/types';
 import { ZerospinError } from '@zerospin/error';
 import { Effect, type Schema } from 'effect';
+import { isEqual } from 'es-toolkit';
 
 /*
  * Gateway admission verifies that an owner authorization answers the exact
- * frontend request. Authentication supplies identityKey; the caller supplies owner
+ * frontend request. Authentication supplies authentication; the caller supplies owner
  * and frontend fields, which are compared with the authorization result.
  *
  * 1. Select the owner-specific comparison.
@@ -27,13 +28,13 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
             aggregateId: IAggregateId;
             aggregateName: string;
             aggregateVersion: string;
-            identityKey: string;
+            authentication: Readonly<Record<string, unknown>>;
             aggregateFrontendLock: Schema.Schema.Type<
               typeof AggregateFrontendLockSchema
             >;
             frontendSpec: IFrontendControllerSpec;
           }>;
-          identityKey: string;
+          authentication: Readonly<Record<string, unknown>>;
           aggregateId: IAggregateId;
           aggregateName: string;
           aggregateVersion: string;
@@ -46,13 +47,13 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
       | {
           kind: 'service';
           authorization: Readonly<{
-            identityKey: string;
+            authentication: Readonly<Record<string, unknown>>;
             serviceFrontendLock: Schema.Schema.Type<
               typeof ServiceFrontendLockSchema
             >;
             frontendSpec: IFrontendControllerSpec;
           }>;
-          identityKey: string;
+          authentication: Readonly<Record<string, unknown>>;
           systemName: string;
           serviceName: string;
           serviceVersion: string;
@@ -67,7 +68,7 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
     if (kind === 'aggregate') {
       const {
         authorization,
-        identityKey,
+        authentication,
         aggregateId,
         aggregateName,
         systemName,
@@ -83,12 +84,12 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
         authorization.aggregateFrontendLock,
       );
 
-      // 3 — compare kind, aggregateId, aggregateName, identityKey, systemName, frontendName, and lock
+      // 3 — compare kind, aggregateId, aggregateName, authentication, systemName, frontendName, and lock
       if (
         authorization.frontendSpec.kind !== 'aggregate' ||
         authorization.aggregateId !== aggregateId ||
         authorization.aggregateName !== aggregateName ||
-        authorization.identityKey !== identityKey ||
+        !isEqual(authorization.authentication, authentication) ||
         authorization.frontendSpec.systemName !== systemName ||
         authorization.frontendSpec.aggregateName !== aggregateName ||
         authorization.frontendSpec.name !== frontendName ||
@@ -104,7 +105,7 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
     }
     const {
       authorization,
-      identityKey,
+      authentication,
       systemName,
       serviceName,
       frontendName,
@@ -118,9 +119,9 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
       authorization.serviceFrontendLock,
     );
 
-    // 5 — compare identityKey, kind, systemName, serviceName, frontendName, and lock
+    // 5 — compare authentication, kind, systemName, serviceName, frontendName, and lock
     if (
-      authorization.identityKey !== identityKey ||
+      !isEqual(authorization.authentication, authentication) ||
       authorization.frontendSpec.kind !== 'service' ||
       authorization.frontendSpec.systemName !== systemName ||
       authorization.frontendSpec.serviceName !== serviceName ||

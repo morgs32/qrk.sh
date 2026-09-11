@@ -33,7 +33,7 @@ export const getState = Effect.fn('FrontendVersionedServiceRepo.getState')(
       execution: Semaphore.Semaphore;
       requested: {
         serviceName: string;
-        identityKey: string;
+        selectionPath: string;
         frontendName: string;
       };
       deltas: FrontendVersionedServiceRepo['deltas'];
@@ -41,10 +41,10 @@ export const getState = Effect.fn('FrontendVersionedServiceRepo.getState')(
   ) {
     const { key, requested } = props;
 
-    // 1 — compare serviceName, identityKey, and frontendName with the bound key
+    // 1 — compare serviceName, selectionPath, and frontendName with the bound key
     if (
       requested.serviceName !== key.serviceName ||
-      requested.identityKey !== key.identityKey ||
+      requested.selectionPath !== key.selectionPath ||
       requested.frontendName !== key.frontendName
     ) {
       return yield* new ZerospinError({
@@ -107,7 +107,14 @@ export const getState = Effect.fn('FrontendVersionedServiceRepo.getState')(
 
     // 7 — include bound identity, versions, cursor, and captured resources
     return yield* Schema.decodeUnknownEffect(
-      Schema.toType(ServiceFrontendStateSchema),
+      Schema.toType(
+        ServiceFrontendStateSchema.mapFields(
+          ({ authentication: _authentication, ...fields }) => ({
+            ...fields,
+            selectionPath: Schema.String,
+          }),
+        ),
+      ),
     )({
       ...key,
       serviceVersion: key.serviceVersion,

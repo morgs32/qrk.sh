@@ -13,6 +13,12 @@ import { systemRepoDbConfig } from '../systemRepoDbConfig.js';
 import { checkSystemSpec } from './checkSystemSpec.js';
 
 const aggregate = {
+  authentication: {
+    signatureJsonSchema: {},
+    authenticationJsonSchema: {},
+    selectionJsonSchema: {},
+    pattern: '/public',
+  },
   name: 'cart',
   version: '1.0.0',
   services: { directory: '1.0.0' },
@@ -21,6 +27,12 @@ const aggregate = {
   selections: {},
 };
 const service = {
+  authentication: {
+    signatureJsonSchema: {},
+    authenticationJsonSchema: {},
+    selectionJsonSchema: {},
+    pattern: '/public',
+  },
   name: 'directory',
   version: '1.0.0',
   models: {},
@@ -30,7 +42,6 @@ const service = {
 };
 const spec: ISystemSpec = {
   systemName: 'test',
-  authentication: [],
   aggregates: { cart: { '1.0.0': aggregate } },
   services: { directory: { '1.0.0': service } },
 };
@@ -65,6 +76,7 @@ describe('SystemRepo spec locks', () => {
           aggregates: {
             cart: {
               '1.0.0': {
+                authentication: aggregate.authentication,
                 selections: {},
                 contracts: {},
                 models: {},
@@ -211,7 +223,7 @@ describe('SystemRepo spec locks', () => {
     ).toHaveLength(1);
   });
 
-  it('keeps authentication and system names outside aggregate/service locks', async () => {
+  it('keeps system names outside aggregate/service locks', async () => {
     await Effect.runPromise(checkSystemSpec({ db, spec }));
     await Effect.runPromise(
       checkSystemSpec({
@@ -219,16 +231,6 @@ describe('SystemRepo spec locks', () => {
         spec: {
           ...spec,
           systemName: 'renamed',
-          authentication: [
-            {
-              version: '2.0.0',
-              signatureJsonSchema: {
-                dialect: 'draft-2020-12',
-                schema: { type: 'string' },
-                definitions: {},
-              },
-            },
-          ],
         },
       }),
     );
@@ -318,12 +320,12 @@ describe('registration requires accepted definitions', () => {
       spec,
       repoTable: systemRepoDbConfig.schema.repos,
       frontendRepo: {
-        repoType: 'UserVersionedAggregateRepo',
+        repoType: 'AuthenticatedVersionedAggregateRepo',
         repoName: 'frontend',
         tableNames: ['projection'],
       },
       finalizedCommandChain: {
-        repoType: 'UserVersionedAggregateChain',
+        repoType: 'AuthenticatedVersionedAggregateChain',
         repoName: 'chain',
         tableNames: ['commands'],
       },

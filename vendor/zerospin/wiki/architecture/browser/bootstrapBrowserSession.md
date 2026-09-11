@@ -24,9 +24,9 @@ online initialization path used when no valid baseline can be reused.
 
 1. `makeZerospinApp` accepts authored frontend controllers, warms the
    session runtime, and acquires the page backup connection before parallel
-   aggregate/service bootstrap. `Provider.aggregateIds` maps aggregate frontend
-   names to aggregate IDs; service frontends require no entry. Multiple frontends
-   for the same aggregate can select different IDs.
+   aggregate/service bootstrap. `Provider.generateSignature` maps frontend names
+   to independent signer callbacks. Each aggregate authentication result supplies
+   its aggregate ID; initialized sessions retain the full typed claims.
    - [`makeFrontendController.ts`](../../../packages/core/src/frontendController/makeFrontendController.ts) — retains exact contract/model definitions and requires the aggregate or service version on the controller.
    - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — validates configured frontend names and system names, then constructs selectors from the controllers.
    - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — retains Core/browser session objects and shares one `backupWorker` among the selected bootstrap procedures.
@@ -41,7 +41,7 @@ sequenceDiagram
   participant Browser
   participant BackupWorkerApi
   participant AggregateFrontendApi
-  participant UserVersionedAggregateChain
+  participant AuthenticatedVersionedAggregateChain
   participant BackupDbApi
   Note over Browser: Online initialization when no valid committed backup is reusable
   autonumber 1
@@ -55,9 +55,9 @@ sequenceDiagram
   autonumber 5
   Browser->>AggregateFrontendApi: frontendApi.createWebSocketTicket(...)
   autonumber 6
-  Browser->>UserVersionedAggregateChain: socket.send(...)
+  Browser->>AuthenticatedVersionedAggregateChain: socket.send(...)
   autonumber 7
-  UserVersionedAggregateChain-->>Browser: outputs and replay-complete
+  AuthenticatedVersionedAggregateChain-->>Browser: outputs and replay-complete
   autonumber 8
   Browser->>Browser: install snapshot resources and surviving optimism
   autonumber 9
@@ -89,14 +89,14 @@ sequenceDiagram
 4. Online aggregate recovery fetches a consistently captured, durably published
    snapshot containing both `aggregateIndex` and `userIndex`.
    - [`fetchAggregateFrontendState.ts`](../../../packages/frontend/src/fetchAggregateFrontendState.ts) — fetches current published state through a freshly authenticated frontend capability.
-   - [`getState.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/getState/getState.ts) — captures both indices and awaits publication through the captured frontend position.
+   - [`getState.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/getState/getState.ts) — captures both indices and awaits publication through the captured frontend position.
 5. The browser pins that snapshot's `aggregateVersion` in its WebSocket ticket.
    - [`createAggregateFrontendWebSocketTicket.ts`](../../../packages/frontend/src/createAggregateFrontendWebSocketTicket.ts) — forwards the selected aggregate version alongside the exact admitted frontend target.
 6. The socket resumes strictly after the snapshot `userIndex`; this cursor
    is independent of the consumed aggregate watermark.
    - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — sends the captured frontend resume position and buffers outputs until replay completes.
 7. The retained stream returns contiguous output plus its replay watermark.
-   - [`onMessage.ts`](../../../packages/system-worker/src/UserVersionedAggregateChain/onMessage/onMessage.ts) — samples the retained tip and sends replay pages through that boundary.
+   - [`onMessage.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateChain/onMessage/onMessage.ts) — samples the retained tip and sends replay pages through that boundary.
 8. The browser replaces authoritative resources and removes optimism only for
    requested complete command resolutions, then reapplies unresolved journal occurrences.
    - [`applyAggregateFrontendStateTx.ts`](../../../packages/core/src/session/applyAggregateFrontendStateTx.ts) — commits resource replacement and both indices together while preserving surviving optimism.

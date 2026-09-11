@@ -97,12 +97,12 @@ describe('ProductList', () => {
           sessionId: session.sessionId,
           models,
           aggregateId: 'acct_1',
-          identityKey: clerkUserId,
+          authentication: { clerkUserId, aggregateId: 'acct_1' },
           systemId: 'sys_test',
           frontendState: {
             aggregateId: 'acct_1',
             aggregateName: WebV2.aggregateName,
-            identityKey: clerkUserId,
+            authentication: { clerkUserId, aggregateId: 'acct_1' },
             frontendName: WebV2.name,
             userIndex: 0,
             systemId: 'sys_test',
@@ -125,7 +125,7 @@ describe('ProductList', () => {
         session.store.setState({
           aggregateId: 'acct_1',
           aggregateName: WebV2.aggregateName,
-          identityKey: clerkUserId,
+          authentication: { clerkUserId, aggregateId: 'acct_1' },
           frontendName: WebV2.name,
           systemId: 'sys_test',
           aggregateFrontendLockKey: 'a'.repeat(64),
@@ -141,7 +141,9 @@ describe('ProductList', () => {
         });
       }).pipe(Effect.provide(AsyncLive)),
     );
-    useInitializedStateOrThrow.mockReturnValue({ identityKey: clerkUserId });
+    useInitializedStateOrThrow.mockReturnValue({
+      authentication: { clerkUserId, aggregateId: 'acct_1' },
+    });
     useSession.mockReturnValue(session);
     useLiveQuery.mockImplementation((selector, props) => {
       if (selector === ZerospinApp.frontends.appFrontend) {

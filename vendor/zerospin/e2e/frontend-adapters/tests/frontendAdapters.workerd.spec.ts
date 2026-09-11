@@ -138,12 +138,12 @@ describe('frontendAdapters: static aggregate finalization', () => {
           expect(
             yield* makeAsync(() =>
               systemRepo.getRepoRegistrations({
-                repoType: 'UserVersionedAggregateRepo',
+                repoType: 'AuthenticatedVersionedAggregateRepo',
               }),
             ).pipe(Effect.flatMap(decodeRpc)),
           ).toEqual([
             expect.objectContaining({
-              repoType: 'UserVersionedAggregateRepo',
+              repoType: 'AuthenticatedVersionedAggregateRepo',
             }),
           ]);
         }).pipe(Effect.provide(AsyncLive), Effect.scoped),

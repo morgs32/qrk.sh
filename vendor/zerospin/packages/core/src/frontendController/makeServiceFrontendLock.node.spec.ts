@@ -1,4 +1,5 @@
 import { it } from '@effect/vitest';
+import { main as authenticationFixtureFrontend } from '@zerospin/core/fixtures/system';
 import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
@@ -13,6 +14,7 @@ describe('service frontend lock', () => {
   it.effect('omits owner identity and hashes the exact selection', () =>
     Effect.gen(function* () {
       const left = makeFrontendController({
+        authentication: authenticationFixtureFrontend.authentication,
         systemName: 'shopping',
         serviceVersion: '1.0.0',
         serviceName: 'catalog',
@@ -20,6 +22,7 @@ describe('service frontend lock', () => {
         models: {},
       });
       const right = makeFrontendController({
+        authentication: authenticationFixtureFrontend.authentication,
         systemName: 'shopping',
         serviceVersion: '1.0.0',
         serviceName: 'inventory',
@@ -36,7 +39,7 @@ describe('service frontend lock', () => {
       expect(leftLock).toEqual(rightLock);
       expect(leftKey).toBe(rightKey);
       expect(leftKey).toBe(
-        'bef33d25b9d7c8981a1b7975a3ea108517409a0479c538c7f38ee3a226159c67',
+        '21c0724422a3ddac1dd941993f5ebf7d7e58e2850c44192f2e6f1d4f4637aa22',
       );
       expect(leftLock).not.toHaveProperty('kind');
       expect(leftLock).not.toHaveProperty('ownerName');

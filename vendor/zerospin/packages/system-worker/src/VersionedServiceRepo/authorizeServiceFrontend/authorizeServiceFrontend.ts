@@ -1,12 +1,14 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
-import { ZerospinError } from '@zerospin/error';
-import { Effect } from 'effect';
-import { system } from 'system';
+import { mapParseError, ZerospinError } from '@zerospin/error';
+import config from 'config';
+import { Effect, Schema } from 'effect';
+
+const { system } = config;
 
 /*
  * Service frontend admission runs the authored authorizer against owner-local
- * queries. The request supplies the frontendName and authenticated identityKey; this
+ * queries. The request supplies the frontendName and authenticated authentication; this
  * operation exposes only queries for service-owned models.
  *
  * 1. Resolve the service definition.
@@ -21,10 +23,10 @@ export const authorizeServiceFrontend = Effect.fn(
   serviceName: string;
   serviceVersion: string;
   frontendName: string;
-  identityKey: string;
+  authentication: Readonly<Record<string, unknown>>;
   db: IDb;
 }) {
-  const { db, frontendName, serviceName, identityKey } = props;
+  const { db, frontendName, serviceName, authentication } = props;
 
   // 1 — read the authored service by serviceName
   const latestService = yield* getByKeyOrThrow({
@@ -66,10 +68,17 @@ export const authorizeServiceFrontend = Effect.fn(
     Reflect.set(query, modelName, modelQuery);
   }
 
-  // 5 — supply frontendName, identityKey, and the restricted db.query surface
+  // 5 — supply frontendName, authentication, and the restricted db.query surface
   yield* service.authorize({
     frontendName,
-    identityKey,
+    authentication: yield* Schema.decodeUnknownEffect(
+      service.authentication.authenticationSchema,
+    )(authentication, { onExcessProperty: 'error' }).pipe(
+      mapParseError({
+        code: 'authorization-authentication-invalid',
+        prefix: 'Invalid saved authentication for authorization',
+      }),
+    ),
     db: { query },
   });
 });

@@ -1,3 +1,4 @@
+import { main as authenticationFixtureFrontend } from '@zerospin/core/fixtures/system';
 import type { InferResource } from '@zerospin/core/models/types';
 import { PrimitiveKind, primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
@@ -12,6 +13,7 @@ import { makeFrontendController } from './makeFrontendController.ts';
 import { makeFrontendControllerSpec } from './makeFrontendControllerSpec.ts';
 
 const aggregateFrontend = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   aggregateVersion: '1.0.0',
   systemName: 'test',
   aggregateName: 'user',
@@ -40,6 +42,7 @@ function assertReadonlyAggregateFrontend(
 void assertReadonlyAggregateFrontend;
 
 const serviceFrontend = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'test',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',
@@ -76,6 +79,7 @@ const AggregateProduct = makeReplica({
   serviceName: 'catalog',
 });
 const productServiceFrontend = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'replica-controller-test',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',
@@ -83,6 +87,7 @@ const productServiceFrontend = makeFrontendController({
   models: { product: ServiceProduct },
 });
 const productAggregateFrontend = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   aggregateVersion: '1.0.0',
   systemName: 'replica-controller-test',
   aggregateName: 'account',
@@ -99,6 +104,7 @@ void retainedServiceProduct;
 void retainedAggregateProduct;
 
 makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'replica-controller-test',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',
@@ -110,6 +116,7 @@ makeFrontendController({
 });
 
 makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'test',
   name: 'invalid',
   models: {},
@@ -118,6 +125,7 @@ makeFrontendController({
 });
 
 makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   aggregateVersion: '1.0.0',
   systemName: 'test',
   aggregateName: 'user',
@@ -189,6 +197,7 @@ const renameGuardList = makeContractVersion(defineCommand('renameGuardList'), {
   version: '1.0.0',
 });
 const guardedController = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   aggregateVersion: '1.0.0',
   systemName: 'guard-type-test',
   aggregateName: 'account',

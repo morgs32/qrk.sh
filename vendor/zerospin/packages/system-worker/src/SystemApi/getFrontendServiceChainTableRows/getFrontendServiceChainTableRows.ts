@@ -92,7 +92,7 @@ export const getFrontendServiceChainTableRows = Effect.fn(
             systemId: authResults.systemId,
             serviceName: key.serviceName,
             serviceVersion: key.serviceVersion,
-            identityKey: key.identityKey,
+            selectionPath: key.selectionPath,
             frontendName: key.frontendName,
           },
         });

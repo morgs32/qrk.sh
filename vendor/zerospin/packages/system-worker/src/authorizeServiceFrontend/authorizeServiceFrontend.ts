@@ -13,7 +13,7 @@ import { VersionedServiceRepo } from '../VersionedServiceRepo/VersionedServiceRe
 
 /*
  * GatewayApi uses this operation to admit a service frontend for an
- * authenticated identityKey and caller-selected owner/frontend fields.
+ * authenticated authentication and caller-selected owner/frontend fields.
  * The service Repo runs authorization against its local resource state.
  *
  * 1. Validate the requested frontend lock.
@@ -25,21 +25,22 @@ export const authorizeServiceFrontend = Effect.fn(
   'SystemWorker.authorizeServiceFrontend',
   { root: true },
 )(function* (props: {
-  identityKey: string;
+  authentication: Readonly<Record<string, unknown>>;
   serviceName: string;
   serviceVersion: string;
   frontendName: string;
   serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
 }): Effect.fn.Return<
   Readonly<{
-    identityKey: string;
+    authentication: Readonly<Record<string, unknown>>;
     serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
     frontendSpec: IFrontendControllerSpec;
   }>,
   IAnyError,
   Async
 > {
-  const { identityKey, serviceName, frontendName, serviceFrontendLock } = props;
+  const { authentication, serviceName, frontendName, serviceFrontendLock } =
+    props;
 
   // 1 — resolve the authored service frontend and its supported lock
   const selectedUnknown = yield* validateServiceFrontendLock({
@@ -60,7 +61,7 @@ export const authorizeServiceFrontend = Effect.fn(
     }),
   );
 
-  // 3 — open the service Repo and run authorizeServiceFrontend with the authenticated identityKey
+  // 3 — open the service Repo and run authorizeServiceFrontend with the authenticated authentication
   const serviceVersion = props.serviceVersion;
   const serviceRepo = yield* VersionedServiceRepo.getRepo({
     key: { systemId: env.ZEROSPIN_SYSTEM_ID, serviceName, serviceVersion },
@@ -71,13 +72,13 @@ export const authorizeServiceFrontend = Effect.fn(
     serviceRepo.authorizeServiceFrontend({
       serviceName,
       frontendName,
-      identityKey,
+      authentication,
     }),
   ).pipe(Effect.flatMap(decodeRpc));
 
   // 4 — return the checked lock, frontendSpec
   return {
-    identityKey,
+    authentication,
     serviceFrontendLock: selected.serviceFrontendLock,
     frontendSpec: selected.frontendSpec,
   };

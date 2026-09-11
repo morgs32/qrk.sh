@@ -1,3 +1,7 @@
+import {
+  main as authenticationFixtureFrontend,
+  userAggregate as authenticationFixtureOwner,
+} from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 
@@ -31,6 +35,7 @@ const inspectV2 = makeContractVersion(inspect, {
   payload: {},
 });
 const shopperV1 = makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+  authentication: authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: { item: itemV1 },
   contracts: { inspect: { contract: inspectV1 } },
@@ -38,6 +43,7 @@ const shopperV1 = makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
 });
 
 const frontend = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'shopping',
   aggregateName: 'shopper',
   aggregateVersion: '1.0.0',
@@ -52,6 +58,7 @@ assert<Equals<typeof frontend.models.item, typeof itemV1>>();
 assert<Equals<typeof frontend.contracts.inspect.contract, typeof inspectV1>>();
 
 makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'shopping',
   aggregateName: 'shopper',
   aggregateVersion: '1.0.0',
@@ -61,25 +68,45 @@ makeFrontendController({
 }) satisfies IAggregateFrontend<typeof shopperV1>;
 
 const wrongName = makeFrontendController({
-  ...frontend,
+  systemName: frontend.systemName,
+  aggregateVersion: frontend.aggregateVersion,
+  name: frontend.name,
+  authentication: frontend.authentication,
+  models: frontend.models,
+  contracts: frontend.contracts,
   aggregateName: 'other',
 });
 // @ts-expect-error The aggregate name must match.
 wrongName satisfies IAggregateFrontend<typeof shopperV1>;
 const wrongVersion = makeFrontendController({
-  ...frontend,
+  systemName: frontend.systemName,
+  aggregateName: frontend.aggregateName,
+  name: frontend.name,
+  authentication: frontend.authentication,
+  models: frontend.models,
+  contracts: frontend.contracts,
   aggregateVersion: '2.0.0',
 });
 // @ts-expect-error The aggregate version must match.
 wrongVersion satisfies IAggregateFrontend<typeof shopperV1>;
 const wrongModels = makeFrontendController({
-  ...frontend,
+  systemName: frontend.systemName,
+  aggregateName: frontend.aggregateName,
+  aggregateVersion: frontend.aggregateVersion,
+  name: frontend.name,
+  authentication: frontend.authentication,
+  contracts: frontend.contracts,
   models: { item: itemV2 },
 });
 // @ts-expect-error The selected model must match the aggregate definition.
 wrongModels satisfies IAggregateFrontend<typeof shopperV1>;
 const wrongContracts = makeFrontendController({
-  ...frontend,
+  systemName: frontend.systemName,
+  aggregateName: frontend.aggregateName,
+  aggregateVersion: frontend.aggregateVersion,
+  name: frontend.name,
+  authentication: frontend.authentication,
+  models: frontend.models,
   contracts: { inspect: { contract: inspectV2 } },
 });
 // @ts-expect-error The selected contract must match the aggregate definition.
@@ -94,7 +121,12 @@ const other = makeModelVersion(
   },
 );
 const extraModels = makeFrontendController({
-  ...frontend,
+  systemName: frontend.systemName,
+  aggregateName: frontend.aggregateName,
+  aggregateVersion: frontend.aggregateVersion,
+  name: frontend.name,
+  authentication: frontend.authentication,
+  contracts: frontend.contracts,
   models: { item: itemV1, other },
 });
 // @ts-expect-error Extra entries cannot expose models outside the aggregate definition.

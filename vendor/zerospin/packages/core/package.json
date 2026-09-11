@@ -43,6 +43,7 @@
   },
   "dependencies": {
     "@livestore/wa-sqlite": "^1.0.5",
+    "@remix-run/route-pattern": "^0.22.1",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/core": "^2.7.1",
     "@opentelemetry/sdk-trace-node": "^2.7.1",

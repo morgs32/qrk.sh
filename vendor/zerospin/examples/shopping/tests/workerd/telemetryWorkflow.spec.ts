@@ -19,6 +19,13 @@ import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
 import { system } from '@/zerospin/system';
 
 const WebV2 = makeFrontendController({
+  authentication: {
+    signatureSchema: shopperV2.authentication.signatureSchema,
+    authenticationSchema: shopperV2.authentication.authenticationSchema,
+    selectionSchema: shopperV2.authentication.selectionSchema,
+    pattern: shopperV2.authentication.pattern,
+  },
+  guardLayer: shopperV2.guardLayer,
   systemName: 'shopping',
   aggregateName: shopperV2.name,
   aggregateVersion: shopperV2.version,

@@ -1,4 +1,5 @@
 import { it } from '@effect/vitest';
+import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
@@ -52,6 +53,7 @@ describe('makeAggregate', () => {
     expect(() =>
       makeAggregateVersion(makeAggregate({ name: 'empty' }), {
         version: '1.0.0',
+        authentication: authenticationFixtureOwner.authentication,
         models: {},
         contracts: {},
         selections: {},
@@ -67,6 +69,7 @@ describe('makeAggregate', () => {
       item: makeSelection({ model: Item, where: () => ({}) }),
     };
     const aggregate = makeAggregateVersion(makeAggregate({ name: 'list' }), {
+      authentication: authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models,
       contracts,
@@ -97,6 +100,7 @@ describe('makeAggregate', () => {
   it('rejects structural copies of canonical local leaves', () => {
     expect(() =>
       makeAggregateVersion(makeAggregate({ name: 'list' }), {
+        authentication: authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: { item: { ...Item } as typeof Item },
         contracts: { renameItem: { contract: renameItem } },
@@ -107,6 +111,7 @@ describe('makeAggregate', () => {
     ).toThrow(Schema.SchemaError);
     expect(() =>
       makeAggregateVersion(makeAggregate({ name: 'list' }), {
+        authentication: authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: { item: Item },
         contracts: {
@@ -124,6 +129,7 @@ describe('makeAggregate', () => {
   it('enforces selection identities locally', () => {
     expect(() =>
       makeAggregateVersion(makeAggregate({ name: 'list' }), {
+        authentication: authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: { item: Item },
         contracts: {},
@@ -132,6 +138,7 @@ describe('makeAggregate', () => {
     ).toThrow(/must contain exactly one selection for every model/);
     expect(() =>
       makeAggregateVersion(makeAggregate({ name: 'list' }), {
+        authentication: authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: { item: Item },
         contracts: {},
@@ -154,6 +161,7 @@ describe('makeAggregate', () => {
       },
     );
     const aggregate = makeAggregateVersion(makeAggregate({ name: 'list' }), {
+      authentication: authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models: { item: Item },
       contracts: { renameItem: { contract: guardedRenameItem } },

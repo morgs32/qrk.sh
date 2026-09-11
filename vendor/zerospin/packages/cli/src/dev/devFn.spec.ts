@@ -132,7 +132,12 @@ describe('development spec acceptance', () => {
       watch: true,
     });
     const config = JSON.parse(await readFile(options.config, 'utf8'));
-    expect(config.alias.system).toContain('/.wrangler/zerospin/entry-');
+    expect(config.alias).toEqual({
+      config: join(directory, 'zerospin.config.ts'),
+    });
+    expect(await readdir(join(options.config, '..'))).toEqual([
+      'wrangler.json',
+    ]);
     expect(config.name).toBe('zerospin-dev-test');
     expect(config.main).toBe(options.entrypoint);
     expect(mocks.getVarsForDev).toHaveBeenCalledWith(
@@ -168,7 +173,7 @@ describe('development spec acceptance', () => {
     expect(mocks.disposeSession).toHaveBeenCalled();
     expect(
       (await readdir(join(directory, '.wrangler/zerospin'))).filter(file =>
-        file.startsWith('entry-'),
+        file.startsWith('dev-config-'),
       ),
     ).toEqual([]);
   });
@@ -204,7 +209,7 @@ describe('development spec acceptance', () => {
       expect(mocks.disposeSession).toHaveBeenCalled();
       expect(
         (await readdir(join(directory, '.wrangler/zerospin'))).filter(file =>
-          file.startsWith('entry-'),
+          file.startsWith('dev-config-'),
         ),
       ).toEqual([]);
     },
@@ -320,7 +325,9 @@ describe('development spec acceptance', () => {
       );
       expect(failure.code).toBe('zerospin-worker-name-invalid');
       expect(mocks.startWorker).not.toHaveBeenCalled();
-      expect(await readdir(join(directory, '.wrangler/zerospin'))).toEqual([]);
+      await expect(
+        readdir(join(directory, '.wrangler/zerospin')),
+      ).rejects.toMatchObject({ code: 'ENOENT' });
     },
   );
 
@@ -356,7 +363,7 @@ describe('development spec acceptance', () => {
     expect(mocks.disposeSession).toHaveBeenCalled();
     expect(
       (await readdir(join(directory, '.wrangler/zerospin'))).filter(file =>
-        file.startsWith('entry-'),
+        file.startsWith('dev-config-'),
       ),
     ).toEqual([]);
   });

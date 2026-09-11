@@ -10,7 +10,6 @@ import type {
   IAnyAuthoredAggregate,
 } from '../aggregate/types.ts';
 import type { Async } from '../async/Async.ts';
-import type { IAuthentication } from '../authentication/types.ts';
 import type { IModel } from '../models/types.ts';
 import type { IAnyServices } from '../service/types.ts';
 import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
@@ -33,21 +32,22 @@ type IResolvedAggregates<
         IAggregateAuthorization<DEFINITION['models'], never>,
       DEFINITION['version'],
       Layer.Success<DEFINITION['layer']>,
-      Layer.Services<DEFINITION['layer']>
+      Layer.Services<DEFINITION['layer']>,
+      DEFINITION['authentication'],
+      Layer.Success<ReturnType<NonNullable<DEFINITION['guardLayer']>>>,
+      Layer.Services<ReturnType<NonNullable<DEFINITION['guardLayer']>>>
     >;
   };
 };
 
 export function makeSystem<
   SYSTEM_NAME extends string,
-  const AUTHENTICATION extends readonly IAuthentication[],
   const AGGREGATES extends Record<string, readonly IAnyAuthoredAggregate[]>,
   APP_SERVICES,
   const SERVICES extends Record<string, readonly IAnyServices[string][]> = {},
 >(props: {
   name: SYSTEM_NAME;
   layer: Layer.Layer<APP_SERVICES, IAnyError>;
-  authentication: AUTHENTICATION;
   aggregates: AGGREGATES & {
     [AGGREGATE_NAME in keyof NoInfer<AGGREGATES> & string]: {
       [INDEX in keyof AGGREGATES[AGGREGATE_NAME]]: AGGREGATES[AGGREGATE_NAME][INDEX] extends infer DEFINITION extends
@@ -94,19 +94,16 @@ export function makeSystem<
     };
   },
   SYSTEM_NAME,
-  AUTHENTICATION,
   APP_SERVICES
 >;
 
 export function makeSystem<
   SYSTEM_NAME extends string,
-  const AUTHENTICATION extends readonly IAuthentication[],
   const AGGREGATES extends Record<string, readonly IAnyAuthoredAggregate[]>,
   const SERVICES extends Record<string, readonly IAnyServices[string][]> = {},
 >(props: {
   name: SYSTEM_NAME;
   layer?: never;
-  authentication: AUTHENTICATION;
   aggregates: AGGREGATES & {
     [AGGREGATE_NAME in keyof NoInfer<AGGREGATES> & string]: {
       [INDEX in keyof AGGREGATES[AGGREGATE_NAME]]: AGGREGATES[AGGREGATE_NAME][INDEX] extends infer DEFINITION extends
@@ -145,14 +142,12 @@ export function makeSystem<
     };
   },
   SYSTEM_NAME,
-  AUTHENTICATION,
   never
 >;
 
 export function makeSystem(props: {
   name: string;
   layer?: Layer.Any;
-  authentication: readonly IAuthentication[];
   aggregates: Record<string, readonly IAnyAuthoredAggregate[]>;
   services?: Record<string, readonly IAnyServices[string][]>;
 }): unknown {
@@ -203,7 +198,6 @@ export function makeSystem(props: {
   const system = {
     layer: props.layer ?? Layer.empty,
     name: decoded.name,
-    authentication: decoded.authentication,
     aggregates,
     services,
   };

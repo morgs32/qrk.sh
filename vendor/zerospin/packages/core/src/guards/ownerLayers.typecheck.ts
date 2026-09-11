@@ -1,3 +1,7 @@
+import {
+  main as authenticationFixtureFrontend,
+  userAggregate as authenticationFixtureOwner,
+} from '@zerospin/core/fixtures/system';
 import { Effect, Layer, Redacted } from 'effect';
 
 import { makeAggregate } from '../aggregate/makeAggregate.ts';
@@ -24,6 +28,7 @@ const inspect = makeContractVersion(defineCommand('inspect'), {
 });
 const identity = makeAggregate({ name: 'account' });
 const aggregate = makeAggregateVersion(identity, {
+  authentication: authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: {},
   contracts: { inspect: { contract: inspect } },
@@ -32,18 +37,19 @@ const aggregate = makeAggregateVersion(identity, {
 const appLayer = Layer.succeed(PublishableKey, Redacted.make('app'));
 makeSystem({
   name: 'test',
-  authentication: [],
+
   // @ts-expect-error Application wiring must supply the aggregate guard requirement.
   aggregates: { account: [aggregate] },
 });
 makeSystem({
   name: 'test',
-  authentication: [],
+
   layer: appLayer,
   aggregates: { account: [aggregate] },
 });
 
 const service = makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: {},
@@ -51,14 +57,14 @@ const service = makeService({
 });
 makeSystem({
   name: 'test',
-  authentication: [],
+
   aggregates: {},
   // @ts-expect-error Application wiring must supply service guards too.
   services: { catalog: [service] },
 });
 makeSystem({
   name: 'test',
-  authentication: [],
+
   layer: appLayer,
   aggregates: {},
   services: { catalog: [service] },
@@ -71,6 +77,7 @@ const local = Layer.effect(
 const overridden = makeAggregateVersion(
   makeAggregate({ name: 'account', layer: local }),
   {
+    authentication: authenticationFixtureOwner.authentication,
     version: '1.0.0',
     models: {},
     contracts: { inspect: { contract: inspect } },
@@ -79,7 +86,7 @@ const overridden = makeAggregateVersion(
 );
 makeSystem({
   name: 'test',
-  authentication: [],
+
   // @ts-expect-error The local layer still needs ZerospinApiUrl.
   layer: appLayer,
   // @ts-expect-error This owner requires the missing local-layer input too.
@@ -87,7 +94,7 @@ makeSystem({
 });
 makeSystem({
   name: 'test',
-  authentication: [],
+
   layer: Layer.succeed(ZerospinApiUrl, 'https://test.invalid'),
   aggregates: { account: [overridden] },
 });
@@ -98,16 +105,17 @@ const next = upgradeAggregateVersion(aggregate, {
 });
 makeSystem({
   name: 'test',
-  authentication: [],
+
   // @ts-expect-error The older registered version still requires PublishableKey.
   aggregates: { account: [aggregate, next] },
 });
 makeSystem({
   name: 'test',
-  authentication: [],
+
   aggregates: { account: [next] },
 });
 makeAggregateVersion(identity, {
+  authentication: authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: {},
   contracts: {},
@@ -119,6 +127,7 @@ makeAggregateVersion(identity, {
 upgradeAggregateVersion(aggregate, { version: '2.0.0', layer: Layer.empty });
 
 const frontend = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'test',
   aggregateName: 'account',
   aggregateVersion: '1.0.0',
@@ -144,6 +153,7 @@ const latest = upgradeContractVersion(inspect, {
   program: () => Effect.succeed({}),
 });
 const currentOnly = makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '2.0.0',
   models: {},
@@ -151,11 +161,12 @@ const currentOnly = makeService({
 });
 makeSystem({
   name: 'test',
-  authentication: [],
+
   aggregates: {},
   services: { catalog: [currentOnly] },
 });
 const previous = makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: {},
@@ -163,20 +174,21 @@ const previous = makeService({
 });
 makeSystem({
   name: 'test',
-  authentication: [],
+
   aggregates: {},
   // @ts-expect-error Explicitly registered older service guards still need PublishableKey.
   services: { catalog: [previous, currentOnly] },
 });
 makeSystem({
   name: 'test',
-  authentication: [],
+
   layer: appLayer,
   aggregates: {},
   services: { catalog: [previous, currentOnly] },
 });
 
 const localService = makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: {},
@@ -185,7 +197,7 @@ const localService = makeService({
 });
 makeSystem({
   name: 'test',
-  authentication: [],
+
   aggregates: {},
   services: { catalog: [localService] },
 });

@@ -76,7 +76,6 @@ packages/devtools/src/**/*.d.ts.map
 .obsidian/
 
 # Scoped CLI entrypoints and configuration test workspaces
-.zerospin-entry-*/
 .typed-config-e2e-*/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).

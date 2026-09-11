@@ -1,4 +1,6 @@
-import { config, system } from 'system';
+import config from 'config';
+
+import { system } from './zerospin.config';
 
 export * from '@zerospin/dev-worker/DevWorker';
 

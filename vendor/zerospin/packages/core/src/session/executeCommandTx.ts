@@ -11,6 +11,7 @@ import type { makeMutations } from '../contracts/makeMutations.ts';
 import type { IEncodedCommand, ISessionCommand } from '../contracts/types.ts';
 import { makeTx } from '../drizzle/makeTx.ts';
 import type { IDb, ITx } from '../drizzle/types.ts';
+import type { initializeGuards } from '../guards/initializeGuards.ts';
 import { EncodedResourceSchema } from '../models/EncodedResourceSchema.ts';
 import type { IAnyModels } from '../models/types.ts';
 
@@ -43,6 +44,10 @@ export const executeCommandTx = makeTx(
   COMMAND extends ISessionCommand & Readonly<{ pushIndex: null }>,
 >(props: {
   sessionId: ISessionId;
+  guards: Effect.Success<
+    ReturnType<typeof initializeGuards<never, unknown, unknown>>
+  >;
+  authentication: Readonly<Record<string, unknown>>;
   madeMutations:
     | { failure: IAnyError }
     | { success: Effect.Success<ReturnType<typeof makeMutations>> };
@@ -64,6 +69,11 @@ export const executeCommandTx = makeTx(
   } = props;
 
   const tx = yield* Db.Tx;
+  yield* props.guards.run(command.commandName, {
+    db: tx,
+    authentication: props.authentication,
+    payload: command.payload,
+  });
   const metadata = tx
     .select()
     .from(sessionMetadataDrizzleSchema)
@@ -118,6 +128,7 @@ export const executeCommandTx = makeTx(
     tx.insert(sessionCommandJournalDrizzleSchema)
       .values({
         ...encodedCommand,
+        authentication: JSON.stringify(encodedCommand.authentication),
         sessionIndex,
         command: commandBytes,
       })
@@ -271,6 +282,7 @@ export const executeCommandTx = makeTx(
   tx.insert(sessionCommandJournalDrizzleSchema)
     .values({
       ...encodedCommand,
+      authentication: JSON.stringify(encodedCommand.authentication),
       sessionIndex,
       command: commandBytes,
     })

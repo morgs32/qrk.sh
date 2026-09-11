@@ -20,7 +20,7 @@ declare const frontendLifecycleFixture: typeof fixture;
 
 export const runFrontendLifecycleAcceptance = async (
   { context: testContext, page }: BrowserCommandContext,
-  scenario: 'canceled' | 'independent' | 'frozen',
+  scenario: 'canceled' | 'independent' | 'frozen' | 'handoff',
   run: string,
 ) => {
   const browser = testContext.browser();
@@ -75,6 +75,7 @@ export const runFrontendLifecycleAcceptance = async (
       };
     }
 
+    if (scenario === 'handoff') url.searchParams.set('selection', 'aggregate');
     await first.goto(url.href);
     await first.waitForFunction(() =>
       Reflect.has(globalThis, 'frontendLifecycleFixture'),
@@ -83,6 +84,52 @@ export const runFrontendLifecycleAcceptance = async (
     const initial = await first.evaluate(() =>
       frontendLifecycleFixture.state(),
     );
+    if (scenario === 'handoff') {
+      const command = await first.evaluate(() =>
+        frontendLifecycleFixture.holdLocalCommand(true),
+      );
+      if (command._tag === 'Failure') throw new Error(command.failure.message);
+      await first.waitForFunction(
+        () =>
+          frontendLifecycleFixture.state().aggregate.backupStatus === 'ready',
+      );
+      const before = await first.evaluate(() =>
+        frontendLifecycleFixture.state(),
+      );
+      await second.route('http://127.0.0.1:3035/**', route => route.abort());
+      await second.goto(url.href);
+      await second.waitForFunction(() =>
+        Reflect.has(globalThis, 'frontendLifecycleFixture'),
+      );
+      await second.evaluate(() => frontendLifecycleFixture.ready());
+      await first.waitForFunction(
+        () =>
+          frontendLifecycleFixture.state().aggregate.status === 'superseded',
+      );
+      const blockedCommand = await first.evaluate(() =>
+        frontendLifecycleFixture.holdLocalCommand(true),
+      );
+      const successor = await second.evaluate(() =>
+        frontendLifecycleFixture.state(),
+      );
+      await second.evaluate(() => frontendLifecycleFixture.close());
+      await first.evaluate(() => frontendLifecycleFixture.focus());
+      await first.waitForFunction(() => {
+        const state = frontendLifecycleFixture.state();
+        return (
+          state.aggregate.status === 'current' &&
+          state.aggregate.backupStatus === 'ready'
+        );
+      });
+      return {
+        initial,
+        before,
+        successor,
+        blockedCommand,
+        renewed: await first.evaluate(() => frontendLifecycleFixture.state()),
+      };
+    }
+
     if (scenario === 'independent') {
       url.searchParams.set('selection', 'aggregate');
       await second.goto(url.href);

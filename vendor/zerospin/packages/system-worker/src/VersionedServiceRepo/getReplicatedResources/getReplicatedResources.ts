@@ -2,11 +2,13 @@ import type { IDb } from '@zerospin/core/drizzle/types';
 import type { IEncodedResourceShape } from '@zerospin/core/models/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { ZerospinError, type IAnyErrorJson } from '@zerospin/error';
+import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
-import { system } from 'system';
 
 import { versionedServiceRepoDbConfig } from '../versionedServiceRepoDbConfig.js';
+
+const { system } = config;
 
 /*
  * Aggregate preparation reads authoritative service resources through this

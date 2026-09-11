@@ -1,11 +1,13 @@
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
+import config from 'config';
 import { Effect } from 'effect';
-import { system } from 'system';
 
 import { VersionedAggregateRepo } from '../../VersionedAggregateRepo/VersionedAggregateRepo.js';
 import { admitCommands } from '../admitCommands/admitCommands.js';
+
+const { system } = config;
 
 /** Admit once and recover the explicitly selected materializer result. */
 export const executeAggregateCommand = Effect.fn(

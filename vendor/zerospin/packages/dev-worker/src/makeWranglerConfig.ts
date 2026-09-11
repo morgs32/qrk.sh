@@ -10,7 +10,7 @@ import { ZerospinError } from '@zerospin/error';
 export function makeWranglerConfig(props: {
   config: ISystemConfig;
   main: string;
-  systemModulePath: string;
+  configModulePath: string;
   environment: ISystemEnvironmentId;
 }) {
   const name = `zerospin-${props.config.system.name}`;
@@ -31,12 +31,12 @@ export function makeWranglerConfig(props: {
     },
     { name: 'VERSIONED_SERVICE_CHAIN', class_name: 'VersionedServiceChain' },
     {
-      name: 'USER_VERSIONED_AGGREGATE_REPO',
-      class_name: 'UserVersionedAggregateRepo',
+      name: 'AUTHENTICATED_VERSIONED_AGGREGATE_REPO',
+      class_name: 'AuthenticatedVersionedAggregateRepo',
     },
     {
-      name: 'USER_VERSIONED_AGGREGATE_CHAIN',
-      class_name: 'UserVersionedAggregateChain',
+      name: 'AUTHENTICATED_VERSIONED_AGGREGATE_CHAIN',
+      class_name: 'AuthenticatedVersionedAggregateChain',
     },
     { name: 'SERVICE_ADMITTED_CHAIN', class_name: 'ServiceAdmittedChain' },
     {
@@ -52,7 +52,7 @@ export function makeWranglerConfig(props: {
     main: path.resolve(props.main),
     compatibility_date: '2026-01-20',
     compatibility_flags: ['nodejs_compat'],
-    alias: { system: path.resolve(props.systemModulePath) },
+    alias: { config: path.resolve(props.configModulePath) },
     durable_objects: { bindings },
     exports: Object.fromEntries(
       bindings.map(binding => [

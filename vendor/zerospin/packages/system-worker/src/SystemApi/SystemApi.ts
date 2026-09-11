@@ -32,6 +32,10 @@ import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.j
 import { getAggregateChains } from './getAggregateChains/getAggregateChains.js';
 import { getAggregateChainTableRows } from './getAggregateChainTableRows/getAggregateChainTableRows.js';
 import { getAggregateFrontendState } from './getAggregateFrontendState/getAggregateFrontendState.js';
+import { getAuthenticatedVersionedAggregateChains } from './getAuthenticatedVersionedAggregateChains/getAuthenticatedVersionedAggregateChains.js';
+import { getAuthenticatedVersionedAggregateChainTableRows } from './getAuthenticatedVersionedAggregateChainTableRows/getAuthenticatedVersionedAggregateChainTableRows.js';
+import { getAuthenticatedVersionedAggregateRepos } from './getAuthenticatedVersionedAggregateRepos/getAuthenticatedVersionedAggregateRepos.js';
+import { getAuthenticatedVersionedAggregateRepoTableRows } from './getAuthenticatedVersionedAggregateRepoTableRows/getAuthenticatedVersionedAggregateRepoTableRows.js';
 import { getFrontendServiceChains } from './getFrontendServiceChains/getFrontendServiceChains.js';
 import { getFrontendServiceChainTableRows } from './getFrontendServiceChainTableRows/getFrontendServiceChainTableRows.js';
 import { getFrontendVersionedServiceRepos } from './getFrontendVersionedServiceRepos/getFrontendVersionedServiceRepos.js';
@@ -42,10 +46,6 @@ import { getSystemLogRepos } from './getSystemLogRepos/getSystemLogRepos.js';
 import { getSystemLogRepoTableRows } from './getSystemLogRepoTableRows/getSystemLogRepoTableRows.js';
 import { getSystemRepos } from './getSystemRepos/getSystemRepos.js';
 import { getSystemRepoTableRows } from './getSystemRepoTableRows/getSystemRepoTableRows.js';
-import { getUserVersionedAggregateChains } from './getUserVersionedAggregateChains/getUserVersionedAggregateChains.js';
-import { getUserVersionedAggregateChainTableRows } from './getUserVersionedAggregateChainTableRows/getUserVersionedAggregateChainTableRows.js';
-import { getUserVersionedAggregateRepos } from './getUserVersionedAggregateRepos/getUserVersionedAggregateRepos.js';
-import { getUserVersionedAggregateRepoTableRows } from './getUserVersionedAggregateRepoTableRows/getUserVersionedAggregateRepoTableRows.js';
 import { getVersionedAggregateChains } from './getVersionedAggregateChains/getVersionedAggregateChains.js';
 import { getVersionedAggregateChainTableRows } from './getVersionedAggregateChainTableRows/getVersionedAggregateChainTableRows.js';
 import { getVersionedAggregateRepos } from './getVersionedAggregateRepos/getVersionedAggregateRepos.js';
@@ -110,12 +110,12 @@ export class SystemApi extends RpcTarget {
   }
 
   /**
-   * Admin/tooling optimistic frontend state load: SystemApi handler → `UserVersionedAggregateRepo`.
+   * Admin/tooling optimistic frontend state load: SystemApi handler → `AuthenticatedVersionedAggregateRepo`.
    */
   /*
    * Secret-key callers request an aggregate frontend snapshot through SystemApi.
    * The API handler selects the base version, reads its Replica Repo, and adapts
-   * resources to the requested lock; identityKey and frontend fields are caller arguments.
+   * resources to the requested lock; selectionPath and frontend fields are caller arguments.
    *
    * 1. Run the bound domain operation.
    */
@@ -126,7 +126,7 @@ export class SystemApi extends RpcTarget {
           aggregateId: IAggregateId;
           aggregateName: string;
           aggregateVersion: string;
-          identityKey: string;
+          selectionPath: string;
           frontendName: string;
           aggregateFrontendLock: Schema.Schema.Type<
             typeof AggregateFrontendLockSchema
@@ -316,18 +316,18 @@ export class SystemApi extends RpcTarget {
   }
 
   /*
-   * SystemApi lists UserVersionedAggregateRepo instances recorded in its deployment
+   * SystemApi lists AuthenticatedVersionedAggregateRepo instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
    * enumerating the Durable Object namespace.
    *
    * 1. Run the bound domain operation.
    */
-  async getUserVersionedAggregateRepos(
+  async getAuthenticatedVersionedAggregateRepos(
     request: IRpcRequest<[]>,
   ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
-    // 1 — run getUserVersionedAggregateRepos with the instance-bound dependencies
+    // 1 — run getAuthenticatedVersionedAggregateRepos with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getUserVersionedAggregateRepos({
+      getAuthenticatedVersionedAggregateRepos({
         request,
         authResults: this.#authResults,
       }),
@@ -335,18 +335,18 @@ export class SystemApi extends RpcTarget {
   }
 
   /*
-   * SystemApi exposes registered UserVersionedAggregateRepo tables to secret-key
+   * SystemApi exposes registered AuthenticatedVersionedAggregateRepo tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
    * comes from the granted capability, while repoName and tableName come from the request.
    *
    * 1. Run the bound domain operation.
    */
-  async getUserVersionedAggregateRepoTableRows(
+  async getAuthenticatedVersionedAggregateRepoTableRows(
     request: IRpcRequest<[{ repoName: string; tableName: string }]>,
   ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
-    // 1 — run getUserVersionedAggregateRepoTableRows with the instance-bound dependencies
+    // 1 — run getAuthenticatedVersionedAggregateRepoTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getUserVersionedAggregateRepoTableRows({
+      getAuthenticatedVersionedAggregateRepoTableRows({
         request,
         authResults: this.#authResults,
       }),
@@ -465,18 +465,18 @@ export class SystemApi extends RpcTarget {
   }
 
   /*
-   * SystemApi lists UserVersionedAggregateChain instances recorded in its deployment
+   * SystemApi lists AuthenticatedVersionedAggregateChain instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
    * enumerating the Durable Object namespace.
    *
    * 1. Run the bound domain operation.
    */
-  async getUserVersionedAggregateChains(
+  async getAuthenticatedVersionedAggregateChains(
     request: IRpcRequest<[]>,
   ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
-    // 1 — run getUserVersionedAggregateChains with the instance-bound dependencies
+    // 1 — run getAuthenticatedVersionedAggregateChains with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getUserVersionedAggregateChains({
+      getAuthenticatedVersionedAggregateChains({
         request,
         authResults: this.#authResults,
       }),
@@ -484,18 +484,18 @@ export class SystemApi extends RpcTarget {
   }
 
   /*
-   * SystemApi exposes registered UserVersionedAggregateChain tables to secret-key
+   * SystemApi exposes registered AuthenticatedVersionedAggregateChain tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
    * comes from the granted capability, while repoName and tableName come from the request.
    *
    * 1. Run the bound domain operation.
    */
-  async getUserVersionedAggregateChainTableRows(
+  async getAuthenticatedVersionedAggregateChainTableRows(
     request: IRpcRequest<[{ repoName: string; tableName: string }]>,
   ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
-    // 1 — run getUserVersionedAggregateChainTableRows with the instance-bound dependencies
+    // 1 — run getAuthenticatedVersionedAggregateChainTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getUserVersionedAggregateChainTableRows({
+      getAuthenticatedVersionedAggregateChainTableRows({
         request,
         authResults: this.#authResults,
       }),

@@ -1,12 +1,10 @@
 import { describe, it } from '@effect/vitest';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { encodePayload } from '@zerospin/core/contracts/encodePayload';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { makeCommand } from '@zerospin/core/makeCommand';
 import { makeId } from '@zerospin/core/models/makeId';
-import { prefixId } from '@zerospin/core/models/prefixId';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
 import { makeWorkerdE2eTestLayer } from '@zerospin/dev-worker/vitest/makeWorkerdE2eTestLayer';
@@ -16,13 +14,18 @@ import { Effect } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { expect } from 'vitest';
 
-import { userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
 import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
-import { signature } from '@/zerospin/signature';
 import { system } from '@/zerospin/system';
 
 const WebV2 = makeFrontendController({
+  authentication: {
+    signatureSchema: shopperV2.authentication.signatureSchema,
+    authenticationSchema: shopperV2.authentication.authenticationSchema,
+    selectionSchema: shopperV2.authentication.selectionSchema,
+    pattern: shopperV2.authentication.pattern,
+  },
+  guardLayer: shopperV2.guardLayer,
   systemName: 'shopping',
   aggregateName: shopperV2.name,
   aggregateVersion: shopperV2.version,
@@ -32,7 +35,6 @@ const WebV2 = makeFrontendController({
 });
 
 const appService = system.services.app['1.0.0'];
-const shopperAggregate = system.aggregates.shopper['2.0.0'];
 const shopperAggregateFrontendLock =
   makeFrontendControllerSpec(WebV2).aggregateFrontendLock;
 const aggregateId = makeAggregateId({ id: '1' });
@@ -125,49 +127,13 @@ describe('basicFlow1: static shopping system workerd flow', () => {
               ),
           );
 
-          const userId = prefixId(userV1, clerkUserId);
-          const createUser = yield* makeCommand(shopperAggregate, {
-            contractName: 'createUser',
-            aggregateId,
-            systemName: WebV2.systemName,
-            payload: { id: userId, clerkUserId },
-          });
-          const encodedUser = {
-            ...createUser,
-            payload: yield* encodePayload(
-              shopperAggregate.contracts.createUser.contract,
-              {
-                version: createUser.contractVersion,
-                payload: createUser.payload,
-              },
-            ),
-          };
-          const aggregateFinalization = yield* makeAsync(() =>
-            systemApi.executeAggregateCommand({
-              traceContext: null,
-              args: [
-                {
-                  aggregateVersion: WebV2.aggregateVersion,
-                  command: encodedUser,
-                },
-              ],
-            }),
-          ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
-          expect(aggregateFinalization).toMatchObject({
-            aggregateIndex: 1,
-            id: createUser.id,
-            failedAt: null,
-            failure: null,
-          });
-
-          const authenticationLock = makeAuthenticationLock(signature);
           const frontendApi = yield* makeAsync(() =>
             gatewayApi.getAggregateFrontendApi({
               publishableKey: 'pk_test',
               systemName: system.name,
-              authenticationLock,
+
               signature: { clerkUserId },
-              aggregateId,
+
               aggregateName: WebV2.aggregateName,
               aggregateVersion: WebV2.aggregateVersion,
               frontendName: WebV2.name,
@@ -180,11 +146,46 @@ describe('basicFlow1: static shopping system workerd flow', () => {
               args: [{ outstandingCommandIds: [] }],
             }),
           ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
+          expect(
+            state.resources.filter(resource => resource.modelName === 'user'),
+          ).toHaveLength(1);
+          const repeated = yield* Effect.all(
+            [0, 1, 2].map(() =>
+              makeAsync(async () => {
+                const api = await gatewayApi.getAggregateFrontendApi({
+                  publishableKey: 'pk_test',
+                  systemName: system.name,
+                  signature: { clerkUserId },
+                  aggregateName: WebV2.aggregateName,
+                  aggregateVersion: WebV2.aggregateVersion,
+                  frontendName: WebV2.name,
+                  aggregateFrontendLock: shopperAggregateFrontendLock,
+                });
+                return api.getState({
+                  traceContext: null,
+                  args: [{ outstandingCommandIds: [] }],
+                });
+              }).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result))),
+            ),
+            { concurrency: 'unbounded' },
+          );
+          for (const snapshot of repeated) {
+            expect(
+              snapshot.resources.filter(
+                resource => resource.modelName === 'user',
+              ),
+            ).toEqual(
+              state.resources.filter(resource => resource.modelName === 'user'),
+            );
+          }
+          expect(
+            state.resources.find(resource => resource.modelName === 'user')?.id,
+          ).not.toBe(`usr_${clerkUserId}`);
           expect(state).toMatchObject({
             aggregateId,
             aggregateName: WebV2.aggregateName,
             aggregateVersion: WebV2.aggregateVersion,
-            identityKey: clerkUserId,
+            authentication: { clerkUserId, aggregateId: 'acct_1' },
           });
         }).pipe(Effect.scoped),
       120_000,

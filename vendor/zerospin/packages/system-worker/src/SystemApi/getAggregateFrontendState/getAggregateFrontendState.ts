@@ -9,10 +9,10 @@ import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { env } from 'cloudflare:workers';
 import { Effect, Schema, type Context } from 'effect';
 
+import { AuthenticatedVersionedAggregateRepo } from '../../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
 import { adaptFrontendResource } from '../../StaticSystem/adaptFrontendResource/adaptFrontendResource.js';
 import { SelectedAggregateFrontendLockSchema } from '../../StaticSystem/frontendSpecSchemas.js';
 import { validateAggregateFrontendLock } from '../../StaticSystem/validateAggregateFrontendLock/validateAggregateFrontendLock.js';
-import { UserVersionedAggregateRepo } from '../../UserVersionedAggregateRepo/UserVersionedAggregateRepo.js';
 import {
   makeApiHandler,
   SystemApiAuthResults,
@@ -23,7 +23,7 @@ import type { SystemApi } from '../SystemApi.js';
  * Secret-key callers request an aggregate frontend snapshot through SystemApi.
  * The API selects the base version, reads its Replica Repo, and adapts resources
  * to the lock-selected model versions. The materializer owns synchronization
- * and durable state; identityKey and frontend fields are explicit caller arguments.
+ * and durable state; selectionPath and frontend fields are explicit caller arguments.
  *
  * 1. Validate the request through the shared linked RPC handler.
  * 2. Validate the selected frontend lock.
@@ -52,7 +52,7 @@ export const getAggregateFrontendState = Effect.fn(
           aggregateId: makeAbbreviationIdSchema('acct'),
           aggregateName: Schema.String,
           aggregateVersion: Schema.String,
-          identityKey: Schema.NonEmptyString,
+          selectionPath: Schema.NonEmptyString,
           frontendName: Schema.String,
           aggregateFrontendLock: AggregateFrontendLockSchema,
         }),
@@ -65,7 +65,7 @@ export const getAggregateFrontendState = Effect.fn(
           aggregateId,
           aggregateName,
           frontendName,
-          identityKey,
+          selectionPath,
         } = args;
 
         // 2 — resolve the authored aggregate frontend selection
@@ -90,18 +90,17 @@ export const getAggregateFrontendState = Effect.fn(
         // 4 — decode AggregateChain.getBaseAggregateVersion
         const aggregateVersion = args.aggregateVersion;
 
-        // 5 — open UserVersionedAggregateRepo with the supplied view fields
-        const aggregateFrontendRepo = yield* UserVersionedAggregateRepo.getRepo(
-          {
+        // 5 — open AuthenticatedVersionedAggregateRepo with the supplied view fields
+        const aggregateFrontendRepo =
+          yield* AuthenticatedVersionedAggregateRepo.getRepo({
             key: {
               systemId: env.ZEROSPIN_SYSTEM_ID,
               aggregateVersion,
               aggregateId,
               aggregateName,
-              identityKey,
+              selectionPath,
             },
-          },
-        );
+          });
 
         // 6 — decode the success snapshot or encoded ZerospinError before decodeRpc
         const canonicalStateUnknown = yield* makeAsync(() =>
@@ -109,7 +108,7 @@ export const getAggregateFrontendState = Effect.fn(
             outstandingCommandIds: [],
             aggregateId,
             aggregateName,
-            identityKey,
+            selectionPath,
             frontendName,
           }),
         );
@@ -127,7 +126,8 @@ export const getAggregateFrontendState = Effect.fn(
         )(canonicalStateUnknown).pipe(
           mapParseError({
             code: 'aggregate-frontend-state-rpc-invalid',
-            prefix: 'Failed to decode UserVersionedAggregateRepo state RPC',
+            prefix:
+              'Failed to decode AuthenticatedVersionedAggregateRepo state RPC',
           }),
         );
         const canonicalState = yield* decodeRpc(canonicalStateEncoded);

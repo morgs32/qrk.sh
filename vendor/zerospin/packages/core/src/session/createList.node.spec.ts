@@ -1,4 +1,5 @@
 import { it } from '@effect/vitest';
+import { main as authenticationFixtureFrontend } from '@zerospin/core/fixtures/system';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { ZerospinError } from '@zerospin/error';
@@ -73,6 +74,7 @@ const rejectList = makeContractVersion(defineCommand('rejectList'), {
 });
 
 const rejectingFrontend = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   aggregateVersion: '1.0.0',
   contracts: { rejectList: { contract: rejectList } },
   aggregateName: main.aggregateName,
@@ -123,7 +125,7 @@ describe('local session command journal', () => {
             sessionId: 'sesn_commands',
             aggregateId: 'acct_1',
             aggregateName: main.aggregateName,
-            identityKey: 'user_1',
+            authentication: { userId: 'user_1', aggregateId: 'acct_1' },
             systemId: 'sys_1',
             frontendName: main.name,
             aggregateFrontendLockKey: 'aggregate-lock-key',
@@ -253,7 +255,7 @@ describe('local session command journal', () => {
             sessionId: 'sesn_rollback',
             aggregateId: 'acct_1',
             aggregateName: main.aggregateName,
-            identityKey: 'user_1',
+            authentication: { userId: 'user_1', aggregateId: 'acct_1' },
             systemId: 'sys_1',
             frontendName: main.name,
             aggregateFrontendLockKey: 'aggregate-lock-key',
@@ -324,7 +326,7 @@ describe('local session command journal', () => {
             sessionId: 'sesn_failure',
             aggregateId: 'acct_1',
             aggregateName: rejectingFrontend.aggregateName,
-            identityKey: 'user_1',
+            authentication: { userId: 'user_1', aggregateId: 'acct_1' },
             systemId: 'sys_1',
             frontendName: rejectingFrontend.name,
             aggregateFrontendLockKey: 'aggregate-lock-key',
@@ -409,7 +411,7 @@ describe('local session command journal', () => {
           sessionId: 'sesn_blocked',
           aggregateId: 'acct_1',
           aggregateName: main.aggregateName,
-          identityKey: 'user_1',
+          authentication: { userId: 'user_1', aggregateId: 'acct_1' },
           systemId: 'sys_1',
           frontendName: main.name,
           aggregateFrontendLockKey: 'aggregate-lock-key',
@@ -504,7 +506,7 @@ describe('local session command journal', () => {
             sessionId: 'sesn_handoff',
             aggregateId: 'acct_1',
             aggregateName: main.aggregateName,
-            identityKey: 'user_1',
+            authentication: { userId: 'user_1', aggregateId: 'acct_1' },
             systemId: 'sys_1',
             frontendName: main.name,
             aggregateFrontendLockKey: 'aggregate-lock-key',

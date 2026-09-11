@@ -4,16 +4,14 @@ import { act, createElement, useEffect } from 'react';
 import type {} from '@vitest/browser-playwright';
 import { acquireBackupWorker } from '@zerospin/backup-worker';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
-import { prefixId } from '@zerospin/core/models/prefixId';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
 import { IncrementalMonotonicFactory } from '@zerospin/core/test-utils/IncrementalMonotonicFactory';
-import { makePrefixedIncrementalIdFactory } from '@zerospin/core/test-utils/makePrefixedIncrementalIdFactory';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { zerospinDevtoolsStore } from '@zerospin/devtools/zerospinDevtoolsStore';
 import { ZerospinError } from '@zerospin/error';
 import { makeZerospinApp } from '@zerospin/react/makeZerospinApp';
@@ -31,24 +29,12 @@ import {
 } from 'effect';
 import { createRoot } from 'react-dom/client';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
-import {
-  afterAll,
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { commands } from 'vitest/browser';
 
 import type { runFrontendLifecycleAcceptance } from '../../vitest.playwright.config';
 
-import {
-  ClerkUserIdSchema,
-  userV1,
-} from '@/zerospin/aggregates/shopper/models/user/UserV1';
-import { signature } from '@/zerospin/signature';
+import { ClerkUserIdSchema } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 declare module 'vitest/browser' {
@@ -56,7 +42,7 @@ declare module 'vitest/browser' {
     startAdverseFixture(): Promise<void>;
     stopAdverseFixture(): Promise<void>;
     runFrontendLifecycleAcceptance(
-      scenario: 'canceled' | 'independent' | 'frozen',
+      scenario: 'canceled' | 'independent' | 'frozen' | 'handoff',
       run: string,
     ): ReturnType<typeof runFrontendLifecycleAcceptance>;
   }
@@ -75,7 +61,7 @@ const testRunId = `${Date.now().toString(36)}-${Math.random()
 
 const adverseRuntimeLayer = Layer.mergeAll(
     AsyncLive,
-    makePrefixedIncrementalIdFactory('mainThreadBackupAdverse'),
+    NanoIdFactory,
     IncrementalMonotonicFactory,
     Layer.succeed(ZerospinApiUrl, 'http://127.0.0.1:3035/'),
     Layer.succeed(PublishableKey, Redacted.make('pk_test')),
@@ -84,10 +70,7 @@ const adverseRuntimeLayer = Layer.mergeAll(
 
 const AdverseZerospinApp = makeZerospinApp({
   systemName: 'shopping',
-  authentication: {
-    version: signature.version,
-    signature: signature.signature,
-  },
+
   frontends: {
     shopperFrontend: WebV2,
   },
@@ -110,19 +93,6 @@ function AdverseSessionProbe(props: {
 
   return null;
 }
-
-beforeEach(() => {
-  // Each top-level case authenticates a different test user. Keep restoration
-  // within a case intact while removing only this application's saved locator.
-  localStorage.removeItem(
-    `zerospin:authentication:${JSON.stringify({
-      apiUrl: 'http://127.0.0.1:3035/',
-      publishableKey: 'pk_test',
-      systemName: 'shopping',
-      authenticationLock: makeAuthenticationLock(signature),
-    })}`,
-  );
-});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -409,175 +379,30 @@ describe('main-thread IndexedDB adverse acceptance', () => {
   }, 120_000);
 
   it('pauses a superseded frontend and renews it on focus without remounting or rewriting command occurrences', async () => {
-    const clerkUserId = Schema.decodeUnknownSync(ClerkUserIdSchema)(
-      `adverse-handoff-${testRunId}`,
+    const result = await commands.runFrontendLifecycleAcceptance(
+      'handoff',
+      `${testRunId}-handoff`,
     );
-    const firstContainer = document.createElement('div');
-    const secondContainer = document.createElement('div');
-    document.body.appendChild(firstContainer);
-    document.body.appendChild(secondContainer);
-    const firstRoot = createRoot(firstContainer);
-    const secondRoot = createRoot(secondContainer);
-    let secondMounted = true;
-    let firstMounts = 0;
-    const captures: {
-      first: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
-      > | null;
-      second: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
-      > | null;
-    } = { first: null, second: null };
-    try {
-      await act(async () => {
-        firstRoot.render(
-          createElement(AdverseZerospinApp.Provider, {
-            aggregateIds: { shopperFrontend: 'acct_1' },
-            generateSignature: () => Effect.succeed({ clerkUserId }),
-            children: createElement(AdverseSessionProbe, {
-              onSession: session => {
-                captures.first = session;
-                firstMounts++;
-              },
-            }),
-          }),
-        );
-      });
-      await expect
-        .poll(() => captures.first?.store.getState().backupState.status, {
-          timeout: 120_000,
-        })
-        .toBe('ready');
-      const first = captures.first;
-      if (first === null) throw new Error('Expected first frontend');
-      const firstId = first.sessionId;
-      const firstState = first.store.getState();
-      if (!firstState.isInitialized) {
-        throw new Error('Expected initialized first frontend');
-      }
-      const liveDb = firstState.db;
-      const registration = zerospinDevtoolsStore
-        .getState()
-        .aggregateSessionsById.get(firstId);
-      if (registration === undefined) {
-        throw new Error('Expected DevTools controls');
-      }
-      await registration.setPushPaused({ pushPaused: true });
-      const created = await first.executeCommand({
-        contractName: 'createUser',
-        payload: {
-          id: prefixId(userV1, clerkUserId),
-          clerkUserId,
-        },
-      });
-      if (created._tag === 'Failure') throw new Error(created.failure.message);
-      await expect
-        .poll(() => first.store.getState().backupState.status, {
-          timeout: 30_000,
-        })
-        .toBe('ready');
-      const journalBefore = JSON.stringify(
-        liveDb
-          .select()
-          .from(sessionCommandJournalDrizzleSchema)
-          .where(eq(sessionCommandJournalDrizzleSchema.id, created.success.id))
-          .get(),
-      );
-      globalThis.dispatchEvent(new Event('focus'));
-      globalThis.dispatchEvent(new Event('pageshow'));
-      await expect
-        .poll(() => first.store.getState().backupState.status)
-        .toBe('ready');
-      expect(first.sessionId).toBe(firstId);
-      expect(first.store.getState().db).toBe(liveDb);
-      await act(async () => {
-        secondRoot.render(
-          createElement(AdverseZerospinApp.Provider, {
-            aggregateIds: { shopperFrontend: 'acct_1' },
-            generateSignature: () => Effect.succeed({ clerkUserId }),
-            children: createElement(AdverseSessionProbe, {
-              onSession: session => {
-                captures.second = session;
-              },
-            }),
-          }),
-        );
-      });
-      await expect
-        .poll(() => captures.second?.store.getState().backupState.status, {
-          timeout: 120_000,
-        })
-        .toBe('ready');
-      await expect
-        .poll(() => first.store.getState().sessionStatus)
-        .toBe('superseded');
-      expect(
-        await first.executeCommand({
-          contractName: 'createUser',
-          payload: {
-            id: prefixId(userV1, clerkUserId),
-            clerkUserId,
-          },
-        }),
-      ).toMatchObject({
-        _tag: 'Failure',
-        failure: { code: 'aggregate-frontend-session-not-current' },
-      });
-      expect(await registration.pushNow()).toMatchObject({ _tag: 'Failure' });
-      const second = captures.second;
-      if (second === null) throw new Error('Expected successor frontend');
-      const secondState = second.store.getState();
-      if (!secondState.isInitialized) {
-        throw new Error('Expected initialized successor');
-      }
-      const restored = secondState.db
-        .select()
-        .from(sessionCommandJournalDrizzleSchema)
-        .where(eq(sessionCommandJournalDrizzleSchema.id, created.success.id))
-        .get();
-      // A server acknowledgement may advance pushIndex, but occurrence bytes stay unchanged.
-      expect(restored?.sessionId).toBe(firstId);
-      expect(restored?.sessionIndex).toBe(created.success.sessionIndex);
-      const prior = JSON.parse(journalBefore);
-      expect(restored?.command).toEqual(prior.command);
-      await act(async () => {
-        secondRoot.unmount();
-      });
-      secondMounted = false;
-      globalThis.dispatchEvent(new Event('focus'));
-      await expect
-        .poll(
-          () => ({
-            status: first.store.getState().sessionStatus,
-            renewed: first.sessionId !== firstId,
-            backup: first.store.getState().backupState.status,
-          }),
-          { timeout: 60_000 },
-        )
-        .toEqual({ status: 'current', renewed: true, backup: 'ready' });
-      expect(captures.first).toBe(first);
-      expect(first.store.getState().db).toBe(liveDb);
-      expect(firstMounts).toBe(1);
-      expect(
-        zerospinDevtoolsStore.getState().aggregateSessionsById.has(firstId),
-      ).toBe(false);
-      expect(
-        zerospinDevtoolsStore
-          .getState()
-          .aggregateSessionsById.has(first.sessionId),
-      ).toBe(true);
-      const renewedId = first.sessionId;
-      globalThis.dispatchEvent(new Event('focus'));
-      globalThis.dispatchEvent(new Event('pageshow'));
-      expect(first.sessionId).toBe(renewedId);
-    } finally {
-      await act(async () => {
-        if (secondMounted) secondRoot.unmount();
-        firstRoot.unmount();
-      });
-      firstContainer.remove();
-      secondContainer.remove();
+    if (
+      result.before === undefined ||
+      result.successor === undefined ||
+      result.renewed === undefined
+    ) {
+      throw new Error('Expected handoff observations');
     }
+    expect(result.blockedCommand).toMatchObject({
+      _tag: 'Failure',
+      failure: { code: 'aggregate-frontend-session-not-current' },
+    });
+    expect(result.successor.aggregate.journal).toEqual(
+      result.before.aggregate.journal,
+    );
+    expect(result.renewed.aggregate.id).not.toBe(result.before.aggregate.id);
+    expect(result.renewed.aggregate.sameDb).toBe(true);
+    expect(result.renewed.aggregate.status).toBe('current');
+    expect(result.renewed.aggregate.journal).toEqual(
+      result.before.aggregate.journal,
+    );
   }, 300_000);
 
   it('publishes no session when page authentication fails', async () => {
@@ -624,15 +449,17 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       await act(async () => {
         root.render(
           createElement(AdverseZerospinApp.Provider, {
-            aggregateIds: { shopperFrontend: 'acct_1' },
-            generateSignature: () => {
-              signatureCallCount += 1;
-              return Effect.fail(
-                new ZerospinError({
-                  code: 'adverse-worker-signature-failed',
-                  message: 'The page refused the worker authentication attempt',
-                }),
-              );
+            generateSignature: {
+              shopperFrontend: () => {
+                signatureCallCount += 1;
+                return Effect.fail(
+                  new ZerospinError({
+                    code: 'adverse-worker-signature-failed',
+                    message:
+                      'The page refused the worker authentication attempt',
+                  }),
+                );
+              },
             },
             children: createElement(AdverseSessionProbe, {
               onSession: session => {
@@ -702,8 +529,9 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     await act(async () => {
       firstRoot.render(
         createElement(AdverseZerospinApp.Provider, {
-          aggregateIds: { shopperFrontend: 'acct_1' },
-          generateSignature: () => Effect.succeed({ clerkUserId }),
+          generateSignature: {
+            shopperFrontend: () => Effect.succeed({ clerkUserId }),
+          },
           children: createElement(AdverseSessionProbe, {
             onSession: session => {
               firstSessionCapture.current = session;
@@ -725,11 +553,19 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       throw new Error('The online session must initialize');
     }
 
+    const userRow = firstSession.store
+      .getState()
+      .db?.query.user.findFirst({ where: { clerkUserId } })
+      .sync();
+    if (userRow === undefined) {
+      throw new Error('Authentication must provision the User');
+    }
+    const userId = userRow.id;
     const createdUser = await firstSession.executeCommand({
-      contractName: 'createUser',
+      contractName: 'updateUser',
       payload: {
-        id: prefixId(userV1, clerkUserId),
-        clerkUserId,
+        id: userId,
+        name: 'Provisioned user',
       },
     });
     if (createdUser._tag === 'Failure') {
@@ -762,7 +598,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const updatedUser = await firstSession.executeCommand({
       contractName: 'updateUser',
       payload: {
-        id: prefixId(userV1, clerkUserId),
+        id: userId,
         name: retainedName,
       },
     });
@@ -852,8 +688,9 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       await act(async () => {
         secondRoot.render(
           createElement(AdverseZerospinApp.Provider, {
-            aggregateIds: { shopperFrontend: 'acct_1' },
-            generateSignature: () => Effect.succeed({ clerkUserId }),
+            generateSignature: {
+              shopperFrontend: () => Effect.succeed({ clerkUserId }),
+            },
             children: createElement(AdverseSessionProbe, {
               onSession: session => {
                 secondSessionCapture.current = session;
@@ -887,7 +724,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
           ?.findFirst({
             where: {
               id: {
-                eq: prefixId(userV1, clerkUserId),
+                eq: userId,
               },
             },
           })
@@ -897,7 +734,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       const offlineUpdate = await offlineSession.executeCommand({
         contractName: 'updateUser',
         payload: {
-          id: prefixId(userV1, clerkUserId),
+          id: userId,
           name: `Promoted ${testRunId}`,
         },
       });
@@ -984,8 +821,9 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     await act(async () => {
       firstRoot.render(
         createElement(AdverseZerospinApp.Provider, {
-          aggregateIds: { shopperFrontend: 'acct_1' },
-          generateSignature: () => Effect.succeed({ clerkUserId }),
+          generateSignature: {
+            shopperFrontend: () => Effect.succeed({ clerkUserId }),
+          },
           children: createElement(AdverseSessionProbe, {
             onSession: session => {
               firstSessionCapture.current = session;
@@ -1006,11 +844,19 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     if (firstSession === null) {
       throw new Error('The first worker-backed session must initialize');
     }
+    const userRow = firstSession.store
+      .getState()
+      .db?.query.user.findFirst({ where: { clerkUserId } })
+      .sync();
+    if (userRow === undefined) {
+      throw new Error('Authentication must provision the User');
+    }
+    const userId = userRow.id;
     const createdUser = await firstSession.executeCommand({
-      contractName: 'createUser',
+      contractName: 'updateUser',
       payload: {
-        id: prefixId(userV1, clerkUserId),
-        clerkUserId,
+        id: userId,
+        name: 'Provisioned user',
       },
     });
     if (createdUser._tag === 'Failure') {
@@ -1036,7 +882,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const updatedUser = await firstSession.executeCommand({
       contractName: 'updateUser',
       payload: {
-        id: prefixId(userV1, clerkUserId),
+        id: userId,
         name: restartedName,
       },
     });
@@ -1111,8 +957,9 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       await act(async () => {
         secondRoot.render(
           createElement(AdverseZerospinApp.Provider, {
-            aggregateIds: { shopperFrontend: 'acct_1' },
-            generateSignature: () => Effect.succeed({ clerkUserId }),
+            generateSignature: {
+              shopperFrontend: () => Effect.succeed({ clerkUserId }),
+            },
             children: createElement(AdverseSessionProbe, {
               onSession: session => {
                 secondSessionCapture.current = session;
@@ -1146,7 +993,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
           ?.findFirst({
             where: {
               id: {
-                eq: prefixId(userV1, clerkUserId),
+                eq: userId,
               },
             },
           })

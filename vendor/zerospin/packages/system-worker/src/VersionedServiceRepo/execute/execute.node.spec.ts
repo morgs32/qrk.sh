@@ -1,3 +1,5 @@
+import { RoutePattern } from '@remix-run/route-pattern';
+import { createHref } from '@remix-run/route-pattern/href';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import {
   EncodedServiceCommandSchema,
@@ -5,8 +7,8 @@ import {
 } from '@zerospin/core/contracts/CommandSchema';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/makeProvisionedInMemorySqljsDb';
+import config from 'config';
 import { Effect, Schema, Semaphore } from 'effect';
-import { system } from 'system';
 import { beforeEach, expect, it, vi } from 'vitest';
 
 import { execute as replay } from '../../FrontendVersionedServiceRepo/execute/execute.js';
@@ -29,6 +31,8 @@ import {
 import { versionedServiceRepoFixedDORepoConfig } from '../versionedServiceRepoFixedDORepoConfig.js';
 
 import { execute } from './execute.js';
+
+const { system } = config;
 const wire = vi.hoisted(() => ({ admitted: vi.fn(), finalized: vi.fn() }));
 vi.mock(
   '../../ServiceAdmittedChain/ServiceAdmittedChain.js',
@@ -206,7 +210,13 @@ it('commits bounded pages, publishes complete entries, recovers after outbox del
       await Effect.runPromise(
         replay({
           db: replica,
-          key: { ...key, identityKey: 'usr_service', frontendName: 'products' },
+          key: {
+            ...key,
+            selectionPath: createHref(RoutePattern.parse('/:userId'), {
+              userId: 'usr_service',
+            }),
+            frontendName: 'products',
+          },
           rows: rows.slice(i, i + pageSize),
         }),
       );

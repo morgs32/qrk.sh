@@ -1,3 +1,7 @@
+import {
+  main as authenticationFixtureFrontend,
+  userAggregate as authenticationFixtureOwner,
+} from '@zerospin/core/fixtures/system';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { ZerospinError } from '@zerospin/error';
@@ -77,6 +81,7 @@ describe('owner guard layers', () => {
         ),
       }),
       {
+        authentication: authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: {},
         selections: {},
@@ -97,12 +102,12 @@ describe('owner guard layers', () => {
         const guards = yield* initializeAggregateGuards(aggregate);
         yield* guards.run('check', {
           db: { query: {} },
-          identityKey: null,
+          authentication: null,
           payload: {},
         });
         yield* guards.run('check', {
           db: { query: {} },
-          identityKey: null,
+          authentication: null,
           payload: {},
         });
       }).pipe(Effect.scoped),
@@ -129,6 +134,7 @@ describe('owner guard layers', () => {
         }),
     });
     const service = makeService({
+      authentication: authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       models: {},
@@ -154,12 +160,12 @@ describe('owner guard layers', () => {
           const guards = yield* initializeServiceGuards(service);
           yield* guards.run('check', {
             db: { query: {} },
-            identityKey: null,
+            authentication: null,
             payload: {},
           });
           yield* guards.run('check', {
             db: { query: {} },
-            identityKey: null,
+            authentication: null,
             payload: {},
           });
         }).pipe(Effect.scoped),
@@ -189,7 +195,7 @@ describe('owner guard layers', () => {
     const system = makeSystem({
       name: 'test',
       layer,
-      authentication: [],
+
       aggregates: {},
     });
     expect(system).not.toHaveProperty('runtime');
@@ -216,6 +222,7 @@ describe('owner guard layers', () => {
       ),
     });
     const first = makeAggregateVersion(owner, {
+      authentication: authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models: {},
       contracts: {
@@ -228,6 +235,7 @@ describe('owner guard layers', () => {
     });
     const next = upgradeAggregateVersion(first, { version: '2.0.0' });
     const independent = makeAggregateVersion(owner, {
+      authentication: authenticationFixtureOwner.authentication,
       version: '3.0.0',
       models: {},
       contracts: { inspect: { contract: inspect } },
@@ -258,6 +266,7 @@ describe('owner guard layers', () => {
       ]),
     ).toThrow();
     const service = makeService({
+      authentication: authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       models: {},
@@ -300,6 +309,7 @@ describe('owner guard layers', () => {
         }),
     });
     const frontend = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       aggregateVersion: '1.0.0',
       systemName: 'test',
       aggregateName: 'account',
@@ -353,7 +363,7 @@ describe('owner guard layers', () => {
           sessionId: 'sesn_guard',
           aggregateId: 'acct_guard',
           aggregateName: 'account',
-          identityKey: 'usr_guard',
+          authentication: { userId: 'usr_guard', aggregateId: 'acct_guard' },
           systemId: 'sys_guard',
           frontendName: 'web',
           aggregateFrontendLockKey: 'lock',
@@ -407,6 +417,7 @@ describe('owner guard layers', () => {
         }),
     });
     const left = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'test',
       aggregateName: 'account',
       aggregateVersion: '1.0.0',
@@ -419,6 +430,7 @@ describe('owner guard layers', () => {
       ),
     });
     const right = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'test',
       aggregateName: 'account',
       aggregateVersion: '1.0.0',
@@ -440,12 +452,12 @@ describe('owner guard layers', () => {
         const rightGuards = yield* initializeFrontendGuards(right);
         yield* leftGuards.run('check', {
           db: { query: {} },
-          identityKey: null,
+          authentication: null,
           payload: {},
         });
         yield* rightGuards.run('check', {
           db: { query: {} },
-          identityKey: null,
+          authentication: null,
           payload: {},
         });
       }).pipe(Effect.scoped, Effect.provide(app)),
@@ -461,6 +473,7 @@ describe('owner guard layers', () => {
     });
     let fail = true;
     const frontend = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       aggregateVersion: '1.0.0',
       systemName: 'test',
       aggregateName: 'account',

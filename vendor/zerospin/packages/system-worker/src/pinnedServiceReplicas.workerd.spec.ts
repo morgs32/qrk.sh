@@ -10,19 +10,21 @@ import {
   env,
   runInDurableObject,
 } from 'cloudflare:test';
+import config from 'config';
 import { Effect, Schema } from 'effect';
-import { system } from 'system';
 import { expect, it } from 'vitest';
 
 import { AggregateChain } from './AggregateChain/AggregateChain.js';
+import { AuthenticatedVersionedAggregateChain } from './AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
+import { AuthenticatedVersionedAggregateRepo } from './AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
 import { ServiceAdmittedChain } from './ServiceAdmittedChain/ServiceAdmittedChain.js';
-import { UserVersionedAggregateChain } from './UserVersionedAggregateChain/UserVersionedAggregateChain.js';
-import { UserVersionedAggregateRepo } from './UserVersionedAggregateRepo/UserVersionedAggregateRepo.js';
 import { VersionedAggregateChain } from './VersionedAggregateChain/VersionedAggregateChain.js';
 import { VersionedAggregateRepo } from './VersionedAggregateRepo/VersionedAggregateRepo.js';
 import { versionedAggregateRepoDbConfig } from './VersionedAggregateRepo/versionedAggregateRepoDbConfig.js';
 import { VersionedServiceChain } from './VersionedServiceChain/VersionedServiceChain.js';
 import { VersionedServiceRepo } from './VersionedServiceRepo/VersionedServiceRepo.js';
+
+const { system } = config;
 
 it('initializes before guards and delivers pinned updates and tombstones independently through cold recovery', async () => {
   const key = {
@@ -31,7 +33,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
     aggregateName: 'user',
     aggregateVersion: '1.0.0',
   };
-  const view = { ...key, identityKey: 'usr_pinned' };
+  const view = { ...key, selectionPath: '/usr_pinned' };
   const serviceKey = {
     systemId: key.systemId,
     serviceName: 'app',
@@ -74,7 +76,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
               aggregateVersion: '1.0.0',
               aggregateName: 'user',
               systemName: 'system-worker',
-              identityKey: null,
+              authentication: null,
               sessionId: null,
               frontendName: null,
               pushIndex: null,
@@ -101,7 +103,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
         (await final.replicaFanoutQueue).getPage({ afterIndex: 0 }),
       ).pipe(Effect.flatMap(decodeRpc));
       expect(JSON.parse(first.rows[0]!.entry).command.failure).toBeNull();
-      const replica = yield* UserVersionedAggregateRepo.getRepo({
+      const replica = yield* AuthenticatedVersionedAggregateRepo.getRepo({
         key: view,
       });
       const initial = yield* makeAsync(() =>
@@ -152,7 +154,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
           )
           .toBe('Updated product'),
       );
-      // VAR and UVAR subscribe independently; one receiver does not fence the other.
+      // VAR and AVAR subscribe independently; one receiver does not fence the other.
       yield* makeAsync(() =>
         expect
           .poll(
@@ -184,7 +186,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
           (await final.replicaFanoutQueue).getPage({ afterIndex: 0 }),
         ).pipe(Effect.flatMap(decodeRpc))).rows,
       ).toHaveLength(1);
-      const frontend = yield* UserVersionedAggregateChain.getRepo({
+      const frontend = yield* AuthenticatedVersionedAggregateChain.getRepo({
         key: view,
       });
       const outputs = yield* makeAsync(() =>
@@ -249,7 +251,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
       yield* makeAsync(() => service.flush(deleted.serviceIndex)).pipe(
         Effect.flatMap(decodeRpc),
       );
-      const replica = yield* UserVersionedAggregateRepo.getRepo({
+      const replica = yield* AuthenticatedVersionedAggregateRepo.getRepo({
         key: view,
       });
       yield* makeAsync(() =>
@@ -354,7 +356,7 @@ it('rolls back resource enrollment while preserving activation-declared sources 
               aggregateVersion: '1.0.0',
               aggregateName: 'user',
               systemName: 'system-worker',
-              identityKey: null,
+              authentication: null,
               sessionId: null,
               frontendName: null,
               pushIndex: null,

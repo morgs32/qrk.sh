@@ -9,10 +9,12 @@ import {
   type IEncodedResult,
 } from '@zerospin/error';
 import { env } from 'cloudflare:workers';
+import config from 'config';
 import { Effect, type Schema } from 'effect';
-import { system } from 'system';
 
 import { VersionedServiceRepo } from '../VersionedServiceRepo/VersionedServiceRepo.js';
+
+const { system } = config;
 
 /*
  * SystemApi and aggregate frontend calls route named service queries through
@@ -32,7 +34,7 @@ export const executeServiceQuery = Effect.fn(
   aggregateName?: string;
   aggregateVersion?: string;
   serviceVersion?: string;
-  identityKey?: string;
+  authentication?: Readonly<Record<string, unknown>>;
   frontendName?: string;
   aggregateFrontendLock?: Schema.Schema.Type<
     typeof AggregateFrontendLockSchema
@@ -49,14 +51,14 @@ export const executeServiceQuery = Effect.fn(
     params,
     queryName,
     serviceName,
-    identityKey,
+    authentication,
   } = props;
 
-  // 1 — inspect aggregateId, aggregateName, identityKey, frontendName, and aggregateFrontendLock
+  // 1 — inspect aggregateId, aggregateName, authentication, frontendName, and aggregateFrontendLock
   const hasAnyFrontendBinding =
     aggregateId !== undefined ||
     aggregateName !== undefined ||
-    identityKey !== undefined ||
+    authentication !== undefined ||
     frontendName !== undefined ||
     aggregateFrontendLock !== undefined;
 
@@ -65,14 +67,14 @@ export const executeServiceQuery = Effect.fn(
     hasAnyFrontendBinding &&
     (aggregateId === undefined ||
       aggregateName === undefined ||
-      identityKey === undefined ||
+      authentication === undefined ||
       frontendName === undefined ||
       aggregateFrontendLock === undefined)
   ) {
     return yield* new ZerospinError({
       code: 'service-query-frontend-binding-incomplete',
       message:
-        'A frontend-bound service query requires aggregateId, aggregateName, identityKey, frontendName, and aggregateFrontendLock together',
+        'A frontend-bound service query requires aggregateId, aggregateName, authentication, frontendName, and aggregateFrontendLock together',
     });
   }
 

@@ -49,7 +49,6 @@ export {
   upgradeAggregateVersion,
 } from '@zerospin/core/aggregate/makeVersion';
 export { makeService } from '@zerospin/core/service/makeService';
-export { makeAuthenticationVersion } from '@zerospin/core/authentication/makeVersion';
 export { makeSystem } from '@zerospin/core/system/makeSystem';
 export { makeSystemConfig } from '@zerospin/core/system/makeSystemConfig';
 export { makeCommand } from '@zerospin/core/makeCommand';

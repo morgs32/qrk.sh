@@ -11,9 +11,9 @@ import type { IDb } from '@zerospin/core/drizzle/types';
 import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSchema';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Layer, Result, Schema, type Semaphore } from 'effect';
-import { system } from 'system';
 
 import { getReplicatedResources } from '../getReplicatedResources/getReplicatedResources.js';
 import {
@@ -22,6 +22,8 @@ import {
 } from '../versionedAggregateRepoDbConfig.js';
 
 import { executeCommandsTx } from './executeCommandsTx.js';
+
+const { system } = config;
 
 /** Prepare supplied admitted rows and atomically commit contiguous version-owned results.
  * Committed rows are skipped under the execution permit; page failures roll back all writes.
@@ -117,8 +119,20 @@ export const executeCommands = Effect.fn(
             const payload = yield* decodePayload(contractBinding.contract, {
               command,
             });
+            const authentication =
+              command.authentication === null
+                ? null
+                : yield* Schema.decodeUnknownEffect(
+                    aggregate.authentication.authenticationSchema,
+                  )(command.authentication, { onExcessProperty: 'error' }).pipe(
+                    mapParseError({
+                      code: 'command-authentication-unsupported',
+                      prefix:
+                        'Saved command authentication is unsupported by this aggregate version',
+                    }),
+                  );
             const made = yield* makeMutations({
-              identityKey: command.identityKey,
+              authentication,
               contract: contractBinding.contract,
               models: aggregate.models,
               command: { ...command, payload },

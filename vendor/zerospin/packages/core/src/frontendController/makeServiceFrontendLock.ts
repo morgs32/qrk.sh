@@ -6,6 +6,12 @@ import type { IServiceFrontendController } from './types.ts';
 export const ServiceFrontendLockSchema = Schema.Struct({
   systemName: Schema.String,
   frontendName: Schema.String,
+  authentication: Schema.Struct({
+    signatureJsonSchema: Schema.Unknown,
+    authenticationJsonSchema: Schema.Unknown,
+    selectionJsonSchema: Schema.Unknown,
+    pattern: Schema.String,
+  }),
   models: Schema.Record(
     Schema.String,
     Schema.Struct({
@@ -63,6 +69,18 @@ export const makeServiceFrontendLock = (props: {
   return {
     systemName: frontend.systemName,
     frontendName: frontend.name,
+    authentication: {
+      signatureJsonSchema: Schema.toJsonSchemaDocument(
+        frontend.authentication.signatureSchema,
+      ),
+      authenticationJsonSchema: Schema.toJsonSchemaDocument(
+        frontend.authentication.authenticationSchema,
+      ),
+      selectionJsonSchema: Schema.toJsonSchemaDocument(
+        frontend.authentication.selectionSchema,
+      ),
+      pattern: frontend.authentication.pattern.source,
+    },
     models,
   };
 };

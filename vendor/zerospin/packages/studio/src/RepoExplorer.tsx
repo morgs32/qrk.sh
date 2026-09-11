@@ -35,13 +35,13 @@ import {
 const repoTypes = [
   'SystemRepo',
   'VersionedAggregateRepo',
-  'UserVersionedAggregateRepo',
+  'AuthenticatedVersionedAggregateRepo',
   'FrontendVersionedServiceRepo',
   'VersionedServiceRepo',
   'AggregateChain',
   'VersionedAggregateChain',
   'VersionedServiceChain',
-  'UserVersionedAggregateChain',
+  'AuthenticatedVersionedAggregateChain',
   'FrontendServiceChain',
   'ServiceAdmittedChain',
   'SystemLogRepo',
@@ -515,7 +515,7 @@ export function RepoExplorer() {
                     </p>
                   ) : null}
                   <div className="min-h-0 flex-1 overflow-auto">
-                    <Table className="min-w-max">
+                    <Table className="min-w-max border-b">
                       <TableHeader className="sticky top-0 z-10 bg-background">
                         <TableRow>
                           <TableHead className="w-12 border-r text-center text-muted-foreground">

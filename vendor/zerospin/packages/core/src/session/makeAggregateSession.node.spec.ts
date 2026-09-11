@@ -43,6 +43,7 @@ Effect.runSync(
 afterAll(() => Effect.runPromise(Scope.close(sessionScope, Exit.void)));
 
 const frontend = makeFrontendController({
+  authentication: main.authentication,
   aggregateVersion: '1.0.0',
   contracts: {},
   models: {},
@@ -223,7 +224,7 @@ function publishInitializedState(props: {
     sessionId: session.sessionId,
     aggregateId: 'acct_1',
     aggregateName: main.aggregateName,
-    identityKey: 'usr_1',
+    authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
     systemId: 'sys_test',
     frontendName: main.name,
     aggregateFrontendLockKey: 'aggregate-lock-key',
@@ -457,7 +458,7 @@ describe('renewable execution identity', () => {
       sessionId: session.sessionId,
       models: mainModels,
       aggregateId: 'acct_1',
-      identityKey: 'usr_1',
+      authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
       systemId: 'sys_test',
     } satisfies Omit<
       Parameters<typeof applyAggregateFrontendState<typeof main>>[0],
@@ -469,7 +470,10 @@ describe('renewable execution identity', () => {
         frontendState: {
           aggregateId: target.aggregateId,
           aggregateName: main.aggregateName,
-          identityKey: target.identityKey,
+          authentication: {
+            userId: target.authentication.userId,
+            aggregateId: target.aggregateId,
+          },
           systemId: target.systemId,
           frontendName: main.name,
           aggregateVersion: '1.0.0',

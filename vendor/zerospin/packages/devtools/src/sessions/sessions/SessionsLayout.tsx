@@ -7,11 +7,11 @@ import { useShallow } from 'zustand/react/shallow';
 
 import type { IDevtoolsServiceSessionEntry } from '../../types.js';
 import { zerospinDevtoolsStore } from '../../zerospinDevtoolsStore';
-import { SessionsDataCell } from '../SessionsDataCell';
 import {
-  ServiceSessionsIdentityKeyCell,
-  SessionsIdentityKeyCell,
-} from '../SessionsIdentityKeyCell';
+  ServiceSessionsAuthenticationCell,
+  SessionsAuthenticationCell,
+} from '../SessionsAuthenticationCell';
+import { SessionsDataCell } from '../SessionsDataCell';
 
 const styles = {
   root: {
@@ -274,7 +274,7 @@ export function SessionsLayout() {
                           ariaLabel="Copy session id"
                           tdStyle={styles.tdCopyCell}
                         />
-                        <SessionsIdentityKeyCell
+                        <SessionsAuthenticationCell
                           session={session}
                           tdStyle={styles.tdActorCell}
                         />
@@ -321,7 +321,7 @@ export function SessionsLayout() {
                           ariaLabel="Copy session id"
                           tdStyle={styles.tdCopyCell}
                         />
-                        <ServiceSessionsIdentityKeyCell
+                        <ServiceSessionsAuthenticationCell
                           session={session}
                           tdStyle={styles.tdActorCell}
                         />

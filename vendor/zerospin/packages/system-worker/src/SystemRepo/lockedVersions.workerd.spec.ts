@@ -1,9 +1,11 @@
 import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { env, runInDurableObject } from 'cloudflare:test';
-import { system } from 'system';
+import config from 'config';
 import { describe, expect, it } from 'vitest';
 
 import { SystemRepo } from './SystemRepo.js';
+
+const { system } = config;
 
 describe('locked version table migration', () => {
   it('provisions fresh storage and accepts definitions after repeated initialization', async () => {

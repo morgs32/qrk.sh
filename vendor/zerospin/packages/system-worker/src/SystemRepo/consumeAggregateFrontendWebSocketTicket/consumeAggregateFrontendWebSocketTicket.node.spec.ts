@@ -27,12 +27,22 @@ describe('SystemRepo.consumeAggregateFrontendWebSocketTicket', () => {
         };
         const target = {
           repoName: 'aggregate-ticket-round-trip',
+          selectionPath: '/usr_ticket_round_trip',
           aggregateId: 'agg_ticket_round_trip',
           aggregateName: 'shopper',
           aggregateVersion: '2.0.0',
-          identityKey: 'usr_ticket_round_trip',
+          authentication: {
+            userId: 'usr_ticket_round_trip',
+            aggregateId: 'agg_ticket_round_trip',
+          },
           frontendName: 'main',
           aggregateFrontendLock: {
+            authentication: {
+              signatureJsonSchema: {},
+              authenticationJsonSchema: {},
+              selectionJsonSchema: {},
+              pattern: '/public',
+            },
             systemName: 'shopping',
             frontendName: 'main',
             models: {},

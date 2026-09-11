@@ -1,10 +1,10 @@
+import { RoutePattern } from '@remix-run/route-pattern';
 import { mapParseError, ZerospinError } from '@zerospin/error';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
 import { makeAggregate } from '../aggregate/makeAggregate.ts';
 import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
-import { makeAuthenticationVersion } from '../authentication/makeVersion.ts';
 import { defineCommand } from '../contracts/Command.ts';
 import { makeContractVersion } from '../contracts/makeVersion.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
@@ -167,12 +167,7 @@ export const deleteList = makeContractVersion(defineCommand('deleteList'), {
   version: '1.0.0',
 });
 
-export const authenticationSignature = {
-  version: '1.0.0',
-  signature: Schema.Struct({
-    userId: makeModelIdSchema(User),
-  }),
-};
+const signatureSchema = Schema.Struct({ userId: makeModelIdSchema(User) });
 
 export const main = makeFrontendController({
   aggregateVersion: '1.0.0',
@@ -183,6 +178,15 @@ export const main = makeFrontendController({
     createItem: { contract: createItem },
     updateList: { contract: updateList },
     deleteList: { contract: deleteList },
+  },
+  authentication: {
+    signatureSchema,
+    authenticationSchema: Schema.Struct({
+      aggregateId: Schema.String,
+      userId: Schema.String,
+    }),
+    selectionSchema: Schema.Struct({ userId: Schema.String }),
+    pattern: RoutePattern.parse('/:userId'),
   },
   aggregateName: 'user',
   name: 'main',
@@ -198,20 +202,24 @@ export const main = makeFrontendController({
 export const mainModels = getFrontendDbModels(main);
 
 export const system = makeSystem({
-  authentication: [
-    makeAuthenticationVersion({
-      version: authenticationSignature.version,
-      signature: authenticationSignature.signature,
-      authenticate: ({ signature }) => Effect.succeed(signature.userId),
-    }),
-  ],
   services: {},
   aggregates: {
     user: [
       makeAggregateVersion(makeAggregate({ name: 'user' }), {
         version: '1.0.0',
+        authentication: {
+          signatureSchema,
+          authenticationSchema: Schema.Struct({
+            aggregateId: Schema.String,
+            userId: Schema.String,
+          }),
+          selectionSchema: Schema.Struct({ userId: Schema.String }),
+          pattern: RoutePattern.parse('/:userId'),
+          authenticate: ({ signature }) =>
+            Effect.succeed({ aggregateId: 'acct_1', userId: signature.userId }),
+        },
         authorize: (props: {
-          identityKey: string;
+          authentication: Readonly<Record<string, unknown>>;
           aggregateId: IAggregateId;
           db: Readonly<
             Pick<
@@ -220,7 +228,8 @@ export const system = makeSystem({
             >
           >;
         }) => {
-          const { db, identityKey: requestedIdentityKey } = props;
+          const { db, authentication } = props;
+          const requestedIdentityKey = authentication.userId;
           return Effect.gen(function* () {
             const userId = yield* Schema.decodeUnknownEffect(
               makeModelIdSchema(User),
@@ -269,18 +278,18 @@ export const system = makeSystem({
         selections: {
           user: makeSelection({
             model: User,
-            where: ({ identityKey }) => ({ id: identityKey }),
+            where: ({ authentication }) => ({ id: authentication.userId }),
           }),
           list: makeSelection({
             model: List,
-            where: ({ identityKey }) => ({
-              user: { id: identityKey },
+            where: ({ authentication }) => ({
+              user: { id: authentication.userId },
             }),
           }),
           item: makeSelection({
             model: Item,
-            where: ({ identityKey }) => ({
-              list: { user: { id: identityKey } },
+            where: ({ authentication }) => ({
+              list: { user: { id: authentication.userId } },
             }),
           }),
           account: makeSelection({

@@ -1,3 +1,4 @@
+import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
 import { assert, type Equals } from 'tsafe';
@@ -24,6 +25,7 @@ const ProductReplica = makeReplica({
   serviceName: 'catalog',
 });
 const account = makeAggregateVersion(makeAggregate({ name: 'account' }), {
+  authentication: authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: { product: ProductReplica },
   contracts: {},
@@ -44,14 +46,19 @@ account.models.product = ProductReplica;
 account.selections.product.model = ProductReplica;
 
 makeAggregateVersion(makeAggregate({ name: 'raw-selection-identity-key' }), {
+  authentication: authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: { product: ServiceProduct },
   contracts: {},
   selections: {
     product: {
       model: ServiceProduct,
-      where: ({ identityKey }: { identityKey: `usr_${string}` }) => ({
-        id: identityKey,
+      where: ({
+        authentication: { userId },
+      }: {
+        authentication: { userId: string };
+      }) => ({
+        id: userId,
       }),
     },
   },
@@ -60,15 +67,20 @@ makeAggregateVersion(makeAggregate({ name: 'raw-selection-identity-key' }), {
 makeAggregateVersion(
   makeAggregate({ name: 'invalid-raw-selection-identity-key' }),
   {
+    authentication: authenticationFixtureOwner.authentication,
     version: '1.0.0',
     models: { product: ServiceProduct },
     contracts: {},
     selections: {
       product: {
         model: ServiceProduct,
-        // @ts-expect-error raw selection callbacks require a string-compatible identityKey
-        where: ({ identityKey }: { identityKey: number }) => ({
-          id: identityKey,
+        // @ts-expect-error raw selection callbacks require a string-compatible userId
+        where: ({
+          authentication: { userId },
+        }: {
+          authentication: { userId: number };
+        }) => ({
+          id: userId,
         }),
       },
     },
@@ -76,14 +88,15 @@ makeAggregateVersion(
 );
 
 makeAggregateVersion(makeAggregate({ name: 'authorized' }), {
+  authentication: authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: { product: ProductReplica },
   contracts: {},
   selections: {
     product: makeSelection({ model: ProductReplica, where: () => ({}) }),
   },
-  authorize: ({ identityKey, aggregateId, db }) => {
-    assert<Equals<typeof identityKey, string>>();
+  authorize: ({ authentication: { userId }, aggregateId, db }) => {
+    assert<Equals<typeof userId, string>>();
     assert<Equals<typeof aggregateId, `acct_${string}`>>();
     void db.query.product;
     // @ts-expect-error Authorization can only query models owned by this aggregate.
@@ -101,6 +114,7 @@ const VersionedItem = makeModelVersion(
   },
 );
 const versionedList = makeAggregateVersion(makeAggregate({ name: 'list' }), {
+  authentication: authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: { item: VersionedItem },
   contracts: {},

@@ -18,12 +18,14 @@ import {
   type IEncodedResult,
 } from '@zerospin/error';
 import { DurableObject, env } from 'cloudflare:workers';
+import config from 'config';
 import { getTableName } from 'drizzle-orm';
 import { Effect, type ManagedRuntime } from 'effect';
-import { system } from 'system';
 import invariant from 'tiny-invariant';
 
 import type { AggregateChain } from '../AggregateChain/AggregateChain.js';
+import type { AuthenticatedVersionedAggregateChain } from '../AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
+import type { AuthenticatedVersionedAggregateRepo } from '../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
 import type { FrontendServiceChain } from '../FrontendServiceChain/FrontendServiceChain.js';
 import type { FrontendVersionedServiceRepo } from '../FrontendVersionedServiceRepo/FrontendVersionedServiceRepo.js';
 import { getRepoTableRows } from '../getRepoTableRows/getRepoTableRows.js';
@@ -37,14 +39,14 @@ import type { ServiceAdmittedChain } from '../ServiceAdmittedChain/ServiceAdmitt
 import type { SystemLogAgent } from '../SystemLogAgent/SystemLogAgent.js';
 import type { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
 import type { SystemRepo } from '../SystemRepo/SystemRepo.js';
-import type { UserVersionedAggregateChain } from '../UserVersionedAggregateChain/UserVersionedAggregateChain.js';
-import type { UserVersionedAggregateRepo } from '../UserVersionedAggregateRepo/UserVersionedAggregateRepo.js';
 import type { VersionedAggregateChain } from '../VersionedAggregateChain/VersionedAggregateChain.js';
 import type { VersionedAggregateRepo } from '../VersionedAggregateRepo/VersionedAggregateRepo.js';
 import type { VersionedServiceChain } from '../VersionedServiceChain/VersionedServiceChain.js';
 import type { VersionedServiceRepo } from '../VersionedServiceRepo/VersionedServiceRepo.js';
 
 import type { IRepoNameUtils } from './makeRepoNameUtils.js';
+
+const { system } = config;
 
 /** Namespace names stay explicit so deriving the base never inspects its subclasses. */
 declare global {
@@ -83,11 +85,11 @@ declare global {
       VERSIONED_SERVICE_CHAIN: DurableObjectNamespace<
         Rpc.DurableObjectBranded & VersionedServiceChain
       >;
-      USER_VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & UserVersionedAggregateRepo
+      AUTHENTICATED_VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & AuthenticatedVersionedAggregateRepo
       >;
-      USER_VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & UserVersionedAggregateChain
+      AUTHENTICATED_VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & AuthenticatedVersionedAggregateChain
       >;
       SERVICE_ADMITTED_CHAIN: DurableObjectNamespace<
         Rpc.DurableObjectBranded & ServiceAdmittedChain

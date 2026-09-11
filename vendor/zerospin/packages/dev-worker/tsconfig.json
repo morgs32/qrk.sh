@@ -45,7 +45,7 @@
       "path": "../system-worker"
     },
     {
-      "path": "../system"
+      "path": "../config"
     },
     {
       "path": "../schema"

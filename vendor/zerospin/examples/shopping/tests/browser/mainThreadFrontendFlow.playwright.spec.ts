@@ -29,14 +29,10 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/CartV1';
 import { cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/CartItemV2';
-import {
-  ClerkUserIdSchema,
-  userV1,
-} from '@/zerospin/aggregates/shopper/models/user/UserV1';
+import { ClerkUserIdSchema } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { createProductV1 } from '@/zerospin/services/app/contracts/createProduct/CreateProductV1';
 import { deleteProductV1 } from '@/zerospin/services/app/contracts/deleteProduct/DeleteProductV1';
 import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
-import { signature } from '@/zerospin/signature';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 const WebV2 = ZerospinApp.frontends.shopperFrontend.frontend;
@@ -65,10 +61,7 @@ const testRuntimeLayer = Layer.mergeAll(
 
 const FlowZerospinApp = makeZerospinApp({
   systemName: 'shopping',
-  authentication: {
-    version: signature.version,
-    signature: signature.signature,
-  },
+
   frontends: {
     shopperFrontend: WebV2,
     appFrontend: CatalogV1,
@@ -199,20 +192,20 @@ describe('main-thread frontend flow', () => {
       service: IBrowserServiceSession<typeof CatalogV1> | null;
     } = { aggregate: null, service: null };
     let signatureCallCount = 0;
-    const legacyLocatorKey = `zerospin:user-locator:${JSON.stringify([
-      'shopping',
-      clerkUserId,
-    ])}`;
-    globalThis.localStorage.setItem(legacyLocatorKey, 'sys_legacy_ignored');
 
     try {
       await act(async () => {
         root.render(
           createElement(FlowZerospinApp.Provider, {
-            aggregateIds: { shopperFrontend: 'acct_1' },
-            generateSignature: () => {
-              signatureCallCount += 1;
-              return Effect.succeed({ clerkUserId });
+            generateSignature: {
+              shopperFrontend: () => {
+                signatureCallCount += 1;
+                return Effect.succeed({ clerkUserId });
+              },
+              appFrontend: () => {
+                signatureCallCount += 1;
+                return Effect.succeed({ clerkUserId });
+              },
             },
             children: createElement(FlowSessionsProbe, {
               onSessions: (aggregateSession, serviceSession) => {
@@ -265,13 +258,23 @@ describe('main-thread frontend flow', () => {
       expect(aggregateDevtoolsEntry?.session).toBe(
         aggregateSession.coreSession,
       );
-      expect(serviceDevtoolsEntry?.getIdentityKey()).toBe(clerkUserId);
+      expect(serviceDevtoolsEntry?.getAuthentication()).toEqual({
+        clerkUserId,
+      });
+      const userRow = aggregateState.db.query.user
+        .findFirst({ where: { clerkUserId } })
+        .sync();
+      if (userRow === undefined) {
+        throw new Error('Authentication must provision the User');
+      }
+      const userId = userRow.id;
+      expect(userId).not.toBe(`usr_${clerkUserId}`);
 
       const createdUser = await aggregateSession.executeCommand({
-        contractName: 'createUser',
+        contractName: 'updateUser',
         payload: {
-          id: prefixId(userV1, clerkUserId),
-          clerkUserId,
+          id: userId,
+          name: 'Provisioned user',
         },
       });
       expect(createdUser._tag).toBe('Success');
@@ -304,7 +307,7 @@ describe('main-thread frontend flow', () => {
       const updatedUser = await aggregateSession.executeCommand({
         contractName: 'updateUser',
         payload: {
-          id: prefixId(userV1, clerkUserId),
+          id: userId,
           name: updatedName,
         },
       });
@@ -318,7 +321,7 @@ describe('main-thread frontend flow', () => {
               ?.findFirst({
                 where: {
                   id: {
-                    eq: prefixId(userV1, clerkUserId),
+                    eq: userId,
                   },
                 },
               })
@@ -342,7 +345,7 @@ describe('main-thread frontend flow', () => {
             contractName: 'createCart',
             payload: {
               id: prefixId(cartV1, testRunId),
-              userId: prefixId(userV1, clerkUserId),
+              userId,
             },
           }),
         ),
@@ -414,6 +417,7 @@ describe('main-thread frontend flow', () => {
                 command: sessionCommandJournalDrizzleSchema.command,
                 sessionId: sessionCommandJournalDrizzleSchema.sessionId,
                 sessionIndex: sessionCommandJournalDrizzleSchema.sessionIndex,
+                pushIndex: sessionCommandJournalDrizzleSchema.pushIndex,
               })
               .from(sessionCommandJournalDrizzleSchema)
               .where(eq(sessionCommandJournalDrizzleSchema.id, addedToCart.id))
@@ -424,18 +428,21 @@ describe('main-thread frontend flow', () => {
             )(retainedCommand.command);
             if (
               !('id' in command) ||
+              !('aggregateIndex' in command) ||
               command.id !== addedToCart.id ||
               retainedCommand.sessionId !== currentAggregateSession.sessionId ||
-              !('pushIndex' in command) ||
-              command.pushIndex === null
+              retainedCommand.pushIndex === null
             ) {
               return undefined;
             }
-            return retainedCommand.sessionIndex;
+            return {
+              sessionIndex: retainedCommand.sessionIndex,
+              failure: command.failure,
+            };
           },
           { interval: 100, timeout: 15_000 },
         )
-        .toBeGreaterThan(0);
+        .toEqual({ sessionIndex: addedToCart.sessionIndex, failure: null });
 
       const latestAggregateSession = sessions.aggregate;
       if (latestAggregateSession === null) {
@@ -928,7 +935,6 @@ describe('main-thread frontend flow', () => {
         await Promise.resolve();
       });
       container.remove();
-      globalThis.localStorage.removeItem(legacyLocatorKey);
     }
 
     await expect
@@ -937,7 +943,9 @@ describe('main-thread frontend flow', () => {
           Array.from(
             zerospinDevtoolsStore.getState().aggregateSessionsById.values(),
           ).filter(
-            entry => entry.session.store.getState().identityKey === clerkUserId,
+            entry =>
+              entry.session.store.getState().authentication?.clerkUserId ===
+              clerkUserId,
           ).length,
         { interval: 50, timeout: 30_000 },
       )

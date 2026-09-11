@@ -1,7 +1,6 @@
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { Exit, Schema } from 'effect';
 
-import { AuthenticationSchema } from '../authentication/makeVersion.ts';
 import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
 
 import type { ISystem, ISystemConfig } from './types.ts';
@@ -16,7 +15,6 @@ export const ZerospinConfigSchema = Schema.declare<ISystemConfig>(
           Schema.is(
             Schema.Struct({
               name: Schema.String,
-              authentication: Schema.Array(AuthenticationSchema),
               aggregates: Schema.Record(
                 Schema.String,
                 Schema.Record(

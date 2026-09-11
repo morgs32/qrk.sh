@@ -41,6 +41,7 @@
   "include": ["src"],
   "exclude": ["**/*.spec.ts", "**/*.spec.tsx"],
   "references": [
+    { "path": "../config" },
     {
       "path": "../system-worker"
     },

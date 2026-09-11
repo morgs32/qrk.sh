@@ -1,12 +1,7 @@
 import { act, useEffect, useState } from 'react';
 
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import {
-  authenticationSignature,
-  List,
-  main,
-  User,
-} from '@zerospin/core/fixtures/system';
+import { List, main, User } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
@@ -79,10 +74,7 @@ const sessionRuntimeLayer = Layer.mergeAll(
 
 const ZerospinMain = makeZerospinApp({
   systemName: 'system-worker',
-  authentication: {
-    version: authenticationSignature.version,
-    signature: authenticationSignature.signature,
-  },
+
   frontends: {
     main,
   },
@@ -108,6 +100,7 @@ const JsonDocument = makeModelVersion(
   },
 );
 const jsonFrontend = makeFrontendController({
+  authentication: main.authentication,
   aggregateVersion: '1.0.0',
   contracts: {},
   models: {
@@ -119,10 +112,7 @@ const jsonFrontend = makeFrontendController({
 });
 const ZerospinJsonFixture = makeZerospinApp({
   systemName: 'mock-json-fixture-test',
-  authentication: {
-    version: authenticationSignature.version,
-    signature: authenticationSignature.signature,
-  },
+
   frontends: {
     main: jsonFrontend,
   },
@@ -168,6 +158,7 @@ describe('makeMockProvider', () => {
   it('releases local and application services when initialization fails before publication', async () => {
     const events: string[] = [];
     const frontend = makeFrontendController({
+      authentication: main.authentication,
       systemName: 'mock-lifecycle',
       aggregateName: 'account',
       aggregateVersion: '1.0.0',
@@ -208,15 +199,11 @@ describe('makeMockProvider', () => {
     await expect(
       act(async () =>
         root.render(
-          <Mock
-            aggregateIds={{ web: 'acct_1' }}
-            generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          >
-            Never published
-          </Mock>,
+          // @ts-expect-error Intentionally omit authentication to exercise runtime validation.
+          <Mock>Never published</Mock>,
         ),
       ),
-    ).rejects.toThrow('MockProvider requires identityKey');
+    ).rejects.toThrow('Invalid mock authentication');
     expect(events).toEqual(['application', 'release-local', 'release-app']);
     expect(sqliteInitialization.entered).not.toHaveBeenCalled();
     expect(container.textContent).toBe('');
@@ -255,7 +242,7 @@ describe('makeMockProvider', () => {
         <output
           data-testid="ready"
           data-aggregate-id={state.aggregateId}
-          data-identity-key={state.identityKey}
+          data-user-id={state.authentication.userId}
           data-session-id={session.sessionId}
           data-session-status={state.sessionStatus}
         >
@@ -271,13 +258,10 @@ describe('makeMockProvider', () => {
     act(() => {
       root.render(
         <MockMainProvider
-          identityKey="user_1"
-          aggregateIds={{ main: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
           resources={{
             user: [
               {
-                userId: 'user_1',
                 createdAt: fixtureDate,
                 id: 'usr_1',
                 modelName: User.modelName,
@@ -316,7 +300,7 @@ describe('makeMockProvider', () => {
 
     const output = container.querySelector('[data-testid="ready"]');
     expect(output?.getAttribute('data-aggregate-id')).toBe('acct_1');
-    expect(output?.getAttribute('data-identity-key')).toBe('user_1');
+    expect(output?.getAttribute('data-user-id')).toBe('user_1');
     expect(output?.getAttribute('data-session-id')).toMatch(/^sesn_/);
     expect(output?.getAttribute('data-session-status')).toBe('current');
     expect(output?.textContent).toContain('User 1');
@@ -365,9 +349,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          identityKey="user_1"
-          aggregateIds={{ main: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
         >
           <EmptyModelsProbe />
         </MockMainProvider>,
@@ -402,9 +384,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockJsonFixtureProvider
-          identityKey="user_1"
-          aggregateIds={{ main: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
           resources={{
             document: [
               {
@@ -494,13 +474,10 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          identityKey="user_1"
-          aggregateIds={{ main: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
           resources={{
             user: [
               {
-                userId: 'user_1',
                 createdAt: fixtureDate,
                 id: 'usr_1',
                 modelName: User.modelName,
@@ -545,7 +522,7 @@ describe('makeMockProvider', () => {
         <output
           data-testid="identity"
           data-aggregate-id={state.aggregateId}
-          data-identity-key={state.identityKey}
+          data-user-id={state.authentication.userId}
         >
           {users.data.map(user => user.name).join(',')}
         </output>
@@ -555,13 +532,10 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          identityKey="user_1"
-          aggregateIds={{ main: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
           resources={{
             user: [
               {
-                userId: 'user_1',
                 createdAt: fixtureDate,
                 id: 'usr_1',
                 modelName: User.modelName,
@@ -590,13 +564,10 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          identityKey="user_2"
-          aggregateIds={{ main: 'acct_2' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
+          authentication={{ userId: 'user_2', aggregateId: 'acct_2' }}
           resources={{
             user: [
               {
-                userId: 'user_2',
                 createdAt: fixtureDate,
                 id: 'usr_2',
                 modelName: User.modelName,
@@ -615,7 +586,7 @@ describe('makeMockProvider', () => {
 
     const unchangedOutput = container.querySelector('[data-testid="identity"]');
     expect(unchangedOutput?.getAttribute('data-aggregate-id')).toBe('acct_1');
-    expect(unchangedOutput?.getAttribute('data-identity-key')).toBe('user_1');
+    expect(unchangedOutput?.getAttribute('data-user-id')).toBe('user_1');
     expect(unchangedOutput?.textContent).toContain('Original User');
     expect(unchangedOutput?.textContent).not.toContain('Replacement User');
 
@@ -623,13 +594,10 @@ describe('makeMockProvider', () => {
       root.render(
         <MockMainProvider
           key="reset"
-          identityKey="user_2"
-          aggregateIds={{ main: 'acct_2' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
+          authentication={{ userId: 'user_2', aggregateId: 'acct_2' }}
           resources={{
             user: [
               {
-                userId: 'user_2',
                 createdAt: fixtureDate,
                 id: 'usr_2',
                 modelName: User.modelName,
@@ -650,7 +618,7 @@ describe('makeMockProvider', () => {
       () => {
         const resetOutput = container.querySelector('[data-testid="identity"]');
         expect(resetOutput?.getAttribute('data-aggregate-id')).toBe('acct_2');
-        expect(resetOutput?.getAttribute('data-identity-key')).toBe('user_2');
+        expect(resetOutput?.getAttribute('data-user-id')).toBe('user_2');
         expect(resetOutput?.textContent).toContain('Replacement User');
         expect(sqliteCloseBoundary).toHaveBeenCalledTimes(1);
       },
@@ -672,13 +640,10 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          identityKey="user_1"
-          aggregateIds={{ main: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
           resources={{
             user: [
               {
-                userId: 'user_1',
                 createdAt: fixtureDate,
                 id: 'usr_duplicate',
                 modelName: User.modelName,
@@ -687,7 +652,6 @@ describe('makeMockProvider', () => {
                 version: User.version,
               },
               {
-                userId: 'user_2',
                 createdAt: fixtureDate,
                 id: 'usr_duplicate',
                 modelName: User.modelName,
@@ -729,9 +693,7 @@ describe('makeMockProvider', () => {
     act(() => {
       root.render(
         <MockMainProvider
-          identityKey="user_1"
-          aggregateIds={{ main: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          authentication={{ userId: 'user_1', aggregateId: 'acct_1' }}
         >
           <div data-testid="late-child" />
         </MockMainProvider>,

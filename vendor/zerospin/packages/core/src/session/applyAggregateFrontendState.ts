@@ -1,6 +1,7 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { makeEffectSchema } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
+import { isEqual } from 'es-toolkit';
 
 import type { IDrizzleRelationsFromModels } from '../drizzle/types.ts';
 import type {
@@ -32,7 +33,7 @@ export const applyAggregateFrontendState = Effect.fn(
   models: InferFrontendModels<FRONTEND>;
   frontendState: IAggregateFrontendSyncState;
   aggregateId: IAggregateFrontendSyncState['aggregateId'];
-  identityKey: IAggregateFrontendSyncState['identityKey'];
+  authentication: IAggregateFrontendSyncState['authentication'];
   systemId: IAggregateFrontendSyncState['systemId'];
 }): Effect.fn.Return<void, IAnyError> {
   const {
@@ -43,7 +44,7 @@ export const applyAggregateFrontendState = Effect.fn(
     models,
     sessionId,
     systemId,
-    identityKey,
+    authentication,
   } = props;
 
   yield* Schema.encodeEffect(AggregateFrontendSyncStateSchema)(frontendState, {
@@ -57,7 +58,7 @@ export const applyAggregateFrontendState = Effect.fn(
 
   if (
     frontendState.aggregateId !== aggregateId ||
-    frontendState.identityKey !== identityKey ||
+    !isEqual(frontendState.authentication, authentication) ||
     frontendState.systemId !== systemId ||
     frontendState.aggregateName !== frontend.aggregateName ||
     frontendState.frontendName !== frontend.name ||
@@ -84,7 +85,7 @@ export const applyAggregateFrontendState = Effect.fn(
     if (
       command.aggregateId !== aggregateId ||
       command.aggregateName !== frontend.aggregateName ||
-      command.identityKey !== identityKey ||
+      !isEqual(command.authentication, authentication) ||
       command.frontendName !== frontend.name ||
       command.aggregateIndex > frontendState.aggregateIndex ||
       command.dispositionHash === null

@@ -113,7 +113,7 @@ describe('seed file execution', () => {
         contractVersion: '1.0.0',
         sessionId: null,
         frontendName: null,
-        identityKey: null,
+        authentication: null,
         pushIndex: null,
         payload: JSON.stringify({ name: 'Ada' }),
       }),

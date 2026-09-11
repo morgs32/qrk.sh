@@ -82,18 +82,24 @@ describe('makeMutations', () => {
               payload: {},
               models: { serviceProduct: ServiceProduct },
               version: '1.0.0',
-              program: ({ models, identityKey }) =>
+              program: ({ models, authentication }) =>
                 models.serviceProduct.create({
                   resourceId: 'sprd_identity',
-                  attributes: { name: identityKey ?? 'system' },
+                  attributes: {
+                    name:
+                      typeof authentication?.userId === 'string'
+                        ? authentication.userId
+                        : 'system',
+                  },
                 }),
             },
           );
-          for (const identityKey of ['authenticated-user', null]) {
+          for (const userId of ['authenticated-user', null]) {
             const result = yield* makeMutations({
               contract,
               models: { serviceProduct: ServiceProduct },
-              identityKey,
+              authentication:
+                userId === null ? null : { userId, aggregateId: 'acct_1' },
               command: {
                 id: 'cmd_identity',
                 commandName: contract.commandName,
@@ -103,7 +109,7 @@ describe('makeMutations', () => {
             });
             expect(result.payload).toEqual({});
             expect(result.mutations[0]).toMatchObject({
-              operation: { attributes: { name: identityKey ?? 'system' } },
+              operation: { attributes: { name: userId ?? 'system' } },
             });
           }
         }),
@@ -126,7 +132,7 @@ describe('makeMutations', () => {
         };
 
         const result = yield* makeMutations({
-          identityKey: null,
+          authentication: null,
           contract: aggregate.contracts.createList.contract,
           models: aggregate.models,
           command,
@@ -151,12 +157,12 @@ describe('makeMutations', () => {
           },
           aggregateId: 'acct_1',
           aggregateName: 'user',
-          identityKey: 'user_1',
+          authentication: { userId: 'user_1', aggregateId: 'acct_1' },
           frontendName: 'main',
         };
 
         const result = yield* makeMutations({
-          identityKey: null,
+          authentication: null,
           contract: main.contracts.createList.contract,
           models: main.models,
           command,
@@ -182,7 +188,7 @@ describe('makeMutations', () => {
         };
 
         const result = yield* makeMutations({
-          identityKey: null,
+          authentication: null,
           contract: createServiceProduct,
           models: { serviceProduct: ServiceProduct },
           command,
@@ -224,7 +230,7 @@ describe('makeMutations', () => {
         };
 
         const result = yield* makeMutations({
-          identityKey: null,
+          authentication: null,
           contract: createSingleList,
           models: {
             list: List,
@@ -270,7 +276,7 @@ describe('makeMutations', () => {
         );
 
         const result = yield* makeMutations({
-          identityKey: null,
+          authentication: null,
           contract: tupleContract,
           models: { list: List },
           command: {
@@ -321,7 +327,7 @@ describe('makeMutations', () => {
         );
 
         const result = yield* makeMutations({
-          identityKey: null,
+          authentication: null,
           contract: arrayContract,
           models: { list: List },
           command: {
@@ -362,7 +368,7 @@ describe('makeMutations', () => {
           );
 
           const result = yield* makeMutations({
-            identityKey: null,
+            authentication: null,
             contract: invalidOutputContract,
             models: { list: List },
             command: {
@@ -395,7 +401,7 @@ describe('makeMutations', () => {
         });
 
         const result = yield* makeMutations({
-          identityKey: null,
+          authentication: null,
           contract: nullContract,
           models: { list: List },
           command: {
@@ -426,7 +432,7 @@ describe('makeMutations', () => {
         };
 
         const maybeMutations = yield* makeMutations({
-          identityKey: null,
+          authentication: null,
           contract: createList,
           models: { serviceProduct: ServiceProduct },
           command,
@@ -471,7 +477,7 @@ describe('makeMutations', () => {
         };
 
         const maybeMutations = yield* makeMutations({
-          identityKey: null,
+          authentication: null,
           contract: createServiceProductReplica,
           models: { serviceProduct: ServiceProductReplica },
           command,

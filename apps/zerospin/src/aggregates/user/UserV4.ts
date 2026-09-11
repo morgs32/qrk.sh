@@ -3,7 +3,7 @@ import { Effect } from "effect";
 
 import { createGridV1 as createGrid } from "./contracts/createGrid/CreateGridV1";
 import { createPageV1 as createPage } from "./contracts/createPage/CreatePageV1";
-import { createSiteV1 as createSite } from "./contracts/createSite/CreateSiteV1";
+import { createSiteV2 as createSite } from "./contracts/createSite/CreateSiteV2";
 import { createUserV1 as createUser } from "./contracts/createUser/CreateUserV1";
 import { updateGridV1 as updateGrid } from "./contracts/updateGrid/UpdateGridV1";
 import { brickV1 as Brick } from "./models/brick/BrickV1";
@@ -13,8 +13,8 @@ import { siteV1 as Site } from "./models/site/SiteV1";
 import { userV1 as User } from "./models/user/UserV1";
 import { user } from "./user";
 
-export const userV3 = makeAggregateVersion(user, {
-  version: "3.0.0",
+export const userV4 = makeAggregateVersion(user, {
+  version: "4.0.0",
   authorize: Effect.fn("user.authorize")(function* ({ aggregateId, userId }) {
     const expectedAggregateId = makeAggregateId({ id: userId });
     if (aggregateId !== expectedAggregateId) {

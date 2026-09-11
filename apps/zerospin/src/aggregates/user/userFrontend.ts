@@ -2,7 +2,7 @@ import { makeFrontendController } from "@zerospin/sdk/browser";
 
 import { createGridV1 as createGrid } from "./contracts/createGrid/CreateGridV1";
 import { createPageV1 as createPage } from "./contracts/createPage/CreatePageV1";
-import { createSiteV1 as createSite } from "./contracts/createSite/CreateSiteV1";
+import { createSiteV2 as createSite } from "./contracts/createSite/CreateSiteV2";
 import { createUserV1 as createUser } from "./contracts/createUser/CreateUserV1";
 import { updateGridV1 as updateGrid } from "./contracts/updateGrid/UpdateGridV1";
 import { gridV1 as Grid } from "./models/grid/GridV1";
@@ -21,7 +21,7 @@ export const userFrontend = makeFrontendController({
   },
   aggregateName: "user",
   name: "web",
-  aggregateVersion: "3.0.0",
+  aggregateVersion: "4.0.0",
   systemName: "qrk-sh",
   models: {
     grid: Grid,

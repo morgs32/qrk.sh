@@ -23,7 +23,7 @@ const createSitePayload = {
   }),
 };
 
-export const createSiteV1 = makeContractVersion(createSite, {
+export const createSiteV2 = makeContractVersion(createSite, {
   payload: createSitePayload,
   models: { user: User, site: Site },
   guard: Effect.fn("createSite.guard")(function* ({
@@ -81,5 +81,5 @@ export const createSiteV1 = makeContractVersion(createSite, {
       }),
     });
   },
-  version: "1.1.0",
+  version: "2.0.0",
 });

@@ -2,7 +2,7 @@ import { verifyToken } from "@clerk/backend";
 import { makeAuthenticationVersion, makeSystem, ZerospinError } from "@zerospin/sdk";
 import { Effect } from "effect";
 
-import { userV3 } from "./aggregates/user/UserV3";
+import { userV4 } from "./aggregates/user/UserV4";
 import { signature } from "./signature";
 
 export const system = makeSystem({
@@ -33,6 +33,6 @@ export const system = makeSystem({
     }),
   ],
   aggregates: {
-    user: [userV3],
+    user: [userV4],
   },
 });

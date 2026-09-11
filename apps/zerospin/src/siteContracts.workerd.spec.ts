@@ -13,7 +13,7 @@ import { DateTime, Effect, Layer, ManagedRuntime, Result } from "effect";
 import { describe, expect } from "vitest";
 
 import { createPageV1 as createPage } from "./aggregates/user/contracts/createPage/CreatePageV1";
-import { createSiteV1 as createSite } from "./aggregates/user/contracts/createSite/CreateSiteV1";
+import { createSiteV2 as createSite } from "./aggregates/user/contracts/createSite/CreateSiteV2";
 import { gridV1 as Grid } from "./aggregates/user/models/grid/GridV1";
 import { brickV1 as Brick } from "./aggregates/user/models/brick/BrickV1";
 import { siteV1 as Site } from "./aggregates/user/models/site/SiteV1";
@@ -91,7 +91,7 @@ describe("site and page creation contracts", () => {
 
       const siteRows = db.select().from(dbConfig.schema.site).all();
 
-      expect(staged.success.contractVersion).toBe("1.1.0");
+      expect(staged.success.contractVersion).toBe("2.0.0");
       expect(staged.success.payload.id).toBe("sit_site_contract");
       expect(staged.success.payload).not.toHaveProperty("userId");
       expect(staged.success.payload).toMatchObject({
@@ -266,7 +266,7 @@ describe("site and page creation contracts", () => {
   it.effect("accepts a site payload without userId", () =>
     Effect.gen(function* () {
       const validation = yield* validatePayload(createSite, {
-          version: "1.1.0",
+          version: "2.0.0",
           payload: {
             id: "sit_missing_user",
           },

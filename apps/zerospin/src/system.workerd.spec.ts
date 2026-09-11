@@ -18,8 +18,8 @@ describe("QRK system", () => {
     Effect.gen(function* () {
       expect(system.name).toBe("qrk-sh");
       expect(system.authentication.map((entry) => entry.version)).toEqual(["1.0.0"]);
-      expect(Object.keys(system.aggregates.user)).toEqual(["3.0.0"]);
-      const aggregate = system.aggregates.user["3.0.0"];
+      expect(Object.keys(system.aggregates.user)).toEqual(["4.0.0"]);
+      const aggregate = system.aggregates.user["4.0.0"];
       expect(aggregate.models).toEqual(userFrontend.models);
       expect(aggregate.contracts.createUser.contract).toBe(createUser);
       expect(Object.keys(aggregate.selections).sort()).toEqual([

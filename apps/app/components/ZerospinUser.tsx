@@ -7,6 +7,7 @@ import { ZerospinApiUrl } from "@zerospin/core/services/ZerospinApiUrl";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
 import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory";
 import {
+  checkZerospinApp,
   makeZerospinApp,
   useInitializedStateOrThrow,
   useLiveQuery,
@@ -18,9 +19,10 @@ import { makeAggregateId, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect, Layer, Redacted, Schema } from "effect";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import { userFrontend } from "@qrk.sh/zerospin/src/accounts/user/actors/user/userFrontend";
-import { User } from "@qrk.sh/zerospin/src/models/User";
+import { userFrontend } from "@qrk.sh/zerospin/src/aggregates/user/userFrontend";
+import { userV1 as User } from "@qrk.sh/zerospin/src/aggregates/user/models/user/UserV1";
 import { signature } from "@qrk.sh/zerospin/src/signature";
+import type { system } from "@qrk.sh/zerospin/src/system";
 
 const zerospinApiUrl = process.env.NEXT_PUBLIC_ZEROSPIN_API_URL;
 const zerospinPublishableKey = process.env.NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY;
@@ -53,59 +55,7 @@ export const ZerospinApp = makeZerospinApp({
   layer: sessionLayer,
 });
 
-const MockProvider = makeMockProvider({
-  frontend: ZerospinApp.frontends.web,
-  layer: sessionLayer,
-});
-
-function RequiredZerospinUser(props: {
-  children: ReactNode;
-  clerkUserId: string;
-  displayName: string | null;
-  username: string | null;
-}) {
-  const { children, clerkUserId, displayName, username } = props;
-  const { userId } = useInitializedStateOrThrow(ZerospinApp.frontends.web);
-  const session = useSession(ZerospinApp.frontends.web);
-  const userCreationStarted = useRef(false);
-  const [userCreationFailure, setUserCreationFailure] = useState<ZerospinError<string> | null>(
-    null,
-  );
-  const { data: user } = useLiveQuery(ZerospinApp.frontends.web, {
-    query: (db) =>
-      db.query.user.findFirst({
-        where: { clerkUserId: { eq: userId } },
-      }),
-    deps: [userId],
-  });
-
-  useEffect(() => {
-    if (user !== undefined || userCreationStarted.current) {
-      return;
-    }
-
-    userCreationStarted.current = true;
-    const result = session.executeCommand({
-      contractName: "createUser",
-      payload: {
-        id: User.prefixId(userId),
-        clerkUserId,
-        username,
-        displayName,
-      },
-    });
-
-    if (result._tag === "Failure") {
-      setUserCreationFailure(new ZerospinError(result.failure));
-    }
-  }, [clerkUserId, displayName, session, user, userId, username]);
-
-  if (userCreationFailure !== null) {
-    throw userCreationFailure;
-  }
-
-  return user === undefined ? null : children;
-}
+checkZerospinApp<typeof system>(ZerospinApp);
 
 export function ZerospinUserProvider({ children }: { children: ReactNode }) {
   const { getToken } = useAuth();
@@ -141,43 +91,7 @@ export function ZerospinUserProvider({ children }: { children: ReactNode }) {
         })
       }
     >
-      <RequiredZerospinUser
-        clerkUserId={user.id}
-        username={user.username}
-        displayName={user.fullName}
-      >
-        {children}
-      </RequiredZerospinUser>
-    </ZerospinApp.Provider>
-  );
-}
-
-export function MockZerospinUserProvider({ children }: { children: ReactNode }) {
-  const userId = "mock-user";
-  const actorId = Schema.decodeUnknownSync(makeAbbreviationIdSchema("actr"))(`actr_${userId}`);
-
-  return (
-    <MockProvider
-      aggregateIds={{ web: makeAggregateId({ id: userId }) }}
-      generateSignature={() => Effect.succeed({ sessionToken: "mock-session-token" })}
-      userId={userId}
-      resources={{
-        user: [
-          {
-            id: User.prefixId(userId),
-            modelName: User.modelName,
-            version: User.version,
-            createdAt: new Date("2026-01-01T00:00:00.000Z"),
-            updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-            actorId,
-            clerkUserId: userId,
-            username: "mock-user",
-            displayName: "Mock User",
-          },
-        ],
-      }}
-    >
       {children}
-    </MockProvider>
+    </ZerospinApp.Provider>
   );
 }

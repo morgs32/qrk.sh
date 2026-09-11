@@ -1,6 +1,8 @@
 import { models, primitives } from "@zerospin/sdk/browser";
 
-export const User = models.makeVersion(models.makeModel({ name: "user", abbreviation: "usr" }), {
+import { user } from "./user";
+
+export const userV1 = models.makeVersion(user, {
   attributes: {
     actorId: primitives.foreignKey({
       abbreviation: "actr",

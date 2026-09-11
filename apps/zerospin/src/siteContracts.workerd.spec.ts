@@ -9,12 +9,13 @@ import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory"
 import { DateTime, Effect, Layer, ManagedRuntime, Result } from "effect";
 import { describe, expect } from "vitest";
 
-import { createPage, createSite } from "./contracts";
-import { Grid } from "./models/Grid";
-import { Brick } from "./models/Brick";
-import { Site } from "./models/Site";
-import { User } from "./models/User";
-import { userFrontend } from "./accounts/user/actors/user/userFrontend";
+import { createPageV1 as createPage } from "./aggregates/user/contracts/createPage/CreatePageV1";
+import { createSiteV1 as createSite } from "./aggregates/user/contracts/createSite/CreateSiteV1";
+import { gridV1 as Grid } from "./aggregates/user/models/grid/GridV1";
+import { brickV1 as Brick } from "./aggregates/user/models/brick/BrickV1";
+import { siteV1 as Site } from "./aggregates/user/models/site/SiteV1";
+import { userV1 as User } from "./aggregates/user/models/user/UserV1";
+import { userFrontend } from "./aggregates/user/userFrontend";
 
 describe("site and page creation contracts", () => {
   it.effect("stages a Site and its initial Page with caller-supplied IDs", () =>

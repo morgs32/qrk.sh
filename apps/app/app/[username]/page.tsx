@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useInitializedStateOrThrow, useSession } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
-import { User } from "@qrk.sh/zerospin/src/models/User";
+import { userV1 as User } from "@qrk.sh/zerospin/src/aggregates/user/models/user/UserV1";
 
 import { Button } from "@/components/ui/button";
 import { ZerospinApp } from "@/components/ZerospinUser";

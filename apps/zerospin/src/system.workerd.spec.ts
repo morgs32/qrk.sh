@@ -6,8 +6,8 @@ import { makeAggregateId } from "@zerospin/sdk";
 import { Effect, Schema } from "effect";
 import { describe, expect } from "vitest";
 
-import { userFrontend } from "./accounts/user/actors/user/userFrontend";
-import { createUser } from "./contracts";
+import { userFrontend } from "./aggregates/user/userFrontend";
+import { createUserV1 as createUser } from "./aggregates/user/contracts/createUser/CreateUserV1";
 import { signature } from "./signature";
 import { system } from "./system";
 

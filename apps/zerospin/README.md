@@ -19,3 +19,12 @@ pnpm nx run @qrk.sh/zerospin:test:workerd
 The existing `dev` target includes `--clean` and resets this system's local
 backend state. Use the CLI without `--clean` when retaining that state.
 QRK's scraper keeps its separate Worker configuration in `packages/scraper`.
+
+## Source layout
+
+`src/system.ts` composes authentication and the user aggregate.
+`src/aggregates/user/user.ts` declares its identity; `UserV3.ts` defines version 3.
+Models live under `aggregates/user/models/<model>/`, and contracts under
+`aggregates/user/contracts/<command>/`, with separate identity and version files.
+`aggregates/user/userFrontend.ts` exposes the web frontend.
+The existing Workerd integration suites remain in `src/`.

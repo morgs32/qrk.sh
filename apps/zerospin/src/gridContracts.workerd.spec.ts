@@ -5,13 +5,14 @@ import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/make
 import { DateTime, Effect } from "effect";
 import { describe, expect } from "vitest";
 
-import { createGrid, updateGrid } from "./contracts";
-import { Grid } from "./models/Grid";
-import { Brick } from "./models/Brick";
-import { Page } from "./models/Page";
-import { Site } from "./models/Site";
-import { User } from "./models/User";
-import { userFrontend } from "./accounts/user/actors/user/userFrontend";
+import { createGridV1 as createGrid } from "./aggregates/user/contracts/createGrid/CreateGridV1";
+import { updateGridV1 as updateGrid } from "./aggregates/user/contracts/updateGrid/UpdateGridV1";
+import { gridV1 as Grid } from "./aggregates/user/models/grid/GridV1";
+import { brickV1 as Brick } from "./aggregates/user/models/brick/BrickV1";
+import { pageV1 as Page } from "./aggregates/user/models/page/PageV1";
+import { siteV1 as Site } from "./aggregates/user/models/site/SiteV1";
+import { userV1 as User } from "./aggregates/user/models/user/UserV1";
+import { userFrontend } from "./aggregates/user/userFrontend";
 
 describe("aggregate Grid contracts", () => {
   it.effect("createGrid emits one Grid mutation and one mutation for every submitted Brick", () =>

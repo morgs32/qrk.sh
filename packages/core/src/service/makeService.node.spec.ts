@@ -1,16 +1,21 @@
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
+import { assert, type Equals } from 'tsafe';
 import { describe, expect, it } from 'vitest';
 
-import { contracts } from '../contracts/index.ts';
+import { defineCommand } from '../contracts/Command.ts';
+import { makeContractVersion } from '../contracts/makeVersion.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { models as modelDefinitions } from '../models/index.ts';
+import { makeCommand } from '../makeCommand.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 import { makeReplica } from '../models/makeReplica.ts';
+import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 
 import { makeService } from './makeService.ts';
+import { requireVersion as requireServiceVersion } from './requireVersion.ts';
 
-const Product = modelDefinitions.makeVersion(
-  modelDefinitions.makeModel({ name: 'product', abbreviation: 'prd' }),
+const Product = makeModelVersion(
+  makeModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
@@ -18,15 +23,96 @@ const Product = modelDefinitions.makeVersion(
   },
 );
 
-const refreshCatalog = contracts.makeVersion(
-  contracts.makeCommand('refreshCatalog'),
-  {
-    payload: { reason: primitives.text() },
-    version: '1.0.0',
-  },
-);
+const refreshCatalog = makeContractVersion(defineCommand('refreshCatalog'), {
+  payload: { reason: primitives.text() },
+  version: '1.0.0',
+});
 
 describe('makeService', () => {
+  it('exposes data-only exact versions and constructs typed commands', () => {
+    const service = makeService({
+      name: 'catalog',
+      version: '2.0.0',
+      models: {},
+      contracts: { refreshCatalog },
+    });
+    for (const field of [
+      'makeCommand',
+      'getVersion',
+      'initializeGuards',
+      'historicalDefinitions',
+      '__initializeRequirements',
+    ]) {
+      expect(service).not.toHaveProperty(field);
+    }
+    const exact = Effect.runSync(requireServiceVersion(service, '2.0.0'));
+    assert<Equals<typeof exact, typeof service>>();
+    expect(exact).toBe(service);
+    for (const version of ['1.0.0', '3.0.0']) {
+      expect(
+        Effect.runSync(
+          requireServiceVersion(service, version).pipe(Effect.result),
+        ),
+      ).toMatchObject({
+        _tag: 'Failure',
+        failure: { code: 'service-version-unsupported' },
+      });
+    }
+    const command = Effect.runSync(
+      makeCommand(service, {
+        contractName: 'refreshCatalog',
+        payload: { reason: 'seed' },
+      }).pipe(Effect.provide(makePrefixedIncrementalIdFactory('service'))),
+    );
+    assert<Equals<typeof command.serviceName, 'catalog'>>();
+    assert<Equals<typeof command.contractVersion, '1.0.0'>>();
+    assert<Equals<typeof command.payload.reason, string>>();
+    expect(command).toMatchObject({
+      serviceName: 'catalog',
+      serviceVersion: '2.0.0',
+      contractVersion: '1.0.0',
+      payload: { reason: 'seed' },
+    });
+
+    expect(
+      Effect.runSync(
+        // @ts-expect-error The selected contract requires a string reason.
+        makeCommand(service, {
+          contractName: 'refreshCatalog',
+          payload: { reason: 123 },
+        }).pipe(
+          Effect.provide(makePrefixedIncrementalIdFactory('invalid')),
+          Effect.result,
+        ),
+      ),
+    ).toMatchObject({ _tag: 'Failure' });
+    Reflect.deleteProperty(service.contracts, 'refreshCatalog');
+    expect(
+      Effect.runSync(
+        makeCommand(service, {
+          contractName: 'refreshCatalog',
+          payload: { reason: 'missing' },
+        }).pipe(
+          Effect.provide(makePrefixedIncrementalIdFactory('missing')),
+          Effect.result,
+        ),
+      ),
+    ).toMatchObject({ _tag: 'Failure' });
+  });
+
+  it('rejects removed service history authoring', () => {
+    expect(() =>
+      makeService({
+        name: 'catalog',
+        version: '2.0.0',
+        models: {},
+        contracts: {},
+        // @ts-expect-error Service versions are registered as independent definitions.
+        historicalDefinitions: [],
+      }),
+    ).toThrow(Schema.SchemaError);
+  });
+
   it('rejects removed mutation adapter configuration', () => {
     expect(() =>
       makeService({
@@ -216,8 +302,8 @@ describe('makeService', () => {
   });
 
   it('requires projection adapters exactly when frontend model names diverge', () => {
-    const ProductCard = modelDefinitions.makeVersion(
-      modelDefinitions.makeModel({ name: 'productCard', abbreviation: 'pcd' }),
+    const ProductCard = makeModelVersion(
+      makeModel({ name: 'productCard', abbreviation: 'pcd' }),
       {
         attributes: { name: primitives.text() },
         indexes: [],

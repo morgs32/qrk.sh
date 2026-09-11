@@ -1,5 +1,6 @@
 import { it } from '@effect/vitest';
 import { main, User } from '@zerospin/core/fixtures/system';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { CuidFactory } from '@zerospin/schema';
@@ -27,7 +28,7 @@ it.effect(
         ),
       );
       yield* Effect.addFinalizer(() => runtime.disposeEffect);
-      const guards = yield* main.initializeGuards;
+      const guards = yield* initializeFrontendGuards(main);
       const coreSession = makeAggregateSession({
         frontend: main,
         sessionId: 'sesn_browser_ids',

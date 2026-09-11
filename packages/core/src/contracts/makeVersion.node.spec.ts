@@ -1,3 +1,4 @@
+import type { InferResource } from '@zerospin/core/models/types';
 import { ZerospinError } from '@zerospin/error';
 import { encodeShape, primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
@@ -8,27 +9,36 @@ import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { runGuard } from '../guards/runGuard.ts';
-import { models } from '../models/index.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { prefixId } from '../models/prefixId.ts';
 
-import { Contract } from './makeVersion.ts';
+import { adaptPayload } from './adaptPayload.ts';
+import { defineCommand } from './Command.ts';
+import { decodePayload } from './decodePayload.ts';
+import { encodePayload } from './encodePayload.ts';
+import { getVersion } from './getVersion.ts';
+import {
+  Contract,
+  makeContractVersion,
+  upgradeContractVersion,
+} from './makeVersion.ts';
 import type { IContract } from './types.ts';
+import { validatePayload } from './validatePayload.ts';
 
-import { contracts } from './index.ts';
+const ItemModel = makeModel({ name: 'item', abbreviation: 'itm' });
 
-const ItemModel = models.makeModel({ name: 'item', abbreviation: 'itm' });
-
-const Item = models.makeVersion(ItemModel, {
+const Item = makeModelVersion(ItemModel, {
   attributes: { quantity: primitives.integer() },
   indexes: [],
   version: '3.0.0',
 });
-const V1 = contracts.makeVersion(contracts.makeCommand('setQuantity'), {
+const V1 = makeContractVersion(defineCommand('setQuantity'), {
   version: '1.0.0',
   payload: {
     id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
   },
 });
-const V2 = contracts.upgradeVersion(V1, {
+const V2 = upgradeContractVersion(V1, {
   payload: { amount: primitives.integer() },
   version: '2.0.0',
   up: ({ payload }) => Effect.succeed({ ...payload, amount: 1 }),
@@ -40,7 +50,7 @@ const V2 = contracts.upgradeVersion(V1, {
       attributes: { quantity: payload.amount },
     }),
 });
-const V3 = contracts.upgradeVersion(V2, {
+const V3 = upgradeContractVersion(V2, {
   payload: { amount: null, quantity: primitives.integer() },
   version: '3.0.0',
   up: ({ payload }) =>
@@ -55,7 +65,44 @@ const V3 = contracts.upgradeVersion(V2, {
     }),
 });
 
-describe('contracts.makeVersion', () => {
+describe('makeContractVersion', () => {
+  it('keeps authored adapters on definitions and library operations in utilities', () => {
+    const root = makeContractVersion(defineCommand('adapterContent'), {
+      version: '1.0.0',
+      payload: {},
+    });
+    const up = () => Effect.succeed({});
+    const down = () => Effect.succeed({});
+    const child = upgradeContractVersion(root, {
+      version: '2.0.0',
+      payload: {},
+      up,
+      down,
+      program: () => Effect.succeed({}),
+    });
+    expect(root.up).toBeUndefined();
+    expect(root.down).toBeUndefined();
+    expect(child.up).toBe(up);
+    expect(child.down).toBe(down);
+    expect(child.previous).toBe(root);
+    expect(root.next).toBe(child);
+    expect(() => Object.assign(child, { up: down })).toThrow();
+    for (const definition of [root, child]) {
+      for (const name of [
+        'getVersion',
+        'validatePayload',
+        'encodePayload',
+        'decodePayload',
+        'adaptPayload',
+      ]) {
+        expect(definition).not.toHaveProperty(name);
+      }
+    }
+    expect(() => Effect.runSync(getVersion(child, '9.0.0'))).toThrow(
+      'contract-version-unsupported',
+    );
+  });
+
   it('creates independent upgrades with the replacement program', async () => {
     expect(V3).toBeInstanceOf(Contract);
     expect(V3.commandName).toBe(V1.commandName);
@@ -66,12 +113,17 @@ describe('contracts.makeVersion', () => {
     expect(V3).not.toHaveProperty('historicalDefinitions');
     expect(V3.spec).not.toHaveProperty('historicalDefinitions');
     const mutation = await Effect.runPromise(
-      V3.program({ payload: { id: Item.prefixId('test'), quantity: 4 } }),
+      V3.program({
+        payload: {
+          id: prefixId(Item, 'test'),
+          quantity: 4,
+        },
+      }),
     );
     expect(mutation.operation.attributes).toEqual({ quantity: 4 });
-    expect(V3.getVersion('3.0.0')).toBe(V3);
-    expect(V3.getVersion('2.0.0')).toBe(V2);
-    expect(V3.getVersion('1.0.0')).toBe(V1);
+    expect(Effect.runSync(getVersion(V3, '3.0.0'))).toBe(V3);
+    expect(Effect.runSync(getVersion(V3, '2.0.0'))).toBe(V2);
+    expect(Effect.runSync(getVersion(V3, '1.0.0'))).toBe(V1);
   });
 
   it('requires caller-supplied IDs without an ID factory', async () => {
@@ -81,35 +133,47 @@ describe('contracts.makeVersion', () => {
       { id: null, quantity: 3 },
     ]) {
       const result = await Effect.runPromise(
-        // @ts-expect-error Non-nullable contract IDs must be supplied.
-        V3.validatePayload({ version: '3.0.0', payload }).pipe(Effect.result),
+        validatePayload(V3, {
+          version: '3.0.0',
+          // @ts-expect-error Non-nullable contract IDs must be supplied.
+          payload,
+        }).pipe(Effect.result),
       );
       expect(result._tag).toBe('Failure');
     }
     expect(
       await Effect.runPromise(
-        V3.validatePayload({
+        validatePayload(V3, {
           version: '3.0.0',
-          payload: { id: Item.prefixId('supplied'), quantity: 3 },
+          payload: {
+            id: prefixId(Item, 'supplied'),
+            quantity: 3,
+          },
         }),
       ),
-    ).toEqual({ id: Item.prefixId('supplied'), quantity: 3 });
+    ).toEqual({
+      id: prefixId(Item, 'supplied'),
+      quantity: 3,
+    });
   });
 
   it('preserves supplied identities and encodes and decodes the exact upgraded payload', async () => {
     const payload = await Effect.runPromise(
-      V3.validatePayload({
+      validatePayload(V3, {
         version: '3.0.0',
-        payload: { id: Item.prefixId('upgrade_1'), quantity: 3 },
+        payload: {
+          id: prefixId(Item, 'upgrade_1'),
+          quantity: 3,
+        },
       }),
     );
     expect(payload.id).toMatch(/^itm_/);
     const encoded = await Effect.runPromise(
-      V3.encodePayload({ version: '3.0.0', payload }),
+      encodePayload(V3, { version: '3.0.0', payload }),
     );
     expect(
       await Effect.runPromise(
-        V3.decodePayload({
+        decodePayload(V3, {
           command: {
             id: 'cmd_test',
             commandName: 'setQuantity',
@@ -143,21 +207,20 @@ describe('contracts.makeVersion', () => {
     ]) {
       await expect(
         Effect.runPromise(
-          V3.decodePayload({ command: { id: 'cmd_test', ...command } }),
+          decodePayload(V3, {
+            command: { id: 'cmd_test', ...command },
+          }),
         ),
       ).rejects.toThrow();
     }
   });
 
   it('replaces descriptors and validates upgrade inputs', async () => {
-    const previous = contracts.makeVersion(
-      contracts.makeCommand('setQuantity'),
-      {
-        version: '2.0.0',
-        payload: V2.payload,
-      },
-    );
-    const next = contracts.upgradeVersion(previous, {
+    const previous = makeContractVersion(defineCommand('setQuantity'), {
+      version: '2.0.0',
+      payload: V2.payload,
+    });
+    const next = upgradeContractVersion(previous, {
       payload: { amount: primitives.text() },
       version: '3.0.0',
       up: ({ payload }) =>
@@ -166,14 +229,17 @@ describe('contracts.makeVersion', () => {
     });
     expect(
       await Effect.runPromise(
-        next.validatePayload({
+        validatePayload(next, {
           version: '3.0.0',
-          payload: { id: Item.prefixId('test'), amount: 'three' },
+          payload: {
+            id: prefixId(Item, 'test'),
+            amount: 'three',
+          },
         }),
       ),
     ).toMatchObject({ amount: 'three' });
     expect(() =>
-      contracts.upgradeVersion(V2, {
+      upgradeContractVersion(V2, {
         // @ts-expect-error Cannot remove an unknown field.
         payload: { missing: null },
         version: '3.0.0',
@@ -182,7 +248,7 @@ describe('contracts.makeVersion', () => {
       }),
     ).toThrow('unknown payload field');
     expect(() =>
-      contracts.upgradeVersion(V2, {
+      upgradeContractVersion(V2, {
         payload: {},
         version: 'invalid',
         up: ({ payload }) => Effect.succeed(payload),
@@ -191,7 +257,7 @@ describe('contracts.makeVersion', () => {
     ).toThrow(Schema.SchemaError);
     expect(() =>
       // @ts-expect-error A replacement program is required.
-      contracts.upgradeVersion(V2, { payload: {}, version: '3.0.0' }),
+      upgradeContractVersion(V2, { payload: {}, version: '3.0.0' }),
     ).toThrow(Schema.SchemaError);
   });
 
@@ -201,9 +267,9 @@ describe('contracts.makeVersion', () => {
       payload: { value: primitives.text() },
       extra: true,
     };
-    expect(() =>
-      contracts.makeVersion(contracts.makeCommand('test'), props),
-    ).toThrow(Schema.SchemaError);
+    expect(() => makeContractVersion(defineCommand('test'), props)).toThrow(
+      Schema.SchemaError,
+    );
     expect(JSON.parse(JSON.stringify(V3.spec))).toMatchObject({
       commandName: 'setQuantity',
       version: '3.0.0',
@@ -214,14 +280,14 @@ describe('contracts.makeVersion', () => {
 
 describe('contract upgrade edges', () => {
   it('links definitions in both directions and rejects a second child', () => {
-    const first = contracts.makeVersion(contracts.makeCommand('linked'), {
+    const first = makeContractVersion(defineCommand('linked'), {
       version: '1.0.0',
       payload: {},
     });
     expect(first.previous).toBeUndefined();
     expect(first.next).toBeUndefined();
     expect(() =>
-      contracts.upgradeVersion(first, {
+      upgradeContractVersion(first, {
         version: 'invalid',
         payload: {},
         up: ({ payload }) => Effect.succeed(payload),
@@ -229,13 +295,13 @@ describe('contract upgrade edges', () => {
       }),
     ).toThrow(Schema.SchemaError);
     expect(first.next).toBeUndefined();
-    const second = contracts.upgradeVersion(first, {
+    const second = upgradeContractVersion(first, {
       version: '2.0.0',
       payload: {},
       up: ({ payload }) => Effect.succeed(payload),
       program: () => Effect.succeed({}),
     });
-    const third = contracts.upgradeVersion(second, {
+    const third = upgradeContractVersion(second, {
       version: '3.0.0',
       payload: {},
       up: ({ payload }) => Effect.succeed(payload),
@@ -250,7 +316,7 @@ describe('contract upgrade edges', () => {
     expect(Reflect.set(first, 'next', third)).toBe(false);
     expect(Reflect.set(second, 'previous', third)).toBe(false);
     expect(() =>
-      contracts.upgradeVersion(first, {
+      upgradeContractVersion(first, {
         version: '4.0.0',
         payload: {},
         up: ({ payload }) => Effect.succeed(payload),
@@ -263,12 +329,14 @@ describe('contract upgrade edges', () => {
   });
 
   it('adapts V1 commands upward through both edges without replacing their IDs', async () => {
-    const payload = { id: Item.prefixId('old') };
+    const payload = {
+      id: prefixId(Item, 'old'),
+    };
     const encoded = await Effect.runPromise(
-      V3.encodePayload({ version: '1.0.0', payload }),
+      encodePayload(V3, { version: '1.0.0', payload }),
     );
     const adapted = await Effect.runPromise(
-      V3.decodePayload({
+      decodePayload(V3, {
         command: {
           id: 'cmd_old',
           commandName: V1.commandName,
@@ -284,7 +352,7 @@ describe('contract upgrade edges', () => {
     ).toEqual({ quantity: 1 });
     expect(
       await Effect.runPromise(
-        V3.adaptPayload({
+        adaptPayload(V3, {
           fromVersion: '3.0.0',
           toVersion: '1.0.0',
           payload: { ...payload, quantity: 8 },
@@ -293,7 +361,7 @@ describe('contract upgrade edges', () => {
     ).toEqual(payload);
     expect(
       await Effect.runPromise(
-        V3.adaptPayload({
+        adaptPayload(V3, {
           fromVersion: '2.0.0',
           toVersion: '3.0.0',
           payload: { ...payload, amount: 7 },
@@ -303,7 +371,7 @@ describe('contract upgrade edges', () => {
   });
 
   it('fails when a down edge is absent and rejects duplicate versions', async () => {
-    const next = contracts.upgradeVersion(V3, {
+    const next = upgradeContractVersion(V3, {
       payload: {},
       version: '4.0.0',
       up: ({ payload }) => Effect.succeed(payload),
@@ -311,15 +379,18 @@ describe('contract upgrade edges', () => {
     });
     await expect(
       Effect.runPromise(
-        next.adaptPayload({
+        adaptPayload(next, {
           fromVersion: '4.0.0',
           toVersion: '1.0.0',
-          payload: { id: Item.prefixId('x'), quantity: 1 },
+          payload: {
+            id: prefixId(Item, 'x'),
+            quantity: 1,
+          },
         }),
       ),
     ).rejects.toThrow('Missing down adapter');
     expect(() =>
-      contracts.upgradeVersion(V3, {
+      upgradeContractVersion(V3, {
         payload: {},
         version: '1.0.0',
         up: ({ payload }) => Effect.succeed(payload),
@@ -329,14 +400,11 @@ describe('contract upgrade edges', () => {
   });
 
   it('rejects invalid adapter output and converts adapter defects into failures', async () => {
-    const invalidSource = contracts.makeVersion(
-      contracts.makeCommand('setQuantity'),
-      {
-        version: '1.0.0',
-        payload: V1.payload,
-      },
-    );
-    const invalid = contracts.upgradeVersion(invalidSource, {
+    const invalidSource = makeContractVersion(defineCommand('setQuantity'), {
+      version: '1.0.0',
+      payload: V1.payload,
+    });
+    const invalid = upgradeContractVersion(invalidSource, {
       payload: { amount: primitives.integer() },
       version: '2.0.0',
       // @ts-expect-error Exercise output validation for an untyped adapter.
@@ -345,7 +413,7 @@ describe('contract upgrade edges', () => {
     });
     await expect(
       Effect.runPromise(
-        invalid.decodePayload({
+        decodePayload(invalid, {
           command: {
             id: 'cmd_old',
             commandName: V1.commandName,
@@ -355,14 +423,11 @@ describe('contract upgrade edges', () => {
         }),
       ),
     ).rejects.toThrow('Invalid adapter output');
-    const defectiveSource = contracts.makeVersion(
-      contracts.makeCommand('setQuantity'),
-      {
-        version: '1.0.0',
-        payload: V1.payload,
-      },
-    );
-    const defective = contracts.upgradeVersion(defectiveSource, {
+    const defectiveSource = makeContractVersion(defineCommand('setQuantity'), {
+      version: '1.0.0',
+      payload: V1.payload,
+    });
+    const defective = upgradeContractVersion(defectiveSource, {
       payload: {},
       version: '2.0.0',
       up: () => {
@@ -372,7 +437,7 @@ describe('contract upgrade edges', () => {
     });
     await expect(
       Effect.runPromise(
-        defective.decodePayload({
+        decodePayload(defective, {
           command: {
             id: 'cmd_old',
             commandName: V1.commandName,
@@ -395,7 +460,7 @@ it('runs contract guards against current database state and preserves typed reje
       Effect.provide(AsyncLive),
     ),
   );
-  const guarded = contracts.makeVersion(contracts.makeCommand('checkItem'), {
+  const guarded = makeContractVersion(defineCommand('checkItem'), {
     version: '1.0.0',
     payload: {
       id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
@@ -404,7 +469,7 @@ it('runs contract guards against current database state and preserves typed reje
       payload,
       db,
     }: {
-      payload: { id: ReturnType<typeof Item.prefixId> };
+      payload: { id: InferResource<typeof Item>['id'] };
       db: Readonly<Pick<typeof database, 'query'>>;
     }) =>
       Effect.gen(function* () {
@@ -424,7 +489,9 @@ it('runs contract guards against current database state and preserves typed reje
   const props = {
     db: database,
     userId: 'user',
-    payload: { id: Item.prefixId('guard') },
+    payload: {
+      id: prefixId(Item, 'guard'),
+    },
   };
   const rejected = await Effect.runPromise(
     runGuard({ guard: guarded.guard, props }).pipe(Effect.result),
@@ -453,17 +520,17 @@ it('runs contract guards against current database state and preserves typed reje
 
 it('rejects frontend guard bindings and keeps each contract version guard independent', () => {
   expect(() =>
-    Reflect.apply(contracts.makeVersion, undefined, [
-      contracts.makeCommand('invalid'),
+    Reflect.apply(makeContractVersion, undefined, [
+      defineCommand('invalid'),
       { version: '1.0.0', payload: {}, guard: true },
     ]),
   ).toThrow();
-  const guarded = contracts.makeVersion(contracts.makeCommand('guarded'), {
+  const guarded = makeContractVersion(defineCommand('guarded'), {
     version: '1.0.0',
     payload: {},
     guard: () => Effect.void,
   });
-  const next = contracts.upgradeVersion(guarded, {
+  const next = upgradeContractVersion(guarded, {
     payload: {},
     version: '2.0.0',
     up: ({ payload }) => Effect.succeed(payload),
@@ -474,7 +541,7 @@ it('rejects frontend guard bindings and keeps each contract version guard indepe
       ),
   });
   expect(next.guard).not.toBe(guarded.guard);
-  expect(next.getVersion('1.0.0').guard).toBe(guarded.guard);
+  expect(Effect.runSync(getVersion(next, '1.0.0')).guard).toBe(guarded.guard);
   expect(() =>
     Reflect.apply(makeFrontendController, undefined, [
       {
@@ -489,7 +556,7 @@ it('rejects frontend guard bindings and keeps each contract version guard indepe
 });
 
 it('rejects asynchronous contract guards', async () => {
-  const guarded = contracts.makeVersion(contracts.makeCommand('asyncGuard'), {
+  const guarded = makeContractVersion(defineCommand('asyncGuard'), {
     version: '1.0.0',
     payload: {},
     guard: () => Effect.sleep('1 millis'),
@@ -508,10 +575,10 @@ it('rejects asynchronous contract guards', async () => {
 });
 
 it('declares command identities without changing their runtime string', () => {
-  const command = contracts.makeCommand('setQuantity');
+  const command = defineCommand('setQuantity');
   expect(command).toBe('setQuantity');
-  expect(contracts.makeCommand('setQuantity')).toBe(command);
-  const contract = contracts.makeVersion(command, {
+  expect(defineCommand('setQuantity')).toBe(command);
+  const contract = makeContractVersion(command, {
     payload: {},
     version: '1.0.0',
   });
@@ -521,11 +588,11 @@ it('declares command identities without changing their runtime string', () => {
 
 it('decodes directly to any linked version and traverses each required adapter once', async () => {
   const calls: string[] = [];
-  const first = contracts.makeVersion(contracts.makeCommand('linkedPayload'), {
+  const first = makeContractVersion(defineCommand('linkedPayload'), {
     version: '3.0.0',
     payload: { first: primitives.integer() },
   });
-  const second = contracts.upgradeVersion(first, {
+  const second = upgradeContractVersion(first, {
     version: '1.0.0',
     payload: { first: null, second: primitives.integer() },
     up: ({ payload }) => {
@@ -538,7 +605,7 @@ it('decodes directly to any linked version and traverses each required adapter o
     },
     program: () => Effect.succeed({}),
   });
-  const third = contracts.upgradeVersion(second, {
+  const third = upgradeContractVersion(second, {
     version: '2.0.0',
     payload: { second: null, third: primitives.integer() },
     up: ({ payload }) => {
@@ -585,7 +652,7 @@ it('decodes directly to any linked version and traverses each required adapter o
     const target: IContract = scenario.target;
     expect(
       await Effect.runPromise(
-        target.decodePayload({
+        decodePayload(target, {
           command: {
             id: 'cmd_linked',
             commandName: first.commandName,
@@ -598,16 +665,14 @@ it('decodes directly to any linked version and traverses each required adapter o
     expect(calls).toEqual(scenario.calls);
   }
   const unknown = await Effect.runPromise(
-    first
-      .decodePayload({
-        command: {
-          id: 'cmd_linked',
-          commandName: first.commandName,
-          contractVersion: '9.0.0',
-          payload: '{}',
-        },
-      })
-      .pipe(Effect.result),
+    decodePayload(first, {
+      command: {
+        id: 'cmd_linked',
+        commandName: first.commandName,
+        contractVersion: '9.0.0',
+        payload: '{}',
+      },
+    }).pipe(Effect.result),
   );
   expect(unknown).toMatchObject({
     _tag: 'Failure',
@@ -617,11 +682,11 @@ it('decodes directly to any linked version and traverses each required adapter o
 
 it('reports missing, invalid and failing down adapters during decoding', async () => {
   for (const mode of ['missing', 'invalid', 'failure']) {
-    const first = contracts.makeVersion(contracts.makeCommand('downFailure'), {
+    const first = makeContractVersion(defineCommand('downFailure'), {
       version: '1.0.0',
       payload: { value: primitives.integer() },
     });
-    Reflect.apply(contracts.upgradeVersion, undefined, [
+    Reflect.apply(upgradeContractVersion, undefined, [
       first,
       {
         version: '2.0.0',
@@ -645,16 +710,14 @@ it('reports missing, invalid and failing down adapters during decoding', async (
       },
     ]);
     const result = await Effect.runPromise(
-      first
-        .decodePayload({
-          command: {
-            id: 'cmd_down',
-            commandName: first.commandName,
-            contractVersion: '2.0.0',
-            payload: '{"value":7}',
-          },
-        })
-        .pipe(Effect.result),
+      decodePayload(first, {
+        command: {
+          id: 'cmd_down',
+          commandName: first.commandName,
+          contractVersion: '2.0.0',
+          payload: '{"value":7}',
+        },
+      }).pipe(Effect.result),
     );
     expect(result).toMatchObject({
       _tag: 'Failure',

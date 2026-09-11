@@ -4,9 +4,9 @@ import { Brand } from 'effect';
 export type Command<NAME extends string = string> = NAME &
   Brand.Brand<'Command'>;
 
-export function makeCommand<const NAME extends string>(
+export function defineCommand<const NAME extends string>(
   name: NAME,
 ): Command<NAME>;
-export function makeCommand(name: string): Command {
+export function defineCommand(name: string): Command {
   return Brand.nominal<Command>()(name);
 }

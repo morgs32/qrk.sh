@@ -8,6 +8,7 @@ import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 import { main, mainModels, User } from '../fixtures/system.ts';
+import { initializeGuards as initializeFrontendGuards } from '../frontendController/initializeGuards.ts';
 import { IncrementalMonotonicFactory } from '../test-utils/IncrementalMonotonicFactory.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { TraceLoggerLayer } from '../test-utils/TraceLoggerLayer.ts';
@@ -63,7 +64,7 @@ describe('deleteList local occurrence', () => {
             })
             .run();
           const session = Effect.runSync(
-            Effect.map(main.initializeGuards, guards =>
+            Effect.map(initializeFrontendGuards(main), guards =>
               makeAggregateSession({
                 runtime: guardTestRuntime,
                 guards,
@@ -148,7 +149,7 @@ describe('deleteList local occurrence', () => {
         });
         const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
         const session = Effect.runSync(
-          Effect.map(main.initializeGuards, guards =>
+          Effect.map(initializeFrontendGuards(main), guards =>
             makeAggregateSession({
               runtime: guardTestRuntime,
               guards,

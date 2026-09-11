@@ -1,6 +1,7 @@
 import { act } from 'react';
 
 import { main } from '@zerospin/core/fixtures/system';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import type { ISessionId } from '@zerospin/core/session/types';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
@@ -169,7 +170,7 @@ describe('SessionsLogsRoute', () => {
 
   it('renders and updates session-owned traces without losing the active selection', async () => {
     const session = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -416,7 +417,7 @@ describe('SessionsLogsRoute', () => {
 
   it('keeps a zero-duration span visible on the one millisecond fallback range', async () => {
     const session = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -478,7 +479,7 @@ describe('SessionsLogsRoute', () => {
 
   it('selects the exact trace named by a valid traceId query parameter', async () => {
     const session = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -522,7 +523,7 @@ describe('SessionsLogsRoute', () => {
 
   it('selects the newest trace when the traceId query parameter is absent', async () => {
     const session = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -562,7 +563,7 @@ describe('SessionsLogsRoute', () => {
 
   it('falls back to the newest trace for a stale traceId query parameter', async () => {
     const session = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -601,7 +602,7 @@ describe('SessionsLogsRoute', () => {
 
   it('clears only the selected session telemetry and trace query', async () => {
     const session = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -635,7 +636,7 @@ describe('SessionsLogsRoute', () => {
       links: [],
     };
     const otherSession = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,

@@ -13,32 +13,170 @@ import {
 } from 'effect';
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { aggregates } from '../aggregate/index.ts';
+import { initializeGuards as initializeAggregateGuards } from '../aggregate/initializeGuards.ts';
+import { makeAggregate } from '../aggregate/makeAggregate.ts';
+import {
+  makeAggregateVersion,
+  upgradeAggregateVersion,
+} from '../aggregate/makeVersion.ts';
 import { AsyncLive } from '../async/AsyncLive.ts';
-import { contracts } from '../contracts/index.ts';
+import { defineCommand } from '../contracts/Command.ts';
+import { makeContractVersion } from '../contracts/makeVersion.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
+import { initializeGuards as initializeFrontendGuards } from '../frontendController/initializeGuards.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
+import { initializeGuards as initializeServiceGuards } from '../service/initializeGuards.ts';
 import { makeService } from '../service/makeService.ts';
 import { MonotonicFactory } from '../services/MonotonicFactory.ts';
 import { makeAggregateSession } from '../session/makeAggregateSession.ts';
 import { sessionCommandJournalDrizzleSchema } from '../session/sessionCommandShape.ts';
 import { sessionRepoTables } from '../session/sessionRepoTables.ts';
 import { makeSystem } from '../system/makeSystem.ts';
+import { makeSystemConfig } from '../system/makeSystemConfig.ts';
 import { makeSystemSpec } from '../system/makeSystemSpec.ts';
 import { ZerospinConfigSchema } from '../system/ZerospinConfigSchema.ts';
 const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
 );
 
-const identity = contracts.makeCommand('inspect');
-const inspect = contracts.makeVersion(identity, {
+const identity = defineCommand('inspect');
+const inspect = makeContractVersion(identity, {
   version: '1.0.0',
   payload: {},
   guard: () => Effect.asVoid(CuidFactory),
 });
 
 describe('owner guard layers', () => {
+  it('initializes aggregate guards in order and releases their local layer', async () => {
+    const events: string[] = [];
+    const contract = makeContractVersion(defineCommand('check'), {
+      version: '1.0.0',
+      payload: {},
+      guard: () =>
+        Effect.gen(function* () {
+          const id = yield* CuidFactory;
+          events.push(`contract:${yield* id()}`);
+        }),
+    });
+    const aggregate = makeAggregateVersion(
+      makeAggregate({
+        name: 'account',
+        layer: Layer.effect(
+          CuidFactory,
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              events.push('acquire');
+              return () => Effect.succeed('local');
+            }),
+            () =>
+              Effect.sync(() => {
+                events.push('release');
+              }),
+          ),
+        ),
+      }),
+      {
+        version: '1.0.0',
+        models: {},
+        selections: {},
+        contracts: {
+          check: {
+            contract,
+            guard: () =>
+              Effect.sync(() => {
+                events.push('binding');
+              }),
+          },
+        },
+      },
+    );
+    expect(events).toEqual([]);
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const guards = yield* initializeAggregateGuards(aggregate);
+        yield* guards.run('check', {
+          db: { query: {} },
+          userId: null,
+          payload: {},
+        });
+        yield* guards.run('check', {
+          db: { query: {} },
+          userId: null,
+          payload: {},
+        });
+      }).pipe(Effect.scoped),
+    );
+    expect(events).toEqual([
+      'acquire',
+      'binding',
+      'contract:local',
+      'binding',
+      'contract:local',
+      'release',
+    ]);
+  });
+
+  it('initializes service guards once per scope and releases the local layer', async () => {
+    const events: string[] = [];
+    const contract = makeContractVersion(defineCommand('check'), {
+      version: '1.0.0',
+      payload: {},
+      guard: () =>
+        Effect.gen(function* () {
+          const makeId = yield* CuidFactory;
+          events.push(yield* makeId());
+        }),
+    });
+    const service = makeService({
+      name: 'catalog',
+      version: '1.0.0',
+      models: {},
+      contracts: { check: contract },
+      layer: Layer.effect(
+        CuidFactory,
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            events.push('acquire');
+            return () => Effect.succeed('guard');
+          }),
+          () =>
+            Effect.sync(() => {
+              events.push('release');
+            }),
+        ),
+      ),
+    });
+    expect(events).toEqual([]);
+    for (let execution = 0; execution < 2; execution++) {
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const guards = yield* initializeServiceGuards(service);
+          yield* guards.run('check', {
+            db: { query: {} },
+            userId: null,
+            payload: {},
+          });
+          yield* guards.run('check', {
+            db: { query: {} },
+            userId: null,
+            payload: {},
+          });
+        }).pipe(Effect.scoped),
+      );
+    }
+    expect(events).toEqual([
+      'acquire',
+      'guard',
+      'guard',
+      'release',
+      'acquire',
+      'guard',
+      'guard',
+      'release',
+    ]);
+  });
+
   it('assembles and validates executable layers without acquiring or serializing them', () => {
     let acquired = false;
     const layer = Layer.effect(
@@ -60,7 +198,7 @@ describe('owner guard layers', () => {
     expect(acquired).toBe(false);
     expect(
       Schema.is(ZerospinConfigSchema)(
-        system.config({ systemId: 'sys_owner_layers' }),
+        makeSystemConfig(system, { systemId: 'sys_owner_layers' }),
       ),
     ).toBe(true);
     expect(() =>
@@ -70,14 +208,14 @@ describe('owner guard layers', () => {
     ).toThrow();
   });
   it('shares the aggregate layer across versions and keeps service layers separate', async () => {
-    const owner = aggregates.makeAggregate({
+    const owner = makeAggregate({
       name: 'account',
       layer: Layer.mergeAll(
         Layer.succeed(CuidFactory, () => Effect.succeed('aggregate')),
         Layer.succeed(MonotonicFactory, () => Effect.succeed('binding')),
       ),
     });
-    const first = aggregates.makeVersion(owner, {
+    const first = makeAggregateVersion(owner, {
       version: '1.0.0',
       models: {},
       contracts: {
@@ -88,8 +226,8 @@ describe('owner guard layers', () => {
       },
       selections: {},
     });
-    const next = aggregates.upgradeVersion(first, { version: '2.0.0' });
-    const independent = aggregates.makeVersion(owner, {
+    const next = upgradeAggregateVersion(first, { version: '2.0.0' });
+    const independent = makeAggregateVersion(owner, {
       version: '3.0.0',
       models: {},
       contracts: { inspect: { contract: inspect } },
@@ -99,7 +237,7 @@ describe('owner guard layers', () => {
     expect(next.layer).toBe(owner.layer);
     expect(independent.layer).toBe(owner.layer);
     expect(() =>
-      Reflect.apply(aggregates.makeVersion, undefined, [
+      Reflect.apply(makeAggregateVersion, undefined, [
         owner,
         {
           version: '4.0.0',
@@ -111,7 +249,7 @@ describe('owner guard layers', () => {
       ]),
     ).toThrow();
     expect(() =>
-      Reflect.apply(aggregates.upgradeVersion, undefined, [
+      Reflect.apply(upgradeAggregateVersion, undefined, [
         first,
         {
           version: '4.0.0',
@@ -151,7 +289,7 @@ describe('owner guard layers', () => {
       message: 'Rejected by owner policy',
     });
     let reject = false;
-    const guarded = contracts.makeVersion(identity, {
+    const guarded = makeContractVersion(identity, {
       version: '1.0.0',
       payload: {},
       guard: () =>
@@ -185,13 +323,15 @@ describe('owner guard layers', () => {
     });
     const session = await Effect.runPromise(
       Effect.gen(function* () {
-        const session = yield* Effect.map(frontend.initializeGuards, guards =>
-          makeAggregateSession({
-            runtime: guardTestRuntime,
-            guards,
-            frontend,
-            sessionId: 'sesn_guard',
-          }),
+        const session = yield* Effect.map(
+          initializeFrontendGuards(frontend),
+          guards =>
+            makeAggregateSession({
+              runtime: guardTestRuntime,
+              guards,
+              frontend,
+              sessionId: 'sesn_guard',
+            }),
         );
         yield* Effect.addFinalizer(() =>
           Effect.sync(() =>
@@ -256,7 +396,7 @@ describe('owner guard layers', () => {
 
   it('uses app defaults and sibling-local overrides without replacing captured app dependencies', async () => {
     const observed: string[] = [];
-    const guard = contracts.makeVersion(contracts.makeCommand('check'), {
+    const guard = makeContractVersion(defineCommand('check'), {
       version: '1.0.0',
       payload: {},
       guard: () =>
@@ -296,8 +436,8 @@ describe('owner guard layers', () => {
     );
     await Effect.runPromise(
       Effect.gen(function* () {
-        const leftGuards = yield* left.initializeGuards;
-        const rightGuards = yield* right.initializeGuards;
+        const leftGuards = yield* initializeFrontendGuards(left);
+        const rightGuards = yield* initializeFrontendGuards(right);
         yield* leftGuards.run('check', {
           db: { query: {} },
           userId: null,
@@ -345,7 +485,7 @@ describe('owner guard layers', () => {
       ),
     });
     const result = await Effect.runPromise(
-      Effect.map(frontend.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(frontend), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -358,7 +498,7 @@ describe('owner guard layers', () => {
     expect(events).toEqual(['acquire', 'release']);
     fail = false;
     const exit = await Effect.runPromise(
-      Effect.map(frontend.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(frontend), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,

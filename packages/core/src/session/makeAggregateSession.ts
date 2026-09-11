@@ -19,11 +19,13 @@ import type {
   InferCommand,
   ISessionCommand,
 } from '../contracts/types.ts';
+import { validatePayload } from '../contracts/validatePayload.ts';
 import type {
   IAggregateFrontendController,
   InferFrontendModels,
 } from '../frontendController/types.ts';
 import type { initializeGuards } from '../guards/initializeGuards.ts';
+import { makeId } from '../models/makeId.ts';
 import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
 import { dutils } from '../utils/dutils.ts';
 import { encodeRpc } from '../utils/encodeRpc.ts';
@@ -213,7 +215,7 @@ export function makeAggregateSession<
     const contract: FRONTEND['contracts'][CONTRACT_NAME]['contract'] =
       binding.contract;
     const version = contract.version;
-    const validatedPayload = yield* contract.validatePayload({
+    const validatedPayload = yield* validatePayload(contract, {
       version,
       payload: commandProps.payload,
     });
@@ -259,7 +261,7 @@ export function makeAggregateSession<
 
   const session: ISession<FRONTEND> = {
     makeId(model) {
-      return runtime.runSync(model.makeId());
+      return runtime.runSync(makeId(model));
     },
     executeCommand(commandProps) {
       let committedCommand:

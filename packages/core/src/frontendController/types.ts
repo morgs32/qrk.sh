@@ -6,7 +6,6 @@ import type {
   IAnyContractBindings,
   IAnyContracts,
 } from '../contracts/types.ts';
-import type { initializeGuards } from '../guards/initializeGuards.ts';
 import type { IAnyModels, IModelSpec } from '../models/types.ts';
 
 export type IAggregateFrontendController<
@@ -19,15 +18,17 @@ export type IAggregateFrontendController<
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = unknown,
 > = Readonly<{
-  readonly initializeGuards: ReturnType<
-    typeof initializeGuards<
-      LAYER_SERVICES,
-      LAYER_REQUIREMENTS,
-      Effect.Services<
-        ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>>
+  readonly __initializeRequirements?:
+    | LAYER_REQUIREMENTS
+    | Exclude<
+        Effect.Services<
+          ReturnType<
+            NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
+          >
+        >,
+        LAYER_SERVICES
       >
-    >
-  >;
+    | Scope.Scope;
   layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
   kind: 'aggregate';
   systemName: SYSTEM_NAME;
@@ -66,13 +67,7 @@ export type IAnyAggregateFrontendController<
   LAYER_REQUIREMENTS = unknown,
   INITIALIZE_REQUIREMENTS = unknown,
 > = Readonly<{
-  readonly initializeGuards: Effect.Effect<
-    Effect.Success<
-      ReturnType<typeof initializeGuards<never, unknown, unknown>>
-    >,
-    IAnyError,
-    INITIALIZE_REQUIREMENTS | Scope.Scope
-  >;
+  readonly __initializeRequirements?: INITIALIZE_REQUIREMENTS | Scope.Scope;
   layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
   kind: 'aggregate';
   systemName: string;

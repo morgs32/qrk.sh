@@ -3,6 +3,7 @@ import { AggregateExecutionEntrySchema } from '@zerospin/core/contracts/CommandS
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { List, main, mainModels, User } from '@zerospin/core/fixtures/system';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { applyAggregateFrontendCommand } from '@zerospin/core/session/applyAggregateFrontendCommand';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import {
@@ -51,7 +52,7 @@ it('resolves only the originating optimism, replays the rest, and rejects skippe
         })
         .run();
       const session = Effect.runSync(
-        Effect.map(main.initializeGuards, guards =>
+        Effect.map(initializeFrontendGuards(main), guards =>
           makeAggregateSession({
             runtime: guardTestRuntime,
             guards,

@@ -2,10 +2,11 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { aggregates } from '../../aggregate/index.ts';
-import { authentication } from '../../authentication/index.ts';
+import { makeAggregate } from '../../aggregate/makeAggregate.ts';
+import { makeAggregateVersion } from '../../aggregate/makeVersion.ts';
+import { makeAuthenticationVersion } from '../../authentication/makeVersion.ts';
 import { makeFrontendController } from '../../frontendController/makeFrontendController.ts';
-import { models } from '../../models/index.ts';
+import { makeModel, makeModelVersion } from '../../models/makeModel.ts';
 import { makeReplica } from '../../models/makeReplica.ts';
 import { makeSelection } from '../../models/makeSelection.ts';
 import { makeService } from '../../service/makeService.ts';
@@ -22,8 +23,8 @@ describe('makeSystem', () => {
    */
   it('enforces authoritative service ownership and exact aggregate replica bindings', () => {
     // 1 — Build the identities used by both the accepted and rejected graphs.
-    const ProductSource = models.makeVersion(
-      models.makeModel({ name: 'product', abbreviation: 'prd' }),
+    const ProductSource = makeModelVersion(
+      makeModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: { name: primitives.text() },
         indexes: [],
@@ -63,7 +64,7 @@ describe('makeSystem', () => {
     const system = makeSystem({
       name: 'replica-system',
       authentication: [
-        authentication.makeVersion({
+        makeAuthenticationVersion({
           version: '1.0.0',
           signature: Schema.Struct({}),
           authenticate: () => Effect.succeed('user'),
@@ -71,23 +72,20 @@ describe('makeSystem', () => {
       ],
       aggregates: {
         account: [
-          aggregates.makeVersion(
-            aggregates.makeAggregate({ name: 'account' }),
-            {
-              services: { catalog },
+          makeAggregateVersion(makeAggregate({ name: 'account' }), {
+            services: { catalog },
 
-              version: '1.0.0',
-              authorize: () => Effect.void,
-              models: { product: ProductReplica },
-              contracts: {},
-              selections: {
-                product: makeSelection({
-                  model: ProductReplica,
-                  where: () => ({}),
-                }),
-              },
+            version: '1.0.0',
+            authorize: () => Effect.void,
+            models: { product: ProductReplica },
+            contracts: {},
+            selections: {
+              product: makeSelection({
+                model: ProductReplica,
+                where: () => ({}),
+              }),
             },
-          ),
+          }),
         ],
       },
       services: {
@@ -114,7 +112,7 @@ describe('makeSystem', () => {
       makeSystem({
         name: 'duplicate-service-system',
         authentication: [
-          authentication.makeVersion({
+          makeAuthenticationVersion({
             version: '1.0.0',
             signature: Schema.Struct({}),
             authenticate: () => Effect.succeed('user'),
@@ -148,7 +146,7 @@ describe('makeSystem', () => {
       makeSystem({
         name: 'direct-source-system',
         authentication: [
-          authentication.makeVersion({
+          makeAuthenticationVersion({
             version: '1.0.0',
             signature: Schema.Struct({}),
             authenticate: () => Effect.succeed('user'),
@@ -156,22 +154,19 @@ describe('makeSystem', () => {
         ],
         aggregates: {
           account: [
-            aggregates.makeVersion(
-              aggregates.makeAggregate({ name: 'account' }),
-              {
-                services: { catalog },
+            makeAggregateVersion(makeAggregate({ name: 'account' }), {
+              services: { catalog },
 
-                version: '1.0.0',
-                models: { product: ProductSource },
-                contracts: {},
-                selections: {
-                  product: makeSelection({
-                    model: ProductSource,
-                    where: () => ({}),
-                  }),
-                },
+              version: '1.0.0',
+              models: { product: ProductSource },
+              contracts: {},
+              selections: {
+                product: makeSelection({
+                  model: ProductSource,
+                  where: () => ({}),
+                }),
               },
-            ),
+            }),
           ],
         },
         services: {
@@ -189,8 +184,8 @@ describe('makeSystem', () => {
     ).toThrow(/must use makeReplica for source model "catalog.product"/);
 
     // 4 — Aggregate replicas must preserve the exact system service source identity.
-    const OtherProductSource = models.makeVersion(
-      models.makeModel({ name: 'product', abbreviation: 'prd' }),
+    const OtherProductSource = makeModelVersion(
+      makeModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: { name: primitives.text() },
         indexes: [],
@@ -213,7 +208,7 @@ describe('makeSystem', () => {
         makeSystem({
           name: 'wrong-replica-system',
           authentication: [
-            authentication.makeVersion({
+            makeAuthenticationVersion({
               version: '1.0.0',
               signature: Schema.Struct({}),
               authenticate: () => Effect.succeed('user'),
@@ -221,22 +216,19 @@ describe('makeSystem', () => {
           ],
           aggregates: {
             account: [
-              aggregates.makeVersion(
-                aggregates.makeAggregate({ name: 'account' }),
-                {
-                  services: { catalog },
+              makeAggregateVersion(makeAggregate({ name: 'account' }), {
+                services: { catalog },
 
-                  version: '1.0.0',
-                  models: { product: replica },
-                  contracts: {},
-                  selections: {
-                    product: makeSelection({
-                      model: replica,
-                      where: () => ({}),
-                    }),
-                  },
+                version: '1.0.0',
+                models: { product: replica },
+                contracts: {},
+                selections: {
+                  product: makeSelection({
+                    model: replica,
+                    where: () => ({}),
+                  }),
                 },
-              ),
+              }),
             ],
           },
           services: {
@@ -256,8 +248,8 @@ describe('makeSystem', () => {
   });
 
   it('validates each replica against its pinned service snapshot', () => {
-    const Product = models.makeVersion(
-      models.makeModel({ name: 'product', abbreviation: 'prd' }),
+    const Product = makeModelVersion(
+      makeModel({ name: 'product', abbreviation: 'prd' }),
       {
         version: '2.0.0',
         attributes: { name: primitives.text(), description: primitives.text() },
@@ -272,14 +264,11 @@ describe('makeSystem', () => {
     const catalog = makeService({
       name: 'catalog',
       version: '5.0.0',
-      historicalDefinitions: [
-        { version: '4.0.0', models: { product: '1.0.0' }, contracts: {} },
-      ],
       models: { product: Product },
       contracts: {},
       frontends: {},
     });
-    const authenticationV1 = authentication.makeVersion({
+    const authenticationV1 = makeAuthenticationVersion({
       version: '1.0.0',
       signature: Schema.Struct({}),
       authenticate: () => Effect.succeed('user'),
@@ -290,21 +279,18 @@ describe('makeSystem', () => {
       services: { catalog: [catalog] },
       aggregates: {
         shopper: [
-          aggregates.makeVersion(
-            aggregates.makeAggregate({ name: 'shopper' }),
-            {
-              version: '2.0.0',
-              services: { catalog },
-              models: { product: ProductReplica },
-              contracts: {},
-              selections: {
-                product: makeSelection({
-                  model: ProductReplica,
-                  where: () => ({}),
-                }),
-              },
+          makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+            version: '2.0.0',
+            services: { catalog },
+            models: { product: ProductReplica },
+            contracts: {},
+            selections: {
+              product: makeSelection({
+                model: ProductReplica,
+                where: () => ({}),
+              }),
             },
-          ),
+          }),
         ],
       },
     });
@@ -366,21 +352,18 @@ describe('makeSystem', () => {
           services: { catalog: [catalog] },
           aggregates: {
             shopper: [
-              aggregates.makeVersion(
-                aggregates.makeAggregate({ name: 'shopper' }),
-                {
-                  version: '1.0.0',
-                  services: rejected.services,
-                  models: { product: ProductReplica },
-                  contracts: {},
-                  selections: {
-                    product: makeSelection({
-                      model: ProductReplica,
-                      where: () => ({}),
-                    }),
-                  },
+              makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+                version: '1.0.0',
+                services: rejected.services,
+                models: { product: ProductReplica },
+                contracts: {},
+                selections: {
+                  product: makeSelection({
+                    model: ProductReplica,
+                    where: () => ({}),
+                  }),
                 },
-              ),
+              }),
             ],
           },
         }),

@@ -12,8 +12,8 @@ import { newWebSocketRpcSession } from 'capnweb';
 import { Effect } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
-import { shopperV2 } from '@/zerospin/aggregates/shopper/shopperV2';
-import { appV1 } from '@/zerospin/services/app/appV1';
+import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
+import { appV1 } from '@/zerospin/services/app/AppV1';
 import { signature } from '@/zerospin/signature';
 
 const WebV2 = makeFrontendController({
@@ -24,7 +24,7 @@ const WebV2 = makeFrontendController({
   models: shopperV2.models,
   contracts: shopperV2.contracts,
 });
-const CatalogV1 = appV1.frontends.catalog.controller;
+const CatalogV1 = appV1.frontends.appFrontend.controller;
 
 const shopperAggregateFrontendLock =
   makeFrontendControllerSpec(WebV2).aggregateFrontendLock;

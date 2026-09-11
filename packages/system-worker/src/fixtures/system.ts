@@ -1,29 +1,32 @@
-import { aggregates } from '@zerospin/core/aggregate/index';
+import { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
+import { makeAggregateVersion } from '@zerospin/core/aggregate/makeVersion';
+import { makeAuthenticationVersion } from '@zerospin/core/authentication/makeVersion';
+import { defineCommand } from '@zerospin/core/contracts/Command';
+import { makeContractVersion } from '@zerospin/core/contracts/makeVersion';
+import type { InferCommand } from '@zerospin/core/contracts/types';
+import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
 /*
  * System-worker annotation:
  * Builds fixture data for system-worker tests and examples.
  * Fixture changes should preserve the domain relationships that repo and API tests rely on.
  */
-import { authentication } from '@zerospin/core/authentication/index';
-import { contracts } from '@zerospin/core/contracts/index';
-import type { InferCommand } from '@zerospin/core/contracts/types';
-import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
-import { models } from '@zerospin/core/models/index';
 import { makeModelIdSchema } from '@zerospin/core/models/makeIdSchema';
+import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
 import { makeReplica } from '@zerospin/core/models/makeReplica';
 import { makeSelection } from '@zerospin/core/models/makeSelection';
 import type { IAggregateId } from '@zerospin/core/models/types';
 import { makeService } from '@zerospin/core/service/makeService';
 import { makeSystem } from '@zerospin/core/system/makeSystem';
+import { makeSystemConfig } from '@zerospin/core/system/makeSystemConfig';
 import { mapParseError, ZerospinError } from '@zerospin/error';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
-const UserModel = models.makeModel({ name: 'user', abbreviation: 'usr' });
+const UserModel = makeModel({ name: 'user', abbreviation: 'usr' });
 
-const User = models.makeVersion(UserModel, {
+const User = makeModelVersion(UserModel, {
   attributes: {
     name: primitives.text(),
   },
@@ -31,8 +34,8 @@ const User = models.makeVersion(UserModel, {
   version: '1.0.0',
 });
 
-const Account = models.makeVersion(
-  models.makeModel({ name: 'account', abbreviation: 'acct' }),
+const Account = makeModelVersion(
+  makeModel({ name: 'account', abbreviation: 'acct' }),
   {
     attributes: {
       name: primitives.text(),
@@ -42,9 +45,9 @@ const Account = models.makeVersion(
   },
 );
 
-const ListModel = models.makeModel({ name: 'list', abbreviation: 'lst' });
+const ListModel = makeModel({ name: 'list', abbreviation: 'lst' });
 
-const List = models.makeVersion(ListModel, {
+const List = makeModelVersion(ListModel, {
   attributes: {
     name: primitives.text(),
     userId: primitives.ref({
@@ -57,9 +60,9 @@ const List = models.makeVersion(ListModel, {
   version: '1.0.0',
 });
 
-const ItemModel = models.makeModel({ name: 'item', abbreviation: 'tsk' });
+const ItemModel = makeModel({ name: 'item', abbreviation: 'tsk' });
 
-const Item = models.makeVersion(ItemModel, {
+const Item = makeModelVersion(ItemModel, {
   attributes: {
     listId: primitives.ref({
       table: List.table,
@@ -72,9 +75,9 @@ const Item = models.makeVersion(ItemModel, {
   version: '1.0.0',
 });
 
-const ProductModel = models.makeModel({ name: 'product', abbreviation: 'prd' });
+const ProductModel = makeModel({ name: 'product', abbreviation: 'prd' });
 
-const Product = models.makeVersion(ProductModel, {
+const Product = makeModelVersion(ProductModel, {
   attributes: {
     name: primitives.text(),
   },
@@ -88,9 +91,9 @@ const ProductReplica = makeReplica({
   serviceName: 'app',
 });
 
-const StockModel = models.makeModel({ name: 'stock', abbreviation: 'stk' });
+const StockModel = makeModel({ name: 'stock', abbreviation: 'stk' });
 
-const Stock = models.makeVersion(StockModel, {
+const Stock = makeModelVersion(StockModel, {
   attributes: {
     quantity: primitives.integer(),
   },
@@ -104,8 +107,8 @@ const StockReplica = makeReplica({
   serviceName: 'inventory',
 });
 
-const Preference = models.makeVersion(
-  models.makeModel({ name: 'preference', abbreviation: 'pref' }),
+const Preference = makeModelVersion(
+  makeModel({ name: 'preference', abbreviation: 'pref' }),
   {
     attributes: {
       settings: primitives.json({
@@ -117,8 +120,8 @@ const Preference = models.makeVersion(
   },
 );
 
-const CatalogSettings = models.makeVersion(
-  models.makeModel({ name: 'catalogSettings', abbreviation: 'scfg' }),
+const CatalogSettings = makeModelVersion(
+  makeModel({ name: 'catalogSettings', abbreviation: 'scfg' }),
   {
     attributes: {
       settings: primitives.json({
@@ -130,7 +133,7 @@ const CatalogSettings = models.makeVersion(
   },
 );
 
-const createUser = contracts.makeVersion(contracts.makeCommand('createUser'), {
+const createUser = makeContractVersion(defineCommand('createUser'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
     name: primitives.text(),
@@ -155,58 +158,55 @@ const createUser = contracts.makeVersion(contracts.makeCommand('createUser'), {
   version: '1.0.0',
 });
 
-export const createList = contracts.makeVersion(
-  contracts.makeCommand('createList'),
-  {
-    /*
-     * Exercises contract guard rejection before a fixture list mutation is accepted.
-     *
-     * 1. Reject the sentinel list name.
-     */
-    guard: ({ payload }: { payload: { name: string } }) =>
-      Effect.gen(function* () {
-        // 1 — return list-name-rejected for invalid-name and otherwise succeed
-        if (payload.name === 'invalid-name') {
-          return yield* new ZerospinError({
-            code: 'list-name-rejected',
-            message: `List name is rejected: ${payload.name}`,
-          });
-        }
-      }).pipe(Effect.withSpan('createListGuard')),
+export const createList = makeContractVersion(defineCommand('createList'), {
+  /*
+   * Exercises contract guard rejection before a fixture list mutation is accepted.
+   *
+   * 1. Reject the sentinel list name.
+   */
+  guard: ({ payload }: { payload: { name: string } }) =>
+    Effect.gen(function* () {
+      // 1 — return list-name-rejected for invalid-name and otherwise succeed
+      if (payload.name === 'invalid-name') {
+        return yield* new ZerospinError({
+          code: 'list-name-rejected',
+          message: `List name is rejected: ${payload.name}`,
+        });
+      }
+    }).pipe(Effect.withSpan('createListGuard')),
 
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
-      name: primitives.text(),
-      userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
-    },
-
-    /*
-     * Produces the createList fixture mutations consumed by command execution tests.
-     *
-     * 1. Read command attributes.
-     * 2. Build the declared mutations.
-     */
-    models: { list: List },
-    program: ({ payload, models }) => {
-      // 1 — extract the authored payload fields used by this mutation
-      const { id, name, userId } = payload;
-
-      // 2 — return model mutation Effects for the execution path to apply
-      return Effect.all({
-        created: models.list.create({
-          resourceId: id,
-          attributes: {
-            name,
-            userId,
-          },
-        }),
-      });
-    },
-    version: '1.0.0',
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    name: primitives.text(),
+    userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
   },
-);
 
-const createItem = contracts.makeVersion(contracts.makeCommand('createItem'), {
+  /*
+   * Produces the createList fixture mutations consumed by command execution tests.
+   *
+   * 1. Read command attributes.
+   * 2. Build the declared mutations.
+   */
+  models: { list: List },
+  program: ({ payload, models }) => {
+    // 1 — extract the authored payload fields used by this mutation
+    const { id, name, userId } = payload;
+
+    // 2 — return model mutation Effects for the execution path to apply
+    return Effect.all({
+      created: models.list.create({
+        resourceId: id,
+        attributes: {
+          name,
+          userId,
+        },
+      }),
+    });
+  },
+  version: '1.0.0',
+});
+
+const createItem = makeContractVersion(defineCommand('createItem'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
     listId: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
@@ -238,203 +238,188 @@ const createItem = contracts.makeVersion(contracts.makeCommand('createItem'), {
   version: '1.0.0',
 });
 
-export const updateList = contracts.makeVersion(
-  contracts.makeCommand('updateList'),
-  {
-    /*
-     * Exercises contract guard reads and delayed completion against fixture list state.
-     *
-     * 1. Read the requested list.
-     * 2. Reject a missing list.
-     * 3. Delay the stale-state scenario.
-     */
-    guard: ({
-      db,
-      payload,
-    }: {
-      db: Readonly<
-        Pick<
-          IDb<IResourceDbConfig<{ list: typeof List }, Record<never, never>>>,
-          'query'
-        >
-      >;
-      payload: { id: string; name: string };
-    }) =>
-      Effect.gen(function* () {
-        // 1 — query by payload.id and encode query failures as fixture-list-query-failed
-        const list = yield* Effect.try({
-          try: () =>
-            db.query.list
-              .findFirst({
-                where: { id: { eq: payload.id } },
-              })
-              .sync(),
-          catch: cause =>
-            new ZerospinError({
-              code: 'fixture-list-query-failed',
-              message: `Failed to query list ${payload.id} during guard evaluation.`,
-              cause: ZerospinError.prettyUnknownFailure(cause),
-            }),
+export const updateList = makeContractVersion(defineCommand('updateList'), {
+  /*
+   * Exercises contract guard reads and delayed completion against fixture list state.
+   *
+   * 1. Read the requested list.
+   * 2. Reject a missing list.
+   * 3. Delay the stale-state scenario.
+   */
+  guard: ({
+    db,
+    payload,
+  }: {
+    db: Readonly<
+      Pick<
+        IDb<IResourceDbConfig<{ list: typeof List }, Record<never, never>>>,
+        'query'
+      >
+    >;
+    payload: { id: string; name: string };
+  }) =>
+    Effect.gen(function* () {
+      // 1 — query by payload.id and encode query failures as fixture-list-query-failed
+      const list = yield* Effect.try({
+        try: () =>
+          db.query.list
+            .findFirst({
+              where: { id: { eq: payload.id } },
+            })
+            .sync(),
+        catch: cause =>
+          new ZerospinError({
+            code: 'fixture-list-query-failed',
+            message: `Failed to query list ${payload.id} during guard evaluation.`,
+            cause: ZerospinError.prettyUnknownFailure(cause),
+          }),
+      });
+
+      // 2 — return list-not-found before attempting the command
+      if (list === undefined) {
+        return yield* new ZerospinError({
+          code: 'list-not-found',
+          message: `List ${payload.id} was not found`,
         });
+      }
 
-        // 2 — return list-not-found before attempting the command
-        if (list === undefined) {
-          return yield* new ZerospinError({
-            code: 'list-not-found',
-            message: `List ${payload.id} was not found`,
-          });
-        }
+      // 3 — sleep for 500 milliseconds to let the test change state during guard evaluation
+      if (payload.name === 'stale-at-commit') {
+        yield* Effect.sleep('500 millis');
+      }
+    }).pipe(Effect.withSpan('updateListGuard')),
 
-        // 3 — sleep for 500 milliseconds to let the test change state during guard evaluation
-        if (payload.name === 'stale-at-commit') {
-          yield* Effect.sleep('500 millis');
-        }
-      }).pipe(Effect.withSpan('updateListGuard')),
-
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
-      name: primitives.text(),
-      userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
-    },
-
-    /*
-     * Produces the updateList fixture mutations consumed by command execution tests.
-     *
-     * 1. Read command attributes.
-     * 2. Build the declared mutations.
-     */
-    models: { list: List },
-    program: ({ payload, models }) => {
-      // 1 — extract the authored payload fields used by this mutation
-      const { id, name, userId } = payload;
-
-      // 2 — return model mutation Effects for the execution path to apply
-      return Effect.all({
-        updated: models.list.update({
-          resourceId: id,
-          attributes: { name, userId },
-        }),
-      });
-    },
-    version: '1.0.0',
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    name: primitives.text(),
+    userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
   },
-);
 
-export const renameList = contracts.makeVersion(
-  contracts.makeCommand('renameList'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
-      name: primitives.text(),
-      userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
-    },
+  /*
+   * Produces the updateList fixture mutations consumed by command execution tests.
+   *
+   * 1. Read command attributes.
+   * 2. Build the declared mutations.
+   */
+  models: { list: List },
+  program: ({ payload, models }) => {
+    // 1 — extract the authored payload fields used by this mutation
+    const { id, name, userId } = payload;
 
-    /*
-     * Produces the renameList fixture mutations consumed by command execution tests.
-     *
-     * 1. Build the declared mutations.
-     */
-    models: { list: List },
-    program: ({ payload, models }) =>
-      // 1 — construct the fixture mutations from the supplied payload
-      Effect.all({
-        updated: models.list.update({
-          resourceId: payload.id,
-          attributes: { name: payload.name, userId: payload.userId },
-        }),
+    // 2 — return model mutation Effects for the execution path to apply
+    return Effect.all({
+      updated: models.list.update({
+        resourceId: id,
+        attributes: { name, userId },
       }),
-    version: '1.1.0',
+    });
   },
-);
+  version: '1.0.0',
+});
 
-const createProduct = contracts.makeVersion(
-  contracts.makeCommand('createProduct'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ProductModel.abbreviation }),
-      name: primitives.text(),
-    },
-
-    /*
-     * Produces the createProduct fixture mutations consumed by command execution tests.
-     *
-     * 1. Read command attributes.
-     * 2. Build the declared mutations.
-     */
-    models: { product: Product },
-    program: ({ payload, models }) => {
-      // 1 — extract the authored payload fields used by this mutation
-      const { id, name } = payload;
-
-      // 2 — return model mutation Effects for the execution path to apply
-      return Effect.all({
-        created: models.product.create({
-          resourceId: id,
-          attributes: { name },
-        }),
-      });
-    },
-    version: '1.0.0',
+export const renameList = makeContractVersion(defineCommand('renameList'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    name: primitives.text(),
+    userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
   },
-);
 
-const updateProduct = contracts.makeVersion(
-  contracts.makeCommand('updateProduct'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ProductModel.abbreviation }),
-      name: primitives.text(),
-    },
-
-    /*
-     * Produces the updateProduct fixture mutations consumed by command execution tests.
-     *
-     * 1. Read command attributes.
-     * 2. Build the declared mutations.
-     */
-    models: { product: Product },
-    program: ({ payload, models }) => {
-      // 1 — extract the authored payload fields used by this mutation
-      const { id, name } = payload;
-
-      // 2 — return model mutation Effects for the execution path to apply
-      return Effect.all({
-        updated: models.product.update({
-          resourceId: id,
-          attributes: { name },
-        }),
-      });
-    },
-    version: '1.1.0',
-  },
-);
-
-const deleteProduct = contracts.makeVersion(
-  contracts.makeCommand('deleteProduct'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ProductModel.abbreviation }),
-    },
-
-    /*
-     * Produces the deleteProduct fixture mutations consumed by command execution tests.
-     *
-     * 1. Build the declared mutations.
-     */
-    models: { product: Product },
-    program: ({ payload, models }) =>
-      // 1 — construct the fixture mutations from the supplied payload
-      Effect.all({
-        deleted: models.product.delete({
-          resourceId: payload.id,
-        }),
+  /*
+   * Produces the renameList fixture mutations consumed by command execution tests.
+   *
+   * 1. Build the declared mutations.
+   */
+  models: { list: List },
+  program: ({ payload, models }) =>
+    // 1 — construct the fixture mutations from the supplied payload
+    Effect.all({
+      updated: models.list.update({
+        resourceId: payload.id,
+        attributes: { name: payload.name, userId: payload.userId },
       }),
-    version: '1.0.0',
-  },
-);
+    }),
+  version: '1.1.0',
+});
 
-const replicateProduct = contracts.makeVersion(
-  contracts.makeCommand('replicateProduct'),
+const createProduct = makeContractVersion(defineCommand('createProduct'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ProductModel.abbreviation }),
+    name: primitives.text(),
+  },
+
+  /*
+   * Produces the createProduct fixture mutations consumed by command execution tests.
+   *
+   * 1. Read command attributes.
+   * 2. Build the declared mutations.
+   */
+  models: { product: Product },
+  program: ({ payload, models }) => {
+    // 1 — extract the authored payload fields used by this mutation
+    const { id, name } = payload;
+
+    // 2 — return model mutation Effects for the execution path to apply
+    return Effect.all({
+      created: models.product.create({
+        resourceId: id,
+        attributes: { name },
+      }),
+    });
+  },
+  version: '1.0.0',
+});
+
+const updateProduct = makeContractVersion(defineCommand('updateProduct'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ProductModel.abbreviation }),
+    name: primitives.text(),
+  },
+
+  /*
+   * Produces the updateProduct fixture mutations consumed by command execution tests.
+   *
+   * 1. Read command attributes.
+   * 2. Build the declared mutations.
+   */
+  models: { product: Product },
+  program: ({ payload, models }) => {
+    // 1 — extract the authored payload fields used by this mutation
+    const { id, name } = payload;
+
+    // 2 — return model mutation Effects for the execution path to apply
+    return Effect.all({
+      updated: models.product.update({
+        resourceId: id,
+        attributes: { name },
+      }),
+    });
+  },
+  version: '1.1.0',
+});
+
+const deleteProduct = makeContractVersion(defineCommand('deleteProduct'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ProductModel.abbreviation }),
+  },
+
+  /*
+   * Produces the deleteProduct fixture mutations consumed by command execution tests.
+   *
+   * 1. Build the declared mutations.
+   */
+  models: { product: Product },
+  program: ({ payload, models }) =>
+    // 1 — construct the fixture mutations from the supplied payload
+    Effect.all({
+      deleted: models.product.delete({
+        resourceId: payload.id,
+      }),
+    }),
+  version: '1.0.0',
+});
+
+const replicateProduct = makeContractVersion(
+  defineCommand('replicateProduct'),
   {
     payload: {
       product: primitives.json({ schema: Product.resourceSchema }),
@@ -455,8 +440,8 @@ const replicateProduct = contracts.makeVersion(
   },
 );
 
-const createListAndReplicateProduct = contracts.makeVersion(
-  contracts.makeCommand('createListAndReplicateProduct'),
+const createListAndReplicateProduct = makeContractVersion(
+  defineCommand('createListAndReplicateProduct'),
   {
     payload: {
       id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
@@ -487,60 +472,54 @@ const createListAndReplicateProduct = contracts.makeVersion(
   },
 );
 
-const createStock = contracts.makeVersion(
-  contracts.makeCommand('createStock'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: StockModel.abbreviation }),
-      quantity: primitives.integer(),
-    },
-
-    /*
-     * Produces the createStock fixture mutations consumed by command execution tests.
-     *
-     * 1. Build the declared mutations.
-     */
-    models: { stock: Stock },
-    program: ({ payload, models }) =>
-      // 1 — construct the fixture mutations from the supplied payload
-      Effect.all({
-        created: models.stock.create({
-          resourceId: payload.id,
-          attributes: { quantity: payload.quantity },
-        }),
-      }),
-    version: '1.0.0',
+const createStock = makeContractVersion(defineCommand('createStock'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: StockModel.abbreviation }),
+    quantity: primitives.integer(),
   },
-);
 
-const updateStock = contracts.makeVersion(
-  contracts.makeCommand('updateStock'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: StockModel.abbreviation }),
-      quantity: primitives.integer(),
-    },
-
-    /*
-     * Produces the updateStock fixture mutations consumed by command execution tests.
-     *
-     * 1. Build the declared mutations.
-     */
-    models: { stock: Stock },
-    program: ({ payload, models }) =>
-      // 1 — construct the fixture mutations from the supplied payload
-      Effect.all({
-        updated: models.stock.update({
-          resourceId: payload.id,
-          attributes: { quantity: payload.quantity },
-        }),
+  /*
+   * Produces the createStock fixture mutations consumed by command execution tests.
+   *
+   * 1. Build the declared mutations.
+   */
+  models: { stock: Stock },
+  program: ({ payload, models }) =>
+    // 1 — construct the fixture mutations from the supplied payload
+    Effect.all({
+      created: models.stock.create({
+        resourceId: payload.id,
+        attributes: { quantity: payload.quantity },
       }),
-    version: '1.0.0',
-  },
-);
+    }),
+  version: '1.0.0',
+});
 
-const replicateProductAndStock = contracts.makeVersion(
-  contracts.makeCommand('replicateProductAndStock'),
+const updateStock = makeContractVersion(defineCommand('updateStock'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: StockModel.abbreviation }),
+    quantity: primitives.integer(),
+  },
+
+  /*
+   * Produces the updateStock fixture mutations consumed by command execution tests.
+   *
+   * 1. Build the declared mutations.
+   */
+  models: { stock: Stock },
+  program: ({ payload, models }) =>
+    // 1 — construct the fixture mutations from the supplied payload
+    Effect.all({
+      updated: models.stock.update({
+        resourceId: payload.id,
+        attributes: { quantity: payload.quantity },
+      }),
+    }),
+  version: '1.0.0',
+});
+
+const replicateProductAndStock = makeContractVersion(
+  defineCommand('replicateProductAndStock'),
   {
     payload: {
       product: primitives.json({ schema: Product.resourceSchema }),
@@ -563,72 +542,66 @@ const replicateProductAndStock = contracts.makeVersion(
   },
 );
 
-export const moveItem = contracts.makeVersion(
-  contracts.makeCommand('moveItem'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
-      prevListId: primitives.foreignKey({
-        abbreviation: ListModel.abbreviation,
-      }),
-      nextListId: primitives.foreignKey({
-        abbreviation: ListModel.abbreviation,
-      }),
-    },
-
-    /*
-     * Produces the moveItem fixture mutations consumed by command execution tests.
-     *
-     * 1. Read command attributes.
-     * 2. Build the declared mutations.
-     */
-    models: { item: Item },
-    program: ({ payload, models }) => {
-      // 1 — extract the authored payload fields used by this mutation
-      const { id, prevListId, nextListId } = payload;
-
-      // 2 — return model mutation Effects for the execution path to apply
-      return Effect.all({
-        moved: models.item.move({
-          resourceId: id,
-          property: 'listId',
-          prevId: prevListId,
-          nextId: nextListId,
-        }),
-      });
-    },
-    version: '1.0.0',
+export const moveItem = makeContractVersion(defineCommand('moveItem'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
+    prevListId: primitives.foreignKey({
+      abbreviation: ListModel.abbreviation,
+    }),
+    nextListId: primitives.foreignKey({
+      abbreviation: ListModel.abbreviation,
+    }),
   },
-);
 
-export const deleteList = contracts.makeVersion(
-  contracts.makeCommand('deleteList'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
-    },
+  /*
+   * Produces the moveItem fixture mutations consumed by command execution tests.
+   *
+   * 1. Read command attributes.
+   * 2. Build the declared mutations.
+   */
+  models: { item: Item },
+  program: ({ payload, models }) => {
+    // 1 — extract the authored payload fields used by this mutation
+    const { id, prevListId, nextListId } = payload;
 
-    /*
-     * Produces the deleteList fixture mutations consumed by command execution tests.
-     *
-     * 1. Read command attributes.
-     * 2. Build the declared mutations.
-     */
-    models: { list: List },
-    program: ({ payload, models }) => {
-      // 1 — extract the authored payload fields used by this mutation
-      const { id } = payload;
-
-      // 2 — return model mutation Effects for the execution path to apply
-      return Effect.all({
-        deleted: models.list.delete({
-          resourceId: id,
-        }),
-      });
-    },
-    version: '1.0.0',
+    // 2 — return model mutation Effects for the execution path to apply
+    return Effect.all({
+      moved: models.item.move({
+        resourceId: id,
+        property: 'listId',
+        prevId: prevListId,
+        nextId: nextListId,
+      }),
+    });
   },
-);
+  version: '1.0.0',
+});
+
+export const deleteList = makeContractVersion(defineCommand('deleteList'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+  },
+
+  /*
+   * Produces the deleteList fixture mutations consumed by command execution tests.
+   *
+   * 1. Read command attributes.
+   * 2. Build the declared mutations.
+   */
+  models: { list: List },
+  program: ({ payload, models }) => {
+    // 1 — extract the authored payload fields used by this mutation
+    const { id } = payload;
+
+    // 2 — return model mutation Effects for the execution path to apply
+    return Effect.all({
+      deleted: models.list.delete({
+        resourceId: id,
+      }),
+    });
+  },
+  version: '1.0.0',
+});
 
 export const authenticationSignature = {
   version: '1.0.0',
@@ -683,17 +656,6 @@ const products = makeFrontendController({
 const app = makeService({
   name: 'app',
   version: '1.0.0',
-  historicalDefinitions: [
-    {
-      version: '0.9.0',
-      models: { catalogSettings: '1.0.0', product: '1.0.0' },
-      contracts: {
-        createProduct: '1.0.0',
-        deleteProduct: '1.0.0',
-        updateProduct: '1.1.0',
-      },
-    },
-  ],
   /*
    * Exercises service frontend authorization against the products table.
    *
@@ -789,7 +751,7 @@ const inventory = makeService({
 
 export const system = makeSystem({
   authentication: [
-    authentication.makeVersion({
+    makeAuthenticationVersion({
       version: authenticationSignature.version,
       signature: authenticationSignature.signature,
       authenticate: ({ signature }) =>
@@ -799,7 +761,7 @@ export const system = makeSystem({
   ],
   aggregates: {
     notes: ['0.8.0', '0.9.0', '1.0.0'].map(version =>
-      aggregates.makeVersion(aggregates.makeAggregate({ name: 'notes' }), {
+      makeAggregateVersion(makeAggregate({ name: 'notes' }), {
         version,
         services: {},
         models: { user: User, preference: Preference },
@@ -811,7 +773,7 @@ export const system = makeSystem({
       }),
     ),
     user: [
-      aggregates.makeVersion(aggregates.makeAggregate({ name: 'user' }), {
+      makeAggregateVersion(makeAggregate({ name: 'user' }), {
         services: { app, inventory },
 
         version: '1.0.0',
@@ -1067,4 +1029,6 @@ export const system = makeSystem({
   name: 'system-worker',
 });
 
-export const config = system.config({ systemId: 'sys_local_plan071' });
+export const config = makeSystemConfig(system, {
+  systemId: 'sys_local_plan071',
+});

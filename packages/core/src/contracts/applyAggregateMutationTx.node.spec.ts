@@ -9,15 +9,15 @@ import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemorySqljsDb } from '../drizzle/makeProvisionedInMemorySqljsDb.ts';
 import { makeTx } from '../drizzle/makeTx.ts';
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
-import { models } from '../models/index.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 
 import { applyAggregateMutationTx } from './applyAggregateMutationTx.ts';
 import { applyMutationInverseTx } from './applyMutationInverseTx.ts';
 import { makeModelMutations } from './makeModelMutations.ts';
 
-const ProductSource = models.makeVersion(
-  models.makeModel({ name: 'product', abbreviation: 'prd' }),
+const ProductSource = makeModelVersion(
+  makeModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],

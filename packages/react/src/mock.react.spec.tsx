@@ -8,7 +8,7 @@ import {
   User,
 } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
-import { models } from '@zerospin/core/models/index';
+import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import {
@@ -93,8 +93,8 @@ const MockMainProvider = makeMockProvider({
   layer: sessionRuntimeLayer,
 });
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
-const JsonDocument = models.makeVersion(
-  models.makeModel({ name: 'document', abbreviation: 'doc' }),
+const JsonDocument = makeModelVersion(
+  makeModel({ name: 'document', abbreviation: 'doc' }),
   {
     attributes: {
       metadata: primitives.json({

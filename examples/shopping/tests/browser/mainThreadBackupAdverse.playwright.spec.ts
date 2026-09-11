@@ -7,6 +7,7 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
+import { prefixId } from '@zerospin/core/models/prefixId';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
@@ -46,7 +47,7 @@ import type { runFrontendLifecycleAcceptance } from '../../vitest.playwright.con
 import {
   ClerkUserIdSchema,
   userV1,
-} from '@/zerospin/aggregates/shopper/models/user/userV1';
+} from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { signature } from '@/zerospin/signature';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
@@ -61,7 +62,7 @@ declare module 'vitest/browser' {
   }
 }
 
-const WebV2 = ZerospinApp.frontends.web.frontend;
+const WebV2 = ZerospinApp.frontends.shopperFrontend.frontend;
 
 Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', {
   configurable: true,
@@ -88,17 +89,19 @@ const AdverseZerospinApp = makeZerospinApp({
     signature: signature.signature,
   },
   frontends: {
-    web: WebV2,
+    shopperFrontend: WebV2,
   },
   layer: adverseRuntimeLayer,
 });
 
 function AdverseSessionProbe(props: {
   onSession(
-    session: IBrowserSession<typeof AdverseZerospinApp.frontends.web.frontend>,
+    session: IBrowserSession<
+      typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
+    >,
   ): void;
 }) {
-  const session = useSession(AdverseZerospinApp.frontends.web);
+  const session = useSession(AdverseZerospinApp.frontends.shopperFrontend);
   const { onSession } = props;
 
   useEffect(() => {
@@ -419,10 +422,10 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     let firstMounts = 0;
     const captures: {
       first: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.web.frontend
+        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
       > | null;
       second: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.web.frontend
+        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
       > | null;
     } = { first: null, second: null };
     try {
@@ -462,7 +465,10 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       await registration.setPushPaused({ pushPaused: true });
       const created = await first.executeCommand({
         contractName: 'createUser',
-        payload: { id: userV1.prefixId(clerkUserId), clerkUserId },
+        payload: {
+          id: prefixId(userV1, clerkUserId),
+          clerkUserId,
+        },
       });
       if (created._tag === 'Failure') throw new Error(created.failure.message);
       await expect
@@ -508,7 +514,10 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       expect(
         await first.executeCommand({
           contractName: 'createUser',
-          payload: { id: userV1.prefixId(clerkUserId), clerkUserId },
+          payload: {
+            id: prefixId(userV1, clerkUserId),
+            clerkUserId,
+          },
         }),
       ).toMatchObject({
         _tag: 'Failure',
@@ -607,7 +616,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       },
     });
     let publicSession: IBrowserSession<
-      typeof AdverseZerospinApp.frontends.web.frontend
+      typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
     > | null = null;
     let signatureCallCount = 0;
 
@@ -686,7 +695,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const firstRoot = createRoot(firstContainer);
     const firstSessionCapture: {
       current: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.web.frontend
+        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
       > | null;
     } = { current: null };
 
@@ -719,7 +728,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const createdUser = await firstSession.executeCommand({
       contractName: 'createUser',
       payload: {
-        id: userV1.prefixId(clerkUserId),
+        id: prefixId(userV1, clerkUserId),
         clerkUserId,
       },
     });
@@ -753,7 +762,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const updatedUser = await firstSession.executeCommand({
       contractName: 'updateUser',
       payload: {
-        id: userV1.prefixId(clerkUserId),
+        id: prefixId(userV1, clerkUserId),
         name: retainedName,
       },
     });
@@ -835,7 +844,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const secondRoot = createRoot(secondContainer);
     const secondSessionCapture: {
       current: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.web.frontend
+        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
       > | null;
     } = { current: null };
 
@@ -876,7 +885,11 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       expect(
         offlineState.db.query.user
           ?.findFirst({
-            where: { id: { eq: userV1.prefixId(clerkUserId) } },
+            where: {
+              id: {
+                eq: prefixId(userV1, clerkUserId),
+              },
+            },
           })
           .sync()?.name,
       ).toBe(retainedName);
@@ -884,7 +897,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       const offlineUpdate = await offlineSession.executeCommand({
         contractName: 'updateUser',
         payload: {
-          id: userV1.prefixId(clerkUserId),
+          id: prefixId(userV1, clerkUserId),
           name: `Promoted ${testRunId}`,
         },
       });
@@ -964,7 +977,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const firstRoot = createRoot(firstContainer);
     const firstSessionCapture: {
       current: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.web.frontend
+        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
       > | null;
     } = { current: null };
 
@@ -996,7 +1009,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const createdUser = await firstSession.executeCommand({
       contractName: 'createUser',
       payload: {
-        id: userV1.prefixId(clerkUserId),
+        id: prefixId(userV1, clerkUserId),
         clerkUserId,
       },
     });
@@ -1023,7 +1036,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const updatedUser = await firstSession.executeCommand({
       contractName: 'updateUser',
       payload: {
-        id: userV1.prefixId(clerkUserId),
+        id: prefixId(userV1, clerkUserId),
         name: restartedName,
       },
     });
@@ -1091,7 +1104,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const secondRoot = createRoot(secondContainer);
     const secondSessionCapture: {
       current: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.web.frontend
+        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
       > | null;
     } = { current: null };
     try {
@@ -1131,7 +1144,11 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       expect(
         secondState.db.query.user
           ?.findFirst({
-            where: { id: { eq: userV1.prefixId(clerkUserId) } },
+            where: {
+              id: {
+                eq: prefixId(userV1, clerkUserId),
+              },
+            },
           })
           .sync()?.name,
       ).toBe(restartedName);

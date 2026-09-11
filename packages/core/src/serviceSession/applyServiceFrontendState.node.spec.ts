@@ -7,15 +7,15 @@ import { AsyncLive } from '../async/AsyncLive.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { models as modelDefinitions } from '../models/index.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 import { ErrorLayer } from '../utils/ErrorLayer.ts';
 
 import { applyServiceFrontendState } from './applyServiceFrontendState.ts';
 import { serviceSessionRepoTables } from './serviceSessionRepoTables.ts';
 
-const Category = modelDefinitions.makeVersion(
-  modelDefinitions.makeModel({ name: 'category', abbreviation: 'cat' }),
+const Category = makeModelVersion(
+  makeModel({ name: 'category', abbreviation: 'cat' }),
   {
     attributes: {
       name: primitives.text(),
@@ -25,8 +25,8 @@ const Category = modelDefinitions.makeVersion(
   },
 );
 
-const Product = modelDefinitions.makeVersion(
-  modelDefinitions.makeModel({ name: 'product', abbreviation: 'prd' }),
+const Product = makeModelVersion(
+  makeModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: {
       categoryId: primitives.ref({

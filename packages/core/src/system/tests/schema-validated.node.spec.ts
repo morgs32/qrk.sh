@@ -2,32 +2,35 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { aggregates } from '../../aggregate/index.ts';
-import { authentication } from '../../authentication/index.ts';
-import { contracts } from '../../contracts/index.ts';
+import { makeAggregate } from '../../aggregate/makeAggregate.ts';
+import { makeAggregateVersion } from '../../aggregate/makeVersion.ts';
+import { makeAuthenticationVersion } from '../../authentication/makeVersion.ts';
+import { defineCommand } from '../../contracts/Command.ts';
+import { makeContractVersion } from '../../contracts/makeVersion.ts';
 import { makeFrontendController } from '../../frontendController/makeFrontendController.ts';
-import { models } from '../../models/index.ts';
+import { makeModel, makeModelVersion } from '../../models/makeModel.ts';
 import { makeSelection } from '../../models/makeSelection.ts';
 import { makeService } from '../../service/makeService.ts';
 import { makeSystem } from '../makeSystem.ts';
+import { makeSystemConfig } from '../makeSystemConfig.ts';
 import { makeSystemSpec } from '../makeSystemSpec.ts';
 import { ZerospinConfigSchema } from '../ZerospinConfigSchema.ts';
 
-const authenticationV1 = authentication.makeVersion({
+const authenticationV1 = makeAuthenticationVersion({
   version: '1.0.0',
   signature: Schema.Struct({}),
   authenticate: () => Effect.succeed('user'),
 });
 
-const ItemModel = models.makeModel({ name: 'item', abbreviation: 'itm' });
+const ItemModel = makeModel({ name: 'item', abbreviation: 'itm' });
 
-const Item = models.makeVersion(ItemModel, {
+const Item = makeModelVersion(ItemModel, {
   attributes: { amount: primitives.integer() },
   indexes: [],
   version: '2.0.0',
 });
 
-const renameItem = contracts.makeVersion(contracts.makeCommand('renameItem'), {
+const renameItem = makeContractVersion(defineCommand('renameItem'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
     amount: primitives.integer(),
@@ -50,7 +53,7 @@ describe('makeSystem schema validation', () => {
       authentication: [authenticationV1],
       aggregates: {},
     });
-    const config = system.config({ systemId: 'sys_config_test' });
+    const config = makeSystemConfig(system, { systemId: 'sys_config_test' });
     expect(config.system).toBe(system);
     expect(config).toEqual({ system, systemId: 'sys_config_test' });
     expectTypeOf(config.system.name).toEqualTypeOf<'empty'>();
@@ -67,15 +70,12 @@ describe('makeSystem schema validation', () => {
     ).toBe(false);
   });
   it('rejects structural copies of canonical authentication and owner factories', () => {
-    const aggregate = aggregates.makeVersion(
-      aggregates.makeAggregate({ name: 'list' }),
-      {
-        version: '1.0.0',
-        models: {},
-        contracts: {},
-        selections: {},
-      },
-    );
+    const aggregate = makeAggregateVersion(makeAggregate({ name: 'list' }), {
+      version: '1.0.0',
+      models: {},
+      contracts: {},
+      selections: {},
+    });
     const service = makeService({
       name: 'catalog',
       version: '1.0.0',
@@ -128,18 +128,15 @@ describe('makeSystem schema validation', () => {
       },
       frontends: {},
     });
-    const aggregate = aggregates.makeVersion(
-      aggregates.makeAggregate({ name: 'list' }),
-      {
-        version: '1.0.0',
-        authorize: () => Effect.void,
-        models: { item: Item },
-        contracts: { renameItem: { contract: renameItem } },
-        selections: {
-          item: makeSelection({ model: Item, where: () => ({}) }),
-        },
+    const aggregate = makeAggregateVersion(makeAggregate({ name: 'list' }), {
+      version: '1.0.0',
+      authorize: () => Effect.void,
+      models: { item: Item },
+      contracts: { renameItem: { contract: renameItem } },
+      selections: {
+        item: makeSelection({ model: Item, where: () => ({}) }),
       },
-    );
+    });
 
     const aggregateDefinitions = { list: [aggregate] };
     const serviceDefinitions = { catalog: [service] };
@@ -152,6 +149,7 @@ describe('makeSystem schema validation', () => {
 
     expect(system.services.catalog['1.0.0']).toBe(service);
     expect(system.aggregates.list).not.toBe(aggregate);
+    expect(system.aggregates.list['1.0.0']).toBe(aggregate);
     expect(system.aggregates.list['1.0.0'].models).toBe(aggregate.models);
     expect(system.aggregates.list['1.0.0'].contracts).toBe(aggregate.contracts);
     expect(system.aggregates.list['1.0.0'].selections).toBe(
@@ -164,15 +162,12 @@ describe('makeSystem schema validation', () => {
   });
 
   it('rejects owner key/name and frontend systemName mismatches as Schema errors', () => {
-    const aggregate = aggregates.makeVersion(
-      aggregates.makeAggregate({ name: 'account' }),
-      {
-        version: '1.0.0',
-        models: {},
-        contracts: {},
-        selections: {},
-      },
-    );
+    const aggregate = makeAggregateVersion(makeAggregate({ name: 'account' }), {
+      version: '1.0.0',
+      models: {},
+      contracts: {},
+      selections: {},
+    });
     const service = makeService({
       name: 'catalog',
       version: '1.0.0',
@@ -237,18 +232,15 @@ describe('makeSystem schema validation', () => {
   });
 
   it('preserves valid specs and stamped owner identities', () => {
-    const aggregate = aggregates.makeVersion(
-      aggregates.makeAggregate({ name: 'list' }),
-      {
-        version: '1.0.0',
-        authorize: () => Effect.void,
-        models: { item: Item },
-        contracts: { renameItem: { contract: renameItem } },
-        selections: {
-          item: makeSelection({ model: Item, where: () => ({}) }),
-        },
+    const aggregate = makeAggregateVersion(makeAggregate({ name: 'list' }), {
+      version: '1.0.0',
+      authorize: () => Effect.void,
+      models: { item: Item },
+      contracts: { renameItem: { contract: renameItem } },
+      selections: {
+        item: makeSelection({ model: Item, where: () => ({}) }),
       },
-    );
+    });
     const service = makeService({
       name: 'catalog',
       version: '1.0.0',

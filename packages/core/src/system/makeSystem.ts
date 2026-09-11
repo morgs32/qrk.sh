@@ -1,7 +1,7 @@
 import '@zerospin/server-only';
 import type { IAnyError } from '@zerospin/error';
 import type { CuidFactory, ITypeError } from '@zerospin/schema';
-import { Layer, Schema, type Effect, type Scope } from 'effect';
+import { Layer, type Scope } from 'effect';
 import { mapValues } from 'es-toolkit';
 
 import type {
@@ -18,8 +18,7 @@ import type { MonotonicFactory } from '../services/MonotonicFactory.ts';
 import { decodeSystemProps } from './decodeSystemProps.ts';
 import { resolveSystemAggregate } from './resolveSystemAggregate.ts';
 import { resolveSystemService } from './resolveSystemService.ts';
-import type { ISystem, ISystemConfig, ISystemId } from './types.ts';
-import { ZerospinConfigSchema } from './ZerospinConfigSchema.ts';
+import type { ISystem } from './types.ts';
 
 type IResolvedAggregates<
   AGGREGATES extends Record<string, readonly IAnyAuthoredAggregate[]>,
@@ -55,7 +54,7 @@ export function makeSystem<
         IAnyAuthoredAggregate
         ? { name: AGGREGATE_NAME } & ([
             Exclude<
-              Effect.Services<DEFINITION['initializeGuards']>,
+              NonNullable<DEFINITION['__initializeRequirements']>,
               | NoInfer<APP_SERVICES>
               | CuidFactory
               | MonotonicFactory
@@ -74,7 +73,7 @@ export function makeSystem<
         IAnyServices[string]
         ? { name: SERVICE_NAME } & ([
             Exclude<
-              Effect.Services<DEFINITION['initializeGuards']>,
+              NonNullable<DEFINITION['__initializeRequirements']>,
               | NoInfer<APP_SERVICES>
               | CuidFactory
               | MonotonicFactory
@@ -114,7 +113,7 @@ export function makeSystem<
         IAnyAuthoredAggregate
         ? { name: AGGREGATE_NAME } & ([
             Exclude<
-              Effect.Services<DEFINITION['initializeGuards']>,
+              NonNullable<DEFINITION['__initializeRequirements']>,
               CuidFactory | MonotonicFactory | Async | Scope.Scope
             >,
           ] extends [never]
@@ -129,7 +128,7 @@ export function makeSystem<
         IAnyServices[string]
         ? { name: SERVICE_NAME } & ([
             Exclude<
-              Effect.Services<DEFINITION['initializeGuards']>,
+              NonNullable<DEFINITION['__initializeRequirements']>,
               CuidFactory | MonotonicFactory | Async | Scope.Scope
             >,
           ] extends [never]
@@ -202,11 +201,6 @@ export function makeSystem(props: {
     },
   );
   const system = {
-    config(options: Readonly<{ systemId: ISystemId }>): ISystemConfig<unknown> {
-      const config = { system, systemId: options.systemId };
-      Schema.decodeUnknownSync(ZerospinConfigSchema)(config);
-      return config;
-    },
     layer: props.layer ?? Layer.empty,
     name: decoded.name,
     authentication: decoded.authentication,

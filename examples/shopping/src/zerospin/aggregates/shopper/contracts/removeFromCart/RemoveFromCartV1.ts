@@ -1,6 +1,4 @@
-import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
-import { ZerospinError } from '@zerospin/error';
-import { contracts, primitives } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
 import { cartItem } from '../../models/cartItem/cartItem';
@@ -8,9 +6,9 @@ import { cartItemV1 } from '../../models/cartItem/CartItemV1';
 
 import { removeFromCart } from './removeFromCart';
 
-export const removeFromCartV1 = contracts.makeVersion(removeFromCart, {
+export const removeFromCartV1 = sdk.makeContractVersion(removeFromCart, {
   payload: {
-    id: primitives.foreignKey({ abbreviation: cartItem.abbreviation }),
+    id: sdk.primitives.foreignKey({ abbreviation: cartItem.abbreviation }),
   },
 
   guard: ({
@@ -19,8 +17,8 @@ export const removeFromCartV1 = contracts.makeVersion(removeFromCart, {
   }: {
     db: Readonly<
       Pick<
-        IDb<
-          IResourceDbConfig<
+        sdk.IDb<
+          sdk.IResourceDbConfig<
             { cartItem: typeof cartItemV1 },
             Record<never, never>
           >
@@ -28,7 +26,7 @@ export const removeFromCartV1 = contracts.makeVersion(removeFromCart, {
         'query'
       >
     >;
-    payload: { id: ReturnType<typeof cartItemV1.prefixId> };
+    payload: { id: sdk.InferResource<typeof cartItemV1>['id'] };
   }) =>
     Effect.gen(function* () {
       const resource = yield* Effect.try({
@@ -36,13 +34,13 @@ export const removeFromCartV1 = contracts.makeVersion(removeFromCart, {
           db.query.cartItem
             .findFirst({ where: { id: { eq: payload.id } } })
             .sync(),
-        catch: ZerospinError.catch({
+        catch: sdk.ZerospinError.catch({
           code: 'cartItem-guard-query-failed',
           message: 'Failed to query cartItem during guard evaluation',
         }),
       });
       if (resource === undefined) {
-        return yield* new ZerospinError({
+        return yield* new sdk.ZerospinError({
           code: 'cart-item-not-found',
           message: `cartItem ${payload.id} was not found`,
         });

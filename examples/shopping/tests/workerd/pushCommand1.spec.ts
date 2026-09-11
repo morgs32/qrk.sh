@@ -2,12 +2,17 @@ import { describe, it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
+import { encodePayload } from '@zerospin/core/contracts/encodePayload';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { makeAggregateFrontendLockKey } from '@zerospin/core/frontendController/makeAggregateFrontendLockKey';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
+import { makeCommand } from '@zerospin/core/makeCommand';
+import { makeId } from '@zerospin/core/models/makeId';
+import { prefixId } from '@zerospin/core/models/prefixId';
 import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggregateFrontendState';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
@@ -24,9 +29,9 @@ import { Effect, Exit, Layer, ManagedRuntime, Scope } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { afterAll, expect } from 'vitest';
 
-import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/cartV1';
-import { userV1 } from '@/zerospin/aggregates/shopper/models/user/userV1';
-import { shopperV2 } from '@/zerospin/aggregates/shopper/shopperV2';
+import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/CartV1';
+import { userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
+import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
 import { signature } from '@/zerospin/signature';
 import { system } from '@/zerospin/system';
 const WebV2 = makeFrontendController({
@@ -64,8 +69,8 @@ describe('pushCommand1: static frontend command push', () => {
       'finalizes through static ingress and serves state, ticket, and push leaves',
       () =>
         Effect.gen(function* () {
-          const userId = userV1.prefixId(E2E_CLERK_USER_ID_1);
-          const createUser = yield* shopperAggregate.makeCommand({
+          const userId = prefixId(userV1, E2E_CLERK_USER_ID_1);
+          const createUser = yield* makeCommand(shopperAggregate, {
             contractName: 'createUser',
             aggregateId: E2E_AGGREGATE_ID,
             systemName: WebV2.systemName,
@@ -76,13 +81,13 @@ describe('pushCommand1: static frontend command push', () => {
           });
           const encodedCreateUser = {
             ...createUser,
-            payload:
-              yield* shopperAggregate.contracts.createUser.contract.encodePayload(
-                {
-                  version: createUser.contractVersion,
-                  payload: createUser.payload,
-                },
-              ),
+            payload: yield* encodePayload(
+              shopperAggregate.contracts.createUser.contract,
+              {
+                version: createUser.contractVersion,
+                payload: createUser.payload,
+              },
+            ),
           };
 
           const gatewayApi = yield* Effect.acquireRelease(
@@ -153,7 +158,7 @@ describe('pushCommand1: static frontend command push', () => {
             abbreviation: 'sesn',
           });
           const session = Effect.runSync(
-            Effect.map(WebV2.initializeGuards, guards =>
+            Effect.map(initializeFrontendGuards(WebV2), guards =>
               makeAggregateSession({
                 runtime: guardTestRuntime,
                 guards,
@@ -202,7 +207,7 @@ describe('pushCommand1: static frontend command push', () => {
               failure: null,
             },
           });
-          const cartId = yield* cartV1.makeId();
+          const cartId = yield* makeId(cartV1);
           const localCreateCart = yield* decodeRpc(
             session.executeCommand({
               contractName: 'createCart',
@@ -211,7 +216,7 @@ describe('pushCommand1: static frontend command push', () => {
           );
           const encodedLocalCreateCart = {
             ...localCreateCart,
-            payload: yield* WebV2.contracts.createCart.contract.encodePayload({
+            payload: yield* encodePayload(WebV2.contracts.createCart.contract, {
               version: localCreateCart.contractVersion,
               payload: localCreateCart.payload,
             }),

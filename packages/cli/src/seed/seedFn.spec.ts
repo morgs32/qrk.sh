@@ -130,11 +130,11 @@ describe('seed file execution', () => {
     });
   });
 
-  it('ignores non-Effect exports and the default export', async () => {
+  it('loads an absolute path and ignores exports other than seeds', async () => {
     const filePath = join(directory, 'seeds.ts');
     await writeFile(
       filePath,
-      `export { notebook } from '../seeds.ts'; export const description = 'fixture'; export { ada as default } from '../seeds.ts';`,
+      `import { seeds as commands } from '../seeds.ts'; export const seeds = [commands[1]]; export const description = 'fixture'; export default commands;`,
     );
     const result = await Effect.runPromise(
       seedFn({ filePath, cwd: configRoot }).pipe(Effect.provide(platform)),
@@ -147,35 +147,57 @@ describe('seed file execution', () => {
   for (const [name, contents, code] of [
     ['missing file', null, 'seed-file-missing'],
     ['import failure', 'throw new Error("import-broke")', 'seed-load-failed'],
-    ['no commands', 'export const title = "empty";', 'seed-no-commands'],
     [
-      'failed command Effect',
-      'import { Effect } from "effect"; export const broken = Effect.fail("seed-broke");',
+      'missing seeds export',
+      'export const title = "empty";',
+      'seed-no-commands',
+    ],
+    ['empty array', 'export const seeds = [];', 'seed-no-commands'],
+    ['non-array export', 'export const seeds = {};', 'seed-command-invalid'],
+    ['null export', 'export const seeds = null;', 'seed-command-invalid'],
+    [
+      'default-only export',
+      'export { seeds as default } from "../seeds.ts";',
+      'seed-no-commands',
+    ],
+    [
+      'module Effect failure',
+      'import { Effect } from "effect"; export const seeds = Effect.runSync(Effect.fail("seed-broke"));',
+      'seed-load-failed',
+    ],
+    [
+      'unresolved Effect export',
+      'import { Effect } from "effect"; export const seeds = Effect.succeed([]);',
       'seed-command-invalid',
     ],
     [
       'invalid command value',
-      'import { Effect } from "effect"; export const broken = Effect.succeed({});',
+      'export const seeds = [commands[0], {}];',
+      'seed-command-invalid',
+    ],
+    [
+      'unresolved command Effect',
+      'import { Effect } from "effect"; export const seeds = [commands[0], Effect.succeed(commands[1])];',
       'seed-command-invalid',
     ],
     [
       'unknown service',
-      'import { Effect } from "effect"; import { notebook } from "../seeds.ts"; export const broken = notebook.pipe(Effect.map(command => ({ ...command, serviceName: "missing" })));',
+      'export const seeds = [commands[0], { ...commands[1], serviceName: "missing" }];',
       'seed-command-invalid',
     ],
     [
       'unknown owner version',
-      'import { Effect } from "effect"; import { notebook } from "../seeds.ts"; export const broken = notebook.pipe(Effect.map(command => ({ ...command, serviceVersion: "99.0.0" })));',
+      'export const seeds = [commands[0], { ...commands[1], serviceVersion: "99.0.0" }];',
       'seed-command-invalid',
     ],
     [
       'wrong system',
-      'import { Effect } from "effect"; import { ada } from "../seeds.ts"; export const broken = ada.pipe(Effect.map(command => ({ ...command, systemName: "other" })));',
+      'export const seeds = [commands[1], { ...commands[0], systemName: "other" }];',
       'seed-command-invalid',
     ],
     [
       'invalid payload',
-      'import { Effect } from "effect"; import { notebook } from "../seeds.ts"; export const broken = notebook.pipe(Effect.map(command => ({ ...command, payload: { name: 42 } })));',
+      'export const seeds = [commands[0], { ...commands[1], payload: { name: 42 } }];',
       null,
     ],
   ]) {
@@ -184,12 +206,8 @@ describe('seed file execution', () => {
       if (contents !== null) {
         await writeFile(
           filePath,
-          `export { ada } from '../seeds.ts';\n${contents}`,
+          `import { seeds as commands } from '../seeds.ts';\n${contents}`,
         );
-      }
-      // Empty modules must not acquire a command from the common valid export.
-      if (name === 'no commands' && contents !== null) {
-        await writeFile(filePath, contents);
       }
       const failure = await Effect.runPromise(
         seedFn({ filePath, cwd: configRoot }).pipe(

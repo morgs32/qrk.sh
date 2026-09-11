@@ -1,6 +1,7 @@
-import { models } from '@zerospin/sdk/browser';
+import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
+
 /**
- * Define service-owned data with models.makeVersion, derive aggregate-held copies with
+ * Define service-owned data with makeModelVersion, derive aggregate-held copies with
  * makeReplica, and register each model only with its owner. Use
  * Model.isReplica before reading canonical replica provenance. The direct
  * sourceModel and serviceName getters are intentionally absent from spread,
@@ -20,7 +21,7 @@ import { models } from '@zerospin/sdk/browser';
  * one userIndex per aggregate or service input while retaining aggregateIndex
  * as its consumed aggregate watermark. Standalone service frontends use VSRR.
  *
- * @bad Add serviceName or deletedAt to models.makeVersion; service ownership and replica
+ * @bad Add serviceName or deletedAt to makeModelVersion; service ownership and replica
  * tombstones are not intrinsic authoritative-model fields.
  * @bad Register ProductReplica in services.app.models.
  * @bad Register the authoritative Product in aggregates.shopper.models when the
@@ -28,8 +29,8 @@ import { models } from '@zerospin/sdk/browser';
  * @bad Detect a canonical replica with 'sourceModel' in model or by reflecting
  * its provenance fields.
  */
-export const Product = models.makeVersion(
-  models.makeModel({ name: 'product', abbreviation: 'prd' }),
+export const Product = makeModelVersion(
+  makeModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: {
       name: primitives.text(),
@@ -55,15 +56,12 @@ const appV1 = makeService({
 
 export const system = makeSystem({
   aggregates: {
-    shopper: aggregates.makeVersion(
-      aggregates.makeAggregate({ name: 'shopper' }),
-      {
-        services: { app: appV1 },
-        models: {
-          product: ProductReplica,
-        },
+    shopper: makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+      services: { app: appV1 },
+      models: {
+        product: ProductReplica,
       },
-    ),
+    }),
   },
   services: {
     app: appV1,

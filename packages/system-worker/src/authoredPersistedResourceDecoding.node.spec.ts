@@ -1,4 +1,5 @@
 import { it } from '@effect/vitest';
+import { prefixId } from '@zerospin/core/models/prefixId';
 import { Effect } from 'effect';
 import { describe, expect } from 'vitest';
 
@@ -22,7 +23,7 @@ describe('authored persisted resource decoding', () => {
         modelName: model.modelName,
         modelVersion: model.version,
         resource: {
-          id: model.prefixId('aggregate-projection'),
+          id: prefixId(model, 'aggregate-projection'),
           modelName: model.modelName,
           version: model.version,
           createdAt,
@@ -34,7 +35,7 @@ describe('authored persisted resource decoding', () => {
       expect(projected).toEqual({
         modelName: model.modelName,
         resource: {
-          id: model.prefixId('aggregate-projection'),
+          id: prefixId(model, 'aggregate-projection'),
           modelName: model.modelName,
           version: model.version,
           createdAt: createdAt.toISOString(),
@@ -58,7 +59,7 @@ describe('authored persisted resource decoding', () => {
           frontendName: 'products',
           modelName: model.modelName,
           resource: {
-            id: model.prefixId('service-projection'),
+            id: prefixId(model, 'service-projection'),
             modelName: model.modelName,
             version: model.version,
             createdAt,
@@ -70,7 +71,7 @@ describe('authored persisted resource decoding', () => {
         expect(projected).toEqual({
           modelName: model.modelName,
           resource: {
-            id: model.prefixId('service-projection'),
+            id: prefixId(model, 'service-projection'),
             modelName: model.modelName,
             version: model.version,
             createdAt: createdAt.toISOString(),
@@ -98,7 +99,7 @@ describe('authored persisted resource decoding', () => {
           modelName: model.modelName,
           modelVersion: '1.0.0',
           resource: {
-            id: model.prefixId('historical-adaptation'),
+            id: prefixId(model, 'historical-adaptation'),
             modelName: model.modelName,
             version: model.version,
             createdAt,

@@ -1,4 +1,4 @@
-import { contracts, primitives } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
 import { product } from '../../models/product/product';
@@ -6,12 +6,12 @@ import { productV1 } from '../../models/product/ProductV1';
 
 import { createProduct } from './createProduct';
 
-export const createProductV1 = contracts.makeVersion(createProduct, {
+export const createProductV1 = sdk.makeContractVersion(createProduct, {
   payload: {
-    id: primitives.foreignKey({ abbreviation: product.abbreviation }),
-    description: primitives.text(),
-    name: primitives.text(),
-    price: primitives.integer(),
+    id: sdk.primitives.foreignKey({ abbreviation: product.abbreviation }),
+    description: sdk.primitives.text(),
+    name: sdk.primitives.text(),
+    price: sdk.primitives.integer(),
   },
 
   models: { product: productV1 },

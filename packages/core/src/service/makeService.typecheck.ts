@@ -3,13 +3,14 @@ import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { models } from '../models/index.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 
 import { makeService } from './makeService.ts';
+import { requireVersion as requireServiceVersion } from './requireVersion.ts';
 
-const Product = models.makeVersion(
-  models.makeModel({ name: 'product', abbreviation: 'prd' }),
+const Product = makeModelVersion(
+  makeModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
@@ -45,7 +46,7 @@ assert<Equals<typeof catalog.queries.products.kind, 'service'>>();
 assert<Equals<typeof catalog.queries.products.name, 'products'>>();
 assert<Equals<typeof catalog.queries.products.serviceName, 'catalog'>>();
 assert<Equals<typeof catalog.frontends.browse.name, 'browse'>>();
-void catalog.getVersion(catalog.version);
+void requireServiceVersion(catalog, catalog.version);
 
 // @ts-expect-error service definitions are immutable after construction
 catalog.name = 'catalog';
@@ -112,8 +113,8 @@ makeService({
   authorize: () => Effect.void,
 });
 
-const VersionedProduct = models.makeVersion(
-  models.makeModel({ name: 'versionedProduct', abbreviation: 'vpd' }),
+const VersionedProduct = makeModelVersion(
+  makeModel({ name: 'versionedProduct', abbreviation: 'vpd' }),
   {
     attributes: { amount: primitives.integer() },
     indexes: [],

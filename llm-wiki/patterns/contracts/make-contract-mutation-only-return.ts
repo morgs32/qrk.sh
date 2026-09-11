@@ -1,12 +1,13 @@
-import { contracts } from '@zerospin/core/contracts/index';
+import { defineCommand } from '@zerospin/core/contracts/Command';
+import { makeContractVersion } from '@zerospin/core/contracts/makeVersion';
 
 /**
- * `contracts.makeVersion` enforces mutation-only program return at definition time.
+ * `makeContractVersion` enforces mutation-only program return at definition time.
  *
  * @bad Duplicate mutation-only type checks while normalizing a `makeSystem` frontend binding.
  */
-export const updateListContract = contracts.makeVersion(
-  contracts.makeCommand('updateList'),
+export const updateListContract = makeContractVersion(
+  defineCommand('updateList'),
   {
     payloadSchema: UpdateListPayloadSchema,
     program: ({ payload }) =>

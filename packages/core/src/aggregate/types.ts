@@ -1,23 +1,14 @@
 import type { IAnyError } from '@zerospin/error';
-import type { CuidFactory } from '@zerospin/schema';
 import { type Effect, type Layer, type Scope } from 'effect';
 
 import type {
-  IAggregateCommand,
   IAnyContractBindings,
-  ICommand,
   IContractBinding,
 } from '../contracts/types.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
 import type { initializeGuards } from '../guards/initializeGuards.ts';
 import type { ISelectionWhereProps } from '../models/makeSelection.ts';
-import type {
-  IAggregateId,
-  IAnyModels,
-  IModel,
-  InferCommandPayload,
-  InferPayloadInput,
-} from '../models/types.ts';
+import type { IAggregateId, IAnyModels, IModel } from '../models/types.ts';
 
 export type IAggregateAuthorization<
   MODELS extends IAnyModels,
@@ -51,24 +42,27 @@ export type IAuthoredAggregate<
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = never,
 > = {
-  readonly initializeGuards: ReturnType<
-    typeof initializeGuards<
-      LAYER_SERVICES,
-      LAYER_REQUIREMENTS,
-      | Effect.Services<
-          ReturnType<
-            NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
+  /** Type-only owner requirements retained when a system registry erases concrete guards and layers. */
+  readonly __initializeRequirements?: Effect.Services<
+    ReturnType<
+      typeof initializeGuards<
+        LAYER_SERVICES,
+        LAYER_REQUIREMENTS,
+        | Effect.Services<
+            ReturnType<
+              NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
+            >
           >
-        >
-      | {
-          [K in keyof CONTRACTS]: CONTRACTS[K] extends {
-            readonly guard: (
-              ...args: never[]
-            ) => Effect.Effect<void, IAnyError, infer R>;
-          }
-            ? R
-            : never;
-        }[keyof CONTRACTS]
+        | {
+            [K in keyof CONTRACTS]: CONTRACTS[K] extends {
+              readonly guard: (
+                ...args: never[]
+              ) => Effect.Effect<void, IAnyError, infer R>;
+            }
+              ? R
+              : never;
+          }[keyof CONTRACTS]
+      >
     >
   >;
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
@@ -93,69 +87,7 @@ export type IAuthoredAggregate<
       SELECTIONS[SELECTION_NAME]
     >;
   };
-  readonly getVersion: (snapshotVersion: string) => Effect.Effect<
-    IAnyAuthoredAggregate<
-      | Effect.Services<
-          ReturnType<
-            NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
-          >
-        >
-      | {
-          [K in keyof CONTRACTS]: CONTRACTS[K] extends {
-            readonly guard: (
-              ...args: never[]
-            ) => Effect.Effect<void, IAnyError, infer R>;
-          }
-            ? R
-            : never;
-        }[keyof CONTRACTS],
-      LAYER_SERVICES,
-      LAYER_REQUIREMENTS,
-      | LAYER_REQUIREMENTS
-      | Exclude<
-          | Effect.Services<
-              ReturnType<
-                NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
-              >
-            >
-          | {
-              [K in keyof CONTRACTS]: CONTRACTS[K] extends {
-                readonly guard: (
-                  ...args: never[]
-                ) => Effect.Effect<void, IAnyError, infer R>;
-              }
-                ? R
-                : never;
-            }[keyof CONTRACTS],
-          LAYER_SERVICES
-        >
-    >,
-    IAnyError
-  >;
-  readonly makeCommand: <
-    CONTRACT_NAME extends keyof CONTRACTS & string,
-    const SYSTEM_NAME extends string,
-  >(props: {
-    contractName: CONTRACT_NAME;
-    aggregateId: IAggregateId;
-    systemName: SYSTEM_NAME;
-    payload: InferPayloadInput<CONTRACTS[CONTRACT_NAME]['contract']['payload']>;
-  }) => Effect.Effect<
-    Extract<
-      IAggregateCommand<
-        ICommand<
-          CONTRACTS[CONTRACT_NAME]['contract']['commandName'],
-          CONTRACTS[CONTRACT_NAME]['contract']['version'],
-          InferCommandPayload<CONTRACTS[CONTRACT_NAME]['contract']['payload']>
-        >,
-        NAME,
-        SYSTEM_NAME
-      >,
-      { sessionId: null }
-    >,
-    IAnyError,
-    CuidFactory
-  >;
+
   readonly authorize?: AUTHORIZE;
 };
 
@@ -165,13 +97,8 @@ export type IAnyAuthoredAggregate<
   LAYER_REQUIREMENTS = unknown,
   INITIALIZE_REQUIREMENTS = unknown,
 > = {
-  readonly initializeGuards: Effect.Effect<
-    Effect.Success<
-      ReturnType<typeof initializeGuards<never, unknown, unknown>>
-    >,
-    IAnyError,
-    INITIALIZE_REQUIREMENTS | Scope.Scope
-  >;
+  /** Type-only owner requirements retained when a system registry erases concrete guards and layers. */
+  readonly __initializeRequirements?: INITIALIZE_REQUIREMENTS | Scope.Scope;
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
   readonly name: string;
   readonly version: string;
@@ -182,20 +109,6 @@ export type IAnyAuthoredAggregate<
   readonly authorize?: {
     bivarianceHack(props: unknown): Effect.Effect<void, IAnyError>;
   }['bivarianceHack'];
-  readonly getVersion: (
-    snapshotVersion: string,
-  ) => Effect.Effect<
-    IAnyAuthoredAggregate<
-      GUARD_REQUIREMENTS,
-      LAYER_SERVICES,
-      LAYER_REQUIREMENTS,
-      INITIALIZE_REQUIREMENTS
-    >,
-    IAnyError
-  >;
-  readonly makeCommand: (
-    props: never,
-  ) => Effect.Effect<unknown, IAnyError, CuidFactory>;
 };
 
 export type IAggregate<
@@ -212,24 +125,27 @@ export type IAggregate<
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = never,
 > = {
-  readonly initializeGuards: ReturnType<
-    typeof initializeGuards<
-      LAYER_SERVICES,
-      LAYER_REQUIREMENTS,
-      | Effect.Services<
-          ReturnType<
-            NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
+  /** Type-only owner requirements retained when a system registry erases concrete guards and layers. */
+  readonly __initializeRequirements?: Effect.Services<
+    ReturnType<
+      typeof initializeGuards<
+        LAYER_SERVICES,
+        LAYER_REQUIREMENTS,
+        | Effect.Services<
+            ReturnType<
+              NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
+            >
           >
-        >
-      | {
-          [K in keyof CONTRACTS]: CONTRACTS[K] extends {
-            readonly guard: (
-              ...args: never[]
-            ) => Effect.Effect<void, IAnyError, infer R>;
-          }
-            ? R
-            : never;
-        }[keyof CONTRACTS]
+        | {
+            [K in keyof CONTRACTS]: CONTRACTS[K] extends {
+              readonly guard: (
+                ...args: never[]
+              ) => Effect.Effect<void, IAnyError, infer R>;
+            }
+              ? R
+              : never;
+          }[keyof CONTRACTS]
+      >
     >
   >;
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
@@ -254,69 +170,7 @@ export type IAggregate<
       SELECTIONS[SELECTION_NAME]
     >;
   };
-  readonly getVersion: (snapshotVersion: string) => Effect.Effect<
-    IAnyAggregate<
-      | Effect.Services<
-          ReturnType<
-            NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
-          >
-        >
-      | {
-          [K in keyof CONTRACTS]: CONTRACTS[K] extends {
-            readonly guard: (
-              ...args: never[]
-            ) => Effect.Effect<void, IAnyError, infer R>;
-          }
-            ? R
-            : never;
-        }[keyof CONTRACTS],
-      LAYER_SERVICES,
-      LAYER_REQUIREMENTS,
-      | LAYER_REQUIREMENTS
-      | Exclude<
-          | Effect.Services<
-              ReturnType<
-                NonNullable<CONTRACTS[keyof CONTRACTS]['contract']['guard']>
-              >
-            >
-          | {
-              [K in keyof CONTRACTS]: CONTRACTS[K] extends {
-                readonly guard: (
-                  ...args: never[]
-                ) => Effect.Effect<void, IAnyError, infer R>;
-              }
-                ? R
-                : never;
-            }[keyof CONTRACTS],
-          LAYER_SERVICES
-        >
-    >,
-    IAnyError
-  >;
-  readonly makeCommand: <
-    CONTRACT_NAME extends keyof CONTRACTS & string,
-    const SYSTEM_NAME extends string,
-  >(props: {
-    contractName: CONTRACT_NAME;
-    aggregateId: IAggregateId;
-    systemName: SYSTEM_NAME;
-    payload: InferPayloadInput<CONTRACTS[CONTRACT_NAME]['contract']['payload']>;
-  }) => Effect.Effect<
-    Extract<
-      IAggregateCommand<
-        ICommand<
-          CONTRACTS[CONTRACT_NAME]['contract']['commandName'],
-          CONTRACTS[CONTRACT_NAME]['contract']['version'],
-          InferCommandPayload<CONTRACTS[CONTRACT_NAME]['contract']['payload']>
-        >,
-        NAME,
-        SYSTEM_NAME
-      >,
-      { sessionId: null }
-    >,
-    IAnyError,
-    CuidFactory
-  >;
+
   readonly authorize?: AUTHORIZE;
 };
 
@@ -326,13 +180,8 @@ export type IAnyAggregate<
   LAYER_REQUIREMENTS = unknown,
   INITIALIZE_REQUIREMENTS = unknown,
 > = {
-  readonly initializeGuards: Effect.Effect<
-    Effect.Success<
-      ReturnType<typeof initializeGuards<never, unknown, unknown>>
-    >,
-    IAnyError,
-    INITIALIZE_REQUIREMENTS | Scope.Scope
-  >;
+  /** Type-only owner requirements retained when a system registry erases concrete guards and layers. */
+  readonly __initializeRequirements?: INITIALIZE_REQUIREMENTS | Scope.Scope;
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
   readonly name: string;
   readonly version: string;
@@ -343,20 +192,6 @@ export type IAnyAggregate<
   readonly authorize?: {
     bivarianceHack(props: unknown): Effect.Effect<void, IAnyError>;
   }['bivarianceHack'];
-  readonly getVersion: (
-    snapshotVersion: string,
-  ) => Effect.Effect<
-    IAnyAggregate<
-      GUARD_REQUIREMENTS,
-      LAYER_SERVICES,
-      LAYER_REQUIREMENTS,
-      INITIALIZE_REQUIREMENTS
-    >,
-    IAnyError
-  >;
-  readonly makeCommand: (
-    props: never,
-  ) => Effect.Effect<unknown, IAnyError, CuidFactory>;
 };
 
 export type IAnyAggregates = Readonly<Record<string, IAnyAggregate>>;

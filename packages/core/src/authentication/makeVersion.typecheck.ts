@@ -3,10 +3,10 @@ import { assert, type Equals } from 'tsafe';
 
 import { makeSystem } from '../system/makeSystem.ts';
 
-import { authentication } from './index.ts';
+import { makeAuthenticationVersion } from './makeVersion.ts';
 
 const UserId = Schema.String.pipe(Schema.brand('UserId'));
-const v1 = authentication.makeVersion({
+const v1 = makeAuthenticationVersion({
   version: '1.0.0',
   signature: Schema.Struct({ userId: UserId }),
   authenticate: ({ signature }) => {
@@ -14,7 +14,7 @@ const v1 = authentication.makeVersion({
     return Effect.succeed(signature.userId);
   },
 });
-const v2 = authentication.makeVersion({
+const v2 = makeAuthenticationVersion({
   version: '2.0.0',
   signature: Schema.Struct({ subject: Schema.String }),
   authenticate: ({ signature }) => Effect.succeed(signature.subject),
@@ -34,7 +34,7 @@ assert<Equals<typeof system.authentication, readonly [typeof v1, typeof v2]>>();
 v1.version = '1.0.0';
 // @ts-expect-error signature input must match the selected schema
 v1.authenticate({ signature: { subject: 'user' } });
-authentication.makeVersion({
+makeAuthenticationVersion({
   version: '1.0.0',
   signature: Schema.String,
   // @ts-expect-error authentication must return a user ID string

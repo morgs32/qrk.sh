@@ -12,26 +12,31 @@ import {
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function ShoppingCartSidebar() {
-  const { userId } = useInitializedStateOrThrow(ZerospinApp.frontends.web);
+  const { userId } = useInitializedStateOrThrow(
+    ZerospinApp.frontends.shopperFrontend,
+  );
 
-  const { data: userRow } = useLiveQuery(ZerospinApp.frontends.web, {
-    query: db =>
-      db.query.user.findFirst({
-        where: { clerkUserId: { eq: userId } },
-        with: {
-          cart: {
-            with: {
-              items: {
-                with: {
-                  product: true,
+  const { data: userRow } = useLiveQuery(
+    ZerospinApp.frontends.shopperFrontend,
+    {
+      query: db =>
+        db.query.user.findFirst({
+          where: { clerkUserId: { eq: userId } },
+          with: {
+            cart: {
+              with: {
+                items: {
+                  with: {
+                    product: true,
+                  },
                 },
               },
             },
           },
-        },
-      }),
-    deps: [userId],
-  });
+        }),
+      deps: [userId],
+    },
+  );
 
   const cartItems = userRow?.cart?.items ?? [];
 

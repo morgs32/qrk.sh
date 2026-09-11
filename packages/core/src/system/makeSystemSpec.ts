@@ -48,13 +48,6 @@ export function makeSystemSpec<
       mapValues(versions, service => ({
         name: service.name,
         version: service.version,
-        historicalDefinitions: service.historicalDefinitions.map(
-          definition => ({
-            version: definition.version,
-            models: { ...definition.models },
-            contracts: { ...definition.contracts },
-          }),
-        ),
         models: mapValues(service.models, model => ({
           modelName: model.modelName,
           abbreviation: model.abbreviation,

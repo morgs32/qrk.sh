@@ -1,7 +1,10 @@
 import { describe, it } from '@effect/vitest';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
+import { encodePayload } from '@zerospin/core/contracts/encodePayload';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
+import { makeCommand } from '@zerospin/core/makeCommand';
+import { makeId } from '@zerospin/core/models/makeId';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { makeWorkerdE2eTestLayer } from '@zerospin/dev-worker/vitest/makeWorkerdE2eTestLayer';
 import { newWebSocketRpcSession } from 'capnweb';
@@ -11,12 +14,12 @@ import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { SystemRepo } from 'system-worker/SystemRepo/SystemRepo';
 import { expect } from 'vitest';
 
-import { appV1 } from '@/zerospin/services/app/appV1';
-import { productV1 } from '@/zerospin/services/app/models/product/productV1';
+import { appV1 } from '@/zerospin/services/app/AppV1';
+import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
 import { signature } from '@/zerospin/signature';
 import { system } from '@/zerospin/system';
 
-const CatalogV1 = appV1.frontends.catalog.controller;
+const CatalogV1 = appV1.frontends.appFrontend.controller;
 
 const appService = system.services.app['1.0.0'];
 const catalogServiceFrontendLock =
@@ -65,10 +68,10 @@ describe('serviceFrontendFlow1: static service frontend', () => {
           );
           expect(invalidAuthentication._tag).toBe('Failure');
 
-          const createProduct = yield* appService.makeCommand({
+          const createProduct = yield* makeCommand(appService, {
             contractName: 'createProduct',
             payload: {
-              id: yield* productV1.makeId(),
+              id: yield* makeId(productV1),
               name: 'Static catalog product',
               description: 'projected from the statically bundled System',
               price: 10,
@@ -76,7 +79,7 @@ describe('serviceFrontendFlow1: static service frontend', () => {
           });
           const encodedCreateProduct = {
             ...createProduct,
-            payload: yield* appService.contracts.createProduct.encodePayload({
+            payload: yield* encodePayload(appService.contracts.createProduct, {
               version: createProduct.contractVersion,
               payload: createProduct.payload,
             }),

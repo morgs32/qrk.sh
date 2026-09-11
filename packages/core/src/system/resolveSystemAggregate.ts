@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect';
+import { Schema } from 'effect';
 
 import type {
   IAnyAggregate,
@@ -82,18 +82,5 @@ export function resolveSystemAggregate(props: {
     ),
   )(aggregate.models);
 
-  const resolvedAggregate = {
-    ...aggregate,
-    getVersion: (snapshotVersion: string) =>
-      aggregate.getVersion(snapshotVersion).pipe(
-        Effect.map(sliced =>
-          resolveSystemAggregate({
-            ...props,
-            aggregate: sliced,
-          }),
-        ),
-      ),
-  };
-
-  return resolvedAggregate;
+  return aggregate;
 }

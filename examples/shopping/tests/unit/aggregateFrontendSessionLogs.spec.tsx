@@ -6,6 +6,7 @@ import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthen
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
@@ -41,8 +42,8 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import {
   ClerkUserIdSchema,
   userV1,
-} from '@/zerospin/aggregates/shopper/models/user/userV1';
-import { shopperV2 } from '@/zerospin/aggregates/shopper/shopperV2';
+} from '@/zerospin/aggregates/shopper/models/user/UserV1';
+import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
 import { system } from '@/zerospin/system';
 const WebV2 = makeFrontendController({
   systemName: 'shopping',
@@ -111,7 +112,7 @@ describe('aggregate frontend session logs integration', () => {
       aggregateFrontendLock: frontendSpec.aggregateFrontendLock,
     });
     const session = Effect.runSync(
-      Effect.map(WebV2.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(WebV2), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -121,7 +122,7 @@ describe('aggregate frontend session logs integration', () => {
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     const otherSession = Effect.runSync(
-      Effect.map(WebV2.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(WebV2), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,

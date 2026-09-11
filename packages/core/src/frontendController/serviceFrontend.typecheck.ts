@@ -1,19 +1,19 @@
 import { primitives } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 
-import { models } from '../models/index.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 import { makeService } from '../service/makeService.ts';
 
 import { makeFrontendController } from './makeFrontendController.ts';
 import type { IServiceFrontend } from './types.ts';
 
-const product = models.makeModel({ name: 'product', abbreviation: 'prd' });
-const productV1 = models.makeVersion(product, {
+const product = makeModel({ name: 'product', abbreviation: 'prd' });
+const productV1 = makeModelVersion(product, {
   version: '1.0.0',
   attributes: { label: primitives.text() },
   indexes: [],
 });
-const productV2 = models.makeVersion(product, {
+const productV2 = makeModelVersion(product, {
   version: '2.0.0',
   attributes: { label: primitives.text() },
   indexes: [],
@@ -63,8 +63,8 @@ const wrongModels = makeFrontendController({
 });
 // @ts-expect-error The model definition must match the service.
 wrongModels satisfies IServiceFrontend<typeof appV1>;
-const other = models.makeVersion(
-  models.makeModel({ name: 'other', abbreviation: 'oth' }),
+const other = makeModelVersion(
+  makeModel({ name: 'other', abbreviation: 'oth' }),
   {
     version: '1.0.0',
     attributes: { label: primitives.text() },

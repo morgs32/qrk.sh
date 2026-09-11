@@ -1,7 +1,7 @@
 import '@zerospin/server-only';
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import type { IAnyError } from '@zerospin/error';
 import type { ITypeError } from '@zerospin/schema';
-import { Effect, Layer, Schema } from 'effect';
+import { Layer, Schema, type Effect } from 'effect';
 
 import type { AssertContractMutationsInModels } from '../contracts/assertMutationsUseModels.ts';
 import { Contract } from '../contracts/makeVersion.ts';
@@ -11,22 +11,17 @@ import type {
   IContractBinding,
 } from '../contracts/types.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
-import { initializeGuards } from '../guards/initializeGuards.ts';
 import { assertValidModels } from '../models/assertValidModels.ts';
 import { Model } from '../models/makeModel.ts';
 import type {
-  IAggregateId,
   IAnyModels,
   IAssertValidModels,
   IModel,
   InferCommandPayload,
-  InferPayloadInput,
 } from '../models/types.ts';
 import { ServiceSchema } from '../service/makeService.ts';
 import type { IAnyService } from '../service/types.ts';
-import { getByKeyOrThrow } from '../utils/getByKeyOrThrow.ts';
 
-import { makeAggregateCommand } from './makeAggregateCommand.ts';
 import type {
   IAggregateAuthorization,
   IAnyAuthoredAggregate,
@@ -108,7 +103,7 @@ export const AggregateSchema = Schema.declare(
     input instanceof Aggregate,
 );
 
-export function makeVersion<
+export function makeAggregateVersion<
   const NAME extends string,
   const MODELS extends IAnyModels,
   const CONTRACTS extends IAnyContractBindings,
@@ -162,7 +157,7 @@ export function makeVersion<
   LAYER_REQUIREMENTS
 >;
 
-export function makeVersion(
+export function makeAggregateVersion(
   identity: Readonly<{
     name: string;
     layer: Layer.Layer<never, IAnyError, unknown>;
@@ -212,7 +207,7 @@ export function makeVersion(
 
   assertValidModels({
     models,
-    context: `aggregates.makeVersion: ${name}`,
+    context: `makeAggregateVersion: ${name}`,
   });
 
   Schema.decodeUnknownSync(
@@ -247,63 +242,7 @@ export function makeVersion(
     { onExcessProperty: 'error' },
   )(selections);
 
-  const makeCommand = <
-    CONTRACT_NAME extends keyof typeof contracts & string,
-    const SYSTEM_NAME extends string,
-  >(commandProps: {
-    contractName: CONTRACT_NAME;
-    aggregateId: IAggregateId;
-    systemName: SYSTEM_NAME;
-    payload: InferPayloadInput<
-      (typeof contracts)[CONTRACT_NAME]['contract']['payload']
-    >;
-  }) => {
-    return Effect.gen(function* () {
-      const { contractName, ...aggregateCommandProps } = commandProps;
-      const contractBinding = yield* getByKeyOrThrow({
-        record: contracts,
-        key: contractName,
-        recordKind: `aggregates.makeVersion: ${name}.contracts`,
-      });
-      return yield* makeAggregateCommand({
-        contract: contractBinding.contract,
-        aggregateName: name,
-        aggregateVersion: version,
-        ...aggregateCommandProps,
-      });
-    });
-  };
-
-  const getVersion = Effect.fn(`getVersion/${name}`)(function* (
-    requestedVersion: string,
-  ) {
-    if (requestedVersion !== version) {
-      return yield* new ZerospinError({
-        code: 'aggregate-version-unsupported',
-        message: `Aggregate "${name}" is version "${version}", not "${requestedVersion}"`,
-        extra: {
-          aggregateName: name,
-          aggregateVersion: version,
-          currentVersion: version,
-          requestedVersion,
-        },
-      });
-    }
-    return aggregate;
-  });
-
   const fields = {
-    initializeGuards: initializeGuards({
-      layer: decoded.layer,
-      guards: Object.fromEntries(
-        Object.entries(contracts).map(([name, binding]) => [
-          name,
-          [binding.guard, binding.contract.guard].filter(
-            guard => guard !== undefined,
-          ),
-        ]),
-      ),
-    }),
     layer: decoded.layer,
     name,
     version,
@@ -311,8 +250,6 @@ export function makeVersion(
     services,
     contracts,
     selections,
-    makeCommand,
-    getVersion,
   };
   const aggregate = Object.assign(
     new Aggregate(),
@@ -322,7 +259,7 @@ export function makeVersion(
   return aggregate;
 }
 
-export function upgradeVersion<
+export function upgradeAggregateVersion<
   const NAME extends string,
   const MODELS extends IAnyModels,
   const CONTRACTS extends IAnyContractBindings,
@@ -384,7 +321,7 @@ export function upgradeVersion<
         : never;
   },
   NEXT_PROPS extends Parameters<
-    typeof makeVersion<
+    typeof makeAggregateVersion<
       NAME,
       NEXT_MODELS,
       NEXT_CONTRACTS,
@@ -395,7 +332,7 @@ export function upgradeVersion<
       LAYER_REQUIREMENTS
     >
   >[1] = Parameters<
-    typeof makeVersion<
+    typeof makeAggregateVersion<
       NAME,
       NEXT_MODELS,
       NEXT_CONTRACTS,
@@ -453,7 +390,7 @@ export function upgradeVersion<
     'version' | 'models' | 'services' | 'contracts' | 'selections' | 'authorize'
   >,
 ): ReturnType<
-  typeof makeVersion<
+  typeof makeAggregateVersion<
     NAME,
     NEXT_MODELS,
     NEXT_CONTRACTS,
@@ -465,7 +402,7 @@ export function upgradeVersion<
   >
 >;
 
-export function upgradeVersion(
+export function upgradeAggregateVersion(
   previous: unknown,
   upgradeProps: {
     version: string;
@@ -481,7 +418,7 @@ export function upgradeVersion(
   );
   if (decoded === undefined) {
     throw new Error(
-      'Cannot upgrade an aggregate not constructed by aggregates.makeVersion',
+      'Cannot upgrade an aggregate not constructed by makeAggregateVersion',
     );
   }
   if (Object.hasOwn(upgradeProps, 'layer')) {
@@ -526,7 +463,7 @@ export function upgradeVersion(
     }
   }
   const { name: nextName, layer, ...nextProps } = next;
-  return Reflect.apply(makeVersion, undefined, [
+  return Reflect.apply(makeAggregateVersion, undefined, [
     { name: nextName, layer },
     nextProps,
   ]);

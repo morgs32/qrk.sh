@@ -17,7 +17,7 @@ root version.
 ## systemId
 
 The `sys_`-prefixed deployment identifier supplied through
-`system.config({ systemId })` and embedded in generated Worker configuration. It
+`makeSystemConfig(system, { systemId })` and embedded in generated Worker configuration. It
 keys the singleton SystemRepo and is the first identity field for every direct
 Repo.
 

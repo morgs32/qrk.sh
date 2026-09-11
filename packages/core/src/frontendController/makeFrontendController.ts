@@ -5,7 +5,6 @@ import { Layer, Schema } from 'effect';
 import type { AssertContractMutationsInModels } from '../contracts/assertMutationsUseModels.ts';
 import { Contract } from '../contracts/makeVersion.ts';
 import type { IAnyContractBindings, IContract } from '../contracts/types.ts';
-import { initializeGuards } from '../guards/initializeGuards.ts';
 import { assertValidModels } from '../models/assertValidModels.ts';
 import { Model } from '../models/makeModel.ts';
 import type {
@@ -203,15 +202,6 @@ export function makeFrontendController(
   });
 
   return Object.assign(new AggregateFrontendController(), {
-    initializeGuards: initializeGuards({
-      layer: props.layer ?? Layer.empty,
-      guards: Object.fromEntries(
-        Object.entries(contracts).map(([name, binding]) => [
-          name,
-          binding.contract.guard === undefined ? [] : [binding.contract.guard],
-        ]),
-      ),
-    }),
     layer: props.layer ?? Layer.empty,
     systemName: decodedProps.systemName,
     aggregateName: decodedProps.aggregateName,

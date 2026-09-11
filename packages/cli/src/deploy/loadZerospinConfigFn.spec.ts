@@ -2,6 +2,7 @@ import * as NodeFileSystem from '@effect/platform-node-shared/NodeFileSystem';
 import * as NodePath from '@effect/platform-node-shared/NodePath';
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { makeSystemConfig } from '@zerospin/core/system/makeSystemConfig';
 import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { Effect, FileSystem, Path } from 'effect';
 import { describe, expect } from 'vitest';
@@ -17,11 +18,13 @@ describe('typed project configuration', () => {
         const config = yield* loadZerospinConfigFn(configRoot);
         expect(config.system.name).toBe('typed-config-fixture');
         expect(
-          config.system.config({ systemId: 'sys_typed_config_fixture' }).system,
+          makeSystemConfig(config.system, {
+            systemId: 'sys_typed_config_fixture',
+          }).system,
         ).toBe(config.system);
         expect(
           makeSystemSpec({
-            system: config.system.config({
+            system: makeSystemConfig(config.system, {
               systemId: 'sys_typed_config_fixture',
             }).system,
           }),

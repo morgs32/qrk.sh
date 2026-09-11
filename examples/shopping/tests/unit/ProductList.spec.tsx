@@ -6,6 +6,8 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
+import { prefixId } from '@zerospin/core/models/prefixId';
 import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggregateFrontendState';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
@@ -27,10 +29,10 @@ import { ProductList } from '@/components/ProductList';
 import {
   ClerkUserIdSchema,
   userV1,
-} from '@/zerospin/aggregates/shopper/models/user/userV1';
-import { productV1 } from '@/zerospin/services/app/models/product/productV1';
+} from '@/zerospin/aggregates/shopper/models/user/UserV1';
+import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
-const WebV2 = ZerospinApp.frontends.web.frontend;
+const WebV2 = ZerospinApp.frontends.shopperFrontend.frontend;
 
 const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
@@ -58,7 +60,7 @@ vi.mock('@zerospin/react', async importOriginal => ({
   useSession,
 }));
 const clerkUserId = Schema.decodeUnknownSync(ClerkUserIdSchema)('test');
-const userRowId = userV1.prefixId(clerkUserId);
+const userRowId = prefixId(userV1, clerkUserId);
 const now = new Date('2026-01-01T00:00:00.000Z');
 
 describe('ProductList', () => {
@@ -71,7 +73,7 @@ describe('ProductList', () => {
       Effect.succeed({ commandId: props.command.id }),
     );
     const session = Effect.runSync(
-      Effect.map(WebV2.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(WebV2), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -142,11 +144,11 @@ describe('ProductList', () => {
     useInitializedStateOrThrow.mockReturnValue({ userId: clerkUserId });
     useSession.mockReturnValue(session);
     useLiveQuery.mockImplementation((selector, props) => {
-      if (selector === ZerospinApp.frontends.catalog) {
+      if (selector === ZerospinApp.frontends.appFrontend) {
         return {
           data: [
             {
-              id: productV1.prefixId('test'),
+              id: prefixId(productV1, 'test'),
               modelName: productV1.modelName,
               version: productV1.version,
               createdAt: now,

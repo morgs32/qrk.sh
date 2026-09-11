@@ -10,6 +10,7 @@ import { coreAbbreviations } from '../utils/coreAbbreviations.ts';
 import type { Prettify } from '../utils/types';
 
 import type { ICommand, IContract } from './types.ts';
+import { validatePayload } from './validatePayload.ts';
 
 export const makeCommand = Effect.fn('makeCommand')(function* <
   CONTRACT extends IContract,
@@ -28,7 +29,7 @@ export const makeCommand = Effect.fn('makeCommand')(function* <
   CuidFactory
 > {
   const { contract, payload } = props;
-  const decodedPayload = yield* contract.validatePayload({
+  const decodedPayload = yield* validatePayload(contract, {
     version: contract.version,
     payload,
   });

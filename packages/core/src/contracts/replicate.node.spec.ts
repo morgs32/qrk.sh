@@ -8,8 +8,9 @@ import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemorySqljsDb } from '../drizzle/makeProvisionedInMemorySqljsDb.ts';
 import { makeTx } from '../drizzle/makeTx.ts';
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
-import { models } from '../models/index.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 import { makeReplica } from '../models/makeReplica.ts';
+import { requireVersion as requireModelVersion } from '../models/requireVersion.ts';
 import type { IModelReplica } from '../models/types.ts';
 
 import { applyAggregateFrontendMutationTx } from './applyAggregateFrontendMutationTx.ts';
@@ -18,8 +19,8 @@ import { decodeAppliedMutation } from './decodeAppliedMutation.ts';
 import { encodeAppliedMutation } from './encodeAppliedMutation.ts';
 import { makeModelMutations } from './makeModelMutations.ts';
 
-const SourceUser = models.makeVersion(
-  models.makeModel({ name: 'user', abbreviation: 'usr' }),
+const SourceUser = makeModelVersion(
+  makeModel({ name: 'user', abbreviation: 'usr' }),
   {
     attributes: {
       userId: primitives.foreignKey({ abbreviation: 'uid', unique: true }),
@@ -50,9 +51,9 @@ const replicaResource = { ...resource, deletedAt: null, serviceIndex: null };
 describe('replicate', () => {
   it('rejects a different version of the exact replica', () => {
     const erasedUser: IModelReplica = User;
-    expect(() => erasedUser.getVersion('9.0.0')).toThrow(
-      'model-version-unsupported',
-    );
+    expect(() =>
+      Effect.runSync(requireModelVersion(erasedUser, '9.0.0')),
+    ).toThrow('model-version-unsupported');
   });
 
   it.effect('carries and validates the complete resource', () =>

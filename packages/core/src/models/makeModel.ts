@@ -1,11 +1,9 @@
-import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import {
   descriptorToJsonEffectSchema,
   encodeShape,
   isAttributeDescriptor,
   makeDrizzleSchemaFromTable,
   makeEffectSchema,
-  makeIdFromAbbreviation,
   makeTable,
   PrimitiveKind,
   primitives,
@@ -15,7 +13,7 @@ import {
   type IShape,
   type ITypeError,
 } from '@zerospin/schema';
-import { Effect, Schema } from 'effect';
+import { Schema } from 'effect';
 import { mapValues } from 'es-toolkit';
 /* oxlint-disable typescript/no-explicit-any -- complete resolved definitions span model-specific resource shapes */
 
@@ -277,7 +275,7 @@ export function makeModel<
   return { name: props.name, abbreviation: props.abbreviation };
 }
 
-export function makeVersion<
+export function makeModelVersion<
   MODEL_NAME extends string,
   ABBREVIATION extends string,
   ATTRIBUTES extends IShape,
@@ -321,7 +319,7 @@ export function makeVersion<
   }
 >;
 
-export function makeVersion<
+export function makeModelVersion<
   MODEL_NAME extends string,
   ABBREVIATION extends string,
   ATTRIBUTES extends IShape,
@@ -368,7 +366,7 @@ export function makeVersion<
  * 3. Define identity helpers and exact-version resource encoding.
  * 4. Attach Drizzle and Effect schemas to the canonical Model instance.
  */
-export function makeVersion<
+export function makeModelVersion<
   MODEL_NAME extends string,
   ABBREVIATION extends string,
   ATTRIBUTES extends IShape,
@@ -490,80 +488,15 @@ export function makeVersion<
     indexes,
   };
 
-  let model: IModel;
-
   const fields: IModel = {
     abbreviation,
     attributes: declaredAttributes,
     indexes,
     modelName,
     version,
-    makeId: () => makeIdFromAbbreviation({ abbreviation }),
-    prefixId: id => `${abbreviation}_${id}`,
     propertiesShape,
     table,
     spec,
-    getVersion(requestedVersion) {
-      if (requestedVersion !== version) {
-        throw new ZerospinError({
-          code: 'model-version-unsupported',
-          message: `Model ${modelName} is version ${version}, not ${requestedVersion}`,
-          extra: { modelName, currentVersion: version, requestedVersion },
-        });
-      }
-      return model;
-    },
-    adaptResource: Effect.fn(`adaptResource/${modelName}`)(function* (props: {
-      version: string;
-      resource: unknown;
-    }): Effect.fn.Return<unknown, IAnyError> {
-      const { resource, version: targetVersion } = props;
-      if (targetVersion !== version) {
-        return yield* new ZerospinError({
-          code: 'model-resource-version-unsupported',
-          message: `Model ${modelName} is version ${version}, not ${targetVersion}`,
-          extra: { modelName, currentVersion: version, targetVersion },
-        });
-      }
-      const currentResource = yield* Schema.decodeUnknownEffect(
-        Schema.toType(makeEffectSchema(propertiesShape)),
-      )(resource, { onExcessProperty: 'error' }).pipe(
-        mapParseError({
-          code: 'model-current-resource-invalid',
-          prefix: `Failed to validate current resource for ${modelName}@${version}`,
-          extra: { modelName, modelVersion: version },
-        }),
-      );
-      if (
-        Reflect.get(currentResource, 'modelName') !== modelName ||
-        Reflect.get(currentResource, 'version') !== version
-      ) {
-        return yield* new ZerospinError({
-          code: 'model-current-resource-identity-invalid',
-          message: `Current resource must identify ${modelName}@${version}`,
-          extra: {
-            modelName,
-            modelVersion: version,
-            resourceModelName: Reflect.get(currentResource, 'modelName'),
-            resourceVersion: Reflect.get(currentResource, 'version'),
-          },
-        });
-      }
-
-      return yield* Schema.encodeEffect(model.resourceSchema)(currentResource, {
-        onExcessProperty: 'error',
-      }).pipe(
-        mapParseError({
-          code: 'model-resource-encode-invariant-failed',
-          prefix: `Failed to encode resource for ${modelName}@${targetVersion}`,
-          extra: {
-            modelName,
-            currentVersion: version,
-            targetVersion,
-          },
-        }),
-      );
-    }),
     // 4 — Attach current table, attribute, and resource codecs before stamping
     // the canonical Model prototype; the existing casts erase generic variance.
     // ALLOWED_CAST: model-specific Drizzle table must satisfy erased IDrizzleResourceTable on IModel.
@@ -583,11 +516,10 @@ export function makeVersion<
     ) as unknown as Schema.Codec<any, any>,
   };
 
-  model = Object.assign(new Model(), fields);
-  return model;
+  return Object.assign(new Model(), fields);
 }
 
-export function upgradeVersion<
+export function upgradeModelVersion<
   ATTRIBUTES extends IShape,
   ABBREVIATION extends string,
   MODEL_NAME extends string,
@@ -658,7 +590,7 @@ export function upgradeVersion<
       }
     >;
 
-export function upgradeVersion(
+export function upgradeModelVersion(
   previous: IModel,
   props: {
     attributes: Record<string, IShape[string] | null>;
@@ -695,7 +627,7 @@ export function upgradeVersion(
       }
     }
   }
-  return makeVersion(
+  return makeModelVersion(
     { name: modelName, abbreviation },
     {
       attributes,

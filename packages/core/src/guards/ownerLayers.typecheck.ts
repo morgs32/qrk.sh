@@ -1,20 +1,29 @@
 import { Effect, Layer, Redacted } from 'effect';
 
-import { aggregates } from '../aggregate/index.ts';
-import { contracts } from '../contracts/index.ts';
+import { makeAggregate } from '../aggregate/makeAggregate.ts';
+import {
+  makeAggregateVersion,
+  upgradeAggregateVersion,
+} from '../aggregate/makeVersion.ts';
+import { defineCommand } from '../contracts/Command.ts';
+import {
+  makeContractVersion,
+  upgradeContractVersion,
+} from '../contracts/makeVersion.ts';
+import { initializeGuards as initializeFrontendGuards } from '../frontendController/initializeGuards.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { makeService } from '../service/makeService.ts';
 import { PublishableKey } from '../services/PublishableKey.ts';
 import { ZerospinApiUrl } from '../services/ZerospinApiUrl.ts';
 import { makeSystem } from '../system/makeSystem.ts';
 
-const inspect = contracts.makeVersion(contracts.makeCommand('inspect'), {
+const inspect = makeContractVersion(defineCommand('inspect'), {
   version: '1.0.0',
   payload: {},
   guard: () => Effect.asVoid(PublishableKey),
 });
-const identity = aggregates.makeAggregate({ name: 'account' });
-const aggregate = aggregates.makeVersion(identity, {
+const identity = makeAggregate({ name: 'account' });
+const aggregate = makeAggregateVersion(identity, {
   version: '1.0.0',
   models: {},
   contracts: { inspect: { contract: inspect } },
@@ -59,8 +68,8 @@ const local = Layer.effect(
   PublishableKey,
   Effect.map(ZerospinApiUrl, Redacted.make),
 );
-const overridden = aggregates.makeVersion(
-  aggregates.makeAggregate({ name: 'account', layer: local }),
+const overridden = makeAggregateVersion(
+  makeAggregate({ name: 'account', layer: local }),
   {
     version: '1.0.0',
     models: {},
@@ -83,7 +92,7 @@ makeSystem({
   aggregates: { account: [overridden] },
 });
 
-const next = aggregates.upgradeVersion(aggregate, {
+const next = upgradeAggregateVersion(aggregate, {
   version: '2.0.0',
   contracts: { inspect: null },
 });
@@ -98,7 +107,7 @@ makeSystem({
   authentication: [],
   aggregates: { account: [next] },
 });
-aggregates.makeVersion(identity, {
+makeAggregateVersion(identity, {
   version: '1.0.0',
   models: {},
   contracts: {},
@@ -107,7 +116,7 @@ aggregates.makeVersion(identity, {
   layer: Layer.empty,
 });
 // @ts-expect-error Upgrades retain their aggregate's layer.
-aggregates.upgradeVersion(aggregate, { version: '2.0.0', layer: Layer.empty });
+upgradeAggregateVersion(aggregate, { version: '2.0.0', layer: Layer.empty });
 
 const frontend = makeFrontendController({
   systemName: 'test',
@@ -119,15 +128,15 @@ const frontend = makeFrontendController({
   layer: local,
 });
 // @ts-expect-error Initializing local services requires their application inputs.
-Effect.runPromise(Effect.scoped(frontend.initializeGuards));
+Effect.runPromise(Effect.scoped(initializeFrontendGuards(frontend)));
 Effect.runPromise(
-  frontend.initializeGuards.pipe(
+  initializeFrontendGuards(frontend).pipe(
     Effect.scoped,
     Effect.provide(Layer.succeed(ZerospinApiUrl, 'https://test.invalid')),
   ),
 );
 
-const latest = contracts.upgradeVersion(inspect, {
+const latest = upgradeContractVersion(inspect, {
   version: '2.0.0',
   payload: {},
   guard: () => Effect.void,
@@ -146,28 +155,25 @@ makeSystem({
   aggregates: {},
   services: { catalog: [currentOnly] },
 });
-const historical = makeService({
+const previous = makeService({
   name: 'catalog',
-  version: '2.0.0',
+  version: '1.0.0',
   models: {},
-  contracts: { inspect: latest },
-  historicalDefinitions: [
-    { version: '1.0.0', models: {}, contracts: { inspect: '1.0.0' } },
-  ],
+  contracts: { inspect },
 });
 makeSystem({
   name: 'test',
   authentication: [],
   aggregates: {},
-  // @ts-expect-error Executable historical service guards still need PublishableKey.
-  services: { catalog: [historical] },
+  // @ts-expect-error Explicitly registered older service guards still need PublishableKey.
+  services: { catalog: [previous, currentOnly] },
 });
 makeSystem({
   name: 'test',
   authentication: [],
   layer: appLayer,
   aggregates: {},
-  services: { catalog: [historical] },
+  services: { catalog: [previous, currentOnly] },
 });
 
 const localService = makeService({

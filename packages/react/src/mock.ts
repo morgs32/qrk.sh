@@ -1,5 +1,4 @@
 'use client';
-
 import { createElement, useEffect, useRef, type ReactNode } from 'react';
 
 import type { Async } from '@zerospin/core/async/Async';
@@ -7,6 +6,7 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { makeAggregateFrontendLockKey } from '@zerospin/core/frontendController/makeAggregateFrontendLockKey';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { type IAnyAggregateFrontendController } from '@zerospin/core/frontendController/types';
@@ -112,7 +112,7 @@ export function makeMockProvider<
               const sessionId = yield* makeIdFromAbbreviation({
                 abbreviation: coreAbbreviations.session,
               });
-              const guards = yield* selector.frontend.initializeGuards;
+              const guards = yield* initializeFrontendGuards(selector.frontend);
               const coreSession = makeAggregateSession({
                 guards,
                 frontend: selector.frontend,

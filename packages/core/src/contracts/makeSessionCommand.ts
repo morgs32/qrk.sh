@@ -15,7 +15,7 @@ export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
   userId: string;
   contract: CONTRACT;
   version: VERSION;
-  validatedPayload: InferCommand<CONTRACT, VERSION>['payload'];
+  validatedPayload: NoInfer<InferCommand<CONTRACT, VERSION>['payload']>;
   sessionId: ISessionId;
   frontendName: string;
   systemName: string;

@@ -2,7 +2,10 @@ import { describe, it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
+import { encodePayload } from '@zerospin/core/contracts/encodePayload';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
+import { makeCommand } from '@zerospin/core/makeCommand';
+import { makeId } from '@zerospin/core/models/makeId';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
 import { makeWorkerdE2eTestLayer } from '@zerospin/dev-worker/vitest/makeWorkerdE2eTestLayer';
@@ -30,27 +33,30 @@ describe('frontendAdapters: static aggregate finalization', () => {
       'executes authored aggregate contracts and serves aggregate frontend leaves',
       () =>
         Effect.gen(function* () {
-          const itemId = yield* SourceItem.makeId();
-          const createItem = yield* system.aggregates.aggregate[
-            '1.0.0'
-          ]!.makeCommand({
-            contractName: 'createSourceItem',
-            aggregateId: E2E_AGGREGATE_ID,
-            systemName: projection.systemName,
-            payload: {
-              id: itemId,
-              userId: E2E_CLERK_USER_ID,
-              quantity: 2,
+          const itemId = yield* makeId(SourceItem);
+          const createItem = yield* makeCommand(
+            system.aggregates.aggregate['1.0.0'],
+            {
+              contractName: 'createSourceItem',
+              aggregateId: E2E_AGGREGATE_ID,
+              systemName: projection.systemName,
+              payload: {
+                id: itemId,
+                userId: E2E_CLERK_USER_ID,
+                quantity: 2,
+              },
             },
-          });
+          );
           const encodedCreateItem = {
             ...createItem,
-            payload: yield* system.aggregates.aggregate[
-              '1.0.0'
-            ]!.contracts.createSourceItem.contract.encodePayload({
-              version: createItem.contractVersion,
-              payload: createItem.payload,
-            }),
+            payload: yield* encodePayload(
+              system.aggregates.aggregate['1.0.0'].contracts.createSourceItem
+                .contract,
+              {
+                version: createItem.contractVersion,
+                payload: createItem.payload,
+              },
+            ),
           };
 
           const gatewayApi = yield* Effect.acquireRelease(

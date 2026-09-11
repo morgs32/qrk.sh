@@ -1,6 +1,4 @@
-import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
-import { ZerospinError } from '@zerospin/error';
-import { contracts, primitives } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
 import { user } from '../../models/user/user';
@@ -8,10 +6,10 @@ import { userV1 } from '../../models/user/UserV1';
 
 import { updateUser } from './updateUser';
 
-export const updateUserV1 = contracts.makeVersion(updateUser, {
+export const updateUserV1 = sdk.makeContractVersion(updateUser, {
   payload: {
-    id: primitives.foreignKey({ abbreviation: user.abbreviation }),
-    name: primitives.text(),
+    id: sdk.primitives.foreignKey({ abbreviation: user.abbreviation }),
+    name: sdk.primitives.text(),
   },
 
   guard: ({
@@ -20,23 +18,25 @@ export const updateUserV1 = contracts.makeVersion(updateUser, {
   }: {
     db: Readonly<
       Pick<
-        IDb<IResourceDbConfig<{ user: typeof userV1 }, Record<never, never>>>,
+        sdk.IDb<
+          sdk.IResourceDbConfig<{ user: typeof userV1 }, Record<never, never>>
+        >,
         'query'
       >
     >;
-    payload: { id: ReturnType<typeof userV1.prefixId> };
+    payload: { id: sdk.InferResource<typeof userV1>['id'] };
   }) =>
     Effect.gen(function* () {
       const resource = yield* Effect.try({
         try: () =>
           db.query.user.findFirst({ where: { id: { eq: payload.id } } }).sync(),
-        catch: ZerospinError.catch({
+        catch: sdk.ZerospinError.catch({
           code: 'user-guard-query-failed',
           message: 'Failed to query user during guard evaluation',
         }),
       });
       if (resource === undefined) {
-        return yield* new ZerospinError({
+        return yield* new sdk.ZerospinError({
           code: 'user-not-found',
           message: `user ${payload.id} was not found`,
         });

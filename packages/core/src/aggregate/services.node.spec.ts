@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import { makeService } from '../service/makeService.ts';
 
-import { aggregates } from './index.ts';
+import { makeAggregate } from './makeAggregate.ts';
+import {
+  makeAggregateVersion,
+  upgradeAggregateVersion,
+} from './makeVersion.ts';
 
 const AppV1 = makeService({
   name: 'app',
@@ -11,17 +15,14 @@ const AppV1 = makeService({
   models: {},
   contracts: {},
 });
-const V1 = aggregates.makeVersion(
-  aggregates.makeAggregate({ name: 'shopper' }),
-  {
-    version: '1.0.0',
-    models: {},
-    contracts: {},
-    selections: {},
-    services: { app: AppV1 },
-  },
-);
-const V2 = aggregates.upgradeVersion(V1, { version: '2.0.0' });
+const V1 = makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+  version: '1.0.0',
+  models: {},
+  contracts: {},
+  selections: {},
+  services: { app: AppV1 },
+});
+const V2 = upgradeAggregateVersion(V1, { version: '2.0.0' });
 
 describe('aggregate service definitions', () => {
   it('derives pins from service definitions and replaces them through upgrades', () => {
@@ -33,13 +34,13 @@ describe('aggregate service definitions', () => {
       contracts: {},
       frontends: {},
     });
-    const upgraded = aggregates.upgradeVersion(V2, {
+    const upgraded = upgradeAggregateVersion(V2, {
       version: '3.0.0',
       services: { app: AppV2 },
     });
     expect(upgraded.services).toEqual({ app: '2.0.0' });
     expect(
-      aggregates.upgradeVersion(upgraded, { version: '4.0.0' }).services,
+      upgradeAggregateVersion(upgraded, { version: '4.0.0' }).services,
     ).toEqual({
       app: '2.0.0',
     });
@@ -48,19 +49,19 @@ describe('aggregate service definitions', () => {
 
   it('rejects service strings, structural copies, and mismatched names', () => {
     expect(() =>
-      aggregates.upgradeVersion(V1, {
+      upgradeAggregateVersion(V1, {
         version: '2.0.0',
         services: { wrong: AppV1 },
       }),
     ).toThrow('must match service name');
     expect(() =>
-      aggregates.upgradeVersion(V1, {
+      upgradeAggregateVersion(V1, {
         version: '2.0.0',
         services: { app: { ...AppV1 } },
       }),
     ).toThrow(Schema.SchemaError);
     expect(() =>
-      aggregates.upgradeVersion(V1, {
+      upgradeAggregateVersion(V1, {
         version: '2.0.0',
         services: {
           // @ts-expect-error Service definitions replace version-string inputs.
@@ -71,17 +72,17 @@ describe('aggregate service definitions', () => {
   });
 
   it('removes inherited dependencies and rejects unknown removals', () => {
-    const removed = aggregates.upgradeVersion(V2, {
+    const removed = upgradeAggregateVersion(V2, {
       version: '3.0.0',
       services: { app: null },
     });
     expect(removed.services).toEqual({});
     expect(
-      aggregates.upgradeVersion(removed, { version: '4.0.0' }).services,
+      upgradeAggregateVersion(removed, { version: '4.0.0' }).services,
     ).toEqual({});
     expect(V2.services).toEqual({ app: '1.0.0' });
     expect(() =>
-      aggregates.upgradeVersion(removed, {
+      upgradeAggregateVersion(removed, {
         version: '4.0.0',
         services: { app: null },
       }),
@@ -90,7 +91,7 @@ describe('aggregate service definitions', () => {
 
   it('rejects version strings when first authoring an aggregate', () => {
     expect(() =>
-      aggregates.makeVersion(aggregates.makeAggregate({ name: 'invalid' }), {
+      makeAggregateVersion(makeAggregate({ name: 'invalid' }), {
         version: '1.0.0',
         models: {},
         contracts: {},

@@ -1,3 +1,3 @@
-import { contracts } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 
-export const createProduct = contracts.makeCommand('createProduct');
+export const createProduct = sdk.defineCommand('createProduct');

@@ -4,15 +4,14 @@ import {
   UnknownAggregateCommandSchema,
   UnknownServiceCommandSchema,
 } from '@zerospin/core/contracts/CommandSchema';
+import { encodePayload } from '@zerospin/core/contracts/encodePayload';
 import type {
   IAggregateCommand,
   IEncodedCommand,
   IServiceCommand,
 } from '@zerospin/core/contracts/types';
 import { executeRpc } from '@zerospin/core/utils/executeRpc';
-import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { ZerospinError, type IAnyError } from '@zerospin/error';
-import type { CuidFactory } from '@zerospin/schema';
 import { Effect, FileSystem, Path, Schema } from 'effect';
 import { createJiti } from 'jiti';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
@@ -70,43 +69,37 @@ export const seedFn = Effect.fn('seedFn')(function* (props: {
     const exports = yield* Schema.decodeUnknownEffect(
       Schema.Record(Schema.String, Schema.Unknown),
     )(loaded);
-    const resolved: (IAggregateCommand | IServiceCommand)[] = [];
-    for (const [name, value] of Object.entries(exports)) {
-      if (name === 'default' || !Effect.isEffect(value)) continue;
-      const commandEffect = yield* Schema.decodeUnknownEffect(
-        Schema.declare<Effect.Effect<unknown, unknown, CuidFactory>>(
-          Effect.isEffect,
-        ),
-      )(value);
-      const command = yield* commandEffect.pipe(
-        Effect.flatMap(command =>
-          Schema.decodeUnknownEffect(
-            Schema.Union([
-              UnknownAggregateCommandSchema,
-              UnknownServiceCommandSchema,
-            ]),
-          )(command, { onExcessProperty: 'error' }),
-        ),
-        Effect.mapError(
-          cause =>
-            new ZerospinError({
-              code: 'seed-command-invalid',
-              message: `Invalid seed export "${name}" in ${modulePath}.`,
-              cause: ZerospinError.prettyUnknownFailure(cause),
-            }),
-        ),
-      );
-      resolved.push(command);
+    if (exports.seeds === undefined) {
+      return yield* new ZerospinError({
+        code: 'seed-no-commands',
+        message: `Missing named seeds array in ${modulePath}.`,
+      });
     }
+    const resolved = yield* Schema.decodeUnknownEffect(
+      Schema.Array(
+        Schema.Union([
+          UnknownAggregateCommandSchema,
+          UnknownServiceCommandSchema,
+        ]),
+      ),
+    )(exports.seeds, { onExcessProperty: 'error' }).pipe(
+      Effect.mapError(
+        cause =>
+          new ZerospinError({
+            code: 'seed-command-invalid',
+            message: `Invalid seeds array in ${modulePath}.`,
+            cause: ZerospinError.prettyUnknownFailure(cause),
+          }),
+      ),
+    );
     if (resolved.length === 0) {
       return yield* new ZerospinError({
         code: 'seed-no-commands',
-        message: `No named command Effects exported by ${modulePath}.`,
+        message: `No commands in the seeds array exported by ${modulePath}.`,
       });
     }
     return resolved;
   }).pipe(
-    Effect.provide(NanoIdFactory),
     Effect.mapError(cause =>
       ZerospinError.isZerospinError(cause)
         ? cause
@@ -154,7 +147,7 @@ export const seedFn = Effect.fn('seedFn')(function* (props: {
       }
       const encoded = {
         ...command,
-        payload: yield* contract.encodePayload({
+        payload: yield* encodePayload(contract, {
           version: contract.version,
           payload: command.payload,
         }),
@@ -183,7 +176,7 @@ export const seedFn = Effect.fn('seedFn')(function* (props: {
       }
       const encoded = {
         ...command,
-        payload: yield* contract.encodePayload({
+        payload: yield* encodePayload(contract, {
           version: contract.version,
           payload: command.payload,
         }),

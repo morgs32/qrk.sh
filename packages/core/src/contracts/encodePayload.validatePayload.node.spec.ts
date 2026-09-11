@@ -4,10 +4,13 @@ import { describe, expect, it } from 'vitest';
 
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 
-import { contracts } from './index.ts';
+import { defineCommand } from './Command.ts';
+import { encodePayload } from './encodePayload.ts';
+import { makeContractVersion } from './makeVersion.ts';
+import { validatePayload } from './validatePayload.ts';
 
-describe('contract payload methods', () => {
-  const contract = contracts.makeVersion(contracts.makeCommand('doThing'), {
+describe('contract payload utilities', () => {
+  const contract = makeContractVersion(defineCommand('doThing'), {
     payload: {
       name: primitives.text(),
       count: primitives.integer(),
@@ -17,7 +20,7 @@ describe('contract payload methods', () => {
 
   it('encodes a valid decoded payload to a JSON string', async () => {
     const payload = await Effect.runPromise(
-      contract.encodePayload({
+      encodePayload(contract, {
         version: contract.version,
         payload: { name: 'ok', count: 123 },
       }),
@@ -27,27 +30,22 @@ describe('contract payload methods', () => {
   });
 
   it('validates a decoded JSON field without requiring a pre-encoded string', async () => {
-    const jsonContract = contracts.makeVersion(
-      contracts.makeCommand('useJson'),
-      {
-        payload: {
-          data: primitives.json({
-            schema: Schema.Struct({ value: Schema.String }),
-          }),
-        },
-        version: '1.0.0',
+    const jsonContract = makeContractVersion(defineCommand('useJson'), {
+      payload: {
+        data: primitives.json({
+          schema: Schema.Struct({ value: Schema.String }),
+        }),
       },
-    );
+      version: '1.0.0',
+    });
 
     const payload = await Effect.runPromise(
-      jsonContract
-        .validatePayload({
-          version: jsonContract.version,
-          payload: { data: { value: 'decoded input' } },
-        })
-        .pipe(
-          Effect.provide(makePrefixedIncrementalIdFactory('validatePayload')),
-        ),
+      validatePayload(jsonContract, {
+        version: jsonContract.version,
+        payload: { data: { value: 'decoded input' } },
+      }).pipe(
+        Effect.provide(makePrefixedIncrementalIdFactory('validatePayload')),
+      ),
     );
 
     expect(payload).toEqual({ data: { value: 'decoded input' } });
@@ -56,7 +54,7 @@ describe('contract payload methods', () => {
   it('rejects missing payload fields while encoding', async () => {
     await expect(
       Effect.runPromise(
-        contract.encodePayload({
+        encodePayload(contract, {
           version: contract.version,
           payload: { name: 'ok' } as { name: string; count: number },
         }),

@@ -2,6 +2,7 @@ import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/makeProvisionedInMemorySqljsDb';
+import { prefixId } from '@zerospin/core/models/prefixId';
 import { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
 import { Effect, Result } from 'effect';
 import { describe, expect } from 'vitest';
@@ -21,7 +22,7 @@ describe('owner-local authored queries', () => {
           dbConfig: makeResourceDbConfig({ models: aggregate.models }),
         });
         const now = new Date('2026-01-01T00:00:00.000Z');
-        const userId = aggregate.models.user.prefixId('owner-local-query');
+        const userId = prefixId(aggregate.models.user, 'owner-local-query');
         db.insert(aggregate.models.user.drizzleSchema)
           .values({
             id: userId,
@@ -67,7 +68,7 @@ describe('owner-local authored queries', () => {
           dbConfig: makeResourceDbConfig({ models: service.models }),
         });
         const now = new Date('2026-01-01T00:00:00.000Z');
-        const productId = service.models.product.prefixId('owner-local-query');
+        const productId = prefixId(service.models.product, 'owner-local-query');
         db.insert(service.models.product.drizzleSchema)
           .values({
             id: productId,

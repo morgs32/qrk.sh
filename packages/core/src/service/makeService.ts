@@ -1,7 +1,7 @@
-import '@zerospin/server-only';
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import type { IAnyError } from '@zerospin/error';
 import type { ITypeError } from '@zerospin/schema';
-import { Layer, Schema, type Effect } from 'effect';
+import '@zerospin/server-only';
+import { Layer, Schema } from 'effect';
 import { isEqual, mapValues } from 'es-toolkit';
 
 import { Contract } from '../contracts/makeVersion.ts';
@@ -14,7 +14,6 @@ import type {
 } from '../frontendBinding/types.ts';
 import { ServiceFrontendController } from '../frontendController/makeFrontendController.ts';
 import type { IAnyServiceFrontendController } from '../frontendController/types.ts';
-import { initializeGuards } from '../guards/initializeGuards.ts';
 import { assertValidModels } from '../models/assertValidModels.ts';
 import { Model } from '../models/makeModel.ts';
 import type {
@@ -22,11 +21,8 @@ import type {
   IAssertValidModels,
   IModel,
   IModelReplica,
-  InferPayloadInput,
 } from '../models/types.ts';
-import { isSemVerOlder } from '../utils/isSemVerOlder.ts';
 
-import { makeServiceCommand } from './makeServiceCommand.ts';
 import type {
   IAnyService,
   IResolvedServiceQuery,
@@ -86,15 +82,6 @@ const ServicePropsSchema = Schema.Struct({
       }
       return true;
     }),
-  ),
-  historicalDefinitions: Schema.optionalKey(
-    Schema.Array(
-      Schema.Struct({
-        version: Schema.String,
-        models: Schema.Record(Schema.String, Schema.String),
-        contracts: Schema.Record(Schema.String, Schema.String),
-      }),
-    ),
   ),
   models: Schema.Record(Schema.String, CanonicalModelSchema),
   contracts: Schema.Record(Schema.String, CanonicalContractSchema),
@@ -228,16 +215,10 @@ export function makeService<
   >,
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = never,
-  const HISTORY extends readonly Readonly<{
-    version: string;
-    models: Readonly<Record<string, string>>;
-    contracts: Readonly<Record<string, string>>;
-  }>[] = readonly [],
 >(
   props: {
     name: NAME;
     version: VERSION;
-    historicalDefinitions?: HISTORY;
     models: MODELS &
       IAssertValidModels<MODELS> & {
         [MODEL_NAME in keyof MODELS]: MODELS[MODEL_NAME] extends IModelReplica
@@ -273,18 +254,7 @@ export function makeService<
   AUTHORIZE,
   VERSION,
   LAYER_SERVICES,
-  LAYER_REQUIREMENTS,
-  HISTORY[number] extends never
-    ? Effect.Services<
-        ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['guard']>>
-      >
-    : Effect.Services<
-        ReturnType<
-          NonNullable<
-            ReturnType<CONTRACTS[keyof CONTRACTS]['getVersion']>['guard']
-          >
-        >
-      >
+  LAYER_REQUIREMENTS
 >;
 
 export function makeService(props: unknown): unknown {
@@ -294,7 +264,6 @@ export function makeService(props: unknown): unknown {
   const {
     name,
     version,
-    historicalDefinitions: authoredHistoricalDefinitions = [],
     models,
     contracts,
     queries: queryInputs = {},
@@ -327,41 +296,6 @@ export function makeService(props: unknown): unknown {
     models,
     context: `makeService: ${name}`,
   });
-
-  Schema.decodeUnknownSync(
-    Schema.Array(
-      Schema.Struct({
-        version: Schema.String,
-        models: Schema.Record(Schema.String, Schema.String),
-        contracts: Schema.Record(Schema.String, Schema.String),
-      }),
-    ).check(
-      Schema.makeFilter(definitions => {
-        const historicalVersions = new Set<string>();
-        for (const historicalDefinition of definitions) {
-          if (historicalDefinition.version === version) {
-            return `Historical service version "${historicalDefinition.version}" duplicates the current version for "${name}"`;
-          }
-          if (historicalVersions.has(historicalDefinition.version)) {
-            return `Duplicate historical service version "${historicalDefinition.version}" for "${name}"`;
-          }
-          historicalVersions.add(historicalDefinition.version);
-          if (!isSemVerOlder(historicalDefinition.version, version)) {
-            return `Historical service version "${historicalDefinition.version}" for "${name}" must be older than current version "${version}"`;
-          }
-        }
-        return true;
-      }),
-    ),
-    { onExcessProperty: 'error' },
-  )(authoredHistoricalDefinitions);
-  const historicalDefinitions = authoredHistoricalDefinitions.map(
-    definition => ({
-      version: definition.version,
-      models: { ...definition.models },
-      contracts: { ...definition.contracts },
-    }),
-  );
 
   Schema.decodeUnknownSync(
     Schema.Record(Schema.String, CanonicalModelSchema).check(
@@ -499,184 +433,17 @@ export function makeService(props: unknown): unknown {
     };
   });
 
-  const makeCommand = <
-    CONTRACT_NAME extends keyof typeof contracts & string,
-  >(commandProps: {
-    contractName: CONTRACT_NAME;
-    payload: InferPayloadInput<(typeof contracts)[CONTRACT_NAME]['payload']>;
-  }) =>
-    makeServiceCommand({
-      contracts,
-      serviceName: name,
-      serviceVersion: version,
-      ...commandProps,
-    });
-
-  const slicesByVersion = new Map<string, IAnyService>();
-  let resolvedService: IAnyService;
-  const isVersionAvailableOnSlice = (
-    requestedVersion: string,
-    sliceVersion: string,
-  ): boolean => {
-    if (requestedVersion === sliceVersion) {
-      return true;
-    }
-    if (requestedVersion === version) {
-      return false;
-    }
-    if (
-      !historicalDefinitions.some(
-        definition => definition.version === requestedVersion,
-      )
-    ) {
-      return false;
-    }
-    return isSemVerOlder(requestedVersion, sliceVersion);
-  };
-  const getVersion = (
-    requestedVersion: string,
-    sliceVersion = version,
-  ): IAnyService => {
-    if (!isVersionAvailableOnSlice(requestedVersion, sliceVersion)) {
-      throw new ZerospinError({
-        code: 'service-snapshot-version-unsupported',
-        message: `Service "${name}" does not support snapshot version "${requestedVersion}"`,
-        extra: {
-          serviceName: name,
-          currentVersion: sliceVersion,
-          requestedVersion,
-        },
-      });
-    }
-    if (requestedVersion === version) {
-      return resolvedService;
-    }
-    const cached = slicesByVersion.get(requestedVersion);
-    if (cached !== undefined) {
-      return cached;
-    }
-    const snapshot = historicalDefinitions.find(
-      definition => definition.version === requestedVersion,
-    );
-    if (snapshot === undefined) {
-      throw new ZerospinError({
-        code: 'service-snapshot-version-unsupported',
-        message: `Service "${name}" does not support snapshot version "${requestedVersion}"`,
-        extra: {
-          serviceName: name,
-          currentVersion: sliceVersion,
-          requestedVersion,
-        },
-      });
-    }
-    const slicedModels: Record<string, (typeof models)[string]> = {};
-    for (const [modelKey, modelVersion] of Object.entries(snapshot.models)) {
-      const currentModel = models[modelKey];
-      if (currentModel === undefined) {
-        throw new ZerospinError({
-          code: 'service-snapshot-version-unsupported',
-          message: `Service "${name}" snapshot "${requestedVersion}" references missing model "${modelKey}"`,
-          extra: {
-            serviceName: name,
-            requestedVersion,
-            modelKey,
-          },
-        });
-      }
-      slicedModels[modelKey] = currentModel.getVersion(modelVersion);
-    }
-    const slicedContracts: Record<string, (typeof contracts)[string]> = {};
-    for (const [contractKey, contractVersion] of Object.entries(
-      snapshot.contracts,
-    )) {
-      const currentContract = contracts[contractKey];
-      if (currentContract === undefined) {
-        throw new ZerospinError({
-          code: 'service-snapshot-version-unsupported',
-          message: `Service "${name}" snapshot "${requestedVersion}" references missing contract "${contractKey}"`,
-          extra: {
-            serviceName: name,
-            requestedVersion,
-            contractKey,
-          },
-        });
-      }
-      slicedContracts[contractKey] =
-        currentContract.getVersion(contractVersion);
-    }
-    const olderHistoricalDefinitions = historicalDefinitions.filter(
-      definition =>
-        definition.version !== requestedVersion &&
-        isSemVerOlder(definition.version, requestedVersion),
-    );
-    const sliceFields = {
-      initializeGuards: initializeGuards({
-        layer: decoded.layer ?? Layer.empty,
-        guards: Object.fromEntries(
-          Object.entries(slicedContracts).map(([name, contract]) => [
-            name,
-            contract.guard === undefined ? [] : [contract.guard],
-          ]),
-        ),
-      }),
-      layer: decoded.layer ?? Layer.empty,
-      name,
-      version: requestedVersion,
-      historicalDefinitions: olderHistoricalDefinitions,
-      models: slicedModels,
-      contracts: slicedContracts,
-      queries,
-      frontends,
-      makeCommand: <
-        CONTRACT_NAME extends keyof typeof slicedContracts & string,
-      >(commandProps: {
-        contractName: CONTRACT_NAME;
-        payload: InferPayloadInput<
-          (typeof slicedContracts)[CONTRACT_NAME]['payload']
-        >;
-      }) =>
-        makeServiceCommand({
-          contracts: slicedContracts,
-          serviceName: name,
-          serviceVersion: requestedVersion,
-          ...commandProps,
-        }),
-      getVersion: (nestedVersion: string) =>
-        getVersion(nestedVersion, requestedVersion),
-    };
-    const slice = Object.assign(
-      new Service(),
-      hasFrontends ? { ...sliceFields, authorize } : sliceFields,
-    ) as IAnyService;
-    slicesByVersion.set(requestedVersion, slice);
-    return slice;
-  };
-
-  const resolvedFields = {
-    initializeGuards: initializeGuards({
-      layer: decoded.layer ?? Layer.empty,
-      guards: Object.fromEntries(
-        Object.entries(contracts).map(([name, contract]) => [
-          name,
-          contract.guard === undefined ? [] : [contract.guard],
-        ]),
-      ),
-    }),
+  const fields = {
     layer: decoded.layer ?? Layer.empty,
     name,
     version,
-    historicalDefinitions,
     models,
     contracts,
     queries,
     frontends,
-    makeCommand,
-    getVersion: (requestedVersion: string) => getVersion(requestedVersion),
   };
-  resolvedService = Object.assign(
+  return Object.assign(
     new Service(),
-    hasFrontends ? { ...resolvedFields, authorize } : resolvedFields,
+    hasFrontends ? { ...fields, authorize } : fields,
   ) as IAnyService;
-  slicesByVersion.set(version, resolvedService);
-  return resolvedService;
 }

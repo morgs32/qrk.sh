@@ -1,42 +1,41 @@
 import { primitives } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 
-import { aggregates } from '../aggregate/index.ts';
-import { contracts } from '../contracts/index.ts';
-import { models } from '../models/index.ts';
+import { makeAggregate } from '../aggregate/makeAggregate.ts';
+import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
+import { defineCommand } from '../contracts/Command.ts';
+import { makeContractVersion } from '../contracts/makeVersion.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 
 import { makeFrontendController } from './makeFrontendController.ts';
 import type { IAggregateFrontend } from './types.ts';
 
-const item = models.makeModel({ name: 'item', abbreviation: 'itm' });
-const itemV1 = models.makeVersion(item, {
+const item = makeModel({ name: 'item', abbreviation: 'itm' });
+const itemV1 = makeModelVersion(item, {
   version: '1.0.0',
   attributes: { label: primitives.text() },
   indexes: [],
 });
-const itemV2 = models.makeVersion(item, {
+const itemV2 = makeModelVersion(item, {
   version: '2.0.0',
   attributes: { label: primitives.text() },
   indexes: [],
 });
-const inspect = contracts.makeCommand('inspect');
-const inspectV1 = contracts.makeVersion(inspect, {
+const inspect = defineCommand('inspect');
+const inspectV1 = makeContractVersion(inspect, {
   version: '1.0.0',
   payload: {},
 });
-const inspectV2 = contracts.makeVersion(inspect, {
+const inspectV2 = makeContractVersion(inspect, {
   version: '2.0.0',
   payload: {},
 });
-const shopperV1 = aggregates.makeVersion(
-  aggregates.makeAggregate({ name: 'shopper' }),
-  {
-    version: '1.0.0',
-    models: { item: itemV1 },
-    contracts: { inspect: { contract: inspectV1 } },
-    selections: {},
-  },
-);
+const shopperV1 = makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+  version: '1.0.0',
+  models: { item: itemV1 },
+  contracts: { inspect: { contract: inspectV1 } },
+  selections: {},
+});
 
 const frontend = makeFrontendController({
   systemName: 'shopping',
@@ -86,8 +85,8 @@ const wrongContracts = makeFrontendController({
 // @ts-expect-error The selected contract must match the aggregate definition.
 wrongContracts satisfies IAggregateFrontend<typeof shopperV1>;
 
-const other = models.makeVersion(
-  models.makeModel({ name: 'other', abbreviation: 'oth' }),
+const other = makeModelVersion(
+  makeModel({ name: 'other', abbreviation: 'oth' }),
   {
     version: '1.0.0',
     attributes: { label: primitives.text() },

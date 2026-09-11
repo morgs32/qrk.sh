@@ -10,11 +10,12 @@ import type {
   ISystemSpec,
 } from '@zerospin/core/system/types';
 import { mapParseError, ZerospinError } from '@zerospin/error';
-import type { IAnyDrizzleSchema } from '@zerospin/schema';
+import { makeEffectSchema, type IAnyDrizzleSchema } from '@zerospin/schema';
 import { and, eq, type AnyColumn } from 'drizzle-orm';
-import { Effect, Equal, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
-import { systemRepoDbConfig } from '../systemRepoDbConfig.js';
+import { assertAcceptedSpec } from '../assertAcceptedSpec/assertAcceptedSpec.js';
+import { systemRepoDbConfig, systemRepoTables } from '../systemRepoDbConfig.js';
 
 /*
  * Repo startup records its physical instance and table names in SystemRepo.
@@ -46,20 +47,24 @@ export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
     );
 
     // 1 — immutable locks make these reads safe before the single registration write
-    for (const { kind, definitions, table } of [
+    for (const { kind, definitions, table, codec } of [
       {
         kind: 'aggregate',
         definitions: Object.values(spec.aggregates).flatMap(versions =>
           Object.values(versions),
         ),
-        table: systemRepoDbConfig.schema.aggregateSpecLocks,
+        table: systemRepoDbConfig.schema.lockedAggregateVersions,
+        codec: makeEffectSchema(systemRepoTables.lockedAggregateVersions.shape)
+          .fields.spec,
       },
       {
         kind: 'service',
         definitions: Object.values(spec.services).flatMap(versions =>
           Object.values(versions),
         ),
-        table: systemRepoDbConfig.schema.serviceSpecLocks,
+        table: systemRepoDbConfig.schema.lockedServiceVersions,
+        codec: makeEffectSchema(systemRepoTables.lockedServiceVersions.shape)
+          .fields.spec,
       },
     ]) {
       for (const definition of definitions) {
@@ -79,17 +84,21 @@ export const registerRepo = Effect.fn('SystemRepo.registerRepo')(
             message: `The ${kind} ${definition.name}@${definition.version} has no accepted spec`,
           });
         }
-        if (
-          !Equal.equals(
-            JSON.parse(lock.spec),
-            JSON.parse(JSON.stringify(definition)),
-          )
-        ) {
-          return yield* new ZerospinError({
-            code: `${kind}-spec-mismatch`,
-            message: `The ${kind} ${definition.name}@${definition.version} differs from its accepted spec`,
-          });
-        }
+        const accepted = yield* Schema.decodeUnknownEffect(codec)(
+          lock.spec,
+        ).pipe(
+          mapParseError({
+            code: 'system-spec-invalid',
+            prefix: 'Stored spec is invalid',
+          }),
+        );
+        yield* assertAcceptedSpec({
+          kind,
+          name: definition.name,
+          version: definition.version,
+          accepted,
+          incoming: definition,
+        });
       }
     }
 

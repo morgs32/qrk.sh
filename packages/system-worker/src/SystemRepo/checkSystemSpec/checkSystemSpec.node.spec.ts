@@ -78,10 +78,10 @@ describe('SystemRepo spec locks', () => {
       }),
     );
     expect(
-      db.select().from(systemRepoDbConfig.schema.aggregateSpecLocks).all(),
+      db.select().from(systemRepoDbConfig.schema.lockedAggregateVersions).all(),
     ).toHaveLength(1);
     expect(
-      db.select().from(systemRepoDbConfig.schema.serviceSpecLocks).all(),
+      db.select().from(systemRepoDbConfig.schema.lockedServiceVersions).all(),
     ).toHaveLength(1);
   });
 
@@ -102,8 +102,10 @@ describe('SystemRepo spec locks', () => {
     });
     expect(
       JSON.parse(
-        db.select().from(systemRepoDbConfig.schema.aggregateSpecLocks).get()!
-          .spec,
+        db
+          .select()
+          .from(systemRepoDbConfig.schema.lockedAggregateVersions)
+          .get()!.spec,
       ),
     ).toEqual(aggregate);
   });
@@ -142,10 +144,10 @@ describe('SystemRepo spec locks', () => {
       failure: { code: 'service-spec-mismatch' },
     });
     expect(
-      db.select().from(systemRepoDbConfig.schema.aggregateSpecLocks).all(),
+      db.select().from(systemRepoDbConfig.schema.lockedAggregateVersions).all(),
     ).toHaveLength(1);
     expect(
-      db.select().from(systemRepoDbConfig.schema.serviceSpecLocks).all(),
+      db.select().from(systemRepoDbConfig.schema.lockedServiceVersions).all(),
     ).toHaveLength(1);
   });
 
@@ -168,10 +170,10 @@ describe('SystemRepo spec locks', () => {
       }),
     );
     expect(
-      db.select().from(systemRepoDbConfig.schema.aggregateSpecLocks).all(),
+      db.select().from(systemRepoDbConfig.schema.lockedAggregateVersions).all(),
     ).toHaveLength(2);
     expect(
-      db.select().from(systemRepoDbConfig.schema.serviceSpecLocks).all(),
+      db.select().from(systemRepoDbConfig.schema.lockedServiceVersions).all(),
     ).toHaveLength(2);
     await expect(
       Effect.runPromise(
@@ -205,7 +207,7 @@ describe('SystemRepo spec locks', () => {
     expect(outcomes.filter(Result.isSuccess)).toHaveLength(1);
     expect(outcomes.filter(Result.isFailure)).toHaveLength(1);
     expect(
-      db.select().from(systemRepoDbConfig.schema.aggregateSpecLocks).all(),
+      db.select().from(systemRepoDbConfig.schema.lockedAggregateVersions).all(),
     ).toHaveLength(1);
   });
 
@@ -231,7 +233,7 @@ describe('SystemRepo spec locks', () => {
       }),
     );
     expect(
-      db.select().from(systemRepoDbConfig.schema.aggregateSpecLocks).all(),
+      db.select().from(systemRepoDbConfig.schema.lockedAggregateVersions).all(),
     ).toHaveLength(1);
   });
 });
@@ -257,10 +259,10 @@ describe('registration requires accepted definitions', () => {
       failure: { code: 'aggregate-spec-not-accepted' },
     });
     expect(
-      db.select().from(systemRepoDbConfig.schema.aggregateSpecLocks).all(),
+      db.select().from(systemRepoDbConfig.schema.lockedAggregateVersions).all(),
     ).toEqual([]);
     expect(
-      db.select().from(systemRepoDbConfig.schema.serviceSpecLocks).all(),
+      db.select().from(systemRepoDbConfig.schema.lockedServiceVersions).all(),
     ).toEqual([]);
     expect(db.select().from(systemRepoDbConfig.schema.repos).all()).toEqual([]);
   });
@@ -336,4 +338,36 @@ describe('registration requires accepted definitions', () => {
       db.select().from(systemRepoDbConfig.schema.repos).all(),
     ).toHaveLength(2);
   });
+});
+
+describe('stored spec decoding', () => {
+  it.each(['{', '{"name":false}', 'null'])(
+    'rejects invalid stored JSON/spec %s in acceptance and registration',
+    async stored => {
+      await Effect.runPromise(checkSystemSpec({ db, spec }));
+      db.update(systemRepoDbConfig.schema.lockedAggregateVersions)
+        .set({ spec: stored })
+        .run();
+      for (const program of [
+        checkSystemSpec({ db, spec }),
+        registerRepo({
+          db,
+          spec,
+          repoTable: systemRepoDbConfig.schema.repos,
+          registration: {
+            repoType: 'SystemLogRepo',
+            repoName: 'sys_test',
+            tableNames: [],
+          },
+        }),
+      ]) {
+        const result = await Effect.runPromise(program.pipe(Effect.result));
+        expect(Result.isFailure(result)).toBe(true);
+        if (Result.isFailure(result)) {
+          expect(result.failure.code).toBe('system-spec-invalid');
+          expect(result.failure.message).toContain('Stored spec is invalid');
+        }
+      }
+    },
+  );
 });

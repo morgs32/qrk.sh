@@ -48,8 +48,10 @@ describe('production Repo spec acceptance guard', () => {
       repoType: 'SystemLogRepo',
     });
     await runInDurableObject(systemRepo, instance => {
-      instance.db.delete(systemRepoDbConfig.schema.aggregateSpecLocks).run();
-      instance.db.delete(systemRepoDbConfig.schema.serviceSpecLocks).run();
+      instance.db
+        .delete(systemRepoDbConfig.schema.lockedAggregateVersions)
+        .run();
+      instance.db.delete(systemRepoDbConfig.schema.lockedServiceVersions).run();
     });
     const log = await Effect.runPromise(
       SystemLogRepo.getRepo({ key: { systemId: 'sys_plan078_unlocked' } }),
@@ -66,13 +68,13 @@ describe('production Repo spec acceptance guard', () => {
       expect(
         instance.db
           .select()
-          .from(systemRepoDbConfig.schema.aggregateSpecLocks)
+          .from(systemRepoDbConfig.schema.lockedAggregateVersions)
           .all(),
       ).toEqual([]);
       expect(
         instance.db
           .select()
-          .from(systemRepoDbConfig.schema.serviceSpecLocks)
+          .from(systemRepoDbConfig.schema.lockedServiceVersions)
           .all(),
       ).toEqual([]);
     });
@@ -105,7 +107,7 @@ describe('production Repo spec acceptance guard', () => {
       repoType: 'SystemLogRepo',
     });
     await runInDurableObject(systemRepo, instance => {
-      const table = systemRepoDbConfig.schema.aggregateSpecLocks;
+      const table = systemRepoDbConfig.schema.lockedAggregateVersions;
       const lock = instance.db.select().from(table).get()!;
       instance.db
         .update(table)
@@ -130,7 +132,9 @@ describe('production Repo spec acceptance guard', () => {
     ).toEqual(before);
     // Only disposable test locks are rebuilt; production has no mutation/reset API.
     await runInDurableObject(systemRepo, instance => {
-      instance.db.delete(systemRepoDbConfig.schema.aggregateSpecLocks).run();
+      instance.db
+        .delete(systemRepoDbConfig.schema.lockedAggregateVersions)
+        .run();
     });
     expect(
       await systemRepo.checkSystemSpec({ spec: makeSystemSpec({ system }) }),
@@ -157,7 +161,7 @@ describe('production Repo spec acceptance guard', () => {
       await state.storage.setAlarm(Date.now() + 60_000);
     });
     await runInDurableObject(systemRepo, instance => {
-      instance.db.delete(systemRepoDbConfig.schema.serviceSpecLocks).run();
+      instance.db.delete(systemRepoDbConfig.schema.lockedServiceVersions).run();
     });
     await abortAllDurableObjects();
     const reopened = await Effect.runPromise(

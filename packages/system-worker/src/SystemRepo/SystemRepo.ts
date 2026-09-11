@@ -60,6 +60,48 @@ export class SystemRepo extends makeFixedDORepo({
     Schema.decodeUnknownSync(
       makeAbbreviationIdSchema(coreAbbreviations.system),
     )(workerEnv.ZEROSPIN_SYSTEM_ID);
+    // Rename retained locks before the common base can provision or check specs.
+    // One transaction covers both kinds, including rollback on ambiguous state.
+    ctx.storage.transactionSync(() => {
+      for (const [oldName, newName] of [
+        ['aggregateSpecLocks', 'lockedAggregateVersions'],
+        ['serviceSpecLocks', 'lockedServiceVersions'],
+      ]) {
+        const oldExists =
+          ctx.storage.sql
+            .exec(
+              'SELECT name FROM sqlite_master WHERE type = ? AND name = ?',
+              'table',
+              oldName,
+            )
+            .toArray().length > 0;
+        const newExists =
+          ctx.storage.sql
+            .exec(
+              'SELECT name FROM sqlite_master WHERE type = ? AND name = ?',
+              'table',
+              newName,
+            )
+            .toArray().length > 0;
+        if (oldExists && newExists) {
+          throw new ZerospinError({
+            code: 'system-spec-lock-migration-conflict',
+            message: `Cannot migrate ${oldName}: both ${oldName} and ${newName} exist`,
+          });
+        }
+        if (oldExists) {
+          ctx.storage.sql.exec(
+            `ALTER TABLE "${oldName}" RENAME TO "${newName}"`,
+          );
+          ctx.storage.sql.exec(
+            `CREATE UNIQUE INDEX "${newName}_name_version_unique" ON "${newName}" ("name", "version")`,
+          );
+          ctx.storage.sql.exec(
+            `DROP INDEX IF EXISTS "${oldName}_name_version_unique"`,
+          );
+        }
+      }
+    });
     super(ctx, workerEnv);
   }
 

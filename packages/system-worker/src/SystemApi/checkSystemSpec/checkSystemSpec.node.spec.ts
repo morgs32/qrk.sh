@@ -91,7 +91,7 @@ describe('SystemApi.checkSystemSpec', () => {
     });
     const locks = db
       .select()
-      .from(systemRepoDbConfig.schema.aggregateSpecLocks)
+      .from(systemRepoDbConfig.schema.lockedAggregateVersions)
       .all();
     expect(locks.some(lock => lock.name === 'candidate')).toBe(true);
     expect(locks.some(lock => lock.name === 'user')).toBe(true);

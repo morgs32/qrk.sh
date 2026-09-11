@@ -134,7 +134,7 @@ await Effect.runPromise(devFn({ clean: false, port: 0 }).pipe(
         if (
           database
             .prepare(
-              "SELECT name FROM sqlite_master WHERE name = 'aggregateSpecLocks'",
+              "SELECT name FROM sqlite_master WHERE name = 'lockedAggregateVersions'",
             )
             .all().length === 0
         ) {
@@ -143,11 +143,13 @@ await Effect.runPromise(devFn({ clean: false, port: 0 }).pipe(
         systemDatabases++;
         expect(
           database
-            .prepare('SELECT name, version FROM aggregateSpecLocks')
+            .prepare('SELECT name, version FROM lockedAggregateVersions')
             .all(),
         ).toEqual([{ name: 'user', version: '2.0.0' }]);
         expect(
-          database.prepare('SELECT name, version FROM serviceSpecLocks').all(),
+          database
+            .prepare('SELECT name, version FROM lockedServiceVersions')
+            .all(),
         ).toEqual([{ name: 'app', version: '2.0.0' }]);
         expect(database.prepare('SELECT * FROM repos').all()).toEqual([]);
       } finally {

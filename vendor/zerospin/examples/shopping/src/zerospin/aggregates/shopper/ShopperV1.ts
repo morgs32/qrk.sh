@@ -1,4 +1,4 @@
-import { aggregates, makeSelection } from '@zerospin/sdk';
+import * as sdk from '@zerospin/sdk';
 
 import { appV1 } from '../../services/app/AppV1';
 
@@ -13,7 +13,7 @@ import { productReplicaV1 } from './models/productReplica/ProductReplicaV1';
 import { userV1, type IClerkUserId } from './models/user/UserV1';
 import { shopper } from './shopper';
 
-export const shopperV1 = aggregates.makeVersion(shopper, {
+export const shopperV1 = sdk.makeAggregateVersion(shopper, {
   services: { app: appV1 },
   version: '1.0.0',
   models: {
@@ -30,25 +30,25 @@ export const shopperV1 = aggregates.makeVersion(shopper, {
     updateUser: { contract: updateUserV1 },
   },
   selections: {
-    user: makeSelection({
+    user: sdk.makeSelection({
       model: userV1,
       where: ({ userId }: { userId: IClerkUserId }) => ({
         clerkUserId: userId,
       }),
     }),
-    cart: makeSelection({
+    cart: sdk.makeSelection({
       model: cartV1,
       where: ({ userId }: { userId: IClerkUserId }) => ({
         user: { clerkUserId: userId },
       }),
     }),
-    cartItem: makeSelection({
+    cartItem: sdk.makeSelection({
       model: cartItemV1,
       where: ({ userId }: { userId: IClerkUserId }) => ({
         cart: { user: { clerkUserId: userId } },
       }),
     }),
-    product: makeSelection({
+    product: sdk.makeSelection({
       model: productReplicaV1,
       where: ({ userId }: { userId: IClerkUserId }) => ({
         cartItems: {

@@ -1,5 +1,6 @@
-import { aggregates } from '@zerospin/core/aggregate/index';
-import { authentication } from '@zerospin/core/authentication/index';
+import { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
+import { makeAggregateVersion } from '@zerospin/core/aggregate/makeVersion';
+import { makeAuthenticationVersion } from '@zerospin/core/authentication/makeVersion';
 import {
   authenticationSignature,
   Item,
@@ -20,24 +21,18 @@ import { makeZerospinApp } from './makeZerospinApp';
 import { checkZerospinApp } from './index';
 
 declare const layer: Layer.Layer<PublishableKey | ZerospinApiUrl, IAnyError>;
-const userV1 = aggregates.makeVersion(
-  aggregates.makeAggregate({ name: 'user' }),
-  {
-    version: '1.0.0',
-    models: main.models,
-    contracts: main.contracts,
-    selections: {},
-  },
-);
-const userV2 = aggregates.makeVersion(
-  aggregates.makeAggregate({ name: 'user' }),
-  {
-    version: '2.0.0',
-    models: { user: User },
-    contracts: {},
-    selections: {},
-  },
-);
+const userV1 = makeAggregateVersion(makeAggregate({ name: 'user' }), {
+  version: '1.0.0',
+  models: main.models,
+  contracts: main.contracts,
+  selections: {},
+});
+const userV2 = makeAggregateVersion(makeAggregate({ name: 'user' }), {
+  version: '2.0.0',
+  models: { user: User },
+  contracts: {},
+  selections: {},
+});
 const catalog = makeService({
   name: 'catalog',
   version: '1.0.0',
@@ -53,12 +48,12 @@ const catalogV2 = makeService({
 const system = makeSystem({
   name: 'system-worker',
   authentication: [
-    authentication.makeVersion({
+    makeAuthenticationVersion({
       version: '1.0.0',
       signature: authenticationSignature.signature,
       authenticate: ({ signature }) => Effect.succeed(signature.userId),
     }),
-    authentication.makeVersion({
+    makeAuthenticationVersion({
       version: '2.0.0',
       signature: Schema.Struct({ token: Schema.String }),
       authenticate: () => Effect.succeed('usr_1'),

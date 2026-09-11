@@ -7,14 +7,12 @@ import { describe, expect } from 'vitest';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 
-import { Model } from './makeModel.ts';
+import { makeModel, makeModelVersion, Model } from './makeModel.ts';
 import { makeReplica } from './makeReplica.ts';
 import { applySelection, makeSelection } from './makeSelection.ts';
 
-import { models as modelDefinitions } from './index.ts';
-
-const User = modelDefinitions.makeVersion(
-  modelDefinitions.makeModel({ name: 'user', abbreviation: 'usr' }),
+const User = makeModelVersion(
+  makeModel({ name: 'user', abbreviation: 'usr' }),
   {
     attributes: {
       name: primitives.text({ nullable: true }),
@@ -24,8 +22,8 @@ const User = modelDefinitions.makeVersion(
   },
 );
 
-const Cart = modelDefinitions.makeVersion(
-  modelDefinitions.makeModel({ name: 'cart', abbreviation: 'crt' }),
+const Cart = makeModelVersion(
+  makeModel({ name: 'cart', abbreviation: 'crt' }),
   {
     attributes: {
       userId: primitives.ref({
@@ -40,8 +38,8 @@ const Cart = modelDefinitions.makeVersion(
   },
 );
 
-const Product = modelDefinitions.makeVersion(
-  modelDefinitions.makeModel({ name: 'product', abbreviation: 'prd' }),
+const Product = makeModelVersion(
+  makeModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
@@ -49,8 +47,8 @@ const Product = modelDefinitions.makeVersion(
   },
 );
 
-const CartItem = modelDefinitions.makeVersion(
-  modelDefinitions.makeModel({ name: 'cartItem', abbreviation: 'cit' }),
+const CartItem = makeModelVersion(
+  makeModel({ name: 'cartItem', abbreviation: 'cit' }),
   {
     attributes: {
       cartId: primitives.ref({
@@ -207,8 +205,8 @@ describe('makeSelection', () => {
     'selects through exact authoritative source-table refs between replicas',
     () =>
       Effect.gen(function* () {
-        const ProductSelectionSource = modelDefinitions.makeVersion(
-          modelDefinitions.makeModel({
+        const ProductSelectionSource = makeModelVersion(
+          makeModel({
             name: 'selectionProduct',
             abbreviation: 'sprd',
           }),
@@ -218,8 +216,8 @@ describe('makeSelection', () => {
             version: '1.0.0',
           },
         );
-        const CartItemSelectionSource = modelDefinitions.makeVersion(
-          modelDefinitions.makeModel({
+        const CartItemSelectionSource = makeModelVersion(
+          makeModel({
             name: 'selectionCartItem',
             abbreviation: 'scit',
           }),

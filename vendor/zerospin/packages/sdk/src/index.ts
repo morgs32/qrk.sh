@@ -1,43 +1,56 @@
-export { aggregates } from '@zerospin/core/aggregate/index';
-export * from '@zerospin/core/aggregate/makeAggregateCommand';
-export * from '@zerospin/core/contracts/CommandSchema';
-export * from '@zerospin/core/contracts/makeContractAdapter';
-export { contracts, type Command } from '@zerospin/core/contracts/index';
+export { defineCommand } from '@zerospin/core/contracts/Command';
+export {
+  makeModel,
+  makeModelVersion,
+  upgradeModelVersion,
+} from '@zerospin/core/models/makeModel';
+export {
+  makeContractVersion,
+  upgradeContractVersion,
+} from '@zerospin/core/contracts/makeVersion';
+export { makeReplica } from '@zerospin/core/models/makeReplica';
+export { makeSelection } from '@zerospin/core/models/makeSelection';
+export { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
+export { makeId } from '@zerospin/core/models/makeId';
+export { prefixId } from '@zerospin/core/models/prefixId';
+export { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
+export { primitives, CuidFactory } from '@zerospin/schema';
+export { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
+export { PublishableKey } from '@zerospin/core/services/PublishableKey';
+export { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
+export {
+  ZerospinError,
+  type IAnyError,
+  type IZerospinError,
+} from '@zerospin/error';
+export type { Command } from '@zerospin/core/contracts/Command';
 export type {
   IContractBinding,
   IAnyContractBindings,
+  ICommand,
+  IServiceCommand,
+  IAggregateCommand,
 } from '@zerospin/core/contracts/types';
-export * from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
-export * from '@zerospin/core/frontendController/makeFrontendController';
-export * from '@zerospin/core/authentication/index';
-export * from '@zerospin/core/frontendController/makeAggregateFrontendLock';
-export * from '@zerospin/core/frontendController/makeAggregateFrontendLockKey';
-export * from '@zerospin/core/frontendController/makeServiceFrontendLock';
-export * from '@zerospin/core/frontendController/makeServiceFrontendLockKey';
-export { models } from '@zerospin/core/models/index';
-export { Model } from '@zerospin/core/models/makeModel';
-export * from '@zerospin/core/models/makeReplica';
-export * from '@zerospin/core/models/makeSelection';
-export {
-  makeIdFromAbbreviation,
-  primitives,
-  type IDrizzleBooleanColumnBuilder,
-  type IDrizzleEnumColumnBuilder,
-  type IDrizzleIntegerColumnBuilder,
-  type IDrizzleRealColumnBuilder,
-  type IDrizzleTextColumnBuilder,
-  type IDrizzleTimestampColumnBuilder,
-  type InferDrizzleColumnBuilderData,
-  type InferNullableDrizzleColumnBuilderData,
-} from '@zerospin/schema';
-export * from '@zerospin/core/session/makeAggregateSession';
-export { makeService } from '@zerospin/core/service/makeService';
-export * from '@zerospin/core/system/makeSystem';
-export * from '@zerospin/core/utils/makeAggregateId';
-export * from '@zerospin/error';
-export * from './version.js';
-
 export type {
   IAggregateFrontend,
   IServiceFrontend,
 } from '@zerospin/core/frontendController/types';
+export type {
+  InferResource,
+  InferPayloadInput,
+  InferCommandPayload,
+  IAggregateId,
+} from '@zerospin/core/models/types';
+export type { ISystemId, ISystemConfig } from '@zerospin/core/system/types';
+export type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
+export { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
+export {
+  makeAggregateVersion,
+  upgradeAggregateVersion,
+} from '@zerospin/core/aggregate/makeVersion';
+export { makeService } from '@zerospin/core/service/makeService';
+export { makeAuthenticationVersion } from '@zerospin/core/authentication/makeVersion';
+export { makeSystem } from '@zerospin/core/system/makeSystem';
+export { makeSystemConfig } from '@zerospin/core/system/makeSystemConfig';
+export { makeCommand } from '@zerospin/core/makeCommand';
+export { ZEROSPIN_SDK_VERSION } from './version.js';

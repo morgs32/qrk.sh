@@ -2,24 +2,26 @@ import { mapParseError, ZerospinError } from '@zerospin/error';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
-import { aggregates } from '../aggregate/index.ts';
-import { authentication } from '../authentication/index.ts';
-import { contracts } from '../contracts/index.ts';
+import { makeAggregate } from '../aggregate/makeAggregate.ts';
+import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
+import { makeAuthenticationVersion } from '../authentication/makeVersion.ts';
+import { defineCommand } from '../contracts/Command.ts';
+import { makeContractVersion } from '../contracts/makeVersion.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
 import { getFrontendDbModels } from '../frontendController/getFrontendDbModels.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { models } from '../models/index.ts';
 import { makeModelIdSchema } from '../models/makeIdSchema.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 import { makeSelection } from '../models/makeSelection.ts';
 import type { IAggregateId } from '../models/types.ts';
 import { makeSystem } from '../system/makeSystem.ts';
 
-export const UserModel = models.makeModel({
+export const UserModel = makeModel({
   name: 'user',
   abbreviation: 'usr',
 });
 
-export const User = models.makeVersion(UserModel, {
+export const User = makeModelVersion(UserModel, {
   attributes: {
     name: primitives.text(),
   },
@@ -27,8 +29,8 @@ export const User = models.makeVersion(UserModel, {
   version: '1.0.0',
 });
 
-export const Account = models.makeVersion(
-  models.makeModel({ name: 'account', abbreviation: 'acct' }),
+export const Account = makeModelVersion(
+  makeModel({ name: 'account', abbreviation: 'acct' }),
   {
     attributes: {
       name: primitives.text(),
@@ -38,12 +40,12 @@ export const Account = models.makeVersion(
   },
 );
 
-export const ListModel = models.makeModel({
+export const ListModel = makeModel({
   name: 'list',
   abbreviation: 'lst',
 });
 
-export const List = models.makeVersion(ListModel, {
+export const List = makeModelVersion(ListModel, {
   attributes: {
     name: primitives.text(),
     userId: primitives.ref({
@@ -56,12 +58,12 @@ export const List = models.makeVersion(ListModel, {
   version: '1.0.0',
 });
 
-export const ItemModel = models.makeModel({
+export const ItemModel = makeModel({
   name: 'item',
   abbreviation: 'tsk',
 });
 
-export const Item = models.makeVersion(ItemModel, {
+export const Item = makeModelVersion(ItemModel, {
   attributes: {
     listId: primitives.ref({
       table: List.table,
@@ -74,108 +76,96 @@ export const Item = models.makeVersion(ItemModel, {
   version: '1.0.0',
 });
 
-export const createList = contracts.makeVersion(
-  contracts.makeCommand('createList'),
-  {
-    guard: ({ payload }: { payload: { name: string } }) =>
-      Effect.gen(function* () {
-        if (payload.name === 'invalid-name') {
-          return yield* new ZerospinError({
-            code: 'list-name-rejected',
-            message: `List name is rejected: ${payload.name}`,
-          });
-        }
-      }).pipe(Effect.withSpan('createListGuard')),
+export const createList = makeContractVersion(defineCommand('createList'), {
+  guard: ({ payload }: { payload: { name: string } }) =>
+    Effect.gen(function* () {
+      if (payload.name === 'invalid-name') {
+        return yield* new ZerospinError({
+          code: 'list-name-rejected',
+          message: `List name is rejected: ${payload.name}`,
+        });
+      }
+    }).pipe(Effect.withSpan('createListGuard')),
 
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
-      name: primitives.text(),
-      userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
-    },
-
-    models: { list: List },
-    program: ({ payload, models }) => {
-      const { id, name, userId } = payload;
-      return Effect.all({
-        created: models.list.create({
-          resourceId: id,
-          attributes: {
-            name,
-            userId,
-          },
-        }),
-      });
-    },
-    version: '1.0.0',
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    name: primitives.text(),
+    userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
   },
-);
 
-export const createItem = contracts.makeVersion(
-  contracts.makeCommand('createItem'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
-      listId: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
-      name: primitives.text(),
-    },
-
-    models: { item: Item },
-    program: ({ payload, models }) => {
-      const { id, listId, name } = payload;
-      return Effect.all({
-        created: models.item.create({
-          resourceId: id,
-          attributes: {
-            listId,
-            name,
-          },
-        }),
-      });
-    },
-    version: '1.0.0',
-  },
-);
-
-export const updateList = contracts.makeVersion(
-  contracts.makeCommand('updateList'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
-      name: primitives.text(),
-      userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
-    },
-
-    models: { list: List },
-    program: ({ payload, models }) => {
-      const { id, name, userId } = payload;
-      return Effect.all({
-        updated: models.list.update({
-          resourceId: id,
-          attributes: { name, userId },
-        }),
-      });
-    },
-    version: '1.0.0',
-  },
-);
-
-export const deleteList = contracts.makeVersion(
-  contracts.makeCommand('deleteList'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
-    },
-
-    models: { list: List },
-    program: ({ payload, models }) =>
-      Effect.all({
-        deleted: models.list.delete({
-          resourceId: payload.id,
-        }),
+  models: { list: List },
+  program: ({ payload, models }) => {
+    const { id, name, userId } = payload;
+    return Effect.all({
+      created: models.list.create({
+        resourceId: id,
+        attributes: {
+          name,
+          userId,
+        },
       }),
-    version: '1.0.0',
+    });
   },
-);
+  version: '1.0.0',
+});
+
+export const createItem = makeContractVersion(defineCommand('createItem'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
+    listId: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    name: primitives.text(),
+  },
+
+  models: { item: Item },
+  program: ({ payload, models }) => {
+    const { id, listId, name } = payload;
+    return Effect.all({
+      created: models.item.create({
+        resourceId: id,
+        attributes: {
+          listId,
+          name,
+        },
+      }),
+    });
+  },
+  version: '1.0.0',
+});
+
+export const updateList = makeContractVersion(defineCommand('updateList'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+    name: primitives.text(),
+    userId: primitives.foreignKey({ abbreviation: UserModel.abbreviation }),
+  },
+
+  models: { list: List },
+  program: ({ payload, models }) => {
+    const { id, name, userId } = payload;
+    return Effect.all({
+      updated: models.list.update({
+        resourceId: id,
+        attributes: { name, userId },
+      }),
+    });
+  },
+  version: '1.0.0',
+});
+
+export const deleteList = makeContractVersion(defineCommand('deleteList'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
+  },
+
+  models: { list: List },
+  program: ({ payload, models }) =>
+    Effect.all({
+      deleted: models.list.delete({
+        resourceId: payload.id,
+      }),
+    }),
+  version: '1.0.0',
+});
 
 export const authenticationSignature = {
   version: '1.0.0',
@@ -209,7 +199,7 @@ export const mainModels = getFrontendDbModels(main);
 
 export const system = makeSystem({
   authentication: [
-    authentication.makeVersion({
+    makeAuthenticationVersion({
       version: authenticationSignature.version,
       signature: authenticationSignature.signature,
       authenticate: ({ signature }) => Effect.succeed(signature.userId),
@@ -218,7 +208,7 @@ export const system = makeSystem({
   services: {},
   aggregates: {
     user: [
-      aggregates.makeVersion(aggregates.makeAggregate({ name: 'user' }), {
+      makeAggregateVersion(makeAggregate({ name: 'user' }), {
         version: '1.0.0',
         authorize: (props: {
           userId: string;

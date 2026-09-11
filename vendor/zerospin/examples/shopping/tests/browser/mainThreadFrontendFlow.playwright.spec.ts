@@ -2,6 +2,8 @@
 import { act, createElement, useEffect } from 'react';
 
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { encodePayload } from '@zerospin/core/contracts/encodePayload';
+import { prefixId } from '@zerospin/core/models/prefixId';
 import { makeServiceCommand } from '@zerospin/core/service/makeServiceCommand';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
@@ -25,20 +27,20 @@ import { createRoot } from 'react-dom/client';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/cartV1';
-import { cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/cartItemV2';
+import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/CartV1';
+import { cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/CartItemV2';
 import {
   ClerkUserIdSchema,
   userV1,
-} from '@/zerospin/aggregates/shopper/models/user/userV1';
-import { createProductV1 } from '@/zerospin/services/app/contracts/createProduct/createProductV1';
-import { deleteProductV1 } from '@/zerospin/services/app/contracts/deleteProduct/deleteProductV1';
-import { productV1 } from '@/zerospin/services/app/models/product/productV1';
+} from '@/zerospin/aggregates/shopper/models/user/UserV1';
+import { createProductV1 } from '@/zerospin/services/app/contracts/createProduct/CreateProductV1';
+import { deleteProductV1 } from '@/zerospin/services/app/contracts/deleteProduct/DeleteProductV1';
+import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
 import { signature } from '@/zerospin/signature';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
-const WebV2 = ZerospinApp.frontends.web.frontend;
-const CatalogV1 = ZerospinApp.frontends.catalog.frontend;
+const WebV2 = ZerospinApp.frontends.shopperFrontend.frontend;
+const CatalogV1 = ZerospinApp.frontends.appFrontend.frontend;
 
 Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', {
   configurable: true,
@@ -68,8 +70,8 @@ const FlowZerospinApp = makeZerospinApp({
     signature: signature.signature,
   },
   frontends: {
-    web: WebV2,
-    catalog: CatalogV1,
+    shopperFrontend: WebV2,
+    appFrontend: CatalogV1,
   },
   layer: testRuntimeLayer,
 });
@@ -77,19 +79,24 @@ const FlowZerospinApp = makeZerospinApp({
 function FlowSessionsProbe(props: {
   onSessions(
     aggregateSession: IBrowserSession<
-      typeof FlowZerospinApp.frontends.web.frontend
+      typeof FlowZerospinApp.frontends.shopperFrontend.frontend
     >,
     serviceSession: IBrowserServiceSession<typeof CatalogV1>,
   ): void;
 }) {
-  const aggregateSession = useSession(FlowZerospinApp.frontends.web);
-  const serviceSession = useSession(FlowZerospinApp.frontends.catalog);
-  const { data: cartItem } = useLiveQuery(FlowZerospinApp.frontends.web, {
-    query: db =>
-      db.query.cartItem.findFirst({
-        with: { product: true },
-      }),
-  });
+  const aggregateSession = useSession(
+    FlowZerospinApp.frontends.shopperFrontend,
+  );
+  const serviceSession = useSession(FlowZerospinApp.frontends.appFrontend);
+  const { data: cartItem } = useLiveQuery(
+    FlowZerospinApp.frontends.shopperFrontend,
+    {
+      query: db =>
+        db.query.cartItem.findFirst({
+          with: { product: true },
+        }),
+    },
+  );
   const { onSessions } = props;
 
   useEffect(() => {
@@ -147,7 +154,7 @@ describe('main-thread frontend flow', () => {
         serviceVersion: '1.0.0',
         contractName: 'createProduct',
         payload: {
-          id: productV1.prefixId(testRunId),
+          id: prefixId(productV1, testRunId),
           description: `Browser acceptance product ${testRunId}`,
           name: `Browser Product ${testRunId}`,
           price: 20,
@@ -157,7 +164,7 @@ describe('main-thread frontend flow', () => {
     const encodedSeedProductCommand = {
       ...seedProductCommand,
       payload: await testRuntime.runPromise(
-        createProductV1.encodePayload({
+        encodePayload(createProductV1, {
           version: seedProductCommand.contractVersion,
           payload: seedProductCommand.payload,
         }),
@@ -187,7 +194,7 @@ describe('main-thread frontend flow', () => {
     const root = createRoot(container);
     const sessions: {
       aggregate: IBrowserSession<
-        typeof FlowZerospinApp.frontends.web.frontend
+        typeof FlowZerospinApp.frontends.shopperFrontend.frontend
       > | null;
       service: IBrowserServiceSession<typeof CatalogV1> | null;
     } = { aggregate: null, service: null };
@@ -263,7 +270,7 @@ describe('main-thread frontend flow', () => {
       const createdUser = await aggregateSession.executeCommand({
         contractName: 'createUser',
         payload: {
-          id: userV1.prefixId(clerkUserId),
+          id: prefixId(userV1, clerkUserId),
           clerkUserId,
         },
       });
@@ -297,7 +304,7 @@ describe('main-thread frontend flow', () => {
       const updatedUser = await aggregateSession.executeCommand({
         contractName: 'updateUser',
         payload: {
-          id: userV1.prefixId(clerkUserId),
+          id: prefixId(userV1, clerkUserId),
           name: updatedName,
         },
       });
@@ -309,7 +316,11 @@ describe('main-thread frontend flow', () => {
             if (!state.isInitialized) return undefined;
             return state.db.query.user
               ?.findFirst({
-                where: { id: { eq: userV1.prefixId(clerkUserId) } },
+                where: {
+                  id: {
+                    eq: prefixId(userV1, clerkUserId),
+                  },
+                },
               })
               .sync()?.name;
           },
@@ -330,8 +341,8 @@ describe('main-thread frontend flow', () => {
           cartAggregateSession.executeCommand({
             contractName: 'createCart',
             payload: {
-              id: cartV1.prefixId(testRunId),
-              userId: userV1.prefixId(clerkUserId),
+              id: prefixId(cartV1, testRunId),
+              userId: prefixId(userV1, clerkUserId),
             },
           }),
         ),
@@ -364,7 +375,7 @@ describe('main-thread frontend flow', () => {
           addToCartAggregateSession.executeCommand({
             contractName: 'addToCart',
             payload: {
-              cartItemId: cartItemV2.prefixId(testRunId),
+              cartItemId: prefixId(cartItemV2, testRunId),
               cartId: createdCart.payload.id,
               product: catalogProduct,
               amount: 2,
@@ -472,7 +483,7 @@ describe('main-thread frontend flow', () => {
       const encodedDeleteProductCommand = {
         ...deleteProductCommand,
         payload: await testRuntime.runPromise(
-          deleteProductV1.encodePayload({
+          encodePayload(deleteProductV1, {
             version: deleteProductCommand.contractVersion,
             payload: deleteProductCommand.payload,
           }),
@@ -606,7 +617,7 @@ describe('main-thread frontend flow', () => {
       const encodedRecreateProductCommand = {
         ...recreateProductCommand,
         payload: await testRuntime.runPromise(
-          createProductV1.encodePayload({
+          encodePayload(createProductV1, {
             version: recreateProductCommand.contractVersion,
             payload: recreateProductCommand.payload,
           }),

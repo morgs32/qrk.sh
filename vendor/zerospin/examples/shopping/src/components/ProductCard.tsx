@@ -1,3 +1,4 @@
+import { makeId } from '@zerospin/core/models/makeId';
 import type { InferResource } from '@zerospin/core/models/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
@@ -16,30 +17,33 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/cartV1';
-import { cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/cartItemV2';
-import { type userV1 } from '@/zerospin/aggregates/shopper/models/user/userV1';
-import { type productV1 } from '@/zerospin/services/app/models/product/productV1';
+import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/CartV1';
+import { cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/CartItemV2';
+import { type userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
+import { type productV1 } from '@/zerospin/services/app/models/product/ProductV1';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function ProductCard(props: {
   product: InferResource<typeof productV1>;
-  userId: ReturnType<typeof userV1.prefixId>;
+  userId: InferResource<typeof userV1>['id'];
 }) {
   const { product, userId } = props;
-  const session = useSession(ZerospinApp.frontends.web);
-  const { data: cart } = useLiveQuery(ZerospinApp.frontends.web, {
+  const session = useSession(ZerospinApp.frontends.shopperFrontend);
+  const { data: cart } = useLiveQuery(ZerospinApp.frontends.shopperFrontend, {
     query: db => db.query.cart.findFirst(),
   });
-  const { data: cartItem } = useLiveQuery(ZerospinApp.frontends.web, {
-    query: db =>
-      db.query.cartItem.findFirst({
-        where: {
-          cartId: { eq: cart?.id },
-          productId: { eq: product.id },
-        },
-      }),
-  });
+  const { data: cartItem } = useLiveQuery(
+    ZerospinApp.frontends.shopperFrontend,
+    {
+      query: db =>
+        db.query.cartItem.findFirst({
+          where: {
+            cartId: { eq: cart?.id },
+            productId: { eq: product.id },
+          },
+        }),
+    },
+  );
 
   return (
     <Card className="flex flex-col gap-0 overflow-hidden border-border/80 bg-card py-0 shadow-sm transition-shadow hover:shadow-md">
@@ -73,7 +77,7 @@ export function ProductCard(props: {
                       contractName: 'createCart',
                       payload: {
                         id: Effect.runSync(
-                          cartV1.makeId().pipe(Effect.provide(NanoIdFactory)),
+                          makeId(cartV1).pipe(Effect.provide(NanoIdFactory)),
                         ),
                         userId,
                       },
@@ -88,7 +92,7 @@ export function ProductCard(props: {
                     contractName: 'addToCart',
                     payload: {
                       cartItemId: Effect.runSync(
-                        cartItemV2.makeId().pipe(Effect.provide(NanoIdFactory)),
+                        makeId(cartItemV2).pipe(Effect.provide(NanoIdFactory)),
                       ),
                       cartId,
                       product,

@@ -7,7 +7,8 @@ import { Effect, Exit, Layer, ManagedRuntime, Result, Scope } from 'effect';
 import { afterAll, describe, expect } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
-import { contracts } from '../contracts/index.ts';
+import { defineCommand } from '../contracts/Command.ts';
+import { makeContractVersion } from '../contracts/makeVersion.ts';
 import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemoryWasmSqliteDb } from '../drizzle/makeProvisionedInMemoryWasmSqliteDb.ts';
 import {
@@ -18,6 +19,7 @@ import {
   User,
   UserModel,
 } from '../fixtures/system.ts';
+import { initializeGuards as initializeFrontendGuards } from '../frontendController/initializeGuards.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { IncrementalMonotonicFactory } from '../test-utils/IncrementalMonotonicFactory.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
@@ -54,7 +56,7 @@ const TestLayer = Layer.mergeAll(
 
 const now = new Date('2026-01-01T00:00:00.000Z');
 
-const rejectList = contracts.makeVersion(contracts.makeCommand('rejectList'), {
+const rejectList = makeContractVersion(defineCommand('rejectList'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ListModel.abbreviation }),
     name: List.propertiesShape.name,
@@ -103,7 +105,7 @@ describe('local session command journal', () => {
             .run();
           const submitted: number[] = [];
           const session = Effect.runSync(
-            Effect.map(main.initializeGuards, guards =>
+            Effect.map(initializeFrontendGuards(main), guards =>
               makeAggregateSession({
                 runtime: guardTestRuntime,
                 guards,
@@ -196,7 +198,7 @@ describe('local session command journal', () => {
           expect(submitted).toEqual([1, 2]);
 
           const resumed = Effect.runSync(
-            Effect.map(main.initializeGuards, guards =>
+            Effect.map(initializeFrontendGuards(main), guards =>
               makeAggregateSession({
                 runtime: guardTestRuntime,
                 guards,
@@ -238,7 +240,7 @@ describe('local session command journal', () => {
           });
           const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
           const session = Effect.runSync(
-            Effect.map(main.initializeGuards, guards =>
+            Effect.map(initializeFrontendGuards(main), guards =>
               makeAggregateSession({
                 runtime: guardTestRuntime,
                 guards,
@@ -302,7 +304,7 @@ describe('local session command journal', () => {
           const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
           const submittedFailures: string[] = [];
           const session = Effect.runSync(
-            Effect.map(rejectingFrontend.initializeGuards, guards =>
+            Effect.map(initializeFrontendGuards(rejectingFrontend), guards =>
               makeAggregateSession({
                 runtime: guardTestRuntime,
                 guards,
@@ -394,7 +396,7 @@ describe('local session command journal', () => {
         });
         const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig });
         const session = Effect.runSync(
-          Effect.map(main.initializeGuards, guards =>
+          Effect.map(initializeFrontendGuards(main), guards =>
             makeAggregateSession({
               runtime: guardTestRuntime,
               guards,
@@ -480,7 +482,7 @@ describe('local session command journal', () => {
             .run();
           let attempts = 0;
           const session = Effect.runSync(
-            Effect.map(main.initializeGuards, guards =>
+            Effect.map(initializeFrontendGuards(main), guards =>
               makeAggregateSession({
                 runtime: guardTestRuntime,
                 guards,

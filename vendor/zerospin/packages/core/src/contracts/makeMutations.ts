@@ -6,6 +6,7 @@ import type { IAnyModels } from '../models/types.ts';
 
 import { assertMutationsUseModels } from './assertMutationsUseModels.ts';
 import type { IAnyMutation, ICommand, IContract } from './types.ts';
+import { validatePayload } from './validatePayload.ts';
 
 export const makeMutations = Effect.fn('makeMutations')(function* (props: {
   contract: IContract;
@@ -21,7 +22,7 @@ export const makeMutations = Effect.fn('makeMutations')(function* (props: {
 > {
   const { contract, models, command } = props;
 
-  const payload = yield* contract.validatePayload({
+  const payload = yield* validatePayload(contract, {
     version: contract.version,
     payload: command.payload,
   });

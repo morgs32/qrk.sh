@@ -1,3 +1,3 @@
-import { models } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 
-export const user = models.makeModel({ name: 'user', abbreviation: 'usr' });
+export const user = sdk.makeModel({ name: 'user', abbreviation: 'usr' });

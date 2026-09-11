@@ -15,14 +15,17 @@ import { validateAggregateFrontendLock } from './validateAggregateFrontendLock/v
 import { validateServiceFrontendLock } from './validateServiceFrontendLock/validateServiceFrontendLock.ts';
 
 const fixtures = await vi.hoisted(async () => {
-  const { models } = await import('@zerospin/core/models/index');
-  const { contracts } = await import('@zerospin/core/contracts/index');
+  const { makeModel, makeModelVersion } =
+    await import('@zerospin/core/models/makeModel');
+  const { defineCommand } = await import('@zerospin/core/contracts/Command');
+  const { makeContractVersion } =
+    await import('@zerospin/core/contracts/makeVersion');
   const { makeFrontendController } =
     await import('@zerospin/core/frontendController/makeFrontendController');
   const { primitives } = await import('@zerospin/schema');
   const { Schema } = await import('effect');
-  const item = models.makeVersion(
-    models.makeModel({ name: 'item', abbreviation: 'itm' }),
+  const item = makeModelVersion(
+    makeModel({ name: 'item', abbreviation: 'itm' }),
     {
       version: '1.0.0',
       indexes: [],
@@ -37,7 +40,7 @@ const fixtures = await vi.hoisted(async () => {
       },
     },
   );
-  const update = contracts.makeVersion(contracts.makeCommand('update'), {
+  const update = makeContractVersion(defineCommand('update'), {
     models: { item },
     version: '1.0.0',
     payload: {

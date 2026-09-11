@@ -1,8 +1,9 @@
 import { primitives } from '@zerospin/schema';
 import { describe, expect, it } from 'vitest';
 
-import { contracts } from '../contracts/index.ts';
-import { models } from '../models/index.ts';
+import { defineCommand } from '../contracts/Command.ts';
+import { makeContractVersion } from '../contracts/makeVersion.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 
 import { makeFrontendController } from './makeFrontendController.ts';
 import { makeFrontendControllerSpec } from './makeFrontendControllerSpec.ts';
@@ -62,22 +63,19 @@ describe('makeFrontendControllerSpec', () => {
   });
 
   it('generates models, contracts, primitive descriptors, and locks', () => {
-    const Product = models.makeVersion(
-      models.makeModel({ name: 'product', abbreviation: 'prd' }),
+    const Product = makeModelVersion(
+      makeModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: { name: primitives.text() },
         indexes: [{ name: 'product_name_idx', columns: ['name'] }],
         version: '1.0.0',
       },
     );
-    const renameProduct = contracts.makeVersion(
-      contracts.makeCommand('renameProduct'),
-      {
-        version: '1.0.0',
-        payload: { name: primitives.text() },
-        models: { product: Product },
-      },
-    );
+    const renameProduct = makeContractVersion(defineCommand('renameProduct'), {
+      version: '1.0.0',
+      payload: { name: primitives.text() },
+      models: { product: Product },
+    });
     const controller = makeFrontendController({
       aggregateVersion: '1.0.0',
       systemName: 'test-system',

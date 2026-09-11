@@ -1,10 +1,12 @@
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+
 import { makeTable, primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { AsyncLive } from '../async/AsyncLive.ts';
 import { List, mainModels, User } from '../fixtures/system.ts';
-import { models } from '../models/index.ts';
+
 import { makeReplica } from '../models/makeReplica.ts';
 import { sessionRepoTables } from '../session/sessionRepoTables.ts';
 
@@ -59,16 +61,16 @@ describe('makeResourceDbConfig', () => {
   });
 
   it('queries exact authoritative source-table refs between replicas', async () => {
-    const ProductSource = models.makeVersion(
-      models.makeModel({ name: 'product', abbreviation: 'prd' }),
+    const ProductSource = makeModelVersion(
+      makeModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: { name: primitives.text() },
         indexes: [],
         version: '1.0.0',
       },
     );
-    const CartItemSource = models.makeVersion(
-      models.makeModel({ name: 'cartItem', abbreviation: 'cit' }),
+    const CartItemSource = makeModelVersion(
+      makeModel({ name: 'cartItem', abbreviation: 'cit' }),
       {
         attributes: {
           productId: primitives.ref({

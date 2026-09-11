@@ -5,6 +5,9 @@ import config from './zerospin.config';
 export default makeWorkerdVitestConfig({
   include: ['tests/workerd/**/*.spec.ts'],
   passWithNoTests: false,
+  setupFiles: [
+    '../../packages/system-worker/src/workerd-utils/acceptSystemSpec.ts',
+  ],
   config,
   workerBindings: { ZEROSPIN_SECRET_KEY: 'sk_test_system_runtime_capability' },
 });

@@ -121,11 +121,6 @@ export type ISystemSpec = Readonly<{
           Readonly<{
             readonly name: string;
             readonly version: string;
-            readonly historicalDefinitions: readonly Readonly<{
-              readonly version: string;
-              readonly models: Readonly<Record<string, string>>;
-              readonly contracts: Readonly<Record<string, string>>;
-            }>[];
             readonly models: Readonly<Record<string, ISystemModelSpec>>;
             readonly contracts: Readonly<Record<string, ISystemContractSpec>>;
             readonly queries: Readonly<
@@ -210,11 +205,6 @@ export type ISystem<
   LAYER_SERVICES = never,
 > = {
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError>;
-  readonly config: (
-    options: Readonly<{ systemId: ISystemId }>,
-  ) => ISystemConfig<
-    ISystem<AGGREGATES, SERVICES, SYSTEM_NAME, AUTHENTICATION, LAYER_SERVICES>
-  >;
   readonly name: SYSTEM_NAME;
   readonly authentication: Readonly<AUTHENTICATION>;
   readonly aggregates: Readonly<

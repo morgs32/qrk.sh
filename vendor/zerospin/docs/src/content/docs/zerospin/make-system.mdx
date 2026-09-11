@@ -10,16 +10,8 @@ This guide shows the direct shape for defining a small system. It keeps each exp
 Import the builders, primitive descriptors, typed error shape, and Effect schema tools used by the system.
 
 ```ts
-import { contracts } from '@zerospin/core/contracts/index';
-import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController.js';
-import { ZerospinError } from '@zerospin/error';
+import * as sdk from '@zerospin/sdk';
 import { makeModelIdSchema } from '@zerospin/core/models/makeIdSchema.js';
-import { models } from '@zerospin/core/models/index';
-import { aggregates } from '@zerospin/core/aggregate/index';
-import { authentication } from '@zerospin/core/authentication/index';
-import { makeSelection } from '@zerospin/core/models/makeSelection.js';
-import { primitives } from '@zerospin/schema';
-import { makeSystem } from '@zerospin/core/system/makeSystem.js';
 import { Effect, Schema } from 'effect';
 ```
 
@@ -28,23 +20,23 @@ import { Effect, Schema } from 'effect';
 Models define the resource types in the system. Each model identity has explicitly authored versions. These models each declare their first version. The `User` model supplies this aggregate's user identity. `List` belongs to a user, and `Item` belongs to a list.
 
 ```ts
-export const User = models.makeVersion(
-  models.makeModel({ name: 'user', abbreviation: 'usr' }),
+export const User = sdk.makeModelVersion(
+  sdk.makeModel({ name: 'user', abbreviation: 'usr' }),
   {
     attributes: {
-      name: primitives.text(),
+      name: sdk.primitives.text(),
     },
     indexes: [],
     version: '1.0.0',
   },
 );
 
-export const List = models.makeVersion(
-  models.makeModel({ name: 'list', abbreviation: 'lst' }),
+export const List = sdk.makeModelVersion(
+  sdk.makeModel({ name: 'list', abbreviation: 'lst' }),
   {
     attributes: {
-      name: primitives.text(),
-      userId: primitives.ref({
+      name: sdk.primitives.text(),
+      userId: sdk.primitives.ref({
         table: User.table,
         relation: 'user',
         inverse: 'lists',
@@ -55,16 +47,16 @@ export const List = models.makeVersion(
   },
 );
 
-export const Item = models.makeVersion(
-  models.makeModel({ name: 'item', abbreviation: 'tsk' }),
+export const Item = sdk.makeModelVersion(
+  sdk.makeModel({ name: 'item', abbreviation: 'tsk' }),
   {
     attributes: {
-      listId: primitives.ref({
+      listId: sdk.primitives.ref({
         table: List.table,
         relation: 'list',
         inverse: 'items',
       }),
-      name: primitives.text(),
+      name: sdk.primitives.text(),
     },
     indexes: [],
     version: '1.0.0',
@@ -79,13 +71,13 @@ Contracts define commands. Each contract has a payload shape, declared model ver
 `createList` creates a `List` resource and stores the user relationship on `userId`.
 
 ```ts
-export const createList = contracts.makeVersion(
-  contracts.makeCommand('createList'),
+export const createList = sdk.makeContractVersion(
+  sdk.defineCommand('createList'),
   {
     payload: {
-      id: primitives.foreignKey({ abbreviation: List.abbreviation }),
-      name: primitives.text(),
-      userId: primitives.foreignKey({ abbreviation: User.abbreviation }),
+      id: sdk.primitives.foreignKey({ abbreviation: List.abbreviation }),
+      name: sdk.primitives.text(),
+      userId: sdk.primitives.foreignKey({ abbreviation: User.abbreviation }),
     },
     models: { list: List },
     program: props => {
@@ -109,13 +101,13 @@ export const createList = contracts.makeVersion(
 `createItem` creates an `Item` resource and stores the list relationship on `listId`.
 
 ```ts
-export const createItem = contracts.makeVersion(
-  contracts.makeCommand('createItem'),
+export const createItem = sdk.makeContractVersion(
+  sdk.defineCommand('createItem'),
   {
     payload: {
-      id: primitives.foreignKey({ abbreviation: Item.abbreviation }),
-      listId: primitives.foreignKey({ abbreviation: List.abbreviation }),
-      name: primitives.text(),
+      id: sdk.primitives.foreignKey({ abbreviation: Item.abbreviation }),
+      listId: sdk.primitives.foreignKey({ abbreviation: List.abbreviation }),
+      name: sdk.primitives.text(),
     },
     models: { item: Item },
     program: props => {
@@ -139,12 +131,12 @@ export const createItem = contracts.makeVersion(
 `updateList` changes the list name with the `List` model's matching versioned update schema and constructor.
 
 ```ts
-export const updateList = contracts.makeVersion(
-  contracts.makeCommand('updateList'),
+export const updateList = sdk.makeContractVersion(
+  sdk.defineCommand('updateList'),
   {
     payload: {
-      id: primitives.foreignKey({ abbreviation: List.abbreviation }),
-      name: primitives.text(),
+      id: sdk.primitives.foreignKey({ abbreviation: List.abbreviation }),
+      name: sdk.primitives.text(),
     },
     models: { list: List },
     program: props => {
@@ -167,7 +159,7 @@ export const updateList = contracts.makeVersion(
 The frontend selects models and contracts from one aggregate version. Its lock must match those definitions exactly and include every selected contract's declared mutation models. Frontends are not registered on the server aggregate.
 
 ```ts
-export const listFrontend = makeFrontendController({
+export const listFrontend = sdk.makeFrontendController({
   systemName: 'system1',
   aggregateName: 'user',
   name: 'main',
@@ -190,8 +182,8 @@ export const listFrontend = makeFrontendController({
 Authentication produces a user ID. The selected aggregate authorizes that user against its database. Selections define visible resources for snapshots and live updates; the frontend lock further narrows the delivered models and accepted commands.
 
 ```ts
-export const user = aggregates.makeVersion(
-  aggregates.makeAggregate({ name: 'user' }),
+export const user = sdk.makeAggregateVersion(
+  sdk.makeAggregate({ name: 'user' }),
   {
     version: '1.0.0',
     authorize: ({ userId, db }) =>
@@ -204,7 +196,7 @@ export const user = aggregates.makeVersion(
             .sync(),
         );
         if (row === undefined) {
-          return yield* new ZerospinError({
+          return yield* new sdk.ZerospinError({
             code: 'user-not-found',
             message: `User ${userId} was not found`,
           });
@@ -217,15 +209,15 @@ export const user = aggregates.makeVersion(
       updateList: { contract: updateList },
     },
     selections: {
-      user: makeSelection({
+      user: sdk.makeSelection({
         model: User,
         where: ({ userId }) => ({ id: userId }),
       }),
-      list: makeSelection({
+      list: sdk.makeSelection({
         model: List,
         where: ({ userId }) => ({ user: { id: userId } }),
       }),
-      item: makeSelection({
+      item: sdk.makeSelection({
         model: Item,
         where: ({ userId }) => ({ list: { user: { id: userId } } }),
       }),
@@ -233,10 +225,10 @@ export const user = aggregates.makeVersion(
   },
 );
 
-export const system = makeSystem({
+export const system = sdk.makeSystem({
   name: 'system1',
   authentication: [
-    authentication.makeVersion({
+    sdk.makeAuthenticationVersion({
       version: '1.0.0',
       signature: Schema.Struct({ userId: makeModelIdSchema(User) }),
       authenticate: ({ signature }) => Effect.succeed(signature.userId),

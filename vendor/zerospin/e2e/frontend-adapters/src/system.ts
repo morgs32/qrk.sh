@@ -1,5 +1,6 @@
-import { aggregates } from '@zerospin/core/aggregate/index';
-import { authentication } from '@zerospin/core/authentication/index';
+import { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
+import { makeAggregateVersion } from '@zerospin/core/aggregate/makeVersion';
+import { makeAuthenticationVersion } from '@zerospin/core/authentication/makeVersion';
 import { makeSelection } from '@zerospin/core/models/makeSelection';
 import { makeSystem } from '@zerospin/core/system/makeSystem';
 import { Effect, Schema } from 'effect';
@@ -19,9 +20,9 @@ export const authenticationSignature = {
 };
 
 export const system = makeSystem({
-  name: 'frontendAdapters',
+  name: 'frontend-adapters',
   authentication: [
-    authentication.makeVersion({
+    makeAuthenticationVersion({
       version: authenticationSignature.version,
       signature: authenticationSignature.signature,
       authenticate: ({ signature }) => Effect.succeed(signature.clerkUserId),
@@ -29,7 +30,7 @@ export const system = makeSystem({
   ],
   aggregates: {
     aggregate: [
-      aggregates.makeVersion(aggregates.makeAggregate({ name: 'aggregate' }), {
+      makeAggregateVersion(makeAggregate({ name: 'aggregate' }), {
         version: '1.0.0',
         authorize: () => Effect.void,
         models: { sourceItem: SourceItem },

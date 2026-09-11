@@ -2,11 +2,13 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { aggregates } from '../aggregate/index.ts';
-import { authentication } from '../authentication/index.ts';
-import { contracts } from '../contracts/index.ts';
+import { makeAggregate } from '../aggregate/makeAggregate.ts';
+import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
+import { makeAuthenticationVersion } from '../authentication/makeVersion.ts';
+import { defineCommand } from '../contracts/Command.ts';
+import { makeContractVersion } from '../contracts/makeVersion.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
-import { models } from '../models/index.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 import { makeSelection } from '../models/makeSelection.ts';
 import { makeService } from '../service/makeService.ts';
 
@@ -14,15 +16,15 @@ import { makeSystem } from './makeSystem.ts';
 import { makeSystemSpec } from './makeSystemSpec.ts';
 import { SystemSpecSchema } from './SystemSpecSchema.ts';
 
-const ItemModel = models.makeModel({ name: 'item', abbreviation: 'itm' });
+const ItemModel = makeModel({ name: 'item', abbreviation: 'itm' });
 
-const Item = models.makeVersion(ItemModel, {
+const Item = makeModelVersion(ItemModel, {
   attributes: { quantity: primitives.integer() },
   indexes: [],
   version: '1.0.0',
 });
 
-const addItem = contracts.makeVersion(contracts.makeCommand('addItem'), {
+const addItem = makeContractVersion(defineCommand('addItem'), {
   payload: {
     id: primitives.foreignKey({ abbreviation: ItemModel.abbreviation }),
     quantity: primitives.integer(),
@@ -43,7 +45,7 @@ describe('makeSystemSpec', () => {
     const system = makeSystem({
       name: 'shopping',
       authentication: [
-        authentication.makeVersion({
+        makeAuthenticationVersion({
           version: '1.0.0',
           signature: Schema.Struct({ userId: Schema.NonEmptyString }),
           authenticate: ({ signature }) => Effect.succeed(signature.userId),
@@ -51,18 +53,15 @@ describe('makeSystemSpec', () => {
       ],
       aggregates: {
         shopper: [
-          aggregates.makeVersion(
-            aggregates.makeAggregate({ name: 'shopper' }),
-            {
-              version: '2.0.0',
-              authorize: () => Effect.void,
-              models: { item: Item },
-              contracts: { addItem: { contract: addItem } },
-              selections: {
-                item: makeSelection({ model: Item, where: () => ({}) }),
-              },
+          makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+            version: '2.0.0',
+            authorize: () => Effect.void,
+            models: { item: Item },
+            contracts: { addItem: { contract: addItem } },
+            selections: {
+              item: makeSelection({ model: Item, where: () => ({}) }),
             },
-          ),
+          }),
         ],
       },
       services: {
@@ -70,7 +69,6 @@ describe('makeSystemSpec', () => {
           makeService({
             name: 'catalog',
             version: '1.0.0',
-            historicalDefinitions: [],
             authorize: () => Effect.void,
             models: {},
             contracts: {},
@@ -269,7 +267,6 @@ describe('makeSystemSpec', () => {
                   "name": "browse",
                 },
               },
-              "historicalDefinitions": [],
               "models": {},
               "name": "catalog",
               "queries": {},
@@ -284,7 +281,7 @@ describe('makeSystemSpec', () => {
 });
 
 it('decodes primitive payload specs without stripping nested JSON Schema', () => {
-  const command = contracts.makeVersion(contracts.makeCommand('configure'), {
+  const command = makeContractVersion(defineCommand('configure'), {
     version: '1.0.0',
     models: { item: Item },
     payload: {
@@ -300,7 +297,7 @@ it('decodes primitive payload specs without stripping nested JSON Schema', () =>
     services: {},
     aggregates: {
       shopper: [
-        aggregates.makeVersion(aggregates.makeAggregate({ name: 'shopper' }), {
+        makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
           version: '1.0.0',
           authorize: () => Effect.void,
           models: {},

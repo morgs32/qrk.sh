@@ -1,7 +1,9 @@
 import { EncodedServiceCommandSchema } from '@zerospin/core/contracts/CommandSchema';
+import { decodePayload } from '@zerospin/core/contracts/decodePayload';
 import { encodeMutation } from '@zerospin/core/contracts/encodeAppliedMutation';
 import { makeMutations } from '@zerospin/core/contracts/makeMutations';
 import type { IDb } from '@zerospin/core/drizzle/types';
+import { initializeGuards as initializeServiceGuards } from '@zerospin/core/service/initializeGuards';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError, ZerospinError } from '@zerospin/error';
 import { eq } from 'drizzle-orm';
@@ -52,7 +54,7 @@ export const executeCommands = Effect.fn(
     recordKind: 'listed versions',
   });
   const application = yield* Layer.build(Layer.fresh(system.layer));
-  const guards = yield* service.initializeGuards.pipe(
+  const guards = yield* initializeServiceGuards(service).pipe(
     Effect.provideContext(application),
   );
   const inputs = yield* Effect.forEach(rows, (row, offset) =>
@@ -100,7 +102,7 @@ export const executeCommands = Effect.fn(
             message: `Missing service contract ${source.commandName}`,
           });
         }
-        const payload = yield* contract.decodePayload({
+        const payload = yield* decodePayload(contract, {
           command: source,
         });
         const made = yield* makeMutations({

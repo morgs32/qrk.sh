@@ -3,8 +3,9 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { contracts } from '../contracts/index.ts';
-import { models } from '../models/index.ts';
+import { defineCommand } from '../contracts/Command.ts';
+import { makeContractVersion } from '../contracts/makeVersion.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 
 import {
   AggregateFrontendLockSchema,
@@ -13,8 +14,8 @@ import {
 import { makeAggregateFrontendLockKey } from './makeAggregateFrontendLockKey.ts';
 import { makeFrontendController } from './makeFrontendController.ts';
 
-const Item = models.makeVersion(
-  models.makeModel({ name: 'item', abbreviation: 'itm' }),
+const Item = makeModelVersion(
+  makeModel({ name: 'item', abbreviation: 'itm' }),
   {
     attributes: { title: primitives.text() },
     indexes: [],
@@ -22,8 +23,8 @@ const Item = models.makeVersion(
   },
 );
 
-const List = models.makeVersion(
-  models.makeModel({ name: 'list', abbreviation: 'lst' }),
+const List = makeModelVersion(
+  makeModel({ name: 'list', abbreviation: 'lst' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
@@ -31,12 +32,12 @@ const List = models.makeVersion(
   },
 );
 
-const renameItem = contracts.makeVersion(contracts.makeCommand('renameItem'), {
+const renameItem = makeContractVersion(defineCommand('renameItem'), {
   version: '2.0.0',
   payload: { title: primitives.text() },
 });
 
-const createList = contracts.makeVersion(contracts.makeCommand('createList'), {
+const createList = makeContractVersion(defineCommand('createList'), {
   version: '1.0.0',
   payload: { name: primitives.text() },
 });
@@ -106,8 +107,8 @@ describe('aggregate frontend lock', () => {
         models: { item: Item },
         contracts: { renameItem: { contract: renameItem } },
       });
-      const ChangedItem = models.makeVersion(
-        models.makeModel({ name: 'item', abbreviation: 'itm' }),
+      const ChangedItem = makeModelVersion(
+        makeModel({ name: 'item', abbreviation: 'itm' }),
         {
           attributes: { title: primitives.integer() },
           indexes: [],

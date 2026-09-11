@@ -30,7 +30,7 @@ const MakeVersionPropsSchema = Schema.Struct({
   ),
 });
 
-export function makeVersion<
+export function makeAuthenticationVersion<
   const VERSION extends string,
   SIGNATURE extends Schema.Codec<unknown, unknown>,
   USER_ID extends string,

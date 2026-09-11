@@ -4,6 +4,7 @@ import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { main, mainModels } from '@zerospin/core/fixtures/system';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
 import type { ISessionId } from '@zerospin/core/session/types';
@@ -77,7 +78,7 @@ describe('SessionsCommandsLayout', () => {
     expect(typeof db.query.commandJournal!.findMany).toBe('function');
 
     const session = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,

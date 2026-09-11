@@ -2,8 +2,9 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { contracts as contractAuthoring } from '../contracts/index.ts';
-import { models as modelDefinitions } from '../models/index.ts';
+import { defineCommand } from '../contracts/Command.ts';
+import { makeContractVersion } from '../contracts/makeVersion.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 
 import {
   AggregateFrontendController,
@@ -11,8 +12,8 @@ import {
   ServiceFrontendController,
 } from './makeFrontendController.ts';
 
-const Product = modelDefinitions.makeVersion(
-  modelDefinitions.makeModel({ name: 'product', abbreviation: 'prd' }),
+const Product = makeModelVersion(
+  makeModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
@@ -130,8 +131,8 @@ describe('makeFrontendController', () => {
 
   it('owns registries, model names, and contract bindings', () => {
     const inspectGuard = () => Effect.void;
-    const inspectProduct = contractAuthoring.makeVersion(
-      contractAuthoring.makeCommand('inspectProduct'),
+    const inspectProduct = makeContractVersion(
+      defineCommand('inspectProduct'),
       {
         version: '1.0.0',
         payload: {},

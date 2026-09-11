@@ -1,8 +1,9 @@
 import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
-import { aggregates } from '../aggregate/index.ts';
-import { authentication } from '../authentication/index.ts';
+import { makeAggregate } from '../aggregate/makeAggregate.ts';
+import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
+import { makeAuthenticationVersion } from '../authentication/makeVersion.ts';
 import { makeService } from '../service/makeService.ts';
 
 import { makeSystem } from './makeSystem.ts';
@@ -12,7 +13,7 @@ const authenticationSignature = {
   version: '1.0.0',
   signature: Schema.Struct({ userId: Schema.String }),
 };
-const authenticationV1 = authentication.makeVersion({
+const authenticationV1 = makeAuthenticationVersion({
   version: authenticationSignature.version,
   signature: authenticationSignature.signature,
   authenticate: ({
@@ -35,15 +36,12 @@ const catalog = makeService({
   },
   frontends: {},
 });
-const user = aggregates.makeVersion(
-  aggregates.makeAggregate({ name: 'user' }),
-  {
-    version: '1.0.0',
-    models: {},
-    contracts: {},
-    selections: {},
-  },
-);
+const user = makeAggregateVersion(makeAggregate({ name: 'user' }), {
+  version: '1.0.0',
+  models: {},
+  contracts: {},
+  selections: {},
+});
 const system = makeSystem({
   name: 'test',
   authentication: [authenticationV1],

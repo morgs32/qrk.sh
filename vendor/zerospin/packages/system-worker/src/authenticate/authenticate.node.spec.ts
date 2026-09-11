@@ -6,21 +6,21 @@ import { describe, expect, it, vi } from 'vitest';
 import { authenticate } from './authenticate.ts';
 
 vi.mock('system', async () => {
-  const { authentication } =
-    await import('@zerospin/core/authentication/index');
+  const { makeAuthenticationVersion } =
+    await import('@zerospin/core/authentication/makeVersion');
   const { Effect, Schema } = await import('effect');
   const { ZerospinError } = await import('@zerospin/error');
   return {
     system: {
       name: 'auth-test',
       authentication: [
-        authentication.makeVersion({
+        makeAuthenticationVersion({
           version: '1.0.0',
           signature: Schema.Struct({ subject: Schema.String }),
           authenticate: ({ signature }) =>
             Effect.succeed(`v1:${signature.subject}`),
         }),
-        authentication.makeVersion({
+        makeAuthenticationVersion({
           version: '2.0.0',
           signature: Schema.Struct({ userId: Schema.String }),
           authenticate: ({ signature }) =>
@@ -35,7 +35,7 @@ vi.mock('system', async () => {
                   signature.userId === 'empty' ? '' : `v2:${signature.userId}`,
                 ),
         }),
-        authentication.makeVersion({
+        makeAuthenticationVersion({
           version: '3.0.0',
           signature: Schema.NumberFromString,
           authenticate: ({ signature }) =>

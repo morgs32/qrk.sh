@@ -6,11 +6,11 @@ updated: 2026-09-11
 # Authored System and Static Worker
 
 The root `zerospin.config.ts` imports an authored System and default-exports
-`system.config({ systemId })`. Configuration retains the live System capability
+`makeSystemConfig(system, { systemId })`. Configuration retains the live System capability
 and its explicit deployment identity. Seed modules
 are selected separately by the seed CLI's file-path argument.
 
-- [`makeSystem.ts`](../../packages/core/src/system/makeSystem.ts) — constructs configuration around the authored System.
+- [`makeSystemConfig.ts`](../../packages/core/src/system/makeSystemConfig.ts) — synchronously validates configuration and retains the original authored System.
 - [`types.ts`](../../packages/core/src/system/types.ts) — preserves the concrete System in the configuration type.
 - [`zerospin.config.ts`](../../examples/shopping/zerospin.config.ts) — Shopping exports its configuration without importing seed commands.
 
@@ -228,7 +228,7 @@ their factory modules.
 - [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — declares inherited non-enumerable getters, one-shot `markReplica`, and `Model.isReplica`.
 - [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — constructs the canonical `Model` instance.
 - [`makeReplica.ts`](../../packages/core/src/models/makeReplica.ts) — accepts only a canonical source `Model` and rejects nested replicas.
-- [`makeReplica.ts`](../../packages/core/src/models/makeReplica.ts) — constructs the replica through `models.makeVersion`, then registers exact source and service name after the instance exists.
+- [`makeReplica.ts`](../../packages/core/src/models/makeReplica.ts) — constructs the replica through `makeModelVersion`, then registers exact source and service name after the instance exists.
 - [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — declares the two owner-specific frontend-controller classes.
 - [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — snapshots service-frontend registries and returns a `ServiceFrontendController`.
 - [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — snapshots aggregate-frontend bindings and returns an `AggregateFrontendController`.
@@ -250,7 +250,7 @@ serialize `name` and the selected `aggregateVersion` or `serviceVersion`; locks 
 
 `makeService` owns service-local authorization, authoritative-model,
 query stamping, frontend binding, projection-adapter, record
-snapshot, and command-construction integrity. `aggregates.makeVersion` owns aggregate-local model, selection, guard,
+snapshot, and command-construction integrity. `makeAggregateVersion` owns aggregate-local model, selection, guard,
 service-pin, and command-construction checks. Its optional `authorize` callback
 receives `{ userId, aggregateId, db }`, with `db` limited to model queries.
 Omitting it allows access without an authored authorization check. Aggregate
@@ -265,31 +265,36 @@ Neither factory takes `systemName` as an owner-level prop.
 - [`authorization.node.spec.ts`](../../packages/core/src/aggregate/authorization.node.spec.ts) — verifies optional authorization, supplied failures, and upgrade inheritance, replacement, and removal.
 - [`authorizeAggregateFrontend.ts`](../../packages/system-worker/src/VersionedAggregateRepo/authorizeAggregateFrontend/authorizeAggregateFrontend.ts) — skips omitted checks and runs supplied authorization against owner-local model queries.
 
-Declare a shared identity with `aggregates.makeAggregate({ name: 'shopper' })`, which
+Declare a shared identity with `makeAggregate({ name: 'shopper' })`, which
 returns a `{ name, layer }` object with `Layer.empty` when no layer is supplied.
 Pass `layer: Layer.mergeAll(...)` on this identity to provide guard services
 shared by every version. Construct each version with
-`aggregates.makeVersion(shopper, props)`; the version props do not repeat the name.
+`makeAggregateVersion(shopper, props)`; the version props do not repeat the name.
 
 - [`makeAggregate.ts`](../../packages/core/src/aggregate/makeAggregate.ts) — validates the name and optional layer and constructs the shared identity.
-- [`index.ts`](../../packages/core/src/aggregate/index.ts) — exposes the three aggregate authoring helpers.
+- [`index.ts`](../../packages/sdk/src/index.ts) — explicitly exports server authoring functions.
 
 Each aggregate owns one exact SemVer version and its service-version pins.
 Author service dependencies with canonical definitions, for example
-`services: { app: appV1 }`. `aggregates.makeVersion` validates each key against the service's
+`services: { app: appV1 }`. `makeAggregateVersion` validates each key against the service's
 name and derives its version pin; runtime aggregates and serialized specs retain
 string versions. Upgrades accept the same service definitions, or `null` to remove
 a dependency.
-`aggregates.upgradeVersion(previous, patch)` merges models, contracts, selections, and services by key. Omitted entries inherit,
+`upgradeAggregateVersion(previous, patch)` merges models, contracts, selections, and services by key. Omitted entries inherit,
 supplied entries replace, and `null` removes existing entries. Authorization is
 inherited unless explicitly replaced; `authorize: null` removes the check. The merged raw definition passes
-through `aggregates.makeVersion` validation again. Earlier instances remain unchanged. A private WeakMap retains authored construction inputs, including canonical service definitions, for subsequent upgrades.
-`getVersion` returns the same instance for its exact version and fails in the
+through `makeAggregateVersion` validation again. Earlier instances remain unchanged. A private WeakMap retains authored construction inputs, including canonical service definitions, for subsequent upgrades.
+`requireVersion(aggregate, version)` returns the same instance for its exact version and fails in the
 Effect lane with `aggregate-version-unsupported` for any other version.
-Service snapshot history remains owned by `makeService`.
+Services also own one exact version. Register older service definitions explicitly in `makeSystem`; service definitions and specs contain no `historicalDefinitions`. `requireVersion(service, version)` returns the same definition for an exact match and fails in the Effect lane otherwise.
 
-- [`makeVersion.ts`](../../packages/core/src/aggregate/makeVersion.ts) — validates independent aggregate definitions, merges upgrades, and rejects other version lookups.
+- [`makeVersion.ts`](../../packages/core/src/aggregate/makeVersion.ts) — validates independent aggregate definitions and merges upgrades.
 - [`makeVersion.ts`](../../packages/core/src/aggregate/makeVersion.ts) — infers inherited and replaced bindings and removes null-marked entries from the resulting types.
+- [`requireVersion.ts`](../../packages/core/src/service/requireVersion.ts) — checks the exact service version without reconstructing historical snapshots.
+- [`makeCommand.ts`](../../packages/core/src/makeCommand.ts) — exposes `makeCommand(service, { contractName, payload })` with the selected contract’s payload type and service metadata.
+- [`makeSystemSpec.ts`](../../packages/core/src/system/makeSystemSpec.ts) — serializes each registered service definition without history arrays.
+- [`requireVersion.ts`](../../packages/core/src/aggregate/requireVersion.ts) — accepts only the definition’s exact version.
+- [`makeCommand.ts`](../../packages/core/src/makeCommand.ts) — constructs typed commands from the selected contract binding and aggregate metadata.
 - [`makeSystemSpec.ts`](../../packages/core/src/system/makeSystemSpec.ts) — serializes each aggregate's exact version and service pins without aggregate history.
 - [`upgrade.node.spec.ts`](../../packages/core/src/aggregate/upgrade.node.spec.ts) — checks independent upgrades, removals, validation and upgraded command construction.
 
@@ -313,7 +318,7 @@ persistence, and frontend inputs retain their normal boundary validation.
 - [`decodeSystemProps.ts`](../../packages/core/src/system/decodeSystemProps.ts) — decodes canonical authentication and owner instances and defaults omitted services to an empty record.
 - [`resolveSystemService.ts`](../../packages/core/src/system/resolveSystemService.ts) — checks service key/name, frontend `systemName`, and exclusive source-model ownership before returning the same `Service`.
 - [`resolveSystemAggregate.ts`](../../packages/core/src/system/resolveSystemAggregate.ts) — checks aggregate key/name and source/replica provenance.
-- [`resolveSystemAggregate.ts`](../../packages/core/src/system/resolveSystemAggregate.ts) — validates service pins and constructs the resolved Aggregate snapshot.
+- [`resolveSystemAggregate.ts`](../../packages/core/src/system/resolveSystemAggregate.ts) — validates service pins and returns the original Aggregate definition.
 - [`makeSystem.ts`](../../packages/core/src/system/makeSystem.ts) — resolves services before aggregates and assembles authentication and owner registries into the completed `ISystem` graph.
 
 Contracts own an optional synchronous `guard({ payload, db, userId })`. The
@@ -329,15 +334,16 @@ guard. Service command registries contain contracts directly.
 - [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — rejects frontend binding guards.
 - [`addToCartV2.ts`](../../examples/shopping/src/zerospin/aggregates/shopper/contracts/addToCart/addToCartV2.ts) — explicitly reuses the cart existence check.
 
-`aggregates.makeAggregate`, `makeService`, and aggregate `makeFrontendController`
+`makeAggregate`, `makeService`, and aggregate `makeFrontendController`
 accept optional local layers. Aggregate versions inherit their identity's layer.
 Local layers may require application services; sibling local layers do not supply
 one another. Application factories validate the remaining guard requirements and
-local-layer inputs, including executable historical definitions. Layers and
+local-layer inputs, including explicitly registered older service definitions. Layers and
 initialized guards are executable configuration, excluded from specs and locks.
 
-- [`makeVersion.ts`](../../packages/core/src/aggregate/makeVersion.ts) — retains the identity layer and initializes binding and contract guards together.
-- [`makeService.ts`](../../packages/core/src/service/makeService.ts) — initializes current and historical contract guards against the service layer.
+- [`makeVersion.ts`](../../packages/core/src/aggregate/makeVersion.ts) — retains the identity layer and authored guard bindings without instance operations.
+- [`initializeGuards.ts`](../../packages/core/src/aggregate/initializeGuards.ts) — exposes `initializeGuards(aggregate)`, initializing binding guards followed by contract guards against the aggregate layer.
+- [`initializeGuards.ts`](../../packages/core/src/service/initializeGuards.ts) — exposes `initializeGuards(service)`, binding the selected definition’s contract guards to its local layer.
 - [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — initializes frontend contract guards; service frontends have no command guards.
 - [`makeSystem.ts`](../../packages/core/src/system/makeSystem.ts) — validates application service coverage across registered definitions without acquiring services.
 - [`makeSystemSpec.ts`](../../packages/core/src/system/makeSystemSpec.ts) and [`makeFrontendControllerSpec.ts`](../../packages/core/src/frontendController/makeFrontendControllerSpec.ts) — serialize authored specifications without executable layers.
@@ -411,14 +417,13 @@ Configured name and system checks live in
 
 Factory-owned records are snapshots, while canonical Model,
 Contract, controller, Service, and service-query leaves keep reference
-identity. System assembly preserves the canonical `Service`, creates a resolved
-Aggregate snapshot with a version lookup bound to system validation. Named
+identity. System assembly validates graph relationships and preserves the canonical `Service` and `Aggregate` definitions. Named
 queries remain on their owning Service. Mutation after construction can invalidate validated decisions or diverge from
 generated locks; factories do not enforce runtime immutability.
 
 - [`makeService.node.spec.ts`](../../packages/core/src/service/makeService.node.spec.ts) — verifies service snapshots retain caller-input isolation.
 - [`makeAggregate.node.spec.ts`](../../packages/core/src/aggregate/makeAggregate.node.spec.ts) — verifies aggregate leaf identity and owned registry snapshots.
-- [`schema-validated.node.spec.ts`](../../packages/core/src/system/tests/schema-validated.node.spec.ts) — verifies Service identity, resolved Aggregate replacement, nested identity, and System registries.
+- [`schema-validated.node.spec.ts`](../../packages/core/src/system/tests/schema-validated.node.spec.ts) — verifies Service and Aggregate identity, nested identity, and System registries.
 
 Replica provenance is not an instance field. `Model` stores one
 `{ sourceModel, serviceName }` tuple in a module-private `WeakMap`; inherited,
@@ -623,14 +628,17 @@ After loading `.env.local` and `.env`, the seed CLI selects its endpoint from
 - [`loadConfigFn.ts`](../../packages/cli/src/deploy/loadConfigFn.ts) — loads environment files and supplies the hosted default.
 
 `zerospin seed <file>` loads the specified TypeScript or JavaScript module using
-project aliases. Relative paths resolve from the working directory. Named Effect
-exports each resolve to one command; default and non-Effect exports are ignored.
+project aliases. Relative paths resolve from the working directory. The named `seeds`
+export is an array of resolved commands; other exports are ignored. Seed modules
+construct that array with `Effect.runSync(Effect.gen(...))`, providing their own
+ID factory before execution. Import-time Effect failures are module-load failures.
 All command envelopes, targets, and payloads are validated and encoded before any
 submission. Missing files, import failures, empty modules, invalid commands, and
 submission failures produce errors.
 
-- [`seedFn.ts`](../../packages/cli/src/seed/seedFn.ts) — loads and resolves the module, validates its commands, and submits the complete encoded commands through `executeAggregateCommand` or `executeServiceCommand`.
-- [`seedFn.spec.ts`](../../packages/cli/src/seed/seedFn.spec.ts) — covers relative and absolute paths, export discovery, owner versions, validation before submission, and failures.
+- [`seedFn.ts`](../../packages/cli/src/seed/seedFn.ts) — loads the module and its named array, validates its commands, and submits the complete encoded commands through `executeAggregateCommand` or `executeServiceCommand`.
+- [`seeds.ts`](../../examples/shopping/src/zerospin/seeds.ts) — provides the ID factory and synchronously constructs the command array.
+- [`seedFn.spec.ts`](../../packages/cli/src/seed/seedFn.spec.ts) — covers relative and absolute paths, array exports, owner versions, validation before submission, and failures.
 
 Commands constructed by an aggregate or service definition retain that definition's
 `aggregateVersion` or `serviceVersion`, independently of `contractVersion`. The CLI
@@ -641,7 +649,16 @@ or a dependency ordering mechanism, and submission failure can leave partial wor
 - [`makeAggregateCommand.ts`](../../packages/core/src/aggregate/makeAggregateCommand.ts) — retains the aggregate version with direct command provenance.
 - [`makeServiceCommand.ts`](../../packages/core/src/service/makeServiceCommand.ts) — retains the service version with the constructed command.
 - [`seedFn.ts`](../../packages/cli/src/seed/seedFn.ts) — validates all commands before concurrent RPC submission and reports the submitted count.
-- [`seeds.ts`](../../examples/shopping/src/zerospin/seeds.ts) — Shopping exports twelve individual `appV1.makeCommand` Effects.
+- [`seeds.ts`](../../examples/shopping/src/zerospin/seeds.ts) — Shopping resolves twelve `makeCommand(appV1, ...)` Effects into its `seeds` array using `NanoIdFactory`.
+
+`makeId(model)` returns a lazy Effect that generates a model-prefixed ID
+through `CuidFactory`. `prefixId(model, suffix)` synchronously prefixes an
+explicit suffix without services. It throws an `Error` if the suffix already
+starts with the model's abbreviation followed by `_`; empty suffixes and other
+models' prefixes are accepted.
+
+- [`makeId.ts`](../../packages/core/src/models/makeId.ts) — generates suffixes through the ID factory.
+- [`prefixId.ts`](../../packages/core/src/models/prefixId.ts) — prefixes explicit suffixes and rejects an existing matching prefix.
 
 ## Callers
 
@@ -651,8 +668,8 @@ or a dependency ordering mechanism, and submission failure can leave partial wor
 
 ## Model mutation versions
 
-`models.makeModel({ name, abbreviation })` declares an identity with literal
-name and abbreviation types. `models.makeVersion(model, props)` supplies its
+`makeModel({ name, abbreviation })` declares an identity with literal
+name and abbreviation types. `makeModelVersion(model, props)` supplies its
 attributes, indexes, and version separately.
 `primitives.foreignKey({ abbreviation: model.abbreviation })` declares a caller-supplied
 contract payload ID. Non-nullable IDs are required; decoding never generates them.
@@ -662,10 +679,22 @@ table relations.
 
 - [`primitiveMaps.ts`](../../packages/schema/src/primitiveMaps.ts) — decodes required prefixed IDs and maps foreign-key primitives to text columns.
 - [`makeVersion.ts`](../../packages/core/src/contracts/makeVersion.ts) — admits foreign-key payload descriptors and rejects raw table primary keys.
-- [`index.ts`](../../packages/core/src/models/index.ts) — exposes model identity, version creation, and version upgrade operations.
+- [`index.ts`](../../packages/sdk/src/browser/index.ts) — explicitly exports shared model authoring functions.
 - [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — validates and snapshots the identity and constructs each version.
 
-Models have no historical definitions or resource adapters. `models.upgradeVersion(previous, props)`
+Model definitions carry identity, attributes, indexes, tables, schemas, and their
+spec; library operations are exposed through the `models` namespace.
+`requireVersion(model, version)` returns an Effect that requires an exact
+version match and preserves the selected definition's identity.
+`encodeResource(model, resource)` validates the resource's model name,
+version, and attributes before encoding it. Independently requested versions are
+checked with `requireVersion` before encoding; no version adaptation occurs.
+
+- [`types.ts`](../../packages/core/src/models/types.ts) — defines model data without instance operations.
+- [`requireVersion.ts`](../../packages/core/src/models/requireVersion.ts) — checks an explicit version against the selected definition.
+- [`encodeResource.ts`](../../packages/core/src/models/encodeResource.ts) — validates identity and current resource attributes, then encodes with the model's resource schema.
+
+Models have no historical definitions or resource adapters. `upgradeModelVersion(previous, props)`
 authors a separate model version: omitted attributes are inherited,
 descriptors add or replace attributes, and `null` removes an existing attribute.
 Model name and abbreviation remain unchanged. Indexes are inherited unless
@@ -674,7 +703,7 @@ declaration does not migrate stored resources or retain historical adapters.
 Contract versions declare `models: { cart: CartV1 }`. Their authored programs receive
 `models.cart.create({ resourceId, attributes })` and the other mutation factories,
 bound to that exact model definition. Model definitions themselves expose no mutation
-constructors. `contracts.makeVersion` infers mutations from its optional program result;
+constructors. `makeContractVersion` infers mutations from its optional program result;
 it has no `mutations` schema property. Every mutation retains its bound model and version.
 
 - [`makeModelMutations.ts`](../../packages/core/src/contracts/makeModelMutations.ts) — binds mutation construction, validation, and replica provenance to one model.
@@ -702,29 +731,31 @@ encoding validates that exact version and does not adapt historical resources.
 
 ## Contract upgrades
 
-`contracts.makeCommand(name)` declares a nominal Effect-branded command name,
+`defineCommand(name)` declares a nominal Effect-branded command name,
 retaining its string literal type and its unchanged runtime string value.
-`contracts.makeVersion(command, props)` authors one contract version using that
+`makeContractVersion(command, props)` authors one contract version using that
 identity; payload, guard, and program inference remain specific to the version.
 
 - [`Command.ts`](../../packages/core/src/contracts/Command.ts) — preserves the literal name using Effect's nominal brand constructor.
-- [`index.ts`](../../packages/core/src/contracts/index.ts) — exposes the three contract authoring operations together.
+- [`index.ts`](../../packages/sdk/src/browser/index.ts) — exposes branded command declaration and contract authoring; payload operations remain internal.
 - [`makeVersion.ts`](../../packages/core/src/contracts/makeVersion.ts) — requires the branded name separately from the version definition.
 
-`contracts.upgradeVersion(previous, props)` inherits omitted
+`upgradeContractVersion(previous, props)` inherits omitted
 payload fields, adds or replaces descriptors, and removes fields marked `null`.
 Each edge requires an `up` adapter and a replacement program; `down` is optional.
 Adapters receive decoded payloads and return Effects. Each result is validated
 against its destination's decoded schema without generating new identities.
-Contract objects are not frozen at runtime. Readonly `previous` and `next` getters expose
+Contract objects are not frozen at runtime. Readonly `up` and `down` getters expose
+the authored adapters on each child definition; both are undefined on a root.
+Readonly `previous` and `next` getters expose
 adjacent definitions, with `undefined` at either end. An upgrade links its parent
 only after construction succeeds; a second child from the same parent is rejected.
 The links are not included in the serializable contract spec.
 
-`getVersion()` returns an actual ancestor. Validation and encoding use the requested
-ancestor's codec. `decodePayload` finds the exact source through `previous` / `next`,
+`contracts.getVersion(contract, version)` returns an Effect resolving an actual ancestor. Validation and encoding use the requested
+ancestor's codec. `contracts.decodePayload(contract, { command })` finds the exact source through `previous` / `next`,
 decodes with that source's codec, and adapts to the receiving contract through only
-the required edges. Discovery follows object links rather than SemVer order. `adaptPayload({ fromVersion, toVersion, payload })` supports either
+the required edges. Discovery follows object links rather than SemVer order. `contracts.adaptPayload(contract, { fromVersion, toVersion, payload })` supports either
 direction within that chain; downward traversal fails if an edge has no `down`.
 Unknown versions, invalid output, and adapter failures are rejected.
 
@@ -733,8 +764,13 @@ Sessions validate and execute that same version, preserving its payload and vers
 in the encoded command; React has no separate contract-version selection. Contract specs describe their own
 version, with no historical-definition arrays.
 
-- [`makeVersion.ts`](../../packages/core/src/contracts/makeVersion.ts) — infers upgrade payloads and mutations, retains upgrade edges, validates adapter output, and resolves exact ancestor codecs.
-- [`types.ts`](../../packages/core/src/contracts/types.ts) — describes contract payload histories and version-specific operations.
+- [`makeVersion.ts`](../../packages/core/src/contracts/makeVersion.ts) — infers upgrade payloads and mutations and exposes authored adapters and adjacent definitions.
+- [`types.ts`](../../packages/core/src/contracts/types.ts) — describes authored contract content, payload histories, and historical guard requirements.
+- [`getVersion.ts`](../../packages/core/src/contracts/getVersion.ts) — walks `previous` links and requires an exact ancestor version.
+- [`validatePayload.ts`](../../packages/core/src/contracts/validatePayload.ts) — validates authored input and decoded JSON fields using the requested ancestor's payload schema.
+- [`encodePayload.ts`](../../packages/core/src/contracts/encodePayload.ts) — encodes a validated payload using its exact version schema.
+- [`decodePayload.ts`](../../packages/core/src/contracts/decodePayload.ts) — checks the command identity, decodes its source version, and adapts toward the selected definition.
+- [`adaptPayload.ts`](../../packages/core/src/contracts/adaptPayload.ts) — traverses authored `up` and `down` adapters and validates every output.
 - [`makeAggregateSession.ts`](../../packages/core/src/session/makeAggregateSession.ts) — uses the bound contract version for validation, guards, and optimistic execution.
 - [`makeFrontendControllerSpec.ts`](../../packages/core/src/frontendController/makeFrontendControllerSpec.ts) — derives contract locks directly from controller bindings.
 - [`validateAggregateFrontendLock.ts`](../../packages/system-worker/src/StaticSystem/validateAggregateFrontendLock/validateAggregateFrontendLock.ts) — validates the requested ancestor's payload schema.
@@ -742,7 +778,7 @@ version, with no historical-definition arrays.
 
 ## Authentication versions
 
-`authentication.makeVersion({ version, signature, authenticate })` binds one stable
+`makeAuthenticationVersion({ version, signature, authenticate })` binds one stable
 SemVer version to its signature schema and authentication callback. `makeSystem`
 accepts an array of independent definitions, rejects duplicate versions, and retains
 the supplied order. Authentication has no upgrade or signature-adaptation chain.
@@ -765,3 +801,30 @@ callback. Unsupported versions and mismatches fail without trying another versio
 Mutation replay requires the exact registered model name and version. Aggregate and service definitions do not accept mutation adapter registries.
 
 - [`prepareReplayAppliedMutation.ts`](../../packages/core/src/contracts/prepareReplayAppliedMutation.ts) — rejects unavailable model versions and validates replay against the exact model.
+
+## Flat SDK authoring surface
+
+Applications use namespace imports from `@zerospin/sdk` for server authoring and
+`@zerospin/sdk/browser` for shared browser authoring. Both entrypoints explicitly
+export their public functions and types. Component utility namespaces are absent;
+version lookup, payload codecs, guard acquisition, sessions, provisioning, locks,
+and canonical implementation classes remain internal.
+
+- [`index.ts`](../../packages/sdk/src/index.ts) — defines the complete root allowlist, including `makeCommand` and `makeSystemConfig`.
+- [`index.ts`](../../packages/sdk/src/browser/index.ts) — defines the shared allowlist without server factories.
+- [`authoring.node.spec.ts`](../../packages/sdk/src/authoring.node.spec.ts) — verifies runtime allowlists, browser isolation, commands, and configuration identity.
+
+`makeCommand(service, props)` selects a service contract and derives service name
+and version from the definition. `makeCommand(aggregate, props)` selects a bound
+contract and derives aggregate name and version; callers supply `aggregateId` and
+`systemName`. Both validate payloads and generate command IDs through `CuidFactory`.
+Aggregate commands retain null session and provenance fields.
+
+- [`makeCommand.ts`](../../packages/core/src/makeCommand.ts) — preserves owner-specific overload inference and complete command shapes.
+
+Frontend controllers expose data and their local layer. Internal
+`initializeGuards(frontend)` acquires that layer in the caller's scope and returns
+the guard runner; required services remain represented in the controller type.
+
+- [`initializeGuards.ts`](../../packages/core/src/frontendController/initializeGuards.ts) — acquires frontend guard services through the common scoped implementation.
+- [`types.ts`](../../packages/core/src/frontendController/types.ts) — retains initialization requirements without an instance operation.

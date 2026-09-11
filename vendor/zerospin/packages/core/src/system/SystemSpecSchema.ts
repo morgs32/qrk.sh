@@ -139,13 +139,6 @@ export const SystemSpecSchema = Schema.Struct({
       Schema.Struct({
         name: Schema.String,
         version: Schema.String,
-        historicalDefinitions: Schema.Array(
-          Schema.Struct({
-            version: Schema.String,
-            models: Schema.Record(Schema.String, Schema.String),
-            contracts: Schema.Record(Schema.String, Schema.String),
-          }),
-        ),
         models: Schema.Record(Schema.String, modelSchema),
         contracts: Schema.Record(Schema.String, contractSchema),
         queries: Schema.Record(Schema.String, querySchema),

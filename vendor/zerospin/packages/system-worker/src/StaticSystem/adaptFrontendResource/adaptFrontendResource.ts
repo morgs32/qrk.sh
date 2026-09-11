@@ -1,3 +1,5 @@
+import { encodeResource } from '@zerospin/core/models/encodeResource';
+import { requireVersion as requireModelVersion } from '@zerospin/core/models/requireVersion';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { makeEffectSchema } from '@zerospin/schema';
@@ -80,13 +82,13 @@ export const adaptFrontendResource = Effect.fn(
       }),
     );
 
-    // 3 — ask model.adaptResource for the selected modelVersion
+    // 3 — require the selected modelVersion and encode its resource
     return {
       modelName: model.modelName,
-      resource: yield* model.adaptResource({
-        version: modelVersion,
-        resource: currentResource,
-      }),
+      resource: yield* encodeResource(
+        yield* requireModelVersion(model, modelVersion),
+        currentResource,
+      ),
     };
   }
 
@@ -140,12 +142,12 @@ export const adaptFrontendResource = Effect.fn(
     }),
   );
 
-  // 6 — preserve modelName and adapt the resource to modelVersion
+  // 6 — preserve modelName, require modelVersion, and encode the resource
   return {
     modelName: model.modelName,
-    resource: yield* model.adaptResource({
-      version: modelVersion,
-      resource: currentResource,
-    }),
+    resource: yield* encodeResource(
+      yield* requireModelVersion(model, modelVersion),
+      currentResource,
+    ),
   };
 });

@@ -1,6 +1,4 @@
-import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
-import { ZerospinError } from '@zerospin/error';
-import { contracts, primitives } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
 import { cartItem } from '../../models/cartItem/cartItem';
@@ -8,14 +6,14 @@ import { cartItemV2 } from '../../models/cartItem/CartItemV2';
 
 import { updateCartItemQuantity } from './updateCartItemQuantity';
 
-export const updateCartItemQuantityV1 = contracts.makeVersion(
+export const updateCartItemQuantityV1 = sdk.makeContractVersion(
   updateCartItemQuantity,
   {
     payload: {
-      cartItemId: primitives.foreignKey({
+      cartItemId: sdk.primitives.foreignKey({
         abbreviation: cartItem.abbreviation,
       }),
-      amount: primitives.integer(),
+      amount: sdk.primitives.integer(),
     },
 
     guard: ({
@@ -24,8 +22,8 @@ export const updateCartItemQuantityV1 = contracts.makeVersion(
     }: {
       db: Readonly<
         Pick<
-          IDb<
-            IResourceDbConfig<
+          sdk.IDb<
+            sdk.IResourceDbConfig<
               { cartItem: typeof cartItemV2 },
               Record<never, never>
             >
@@ -33,7 +31,7 @@ export const updateCartItemQuantityV1 = contracts.makeVersion(
           'query'
         >
       >;
-      payload: { cartItemId: ReturnType<typeof cartItemV2.prefixId> };
+      payload: { cartItemId: sdk.InferResource<typeof cartItemV2>['id'] };
     }) =>
       Effect.gen(function* () {
         const resource = yield* Effect.try({
@@ -41,13 +39,13 @@ export const updateCartItemQuantityV1 = contracts.makeVersion(
             db.query.cartItem
               .findFirst({ where: { id: { eq: payload.cartItemId } } })
               .sync(),
-          catch: ZerospinError.catch({
+          catch: sdk.ZerospinError.catch({
             code: 'cartItem-guard-query-failed',
             message: 'Failed to query cartItem during guard evaluation',
           }),
         });
         if (resource === undefined) {
-          return yield* new ZerospinError({
+          return yield* new sdk.ZerospinError({
             code: 'cart-item-not-found',
             message: `cartItem ${payload.cartItemId} was not found`,
           });

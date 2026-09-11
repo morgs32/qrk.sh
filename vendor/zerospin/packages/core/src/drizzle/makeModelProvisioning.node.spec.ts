@@ -1,3 +1,6 @@
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+
+import { prefixId } from '../models/prefixId.ts';
 import { it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { primitives } from '@zerospin/schema';
@@ -6,7 +9,7 @@ import { primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
-import { models } from '../models/index.ts';
+
 
 import { makeResourceDbConfig } from './makeDbConfig.ts';
 import { makeProvisionedInMemorySqljsDb } from './makeProvisionedInMemorySqljsDb.ts';
@@ -16,8 +19,8 @@ const dateWithMilliseconds = new Date('2026-08-24T12:34:56.123Z');
 const namePropertySchema = primitives.text();
 const TinyJsonRowSchema = Schema.Struct({ x: Schema.String });
 
-const User = models.makeVersion(
-  models.makeModel({ name: 'user', abbreviation: 'usr' }),
+const User = makeModelVersion(
+  makeModel({ name: 'user', abbreviation: 'usr' }),
   {
     attributes: {
       name: namePropertySchema,
@@ -27,8 +30,8 @@ const User = models.makeVersion(
   },
 );
 
-const Item = models.makeVersion(
-  models.makeModel({ name: 'item', abbreviation: 'tsk' }),
+const Item = makeModelVersion(
+  makeModel({ name: 'item', abbreviation: 'tsk' }),
   {
     attributes: {
       enabledDefault: primitives.boolean({ defaultValue: true }),
@@ -173,8 +176,8 @@ describe('makeTableProvisioningSQL (models from makeModel)', () => {
         models: { user: User, item: Item },
       });
       const db = yield* makeProvisionedInMemorySqljsDb({ dbConfig });
-      const userId = User.prefixId('date-milliseconds');
-      const itemId = Item.prefixId('date-milliseconds');
+      const userId = prefixId(User, 'date-milliseconds');
+      const itemId = prefixId(Item, 'date-milliseconds');
 
       db.insert(dbConfig.schema.user)
         .values({

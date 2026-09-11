@@ -1,6 +1,6 @@
-import { models } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 
-export const product = models.makeModel({
+export const product = sdk.makeModel({
   name: 'product',
   abbreviation: 'prd',
 });

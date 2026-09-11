@@ -1,6 +1,4 @@
-import type { IDb, IResourceDbConfig } from '@zerospin/core/drizzle/types';
-import { ZerospinError } from '@zerospin/error';
-import { contracts, primitives } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
 import { cart } from '../../models/cart/cart';
@@ -10,10 +8,10 @@ import { type userV1 } from '../../models/user/UserV1';
 
 import { createCart } from './createCart';
 
-export const createCartV1 = contracts.makeVersion(createCart, {
+export const createCartV1 = sdk.makeContractVersion(createCart, {
   payload: {
-    id: primitives.foreignKey({ abbreviation: cart.abbreviation }),
-    userId: primitives.foreignKey({ abbreviation: user.abbreviation }),
+    id: sdk.primitives.foreignKey({ abbreviation: cart.abbreviation }),
+    userId: sdk.primitives.foreignKey({ abbreviation: user.abbreviation }),
   },
 
   guard: ({
@@ -22,11 +20,13 @@ export const createCartV1 = contracts.makeVersion(createCart, {
   }: {
     db: Readonly<
       Pick<
-        IDb<IResourceDbConfig<{ user: typeof userV1 }, Record<never, never>>>,
+        sdk.IDb<
+          sdk.IResourceDbConfig<{ user: typeof userV1 }, Record<never, never>>
+        >,
         'query'
       >
     >;
-    payload: { userId: ReturnType<typeof userV1.prefixId> };
+    payload: { userId: sdk.InferResource<typeof userV1>['id'] };
   }) =>
     Effect.gen(function* () {
       const resource = yield* Effect.try({
@@ -34,13 +34,13 @@ export const createCartV1 = contracts.makeVersion(createCart, {
           db.query.user
             .findFirst({ where: { id: { eq: payload.userId } } })
             .sync(),
-        catch: ZerospinError.catch({
+        catch: sdk.ZerospinError.catch({
           code: 'user-guard-query-failed',
           message: 'Failed to query user during guard evaluation',
         }),
       });
       if (resource === undefined) {
-        return yield* new ZerospinError({
+        return yield* new sdk.ZerospinError({
           code: 'user-not-found',
           message: `user ${payload.userId} was not found`,
         });

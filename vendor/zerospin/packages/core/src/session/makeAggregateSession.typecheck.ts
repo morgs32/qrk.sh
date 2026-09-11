@@ -11,6 +11,7 @@ import {
 import { assert, type Equals } from 'tsafe';
 
 import { List, main, User } from '../fixtures/system.ts';
+import { initializeGuards as initializeFrontendGuards } from '../frontendController/initializeGuards.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { PublishableKey } from '../services/PublishableKey.ts';
 
@@ -26,12 +27,12 @@ Effect.runSync(
 
 const session = Effect.runSync(
   Effect.map(
-    {
+    initializeFrontendGuards({
       ...main,
       contracts: {
         createList: { contract: main.contracts.createList.contract },
       },
-    }.initializeGuards,
+    }),
     guards =>
       makeAggregateSession({
         runtime: guardTestRuntime,
@@ -98,7 +99,7 @@ const localFrontend = makeFrontendController({
 });
 assert<Equals<Layer.Success<typeof localFrontend.layer>, PublishableKey>>();
 const localGuards = Effect.runSync(
-  localFrontend.initializeGuards.pipe(
+  initializeFrontendGuards(localFrontend).pipe(
     Effect.provideService(Scope.Scope, sessionScope),
   ),
 );

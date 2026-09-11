@@ -10,39 +10,36 @@ import { Effect, Schema } from 'effect';
 export const system = makeSystem({
   name: 'shopping',
   aggregates: {
-    shopper: aggregates.makeVersion(
-      aggregates.makeAggregate({ name: 'shopper' }),
-      {
-        userId: Schema.NonEmptyString,
-        authenticate: (props: {
-          frontendName: 'web';
-          signature: { accessToken: string };
-          db: {
-            query: {
-              user: {
-                findFirst(props: unknown): Promise<{ userId: string }>;
-              };
+    shopper: makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+      userId: Schema.NonEmptyString,
+      authenticate: (props: {
+        frontendName: 'web';
+        signature: { accessToken: string };
+        db: {
+          query: {
+            user: {
+              findFirst(props: unknown): Promise<{ userId: string }>;
             };
           };
-        }) =>
-          Effect.fn('shopper.authenticate')(function* () {
-            const user = yield* Effect.promise(() =>
-              props.db.query.user.findFirst({
-                where: { accessToken: props.signature.accessToken },
-              }),
-            );
-            return user.userId;
-          }),
-        models,
-        contracts: {},
-        selections: {},
-        frontends: {
-          web: {
-            controller: web,
-          },
+        };
+      }) =>
+        Effect.fn('shopper.authenticate')(function* () {
+          const user = yield* Effect.promise(() =>
+            props.db.query.user.findFirst({
+              where: { accessToken: props.signature.accessToken },
+            }),
+          );
+          return user.userId;
+        }),
+      models,
+      contracts: {},
+      selections: {},
+      frontends: {
+        web: {
+          controller: web,
         },
       },
-    ),
+    }),
   },
   services: {},
 });

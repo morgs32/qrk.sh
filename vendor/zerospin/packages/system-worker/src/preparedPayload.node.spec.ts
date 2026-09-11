@@ -54,31 +54,33 @@ const observations = vi.hoisted(
 );
 
 vi.mock('system', async () => {
-  const { initializeGuards } =
-    await import('@zerospin/core/guards/initializeGuards');
   const { MonotonicFactory } =
     await import('@zerospin/core/services/MonotonicFactory');
-  const { contracts } = await import('@zerospin/core/contracts/index');
-  const { models } = await import('@zerospin/core/models/index');
+  const { defineCommand } = await import('@zerospin/core/contracts/Command');
+  const { makeContractVersion, upgradeContractVersion } =
+    await import('@zerospin/core/contracts/makeVersion');
+  const { makeModel, makeModelVersion } =
+    await import('@zerospin/core/models/makeModel');
+  const { prefixId } = await import('@zerospin/core/models/prefixId');
   const { primitives, CuidFactory } = await import('@zerospin/schema');
   const { ZerospinError } = await import('@zerospin/error');
   const { Effect, Layer } = await import('effect');
-  const product = models.makeVersion(
-    models.makeModel({ name: 'product', abbreviation: 'prd' }),
+  const product = makeModelVersion(
+    makeModel({ name: 'product', abbreviation: 'prd' }),
     {
       version: '1.0.0',
       attributes: { name: primitives.text() },
       indexes: [],
     },
   );
-  const first = contracts.makeVersion(contracts.makeCommand('rename'), {
+  const first = makeContractVersion(defineCommand('rename'), {
     version: '1.0.0',
     payload: { name: primitives.text() },
     models: { product },
     program: ({ payload, models }) => {
       observations.programs.push(payload);
       return models.product.create({
-        resourceId: product.prefixId('prepared'),
+        resourceId: prefixId(product, 'prepared'),
         attributes: { name: payload.name },
       });
     },
@@ -100,7 +102,7 @@ vi.mock('system', async () => {
           : Effect.void;
       }),
   });
-  const next = contracts.upgradeVersion(first, {
+  const next = upgradeContractVersion(first, {
     version: '2.0.0',
     payload: { name: null, title: primitives.text() },
     up: ({ payload }) => {
@@ -115,7 +117,7 @@ vi.mock('system', async () => {
     program: ({ payload, models }) => {
       observations.programs.push(payload);
       return models.product.create({
-        resourceId: product.prefixId('prepared'),
+        resourceId: prefixId(product, 'prepared'),
         attributes: { name: payload.title },
       });
     },
@@ -172,42 +174,37 @@ vi.mock('system', async () => {
           [first, next].map(contract => [
             contract.version,
             {
-              initializeGuards: initializeGuards({
-                layer: Layer.effect(
-                  CuidFactory,
-                  Effect.acquireRelease(
-                    Effect.gen(function* () {
-                      const applicationId = yield* CuidFactory;
-                      observations.localInputs.push(yield* applicationId());
-                      yield* Effect.promise(async () => undefined);
-                      return () =>
-                        Effect.succeed(`aggregate-${contract.version}`);
+              layer: Layer.effect(
+                CuidFactory,
+                Effect.acquireRelease(
+                  Effect.gen(function* () {
+                    const applicationId = yield* CuidFactory;
+                    observations.localInputs.push(yield* applicationId());
+                    yield* Effect.promise(async () => undefined);
+                    return () =>
+                      Effect.succeed(`aggregate-${contract.version}`);
+                  }),
+                  () =>
+                    Effect.sync(() => {
+                      observations.releasedLayers.push(
+                        `aggregate-${contract.version}`,
+                      );
                     }),
-                    () =>
-                      Effect.sync(() => {
-                        observations.releasedLayers.push(
-                          `aggregate-${contract.version}`,
-                        );
-                      }),
-                  ).pipe(
-                    Effect.flatMap(service =>
-                      observations.interruptAcquisition
-                        ? Effect.never
-                        : observations.failAcquisition
-                          ? Effect.fail(
-                              new ZerospinError({
-                                code: 'layer-failed',
-                                message: 'Layer failed',
-                              }),
-                            )
-                          : Effect.succeed(service),
-                    ),
+                ).pipe(
+                  Effect.flatMap(service =>
+                    observations.interruptAcquisition
+                      ? Effect.never
+                      : observations.failAcquisition
+                        ? Effect.fail(
+                            new ZerospinError({
+                              code: 'layer-failed',
+                              message: 'Layer failed',
+                            }),
+                          )
+                        : Effect.succeed(service),
                   ),
                 ),
-                guards: {
-                  rename: contract.guard === undefined ? [] : [contract.guard],
-                },
-              }),
+              ),
               name: 'user',
               version: contract.version,
               models: { product },
@@ -223,42 +220,36 @@ vi.mock('system', async () => {
           [first, next].map(contract => [
             contract.version,
             {
-              initializeGuards: initializeGuards({
-                layer: Layer.effect(
-                  CuidFactory,
-                  Effect.acquireRelease(
-                    Effect.gen(function* () {
-                      const applicationId = yield* CuidFactory;
-                      observations.localInputs.push(yield* applicationId());
-                      yield* Effect.promise(async () => undefined);
-                      return () =>
-                        Effect.succeed(`service-${contract.version}`);
+              layer: Layer.effect(
+                CuidFactory,
+                Effect.acquireRelease(
+                  Effect.gen(function* () {
+                    const applicationId = yield* CuidFactory;
+                    observations.localInputs.push(yield* applicationId());
+                    yield* Effect.promise(async () => undefined);
+                    return () => Effect.succeed(`service-${contract.version}`);
+                  }),
+                  () =>
+                    Effect.sync(() => {
+                      observations.releasedLayers.push(
+                        `service-${contract.version}`,
+                      );
                     }),
-                    () =>
-                      Effect.sync(() => {
-                        observations.releasedLayers.push(
-                          `service-${contract.version}`,
-                        );
-                      }),
-                  ).pipe(
-                    Effect.flatMap(service =>
-                      observations.interruptAcquisition
-                        ? Effect.never
-                        : observations.failAcquisition
-                          ? Effect.fail(
-                              new ZerospinError({
-                                code: 'layer-failed',
-                                message: 'Layer failed',
-                              }),
-                            )
-                          : Effect.succeed(service),
-                    ),
+                ).pipe(
+                  Effect.flatMap(service =>
+                    observations.interruptAcquisition
+                      ? Effect.never
+                      : observations.failAcquisition
+                        ? Effect.fail(
+                            new ZerospinError({
+                              code: 'layer-failed',
+                              message: 'Layer failed',
+                            }),
+                          )
+                        : Effect.succeed(service),
                   ),
                 ),
-                guards: {
-                  rename: contract.guard === undefined ? [] : [contract.guard],
-                },
-              }),
+              ),
               name: 'app',
               version: contract.version,
               models: { product },

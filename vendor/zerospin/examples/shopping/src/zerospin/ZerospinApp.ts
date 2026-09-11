@@ -1,11 +1,5 @@
-import { PublishableKey } from '@zerospin/core/services/PublishableKey';
-import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { makeZerospinApp } from '@zerospin/react';
-import {
-  makeFrontendController,
-  type IAggregateFrontend,
-  type IServiceFrontend,
-} from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 import { Layer, Redacted } from 'effect';
 
 import { addToCartV2 } from './aggregates/shopper/contracts/addToCart/AddToCartV2';
@@ -23,7 +17,7 @@ import type { appV1 } from './services/app/AppV1';
 import { productV1 } from './services/app/models/product/ProductV1';
 import { signature } from './signature';
 
-const WebV2 = makeFrontendController({
+const ShopperFrontendV2 = sdk.makeFrontendController({
   aggregateVersion: '2.0.0',
   contracts: {
     addToCart: { contract: addToCartV2 },
@@ -34,7 +28,7 @@ const WebV2 = makeFrontendController({
     updateUser: { contract: updateUserV1 },
   },
   aggregateName: 'shopper',
-  name: 'web',
+  name: 'shopperFrontend',
   systemName: 'shopping',
   models: {
     cart: cartV1,
@@ -42,17 +36,17 @@ const WebV2 = makeFrontendController({
     product: productReplicaV1,
     user: userV1,
   },
-}) satisfies IAggregateFrontend<typeof shopperV2>;
+}) satisfies sdk.IAggregateFrontend<typeof shopperV2>;
 
-const CatalogV1 = makeFrontendController({
+const AppFrontendV1 = sdk.makeFrontendController({
   systemName: 'shopping',
   serviceVersion: '1.0.0',
   serviceName: 'app',
-  name: 'catalog',
+  name: 'appFrontend',
   models: {
     product: productV1,
   },
-}) satisfies IServiceFrontend<typeof appV1>;
+}) satisfies sdk.IServiceFrontend<typeof appV1>;
 
 const zerospinApiUrl = import.meta.env.VITE_ZEROSPIN_API_URL;
 const zerospinPublishableKey = import.meta.env.VITE_ZEROSPIN_PUBLISHABLE_KEY;
@@ -66,8 +60,8 @@ if (!zerospinPublishableKey) {
 }
 
 const applicationLayer = Layer.mergeAll(
-  Layer.succeed(ZerospinApiUrl, zerospinApiUrl),
-  Layer.succeed(PublishableKey, Redacted.make(zerospinPublishableKey)),
+  Layer.succeed(sdk.ZerospinApiUrl, zerospinApiUrl),
+  Layer.succeed(sdk.PublishableKey, Redacted.make(zerospinPublishableKey)),
 );
 
 export const ZerospinApp = makeZerospinApp({
@@ -77,8 +71,8 @@ export const ZerospinApp = makeZerospinApp({
     signature: signature.signature,
   },
   frontends: {
-    web: WebV2,
-    catalog: CatalogV1,
+    shopperFrontend: ShopperFrontendV2,
+    appFrontend: AppFrontendV1,
   },
   layer: applicationLayer,
 });

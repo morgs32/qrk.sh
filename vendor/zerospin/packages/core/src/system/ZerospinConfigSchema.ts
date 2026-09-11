@@ -25,10 +25,6 @@ export const ZerospinConfigSchema = Schema.declare<ISystemConfig>(
                 ),
               ),
               services: Schema.Record(Schema.String, Schema.Struct({})),
-              config: Schema.declare(
-                (fn): fn is (...args: never[]) => unknown =>
-                  typeof fn === 'function',
-              ),
             }),
           )(value),
         ),

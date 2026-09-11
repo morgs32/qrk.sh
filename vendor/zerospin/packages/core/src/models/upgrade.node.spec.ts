@@ -5,19 +5,24 @@ import { describe, expect, it } from 'vitest';
 
 import { makeModelMutations } from '../contracts/makeModelMutations.ts';
 
-import { models } from './index.ts';
+import {
+  makeModel,
+  makeModelVersion,
+  upgradeModelVersion,
+} from './makeModel.ts';
+import { prefixId } from './prefixId.ts';
 
-const CartItem = models.makeModel({ name: 'cartItem', abbreviation: 'cit' });
-const V1 = models.makeVersion(CartItem, {
+const CartItem = makeModel({ name: 'cartItem', abbreviation: 'cit' });
+const V1 = makeModelVersion(CartItem, {
   attributes: { product: primitives.text() },
   indexes: [{ name: 'by-product', columns: ['product'] }],
   version: '1.0.0',
 });
-const V2 = models.upgradeVersion(V1, {
+const V2 = upgradeModelVersion(V1, {
   attributes: { amount: primitives.integer() },
   version: '2.0.0',
 });
-const V3 = models.upgradeVersion(V2, {
+const V3 = upgradeModelVersion(V2, {
   attributes: { amount: null, quantity: primitives.integer() },
   version: '3.0.0',
 });
@@ -37,7 +42,7 @@ describe('model upgrades', () => {
     expect(V3.abbreviation).toBe(CartItem.abbreviation);
     expect(V1).not.toHaveProperty('upgrade');
     expect(() =>
-      models.makeModel({
+      makeModel({
         name: 'cartItem',
         abbreviation: 'cit',
         // @ts-expect-error Model identity has no version-specific fields.
@@ -56,7 +61,7 @@ describe('model upgrades', () => {
 
     const mutation = await Effect.runPromise(
       makeModelMutations(V3).create({
-        resourceId: V3.prefixId('test'),
+        resourceId: prefixId(V3, 'test'),
         attributes: { product: 'apple', quantity: 2 },
       }),
     );
@@ -70,7 +75,7 @@ describe('model upgrades', () => {
   });
 
   it('replaces descriptors and allows explicit index replacement', () => {
-    const next = models.upgradeVersion(V1, {
+    const next = upgradeModelVersion(V1, {
       attributes: { product: primitives.integer() },
       indexes: [],
       version: '2.0.0',
@@ -92,20 +97,20 @@ describe('model upgrades', () => {
 
   it('rejects unknown removals and dangling inherited indexes', () => {
     expect(() =>
-      models.upgradeVersion(V1, {
+      upgradeModelVersion(V1, {
         // @ts-expect-error Unknown attributes cannot be removed.
         attributes: { missing: null },
         version: '2.0.0',
       }),
     ).toThrow('Cannot remove unknown attribute');
     expect(() =>
-      models.upgradeVersion(V1, {
+      upgradeModelVersion(V1, {
         attributes: { product: null },
         version: '2.0.0',
       }),
     ).toThrow('references missing attribute');
     expect(
-      models.upgradeVersion(V1, {
+      upgradeModelVersion(V1, {
         attributes: { product: null },
         indexes: [],
         version: '2.0.0',
@@ -115,10 +120,10 @@ describe('model upgrades', () => {
 
   it('rejects invalid versions and reserved attributes', () => {
     expect(() =>
-      models.upgradeVersion(V1, { attributes: {}, version: 'invalid' }),
+      upgradeModelVersion(V1, { attributes: {}, version: 'invalid' }),
     ).toThrow();
     expect(() =>
-      models.upgradeVersion(V1, {
+      upgradeModelVersion(V1, {
         // @ts-expect-error Framework attributes are reserved.
         attributes: { id: primitives.text() },
         version: '2.0.0',

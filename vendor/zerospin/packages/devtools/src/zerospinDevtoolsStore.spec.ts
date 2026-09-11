@@ -1,4 +1,5 @@
 import { main } from '@zerospin/core/fixtures/system';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
@@ -31,7 +32,7 @@ describe('zerospinDevtoolsStore session ownership', () => {
 
   it('registers account and service sessions in separate maps', () => {
     const aggregateSession = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,

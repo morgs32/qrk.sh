@@ -55,7 +55,7 @@ const versionedAggregateRepoFixedDORepoConfig = makeFixedDORepoConfig({
   managedRuntime,
   /*
    * 1. Resolve the authored aggregate by DO name key.
-   * 2. Slice the pinned aggregateVersion snapshot.
+   * 2. Select the listed aggregateVersion definition.
    * 3. Build the fixed DB config from that version's models.
    */
   dbConfig: Effect.fn('VersionedAggregateRepo.dbConfig')(function* ({ key }) {
@@ -66,7 +66,7 @@ const versionedAggregateRepoFixedDORepoConfig = makeFixedDORepoConfig({
       recordKind: 'aggregates',
     });
 
-    // 2 — latestAggregate.getVersion; fail if the snapshot is unsupported
+    // 2 — select the listed version; fail if it is unsupported
     const aggregate = yield* getByKeyOrThrow({
       record: latestAggregate,
       key: key.aggregateVersion,

@@ -4,15 +4,15 @@ import { assert, type Equals } from 'tsafe';
 
 import { makeModelMutations } from '../contracts/makeModelMutations.ts';
 
-import { Model } from './makeModel.ts';
+import { encodeResource } from './encodeResource.ts';
+import { makeModel, makeModelVersion, Model } from './makeModel.ts';
 import { makeReplica } from './makeReplica.ts';
+import { requireVersion as requireModelVersion } from './requireVersion.ts';
 import type { IModel, InferResource } from './types.ts';
 
-import { models } from './index.ts';
+const UserModel = makeModel({ name: 'user', abbreviation: 'usr' });
 
-const UserModel = models.makeModel({ name: 'user', abbreviation: 'usr' });
-
-const _User = models.makeVersion(UserModel, {
+const _User = makeModelVersion(UserModel, {
   attributes: {
     name: primitives.text(),
   },
@@ -20,8 +20,8 @@ const _User = models.makeVersion(UserModel, {
   version: '1.0.0',
 });
 
-const Todo = models.makeVersion(
-  models.makeModel({ name: 'todo', abbreviation: 'todo' }),
+const Todo = makeModelVersion(
+  makeModel({ name: 'todo', abbreviation: 'todo' }),
   {
     attributes: {
       title: primitives.text(),
@@ -45,16 +45,13 @@ assert<
     false
   >
 >();
-const encodedTodoResource = Todo.adaptResource({
-  version: '2.0.0',
-  resource: currentTodoResource,
-});
+const encodedTodoResource = encodeResource(Todo, currentTodoResource);
 assert<Equals<Effect.Success<typeof encodedTodoResource>['title'], string>>();
 assert<
   Equals<Effect.Success<typeof encodedTodoResource>['completed'], boolean>
 >();
-// @ts-expect-error only the authored version is available
-Todo.adaptResource({ version: '1.0.0', resource: currentTodoResource });
+const selectedTodo = requireModelVersion(Todo, '2.0.0');
+assert<Equals<Effect.Success<typeof selectedTodo>, typeof Todo>>();
 
 const TodoReplica = makeReplica({
   sourceModel: Todo,
@@ -107,10 +104,10 @@ assert<
     }
   >
 >();
-const encodedReplicaResource = TodoReplica.adaptResource({
-  version: '2.0.0',
-  resource: currentTodoReplicaResource,
-});
+const encodedReplicaResource = encodeResource(
+  TodoReplica,
+  currentTodoReplicaResource,
+);
 assert<
   Equals<Effect.Success<typeof encodedReplicaResource>['title'], string>
 >();
@@ -161,8 +158,8 @@ makeModelMutations(Todo).create({
   },
 });
 
-models.makeVersion(
-  models.makeModel({ name: 'withExtraPrimaryKey', abbreviation: 'xpk' }),
+makeModelVersion(
+  makeModel({ name: 'withExtraPrimaryKey', abbreviation: 'xpk' }),
   {
     attributes: {
       // @ts-expect-error CoreTypeError — makeModel synthesizes the only primary key

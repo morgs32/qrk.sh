@@ -1,8 +1,12 @@
 import { describe, it } from '@effect/vitest';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
+import { encodePayload } from '@zerospin/core/contracts/encodePayload';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
+import { makeCommand } from '@zerospin/core/makeCommand';
+import { makeId } from '@zerospin/core/models/makeId';
+import { prefixId } from '@zerospin/core/models/prefixId';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
 import { makeWorkerdE2eTestLayer } from '@zerospin/dev-worker/vitest/makeWorkerdE2eTestLayer';
@@ -12,9 +16,9 @@ import { Effect } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { expect } from 'vitest';
 
-import { userV1 } from '@/zerospin/aggregates/shopper/models/user/userV1';
-import { shopperV2 } from '@/zerospin/aggregates/shopper/shopperV2';
-import { productV1 } from '@/zerospin/services/app/models/product/productV1';
+import { userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
+import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
+import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
 import { signature } from '@/zerospin/signature';
 import { system } from '@/zerospin/system';
 
@@ -62,10 +66,10 @@ describe('basicFlow1: static shopping system workerd flow', () => {
             }),
           );
 
-          const createProduct = yield* appService.makeCommand({
+          const createProduct = yield* makeCommand(appService, {
             contractName: 'createProduct',
             payload: {
-              id: yield* productV1.makeId(),
+              id: yield* makeId(productV1),
               name: 'E2E Product',
               description: 'statically bundled service command',
               price: 10,
@@ -73,7 +77,7 @@ describe('basicFlow1: static shopping system workerd flow', () => {
           });
           const encodedProduct = {
             ...createProduct,
-            payload: yield* appService.contracts.createProduct.encodePayload({
+            payload: yield* encodePayload(appService.contracts.createProduct, {
               version: createProduct.contractVersion,
               payload: createProduct.payload,
             }),
@@ -121,8 +125,8 @@ describe('basicFlow1: static shopping system workerd flow', () => {
               ),
           );
 
-          const userId = userV1.prefixId(clerkUserId);
-          const createUser = yield* shopperAggregate.makeCommand({
+          const userId = prefixId(userV1, clerkUserId);
+          const createUser = yield* makeCommand(shopperAggregate, {
             contractName: 'createUser',
             aggregateId,
             systemName: WebV2.systemName,
@@ -130,13 +134,13 @@ describe('basicFlow1: static shopping system workerd flow', () => {
           });
           const encodedUser = {
             ...createUser,
-            payload:
-              yield* shopperAggregate.contracts.createUser.contract.encodePayload(
-                {
-                  version: createUser.contractVersion,
-                  payload: createUser.payload,
-                },
-              ),
+            payload: yield* encodePayload(
+              shopperAggregate.contracts.createUser.contract,
+              {
+                version: createUser.contractVersion,
+                payload: createUser.payload,
+              },
+            ),
           };
           const aggregateFinalization = yield* makeAsync(() =>
             systemApi.executeAggregateCommand({

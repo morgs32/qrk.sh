@@ -1,6 +1,6 @@
 import { authenticationSignature, main } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
-import { models } from '@zerospin/core/models/index';
+import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
 import { makeReplica } from '@zerospin/core/models/makeReplica';
 import { ApiRequestInit } from '@zerospin/core/services/ApiRequestInit';
 import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
@@ -134,8 +134,8 @@ const emptyFrontends = makeZerospinApp({
 });
 void emptyFrontends;
 
-const VersionedProduct = models.makeVersion(
-  models.makeModel({ name: 'versionedProduct', abbreviation: 'vprd' }),
+const VersionedProduct = makeModelVersion(
+  makeModel({ name: 'versionedProduct', abbreviation: 'vprd' }),
   {
     attributes: {
       description: primitives.text(),

@@ -14,7 +14,6 @@ import type {
   IModelReplica,
   IModelSpec,
   InferCommandPayload,
-  InferPayloadInput,
   InferResource,
 } from '../models/types.ts';
 
@@ -200,69 +199,34 @@ export interface IContract<
   HISTORICAL_GUARD_REQUIREMENTS = Effect.Services<ReturnType<GUARD>>,
 > {
   readonly models: MODELS;
-  readonly previous: IContract | undefined;
+  readonly previous:
+    | IContract<
+        COMMAND_NAME,
+        IAnyShape,
+        string,
+        MUTATIONS,
+        Record<string, IAnyShape>,
+        NonNullable<
+          IAnyContracts<HISTORICAL_GUARD_REQUIREMENTS>[string]['guard']
+        >,
+        IAnyModels,
+        HISTORICAL_GUARD_REQUIREMENTS
+      >
+    | undefined;
   readonly next: IContract | undefined;
+  readonly up:
+    | ((props: { payload: unknown }) => Effect.Effect<unknown, IAnyError>)
+    | undefined;
+  readonly down:
+    | ((props: { payload: unknown }) => Effect.Effect<unknown, IAnyError>)
+    | undefined;
   readonly guard?: GUARD;
   readonly commandName: COMMAND_NAME;
   readonly payload: PAYLOAD;
   readonly __payloads?: PAYLOADS;
-  adaptPayload<
-    FROM extends keyof PAYLOADS & string,
-    TO extends keyof PAYLOADS & string,
-  >(props: {
-    fromVersion: FROM;
-    toVersion: TO;
-    payload: IAnyShape extends PAYLOADS[FROM]
-      ? any
-      : InferCommandPayload<PAYLOADS[FROM]>;
-  }): Effect.Effect<
-    IAnyShape extends PAYLOADS[TO] ? any : InferCommandPayload<PAYLOADS[TO]>,
-    IAnyError
-  >;
-  readonly decodePayload: (props: {
-    command: {
-      readonly commandName: string;
-      readonly contractVersion: string;
-      readonly id: string;
-      readonly payload: string;
-    };
-  }) => Effect.Effect<InferCommandPayload<PAYLOAD>, IAnyError>;
-  readonly encodePayload: {
-    bivarianceHack<SOURCE_VERSION extends keyof PAYLOADS & string>(props: {
-      version: SOURCE_VERSION;
-      payload: IAnyShape extends PAYLOADS[SOURCE_VERSION]
-        ? any
-        : InferCommandPayload<PAYLOADS[SOURCE_VERSION]>;
-    }): Effect.Effect<string, IAnyError>;
-  }['bivarianceHack'];
-  readonly validatePayload: {
-    bivarianceHack<SOURCE_VERSION extends keyof PAYLOADS & string>(props: {
-      version: SOURCE_VERSION;
-      payload: IAnyShape extends PAYLOADS[SOURCE_VERSION]
-        ? any
-        : InferPayloadInput<PAYLOADS[SOURCE_VERSION]>;
-    }): Effect.Effect<
-      IAnyShape extends PAYLOADS[SOURCE_VERSION]
-        ? any
-        : InferCommandPayload<PAYLOADS[SOURCE_VERSION]>,
-      IAnyError
-    >;
-  }['bivarianceHack'];
   readonly version: VERSION;
   readonly program: InferContractProgram<PAYLOAD, MUTATIONS>;
   readonly spec: IContractSpec;
-  readonly getVersion: (
-    contractVersion: string,
-  ) => IContract<
-    COMMAND_NAME,
-    IAnyShape,
-    string,
-    MUTATIONS,
-    Record<string, IAnyShape>,
-    NonNullable<IAnyContracts<HISTORICAL_GUARD_REQUIREMENTS>[string]['guard']>,
-    IAnyModels,
-    HISTORICAL_GUARD_REQUIREMENTS
-  >;
   readonly __mutations?: MUTATIONS;
 }
 

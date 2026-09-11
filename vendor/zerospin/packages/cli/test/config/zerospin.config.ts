@@ -1,27 +1,27 @@
-import { aggregates } from '@zerospin/core/aggregate/index';
-import { authentication } from '@zerospin/core/authentication/index';
-import { contracts } from '@zerospin/core/contracts/index';
+import { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
+import { makeAggregateVersion } from '@zerospin/core/aggregate/makeVersion';
+import { makeAuthenticationVersion } from '@zerospin/core/authentication/makeVersion';
+import { defineCommand } from '@zerospin/core/contracts/Command';
+import { makeContractVersion } from '@zerospin/core/contracts/makeVersion';
 import { makeService } from '@zerospin/core/service/makeService';
 import { makeSystem } from '@zerospin/core/system/makeSystem';
+import { makeSystemConfig } from '@zerospin/core/system/makeSystemConfig';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 
-const createUser = contracts.makeVersion(contracts.makeCommand('createUser'), {
+const createUser = makeContractVersion(defineCommand('createUser'), {
   version: '1.0.0',
   payload: { name: primitives.text() },
 });
-const createProduct = contracts.makeVersion(
-  contracts.makeCommand('createProduct'),
-  {
-    version: '1.0.0',
-    payload: { name: primitives.text() },
-  },
-);
+const createProduct = makeContractVersion(defineCommand('createProduct'), {
+  version: '1.0.0',
+  payload: { name: primitives.text() },
+});
 
 export const system = makeSystem({
   name: 'typed-config-fixture',
   authentication: [
-    authentication.makeVersion({
+    makeAuthenticationVersion({
       version: '1.0.0',
       signature: Schema.String,
       authenticate: ({ signature }) => Effect.succeed(signature),
@@ -29,7 +29,7 @@ export const system = makeSystem({
   ],
   aggregates: {
     user: [
-      aggregates.makeVersion(aggregates.makeAggregate({ name: 'user' }), {
+      makeAggregateVersion(makeAggregate({ name: 'user' }), {
         version: '2.0.0',
         models: {},
         contracts: { createUser: { contract: createUser } },
@@ -50,4 +50,6 @@ export const system = makeSystem({
   },
 });
 
-export default system.config({ systemId: 'sys_typed_config_fixture' });
+export default makeSystemConfig(system, {
+  systemId: 'sys_typed_config_fixture',
+});

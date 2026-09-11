@@ -4,7 +4,8 @@ import { Effect, Schema } from 'effect';
 import { describe, expect } from 'vitest';
 
 import { User } from '../fixtures/system.ts';
-import { models } from '../models/index.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
+import { prefixId } from '../models/prefixId.ts';
 
 import { decodeAppliedMutation } from './decodeAppliedMutation.ts';
 import {
@@ -20,7 +21,7 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
     () =>
       Effect.gen(function* () {
         const mutation = yield* makeModelMutations(User).update({
-          resourceId: User.prefixId('aggregate-frontend-mutation-001'),
+          resourceId: prefixId(User, 'aggregate-frontend-mutation-001'),
           attributes: { name: 'Prepared name' },
         });
 
@@ -35,7 +36,7 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
           mutationIndex: 3,
           modelName: User.modelName,
           modelVersion: User.version,
-          resourceId: User.prefixId('aggregate-frontend-mutation-001'),
+          resourceId: prefixId(User, 'aggregate-frontend-mutation-001'),
           operationName: 'update',
           operation: JSON.stringify({
             encodedAttributes: { name: 'Prepared name' },
@@ -154,8 +155,8 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
     'decodes operation and inverse shapes using the exact stored model version',
     () =>
       Effect.gen(function* () {
-        const VersionedUser = models.makeVersion(
-          models.makeModel({ name: 'versionedUser', abbreviation: 'vusr' }),
+        const VersionedUser = makeModelVersion(
+          makeModel({ name: 'versionedUser', abbreviation: 'vusr' }),
           {
             attributes: {
               name: primitives.text(),
@@ -165,7 +166,7 @@ describe('encodeAppliedMutation + decodeAppliedMutation', () => {
           },
         );
         const mutation = yield* makeModelMutations(VersionedUser).update({
-          resourceId: VersionedUser.prefixId('historical001'),
+          resourceId: prefixId(VersionedUser, 'historical001'),
           attributes: { name: 'New legacy name' },
         });
 

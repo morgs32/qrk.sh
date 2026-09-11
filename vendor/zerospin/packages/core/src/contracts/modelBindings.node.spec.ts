@@ -2,23 +2,28 @@ import { CuidFactory, primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { models } from '../models/index.ts';
+import {
+  makeModel,
+  makeModelVersion,
+  upgradeModelVersion,
+} from '../models/makeModel.ts';
 import { makeReplica } from '../models/makeReplica.ts';
+import { prefixId } from '../models/prefixId.ts';
 
+import { defineCommand } from './Command.ts';
 import { makeModelMutations } from './makeModelMutations.ts';
 import { makeMutations } from './makeMutations.ts';
+import { makeContractVersion, upgradeContractVersion } from './makeVersion.ts';
 
-import { contracts } from './index.ts';
-
-const CartV1 = models.makeVersion(
-  models.makeModel({ name: 'cart', abbreviation: 'crt' }),
+const CartV1 = makeModelVersion(
+  makeModel({ name: 'cart', abbreviation: 'crt' }),
   {
     attributes: { quantity: primitives.integer() },
     indexes: [],
     version: '1.0.0',
   },
 );
-const CartV2 = models.upgradeVersion(CartV1, {
+const CartV2 = upgradeModelVersion(CartV1, {
   attributes: { quantity: null, amount: primitives.integer() },
   version: '2.0.0',
 });
@@ -26,19 +31,16 @@ const CartV2 = models.upgradeVersion(CartV1, {
 describe('contract model bindings', () => {
   it('binds the declared version and snapshots the map and serializable specs', async () => {
     const declarations = { cart: CartV1 };
-    const contract = contracts.makeVersion(
-      contracts.makeCommand('createCart'),
-      {
-        payload: {},
-        version: '1.0.0',
-        models: declarations,
-        program: ({ models }) =>
-          models.cart.create({
-            resourceId: CartV1.prefixId('one'),
-            attributes: { quantity: 2 },
-          }),
-      },
-    );
+    const contract = makeContractVersion(defineCommand('createCart'), {
+      payload: {},
+      version: '1.0.0',
+      models: declarations,
+      program: ({ models }) =>
+        models.cart.create({
+          resourceId: prefixId(CartV1, 'one'),
+          attributes: { quantity: 2 },
+        }),
+    });
     Reflect.deleteProperty(declarations, 'cart');
     const mutation = await Effect.runPromise(contract.program({ payload: {} }));
     expect(mutation.model).toBe(CartV1);
@@ -53,27 +55,27 @@ describe('contract model bindings', () => {
   });
 
   it('inherits, replaces, adds and removes bindings without changing earlier versions', async () => {
-    const v1 = contracts.makeVersion(contracts.makeCommand('changeCart'), {
+    const v1 = makeContractVersion(defineCommand('changeCart'), {
       payload: {},
       version: '1.0.0',
       models: { cart: CartV1, removed: CartV1 },
       program: ({ models }) =>
         models.cart.create({
-          resourceId: CartV1.prefixId('one'),
+          resourceId: prefixId(CartV1, 'one'),
           attributes: { quantity: 1 },
         }),
     });
-    const v2 = contracts.upgradeVersion(v1, {
+    const v2 = upgradeContractVersion(v1, {
       payload: {},
       version: '2.0.0',
       up: ({ payload }) => Effect.succeed(payload),
       program: ({ models }) =>
         models.cart.create({
-          resourceId: CartV1.prefixId('two'),
+          resourceId: prefixId(CartV1, 'two'),
           attributes: { quantity: 2 },
         }),
     });
-    const v3 = contracts.upgradeVersion(v2, {
+    const v3 = upgradeContractVersion(v2, {
       payload: {},
       version: '3.0.0',
       up: ({ payload }) => Effect.succeed(payload),
@@ -81,10 +83,12 @@ describe('contract model bindings', () => {
       program: ({ models }) =>
         Effect.all({
           current: models.cart.create({
-            resourceId: CartV2.prefixId('three'),
+            resourceId: prefixId(CartV2, 'three'),
             attributes: { amount: 3 },
           }),
-          added: models.added.delete({ resourceId: CartV1.prefixId('four') }),
+          added: models.added.delete({
+            resourceId: prefixId(CartV1, 'four'),
+          }),
         }),
     });
     expect((await Effect.runPromise(v1.program({ payload: {} }))).model).toBe(
@@ -101,7 +105,7 @@ describe('contract model bindings', () => {
     expect(v3.spec.models).toEqual({ cart: CartV2.spec, added: CartV1.spec });
     expect(v3.models).not.toHaveProperty('removed');
     expect(() =>
-      contracts.upgradeVersion(v3, {
+      upgradeContractVersion(v3, {
         payload: {},
         version: '4.0.0',
         up: ({ payload }) => Effect.succeed(payload),
@@ -113,7 +117,7 @@ describe('contract model bindings', () => {
   });
 
   it('supplies an empty map and rejects non-model declarations', async () => {
-    const empty = contracts.makeVersion(contracts.makeCommand('empty'), {
+    const empty = makeContractVersion(defineCommand('empty'), {
       payload: {},
       version: '1.0.0',
       program: ({ models }) => {
@@ -124,7 +128,7 @@ describe('contract model bindings', () => {
     await Effect.runPromise(empty.program({ payload: {} }));
     expect(empty.spec.models).toEqual({});
     expect(() =>
-      contracts.makeVersion(contracts.makeCommand('invalid'), {
+      makeContractVersion(defineCommand('invalid'), {
         payload: {},
         version: '1.0.0',
         // @ts-expect-error Runtime rejects structural copies too.
@@ -134,19 +138,16 @@ describe('contract model bindings', () => {
   });
 
   it('preserves mutation validation and model scope validation during execution', async () => {
-    const contract = contracts.makeVersion(
-      contracts.makeCommand('createCart'),
-      {
-        payload: {},
-        version: '1.0.0',
-        models: { cart: CartV1 },
-        program: ({ models }) =>
-          models.cart.create({
-            resourceId: CartV1.prefixId('one'),
-            attributes: { quantity: 2 },
-          }),
-      },
-    );
+    const contract = makeContractVersion(defineCommand('createCart'), {
+      payload: {},
+      version: '1.0.0',
+      models: { cart: CartV1 },
+      program: ({ models }) =>
+        models.cart.create({
+          resourceId: prefixId(CartV1, 'one'),
+          attributes: { quantity: 2 },
+        }),
+    });
     const command = {
       id: 'cmd_one',
       commandName: 'createCart',
@@ -177,7 +178,7 @@ describe('contract model bindings', () => {
     await expect(
       Effect.runPromise(
         makeModelMutations(CartV1).create({
-          resourceId: CartV1.prefixId('bad'),
+          resourceId: prefixId(CartV1, 'bad'),
           // @ts-expect-error Missing required attribute is rejected at runtime too.
           attributes: {},
         }),
@@ -185,7 +186,7 @@ describe('contract model bindings', () => {
     ).rejects.toThrow('create-resource-missing-attributes');
     const mutation = await Effect.runPromise(
       makeModelMutations(CartV1).update({
-        resourceId: CartV1.prefixId('one'),
+        resourceId: prefixId(CartV1, 'one'),
         attributes: { quantity: 4 },
         mask: [],
       }),
@@ -200,22 +201,19 @@ describe('contract model bindings', () => {
       serviceName: 'catalog',
     });
     const resource = {
-      id: CartV1.prefixId('one'),
+      id: prefixId(CartV1, 'one'),
       modelName: CartV1.modelName,
       version: CartV1.version,
       quantity: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    const contract = contracts.makeVersion(
-      contracts.makeCommand('replicateCart'),
-      {
-        payload: {},
-        version: '1.0.0',
-        models: { cart: replica },
-        program: ({ models }) => models.cart.replicate(resource),
-      },
-    );
+    const contract = makeContractVersion(defineCommand('replicateCart'), {
+      payload: {},
+      version: '1.0.0',
+      models: { cart: replica },
+      program: ({ models }) => models.cart.replicate(resource),
+    });
     const mutation = await Effect.runPromise(contract.program({ payload: {} }));
     expect(mutation.model).toBe(replica);
     expect(mutation.operation.serviceName).toBe('catalog');

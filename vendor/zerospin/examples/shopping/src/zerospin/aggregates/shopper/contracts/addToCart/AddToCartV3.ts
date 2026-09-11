@@ -1,4 +1,4 @@
-import { contracts, primitives } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
 import { cartItemV3 } from '../../models/cartItem/CartItemV3';
@@ -6,10 +6,10 @@ import { cartItemV3 } from '../../models/cartItem/CartItemV3';
 import { addToCartV1 } from './AddToCartV1';
 import { addToCartV2 } from './AddToCartV2';
 
-export const addToCartV3 = contracts.upgradeVersion(addToCartV2, {
+export const addToCartV3 = sdk.upgradeContractVersion(addToCartV2, {
   payload: {
     amount: null,
-    quantity: primitives.integer(),
+    quantity: sdk.primitives.integer(),
   },
   up: ({ payload }) => {
     const { amount, ...rest } = payload;

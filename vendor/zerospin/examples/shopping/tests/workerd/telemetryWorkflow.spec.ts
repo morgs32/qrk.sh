@@ -1,7 +1,10 @@
 import { describe, it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
+import { encodePayload } from '@zerospin/core/contracts/encodePayload';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
+import { makeCommand } from '@zerospin/core/makeCommand';
+import { prefixId } from '@zerospin/core/models/prefixId';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { makeAggregateId } from '@zerospin/core/utils/makeAggregateId';
 import { makeWorkerdE2eTestLayer } from '@zerospin/dev-worker/vitest/makeWorkerdE2eTestLayer';
@@ -11,8 +14,8 @@ import { Effect } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { expect } from 'vitest';
 
-import { userV1 } from '@/zerospin/aggregates/shopper/models/user/userV1';
-import { shopperV2 } from '@/zerospin/aggregates/shopper/shopperV2';
+import { userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
+import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
 import { system } from '@/zerospin/system';
 
 const WebV2 = makeFrontendController({
@@ -53,25 +56,27 @@ describe('public SystemApi telemetry boundary', () => {
             }),
           );
           const aggregateId = makeAggregateId({ id: 'telemetry' });
-          const command = yield* system.aggregates.shopper['2.0.0'].makeCommand(
+          const command = yield* makeCommand(
+            system.aggregates.shopper['2.0.0'],
             {
               contractName: 'createUser',
               aggregateId,
               systemName: WebV2.systemName,
               payload: {
-                id: userV1.prefixId('user_telemetry'),
+                id: prefixId(userV1, 'user_telemetry'),
                 clerkUserId: 'user_telemetry',
               },
             },
           );
           const encodedCommand = {
             ...command,
-            payload: yield* system.aggregates.shopper[
-              '2.0.0'
-            ].contracts.createUser.contract.encodePayload({
-              version: command.contractVersion,
-              payload: command.payload,
-            }),
+            payload: yield* encodePayload(
+              system.aggregates.shopper['2.0.0'].contracts.createUser.contract,
+              {
+                version: command.contractVersion,
+                payload: command.payload,
+              },
+            ),
           };
 
           const finalized = yield* makeAsync(() =>

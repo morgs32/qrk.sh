@@ -1,8 +1,9 @@
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { aggregates } from '../../aggregate/index.ts';
-import { authentication } from '../../authentication/index.ts';
+import { makeAggregate } from '../../aggregate/makeAggregate.ts';
+import { makeAggregateVersion } from '../../aggregate/makeVersion.ts';
+import { makeAuthenticationVersion } from '../../authentication/makeVersion.ts';
 import { makeService } from '../../service/makeService.ts';
 import { makeSystem } from '../makeSystem.ts';
 import { makeSystemSpec } from '../makeSystemSpec.ts';
@@ -12,7 +13,7 @@ describe('makeSystem', () => {
     const system = makeSystem({
       name: 'test',
       authentication: [
-        authentication.makeVersion({
+        makeAuthenticationVersion({
           version: '1.0.0',
           signature: Schema.Struct({ userId: Schema.NonEmptyString }),
           authenticate: ({ signature }) => Effect.succeed(signature.userId),
@@ -20,7 +21,7 @@ describe('makeSystem', () => {
       ],
       aggregates: {
         user: [
-          aggregates.makeVersion(aggregates.makeAggregate({ name: 'user' }), {
+          makeAggregateVersion(makeAggregate({ name: 'user' }), {
             version: '1.0.0',
             models: {},
             contracts: {},

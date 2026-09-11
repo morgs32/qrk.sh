@@ -1,8 +1,7 @@
-import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import { type IAnyError } from '@zerospin/error';
 import {
   encodeShape,
   isAttributeDescriptor,
-  makeEffectSchema,
   PrimitiveKind,
   type IAnyRefDescriptor,
   type IAnyShape,
@@ -20,7 +19,7 @@ import type {
   InferCommandPayload,
 } from '../models/types.ts';
 
-import { makeCommand, type Command } from './Command.ts';
+import { defineCommand, type Command } from './Command.ts';
 import { makeModelMutations } from './makeModelMutations.ts';
 import type {
   IAnyMutation,
@@ -174,9 +173,17 @@ export class Contract {
   get next(): IContract | undefined {
     return nextVersions.get(this);
   }
+
+  get up() {
+    return upgradeEdges.get(this)?.up;
+  }
+
+  get down() {
+    return upgradeEdges.get(this)?.down;
+  }
 }
 
-export function makeVersion<
+export function makeContractVersion<
   COMMAND_NAME extends string,
   PAYLOAD extends Record<string, IPayloadFieldDescriptor>,
   const VERSION extends string,
@@ -219,7 +226,7 @@ export function makeVersion<
   MODELS
 >;
 
-export function makeVersion<
+export function makeContractVersion<
   COMMAND_NAME extends string,
   PAYLOAD extends Record<string, IPayloadFieldDescriptor>,
   const VERSION extends string,
@@ -263,12 +270,10 @@ export function makeVersion<
 
 /*
  * 1. Validate and snapshot the authored payload and program.
- * 2. Derive the exact-version payload codecs.
- * 3. Validate caller-supplied identities and JSON fields.
- * 4. Encode canonical payloads and decode retained commands at this version.
- * 5. Expose version traversal and the Contract instance.
+ * 2. Bind the authored program to this definition's model mutations.
+ * 3. Expose authored content and the serializable specification.
  */
-export function makeVersion(command: Command, props: unknown): unknown {
+export function makeContractVersion(command: Command, props: unknown): unknown {
   // 1 — Strictly decode the current definition and its optional program.
   const decodedProps = Schema.decodeUnknownSync(MakeVersionPropsSchema, {
     onExcessProperty: 'error',
@@ -283,174 +288,13 @@ export function makeVersion(command: Command, props: unknown): unknown {
         : { ...descriptor };
   }
 
-  // 2 — Build only this definition's codecs and executable program.
+  // 2 — Bind the authored program to this definition's model mutations.
   const models = { ...decodedProps.models };
   const modelMutations = mapValues(models, makeModelMutations);
   const authoredProgram = decodedProps.program ?? noOpProgram;
   const program: IContract['program'] = ({ payload }) =>
     authoredProgram({ payload, models: modelMutations });
-  const payloadSchema = makeEffectSchema(payload);
-  const payloadJsonSchema = Schema.fromJsonString(payloadSchema);
-
-  // 3 — Pre-encode JSON fields, then decode authoring input at this version.
-  const validatePayload = Effect.fn(`validatePayload/${commandName}`)(
-    function* (props: { version: string; payload: Record<string, unknown> }) {
-      const { payload: commandPayload, version: sourceVersion } = props;
-      if (sourceVersion !== version) {
-        const edge = upgradeEdges.get(contract);
-        if (edge !== undefined) {
-          return yield* edge.parent.validatePayload(props);
-        }
-        return yield* new ZerospinError({
-          code: 'contract-payload-version-unsupported',
-          message: `Contract "${commandName}" does not support payload version "${sourceVersion}"`,
-          extra: {
-            commandName,
-            currentVersion: version,
-            sourceVersion,
-          },
-        });
-      }
-      const encodedPayload: Record<string, unknown> = { ...commandPayload };
-      for (const [key, descriptor] of Object.entries(payload)) {
-        if (descriptor.kind !== PrimitiveKind.Json) {
-          continue;
-        }
-        const value = encodedPayload[key];
-        if (value === null || value === undefined) {
-          continue;
-        }
-        encodedPayload[key] = yield* Schema.encodeEffect(
-          Schema.fromJsonString(descriptor.schema),
-        )(value).pipe(
-          mapParseError({
-            code: 'encode-command-json-payload-field-failed',
-            prefix: `Failed to encode JSON payload field "${key}" for command "${commandName}" at version "${sourceVersion}"`,
-          }),
-        );
-      }
-      return yield* Schema.decodeUnknownEffect(payloadSchema)(encodedPayload, {
-        onExcessProperty: 'error',
-      }).pipe(
-        mapParseError({
-          code: 'validate-command-payload-failed',
-          prefix: `Failed to validate payload for command "${commandName}" at version "${sourceVersion}"`,
-          extra: { commandName, sourceVersion },
-        }),
-      );
-    },
-  );
-
-  // 4 — Encode an already validated payload with its exact version codec.
-  const encodePayload = Effect.fn(`encodePayload/${commandName}`)(
-    function* (props: { version: string; payload: Record<string, unknown> }) {
-      const { payload, version: sourceVersion } = props;
-      if (sourceVersion !== version) {
-        const edge = upgradeEdges.get(contract);
-        if (edge !== undefined) {
-          return yield* edge.parent.encodePayload(props);
-        }
-        return yield* new ZerospinError({
-          code: 'contract-payload-version-unsupported',
-          message: `Contract "${commandName}" does not support payload version "${sourceVersion}"`,
-          extra: {
-            commandName,
-            currentVersion: version,
-            sourceVersion,
-          },
-        });
-      }
-      return yield* Schema.encodeEffect(payloadJsonSchema)(payload, {
-        onExcessProperty: 'error',
-      }).pipe(
-        mapParseError({
-          code: 'encode-command-payload-failed',
-          prefix: `Failed to encode payload for command "${commandName}" at version "${sourceVersion}"`,
-          extra: { commandName, sourceVersion },
-        }),
-      );
-    },
-  );
-
-  const decodePayload = Effect.fn(`decodePayload/${commandName}`)(
-    function* (props: {
-      command: {
-        readonly commandName: string;
-        readonly contractVersion: string;
-        readonly id: string;
-        readonly payload: string;
-      };
-    }) {
-      const { command } = props;
-
-      if (command.commandName !== commandName) {
-        return yield* new ZerospinError({
-          code: 'contract-command-name-mismatch',
-          message: `Contract "${commandName}" cannot decode command "${command.commandName}"`,
-          extra: {
-            commandId: command.id,
-            commandName: command.commandName,
-            contractName: commandName,
-          },
-        });
-      }
-
-      if (command.contractVersion !== version) {
-        let source: IContract | undefined = contract.previous;
-        while (
-          source !== undefined &&
-          source.version !== command.contractVersion
-        ) {
-          source = source.previous;
-        }
-        let adapter: IContract = contract;
-        if (source === undefined) {
-          source = contract.next;
-          while (
-            source !== undefined &&
-            source.version !== command.contractVersion
-          ) {
-            source = source.next;
-          }
-          if (source !== undefined) adapter = source;
-        }
-        if (source !== undefined) {
-          const sourcePayload = yield* source.decodePayload(props);
-          return yield* adapter.adaptPayload({
-            fromVersion: source.version,
-            toVersion: version,
-            payload: sourcePayload,
-          });
-        }
-        return yield* new ZerospinError({
-          code: 'contract-payload-version-unsupported',
-          message: `Contract "${commandName}" does not support payload version "${command.contractVersion}"`,
-          extra: {
-            commandId: command.id,
-            commandName,
-            currentVersion: version,
-            sourceVersion: command.contractVersion,
-          },
-        });
-      }
-
-      return yield* Schema.decodeEffect(payloadJsonSchema)(command.payload, {
-        onExcessProperty: 'error',
-      }).pipe(
-        mapParseError({
-          code: 'decode-command-payload-failed',
-          extra: {
-            commandId: command.id,
-            commandName,
-            sourceVersion: command.contractVersion,
-          },
-          prefix: `Failed to decode payload for command "${commandName}" at version "${command.contractVersion}"`,
-        }),
-      );
-    },
-  );
-
-  // 5 — Expose the definition and its version traversal operations.
+  // 3 — Expose authored content and the serializable specification.
   const spec = {
     commandName,
     version,
@@ -458,7 +302,7 @@ export function makeVersion(command: Command, props: unknown): unknown {
     models: mapValues(models, model => structuredClone(model.spec)),
   };
 
-  const fields: Omit<IContract, 'previous' | 'next'> = {
+  const fields: Omit<IContract, 'previous' | 'next' | 'up' | 'down'> = {
     models,
     commandName,
     payload,
@@ -466,99 +310,12 @@ export function makeVersion(command: Command, props: unknown): unknown {
     spec,
     program,
     ...(decodedProps.guard === undefined ? {} : { guard: decodedProps.guard }),
-    validatePayload,
-    encodePayload,
-    decodePayload,
-    adaptPayload: Effect.fn(`adaptPayload/${commandName}`)(function* (props: {
-      fromVersion: string;
-      toVersion: string;
-      payload: unknown;
-    }) {
-      const lineage: IContract[] = [];
-      let ancestor: IContract | undefined = contract;
-      while (ancestor !== undefined) {
-        lineage.push(ancestor);
-        ancestor = upgradeEdges.get(ancestor)?.parent;
-      }
-      let index = lineage.findIndex(item => item.version === props.fromVersion);
-      const targetIndex = lineage.findIndex(
-        item => item.version === props.toVersion,
-      );
-      const source = lineage[index];
-      if (source === undefined || targetIndex === -1) {
-        return yield* new ZerospinError({
-          code: 'contract-payload-version-unsupported',
-          message: `Unknown adaptation version for ${commandName}`,
-          extra: { fromVersion: props.fromVersion, toVersion: props.toVersion },
-        });
-      }
-      let adapted = yield* Schema.decodeUnknownEffect(
-        Schema.toType(makeEffectSchema(source.payload)),
-      )(props.payload, { onExcessProperty: 'error' }).pipe(
-        mapParseError({
-          code: 'validate-command-payload-failed',
-          prefix: `Invalid source payload for ${commandName}@${source.version}`,
-        }),
-      );
-      while (index !== targetIndex) {
-        const upward = index > targetIndex;
-        const nextIndex = upward ? index - 1 : index + 1;
-        const child = lineage[upward ? nextIndex : index];
-        const destination = lineage[nextIndex];
-        const edge = child === undefined ? undefined : upgradeEdges.get(child);
-        const adapter = upward ? edge?.up : edge?.down;
-        if (adapter === undefined || destination === undefined) {
-          return yield* new ZerospinError({
-            code: 'contract-payload-adapter-missing',
-            message: `Missing ${upward ? 'up' : 'down'} adapter for ${commandName}`,
-            extra: {
-              fromVersion: props.fromVersion,
-              toVersion: props.toVersion,
-            },
-          });
-        }
-        const result = yield* Effect.suspend(() =>
-          adapter({ payload: adapted }),
-        ).pipe(
-          Effect.catchCause(
-            cause =>
-              new ZerospinError({
-                code: 'contract-payload-adapter-failed',
-                message: `Payload adapter to ${commandName}@${destination.version} failed`,
-                cause: ZerospinError.prettyUnknownFailure(cause),
-              }),
-          ),
-        );
-        adapted = yield* Schema.decodeUnknownEffect(
-          Schema.toType(makeEffectSchema(destination.payload)),
-        )(result, { onExcessProperty: 'error' }).pipe(
-          mapParseError({
-            code: 'contract-payload-adapter-output-invalid',
-            prefix: `Invalid adapter output for ${commandName}@${destination.version}`,
-          }),
-        );
-        index = nextIndex;
-      }
-      return adapted;
-    }),
-    getVersion(requestedVersion) {
-      if (requestedVersion !== version) {
-        const edge = upgradeEdges.get(contract);
-        if (edge !== undefined) return edge.parent.getVersion(requestedVersion);
-        throw new ZerospinError({
-          code: 'contract-version-unsupported',
-          message: `Contract "${commandName}" is version "${version}", not "${requestedVersion}"`,
-          extra: { commandName, currentVersion: version, requestedVersion },
-        });
-      }
-      return contract;
-    },
   };
   const contract = Object.assign(new Contract(), fields);
   return contract;
 }
 
-export function upgradeVersion<
+export function upgradeContractVersion<
   COMMAND_NAME extends string,
   PAYLOAD extends IAnyShape,
   VERSION extends string,
@@ -776,7 +533,10 @@ export function upgradeVersion<
         HISTORICAL_GUARD_REQUIREMENTS | NEXT_GUARD_REQUIREMENTS
       >;
 
-export function upgradeVersion(contract: IContract, input: unknown): IContract {
+export function upgradeContractVersion(
+  contract: IContract,
+  input: unknown,
+): IContract {
   const props = Schema.decodeUnknownSync(
     Schema.Struct({
       ...MakeVersionPropsSchema.fields,
@@ -836,14 +596,14 @@ export function upgradeVersion(contract: IContract, input: unknown): IContract {
     if (ancestor.version === props.version) {
       throw new Error(`Duplicate contract version "${props.version}"`);
     }
-    ancestor = upgradeEdges.get(ancestor)?.parent;
+    ancestor = ancestor.previous;
   }
   if (nextVersions.has(contract)) {
     throw new Error(
       `Contract "${commandName}@${contract.version}" already has a next version`,
     );
   }
-  const next = makeVersion(makeCommand(commandName), {
+  const next = makeContractVersion(defineCommand(commandName), {
     models,
     payload: nextPayload,
     version: props.version,

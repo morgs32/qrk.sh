@@ -1,6 +1,8 @@
 import { acquireBackupWorker, type IBackupDb } from '@zerospin/backup-worker';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
+import { prefixId } from '@zerospin/core/models/prefixId';
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
@@ -27,8 +29,8 @@ import {
 import { signature } from '../../src/zerospin/signature';
 
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
-const WebV2 = ZerospinApp.frontends.web.frontend;
-const CatalogV1 = ZerospinApp.frontends.catalog.frontend;
+const WebV2 = ZerospinApp.frontends.shopperFrontend.frontend;
+const CatalogV1 = ZerospinApp.frontends.appFrontend.frontend;
 
 const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
@@ -51,7 +53,7 @@ let controls:
 const scope = Scope.makeUnsafe();
 Effect.runSync(Scope.addFinalizer(scope, guardTestRuntime.disposeEffect));
 const aggregate = await Effect.runPromise(
-  Effect.map(WebV2.initializeGuards, guards =>
+  Effect.map(initializeFrontendGuards(WebV2), guards =>
     makeAggregateSession({
       runtime: guardTestRuntime,
       guards,
@@ -215,7 +217,10 @@ export const frontendLifecycleFixture = {
     backupGate = Promise.withResolvers<void>();
     const result = aggregate.executeCommand({
       contractName: 'createUser',
-      payload: { id: userV1.prefixId(clerkUserId), clerkUserId },
+      payload: {
+        id: prefixId(userV1, clerkUserId),
+        clerkUserId,
+      },
     });
     const { db } = aggregate.store.getState();
     if (db === null) throw new Error('Expected live database');
@@ -238,7 +243,7 @@ export const frontendLifecycleFixture = {
       .select()
       .from(userV1.drizzleSchema)
       .all()
-      .some(row => row.id === userV1.prefixId(clerkUserId));
+      .some(row => row.id === prefixId(userV1, clerkUserId));
   },
   async overwriteFromPreviousOwner() {
     if (previousBackup === undefined || previousSnapshot === undefined) {

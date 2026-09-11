@@ -9,6 +9,6 @@ export const projection = makeFrontendController({
   },
   aggregateName: 'aggregate',
   name: 'projection',
-  systemName: 'frontendAdapters',
+  systemName: 'frontend-adapters',
   models: { sourceItem: SourceItem },
 });

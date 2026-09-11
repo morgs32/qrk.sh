@@ -4,10 +4,9 @@ import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { Model } from './makeModel.ts';
+import { encodeResource } from './encodeResource.ts';
+import { makeModel, makeModelVersion, Model } from './makeModel.ts';
 import { makeReplica } from './makeReplica.ts';
-
-import { models } from './index.ts';
 
 describe('makeReplica', () => {
   it('does not import the server-only marker', () => {
@@ -20,8 +19,8 @@ describe('makeReplica', () => {
   });
 
   it('creates a client-safe replica with immutable source and service ownership', () => {
-    const Product = models.makeVersion(
-      models.makeModel({ name: 'product', abbreviation: 'prd' }),
+    const Product = makeModelVersion(
+      makeModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: { name: primitives.text() },
         indexes: [],
@@ -34,8 +33,8 @@ describe('makeReplica', () => {
       serviceName: 'app',
     };
     const ProductReplica = makeReplica(replicaProps);
-    const CartItem = models.makeVersion(
-      models.makeModel({ name: 'cartItem', abbreviation: 'cit' }),
+    const CartItem = makeModelVersion(
+      makeModel({ name: 'cartItem', abbreviation: 'cit' }),
       {
         attributes: {
           productId: primitives.ref({
@@ -140,8 +139,8 @@ describe('makeReplica', () => {
   });
 
   it('preserves deletion and source position when encoding the selected version', async () => {
-    const Product = models.makeVersion(
-      models.makeModel({ name: 'product', abbreviation: 'prd' }),
+    const Product = makeModelVersion(
+      makeModel({ name: 'product', abbreviation: 'prd' }),
       {
         attributes: {
           description: primitives.text(),
@@ -159,19 +158,16 @@ describe('makeReplica', () => {
     const deletedAt = new Date('2026-08-30T01:00:00.000Z');
 
     const adapted = await Effect.runPromise(
-      ProductReplica.adaptResource({
+      encodeResource(ProductReplica, {
+        id: 'prd_historical_replica',
+        modelName: 'product',
+        createdAt: new Date('2026-08-29T01:00:00.000Z'),
+        updatedAt: deletedAt,
         version: '2.0.0',
-        resource: {
-          id: 'prd_historical_replica',
-          modelName: 'product',
-          createdAt: new Date('2026-08-29T01:00:00.000Z'),
-          updatedAt: deletedAt,
-          version: '2.0.0',
-          description: 'Current-only description',
-          name: 'Historical product',
-          deletedAt,
-          serviceIndex: 42,
-        },
+        description: 'Current-only description',
+        name: 'Historical product',
+        deletedAt,
+        serviceIndex: 42,
       }),
     );
 

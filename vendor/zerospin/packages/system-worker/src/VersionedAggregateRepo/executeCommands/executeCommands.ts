@@ -1,7 +1,9 @@
+import { initializeGuards as initializeAggregateGuards } from '@zerospin/core/aggregate/initializeGuards';
 import {
   AggregateChainedCommandSchema,
   EncodedAggregateCommandSchema,
 } from '@zerospin/core/contracts/CommandSchema';
+import { decodePayload } from '@zerospin/core/contracts/decodePayload';
 import { encodeMutation } from '@zerospin/core/contracts/encodeAppliedMutation';
 import { makeMutations } from '@zerospin/core/contracts/makeMutations';
 import { prepareReplayAppliedMutation } from '@zerospin/core/contracts/prepareReplayAppliedMutation';
@@ -71,7 +73,7 @@ export const executeCommands = Effect.fn(
       );
       if (tail.length === 0) return;
       const application = yield* Layer.build(Layer.fresh(system.layer));
-      const guards = yield* aggregate.initializeGuards.pipe(
+      const guards = yield* initializeAggregateGuards(aggregate).pipe(
         Effect.provideContext(application),
       );
 
@@ -112,7 +114,7 @@ export const executeCommands = Effect.fn(
               key: command.commandName,
               recordKind: 'aggregate-contract',
             });
-            const payload = yield* contractBinding.contract.decodePayload({
+            const payload = yield* decodePayload(contractBinding.contract, {
               command,
             });
             const made = yield* makeMutations({

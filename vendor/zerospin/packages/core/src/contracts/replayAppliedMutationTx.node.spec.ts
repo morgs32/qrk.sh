@@ -9,7 +9,7 @@ import { makeResourceDbConfig } from '../drizzle/makeDbConfig.ts';
 import { makeProvisionedInMemorySqljsDb } from '../drizzle/makeProvisionedInMemorySqljsDb.ts';
 import { makeTx } from '../drizzle/makeTx.ts';
 import type { IDbConfig, ITx } from '../drizzle/types.ts';
-import { models } from '../models/index.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 
 import { encodeAppliedMutation } from './encodeAppliedMutation.ts';
@@ -23,16 +23,16 @@ const appliedAt = new Date('2026-07-14T12:00:00.000Z');
 describe('replayAppliedMutationTx', () => {
   it.effect('replays an exact model version and preserves provenance', () =>
     Effect.gen(function* () {
-      const SourceTodo = models.makeVersion(
-        models.makeModel({ name: 'todo', abbreviation: 'todo' }),
+      const SourceTodo = makeModelVersion(
+        makeModel({ name: 'todo', abbreviation: 'todo' }),
         {
           version: '1.0.0',
           attributes: { title: primitives.text() },
           indexes: [],
         },
       );
-      const DestinationTodo = models.makeVersion(
-        models.makeModel({ name: 'todo', abbreviation: 'todo' }),
+      const DestinationTodo = makeModelVersion(
+        makeModel({ name: 'todo', abbreviation: 'todo' }),
         {
           version: '1.0.0',
           attributes: { title: primitives.text() },
@@ -104,8 +104,8 @@ describe('replayAppliedMutationTx', () => {
 
   it.effect('replays an exact replica model version', () =>
     Effect.gen(function* () {
-      const SourceTodo = models.makeVersion(
-        models.makeModel({ name: 'todo', abbreviation: 'todo' }),
+      const SourceTodo = makeModelVersion(
+        makeModel({ name: 'todo', abbreviation: 'todo' }),
         {
           version: '1.0.0',
           attributes: { title: primitives.text() },
@@ -117,8 +117,8 @@ describe('replayAppliedMutationTx', () => {
         modelVersion: SourceTodo.version,
         serviceName: 'todos',
       });
-      const DestinationTodo = models.makeVersion(
-        models.makeModel({ name: 'todo', abbreviation: 'todo' }),
+      const DestinationTodo = makeModelVersion(
+        makeModel({ name: 'todo', abbreviation: 'todo' }),
         {
           version: '1.0.0',
           attributes: { title: primitives.text() },
@@ -222,8 +222,8 @@ describe('replayAppliedMutationTx', () => {
 
   it.effect('rejects unavailable model versions and malformed operations', () =>
     Effect.gen(function* () {
-      const Todo = models.makeVersion(
-        models.makeModel({ name: 'todo', abbreviation: 'todo' }),
+      const Todo = makeModelVersion(
+        makeModel({ name: 'todo', abbreviation: 'todo' }),
         {
           version: '1.0.0',
           attributes: { title: primitives.text() },

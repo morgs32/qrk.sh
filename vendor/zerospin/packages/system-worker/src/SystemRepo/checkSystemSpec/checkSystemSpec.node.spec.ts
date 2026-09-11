@@ -27,10 +27,6 @@ const service = {
   contracts: {},
   queries: {},
   frontends: {},
-  historicalDefinitions: [
-    { version: '0.1.0', models: {}, contracts: {} },
-    { version: '0.2.0', models: {}, contracts: {} },
-  ],
 };
 const spec: ISystemSpec = {
   systemName: 'test',
@@ -112,7 +108,7 @@ describe('SystemRepo spec locks', () => {
     ).toEqual(aggregate);
   });
 
-  it('preserves array order and rolls back earlier additions when a service conflicts', async () => {
+  it('rolls back earlier additions when a service conflicts', async () => {
     await Effect.runPromise(checkSystemSpec({ db, spec }));
     const result = await Effect.runPromise(
       checkSystemSpec({
@@ -124,8 +120,17 @@ describe('SystemRepo spec locks', () => {
             directory: {
               '1.0.0': {
                 ...service,
-                historicalDefinitions:
-                  service.historicalDefinitions.toReversed(),
+                queries: {
+                  changed: {
+                    name: 'changed',
+                    serviceName: 'directory',
+                    paramsJsonSchema: {
+                      dialect: 'draft-2020-12',
+                      schema: {},
+                      definitions: {},
+                    },
+                  },
+                },
               },
             },
           },

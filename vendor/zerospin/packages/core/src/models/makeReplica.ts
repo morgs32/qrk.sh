@@ -1,10 +1,9 @@
 import { primitives } from '@zerospin/schema';
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
-import { Model } from './makeModel.ts';
+import { makeModel, makeModelVersion, Model } from './makeModel.ts';
+import { requireVersion as requireModelVersion } from './requireVersion.ts';
 import type { IModel, IModelReplica } from './types.ts';
-
-import { models } from './index.ts';
 
 const MakeReplicaPropsSchema = Schema.Struct({
   sourceModel: Schema.declare(
@@ -43,8 +42,8 @@ export function makeReplica(props: {
 
   const deletedAt = primitives.date({ nullable: true });
   const serviceIndex = primitives.integer({ nullable: true });
-  const replica = models.makeVersion(
-    models.makeModel({
+  const replica = makeModelVersion(
+    makeModel({
       name: sourceModel.modelName,
       abbreviation: sourceModel.abbreviation,
     }),
@@ -63,5 +62,5 @@ export function makeReplica(props: {
     sourceModel,
     serviceName,
   });
-  return replica.getVersion(modelVersion);
+  return Effect.runSync(requireModelVersion(replica, modelVersion));
 }

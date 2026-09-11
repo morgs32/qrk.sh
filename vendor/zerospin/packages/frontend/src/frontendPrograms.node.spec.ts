@@ -1,5 +1,6 @@
 import type { IBackupWorker } from '@zerospin/backup-worker';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
@@ -360,7 +361,7 @@ describe('aggregate frontend snapshot and socket recovery', () => {
       contracts: {},
     });
     const session = Effect.runSync(
-      Effect.map(frontend.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(frontend), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -527,7 +528,7 @@ describe('frontend startup without a reusable backup', () => {
                   models: {},
                   contracts: {},
                 });
-                const guards = yield* frontend.initializeGuards;
+                const guards = yield* initializeFrontendGuards(frontend);
                 return yield* bootstrapAggregateFrontendSession({
                   ...props,
                   aggregateVersion: '1.0.0',

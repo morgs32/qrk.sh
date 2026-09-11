@@ -1,5 +1,5 @@
-import { contracts } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 
-export const updateCartItemQuantity = contracts.makeCommand(
+export const updateCartItemQuantity = sdk.defineCommand(
   'updateCartItemQuantity',
 );

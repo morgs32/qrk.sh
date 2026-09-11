@@ -1,10 +1,13 @@
-import path from 'node:path';
-
 import { makeWorkerdVitestConfig } from '@zerospin/dev-worker/vitest/makeWorkerdVitestConfig';
+
+import config from './zerospin.config';
 
 export default makeWorkerdVitestConfig({
   include: ['tests/**/*.workerd.spec.ts'],
   passWithNoTests: false,
-  systemModulePath: path.join(import.meta.dirname, 'src/system.ts'),
-  wranglerConfigPath: './wrangler.vitest.jsonc',
+  config,
+  setupFiles: [
+    '../../packages/system-worker/src/workerd-utils/acceptSystemSpec.ts',
+  ],
+  workerBindings: { ZEROSPIN_SECRET_KEY: 'sk_test_system_runtime_capability' },
 });

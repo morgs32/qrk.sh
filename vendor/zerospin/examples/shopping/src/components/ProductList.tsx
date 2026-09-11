@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { prefixId } from '@zerospin/core/models/prefixId';
 import { ZerospinError } from '@zerospin/error';
 import {
   useInitializedStateOrThrow,
@@ -9,20 +10,22 @@ import {
 
 import { ProductCard } from './ProductCard';
 
-import { userV1 } from '@/zerospin/aggregates/shopper/models/user/userV1';
+import { userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function ProductList() {
-  const { userId } = useInitializedStateOrThrow(ZerospinApp.frontends.web);
-  const session = useSession(ZerospinApp.frontends.web);
+  const { userId } = useInitializedStateOrThrow(
+    ZerospinApp.frontends.shopperFrontend,
+  );
+  const session = useSession(ZerospinApp.frontends.shopperFrontend);
   const userCreationStarted = useRef(false);
   const [userCreationFailure, setUserCreationFailure] =
     useState<ZerospinError<string> | null>(null);
-  const { data: products } = useLiveQuery(ZerospinApp.frontends.catalog, {
+  const { data: products } = useLiveQuery(ZerospinApp.frontends.appFrontend, {
     query: db => db.query.product.findMany(),
   });
 
-  const { data: user } = useLiveQuery(ZerospinApp.frontends.web, {
+  const { data: user } = useLiveQuery(ZerospinApp.frontends.shopperFrontend, {
     query: db =>
       db.query.user.findFirst({
         where: { clerkUserId: { eq: userId } },
@@ -36,7 +39,7 @@ export function ProductList() {
     const result = session.executeCommand({
       contractName: 'createUser',
       payload: {
-        id: userV1.prefixId(userId),
+        id: prefixId(userV1, userId),
         clerkUserId: userId,
       },
     });

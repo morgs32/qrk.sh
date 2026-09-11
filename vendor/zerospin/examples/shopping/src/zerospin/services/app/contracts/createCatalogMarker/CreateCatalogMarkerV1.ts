@@ -1,4 +1,4 @@
-import { contracts, primitives } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 import { Effect } from 'effect';
 
 import { catalogMarker } from '../../models/catalogMarker/catalogMarker';
@@ -6,12 +6,14 @@ import { catalogMarkerV1 } from '../../models/catalogMarker/CatalogMarkerV1';
 
 import { createCatalogMarker } from './createCatalogMarker';
 
-export const createCatalogMarkerV1 = contracts.makeVersion(
+export const createCatalogMarkerV1 = sdk.makeContractVersion(
   createCatalogMarker,
   {
     payload: {
-      id: primitives.foreignKey({ abbreviation: catalogMarker.abbreviation }),
-      label: primitives.text(),
+      id: sdk.primitives.foreignKey({
+        abbreviation: catalogMarker.abbreviation,
+      }),
+      label: sdk.primitives.text(),
     },
 
     models: { catalogMarker: catalogMarkerV1 },

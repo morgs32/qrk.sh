@@ -1,9 +1,11 @@
+import type { InferResource } from '@zerospin/core/models/types';
 import { PrimitiveKind, primitives } from '@zerospin/schema';
 import { Effect } from 'effect';
 
-import { contracts } from '../contracts/index.ts';
+import { defineCommand } from '../contracts/Command.ts';
+import { makeContractVersion } from '../contracts/makeVersion.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
-import { models } from '../models/index.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 
 import { makeFrontendController } from './makeFrontendController.ts';
@@ -60,8 +62,8 @@ function assertReadonlyServiceFrontend(frontend: typeof serviceFrontend): void {
 }
 void assertReadonlyServiceFrontend;
 
-const ServiceProduct = models.makeVersion(
-  models.makeModel({ name: 'product', abbreviation: 'prd' }),
+const ServiceProduct = makeModelVersion(
+  makeModel({ name: 'product', abbreviation: 'prd' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
@@ -124,73 +126,68 @@ makeFrontendController({
   contracts: {},
 });
 
-const GuardListModel = models.makeModel({
+const GuardListModel = makeModel({
   name: 'guardList',
   abbreviation: 'gls',
 });
 
-const GuardList = models.makeVersion(GuardListModel, {
+const GuardList = makeModelVersion(GuardListModel, {
   attributes: { name: primitives.text() },
   indexes: [],
   version: '1.0.0',
 });
-const GuardUser = models.makeVersion(
-  models.makeModel({ name: 'guardUser', abbreviation: 'gus' }),
+const GuardUser = makeModelVersion(
+  makeModel({ name: 'guardUser', abbreviation: 'gus' }),
   {
     attributes: { name: primitives.text() },
     indexes: [],
     version: '1.0.0',
   },
 );
-const renameGuardList = contracts.makeVersion(
-  contracts.makeCommand('renameGuardList'),
-  {
-    payload: {
-      id: primitives.foreignKey({ abbreviation: GuardListModel.abbreviation }),
-      name: primitives.text(),
-    },
-    guard: ({
-      db,
-      payload,
-    }: {
-      db: Readonly<
-        Pick<
-          IDb<
-            IResourceDbConfig<
-              { guardList: typeof GuardList; guardUser: typeof GuardUser },
-              Record<never, never>
-            >
-          >,
-          'query'
-        >
-      >;
-      payload: { id: ReturnType<typeof GuardList.prefixId>; name: string };
-    }) => {
-      db.query.guardList
-        .findFirst({ where: { id: { eq: payload.id } } })
-        .sync();
-      void db.query.guardUser;
-      // @ts-expect-error — authored guard databases expose no mutation API
-      void db.insert;
-      // @ts-expect-error — authored guard databases expose no raw SQL API
-      void db.run;
-      // @ts-expect-error — authored guard databases expose no transaction API
-      void db.transaction;
-      // @ts-expect-error — authored guard databases expose no underlying client
-      void db.$client;
-      return Effect.void;
-    },
-    models: { guardList: GuardList },
-    program: ({ payload, models }) =>
-      Effect.all({
-        updated: models.guardList.update({
-          resourceId: payload.id,
-          attributes: { name: payload.name },
-        }),
-      }),
-    version: '1.0.0',
+const renameGuardList = makeContractVersion(defineCommand('renameGuardList'), {
+  payload: {
+    id: primitives.foreignKey({ abbreviation: GuardListModel.abbreviation }),
+    name: primitives.text(),
   },
-);
+  guard: ({
+    db,
+    payload,
+  }: {
+    db: Readonly<
+      Pick<
+        IDb<
+          IResourceDbConfig<
+            { guardList: typeof GuardList; guardUser: typeof GuardUser },
+            Record<never, never>
+          >
+        >,
+        'query'
+      >
+    >;
+    payload: { id: InferResource<typeof GuardList>['id']; name: string };
+  }) => {
+    db.query.guardList.findFirst({ where: { id: { eq: payload.id } } }).sync();
+    void db.query.guardUser;
+    // @ts-expect-error — authored guard databases expose no mutation API
+    void db.insert;
+    // @ts-expect-error — authored guard databases expose no raw SQL API
+    void db.run;
+    // @ts-expect-error — authored guard databases expose no transaction API
+    void db.transaction;
+    // @ts-expect-error — authored guard databases expose no underlying client
+    void db.$client;
+    return Effect.void;
+  },
+  models: { guardList: GuardList },
+  program: ({ payload, models }) =>
+    Effect.all({
+      updated: models.guardList.update({
+        resourceId: payload.id,
+        attributes: { name: payload.name },
+      }),
+    }),
+  version: '1.0.0',
+});
 const guardedController = makeFrontendController({
   aggregateVersion: '1.0.0',
   systemName: 'guard-type-test',

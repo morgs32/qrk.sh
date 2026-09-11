@@ -1,10 +1,10 @@
-import { models, primitives } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 
 import { cartItemV1 } from './CartItemV1';
 
-export const cartItemV2 = models.upgradeVersion(cartItemV1, {
+export const cartItemV2 = sdk.upgradeModelVersion(cartItemV1, {
   attributes: {
-    amount: primitives.integer(),
+    amount: sdk.primitives.integer(),
   },
   version: '2.0.0',
 });

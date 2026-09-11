@@ -1,4 +1,4 @@
-import { models, primitives } from '@zerospin/sdk/browser';
+import * as sdk from '@zerospin/sdk/browser';
 import { Schema } from 'effect';
 
 import { user } from './user';
@@ -9,10 +9,10 @@ export const ClerkUserIdSchema = Schema.String.check(
 
 export type IClerkUserId = Schema.Schema.Type<typeof ClerkUserIdSchema>;
 
-export const userV1 = models.makeVersion(user, {
+export const userV1 = sdk.makeModelVersion(user, {
   attributes: {
-    clerkUserId: primitives.text({ unique: true }),
-    name: primitives.text({ nullable: true }),
+    clerkUserId: sdk.primitives.text({ unique: true }),
+    name: sdk.primitives.text({ nullable: true }),
   },
   indexes: [],
   version: '1.0.0',

@@ -1,5 +1,4 @@
 'use client';
-
 import {
   useContext,
   useEffect,
@@ -13,6 +12,7 @@ import { acquireBackupWorker } from '@zerospin/backup-worker';
 import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
+import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import type { IAnyFrontendController } from '@zerospin/core/frontendController/types';
 import type { IAggregateId } from '@zerospin/core/models/types';
 import type { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
@@ -308,10 +308,7 @@ export function makeZerospinApp<
                       const aggregateId = yield* Schema.decodeUnknownEffect(
                         makeAbbreviationIdSchema(coreAbbreviations.aggregate),
                       )(
-                        Reflect.get(
-                          JSON.parse(aggregateIdsKey),
-                          frontendName,
-                        ),
+                        Reflect.get(JSON.parse(aggregateIdsKey), frontendName),
                       ).pipe(
                         Effect.mapError(
                           () =>
@@ -326,7 +323,7 @@ export function makeZerospinApp<
                           typeof makeAggregateSession
                         >[0]['executeAggregateFrontendCommand']
                       > | null = null;
-                      const guards = yield* frontend.initializeGuards;
+                      const guards = yield* initializeFrontendGuards(frontend);
                       const coreSession = makeAggregateSession({
                         guards,
                         frontend,

@@ -9,11 +9,9 @@ import {
   AuthenticationLockSchema,
   makeAuthenticationLock,
 } from './makeAuthenticationLock.ts';
-import { Authentication } from './makeVersion.ts';
+import { Authentication, makeAuthenticationVersion } from './makeVersion.ts';
 
-import { authentication } from './index.ts';
-
-describe('authentication.makeVersion', () => {
+describe('makeAuthenticationVersion', () => {
   it('owns metadata without invoking authentication', () => {
     const authenticate = vi.fn(() => Effect.succeed('user'));
     const props = {
@@ -21,7 +19,7 @@ describe('authentication.makeVersion', () => {
       signature: Schema.Struct({ subject: Schema.String }),
       authenticate,
     };
-    const definition = authentication.makeVersion(props);
+    const definition = makeAuthenticationVersion(props);
     expect(definition).toBeInstanceOf(Authentication);
 
     expect(definition.signature).toBe(props.signature);
@@ -33,7 +31,7 @@ describe('authentication.makeVersion', () => {
   });
 
   it('matches an independently authored frontend lock', () => {
-    const definition = authentication.makeVersion({
+    const definition = makeAuthenticationVersion({
       version: '1.0.0',
       signature: Schema.Struct({ subject: Schema.String }),
       authenticate: ({ signature }) => Effect.succeed(signature.subject),
@@ -50,7 +48,7 @@ describe('authentication.makeVersion', () => {
     'rejects non-stable version %s',
     version => {
       expect(() =>
-        authentication.makeVersion({
+        makeAuthenticationVersion({
           version,
           signature: Schema.String,
           authenticate: () => Effect.succeed('user'),
@@ -71,18 +69,18 @@ describe('authentication.makeVersion', () => {
       { ...props, extra: true },
     ]) {
       expect(() =>
-        Reflect.apply(authentication.makeVersion, undefined, [invalid]),
+        Reflect.apply(makeAuthenticationVersion, undefined, [invalid]),
       ).toThrow(Schema.SchemaError);
     }
   });
 
   it('retains independent versions in author order and emits sorted specs', () => {
-    const v1 = authentication.makeVersion({
+    const v1 = makeAuthenticationVersion({
       version: '1.0.0',
       signature: Schema.String,
       authenticate: ({ signature }) => Effect.succeed(signature),
     });
-    const v2 = authentication.makeVersion({
+    const v2 = makeAuthenticationVersion({
       version: '2.0.0',
       signature: Schema.Struct({ subject: Schema.String }),
       authenticate: ({ signature }) => Effect.succeed(signature.subject),
@@ -104,12 +102,12 @@ describe('authentication.makeVersion', () => {
   });
 
   it('rejects duplicate versions and structural copies', () => {
-    const v1 = authentication.makeVersion({
+    const v1 = makeAuthenticationVersion({
       version: '1.0.0',
       signature: Schema.String,
       authenticate: () => Effect.succeed('user'),
     });
-    const other = authentication.makeVersion({
+    const other = makeAuthenticationVersion({
       version: '1.0.0',
       signature: Schema.Number,
       authenticate: () => Effect.succeed('other'),

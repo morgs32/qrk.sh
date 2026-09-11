@@ -27,6 +27,7 @@ import { CuidFactory } from '@zerospin/schema';
 import { Effect, Exit, Layer, ManagedRuntime, Scope } from 'effect';
 import { afterAll, describe, expect } from 'vitest';
 
+import { initializeGuards as initializeFrontendGuards } from '../frontendController/initializeGuards.ts';
 import { decodeRpc } from '../utils/decodeRpc.ts';
 
 import { applyAggregateFrontendCommand } from './applyAggregateFrontendCommand.ts';
@@ -65,7 +66,7 @@ describe('makeAggregateSession.makeId', () => {
           ),
         );
         yield* Effect.addFinalizer(() => runtime.disposeEffect);
-        const guards = yield* frontend.initializeGuards;
+        const guards = yield* initializeFrontendGuards(frontend);
         const session = makeAggregateSession({
           runtime,
           guards,
@@ -93,7 +94,7 @@ describe('makeAggregateSession.makeId', () => {
         ),
       );
       yield* Effect.addFinalizer(() => runtime.disposeEffect);
-      const guards = yield* frontend.initializeGuards;
+      const guards = yield* initializeFrontendGuards(frontend);
       const session = makeAggregateSession({
         runtime,
         guards,
@@ -109,7 +110,7 @@ describe('makeAggregateSession.makeId', () => {
 describe('makeAggregateSession telemetry', () => {
   it('keeps ordered telemetry isolated per session without deduplication', () => {
     const first = Effect.runSync(
-      Effect.map(frontend.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(frontend), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -119,7 +120,7 @@ describe('makeAggregateSession telemetry', () => {
       ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
     );
     const second = Effect.runSync(
-      Effect.map(frontend.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(frontend), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -160,7 +161,7 @@ describe('makeAggregateSession telemetry', () => {
 
   it('clears the current batch and accepts later in-flight completion', () => {
     const session = Effect.runSync(
-      Effect.map(frontend.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(frontend), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -240,7 +241,7 @@ describe('makeAggregateSession onInitialized', () => {
   it('delivers the initialized state to a pending handler once in the next microtask', async () => {
     const deps = await makeInitializedSessionDeps();
     const session = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -273,7 +274,7 @@ describe('makeAggregateSession onInitialized', () => {
   it('invokes a handler registered after initialization synchronously', async () => {
     const deps = await makeInitializedSessionDeps();
     const session = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -298,7 +299,7 @@ describe('makeAggregateSession onInitialized', () => {
   it('does not deliver after unsubscribe before initialization', async () => {
     const deps = await makeInitializedSessionDeps();
     const session = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,
@@ -327,7 +328,7 @@ describe('renewable execution identity', () => {
   it('keeps the session and store while new commands restart their index under the renewed identity', async () => {
     const deps = await makeInitializedSessionDeps();
     const session = Effect.runSync(
-      Effect.map(main.initializeGuards, guards =>
+      Effect.map(initializeFrontendGuards(main), guards =>
         makeAggregateSession({
           runtime: guardTestRuntime,
           guards,

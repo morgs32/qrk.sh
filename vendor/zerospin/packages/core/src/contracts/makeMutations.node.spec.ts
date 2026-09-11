@@ -10,20 +10,20 @@ import {
   system,
   UserModel,
 } from '../fixtures/system.ts';
-import { models } from '../models/index.ts';
+import { makeModel, makeModelVersion } from '../models/makeModel.ts';
 import { makeReplica } from '../models/makeReplica.ts';
 import { makePrefixedIncrementalIdFactory } from '../test-utils/makePrefixedIncrementalIdFactory.ts';
 
+import { defineCommand } from './Command.ts';
 import { makeMutations } from './makeMutations.ts';
+import { makeContractVersion } from './makeVersion.ts';
 
-import { contracts } from './index.ts';
-
-const ServiceProductModel = models.makeModel({
+const ServiceProductModel = makeModel({
   name: 'serviceProduct',
   abbreviation: 'sprd',
 });
 
-const ServiceProduct = models.makeVersion(ServiceProductModel, {
+const ServiceProduct = makeModelVersion(ServiceProductModel, {
   attributes: { name: primitives.text() },
   indexes: [],
   version: '1.0.0',
@@ -34,8 +34,8 @@ const ServiceProductReplica = makeReplica({
   serviceName: 'app',
 });
 
-const createServiceProduct = contracts.makeVersion(
-  contracts.makeCommand('createServiceProduct'),
+const createServiceProduct = makeContractVersion(
+  defineCommand('createServiceProduct'),
   {
     payload: {
       id: primitives.foreignKey({
@@ -55,8 +55,8 @@ const createServiceProduct = contracts.makeVersion(
   },
 );
 
-const replicateServiceProduct = contracts.makeVersion(
-  contracts.makeCommand('replicateServiceProduct'),
+const replicateServiceProduct = makeContractVersion(
+  defineCommand('replicateServiceProduct'),
   {
     payload: {
       product: primitives.json({ schema: ServiceProduct.resourceSchema }),
@@ -156,8 +156,8 @@ describe('makeMutations', () => {
 
     it.effect('normalizes a single mutation object', () =>
       Effect.gen(function* () {
-        const createSingleList = contracts.makeVersion(
-          contracts.makeCommand('createSingleList'),
+        const createSingleList = makeContractVersion(
+          defineCommand('createSingleList'),
           {
             payload: createList.payload,
             models: { list: List },
@@ -198,8 +198,8 @@ describe('makeMutations', () => {
 
     it.effect('preserves Schema.Tuple mutation declaration order', () =>
       Effect.gen(function* () {
-        const tupleContract = contracts.makeVersion(
-          contracts.makeCommand('replaceListsInTupleOrder'),
+        const tupleContract = makeContractVersion(
+          defineCommand('replaceListsInTupleOrder'),
           {
             payload: {
               firstId: primitives.foreignKey({
@@ -257,8 +257,8 @@ describe('makeMutations', () => {
 
     it.effect('preserves Schema.Array mutation declaration order', () =>
       Effect.gen(function* () {
-        const arrayContract = contracts.makeVersion(
-          contracts.makeCommand('deleteListsInArrayOrder'),
+        const arrayContract = makeContractVersion(
+          defineCommand('deleteListsInArrayOrder'),
           {
             payload: {
               firstId: primitives.foreignKey({
@@ -303,8 +303,8 @@ describe('makeMutations', () => {
       'rejects a program result that is not a mutation, array, or record',
       () =>
         Effect.gen(function* () {
-          const invalidOutputContract = contracts.makeVersion(
-            contracts.makeCommand('invalidCreateOutput'),
+          const invalidOutputContract = makeContractVersion(
+            defineCommand('invalidCreateOutput'),
             {
               payload: {
                 id: primitives.foreignKey({
@@ -341,17 +341,14 @@ describe('makeMutations', () => {
 
     it.effect('flattens a mutations-null contract to no mutations', () =>
       Effect.gen(function* () {
-        const nullContract = contracts.makeVersion(
-          contracts.makeCommand('readList'),
-          {
-            payload: {
-              id: primitives.foreignKey({
-                abbreviation: ListModel.abbreviation,
-              }),
-            },
-            version: '1.0.0',
+        const nullContract = makeContractVersion(defineCommand('readList'), {
+          payload: {
+            id: primitives.foreignKey({
+              abbreviation: ListModel.abbreviation,
+            }),
           },
-        );
+          version: '1.0.0',
+        });
 
         const result = yield* makeMutations({
           contract: nullContract,
@@ -400,8 +397,8 @@ describe('makeMutations', () => {
 
     it.effect('rejects ordinary mutations on replica models', () =>
       Effect.gen(function* () {
-        const createServiceProductReplica = contracts.makeVersion(
-          contracts.makeCommand('createServiceProduct'),
+        const createServiceProductReplica = makeContractVersion(
+          defineCommand('createServiceProduct'),
           {
             payload: createServiceProduct.payload,
             models: { serviceProductReplica: ServiceProductReplica },

@@ -1,6 +1,4 @@
-import type { IAnyError } from '@zerospin/error';
 import type {
-  CuidFactory,
   IAnyRefDescriptor,
   IAnyShape,
   IDateDescriptor,
@@ -22,7 +20,7 @@ import type {
   PrimitiveKind,
 } from '@zerospin/schema';
 /* oxlint-disable typescript/no-explicit-any -- Effect Schema encoded type / generic defaults */
-import type { Effect, Schema } from 'effect';
+import type { Schema } from 'effect';
 import type { Brand } from 'effect/Brand';
 import { assert, type Equals } from 'tsafe';
 
@@ -179,12 +177,6 @@ export interface IModel<
 
   readonly modelName: MODEL_NAME;
   readonly version: VERSION;
-  readonly makeId: () => Effect.Effect<
-    InferIdFromAbbreviation<ABBREVIATION>,
-    IAnyError,
-    CuidFactory
-  >;
-  readonly prefixId: (id: string) => InferIdFromAbbreviation<ABBREVIATION>;
   readonly propertiesShape: PROPERTIES_SHAPE;
   readonly table: ITable<
     MODEL_NAME,
@@ -209,18 +201,6 @@ export interface IModel<
     }>;
   readonly resourceSchema: Schema.Codec<any, any>;
   readonly spec: IModelSpec;
-  getVersion(
-    modelVersion: string,
-  ): IModel<ATTRIBUTES, ABBREVIATION, MODEL_NAME, string>;
-  adaptResource(props: {
-    version: VERSION;
-    resource: InferResource<
-      IModel<ATTRIBUTES, ABBREVIATION, MODEL_NAME, VERSION, PROPERTIES_SHAPE>
-    >;
-  }): Effect.Effect<
-    string extends VERSION ? any : InferEncodedRow<PROPERTIES_SHAPE>,
-    IAnyError
-  >;
 }
 export type IModelReplica<
   SOURCE_MODEL extends IModel = IModel,

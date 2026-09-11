@@ -29,7 +29,6 @@
     "@zerospin/schema": "workspace:*",
     "capnweb": "^0.12.0",
     "cloudflare": "^6.1.0",
-    "effect": "rc",
     "system": "workspace:*",
     "system-worker": "workspace:*"
   },
@@ -37,7 +36,11 @@
     "@cloudflare/vitest-plugin": "^1.1.2",
     "@types/node": "^25.9.4",
     "@zerospin/dev-worker": "workspace:*",
+    "effect": "rc",
     "rimraf": "^6.1.3",
     "vitest": "^4.1.5"
+  },
+  "peerDependencies": {
+    "effect": "^4.0.0-rc.111"
   }
 }

@@ -37,7 +37,7 @@ const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
 MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
-  aggregateIds: { user: 'acct_1' },
+  aggregateIds: { main: 'acct_1' },
   userId: 'user_1',
   resources: {
     user: [
@@ -68,14 +68,14 @@ MockMainProvider({
 MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
-  aggregateIds: { user: 'acct_1' },
+  aggregateIds: { main: 'acct_1' },
   userId: 'user_1',
 });
 
 MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
-  aggregateIds: { user: 'acct_1' },
+  aggregateIds: { main: 'acct_1' },
   userId: 'user_1',
   resources: {
     // @ts-expect-error Mock resources only accept the frontend's model keys.
@@ -86,7 +86,7 @@ MockMainProvider({
 MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
-  aggregateIds: { user: 'acct_1' },
+  aggregateIds: { main: 'acct_1' },
   userId: 'user_1',
   resources: {
     user: [
@@ -107,7 +107,7 @@ MockMainProvider({
 MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
-  // @ts-expect-error aggregateIds must contain the configured aggregate name.
+  // @ts-expect-error aggregateIds must contain the configured aggregate frontend name.
   aggregateIds: {},
   userId: 'user_1',
 });
@@ -115,6 +115,14 @@ MockMainProvider({
 MockMainProvider({
   children: null,
   generateSignature: () => Effect.succeed({ userId: 'user_1' }),
+  aggregateIds: { main: 'acct_1' },
+  userId: 'user_1',
+});
+
+MockMainProvider({
+  children: null,
+  generateSignature: () => Effect.succeed({ userId: 'user_1' }),
+  // @ts-expect-error aggregate names are not frontend-name keys.
   aggregateIds: { user: 'acct_1' },
   userId: 'user_1',
 });

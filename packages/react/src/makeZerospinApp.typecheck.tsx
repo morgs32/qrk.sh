@@ -42,7 +42,7 @@ const exactProvider = (
   <ZerospinApp.Provider
     // @ts-expect-error — production Provider identity is returned by frontend bootstrap.
     userId="user_1"
-    aggregateIds={{ user: 'acct_1' }}
+    aggregateIds={{ main: 'acct_1' }}
     generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
   >
     {null}
@@ -52,7 +52,7 @@ void exactProvider;
 
 const providerWithoutDeclaredUser = (
   <ZerospinApp.Provider
-    aggregateIds={{ user: 'acct_1' }}
+    aggregateIds={{ main: 'acct_1' }}
     generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
   >
     {null}
@@ -62,7 +62,7 @@ void providerWithoutDeclaredUser;
 
 const missingAggregateTarget = (
   <ZerospinApp.Provider
-    // @ts-expect-error — aggregateIds must contain each configured aggregate name.
+    // @ts-expect-error — aggregateIds must contain each configured aggregate frontend name.
     aggregateIds={{}}
     generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
   >
@@ -73,7 +73,7 @@ void missingAggregateTarget;
 
 const wrongAuthenticationSignature = (
   <ZerospinApp.Provider
-    aggregateIds={{ user: 'acct_1' }}
+    aggregateIds={{ main: 'acct_1' }}
     generateSignature={() =>
       Effect.succeed({
         // @ts-expect-error — Provider signatures must match the selected universal signature.
@@ -263,3 +263,14 @@ makeZerospinApp({
     Layer.succeed(ApiRequestInit, { getRequestInit: () => ({}) }),
   ),
 });
+
+const obsoleteAggregateKey = (
+  <ZerospinApp.Provider
+    // @ts-expect-error aggregate names are not frontend-name keys.
+    aggregateIds={{ user: 'acct_1' }}
+    generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+  >
+    {null}
+  </ZerospinApp.Provider>
+);
+void obsoleteAggregateKey;

@@ -153,9 +153,9 @@ export function makeZerospinApp<
     aggregateIds: {
       readonly [ENTRY in FRONTENDS[keyof FRONTENDS] as ENTRY extends {
         kind: 'aggregate';
-        aggregateName: infer AGGREGATE_NAME extends string;
+        name: infer FRONTEND_NAME extends string;
       }
-        ? AGGREGATE_NAME
+        ? FRONTEND_NAME
         : never]: IAggregateId;
     };
     children: ReactNode;
@@ -297,14 +297,14 @@ export function makeZerospinApp<
                       )(
                         Reflect.get(
                           JSON.parse(aggregateIdsKey),
-                          frontend.aggregateName,
+                          frontendName,
                         ),
                       ).pipe(
                         Effect.mapError(
                           () =>
                             new ZerospinError({
                               code: 'aggregate-target-required',
-                              message: `Provider requires aggregateIds.${frontend.aggregateName} for frontend "${frontendName}"`,
+                              message: `Provider requires aggregateIds.${frontendName} for frontend "${frontendName}"`,
                             }),
                         ),
                       );

@@ -22,7 +22,7 @@ export function AuthenticatedRoute() {
   return (
     <RequiredUserProvider user={user}>
       <ZerospinApp.Provider
-        aggregateIds={{ shopper: 'acct_1' }}
+        aggregateIds={{ shopperFrontend: 'acct_1' }}
         generateSignature={() => Effect.succeed({ clerkUserId })}
       >
         <Outlet />

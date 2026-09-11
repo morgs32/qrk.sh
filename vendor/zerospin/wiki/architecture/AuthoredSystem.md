@@ -1,6 +1,6 @@
 ---
 title: Authored System and Static Worker
-updated: 2026-09-10
+updated: 2026-09-11
 ---
 
 # Authored System and Static Worker
@@ -351,6 +351,18 @@ arguments to every guard call.
 
 - [`initializeGuards.ts`](../../packages/core/src/guards/initializeGuards.ts) — builds a fresh local layer in the caller's scope and retains typed provision around synchronous guards.
 - [`ownerLayers.node.spec.ts`](../../packages/core/src/guards/ownerLayers.node.spec.ts) — verifies sibling isolation and application dependencies captured before a local override.
+
+`makeZerospinApp` returns typed system-name and authentication metadata alongside
+its frontend selectors and Provider. A standalone
+`checkZerospinApp<typeof system>(app)` checks structural compatibility with the
+system's concrete owner/version registries, allowing frontend model and contract
+subsets and additional system owners. Authentication versions stay paired with
+their signature types. The checker returns `void` and performs no runtime
+validation; applications can import `system` with `import type`.
+
+- [`checkZerospinApp.ts`](../../packages/react/src/checkZerospinApp.ts) — excludes broad registry keys and reuses aggregate/service frontend compatibility types.
+- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — preserves literal authentication versions and returns app metadata without changing Provider inference.
+- [`checkZerospinApp.typecheck.ts`](../../packages/react/src/checkZerospinApp.typecheck.ts) — checks supported and rejected app configurations.
 
 `makeZerospinApp` accepts an application layer. Each mounted Provider owns one
 managed runtime, with application services overriding framework ID/time defaults.

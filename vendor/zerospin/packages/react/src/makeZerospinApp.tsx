@@ -84,6 +84,7 @@ const pageProviderOwnerKey = Symbol.for('@zerospin/react/page-provider-owner');
  */
 export function makeZerospinApp<
   const SYSTEM_NAME extends string,
+  const AUTHENTICATION_VERSION extends string,
   SIGNATURE extends Schema.Codec<unknown, unknown>,
   APP_SERVICES,
   const FRONTENDS extends Readonly<
@@ -103,7 +104,7 @@ export function makeZerospinApp<
   systemName: SYSTEM_NAME;
   authentication: Readonly<{
     signature: SIGNATURE;
-    version: string;
+    version: AUTHENTICATION_VERSION;
   }>;
   frontends: FRONTENDS & {
     readonly [FRONTEND_NAME in keyof FRONTENDS]: FRONTENDS[FRONTEND_NAME] extends infer FRONTEND extends
@@ -598,5 +599,5 @@ export function makeZerospinApp<
     );
   }
 
-  return { frontends, Provider };
+  return { systemName, authentication, frontends, Provider };
 }

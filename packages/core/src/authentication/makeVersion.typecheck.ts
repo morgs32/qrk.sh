@@ -13,6 +13,27 @@ const v1 = makeAuthenticationVersion({
     assert<Equals<typeof signature.userId, typeof UserId.Type>>();
     return Effect.succeed(signature.userId);
   },
+  onAuthentication: Effect.fn('test.onAuthentication')(function* ({
+    userId,
+    executeAggregateCommand,
+  }) {
+    assert<Equals<typeof userId, string>>();
+    const result = yield* executeAggregateCommand({
+      id: 'cmd_test',
+      commandName: 'createUser',
+      contractVersion: '1.0.0',
+      payload: '{}',
+      aggregateId: 'acct_user',
+      aggregateName: 'user',
+      aggregateVersion: '1.0.0',
+      systemName: 'auth',
+      userId: null,
+      sessionId: null,
+      frontendName: null,
+      pushIndex: null,
+    });
+    assert<Equals<typeof result.aggregateIndex, number>>();
+  }),
 });
 const v2 = makeAuthenticationVersion({
   version: '2.0.0',

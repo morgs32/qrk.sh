@@ -1,6 +1,6 @@
 ---
 title: Main-Thread Exact Frontend Authentication
-updated: 2026-09-09
+updated: 2026-09-11
 ---
 
 # Main-Thread Exact Frontend Authentication
@@ -103,8 +103,16 @@ sequenceDiagram
    - [`authenticate.ts`](../../../packages/system-worker/src/authenticate/authenticate.ts) — validates and executes the selected independent authentication version.
    - [`getAggregateFrontendApi.ts`](../../../packages/system-worker/src/GatewayApi/getAggregateFrontendApi/getAggregateFrontendApi.ts) — invokes aggregate authentication.
    - [`getServiceFrontendApi.ts`](../../../packages/system-worker/src/GatewayApi/getServiceFrontendApi/getServiceFrontendApi.ts) — invokes service authentication.
-4. Authentication supplies `userId`; Gateway validates that result against the
-   authored System identity.
+4. After validating a nonempty `userId`, authentication awaits the optional
+   authored `onAuthentication` Effect before returning. Its command capability
+   binds that verified identity, takes `systemId` from Worker configuration,
+   and routes the authored aggregate name, ID, and version through AC to a
+   terminal result. It runs on every successful identity check; the application
+   owns repeat-safe provisioning and must inspect terminal command failures.
+   Hook failures prevent frontend capability admission. Gateway then validates
+   the returned identity against the authored System identity.
+   - [`authenticate.ts`](../../../packages/system-worker/src/authenticate/authenticate.ts) — awaits provisioning and binds command identity without re-entering authentication.
+   - [`types.ts`](../../../packages/core/src/authentication/types.ts) — declares the optional Effect hook and its command capability.
    - [`getAggregateFrontendApi.ts`](../../../packages/system-worker/src/GatewayApi/getAggregateFrontendApi/getAggregateFrontendApi.ts) — validates the returned aggregate authentication identity.
 5. Gateway asks static authorization to validate the exact target and frontend
    lock for that user.

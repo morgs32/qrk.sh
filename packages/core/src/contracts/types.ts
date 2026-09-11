@@ -279,7 +279,7 @@ export type IAggregateCommand<
     | Readonly<{
         aggregateVersion: string;
         sessionId: null;
-        userId: null;
+        userId: string | null;
         frontendName: null;
         pushIndex: null;
       }>

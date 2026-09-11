@@ -68,6 +68,25 @@ const dispositionHash =
   '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
 describe('singular command schemas', () => {
+  it('preserves authenticated identity on a command without a frontend session', () => {
+    const command = { ...aggregateCommand, userId: 'clerk_user' };
+    const decoded = Schema.decodeUnknownSync(UnknownAggregateCommandSchema)(
+      command,
+    );
+    expect(decoded).toEqual(command);
+    const terminal = {
+      ...command,
+      aggregateIndex: 1,
+      chainedAt: '2026-09-11T00:00:00.000Z',
+      dispositionHash: 'a'.repeat(64),
+      delta: null,
+      failedAt: null,
+      failure: null,
+    };
+    expect(
+      Schema.is(Schema.toEncoded(AggregateChainedCommandSchema))(terminal),
+    ).toBe(true);
+  });
   it('accepts aggregate and service seeds without a commandType discriminator', async () => {
     await expect(
       Effect.runPromise(

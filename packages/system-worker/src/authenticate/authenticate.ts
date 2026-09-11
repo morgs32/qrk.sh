@@ -1,10 +1,18 @@
 import type { Async } from '@zerospin/core/async/Async';
+import { makeAsync } from '@zerospin/core/async/makeAsync';
 import type { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
 import type { IAuthentication } from '@zerospin/core/authentication/types';
+import { EncodedAggregateCommandSchema } from '@zerospin/core/contracts/CommandSchema';
+import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
+import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
+import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import { env } from 'cloudflare:workers';
 import { Effect, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
 import { system } from 'system';
+
+import { AggregateChain } from '../AggregateChain/AggregateChain.js';
 
 /*
  * Frontend capability admission invokes the authored authentication program.
@@ -15,7 +23,8 @@ import { system } from 'system';
  * 2. Find the requested authentication definition.
  * 3. Reject unavailable or changed definitions.
  * 4. Decode and authenticate the signature.
- * 5. Validate and return the authenticated identity.
+ * 5. Validate the authenticated identity.
+ * 6. Await application provisioning before returning that identity.
  */
 export const authenticate = Effect.fn('SystemWorker.authenticate', {
   root: true,
@@ -71,6 +80,64 @@ export const authenticate = Effect.fn('SystemWorker.authenticate', {
       prefix: 'The static System returned an invalid authenticated userId',
     }),
   );
+
+  // 6 — run on every authentication; the authored hook owns repeat-safe provisioning
+  if (definition.onAuthentication !== undefined) {
+    yield* definition
+      .onAuthentication({
+        userId,
+        executeAggregateCommand: Effect.fn(
+          'authentication.executeAggregateCommand',
+        )(function* (requestedCommand) {
+          // A hook cannot supply a different identity or impersonate a frontend session.
+          const command = yield* Schema.decodeUnknownEffect(
+            EncodedAggregateCommandSchema,
+          )({
+            ...requestedCommand,
+            userId,
+            sessionId: null,
+            frontendName: null,
+            pushIndex: null,
+          }).pipe(
+            mapParseError({
+              code: 'authentication-command-invalid',
+              prefix: 'Invalid authentication command',
+            }),
+          );
+          if (
+            command.systemName !== system.name ||
+            command.sessionId !== null
+          ) {
+            return yield* new ZerospinError({
+              code: 'authentication-command-invalid',
+              message:
+                'Authentication commands must target this system without a frontend session',
+            });
+          }
+          yield* getByKeyOrThrow({
+            record: system.aggregates[command.aggregateName] ?? {},
+            key: command.aggregateVersion,
+            recordKind: 'aggregate versions',
+          });
+          const chain = yield* AggregateChain.getRepo({
+            key: {
+              systemId: env.ZEROSPIN_SYSTEM_ID,
+              aggregateId: command.aggregateId,
+              aggregateName: command.aggregateName,
+            },
+          });
+          return yield* makeAsync<
+            Awaited<ReturnType<AggregateChain['executeAggregateCommand']>>
+          >(() =>
+            chain.executeAggregateCommand({
+              aggregateVersion: command.aggregateVersion,
+              command,
+            }),
+          ).pipe(Effect.flatMap(decodeRpc));
+        }),
+      })
+      .pipe(Effect.provide(NanoIdFactory));
+  }
   return {
     userId,
     authenticationLock,

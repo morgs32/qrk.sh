@@ -14,20 +14,24 @@ import { Authentication, makeAuthenticationVersion } from './makeVersion.ts';
 describe('makeAuthenticationVersion', () => {
   it('owns metadata without invoking authentication', () => {
     const authenticate = vi.fn(() => Effect.succeed('user'));
+    const onAuthentication = vi.fn(() => Effect.void);
     const props = {
       version: '1.0.0',
       signature: Schema.Struct({ subject: Schema.String }),
       authenticate,
+      onAuthentication,
     };
     const definition = makeAuthenticationVersion(props);
     expect(definition).toBeInstanceOf(Authentication);
 
     expect(definition.signature).toBe(props.signature);
     expect(definition.authenticate).toBe(authenticate);
+    expect(definition.onAuthentication).toBe(onAuthentication);
 
     props.version = '2.0.0';
     expect(definition.version).toBe('1.0.0');
     expect(authenticate).not.toHaveBeenCalled();
+    expect(onAuthentication).not.toHaveBeenCalled();
   });
 
   it('matches an independently authored frontend lock', () => {
@@ -66,6 +70,7 @@ describe('makeAuthenticationVersion', () => {
     for (const invalid of [
       { ...props, signature: {} },
       { ...props, authenticate: 1 },
+      { ...props, onAuthentication: 1 },
       { ...props, extra: true },
     ]) {
       expect(() =>

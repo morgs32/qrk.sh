@@ -39,7 +39,7 @@ export const UnknownAggregateCommandSchema = Schema.Union([
   Schema.fieldsAssign({
     aggregateVersion: Schema.String,
     sessionId: Schema.Null,
-    userId: Schema.Null,
+    userId: Schema.NullOr(Schema.String),
     frontendName: Schema.Null,
     pushIndex: Schema.Null,
   })(UnknownAggregateCommandBaseSchema),
@@ -83,7 +83,7 @@ export const EncodedAggregateCommandSchema = Schema.Union([
   Schema.fieldsAssign({
     aggregateVersion: Schema.String,
     sessionId: Schema.Null,
-    userId: Schema.Null,
+    userId: Schema.NullOr(Schema.String),
     frontendName: Schema.Null,
     pushIndex: Schema.Null,
   })(EncodedAggregateCommandBaseSchema),

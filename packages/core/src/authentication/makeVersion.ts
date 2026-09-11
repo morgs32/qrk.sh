@@ -28,6 +28,14 @@ const MakeVersionPropsSchema = Schema.Struct({
       signature: unknown;
     }) => Effect.Effect<string, IAnyError> => typeof input === 'function',
   ),
+  onAuthentication: Schema.optional(
+    Schema.declare(
+      (
+        input: unknown,
+      ): input is NonNullable<IAuthentication['onAuthentication']> =>
+        typeof input === 'function',
+    ),
+  ),
 });
 
 export function makeAuthenticationVersion<
@@ -40,6 +48,7 @@ export function makeAuthenticationVersion<
   authenticate: (props: {
     signature: Schema.Schema.Type<SIGNATURE>;
   }) => Effect.Effect<USER_ID, IAnyError>;
+  onAuthentication?: IAuthentication['onAuthentication'];
 }): IAuthentication<VERSION, SIGNATURE, USER_ID> {
   Schema.decodeUnknownSync(MakeVersionPropsSchema, {
     onExcessProperty: 'error',
@@ -53,6 +62,7 @@ export function makeAuthenticationVersion<
     version: props.version,
     signature: props.signature,
     authenticate: props.authenticate,
+    onAuthentication: props.onAuthentication,
     spec,
   });
 }

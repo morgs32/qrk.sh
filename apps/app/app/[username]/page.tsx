@@ -1,7 +1,7 @@
 "use client";
 
 import { Schema } from "effect";
-import { useState } from "react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useInitializedStateOrThrow, useSession } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
@@ -23,7 +23,6 @@ export default function UsernameDashboardPage() {
   const router = useRouter();
   const session = useSession(ZerospinApp.frontends.web);
   const { userId } = useInitializedStateOrThrow(ZerospinApp.frontends.web);
-  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -36,8 +35,6 @@ export default function UsernameDashboardPage() {
               <Button
                 type="button"
                 onClick={() => {
-                  setError(null);
-
                   const siteResult = session.executeCommand({
                     contractName: "createSite",
                     payload: {
@@ -45,7 +42,7 @@ export default function UsernameDashboardPage() {
                     },
                   });
                   if (siteResult._tag === "Failure") {
-                    setError(new ZerospinError(siteResult.failure).message);
+                    toast.error(new ZerospinError(siteResult.failure).message);
                     return;
                   }
 
@@ -59,7 +56,7 @@ export default function UsernameDashboardPage() {
                     },
                   });
                   if (pageResult._tag === "Failure") {
-                    setError(new ZerospinError(pageResult.failure).message);
+                    toast.error(new ZerospinError(pageResult.failure).message);
                     return;
                   }
 
@@ -68,14 +65,20 @@ export default function UsernameDashboardPage() {
               >
                 Create site
               </Button>
-              {error === null ? null : (
-                <p role="alert" className="max-w-sm text-right text-sm text-destructive">
-                  {error}
-                </p>
-              )}
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">Dashboard</p>
+          <section className="flex flex-col gap-6 py-16">
+            <h2 className="max-w-xl text-xl leading-tight">
+              Make a site. Throw it out. Start over.
+            </h2>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <p>Want some ideas?</p>
+              <ul className="list-disc space-y-2 pl-5">
+                <li>A site for your philosophical questions</li>
+                <li>A travel log from your last trip</li>
+              </ul>
+            </div>
+          </section>
         </div>
       </main>
     </div>

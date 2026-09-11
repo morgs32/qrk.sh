@@ -121,6 +121,22 @@
   body {
     @apply bg-background text-foreground;
   }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  [role="heading"],
+  [data-slot="card-title"],
+  button,
+  [role="button"],
+  [data-slot="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    font-family: var(--font-space-mono), monospace;
+  }
 }
 
 /* Stretched hit target (Bootstrap stretched-link pattern): ::after fills the nearest positioned

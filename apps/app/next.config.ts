@@ -1,4 +1,23 @@
 import type { NextConfig } from "next";
+import { copyFileSync, mkdirSync } from "node:fs";
+
+// Next serves the same backup-worker assets as Zerospin's Vite plugin.
+const backupWorkerAssets = new URL("./public/__zerospin/", import.meta.url);
+mkdirSync(backupWorkerAssets, { recursive: true });
+copyFileSync(
+  new URL(
+    "../../vendor/zerospin/packages/backup-worker/dist/backupWorker.bundle.js",
+    import.meta.url,
+  ),
+  new URL("backup-worker.js", backupWorkerAssets),
+);
+copyFileSync(
+  new URL(
+    "../../vendor/zerospin/packages/backup-worker/dist/wa-sqlite-async.wasm",
+    import.meta.url,
+  ),
+  new URL("wa-sqlite-async.wasm", backupWorkerAssets),
+);
 
 const mapboxToken = process.env.PUBLIC_MAPBOX_TOKEN;
 

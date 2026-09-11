@@ -15,7 +15,7 @@ import {
 import { makeMockProvider } from "@zerospin/react/mock";
 import { makeAbbreviationIdSchema } from "@zerospin/schema";
 import { makeAggregateId, ZerospinError } from "@zerospin/sdk/browser";
-import { Effect, Layer, ManagedRuntime, Redacted, Schema } from "effect";
+import { Effect, Layer, Redacted, Schema } from "effect";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { userFrontend } from "@qrk.sh/zerospin/src/accounts/user/actors/user/userFrontend";
@@ -33,32 +33,29 @@ if (!zerospinPublishableKey) {
   throw new Error("NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY is required for the app.");
 }
 
-const sessionRuntime = ManagedRuntime.make(
-  Layer.mergeAll(
-    AsyncLive,
-    NanoIdFactory,
-    UlidMonotonicFactory,
-    Layer.succeed(ZerospinApiUrl, zerospinApiUrl),
-    Layer.succeed(PublishableKey, Redacted.make(zerospinPublishableKey)),
-  ),
+const sessionLayer = Layer.mergeAll(
+  AsyncLive,
+  NanoIdFactory,
+  UlidMonotonicFactory,
+  Layer.succeed(ZerospinApiUrl, zerospinApiUrl),
+  Layer.succeed(PublishableKey, Redacted.make(zerospinPublishableKey)),
 );
 
 export const ZerospinApp = makeZerospinApp({
   systemName: "qrk-sh",
   authentication: {
+    version: "1.0.0",
     signature,
   },
   frontends: {
-    web: {
-      controller: userFrontend,
-    },
+    web: userFrontend,
   },
-  runtime: sessionRuntime,
+  layer: sessionLayer,
 });
 
 const MockProvider = makeMockProvider({
   frontend: ZerospinApp.frontends.web,
-  runtime: sessionRuntime,
+  layer: sessionLayer,
 });
 
 function RequiredZerospinUser(props: {
@@ -164,7 +161,6 @@ export function MockZerospinUserProvider({ children }: { children: ReactNode }) 
       aggregateIds={{ user: makeAggregateId({ id: userId }) }}
       generateSignature={() => Effect.succeed({ sessionToken: "mock-session-token" })}
       userId={userId}
-      systemVersion="3.0.0"
       resources={{
         user: [
           {

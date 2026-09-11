@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Darker_Grotesque, Silkscreen } from "next/font/google";
+import { Space_Mono, Silkscreen } from "next/font/google";
 import { Show } from "@clerk/nextjs";
 
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,9 @@ const silkscreen = Silkscreen({
   weight: "400",
 });
 
-const darkerGrotesque = Darker_Grotesque({
+const spaceMono = Space_Mono({
   subsets: ["latin"],
-  weight: "900",
+  weight: "700",
 });
 
 const occupiedPixelCells = [
@@ -119,15 +119,15 @@ export default function HomePage() {
       >
         <section
           aria-labelledby="home-hero-heading"
-          className="pointer-events-none @container col-start-2 col-end-4 row-start-2 row-end-5 flex items-center justify-start p-6"
+          className="pointer-events-none @container z-10 col-start-2 col-end-3 row-start-1 row-end-2"
         >
           <h1
-            className={`${darkerGrotesque.className} text-[30cqw] leading-[0.85] font-black tracking-[-0.08em] text-[#E86F3A] uppercase`}
+            className={`${spaceMono.className} flex h-full flex-col justify-center p-4 text-left text-[20cqw] leading-none font-700 tracking-[-0.025em] text-white [word-spacing:-0.1em]`}
             id="home-hero-heading"
           >
-            <span className="block">Be a</span>
-            <span className="block">little</span>
-            <span className="block">much</span>
+            <span>be a</span>
+            <span>little</span>
+            <span>much</span>
           </h1>
         </section>
 

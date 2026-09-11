@@ -333,6 +333,11 @@ persistence, and frontend inputs retain their normal boundary validation.
 - [`resolveSystemAggregate.ts`](../../packages/core/src/system/resolveSystemAggregate.ts) — validates service pins and returns the original Aggregate definition.
 - [`makeSystem.ts`](../../packages/core/src/system/makeSystem.ts) — resolves services before aggregates and assembles authentication and owner registries into the completed `ISystem` graph.
 
+Contract programs receive `{ payload, models, userId }`. Browser execution uses
+the authenticated session user ID; aggregate execution preserves the admitted
+command's user ID, including `null` for system commands. Service programs receive
+`null`. The identity is execution context and does not belong in command payloads.
+
 Contracts own an optional synchronous `guard({ payload, db, userId })`. The
 payload belongs to that contract version; the database exposes read-only
 `query` access. Each upgrade explicitly supplies its guard alongside its new

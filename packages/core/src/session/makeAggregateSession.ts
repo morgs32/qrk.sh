@@ -239,6 +239,7 @@ export function makeAggregateSession<
     const encodedCommand = yield* encodeCommand({ contract, command });
 
     const madeMutations = yield* makeMutations({
+      userId: state.userId,
       contract,
       models: frontend.models,
       command,

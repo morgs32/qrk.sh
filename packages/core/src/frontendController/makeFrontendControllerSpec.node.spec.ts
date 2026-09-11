@@ -1,3 +1,4 @@
+import { main as authenticationFixtureFrontend } from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { describe, expect, it } from 'vitest';
 
@@ -11,6 +12,7 @@ import { makeFrontendControllerSpec } from './makeFrontendControllerSpec.ts';
 describe('makeFrontendControllerSpec', () => {
   it('serializes an aggregate frontend controller without frontend SemVer', () => {
     const controller = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       aggregateVersion: '1.0.0',
       systemName: 'test-system',
       aggregateName: 'user',
@@ -38,6 +40,7 @@ describe('makeFrontendControllerSpec', () => {
 
   it('serializes a service frontend controller through the same spec shape', () => {
     const controller = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'test-system',
       serviceVersion: '1.0.0',
       serviceName: 'catalog',
@@ -77,6 +80,7 @@ describe('makeFrontendControllerSpec', () => {
       models: { product: Product },
     });
     const controller = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       aggregateVersion: '1.0.0',
       systemName: 'test-system',
       aggregateName: 'catalog',

@@ -1,14 +1,16 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import type { IAggregateId } from '@zerospin/core/models/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
-import { ZerospinError, type IAnyError } from '@zerospin/error';
-import { Effect } from 'effect';
-import { system } from 'system';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import config from 'config';
+import { Effect, Schema } from 'effect';
+
+const { system } = config;
 
 /*
  * Frontend admission runs aggregate authorization against the selected
  * version-owned materializer. The authorizer receives only queries for models
- * owned by that aggregate, plus the requested frontend, aggregateId, and identityKey.
+ * owned by that aggregate, plus the requested frontend, aggregateId, and authentication.
  *
  * 1. Resolve the requested aggregate version.
  * 2. Allow access when authorization is omitted.
@@ -22,7 +24,7 @@ export const authorizeAggregateFrontend = Effect.fn(
   aggregateName: string;
   aggregateVersion: string;
   frontendName: string;
-  identityKey: string;
+  authentication: Readonly<Record<string, unknown>>;
   db: IDb;
 }): Effect.fn.Return<void, IAnyError> {
   const {
@@ -31,7 +33,7 @@ export const authorizeAggregateFrontend = Effect.fn(
     aggregateVersion,
     db,
     frontendName,
-    identityKey,
+    authentication,
   } = props;
 
   // 1 — select aggregateVersion from the authored aggregate definition
@@ -67,10 +69,17 @@ export const authorizeAggregateFrontend = Effect.fn(
     Reflect.set(query, modelName, modelQuery);
   }
 
-  // 4 — supply aggregateId, identityKey, and the restricted query object
+  // 4 — supply aggregateId, authentication, and the restricted query object
   yield* aggregate.authorize({
     aggregateId,
-    identityKey,
+    authentication: yield* Schema.decodeUnknownEffect(
+      aggregate.authentication.authenticationSchema,
+    )(authentication, { onExcessProperty: 'error' }).pipe(
+      mapParseError({
+        code: 'authorization-authentication-invalid',
+        prefix: 'Invalid saved authentication for authorization',
+      }),
+    ),
     db: { query },
   });
 });

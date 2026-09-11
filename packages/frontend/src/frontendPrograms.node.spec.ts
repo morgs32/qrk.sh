@@ -1,5 +1,6 @@
 import type { IBackupWorker } from '@zerospin/backup-worker';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
+import { main as authenticationFixtureFrontend } from '@zerospin/core/fixtures/system';
 import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
@@ -51,10 +52,15 @@ vi.mock('@zerospin/core/utils/newSyncRpcSession', () => ({
   newSyncRpcSession: newSyncRpcSessionLeaf,
 }));
 
-const authenticationLock = { version: '1.0.0', signatureJsonSchema: {} };
 const aggregateFrontendLock = {
   systemName: 'shopping',
   frontendName: 'web',
+  authentication: {
+    signatureJsonSchema: {},
+    authenticationJsonSchema: {},
+    selectionJsonSchema: {},
+    pattern: '/:userId',
+  },
   models: {},
   contracts: {},
 };
@@ -103,9 +109,7 @@ describe('@zerospin/frontend programs', () => {
           apiUrl: 'https://api.example.test',
           publishableKey: 'pk_test',
           systemName: 'shopping',
-          authenticationLock,
           generateSignature,
-          aggregateId,
           aggregateName: 'user',
           aggregateVersion: '1.0.0',
           frontendName: 'web',
@@ -117,9 +121,7 @@ describe('@zerospin/frontend programs', () => {
           apiUrl: 'https://api.example.test',
           publishableKey: 'pk_test',
           systemName: 'shopping',
-          authenticationLock,
           generateSignature,
-          aggregateId,
           aggregateName: 'user',
           aggregateVersion: '1.0.0',
           frontendName: 'web',
@@ -151,9 +153,7 @@ describe('@zerospin/frontend programs', () => {
           apiUrl: 'https://api.example.test',
           publishableKey: 'pk_test',
           systemName: 'shopping',
-          authenticationLock,
           generateSignature,
-          aggregateId,
           aggregateName: 'user',
           aggregateVersion: '1.0.0',
           frontendName: 'web',
@@ -177,7 +177,7 @@ describe('@zerospin/frontend programs', () => {
     it('wraps the concrete frontend target and returns a typed success', async () => {
       const state = {
         aggregateId: 'acct_1',
-        identityKey: 'user_1',
+        authentication: { userId: 'user_1', aggregateId: 'acct_1' },
         systemId,
         aggregateName: 'user',
         frontendName: 'web',
@@ -199,9 +199,7 @@ describe('@zerospin/frontend programs', () => {
           apiUrl: 'https://api.example.test',
           publishableKey: 'pk_test',
           systemName: 'shopping',
-          authenticationLock,
           generateSignature,
-          aggregateId,
           aggregateName: 'user',
           frontendName: 'web',
           aggregateFrontendLock,
@@ -232,9 +230,7 @@ describe('@zerospin/frontend programs', () => {
           apiUrl: 'https://api.example.test',
           publishableKey: 'pk_test',
           systemName: 'shopping',
-          authenticationLock,
           generateSignature,
-          aggregateId,
           aggregateName: 'user',
           frontendName: 'web',
           aggregateFrontendLock,
@@ -258,7 +254,7 @@ describe('aggregate frontend snapshot and socket recovery', () => {
   it('resumes independent frontend positions and accepts duplicate buffered delivery across reconnect', async () => {
     const state = {
       aggregateId: 'acct_1',
-      identityKey: 'user_1',
+      authentication: { userId: 'user_1', aggregateId: 'acct_1' },
       systemId: 'sys_1',
       aggregateName: 'user',
       aggregateVersion: '1.0.0',
@@ -353,6 +349,7 @@ describe('aggregate frontend snapshot and socket recovery', () => {
     );
     const overwriteDb = vi.fn(() => Effect.void);
     const frontend = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       aggregateVersion: '1.0.0',
       systemName: 'shopping',
       aggregateName: 'user',
@@ -377,11 +374,9 @@ describe('aggregate frontend snapshot and socket recovery', () => {
             yield* bootstrapAggregateFrontendSession({
               aggregateVersion: '1.0.0',
               session,
-              aggregateId,
               apiUrl: 'https://api.example.test',
               publishableKey: 'pk_test',
               systemName: 'shopping',
-              authenticationLock,
               generateSignature,
               backupWorker: {
                 onDisconnect: () => () => {},
@@ -441,7 +436,7 @@ describe('frontend startup without a reusable backup', () => {
       generateSignature.mockResolvedValue(encodeSuccess({ userId: 'user_1' }));
       getStateLeaf.mockResolvedValue({
         result: encodeSuccess({
-          identityKey: 'user_1',
+          authentication: { userId: 'user_1', aggregateId: 'acct_1' },
           systemId,
           frontendName: 'web',
           resources: [],
@@ -511,7 +506,6 @@ describe('frontend startup without a reusable backup', () => {
         apiUrl: 'https://api.example.test',
         publishableKey: 'pk_test',
         systemName: 'shopping',
-        authenticationLock,
         generateSignature,
         backupWorker,
       };
@@ -521,6 +515,7 @@ describe('frontend startup without a reusable backup', () => {
             Effect.gen(function* () {
               if (kind === 'aggregate') {
                 const frontend = makeFrontendController({
+                  authentication: authenticationFixtureFrontend.authentication,
                   aggregateVersion: '1.0.0',
                   systemName: 'shopping',
                   aggregateName: 'user',
@@ -532,7 +527,6 @@ describe('frontend startup without a reusable backup', () => {
                 return yield* bootstrapAggregateFrontendSession({
                   ...props,
                   aggregateVersion: '1.0.0',
-                  aggregateId,
                   session: makeAggregateSession({
                     runtime: guardTestRuntime,
                     guards,
@@ -542,6 +536,7 @@ describe('frontend startup without a reusable backup', () => {
                 });
               }
               const frontend = makeFrontendController({
+                authentication: authenticationFixtureFrontend.authentication,
                 serviceVersion: '1.0.0',
                 systemName: 'shopping',
                 serviceName: 'catalog',

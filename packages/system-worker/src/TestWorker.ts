@@ -6,8 +6,8 @@
 
 export { AggregateChain } from './AggregateChain/AggregateChain.js';
 export { VersionedAggregateRepo } from './VersionedAggregateRepo/VersionedAggregateRepo.js';
-export { UserVersionedAggregateRepo } from './UserVersionedAggregateRepo/UserVersionedAggregateRepo.js';
-export { UserVersionedAggregateChain } from './UserVersionedAggregateChain/UserVersionedAggregateChain.js';
+export { AuthenticatedVersionedAggregateRepo } from './AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
+export { AuthenticatedVersionedAggregateChain } from './AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
 export { VersionedAggregateChain } from './VersionedAggregateChain/VersionedAggregateChain.js';
 export { VersionedServiceChain } from './VersionedServiceChain/VersionedServiceChain.js';
 export { SystemLogAgent } from './SystemLogAgent/SystemLogAgent.js';

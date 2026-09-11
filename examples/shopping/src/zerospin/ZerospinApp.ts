@@ -1,6 +1,7 @@
+import { RoutePattern } from '@remix-run/route-pattern';
 import { makeZerospinApp } from '@zerospin/react';
 import * as sdk from '@zerospin/sdk/browser';
-import { Layer, Redacted } from 'effect';
+import { Effect, Layer, Redacted, Schema } from 'effect';
 
 import { addToCartV2 } from './aggregates/shopper/contracts/addToCart/AddToCartV2';
 import { createCartV1 } from './aggregates/shopper/contracts/createCart/CreateCartV1';
@@ -8,16 +9,52 @@ import { createUserV1 } from './aggregates/shopper/contracts/createUser/CreateUs
 import { removeFromCartV2 } from './aggregates/shopper/contracts/removeFromCart/removeFromCartV2';
 import { updateCartItemQuantityV1 } from './aggregates/shopper/contracts/updateCartItemQuantity/UpdateCartItemQuantityV1';
 import { updateUserV1 } from './aggregates/shopper/contracts/updateUser/UpdateUserV1';
+import { CurrentUser } from './aggregates/shopper/CurrentUser';
 import { cartV1 } from './aggregates/shopper/models/cart/CartV1';
 import { cartItemV2 } from './aggregates/shopper/models/cartItem/CartItemV2';
 import { productReplicaV1 } from './aggregates/shopper/models/productReplica/ProductReplicaV1';
-import { userV1 } from './aggregates/shopper/models/user/UserV1';
+import {
+  ClerkUserIdSchema,
+  userV1,
+} from './aggregates/shopper/models/user/UserV1';
 import type { shopperV2 } from './aggregates/shopper/ShopperV2';
 import type { appV1 } from './services/app/AppV1';
 import { productV1 } from './services/app/models/product/ProductV1';
-import { signature } from './signature';
 
 const ShopperFrontendV2 = sdk.makeFrontendController({
+  authentication: {
+    signatureSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
+    authenticationSchema: Schema.Struct({
+      aggregateId: Schema.Literal('acct_1'),
+      clerkUserId: ClerkUserIdSchema,
+    }),
+    selectionSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
+    pattern: RoutePattern.parse('/:clerkUserId'),
+  },
+  guardLayer: ({ db, authentication }) =>
+    Layer.succeed(
+      CurrentUser,
+      Effect.gen(function* () {
+        if (authentication === null) {
+          return yield* new sdk.ZerospinError({
+            code: 'authentication-required',
+            message: 'This command requires an authenticated user',
+          });
+        }
+        const found = db.query.user
+          .findFirst({
+            where: { clerkUserId: { eq: authentication.clerkUserId } },
+          })
+          .sync();
+        if (found === undefined) {
+          return yield* new sdk.ZerospinError({
+            code: 'current-user-not-found',
+            message: 'The authenticated User has not been provisioned',
+          });
+        }
+        return found;
+      }),
+    ),
   aggregateVersion: '2.0.0',
   contracts: {
     addToCart: { contract: addToCartV2 },
@@ -39,6 +76,12 @@ const ShopperFrontendV2 = sdk.makeFrontendController({
 }) satisfies sdk.IAggregateFrontend<typeof shopperV2>;
 
 const AppFrontendV1 = sdk.makeFrontendController({
+  authentication: {
+    signatureSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
+    authenticationSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
+    selectionSchema: Schema.Struct({ clerkUserId: ClerkUserIdSchema }),
+    pattern: RoutePattern.parse('/:clerkUserId'),
+  },
   systemName: 'shopping',
   serviceVersion: '1.0.0',
   serviceName: 'app',
@@ -66,10 +109,6 @@ const applicationLayer = Layer.mergeAll(
 
 export const ZerospinApp = makeZerospinApp({
   systemName: 'shopping',
-  authentication: {
-    version: signature.version,
-    signature: signature.signature,
-  },
   frontends: {
     shopperFrontend: ShopperFrontendV2,
     appFrontend: AppFrontendV1,

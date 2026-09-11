@@ -12,7 +12,7 @@ import {
 
 const aggregate = {
   systemId: 'sys_one',
-  identityKey: 'user_one',
+  authenticationHash: 'c'.repeat(64),
   aggregateId: 'acct_one',
   aggregateName: 'account',
   aggregateVersion: '1.0.0',
@@ -21,7 +21,7 @@ const aggregate = {
 } satisfies IAggregateFrontendBackupIdentity;
 const service = {
   systemId: 'sys_one',
-  identityKey: 'user_one',
+  authenticationHash: 'c'.repeat(64),
   serviceName: 'catalog',
   serviceVersion: '1.0.0',
   frontendName: 'web',
@@ -31,10 +31,10 @@ const service = {
 describe('exact frontend backup routes', () => {
   it('retains readable identities and the complete canonical lock digest', () => {
     expect(Effect.runSync(makeAggregateFrontendBackupKey(aggregate))).toBe(
-      `/zerospin/sys_one/user_one/aggregate/account/1.0.0/acct_one/web/${'a'.repeat(64)}/backup.sqlite3`,
+      `/zerospin/sys_one/${'c'.repeat(64)}/aggregate/account/1.0.0/acct_one/web/${'a'.repeat(64)}/backup.sqlite3`,
     );
     expect(Effect.runSync(makeServiceFrontendBackupKey(service))).toBe(
-      `/zerospin/sys_one/user_one/service/catalog/1.0.0/web/${'b'.repeat(64)}/backup.sqlite3`,
+      `/zerospin/sys_one/${'c'.repeat(64)}/service/catalog/1.0.0/web/${'b'.repeat(64)}/backup.sqlite3`,
     );
   });
 
@@ -42,7 +42,7 @@ describe('exact frontend backup routes', () => {
     const identities: IAggregateFrontendBackupIdentity[] = [
       aggregate,
       { ...aggregate, systemId: 'sys_two' },
-      { ...aggregate, identityKey: 'user_two' },
+      { ...aggregate, authenticationHash: 'd'.repeat(64) },
       { ...aggregate, aggregateId: 'acct_two' },
       { ...aggregate, aggregateName: 'account-two' },
       { ...aggregate, aggregateVersion: '2.0.0' },
@@ -62,7 +62,7 @@ describe('exact frontend backup routes', () => {
     const identities: IServiceFrontendBackupIdentity[] = [
       service,
       { ...service, systemId: 'sys_two' },
-      { ...service, identityKey: 'user_two' },
+      { ...service, authenticationHash: 'd'.repeat(64) },
       { ...service, serviceName: 'inventory' },
       { ...service, serviceVersion: '2.0.0' },
       { ...service, frontendName: 'mobile' },
@@ -92,44 +92,48 @@ describe('exact frontend backup routes', () => {
       '../../x',
       '%2e%2e',
     ];
-    const keys = values.map(identityKey =>
+    const keys = values.map(userId =>
       Effect.runSync(
-        makeAggregateFrontendBackupKey({ ...aggregate, identityKey }),
+        makeAggregateFrontendBackupKey({ ...aggregate, frontendName: userId }),
       ),
     );
     expect(new Set(keys).size).toBe(values.length);
     for (const [index, key] of keys.entries()) {
       expect(new URL(key, 'file:///').pathname).toBe(key);
-      expect(decodeURIComponent(key.split('/')[3]!)).toBe(values[index]);
+      expect(decodeURIComponent(key.split('/')[8]!)).toBe(values[index]);
     }
-    const serviceKeys = values.map(identityKey =>
-      Effect.runSync(makeServiceFrontendBackupKey({ ...service, identityKey })),
+    const serviceKeys = values.map(userId =>
+      Effect.runSync(
+        makeServiceFrontendBackupKey({ ...service, frontendName: userId }),
+      ),
     );
     expect(new Set(serviceKeys).size).toBe(values.length);
     for (const [index, key] of serviceKeys.entries()) {
       expect(new URL(key, 'file:///').pathname).toBe(key);
-      expect(decodeURIComponent(key.split('/')[3]!)).toBe(values[index]);
+      expect(decodeURIComponent(key.split('/')[7]!)).toBe(values[index]);
     }
   });
 
   it.each(['', '.', '..', '\n', 'a\tb', '\u0000', '\u007f', '\ud800'])(
     'rejects the invalid identity segment %j before URL normalization',
-    identityKey => {
+    userId => {
       expect(
         Result.isFailure(
           Effect.runSync(
-            makeAggregateFrontendBackupKey({ ...aggregate, identityKey }).pipe(
-              Effect.result,
-            ),
+            makeAggregateFrontendBackupKey({
+              ...aggregate,
+              authenticationHash: userId,
+            }).pipe(Effect.result),
           ),
         ),
       ).toBe(true);
       expect(
         Result.isFailure(
           Effect.runSync(
-            makeServiceFrontendBackupKey({ ...service, identityKey }).pipe(
-              Effect.result,
-            ),
+            makeServiceFrontendBackupKey({
+              ...service,
+              authenticationHash: userId,
+            }).pipe(Effect.result),
           ),
         ),
       ).toBe(true);

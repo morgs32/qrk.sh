@@ -22,6 +22,7 @@ export function initializeGuards<REQUIREMENTS>(
 export function initializeGuards(frontend: IAnyAggregateFrontendController) {
   return initializeOwnerGuards({
     layer: frontend.layer,
+    guardLayer: frontend.guardLayer,
     guards: Object.fromEntries(
       Object.entries(frontend.contracts).map(([name, binding]) => [
         name,

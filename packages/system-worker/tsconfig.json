@@ -72,7 +72,7 @@
       "path": "../core"
     },
     {
-      "path": "../system"
+      "path": "../config"
     }
   ]
 }

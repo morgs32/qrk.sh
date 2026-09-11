@@ -12,10 +12,10 @@ type ICommandColumnId = (typeof COMMAND_COLUMN_IDS)[number];
 
 const COPY_CELL_COLUMN_IDS = new Set<ICommandColumnId>([
   'id',
-  'identityKey',
+  'authentication',
   'sessionId',
   'payload',
-  'identityKey',
+  'authentication',
 ]);
 
 const COLUMN_SIZES: Partial<
@@ -24,7 +24,7 @@ const COLUMN_SIZES: Partial<
   id: { size: 140, minSize: 80, maxSize: 200 },
   commandName: { size: 120, minSize: 80, maxSize: 160 },
   payload: { size: 200, minSize: 120, maxSize: 320 },
-  identityKey: { size: 140, minSize: 80, maxSize: 200 },
+  authentication: { size: 140, minSize: 80, maxSize: 200 },
   sessionId: { size: 140, minSize: 80, maxSize: 200 },
 };
 

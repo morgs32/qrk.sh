@@ -1,7 +1,9 @@
 import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { env } from 'cloudflare:test';
-import { system } from 'system';
+import config from 'config';
 import { beforeEach, expect } from 'vitest';
+
+const { system } = config;
 
 // Production accepts the executing bundle before any child activation. Give
 // each isolated runtime test the same prerequisite with disposable fixture data.

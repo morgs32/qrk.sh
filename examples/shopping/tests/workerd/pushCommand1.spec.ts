@@ -1,7 +1,6 @@
 import { describe, it } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { encodePayload } from '@zerospin/core/contracts/encodePayload';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
@@ -10,9 +9,8 @@ import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/fro
 import { makeAggregateFrontendLockKey } from '@zerospin/core/frontendController/makeAggregateFrontendLockKey';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
-import { makeCommand } from '@zerospin/core/makeCommand';
 import { makeId } from '@zerospin/core/models/makeId';
-import { prefixId } from '@zerospin/core/models/prefixId';
+import { makeModelIdSchema } from '@zerospin/core/models/makeIdSchema';
 import { applyAggregateFrontendState } from '@zerospin/core/session/applyAggregateFrontendState';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionCommandJournalDrizzleSchema } from '@zerospin/core/session/sessionCommandShape';
@@ -25,16 +23,22 @@ import { makeWorkerdE2eTestLayer } from '@zerospin/dev-worker/vitest/makeWorkerd
 import { makeIdFromAbbreviation } from '@zerospin/schema';
 import { newWebSocketRpcSession } from 'capnweb';
 import { env, SELF } from 'cloudflare:test';
-import { Effect, Exit, Layer, ManagedRuntime, Scope } from 'effect';
+import { Effect, Exit, Layer, ManagedRuntime, Schema, Scope } from 'effect';
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { afterAll, expect } from 'vitest';
 
 import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/CartV1';
 import { userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
-import { signature } from '@/zerospin/signature';
 import { system } from '@/zerospin/system';
 const WebV2 = makeFrontendController({
+  authentication: {
+    signatureSchema: shopperV2.authentication.signatureSchema,
+    authenticationSchema: shopperV2.authentication.authenticationSchema,
+    selectionSchema: shopperV2.authentication.selectionSchema,
+    pattern: shopperV2.authentication.pattern,
+  },
+  guardLayer: shopperV2.guardLayer,
   systemName: 'shopping',
   aggregateName: shopperV2.name,
   aggregateVersion: shopperV2.version,
@@ -53,7 +57,6 @@ Effect.runSync(
 );
 afterAll(() => Effect.runPromise(Scope.close(sessionScope, Exit.void)));
 
-const shopperAggregate = system.aggregates.shopper['2.0.0'];
 const shopperAggregateFrontendLock =
   makeFrontendControllerSpec(WebV2).aggregateFrontendLock;
 
@@ -69,27 +72,6 @@ describe('pushCommand1: static frontend command push', () => {
       'finalizes through static ingress and serves state, ticket, and push leaves',
       () =>
         Effect.gen(function* () {
-          const userId = prefixId(userV1, E2E_CLERK_USER_ID_1);
-          const createUser = yield* makeCommand(shopperAggregate, {
-            contractName: 'createUser',
-            aggregateId: E2E_AGGREGATE_ID,
-            systemName: WebV2.systemName,
-            payload: {
-              id: userId,
-              clerkUserId: E2E_CLERK_USER_ID_1,
-            },
-          });
-          const encodedCreateUser = {
-            ...createUser,
-            payload: yield* encodePayload(
-              shopperAggregate.contracts.createUser.contract,
-              {
-                version: createUser.contractVersion,
-                payload: createUser.payload,
-              },
-            ),
-          };
-
           const gatewayApi = yield* Effect.acquireRelease(
             makeAsync(async () => {
               const response = await SELF.fetch(
@@ -105,37 +87,13 @@ describe('pushCommand1: static frontend command push', () => {
             }),
             gateway => Effect.sync(() => gateway[Symbol.dispose]()),
           );
-          const systemApi = yield* makeAsync(() =>
-            gatewayApi.getSystemApi({
-              zerospinSecretKey: 'sk_test_system_runtime_capability',
-            }),
-          );
-          const finalized = yield* makeAsync(() =>
-            systemApi.executeAggregateCommand({
-              traceContext: null,
-              args: [
-                {
-                  aggregateVersion: WebV2.aggregateVersion,
-                  command: encodedCreateUser,
-                },
-              ],
-            }),
-          ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
-          expect(finalized).toMatchObject({
-            aggregateIndex: 1,
-            id: createUser.id,
-            failedAt: null,
-            failure: null,
-          });
-
-          const authenticationLock = makeAuthenticationLock(signature);
           const frontendApi = yield* makeAsync(() =>
             gatewayApi.getAggregateFrontendApi({
               publishableKey: 'pk_test',
               systemName: system.name,
-              authenticationLock,
+
               signature: { clerkUserId: E2E_CLERK_USER_ID_1 },
-              aggregateId: E2E_AGGREGATE_ID,
+
               aggregateName: WebV2.aggregateName,
               aggregateVersion: WebV2.aggregateVersion,
               frontendName: WebV2.name,
@@ -151,9 +109,18 @@ describe('pushCommand1: static frontend command push', () => {
           ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
           expect(state).toMatchObject({
             aggregateId: E2E_AGGREGATE_ID,
-            identityKey: E2E_USER_ID_1,
+            authentication: {
+              clerkUserId: E2E_USER_ID_1,
+              aggregateId: 'acct_1',
+            },
           });
 
+          const userId = yield* Schema.decodeUnknownEffect(
+            makeModelIdSchema(userV1),
+          )(
+            state.resources.find(resource => resource.modelName === 'user')?.id,
+          );
+          expect(userId).not.toBe(`usr_${E2E_CLERK_USER_ID_1}`);
           const sessionId = yield* makeIdFromAbbreviation({
             abbreviation: 'sesn',
           });
@@ -177,7 +144,10 @@ describe('pushCommand1: static frontend command push', () => {
             frontend: WebV2,
             sessionId,
             aggregateId: E2E_AGGREGATE_ID,
-            identityKey: E2E_USER_ID_1,
+            authentication: {
+              clerkUserId: E2E_USER_ID_1,
+              aggregateId: 'acct_1',
+            },
             systemId: env.ZEROSPIN_SYSTEM_ID,
             db,
             models,
@@ -188,7 +158,10 @@ describe('pushCommand1: static frontend command push', () => {
             aggregateId: E2E_AGGREGATE_ID,
             aggregateName: WebV2.aggregateName,
             aggregateVersion: WebV2.aggregateVersion,
-            identityKey: E2E_USER_ID_1,
+            authentication: {
+              clerkUserId: E2E_USER_ID_1,
+              aggregateId: 'acct_1',
+            },
             systemId: env.ZEROSPIN_SYSTEM_ID,
             frontendName: WebV2.name,
             aggregateFrontendLockKey: yield* makeAggregateFrontendLockKey(
@@ -259,12 +232,12 @@ describe('pushCommand1: static frontend command push', () => {
           expect(
             yield* makeAsync(() =>
               systemRepo.getRepoRegistrations({
-                repoType: 'UserVersionedAggregateRepo',
+                repoType: 'AuthenticatedVersionedAggregateRepo',
               }),
             ).pipe(Effect.flatMap(decodeRpc)),
           ).toEqual([
             expect.objectContaining({
-              repoType: 'UserVersionedAggregateRepo',
+              repoType: 'AuthenticatedVersionedAggregateRepo',
             }),
           ]);
         }).pipe(Effect.provide(AsyncLive), Effect.scoped),

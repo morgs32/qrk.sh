@@ -3,8 +3,8 @@ import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError, ZerospinError } from '@zerospin/error';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import config from 'config';
 import { Effect, Schema, type Context } from 'effect';
-import { system } from 'system';
 
 import { VersionedAggregateRepo } from '../../VersionedAggregateRepo/VersionedAggregateRepo.js';
 import {
@@ -12,6 +12,8 @@ import {
   SystemApiAuthResults,
 } from '../makeApiHandler/makeApiHandler.js';
 import type { SystemApi } from '../SystemApi.js';
+
+const { system } = config;
 
 /*
  * SystemApi routes secret-key SQL reads to the aggregate current base VAR.

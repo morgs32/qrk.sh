@@ -11,8 +11,12 @@ assert<
     InferEncodedRow<typeof sessionCommandJournalShape>,
     Prettify<
       {
-        -readonly [KEY in keyof IEncodedCommand<ISessionCommand>]: IEncodedCommand<ISessionCommand>[KEY];
+        -readonly [KEY in Exclude<
+          keyof IEncodedCommand<ISessionCommand>,
+          'authentication'
+        >]: IEncodedCommand<ISessionCommand>[KEY];
       } & {
+        authentication: string;
         sessionIndex: number | null;
         command: string;
       }

@@ -2,14 +2,14 @@
 export const systemWorkerAbbreviations = {
   systemRepo: 'sysrepo',
   versionedAggregateRepo: 'var',
-  userVersionedAggregateRepo: 'uvar',
+  authenticatedVersionedAggregateRepo: 'avar',
   versionedServiceRepo: 'vsr',
   frontendVersionedServiceRepo: 'fvsr',
   aggregateChain: 'ac',
   versionedAggregateChain: 'vac',
   versionedServiceChain: 'vsc',
   serviceAdmittedChain: 'sac',
-  userVersionedAggregateChain: 'uvac',
+  authenticatedVersionedAggregateChain: 'avac',
   frontendServiceChain: 'fsc',
   systemLogRepo: 'syslogrepo',
 };

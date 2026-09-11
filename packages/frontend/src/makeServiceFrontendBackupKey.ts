@@ -6,7 +6,7 @@ import { Effect } from 'effect';
 
 export type IServiceFrontendBackupIdentity = Readonly<{
   systemId: ISystemId;
-  identityKey: string;
+  authenticationHash: string;
   serviceName: string;
   serviceVersion: string;
   frontendName: string;
@@ -22,7 +22,7 @@ export const makeServiceFrontendBackupKey = Effect.fn(
     try: () => {
       for (const value of [
         identity.systemId,
-        identity.identityKey,
+        identity.authenticationHash,
         identity.serviceName,
         identity.serviceVersion,
         identity.frontendName,
@@ -42,13 +42,16 @@ export const makeServiceFrontendBackupKey = Effect.fn(
           throw new Error('Invalid backup identity segment');
         }
       }
-      if (!/^[a-f0-9]{64}$/.test(identity.serviceFrontendLockKey)) {
+      if (
+        !/^[a-f0-9]{64}$/.test(identity.authenticationHash) ||
+        !/^[a-f0-9]{64}$/.test(identity.serviceFrontendLockKey)
+      ) {
         throw new Error(
           'The frontend lock key must be a complete SHA-256 digest',
         );
       }
       const route = RoutePattern.parse(
-        '/zerospin/:systemId/:identityKey/service/:serviceName/:serviceVersion/:frontendName/:serviceFrontendLockKey/backup.sqlite3',
+        '/zerospin/:systemId/:authenticationHash/service/:serviceName/:serviceVersion/:frontendName/:serviceFrontendLockKey/backup.sqlite3',
       );
       // IDBBatchAtomicVFS uses URL.pathname as its logical filename too.
       return new URL(createHref(route, identity), 'file:///').pathname;

@@ -1,12 +1,14 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
+import config from 'config';
 import { Effect } from 'effect';
-import { system } from 'system';
 
 import type { versionedServiceChainDbConfig } from '../../VersionedServiceChain/versionedServiceChainDbConfig.js';
 import { FrontendVersionedServiceRepoDb } from '../frontendVersionedServiceRepoDbConfig.js';
 
 import { executeTx } from './executeTx.js';
+
+const { system } = config;
 
 /** Replay one immutable result at a time; projection failure rolls back the whole delivery page. */
 export const execute = Effect.fn('FrontendVersionedServiceRepo.execute')(
@@ -17,7 +19,7 @@ export const execute = Effect.fn('FrontendVersionedServiceRepo.execute')(
       systemId: string;
       serviceName: string;
       serviceVersion: string;
-      identityKey: string;
+      selectionPath: string;
       frontendName: string;
     };
   }) {

@@ -13,11 +13,13 @@ const deployed = vi.hoisted(() => {
   const versions: Record<string, object> = {};
   return { versions };
 });
-vi.mock('system', () => ({
-  system: {
-    aggregates: {
-      get user() {
-        return deployed.versions;
+vi.mock('config', () => ({
+  default: {
+    system: {
+      aggregates: {
+        get user() {
+          return deployed.versions;
+        },
       },
     },
   },

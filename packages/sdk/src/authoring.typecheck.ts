@@ -1,4 +1,5 @@
-import { Effect } from 'effect';
+import { RoutePattern } from '@remix-run/route-pattern';
+import { Effect, Schema } from 'effect';
 import { expectTypeOf } from 'vitest';
 
 import * as browser from './browser/index.js';
@@ -14,12 +15,40 @@ const aggregate = sdk.makeAggregateVersion(
   sdk.makeAggregate({ name: 'shopper' }),
   {
     version: '1.0.0',
+    authentication: {
+      signatureSchema: Schema.Struct({ userId: Schema.String }),
+      authenticationSchema: Schema.Struct({
+        aggregateId: Schema.Literal('acct_test'),
+        userId: Schema.String,
+      }),
+      selectionSchema: Schema.Struct({ userId: Schema.String }),
+      pattern: RoutePattern.parse('/:userId'),
+      authenticate: ({ signature }) =>
+        Effect.succeed({
+          aggregateId: 'acct_test',
+          userId: signature.userId,
+        } satisfies { aggregateId: 'acct_test'; userId: string }),
+    },
     models: {},
     contracts: { rename: { contract } },
     selections: {},
   },
 );
 const service = sdk.makeService({
+  authentication: {
+    signatureSchema: Schema.Struct({ userId: Schema.String }),
+    authenticationSchema: Schema.Struct({
+      aggregateId: Schema.Literal('acct_test'),
+      userId: Schema.String,
+    }),
+    selectionSchema: Schema.Struct({ userId: Schema.String }),
+    pattern: RoutePattern.parse('/:userId'),
+    authenticate: ({ signature }) =>
+      Effect.succeed({
+        aggregateId: 'acct_test',
+        userId: signature.userId,
+      } satisfies { aggregateId: 'acct_test'; userId: string }),
+  },
   name: 'catalog',
   version: '1.0.0',
   models: {},
@@ -31,8 +60,13 @@ sdk.makeCommand(aggregate, {
   contractName: 'rename',
   payload: { name: 'Ada' },
 });
-// @ts-expect-error Aggregate IDs retain their prefix.
-sdk.makeCommand(aggregate, { contractName: 'rename', aggregateId: 'invalid', systemName: 'shopping', payload: { name: 'Ada' }, });
+sdk.makeCommand(aggregate, {
+  contractName: 'rename',
+  // @ts-expect-error Aggregate IDs retain their prefix.
+  aggregateId: 'invalid',
+  systemName: 'shopping',
+  payload: { name: 'Ada' },
+});
 // @ts-expect-error Aggregate destinations require a system name.
 sdk.makeCommand(aggregate, {
   contractName: 'rename',

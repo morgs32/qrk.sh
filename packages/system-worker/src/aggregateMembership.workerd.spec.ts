@@ -1,6 +1,5 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import {
   AggregateExecutionEntrySchema,
   EncodedAggregateCommandSchema,
@@ -20,7 +19,7 @@ import { expect, it } from 'vitest';
 import { AggregateChain } from './AggregateChain/AggregateChain.js';
 import { AggregateFrontendApi } from './AggregateFrontendApi/AggregateFrontendApi.js';
 import { AggregateFrontendApiFailure } from './AggregateFrontendApi/AggregateFrontendApiFailure/AggregateFrontendApiFailure.js';
-import { authenticationSignature, main } from './fixtures/system.js';
+import { main } from './fixtures/system.js';
 import { GatewayApi } from './GatewayApi/GatewayApi.js';
 import { makeSystemRuntime } from './makeSystemRuntime.js';
 import { VersionedAggregateChain } from './VersionedAggregateChain/VersionedAggregateChain.js';
@@ -36,9 +35,8 @@ it('preserves frontend authorization and repeated grants without registration', 
     const request = {
       publishableKey: 'pk_discovery',
       systemName: 'system-worker',
-      authenticationLock: makeAuthenticationLock(authenticationSignature),
-      signature: { userId: 'usr_discovery_auth' },
-      aggregateId,
+
+      signature: { userId: 'usr_discovery_auth', aggregateId },
       aggregateName: 'user',
       aggregateVersion: '1.0.0',
       frontendName: 'main',
@@ -129,7 +127,7 @@ it('validates direct access and retains execution failures without registration'
         userId: 'usr_discovery_failure',
         name: 'invalid-aggregate-name',
       }),
-      identityKey: null,
+      authentication: null,
       sessionId: null,
       frontendName: null,
       pushIndex: null,
@@ -205,7 +203,7 @@ it('delivers retained commands to deployed aggregate versions and resumes after 
       id: 'usr_discovery_delivery',
       name: 'Delivered autonomously',
     }),
-    identityKey: null,
+    authentication: null,
     sessionId: null,
     frontendName: null,
     pushIndex: null,

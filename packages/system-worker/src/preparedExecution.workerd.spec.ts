@@ -1,11 +1,9 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { EncodedAggregateCommandSchema } from '@zerospin/core/contracts/CommandSchema';
 import { makeAggregateFrontendLock } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
 import { SessionCommandSchema } from '@zerospin/core/session/AggregateFrontendCommandSchema';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
-import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import {
   abortAllDurableObjects,
   env,
@@ -16,11 +14,11 @@ import { Effect, Schema } from 'effect';
 import { expect, it } from 'vitest';
 
 import { AggregateChain } from './AggregateChain/AggregateChain.js';
-import { authenticationSignature, main } from './fixtures/system.js';
+import { AuthenticatedVersionedAggregateChain } from './AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
+import { AuthenticatedVersionedAggregateRepo } from './AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
+import { main } from './fixtures/system.js';
 import { GatewayApi } from './GatewayApi/GatewayApi.js';
 import { makeSystemRuntime } from './makeSystemRuntime.js';
-import { UserVersionedAggregateChain } from './UserVersionedAggregateChain/UserVersionedAggregateChain.js';
-import { UserVersionedAggregateRepo } from './UserVersionedAggregateRepo/UserVersionedAggregateRepo.js';
 import { VersionedAggregateChain } from './VersionedAggregateChain/VersionedAggregateChain.js';
 import { VersionedAggregateRepo } from './VersionedAggregateRepo/VersionedAggregateRepo.js';
 
@@ -31,18 +29,18 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
     aggregateName: 'user',
     aggregateVersion: '1.0.0',
   };
-  const view = { ...key, identityKey: 'usr_prepared', frontendName: 'main' };
+  const view = { ...key, selectionPath: '/usr_prepared', frontendName: 'main' };
   const commands = [
     Schema.decodeUnknownSync(EncodedAggregateCommandSchema)({
       id: 'cmd_prepared_user',
       commandName: 'createUser',
-      payload: JSON.stringify({ id: view.identityKey, name: 'Prepared' }),
+      payload: JSON.stringify({ id: 'usr_prepared', name: 'Prepared' }),
       contractVersion: '1.0.0',
       aggregateId: key.aggregateId,
       aggregateVersion: '1.0.0',
       aggregateName: 'user',
       systemName: 'system-worker',
-      identityKey: null,
+      authentication: null,
       sessionId: null,
       frontendName: null,
       pushIndex: null,
@@ -59,14 +57,17 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
           commandName: 'createList',
           payload: JSON.stringify({
             id: `lst_prepared_${index}`,
-            userId: view.identityKey,
+            userId: 'usr_prepared',
             name,
           }),
           contractVersion: '1.0.0',
           aggregateId: key.aggregateId,
           aggregateName: 'user',
           systemName: 'system-worker',
-          identityKey: view.identityKey,
+          authentication: {
+            userId: 'usr_prepared',
+            aggregateId: key.aggregateId,
+          },
           sessionId: 'sesn_prepared',
           frontendName: 'main',
           pushIndex: null,
@@ -91,11 +92,8 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
       const admission = {
         publishableKey: 'pk_test',
         systemName: main.systemName,
-        authenticationLock: makeAuthenticationLock(authenticationSignature),
-        signature: { userId: view.identityKey },
-        aggregateId: Schema.decodeUnknownSync(makeAbbreviationIdSchema('acct'))(
-          key.aggregateId,
-        ),
+
+        signature: { userId: 'usr_prepared', aggregateId: key.aggregateId },
         aggregateName: key.aggregateName,
         aggregateVersion: key.aggregateVersion,
         frontendName: view.frontendName,
@@ -107,7 +105,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
       const denied = yield* makeAsync(() =>
         gateway.getAggregateFrontendApi({
           ...admission,
-          signature: { userId: 'usr_missing' },
+          signature: { userId: 'usr_missing', aggregateId: key.aggregateId },
         }),
       );
       expect(
@@ -136,6 +134,27 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
       expect(rejectedPush.result).toMatchObject({
         _tag: 'Failure',
         failure: { code: 'aggregate-frontend-command-contract-unavailable' },
+      });
+      const stale = yield* makeAsync(() =>
+        api.pushCommand({
+          args: [
+            {
+              command: {
+                ...commands[1]!,
+                authentication: {
+                  userId: 'usr_prepared',
+                  aggregateId: key.aggregateId,
+                  role: 'stale',
+                },
+              },
+            },
+          ],
+          traceContext: null,
+        }),
+      );
+      expect(stale.result).toMatchObject({
+        _tag: 'Failure',
+        failure: { code: 'aggregate-frontend-command-target-mismatch' },
       });
       for (const [index, input] of commands.slice(1).entries()) {
         const command = yield* Schema.decodeUnknownEffect(
@@ -182,7 +201,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         [null, null, 'list-name-rejected', 'aggregate-list-name-rejected'],
       );
       expect(results[1].mutations).toHaveLength(1);
-      const replica = yield* UserVersionedAggregateRepo.getRepo({
+      const replica = yield* AuthenticatedVersionedAggregateRepo.getRepo({
         key: view,
       });
       const state = yield* makeAsync(() =>
@@ -227,7 +246,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         'cmd_prepared_list_1',
         'cmd_prepared_list_2',
       ]);
-      const throughTwo = yield* UserVersionedAggregateChain.getRepo({
+      const throughTwo = yield* AuthenticatedVersionedAggregateChain.getRepo({
         key: view,
       });
       const earlier = yield* makeAsync(() =>
@@ -257,7 +276,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
       expect(
         state.resources.filter(row => row.modelName === 'list'),
       ).toHaveLength(1);
-      const frontend = yield* UserVersionedAggregateChain.getRepo({
+      const frontend = yield* AuthenticatedVersionedAggregateChain.getRepo({
         key: view,
       });
       const outputs = yield* makeAsync(() =>
@@ -266,7 +285,9 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
       expect(outputs.commands.map(command => command.aggregateIndex)).toEqual([
         1, 2, 3, 4,
       ]);
-      expect(outputs.commands[0]?.resolution).toBeNull();
+      expect(
+        outputs.commands[0]?.resolution?.command.authentication,
+      ).toBeNull();
       expect(outputs.commands[2]?.resolution?.command.failure?.code).toBe(
         'list-name-rejected',
       );
@@ -354,7 +375,7 @@ it('publishes subscriber-committed results from its retained alarm after cold ac
                 aggregateVersion: '1.0.0',
                 aggregateName: key.aggregateName,
                 systemName: 'system-worker',
-                identityKey: null,
+                authentication: null,
                 sessionId: null,
                 frontendName: null,
                 pushIndex: null,

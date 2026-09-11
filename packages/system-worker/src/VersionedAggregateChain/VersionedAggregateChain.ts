@@ -1,8 +1,8 @@
+import { AuthenticatedVersionedAggregateRepo } from '../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
+import { authenticatedVersionedAggregateRepoFixedDORepoConfig } from '../AuthenticatedVersionedAggregateRepo/authenticatedVersionedAggregateRepoFixedDORepoConfig.js';
 import { makeFanoutQueue } from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscriber.js';
-import { UserVersionedAggregateRepo } from '../UserVersionedAggregateRepo/UserVersionedAggregateRepo.js';
-import { userVersionedAggregateRepoFixedDORepoConfig } from '../UserVersionedAggregateRepo/userVersionedAggregateRepoFixedDORepoConfig.js';
 
 import { receiveExecutedCommands } from './receiveExecutedCommands/receiveExecutedCommands.js';
 import { versionedAggregateChainFixedDORepoConfig } from './versionedAggregateChainFixedDORepoConfig.js';
@@ -20,10 +20,11 @@ export class VersionedAggregateChain extends makeFixedDORepo({
     alarmRegistry: this.alarmRegistry,
     schema: this.schema,
     subscribersTableName: 'replicaSubscribers',
-    subscriberNameUtils: userVersionedAggregateRepoFixedDORepoConfig.nameUtils,
+    subscriberNameUtils:
+      authenticatedVersionedAggregateRepoFixedDORepoConfig.nameUtils,
     entriesTableName: 'commands',
     indexColumnName: 'outboxIndex',
-    getRepo: UserVersionedAggregateRepo.getRepo,
+    getRepo: AuthenticatedVersionedAggregateRepo.getRepo,
   });
   /*
    * Exposes the already bound replicaFanoutQueue capability from VersionedAggregateChain.

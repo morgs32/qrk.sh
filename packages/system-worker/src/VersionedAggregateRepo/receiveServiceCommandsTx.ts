@@ -4,9 +4,9 @@ import { prepareReplayAppliedMutation } from '@zerospin/core/contracts/prepareRe
 import { makeTx } from '@zerospin/core/drizzle/makeTx';
 import { Model } from '@zerospin/core/models/makeModel';
 import { mapParseError, ZerospinError } from '@zerospin/error';
+import type config from 'config';
 import { eq } from 'drizzle-orm';
 import { Schema } from 'effect';
-import type { system } from 'system';
 
 import {
   VersionedAggregateRepoDb,
@@ -24,7 +24,7 @@ export const receiveServiceCommandsTx = makeTx(
     executionVersion: string;
   }[];
   sourceKey: { systemId: string; serviceName: string; serviceVersion: string };
-  aggregate: (typeof system.aggregates)[string][string];
+  aggregate: (typeof config.system.aggregates)[string][string];
 }) {
   const { rows, sourceKey, aggregate } = props;
 

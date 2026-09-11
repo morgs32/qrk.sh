@@ -24,6 +24,13 @@ const fixtures = await vi.hoisted(async () => {
     await import('@zerospin/core/frontendController/makeFrontendController');
   const { primitives } = await import('@zerospin/schema');
   const { Schema } = await import('effect');
+  const { RoutePattern } = await import('@remix-run/route-pattern');
+  const authentication = {
+    signatureSchema: Schema.Struct({}),
+    authenticationSchema: Schema.Struct({ aggregateId: Schema.String }),
+    selectionSchema: Schema.Struct({}),
+    pattern: RoutePattern.parse('/public'),
+  };
   const item = makeModelVersion(
     makeModel({ name: 'item', abbreviation: 'itm' }),
     {
@@ -51,6 +58,7 @@ const fixtures = await vi.hoisted(async () => {
     },
   });
   const aggregateController = makeFrontendController({
+    authentication,
     systemName: 'test',
     aggregateName: 'shopper',
     aggregateVersion: '1.0.0',
@@ -59,6 +67,7 @@ const fixtures = await vi.hoisted(async () => {
     contracts: { update: { contract: update } },
   });
   const serviceController = makeFrontendController({
+    authentication,
     systemName: 'test',
     serviceVersion: '1.0.0',
     serviceName: 'catalog',
@@ -73,6 +82,7 @@ const fixtures = await vi.hoisted(async () => {
       aggregates: {
         shopper: {
           '1.0.0': {
+            authentication,
             models: aggregateController.models,
             contracts: aggregateController.contracts,
           },
@@ -80,14 +90,17 @@ const fixtures = await vi.hoisted(async () => {
       },
       services: {
         catalog: {
-          '1.0.0': { frontends: { web: { controller: serviceController } } },
+          '1.0.0': {
+            authentication,
+            frontends: { web: { controller: serviceController } },
+          },
         },
       },
     },
   };
 });
 
-vi.mock('system', () => ({ system: fixtures.system }));
+vi.mock('config', () => ({ default: { system: fixtures.system } }));
 
 describe('frontend primitive specs', () => {
   it('accepts exact subsets for unregistered frontend names and rejects missing mutation models', async () => {

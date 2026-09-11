@@ -37,7 +37,8 @@ export const executeServiceQuery = Effect.fn(
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
     aggregateVersion: string;
-    readonly identityKey: string;
+    readonly authentication: Readonly<Record<string, unknown>>;
+    readonly selectionPath: string;
     readonly frontendName: string;
     readonly aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
@@ -83,7 +84,7 @@ export const executeServiceQuery = Effect.fn(
     aggregateVersion: authResults.aggregateVersion,
     aggregateId: authResults.aggregateId,
     aggregateName: authResults.aggregateName,
-    identityKey: authResults.identityKey,
+    authentication: authResults.authentication,
     aggregateFrontendLock: authResults.aggregateFrontendLock,
     frontendName: authResults.frontendName,
     params: validatedArgs.success[0].params,

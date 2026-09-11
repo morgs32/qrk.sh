@@ -1,8 +1,8 @@
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/makeProvisionedInMemorySqljsDb';
 import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
+import config from 'config';
 import { Effect } from 'effect';
-import { system } from 'system';
 import { describe, expect, it } from 'vitest';
 
 import { checkSystemSpec } from '../checkSystemSpec/checkSystemSpec.js';
@@ -10,6 +10,8 @@ import { getRepoRegistrations } from '../getRepoRegistrations/getRepoRegistratio
 import { systemRepoDbConfig } from '../systemRepoDbConfig.js';
 
 import { registerRepo } from './registerRepo.js';
+
+const { system } = config;
 
 describe('SystemRepo.registerRepo', () => {
   it('registers VersionedAggregateChain repos for inspection', async () => {

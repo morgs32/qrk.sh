@@ -25,7 +25,8 @@ export const onMessage = Effect.fn('FrontendServiceChain.onMessage')(
       phase: 'awaiting-resume' | 'replaying' | 'live';
       serviceName: string;
       serviceVersion: string;
-      identityKey: string;
+      selectionPath: string;
+      authentication: Readonly<Record<string, unknown>>;
       frontendName: string;
       serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
     }>;
@@ -35,7 +36,7 @@ export const onMessage = Effect.fn('FrontendServiceChain.onMessage')(
       systemId: string;
       serviceName: string;
       serviceVersion: string;
-      identityKey: string;
+      selectionPath: string;
       frontendName: string;
     };
   }): Effect.fn.Return<void, IAnyError> {
@@ -56,7 +57,7 @@ export const onMessage = Effect.fn('FrontendServiceChain.onMessage')(
       state === undefined ||
       state.serviceVersion !== key.serviceVersion ||
       state.serviceName !== key.serviceName ||
-      state.identityKey !== key.identityKey ||
+      state.selectionPath !== key.selectionPath ||
       state.frontendName !== key.frontendName ||
       state.phase !== 'awaiting-resume' ||
       typeof message !== 'string'

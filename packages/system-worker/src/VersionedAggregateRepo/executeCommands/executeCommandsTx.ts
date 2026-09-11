@@ -9,9 +9,9 @@ import { withSavepoint } from '@zerospin/core/drizzle/withSavepoint';
 import type { initializeGuards } from '@zerospin/core/guards/initializeGuards';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import type config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Result, Schema } from 'effect';
-import type { system } from 'system';
 
 import { advanceDispositionHash } from '../../aggregateDispositionHash/aggregateDispositionHash.js';
 import {
@@ -40,7 +40,7 @@ export const executeCommandsTx = makeTx(
       payload: unknown;
     } | null;
   }[];
-  aggregate: (typeof system.aggregates)[string][string];
+  aggregate: (typeof config.system.aggregates)[string][string];
   guards: Effect.Success<
     ReturnType<typeof initializeGuards<never, unknown, unknown>>
   >;
@@ -193,11 +193,23 @@ export const executeCommandsTx = makeTx(
               message: 'Prepared aggregate guard inputs are missing',
             });
           }
+          const authentication =
+            command.authentication === null
+              ? null
+              : yield* Schema.decodeUnknownEffect(
+                  aggregate.authentication.authenticationSchema,
+                )(command.authentication, { onExcessProperty: 'error' }).pipe(
+                  mapParseError({
+                    code: 'command-authentication-unsupported',
+                    prefix:
+                      'Saved command authentication is unsupported by this aggregate version',
+                  }),
+                );
           const { payload } = prepared.executionInput;
           yield* guards
             .run(command.commandName, {
               db: commandTx,
-              identityKey: command.identityKey,
+              authentication,
               payload,
             })
             .pipe(

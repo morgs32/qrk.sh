@@ -59,7 +59,9 @@ const initialTelemetry: ITelemetryBatch = {
       attributes: {
         operation: 'fetch',
         'function.arguments': [{ actorName: 'shopper' }],
-        'function.result': { identityKey: 'actor_one' },
+        'function.result': {
+          authentication: { userId: 'actor_one', aggregateId: 'acct_1' },
+        },
       },
     },
     {

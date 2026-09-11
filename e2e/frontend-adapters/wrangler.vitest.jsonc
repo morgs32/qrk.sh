@@ -32,12 +32,12 @@
         "class_name": "VersionedAggregateChain",
       },
       {
-        "name": "USER_VERSIONED_AGGREGATE_REPO",
-        "class_name": "UserVersionedAggregateRepo",
+        "name": "AUTHENTICATED_VERSIONED_AGGREGATE_REPO",
+        "class_name": "AuthenticatedVersionedAggregateRepo",
       },
       {
-        "name": "USER_VERSIONED_AGGREGATE_CHAIN",
-        "class_name": "UserVersionedAggregateChain",
+        "name": "AUTHENTICATED_VERSIONED_AGGREGATE_CHAIN",
+        "class_name": "AuthenticatedVersionedAggregateChain",
       },
       {
         "name": "FRONTEND_VERSIONED_SERVICE_REPO",
@@ -77,11 +77,11 @@
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "UserVersionedAggregateRepo": {
+    "AuthenticatedVersionedAggregateRepo": {
       "type": "durable-object",
       "storage": "sqlite",
     },
-    "UserVersionedAggregateChain": {
+    "AuthenticatedVersionedAggregateChain": {
       "type": "durable-object",
       "storage": "sqlite",
     },

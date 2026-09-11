@@ -1,6 +1,7 @@
 import type { IAnyError } from '@zerospin/error';
 import { type Effect, type Layer, type Schema, type Scope } from 'effect';
 
+import type { IAuthentication } from '../authentication/types.ts';
 import type { IAnyContracts } from '../contracts/types.ts';
 import type { IDb, IResourceDbConfig } from '../drizzle/types.ts';
 import type {
@@ -76,6 +77,7 @@ export type IService<
   GUARD_REQUIREMENTS = Effect.Services<
     ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['guard']>>
   >,
+  AUTHENTICATION extends IAuthentication = IAuthentication,
 > = {
   /** Type-only requirements retained when system registries erase concrete guards and layers. */
   readonly __initializeRequirements?:
@@ -83,6 +85,7 @@ export type IService<
     | Exclude<GUARD_REQUIREMENTS, LAYER_SERVICES>
     | Scope.Scope;
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
+  readonly authentication: AUTHENTICATION;
   readonly name: NAME;
   readonly version: VERSION;
   readonly models: Readonly<MODELS>;
@@ -102,6 +105,7 @@ export type IAnyService<
   /** Type-only requirements retained when system registries erase concrete guards and layers. */
   readonly __initializeRequirements?: INITIALIZE_REQUIREMENTS | Scope.Scope;
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError, LAYER_REQUIREMENTS>;
+  readonly authentication: IAuthentication;
   readonly name: string;
   readonly version: string;
   readonly models: IAnyModels;

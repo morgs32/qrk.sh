@@ -19,7 +19,7 @@ export const versionedServiceChainDbConfig = makeDbConfig({
         frontendVersionedServiceRepoName: primitives.primaryKey({
           abbreviation: systemWorkerAbbreviations.frontendVersionedServiceRepo,
         }),
-        identityKey: primitives.text(),
+        selectionPath: primitives.text(),
         frontendName: primitives.text(),
         currentIndex: primitives.integer({ nullable: true }),
         failure: primitives.text({ nullable: true }),
@@ -38,8 +38,9 @@ export const versionedServiceChainDbConfig = makeDbConfig({
     aggregateReplicaSubscribers: makeTable({
       name: 'aggregateReplicaSubscribers',
       shape: {
-        userVersionedAggregateRepoName: primitives.primaryKey({
-          abbreviation: systemWorkerAbbreviations.userVersionedAggregateRepo,
+        authenticatedVersionedAggregateRepoName: primitives.primaryKey({
+          abbreviation:
+            systemWorkerAbbreviations.authenticatedVersionedAggregateRepo,
         }),
         currentIndex: primitives.integer({ nullable: true }),
         failure: primitives.text({ nullable: true }),

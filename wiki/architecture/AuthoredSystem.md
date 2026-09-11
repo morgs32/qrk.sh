@@ -15,35 +15,39 @@ are selected separately by the seed CLI's file-path argument.
 - [`zerospin.config.ts`](../../examples/shopping/zerospin.config.ts) — Shopping exports its configuration without importing seed commands.
 
 The CLI imports the exact root module without invoking a typechecker. Worker
-builds use a scoped generated module exporting both `config` and `system`, with
-`system === config.system`.
+builds alias `config` directly to that root module and consume its default export;
+the authored System is available as `config.system`.
 Configuration imports belong to both Node and Worker module graphs. The seed CLI
 imports its selected command module separately.
 
+- [`makeWranglerConfig.ts`](../../packages/dev-worker/src/makeWranglerConfig.ts) — binds the direct `config` alias.
 - [`loadZerospinConfigFn.ts`](../../packages/cli/src/deploy/loadZerospinConfigFn.ts) — loads TypeScript with project aliases and validates live capabilities.
-- [`makeSystemEntry.ts`](../../packages/cli/src/deploy/makeSystemEntry.ts) — owns the adapter through the caller's scope.
-- [`makeSystemEntry.spec.ts`](../../packages/cli/src/deploy/makeSystemEntry.spec.ts) — verifies success, failure, and interruption cleanup.
-- [`e2eFn.spec.ts`](../../packages/cli/src/e2e/e2eFn.spec.ts) — runs the shared fixture through the CLI and workerd using the generated adapter.
+- [`e2eFn.spec.ts`](../../packages/cli/src/e2e/e2eFn.spec.ts) — runs the shared fixture through the CLI and workerd using the direct config alias.
+
+The types-only `config` workspace package supplies the compile-time configuration
+shape. Worker builds replace that module with the selected project configuration.
+
+- [`package.json`](../../packages/config/package.json) — exposes only the configuration type source.
+- [`config.ts`](../../packages/config/src/config.ts) — default-exports the inferred configuration.
 
 ## Generated backend configuration
 
 The CLI and workerd test setup share `makeWranglerConfig`. It derives
 `zerospin-${system.name}`, validates the resulting Worker name, and owns the
-entrypoint, system alias, compatibility settings, static DO bindings, SQLite
+entrypoint, config alias, compatibility settings, static DO bindings, SQLite
 exports, observability defaults, environment, and production version metadata.
 Project configuration exposes `systemId`; it has no Wrangler overrides.
 
 - [`makeWranglerConfig.ts`](../../packages/dev-worker/src/makeWranglerConfig.ts) — produces the common backend configuration.
 - [`ZerospinConfigSchema.ts`](../../packages/core/src/system/ZerospinConfigSchema.ts) — validates the explicit system ID and live System.
 
-Generated configs and Worker adapters live in unique directories under
+Generated Wrangler configs live in unique directories under
 `.wrangler/zerospin/`. CLI scopes and the test plugin dispose generated files;
 local dev persistence remains in `dev-worker/<systemId>` under that same root.
 Dev and tests resolve `.env`/`.dev.vars` against the project root using Wrangler's
 loader. Deployment continues to load project keys separately and writes a
 scoped mode-0600 secrets file.
 
-- [`makeSystemEntry.ts`](../../packages/cli/src/deploy/makeSystemEntry.ts) — owns the generated adapter directory through the calling scope.
 - [`devFn.ts`](../../packages/cli/src/dev/devFn.ts) — preserves the selected system's persistence path and binds project-root local variables.
 - [`deployWranglerFn.ts`](../../packages/cli/src/deploy/deployWranglerFn.ts) — generates production configuration and separate secrets with scoped cleanup.
 - [`makeWorkerdVitestConfig.ts`](../../packages/dev-worker/src/vitest/makeWorkerdVitestConfig.ts) — generates test configuration, supports internal fixture entrypoints/bindings, and disposes its files.
@@ -57,7 +61,7 @@ backend Wrangler files, or generated backend type declarations.
 - [`tsconfig.json`](../../examples/shopping/tsconfig.json) — checks application sources without generated backend declarations.
 
 `makeSystem` collects authored definitions without a root version. Aggregate,
-service, contract, model, and authentication versions remain attached
+service, contract, and model versions remain attached
 to their definitions. Inspection serializes the executing bundle on demand.
 
 - [`makeSystem.ts`](../../packages/core/src/system/makeSystem.ts) — Constructs the authored System without a root version.
@@ -223,19 +227,18 @@ External tables, schema objects, and opaque defaults retain their identity;
 - [`makeTable.ts`](../../packages/schema/src/makeTable.ts) — constructs the table-owned graph after self-reference resolution.
 - [`primitives.ts`](../../packages/schema/src/primitives.ts) — checks the target is a Table instance before inspecting its primary key.
 - [`makeTable.node.spec.ts`](../../packages/schema/src/makeTable.node.spec.ts) — verifies ownership, self-reference identity, and rejection of structural targets.
-- [`makeVersion.ts`](../../packages/core/src/authentication/makeVersion.ts) — validates independent authentication versions and builds their generated signature-schema specs.
+- [`AuthenticationSchema.ts`](../../packages/core/src/authentication/AuthenticationSchema.ts) — validates owner and frontend authentication descriptors and reversible selection patterns.
 - [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — resolves the Model-owned table, then attaches owned descriptors, shapes, indexes, and the table object.
 - [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — builds the serializable model spec.
 
-Seven authoring factories produce instances of seven canonical classes:
-`Authentication`, `Model`, `Contract`, `ServiceFrontendController`,
+The authoring factories produce canonical instances of
+`Model`, `Contract`, `ServiceFrontendController`,
 `AggregateFrontendController`, `Service`, and `Aggregate`.
 `makeFrontendController` chooses between the two controller classes, while
 `makeReplica` creates another canonical `Model` and registers its provenance
 after construction. The `Service` and `Aggregate` constructors stay private to
 their factory modules.
 
-- [`makeVersion.ts`](../../packages/core/src/authentication/makeVersion.ts) — declares and constructs canonical `Authentication` instances.
 - [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — stores replica provenance in a module-private `WeakMap` outside the instance.
 - [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — declares inherited non-enumerable getters, one-shot `markReplica`, and `Model.isReplica`.
 - [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — constructs the canonical `Model` instance.
@@ -264,7 +267,7 @@ serialize `name` and the selected `aggregateVersion` or `serviceVersion`; locks 
 query stamping, frontend binding, projection-adapter, record
 snapshot, and command-construction integrity. `makeAggregateVersion` owns aggregate-local model, selection, guard,
 service-pin, and command-construction checks. Its optional `authorize` callback
-receives `{ identityKey, aggregateId, db }`, with `db` limited to model queries.
+receives `{ authentication, aggregateId, db }`, with `db` limited to model queries.
 Omitting it allows access without an authored authorization check. Aggregate
 definitions do not configure frontend bindings or adapters. Each constructs its decoded registries and
 the binding, adapter, query, selection, and grant containers it owns.
@@ -327,18 +330,18 @@ an existing service version. It assembles authentication, the owner registries,
 and each resolved Aggregate snapshot into the final System graph. Runtime RPC,
 persistence, and frontend inputs retain their normal boundary validation.
 
-- [`decodeSystemProps.ts`](../../packages/core/src/system/decodeSystemProps.ts) — decodes canonical authentication and owner instances and defaults omitted services to an empty record.
+- [`decodeSystemProps.ts`](../../packages/core/src/system/decodeSystemProps.ts) — decodes canonical owner instances and defaults omitted services to an empty record.
 - [`resolveSystemService.ts`](../../packages/core/src/system/resolveSystemService.ts) — checks service key/name, frontend `systemName`, and exclusive source-model ownership before returning the same `Service`.
 - [`resolveSystemAggregate.ts`](../../packages/core/src/system/resolveSystemAggregate.ts) — checks aggregate key/name and source/replica provenance.
 - [`resolveSystemAggregate.ts`](../../packages/core/src/system/resolveSystemAggregate.ts) — validates service pins and returns the original Aggregate definition.
-- [`makeSystem.ts`](../../packages/core/src/system/makeSystem.ts) — resolves services before aggregates and assembles authentication and owner registries into the completed `ISystem` graph.
+- [`makeSystem.ts`](../../packages/core/src/system/makeSystem.ts) — resolves services before aggregates and assembles the owner registries into the completed `ISystem` graph.
 
-Contract programs receive `{ payload, models, identityKey }`. Browser execution uses
-the authenticated session identity key; aggregate execution preserves the admitted
-command's identity key, including `null` for system commands. Service programs receive
+Contract programs receive `{ payload, models, authentication }`. Browser execution uses
+the session's full authentication; aggregate execution preserves the admitted
+command's full authentication, including `null` for trusted commands. Service programs receive
 `null`. The identity is execution context and does not belong in command payloads.
 
-Contracts own an optional synchronous `guard({ payload, db, identityKey })`. The
+Contracts own an optional synchronous `guard({ payload, db, authentication })`. The
 payload belongs to that contract version; the database exposes read-only
 `query` access. Each upgrade explicitly supplies its guard alongside its new
 program. Shopping's AddToCart upgrades reuse the prior guard because `cartId`
@@ -369,22 +372,22 @@ initialized guards are executable configuration, excluded from specs and locks.
 application and local contexts before heterogeneous registry lookup. A local
 service overrides the matching application tag for that execution. It does not
 rebuild an application service that captured the original dependency during
-application initialization. Invocation `db`, `identityKey`, and `payload` remain fresh
+application initialization. Invocation `db`, `authentication`, and `payload` remain fresh
 arguments to every guard call.
 
 - [`initializeGuards.ts`](../../packages/core/src/guards/initializeGuards.ts) — builds a fresh local layer in the caller's scope and retains typed provision around synchronous guards.
 - [`ownerLayers.node.spec.ts`](../../packages/core/src/guards/ownerLayers.node.spec.ts) — verifies sibling isolation and application dependencies captured before a local override.
 
-`makeZerospinApp` returns typed system-name and authentication metadata alongside
+`makeZerospinApp` returns typed system-name and frontend metadata alongside
 its frontend selectors and Provider. A standalone
 `checkZerospinApp<typeof system>(app)` checks structural compatibility with the
 system's concrete owner/version registries, allowing frontend model and contract
-subsets and additional system owners. Authentication versions stay paired with
-their signature types. The checker returns `void` and performs no runtime
+subsets and additional system owners. Each frontend authentication descriptor
+matches its selected owner version. The checker returns `void` and performs no runtime
 validation; applications can import `system` with `import type`.
 
 - [`checkZerospinApp.ts`](../../packages/react/src/checkZerospinApp.ts) — excludes broad registry keys and reuses aggregate/service frontend compatibility types.
-- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — preserves literal authentication versions and returns app metadata without changing Provider inference.
+- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — preserves frontend-specific signature and authentication types in Provider inference.
 - [`checkZerospinApp.typecheck.ts`](../../packages/react/src/checkZerospinApp.typecheck.ts) — checks supported and rejected app configurations.
 
 `makeZerospinApp` accepts an application layer. Each mounted Provider owns one
@@ -421,7 +424,7 @@ from the enclosing Effect environment before entering its synchronous runner;
 callers provide owner services around execution rather than passing a context
 argument to each guard. `runGuard` preserves the guard's
 typed failure and maps Effect suspension to `guard-must-be-synchronous`. They
-execute in the local aggregate session and in VAR. VAR runs the aggregate binding and contract guards against its command transaction, then the originating frontend contract guard against the projected in-memory SQLite view. Service execution runs its contract guard in the command savepoint with `identityKey: null`; authored rejection becomes a terminal failure, while asynchronous guards remain execution failures. Authoritative replica copies and provisional enrollment are installed before guards; aggregate-owned mutations follow. Independent VSC updates do not run aggregate guards.
+execute in the local aggregate session and in VAR. VAR runs the aggregate binding and contract guards against its command transaction, then the originating frontend contract guard against the projected in-memory SQLite view. Service execution runs its contract guard in the command savepoint with `authentication: null`; authored rejection becomes a terminal failure, while asynchronous guards remain execution failures. Authoritative replica copies and provisional enrollment are installed before guards; aggregate-owned mutations follow. Independent VSC updates do not run aggregate guards.
 
 - [`executeCommandsTx.ts`](../../packages/system-worker/src/VersionedServiceRepo/executeCommands/executeCommandsTx.ts) — runs service guards inside the command savepoint and classifies authored failures.
 - [`runGuard.ts`](../../packages/core/src/guards/runGuard.ts) — runs the guard to a synchronous exit, interrupts async fibers, and rethrows typed failures.
@@ -453,18 +456,18 @@ absent from own keys, object spread, and JSON serialization.
 - [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — registers one-shot provenance and discriminates replicas from the WeakMap, not own fields.
 - [`makeReplica.node.spec.ts`](../../packages/core/src/models/makeReplica.node.spec.ts) — verifies direct getters, non-enumerability, assignment resistance, one-shot registration, canonical discrimination, and spread/JSON omission.
 
-UVAR replays against the exact version's canonical aggregate models and uses
+AVAR replays against the exact version's canonical aggregate models and uses
 `Model.isReplica` to recognize resources delivered independently from pinned VSC histories.
 
-- [`execute.ts`](../../packages/system-worker/src/UserVersionedAggregateRepo/execute/execute.ts) — Uses canonical model provenance when replaying service resources.
+- [`execute.ts`](../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/execute.ts) — Uses canonical model provenance when replaying service resources.
 
 Downstream lookup-and-trust starts from the completed `ISystem`. Development
-and deployment bind the generated `config.system` entry as the `system` module alias. The
+and deployment bind the root configuration module as the `config` module alias. The
 Worker entrypoints export the direct Repo topology, while server query paths
 look up the named service, aggregate, and query from that authored graph.
 
-- [`devFn.ts`](../../packages/cli/src/dev/devFn.ts) — binds the generated configuration entry to the development Worker's `system` alias.
-- [`deployWranglerFn.ts`](../../packages/cli/src/deploy/deployWranglerFn.ts) — binds the generated configuration entry to the production Worker's `system` alias.
+- [`devFn.ts`](../../packages/cli/src/dev/devFn.ts) — binds the root configuration module to the development Worker's `config` alias.
+- [`deployWranglerFn.ts`](../../packages/cli/src/deploy/deployWranglerFn.ts) — binds the root configuration module to the production Worker's `config` alias.
 - [`DevWorker.ts`](../../packages/dev-worker/src/DevWorker.ts) — exports the direct Repo topology and routes development requests.
 - [`ProductionWorker.ts`](../../packages/production-worker/src/ProductionWorker.ts) — exports the production topology and applies production request checks.
 - [`executeServiceQuery.ts`](../../packages/system-worker/src/VersionedServiceRepo/executeServiceQuery/executeServiceQuery.ts) — resolves the named service and query from `system.services` before execution.
@@ -490,7 +493,7 @@ sequenceDiagram
   Operator->>CLI: zerospin dev
   autonumber 2
   CLI->>devFn: devFn(...)
-  Note over devFn: Load project config and prepare scoped system alias, persistence and optional port
+  Note over devFn: Load project config and prepare config alias, scoped Wrangler config, persistence and optional port
   autonumber 3
   devFn->>Wrangler: devEnv.on(...)
   autonumber 4
@@ -519,7 +522,7 @@ sequenceDiagram
    - [`Dev.tsx`](../../packages/cli/src/dev/Dev.tsx) — starts the scoped Effect and presents failures.
 3. The programmatic environment comes from the consumer's resolved Wrangler package; reload, error, and teardown listeners are attached before startup.
    - [`devFn.ts`](../../packages/cli/src/dev/devFn.ts) — resolves `unstable_DevEnv` and queues events.
-4. Startup preserves the generated system alias, loopback address, port and system-scoped persistence path. Explicit `--clean` deletes only that local path.
+4. Startup binds the direct config alias, loopback address, port and system-scoped persistence path. Explicit `--clean` deletes only that local path.
    - [`devFn.ts`](../../packages/cli/src/dev/devFn.ts) — owns configuration generation, scoped deletion, and `startWorker` options.
 5. Initial load and every completed reload queue a check after the proxy's update completes.
    - [`devFn.ts`](../../packages/cli/src/dev/devFn.ts) — consumes `reloadComplete` and waits for the proxy update mutex.
@@ -529,9 +532,8 @@ sequenceDiagram
    - [`checkSystemSpec.ts`](../../packages/system-worker/src/SystemApi/checkSystemSpec/checkSystemSpec.ts) — uses the executing Worker's spec-generation path.
 8. Only successful acceptance produces the accepted-ready message; conflicts retain their domain failure.
    - [`devFn.ts`](../../packages/cli/src/dev/devFn.ts) — displays readiness after decoding the check result.
-9. Scope cleanup tears down Wrangler and removes generated configuration and the system adapter on success, failure, or interruption.
+9. Scope cleanup tears down Wrangler and removes generated configuration on success, failure, or interruption.
    - [`devFn.ts`](../../packages/cli/src/dev/devFn.ts) — registers environment, signal-handler, and generated-config finalizers.
-   - [`makeSystemEntry.ts`](../../packages/cli/src/deploy/makeSystemEntry.ts) — removes the scoped adapter.
 10. An incompatible definition ends the CLI with status 1.
     - [`Dev.tsx`](../../packages/cli/src/dev/Dev.tsx) — reports terminal failure through the command step.
 
@@ -793,27 +795,27 @@ version, with no historical-definition arrays.
 - [`validateAggregateFrontendLock.ts`](../../packages/system-worker/src/StaticSystem/validateAggregateFrontendLock/validateAggregateFrontendLock.ts) — validates the requested ancestor's payload schema.
 - [`makeVersion.node.spec.ts`](../../packages/core/src/contracts/makeVersion.node.spec.ts) — verifies both directions, generated identities, adapter failures, and default frontend bindings.
 
-## Authentication versions
+## Owner authentication and selection
 
-`makeAuthenticationVersion({ version, signature, authenticate })` binds one stable
-SemVer version to its signature schema and authentication callback. `makeSystem`
-accepts an array of independent definitions, rejects duplicate versions, and retains
-the supplied order. Authentication has no upgrade or signature-adaptation chain.
-The generated System spec serializes every authentication version in version order.
+Every aggregate and service version declares `{ signatureSchema, authenticationSchema, selectionSchema, pattern, authenticate }`. Aggregate full authentication includes `aggregateId`; services have no mandatory aggregate ID. Selection schemas contain only required encoded/decoded strings drawn from full authentication. `RoutePattern` parameters exactly match those fields, and runtime validation rejects unsupported syntax and noncanonical or lossy round trips.
 
-- [`makeVersion.ts`](../../packages/core/src/authentication/makeVersion.ts) — validates each independent definition without executing its callback.
-- [`decodeSystemProps.ts`](../../packages/core/src/system/decodeSystemProps.ts) — requires canonical authentication definitions and rejects duplicate versions.
-- [`makeSystem.ts`](../../packages/core/src/system/makeSystem.ts) — constructs the owned authentication array.
-- [`makeSystemSpec.ts`](../../packages/core/src/system/makeSystemSpec.ts) — serializes version and signature JSON Schema for every definition.
+- [`AuthenticationSchema.ts`](../../packages/core/src/authentication/AuthenticationSchema.ts) — validates schemas and the library-parsed route tokens.
+- [`types.ts`](../../packages/core/src/authentication/types.ts) — constrains selected fields, inferred claims, and literal pattern parameters.
+- [`makeSystemSpec.ts`](../../packages/core/src/system/makeSystemSpec.ts) — serializes each owner's authentication descriptors in its version specification.
 
-Frontends author their own `{ version, signature }`. The browser sends a
-`{ version, signatureJsonSchema }` authentication lock; the Worker selects exactly
-that version, compares its schema, decodes the signature, and executes that version's
-callback. Unsupported versions and mismatches fail without trying another version.
+Authorization and guards receive full decoded claims. Selections receive only `selectionSchema` fields reconstructed from the replica path. Aggregate authenticators may await exact-owner trusted provisioning commands with `authentication: null`. `guardLayer({ db, authentication })` binds lazy application services to each command transaction while preserving static layers.
 
-- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — accepts independently authored frontend authentication and encodes generated signatures.
-- [`makeAuthenticationLock.ts`](../../packages/core/src/authentication/makeAuthenticationLock.ts) — constructs the frontend lock.
-- [`authenticate.ts`](../../packages/system-worker/src/authenticate/authenticate.ts) — performs exact-version validation, decoding, and authentication.
+- [`authenticate.ts`](../../packages/system-worker/src/authenticate/authenticate.ts) — validates full claims, derives selected fields, awaits provisioning, and durably audits attempts.
+- [`executeTx.ts`](../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/executeTx.ts) — reconstructs recipient selection inputs independently of command authentication.
+- [`initializeGuards.ts`](../../packages/core/src/guards/initializeGuards.ts) — acquires static layers once and dynamic layers inside each synchronous guard execution.
+- [`CurrentUser.ts`](../../examples/shopping/src/zerospin/aggregates/shopper/CurrentUser.ts) — declares Shopping's lazy authenticated User lookup.
+
+Frontend controllers declare the signature, full authentication, and selection schemas plus the route pattern. Compatibility locks include their serialized descriptions. `Provider.generateSignature` is keyed by frontend name; authentication determines aggregate IDs. Browser sessions retain typed full claims, and backup keys include their canonical encoded hash.
+
+- [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — retains frontend authentication declarations.
+- [`makeAggregateFrontendLock.ts`](../../packages/core/src/frontendController/makeAggregateFrontendLock.ts) — includes authentication in the frontend lock.
+- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — validates and encodes each frontend's signature independently.
+- [Authentication workflow](./browser/Authentication.md) — describes audit, admission, selection partitions, and offline lookup.
 
 Mutation replay requires the exact registered model name and version. Aggregate and service definitions do not accept mutation adapter registries.
 

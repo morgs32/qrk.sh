@@ -19,7 +19,8 @@ export const onConnect = Effect.fn('FrontendServiceChain.onConnect')(
       phase: 'awaiting-resume' | 'replaying' | 'live';
       serviceName: string;
       serviceVersion: string;
-      identityKey: string;
+      selectionPath: string;
+      authentication: Readonly<Record<string, unknown>>;
       frontendName: string;
       serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
     }>;
@@ -28,17 +29,17 @@ export const onConnect = Effect.fn('FrontendServiceChain.onConnect')(
       systemId: string;
       serviceName: string;
       serviceVersion: string;
-      identityKey: string;
+      selectionPath: string;
       frontendName: string;
     };
   }) {
     const { connection, key, request } = props;
     yield* Effect.void;
 
-    // 1 — extract owner, identityKey, frontendName, and the encoded frontend lock
+    // 1 — extract owner, selectionPath, frontendName, and the encoded frontend lock
     const serviceVersion = request.headers.get('x-zerospin-service-version');
     const serviceName = request.headers.get('x-zerospin-service-name');
-    const identityKey = request.headers.get('x-zerospin-identity-key');
+    const selectionPath = request.headers.get('x-zerospin-selection-path');
     const frontendName = request.headers.get('x-zerospin-frontend-name');
     const encodedServiceFrontendLock = request.headers.get(
       'x-zerospin-service-frontend-lock',
@@ -48,7 +49,7 @@ export const onConnect = Effect.fn('FrontendServiceChain.onConnect')(
     if (
       serviceVersion !== key.serviceVersion ||
       serviceName !== key.serviceName ||
-      identityKey !== key.identityKey ||
+      selectionPath !== key.selectionPath ||
       frontendName !== key.frontendName ||
       encodedServiceFrontendLock === null
     ) {
@@ -69,12 +70,21 @@ export const onConnect = Effect.fn('FrontendServiceChain.onConnect')(
       return;
     }
 
+    const authenticationResult = yield* Schema.decodeUnknownEffect(
+      Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)),
+    )(request.headers.get('x-zerospin-authentication')).pipe(Effect.result);
+    if (Result.isFailure(authenticationResult)) {
+      connection.close(4004, 'frontend-authentication-invalid');
+      return;
+    }
+
     // 5 — store phase awaiting-resume and the checked header fields
     connection.setState({
       phase: 'awaiting-resume',
+      authentication: authenticationResult.success,
       serviceVersion,
       serviceName,
-      identityKey,
+      selectionPath,
       frontendName,
       serviceFrontendLock: serviceFrontendLockResult.success,
     });

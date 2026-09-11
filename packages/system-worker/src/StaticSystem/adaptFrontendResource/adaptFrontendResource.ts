@@ -3,8 +3,10 @@ import { requireVersion as requireModelVersion } from '@zerospin/core/models/req
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { makeEffectSchema } from '@zerospin/schema';
+import config from 'config';
 import { Effect, Schema } from 'effect';
-import { system } from 'system';
+
+const { system } = config;
 
 /*
  * Frontend snapshot paths encode a projected resource for the model

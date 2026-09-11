@@ -1,6 +1,7 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { makeEffectSchema } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
+import { isEqual } from 'es-toolkit';
 
 import type { IServiceFrontendController } from '../frontendController/types.ts';
 import type { ISessionId } from '../session/types.ts';
@@ -25,7 +26,7 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
   function* <FRONTEND extends IServiceFrontendController>(props: {
     frontend: FRONTEND;
     sessionId: ISessionId;
-    identityKey: IServiceFrontendState['identityKey'];
+    authentication: IServiceFrontendState['authentication'];
     systemId: IServiceFrontendState['systemId'];
     db: IServiceSessionDrizzleDb<FRONTEND['models'], Record<never, never>>;
     models: FRONTEND['models'];
@@ -38,7 +39,7 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
       models,
       sessionId,
       systemId,
-      identityKey,
+      authentication,
     } = props;
 
     yield* Schema.encodeEffect(ServiceFrontendStateSchema)(frontendState, {
@@ -51,7 +52,7 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
     );
 
     if (
-      frontendState.identityKey !== identityKey ||
+      !isEqual(frontendState.authentication, authentication) ||
       frontendState.systemId !== systemId ||
       frontendState.serviceName !== frontend.serviceName ||
       frontendState.frontendName !== frontend.name
@@ -60,11 +61,11 @@ export const applyServiceFrontendState = Effect.fn('applyServiceFrontendState')(
         code: 'service-frontend-state-target-mismatch',
         message: 'Service frontend state does not match the bound target',
         extra: {
-          expectedIdentityKey: identityKey,
+          expectedIdentityKey: authentication,
           expectedSystemId: systemId,
           expectedServiceName: frontend.serviceName,
           expectedFrontendName: frontend.name,
-          actualIdentityKey: frontendState.identityKey,
+          actualIdentityKey: frontendState.authentication,
           actualSystemId: frontendState.systemId,
           actualServiceName: frontendState.serviceName,
           actualFrontendName: frontendState.frontendName,

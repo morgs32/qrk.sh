@@ -11,7 +11,7 @@
       "path": "./packages/devtools"
     },
     {
-      "path": "./packages/system"
+      "path": "./packages/config"
     },
     {
       "path": "./packages/error"

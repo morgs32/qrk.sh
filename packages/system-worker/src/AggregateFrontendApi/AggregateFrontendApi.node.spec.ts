@@ -1,3 +1,5 @@
+import { RoutePattern } from '@remix-run/route-pattern';
+import { createHref } from '@remix-run/route-pattern/href';
 import type { IFrontendControllerSpec } from '@zerospin/core/frontendController/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
@@ -45,6 +47,12 @@ vi.mock('cloudflare:workers', () => ({
 }));
 
 const aggregateFrontendLock = {
+  authentication: {
+    signatureJsonSchema: {},
+    authenticationJsonSchema: {},
+    selectionJsonSchema: {},
+    pattern: '/public',
+  },
   systemName: 'shopping',
   frontendName: 'web',
   models: {},
@@ -73,10 +81,13 @@ describe('AggregateFrontendApi', () => {
   it('executes a frontend-bound service query directly through VersionedServiceRepo', async () => {
     const api = new AggregateFrontendApi({
       authResults: {
+        authentication: { userId: 'user_1', aggregateId: 'acct_1' },
         aggregateId: 'acct_1',
         aggregateName: 'user',
         aggregateVersion: '1.0.0',
-        identityKey: 'user_1',
+        selectionPath: createHref(RoutePattern.parse('/:userId'), {
+          userId: 'user_1',
+        }),
         frontendName: 'web',
         aggregateFrontendLock,
         systemId: 'sys_1',
@@ -106,10 +117,13 @@ describe('AggregateFrontendApi', () => {
   it('rejects malformed query arguments before any Repo call', async () => {
     const api = new AggregateFrontendApi({
       authResults: {
+        authentication: { userId: 'user_1', aggregateId: 'acct_1' },
         aggregateId: 'acct_1',
         aggregateName: 'user',
         aggregateVersion: '1.0.0',
-        identityKey: 'user_1',
+        selectionPath: createHref(RoutePattern.parse('/:userId'), {
+          userId: 'user_1',
+        }),
         frontendName: 'web',
         aggregateFrontendLock,
         systemId: 'sys_1',

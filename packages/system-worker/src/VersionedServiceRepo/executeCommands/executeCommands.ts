@@ -6,9 +6,9 @@ import type { IDb } from '@zerospin/core/drizzle/types';
 import { initializeGuards as initializeServiceGuards } from '@zerospin/core/service/initializeGuards';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError, ZerospinError } from '@zerospin/error';
+import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Layer, Result, Schema } from 'effect';
-import { system } from 'system';
 
 import type { serviceAdmittedChainDbConfig } from '../../ServiceAdmittedChain/serviceAdmittedChainDbConfig.js';
 import {
@@ -17,6 +17,8 @@ import {
 } from '../versionedServiceRepoDbConfig.js';
 
 import { executeCommandsTx } from './executeCommandsTx.js';
+
+const { system } = config;
 
 /** Caller holds the execution permit; prepare before atomically committing the new suffix. */
 export const executeCommands = Effect.fn(
@@ -106,7 +108,7 @@ export const executeCommands = Effect.fn(
           command: source,
         });
         const made = yield* makeMutations({
-          identityKey: null,
+          authentication: null,
           contract,
           models: service.models,
           command: { ...source, payload },

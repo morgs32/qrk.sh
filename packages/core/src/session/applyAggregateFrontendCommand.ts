@@ -1,6 +1,7 @@
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import { makeAbbreviationIdSchema, makeEffectSchema } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
+import { isEqual } from 'es-toolkit';
 
 import type { IDrizzleRelationsFromModels } from '../drizzle/types.ts';
 import type {
@@ -42,13 +43,20 @@ export const applyAggregateFrontendCommand = Effect.fn(
   models: InferFrontendModels<FRONTEND>;
   command: IAggregateFrontendFinalizedCommand;
   aggregateId: IAggregateFrontendSyncState['aggregateId'];
-  identityKey: IAggregateFrontendSyncState['identityKey'];
+  authentication: IAggregateFrontendSyncState['authentication'];
   sessionId: ISessionId;
 }): Effect.fn.Return<'applied' | 'duplicate', IAnyError> {
   // 1 — Encode against the finalized or pushed wire schema, then reject a
   // foreign target or any occurrence whose delta is still pending.
-  const { aggregateId, command, db, frontend, models, sessionId, identityKey } =
-    props;
+  const {
+    aggregateId,
+    command,
+    db,
+    frontend,
+    models,
+    sessionId,
+    authentication,
+  } = props;
 
   yield* Schema.encodeUnknownEffect(AggregateFrontendFinalizedCommandSchema)(
     command,
@@ -63,7 +71,7 @@ export const applyAggregateFrontendCommand = Effect.fn(
     resolution !== null &&
     (resolution.aggregateId !== aggregateId ||
       resolution.aggregateName !== frontend.aggregateName ||
-      resolution.identityKey !== identityKey ||
+      !isEqual(resolution.authentication, authentication) ||
       resolution.frontendName !== frontend.name ||
       resolution.aggregateIndex !== command.aggregateIndex ||
       resolution.dispositionHash === null)

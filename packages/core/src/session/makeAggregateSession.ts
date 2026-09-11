@@ -1,4 +1,4 @@
-import { ZerospinError, type IAnyError } from '@zerospin/error';
+import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import {
   emptyTelemetryBatch,
   makeTelemetryLayer,
@@ -7,7 +7,7 @@ import {
   type ITelemetryCollector,
 } from '@zerospin/logger';
 import type { CuidFactory } from '@zerospin/schema';
-import { Effect, type ManagedRuntime } from 'effect';
+import { Effect, Schema, type ManagedRuntime } from 'effect';
 import { createStore } from 'zustand/vanilla';
 
 import { encodeCommand } from '../contracts/encodeCommand.ts';
@@ -66,82 +66,88 @@ export function makeAggregateSession<
     guards,
     sessionId: initialSessionId,
   } = props;
-  const store = createStore<ISessionState<InferFrontendModels<FRONTEND>>>(
-    (set, get) => {
-      const telemetryCollector: ITelemetryCollector = {
-        addSpan: span => {
-          set(state => ({
-            ...state,
-            telemetry: {
-              ...state.telemetry,
-              spans: [...state.telemetry.spans, span],
-            },
-          }));
-        },
-        addLog: log => {
-          set(state => ({
-            ...state,
-            telemetry: {
-              ...state.telemetry,
-              logs: [...state.telemetry.logs, log],
-            },
-          }));
-        },
-        addLinks: links => {
-          set(state => ({
-            ...state,
-            telemetry: {
-              ...state.telemetry,
-              links: [...state.telemetry.links, ...links],
-            },
-          }));
-        },
-        merge: batch => {
-          set(state => ({
-            ...state,
-            telemetry: {
-              spans: [...state.telemetry.spans, ...batch.spans],
-              logs: [...state.telemetry.logs, ...batch.logs],
-              links: [...state.telemetry.links, ...batch.links],
-            },
-          }));
-        },
-        flush: () => {
-          const batch = get().telemetry;
-          set({ telemetry: emptyTelemetryBatch() });
-          return batch;
-        },
-      };
+  const store = createStore<
+    ISessionState<
+      InferFrontendModels<FRONTEND>,
+      FRONTEND['authentication']['authenticationSchema']['Type']
+    >
+  >((set, get) => {
+    const telemetryCollector: ITelemetryCollector = {
+      addSpan: span => {
+        set(state => ({
+          ...state,
+          telemetry: {
+            ...state.telemetry,
+            spans: [...state.telemetry.spans, span],
+          },
+        }));
+      },
+      addLog: log => {
+        set(state => ({
+          ...state,
+          telemetry: {
+            ...state.telemetry,
+            logs: [...state.telemetry.logs, log],
+          },
+        }));
+      },
+      addLinks: links => {
+        set(state => ({
+          ...state,
+          telemetry: {
+            ...state.telemetry,
+            links: [...state.telemetry.links, ...links],
+          },
+        }));
+      },
+      merge: batch => {
+        set(state => ({
+          ...state,
+          telemetry: {
+            spans: [...state.telemetry.spans, ...batch.spans],
+            logs: [...state.telemetry.logs, ...batch.logs],
+            links: [...state.telemetry.links, ...batch.links],
+          },
+        }));
+      },
+      flush: () => {
+        const batch = get().telemetry;
+        set({ telemetry: emptyTelemetryBatch() });
+        return batch;
+      },
+    };
 
-      return {
-        sessionId: initialSessionId,
-        aggregateId: null,
-        aggregateName: null,
-        identityKey: null,
-        systemId: null,
-        frontendName: null,
-        aggregateFrontendLockKey: null,
-        db: null,
-        schema: null,
-        models: null,
-        isInitialized: false,
-        aggregateIndex: null,
-        userIndex: null,
-        pushIndex: null,
-        sessionStatus: 'bootstrapping',
-        backupState: {
-          status: 'pending',
-          failure: null,
-        },
-        telemetry: emptyTelemetryBatch(),
-        telemetryCollector,
-      };
-    },
-  );
+    return {
+      sessionId: initialSessionId,
+      aggregateId: null,
+      aggregateName: null,
+      authentication: null,
+      systemId: null,
+      frontendName: null,
+      aggregateFrontendLockKey: null,
+      db: null,
+      schema: null,
+      models: null,
+      isInitialized: false,
+      aggregateIndex: null,
+      userIndex: null,
+      pushIndex: null,
+      sessionStatus: 'bootstrapping',
+      backupState: {
+        status: 'pending',
+        failure: null,
+      },
+      telemetry: emptyTelemetryBatch(),
+      telemetryCollector,
+    };
+  });
 
   const onInitialized = (
     handler: (props: {
-      state: IInitializedSessionState<InferFrontendModels<FRONTEND>>;
+      state: IInitializedSessionState<
+        InferFrontendModels<FRONTEND>,
+        FRONTEND['authentication']['authenticationSchema']['Type']
+      >;
     }) => void,
   ): (() => void) => {
     const state = store.getState();
@@ -219,11 +225,6 @@ export function makeAggregateSession<
       version,
       payload: commandProps.payload,
     });
-    yield* guards.run(commandProps.contractName, {
-      identityKey: state.identityKey,
-      db: state.db,
-      payload: validatedPayload,
-    });
     const command = yield* makeSessionCommand({
       aggregateId: state.aggregateId,
       aggregateName: frontend.aggregateName,
@@ -231,7 +232,14 @@ export function makeAggregateSession<
       frontendName: frontend.name,
       sessionId,
       systemName: frontend.systemName,
-      identityKey: state.identityKey,
+      authentication: yield* Schema.encodeEffect(
+        frontend.authentication.authenticationSchema,
+      )(state.authentication).pipe(
+        mapParseError({
+          code: 'command-authentication-invalid',
+          prefix: 'Failed to encode command authentication',
+        }),
+      ),
       validatedPayload,
       version,
     });
@@ -239,7 +247,7 @@ export function makeAggregateSession<
     const encodedCommand = yield* encodeCommand({ contract, command });
 
     const madeMutations = yield* makeMutations({
-      identityKey: state.identityKey,
+      authentication: state.authentication,
       contract,
       models: frontend.models,
       command,
@@ -251,6 +259,8 @@ export function makeAggregateSession<
     );
 
     return yield* executeCommandTx({
+      guards,
+      authentication: state.authentication,
       sessionId,
       madeMutations,
       encodedCommand,

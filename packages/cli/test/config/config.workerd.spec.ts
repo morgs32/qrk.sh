@@ -1,11 +1,11 @@
 import { SELF } from 'cloudflare:test';
-import { config as workerConfig, system as workerSystem } from 'system';
+import workerConfig from 'config';
 import { expect, it } from 'vitest';
 
 import config, { system } from './zerospin.config';
 
-it('uses the generated system entry with the authored system capability', async () => {
-  expect(workerSystem).toBe(system);
+it('uses the direct config alias with the authored system capability', async () => {
+  expect(workerConfig.system).toBe(system);
   expect(workerConfig).toBe(config);
   expect(config.system).toBe(system);
 

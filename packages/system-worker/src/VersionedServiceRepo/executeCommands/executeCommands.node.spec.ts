@@ -5,9 +5,9 @@ import {
 } from '@zerospin/core/contracts/CommandSchema';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/makeProvisionedInMemorySqljsDb';
+import config from 'config';
 import { sql } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
-import { system } from 'system';
 import { beforeEach, expect, it, vi } from 'vitest';
 
 import {
@@ -16,6 +16,8 @@ import {
 } from '../versionedServiceRepoDbConfig.js';
 
 import { executeCommands } from './executeCommands.js';
+
+const { system } = config;
 
 const wire = vi.hoisted(() => ({ admitted: vi.fn(), finalized: vi.fn() }));
 vi.mock(

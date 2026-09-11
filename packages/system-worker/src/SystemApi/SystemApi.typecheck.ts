@@ -24,11 +24,17 @@ const frontendStateRequest = {
       aggregateId: 'acct_1',
       aggregateName: 'shopping',
       aggregateVersion: '1.0.0',
-      identityKey: 'user_1',
+      selectionPath: 'user_1',
       frontendName: 'web',
       aggregateFrontendLock: {
         systemName: 'shopping',
         frontendName: 'web',
+        authentication: {
+          signatureJsonSchema: {},
+          authenticationJsonSchema: {},
+          selectionJsonSchema: {},
+          pattern: '/',
+        },
         models: {},
         contracts: {},
       },
@@ -86,16 +92,20 @@ void systemApi.getSystemRepos(emptyRequest);
 void systemApi.getSystemRepoTableRows(repoTableRequest);
 void systemApi.getVersionedAggregateRepos(emptyRequest);
 void systemApi.getVersionedAggregateRepoTableRows(repoTableRequest);
-void systemApi.getUserVersionedAggregateRepos(emptyRequest);
-void systemApi.getUserVersionedAggregateRepoTableRows(repoTableRequest);
+void systemApi.getAuthenticatedVersionedAggregateRepos(emptyRequest);
+void systemApi.getAuthenticatedVersionedAggregateRepoTableRows(
+  repoTableRequest,
+);
 void systemApi.getFrontendVersionedServiceRepos(emptyRequest);
 void systemApi.getFrontendVersionedServiceRepoTableRows(repoTableRequest);
 void systemApi.getVersionedServiceRepos(emptyRequest);
 void systemApi.getVersionedServiceRepoTableRows(repoTableRequest);
 void systemApi.getAggregateChains(emptyRequest);
 void systemApi.getAggregateChainTableRows(repoTableRequest);
-void systemApi.getUserVersionedAggregateChains(emptyRequest);
-void systemApi.getUserVersionedAggregateChainTableRows(repoTableRequest);
+void systemApi.getAuthenticatedVersionedAggregateChains(emptyRequest);
+void systemApi.getAuthenticatedVersionedAggregateChainTableRows(
+  repoTableRequest,
+);
 void systemApi.getVersionedAggregateChains(emptyRequest);
 void systemApi.getVersionedAggregateChainTableRows(repoTableRequest);
 void systemApi.getFrontendServiceChains(emptyRequest);
@@ -119,8 +129,10 @@ void systemApiFailure.getSystemRepos(emptyRequest);
 void systemApiFailure.getSystemRepoTableRows(repoTableRequest);
 void systemApiFailure.getVersionedAggregateRepos(emptyRequest);
 void systemApiFailure.getVersionedAggregateRepoTableRows(repoTableRequest);
-void systemApiFailure.getUserVersionedAggregateRepos(emptyRequest);
-void systemApiFailure.getUserVersionedAggregateRepoTableRows(repoTableRequest);
+void systemApiFailure.getAuthenticatedVersionedAggregateRepos(emptyRequest);
+void systemApiFailure.getAuthenticatedVersionedAggregateRepoTableRows(
+  repoTableRequest,
+);
 void systemApiFailure.getFrontendVersionedServiceRepos(emptyRequest);
 void systemApiFailure.getFrontendVersionedServiceRepoTableRows(
   repoTableRequest,
@@ -129,8 +141,10 @@ void systemApiFailure.getVersionedServiceRepos(emptyRequest);
 void systemApiFailure.getVersionedServiceRepoTableRows(repoTableRequest);
 void systemApiFailure.getAggregateChains(emptyRequest);
 void systemApiFailure.getAggregateChainTableRows(repoTableRequest);
-void systemApiFailure.getUserVersionedAggregateChains(emptyRequest);
-void systemApiFailure.getUserVersionedAggregateChainTableRows(repoTableRequest);
+void systemApiFailure.getAuthenticatedVersionedAggregateChains(emptyRequest);
+void systemApiFailure.getAuthenticatedVersionedAggregateChainTableRows(
+  repoTableRequest,
+);
 void systemApiFailure.getVersionedAggregateChains(emptyRequest);
 void systemApiFailure.getVersionedAggregateChainTableRows(repoTableRequest);
 void systemApiFailure.getFrontendServiceChains(emptyRequest);

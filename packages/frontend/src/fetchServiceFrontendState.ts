@@ -1,6 +1,5 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import type { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
 import type { ServiceFrontendLockSchema } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import type { IServiceFrontendState } from '@zerospin/core/serviceSession/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
@@ -24,7 +23,6 @@ export const fetchServiceFrontendState = Effect.fn('fetchServiceFrontendState')(
     apiUrl: string;
     publishableKey: string;
     systemName: string;
-    authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
     generateSignature(): Promise<IEncodedResult<unknown, IAnyErrorJson>>;
     serviceName: string;
     serviceVersion: string;
@@ -37,7 +35,6 @@ export const fetchServiceFrontendState = Effect.fn('fetchServiceFrontendState')(
   > {
     const {
       apiUrl,
-      authenticationLock,
       frontendName,
       generateSignature,
       publishableKey,
@@ -53,7 +50,6 @@ export const fetchServiceFrontendState = Effect.fn('fetchServiceFrontendState')(
       serviceVersion: props.serviceVersion,
       publishableKey,
       systemName,
-      authenticationLock,
       signature,
       serviceName,
       frontendName,

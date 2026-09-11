@@ -11,7 +11,6 @@ import { makeAggregateFrontendLockKey } from '@zerospin/core/frontendController/
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { type IAnyAggregateFrontendController } from '@zerospin/core/frontendController/types';
 import type {
-  IAggregateId,
   IAnyModels,
   IEncodedResourceShape,
   InferResource,
@@ -25,7 +24,6 @@ import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSessio
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
 import { coreAbbreviations } from '@zerospin/core/utils/coreAbbreviations';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
-import type { ISignatureFactory } from '@zerospin/core/utils/types';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
 import {
@@ -72,11 +70,7 @@ export function makeMockProvider<
 
   return function MockProvider(providerProps: {
     children: ReactNode;
-    generateSignature: ISignatureFactory;
-    identityKey?: string;
-    aggregateIds: {
-      readonly [FRONTEND_NAME in FRONTEND['name']]: IAggregateId;
-    };
+    authentication: FRONTEND['authentication']['authenticationSchema']['Type'];
     resources?: Partial<{
       [K in keyof MODELS]: readonly InferResource<MODELS[K]>[];
     }>;
@@ -124,25 +118,20 @@ export function makeMockProvider<
                   coreSession.store.setState({ sessionStatus: 'released' });
                 }),
               );
-              if (initializationProps.identityKey === undefined) {
-                return yield* new ZerospinError({
-                  code: 'mock-session-identity-key-required',
-                  message:
-                    'MockProvider requires identityKey because it does not simulate authentication',
-                });
-              }
-              const identityKey = initializationProps.identityKey;
+              const authentication = yield* Schema.encodeEffect(
+                selector.frontend.authentication.authenticationSchema,
+              )(initializationProps.authentication).pipe(
+                mapParseError({
+                  code: 'mock-session-authentication-invalid',
+                  prefix: 'Invalid mock authentication',
+                }),
+              );
               const aggregateId = yield* Schema.decodeUnknownEffect(
-                makeAbbreviationIdSchema(coreAbbreviations.aggregate),
-              )(
-                Reflect.get(
-                  initializationProps.aggregateIds,
-                  selector.frontend.name,
-                ),
-              ).pipe(
+                makeAbbreviationIdSchema('acct'),
+              )(authentication.aggregateId).pipe(
                 mapParseError({
                   code: 'mock-session-aggregate-id-invalid',
-                  prefix: `MockProvider requires aggregateIds.${selector.frontend.name}`,
+                  prefix: 'Invalid mock aggregate ID',
                 }),
               );
               const models = selector.models;
@@ -216,12 +205,12 @@ export function makeMockProvider<
                   frontend: selector.frontend,
                   sessionId: coreSession.sessionId,
                   aggregateId,
-                  identityKey,
+                  authentication,
                   systemId,
                   frontendState: {
                     aggregateId,
                     aggregateName: selector.frontend.aggregateName,
-                    identityKey,
+                    authentication,
                     aggregateIndex: 0,
                     userIndex: 0,
                     frontendName: selector.frontend.name,
@@ -242,7 +231,7 @@ export function makeMockProvider<
                   releaseMockSession,
                   schema: dbConfig.schema,
                   systemId,
-                  identityKey,
+                  authentication,
                 };
               });
             }).pipe(Effect.provideService(Scope.Scope, scope)),
@@ -268,7 +257,9 @@ export function makeMockProvider<
             coreSession.store.setState({
               aggregateId: data.aggregateId,
               aggregateName: selector.frontend.aggregateName,
-              identityKey: data.identityKey,
+              authentication: Schema.decodeUnknownSync(
+                selector.frontend.authentication.authenticationSchema,
+              )(data.authentication),
               db: data.db,
               aggregateIndex: 0,
               userIndex: 0,

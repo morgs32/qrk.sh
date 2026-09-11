@@ -1,13 +1,17 @@
+import { RoutePattern } from '@remix-run/route-pattern';
+import { createHref } from '@remix-run/route-pattern/href';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { makeServiceFrontendLock } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { env } from 'cloudflare:test';
+import config from 'config';
 import { Effect } from 'effect';
-import { system } from 'system';
 import { expect, it } from 'vitest';
 
 import { FrontendServiceChain } from './FrontendServiceChain.js';
+
+const { system } = config;
 it('retains exact service output and replays strictly after a nonzero version-pinned cursor', async () => {
   await Effect.runPromise(
     Effect.gen(function* () {
@@ -15,7 +19,9 @@ it('retains exact service output and replays strictly after a nonzero version-pi
         systemId: env.ZEROSPIN_SYSTEM_ID,
         serviceName: 'app',
         serviceVersion: '1.0.0',
-        identityKey: 'usr_replay071',
+        selectionPath: createHref(RoutePattern.parse('/:userId'), {
+          userId: 'usr_replay071',
+        }),
         frontendName: 'products',
       };
       const repo = yield* FrontendServiceChain.getRepo({
@@ -76,7 +82,10 @@ it('retains exact service output and replays strictly after a nonzero version-pi
               Upgrade: 'websocket',
               'x-zerospin-service-name': key.serviceName,
               'x-zerospin-service-version': key.serviceVersion,
-              'x-zerospin-identity-key': key.identityKey,
+              'x-zerospin-selection-path': key.selectionPath,
+              'x-zerospin-authentication': JSON.stringify({
+                userId: decodeURIComponent(key.selectionPath.slice(1)),
+              }),
               'x-zerospin-frontend-name': key.frontendName,
               'x-zerospin-service-frontend-lock': JSON.stringify(
                 makeServiceFrontendLock({

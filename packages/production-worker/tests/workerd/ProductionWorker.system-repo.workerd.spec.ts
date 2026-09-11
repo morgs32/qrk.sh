@@ -1,12 +1,14 @@
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import { makeServiceFrontendLock } from '@zerospin/core/frontendController/makeServiceFrontendLock';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { newWebSocketRpcSession } from 'capnweb';
 import { reset, SELF } from 'cloudflare:test';
+import config from 'config';
 import { Effect } from 'effect';
-import { authenticationSignature, system } from 'system';
+
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 import { beforeEach, describe, expect, it } from 'vitest';
+
+const { system } = config;
 
 beforeEach(async () => {
   await reset();
@@ -57,7 +59,7 @@ describe('ProductionWorker static Gateway', () => {
     using serviceFrontendApi = await gatewayApi.getServiceFrontendApi({
       publishableKey: 'pk_live_production_test',
       systemName: system.name,
-      authenticationLock: makeAuthenticationLock(authenticationSignature),
+
       signature: { userId: 'usr_production_socket' },
       frontendName: 'products',
       serviceFrontendLock: makeServiceFrontendLock({

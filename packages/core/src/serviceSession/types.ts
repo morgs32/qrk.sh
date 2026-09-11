@@ -44,7 +44,7 @@ export type IServiceFrontendFinalizedCommand = IChainedCommand<
   }>;
 
 export type IServiceFrontendState = Readonly<{
-  identityKey: string;
+  authentication: Readonly<Record<string, unknown>>;
   systemId: ISystemId;
   serviceName: string;
   frontendName: string;
@@ -55,9 +55,10 @@ export type IServiceFrontendState = Readonly<{
 
 export type IInitializedServiceSessionState<
   MODELS extends IAnyModels = IAnyModels,
+  AUTHENTICATION = Readonly<Record<string, unknown>>,
 > = Readonly<{
   sessionId: ISessionId;
-  identityKey: string;
+  authentication: AUTHENTICATION;
   systemId: ISystemId;
   serviceName: string;
   frontendName: string;
@@ -82,11 +83,14 @@ export type IInitializedServiceSessionState<
   telemetryCollector: ITelemetryCollector;
 }>;
 
-export type IServiceSessionState<MODELS extends IAnyModels = IAnyModels> =
-  | IInitializedServiceSessionState<MODELS>
+export type IServiceSessionState<
+  MODELS extends IAnyModels = IAnyModels,
+  AUTHENTICATION = Readonly<Record<string, unknown>>,
+> =
+  | IInitializedServiceSessionState<MODELS, AUTHENTICATION>
   | Readonly<{
       sessionId: ISessionId;
-      identityKey: null;
+      authentication: null;
       systemId: null;
       serviceName: null;
       frontendName: null;
@@ -120,8 +124,16 @@ export type IServiceSession<
   sessionId: ISessionId;
   onInitialized(
     handler: (props: {
-      state: IInitializedServiceSessionState<MODELS>;
+      state: IInitializedServiceSessionState<
+        MODELS,
+        FRONTEND['authentication']['authenticationSchema']['Type']
+      >;
     }) => void,
   ): () => void;
-  store: StoreApi<IServiceSessionState<MODELS>>;
+  store: StoreApi<
+    IServiceSessionState<
+      MODELS,
+      FRONTEND['authentication']['authenticationSchema']['Type']
+    >
+  >;
 }>;

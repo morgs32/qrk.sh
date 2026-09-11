@@ -1,12 +1,11 @@
 import { act, useLayoutEffect } from 'react';
 
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { authenticationSignature } from '@zerospin/core/fixtures/system';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
-import { Effect, Layer, Redacted } from 'effect';
+import { Layer, Redacted } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,10 +21,7 @@ const sessionRuntimeLayer = Layer.mergeAll(
 
 const ZerospinApp = makeZerospinApp({
   systemName: 'system-worker',
-  authentication: {
-    version: authenticationSignature.version,
-    signature: authenticationSignature.signature,
-  },
+
   frontends: {},
   layer: sessionRuntimeLayer,
 });
@@ -74,10 +70,7 @@ describe('makeZerospinApp Provider DevTools dynamic import failure', () => {
   it('rejects a failed component import and retries it on the next open', async () => {
     await act(async () => {
       root.render(
-        <ZerospinApp.Provider
-          aggregateIds={{}}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-        >
+        <ZerospinApp.Provider generateSignature={{}}>
           <div>Application</div>
         </ZerospinApp.Provider>,
       );

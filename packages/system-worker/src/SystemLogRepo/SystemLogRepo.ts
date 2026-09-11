@@ -1,11 +1,10 @@
+import { RoutePattern } from '@remix-run/route-pattern';
+import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 /*
  * System-worker annotation:
  * Defines the system-scoped SystemLogRepo Durable Object shell and log row storage.
  * Public RPC methods delegate to same-named Effect functions in method folders.
  */
-
-import { RoutePattern } from '@remix-run/route-pattern';
-import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import type {
   ISystemLogLevel,
   ISystemLogRow,
@@ -22,6 +21,8 @@ import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 import { appendLogRow } from './appendLogRow/appendLogRow.js';
 import { appendTelemetryBatch } from './appendTelemetryBatch/appendTelemetryBatch.js';
+import { beginAuthenticationAttempt } from './beginAuthenticationAttempt/beginAuthenticationAttempt.js';
+import { completeAuthenticationAttempt } from './completeAuthenticationAttempt/completeAuthenticationAttempt.js';
 import { getSystemLogRows } from './getSystemLogRows/getSystemLogRows.js';
 import { systemLogRepoDbConfig } from './systemLogRepoDbConfig.js';
 
@@ -38,6 +39,22 @@ export class SystemLogRepo extends makeFixedDORepo({
   fixedDORepoConfig: systemLogFixedDORepoConfig,
 }) {
   static override readonly fixedDORepoConfig = systemLogFixedDORepoConfig;
+
+  async beginAuthenticationAttempt(
+    props: Omit<Parameters<typeof beginAuthenticationAttempt>[0], 'db'>,
+  ) {
+    return managedRuntime.runPromise(
+      beginAuthenticationAttempt({ ...props, db: this.db }).pipe(encodeRpc),
+    );
+  }
+
+  async completeAuthenticationAttempt(
+    props: Omit<Parameters<typeof completeAuthenticationAttempt>[0], 'db'>,
+  ) {
+    return managedRuntime.runPromise(
+      completeAuthenticationAttempt({ ...props, db: this.db }).pipe(encodeRpc),
+    );
+  }
 
   /*
    * SystemLogRepo.appendLogRow is the runtime boundary for the same-named operation.

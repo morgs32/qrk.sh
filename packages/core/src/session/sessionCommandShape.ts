@@ -14,7 +14,9 @@ export const sessionCommandJournalShape = {
   aggregateId: primitives.text(),
   aggregateName: primitives.text(),
   frontendName: primitives.text(),
-  identityKey: primitives.text(),
+  authentication: primitives.json({
+    schema: Schema.Record(Schema.String, Schema.Unknown),
+  }),
   sessionId: primitives.foreignKey({ abbreviation: 'sesn' }),
   sessionIndex: primitives.integer({ nullable: true }),
   pushIndex: primitives.integer({ nullable: true }),
@@ -44,7 +46,9 @@ export const sessionCommandDevtoolsShape = {
   id: primitives.primaryKey({ abbreviation: 'cmd' }),
   commandName: primitives.text(),
   payload: primitives.text(),
-  identityKey: primitives.text(),
+  authentication: primitives.json({
+    schema: Schema.Record(Schema.String, Schema.Unknown),
+  }),
   sessionId: primitives.foreignKey({ abbreviation: 'sesn' }),
   sessionIndex: primitives.integer(),
   pushIndex: primitives.integer(),

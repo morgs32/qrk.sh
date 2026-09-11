@@ -20,7 +20,6 @@ import {
 import type { GatewayApi } from 'system-worker/GatewayApi/GatewayApi';
 
 import { loadZerospinConfigFn } from './loadZerospinConfigFn.js';
-import { makeSystemEntry } from './makeSystemEntry.js';
 
 const require = createRequire(import.meta.url);
 
@@ -131,9 +130,6 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
     const config = yield* loadZerospinConfigFn(cwd).pipe(
       Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
     );
-    const systemEntry = yield* makeSystemEntry(cwd).pipe(
-      Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
-    );
     const productionWorkerPath = yield* Effect.try({
       try: () =>
         require.resolve('@zerospin/production-worker/ProductionWorker'),
@@ -150,7 +146,7 @@ export const deployWranglerFn = Effect.fn('deployWranglerFn')(
         makeWranglerConfig({
           config,
           main: productionWorkerPath,
-          systemModulePath: systemEntry,
+          configModulePath: path.resolve(cwd, 'zerospin.config.ts'),
           environment: 'production',
         }),
       catch: cause =>

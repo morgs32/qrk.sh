@@ -9,7 +9,7 @@ System-worker still used the removed aggregate frontend registry to execute comm
 
 ## Solution
 
-Replace FrontendAggregateRepo and FrontendAggregateChain with UserVersionedAggregateRepo (UVAR) and UserVersionedAggregateChain (UVAC). Frontends select exact compatible subsets at the capability and connection boundaries. UVAC retains user history indefinitely; UVAR owns current state and its delivery outbox.
+Replace FrontendAggregateRepo and FrontendAggregateChain with AuthenticatedVersionedAggregateRepo (UVAR) and AuthenticatedVersionedAggregateChain (UVAC). Frontends select exact compatible subsets at the capability and connection boundaries. UVAC retains user history indefinitely; UVAR owns current state and its delivery outbox.
 
 ## User Stories
 

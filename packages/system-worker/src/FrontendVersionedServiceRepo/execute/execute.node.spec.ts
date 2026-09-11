@@ -1,9 +1,11 @@
+import { RoutePattern } from '@remix-run/route-pattern';
+import { createHref } from '@remix-run/route-pattern/href';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeModelMutations } from '@zerospin/core/contracts/makeModelMutations';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/makeProvisionedInMemorySqljsDb';
+import config from 'config';
 import { Effect } from 'effect';
-import { system } from 'system';
 import { expect, it } from 'vitest';
 
 import {
@@ -12,6 +14,8 @@ import {
 } from '../frontendVersionedServiceRepoDbConfig.js';
 
 import { execute } from './execute.js';
+
+const { system } = config;
 it('rejects a gapped page without advancing the projection or output', async () => {
   const db = await Effect.runPromise(
     makeProvisionedInMemorySqljsDb({
@@ -28,7 +32,9 @@ it('rejects a gapped page without advancing the projection or output', async () 
         systemId: 'sys_test',
         serviceName: 'app',
         serviceVersion: '1.0.0',
-        identityKey: 'usr_test',
+        selectionPath: createHref(RoutePattern.parse('/:userId'), {
+          userId: 'usr_test',
+        }),
         frontendName: 'products',
       },
       rows: [{ outboxIndex: 2, entry: '{}', executionVersion: '1.0.0' }],
@@ -65,7 +71,9 @@ it('rolls back source state and every output when projection fails, then retries
     systemId: 'sys_test',
     serviceName: 'app',
     serviceVersion: '1.0.0',
-    identityKey: 'usr_test',
+    selectionPath: createHref(RoutePattern.parse('/:userId'), {
+      userId: 'usr_test',
+    }),
     frontendName: 'products',
   };
   const rows = await Effect.runPromise(

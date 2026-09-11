@@ -3,6 +3,7 @@ import { act } from 'react';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
+import { main } from '@zerospin/core/fixtures/system';
 import { makeServiceSession } from '@zerospin/core/serviceSession/makeServiceSession';
 import { Effect, Schema } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
@@ -46,21 +47,28 @@ describe('SessionPane service surface', () => {
       frontend: {
         systemName: 'shopping',
         serviceName: 'catalog',
-        frontendName: 'browse',
+        name: 'browse',
+        serviceVersion: '1.0.0',
         kind: 'service',
         contracts: {},
         models,
         modelNames: [],
-        signature: Schema.Struct({ identityKey: Schema.String }),
+        authentication: {
+          signatureSchema: Schema.Struct({ userId: Schema.String }),
+          authenticationSchema: Schema.Struct({ userId: Schema.String }),
+          selectionSchema: Schema.Struct({ userId: Schema.String }),
+          pattern: main.authentication.pattern,
+        },
       },
       models,
       sessionId: serviceSessionId,
     });
     session.store.setState({
       sessionId: serviceSessionId,
-      identityKey: 'user_service_pane',
+      authentication: { userId: 'user_service_pane' },
       systemId: 'sys_service_pane',
       serviceName: 'catalog',
+      serviceVersion: '1.0.0',
       frontendName: 'browse',
       serviceFrontendLockKey: 'b'.repeat(64),
       db,

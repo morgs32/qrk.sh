@@ -54,7 +54,7 @@ receiver's durable cursor. This is a startup prerequisite, not alarm work.
 Explicit reads may subsequently call `catchup(index?)` without subscribing again.
 
 AC initializes its base/feed cursor and subscribes to SystemRepo's version
-feed. VAR and UVAR select the aggregate snapshot using their physical
+feed. VAR and AVAR select the aggregate snapshot using their physical
 `aggregateName` and `aggregateVersion`; that snapshot already declares every
 service dependency in `aggregate.services`. For each service target,
 `systemId` comes from the Repo key, while `serviceName` and `serviceVersion` come
@@ -71,8 +71,8 @@ reconciles its admitted-command destinations from the deployed version list.
 - [VAR activation](../VersionedAggregateRepo/onDOActivation/onDOActivation.ts)
 - [SAC activation](../ServiceAdmittedChain/onDOActivation/onDOActivation.ts)
 - [FVSR activation](../FrontendVersionedServiceRepo/onDOActivation/onDOActivation.ts)
-- [UVAR activation](../UserVersionedAggregateRepo/onDOActivation/onDOActivation.ts)
-- [Declared-source and restart tests](../UserVersionedAggregateRepo/UserVersionedAggregateRepo.workerd.spec.ts)
+- [AVAR activation](../AuthenticatedVersionedAggregateRepo/onDOActivation/onDOActivation.ts)
+- [Declared-source and restart tests](../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.workerd.spec.ts)
 - [Pinned service replication tests](../pinnedServiceReplicas.workerd.spec.ts)
 
 The activation gate is held during subscription, but **execution permits and

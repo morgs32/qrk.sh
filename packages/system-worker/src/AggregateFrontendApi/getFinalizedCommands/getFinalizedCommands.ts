@@ -12,13 +12,15 @@ import {
   type IEncodedResult,
 } from '@zerospin/error';
 import type { IRpcRequest } from '@zerospin/logger';
+import config from 'config';
 import { Effect, Result, Schema } from 'effect';
-import { system } from 'system';
 
-import { UserVersionedAggregateChain } from '../../UserVersionedAggregateChain/UserVersionedAggregateChain.js';
+import { AuthenticatedVersionedAggregateChain } from '../../AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
+
+const { system } = config;
 
 /*
- * AggregateFrontendApi serves reconnect history from UserVersionedAggregateChain.
+ * AggregateFrontendApi serves reconnect history from AuthenticatedVersionedAggregateChain.
  * The capability binds the frontend identity; the request supplies the replay
  * cursor and aggregateVersion.
  *
@@ -36,7 +38,8 @@ export const getFinalizedCommands = Effect.fn(
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
     aggregateVersion: string;
-    readonly identityKey: string;
+    readonly authentication: Readonly<Record<string, unknown>>;
+    readonly selectionPath: string;
     readonly frontendName: string;
     readonly aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
@@ -100,13 +103,13 @@ export const getFinalizedCommands = Effect.fn(
   }
 
   // 3 — use the capability-bound frontend fields and caller-selected version
-  const chain = yield* UserVersionedAggregateChain.getRepo({
+  const chain = yield* AuthenticatedVersionedAggregateChain.getRepo({
     key: {
       systemId: authResults.systemId,
       aggregateVersion: validated.success[0].aggregateVersion,
       aggregateId: authResults.aggregateId,
       aggregateName: authResults.aggregateName,
-      identityKey: authResults.identityKey,
+      selectionPath: authResults.selectionPath,
     },
   });
 
@@ -124,6 +127,7 @@ export const getFinalizedCommands = Effect.fn(
       afterUserIndex: validated.success[0].afterUserIndex,
       frontend: {
         name: authResults.frontendName,
+        authentication: authResults.authentication,
         lock: authResults.aggregateFrontendLock,
       },
     }),

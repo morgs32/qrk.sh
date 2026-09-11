@@ -13,8 +13,8 @@ import {
   type ISpanLinkRecord,
 } from '@zerospin/logger';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import config from 'config';
 import { Effect, Result, Schema } from 'effect';
-import { system } from 'system';
 
 import { appendTelemetryBatch } from '../../appendTelemetryBatch/appendTelemetryBatch.js';
 import { FrontendServiceChain } from '../../FrontendServiceChain/FrontendServiceChain.js';
@@ -22,6 +22,8 @@ import { FrontendVersionedServiceRepo } from '../../FrontendVersionedServiceRepo
 import { SelectedServiceFrontendLockSchema } from '../../StaticSystem/frontendSpecSchemas.js';
 import { validateServiceFrontendLock } from '../../StaticSystem/validateServiceFrontendLock/validateServiceFrontendLock.js';
 import { SystemRepo } from '../../SystemRepo/SystemRepo.js';
+
+const { system } = config;
 
 /*
  * The service frontend capability requests a ticket for a caller-selected
@@ -49,7 +51,8 @@ export const createWebSocketTicket = Effect.fn(
   authResults: {
     readonly serviceName: string;
     serviceVersion: string;
-    readonly identityKey: string;
+    readonly authentication: Readonly<Record<string, unknown>>;
+    readonly selectionPath: string;
     readonly frontendName: string;
     readonly serviceFrontendLock: Schema.Schema.Type<
       typeof ServiceFrontendLockSchema
@@ -111,7 +114,9 @@ export const createWebSocketTicket = Effect.fn(
       frontendName,
       serviceFrontendLock,
       serviceName,
-      identityKey,
+      authentication,
+      selectionPath,
+
       systemId: configuredSystemId,
     } = authResults;
     const { serviceVersion } = validatedArgs.success[0];
@@ -148,7 +153,7 @@ export const createWebSocketTicket = Effect.fn(
       systemId,
       serviceName,
       serviceVersion,
-      identityKey,
+      selectionPath,
       frontendName,
     };
     const repoName =
@@ -184,7 +189,8 @@ export const createWebSocketTicket = Effect.fn(
         extra: {
           serviceName,
           serviceVersion,
-          identityKey,
+          authentication,
+          selectionPath,
           frontendName,
         },
       });
@@ -196,7 +202,8 @@ export const createWebSocketTicket = Effect.fn(
         repoName,
         serviceName,
         serviceVersion,
-        identityKey,
+        authentication,
+        selectionPath,
         frontendName,
         serviceFrontendLock: selected.serviceFrontendLock,
       }),

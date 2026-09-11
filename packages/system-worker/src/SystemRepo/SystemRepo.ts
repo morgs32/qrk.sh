@@ -209,7 +209,8 @@ export class SystemRepo extends makeFixedDORepo({
     aggregateId: IAggregateId;
     aggregateName: string;
     aggregateVersion: string;
-    identityKey: string;
+    selectionPath: string;
+    authentication: Readonly<Record<string, unknown>>;
     frontendName: string;
     aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
@@ -264,7 +265,8 @@ export class SystemRepo extends makeFixedDORepo({
     repoName: string;
     serviceName: string;
     serviceVersion: string;
-    identityKey: string;
+    selectionPath: string;
+    authentication: Readonly<Record<string, unknown>>;
     frontendName: string;
     serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
   }): Promise<IEncodedResult<string, IAnyErrorJson>> {
@@ -350,12 +352,14 @@ export class SystemRepo extends makeFixedDORepo({
   registerRepos(props: {
     spec: ISystemSpec;
     frontendRepo: {
-      repoType: 'UserVersionedAggregateRepo' | 'FrontendVersionedServiceRepo';
+      repoType:
+        | 'AuthenticatedVersionedAggregateRepo'
+        | 'FrontendVersionedServiceRepo';
       repoName: string;
       tableNames: readonly string[];
     };
     finalizedCommandChain: {
-      repoType: 'UserVersionedAggregateChain' | 'FrontendServiceChain';
+      repoType: 'AuthenticatedVersionedAggregateChain' | 'FrontendServiceChain';
       repoName: string;
       tableNames: readonly string[];
     };

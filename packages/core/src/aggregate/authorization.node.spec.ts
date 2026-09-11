@@ -1,3 +1,4 @@
+import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
 import { ZerospinError } from '@zerospin/error';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -11,6 +12,7 @@ import {
 describe('aggregate authorization', () => {
   it('allows omission of authorization and preserves supplied checks and failures', async () => {
     const aggregate = makeAggregateVersion(makeAggregate({ name: 'open' }), {
+      authentication: authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models: {},
       contracts: {},
@@ -22,6 +24,7 @@ describe('aggregate authorization', () => {
     const restricted = makeAggregateVersion(
       makeAggregate({ name: 'restricted' }),
       {
+        authentication: authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: {},
         contracts: {},
@@ -33,11 +36,10 @@ describe('aggregate authorization', () => {
     if (restricted.authorize === undefined) {
       throw new Error('Missing authorizer');
     }
-    expect(await Effect.runPromise(Effect.flip(restricted.authorize()))).toBe(
-      rejection,
-    );
+    expect(await Effect.runPromise(Effect.flip(authorize()))).toBe(rejection);
     expect(() =>
       makeAggregateVersion(makeAggregate({ name: 'invalid' }), {
+        authentication: authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: {},
         contracts: {},
@@ -50,6 +52,7 @@ describe('aggregate authorization', () => {
 
   it('adds, inherits, replaces, and removes authorization independently', () => {
     const base = makeAggregateVersion(makeAggregate({ name: 'empty' }), {
+      authentication: authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models: {},
       contracts: {},

@@ -6,10 +6,12 @@ import {
   type IAnyErrorJson,
   type IEncodedResult,
 } from '@zerospin/error';
+import config from 'config';
 import { Effect } from 'effect';
-import { system } from 'system';
 
 import { ServiceAdmittedChain } from '../../ServiceAdmittedChain/ServiceAdmittedChain.js';
+
+const { system } = config;
 
 /*
  * Explicit initialization awaits authored service-chain readiness.

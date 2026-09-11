@@ -1,6 +1,5 @@
 import type { IBackupWorker } from '@zerospin/backup-worker';
 import type { Async } from '@zerospin/core/async/Async';
-import type { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
 import type { IEncodedCommand } from '@zerospin/core/contracts/types';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
@@ -68,21 +67,17 @@ export const bootstrapServiceFrontendSession = Effect.fn(
   apiUrl: string;
   publishableKey: string;
   systemName: string;
-  authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
   generateSignature(): Promise<IEncodedResult<unknown, IAnyErrorJson>>;
   backupWorker: IBackupWorker;
 }): Effect.fn.Return<
-  Readonly<{ systemId: ISystemId; identityKey: string }>,
+  Readonly<{
+    systemId: ISystemId;
+    authentication: Readonly<Record<string, unknown>>;
+  }>,
   IAnyError,
   Async | Scope.Scope | TelemetryCollector
 > {
-  const {
-    apiUrl,
-    authenticationLock,
-    generateSignature,
-    publishableKey,
-    systemName,
-  } = props;
+  const { apiUrl, generateSignature, publishableKey, systemName } = props;
   // 1 — Build the lock-keyed service schema and in-memory SQLite database
   // before exposing initialized state or accepting backup transactions.
   const { backupWorker, session } = props;
@@ -162,87 +157,104 @@ export const bootstrapServiceFrontendSession = Effect.fn(
     }).pipe(Effect.catch(() => Effect.void)),
   );
 
-  // 3 — The exact offline locator supplies { systemId, identityKey } when present;
-  // otherwise authentication supplies them before this frontend can select a backup.
+  // 3 — Current authentication chooses the backup; offline metadata only locates an existing copy.
   const authenticationLocatorKey = `zerospin:authentication:${JSON.stringify({
     apiUrl,
     publishableKey,
     systemName,
-    authenticationLock,
+    frontendName: frontend.name,
+    serviceName: frontend.serviceName,
+    serviceVersion: props.serviceVersion,
+    serviceFrontendLockKey,
   })}`;
-  // A validated locator can select an existing local backup without waiting for the server.
-  // Online recovery still authenticates and rejects a different or denied identity.
   const persistedIdentity = yield* Effect.try({
     try: () => localStorage.getItem(authenticationLocatorKey),
     catch: ZerospinError.catch({
       code: 'browser-persistence-reset-required',
-      message: 'Failed to read the browser authentication locator',
+      message: 'Could not read the offline frontend locator',
     }),
   });
   let online = false;
   let systemId: ISystemId;
-  let identityKey: string;
-  if (persistedIdentity !== null) {
-    const decodedIdentity = yield* Effect.try({
-      try: () => JSON.parse(persistedIdentity),
-      catch: ZerospinError.catch({
-        code: 'browser-persistence-reset-required',
-        message: 'The persisted authentication locator is invalid',
-      }),
-    }).pipe(
-      Effect.flatMap(value =>
-        Schema.decodeUnknownEffect(
-          Schema.Struct({
-            systemId: makeAbbreviationIdSchema('sys'),
-            identityKey: Schema.String,
-          }),
-        )(value, { onExcessProperty: 'error' }).pipe(
-          Effect.mapError(
-            () =>
-              new ZerospinError({
-                code: 'browser-persistence-reset-required',
-                message: 'The persisted authentication locator is invalid',
-              }),
+  let authentication: Readonly<Record<string, unknown>> | null = null;
+  let authenticationHash: string;
+  const initial = yield* fetchServiceFrontendState({
+    serviceVersion: props.serviceVersion,
+    serviceName: frontend.serviceName,
+    serviceFrontendLock,
+    apiUrl,
+    publishableKey,
+    systemName,
+    generateSignature,
+    frontendName: frontend.name,
+  }).pipe(Effect.result);
+  if (Result.isSuccess(initial)) {
+    systemId = initial.success.systemId;
+    authentication = initial.success.authentication;
+    const authenticationKeys = new Set<string>();
+    const authenticationValues: unknown[] = [authentication];
+    while (authenticationValues.length > 0) {
+      const value = authenticationValues.pop();
+      if (Array.isArray(value)) {
+        authenticationValues.push(...value);
+      } else if (value !== null && typeof value === 'object') {
+        for (const [key, child] of Object.entries(value)) {
+          authenticationKeys.add(key);
+          authenticationValues.push(child);
+        }
+      }
+    }
+    const authenticationDigest = yield* Effect.tryPromise({
+      try: () =>
+        crypto.subtle.digest(
+          'SHA-256',
+          new TextEncoder().encode(
+            JSON.stringify(authentication, [...authenticationKeys].sort()),
           ),
         ),
-      ),
-    );
-    systemId = decodedIdentity.systemId;
-    identityKey = decodedIdentity.identityKey;
-  } else {
-    const initialState = yield* fetchServiceFrontendState({
-      serviceVersion: props.serviceVersion,
-      apiUrl,
-      publishableKey,
-      systemName,
-      authenticationLock,
-      generateSignature,
-      serviceName: frontend.serviceName,
-      frontendName: frontend.name,
-      serviceFrontendLock,
-    });
-    systemId = initialState.systemId;
-    identityKey = initialState.identityKey;
-    online = true;
-    yield* Effect.try({
-      try: () => {
-        localStorage.setItem(
-          authenticationLocatorKey,
-          JSON.stringify({ systemId, identityKey }),
-        );
-      },
       catch: ZerospinError.catch({
-        code: 'browser-persistence-reset-required',
-        message: 'Failed to write the browser authentication locator',
+        code: 'authentication-hash-failed',
+        message: 'Could not hash authentication',
       }),
     });
+    authenticationHash = [...new Uint8Array(authenticationDigest)]
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join('');
+    online = true;
+  } else {
+    if (
+      !transientCodes.has(initial.failure.code) ||
+      persistedIdentity === null
+    ) {
+      return yield* initial.failure;
+    }
+    const locator = yield* Schema.decodeUnknownEffect(
+      Schema.fromJsonString(
+        Schema.Struct({
+          systemId: makeAbbreviationIdSchema('sys'),
+          authenticationHash: Schema.String.check(
+            Schema.isPattern(/^[a-f0-9]{64}$/),
+          ),
+        }),
+      ),
+    )(persistedIdentity, { onExcessProperty: 'error' }).pipe(
+      Effect.mapError(
+        () =>
+          new ZerospinError({
+            code: 'browser-persistence-reset-required',
+            message: 'The offline frontend locator is invalid',
+          }),
+      ),
+    );
+    systemId = locator.systemId;
+    authenticationHash = locator.authenticationHash;
   }
 
   // 4 — Visibility signals acquire one revocable capability for this exact key.
   const backupKey = yield* makeServiceFrontendBackupKey({
     serviceVersion: props.serviceVersion,
     systemId,
-    identityKey,
+    authenticationHash,
     serviceName: frontend.serviceName,
     frontendName: frontend.name,
     serviceFrontendLockKey,
@@ -441,8 +453,11 @@ export const bootstrapServiceFrontendSession = Effect.fn(
                         'The backup SQLite schema is incompatible with this frontend',
                       );
                     }
-                    const identityRows = db.all<{ backupKey: string }>(
-                      sql`SELECT backupKey FROM __zerospin_backup_identity`,
+                    const identityRows = db.all<{
+                      backupKey: string;
+                      authentication: string;
+                    }>(
+                      sql`SELECT backupKey, authentication FROM __zerospin_backup_identity`,
                     );
                     if (
                       identityRows.length !== 1 ||
@@ -452,6 +467,12 @@ export const bootstrapServiceFrontendSession = Effect.fn(
                         'The backup identity does not match this frontend',
                       );
                     }
+                    authentication = Schema.decodeUnknownSync(
+                      Schema.fromJsonString(
+                        Schema.Record(Schema.String, Schema.Unknown),
+                      ),
+                    )(identityRows[0]?.authentication);
+
                     // Frontend backups keep one current cursor; journal occurrences retain prior identities.
                     if (
                       db
@@ -478,10 +499,62 @@ export const bootstrapServiceFrontendSession = Effect.fn(
             }
             if (selectedSnapshot === null) {
               db.run(
-                sql`CREATE TABLE __zerospin_backup_identity (backupKey TEXT NOT NULL)`,
+                sql`CREATE TABLE __zerospin_backup_identity (backupKey TEXT NOT NULL, authentication TEXT)`,
               );
               db.run(
-                sql`INSERT INTO __zerospin_backup_identity (backupKey) VALUES (${backupKey})`,
+                sql`INSERT INTO __zerospin_backup_identity (backupKey, authentication) VALUES (${backupKey}, ${JSON.stringify(authentication)})`,
+              );
+            }
+            if (authentication !== null) {
+              const authenticationKeys = new Set<string>();
+              const authenticationValues: unknown[] = [authentication];
+              while (authenticationValues.length > 0) {
+                const value = authenticationValues.pop();
+                if (Array.isArray(value)) {
+                  authenticationValues.push(...value);
+                } else if (value !== null && typeof value === 'object') {
+                  for (const [key, child] of Object.entries(value)) {
+                    authenticationKeys.add(key);
+                    authenticationValues.push(child);
+                  }
+                }
+              }
+              const authenticationDigest = yield* Effect.tryPromise({
+                try: () =>
+                  crypto.subtle.digest(
+                    'SHA-256',
+                    new TextEncoder().encode(
+                      JSON.stringify(
+                        authentication,
+                        [...authenticationKeys].sort(),
+                      ),
+                    ),
+                  ),
+                catch: ZerospinError.catch({
+                  code: 'authentication-hash-failed',
+                  message: 'Could not hash authentication',
+                }),
+              });
+              const restoredHash = [...new Uint8Array(authenticationDigest)]
+                .map(byte => byte.toString(16).padStart(2, '0'))
+                .join('');
+              if (restoredHash !== authenticationHash) {
+                return yield* new ZerospinError({
+                  code: 'browser-persistence-reset-required',
+                  message: 'Backup authentication does not match its partition',
+                });
+              }
+              yield* Schema.decodeUnknownEffect(
+                frontend.authentication.authenticationSchema,
+              )(authentication).pipe(
+                Effect.mapError(
+                  () =>
+                    new ZerospinError({
+                      code: 'backup-authentication-invalid',
+                      message:
+                        'Backup authentication is unsupported by this frontend',
+                    }),
+                ),
               );
             }
             const transactionQueue =
@@ -513,18 +586,58 @@ export const bootstrapServiceFrontendSession = Effect.fn(
                   apiUrl,
                   publishableKey,
                   systemName,
-                  authenticationLock,
                   generateSignature,
                   serviceName: frontend.serviceName,
                   frontendName: frontend.name,
                   serviceFrontendLock,
                 });
+                const authenticationKeys = new Set<string>();
+                const authenticationValues: unknown[] = [
+                  recoveryState.authentication,
+                ];
+                while (authenticationValues.length > 0) {
+                  const value = authenticationValues.pop();
+                  if (Array.isArray(value)) {
+                    authenticationValues.push(...value);
+                  } else if (value !== null && typeof value === 'object') {
+                    for (const [key, child] of Object.entries(value)) {
+                      authenticationKeys.add(key);
+                      authenticationValues.push(child);
+                    }
+                  }
+                }
+                const authenticationDigest = yield* Effect.tryPromise({
+                  try: () =>
+                    crypto.subtle.digest(
+                      'SHA-256',
+                      new TextEncoder().encode(
+                        JSON.stringify(
+                          recoveryState.authentication,
+                          [...authenticationKeys].sort(),
+                        ),
+                      ),
+                    ),
+                  catch: ZerospinError.catch({
+                    code: 'authentication-hash-failed',
+                    message: 'Could not hash authentication',
+                  }),
+                });
+                const recoveredHash = [...new Uint8Array(authenticationDigest)]
+                  .map(byte => byte.toString(16).padStart(2, '0'))
+                  .join('');
+                if (recoveredHash !== authenticationHash) {
+                  return yield* new ZerospinError({
+                    code: 'frontend-session-authentication-mismatch',
+                    message:
+                      'Current authentication belongs to a different backup',
+                  });
+                }
+                authentication = recoveryState.authentication;
                 const ticket = yield* createServiceFrontendWebSocketTicket({
                   serviceVersion: props.serviceVersion,
                   apiUrl,
                   publishableKey,
                   systemName,
-                  authenticationLock,
                   generateSignature,
                   serviceName: frontend.serviceName,
                   frontendName: frontend.name,
@@ -648,7 +761,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
                 yield* applyServiceFrontendState({
                   frontend,
                   sessionId: executionSessionId,
-                  identityKey,
+                  authentication,
                   systemId,
                   db,
                   models,
@@ -918,11 +1031,19 @@ export const bootstrapServiceFrontendSession = Effect.fn(
               revokeOwnership();
               return yield* new ZerospinError({ code: 'backup-db-revoked' });
             }
+            if (authentication === null) {
+              return yield* new ZerospinError({
+                code: 'frontend-authentication-required',
+                message: 'A frontend session requires validated authentication',
+              });
+            }
             hasOwned = true;
             session.store.setState({
               sessionId: executionSessionId,
               serviceName: frontend.serviceName,
-              identityKey,
+              authentication: Schema.decodeUnknownSync(
+                frontend.authentication.authenticationSchema,
+              )(authentication),
               systemId,
               frontendName: frontend.name,
               serviceFrontendLockKey,
@@ -1047,7 +1168,7 @@ export const bootstrapServiceFrontendSession = Effect.fn(
                     try: () =>
                       localStorage.setItem(
                         authenticationLocatorKey,
-                        JSON.stringify({ systemId, identityKey }),
+                        JSON.stringify({ systemId, authenticationHash }),
                       ),
                     catch: ZerospinError.catch({
                       code: 'browser-persistence-reset-required',
@@ -1059,6 +1180,19 @@ export const bootstrapServiceFrontendSession = Effect.fn(
               ),
             );
 
+            if (online) {
+              yield* Effect.try({
+                try: () =>
+                  localStorage.setItem(
+                    authenticationLocatorKey,
+                    JSON.stringify({ systemId, authenticationHash }),
+                  ),
+                catch: ZerospinError.catch({
+                  code: 'browser-persistence-reset-required',
+                  message: 'Failed to retain the frontend offline locator',
+                }),
+              });
+            }
             yield* Deferred.succeed(initialized, undefined);
           }).pipe(Effect.provideService(Scope.Scope, period.scope)),
           period.scope,
@@ -1088,5 +1222,11 @@ export const bootstrapServiceFrontendSession = Effect.fn(
     ),
   );
   yield* Deferred.await(initialized);
-  return { systemId, identityKey };
+  if (authentication === null) {
+    return yield* new ZerospinError({
+      code: 'frontend-authentication-required',
+      message: 'Authentication was not initialized',
+    });
+  }
+  return { systemId, authentication };
 });

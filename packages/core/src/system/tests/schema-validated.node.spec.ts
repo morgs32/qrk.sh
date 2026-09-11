@@ -1,10 +1,13 @@
+import {
+  main as authenticationFixtureFrontend,
+  userAggregate as authenticationFixtureOwner,
+} from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { makeAggregate } from '../../aggregate/makeAggregate.ts';
 import { makeAggregateVersion } from '../../aggregate/makeVersion.ts';
-import { makeAuthenticationVersion } from '../../authentication/makeVersion.ts';
 import { defineCommand } from '../../contracts/Command.ts';
 import { makeContractVersion } from '../../contracts/makeVersion.ts';
 import { makeFrontendController } from '../../frontendController/makeFrontendController.ts';
@@ -15,12 +18,6 @@ import { makeSystem } from '../makeSystem.ts';
 import { makeSystemConfig } from '../makeSystemConfig.ts';
 import { makeSystemSpec } from '../makeSystemSpec.ts';
 import { ZerospinConfigSchema } from '../ZerospinConfigSchema.ts';
-
-const authenticationV1 = makeAuthenticationVersion({
-  version: '1.0.0',
-  signature: Schema.Struct({}),
-  authenticate: () => Effect.succeed('user'),
-});
 
 const ItemModel = makeModel({ name: 'item', abbreviation: 'itm' });
 
@@ -50,7 +47,7 @@ describe('makeSystem schema validation', () => {
   it('accepts a deployment config for an aggregate-free System', () => {
     const system = makeSystem({
       name: 'empty',
-      authentication: [authenticationV1],
+
       aggregates: {},
     });
     const config = makeSystemConfig(system, { systemId: 'sys_config_test' });
@@ -69,14 +66,16 @@ describe('makeSystem schema validation', () => {
       }),
     ).toBe(false);
   });
-  it('rejects structural copies of canonical authentication and owner factories', () => {
+  it('rejects structural copies of canonical owner factories', () => {
     const aggregate = makeAggregateVersion(makeAggregate({ name: 'list' }), {
+      authentication: authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models: {},
       contracts: {},
       selections: {},
     });
     const service = makeService({
+      authentication: authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       models: {},
@@ -87,15 +86,7 @@ describe('makeSystem schema validation', () => {
     expect(() =>
       makeSystem({
         name: 'copy-system',
-        authentication: [{ ...authenticationV1 }],
-        aggregates: { list: [aggregate] },
-        services: { catalog: [service] },
-      }),
-    ).toThrow(Schema.SchemaError);
-    expect(() =>
-      makeSystem({
-        name: 'copy-system',
-        authentication: [authenticationV1],
+
         aggregates: {
           list: [{ ...aggregate } as typeof aggregate],
         },
@@ -105,7 +96,7 @@ describe('makeSystem schema validation', () => {
     expect(() =>
       makeSystem({
         name: 'copy-system',
-        authentication: [authenticationV1],
+
         aggregates: { list: [aggregate] },
         services: {
           catalog: [{ ...service } as typeof service],
@@ -116,6 +107,7 @@ describe('makeSystem schema validation', () => {
 
   it('preserves service identity and canonical aggregate definitions', () => {
     const service = makeService({
+      authentication: authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       models: {},
@@ -129,6 +121,7 @@ describe('makeSystem schema validation', () => {
       frontends: {},
     });
     const aggregate = makeAggregateVersion(makeAggregate({ name: 'list' }), {
+      authentication: authenticationFixtureOwner.authentication,
       version: '1.0.0',
       authorize: () => Effect.void,
       models: { item: Item },
@@ -142,7 +135,7 @@ describe('makeSystem schema validation', () => {
     const serviceDefinitions = { catalog: [service] };
     const system = makeSystem({
       name: 'identity-system',
-      authentication: [authenticationV1],
+
       aggregates: aggregateDefinitions,
       services: serviceDefinitions,
     });
@@ -163,12 +156,14 @@ describe('makeSystem schema validation', () => {
 
   it('rejects owner key/name and frontend systemName mismatches as Schema errors', () => {
     const aggregate = makeAggregateVersion(makeAggregate({ name: 'account' }), {
+      authentication: authenticationFixtureOwner.authentication,
       version: '1.0.0',
       models: {},
       contracts: {},
       selections: {},
     });
     const service = makeService({
+      authentication: authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       models: {},
@@ -179,7 +174,7 @@ describe('makeSystem schema validation', () => {
     expect(() =>
       makeSystem({
         name: 'graph-system',
-        authentication: [authenticationV1],
+
         aggregates: {
           // @ts-expect-error aggregate registry keys must equal aggregate.name
           other: [aggregate],
@@ -190,7 +185,7 @@ describe('makeSystem schema validation', () => {
     expect(() =>
       makeSystem({
         name: 'graph-system',
-        authentication: [authenticationV1],
+
         aggregates: { account: [aggregate] },
         services: {
           // @ts-expect-error service registry keys must equal service.name
@@ -200,6 +195,7 @@ describe('makeSystem schema validation', () => {
     ).toThrow(Schema.SchemaError);
 
     const wrongServiceController = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'other-system',
       serviceVersion: '1.0.0',
       serviceName: 'catalog',
@@ -207,6 +203,7 @@ describe('makeSystem schema validation', () => {
       models: {},
     });
     const wrongServiceSystem = makeService({
+      authentication: authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       authorize: () => Effect.void,
@@ -222,7 +219,7 @@ describe('makeSystem schema validation', () => {
     expect(() =>
       makeSystem({
         name: 'graph-system',
-        authentication: [authenticationV1],
+
         aggregates: { account: [aggregate] },
         services: {
           catalog: [wrongServiceSystem],
@@ -233,6 +230,7 @@ describe('makeSystem schema validation', () => {
 
   it('preserves valid specs and stamped owner identities', () => {
     const aggregate = makeAggregateVersion(makeAggregate({ name: 'list' }), {
+      authentication: authenticationFixtureOwner.authentication,
       version: '1.0.0',
       authorize: () => Effect.void,
       models: { item: Item },
@@ -242,6 +240,7 @@ describe('makeSystem schema validation', () => {
       },
     });
     const service = makeService({
+      authentication: authenticationFixtureOwner.authentication,
       name: 'catalog',
       version: '1.0.0',
       models: {},
@@ -256,7 +255,7 @@ describe('makeSystem schema validation', () => {
     });
     const system = makeSystem({
       name: 'valid-system',
-      authentication: [authenticationV1],
+
       aggregates: { list: [aggregate] },
       services: { catalog: [service] },
     });

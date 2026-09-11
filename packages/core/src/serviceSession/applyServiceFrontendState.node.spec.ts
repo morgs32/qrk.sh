@@ -1,4 +1,5 @@
 import { it } from '@effect/vitest';
+import { main as authenticationFixtureFrontend } from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Layer } from 'effect';
 import { describe, expect } from 'vitest';
@@ -47,6 +48,7 @@ const models = {
 };
 
 const frontend = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'shop',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',
@@ -78,13 +80,13 @@ describe('applyServiceFrontendState', () => {
           // 2 — install a valid baseline snapshot.
           yield* applyServiceFrontendState({
             frontend,
-            identityKey: 'user_viewer',
+            authentication: { userId: 'user_viewer', aggregateId: 'acct_1' },
             systemId: 'sys_shop',
             sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
-              identityKey: 'user_viewer',
+              authentication: { userId: 'user_viewer', aggregateId: 'acct_1' },
               systemId: 'sys_shop',
               serviceName: 'catalog',
               frontendName: 'catalog',
@@ -115,13 +117,13 @@ describe('applyServiceFrontendState', () => {
           // 3 — reject a validly encoded state for another actor before deletion.
           const wrongTarget = yield* applyServiceFrontendState({
             frontend,
-            identityKey: 'user_viewer',
+            authentication: { userId: 'user_viewer', aggregateId: 'acct_1' },
             systemId: 'sys_shop',
             sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
-              identityKey: 'user_other',
+              authentication: { userId: 'user_other', aggregateId: 'acct_1' },
               systemId: 'sys_shop',
               serviceName: 'catalog',
               frontendName: 'catalog',
@@ -138,13 +140,13 @@ describe('applyServiceFrontendState', () => {
           // 4 — force a deferred foreign-key failure after replacement starts.
           const failedReplacement = yield* applyServiceFrontendState({
             frontend,
-            identityKey: 'user_viewer',
+            authentication: { userId: 'user_viewer', aggregateId: 'acct_1' },
             systemId: 'sys_shop',
             sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
-              identityKey: 'user_viewer',
+              authentication: { userId: 'user_viewer', aggregateId: 'acct_1' },
               systemId: 'sys_shop',
               serviceName: 'catalog',
               frontendName: 'catalog',
@@ -191,13 +193,13 @@ describe('applyServiceFrontendState', () => {
           // 5 — a later valid snapshot replaces both tables on that same db.
           yield* applyServiceFrontendState({
             frontend,
-            identityKey: 'user_viewer',
+            authentication: { userId: 'user_viewer', aggregateId: 'acct_1' },
             systemId: 'sys_shop',
             sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
-              identityKey: 'user_viewer',
+              authentication: { userId: 'user_viewer', aggregateId: 'acct_1' },
               systemId: 'sys_shop',
               serviceName: 'catalog',
               frontendName: 'catalog',

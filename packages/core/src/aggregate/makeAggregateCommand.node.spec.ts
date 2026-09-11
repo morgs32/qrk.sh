@@ -46,7 +46,7 @@ describe('makeAggregateCommand', () => {
             aggregateVersion: '2.0.0',
             systemName: 'shopping',
             payload: { name: 'Ada' },
-            identityKey: null,
+            authentication: null,
             sessionId: null,
             frontendName: null,
             pushIndex: null,

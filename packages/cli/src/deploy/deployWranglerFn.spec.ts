@@ -40,9 +40,6 @@ vi.mock('./loadZerospinConfigFn.js', () => ({
       systemId: 'sys_production_fixture',
     }),
 }));
-vi.mock('./makeSystemEntry.js', () => ({
-  makeSystemEntry: () => Effect.succeed('/fixture/system.ts'),
-}));
 vi.mock('effect/unstable/process', () => ({
   ChildProcess: {
     make: (...args: unknown[]) => Effect.promise(() => mocks.command(...args)),
@@ -112,7 +109,7 @@ beforeEach(() => {
         main: '/fixture/@zerospin/production-worker/ProductionWorker',
         compatibility_date: '2026-01-20',
         compatibility_flags: ['nodejs_compat'],
-        alias: { system: '/fixture/system.ts' },
+        alias: { config: `${process.cwd()}/zerospin.config.ts` },
         vars: {
           ZEROSPIN_SYSTEM_ID: 'sys_production_fixture',
           ZEROSPIN_ENVIRONMENT: 'production',

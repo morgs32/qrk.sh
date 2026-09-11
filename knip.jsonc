@@ -165,7 +165,7 @@
         "vitest.node.config.ts",
       ],
       "paths": {
-        "system": ["./src/fixtures/system.ts"],
+        "config": ["./src/fixtures/system.ts"],
       },
       "ignore": ["worker.d.ts"],
       "ignoreFiles": ["vitest.workerd.config.ts"],

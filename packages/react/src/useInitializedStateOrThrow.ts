@@ -17,13 +17,19 @@ export function useInitializedStateOrThrow<
   MODELS extends IAnyModels,
 >(
   selector: Readonly<{ frontend: FRONTEND; models: MODELS }>,
-): IInitializedSessionState<MODELS>;
+): IInitializedSessionState<
+  MODELS,
+  FRONTEND['authentication']['authenticationSchema']['Type']
+>;
 export function useInitializedStateOrThrow<
   FRONTEND extends IServiceFrontendController,
   MODELS extends IAnyModels,
 >(
   selector: Readonly<{ frontend: FRONTEND; models: MODELS }>,
-): IInitializedServiceSessionState<MODELS>;
+): IInitializedServiceSessionState<
+  MODELS,
+  FRONTEND['authentication']['authenticationSchema']['Type']
+>;
 export function useInitializedStateOrThrow(
   selector: Readonly<{
     frontend: IAnyFrontendController | IServiceFrontendController;

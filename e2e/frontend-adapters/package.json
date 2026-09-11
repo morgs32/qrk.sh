@@ -16,7 +16,8 @@
     "capnweb": "^0.12.0",
     "effect": "rc",
     "vitest": "~4.1.5",
-    "wrangler": "^4.127.1"
+    "wrangler": "^4.127.1",
+    "@remix-run/route-pattern": "^0.22.1"
   },
   "dependencies": {
     "@zerospin/core": "workspace:*",

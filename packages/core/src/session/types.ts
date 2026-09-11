@@ -68,7 +68,7 @@ export type IAggregateFrontendFinalizedCommand = Readonly<{
 /** Complete server-owned aggregate frontend state used for creation and repair. */
 export type IAggregateFrontendSyncState = Readonly<{
   aggregateId: IAggregateId;
-  identityKey: string;
+  authentication: Readonly<Record<string, unknown>>;
   systemId: ISystemId;
   aggregateName: string;
   aggregateVersion: string;
@@ -83,11 +83,12 @@ export type IAggregateFrontendSyncState = Readonly<{
 
 export interface IInitializedSessionState<
   MODELS extends IAnyModels = IAnyModels,
+  AUTHENTICATION = Readonly<Record<string, unknown>>,
 > {
   sessionId: ISessionId;
   aggregateId: IAggregateId;
   aggregateName: string;
-  identityKey: string;
+  authentication: AUTHENTICATION;
   systemId: ISystemId;
   frontendName: string;
   aggregateFrontendLockKey: string;
@@ -118,7 +119,7 @@ type IUninitializedSessionState = {
   sessionId: ISessionId;
   aggregateId: null;
   aggregateName: null;
-  identityKey: null;
+  authentication: null;
   systemId: null;
   frontendName: null;
   aggregateFrontendLockKey: null;
@@ -143,13 +144,17 @@ type IUninitializedSessionState = {
   telemetryCollector: ITelemetryCollector;
 };
 
-export type ISessionState<MODELS extends IAnyModels = IAnyModels> =
-  | IInitializedSessionState<MODELS>
+export type ISessionState<
+  MODELS extends IAnyModels = IAnyModels,
+  AUTHENTICATION = Readonly<Record<string, unknown>>,
+> =
+  | IInitializedSessionState<MODELS, AUTHENTICATION>
   | IUninitializedSessionState;
 
-type ISessionStoreApi<MODELS extends IAnyModels = IAnyModels> = StoreApi<
-  ISessionState<MODELS>
->;
+type ISessionStoreApi<
+  MODELS extends IAnyModels = IAnyModels,
+  AUTHENTICATION = Readonly<Record<string, unknown>>,
+> = StoreApi<ISessionState<MODELS, AUTHENTICATION>>;
 
 export type ISession<
   FRONTEND extends IAggregateFrontendController = IAggregateFrontendController,
@@ -164,7 +169,10 @@ export type ISession<
    */
   onInitialized(
     handler: (props: {
-      state: IInitializedSessionState<InferFrontendModels<FRONTEND>>;
+      state: IInitializedSessionState<
+        InferFrontendModels<FRONTEND>,
+        FRONTEND['authentication']['authenticationSchema']['Type']
+      >;
     }) => void,
   ): () => void;
   readonly sessionId: ISessionId;
@@ -192,5 +200,8 @@ export type ISession<
       Readonly<{ sessionIndex: number }>,
     IAnyErrorJson
   >;
-  store: ISessionStoreApi<InferFrontendModels<FRONTEND>>;
+  store: ISessionStoreApi<
+    InferFrontendModels<FRONTEND>,
+    FRONTEND['authentication']['authenticationSchema']['Type']
+  >;
 };

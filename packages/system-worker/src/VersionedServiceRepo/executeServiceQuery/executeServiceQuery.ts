@@ -1,8 +1,10 @@
 import type { IDb } from '@zerospin/core/drizzle/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError, ZerospinError } from '@zerospin/error';
+import config from 'config';
 import { Effect, Schema } from 'effect';
-import { system } from 'system';
+
+const { system } = config;
 
 /*
  * The service owner executes a named authored query against only its local

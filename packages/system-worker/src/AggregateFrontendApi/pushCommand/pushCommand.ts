@@ -24,11 +24,14 @@ import {
   type IRpcRequest,
   type ISpanLinkRecord,
 } from '@zerospin/logger';
+import config from 'config';
 import { Effect, Result, Schema } from 'effect';
-import { system } from 'system';
+import { isEqual } from 'es-toolkit';
 
 import { AggregateChain } from '../../AggregateChain/AggregateChain.js';
 import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
+
+const { system } = config;
 
 /*
  * The aggregate frontend capability admits a complete locally committed
@@ -60,7 +63,8 @@ export const pushCommand = Effect.fn('AggregateFrontendApi.pushCommand')(
       readonly aggregateId: IAggregateId;
       readonly aggregateName: string;
       aggregateVersion: string;
-      readonly identityKey: string;
+      readonly authentication: Readonly<Record<string, unknown>>;
+      readonly selectionPath: string;
       readonly frontendName: string;
       readonly aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema
@@ -113,12 +117,12 @@ export const pushCommand = Effect.fn('AggregateFrontendApi.pushCommand')(
       };
     }
 
-    // 3 — compare aggregateId, aggregateName, identityKey, frontendName, systemName, pushIndex, and delta
+    // 3 — compare aggregateId, aggregateName, authentication, frontendName, systemName, pushIndex, and delta
     const command = validated.success[0].command;
     if (
       command.aggregateId !== authResults.aggregateId ||
       command.aggregateName !== authResults.aggregateName ||
-      command.identityKey !== authResults.identityKey ||
+      !isEqual(command.authentication, authResults.authentication) ||
       command.frontendName !== authResults.frontendName ||
       command.systemName !== authResults.aggregateFrontendLock.systemName ||
       command.pushIndex !== null ||

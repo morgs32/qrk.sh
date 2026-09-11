@@ -16,8 +16,8 @@ import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
  * that each aggregate definition's replicas match the
  * model versions exposed by its service pins. VAR fetches initial copies from
  * the pinned VSR and installs them before guards inside the command savepoint.
- * VAR and UVAR then subscribe directly to that version's VSFC; service updates
- * advance independent source cursors without entering AAC or VAFC. UVAR emits
+ * VAR and AVAR then subscribe directly to that version's VSFC; service updates
+ * advance independent source cursors without entering AAC or VAFC. AVAR emits
  * one userIndex per aggregate or service input while retaining aggregateIndex
  * as its consumed aggregate watermark. Standalone service frontends use VSRR.
  *

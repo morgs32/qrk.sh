@@ -5,13 +5,15 @@ import {
   runDurableObjectAlarm,
   runInDurableObject,
 } from 'cloudflare:test';
+import config from 'config';
 import { Effect } from 'effect';
-import { system } from 'system';
 import { describe, expect, it } from 'vitest';
 
 import { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
 import { SystemRepo } from '../SystemRepo/SystemRepo.js';
 import { systemRepoDbConfig } from '../SystemRepo/systemRepoDbConfig.js';
+
+const { system } = config;
 
 describe('SystemRepo lookup and activation', () => {
   it('resolves the configured singleton through the shared lookup', async () => {

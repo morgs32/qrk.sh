@@ -1,3 +1,7 @@
+import {
+  main as authenticationFixtureFrontend,
+  userAggregate as authenticationFixtureOwner,
+} from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { assert, type Equals } from 'tsafe';
 
@@ -19,12 +23,14 @@ const productV2 = makeModelVersion(product, {
   indexes: [],
 });
 const appV1 = makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'app',
   version: '1.0.0',
   models: { product: productV1 },
   contracts: {},
 });
 const frontend = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   serviceVersion: '1.0.0',
   systemName: 'shopping',
   serviceName: 'app',
@@ -38,6 +44,7 @@ assert<Equals<typeof frontend.serviceName, 'app'>>();
 assert<Equals<typeof frontend.models.product, typeof productV1>>();
 
 makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   serviceVersion: '1.0.0',
   systemName: 'shopping',
   serviceName: 'app',
@@ -46,6 +53,7 @@ makeFrontendController({
 }) satisfies IServiceFrontend<typeof appV1>;
 
 const wrongName = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   serviceVersion: '1.0.0',
   systemName: 'shopping',
   name: 'catalog',
@@ -55,6 +63,7 @@ const wrongName = makeFrontendController({
 // @ts-expect-error The service name must match.
 wrongName satisfies IServiceFrontend<typeof appV1>;
 const wrongModels = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   serviceVersion: '1.0.0',
   systemName: 'shopping',
   serviceName: 'app',
@@ -72,6 +81,7 @@ const other = makeModelVersion(
   },
 );
 const extraModels = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   serviceVersion: '1.0.0',
   systemName: 'shopping',
   serviceName: 'app',
@@ -82,6 +92,7 @@ const extraModels = makeFrontendController({
 extraModels satisfies IServiceFrontend<typeof appV1>;
 
 const wrongVersion = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'shopping',
   serviceName: 'app',
   serviceVersion: '2.0.0',

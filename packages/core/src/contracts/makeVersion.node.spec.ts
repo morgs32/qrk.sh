@@ -114,7 +114,7 @@ describe('makeContractVersion', () => {
     expect(V3.spec).not.toHaveProperty('historicalDefinitions');
     const mutation = await Effect.runPromise(
       V3.program({
-        identityKey: null,
+        authentication: null,
         payload: {
           id: prefixId(Item, 'test'),
           quantity: 4,
@@ -350,7 +350,7 @@ describe('contract upgrade edges', () => {
     expect(
       (
         await Effect.runPromise(
-          V3.program({ identityKey: null, payload: adapted }),
+          V3.program({ authentication: null, payload: adapted }),
         )
       ).operation.attributes,
     ).toEqual({ quantity: 1 });
@@ -492,7 +492,7 @@ it('runs contract guards against current database state and preserves typed reje
   if (guarded.guard === undefined) throw new Error('Missing guard');
   const props = {
     db: database,
-    identityKey: 'user',
+    authentication: { userId: 'user', aggregateId: 'acct_1' },
     payload: {
       id: prefixId(Item, 'guard'),
     },
@@ -569,7 +569,7 @@ it('rejects asynchronous contract guards', async () => {
   const result = await Effect.runPromise(
     runGuard({
       guard: guarded.guard,
-      props: { payload: {}, db: { query: {} }, identityKey: null },
+      props: { payload: {}, db: { query: {} }, authentication: null },
     }).pipe(Effect.result),
   );
   expect(result).toMatchObject({

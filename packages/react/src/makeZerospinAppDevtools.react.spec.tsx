@@ -1,7 +1,7 @@
 import { act, StrictMode, useLayoutEffect } from 'react';
 
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { authenticationSignature, main } from '@zerospin/core/fixtures/system';
+import { main } from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { MonotonicFactory } from '@zerospin/core/services/MonotonicFactory';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
@@ -44,15 +44,13 @@ const sessionRuntimeLayer = Layer.mergeAll(
 
 const EmptyZerospinApp = makeZerospinApp({
   systemName: 'system-worker',
-  authentication: {
-    version: authenticationSignature.version,
-    signature: authenticationSignature.signature,
-  },
+
   frontends: {},
   layer: sessionRuntimeLayer,
 });
 
 const serviceFrontend = makeFrontendController({
+  authentication: main.authentication,
   systemName: 'system-worker',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',
@@ -62,10 +60,7 @@ const serviceFrontend = makeFrontendController({
 
 const LifecycleZerospinApp = makeZerospinApp({
   systemName: 'system-worker',
-  authentication: {
-    version: authenticationSignature.version,
-    signature: authenticationSignature.signature,
-  },
+
   frontends: {
     main,
     products: serviceFrontend,
@@ -121,10 +116,13 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     bootstrapAggregateFrontendSessionMock.mockReturnValue(
       Effect.succeed({
         systemId: 'sys_1',
-        identityKey: 'usr_1',
+        authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
         aggregateFrontendLockKey: 'aggregate-lock-1',
-        executeAggregateFrontendCommand: ({ command }) =>
-          Effect.succeed({ commandId: command.id }),
+        executeAggregateFrontendCommand: ({
+          command,
+        }: {
+          command: { id: string };
+        }) => Effect.succeed({ commandId: command.id }),
         getPushPaused: Effect.succeed(false),
         setPushPaused: () => Effect.void,
         pushNow: Effect.succeed({ status: 'empty' }),
@@ -132,7 +130,10 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     );
     bootstrapServiceFrontendSessionMock.mockReset();
     bootstrapServiceFrontendSessionMock.mockReturnValue(
-      Effect.succeed({ systemId: 'sys_1', identityKey: 'usr_1' }),
+      Effect.succeed({
+        systemId: 'sys_1',
+        authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
+      }),
     );
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -150,10 +151,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     expect(() =>
       makeZerospinApp({
         systemName: 'system-worker',
-        authentication: {
-          version: authenticationSignature.version,
-          signature: authenticationSignature.signature,
-        },
+
         frontends: {
           // @ts-expect-error Exercise runtime validation for untyped callers.
           wrong: main,
@@ -164,10 +162,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     expect(() =>
       makeZerospinApp({
         systemName: 'wrong-system',
-        authentication: {
-          version: authenticationSignature.version,
-          signature: authenticationSignature.signature,
-        },
+
         frontends: {
           // @ts-expect-error Exercise runtime validation for untyped callers.
           main,
@@ -185,10 +180,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     });
     const App = makeZerospinApp({
       systemName: 'system-worker',
-      authentication: {
-        version: authenticationSignature.version,
-        signature: authenticationSignature.signature,
-      },
+
       frontends: {},
       layer: applicationLayer,
     });
@@ -196,10 +188,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await expect(
       act(async () => {
         root.render(
-          <App.Provider
-            aggregateIds={{}}
-            generateSignature={() => Effect.succeed({ userId: 'usr_unused' })}
-          >
+          <App.Provider generateSignature={{}}>
             <div>Ready</div>
           </App.Provider>,
         );
@@ -211,15 +200,14 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
 
   it('mounts empty providers without acquiring storage and lazily opens DevTools once', async () => {
     const generateSignature = vi.fn(() =>
-      Effect.succeed({ identityKey: 'usr_unused' }),
+      Effect.succeed({
+        authentication: { userId: 'usr_unused', aggregateId: 'acct_1' },
+      }),
     );
     await act(async () => {
       root.render(
         <StrictMode>
-          <EmptyZerospinApp.Provider
-            aggregateIds={{}}
-            generateSignature={generateSignature}
-          >
+          <EmptyZerospinApp.Provider generateSignature={{}}>
             <div>Application</div>
           </EmptyZerospinApp.Provider>
         </StrictMode>,
@@ -253,10 +241,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
   it('opens a directly mounted shell without lazily mounting another', async () => {
     await act(async () => {
       root.render(
-        <EmptyZerospinApp.Provider
-          aggregateIds={{}}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-        >
+        <EmptyZerospinApp.Provider generateSignature={{}}>
           <DirectZerospinDevtools />
         </EmptyZerospinApp.Provider>,
       );
@@ -271,44 +256,52 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     expect(fakeDevtools.shellOpens).toBe(1);
   });
 
-  it('uses a frontend-authored version and encodes its signature for the worker', async () => {
+  it('uses a frontend-owned schema and encodes its signature for the worker', async () => {
     const App = makeZerospinApp({
       systemName: 'system-worker',
-      authentication: { version: '3.0.0', signature: Schema.NumberFromString },
+
       frontends: {
-        products: serviceFrontend,
+        products: makeFrontendController({
+          systemName: 'system-worker',
+          serviceName: 'catalog',
+          serviceVersion: '1.0.0',
+          name: 'products',
+          models: {},
+          authentication: {
+            ...serviceFrontend.authentication,
+            signatureSchema: Schema.NumberFromString,
+          },
+        }),
       },
       layer: sessionRuntimeLayer,
     });
     await act(async () => {
       root.render(
         <App.Provider
-          aggregateIds={{}}
-          generateSignature={() => Effect.succeed(42)}
+          generateSignature={{ products: () => Effect.succeed(42) }}
         >
           Ready
         </App.Provider>,
       );
     });
     const request = bootstrapServiceFrontendSessionMock.mock.calls[0]?.[0];
-    expect(request.authenticationLock).toEqual({
-      version: '3.0.0',
-      signatureJsonSchema: Schema.toJsonSchemaDocument(Schema.NumberFromString),
-    });
+    expect(request.session.frontend.authentication.signatureSchema).toBe(
+      Schema.NumberFromString,
+    );
     expect(await request.generateSignature()).toEqual(encodeSuccess('42'));
 
     await act(async () => {
       root.render(
         <App.Provider
-          aggregateIds={{}}
-          generateSignature={() =>
-            Effect.fail(
-              new ZerospinError({
-                code: 'signature-unavailable',
-                message: 'Signed out',
-              }),
-            )
-          }
+          generateSignature={{
+            products: () =>
+              Effect.fail(
+                new ZerospinError({
+                  code: 'signature-unavailable',
+                  message: 'Signed out',
+                }),
+              ),
+          }}
         >
           Ready
         </App.Provider>,
@@ -320,7 +313,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     });
   });
 
-  it('shares app services across sessions and replacements, then releases local services before the app', async () => {
+  it('shares app services across sessions and signer updates, then releases local services before the app', async () => {
     const events: string[] = [];
     const clocks: Array<() => Effect.Effect<string>> = [];
     let acquisitions = 0;
@@ -356,6 +349,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       }),
     );
     const left = makeFrontendController({
+      authentication: main.authentication,
       systemName: 'system-worker',
       aggregateName: 'user',
       aggregateVersion: '1.0.0',
@@ -365,6 +359,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       layer: localLayer,
     });
     const right = makeFrontendController({
+      authentication: main.authentication,
       systemName: 'system-worker',
       aggregateName: 'user',
       aggregateVersion: '1.0.0',
@@ -375,15 +370,17 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     });
     const App = makeZerospinApp({
       systemName: 'system-worker',
-      authentication: authenticationSignature,
+
       frontends: { left, right },
       layer: appLayer,
     });
     await act(async () =>
       root.render(
         <App.Provider
-          aggregateIds={{ left: 'acct_1', right: 'acct_4' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          generateSignature={{
+            left: () => Effect.succeed({ userId: 'usr_1' }),
+            right: () => Effect.succeed({ userId: 'usr_1' }),
+          }}
         >
           Ready
         </App.Provider>,
@@ -391,31 +388,28 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     );
     expect(container.textContent).toBe('Ready');
     expect(
-      bootstrapAggregateFrontendSessionMock.mock.calls.map(([props]) => [
-        props.session.frontend.name,
-        props.aggregateId,
-      ]),
-    ).toEqual([
-      ['left', 'acct_1'],
-      ['right', 'acct_4'],
-    ]);
+      bootstrapAggregateFrontendSessionMock.mock.calls.map(
+        ([props]) => props.session.frontend.name,
+      ),
+    ).toEqual(['left', 'right']);
     expect(acquisitions).toBe(1);
     expect(clocks).toHaveLength(2);
     expect(clocks[0]).toBe(clocks[1]);
     await act(async () =>
       root.render(
         <App.Provider
-          aggregateIds={{ left: 'acct_2', right: 'acct_5' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          generateSignature={{
+            left: () => Effect.succeed({ userId: 'usr_1' }),
+            right: () => Effect.succeed({ userId: 'usr_1' }),
+          }}
         >
           Ready
         </App.Provider>,
       ),
     );
     expect(acquisitions).toBe(1);
-    expect(clocks).toHaveLength(4);
-    expect(clocks[2]).toBe(clocks[0]);
-    expect(events.filter(event => event === 'release-local')).toHaveLength(2);
+    expect(clocks).toHaveLength(2);
+    expect(events.filter(event => event === 'release-local')).toHaveLength(0);
     await act(async () => root.render(null));
     expect(events.slice(-3)).toEqual([
       'release-local',
@@ -425,22 +419,24 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () =>
       root.render(
         <App.Provider
-          aggregateIds={{ left: 'acct_3', right: 'acct_6' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          generateSignature={{
+            left: () => Effect.succeed({ userId: 'usr_1' }),
+            right: () => Effect.succeed({ userId: 'usr_1' }),
+          }}
         >
           Ready
         </App.Provider>,
       ),
     );
     expect(acquisitions).toBe(2);
-    expect(clocks[4]).not.toBe(clocks[0]);
+    expect(clocks[2]).not.toBe(clocks[0]);
   });
 
   it('surfaces application acquisition failure and releases partially acquired services', async () => {
     const events: string[] = [];
     const App = makeZerospinApp({
       systemName: 'system-worker',
-      authentication: authenticationSignature,
+
       frontends: {},
       layer: Layer.mergeAll(
         sessionRuntimeLayer,
@@ -471,12 +467,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       await expect(
         act(async () =>
           root.render(
-            <App.Provider
-              aggregateIds={{}}
-              generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-            >
-              Never published
-            </App.Provider>,
+            <App.Provider generateSignature={{}}>Never published</App.Provider>,
           ),
         ),
       ).rejects.toThrow('Application initialization failed');
@@ -515,6 +506,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       }),
     );
     const frontend = makeFrontendController({
+      authentication: main.authentication,
       systemName: 'system-worker',
       aggregateName: 'user',
       aggregateVersion: '1.0.0',
@@ -525,7 +517,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     });
     const App = makeZerospinApp({
       systemName: 'system-worker',
-      authentication: authenticationSignature,
+
       frontends: { delayed: frontend },
       layer: Layer.mergeAll(
         sessionRuntimeLayer,
@@ -547,8 +539,9 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () =>
       root.render(
         <App.Provider
-          aggregateIds={{ delayed: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          generateSignature={{
+            delayed: () => Effect.succeed({ userId: 'usr_1' }),
+          }}
         >
           Ready
         </App.Provider>,
@@ -574,8 +567,9 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       await act(async () =>
         root.render(
           <App.Provider
-            aggregateIds={{ delayed: 'acct_2' }}
-            generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+            generateSignature={{
+              delayed: () => Effect.succeed({ userId: 'usr_1' }),
+            }}
           >
             Ready
           </App.Provider>,
@@ -592,8 +586,10 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () => {
       root.render(
         <LifecycleZerospinApp.Provider
-          aggregateIds={{ main: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          generateSignature={{
+            main: () => Effect.succeed({ userId: 'usr_1' }),
+            products: () => Effect.succeed({ userId: 'usr_1' }),
+          }}
         >
           <div>Ready application</div>
         </LifecycleZerospinApp.Provider>,
@@ -620,8 +616,10 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () => {
       root.render(
         <LifecycleZerospinApp.Provider
-          aggregateIds={{ main: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
+          generateSignature={{
+            main: () => Effect.succeed({ userId: 'usr_2' }),
+            products: () => Effect.succeed({ userId: 'usr_2' }),
+          }}
         >
           <div>Ready application</div>
         </LifecycleZerospinApp.Provider>,
@@ -644,10 +642,13 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       Effect.acquireRelease(
         Effect.succeed({
           systemId: 'sys_1',
-          identityKey: 'usr_1',
+          authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
           aggregateFrontendLockKey: 'aggregate-lock-1',
-          executeAggregateFrontendCommand: ({ command }) =>
-            Effect.succeed({ commandId: command.id }),
+          executeAggregateFrontendCommand: ({
+            command,
+          }: {
+            command: { id: string };
+          }) => Effect.succeed({ commandId: command.id }),
           getPushPaused: Effect.succeed(false),
           setPushPaused: () => Effect.void,
           pushNow: Effect.succeed({ status: 'empty' }),
@@ -657,7 +658,10 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     );
     bootstrapServiceFrontendSessionMock.mockReturnValueOnce(
       Effect.acquireRelease(
-        Effect.succeed({ systemId: 'sys_1', identityKey: 'usr_1' }),
+        Effect.succeed({
+          systemId: 'sys_1',
+          authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
+        }),
         () => Effect.sync(() => releases.push('service')),
       ),
     );
@@ -665,8 +669,10 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () => {
       root.render(
         <LifecycleZerospinApp.Provider
-          aggregateIds={{ main: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          generateSignature={{
+            main: () => Effect.succeed({ userId: 'usr_1' }),
+            products: () => Effect.succeed({ userId: 'usr_1' }),
+          }}
         >
           <div>Ready</div>
         </LifecycleZerospinApp.Provider>,
@@ -697,8 +703,10 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () => {
       root.render(
         <LifecycleZerospinApp.Provider
-          aggregateIds={{ main: 'acct_1' }}
-          generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+          generateSignature={{
+            main: () => Effect.succeed({ userId: 'usr_1' }),
+            products: () => Effect.succeed({ userId: 'usr_1' }),
+          }}
         >
           <Application />
         </LifecycleZerospinApp.Provider>,
@@ -761,16 +769,19 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     root = createRoot(container);
   });
 
-  it('rejects inconsistent frontend identities and releases partial acquisition', async () => {
+  it('allows independent frontend authentication and releases both sessions', async () => {
     const releases: string[] = [];
     bootstrapAggregateFrontendSessionMock.mockReturnValueOnce(
       Effect.acquireRelease(
         Effect.succeed({
           systemId: 'sys_1',
-          identityKey: 'usr_1',
+          authentication: { userId: 'usr_1', aggregateId: 'acct_1' },
           aggregateFrontendLockKey: 'aggregate-lock-1',
-          executeAggregateFrontendCommand: ({ command }) =>
-            Effect.succeed({ commandId: command.id }),
+          executeAggregateFrontendCommand: ({
+            command,
+          }: {
+            command: { id: string };
+          }) => Effect.succeed({ commandId: command.id }),
           getPushPaused: Effect.succeed(false),
           setPushPaused: () => Effect.void,
           pushNow: Effect.succeed({ status: 'empty' }),
@@ -780,30 +791,28 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     );
     bootstrapServiceFrontendSessionMock.mockReturnValueOnce(
       Effect.acquireRelease(
-        Effect.succeed({ systemId: 'sys_1', identityKey: 'usr_other' }),
+        Effect.succeed({
+          systemId: 'sys_1',
+          authentication: { userId: 'usr_other', aggregateId: 'acct_1' },
+        }),
         () => Effect.sync(() => releases.push('service')),
       ),
     );
-    const consoleError = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
-    try {
-      await expect(
-        act(async () => {
-          root.render(
-            <LifecycleZerospinApp.Provider
-              aggregateIds={{ main: 'acct_1' }}
-              generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-            >
-              <div>Never published</div>
-            </LifecycleZerospinApp.Provider>,
-          );
-        }),
-      ).rejects.toThrow('Selected frontends resolved to different identities');
-      expect(new Set(releases)).toEqual(new Set(['aggregate', 'service']));
-    } finally {
-      consoleError.mockRestore();
-    }
+    await act(async () => {
+      root.render(
+        <LifecycleZerospinApp.Provider
+          generateSignature={{
+            main: () => Effect.succeed({ userId: 'usr_1' }),
+            products: () => Effect.succeed({ userId: 'usr_other' }),
+          }}
+        >
+          <div>Published</div>
+        </LifecycleZerospinApp.Provider>,
+      );
+    });
+    expect(container.textContent).toBe('Published');
+    await act(async () => root.render(null));
+    expect(new Set(releases)).toEqual(new Set(['aggregate', 'service']));
   });
 
   it('rejects nested providers before acquiring the backup worker', async () => {
@@ -814,14 +823,8 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       await expect(
         act(async () => {
           root.render(
-            <EmptyZerospinApp.Provider
-              aggregateIds={{}}
-              generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-            >
-              <EmptyZerospinApp.Provider
-                aggregateIds={{}}
-                generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-              >
+            <EmptyZerospinApp.Provider generateSignature={{}}>
+              <EmptyZerospinApp.Provider generateSignature={{}}>
                 <div>Nested</div>
               </EmptyZerospinApp.Provider>
             </EmptyZerospinApp.Provider>,
@@ -853,8 +856,10 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
         act(async () => {
           root.render(
             <LifecycleZerospinApp.Provider
-              aggregateIds={{ main: 'acct_1' }}
-              generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
+              generateSignature={{
+                main: () => Effect.succeed({ userId: 'usr_1' }),
+                products: () => Effect.succeed({ userId: 'usr_1' }),
+              }}
             >
               <div>Failed</div>
             </LifecycleZerospinApp.Provider>,
@@ -865,10 +870,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       root = createRoot(container);
       await act(async () => {
         root.render(
-          <EmptyZerospinApp.Provider
-            aggregateIds={{}}
-            generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
-          >
+          <EmptyZerospinApp.Provider generateSignature={{}}>
             <div>Recovered</div>
           </EmptyZerospinApp.Provider>,
         );

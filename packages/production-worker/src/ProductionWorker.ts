@@ -15,10 +15,10 @@ if (
 
 const systemRuntime = makeSystemRuntime();
 export { AggregateChain } from 'system-worker';
-export { UserVersionedAggregateChain } from 'system-worker';
+export { AuthenticatedVersionedAggregateChain } from 'system-worker';
 export { VersionedAggregateChain } from 'system-worker';
 export { VersionedServiceChain } from 'system-worker';
-export { UserVersionedAggregateRepo } from 'system-worker';
+export { AuthenticatedVersionedAggregateRepo } from 'system-worker';
 export { VersionedAggregateRepo } from 'system-worker';
 export { FrontendVersionedServiceRepo } from 'system-worker';
 export { VersionedServiceRepo } from 'system-worker';

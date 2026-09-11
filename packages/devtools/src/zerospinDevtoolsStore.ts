@@ -51,7 +51,7 @@ export const zerospinDevtoolsStore = createStore<IZerospinDevtoolsStoreState>()(
             session.store.subscribe(() => {
               listener();
             }),
-          getIdentityKey: () => session.store.getState().identityKey,
+          getAuthentication: () => session.store.getState().authentication,
           getIsInitialized: () => session.store.getState().isInitialized,
           getSessionStatus: () => session.store.getState().sessionStatus,
           getBackupState: () => session.store.getState().backupState,

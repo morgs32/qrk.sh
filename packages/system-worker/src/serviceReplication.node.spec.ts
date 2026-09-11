@@ -4,9 +4,9 @@ import { makeModelMutations } from '@zerospin/core/contracts/makeModelMutations'
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemorySqljsDb } from '@zerospin/core/drizzle/makeProvisionedInMemorySqljsDb';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
+import config from 'config';
 import { Effect, Schema, Semaphore } from 'effect';
 import initSqlJs from 'sql.js';
-import { system } from 'system';
 import { expect, it, vi } from 'vitest';
 
 import { genesisDispositionHash } from './aggregateDispositionHash/aggregateDispositionHash.js';
@@ -16,6 +16,8 @@ import {
   versionedAggregateRepoDbConfig,
   versionedAggregateRepoTables,
 } from './VersionedAggregateRepo/versionedAggregateRepoDbConfig.js';
+
+const { system } = config;
 
 const inputs = vi.hoisted(
   (): {
@@ -42,29 +44,31 @@ const inputs = vi.hoisted(
   }),
 );
 
-vi.mock('system', async importOriginal => {
+vi.mock('config', async importOriginal => {
   const original =
     await importOriginal<typeof import('./fixtures/system.js')>();
   return {
-    ...original,
-    system: {
-      ...original.system,
-      aggregates: {
-        ...original.system.aggregates,
-        user: Object.fromEntries(
-          ['1.0.0', '2.0.0'].map(version => [
-            version,
-            {
-              ...original.system.aggregates.user['1.0.0'],
+    default: {
+      ...original.default,
+      system: {
+        ...original.default.system,
+        aggregates: {
+          ...original.default.system.aggregates,
+          user: Object.fromEntries(
+            ['1.0.0', '2.0.0'].map(version => [
               version,
-              getVersion: () =>
-                Effect.succeed({
-                  ...original.system.aggregates.user['1.0.0'],
-                  version,
-                }),
-            },
-          ]),
-        ),
+              {
+                ...original.default.system.aggregates.user['1.0.0'],
+                version,
+                getVersion: () =>
+                  Effect.succeed({
+                    ...original.default.system.aggregates.user['1.0.0'],
+                    version,
+                  }),
+              },
+            ]),
+          ),
+        },
       },
     },
   };
@@ -433,7 +437,7 @@ it('records different dispositions when the same guard observes different curren
     aggregateVersion: '1.0.0',
     aggregateName: 'user',
     systemName: 'system-worker',
-    identityKey: null,
+    authentication: null,
     sessionId: null,
     frontendName: null,
     pushIndex: null,

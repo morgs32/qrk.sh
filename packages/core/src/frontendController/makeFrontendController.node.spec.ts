@@ -1,3 +1,4 @@
+import { main as authenticationFixtureFrontend } from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -24,6 +25,7 @@ const Product = makeModelVersion(
 describe('makeFrontendController', () => {
   it('constructs canonical controller classes and rejects excess props', () => {
     const serviceController = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       serviceVersion: '1.0.0',
       systemName: 'test-system',
       serviceName: 'catalog',
@@ -31,6 +33,7 @@ describe('makeFrontendController', () => {
       models: { product: Product },
     });
     const aggregateController = makeFrontendController({
+      authentication: authenticationFixtureFrontend.authentication,
       aggregateVersion: '1.0.0',
       systemName: 'test-system',
       aggregateName: 'account',
@@ -42,43 +45,41 @@ describe('makeFrontendController', () => {
     expect(serviceController).toBeInstanceOf(ServiceFrontendController);
     expect(aggregateController).toBeInstanceOf(AggregateFrontendController);
     expect(() =>
-      makeFrontendController({
-        serviceVersion: '1.0.0',
-        systemName: 'test-system',
-        serviceName: 'catalog',
-        name: 'browse',
-        models: { product: Product },
-        extra: true,
-      } as {
-        systemName: string;
-        serviceName: string;
-        serviceVersion: string;
-        name: string;
-        models: { product: typeof Product };
-      }),
+      Reflect.apply(makeFrontendController, undefined, [
+        {
+          authentication: authenticationFixtureFrontend.authentication,
+          ...{
+            serviceVersion: '1.0.0',
+            systemName: 'test-system',
+            serviceName: 'catalog',
+            name: 'browse',
+            models: { product: Product },
+            extra: true,
+          },
+        },
+      ]),
     ).toThrow(Schema.SchemaError);
     expect(() =>
-      makeFrontendController({
-        aggregateVersion: '1.0.0',
-        systemName: 'test-system',
-        aggregateName: 'account',
-        name: 'web',
-        models: { product: Product },
-        contracts: {},
-        extra: true,
-      } as {
-        systemName: string;
-        aggregateName: string;
-        name: string;
-        models: { product: typeof Product };
-        contracts: Record<string, never>;
-        aggregateVersion: string;
-      }),
+      Reflect.apply(makeFrontendController, undefined, [
+        {
+          authentication: authenticationFixtureFrontend.authentication,
+          ...{
+            aggregateVersion: '1.0.0',
+            systemName: 'test-system',
+            aggregateName: 'account',
+            name: 'web',
+            models: { product: Product },
+            contracts: {},
+            extra: true,
+          },
+        },
+      ]),
     ).toThrow(Schema.SchemaError);
   });
 
   it('requires a nonempty service version and retains it on the controller', () => {
     const props = {
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'test-system',
       serviceName: 'catalog',
       name: 'browse',
@@ -99,6 +100,7 @@ describe('makeFrontendController', () => {
 
   it('requires an aggregate version and rejects the superseded controller name', () => {
     const props = {
+      authentication: authenticationFixtureFrontend.authentication,
       systemName: 'test-system',
       aggregateName: 'account',
       name: 'web',
@@ -145,6 +147,7 @@ describe('makeFrontendController', () => {
     };
     const contracts = { inspectProduct: inspectProductBinding };
     const props = {
+      authentication: authenticationFixtureFrontend.authentication,
       aggregateVersion: '1.0.0',
       systemName: 'test-system',
       aggregateName: 'account',

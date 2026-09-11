@@ -1,8 +1,11 @@
-import '@zerospin/server-only';
+import type { RoutePattern } from '@remix-run/route-pattern';
 import type { IAnyError } from '@zerospin/error';
 import type { ITypeError } from '@zerospin/schema';
-import { Layer, Schema, type Effect } from 'effect';
+import '@zerospin/server-only';
+import { Layer, Schema, SchemaAST, type Effect } from 'effect';
 
+import { AuthenticationSchema } from '../authentication/AuthenticationSchema.ts';
+import type { IAuthentication } from '../authentication/types.ts';
 import type { AssertContractMutationsInModels } from '../contracts/assertMutationsUseModels.ts';
 import { Contract } from '../contracts/makeVersion.ts';
 import type {
@@ -52,6 +55,11 @@ const ContractBindingSchema = Schema.Struct({
 });
 
 const AggregatePropsSchema = Schema.Struct({
+  authentication: AuthenticationSchema.mapFields(
+    fields => ({ ...fields, authenticate: FunctionSchema }),
+    { unsafePreserveChecks: true },
+  ),
+  guardLayer: Schema.optionalKey(FunctionSchema),
   version: Schema.String.check(
     Schema.makeFilter((version: string) => {
       const match =
@@ -113,6 +121,19 @@ export function makeAggregateVersion<
   const VERSION extends string = string,
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = never,
+  SIGNATURE extends Schema.Codec<unknown, unknown> = Schema.Codec<
+    unknown,
+    unknown
+  >,
+  AUTHENTICATION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
+  SELECTION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
+  const PATTERN extends string = string,
+  GUARD_SERVICES = never,
+  GUARD_REQUIREMENTS = never,
 >(
   identity: Readonly<{
     name: NAME;
@@ -120,6 +141,23 @@ export function makeAggregateVersion<
   }>,
   props: {
     version: VERSION;
+    authentication: IAuthentication<
+      SIGNATURE,
+      AUTHENTICATION,
+      SELECTION,
+      PATTERN
+    > & {
+      authenticationSchema: AUTHENTICATION &
+        Schema.Codec<{ readonly aggregateId: string }, unknown>;
+      pattern: RoutePattern<PATTERN> &
+        (string extends PATTERN ? never : unknown);
+    };
+    guardLayer?: (props: {
+      db: Readonly<
+        Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
+      >;
+      authentication: AUTHENTICATION['Type'] | null;
+    }) => Layer.Layer<GUARD_SERVICES, IAnyError, GUARD_REQUIREMENTS>;
     models: MODELS & IAssertValidModels<MODELS>;
     services?: Readonly<Record<string, IAnyService>>;
     contracts: CONTRACTS & {
@@ -131,7 +169,7 @@ export function makeAggregateVersion<
               NoInfer<MODELS>
             >;
             guard?: (props: {
-              identityKey: string | null;
+              authentication: AUTHENTICATION['Type'] | null;
               db: Readonly<
                 Pick<
                   IDb<IResourceDbConfig<NoInfer<MODELS>, Record<never, never>>>,
@@ -143,8 +181,14 @@ export function makeAggregateVersion<
           }
         : ITypeError<`Bad contract "${K}". The key in contracts should be the commandName`>;
     };
-    selections: SELECTIONS;
-    authorize?: AUTHORIZE;
+    selections: SELECTIONS & {
+      [K in keyof SELECTIONS]: {
+        where: (props: {
+          authentication: SELECTION['Type'];
+        }) => Record<string, unknown>;
+      };
+    };
+    authorize?: IAggregateAuthorization<MODELS, never, AUTHENTICATION['Type']>;
   },
 ): IAuthoredAggregate<
   NAME,
@@ -154,7 +198,10 @@ export function makeAggregateVersion<
   AUTHORIZE,
   VERSION,
   LAYER_SERVICES,
-  LAYER_REQUIREMENTS
+  LAYER_REQUIREMENTS,
+  IAuthentication<SIGNATURE, AUTHENTICATION, SELECTION, PATTERN>,
+  GUARD_SERVICES,
+  GUARD_REQUIREMENTS
 >;
 
 export function makeAggregateVersion(
@@ -179,6 +226,25 @@ export function makeAggregateVersion(
       { onExcessProperty: 'error' },
     )(identity),
   };
+  const aggregateIdField =
+    decoded.authentication.authenticationSchema.fields.aggregateId;
+  const aggregateIdAst =
+    aggregateIdField === undefined
+      ? undefined
+      : SchemaAST.toType(aggregateIdField.ast);
+  if (
+    aggregateIdAst === undefined ||
+    aggregateIdAst.context?.isOptional ||
+    (aggregateIdAst._tag !== 'String' &&
+      !(
+        aggregateIdAst._tag === 'Literal' &&
+        typeof aggregateIdAst.literal === 'string'
+      ))
+  ) {
+    throw new Error(
+      'Aggregate authenticationSchema must contain a required string aggregateId',
+    );
+  }
   const {
     name,
     version,
@@ -244,6 +310,8 @@ export function makeAggregateVersion(
 
   const fields = {
     layer: decoded.layer,
+    authentication: decoded.authentication,
+    guardLayer: decoded.guardLayer,
     name,
     version,
     models,
@@ -269,6 +337,9 @@ export function upgradeAggregateVersion<
   const NEXT_VERSION extends string,
   LAYER_SERVICES,
   LAYER_REQUIREMENTS,
+  AUTH extends IAuthentication,
+  GUARD_SERVICES,
+  GUARD_REQUIREMENTS,
   const MODELS_PATCH extends Record<string, IModel | null> = {},
   const CONTRACTS_PATCH extends Record<
     string,
@@ -320,7 +391,27 @@ export function upgradeAggregateVersion<
         ? SELECTIONS[K]
         : never;
   },
-  NEXT_PROPS extends Parameters<
+  NEXT_SIGNATURE extends Schema.Codec<unknown, unknown> =
+    AUTH['signatureSchema'],
+  NEXT_AUTHENTICATION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = AUTH['authenticationSchema'],
+  NEXT_SELECTION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = AUTH['selectionSchema'],
+  const NEXT_PATTERN extends string = AUTH['pattern'] extends RoutePattern<
+    infer SOURCE
+  >
+    ? SOURCE
+    : never,
+  NEXT_PROPS extends {
+    models: unknown;
+    contracts: unknown;
+    selections: unknown;
+    authorize?: unknown;
+    authentication: unknown;
+    guardLayer?: unknown;
+  } = Parameters<
     typeof makeAggregateVersion<
       NAME,
       NEXT_MODELS,
@@ -329,18 +420,13 @@ export function upgradeAggregateVersion<
       IAggregateAuthorization<NEXT_MODELS>,
       NEXT_VERSION,
       LAYER_SERVICES,
-      LAYER_REQUIREMENTS
-    >
-  >[1] = Parameters<
-    typeof makeAggregateVersion<
-      NAME,
-      NEXT_MODELS,
-      NEXT_CONTRACTS,
-      NEXT_SELECTIONS,
-      IAggregateAuthorization<NEXT_MODELS>,
-      NEXT_VERSION,
-      LAYER_SERVICES,
-      LAYER_REQUIREMENTS
+      LAYER_REQUIREMENTS,
+      NEXT_SIGNATURE,
+      NEXT_AUTHENTICATION,
+      NEXT_SELECTION,
+      NEXT_PATTERN,
+      GUARD_SERVICES,
+      GUARD_REQUIREMENTS
     >
   >[1],
 >(
@@ -352,12 +438,27 @@ export function upgradeAggregateVersion<
     AUTHORIZE,
     VERSION,
     LAYER_SERVICES,
-    LAYER_REQUIREMENTS
+    LAYER_REQUIREMENTS,
+    AUTH,
+    GUARD_SERVICES,
+    GUARD_REQUIREMENTS
   >,
   props: {
     version: NEXT_VERSION;
     services?: Readonly<Record<string, IAnyService | null>>;
     authorize?: NEXT_PROPS['authorize'] | null;
+    authentication?: IAuthentication<
+      NEXT_SIGNATURE,
+      NEXT_AUTHENTICATION,
+      NEXT_SELECTION,
+      NEXT_PATTERN
+    > & {
+      authenticationSchema: NEXT_AUTHENTICATION &
+        Schema.Codec<{ readonly aggregateId: string }, unknown>;
+      pattern: RoutePattern<NEXT_PATTERN> &
+        (string extends NEXT_PATTERN ? never : unknown);
+    };
+    guardLayer?: NEXT_PROPS['guardLayer'];
     models?: MODELS_PATCH & {
       [K in keyof MODELS_PATCH]: MODELS_PATCH[K] extends null
         ? K extends keyof MODELS
@@ -387,7 +488,14 @@ export function upgradeAggregateVersion<
     };
   } & Omit<
     NEXT_PROPS,
-    'version' | 'models' | 'services' | 'contracts' | 'selections' | 'authorize'
+    | 'version'
+    | 'models'
+    | 'services'
+    | 'contracts'
+    | 'selections'
+    | 'authorize'
+    | 'authentication'
+    | 'guardLayer'
   >,
 ): ReturnType<
   typeof makeAggregateVersion<
@@ -398,7 +506,13 @@ export function upgradeAggregateVersion<
     IAggregateAuthorization<NEXT_MODELS>,
     NEXT_VERSION,
     LAYER_SERVICES,
-    LAYER_REQUIREMENTS
+    LAYER_REQUIREMENTS,
+    NEXT_SIGNATURE,
+    NEXT_AUTHENTICATION,
+    NEXT_SELECTION,
+    NEXT_PATTERN,
+    GUARD_SERVICES,
+    GUARD_REQUIREMENTS
   >
 >;
 
@@ -411,6 +525,8 @@ export function upgradeAggregateVersion(
     selections?: Record<string, unknown>;
     services?: Record<string, IAnyService | null>;
     authorize?: unknown;
+    authentication?: unknown;
+    guardLayer?: unknown;
   },
 ): unknown {
   const decoded = authoredInputs.get(
@@ -454,6 +570,11 @@ export function upgradeAggregateVersion(
       }
     }
     Reflect.set(next, field, merged);
+  }
+  for (const field of ['authentication', 'guardLayer']) {
+    if (Object.hasOwn(upgradeProps, field)) {
+      Reflect.set(next, field, Reflect.get(upgradeProps, field));
+    }
   }
   if (Object.hasOwn(upgradeProps, 'authorize')) {
     if (upgradeProps.authorize === null) {

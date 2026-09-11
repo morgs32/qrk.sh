@@ -20,9 +20,9 @@ import type {
   IEncodedResourceShape,
 } from '@zerospin/core/models/types';
 import { mapParseError, ZerospinError, type IAnyError } from '@zerospin/error';
+import type config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Result, Schema } from 'effect';
-import { type system } from 'system';
 
 import {
   advanceDispositionHash,
@@ -49,7 +49,7 @@ export const executeCommandsTx = makeTx(
     now: Date;
     sourceCommand: string;
   }[];
-  service: (typeof system.services)[string][string];
+  service: (typeof config.system.services)[string][string];
   guards: Effect.Success<
     ReturnType<typeof initializeGuards<never, unknown, unknown>>
   >;
@@ -91,7 +91,7 @@ export const executeCommandsTx = makeTx(
                 yield* guards
                   .run(command.commandName, {
                     db: commandTx,
-                    identityKey: null,
+                    authentication: null,
                     payload,
                   })
                   .pipe(

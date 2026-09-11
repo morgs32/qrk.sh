@@ -1,8 +1,6 @@
 import type { Async } from '@zerospin/core/async/Async';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
-import type { AuthenticationLockSchema } from '@zerospin/core/authentication/makeAuthenticationLock';
 import type { AggregateFrontendLockSchema } from '@zerospin/core/frontendController/makeAggregateFrontendLock';
-import type { IAggregateId } from '@zerospin/core/models/types';
 import type { IAggregateFrontendSyncState } from '@zerospin/core/session/types';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { newSyncRpcSession } from '@zerospin/core/utils/newSyncRpcSession';
@@ -26,9 +24,7 @@ export const fetchAggregateFrontendState = Effect.fn(
   apiUrl: string;
   publishableKey: string;
   systemName: string;
-  authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
   generateSignature(): Promise<IEncodedResult<unknown, IAnyErrorJson>>;
-  aggregateId: IAggregateId;
   aggregateName: string;
   aggregateVersion: string;
   frontendName: string;
@@ -41,10 +37,8 @@ export const fetchAggregateFrontendState = Effect.fn(
 > {
   const {
     aggregateFrontendLock,
-    aggregateId,
     aggregateName,
     apiUrl,
-    authenticationLock,
     frontendName,
     generateSignature,
     publishableKey,
@@ -58,9 +52,7 @@ export const fetchAggregateFrontendState = Effect.fn(
     aggregateVersion: props.aggregateVersion,
     publishableKey,
     systemName,
-    authenticationLock,
     signature,
-    aggregateId,
     aggregateName,
     frontendName,
     aggregateFrontendLock,

@@ -4,8 +4,8 @@ import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError } from '@zerospin/error';
 import { makeAbbreviationIdSchema } from '@zerospin/schema';
+import config from 'config';
 import { Effect, Schema, type Context } from 'effect';
-import { system } from 'system';
 
 import { AggregateChain } from '../../AggregateChain/AggregateChain.js';
 import {
@@ -13,6 +13,8 @@ import {
   SystemApiAuthResults,
 } from '../makeApiHandler/makeApiHandler.js';
 import type { SystemApi } from '../SystemApi.js';
+
+const { system } = config;
 
 /*
  * Secret-key callers submit a complete encoded aggregate command through

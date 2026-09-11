@@ -1,14 +1,16 @@
 import { RoutePattern } from '@remix-run/route-pattern';
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { ZerospinError } from '@zerospin/error';
+import config from 'config';
 import { Effect } from 'effect';
-import { system } from 'system';
 
 import { makeFixedDORepoConfig } from '../makeFixedDORepo/makeFixedDORepoConfig.js';
 import { managedRuntime } from '../managedRuntime.js';
 import { systemWorkerAbbreviations } from '../systemWorkerAbbreviations.js';
 
 import { versionedServiceRepoTables } from './versionedServiceRepoDbConfig.js';
+
+const { system } = config;
 
 /**
  * Sibling of the VSR class module so ServiceAdmittedChain can import

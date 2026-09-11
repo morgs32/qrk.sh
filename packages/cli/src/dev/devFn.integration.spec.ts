@@ -111,7 +111,7 @@ await Effect.runPromise(devFn({ clean: false, port: 0 }).pipe(
     expect(output).toContain('aggregate-spec-mismatch');
     expect(
       (await readdir(join(directory, '.wrangler/zerospin'))).filter(file =>
-        file.startsWith('entry-'),
+        file.startsWith('dev-config-'),
       ),
     ).toEqual([]);
     await expect(fetch(apiUrl ?? '')).rejects.toThrow();
@@ -201,7 +201,7 @@ await Effect.runPromise(devFn({ clean: false, port: 0 }).pipe(
         }
         expect(
           (await readdir(join(directory, '.wrangler/zerospin'))).filter(file =>
-            file.startsWith('entry-'),
+            file.startsWith('dev-config-'),
           ),
         ).toEqual([]);
       } catch (error) {

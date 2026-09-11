@@ -1,4 +1,5 @@
 import { RoutePattern } from '@remix-run/route-pattern';
+import { createHref } from '@remix-run/route-pattern/href';
 import type { Async } from '@zerospin/core/async/Async';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
 import { makeAsync } from '@zerospin/core/async/makeAsync';
@@ -61,7 +62,7 @@ const testFanoutDbConfig = makeDbConfig({
 const nameUtils = makeRepoNameUtils({
   abbreviation: 'testsub',
   namePattern: RoutePattern.parse(
-    '/:systemId/:aggregateId/:aggregateName/:identityKey/:frontendName',
+    '/:systemId/:aggregateId/:aggregateName/:selectionPath/:frontendName',
   ),
 });
 
@@ -305,7 +306,9 @@ describe('makeFanoutQueue', () => {
       systemId: 'sys_test',
       aggregateId: 'acct_test',
       aggregateName: 'user',
-      identityKey: 'user_owner',
+      selectionPath: createHref(RoutePattern.parse('/:userId'), {
+        userId: 'user_owner',
+      }),
       frontendName: 'main',
       currentIndex: 3,
     });
@@ -322,7 +325,9 @@ describe('makeFanoutQueue', () => {
       systemId: 'sys_test',
       aggregateId: 'acct_other',
       aggregateName: 'user',
-      identityKey: 'user_owner',
+      selectionPath: createHref(RoutePattern.parse('/:userId'), {
+        userId: 'user_owner',
+      }),
       frontendName: 'main',
       currentIndex: null,
     });
@@ -385,7 +390,9 @@ describe('makeFanoutQueue', () => {
       systemId: 'sys_test',
       aggregateId: 'acct_test',
       aggregateName: 'user',
-      identityKey: 'user_owner',
+      selectionPath: createHref(RoutePattern.parse('/:userId'), {
+        userId: 'user_owner',
+      }),
       frontendName: 'main',
       currentIndex: 0,
     });

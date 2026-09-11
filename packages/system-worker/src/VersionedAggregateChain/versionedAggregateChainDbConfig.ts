@@ -16,10 +16,11 @@ export const versionedAggregateChainDbConfig = makeDbConfig({
     replicaSubscribers: makeTable({
       name: 'replicaSubscribers',
       shape: {
-        userVersionedAggregateRepoName: primitives.primaryKey({
-          abbreviation: systemWorkerAbbreviations.userVersionedAggregateRepo,
+        authenticatedVersionedAggregateRepoName: primitives.primaryKey({
+          abbreviation:
+            systemWorkerAbbreviations.authenticatedVersionedAggregateRepo,
         }),
-        identityKey: primitives.text(),
+        selectionPath: primitives.text(),
         currentIndex: primitives.integer({ nullable: true }),
         failure: primitives.text({ nullable: true }),
       },

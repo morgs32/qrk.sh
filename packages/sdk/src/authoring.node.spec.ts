@@ -1,3 +1,4 @@
+import { RoutePattern } from '@remix-run/route-pattern';
 import { Effect, Schema } from 'effect';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
@@ -31,7 +32,6 @@ const serverExports = [
   'makeAggregateVersion',
   'upgradeAggregateVersion',
   'makeService',
-  'makeAuthenticationVersion',
   'makeSystem',
   'makeSystemConfig',
   'makeCommand',
@@ -42,6 +42,20 @@ const change = sdk.makeContractVersion(sdk.defineCommand('change'), {
   payload: { name: sdk.primitives.text() },
 });
 const service = sdk.makeService({
+  authentication: {
+    signatureSchema: Schema.Struct({ userId: Schema.String }),
+    authenticationSchema: Schema.Struct({
+      aggregateId: Schema.Literal('acct_test'),
+      userId: Schema.String,
+    }),
+    selectionSchema: Schema.Struct({ userId: Schema.String }),
+    pattern: RoutePattern.parse('/:userId'),
+    authenticate: ({ signature }) =>
+      Effect.succeed({
+        aggregateId: 'acct_test',
+        userId: signature.userId,
+      } satisfies { aggregateId: 'acct_test'; userId: string }),
+  },
   name: 'catalog',
   version: '2.0.0',
   models: {},
@@ -51,6 +65,20 @@ const aggregate = sdk.makeAggregateVersion(
   sdk.makeAggregate({ name: 'shopper' }),
   {
     version: '3.0.0',
+    authentication: {
+      signatureSchema: Schema.Struct({ userId: Schema.String }),
+      authenticationSchema: Schema.Struct({
+        aggregateId: Schema.Literal('acct_test'),
+        userId: Schema.String,
+      }),
+      selectionSchema: Schema.Struct({ userId: Schema.String }),
+      pattern: RoutePattern.parse('/:userId'),
+      authenticate: ({ signature }) =>
+        Effect.succeed({
+          aggregateId: 'acct_test',
+          userId: signature.userId,
+        } satisfies { aggregateId: 'acct_test'; userId: string }),
+    },
     models: {},
     contracts: { change: { contract: change } },
     selections: {},
@@ -123,7 +151,7 @@ describe('flat SDK authoring', () => {
         aggregateVersion: '3.0.0',
         aggregateId: 'acct_shopper',
         systemName: 'shopping',
-        identityKey: null,
+        authentication: null,
         pushIndex: null,
         sessionId: null,
         frontendName: null,
@@ -140,10 +168,20 @@ describe('flat SDK authoring', () => {
         contractName: 'change',
         payload: { name: 1 },
       }),
-      // @ts-expect-error Aggregate contract names come from the supplied owner.
-      sdk.makeCommand(aggregate, { contractName: 'missing', aggregateId: 'acct_a', systemName: 'shopping', payload: { name: 'valid' }, }),
-      // @ts-expect-error Aggregate payloads retain the selected contract input type.
-      sdk.makeCommand(aggregate, { contractName: 'change', aggregateId: 'acct_a', systemName: 'shopping', payload: { name: 1 }, }),
+      sdk.makeCommand(aggregate, {
+        // @ts-expect-error Aggregate contract names come from the supplied owner.
+        contractName: 'missing',
+        aggregateId: 'acct_a',
+        systemName: 'shopping',
+        payload: { name: 'valid' },
+      }),
+      sdk.makeCommand(aggregate, {
+        contractName: 'change',
+        aggregateId: 'acct_a',
+        systemName: 'shopping',
+        // @ts-expect-error Aggregate payloads retain the selected contract input type.
+        payload: { name: 1 },
+      }),
     ];
     for (const command of invalid) {
       expect(
@@ -163,7 +201,6 @@ describe('flat SDK authoring', () => {
     const system = sdk.makeSystem({
       name: 'shopping',
       aggregates: {},
-      authentication: [],
     });
     const config = sdk.makeSystemConfig(system, { systemId: 'sys_test' });
     expectTypeOf(config.system).toEqualTypeOf<typeof system>();
@@ -222,14 +259,6 @@ describe('flat SDK authoring', () => {
     });
     expectTypeOf(upgradedAggregate.version).toEqualTypeOf<'4.0.0'>();
     expect(upgradedAggregate.contracts.change.contract).toBe(upgradedContract);
-    const authentication = sdk.makeAuthenticationVersion({
-      version: '1.0.0',
-      signature: Schema.String,
-      authenticate: ({ signature }) => Effect.succeed(signature),
-    });
-    expectTypeOf(authentication.version).toEqualTypeOf<'1.0.0'>();
-    expect(
-      Effect.runSync(authentication.authenticate({ signature: 'user' })),
-    ).toBe('user');
+    expect(upgradedAggregate.authentication).toEqual(aggregate.authentication);
   });
 });

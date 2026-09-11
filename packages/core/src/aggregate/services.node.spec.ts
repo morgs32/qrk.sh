@@ -1,3 +1,4 @@
+import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
 import { Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -10,12 +11,14 @@ import {
 } from './makeVersion.ts';
 
 const AppV1 = makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'app',
   version: '1.0.0',
   models: {},
   contracts: {},
 });
 const V1 = makeAggregateVersion(makeAggregate({ name: 'shopper' }), {
+  authentication: authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: {},
   contracts: {},
@@ -28,6 +31,7 @@ describe('aggregate service definitions', () => {
   it('derives pins from service definitions and replaces them through upgrades', () => {
     expect(V1.services).toEqual({ app: AppV1.version });
     const AppV2 = makeService({
+      authentication: authenticationFixtureOwner.authentication,
       name: 'app',
       version: '2.0.0',
       models: {},
@@ -92,6 +96,7 @@ describe('aggregate service definitions', () => {
   it('rejects version strings when first authoring an aggregate', () => {
     expect(() =>
       makeAggregateVersion(makeAggregate({ name: 'invalid' }), {
+        authentication: authenticationFixtureOwner.authentication,
         version: '1.0.0',
         models: {},
         contracts: {},

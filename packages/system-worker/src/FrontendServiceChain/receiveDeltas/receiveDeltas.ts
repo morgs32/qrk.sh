@@ -28,7 +28,7 @@ export const receiveDeltas = Effect.fn('FrontendServiceChain.receiveDeltas')(
     key: {
       serviceName: string;
       serviceVersion: string;
-      identityKey: string;
+      selectionPath: string;
       frontendName: string;
     };
     broadcast(output: IServiceFrontendFinalizedCommand): void;

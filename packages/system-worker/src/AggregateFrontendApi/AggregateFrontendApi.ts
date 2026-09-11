@@ -29,7 +29,8 @@ export class AggregateFrontendApi extends RpcTarget {
     readonly aggregateId: IAggregateId;
     readonly aggregateName: string;
     aggregateVersion: string;
-    readonly identityKey: string;
+    readonly authentication: Readonly<Record<string, unknown>>;
+    readonly selectionPath: string;
     readonly frontendName: string;
     readonly aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
@@ -48,7 +49,8 @@ export class AggregateFrontendApi extends RpcTarget {
       readonly aggregateId: IAggregateId;
       readonly aggregateName: string;
       aggregateVersion: string;
-      readonly identityKey: string;
+      readonly authentication: Readonly<Record<string, unknown>>;
+      readonly selectionPath: string;
       readonly frontendName: string;
       readonly aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema
@@ -95,7 +97,7 @@ export class AggregateFrontendApi extends RpcTarget {
   }
 
   /*
-   * AggregateFrontendApi serves reconnect history from UserVersionedAggregateChain.
+   * AggregateFrontendApi serves reconnect history from AuthenticatedVersionedAggregateChain.
    * The capability binds the frontend identity; the request supplies the replay
    * cursor and aggregateVersion.
    *

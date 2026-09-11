@@ -7,8 +7,8 @@ import { env } from 'cloudflare:workers';
 import type { AnyColumn } from 'drizzle-orm';
 import { Effect, Result } from 'effect';
 
+import { AuthenticatedVersionedAggregateChain } from '../../AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
 import { FrontendServiceChain } from '../../FrontendServiceChain/FrontendServiceChain.js';
-import { UserVersionedAggregateChain } from '../../UserVersionedAggregateChain/UserVersionedAggregateChain.js';
 import { consumeAggregateFrontendWebSocketTicket } from '../consumeAggregateFrontendWebSocketTicket/consumeAggregateFrontendWebSocketTicket.js';
 import { consumeServiceFrontendWebSocketTicket } from '../consumeServiceFrontendWebSocketTicket/consumeServiceFrontendWebSocketTicket.js';
 
@@ -39,7 +39,8 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
       aggregateId: AnyColumn;
       aggregateName: AnyColumn;
       aggregateVersion: AnyColumn;
-      identityKey: AnyColumn;
+      selectionPath: AnyColumn;
+      authentication: AnyColumn;
       frontendName: AnyColumn;
       aggregateFrontendLock: AnyColumn;
     }>;
@@ -50,7 +51,8 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
       repoName: AnyColumn;
       serviceName: AnyColumn;
       serviceVersion: AnyColumn;
-      identityKey: AnyColumn;
+      selectionPath: AnyColumn;
+      authentication: AnyColumn;
       frontendName: AnyColumn;
       serviceFrontendLock: AnyColumn;
     }>;
@@ -137,7 +139,7 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
           systemId,
           serviceName: settled.success.serviceName,
           serviceVersion: settled.success.serviceVersion,
-          identityKey: settled.success.identityKey,
+          selectionPath: settled.success.selectionPath,
           frontendName: settled.success.frontendName,
         },
       });
@@ -148,7 +150,11 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
           'x-zerospin-service-version',
           settled.success.serviceVersion,
         );
-        headers.set('x-zerospin-identity-key', settled.success.identityKey);
+        headers.set('x-zerospin-selection-path', settled.success.selectionPath);
+        headers.set(
+          'x-zerospin-authentication',
+          JSON.stringify(settled.success.authentication),
+        );
         headers.set('x-zerospin-frontend-name', settled.success.frontendName);
         headers.set(
           'x-zerospin-service-frontend-lock',
@@ -197,10 +203,10 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
 
     // 7 — parse repoName from the spent ticket, preserving the snapshot-selected version
     const key =
-      yield* UserVersionedAggregateChain.fixedDORepoConfig.nameUtils.parseName(
+      yield* AuthenticatedVersionedAggregateChain.fixedDORepoConfig.nameUtils.parseName(
         settled.success.repoName,
       );
-    const repo = yield* UserVersionedAggregateChain.getRepo({ key });
+    const repo = yield* AuthenticatedVersionedAggregateChain.getRepo({ key });
 
     // 8 — replace aggregate/user/frontend headers and map forwarding failure to HTTP 500
     return yield* makeAsync(async () => {
@@ -211,7 +217,11 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
         'x-zerospin-aggregate-version',
         settled.success.aggregateVersion,
       );
-      headers.set('x-zerospin-identity-key', settled.success.identityKey);
+      headers.set('x-zerospin-selection-path', settled.success.selectionPath);
+      headers.set(
+        'x-zerospin-authentication',
+        JSON.stringify(settled.success.authentication),
+      );
       headers.set('x-zerospin-frontend-name', settled.success.frontendName);
       headers.set(
         'x-zerospin-aggregate-frontend-lock',

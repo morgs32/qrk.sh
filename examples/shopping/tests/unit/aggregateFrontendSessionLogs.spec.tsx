@@ -1,13 +1,11 @@
 import { act } from 'react';
 
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 // @vitest-environment jsdom
 import { makeResourceDbConfig } from '@zerospin/core/drizzle/makeDbConfig';
 import { makeProvisionedInMemoryWasmSqliteDb } from '@zerospin/core/drizzle/makeProvisionedInMemoryWasmSqliteDb';
 import { getFrontendDbModels } from '@zerospin/core/frontendController/getFrontendDbModels';
 import { initializeGuards as initializeFrontendGuards } from '@zerospin/core/frontendController/initializeGuards';
-import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeFrontendControllerSpec } from '@zerospin/core/frontendController/makeFrontendControllerSpec';
 import { makeAggregateSession } from '@zerospin/core/session/makeAggregateSession';
 import { sessionRepoTables } from '@zerospin/core/session/sessionRepoTables';
@@ -43,16 +41,8 @@ import {
   ClerkUserIdSchema,
   userV1,
 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
-import { shopperV2 } from '@/zerospin/aggregates/shopper/ShopperV2';
-import { system } from '@/zerospin/system';
-const WebV2 = makeFrontendController({
-  systemName: 'shopping',
-  aggregateName: shopperV2.name,
-  aggregateVersion: shopperV2.version,
-  name: 'web',
-  models: shopperV2.models,
-  contracts: shopperV2.contracts,
-});
+import { ZerospinApp } from '@/zerospin/ZerospinApp';
+const WebV2 = ZerospinApp.frontends.shopperFrontend.frontend;
 
 const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
@@ -70,7 +60,6 @@ describe('aggregate frontend session logs integration', () => {
       Schema.decodeUnknownSync(ClerkUserIdSchema)('user_logs');
     const persistedBatches: ITelemetryBatch[] = [];
     const frontendSpec = makeFrontendControllerSpec(WebV2);
-    const authenticationLock = makeAuthenticationLock(system.authentication[0]);
     Reflect.set(env, 'VERSIONED_AGGREGATE_REPO', {
       getByName: () => ({
         authorizeAggregateFrontend: async () => encodeSuccess(undefined),
@@ -89,6 +78,9 @@ describe('aggregate frontend session logs integration', () => {
     });
     Reflect.set(env, 'SYSTEM_LOG_REPO', {
       getByName: () => ({
+        beginAuthenticationAttempt: async () =>
+          encodeSuccess({ attemptId: 'aat_logs' }),
+        completeAuthenticationAttempt: async () => encodeSuccess(undefined),
         appendTelemetryBatch: async (props: { batch: ITelemetryBatch }) => {
           persistedBatches.push(props.batch);
           return encodeSuccess(undefined);
@@ -96,6 +88,14 @@ describe('aggregate frontend session logs integration', () => {
       }),
     });
 
+    Reflect.set(env, 'AGGREGATE_CHAIN', {
+      getByName: () => ({
+        executeAggregateCommand: async () =>
+          encodeSuccess({
+            failure: { code: 'user-clerk-identity-already-exists' },
+          }),
+      }),
+    });
     const runtime = makeSystemRuntime();
     const gatewayApi = new GatewayApi({
       runtime,
@@ -103,9 +103,9 @@ describe('aggregate frontend session logs integration', () => {
     const aggregateFrontendApi = await gatewayApi.getAggregateFrontendApi({
       publishableKey: 'pk_logs',
       systemName: WebV2.systemName,
-      authenticationLock,
+
       signature: { clerkUserId: 'user_logs' },
-      aggregateId: 'acct_1',
+
       aggregateName: WebV2.aggregateName,
       frontendName: WebV2.name,
       aggregateVersion: WebV2.aggregateVersion,
@@ -200,7 +200,7 @@ describe('aggregate frontend session logs integration', () => {
     session.store.setState({
       aggregateId: 'acct_1',
       aggregateName: WebV2.aggregateName,
-      identityKey: 'user_logs',
+      authentication: { clerkUserId, aggregateId: 'acct_1' },
       systemId: 'sys_shopping_20260904',
       frontendName: WebV2.name,
       db,

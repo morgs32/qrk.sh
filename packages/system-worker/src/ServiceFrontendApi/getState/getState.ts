@@ -52,7 +52,8 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
   function* (props: {
     request: IRpcRequest<[]>;
     authResults: {
-      readonly identityKey: string;
+      readonly authentication: Readonly<Record<string, unknown>>;
+      readonly selectionPath: string;
       readonly frontendName: string;
       readonly serviceFrontendLock: Schema.Schema.Type<
         typeof ServiceFrontendLockSchema
@@ -86,8 +87,13 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
     // 3 — collect and settle the operation under the API root span
     const collector = makeTelemetryCollector();
     const settled = yield* Effect.gen(function* () {
-      const { frontendName, serviceFrontendLock, serviceName, identityKey } =
-        authResults;
+      const {
+        frontendName,
+        serviceFrontendLock,
+        serviceName,
+        authentication,
+        selectionPath,
+      } = authResults;
 
       // 4 — resolve the authored service frontend selection
       const selectedUnknown = yield* validateServiceFrontendLock({
@@ -127,7 +133,7 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
           systemId: env.ZEROSPIN_SYSTEM_ID,
           serviceName,
           serviceVersion,
-          identityKey,
+          selectionPath,
           frontendName,
         },
       });
@@ -136,7 +142,7 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
       const canonicalStateUnknown = yield* makeAsync(() =>
         serviceFrontendRepo.getState({
           serviceName,
-          identityKey,
+          selectionPath,
           frontendName,
         }),
       );
@@ -144,7 +150,14 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
         Schema.Union([
           Schema.Struct({
             _tag: Schema.Literal('Success'),
-            success: Schema.toType(ServiceFrontendStateSchema),
+            success: Schema.toType(
+              ServiceFrontendStateSchema.mapFields(
+                ({ authentication: _authentication, ...fields }) => ({
+                  ...fields,
+                  selectionPath: Schema.String,
+                }),
+              ),
+            ),
           }),
           Schema.Struct({
             _tag: Schema.Literal('Failure'),
@@ -194,9 +207,11 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
         resources.push(adapted.resource);
       }
 
-      // 9 — retain the snapshot cursor and identity
+      // 9 — retain the snapshot cursor and full authentication
+      const { selectionPath: _replicaSelectionPath, ...state } = canonicalState;
       return {
-        ...canonicalState,
+        ...state,
+        authentication,
         resources,
       };
     }).pipe(

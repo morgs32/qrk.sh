@@ -8,7 +8,6 @@ import type { Brand, JsonSchema, Layer } from 'effect';
 
 import type { IAnyAggregate, IAnyAggregates } from '../aggregate/types.ts';
 import type { Async } from '../async/Async.ts';
-import type { IAuthentication } from '../authentication/types.ts';
 import type { IFrontendControllerSpec } from '../frontendController/types.ts';
 import type {
   IEncodedResourceShape,
@@ -46,9 +45,9 @@ export type IRepoType =
   | 'VersionedServiceRepo'
   | 'VersionedAggregateChain'
   | 'VersionedServiceChain'
-  | 'UserVersionedAggregateChain'
+  | 'AuthenticatedVersionedAggregateChain'
   | 'FrontendServiceChain'
-  | 'UserVersionedAggregateRepo'
+  | 'AuthenticatedVersionedAggregateRepo'
   | 'FrontendVersionedServiceRepo'
   | 'SystemLogRepo';
 
@@ -91,7 +90,6 @@ type ISystemContractSpec = Readonly<{
 
 export type ISystemSpec = Readonly<{
   readonly systemName: string;
-  readonly authentication: readonly IAuthentication['spec'][];
   readonly aggregates: Readonly<
     Record<
       string,
@@ -101,6 +99,12 @@ export type ISystemSpec = Readonly<{
           Readonly<{
             readonly name: string;
             readonly version: string;
+            readonly authentication: {
+              readonly signatureJsonSchema: unknown;
+              readonly authenticationJsonSchema: unknown;
+              readonly selectionJsonSchema: unknown;
+              readonly pattern: string;
+            };
             readonly services: Readonly<Record<string, string>>;
             readonly models: Readonly<Record<string, ISystemModelSpec>>;
             readonly contracts: Readonly<Record<string, ISystemContractSpec>>;
@@ -121,6 +125,12 @@ export type ISystemSpec = Readonly<{
           Readonly<{
             readonly name: string;
             readonly version: string;
+            readonly authentication: {
+              readonly signatureJsonSchema: unknown;
+              readonly authenticationJsonSchema: unknown;
+              readonly selectionJsonSchema: unknown;
+              readonly pattern: string;
+            };
             readonly models: Readonly<Record<string, ISystemModelSpec>>;
             readonly contracts: Readonly<Record<string, ISystemContractSpec>>;
             readonly queries: Readonly<
@@ -200,13 +210,10 @@ export type ISystem<
     Record<string, IAnyServices>
   >,
   SYSTEM_NAME extends string = string,
-  AUTHENTICATION extends readonly IAuthentication[] =
-    readonly IAuthentication[],
   LAYER_SERVICES = never,
 > = {
   readonly layer: Layer.Layer<LAYER_SERVICES, IAnyError>;
   readonly name: SYSTEM_NAME;
-  readonly authentication: Readonly<AUTHENTICATION>;
   readonly aggregates: Readonly<
     AGGREGATES &
       Record<

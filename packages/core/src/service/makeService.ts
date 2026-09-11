@@ -1,9 +1,12 @@
+import type { RoutePattern } from '@remix-run/route-pattern';
 import type { IAnyError } from '@zerospin/error';
 import type { ITypeError } from '@zerospin/schema';
-import '@zerospin/server-only';
-import { Layer, Schema } from 'effect';
+import { Layer, Schema, type Effect } from 'effect';
 import { isEqual, mapValues } from 'es-toolkit';
+import '@zerospin/server-only';
 
+import { AuthenticationSchema } from '../authentication/AuthenticationSchema.ts';
+import type { IAuthentication } from '../authentication/types.ts';
 import { Contract } from '../contracts/makeVersion.ts';
 import type { IAnyContracts } from '../contracts/types.ts';
 import type {
@@ -57,6 +60,10 @@ const serviceSemVerPattern =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
 const ServicePropsSchema = Schema.Struct({
+  authentication: AuthenticationSchema.mapFields(
+    fields => ({ ...fields, authenticate: FunctionSchema }),
+    { unsafePreserveChecks: true },
+  ),
   layer: Schema.optionalKey(
     Schema.declare(
       (input: unknown): input is Layer.Layer<never, IAnyError, unknown> =>
@@ -215,10 +222,30 @@ export function makeService<
   >,
   LAYER_SERVICES = never,
   LAYER_REQUIREMENTS = never,
+  SIGNATURE extends Schema.Codec<unknown, unknown> = Schema.Codec<
+    unknown,
+    unknown
+  >,
+  AUTHENTICATION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
+  SELECTION extends Schema.Struct<
+    Readonly<Record<string, Schema.Codec<unknown, unknown>>>
+  > = Schema.Struct<Readonly<Record<string, Schema.Codec<unknown, unknown>>>>,
+  const PATTERN extends string = string,
 >(
   props: {
     name: NAME;
     version: VERSION;
+    authentication: IAuthentication<
+      SIGNATURE,
+      AUTHENTICATION,
+      SELECTION,
+      PATTERN
+    > & {
+      pattern: RoutePattern<PATTERN> &
+        (string extends PATTERN ? never : unknown);
+    };
     models: MODELS &
       IAssertValidModels<MODELS> & {
         [MODEL_NAME in keyof MODELS]: MODELS[MODEL_NAME] extends IModelReplica
@@ -243,7 +270,12 @@ export function makeService<
         authorize?: never;
       }
     : {
-        authorize: AUTHORIZE;
+        authorize: IServiceAuthorization<
+          IResolvedServiceFrontends<MODELS, FRONTENDS>,
+          MODELS,
+          never,
+          AUTHENTICATION['Type']
+        >;
       }),
 ): IService<
   NAME,
@@ -254,7 +286,9 @@ export function makeService<
   AUTHORIZE,
   VERSION,
   LAYER_SERVICES,
-  LAYER_REQUIREMENTS
+  LAYER_REQUIREMENTS,
+  Effect.Services<ReturnType<NonNullable<CONTRACTS[keyof CONTRACTS]['guard']>>>,
+  IAuthentication<SIGNATURE, AUTHENTICATION, SELECTION, PATTERN>
 >;
 
 export function makeService(props: unknown): unknown {
@@ -435,6 +469,7 @@ export function makeService(props: unknown): unknown {
 
   const fields = {
     layer: decoded.layer ?? Layer.empty,
+    authentication: decoded.authentication,
     name,
     version,
     models,

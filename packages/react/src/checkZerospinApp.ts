@@ -10,16 +10,10 @@ export function checkZerospinApp<SYSTEM>(
     infer AGGREGATES,
     infer SERVICES,
     infer SYSTEM_NAME,
-    infer AUTHENTICATION,
     infer _LAYER_SERVICES
   >
     ? Readonly<{
         systemName: SYSTEM_NAME;
-        authentication: AUTHENTICATION[number] extends infer AUTH
-          ? AUTH extends { version: string; signature: unknown }
-            ? Pick<AUTH, 'version' | 'signature'>
-            : never
-          : never;
         frontends: Readonly<
           Record<
             string,

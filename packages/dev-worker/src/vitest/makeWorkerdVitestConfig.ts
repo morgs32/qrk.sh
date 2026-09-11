@@ -16,7 +16,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export function makeWorkerdVitestConfig(props: {
   config: ISystemConfig;
   packageRoot?: string;
-  systemModulePath?: string;
+  configModulePath?: string;
   include?: readonly string[];
   passWithNoTests?: boolean;
   setupFiles?: readonly string[];
@@ -115,25 +115,13 @@ export function makeWorkerdVitestConfig(props: {
   };
   process.once('exit', generatedFiles.closeBundle);
   try {
-    const systemModulePath = path.resolve(
-      props.systemModulePath ??
-        process.env['ZEROSPIN_E2E_SYSTEM_MODULE_PATH'] ??
-        path.join(directory, 'system.ts'),
+    const configModulePath = path.resolve(
+      props.configModulePath ?? path.join(packageRoot, 'zerospin.config.ts'),
     );
-    if (
-      !props.systemModulePath &&
-      !process.env['ZEROSPIN_E2E_SYSTEM_MODULE_PATH']
-    ) {
-      fs.writeFileSync(
-        systemModulePath,
-        `import configuration from ${JSON.stringify(path.resolve(packageRoot, 'zerospin.config.ts'))};\nexport const config = configuration;\nexport const system = config.system;\n`,
-        { mode: 0o600 },
-      );
-    }
     const generatedConfig = makeWranglerConfig({
       config,
       main: path.resolve(packageRoot, workerMainPath),
-      systemModulePath,
+      configModulePath,
       environment:
         workerBindings?.['ZEROSPIN_ENVIRONMENT'] === 'production'
           ? 'production'
@@ -186,7 +174,7 @@ export function makeWorkerdVitestConfig(props: {
             find: /^@zerospin\/dev-worker\/(.+)$/,
             replacement: `${devWorkerRuntimeRoot}/$1`,
           },
-          { find: 'system', replacement: systemModulePath },
+          { find: 'config', replacement: configModulePath },
           {
             find: /^system-worker\/(.+)$/,
             replacement: `${systemWorkerSrcRoot}/$1`,

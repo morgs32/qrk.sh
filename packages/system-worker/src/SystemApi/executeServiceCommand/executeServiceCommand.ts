@@ -2,8 +2,8 @@ import { makeAsync } from '@zerospin/core/async/makeAsync';
 import { EncodedServiceCommandSchema } from '@zerospin/core/contracts/CommandSchema';
 import { decodeRpc } from '@zerospin/core/utils/decodeRpc';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
+import config from 'config';
 import { Effect, Schema, type Context } from 'effect';
-import { system } from 'system';
 
 import { ServiceAdmittedChain } from '../../ServiceAdmittedChain/ServiceAdmittedChain.js';
 import { VersionedServiceRepo } from '../../VersionedServiceRepo/VersionedServiceRepo.js';
@@ -12,6 +12,8 @@ import {
   SystemApiAuthResults,
 } from '../makeApiHandler/makeApiHandler.js';
 import type { SystemApi } from '../SystemApi.js';
+
+const { system } = config;
 
 /*
  * Secret-key callers submit a complete encoded service command through

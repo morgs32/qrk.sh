@@ -1,6 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "rewriteRelativeImportExtensions": false,
+    "allowImportingTsExtensions": true,
     "rootDir": ".",
     "noEmit": true,
     "types": ["node", "vite/client", "vitest/globals"]
@@ -34,5 +38,6 @@
     {
       "path": "../logger"
     }
-  ]
+  ],
+  "exclude": []
 }

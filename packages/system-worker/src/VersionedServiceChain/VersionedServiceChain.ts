@@ -1,12 +1,12 @@
 import { Effect } from 'effect';
 
+import { AuthenticatedVersionedAggregateRepo } from '../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
+import { authenticatedVersionedAggregateRepoFixedDORepoConfig } from '../AuthenticatedVersionedAggregateRepo/authenticatedVersionedAggregateRepoFixedDORepoConfig.js';
 import { FrontendVersionedServiceRepo } from '../FrontendVersionedServiceRepo/FrontendVersionedServiceRepo.js';
 import { frontendVersionedServiceRepoFixedDORepoConfig } from '../FrontendVersionedServiceRepo/frontendVersionedServiceRepoFixedDORepoConfig.js';
 import { makeFanoutQueue } from '../makeFanoutQueue/makeFanoutQueue.js';
 import { makeFixedDORepo } from '../makeFixedDORepo/makeFixedDORepo.js';
 import { makeOutboxSubscriber } from '../makeOutboxSubscriber/makeOutboxSubscriber.js';
-import { UserVersionedAggregateRepo } from '../UserVersionedAggregateRepo/UserVersionedAggregateRepo.js';
-import { userVersionedAggregateRepoFixedDORepoConfig } from '../UserVersionedAggregateRepo/userVersionedAggregateRepoFixedDORepoConfig.js';
 import { VersionedAggregateRepo } from '../VersionedAggregateRepo/VersionedAggregateRepo.js';
 
 import { receiveResults } from './receiveResults/receiveResults.js';
@@ -64,10 +64,11 @@ export class VersionedServiceChain extends makeFixedDORepo({
     alarmRegistry: this.alarmRegistry,
     schema: this.schema,
     subscribersTableName: 'aggregateReplicaSubscribers',
-    subscriberNameUtils: userVersionedAggregateRepoFixedDORepoConfig.nameUtils,
+    subscriberNameUtils:
+      authenticatedVersionedAggregateRepoFixedDORepoConfig.nameUtils,
     entriesTableName: 'commands',
     indexColumnName: 'outboxIndex',
-    getRepo: UserVersionedAggregateRepo.getRepo,
+    getRepo: AuthenticatedVersionedAggregateRepo.getRepo,
   });
   get aggregateReplicaFanoutQueue() {
     return this.#aggregateReplicaFanoutQueue;

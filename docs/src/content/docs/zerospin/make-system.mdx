@@ -240,4 +240,4 @@ export const system = sdk.makeSystem({
 
 This example accepts a user ID as its demonstration signature. Applications supply their own authenticator. Server execution uses the aggregate's contracts and guards directly; it does not load a frontend controller or run frontend binding adapters.
 
-Frontends sharing the same system, aggregate, aggregate version, and authenticated user share a `UserVersionedAggregateRepo` and `UserVersionedAggregateChain`. Changing a frontend lock creates a new capability and snapshot, not a new server replica.
+Frontends sharing the same system, aggregate, aggregate version, and authenticated user share a `AuthenticatedVersionedAggregateRepo` and `AuthenticatedVersionedAggregateChain`. Changing a frontend lock creates a new capability and snapshot, not a new server replica.

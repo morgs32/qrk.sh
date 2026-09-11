@@ -12,7 +12,7 @@ export const makeMutations = Effect.fn('makeMutations')(function* (props: {
   contract: IContract;
   models: IAnyModels;
   command: ICommand;
-  identityKey: string | null;
+  authentication: Readonly<Record<string, unknown>> | null;
 }): Effect.fn.Return<
   Readonly<{
     payload: unknown;
@@ -29,7 +29,7 @@ export const makeMutations = Effect.fn('makeMutations')(function* (props: {
   });
   const commandMutations = yield* contract.program({
     payload,
-    identityKey: props.identityKey,
+    authentication: props.authentication,
   });
   if (commandMutations === null || typeof commandMutations !== 'object') {
     return yield* new ZerospinError({

@@ -1,272 +1,234 @@
-import { it as effectIt } from '@effect/vitest';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { makeAuthenticationLock } from '@zerospin/core/authentication/makeAuthenticationLock';
 import type { IAuthentication } from '@zerospin/core/authentication/types';
+import { defineCommand } from '@zerospin/core/contracts/Command';
+import { makeContractVersion } from '@zerospin/core/contracts/makeVersion';
+import { encodeFailure } from '@zerospin/core/utils/encodeFailure';
+import { encodeSuccess } from '@zerospin/core/utils/encodeSuccess';
 import { ZerospinError } from '@zerospin/error';
-import { Effect, Result, Schema } from 'effect';
+import { Effect, Fiber, Result, Schema } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authenticate } from './authenticate.ts';
 
-const { onAuthentication, executeAggregateCommand, getRepo } = vi.hoisted(
-  () => ({
-    onAuthentication: vi.fn<NonNullable<IAuthentication['onAuthentication']>>(),
-    executeAggregateCommand: vi.fn(),
-    getRepo: vi.fn(),
-  }),
-);
-
+const { authored, begin, complete, execute } = vi.hoisted(() => ({
+  authored: vi.fn<IAuthentication['authenticate']>(),
+  begin: vi.fn(),
+  complete: vi.fn(),
+  execute: vi.fn(),
+}));
 vi.mock('cloudflare:workers', () => ({
   env: { ZEROSPIN_SYSTEM_ID: 'sys_auth_test' },
 }));
-vi.mock('../AggregateChain/AggregateChain.js', () => ({
-  AggregateChain: { getRepo },
+vi.mock('../SystemLogRepo/SystemLogRepo.js', () => ({
+  SystemLogRepo: {
+    getRepo: () =>
+      Effect.succeed({
+        beginAuthenticationAttempt: begin,
+        completeAuthenticationAttempt: complete,
+      }),
+  },
 }));
-
-beforeEach(() => {
-  onAuthentication.mockReset();
-  onAuthentication.mockImplementation(() => Effect.void);
-});
-
-vi.mock('system', async () => {
-  const { makeAuthenticationVersion } =
-    await import('@zerospin/core/authentication/makeVersion');
-  const { Effect, Schema } = await import('effect');
-  const { ZerospinError } = await import('@zerospin/error');
+vi.mock('../AggregateChain/AggregateChain.js', () => ({
+  AggregateChain: {
+    getRepo: () => Effect.succeed({ executeAggregateCommand: execute }),
+  },
+}));
+vi.mock('config', async () => {
+  const { RoutePattern } = await import('@remix-run/route-pattern');
+  const { Schema, Effect } = await import('effect');
   return {
-    system: {
-      name: 'auth-test',
-      aggregates: { user: { '1.0.0': {} } },
-      authentication: [
-        makeAuthenticationVersion({
-          version: '1.0.0',
-          signature: Schema.Struct({ subject: Schema.String }),
-          authenticate: ({ signature }) =>
-            Effect.succeed(`v1:${signature.subject}`),
-        }),
-        makeAuthenticationVersion({
-          version: '2.0.0',
-          signature: Schema.Struct({ identityKey: Schema.String }),
-          authenticate: ({ signature }) =>
-            signature.identityKey === 'denied'
-              ? Effect.fail(
-                  new ZerospinError({
-                    code: 'authentication-denied',
-                    message: 'Denied',
-                  }),
-                )
-              : Effect.succeed(
-                  signature.identityKey === 'empty'
-                    ? ''
-                    : `v2:${signature.identityKey}`,
-                ),
-          onAuthentication,
-        }),
-        makeAuthenticationVersion({
-          version: '3.0.0',
-          signature: Schema.NumberFromString,
-          authenticate: ({ signature }) =>
-            Effect.succeed(`number:${signature + 1}`),
-        }),
-      ],
+    default: {
+      system: {
+        name: 'auth-test',
+        aggregates: {
+          user: {
+            '1.0.0': {
+              contracts: {},
+              authentication: {
+                signatureSchema: Schema.Struct({
+                  userId: Schema.String,
+                  aggregateId: Schema.String,
+                  role: Schema.String,
+                }),
+                authenticationSchema: Schema.Struct({
+                  userId: Schema.String,
+                  aggregateId: Schema.String,
+                  role: Schema.String,
+                }),
+                selectionSchema: Schema.Struct({ userId: Schema.String }),
+                pattern: RoutePattern.parse('/:userId'),
+                authenticate: (
+                  props: Parameters<IAuthentication['authenticate']>[0],
+                ) => Effect.suspend(() => authored(props)),
+              },
+            },
+          },
+        },
+        services: {},
+      },
     },
   };
 });
 
-effectIt.effect(
-  'awaits provisioning on every attempt and binds the verified identity',
-  () =>
-    Effect.gen(function* () {
-      const hookFinished: string[] = [];
-      getRepo.mockImplementation(() =>
-        Effect.succeed({ executeAggregateCommand }),
-      );
-      executeAggregateCommand.mockImplementation(async ({ command }) => ({
-        _tag: 'Success',
-        success: {
-          ...command,
-          aggregateIndex: 1,
-          chainedAt: new Date().toISOString(),
-          dispositionHash: 'a'.repeat(64),
-          delta: null,
-          failedAt: null,
-          failure: null,
-        },
-      }));
-      onAuthentication.mockImplementation(
-        Effect.fn('test.provision')(function* ({
-          identityKey,
-          executeAggregateCommand,
-        }) {
-          yield* executeAggregateCommand({
-            id: 'cmd_provision',
-            commandName: 'createUser',
-            contractVersion: '1.0.0',
-            payload: '{}',
-            aggregateId: 'acct_alice',
-            aggregateName: 'user',
-            aggregateVersion: '1.0.0',
-            systemName: 'auth-test',
-            identityKey: 'spoofed',
-            sessionId: null,
-            frontendName: null,
-            pushIndex: null,
-          });
-          hookFinished.push(identityKey);
-        }),
-      );
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const result = yield* authenticate({
-          authenticationLock: makeAuthenticationLock({
-            version: '2.0.0',
-            signature: Schema.Struct({ identityKey: Schema.String }),
-          }),
-          signature: { identityKey: 'alice' },
-        }).pipe(Effect.provide(AsyncLive));
-        expect(result.identityKey).toBe('v2:alice');
-        expect(hookFinished).toHaveLength(attempt + 1);
-      }
-      expect(getRepo).toHaveBeenLastCalledWith({
-        key: {
-          systemId: 'sys_auth_test',
-          aggregateId: 'acct_alice',
-          aggregateName: 'user',
-        },
-      });
-      expect(executeAggregateCommand).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          command: expect.objectContaining({
-            identityKey: 'v2:alice',
-            sessionId: null,
-          }),
-        }),
-      );
-    }),
-);
-
-effectIt.effect(
-  'propagates provisioning failures and never provisions an invalid identity',
-  () =>
-    Effect.gen(function* () {
-      onAuthentication.mockClear();
-      onAuthentication.mockImplementation(() =>
-        Effect.fail(
-          new ZerospinError({
-            code: 'provisioning-failed',
-            message: 'Provisioning failed',
-          }),
-        ),
-      );
-      const authenticationLock = makeAuthenticationLock({
-        version: '2.0.0',
-        signature: Schema.Struct({ identityKey: Schema.String }),
-      });
-      for (const identityKey of ['denied', 'empty']) {
-        yield* authenticate({
-          authenticationLock,
-          signature: { identityKey },
-        }).pipe(Effect.provide(AsyncLive), Effect.flip);
-      }
-      expect(onAuthentication).not.toHaveBeenCalled();
-      const failure = yield* authenticate({
-        authenticationLock,
-        signature: { identityKey: 'alice' },
-      }).pipe(Effect.provide(AsyncLive), Effect.flip);
-      expect(failure.code).toBe('provisioning-failed');
-    }),
-);
-
-describe('independent authentication versions', () => {
-  it.each([
-    {
-      version: '1.0.0',
-      schema: Schema.Struct({ subject: Schema.String }),
-      signature: { subject: 'alice' },
-      identityKey: 'v1:alice',
-    },
-    {
-      version: '2.0.0',
-      schema: Schema.Struct({ identityKey: Schema.String }),
-      signature: { identityKey: 'alice' },
-      identityKey: 'v2:alice',
-    },
-    {
-      version: '3.0.0',
-      schema: Schema.NumberFromString,
-      signature: '41',
-      identityKey: 'number:42',
-    },
-  ])(
-    'decodes and executes exactly $version',
-    async ({ version, schema, signature, identityKey }) => {
-      const authenticationLock = makeAuthenticationLock({
-        version,
-        signature: schema,
-      });
-      const result = await Effect.runPromise(
-        authenticate({ authenticationLock, signature }).pipe(
-          Effect.provide(AsyncLive),
-        ),
-      );
-      expect(result).toEqual({
-        identityKey,
-        authenticationLock,
-        systemName: 'auth-test',
-      });
-    },
+beforeEach(() => {
+  authored.mockReset();
+  begin.mockReset();
+  complete.mockReset();
+  execute.mockReset();
+  authored.mockImplementation(({ signature }) =>
+    Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown))(
+      signature,
+    ).pipe(Effect.orDie),
   );
+  begin.mockResolvedValue(encodeSuccess({ attemptId: 'aat_test' }));
+  complete.mockResolvedValue(encodeSuccess(undefined));
+});
 
-  it.each([
-    {
-      version: '0.0.0',
-      schema: Schema.Struct({ subject: Schema.String }),
-      signature: { subject: 'alice' },
-      code: 'authentication-lock-unsupported',
-    },
-    {
-      version: '1.0.0',
-      schema: Schema.Struct({ identityKey: Schema.String }),
-      signature: { identityKey: 'alice' },
-      code: 'authentication-lock-unsupported',
-    },
-    {
-      version: '1.0.0',
-      schema: Schema.Struct({ subject: Schema.String }),
-      signature: { subject: 1 },
-      code: 'authentication-signature-invalid',
-    },
-    {
-      version: '1.0.0',
-      schema: Schema.Struct({ subject: Schema.String }),
-      signature: { subject: 'alice', extra: true },
-      code: 'authentication-signature-invalid',
-    },
-    {
-      version: '2.0.0',
-      schema: Schema.Struct({ identityKey: Schema.String }),
-      signature: { identityKey: 'denied' },
-      code: 'authentication-denied',
-    },
-    {
-      version: '2.0.0',
-      schema: Schema.Struct({ identityKey: Schema.String }),
-      signature: { identityKey: 'empty' },
-      code: 'system-runtime-authentication-identity-invalid',
-    },
-  ])(
-    'rejects $code for $version without fallback',
-    async ({ version, schema, signature, code }) => {
+describe('owner authentication admission and audit', () => {
+  it('shares selection partitions while retaining distinct full claims and hashes', async () => {
+    const results = [];
+    for (const role of ['reader', 'writer']) {
+      results.push(
+        await Effect.runPromise(
+          authenticate({
+            ownerKind: 'aggregate',
+            ownerName: 'user',
+            ownerVersion: '1.0.0',
+            signature: { userId: 'same/user', aggregateId: 'acct_one', role },
+          }).pipe(Effect.provide(AsyncLive)),
+        ),
+      );
+    }
+    expect(results[0]?.selectionPath).toBe(results[1]?.selectionPath);
+    expect(results[0]?.selection).toEqual({ userId: 'same/user' });
+    expect(results[0]?.authenticationHash).not.toBe(
+      results[1]?.authenticationHash,
+    );
+    expect(authored).toHaveBeenCalledTimes(2);
+    expect(complete).toHaveBeenCalledTimes(2);
+    expect(begin.mock.invocationCallOrder[0]).toBeLessThan(
+      authored.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it('validates signatures after beginning and never audits unvalidated data', async () => {
+    const result = await Effect.runPromise(
+      authenticate({
+        ownerKind: 'aggregate',
+        ownerName: 'user',
+        ownerVersion: '1.0.0',
+        signature: { secret: 'do-not-retain' },
+      }).pipe(Effect.provide(AsyncLive), Effect.result),
+    );
+    expect(Result.isFailure(result)).toBe(true);
+    expect(authored).not.toHaveBeenCalled();
+    expect(begin).toHaveBeenCalledOnce();
+    expect(complete).toHaveBeenCalledWith({
+      attemptId: 'aat_test',
+      result: {
+        status: 'failed',
+        failure: {
+          code: 'authentication-failed',
+          message: 'Authentication did not succeed',
+        },
+      },
+    });
+    expect(JSON.stringify(complete.mock.calls)).not.toContain('do-not-retain');
+  });
+
+  it('rejects unsupported authentication output and sanitizes the audit', async () => {
+    authored.mockReturnValue(Effect.succeed({ secret: 'invalid-claims' }));
+    const result = await Effect.runPromise(
+      authenticate({
+        ownerKind: 'aggregate',
+        ownerName: 'user',
+        ownerVersion: '1.0.0',
+        signature: { userId: 'user', aggregateId: 'acct_one', role: 'reader' },
+      }).pipe(Effect.provide(AsyncLive), Effect.result),
+    );
+    if (Result.isSuccess(result)) {
+      throw new Error('Expected validation failure');
+    }
+    expect(result.failure.code).toBe('authentication-result-invalid');
+    expect(JSON.stringify(complete.mock.calls)).not.toContain('invalid-claims');
+  });
+
+  it.each(['begin', 'complete'])(
+    'withholds success when %s persistence fails',
+    async stage => {
+      (stage === 'begin' ? begin : complete).mockResolvedValue(
+        encodeFailure(new ZerospinError({ code: 'audit-write-failed' })),
+      );
       const result = await Effect.runPromise(
         authenticate({
-          authenticationLock: makeAuthenticationLock({
-            version,
-            signature: schema,
-          }),
-          signature,
+          ownerKind: 'aggregate',
+          ownerName: 'user',
+          ownerVersion: '1.0.0',
+          signature: {
+            userId: 'user',
+            aggregateId: 'acct_one',
+            role: 'reader',
+          },
         }).pipe(Effect.provide(AsyncLive), Effect.result),
       );
-      expect(Result.isFailure(result)).toBe(true);
-      if (Result.isFailure(result)) expect(result.failure.code).toBe(code);
+      if (Result.isSuccess(result)) {
+        throw new Error('Expected persistence failure');
+      }
+      expect(result.failure.code).toBe('audit-write-failed');
+      if (stage === 'begin') expect(authored).not.toHaveBeenCalled();
     },
   );
+
+  it('leaves interrupted authentication unfinished', async () => {
+    const entered = Promise.withResolvers<void>();
+    authored.mockImplementation(() =>
+      Effect.gen(function* () {
+        entered.resolve();
+        yield* Effect.never;
+        return {};
+      }),
+    );
+    const fiber = Effect.runFork(
+      authenticate({
+        ownerKind: 'aggregate',
+        ownerName: 'user',
+        ownerVersion: '1.0.0',
+        signature: { userId: 'user', aggregateId: 'acct_one', role: 'reader' },
+      }).pipe(Effect.provide(AsyncLive)),
+    );
+    await entered.promise;
+    await Effect.runPromise(Fiber.interrupt(fiber));
+    expect(begin).toHaveBeenCalledOnce();
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it('rejects provisioning contracts outside the selected owner', async () => {
+    const contract = makeContractVersion(defineCommand('unregistered'), {
+      version: '1.0.0',
+      payload: {},
+    });
+    authored.mockImplementation(({ executeCommand }) =>
+      Effect.gen(function* () {
+        yield* executeCommand({
+          aggregateId: 'acct_one',
+          contract,
+          payload: {},
+        });
+        return {};
+      }),
+    );
+    const result = await Effect.runPromise(
+      authenticate({
+        ownerKind: 'aggregate',
+        ownerName: 'user',
+        ownerVersion: '1.0.0',
+        signature: { userId: 'user', aggregateId: 'acct_one', role: 'reader' },
+      }).pipe(Effect.provide(AsyncLive), Effect.result),
+    );
+    if (Result.isSuccess(result)) {
+      throw new Error('Expected owner validation failure');
+    }
+    expect(result.failure.code).toBe('authentication-command-contract-invalid');
+    expect(execute).not.toHaveBeenCalled();
+  });
 });

@@ -3,11 +3,13 @@ import { EncodedResourceSchema } from '@zerospin/core/models/EncodedResourceSche
 import type { IEncodedResourceShape } from '@zerospin/core/models/types';
 import { getByKeyOrThrow } from '@zerospin/core/utils/getByKeyOrThrow';
 import { mapParseError } from '@zerospin/error';
+import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Schema } from 'effect';
-import { system } from 'system';
 
 import { versionedServiceRepoDbConfig } from '../versionedServiceRepoDbConfig.js';
+
+const { system } = config;
 
 /*
  * Service frontend initialization reads owner resources and their local

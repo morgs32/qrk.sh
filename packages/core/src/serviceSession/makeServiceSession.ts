@@ -24,7 +24,12 @@ export function makeServiceSession<
 }): IServiceSession<FRONTEND, MODELS> {
   const { frontend, models, sessionId } = props;
 
-  const store = createStore<IServiceSessionState<MODELS>>((set, get) => {
+  const store = createStore<
+    IServiceSessionState<
+      MODELS,
+      FRONTEND['authentication']['authenticationSchema']['Type']
+    >
+  >((set, get) => {
     const telemetryCollector: ITelemetryCollector = {
       addSpan: span => {
         set(state => ({
@@ -72,7 +77,7 @@ export function makeServiceSession<
 
     return {
       sessionId,
-      identityKey: null,
+      authentication: null,
       systemId: null,
       serviceName: null,
       frontendName: null,
@@ -95,7 +100,10 @@ export function makeServiceSession<
 
   const onInitialized = (
     handler: (props: {
-      state: IInitializedServiceSessionState<MODELS>;
+      state: IInitializedServiceSessionState<
+        MODELS,
+        FRONTEND['authentication']['authenticationSchema']['Type']
+      >;
     }) => void,
   ): (() => void) => {
     const state = store.getState();

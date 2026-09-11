@@ -1,3 +1,7 @@
+import {
+  main as authenticationFixtureFrontend,
+  userAggregate as authenticationFixtureOwner,
+} from '@zerospin/core/fixtures/system';
 import { primitives } from '@zerospin/schema';
 import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
@@ -18,6 +22,7 @@ const Product = makeModelVersion(
   },
 );
 const controller = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'shopping',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',
@@ -25,6 +30,7 @@ const controller = makeFrontendController({
   models: { product: Product },
 });
 const catalog = makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: { product: Product },
@@ -59,6 +65,7 @@ catalog.frontends.browse.models.product = Product;
 
 // @ts-expect-error a service with frontends requires authorization
 makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: { product: Product },
@@ -67,6 +74,7 @@ makeService({
 });
 
 makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: { product: Product },
@@ -82,6 +90,7 @@ const ProductReplica = makeReplica({
   serviceName: 'catalog',
 });
 makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: {
@@ -93,6 +102,7 @@ makeService({
 });
 
 const wrongFrontendName = makeFrontendController({
+  authentication: authenticationFixtureFrontend.authentication,
   systemName: 'shopping',
   serviceVersion: '1.0.0',
   serviceName: 'catalog',
@@ -100,6 +110,7 @@ const wrongFrontendName = makeFrontendController({
   models: { product: Product },
 });
 makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: { product: Product },
@@ -122,6 +133,7 @@ const VersionedProduct = makeModelVersion(
   },
 );
 const versionedCatalog = makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: { versionedProduct: VersionedProduct },

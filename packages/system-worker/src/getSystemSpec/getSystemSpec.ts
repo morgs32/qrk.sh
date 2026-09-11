@@ -2,8 +2,10 @@ import { makeSystemSpec } from '@zerospin/core/system/makeSystemSpec';
 import { SystemSpecSchema } from '@zerospin/core/system/SystemSpecSchema';
 import type { ISystemSpec } from '@zerospin/core/system/types';
 import { mapParseError, type IAnyError } from '@zerospin/error';
+import config from 'config';
 import { Effect, Schema } from 'effect';
-import { system } from 'system';
+
+const { system } = config;
 
 /*
  * Spec acceptance, inspection, and common Repo activation serialize the

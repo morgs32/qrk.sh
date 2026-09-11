@@ -18,12 +18,13 @@ import {
   type ISpanLinkRecord,
 } from '@zerospin/logger';
 import { Effect, Result, Schema } from 'effect';
+import { isEqual } from 'es-toolkit';
 
+import { AuthenticatedVersionedAggregateRepo } from '../../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
 import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
-import { UserVersionedAggregateRepo } from '../../UserVersionedAggregateRepo/UserVersionedAggregateRepo.js';
 
 /*
- * The aggregate frontend capability requests its admitted version from UVAR,
+ * The aggregate frontend capability requests its admitted version from AVAR,
  * reconciles outstanding outcomes, and filters the shared user graph by its lock.
  *
  * 1. Validate the request arguments.
@@ -42,7 +43,8 @@ export const getState = Effect.fn('AggregateFrontendApi.getState')(
       readonly aggregateId: IAggregateId;
       readonly aggregateName: string;
       aggregateVersion: string;
-      readonly identityKey: string;
+      readonly authentication: Readonly<Record<string, unknown>>;
+      readonly selectionPath: string;
       readonly frontendName: string;
       readonly aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema
@@ -81,32 +83,44 @@ export const getState = Effect.fn('AggregateFrontendApi.getState')(
 
     // 3 — bind systemId, aggregateId, and aggregateName from the capability
     const aggregateVersion = authResults.aggregateVersion;
-    const aggregateFrontendRepo = yield* UserVersionedAggregateRepo.getRepo({
-      key: {
-        systemId: authResults.systemId,
-        aggregateVersion,
-        aggregateId: authResults.aggregateId,
-        aggregateName: authResults.aggregateName,
-        identityKey: authResults.identityKey,
-      },
-    });
+    const aggregateFrontendRepo =
+      yield* AuthenticatedVersionedAggregateRepo.getRepo({
+        key: {
+          systemId: authResults.systemId,
+          aggregateVersion,
+          aggregateId: authResults.aggregateId,
+          aggregateName: authResults.aggregateName,
+          selectionPath: authResults.selectionPath,
+        },
+      });
 
     // 5 — settle the materializer getState RPC under a collected root span
     const collector = makeTelemetryCollector();
     const settled = yield* makeAsync<
-      IEncodedResult<IAggregateFrontendSyncState, IAnyErrorJson>
+      IEncodedResult<
+        Omit<IAggregateFrontendSyncState, 'authentication'> & {
+          selectionPath: string;
+        },
+        IAnyErrorJson
+      >
     >(() =>
       aggregateFrontendRepo.getState({
         aggregateId: authResults.aggregateId,
         aggregateName: authResults.aggregateName,
-        identityKey: authResults.identityKey,
+        selectionPath: authResults.selectionPath,
         frontendName: authResults.frontendName,
         outstandingCommandIds: validatedArgs.success[0].outstandingCommandIds,
       }),
     ).pipe(
       Effect.flatMap(decodeRpc),
-      Effect.map(state => ({
+      Effect.map(({ selectionPath: _selectionPath, ...state }) => ({
         ...state,
+        authentication: authResults.authentication,
+        resolutions: state.resolutions.filter(
+          entry =>
+            isEqual(entry.command.authentication, authResults.authentication) &&
+            entry.command.frontendName === authResults.frontendName,
+        ),
         resources: state.resources.filter(resource =>
           Object.hasOwn(
             authResults.aggregateFrontendLock.models,

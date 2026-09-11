@@ -1,29 +1,16 @@
+import { userAggregate as authenticationFixtureOwner } from '@zerospin/core/fixtures/system';
 import { Effect, Schema } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
 import { makeAggregate } from '../aggregate/makeAggregate.ts';
 import { makeAggregateVersion } from '../aggregate/makeVersion.ts';
-import { makeAuthenticationVersion } from '../authentication/makeVersion.ts';
 import { makeService } from '../service/makeService.ts';
 
 import { makeSystem } from './makeSystem.ts';
 import { makeSystemSpec } from './makeSystemSpec.ts';
 
-const authenticationSignature = {
-  version: '1.0.0',
-  signature: Schema.Struct({ identityKey: Schema.String }),
-};
-const authenticationV1 = makeAuthenticationVersion({
-  version: authenticationSignature.version,
-  signature: authenticationSignature.signature,
-  authenticate: ({
-    signature,
-  }: {
-    signature: Schema.Schema.Type<typeof authenticationSignature.signature>;
-  }) => Effect.succeed(signature.identityKey),
-});
-
 const catalog = makeService({
+  authentication: authenticationFixtureOwner.authentication,
   name: 'catalog',
   version: '1.0.0',
   models: {},
@@ -37,6 +24,7 @@ const catalog = makeService({
   frontends: {},
 });
 const user = makeAggregateVersion(makeAggregate({ name: 'user' }), {
+  authentication: authenticationFixtureOwner.authentication,
   version: '1.0.0',
   models: {},
   contracts: {},
@@ -44,7 +32,7 @@ const user = makeAggregateVersion(makeAggregate({ name: 'user' }), {
 });
 const system = makeSystem({
   name: 'test',
-  authentication: [authenticationV1],
+
   aggregates: { user: [user] },
   services: { catalog: [catalog] },
 });
@@ -56,7 +44,8 @@ assert<Equals<(typeof system.services.catalog)['1.0.0']['name'], 'catalog'>>();
 // @ts-expect-error systems are immutable after construction
 system.name = 'test';
 // @ts-expect-error system authentication is immutable after construction
-system.authentication[0].authenticate = authenticationV1.authenticate;
+system.aggregates.user['1.0.0'].authentication =
+  authenticationFixtureOwner.authentication;
 // @ts-expect-error system aggregate registries are immutable after construction
 system.aggregates.user = { ...system.aggregates.user };
 // @ts-expect-error system service registries are immutable after construction
@@ -68,23 +57,23 @@ const spec = makeSystemSpec({ system });
 // @ts-expect-error generated system specs are immutable
 spec.systemName = 'test';
 // @ts-expect-error generated authentication specs are immutable
-spec.authentication[0]!.version = '1.0.0';
+spec.aggregates.user!['1.0.0']!.version = '1.0.0';
 // @ts-expect-error generated aggregate spec registries are immutable
 spec.aggregates.user = { ...spec.aggregates.user };
 // @ts-expect-error generated authentication JSON Schema roots are immutable
-spec.authentication[0]!.signatureJsonSchema.schema.type = 'string';
+spec.aggregates.user!['1.0.0']!.authentication.pattern = '/changed';
 // @ts-expect-error generated query JSON Schema roots are immutable
 spec.services.catalog.queries.products.paramsJsonSchema.schema.type = 'string';
 
 makeSystem({
   name: 'test',
-  authentication: [authenticationV1],
+
   aggregates: {},
 });
 
 makeSystem({
   name: 'key-test',
-  authentication: [authenticationV1],
+
   aggregates: {
     // @ts-expect-error aggregate registry keys must equal aggregate.name
     account: [user],
@@ -94,7 +83,7 @@ makeSystem({
 
 makeSystem({
   name: 'key-test',
-  authentication: [authenticationV1],
+
   aggregates: {},
   services: {
     // @ts-expect-error service registry keys must equal service.name

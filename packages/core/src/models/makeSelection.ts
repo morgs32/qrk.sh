@@ -128,16 +128,22 @@ export type ISelectionWhere<
 > &
   SelectionRelationWhere<MODEL, MODELS>;
 
-export type ISelectionWhereProps<IDENTITY_KEY extends string = string> = {
-  identityKey: IDENTITY_KEY;
+export type ISelectionWhereProps<
+  AUTHENTICATION extends Readonly<Record<string, string>> = Readonly<
+    Record<string, string>
+  >,
+> = {
+  authentication: AUTHENTICATION;
 };
 
 export type ISelectionWhereFn<
   MODEL extends IModel,
   MODELS extends IAnyModels = IAnyModels,
-  IDENTITY_KEY extends string = string,
+  AUTHENTICATION extends Readonly<Record<string, string>> = Readonly<
+    Record<string, string>
+  >,
 > = (
-  props: ISelectionWhereProps<IDENTITY_KEY>,
+  props: ISelectionWhereProps<AUTHENTICATION>,
 ) => ISelectionWhere<MODEL, MODELS>;
 
 export type ISelection<
@@ -418,21 +424,25 @@ function buildSelectFields(props: { model: IModel }): SelectedFields {
 
 export function makeSelection<
   MODEL extends IModel,
-  IDENTITY_KEY extends string = string,
+  AUTHENTICATION extends Readonly<Record<string, string>> = Readonly<
+    Record<never, never>
+  >,
   WHERE extends (
-    props: ISelectionWhereProps<IDENTITY_KEY>,
+    props: ISelectionWhereProps<AUTHENTICATION>,
   ) => Record<string, unknown> = ISelectionWhereFn<
     MODEL,
     IAnyModels,
-    IDENTITY_KEY
+    AUTHENTICATION
   >,
 >(props: { model: MODEL; where: WHERE }): ISelection<MODEL, WHERE>;
 export function makeSelection<
   MODEL extends IModel,
-  IDENTITY_KEY extends string = string,
+  AUTHENTICATION extends Readonly<Record<string, string>> = Readonly<
+    Record<never, never>
+  >,
 >(props: {
   model: MODEL;
-  where?: ISelectionWhereFn<MODEL, IAnyModels, IDENTITY_KEY>;
+  where?: ISelectionWhereFn<MODEL, IAnyModels, AUTHENTICATION>;
 }): ISelection<MODEL>;
 export function makeSelection<MODEL extends IModel>(props: {
   model: MODEL;
@@ -449,7 +459,7 @@ export function applySelection<MODEL extends IModel>(props: {
   db: ISelectionDb;
   models: IAnyModels;
   selection: ISelection<MODEL>;
-  identityKey: string;
+  authentication: Readonly<Record<string, string>>;
   where: Record<string, unknown> | undefined;
   extraPredicates?: readonly SQL[];
 }): IFlatSelectBuilder {
@@ -457,7 +467,7 @@ export function applySelection<MODEL extends IModel>(props: {
     db,
     models,
     selection,
-    identityKey,
+    authentication,
     extraPredicates = [],
     where,
   } = props;
@@ -478,7 +488,7 @@ export function applySelection<MODEL extends IModel>(props: {
     models,
     table: rootTable,
     where:
-      where ?? (selection.where({ identityKey }) as Record<string, unknown>),
+      where ?? (selection.where({ authentication }) as Record<string, unknown>),
     context,
   });
 
@@ -520,10 +530,10 @@ export function selectAllFromSelection<MODEL extends IModel>(props: {
   db: ISelectionDb;
   models: IAnyModels;
   selection: ISelection<MODEL>;
-  identityKey: string;
+  authentication: Readonly<Record<string, string>>;
   where?: Record<string, unknown>;
 }): IFlatSelectBuilder {
-  const { db, models, selection, identityKey, where } = props;
+  const { db, models, selection, authentication, where } = props;
   return applySelection({
     db,
     models,
@@ -531,7 +541,7 @@ export function selectAllFromSelection<MODEL extends IModel>(props: {
       model: selection.model,
       where: selection.where,
     },
-    identityKey,
+    authentication,
     where,
   });
 }

@@ -24,12 +24,17 @@ export const createUserV1 = sdk.makeContractVersion(createUser, {
         'query'
       >
     >;
-    payload: { id: sdk.InferResource<typeof userV1>['id'] };
+    payload: {
+      id: sdk.InferResource<typeof userV1>['id'];
+      clerkUserId: string;
+    };
   }) =>
     Effect.gen(function* () {
       const resource = yield* Effect.try({
         try: () =>
-          db.query.user.findFirst({ where: { id: { eq: payload.id } } }).sync(),
+          db.query.user
+            .findFirst({ where: { clerkUserId: { eq: payload.clerkUserId } } })
+            .sync(),
         catch: sdk.ZerospinError.catch({
           code: 'user-guard-query-failed',
           message: 'Failed to query user during guard evaluation',
@@ -37,8 +42,8 @@ export const createUserV1 = sdk.makeContractVersion(createUser, {
       });
       if (resource !== undefined) {
         return yield* new sdk.ZerospinError({
-          code: 'user-already-exists',
-          message: `user ${payload.id} already exists`,
+          code: 'user-clerk-identity-already-exists',
+          message: 'A User already exists for this Clerk identity',
         });
       }
     }),

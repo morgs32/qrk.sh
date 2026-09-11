@@ -13,9 +13,9 @@ import {
   type IAnyErrorJson,
   type IEncodedResult,
 } from '@zerospin/error';
+import config from 'config';
 import { eq } from 'drizzle-orm';
 import { Effect, Semaphore, type Schema } from 'effect';
-import { system } from 'system';
 
 import { AggregateChain } from '../AggregateChain/AggregateChain.js';
 import type { aggregateChainDbConfig } from '../AggregateChain/aggregateChainDbConfig.js';
@@ -45,6 +45,8 @@ import {
   versionedAggregateRepoDbConfig,
   versionedAggregateRepoTables,
 } from './versionedAggregateRepoDbConfig.js';
+
+const { system } = config;
 
 const versionedAggregateRepoFixedDORepoConfig = makeFixedDORepoConfig({
   repoType: 'VersionedAggregateRepo',
@@ -394,7 +396,7 @@ export class VersionedAggregateRepo
     aggregateId: IAggregateId;
     aggregateName: string;
     frontendName: string;
-    identityKey: string;
+    authentication: Readonly<Record<string, unknown>>;
   }): Promise<IEncodedResult<void, IAnyErrorJson>> {
     // 1 — spread props + db + this.key.aggregateVersion
 

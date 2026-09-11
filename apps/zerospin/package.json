@@ -6,7 +6,7 @@
     "dev": "zerospin dev --clean",
     "lint": "oxlint . --format stylish",
     "test:workerd": "vitest run --config vitest.workerd.config.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "tsc": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@clerk/backend": "^3.8.5",
@@ -37,7 +37,7 @@
         "continuous": true,
         "dependsOn": ["^lib"]
       },
-      "typecheck": {
+      "tsc": {
         "dependsOn": [
           "^lib"
         ]

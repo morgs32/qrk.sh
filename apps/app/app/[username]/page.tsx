@@ -3,10 +3,9 @@
 import { Schema } from "effect";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useInitializedStateOrThrow, useSession } from "@zerospin/react";
+import { useSession } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
-import { userV1 as User } from "@qrk.sh/zerospin/src/aggregates/user/models/user/UserV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 
@@ -24,7 +23,6 @@ export default function UsernameDashboardPage() {
   const { username } = useValidatedParams(ParamsSchema);
   const router = useRouter();
   const session = useSession(ZerospinApp.frontends.web);
-  const { userId } = useInitializedStateOrThrow(ZerospinApp.frontends.web);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -41,7 +39,6 @@ export default function UsernameDashboardPage() {
                     contractName: "createSite",
                     payload: {
                       id: session.makeId(Site),
-                      userId: User.prefixId(userId),
                     },
                   });
                   if (siteResult._tag === "Failure") {

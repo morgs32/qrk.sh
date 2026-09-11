@@ -13,7 +13,7 @@ Use this doc when fixing TypeScript errors in this repo.
 1. Run the dashboard and site app typecheck from repo root:
 
 ```sh
-pnpm --filter @qrk.sh/app typecheck
+pnpm --filter @qrk.sh/app run tsc
 ```
 
 2. Capture all failing tasks and their error messages.

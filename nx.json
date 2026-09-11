@@ -8,7 +8,7 @@
     "ts": {
       "dependsOn": ["lib", "^lib"]
     },
-    "typecheck": {
+    "tsc": {
       "dependsOn": ["^lib"]
     },
     "test": {

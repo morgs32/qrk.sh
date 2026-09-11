@@ -17,7 +17,7 @@
     "scraper:dev": "pnpm --filter scraper dev",
     "build": "vite build && tailwindcss -i src/styles.css -o dist/styles.css --minify && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "generate-routes": "tsr generate",
-    "typecheck": "pnpm generate-routes && tsc --noEmit",
+    "tsc": "pnpm generate-routes && tsc --noEmit",
     "lint": "oxlint src",
     "format": "oxfmt src '!**/routeTree.gen.ts' package.json tsconfig.json tsconfig.build.json tsr.config.json vite.config.ts vitest.config.ts",
     "format:check": "oxfmt --check src '!**/routeTree.gen.ts' package.json tsconfig.json tsconfig.build.json tsr.config.json vite.config.ts vitest.config.ts",

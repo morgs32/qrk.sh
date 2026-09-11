@@ -17,7 +17,7 @@
     "lint": "oxlint . --ignore-pattern .wrangler --format stylish",
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:live": "SCRAPER_LIVE_TESTS=1 vitest run --config vitest.live.config.ts",
-    "typecheck": "tsc --noEmit",
+    "tsc": "tsc --noEmit",
     "types": "wrangler types ./worker-configuration.d.ts"
   },
   "dependencies": {

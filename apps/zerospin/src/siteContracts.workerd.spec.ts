@@ -81,7 +81,7 @@ describe("site and page creation contracts", () => {
 
       const staged = session.executeCommand({
         contractName: "createSite",
-        payload: { id: "sit_site_contract", userId },
+        payload: { id: "sit_site_contract" },
       });
 
       expect(staged._tag).toBe("Success");
@@ -93,8 +93,8 @@ describe("site and page creation contracts", () => {
 
       expect(staged.success.contractVersion).toBe("1.1.0");
       expect(staged.success.payload.id).toBe("sit_site_contract");
+      expect(staged.success.payload).not.toHaveProperty("userId");
       expect(staged.success.payload).toMatchObject({
-        userId,
         slug: null,
         name: null,
         description: null,
@@ -114,7 +114,7 @@ describe("site and page creation contracts", () => {
       const missingSiteId = session.executeCommand({
         contractName: "createSite",
         // @ts-expect-error Caller-supplied IDs are required; also verify runtime rejection.
-        payload: { userId },
+        payload: {},
       });
       expect(missingSiteId._tag).toBe("Failure");
       expect(db.select().from(dbConfig.schema.site).all()).toHaveLength(1);
@@ -244,18 +244,36 @@ describe("site and page creation contracts", () => {
     }).pipe(Effect.scoped),
   );
 
-  it.effect("rejects a payload that omits userId", () =>
+  it.effect("rejects site program execution without an authenticated user", () =>
+    Effect.gen(function* () {
+      const error = yield* createSite.program({
+        userId: null,
+        payload: {
+          id: "sit_unauthenticated",
+          slug: null,
+          name: null,
+          description: null,
+        },
+      }).pipe(Effect.flip);
+
+      expect(error).toMatchObject({
+        code: "create-site-user-mismatch",
+        status: 403,
+      });
+    }),
+  );
+
+  it.effect("accepts a site payload without userId", () =>
     Effect.gen(function* () {
       const validation = yield* validatePayload(createSite, {
           version: "1.1.0",
-          // @ts-expect-error Intentionally omit the required parent ID to exercise runtime validation.
           payload: {
             id: "sit_missing_user",
           },
         })
         .pipe(Effect.result);
 
-      expect(Result.isFailure(validation)).toBe(true);
+      expect(Result.isSuccess(validation)).toBe(true);
     }).pipe(Effect.scoped),
   );
 
@@ -312,7 +330,6 @@ describe("user frontend creation guards", () => {
         db,
         payload: {
           id: "sit_site_guard_user",
-          userId,
           slug: null,
           name: null,
           description: null,
@@ -325,7 +342,6 @@ describe("user frontend creation guards", () => {
           db,
           payload: {
             id: "sit_site_guard_user",
-            userId,
             slug: null,
             name: null,
             description: null,

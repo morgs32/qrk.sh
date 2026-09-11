@@ -24,6 +24,7 @@ describe("aggregate Grid contracts", () => {
       const secondBrickId = "brck_contract_create_second";
 
       const mutations = yield* createGrid.program({
+        userId: null,
         payload: {
           id: gridId,
           pageId,
@@ -115,6 +116,7 @@ describe("aggregate Grid contracts", () => {
   it.effect("createGrid with no Bricks emits only the Grid mutation", () =>
     Effect.gen(function* () {
       const mutations = yield* createGrid.program({
+        userId: null,
         payload: {
           id: "grd_contract_create_empty",
           pageId: "pag_contract_create_empty",
@@ -141,6 +143,7 @@ describe("aggregate Grid contracts", () => {
       const expectedRevision = 3;
 
       const mutations = yield* updateGrid.program({
+        userId: null,
         payload: {
           id: gridId,
           name: "Renamed grid",
@@ -255,6 +258,7 @@ describe("aggregate Grid contracts", () => {
       const gridId = "grd_contract_brick_only_update";
       const brickId = "brck_contract_brick_only_update";
       const mutations = yield* updateGrid.program({
+        userId: null,
         payload: {
           id: gridId,
           name: "Unchanged grid",
@@ -302,6 +306,7 @@ describe("aggregate Grid contracts", () => {
   it.effect("updateGrid emits no mutation for an unchanged Grid and unchanged Bricks", () =>
     Effect.gen(function* () {
       const mutations = yield* updateGrid.program({
+        userId: null,
         payload: {
           id: "grd_contract_update_none",
           name: "Unchanged grid",

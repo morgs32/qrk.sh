@@ -60,13 +60,9 @@ sdk.makeCommand(aggregate, {
   contractName: 'rename',
   payload: { name: 'Ada' },
 });
-sdk.makeCommand(aggregate, {
-  contractName: 'rename',
-  // @ts-expect-error Aggregate IDs retain their prefix.
-  aggregateId: 'invalid',
-  systemName: 'shopping',
-  payload: { name: 'Ada' },
-});
+// prettier-ignore
+// @ts-expect-error Aggregate IDs retain their prefix.
+sdk.makeCommand(aggregate, { contractName: 'rename', aggregateId: 'invalid', systemName: 'shopping', payload: { name: 'Ada' }, });
 // @ts-expect-error Aggregate destinations require a system name.
 sdk.makeCommand(aggregate, {
   contractName: 'rename',

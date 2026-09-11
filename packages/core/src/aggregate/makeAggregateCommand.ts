@@ -14,51 +14,75 @@ import type {
   InferPayloadInput,
 } from '../models/types.ts';
 
-export const makeAggregateCommand = Effect.fn('makeAggregateCommand')(
-  function* <
-    CONTRACT extends IContract,
-    AGGREGATE_NAME extends string,
-    const SYSTEM_NAME extends string,
-  >(props: {
-    contract: CONTRACT;
-    aggregateId: IAggregateId;
-    aggregateVersion: string;
-    aggregateName: AGGREGATE_NAME;
-    systemName: SYSTEM_NAME;
-    payload: InferPayloadInput<CONTRACT['payload']>;
-  }): Effect.fn.Return<
-    Extract<
-      IAggregateCommand<
-        ICommand<
-          CONTRACT['commandName'],
-          CONTRACT['version'],
-          InferCommandPayload<CONTRACT['payload']>
-        >,
-        AGGREGATE_NAME,
-        SYSTEM_NAME
+export const makeAggregateCommand: <
+  CONTRACT extends IContract,
+  AGGREGATE_NAME extends string,
+  const SYSTEM_NAME extends string,
+>(props: {
+  contract: CONTRACT;
+  aggregateId: IAggregateId;
+  aggregateVersion: string;
+  aggregateName: AGGREGATE_NAME;
+  systemName: SYSTEM_NAME;
+  payload: InferPayloadInput<CONTRACT['payload']>;
+}) => Effect.Effect<
+  Extract<
+    IAggregateCommand<
+      ICommand<
+        CONTRACT['commandName'],
+        CONTRACT['version'],
+        InferCommandPayload<CONTRACT['payload']>
       >,
-      { sessionId: null }
+      AGGREGATE_NAME,
+      SYSTEM_NAME
     >,
-    IAnyError,
-    CuidFactory
-  > {
-    const { contract, aggregateId, aggregateName, payload, systemName } = props;
+    { sessionId: null }
+  >,
+  IAnyError,
+  CuidFactory
+> = Effect.fn('makeAggregateCommand')(function* <
+  CONTRACT extends IContract,
+  AGGREGATE_NAME extends string,
+  const SYSTEM_NAME extends string,
+>(props: {
+  contract: CONTRACT;
+  aggregateId: IAggregateId;
+  aggregateVersion: string;
+  aggregateName: AGGREGATE_NAME;
+  systemName: SYSTEM_NAME;
+  payload: InferPayloadInput<CONTRACT['payload']>;
+}): Effect.fn.Return<
+  Extract<
+    IAggregateCommand<
+      ICommand<
+        CONTRACT['commandName'],
+        CONTRACT['version'],
+        InferCommandPayload<CONTRACT['payload']>
+      >,
+      AGGREGATE_NAME,
+      SYSTEM_NAME
+    >,
+    { sessionId: null }
+  >,
+  IAnyError,
+  CuidFactory
+> {
+  const { contract, aggregateId, aggregateName, payload, systemName } = props;
 
-    const command = yield* makeCommand({
-      contract,
-      payload,
-    });
+  const command = yield* makeCommand({
+    contract,
+    payload,
+  });
 
-    return {
-      ...command,
-      aggregateVersion: props.aggregateVersion,
-      aggregateId,
-      aggregateName,
-      authentication: null,
-      pushIndex: null,
-      sessionId: null,
-      frontendName: null,
-      systemName,
-    };
-  },
-);
+  return {
+    ...command,
+    aggregateVersion: props.aggregateVersion,
+    aggregateId,
+    aggregateName,
+    authentication: null,
+    pushIndex: null,
+    sessionId: null,
+    frontendName: null,
+    systemName,
+  };
+});

@@ -85,13 +85,13 @@ sequenceDiagram
 
 ## Durable identities and version selection
 
-| Owner        | Exact identity                                                    |
-| ------------ | ----------------------------------------------------------------- |
-| SAC          | `{ systemId, serviceName }`                                       |
-| VSR and VSC  | `{ systemId, serviceName, serviceVersion }`                       |
-| FVSR and FSC | `{ systemId, serviceName, serviceVersion, userId, frontendName }` |
+| Owner        | Exact identity                                                         |
+| ------------ | ---------------------------------------------------------------------- |
+| SAC          | `{ systemId, serviceName }`                                            |
+| VSR and VSC  | `{ systemId, serviceName, serviceVersion }`                            |
+| FVSR and FSC | `{ systemId, serviceName, serviceVersion, identityKey, frontendName }` |
 
-Worker configuration supplies systemId; the admitted command or capability supplies serviceName. SAC registration/base selection supplies serviceVersion for standalone service frontends; an aggregate definition supplies the serviceVersion used by its replica fetches and direct VSC subscriptions. Authentication supplies userId and the admitted frontend capability supplies frontendName. An existing browser session retains its selected version until rebootstrap.
+Worker configuration supplies systemId; the admitted command or capability supplies serviceName. SAC registration/base selection supplies serviceVersion for standalone service frontends; an aggregate definition supplies the serviceVersion used by its replica fetches and direct VSC subscriptions. Authentication supplies identityKey and the admitted frontend capability supplies frontendName. An existing browser session retains its selected version until rebootstrap.
 
 - [`serviceAdmittedChainFixedDORepoConfig.ts`](../../../packages/system-worker/src/ServiceAdmittedChain/serviceAdmittedChainFixedDORepoConfig.ts) — SAC physical identity is independent of service version.
 - [`versionedServiceRepoFixedDORepoConfig.ts`](../../../packages/system-worker/src/VersionedServiceRepo/versionedServiceRepoFixedDORepoConfig.ts) — The materializer selects its fixed resource schema from the bound service slice.

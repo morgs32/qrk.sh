@@ -26,7 +26,7 @@ export const onMessage = Effect.fn('UserVersionedAggregateChain.onMessage')(
       aggregateId: string;
       aggregateName: string;
       aggregateVersion: string;
-      userId: string;
+      identityKey: string;
       frontendName: string;
       aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema
@@ -38,7 +38,7 @@ export const onMessage = Effect.fn('UserVersionedAggregateChain.onMessage')(
       systemId: string;
       aggregateId: string;
       aggregateName: string;
-      userId: string;
+      identityKey: string;
     };
   }): Effect.fn.Return<void, IAnyError> {
     const { connection, db, key, message } = props;
@@ -58,7 +58,7 @@ export const onMessage = Effect.fn('UserVersionedAggregateChain.onMessage')(
       state === undefined ||
       state.aggregateId !== key.aggregateId ||
       state.aggregateName !== key.aggregateName ||
-      state.userId !== key.userId ||
+      state.identityKey !== key.identityKey ||
       state.phase !== 'awaiting-resume' ||
       typeof message !== 'string'
     ) {

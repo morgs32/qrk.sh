@@ -209,7 +209,7 @@ export type IServiceAuthorization<
   props: {
     [FRONTEND_NAME in keyof FRONTENDS & string]: {
       frontendName: FRONTEND_NAME;
-      userId: string;
+      identityKey: string;
       db: Readonly<
         Pick<IDb<IResourceDbConfig<MODELS, Record<never, never>>>, 'query'>
       >;

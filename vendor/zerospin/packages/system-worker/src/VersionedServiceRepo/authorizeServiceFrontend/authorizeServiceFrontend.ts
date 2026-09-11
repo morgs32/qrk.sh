@@ -6,7 +6,7 @@ import { system } from 'system';
 
 /*
  * Service frontend admission runs the authored authorizer against owner-local
- * queries. The request supplies the frontendName and authenticated userId; this
+ * queries. The request supplies the frontendName and authenticated identityKey; this
  * operation exposes only queries for service-owned models.
  *
  * 1. Resolve the service definition.
@@ -21,10 +21,10 @@ export const authorizeServiceFrontend = Effect.fn(
   serviceName: string;
   serviceVersion: string;
   frontendName: string;
-  userId: string;
+  identityKey: string;
   db: IDb;
 }) {
-  const { db, frontendName, serviceName, userId } = props;
+  const { db, frontendName, serviceName, identityKey } = props;
 
   // 1 — read the authored service by serviceName
   const latestService = yield* getByKeyOrThrow({
@@ -66,10 +66,10 @@ export const authorizeServiceFrontend = Effect.fn(
     Reflect.set(query, modelName, modelQuery);
   }
 
-  // 5 — supply frontendName, userId, and the restricted db.query surface
+  // 5 — supply frontendName, identityKey, and the restricted db.query surface
   yield* service.authorize({
     frontendName,
-    userId,
+    identityKey,
     db: { query },
   });
 });

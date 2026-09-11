@@ -52,7 +52,7 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
   function* (props: {
     request: IRpcRequest<[]>;
     authResults: {
-      readonly userId: string;
+      readonly identityKey: string;
       readonly frontendName: string;
       readonly serviceFrontendLock: Schema.Schema.Type<
         typeof ServiceFrontendLockSchema
@@ -86,7 +86,7 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
     // 3 — collect and settle the operation under the API root span
     const collector = makeTelemetryCollector();
     const settled = yield* Effect.gen(function* () {
-      const { frontendName, serviceFrontendLock, serviceName, userId } =
+      const { frontendName, serviceFrontendLock, serviceName, identityKey } =
         authResults;
 
       // 4 — resolve the authored service frontend selection
@@ -127,7 +127,7 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
           systemId: env.ZEROSPIN_SYSTEM_ID,
           serviceName,
           serviceVersion,
-          userId,
+          identityKey,
           frontendName,
         },
       });
@@ -136,7 +136,7 @@ export const getState = Effect.fn('ServiceFrontendApi.getState')(
       const canonicalStateUnknown = yield* makeAsync(() =>
         serviceFrontendRepo.getState({
           serviceName,
-          userId,
+          identityKey,
           frontendName,
         }),
       );

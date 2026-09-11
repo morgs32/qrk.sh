@@ -151,7 +151,7 @@ describe('pushCommand1: static frontend command push', () => {
           ).pipe(Effect.flatMap(envelope => decodeRpc(envelope.result)));
           expect(state).toMatchObject({
             aggregateId: E2E_AGGREGATE_ID,
-            userId: E2E_USER_ID_1,
+            identityKey: E2E_USER_ID_1,
           });
 
           const sessionId = yield* makeIdFromAbbreviation({
@@ -177,7 +177,7 @@ describe('pushCommand1: static frontend command push', () => {
             frontend: WebV2,
             sessionId,
             aggregateId: E2E_AGGREGATE_ID,
-            userId: E2E_USER_ID_1,
+            identityKey: E2E_USER_ID_1,
             systemId: env.ZEROSPIN_SYSTEM_ID,
             db,
             models,
@@ -188,7 +188,7 @@ describe('pushCommand1: static frontend command push', () => {
             aggregateId: E2E_AGGREGATE_ID,
             aggregateName: WebV2.aggregateName,
             aggregateVersion: WebV2.aggregateVersion,
-            userId: E2E_USER_ID_1,
+            identityKey: E2E_USER_ID_1,
             systemId: env.ZEROSPIN_SYSTEM_ID,
             frontendName: WebV2.name,
             aggregateFrontendLockKey: yield* makeAggregateFrontendLockKey(

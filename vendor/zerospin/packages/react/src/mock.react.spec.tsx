@@ -216,7 +216,7 @@ describe('makeMockProvider', () => {
           </Mock>,
         ),
       ),
-    ).rejects.toThrow('MockProvider requires userId');
+    ).rejects.toThrow('MockProvider requires identityKey');
     expect(events).toEqual(['application', 'release-local', 'release-app']);
     expect(sqliteInitialization.entered).not.toHaveBeenCalled();
     expect(container.textContent).toBe('');
@@ -255,7 +255,7 @@ describe('makeMockProvider', () => {
         <output
           data-testid="ready"
           data-aggregate-id={state.aggregateId}
-          data-user-id={state.userId}
+          data-identity-key={state.identityKey}
           data-session-id={session.sessionId}
           data-session-status={state.sessionStatus}
         >
@@ -271,7 +271,7 @@ describe('makeMockProvider', () => {
     act(() => {
       root.render(
         <MockMainProvider
-          userId="user_1"
+          identityKey="user_1"
           aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           resources={{
@@ -316,7 +316,7 @@ describe('makeMockProvider', () => {
 
     const output = container.querySelector('[data-testid="ready"]');
     expect(output?.getAttribute('data-aggregate-id')).toBe('acct_1');
-    expect(output?.getAttribute('data-user-id')).toBe('user_1');
+    expect(output?.getAttribute('data-identity-key')).toBe('user_1');
     expect(output?.getAttribute('data-session-id')).toMatch(/^sesn_/);
     expect(output?.getAttribute('data-session-status')).toBe('current');
     expect(output?.textContent).toContain('User 1');
@@ -365,7 +365,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          userId="user_1"
+          identityKey="user_1"
           aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
@@ -402,7 +402,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockJsonFixtureProvider
-          userId="user_1"
+          identityKey="user_1"
           aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           resources={{
@@ -494,7 +494,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          userId="user_1"
+          identityKey="user_1"
           aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           resources={{
@@ -545,7 +545,7 @@ describe('makeMockProvider', () => {
         <output
           data-testid="identity"
           data-aggregate-id={state.aggregateId}
-          data-user-id={state.userId}
+          data-identity-key={state.identityKey}
         >
           {users.data.map(user => user.name).join(',')}
         </output>
@@ -555,7 +555,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          userId="user_1"
+          identityKey="user_1"
           aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           resources={{
@@ -590,7 +590,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          userId="user_2"
+          identityKey="user_2"
           aggregateIds={{ main: 'acct_2' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
           resources={{
@@ -615,7 +615,7 @@ describe('makeMockProvider', () => {
 
     const unchangedOutput = container.querySelector('[data-testid="identity"]');
     expect(unchangedOutput?.getAttribute('data-aggregate-id')).toBe('acct_1');
-    expect(unchangedOutput?.getAttribute('data-user-id')).toBe('user_1');
+    expect(unchangedOutput?.getAttribute('data-identity-key')).toBe('user_1');
     expect(unchangedOutput?.textContent).toContain('Original User');
     expect(unchangedOutput?.textContent).not.toContain('Replacement User');
 
@@ -623,7 +623,7 @@ describe('makeMockProvider', () => {
       root.render(
         <MockMainProvider
           key="reset"
-          userId="user_2"
+          identityKey="user_2"
           aggregateIds={{ main: 'acct_2' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
           resources={{
@@ -650,7 +650,7 @@ describe('makeMockProvider', () => {
       () => {
         const resetOutput = container.querySelector('[data-testid="identity"]');
         expect(resetOutput?.getAttribute('data-aggregate-id')).toBe('acct_2');
-        expect(resetOutput?.getAttribute('data-user-id')).toBe('user_2');
+        expect(resetOutput?.getAttribute('data-identity-key')).toBe('user_2');
         expect(resetOutput?.textContent).toContain('Replacement User');
         expect(sqliteCloseBoundary).toHaveBeenCalledTimes(1);
       },
@@ -672,7 +672,7 @@ describe('makeMockProvider', () => {
     await act(async () => {
       root.render(
         <MockMainProvider
-          userId="user_1"
+          identityKey="user_1"
           aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           resources={{
@@ -729,7 +729,7 @@ describe('makeMockProvider', () => {
     act(() => {
       root.render(
         <MockMainProvider
-          userId="user_1"
+          identityKey="user_1"
           aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >

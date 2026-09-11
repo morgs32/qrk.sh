@@ -47,8 +47,9 @@ describe('makeSystemSpec', () => {
       authentication: [
         makeAuthenticationVersion({
           version: '1.0.0',
-          signature: Schema.Struct({ userId: Schema.NonEmptyString }),
-          authenticate: ({ signature }) => Effect.succeed(signature.userId),
+          signature: Schema.Struct({ identityKey: Schema.NonEmptyString }),
+          authenticate: ({ signature }) =>
+            Effect.succeed(signature.identityKey),
         }),
       ],
       aggregates: {
@@ -227,13 +228,13 @@ describe('makeSystemSpec', () => {
               "schema": {
                 "additionalProperties": false,
                 "properties": {
-                  "userId": {
+                  "identityKey": {
                     "minLength": 1,
                     "type": "string",
                   },
                 },
                 "required": [
-                  "userId",
+                  "identityKey",
                 ],
                 "type": "object",
               },

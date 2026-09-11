@@ -9,9 +9,9 @@ import type { IDevtoolsServiceSessionEntry } from '../../types.js';
 import { zerospinDevtoolsStore } from '../../zerospinDevtoolsStore';
 import { SessionsDataCell } from '../SessionsDataCell';
 import {
-  ServiceSessionsUserIdCell,
-  SessionsUserIdCell,
-} from '../SessionsUserIdCell';
+  ServiceSessionsIdentityKeyCell,
+  SessionsIdentityKeyCell,
+} from '../SessionsIdentityKeyCell';
 
 const styles = {
   root: {
@@ -220,7 +220,7 @@ export function SessionsLayout() {
                 <th style={styles.thKind}>Kind</th>
                 <th style={styles.thFrontend}>Frontend</th>
                 <th style={styles.thSession}>Session</th>
-                <th style={styles.thActor}>Actor</th>
+                <th style={styles.thActor}>Identity key</th>
               </tr>
             </thead>
             <tbody>
@@ -274,7 +274,7 @@ export function SessionsLayout() {
                           ariaLabel="Copy session id"
                           tdStyle={styles.tdCopyCell}
                         />
-                        <SessionsUserIdCell
+                        <SessionsIdentityKeyCell
                           session={session}
                           tdStyle={styles.tdActorCell}
                         />
@@ -321,7 +321,7 @@ export function SessionsLayout() {
                           ariaLabel="Copy session id"
                           tdStyle={styles.tdCopyCell}
                         />
-                        <ServiceSessionsUserIdCell
+                        <ServiceSessionsIdentityKeyCell
                           session={session}
                           tdStyle={styles.tdActorCell}
                         />

@@ -30,7 +30,7 @@ export const executeTx = makeTx(
     systemId: string;
     serviceName: string;
     serviceVersion: string;
-    userId: string;
+    identityKey: string;
     frontendName: string;
   };
 }) {

@@ -31,18 +31,18 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
     aggregateName: 'user',
     aggregateVersion: '1.0.0',
   };
-  const view = { ...key, userId: 'usr_prepared', frontendName: 'main' };
+  const view = { ...key, identityKey: 'usr_prepared', frontendName: 'main' };
   const commands = [
     Schema.decodeUnknownSync(EncodedAggregateCommandSchema)({
       id: 'cmd_prepared_user',
       commandName: 'createUser',
-      payload: JSON.stringify({ id: view.userId, name: 'Prepared' }),
+      payload: JSON.stringify({ id: view.identityKey, name: 'Prepared' }),
       contractVersion: '1.0.0',
       aggregateId: key.aggregateId,
       aggregateVersion: '1.0.0',
       aggregateName: 'user',
       systemName: 'system-worker',
-      userId: null,
+      identityKey: null,
       sessionId: null,
       frontendName: null,
       pushIndex: null,
@@ -59,14 +59,14 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
           commandName: 'createList',
           payload: JSON.stringify({
             id: `lst_prepared_${index}`,
-            userId: view.userId,
+            userId: view.identityKey,
             name,
           }),
           contractVersion: '1.0.0',
           aggregateId: key.aggregateId,
           aggregateName: 'user',
           systemName: 'system-worker',
-          userId: view.userId,
+          identityKey: view.identityKey,
           sessionId: 'sesn_prepared',
           frontendName: 'main',
           pushIndex: null,
@@ -92,7 +92,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         publishableKey: 'pk_test',
         systemName: main.systemName,
         authenticationLock: makeAuthenticationLock(authenticationSignature),
-        signature: { userId: view.userId },
+        signature: { userId: view.identityKey },
         aggregateId: Schema.decodeUnknownSync(makeAbbreviationIdSchema('acct'))(
           key.aggregateId,
         ),
@@ -354,7 +354,7 @@ it('publishes subscriber-committed results from its retained alarm after cold ac
                 aggregateVersion: '1.0.0',
                 aggregateName: key.aggregateName,
                 systemName: 'system-worker',
-                userId: null,
+                identityKey: null,
                 sessionId: null,
                 frontendName: null,
                 pushIndex: null,

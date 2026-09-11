@@ -24,7 +24,7 @@ const frontendStateRequest = {
       aggregateId: 'acct_1',
       aggregateName: 'shopping',
       aggregateVersion: '1.0.0',
-      userId: 'user_1',
+      identityKey: 'user_1',
       frontendName: 'web',
       aggregateFrontendLock: {
         systemName: 'shopping',

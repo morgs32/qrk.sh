@@ -9,7 +9,7 @@ import { Effect, type Schema } from 'effect';
 
 /*
  * Gateway admission verifies that an owner authorization answers the exact
- * frontend request. Authentication supplies userId; the caller supplies owner
+ * frontend request. Authentication supplies identityKey; the caller supplies owner
  * and frontend fields, which are compared with the authorization result.
  *
  * 1. Select the owner-specific comparison.
@@ -27,13 +27,13 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
             aggregateId: IAggregateId;
             aggregateName: string;
             aggregateVersion: string;
-            userId: string;
+            identityKey: string;
             aggregateFrontendLock: Schema.Schema.Type<
               typeof AggregateFrontendLockSchema
             >;
             frontendSpec: IFrontendControllerSpec;
           }>;
-          userId: string;
+          identityKey: string;
           aggregateId: IAggregateId;
           aggregateName: string;
           aggregateVersion: string;
@@ -46,13 +46,13 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
       | {
           kind: 'service';
           authorization: Readonly<{
-            userId: string;
+            identityKey: string;
             serviceFrontendLock: Schema.Schema.Type<
               typeof ServiceFrontendLockSchema
             >;
             frontendSpec: IFrontendControllerSpec;
           }>;
-          userId: string;
+          identityKey: string;
           systemName: string;
           serviceName: string;
           serviceVersion: string;
@@ -67,7 +67,7 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
     if (kind === 'aggregate') {
       const {
         authorization,
-        userId,
+        identityKey,
         aggregateId,
         aggregateName,
         systemName,
@@ -83,12 +83,12 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
         authorization.aggregateFrontendLock,
       );
 
-      // 3 — compare kind, aggregateId, aggregateName, userId, systemName, frontendName, and lock
+      // 3 — compare kind, aggregateId, aggregateName, identityKey, systemName, frontendName, and lock
       if (
         authorization.frontendSpec.kind !== 'aggregate' ||
         authorization.aggregateId !== aggregateId ||
         authorization.aggregateName !== aggregateName ||
-        authorization.userId !== userId ||
+        authorization.identityKey !== identityKey ||
         authorization.frontendSpec.systemName !== systemName ||
         authorization.frontendSpec.aggregateName !== aggregateName ||
         authorization.frontendSpec.name !== frontendName ||
@@ -104,7 +104,7 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
     }
     const {
       authorization,
-      userId,
+      identityKey,
       systemName,
       serviceName,
       frontendName,
@@ -118,9 +118,9 @@ export const checkAuthorization = Effect.fn('GatewayApi.checkAuthorization')(
       authorization.serviceFrontendLock,
     );
 
-    // 5 — compare userId, kind, systemName, serviceName, frontendName, and lock
+    // 5 — compare identityKey, kind, systemName, serviceName, frontendName, and lock
     if (
-      authorization.userId !== userId ||
+      authorization.identityKey !== identityKey ||
       authorization.frontendSpec.kind !== 'service' ||
       authorization.frontendSpec.systemName !== systemName ||
       authorization.frontendSpec.serviceName !== serviceName ||

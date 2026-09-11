@@ -19,7 +19,7 @@ import { checkPublishableApiKey } from '../checkPublishableApiKey/checkPublishab
 /*
  * GatewayApi grants a aggregate frontend capability after checking the submitted
  * locks, authentication result, and owner authorization. The capability binds
- * the configured systemId and authenticated userId to the admitted frontend.
+ * the configured systemId and authenticated identityKey to the admitted frontend.
  *
  * 1. Capture the request and runtime.
  * 2. Decode the request envelope.
@@ -93,13 +93,13 @@ export const getAggregateFrontendApi = Effect.fn(
       }),
     );
 
-    // 4 — validate the API key, adapt the signature, and check the returned userId and lock
+    // 4 — validate the API key, adapt the signature, and check the returned identityKey and lock
     yield* checkPublishableApiKey(validated.publishableKey);
     const authentication = yield* authenticate({
       authenticationLock,
       signature: validated.signature,
     });
-    const userId = yield* checkAuthentication({
+    const identityKey = yield* checkAuthentication({
       authentication,
       authenticationLock,
       systemName: validated.systemName,
@@ -112,13 +112,13 @@ export const getAggregateFrontendApi = Effect.fn(
       aggregateName: validated.aggregateName,
       frontendName: validated.frontendName,
       aggregateFrontendLock,
-      userId,
+      identityKey,
     });
     yield* checkAuthorization({
       kind: 'aggregate',
       aggregateVersion: validated.aggregateVersion,
       authorization,
-      userId,
+      identityKey,
       aggregateId: validated.aggregateId,
       aggregateName: validated.aggregateName,
       systemName: validated.systemName,
@@ -132,7 +132,7 @@ export const getAggregateFrontendApi = Effect.fn(
         aggregateVersion: validated.aggregateVersion,
         aggregateId: authorization.aggregateId,
         aggregateName: authorization.aggregateName,
-        userId: authorization.userId,
+        identityKey: authorization.identityKey,
         aggregateFrontendLock: authorization.aggregateFrontendLock,
         frontendName: validated.frontendName,
         systemId: env.ZEROSPIN_SYSTEM_ID,

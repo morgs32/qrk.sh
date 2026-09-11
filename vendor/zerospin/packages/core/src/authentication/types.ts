@@ -12,18 +12,19 @@ export type IAuthentication<
     unknown,
     unknown
   >,
-  USER_ID extends string = string,
+  IDENTITY_KEY extends string = string,
 > = Readonly<{
   version: VERSION;
   signature: SIGNATURE;
+  /** Returns the external identity key, independent of any User resource ID. */
   authenticate(props: {
     signature: Schema.Schema.Type<SIGNATURE>;
-  }): Effect.Effect<USER_ID, IAnyError>;
+  }): Effect.Effect<IDENTITY_KEY, IAnyError>;
   /** Awaited after identity validation, before granting any frontend capability. */
   onAuthentication?:
     | ((props: {
-        userId: string;
-        /** Binds the verified userId and waits for the selected aggregate's terminal result. */
+        identityKey: string;
+        /** Binds the verified identityKey and waits for the selected aggregate's terminal result. */
         executeAggregateCommand(
           command: IEncodedCommand<
             Extract<IAggregateCommand, { sessionId: null }>

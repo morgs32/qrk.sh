@@ -43,30 +43,37 @@ account.models.product = ProductReplica;
 // @ts-expect-error aggregate selections are immutable after construction
 account.selections.product.model = ProductReplica;
 
-makeAggregateVersion(makeAggregate({ name: 'raw-selection-user-id' }), {
+makeAggregateVersion(makeAggregate({ name: 'raw-selection-identity-key' }), {
   version: '1.0.0',
   models: { product: ServiceProduct },
   contracts: {},
   selections: {
     product: {
       model: ServiceProduct,
-      where: ({ userId }: { userId: `usr_${string}` }) => ({ id: userId }),
+      where: ({ identityKey }: { identityKey: `usr_${string}` }) => ({
+        id: identityKey,
+      }),
     },
   },
 });
 
-makeAggregateVersion(makeAggregate({ name: 'invalid-raw-selection-user-id' }), {
-  version: '1.0.0',
-  models: { product: ServiceProduct },
-  contracts: {},
-  selections: {
-    product: {
-      model: ServiceProduct,
-      // @ts-expect-error raw selection callbacks require a string-compatible userId
-      where: ({ userId }: { userId: number }) => ({ id: userId }),
+makeAggregateVersion(
+  makeAggregate({ name: 'invalid-raw-selection-identity-key' }),
+  {
+    version: '1.0.0',
+    models: { product: ServiceProduct },
+    contracts: {},
+    selections: {
+      product: {
+        model: ServiceProduct,
+        // @ts-expect-error raw selection callbacks require a string-compatible identityKey
+        where: ({ identityKey }: { identityKey: number }) => ({
+          id: identityKey,
+        }),
+      },
     },
   },
-});
+);
 
 makeAggregateVersion(makeAggregate({ name: 'authorized' }), {
   version: '1.0.0',
@@ -75,8 +82,8 @@ makeAggregateVersion(makeAggregate({ name: 'authorized' }), {
   selections: {
     product: makeSelection({ model: ProductReplica, where: () => ({}) }),
   },
-  authorize: ({ userId, aggregateId, db }) => {
-    assert<Equals<typeof userId, string>>();
+  authorize: ({ identityKey, aggregateId, db }) => {
+    assert<Equals<typeof identityKey, string>>();
     assert<Equals<typeof aggregateId, `acct_${string}`>>();
     void db.query.product;
     // @ts-expect-error Authorization can only query models owned by this aggregate.

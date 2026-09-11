@@ -128,15 +128,17 @@ export type ISelectionWhere<
 > &
   SelectionRelationWhere<MODEL, MODELS>;
 
-export type ISelectionWhereProps<USER_ID extends string = string> = {
-  userId: USER_ID;
+export type ISelectionWhereProps<IDENTITY_KEY extends string = string> = {
+  identityKey: IDENTITY_KEY;
 };
 
 export type ISelectionWhereFn<
   MODEL extends IModel,
   MODELS extends IAnyModels = IAnyModels,
-  USER_ID extends string = string,
-> = (props: ISelectionWhereProps<USER_ID>) => ISelectionWhere<MODEL, MODELS>;
+  IDENTITY_KEY extends string = string,
+> = (
+  props: ISelectionWhereProps<IDENTITY_KEY>,
+) => ISelectionWhere<MODEL, MODELS>;
 
 export type ISelection<
   MODEL extends IModel,
@@ -416,17 +418,21 @@ function buildSelectFields(props: { model: IModel }): SelectedFields {
 
 export function makeSelection<
   MODEL extends IModel,
-  USER_ID extends string = string,
+  IDENTITY_KEY extends string = string,
   WHERE extends (
-    props: ISelectionWhereProps<USER_ID>,
-  ) => Record<string, unknown> = ISelectionWhereFn<MODEL, IAnyModels, USER_ID>,
+    props: ISelectionWhereProps<IDENTITY_KEY>,
+  ) => Record<string, unknown> = ISelectionWhereFn<
+    MODEL,
+    IAnyModels,
+    IDENTITY_KEY
+  >,
 >(props: { model: MODEL; where: WHERE }): ISelection<MODEL, WHERE>;
 export function makeSelection<
   MODEL extends IModel,
-  USER_ID extends string = string,
+  IDENTITY_KEY extends string = string,
 >(props: {
   model: MODEL;
-  where?: ISelectionWhereFn<MODEL, IAnyModels, USER_ID>;
+  where?: ISelectionWhereFn<MODEL, IAnyModels, IDENTITY_KEY>;
 }): ISelection<MODEL>;
 export function makeSelection<MODEL extends IModel>(props: {
   model: MODEL;
@@ -443,11 +449,18 @@ export function applySelection<MODEL extends IModel>(props: {
   db: ISelectionDb;
   models: IAnyModels;
   selection: ISelection<MODEL>;
-  userId: string;
+  identityKey: string;
   where: Record<string, unknown> | undefined;
   extraPredicates?: readonly SQL[];
 }): IFlatSelectBuilder {
-  const { db, models, selection, userId, extraPredicates = [], where } = props;
+  const {
+    db,
+    models,
+    selection,
+    identityKey,
+    extraPredicates = [],
+    where,
+  } = props;
 
   const rootModel = selection.model;
   const rootTable = rootModel.drizzleSchema;
@@ -464,7 +477,8 @@ export function applySelection<MODEL extends IModel>(props: {
     model: rootModel,
     models,
     table: rootTable,
-    where: where ?? (selection.where({ userId }) as Record<string, unknown>),
+    where:
+      where ?? (selection.where({ identityKey }) as Record<string, unknown>),
     context,
   });
 
@@ -506,10 +520,10 @@ export function selectAllFromSelection<MODEL extends IModel>(props: {
   db: ISelectionDb;
   models: IAnyModels;
   selection: ISelection<MODEL>;
-  userId: string;
+  identityKey: string;
   where?: Record<string, unknown>;
 }): IFlatSelectBuilder {
-  const { db, models, selection, userId, where } = props;
+  const { db, models, selection, identityKey, where } = props;
   return applySelection({
     db,
     models,
@@ -517,7 +531,7 @@ export function selectAllFromSelection<MODEL extends IModel>(props: {
       model: selection.model,
       where: selection.where,
     },
-    userId,
+    identityKey,
     where,
   });
 }

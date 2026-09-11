@@ -107,13 +107,13 @@ describe('serviceFrontendFlow1: static service frontend', () => {
             }),
           );
 
-          const userId = 'catalog_static_user';
+          const identityKey = 'catalog_static_user';
           const frontendApi = yield* makeAsync(() =>
             gatewayApi.getServiceFrontendApi({
               publishableKey: 'pk_test',
               systemName: system.name,
               authenticationLock,
-              signature: { clerkUserId: userId },
+              signature: { clerkUserId: identityKey },
               serviceName: appService.name,
               serviceVersion: appService.version,
               frontendName: CatalogV1.name,

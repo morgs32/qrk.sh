@@ -32,7 +32,7 @@ export const applyAggregateFrontendState = Effect.fn(
   models: InferFrontendModels<FRONTEND>;
   frontendState: IAggregateFrontendSyncState;
   aggregateId: IAggregateFrontendSyncState['aggregateId'];
-  userId: IAggregateFrontendSyncState['userId'];
+  identityKey: IAggregateFrontendSyncState['identityKey'];
   systemId: IAggregateFrontendSyncState['systemId'];
 }): Effect.fn.Return<void, IAnyError> {
   const {
@@ -43,7 +43,7 @@ export const applyAggregateFrontendState = Effect.fn(
     models,
     sessionId,
     systemId,
-    userId,
+    identityKey,
   } = props;
 
   yield* Schema.encodeEffect(AggregateFrontendSyncStateSchema)(frontendState, {
@@ -57,7 +57,7 @@ export const applyAggregateFrontendState = Effect.fn(
 
   if (
     frontendState.aggregateId !== aggregateId ||
-    frontendState.userId !== userId ||
+    frontendState.identityKey !== identityKey ||
     frontendState.systemId !== systemId ||
     frontendState.aggregateName !== frontend.aggregateName ||
     frontendState.frontendName !== frontend.name ||
@@ -84,7 +84,7 @@ export const applyAggregateFrontendState = Effect.fn(
     if (
       command.aggregateId !== aggregateId ||
       command.aggregateName !== frontend.aggregateName ||
-      command.userId !== userId ||
+      command.identityKey !== identityKey ||
       command.frontendName !== frontend.name ||
       command.aggregateIndex > frontendState.aggregateIndex ||
       command.dispositionHash === null

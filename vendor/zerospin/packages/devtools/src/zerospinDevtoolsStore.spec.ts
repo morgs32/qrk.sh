@@ -50,7 +50,7 @@ describe('zerospinDevtoolsStore session ownership', () => {
         contracts: {},
         models: {},
         modelNames: [],
-        signature: Schema.Struct({ userId: Schema.String }),
+        signature: Schema.Struct({ identityKey: Schema.String }),
       },
       models: {},
       sessionId: serviceSessionId,

@@ -39,7 +39,7 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
       aggregateId: AnyColumn;
       aggregateName: AnyColumn;
       aggregateVersion: AnyColumn;
-      userId: AnyColumn;
+      identityKey: AnyColumn;
       frontendName: AnyColumn;
       aggregateFrontendLock: AnyColumn;
     }>;
@@ -50,7 +50,7 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
       repoName: AnyColumn;
       serviceName: AnyColumn;
       serviceVersion: AnyColumn;
-      userId: AnyColumn;
+      identityKey: AnyColumn;
       frontendName: AnyColumn;
       serviceFrontendLock: AnyColumn;
     }>;
@@ -137,7 +137,7 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
           systemId,
           serviceName: settled.success.serviceName,
           serviceVersion: settled.success.serviceVersion,
-          userId: settled.success.userId,
+          identityKey: settled.success.identityKey,
           frontendName: settled.success.frontendName,
         },
       });
@@ -148,7 +148,7 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
           'x-zerospin-service-version',
           settled.success.serviceVersion,
         );
-        headers.set('x-zerospin-user-id', settled.success.userId);
+        headers.set('x-zerospin-identity-key', settled.success.identityKey);
         headers.set('x-zerospin-frontend-name', settled.success.frontendName);
         headers.set(
           'x-zerospin-service-frontend-lock',
@@ -211,7 +211,7 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
         'x-zerospin-aggregate-version',
         settled.success.aggregateVersion,
       );
-      headers.set('x-zerospin-user-id', settled.success.userId);
+      headers.set('x-zerospin-identity-key', settled.success.identityKey);
       headers.set('x-zerospin-frontend-name', settled.success.frontendName);
       headers.set(
         'x-zerospin-aggregate-frontend-lock',

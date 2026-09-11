@@ -49,7 +49,7 @@ export const createWebSocketTicket = Effect.fn(
   authResults: {
     readonly serviceName: string;
     serviceVersion: string;
-    readonly userId: string;
+    readonly identityKey: string;
     readonly frontendName: string;
     readonly serviceFrontendLock: Schema.Schema.Type<
       typeof ServiceFrontendLockSchema
@@ -111,7 +111,7 @@ export const createWebSocketTicket = Effect.fn(
       frontendName,
       serviceFrontendLock,
       serviceName,
-      userId,
+      identityKey,
       systemId: configuredSystemId,
     } = authResults;
     const { serviceVersion } = validatedArgs.success[0];
@@ -148,7 +148,7 @@ export const createWebSocketTicket = Effect.fn(
       systemId,
       serviceName,
       serviceVersion,
-      userId,
+      identityKey,
       frontendName,
     };
     const repoName =
@@ -184,7 +184,7 @@ export const createWebSocketTicket = Effect.fn(
         extra: {
           serviceName,
           serviceVersion,
-          userId,
+          identityKey,
           frontendName,
         },
       });
@@ -196,7 +196,7 @@ export const createWebSocketTicket = Effect.fn(
         repoName,
         serviceName,
         serviceVersion,
-        userId,
+        identityKey,
         frontendName,
         serviceFrontendLock: selected.serviceFrontendLock,
       }),

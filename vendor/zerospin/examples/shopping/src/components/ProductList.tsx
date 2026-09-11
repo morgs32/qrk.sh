@@ -14,7 +14,7 @@ import { userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function ProductList() {
-  const { userId } = useInitializedStateOrThrow(
+  const { identityKey } = useInitializedStateOrThrow(
     ZerospinApp.frontends.shopperFrontend,
   );
   const session = useSession(ZerospinApp.frontends.shopperFrontend);
@@ -28,9 +28,9 @@ export function ProductList() {
   const { data: user } = useLiveQuery(ZerospinApp.frontends.shopperFrontend, {
     query: db =>
       db.query.user.findFirst({
-        where: { clerkUserId: { eq: userId } },
+        where: { clerkUserId: { eq: identityKey } },
       }),
-    deps: [userId],
+    deps: [identityKey],
   });
 
   useEffect(() => {
@@ -39,14 +39,14 @@ export function ProductList() {
     const result = session.executeCommand({
       contractName: 'createUser',
       payload: {
-        id: prefixId(userV1, userId),
-        clerkUserId: userId,
+        id: prefixId(userV1, identityKey),
+        clerkUserId: identityKey,
       },
     });
     if (result._tag === 'Failure') {
       setUserCreationFailure(new ZerospinError(result.failure));
     }
-  }, [session, user, userId]);
+  }, [session, user, identityKey]);
 
   if (userCreationFailure !== null) {
     throw userCreationFailure;

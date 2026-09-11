@@ -6,7 +6,7 @@ import { Effect } from 'effect';
 
 export type IServiceFrontendBackupIdentity = Readonly<{
   systemId: ISystemId;
-  userId: string;
+  identityKey: string;
   serviceName: string;
   serviceVersion: string;
   frontendName: string;
@@ -22,7 +22,7 @@ export const makeServiceFrontendBackupKey = Effect.fn(
     try: () => {
       for (const value of [
         identity.systemId,
-        identity.userId,
+        identity.identityKey,
         identity.serviceName,
         identity.serviceVersion,
         identity.frontendName,
@@ -48,7 +48,7 @@ export const makeServiceFrontendBackupKey = Effect.fn(
         );
       }
       const route = RoutePattern.parse(
-        '/zerospin/:systemId/:userId/service/:serviceName/:serviceVersion/:frontendName/:serviceFrontendLockKey/backup.sqlite3',
+        '/zerospin/:systemId/:identityKey/service/:serviceName/:serviceVersion/:frontendName/:serviceFrontendLockKey/backup.sqlite3',
       );
       // IDBBatchAtomicVFS uses URL.pathname as its logical filename too.
       return new URL(createHref(route, identity), 'file:///').pathname;

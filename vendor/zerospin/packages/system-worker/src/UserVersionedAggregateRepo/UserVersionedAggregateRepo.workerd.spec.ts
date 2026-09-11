@@ -19,7 +19,7 @@ it('declares sources before resource enrollment and validates them across cold a
     aggregateId: 'acct_source_binding',
     aggregateName: 'user',
     aggregateVersion: '1.0.0',
-    userId: 'usr_source_binding',
+    identityKey: 'usr_source_binding',
   };
   const sourceKey = {
     systemId: key.systemId,

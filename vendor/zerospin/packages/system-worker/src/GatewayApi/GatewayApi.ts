@@ -36,7 +36,7 @@ export class GatewayApi extends RpcTarget {
   /*
    * GatewayApi grants a aggregate frontend capability after checking the submitted
    * locks, authentication result, and owner authorization. The capability binds
-   * the configured systemId and authenticated userId to the admitted frontend.
+   * the configured systemId and authenticated identityKey to the admitted frontend.
    *
    * 1. Run the bound domain operation.
    */
@@ -65,7 +65,7 @@ export class GatewayApi extends RpcTarget {
   /*
    * GatewayApi grants a service frontend capability after checking the submitted
    * locks, authentication result, and owner authorization. The capability binds
-   * the configured systemId and authenticated userId to the admitted frontend.
+   * the configured systemId and authenticated identityKey to the admitted frontend.
    *
    * 1. Run the bound domain operation.
    */

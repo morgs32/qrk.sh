@@ -177,7 +177,7 @@ describe('@zerospin/frontend programs', () => {
     it('wraps the concrete frontend target and returns a typed success', async () => {
       const state = {
         aggregateId: 'acct_1',
-        userId: 'user_1',
+        identityKey: 'user_1',
         systemId,
         aggregateName: 'user',
         frontendName: 'web',
@@ -258,7 +258,7 @@ describe('aggregate frontend snapshot and socket recovery', () => {
   it('resumes independent frontend positions and accepts duplicate buffered delivery across reconnect', async () => {
     const state = {
       aggregateId: 'acct_1',
-      userId: 'user_1',
+      identityKey: 'user_1',
       systemId: 'sys_1',
       aggregateName: 'user',
       aggregateVersion: '1.0.0',
@@ -441,7 +441,7 @@ describe('frontend startup without a reusable backup', () => {
       generateSignature.mockResolvedValue(encodeSuccess({ userId: 'user_1' }));
       getStateLeaf.mockResolvedValue({
         result: encodeSuccess({
-          userId: 'user_1',
+          identityKey: 'user_1',
           systemId,
           frontendName: 'web',
           resources: [],

@@ -22,7 +22,7 @@ it('produces identical per-command deltas across pages, including relationship-d
     aggregateId: 'acct_test',
     aggregateName: 'user',
     aggregateVersion: '1.0.0',
-    userId: 'usr_a',
+    identityKey: 'usr_a',
   };
   const time = new Date('2026-09-06T12:00:00Z');
   const mutations = await Effect.runPromise(
@@ -70,7 +70,7 @@ it('produces identical per-command deltas across pages, including relationship-d
           aggregateVersion: '1.0.0',
           aggregateName: 'user',
           systemName: 'system-worker',
-          userId: null,
+          identityKey: null,
           sessionId: null,
           frontendName: null,
           pushIndex: null,

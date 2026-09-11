@@ -68,7 +68,7 @@ it('orders source output independently, backfills late enrollments, and never re
     aggregateId: 'acct_sources',
     aggregateName: 'user',
     aggregateVersion: '1.0.0',
-    userId: 'usr_a',
+    identityKey: 'usr_a',
   };
   const time = new Date('2026-09-07T12:00:00Z');
   const db = await Effect.runPromise(
@@ -199,7 +199,7 @@ it('orders source output independently, backfills late enrollments, and never re
       aggregateName: 'user',
       aggregateId: key.aggregateId,
       aggregateIndex,
-      userId: key.userId,
+      identityKey: key.identityKey,
       frontendName: 'main',
       sessionId: 'sesn_source',
       pushIndex: aggregateIndex,

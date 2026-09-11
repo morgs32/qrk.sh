@@ -63,7 +63,7 @@ describe('independent frontend progress', () => {
                 frontend,
                 sessionId: 'sesn_progress',
                 aggregateId: 'acct_1',
-                userId: 'user_1',
+                identityKey: 'user_1',
                 systemId: 'sys_1',
                 db,
                 models: mainModels,
@@ -75,7 +75,7 @@ describe('independent frontend progress', () => {
               >;
               const snapshot = {
                 aggregateId: 'acct_1',
-                userId: 'user_1',
+                identityKey: 'user_1',
                 systemId: 'sys_1',
                 aggregateName: main.aggregateName,
                 frontendName: main.name,
@@ -121,7 +121,7 @@ describe('independent frontend progress', () => {
                 aggregateName: frontend.aggregateName,
                 systemName: frontend.systemName,
                 sessionId: target.sessionId,
-                userId: target.userId,
+                identityKey: target.identityKey,
                 frontendName: frontend.name,
                 pushIndex: null,
               });

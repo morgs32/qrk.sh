@@ -394,7 +394,7 @@ export class VersionedAggregateRepo
     aggregateId: IAggregateId;
     aggregateName: string;
     frontendName: string;
-    userId: string;
+    identityKey: string;
   }): Promise<IEncodedResult<void, IAnyErrorJson>> {
     // 1 — spread props + db + this.key.aggregateVersion
 

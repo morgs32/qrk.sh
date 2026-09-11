@@ -83,7 +83,7 @@ AC validates each input's aggregate fields and encodes the complete occurrence b
 
 ## Identity and ownership
 
-AC uses `{ systemId, aggregateId, aggregateName }`. Worker configuration supplies `systemId`; direct command callers supply the aggregate fields, while frontend APIs bind those fields after admission checks. VAR and VAC add `aggregateVersion`, selected explicitly for execution or from the deployed aggregate definitions for destination enrollment. UVAR and UVAC add `userId`, supplied by authentication. Their complete shared key is `{ systemId, aggregateId, aggregateName, aggregateVersion, userId }`. Frontend names and locks belong to admitted capabilities and connections. Snapshot tickets retain that exact versioned UVAC name.
+AC uses `{ systemId, aggregateId, aggregateName }`. Worker configuration supplies `systemId`; direct command callers supply the aggregate fields, while frontend APIs bind those fields after admission checks. VAR and VAC add `aggregateVersion`, selected explicitly for execution or from the deployed aggregate definitions for destination enrollment. UVAR and UVAC add `identityKey`, supplied by authentication. Their complete shared key is `{ systemId, aggregateId, aggregateName, aggregateVersion, identityKey }`. Frontend names and locks belong to admitted capabilities and connections. Snapshot tickets retain that exact versioned UVAC name.
 
 - [`aggregateChainFixedDORepoConfig.ts`](../../../packages/system-worker/src/AggregateChain/aggregateChainFixedDORepoConfig.ts) — Defines the unversioned admitted-chain name.
 - [`VersionedAggregateRepo.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/VersionedAggregateRepo.ts) — Defines version-owned execution identity.

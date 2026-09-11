@@ -28,7 +28,7 @@ it('rejects a gapped page without advancing the projection or output', async () 
         systemId: 'sys_test',
         serviceName: 'app',
         serviceVersion: '1.0.0',
-        userId: 'usr_test',
+        identityKey: 'usr_test',
         frontendName: 'products',
       },
       rows: [{ outboxIndex: 2, entry: '{}', executionVersion: '1.0.0' }],
@@ -65,7 +65,7 @@ it('rolls back source state and every output when projection fails, then retries
     systemId: 'sys_test',
     serviceName: 'app',
     serviceVersion: '1.0.0',
-    userId: 'usr_test',
+    identityKey: 'usr_test',
     frontendName: 'products',
   };
   const rows = await Effect.runPromise(

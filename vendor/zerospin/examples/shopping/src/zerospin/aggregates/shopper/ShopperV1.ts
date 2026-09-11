@@ -32,27 +32,27 @@ export const shopperV1 = sdk.makeAggregateVersion(shopper, {
   selections: {
     user: sdk.makeSelection({
       model: userV1,
-      where: ({ userId }: { userId: IClerkUserId }) => ({
-        clerkUserId: userId,
+      where: ({ identityKey }: { identityKey: IClerkUserId }) => ({
+        clerkUserId: identityKey,
       }),
     }),
     cart: sdk.makeSelection({
       model: cartV1,
-      where: ({ userId }: { userId: IClerkUserId }) => ({
-        user: { clerkUserId: userId },
+      where: ({ identityKey }: { identityKey: IClerkUserId }) => ({
+        user: { clerkUserId: identityKey },
       }),
     }),
     cartItem: sdk.makeSelection({
       model: cartItemV1,
-      where: ({ userId }: { userId: IClerkUserId }) => ({
-        cart: { user: { clerkUserId: userId } },
+      where: ({ identityKey }: { identityKey: IClerkUserId }) => ({
+        cart: { user: { clerkUserId: identityKey } },
       }),
     }),
     product: sdk.makeSelection({
       model: productReplicaV1,
-      where: ({ userId }: { userId: IClerkUserId }) => ({
+      where: ({ identityKey }: { identityKey: IClerkUserId }) => ({
         cartItems: {
-          cart: { user: { clerkUserId: userId } },
+          cart: { user: { clerkUserId: identityKey } },
         },
       }),
     }),

@@ -27,7 +27,7 @@ const frontendServiceChainFixedDORepoConfig = makeFixedDORepoConfig({
   abbreviation: systemWorkerAbbreviations.frontendServiceChain,
   repoType: 'FrontendServiceChain',
   namePattern: RoutePattern.parse(
-    '/:systemId/:serviceName/:serviceVersion/:userId/:frontendName',
+    '/:systemId/:serviceName/:serviceVersion/:identityKey/:frontendName',
   ),
   managedRuntime,
   dbConfig: frontendServiceChainDbConfig,
@@ -57,7 +57,7 @@ export class FrontendServiceChain extends makeFixedDORepo({
             phase: 'awaiting-resume' | 'replaying' | 'live';
             serviceName: string;
             serviceVersion: string;
-            userId: string;
+            identityKey: string;
             frontendName: string;
             serviceFrontendLock: Schema.Schema.Type<
               typeof ServiceFrontendLockSchema
@@ -131,7 +131,7 @@ export class FrontendServiceChain extends makeFixedDORepo({
       phase: 'awaiting-resume' | 'replaying' | 'live';
       serviceName: string;
       serviceVersion: string;
-      userId: string;
+      identityKey: string;
       frontendName: string;
       serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
     }>,
@@ -155,7 +155,7 @@ export class FrontendServiceChain extends makeFixedDORepo({
       phase: 'awaiting-resume' | 'replaying' | 'live';
       serviceName: string;
       serviceVersion: string;
-      userId: string;
+      identityKey: string;
       frontendName: string;
       serviceFrontendLock: Schema.Schema.Type<typeof ServiceFrontendLockSchema>;
     }>,

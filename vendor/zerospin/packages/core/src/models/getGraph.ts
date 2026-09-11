@@ -9,14 +9,14 @@ import type { IAnyModels, IEncodedResourceShape, IModel } from './types.ts';
 
 export const getGraph = (props: {
   db: ISelectionDb;
-  userId: string;
+  identityKey: string;
   models: IAnyModels;
   selections: Record<string, ISelection<IModel>>;
   whereByModelName?: Readonly<
     Record<string, Readonly<Record<string, unknown>>>
   >;
 }): IUnstableGraph => {
-  const { db, userId, models, selections, whereByModelName } = props;
+  const { db, identityKey, models, selections, whereByModelName } = props;
   const graph: IUnstableGraph = {};
 
   for (const [modelName, selection] of Object.entries(selections)) {
@@ -24,7 +24,7 @@ export const getGraph = (props: {
       db,
       models,
       selection,
-      userId,
+      identityKey,
       ...(whereByModelName?.[modelName] === undefined
         ? {}
         : { where: whereByModelName[modelName] }),

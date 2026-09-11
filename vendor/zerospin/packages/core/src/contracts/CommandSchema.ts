@@ -39,13 +39,13 @@ export const UnknownAggregateCommandSchema = Schema.Union([
   Schema.fieldsAssign({
     aggregateVersion: Schema.String,
     sessionId: Schema.Null,
-    userId: Schema.NullOr(Schema.String),
+    identityKey: Schema.NullOr(Schema.String),
     frontendName: Schema.Null,
     pushIndex: Schema.Null,
   })(UnknownAggregateCommandBaseSchema),
   Schema.fieldsAssign({
     sessionId: makeAbbreviationIdSchema('sesn'),
-    userId: Schema.String,
+    identityKey: Schema.String,
     frontendName: Schema.String,
     pushIndex: Schema.NullOr(positiveIndexSchema),
   })(UnknownAggregateCommandBaseSchema),
@@ -83,13 +83,13 @@ export const EncodedAggregateCommandSchema = Schema.Union([
   Schema.fieldsAssign({
     aggregateVersion: Schema.String,
     sessionId: Schema.Null,
-    userId: Schema.NullOr(Schema.String),
+    identityKey: Schema.NullOr(Schema.String),
     frontendName: Schema.Null,
     pushIndex: Schema.Null,
   })(EncodedAggregateCommandBaseSchema),
   Schema.fieldsAssign({
     sessionId: makeAbbreviationIdSchema('sesn'),
-    userId: Schema.String,
+    identityKey: Schema.String,
     frontendName: Schema.String,
     pushIndex: Schema.NullOr(positiveIndexSchema),
   })(EncodedAggregateCommandBaseSchema),
@@ -104,7 +104,7 @@ export const EncodedSessionCommandSchema = Schema.Struct({
   aggregateName: Schema.String,
   systemName: Schema.String,
   sessionId: makeAbbreviationIdSchema('sesn'),
-  userId: Schema.String,
+  identityKey: Schema.String,
   frontendName: Schema.String,
   pushIndex: Schema.NullOr(positiveIndexSchema),
 }) satisfies Schema.Codec<IEncodedCommand<ISessionCommand>, any>;

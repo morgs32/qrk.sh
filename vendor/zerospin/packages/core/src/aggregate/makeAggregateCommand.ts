@@ -54,7 +54,7 @@ export const makeAggregateCommand = Effect.fn('makeAggregateCommand')(
       aggregateVersion: props.aggregateVersion,
       aggregateId,
       aggregateName,
-      userId: null,
+      identityKey: null,
       pushIndex: null,
       sessionId: null,
       frontendName: null,

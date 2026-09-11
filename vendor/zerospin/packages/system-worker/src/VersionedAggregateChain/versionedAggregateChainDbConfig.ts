@@ -19,7 +19,7 @@ export const versionedAggregateChainDbConfig = makeDbConfig({
         userVersionedAggregateRepoName: primitives.primaryKey({
           abbreviation: systemWorkerAbbreviations.userVersionedAggregateRepo,
         }),
-        userId: primitives.text(),
+        identityKey: primitives.text(),
         currentIndex: primitives.integer({ nullable: true }),
         failure: primitives.text({ nullable: true }),
       },

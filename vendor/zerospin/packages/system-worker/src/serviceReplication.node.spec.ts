@@ -433,7 +433,7 @@ it('records different dispositions when the same guard observes different curren
     aggregateVersion: '1.0.0',
     aggregateName: 'user',
     systemName: 'system-worker',
-    userId: null,
+    identityKey: null,
     sessionId: null,
     frontendName: null,
     pushIndex: null,

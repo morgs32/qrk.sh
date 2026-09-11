@@ -206,7 +206,7 @@ it('commits bounded pages, publishes complete entries, recovers after outbox del
       await Effect.runPromise(
         replay({
           db: replica,
-          key: { ...key, userId: 'usr_service', frontendName: 'products' },
+          key: { ...key, identityKey: 'usr_service', frontendName: 'products' },
           rows: rows.slice(i, i + pageSize),
         }),
       );

@@ -85,7 +85,7 @@ test('signed-in e2e user can read products through the service-owned catalog fro
         .getState({ outstandingCommandIds: [] })
         .pipe(Effect.provide(makeTelemetryLayer(telemetryCollector))),
     );
-    expect(aggregateState.userId).toBe(clerkUserId);
+    expect(aggregateState.identityKey).toBe(clerkUserId);
 
     const serviceFrontendApi = await gatewayApi.getServiceFrontendApi({
       publishableKey,
@@ -110,7 +110,7 @@ test('signed-in e2e user can read products through the service-owned catalog fro
     );
 
     expect(productRows.serviceName).toBe('app');
-    expect(productRows.userId).toBe(clerkUserId);
+    expect(productRows.identityKey).toBe(clerkUserId);
     expect(productRows.frontendName).toBe('catalog');
     expect(productRows.resources).toEqual(expect.any(Array));
   }).toPass({

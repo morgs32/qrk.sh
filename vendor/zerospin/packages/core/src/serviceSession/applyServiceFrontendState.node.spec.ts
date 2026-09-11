@@ -78,13 +78,13 @@ describe('applyServiceFrontendState', () => {
           // 2 — install a valid baseline snapshot.
           yield* applyServiceFrontendState({
             frontend,
-            userId: 'user_viewer',
+            identityKey: 'user_viewer',
             systemId: 'sys_shop',
             sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
-              userId: 'user_viewer',
+              identityKey: 'user_viewer',
               systemId: 'sys_shop',
               serviceName: 'catalog',
               frontendName: 'catalog',
@@ -115,13 +115,13 @@ describe('applyServiceFrontendState', () => {
           // 3 — reject a validly encoded state for another actor before deletion.
           const wrongTarget = yield* applyServiceFrontendState({
             frontend,
-            userId: 'user_viewer',
+            identityKey: 'user_viewer',
             systemId: 'sys_shop',
             sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
-              userId: 'user_other',
+              identityKey: 'user_other',
               systemId: 'sys_shop',
               serviceName: 'catalog',
               frontendName: 'catalog',
@@ -138,13 +138,13 @@ describe('applyServiceFrontendState', () => {
           // 4 — force a deferred foreign-key failure after replacement starts.
           const failedReplacement = yield* applyServiceFrontendState({
             frontend,
-            userId: 'user_viewer',
+            identityKey: 'user_viewer',
             systemId: 'sys_shop',
             sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
-              userId: 'user_viewer',
+              identityKey: 'user_viewer',
               systemId: 'sys_shop',
               serviceName: 'catalog',
               frontendName: 'catalog',
@@ -191,13 +191,13 @@ describe('applyServiceFrontendState', () => {
           // 5 — a later valid snapshot replaces both tables on that same db.
           yield* applyServiceFrontendState({
             frontend,
-            userId: 'user_viewer',
+            identityKey: 'user_viewer',
             systemId: 'sys_shop',
             sessionId: 'sesn_service',
             db,
             models,
             frontendState: {
-              userId: 'user_viewer',
+              identityKey: 'user_viewer',
               systemId: 'sys_shop',
               serviceName: 'catalog',
               frontendName: 'catalog',

@@ -30,7 +30,7 @@ describe('SystemRepo.consumeAggregateFrontendWebSocketTicket', () => {
           aggregateId: 'agg_ticket_round_trip',
           aggregateName: 'shopper',
           aggregateVersion: '2.0.0',
-          userId: 'usr_ticket_round_trip',
+          identityKey: 'usr_ticket_round_trip',
           frontendName: 'main',
           aggregateFrontendLock: {
             systemName: 'shopping',

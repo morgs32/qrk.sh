@@ -16,11 +16,12 @@ failure.
 - [`createServiceFrontendWebSocketTicket.ts`](../../../packages/frontend/src/createServiceFrontendWebSocketTicket.ts) — applies the same one-operation boundary to a service socket ticket.
 
 The aggregate child is bound to `{ systemId, aggregateId, aggregateName,
-userId, frontendName, aggregateFrontendLock }`; the service child is bound to
-`{ systemId, serviceName, userId, frontendName, serviceFrontendLock }`.
-`userId` comes from authentication, `systemId` comes from Worker
+identityKey, frontendName, aggregateFrontendLock }`; the service child is bound to
+`{ systemId, serviceName, identityKey, frontendName, serviceFrontendLock }`.
+`identityKey` comes from authentication, `systemId` comes from Worker
 configuration, and the remaining target fields are caller-supplied and then
-authorized.
+authorized. `identityKey` is an opaque external identity key; application User
+resource IDs remain model IDs and are not inferred from it.
 
 - [`getAggregateFrontendApi.ts`](../../../packages/system-worker/src/GatewayApi/getAggregateFrontendApi/getAggregateFrontendApi.ts) — validates, authenticates, authorizes, and constructs the exact aggregate child binding.
 - [`getServiceFrontendApi.ts`](../../../packages/system-worker/src/GatewayApi/getServiceFrontendApi/getServiceFrontendApi.ts) — constructs the exact service child through the equivalent boundary.
@@ -67,7 +68,7 @@ sequenceDiagram
   autonumber 3
   Gateway->>Auth: authenticate(...)
   autonumber 4
-  Auth-->>Gateway: authenticated userId
+  Auth-->>Gateway: authenticated identityKey
   autonumber 5
   Gateway->>Authorize: authorize*Frontend(...)
   autonumber 6
@@ -103,7 +104,7 @@ sequenceDiagram
    - [`authenticate.ts`](../../../packages/system-worker/src/authenticate/authenticate.ts) — validates and executes the selected independent authentication version.
    - [`getAggregateFrontendApi.ts`](../../../packages/system-worker/src/GatewayApi/getAggregateFrontendApi/getAggregateFrontendApi.ts) — invokes aggregate authentication.
    - [`getServiceFrontendApi.ts`](../../../packages/system-worker/src/GatewayApi/getServiceFrontendApi/getServiceFrontendApi.ts) — invokes service authentication.
-4. After validating a nonempty `userId`, authentication awaits the optional
+4. After validating a nonempty `identityKey`, authentication awaits the optional
    authored `onAuthentication` Effect before returning. Its command capability
    binds that verified identity, takes `systemId` from Worker configuration,
    and routes the authored aggregate name, ID, and version through AC to a
@@ -143,14 +144,14 @@ sequenceDiagram
     - [`fetchServiceFrontendState.ts`](../../../packages/frontend/src/fetchServiceFrontendState.ts) — maps the service result and guarantees session disposal.
 12. A successful online state fetch writes the exact authentication locator
     key `{ apiUrl, publishableKey, systemName, authenticationLock }` to
-    `{ systemId, userId }`. Offline startup may read this locator only to find
+    `{ systemId, identityKey }`. Offline startup may read this locator only to find
     the exact backup namespace.
     - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — writes or validates the aggregate authentication locator.
     - [`bootstrapServiceFrontendSession.ts`](../../../packages/frontend/src/bootstrapServiceFrontendSession.ts) — applies the same service locator boundary.
 
 ## Offline backup lookup
 
-The validated authentication locator supplies only `{ systemId, userId }` for
+The validated authentication locator supplies only `{ systemId, identityKey }` for
 finding persisted state before a network request. A compatible committed backup
 can restore locally while independently authenticated network recovery follows. The aggregate backup route additionally contains caller-selected
 `aggregateId`, authored `aggregateName` and `frontendName` (from controller `name`), and the complete

@@ -52,7 +52,7 @@ export const systemRepoTables = {
       }),
       aggregateName: primitives.text(),
       aggregateVersion: primitives.text(),
-      userId: primitives.text(),
+      identityKey: primitives.text(),
       frontendName: primitives.text(),
       aggregateFrontendLock: primitives.json({
         schema: AggregateFrontendLockSchema,
@@ -74,7 +74,7 @@ export const systemRepoTables = {
       repoName: primitives.text(),
       serviceName: primitives.text(),
       serviceVersion: primitives.text(),
-      userId: primitives.text(),
+      identityKey: primitives.text(),
       frontendName: primitives.text(),
       serviceFrontendLock: primitives.json({
         schema: ServiceFrontendLockSchema,

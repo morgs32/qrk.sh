@@ -131,7 +131,7 @@ export function makeAggregateVersion<
               NoInfer<MODELS>
             >;
             guard?: (props: {
-              userId: string | null;
+              identityKey: string | null;
               db: Readonly<
                 Pick<
                   IDb<IResourceDbConfig<NoInfer<MODELS>, Record<never, never>>>,

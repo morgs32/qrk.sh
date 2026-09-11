@@ -25,7 +25,7 @@ export const userVersionedAggregateRepoFixedDORepoConfig =
     abbreviation: systemWorkerAbbreviations.userVersionedAggregateRepo,
     repoType: 'UserVersionedAggregateRepo',
     namePattern: RoutePattern.parse(
-      '/:systemId/:aggregateId/:aggregateName/:aggregateVersion/:userId',
+      '/:systemId/:aggregateId/:aggregateName/:aggregateVersion/:identityKey',
     ),
     managedRuntime,
     dbConfig: Effect.fn('UserVersionedAggregateRepo.dbConfig')(function* ({

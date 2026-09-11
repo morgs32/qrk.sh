@@ -62,7 +62,7 @@ sequenceDiagram
 
 ## Shared aggregate delivery
 
-UVAR and UVAC share the key `{ systemId, aggregateId, aggregateName, aggregateVersion, userId }`. Worker configuration supplies `systemId`, authentication supplies `userId`, and admission validates and authorizes the caller's aggregate fields. The capability and socket retain their own `frontendName` and compatible lock. Snapshots and stream deltas expose only locked models; pushes require a locked contract version. Empty filtered entries still advance the shared `userIndex`. Resolutions retain the complete occurrence and are sent only to its originating frontend.
+UVAR and UVAC share the key `{ systemId, aggregateId, aggregateName, aggregateVersion, identityKey }`. Worker configuration supplies `systemId`, authentication supplies `identityKey`, and admission validates and authorizes the caller's aggregate fields. The capability and socket retain their own `frontendName` and compatible lock. Snapshots and stream deltas expose only locked models; pushes require a locked contract version. Empty filtered entries still advance the shared `userIndex`. Resolutions retain the complete occurrence and are sent only to its originating frontend.
 
 - [`userVersionedAggregateRepoFixedDORepoConfig.ts`](../../../packages/system-worker/src/UserVersionedAggregateRepo/userVersionedAggregateRepoFixedDORepoConfig.ts) — defines shared identity and the aggregate version's complete model schema.
 - [`getCommands.ts`](../../../packages/system-worker/src/UserVersionedAggregateChain/getCommands/getCommands.ts) — filters replay and performs indexed, cursor-bounded command reconciliation.

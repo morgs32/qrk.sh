@@ -32,7 +32,7 @@ export const executeServiceQuery = Effect.fn(
   aggregateName?: string;
   aggregateVersion?: string;
   serviceVersion?: string;
-  userId?: string;
+  identityKey?: string;
   frontendName?: string;
   aggregateFrontendLock?: Schema.Schema.Type<
     typeof AggregateFrontendLockSchema
@@ -49,14 +49,14 @@ export const executeServiceQuery = Effect.fn(
     params,
     queryName,
     serviceName,
-    userId,
+    identityKey,
   } = props;
 
-  // 1 — inspect aggregateId, aggregateName, userId, frontendName, and aggregateFrontendLock
+  // 1 — inspect aggregateId, aggregateName, identityKey, frontendName, and aggregateFrontendLock
   const hasAnyFrontendBinding =
     aggregateId !== undefined ||
     aggregateName !== undefined ||
-    userId !== undefined ||
+    identityKey !== undefined ||
     frontendName !== undefined ||
     aggregateFrontendLock !== undefined;
 
@@ -65,14 +65,14 @@ export const executeServiceQuery = Effect.fn(
     hasAnyFrontendBinding &&
     (aggregateId === undefined ||
       aggregateName === undefined ||
-      userId === undefined ||
+      identityKey === undefined ||
       frontendName === undefined ||
       aggregateFrontendLock === undefined)
   ) {
     return yield* new ZerospinError({
       code: 'service-query-frontend-binding-incomplete',
       message:
-        'A frontend-bound service query requires aggregateId, aggregateName, userId, frontendName, and aggregateFrontendLock together',
+        'A frontend-bound service query requires aggregateId, aggregateName, identityKey, frontendName, and aggregateFrontendLock together',
     });
   }
 

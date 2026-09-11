@@ -42,12 +42,12 @@ export const applyAggregateFrontendCommand = Effect.fn(
   models: InferFrontendModels<FRONTEND>;
   command: IAggregateFrontendFinalizedCommand;
   aggregateId: IAggregateFrontendSyncState['aggregateId'];
-  userId: IAggregateFrontendSyncState['userId'];
+  identityKey: IAggregateFrontendSyncState['identityKey'];
   sessionId: ISessionId;
 }): Effect.fn.Return<'applied' | 'duplicate', IAnyError> {
   // 1 — Encode against the finalized or pushed wire schema, then reject a
   // foreign target or any occurrence whose delta is still pending.
-  const { aggregateId, command, db, frontend, models, sessionId, userId } =
+  const { aggregateId, command, db, frontend, models, sessionId, identityKey } =
     props;
 
   yield* Schema.encodeUnknownEffect(AggregateFrontendFinalizedCommandSchema)(
@@ -63,7 +63,7 @@ export const applyAggregateFrontendCommand = Effect.fn(
     resolution !== null &&
     (resolution.aggregateId !== aggregateId ||
       resolution.aggregateName !== frontend.aggregateName ||
-      resolution.userId !== userId ||
+      resolution.identityKey !== identityKey ||
       resolution.frontendName !== frontend.name ||
       resolution.aggregateIndex !== command.aggregateIndex ||
       resolution.dispositionHash === null)

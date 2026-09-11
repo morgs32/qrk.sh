@@ -23,7 +23,7 @@ import type { SystemApi } from '../SystemApi.js';
  * Secret-key callers request an aggregate frontend snapshot through SystemApi.
  * The API selects the base version, reads its Replica Repo, and adapts resources
  * to the lock-selected model versions. The materializer owns synchronization
- * and durable state; userId and frontend fields are explicit caller arguments.
+ * and durable state; identityKey and frontend fields are explicit caller arguments.
  *
  * 1. Validate the request through the shared linked RPC handler.
  * 2. Validate the selected frontend lock.
@@ -52,7 +52,7 @@ export const getAggregateFrontendState = Effect.fn(
           aggregateId: makeAbbreviationIdSchema('acct'),
           aggregateName: Schema.String,
           aggregateVersion: Schema.String,
-          userId: Schema.NonEmptyString,
+          identityKey: Schema.NonEmptyString,
           frontendName: Schema.String,
           aggregateFrontendLock: AggregateFrontendLockSchema,
         }),
@@ -65,7 +65,7 @@ export const getAggregateFrontendState = Effect.fn(
           aggregateId,
           aggregateName,
           frontendName,
-          userId,
+          identityKey,
         } = args;
 
         // 2 — resolve the authored aggregate frontend selection
@@ -98,7 +98,7 @@ export const getAggregateFrontendState = Effect.fn(
               aggregateVersion,
               aggregateId,
               aggregateName,
-              userId,
+              identityKey,
             },
           },
         );
@@ -109,7 +109,7 @@ export const getAggregateFrontendState = Effect.fn(
             outstandingCommandIds: [],
             aggregateId,
             aggregateName,
-            userId,
+            identityKey,
             frontendName,
           }),
         );

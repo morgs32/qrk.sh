@@ -7,7 +7,7 @@ import { Effect } from 'effect';
 
 export type IAggregateFrontendBackupIdentity = Readonly<{
   systemId: ISystemId;
-  userId: string;
+  identityKey: string;
   aggregateId: IAggregateId;
   aggregateName: string;
   aggregateVersion: string;
@@ -24,7 +24,7 @@ export const makeAggregateFrontendBackupKey = Effect.fn(
     try: () => {
       for (const value of [
         identity.systemId,
-        identity.userId,
+        identity.identityKey,
         identity.aggregateId,
         identity.aggregateName,
         identity.aggregateVersion,
@@ -51,7 +51,7 @@ export const makeAggregateFrontendBackupKey = Effect.fn(
         );
       }
       const route = RoutePattern.parse(
-        '/zerospin/:systemId/:userId/aggregate/:aggregateName/:aggregateVersion/:aggregateId/:frontendName/:aggregateFrontendLockKey/backup.sqlite3',
+        '/zerospin/:systemId/:identityKey/aggregate/:aggregateName/:aggregateVersion/:aggregateId/:frontendName/:aggregateFrontendLockKey/backup.sqlite3',
       );
       // IDBBatchAtomicVFS uses URL.pathname as its logical filename too.
       return new URL(createHref(route, identity), 'file:///').pathname;

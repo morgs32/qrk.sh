@@ -35,7 +35,7 @@ export const consumeAggregateFrontendWebSocketTicket = Effect.fn(
     aggregateId: AnyColumn;
     aggregateName: AnyColumn;
     aggregateVersion: AnyColumn;
-    userId: AnyColumn;
+    identityKey: AnyColumn;
     frontendName: AnyColumn;
     aggregateFrontendLock: AnyColumn;
   }>;
@@ -78,7 +78,7 @@ export const consumeAggregateFrontendWebSocketTicket = Effect.fn(
     aggregateId: Schema.String,
     aggregateName: Schema.String,
     aggregateVersion: Schema.String,
-    userId: Schema.String,
+    identityKey: Schema.String,
     frontendName: Schema.String,
     aggregateFrontendLock: Schema.fromJsonString(AggregateFrontendLockSchema),
     expiresAt: Schema.Date,
@@ -96,7 +96,7 @@ export const consumeAggregateFrontendWebSocketTicket = Effect.fn(
           aggregateName: aggregateFrontendWebSocketTicketColumns.aggregateName,
           aggregateVersion:
             aggregateFrontendWebSocketTicketColumns.aggregateVersion,
-          userId: aggregateFrontendWebSocketTicketColumns.userId,
+          identityKey: aggregateFrontendWebSocketTicketColumns.identityKey,
           frontendName: aggregateFrontendWebSocketTicketColumns.frontendName,
           aggregateFrontendLock:
             aggregateFrontendWebSocketTicketColumns.aggregateFrontendLock,

@@ -265,7 +265,7 @@ describe('main-thread frontend flow', () => {
       expect(aggregateDevtoolsEntry?.session).toBe(
         aggregateSession.coreSession,
       );
-      expect(serviceDevtoolsEntry?.getUserId()).toBe(clerkUserId);
+      expect(serviceDevtoolsEntry?.getIdentityKey()).toBe(clerkUserId);
 
       const createdUser = await aggregateSession.executeCommand({
         contractName: 'createUser',
@@ -937,7 +937,7 @@ describe('main-thread frontend flow', () => {
           Array.from(
             zerospinDevtoolsStore.getState().aggregateSessionsById.values(),
           ).filter(
-            entry => entry.session.store.getState().userId === clerkUserId,
+            entry => entry.session.store.getState().identityKey === clerkUserId,
           ).length,
         { interval: 50, timeout: 30_000 },
       )

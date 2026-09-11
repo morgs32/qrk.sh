@@ -17,7 +17,7 @@ import { AggregateChain } from '../AggregateChain/AggregateChain.js';
 /*
  * Frontend capability admission invokes the authored authentication program.
  * This boundary validates the requested authentication definition and returns the
- * authenticated userId with the matching lock and authored system identity.
+ * authenticated identityKey with the matching lock and authored system identity.
  *
  * 1. Read the submitted signature context.
  * 2. Find the requested authentication definition.
@@ -33,7 +33,7 @@ export const authenticate = Effect.fn('SystemWorker.authenticate', {
   signature: unknown;
 }): Effect.fn.Return<
   Readonly<{
-    userId: string;
+    identityKey: string;
     authenticationLock: Schema.Schema.Type<typeof AuthenticationLockSchema>;
     systemName: string;
   }>,
@@ -69,15 +69,15 @@ export const authenticate = Effect.fn('SystemWorker.authenticate', {
       prefix: `Failed to decode authentication signature version "${definition.version}"`,
     }),
   );
-  const returnedUserId = yield* definition.authenticate({ signature });
+  const returnedIdentityKey = yield* definition.authenticate({ signature });
 
-  // 5 — require a nonempty userId before returning the lock and system metadata
-  const userId = yield* Schema.decodeUnknownEffect(Schema.NonEmptyString)(
-    returnedUserId,
+  // 5 — require a nonempty identityKey before returning the lock and system metadata
+  const identityKey = yield* Schema.decodeUnknownEffect(Schema.NonEmptyString)(
+    returnedIdentityKey,
   ).pipe(
     mapParseError({
-      code: 'system-runtime-authentication-user-invalid',
-      prefix: 'The static System returned an invalid authenticated userId',
+      code: 'system-runtime-authentication-identity-invalid',
+      prefix: 'The static System returned an invalid authenticated identityKey',
     }),
   );
 
@@ -85,7 +85,7 @@ export const authenticate = Effect.fn('SystemWorker.authenticate', {
   if (definition.onAuthentication !== undefined) {
     yield* definition
       .onAuthentication({
-        userId,
+        identityKey,
         executeAggregateCommand: Effect.fn(
           'authentication.executeAggregateCommand',
         )(function* (requestedCommand) {
@@ -94,7 +94,7 @@ export const authenticate = Effect.fn('SystemWorker.authenticate', {
             EncodedAggregateCommandSchema,
           )({
             ...requestedCommand,
-            userId,
+            identityKey,
             sessionId: null,
             frontendName: null,
             pushIndex: null,
@@ -139,7 +139,7 @@ export const authenticate = Effect.fn('SystemWorker.authenticate', {
       .pipe(Effect.provide(NanoIdFactory));
   }
   return {
-    userId,
+    identityKey,
     authenticationLock,
     systemName: system.name,
   };

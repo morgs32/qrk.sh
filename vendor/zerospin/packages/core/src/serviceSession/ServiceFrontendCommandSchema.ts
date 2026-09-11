@@ -77,7 +77,7 @@ export const ServiceFrontendFinalizedCommandSchema = Schema.Union([
 >;
 
 export const ServiceFrontendStateSchema = Schema.Struct({
-  userId: Schema.NonEmptyString,
+  identityKey: Schema.NonEmptyString,
   systemId: makeAbbreviationIdSchema(coreAbbreviations.system),
   serviceName: Schema.String,
   frontendName: Schema.String,

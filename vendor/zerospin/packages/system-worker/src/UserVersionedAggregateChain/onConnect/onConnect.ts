@@ -20,7 +20,7 @@ export const onConnect = Effect.fn('UserVersionedAggregateChain.onConnect')(
       aggregateId: string;
       aggregateName: string;
       aggregateVersion: string;
-      userId: string;
+      identityKey: string;
       frontendName: string;
       aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema
@@ -32,19 +32,19 @@ export const onConnect = Effect.fn('UserVersionedAggregateChain.onConnect')(
       systemId: string;
       aggregateId: string;
       aggregateName: string;
-      userId: string;
+      identityKey: string;
     };
   }) {
     const { connection, key, request } = props;
     yield* Effect.void;
 
-    // 1 — extract owner, userId, frontendName, and the encoded frontend lock
+    // 1 — extract owner, identityKey, frontendName, and the encoded frontend lock
     const aggregateId = request.headers.get('x-zerospin-aggregate-id');
     const aggregateName = request.headers.get('x-zerospin-aggregate-name');
     const aggregateVersion = request.headers.get(
       'x-zerospin-aggregate-version',
     );
-    const userId = request.headers.get('x-zerospin-user-id');
+    const identityKey = request.headers.get('x-zerospin-identity-key');
     const frontendName = request.headers.get('x-zerospin-frontend-name');
     const encodedAggregateFrontendLock = request.headers.get(
       'x-zerospin-aggregate-frontend-lock',
@@ -55,7 +55,7 @@ export const onConnect = Effect.fn('UserVersionedAggregateChain.onConnect')(
       aggregateId !== key.aggregateId ||
       aggregateName !== key.aggregateName ||
       aggregateVersion !== key.aggregateVersion ||
-      userId !== key.userId ||
+      identityKey !== key.identityKey ||
       frontendName === null ||
       encodedAggregateFrontendLock === null
     ) {
@@ -82,7 +82,7 @@ export const onConnect = Effect.fn('UserVersionedAggregateChain.onConnect')(
       aggregateVersion,
       aggregateId,
       aggregateName,
-      userId,
+      identityKey,
       frontendName,
       aggregateFrontendLock: aggregateFrontendLockResult.success,
     });

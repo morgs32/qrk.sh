@@ -27,7 +27,7 @@ const userVersionedAggregateChainFixedDORepoConfig = makeFixedDORepoConfig({
   abbreviation: systemWorkerAbbreviations.userVersionedAggregateChain,
   repoType: 'UserVersionedAggregateChain',
   namePattern: RoutePattern.parse(
-    '/:systemId/:aggregateId/:aggregateName/:aggregateVersion/:userId',
+    '/:systemId/:aggregateId/:aggregateName/:aggregateVersion/:identityKey',
   ),
   managedRuntime,
   dbConfig: userVersionedAggregateChainDbConfig,
@@ -58,7 +58,7 @@ export class UserVersionedAggregateChain extends makeFixedDORepo({
             aggregateId: string;
             aggregateName: string;
             aggregateVersion: string;
-            userId: string;
+            identityKey: string;
             frontendName: string;
             aggregateFrontendLock: Schema.Schema.Type<
               typeof AggregateFrontendLockSchema
@@ -168,7 +168,7 @@ export class UserVersionedAggregateChain extends makeFixedDORepo({
       aggregateId: string;
       aggregateName: string;
       aggregateVersion: string;
-      userId: string;
+      identityKey: string;
       frontendName: string;
       aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema
@@ -195,7 +195,7 @@ export class UserVersionedAggregateChain extends makeFixedDORepo({
       aggregateId: string;
       aggregateName: string;
       aggregateVersion: string;
-      userId: string;
+      identityKey: string;
       frontendName: string;
       aggregateFrontendLock: Schema.Schema.Type<
         typeof AggregateFrontendLockSchema

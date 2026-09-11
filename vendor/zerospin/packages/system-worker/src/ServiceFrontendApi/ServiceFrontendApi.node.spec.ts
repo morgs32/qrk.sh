@@ -70,7 +70,7 @@ describe('ServiceFrontendApi', () => {
     getState.mockResolvedValue(
       encodeSuccess({
         serviceName: 'app',
-        userId: 'user_1',
+        identityKey: 'user_1',
         systemId: 'sys_1',
         frontendName: 'products',
         serviceVersion: '1.0.0',
@@ -88,7 +88,7 @@ describe('ServiceFrontendApi', () => {
   it('returns a published versioned service snapshot', async () => {
     const api = new ServiceFrontendApi({
       authResults: {
-        userId: 'user_1',
+        identityKey: 'user_1',
         frontendName: 'products',
         serviceFrontendLock,
         serviceName: 'app',
@@ -115,7 +115,7 @@ describe('ServiceFrontendApi', () => {
     expect(getState).toHaveBeenCalledWith({
       serviceName: 'app',
       frontendName: 'products',
-      userId: 'user_1',
+      identityKey: 'user_1',
     });
     expect(appendTelemetryBatch).toHaveBeenCalledOnce();
     expect(envelope.link).toMatchObject({

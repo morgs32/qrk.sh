@@ -59,13 +59,13 @@ describe('getGraph', () => {
       const selections = {
         user: makeSelection({
           model: User,
-          where: ({ userId }) => ({ id: userId }),
+          where: ({ identityKey }) => ({ id: identityKey }),
         }),
       };
 
       const graph = getGraph({
         db,
-        userId: testUserId,
+        identityKey: testUserId,
         models,
         selections,
       });

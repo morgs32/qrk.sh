@@ -46,9 +46,9 @@ vi.mock('system', async () => {
         }),
         makeAuthenticationVersion({
           version: '2.0.0',
-          signature: Schema.Struct({ userId: Schema.String }),
+          signature: Schema.Struct({ identityKey: Schema.String }),
           authenticate: ({ signature }) =>
-            signature.userId === 'denied'
+            signature.identityKey === 'denied'
               ? Effect.fail(
                   new ZerospinError({
                     code: 'authentication-denied',
@@ -56,7 +56,9 @@ vi.mock('system', async () => {
                   }),
                 )
               : Effect.succeed(
-                  signature.userId === 'empty' ? '' : `v2:${signature.userId}`,
+                  signature.identityKey === 'empty'
+                    ? ''
+                    : `v2:${signature.identityKey}`,
                 ),
           onAuthentication,
         }),
@@ -93,7 +95,7 @@ effectIt.effect(
       }));
       onAuthentication.mockImplementation(
         Effect.fn('test.provision')(function* ({
-          userId,
+          identityKey,
           executeAggregateCommand,
         }) {
           yield* executeAggregateCommand({
@@ -105,23 +107,23 @@ effectIt.effect(
             aggregateName: 'user',
             aggregateVersion: '1.0.0',
             systemName: 'auth-test',
-            userId: 'spoofed',
+            identityKey: 'spoofed',
             sessionId: null,
             frontendName: null,
             pushIndex: null,
           });
-          hookFinished.push(userId);
+          hookFinished.push(identityKey);
         }),
       );
       for (let attempt = 0; attempt < 2; attempt++) {
         const result = yield* authenticate({
           authenticationLock: makeAuthenticationLock({
             version: '2.0.0',
-            signature: Schema.Struct({ userId: Schema.String }),
+            signature: Schema.Struct({ identityKey: Schema.String }),
           }),
-          signature: { userId: 'alice' },
+          signature: { identityKey: 'alice' },
         }).pipe(Effect.provide(AsyncLive));
-        expect(result.userId).toBe('v2:alice');
+        expect(result.identityKey).toBe('v2:alice');
         expect(hookFinished).toHaveLength(attempt + 1);
       }
       expect(getRepo).toHaveBeenLastCalledWith({
@@ -134,7 +136,7 @@ effectIt.effect(
       expect(executeAggregateCommand).toHaveBeenLastCalledWith(
         expect.objectContaining({
           command: expect.objectContaining({
-            userId: 'v2:alice',
+            identityKey: 'v2:alice',
             sessionId: null,
           }),
         }),
@@ -157,18 +159,18 @@ effectIt.effect(
       );
       const authenticationLock = makeAuthenticationLock({
         version: '2.0.0',
-        signature: Schema.Struct({ userId: Schema.String }),
+        signature: Schema.Struct({ identityKey: Schema.String }),
       });
-      for (const userId of ['denied', 'empty']) {
-        yield* authenticate({ authenticationLock, signature: { userId } }).pipe(
-          Effect.provide(AsyncLive),
-          Effect.flip,
-        );
+      for (const identityKey of ['denied', 'empty']) {
+        yield* authenticate({
+          authenticationLock,
+          signature: { identityKey },
+        }).pipe(Effect.provide(AsyncLive), Effect.flip);
       }
       expect(onAuthentication).not.toHaveBeenCalled();
       const failure = yield* authenticate({
         authenticationLock,
-        signature: { userId: 'alice' },
+        signature: { identityKey: 'alice' },
       }).pipe(Effect.provide(AsyncLive), Effect.flip);
       expect(failure.code).toBe('provisioning-failed');
     }),
@@ -180,23 +182,23 @@ describe('independent authentication versions', () => {
       version: '1.0.0',
       schema: Schema.Struct({ subject: Schema.String }),
       signature: { subject: 'alice' },
-      userId: 'v1:alice',
+      identityKey: 'v1:alice',
     },
     {
       version: '2.0.0',
-      schema: Schema.Struct({ userId: Schema.String }),
-      signature: { userId: 'alice' },
-      userId: 'v2:alice',
+      schema: Schema.Struct({ identityKey: Schema.String }),
+      signature: { identityKey: 'alice' },
+      identityKey: 'v2:alice',
     },
     {
       version: '3.0.0',
       schema: Schema.NumberFromString,
       signature: '41',
-      userId: 'number:42',
+      identityKey: 'number:42',
     },
   ])(
     'decodes and executes exactly $version',
-    async ({ version, schema, signature, userId }) => {
+    async ({ version, schema, signature, identityKey }) => {
       const authenticationLock = makeAuthenticationLock({
         version,
         signature: schema,
@@ -207,7 +209,7 @@ describe('independent authentication versions', () => {
         ),
       );
       expect(result).toEqual({
-        userId,
+        identityKey,
         authenticationLock,
         systemName: 'auth-test',
       });
@@ -223,8 +225,8 @@ describe('independent authentication versions', () => {
     },
     {
       version: '1.0.0',
-      schema: Schema.Struct({ userId: Schema.String }),
-      signature: { userId: 'alice' },
+      schema: Schema.Struct({ identityKey: Schema.String }),
+      signature: { identityKey: 'alice' },
       code: 'authentication-lock-unsupported',
     },
     {
@@ -241,15 +243,15 @@ describe('independent authentication versions', () => {
     },
     {
       version: '2.0.0',
-      schema: Schema.Struct({ userId: Schema.String }),
-      signature: { userId: 'denied' },
+      schema: Schema.Struct({ identityKey: Schema.String }),
+      signature: { identityKey: 'denied' },
       code: 'authentication-denied',
     },
     {
       version: '2.0.0',
-      schema: Schema.Struct({ userId: Schema.String }),
-      signature: { userId: 'empty' },
-      code: 'system-runtime-authentication-user-invalid',
+      schema: Schema.Struct({ identityKey: Schema.String }),
+      signature: { identityKey: 'empty' },
+      code: 'system-runtime-authentication-identity-invalid',
     },
   ])(
     'rejects $code for $version without fallback',

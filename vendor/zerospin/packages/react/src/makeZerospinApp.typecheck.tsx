@@ -41,7 +41,7 @@ const ZerospinApp = makeZerospinApp({
 const exactProvider = (
   <ZerospinApp.Provider
     // @ts-expect-error — production Provider identity is returned by frontend bootstrap.
-    userId="user_1"
+    identityKey="user_1"
     aggregateIds={{ main: 'acct_1' }}
     generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
   >
@@ -77,7 +77,7 @@ const wrongAuthenticationSignature = (
     generateSignature={() =>
       Effect.succeed({
         // @ts-expect-error — Provider signatures must match the selected universal signature.
-        userId: 1,
+        identityKey: 1,
       })
     }
   >

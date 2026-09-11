@@ -19,7 +19,7 @@ export const versionedServiceChainDbConfig = makeDbConfig({
         frontendVersionedServiceRepoName: primitives.primaryKey({
           abbreviation: systemWorkerAbbreviations.frontendVersionedServiceRepo,
         }),
-        userId: primitives.text(),
+        identityKey: primitives.text(),
         frontendName: primitives.text(),
         currentIndex: primitives.integer({ nullable: true }),
         failure: primitives.text({ nullable: true }),

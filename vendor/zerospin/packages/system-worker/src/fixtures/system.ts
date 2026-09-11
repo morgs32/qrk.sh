@@ -664,7 +664,7 @@ const app = makeService({
    */
   authorize: (props: {
     frontendName: 'products';
-    userId: string;
+    identityKey: string;
     db: Readonly<
       Pick<
         IDb<
@@ -787,7 +787,7 @@ export const system = makeSystem({
          * 5. Accept the existing user.
          */
         authorize: (props: {
-          userId: string;
+          identityKey: string;
           aggregateId: IAggregateId;
           db: Readonly<
             Pick<
@@ -796,13 +796,13 @@ export const system = makeSystem({
             >
           >;
         }) => {
-          // 1 — take the database and requested userId from the caller context
-          const { db, userId: requestedUserId } = props;
+          // 1 — take the database and requested identityKey from the caller context
+          const { db, identityKey: requestedIdentityKey } = props;
           return Effect.gen(function* () {
             // 2 — map invalid user ids to fixture-user-id-invalid
             const userId = yield* Schema.decodeUnknownEffect(
               makeModelIdSchema(User),
-            )(requestedUserId).pipe(
+            )(requestedIdentityKey).pipe(
               mapParseError({
                 code: 'fixture-user-id-invalid',
                 prefix: 'Failed to decode the fixture authorization userId',
@@ -830,7 +830,7 @@ export const system = makeSystem({
             if (user === undefined) {
               return yield* new ZerospinError({
                 code: 'user-not-found',
-                message: `User ${requestedUserId} was not found`,
+                message: `User ${requestedIdentityKey} was not found`,
               });
             }
 
@@ -859,10 +859,10 @@ export const system = makeSystem({
              */
             guard: ({
               payload,
-              userId,
+              identityKey,
             }: {
               payload: InferCommand<typeof createList>['payload'];
-              userId: string | null;
+              identityKey: string | null;
             }) =>
               Effect.gen(function* () {
                 // 1 — return aggregate-list-name-rejected from the aggregate guard
@@ -873,18 +873,18 @@ export const system = makeSystem({
                   });
                 }
 
-                // 2 — distinguish null userId from unexpected non-null provenance through the failure code
+                // 2 — distinguish null identityKey from unexpected non-null provenance through the failure code
                 if (payload.name === 'direct-null-provenance') {
-                  if (userId === null) {
+                  if (identityKey === null) {
                     return yield* new ZerospinError({
-                      code: 'direct-null-user-id-observed',
+                      code: 'direct-null-identity-key-observed',
                       message:
-                        'Aggregate guard observed direct-command userId null.',
+                        'Aggregate guard observed direct-command identityKey null.',
                     });
                   }
                   return yield* new ZerospinError({
-                    code: 'direct-user-id-was-not-null',
-                    message: `Direct aggregate guard received userId ${userId}.`,
+                    code: 'direct-identity-key-was-not-null',
+                    message: `Direct aggregate guard received identityKey ${identityKey}.`,
                   });
                 }
               }).pipe(Effect.withSpan('aggregateCreateListGuard')),
@@ -947,9 +947,9 @@ export const system = makeSystem({
              *
              * 1. Build the selection predicate.
              */
-            where: ({ userId }) =>
+            where: ({ identityKey }) =>
               // 1 — scope the selected model through its user relationship
-              ({ id: userId }),
+              ({ id: identityKey }),
           }),
           list: makeSelection({
             model: List,
@@ -958,10 +958,10 @@ export const system = makeSystem({
              *
              * 1. Build the selection predicate.
              */
-            where: ({ userId }) =>
+            where: ({ identityKey }) =>
               // 1 — scope the selected model through its user relationship
               ({
-                user: { id: userId },
+                user: { id: identityKey },
               }),
           }),
           item: makeSelection({
@@ -971,10 +971,10 @@ export const system = makeSystem({
              *
              * 1. Build the selection predicate.
              */
-            where: ({ userId }) =>
+            where: ({ identityKey }) =>
               // 1 — scope the selected model through its user relationship
               ({
-                list: { user: { id: userId } },
+                list: { user: { id: identityKey } },
               }),
           }),
           account: makeSelection({

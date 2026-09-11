@@ -113,7 +113,7 @@ it.each([
       aggregateVersion: '1.0.0',
       aggregateName: 'user',
       systemName: 'system-worker',
-      userId: null,
+      identityKey: null,
       sessionId: null,
       frontendName: null,
       pushIndex: null,

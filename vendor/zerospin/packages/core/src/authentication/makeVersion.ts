@@ -41,15 +41,15 @@ const MakeVersionPropsSchema = Schema.Struct({
 export function makeAuthenticationVersion<
   const VERSION extends string,
   SIGNATURE extends Schema.Codec<unknown, unknown>,
-  USER_ID extends string,
+  IDENTITY_KEY extends string,
 >(props: {
   version: VERSION;
   signature: SIGNATURE;
   authenticate: (props: {
     signature: Schema.Schema.Type<SIGNATURE>;
-  }) => Effect.Effect<USER_ID, IAnyError>;
+  }) => Effect.Effect<IDENTITY_KEY, IAnyError>;
   onAuthentication?: IAuthentication['onAuthentication'];
-}): IAuthentication<VERSION, SIGNATURE, USER_ID> {
+}): IAuthentication<VERSION, SIGNATURE, IDENTITY_KEY> {
   Schema.decodeUnknownSync(MakeVersionPropsSchema, {
     onExcessProperty: 'error',
   })(props);

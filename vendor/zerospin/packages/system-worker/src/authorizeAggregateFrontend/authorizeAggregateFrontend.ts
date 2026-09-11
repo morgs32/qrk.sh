@@ -14,7 +14,7 @@ import { VersionedAggregateRepo } from '../VersionedAggregateRepo/VersionedAggre
 
 /*
  * GatewayApi uses this operation to admit a aggregate frontend for an
- * authenticated userId and caller-selected owner/frontend fields.
+ * authenticated identityKey and caller-selected owner/frontend fields.
  * The aggregate Repo runs authorization against its local resource state.
  *
  * 1. Validate the requested frontend lock.
@@ -27,7 +27,7 @@ export const authorizeAggregateFrontend = Effect.fn(
   'SystemWorker.authorizeAggregateFrontend',
   { root: true },
 )(function* (props: {
-  userId: string;
+  identityKey: string;
   aggregateId: IAggregateId;
   aggregateName: string;
   aggregateVersion: string;
@@ -38,7 +38,7 @@ export const authorizeAggregateFrontend = Effect.fn(
     aggregateId: IAggregateId;
     aggregateName: string;
     aggregateVersion: string;
-    userId: string;
+    identityKey: string;
     aggregateFrontendLock: Schema.Schema.Type<
       typeof AggregateFrontendLockSchema
     >;
@@ -48,7 +48,7 @@ export const authorizeAggregateFrontend = Effect.fn(
   Async
 > {
   const {
-    userId,
+    identityKey,
     aggregateId,
     aggregateName,
     frontendName,
@@ -91,7 +91,7 @@ export const authorizeAggregateFrontend = Effect.fn(
       aggregateId,
       aggregateName,
       frontendName,
-      userId,
+      identityKey,
     }),
   ).pipe(Effect.flatMap(decodeRpc));
 
@@ -100,7 +100,7 @@ export const authorizeAggregateFrontend = Effect.fn(
     aggregateVersion,
     aggregateId,
     aggregateName,
-    userId,
+    identityKey,
     aggregateFrontendLock: selected.aggregateFrontendLock,
     frontendSpec: selected.frontendSpec,
   };

@@ -429,7 +429,7 @@ export function makeZerospinApp<
                               .db,
                         } satisfies ISessionRegistryEntry,
                         systemId: bootstrap.systemId,
-                        userId: bootstrap.userId,
+                        identityKey: bootstrap.identityKey,
                       };
                     }
 
@@ -513,14 +513,14 @@ export function makeZerospinApp<
                         },
                       } satisfies ISessionRegistryEntry,
                       systemId: bootstrap.systemId,
-                      userId: bootstrap.userId,
+                      identityKey: bootstrap.identityKey,
                     };
                   }),
                 ),
                 { concurrency: 'unbounded' },
               );
 
-              // 6 — compare bootstrap systemId and userId before exposing any session.
+              // 6 — compare bootstrap systemId and identityKey before exposing any session.
               const firstInitializedSession = initializedSessions[0];
               if (firstInitializedSession === undefined) {
                 return yield* new ZerospinError({
@@ -529,11 +529,11 @@ export function makeZerospinApp<
                 });
               }
               const systemId = firstInitializedSession.systemId;
-              const resolvedUserId = firstInitializedSession.userId;
+              const resolvedIdentityKey = firstInitializedSession.identityKey;
               for (const initializedSession of initializedSessions) {
                 if (
                   initializedSession.systemId !== systemId ||
-                  initializedSession.userId !== resolvedUserId
+                  initializedSession.identityKey !== resolvedIdentityKey
                 ) {
                   return yield* new ZerospinError({
                     code: 'frontend-session-identity-mismatch',

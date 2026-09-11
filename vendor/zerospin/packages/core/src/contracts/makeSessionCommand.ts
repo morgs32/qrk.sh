@@ -12,7 +12,7 @@ export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
 >(props: {
   aggregateId: string;
   aggregateName: string;
-  userId: string;
+  identityKey: string;
   contract: CONTRACT;
   version: VERSION;
   validatedPayload: NoInfer<InferCommand<CONTRACT, VERSION>['payload']>;
@@ -23,7 +23,7 @@ export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
   const {
     aggregateId,
     aggregateName,
-    userId,
+    identityKey,
     contract,
     version,
     validatedPayload,
@@ -42,7 +42,7 @@ export const makeSessionCommand = Effect.fn('makeSessionCommand')(function* <
     payload: validatedPayload,
     aggregateId,
     aggregateName,
-    userId,
+    identityKey,
     pushIndex: null,
     sessionId,
     frontendName,

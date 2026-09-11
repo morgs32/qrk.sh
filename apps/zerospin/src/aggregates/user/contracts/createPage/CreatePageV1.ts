@@ -65,7 +65,7 @@ export const createPageV1 = contracts.makeVersion(createPage, {
             })
             .sync();
 
-    if (user === undefined || user.actorId !== `actr_${userId}`) {
+    if (user === undefined || user.clerkUserId !== userId) {
       return yield* new ZerospinError({
         code: "create-page-user-mismatch",
         message: `Site ${payload.siteId} does not belong to user ${userId}`,

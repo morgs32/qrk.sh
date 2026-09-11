@@ -92,7 +92,7 @@ export const createGridV1 = contracts.makeVersion(createGrid, {
             })
             .sync();
 
-    if (site === undefined || user === undefined || user.actorId !== `actr_${userId}`) {
+    if (site === undefined || user === undefined || user.clerkUserId !== userId) {
       return yield* new ZerospinError({
         code: "create-grid-user-mismatch",
         message: `Page ${payload.pageId} does not belong to user ${userId}`,

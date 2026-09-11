@@ -333,7 +333,6 @@ describe("aggregate Grid contracts", () => {
 describe("user frontend Grid guards", () => {
   it.effect("rejects noncanonical identity, false intent, incomplete, and stale snapshots", () =>
     Effect.gen(function* () {
-      const actorId = "actr_grid_guard_user";
       const userId = "usr_grid_guard_user";
       const siteId = "sit_grid_guard_site";
       const pageId = "pag_grid_guard_page";
@@ -355,8 +354,7 @@ describe("user frontend Grid guards", () => {
           version: User.version,
           createdAt: now,
           updatedAt: now,
-          actorId,
-          clerkUserId: "user_grid_guard_user",
+          clerkUserId: "grid_guard_user",
           username: null,
           displayName: null,
         })
@@ -392,6 +390,20 @@ describe("user frontend Grid guards", () => {
       const createGuard = createGrid.guard;
       if (createGuard === undefined) {
         throw new Error("Expected userFrontend createGrid guard");
+      }
+
+      yield* createGuard({
+        userId: "grid_guard_user",
+        db,
+        payload: { id: gridId, pageId, name: "Home grid", columnCount: 8, bricks: [] },
+      });
+      for (const authenticatedUserId of ["different_grid_user", null]) {
+        const ownershipError = yield* createGuard({
+          userId: authenticatedUserId,
+          db,
+          payload: { id: gridId, pageId, name: "Home grid", columnCount: 8, bricks: [] },
+        }).pipe(Effect.flip);
+        expect(ownershipError).toMatchObject({ code: "create-grid-user-mismatch", status: 403 });
       }
 
       // 2 — Grid and Brick ids are deterministic parts of the aggregate boundary.
@@ -477,6 +489,36 @@ describe("user frontend Grid guards", () => {
       const guard = updateGrid.guard;
       if (guard === undefined) {
         throw new Error("Expected userFrontend updateGrid guard");
+      }
+
+      yield* guard({
+        userId: "grid_guard_user",
+        db,
+        payload: {
+          id: gridId,
+          name: "Renamed grid",
+          columnCount: 8,
+          gridIntent: "update",
+          expectedRevision: 0,
+          bricks: [],
+          deletedBrickIds: [brickId],
+        },
+      });
+      for (const authenticatedUserId of ["different_grid_user", null]) {
+        const ownershipError = yield* guard({
+          userId: authenticatedUserId,
+          db,
+          payload: {
+            id: gridId,
+            name: "Renamed grid",
+            columnCount: 8,
+            gridIntent: "update",
+            expectedRevision: 0,
+            bricks: [],
+            deletedBrickIds: [brickId],
+          },
+        }).pipe(Effect.flip);
+        expect(ownershipError).toMatchObject({ code: "update-grid-user-mismatch", status: 403 });
       }
 
       // 4 — unchanged attributes paired with update intent must fail before mutation generation.

@@ -20,7 +20,6 @@ import { userFrontend } from "./aggregates/user/userFrontend";
 describe("site and page creation contracts", () => {
   it.effect("stages a Site and its initial Page with caller-supplied IDs", () =>
     Effect.gen(function* () {
-      const actorId = "actr_site_contract_user";
       const userId = "usr_site_contract_user";
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const dbConfig = makeResourceDbConfig({
@@ -39,7 +38,6 @@ describe("site and page creation contracts", () => {
           version: User.version,
           createdAt: now,
           updatedAt: now,
-          actorId,
           clerkUserId: "site_contract_user",
           username: null,
           displayName: null,
@@ -279,7 +277,7 @@ describe("site and page creation contracts", () => {
 });
 
 describe("user frontend creation guards", () => {
-  it.effect("rejects a User that does not belong to the active actor", () =>
+  it.effect("rejects a User that does not belong to the authenticated user", () =>
     Effect.gen(function* () {
       const userId = "usr_site_guard_user";
       const now = DateTime.toDateUtc(yield* DateTime.now);
@@ -297,7 +295,6 @@ describe("user frontend creation guards", () => {
           version: User.version,
           createdAt: now,
           updatedAt: now,
-          actorId: "actr_site_guard_user",
           clerkUserId: "site_guard_user",
           username: null,
           displayName: null,
@@ -309,8 +306,8 @@ describe("user frontend creation guards", () => {
         throw new Error("Expected userFrontend createSite guard");
       }
 
-      const error = yield* guard({
-        userId: "different_site_user",
+      yield* guard({
+        userId: "site_guard_user",
         db,
         payload: {
           id: "sit_site_guard_user",
@@ -319,16 +316,30 @@ describe("user frontend creation guards", () => {
           name: null,
           description: null,
         },
-      }).pipe(Effect.flip);
-
-      expect(error).toMatchObject({
-        code: "create-site-user-mismatch",
-        status: 403,
       });
+
+      for (const authenticatedUserId of ["different_site_user", null]) {
+        const error = yield* guard({
+          userId: authenticatedUserId,
+          db,
+          payload: {
+            id: "sit_site_guard_user",
+            userId,
+            slug: null,
+            name: null,
+            description: null,
+          },
+        }).pipe(Effect.flip);
+
+        expect(error).toMatchObject({
+          code: "create-site-user-mismatch",
+          status: 403,
+        });
+      }
     }).pipe(Effect.scoped),
   );
 
-  it.effect("rejects a Page whose Site does not belong to the active actor", () =>
+  it.effect("rejects a Page whose Site does not belong to the authenticated user", () =>
     Effect.gen(function* () {
       const userId = "usr_page_guard_user";
       const siteId = "sit_page_guard_user";
@@ -347,7 +358,6 @@ describe("user frontend creation guards", () => {
           version: User.version,
           createdAt: now,
           updatedAt: now,
-          actorId: "actr_page_guard_user",
           clerkUserId: "page_guard_user",
           username: null,
           displayName: null,
@@ -373,8 +383,8 @@ describe("user frontend creation guards", () => {
         throw new Error("Expected userFrontend createPage guard");
       }
 
-      const error = yield* guard({
-        userId: "different_page_user",
+      yield* guard({
+        userId: "page_guard_user",
         db,
         payload: {
           id: "pag_page_guard_user",
@@ -384,12 +394,27 @@ describe("user frontend creation guards", () => {
           description: null,
           pageType: "split-scroll",
         },
-      }).pipe(Effect.flip);
-
-      expect(error).toMatchObject({
-        code: "create-page-user-mismatch",
-        status: 403,
       });
+
+      for (const authenticatedUserId of ["different_page_user", null]) {
+        const error = yield* guard({
+          userId: authenticatedUserId,
+          db,
+          payload: {
+            id: "pag_page_guard_user",
+            siteId,
+            slug: "home",
+            title: null,
+            description: null,
+            pageType: "split-scroll",
+          },
+        }).pipe(Effect.flip);
+
+        expect(error).toMatchObject({
+          code: "create-page-user-mismatch",
+          status: 403,
+        });
+      }
     }).pipe(Effect.scoped),
   );
 });

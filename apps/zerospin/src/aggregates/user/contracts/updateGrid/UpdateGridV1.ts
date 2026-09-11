@@ -111,7 +111,7 @@ export const updateGridV1 = contracts.makeVersion(updateGrid, {
       page === undefined ||
       site === undefined ||
       user === undefined ||
-      user.actorId !== `actr_${userId}`
+      user.clerkUserId !== userId
     ) {
       return yield* new ZerospinError({
         code: "update-grid-user-mismatch",

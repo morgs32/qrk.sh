@@ -7,6 +7,8 @@ import { useInitializedStateOrThrow, useSession } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
 import { userV1 as User } from "@qrk.sh/zerospin/src/aggregates/user/models/user/UserV1";
+import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 
 import { Button } from "@/components/ui/button";
 import { ZerospinApp } from "@/components/ZerospinUser";
@@ -38,6 +40,7 @@ export default function UsernameDashboardPage() {
                   const siteResult = session.executeCommand({
                     contractName: "createSite",
                     payload: {
+                      id: session.makeId(Site),
                       userId: User.prefixId(userId),
                     },
                   });
@@ -50,6 +53,7 @@ export default function UsernameDashboardPage() {
                   const pageResult = session.executeCommand({
                     contractName: "createPage",
                     payload: {
+                      id: session.makeId(Page),
                       siteId,
                       slug: "home",
                       pageType: "split-scroll",

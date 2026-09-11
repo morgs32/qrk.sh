@@ -1,8 +1,7 @@
 import type { IDb, IResourceDbConfig } from "@zerospin/core/drizzle/types";
 import type { InferCommandPayload } from "@zerospin/core/models/types";
-import { makeAbbreviationIdSchema } from "@zerospin/schema";
 import { contracts, primitives, ZerospinError } from "@zerospin/sdk/browser";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import { userV1 as User } from "../../models/user/UserV1";
 
 import { createUser } from "./createUser";
@@ -45,9 +44,6 @@ export const createUserV1 = contracts.makeVersion(createUser, {
       created: models.user.create({
         resourceId: id,
         attributes: {
-          actorId: Schema.decodeUnknownSync(makeAbbreviationIdSchema("actr"))(
-            `actr_${clerkUserId}`,
-          ),
           clerkUserId,
           username,
           displayName,

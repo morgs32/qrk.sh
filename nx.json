@@ -5,10 +5,18 @@
   "plugins": ["nx/plugins/package-json"],
   "analytics": false,
   "targetDefaults": {
+    "ts": {
+      "dependsOn": ["lib", "^lib"]
+    },
+    "typecheck": {
+      "dependsOn": ["^lib"]
+    },
+    "test": {
+      "dependsOn": ["lib", "^lib"]
+    },
     "lib": {
       "dependsOn": ["^lib"],
       "cache": true
     }
   }
 }
-

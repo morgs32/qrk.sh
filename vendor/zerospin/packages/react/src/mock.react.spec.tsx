@@ -208,7 +208,7 @@ describe('makeMockProvider', () => {
       act(async () =>
         root.render(
           <Mock
-            aggregateIds={{ account: 'acct_1' }}
+            aggregateIds={{ web: 'acct_1' }}
             generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           >
             Never published
@@ -264,7 +264,7 @@ describe('makeMockProvider', () => {
       root.render(
         <MockMainProvider
           userId="user_1"
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           resources={{
             user: [
@@ -358,7 +358,7 @@ describe('makeMockProvider', () => {
       root.render(
         <MockMainProvider
           userId="user_1"
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
           <EmptyModelsProbe />
@@ -395,7 +395,7 @@ describe('makeMockProvider', () => {
       root.render(
         <MockJsonFixtureProvider
           userId="user_1"
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           resources={{
             document: [
@@ -487,7 +487,7 @@ describe('makeMockProvider', () => {
       root.render(
         <MockMainProvider
           userId="user_1"
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           resources={{
             user: [
@@ -548,7 +548,7 @@ describe('makeMockProvider', () => {
       root.render(
         <MockMainProvider
           userId="user_1"
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           resources={{
             user: [
@@ -583,7 +583,7 @@ describe('makeMockProvider', () => {
       root.render(
         <MockMainProvider
           userId="user_2"
-          aggregateIds={{ user: 'acct_2' }}
+          aggregateIds={{ main: 'acct_2' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
           resources={{
             user: [
@@ -616,7 +616,7 @@ describe('makeMockProvider', () => {
         <MockMainProvider
           key="reset"
           userId="user_2"
-          aggregateIds={{ user: 'acct_2' }}
+          aggregateIds={{ main: 'acct_2' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
           resources={{
             user: [
@@ -665,7 +665,7 @@ describe('makeMockProvider', () => {
       root.render(
         <MockMainProvider
           userId="user_1"
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           resources={{
             user: [
@@ -722,7 +722,7 @@ describe('makeMockProvider', () => {
       root.render(
         <MockMainProvider
           userId="user_1"
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
           <div data-testid="late-child" />

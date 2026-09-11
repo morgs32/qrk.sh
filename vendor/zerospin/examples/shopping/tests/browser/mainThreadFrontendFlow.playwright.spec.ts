@@ -202,7 +202,7 @@ describe('main-thread frontend flow', () => {
       await act(async () => {
         root.render(
           createElement(FlowZerospinApp.Provider, {
-            aggregateIds: { shopper: 'acct_1' },
+            aggregateIds: { shopperFrontend: 'acct_1' },
             generateSignature: () => {
               signatureCallCount += 1;
               return Effect.succeed({ clerkUserId });

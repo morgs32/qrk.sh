@@ -350,7 +350,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () =>
       root.render(
         <App.Provider
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ left: 'acct_1', right: 'acct_4' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
           Ready
@@ -358,13 +358,22 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       ),
     );
     expect(container.textContent).toBe('Ready');
+    expect(
+      bootstrapAggregateFrontendSessionMock.mock.calls.map(([props]) => [
+        props.session.frontend.name,
+        props.aggregateId,
+      ]),
+    ).toEqual([
+      ['left', 'acct_1'],
+      ['right', 'acct_4'],
+    ]);
     expect(acquisitions).toBe(1);
     expect(clocks).toHaveLength(2);
     expect(clocks[0]).toBe(clocks[1]);
     await act(async () =>
       root.render(
         <App.Provider
-          aggregateIds={{ user: 'acct_2' }}
+          aggregateIds={{ left: 'acct_2', right: 'acct_5' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
           Ready
@@ -384,7 +393,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () =>
       root.render(
         <App.Provider
-          aggregateIds={{ user: 'acct_3' }}
+          aggregateIds={{ left: 'acct_3', right: 'acct_6' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
           Ready
@@ -506,7 +515,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () =>
       root.render(
         <App.Provider
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ delayed: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
           Ready
@@ -533,7 +542,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
       await act(async () =>
         root.render(
           <App.Provider
-            aggregateIds={{ user: 'acct_2' }}
+            aggregateIds={{ delayed: 'acct_2' }}
             generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
           >
             Ready
@@ -551,7 +560,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () => {
       root.render(
         <LifecycleZerospinApp.Provider
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
           <div>Ready application</div>
@@ -579,7 +588,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () => {
       root.render(
         <LifecycleZerospinApp.Provider
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_2' })}
         >
           <div>Ready application</div>
@@ -624,7 +633,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () => {
       root.render(
         <LifecycleZerospinApp.Provider
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
           <div>Ready</div>
@@ -656,7 +665,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     await act(async () => {
       root.render(
         <LifecycleZerospinApp.Provider
-          aggregateIds={{ user: 'acct_1' }}
+          aggregateIds={{ main: 'acct_1' }}
           generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
         >
           <Application />
@@ -751,7 +760,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
         act(async () => {
           root.render(
             <LifecycleZerospinApp.Provider
-              aggregateIds={{ user: 'acct_1' }}
+              aggregateIds={{ main: 'acct_1' }}
               generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
             >
               <div>Never published</div>
@@ -812,7 +821,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
         act(async () => {
           root.render(
             <LifecycleZerospinApp.Provider
-              aggregateIds={{ user: 'acct_1' }}
+              aggregateIds={{ main: 'acct_1' }}
               generateSignature={() => Effect.succeed({ userId: 'usr_1' })}
             >
               <div>Failed</div>

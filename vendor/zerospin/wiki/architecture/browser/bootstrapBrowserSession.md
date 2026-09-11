@@ -1,6 +1,6 @@
 ---
 title: Main-Thread Frontend Session Bootstrap and Recovery
-updated: 2026-09-10
+updated: 2026-09-11
 ---
 
 # Main-Thread Frontend Session Bootstrap and Recovery
@@ -24,7 +24,9 @@ online initialization path used when no valid baseline can be reused.
 
 1. `makeZerospinApp` accepts authored frontend controllers, warms the
    session runtime, and acquires the page backup connection before parallel
-   aggregate/service bootstrap.
+   aggregate/service bootstrap. `Provider.aggregateIds` maps aggregate frontend
+   names to aggregate IDs; service frontends require no entry. Multiple frontends
+   for the same aggregate can select different IDs.
    - [`makeFrontendController.ts`](../../../packages/core/src/frontendController/makeFrontendController.ts) — retains exact contract/model definitions and requires the aggregate or service version on the controller.
    - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — validates configured frontend names and system names, then constructs selectors from the controllers.
    - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — retains Core/browser session objects and shares one `backupWorker` among the selected bootstrap procedures.

@@ -75,7 +75,7 @@ export function makeMockProvider<
     generateSignature: ISignatureFactory;
     userId?: string;
     aggregateIds: {
-      readonly [AGGREGATE_NAME in FRONTEND['aggregateName']]: IAggregateId;
+      readonly [FRONTEND_NAME in FRONTEND['name']]: IAggregateId;
     };
     resources?: Partial<{
       [K in keyof MODELS]: readonly InferResource<MODELS[K]>[];
@@ -137,12 +137,12 @@ export function makeMockProvider<
               )(
                 Reflect.get(
                   initializationProps.aggregateIds,
-                  selector.frontend.aggregateName,
+                  selector.frontend.name,
                 ),
               ).pipe(
                 mapParseError({
                   code: 'mock-session-aggregate-id-invalid',
-                  prefix: `MockProvider requires aggregateIds.${selector.frontend.aggregateName}`,
+                  prefix: `MockProvider requires aggregateIds.${selector.frontend.name}`,
                 }),
               );
               const models = selector.models;

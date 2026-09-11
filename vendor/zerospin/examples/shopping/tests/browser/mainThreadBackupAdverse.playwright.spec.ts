@@ -429,7 +429,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       await act(async () => {
         firstRoot.render(
           createElement(AdverseZerospinApp.Provider, {
-            aggregateIds: { shopper: 'acct_1' },
+            aggregateIds: { shopperFrontend: 'acct_1' },
             generateSignature: () => Effect.succeed({ clerkUserId }),
             children: createElement(AdverseSessionProbe, {
               onSession: session => {
@@ -487,7 +487,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       await act(async () => {
         secondRoot.render(
           createElement(AdverseZerospinApp.Provider, {
-            aggregateIds: { shopper: 'acct_1' },
+            aggregateIds: { shopperFrontend: 'acct_1' },
             generateSignature: () => Effect.succeed({ clerkUserId }),
             children: createElement(AdverseSessionProbe, {
               onSession: session => {
@@ -615,7 +615,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       await act(async () => {
         root.render(
           createElement(AdverseZerospinApp.Provider, {
-            aggregateIds: { shopper: 'acct_1' },
+            aggregateIds: { shopperFrontend: 'acct_1' },
             generateSignature: () => {
               signatureCallCount += 1;
               return Effect.fail(
@@ -693,7 +693,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     await act(async () => {
       firstRoot.render(
         createElement(AdverseZerospinApp.Provider, {
-          aggregateIds: { shopper: 'acct_1' },
+          aggregateIds: { shopperFrontend: 'acct_1' },
           generateSignature: () => Effect.succeed({ clerkUserId }),
           children: createElement(AdverseSessionProbe, {
             onSession: session => {
@@ -843,7 +843,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       await act(async () => {
         secondRoot.render(
           createElement(AdverseZerospinApp.Provider, {
-            aggregateIds: { shopper: 'acct_1' },
+            aggregateIds: { shopperFrontend: 'acct_1' },
             generateSignature: () => Effect.succeed({ clerkUserId }),
             children: createElement(AdverseSessionProbe, {
               onSession: session => {
@@ -971,7 +971,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     await act(async () => {
       firstRoot.render(
         createElement(AdverseZerospinApp.Provider, {
-          aggregateIds: { shopper: 'acct_1' },
+          aggregateIds: { shopperFrontend: 'acct_1' },
           generateSignature: () => Effect.succeed({ clerkUserId }),
           children: createElement(AdverseSessionProbe, {
             onSession: session => {
@@ -1098,7 +1098,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       await act(async () => {
         secondRoot.render(
           createElement(AdverseZerospinApp.Provider, {
-            aggregateIds: { shopper: 'acct_1' },
+            aggregateIds: { shopperFrontend: 'acct_1' },
             generateSignature: () => Effect.succeed({ clerkUserId }),
             children: createElement(AdverseSessionProbe, {
               onSession: session => {

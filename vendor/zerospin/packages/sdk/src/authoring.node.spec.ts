@@ -140,20 +140,10 @@ describe('flat SDK authoring', () => {
         contractName: 'change',
         payload: { name: 1 },
       }),
-      sdk.makeCommand(aggregate, {
-        // @ts-expect-error Aggregate contract names come from the supplied owner.
-        contractName: 'missing',
-        aggregateId: 'acct_a',
-        systemName: 'shopping',
-        payload: { name: 'valid' },
-      }),
-      sdk.makeCommand(aggregate, {
-        contractName: 'change',
-        aggregateId: 'acct_a',
-        systemName: 'shopping',
-        // @ts-expect-error Aggregate payloads retain the selected contract input type.
-        payload: { name: 1 },
-      }),
+      // @ts-expect-error Aggregate contract names come from the supplied owner.
+      sdk.makeCommand(aggregate, { contractName: 'missing', aggregateId: 'acct_a', systemName: 'shopping', payload: { name: 'valid' }, }),
+      // @ts-expect-error Aggregate payloads retain the selected contract input type.
+      sdk.makeCommand(aggregate, { contractName: 'change', aggregateId: 'acct_a', systemName: 'shopping', payload: { name: 1 }, }),
     ];
     for (const command of invalid) {
       expect(

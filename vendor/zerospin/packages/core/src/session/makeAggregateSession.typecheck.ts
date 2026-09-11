@@ -10,7 +10,7 @@ import {
 } from 'effect';
 import { assert, type Equals } from 'tsafe';
 
-import { main } from '../fixtures/system.ts';
+import { List, main, User } from '../fixtures/system.ts';
 import { makeFrontendController } from '../frontendController/makeFrontendController.ts';
 import { PublishableKey } from '../services/PublishableKey.ts';
 
@@ -46,6 +46,11 @@ const session = Effect.runSync(
       }),
   ).pipe(Effect.provideService(Scope.Scope, sessionScope)),
 );
+
+const userId = session.makeId(User);
+const listId = session.makeId(List);
+assert<Equals<typeof userId, `usr_${string}`>>();
+assert<Equals<typeof listId, `lst_${string}`>>();
 
 const result = session.executeCommand({
   contractName: 'createList',

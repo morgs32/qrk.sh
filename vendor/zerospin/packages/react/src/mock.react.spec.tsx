@@ -21,6 +21,7 @@ import { CuidFactory, primitives } from '@zerospin/schema';
 import type * as Capnweb from 'capnweb';
 import { Effect, Layer, Redacted, Schema } from 'effect';
 import { createRoot, type Root } from 'react-dom/client';
+import { assert, type Equals } from 'tsafe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeZerospinApp } from './makeZerospinApp';
@@ -224,6 +225,13 @@ describe('makeMockProvider', () => {
   it('gates children until real SQLite initialization and publishes typed seeded and empty models', async () => {
     const Probe = () => {
       const session = useSession(ZerospinMain.frontends.main);
+      const userId = session.makeId(User);
+      const listId = session.makeId(List);
+      assert<Equals<typeof userId, `usr_${string}`>>();
+      assert<Equals<typeof listId, `lst_${string}`>>();
+      expect(userId).toMatch(/^usr_.+/);
+      expect(listId).toMatch(/^lst_.+/);
+      expect(session.makeId).toBe(session.coreSession.makeId);
       expect(session.coreSession.frontend.aggregateVersion).toBe(
         main.aggregateVersion,
       );

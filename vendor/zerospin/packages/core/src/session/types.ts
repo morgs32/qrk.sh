@@ -1,6 +1,6 @@
 import type { IAnyErrorJson, IEncodedResult } from '@zerospin/error';
 import type { ITelemetryBatch, ITelemetryCollector } from '@zerospin/logger';
-import type { InferIdFromAbbreviation } from '@zerospin/schema';
+import type { InferIdFromAbbreviation, IShape } from '@zerospin/schema';
 import type { AnyRelations } from 'drizzle-orm';
 import type { Schema } from 'effect';
 import type { StoreApi } from 'zustand';
@@ -26,6 +26,7 @@ import type {
   IAggregateId,
   IAnyModels,
   IEncodedResourceShape,
+  IModel,
   InferPayloadInput,
   IRef,
 } from '../models/types.ts';
@@ -167,6 +168,10 @@ export type ISession<
     }) => void,
   ): () => void;
   readonly sessionId: ISessionId;
+  /** Generate a model ID synchronously with the session runtime; failures throw. */
+  makeId<ATTRIBUTES extends IShape, ABBREVIATION extends string>(
+    model: IModel<ATTRIBUTES, ABBREVIATION>,
+  ): InferIdFromAbbreviation<ABBREVIATION>;
   executeCommand<
     CONTRACT_NAME extends keyof FRONTEND['contracts'] & string,
   >(props: {

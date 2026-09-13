@@ -27,7 +27,7 @@ export function RightDrawer(props: { children: ReactNode }) {
       exit={{ x: "100%" }}
       transition={reducedMotion ? { duration: 0 } : drawerTransition}
       className={cn(
-        "fixed top-16 right-0 bottom-0 z-40 flex h-[calc(100vh-4rem)] w-full min-h-0 flex-col border-l border-border bg-background shadow-[-4px_0_20px_-6px_rgb(0_0_0/0.07),-2px_0_10px_-4px_rgb(0_0_0/0.04)] md:w-1/2 dark:shadow-[-4px_0_20px_-6px_rgb(0_0_0/0.2),-2px_0_10px_-4px_rgb(0_0_0/0.1)]",
+        "fixed top-0 right-0 bottom-0 z-60 flex h-dvh max-md:w-full min-h-0 flex-col border-l border-border bg-background shadow-[-4px_0_20px_-6px_rgb(0_0_0/0.07),-2px_0_10px_-4px_rgb(0_0_0/0.04)] md:w-1/2 dark:shadow-[-4px_0_20px_-6px_rgb(0_0_0/0.2),-2px_0_10px_-4px_rgb(0_0_0/0.1)]",
       )}
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>

@@ -28,7 +28,7 @@ export function BrickCatalogToolbar() {
   const router = useRouter();
 
   return (
-    <div className="pointer-events-none fixed bottom-6 left-1/2 z-30 -translate-x-1/2 md:left-[75%]">
+    <div className="pointer-events-none fixed bottom-6 left-[75%] z-30 -translate-x-1/2">
       <div className="pointer-events-auto" role="toolbar" aria-label="Brick catalog">
         <motion.div
           layout

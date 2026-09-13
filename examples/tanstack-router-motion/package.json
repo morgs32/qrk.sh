@@ -1,0 +1,26 @@
+{
+  "name": "@qrk.sh/tanstack-router-motion",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4317 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4317 --strictPort",
+    "format": "oxfmt src"
+  },
+  "dependencies": {
+    "@tanstack/react-router": "1.170.36",
+    "framer-motion": "13.2.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.0",
+    "oxfmt": "^0.44.0"
+  },
+  "nx": {
+    "targets": {
+      "dev": { "continuous": true }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 packages:
   - "apps/*"
+  - "examples/*"
   - "packages/*"
   - "vendor/zerospin/packages/*"
   - "vendor/zerospin/vendor/epluribus-machina"

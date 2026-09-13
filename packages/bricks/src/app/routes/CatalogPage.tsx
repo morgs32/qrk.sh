@@ -55,9 +55,9 @@ export default function CatalogPage() {
                 </OrderedTableOfContents.Label>
                 <section
                   data-collection-entry={collection.collectionName}
-                  className="mb-10 shrink-0"
+                  className="shrink-0"
                 >
-                  <div className="bg-zinc-100 px-4 font-mono text-sm">
+                  <div className="bg-zinc-100 px-4 pb-2 font-mono text-sm">
                     <OrderedTableOfContents.List>
                       <OrderedTableOfContents.Item>
                         <OrderedTableOfContents.Label>Variant</OrderedTableOfContents.Label>
@@ -109,7 +109,7 @@ export default function CatalogPage() {
                       </OrderedTableOfContents.Item>
                     </OrderedTableOfContents.List>
                   </div>
-                  <div className="mt-6 overflow-auto">
+                  <div className="overflow-auto py-6">
                     <div
                       className={
                         selectedBrick.def.w === 8

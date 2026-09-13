@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/react";
 
 /** Returns `user.username`. @throws If it is missing or empty. */
 export function useUsername(): string {

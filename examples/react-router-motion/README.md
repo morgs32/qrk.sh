@@ -31,18 +31,19 @@ No manual route table in Workspace, central content switch, router-context cloni
 
 ## Verification
 
-The Nx build and frozen dependency installation pass. The Chrome acceptance sequence passes against both the production preview and the warmed development server:
+Run the checked-in acceptance tests through Nx:
 
-1. Catalog to detail preserves shell DOM identity.
-2. Closing retains `Brick one` during exit, then removes the drawer.
-3. Back/Forward retain outgoing shells and restore the expected content.
-4. Switching sides preserves old content while the new drawer enters.
-5. Rapid navigation settles with one correct drawer.
-6. Draft input and grid scroll survive without uncaught browser errors.
+```sh
+pnpm nx run @qrk.sh/react-router-motion:test:e2e:cold -- --project=chromium
+pnpm nx run @qrk.sh/react-router-motion:test:e2e
+pnpm nx run @qrk.sh/react-router-motion:test:e2e:preview
+```
 
-The first dev run encountered a dynamic-import error during dependency optimization; another dev run failed the rapid-navigation removal check. The production run and subsequent warmed dev run passed. These observations do not establish reliability for all cold development navigations.
+The cold target forces dependency optimization on a fresh dev-server startup. The original cold failure was reproduced: Vite returned `504 Outdated Optimize Dep` for `react-dom/client` and `react-router/dom` while hydrating. Including the hydration entry and Motion in `optimizeDeps.include` prevents late discovery in the tested sequence.
 
-This test has synchronous route content. Data loaders, actions, Suspense, other browsers, and the full QRK editor are not covered. Inspect `window.events` for shell mount/unmount events.
+The tests verify same-group shell identity, retained outgoing brick parameters, close/reopen, Back/Forward, interrupted rapid navigation, and persistent input/scroll. Chromium cold and warm runs and Firefox/WebKit development runs pass. Rapid navigation has not reproduced a stranded drawer in these checked-in runs; the test waits for each URL commit before interrupting the animation, then asserts final drawer count and content.
+
+This example has synchronous route content. It does not prove the authenticated QRK editor's behavior. Inspect `window.events` for shell mount/unmount events.
 
 ## References
 

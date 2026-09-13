@@ -1,6 +1,6 @@
 "use client";
 
-import { RedirectToSignIn, useAuth, useUser } from "@clerk/nextjs";
+import { RedirectToSignIn, useAuth, useUser } from "@clerk/react";
 import { AsyncLive } from "@zerospin/core/async/AsyncLive";
 import { PublishableKey } from "@zerospin/core/services/PublishableKey";
 import { ZerospinApiUrl } from "@zerospin/core/services/ZerospinApiUrl";

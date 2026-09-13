@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -103,7 +103,7 @@ function ToolbarLabeledButton({
   }
 
   if (hasHref) {
-    return wrapTooltip(wrapButton(<Link href={href}>{body}</Link>));
+    return wrapTooltip(wrapButton(<Link to={href}>{body}</Link>));
   }
 
   return wrapTooltip(wrapButton(<button>{body}</button>));

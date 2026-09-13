@@ -1,32 +1,26 @@
-"use client";
-
+import { Fragment } from "react";
 import { AnimatePresence } from "framer-motion";
-import { usePathname } from "next/navigation";
-import { useMemo } from "react";
-import { LeftDrawer } from "./LeftDrawer";
-import { RightDrawer } from "./RightDrawer";
-import { matchPagePathname } from "../routePatterns";
-import { BottomDrawer } from "./BottomDrawer";
+import { useMatches, useOutlet } from "react-router";
 
 export function Drawers() {
-  const pathname = usePathname();
-  const match = useMemo(() => matchPagePathname(pathname), [pathname]);
+  const outlet = useOutlet();
+  const matches = useMatches();
+  const drawerMatch = matches.find(
+    ({ handle }) => typeof handle === "object" && handle !== null && "drawer" in handle,
+  );
+  const handle = drawerMatch?.handle;
+  const group =
+    typeof handle === "object" &&
+    handle !== null &&
+    "drawer" in handle &&
+    typeof handle.drawer === "string"
+      ? handle.drawer
+      : "page";
 
-  const render = useMemo(() => {
-    switch (match?.data) {
-      case "brickCatalog":
-      case "brickDetail":
-        return <LeftDrawer key="left" data={match.data} />;
-      case "compose":
-        return <RightDrawer key="right" data={match.data} />;
-      case "pageSettings":
-      case "siteSettings":
-      case "breakpoints":
-        return <BottomDrawer key="bottom" data={match.data} />;
-      default:
-        return null;
-    }
-  }, [match?.data]);
-
-  return <AnimatePresence>{render}</AnimatePresence>;
+  // Retain the matched route element and its params until this group's exit finishes.
+  return (
+    <AnimatePresence mode="sync">
+      <Fragment key={group}>{outlet}</Fragment>
+    </AnimatePresence>
+  );
 }

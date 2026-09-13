@@ -1,11 +1,11 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 import { FileText, Globe, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 
-import { pagePattern } from "../../../routePatterns";
+import { href } from "react-router";
 import { useSiteStore } from "../../../siteStore";
 
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ const ParamsSchema = Schema.Struct({
 
 export function PageSettings() {
   const params = useValidatedParams(ParamsSchema);
-  const router = useRouter();
+  const navigate = useNavigate();
   const { user } = useUser();
   const pageDraft = useSiteStore((state) =>
     user === null || user === undefined
@@ -49,7 +49,7 @@ export function PageSettings() {
             variant="outline"
             size="sm"
             className="h-8 px-3"
-            onClick={() => router.push(pagePattern.href({ ...params }))}
+            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
           >
             Done
           </Button>
@@ -59,7 +59,7 @@ export function PageSettings() {
             size="icon"
             className="size-8 cursor-pointer"
             aria-label="Close drawer"
-            onClick={() => router.push(pagePattern.href({ ...params }))}
+            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
           >
             <X className="size-3.5" />
           </Button>

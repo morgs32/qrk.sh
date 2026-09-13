@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "react-router";
 
 export default function NotFound() {
   return (
@@ -8,7 +8,8 @@ export default function NotFound() {
         <p className="mt-3 text-lg text-gray-600">The page you’re looking for doesn’t exist.</p>
         <div className="mt-6">
           <Link
-            href="/"
+            reloadDocument
+            to="/"
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             Go home

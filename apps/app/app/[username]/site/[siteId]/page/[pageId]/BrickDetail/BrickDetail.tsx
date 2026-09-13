@@ -3,8 +3,8 @@
 import { Schema } from "effect";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { pagePattern } from "../../../routePatterns";
-import { useRouter } from "next/navigation";
+import { href } from "react-router";
+import { useNavigate } from "react-router";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -16,7 +16,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function BrickDetail() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const params = useValidatedParams(ParamsSchema);
   const brickId = params.brickId;
 
@@ -30,7 +30,7 @@ export function BrickDetail() {
             size="icon"
             className="cursor-pointer"
             aria-label="Close drawer"
-            onClick={() => router.push(pagePattern.href({ ...params }))}
+            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
           >
             <X className="size-4" />
           </Button>

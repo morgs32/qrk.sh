@@ -1,14 +1,13 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 import { useEffect, useState } from "react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
-import { Drawers } from "./Drawers/Drawers";
+import { Outlet } from "react-router";
 import { SiteHeader } from "./SiteHeader";
-import { Toolbars } from "./Toolbars/Toolbars";
 import { useSiteStore } from "./siteStore";
 
 const ParamsSchema = Schema.Struct({
@@ -16,11 +15,7 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.optional(Schema.String),
 });
 
-export default function PageLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function PageLayout() {
   const { siteId, pageId } = useValidatedParams(ParamsSchema);
   const { user } = useUser();
   const initializePageDraft = useSiteStore((state) => state.initializePageDraft);
@@ -55,9 +50,7 @@ export default function PageLayout({
       <SiteHeader />
 
       <div className="min-h-0 flex-1">
-        <Drawers />
-        {children}
-        <Toolbars />
+        <Outlet />
       </div>
     </div>
   ) : null;

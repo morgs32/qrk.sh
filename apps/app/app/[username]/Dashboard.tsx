@@ -2,7 +2,7 @@
 
 import { Schema } from "effect";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { href, useNavigate } from "react-router";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
@@ -21,7 +21,7 @@ const ParamsSchema = Schema.Struct({
 
 export default function UsernameDashboardPage() {
   const { username } = useValidatedParams(ParamsSchema);
-  const router = useRouter();
+  const navigate = useNavigate();
   const session = useSession(ZerospinUser);
   const { data: user, error } = useLiveQuery(ZerospinUser, {
     query: (db) => {
@@ -86,7 +86,13 @@ export default function UsernameDashboardPage() {
                     return;
                   }
 
-                  router.push(`/${username}/site/${siteId}/page/${pageResult.success.payload.id}`);
+                  navigate(
+                    href("/:username/site/:siteId/page/:pageId", {
+                      username,
+                      siteId,
+                      pageId: pageResult.success.payload.id,
+                    }),
+                  );
                 }}
               >
                 Create site

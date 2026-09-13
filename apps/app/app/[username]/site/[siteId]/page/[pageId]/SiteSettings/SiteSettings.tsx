@@ -1,16 +1,15 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 import { Globe, X } from "lucide-react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import { useMemo } from "react";
 import useSWR from "swr";
 
 import { CopyButton } from "./CopyButton";
 import { SiteCard } from "./SiteCard";
-import { pagePattern, publishedPattern } from "../../../routePatterns";
+import { href } from "react-router";
 import { useSiteStore } from "../../../siteStore";
 
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,7 @@ const ParamsSchema = Schema.Struct({
 
 export function SiteSettings() {
   const params = useValidatedParams(ParamsSchema);
-  const router = useRouter();
+  const navigate = useNavigate();
   const username = useUsername();
   const siteId = params.siteId;
   const { user } = useUser();
@@ -38,7 +37,7 @@ export function SiteSettings() {
   const setSiteDescription = useSiteStore((state) => state.setSiteDescription);
 
   const publishedUrl = useMemo(() => {
-    const pathname = publishedPattern.href({ username, siteId });
+    const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
     return `https://www.qrk.sh${pathname}`;
   }, [siteId, username]);
   const publishedUrlDisplay = useMemo(
@@ -47,7 +46,7 @@ export function SiteSettings() {
   );
 
   const { data: qrDataUrl } = useSWR([username, siteId], async ([username, siteId]) => {
-    const pathname = publishedPattern.href({ username, siteId });
+    const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
     const url = `https://www.qrk.sh${pathname}`;
     const { toDataURL } = await import("qrcode");
     return toDataURL(url, {
@@ -72,7 +71,7 @@ export function SiteSettings() {
             variant="outline"
             size="sm"
             className="h-8 px-3"
-            onClick={() => router.push(pagePattern.href({ ...params }))}
+            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
           >
             Done
           </Button>
@@ -82,7 +81,7 @@ export function SiteSettings() {
             size="icon"
             className="size-8 cursor-pointer"
             aria-label="Close drawer"
-            onClick={() => router.push(pagePattern.href({ ...params }))}
+            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
           >
             <X className="size-3.5" />
           </Button>
@@ -96,13 +95,13 @@ export function SiteSettings() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
               <div className="group relative h-40 w-40 shrink-0 overflow-hidden rounded-md border bg-background">
                 {qrDataUrl ? (
-                  <Image
+                  <img
+                    loading="lazy"
                     src={qrDataUrl}
                     alt="Published URL QR code"
                     className="h-full w-full object-contain"
                     width={256}
                     height={256}
-                    unoptimized
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
@@ -212,13 +211,14 @@ export function SiteSettings() {
                 </Button>
                 <div className="relative w-full max-w-[375px] overflow-hidden rounded-md border bg-muted">
                   <div className="relative aspect-[375/197] w-full">
-                    <Image
-                      src="/site-settings-social-preview.png"
+                    <img
+                      src="/app-static/site-settings-social-preview.png"
                       alt="Social preview"
-                      fill
+                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
                       className="object-cover"
                       sizes="(max-width: 767px) 100vw, 375px"
-                      priority
+                      loading="eager"
+                      fetchPriority="high"
                     />
                   </div>
                 </div>

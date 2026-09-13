@@ -1,12 +1,12 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 import { RectangleHorizontal, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import { useState } from "react";
 
-import { pagePattern } from "../../../routePatterns";
+import { href } from "react-router";
 import { useSiteStore } from "../../../siteStore";
 
 import { BREAKPOINT_ROWS, type BreakpointPrefix } from "./breakpointRows";
@@ -32,7 +32,7 @@ const ParamsSchema = Schema.Struct({
 
 export function Breakpoints() {
   const params = useValidatedParams(ParamsSchema);
-  const router = useRouter();
+  const navigate = useNavigate();
   const { user } = useUser();
   const [selectedPrefix, setSelectedPrefix] = useState<BreakpointPrefix | null>(
     BREAKPOINT_ROWS[0].prefix,
@@ -158,7 +158,7 @@ export function Breakpoints() {
             variant="outline"
             size="sm"
             className="h-8 px-3"
-            onClick={() => router.push(pagePattern.href({ ...params }))}
+            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
           >
             Done
           </Button>
@@ -168,7 +168,7 @@ export function Breakpoints() {
             size="icon"
             className="size-8 cursor-pointer"
             aria-label="Close drawer"
-            onClick={() => router.push(pagePattern.href({ ...params }))}
+            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
           >
             <X className="size-3.5" />
           </Button>

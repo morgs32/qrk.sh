@@ -77,3 +77,6 @@ next-env.d.ts
 .obsidian/workspace.json
 .obsidian/cache
 .obsidian/workspaces.json
+
+# React Router generated types
+.react-router/

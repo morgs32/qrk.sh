@@ -7,18 +7,24 @@
       "dependsOn": [
         "^lib",
         {
-          "projects": [
-            "@qrk.sh/web"
-          ],
+          "projects": ["@qrk.sh/web"],
           "target": "dev"
         },
         {
-          "projects": [
-            "@qrk.sh/zerospin"
-          ],
+          "projects": ["@qrk.sh/zerospin"],
           "target": "dev"
         }
       ]
+    },
+    "build": {
+      "dependsOn": ["^lib"]
+    },
+    "typecheck": {
+      "command": "pnpm run tsc",
+      "options": {
+        "cwd": "apps/app"
+      },
+      "dependsOn": ["^lib"]
     }
   }
 }

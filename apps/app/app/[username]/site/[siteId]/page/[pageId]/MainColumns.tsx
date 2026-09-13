@@ -1,5 +1,5 @@
 "use client";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 
 import { HeroCopy } from "@/components/home/HeroCopy";

@@ -1,19 +1,13 @@
 "use client";
 
 import { Schema } from "effect";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useMemo } from "react";
 import { File, Globe, LayoutDashboard, Plus, RectangleHorizontal, Type } from "lucide-react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
-import {
-  brickCatalogPattern,
-  breakpointsPattern,
-  composePattern,
-  pageSettingsPattern,
-  siteSettingsPattern,
-} from "../routePatterns";
+import { href } from "react-router";
 import { BottomToolbar, ToolbarButton, ToolbarSeparator } from "./BottomToolbar";
 
 const ParamsSchema = Schema.Struct({
@@ -28,6 +22,7 @@ const toolbarPresenceTransition = {
 };
 
 export function SiteToolbar() {
+  const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
   const username = params.username;
   const siteId = params.siteId;
@@ -44,14 +39,14 @@ export function SiteToolbar() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={toolbarPresenceTransition}
+          transition={reducedMotion ? { duration: 0 } : toolbarPresenceTransition}
         >
           <BottomToolbar>
             <ToolbarButton
               label="Dashboard"
               icon={<LayoutDashboard className="h-3.5 w-3.5" />}
               tooltip="Dashboard"
-              href={`/${username}`}
+              href={href("/:username", { username })}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 
@@ -60,7 +55,7 @@ export function SiteToolbar() {
             <ToolbarButton
               label="Compose"
               icon={<Type className="h-3.5 w-3.5" />}
-              href={composePattern.href(hrefParams)}
+              href={href("/:username/site/:siteId/page/:pageId/compose", hrefParams)}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 
@@ -69,7 +64,7 @@ export function SiteToolbar() {
             <ToolbarButton
               label="Add bricks"
               icon={<Plus className="h-3.5 w-3.5" />}
-              href={brickCatalogPattern.href(hrefParams)}
+              href={href("/:username/site/:siteId/page/:pageId/brick-catalog", hrefParams)}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 
@@ -79,7 +74,7 @@ export function SiteToolbar() {
               label="Set breakpoints"
               icon={<RectangleHorizontal className="h-3.5 w-3.5" />}
               tooltip="Set breakpoints"
-              href={breakpointsPattern.href(hrefParams)}
+              href={href("/:username/site/:siteId/page/:pageId/breakpoints", hrefParams)}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 
@@ -89,7 +84,7 @@ export function SiteToolbar() {
               label="Page settings"
               icon={<File className="h-3.5 w-3.5" />}
               tooltip="Page settings"
-              href={pageSettingsPattern.href(hrefParams)}
+              href={href("/:username/site/:siteId/page/:pageId/page-settings", hrefParams)}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 
@@ -99,7 +94,7 @@ export function SiteToolbar() {
               label="Site settings"
               icon={<Globe className="h-3.5 w-3.5" />}
               tooltip="Site settings"
-              href={siteSettingsPattern.href(hrefParams)}
+              href={href("/:username/site/:siteId/page/:pageId/site-settings", hrefParams)}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
           </BottomToolbar>

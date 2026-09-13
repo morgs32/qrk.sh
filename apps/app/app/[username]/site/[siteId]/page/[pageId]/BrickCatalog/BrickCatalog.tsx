@@ -3,11 +3,11 @@
 import { Schema } from "effect";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
-import { pagePattern } from "../../../routePatterns";
+import { href } from "react-router";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -17,7 +17,7 @@ const ParamsSchema = Schema.Struct({
 
 export function BrickCatalog() {
   const params = useValidatedParams(ParamsSchema);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -37,7 +37,7 @@ export function BrickCatalog() {
             size="icon"
             className="cursor-pointer"
             aria-label="Close drawer"
-            onClick={() => router.push(pagePattern.href({ ...params }))}
+            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
           >
             <X className="size-4" />
           </Button>

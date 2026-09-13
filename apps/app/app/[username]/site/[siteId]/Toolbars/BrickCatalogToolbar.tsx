@@ -1,13 +1,13 @@
 "use client";
 
 import { Schema } from "effect";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
-import { pagePattern } from "../routePatterns";
+import { href } from "react-router";
 
 import { BottomToolbar, ToolbarButton } from "./BottomToolbar";
 
@@ -24,8 +24,9 @@ const toolbarPresenceTransition = {
 
 /** Figma: https://www.figma.com/design/x1KYuaPaEo89CE715oUD4I/qrk.sh?node-id=46-459 */
 export function BrickCatalogToolbar() {
+  const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   return (
     <div className="pointer-events-none fixed bottom-6 left-[75%] z-30 -translate-x-1/2">
@@ -36,13 +37,13 @@ export function BrickCatalogToolbar() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={toolbarPresenceTransition}
+          transition={reducedMotion ? { duration: 0 } : toolbarPresenceTransition}
         >
           <BottomToolbar className="rounded-full border-border/80 bg-background px-1.5 py-1 shadow-md">
             <ToolbarButton
               tooltip="Close"
               aria-label="Close"
-              onClick={() => router.push(pagePattern.href({ ...params }))}
+              onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
               className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />

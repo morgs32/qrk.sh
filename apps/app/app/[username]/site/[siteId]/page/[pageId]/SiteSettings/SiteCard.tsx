@@ -1,7 +1,6 @@
 "use client";
 
 import { MoreHorizontal } from "lucide-react";
-import Image from "next/image";
 
 export function SiteCard({
   title,
@@ -19,7 +18,14 @@ export function SiteCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <div className="relative size-8 shrink-0 overflow-hidden rounded-md">
-            <Image src={logoSrc} alt={`${title} logo`} fill className="object-cover" sizes="32px" />
+            <img
+              loading="lazy"
+              src={logoSrc}
+              alt={`${title} logo`}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+              className="object-cover"
+              sizes="32px"
+            />
           </div>
 
           <div className="min-w-0">

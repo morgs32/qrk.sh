@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return {
       beforeFiles: [
+        { source: "/__zerospin/:path*", destination: `${appOrigin}/app-static/__zerospin/:path*` },
         {
           source: "/app-static/:path*",
           destination: `${appOrigin}/app-static/:path*`,

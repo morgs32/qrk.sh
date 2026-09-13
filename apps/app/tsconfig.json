@@ -13,22 +13,17 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "rootDirs": [".", "./.react-router/types"],
+    "types": ["vite/client", "node"]
   },
   "include": [
-    "next-env.d.ts",
-    "../zerospin/cloudflare-test.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".react-router/types/**/*",
+    "../zerospin/cloudflare-test.d.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", ".next", "build"]
 }

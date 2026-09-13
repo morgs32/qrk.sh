@@ -1,11 +1,11 @@
 "use client";
 
 import { Schema } from "effect";
-import Link from "next/link";
+import { Link } from "react-router";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
-import { pagePattern } from "./routePatterns";
+import { href } from "react-router";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -21,18 +21,21 @@ export function SiteHeader() {
       {pageId === undefined ? (
         <span className="text-sm font-medium">Garlott</span>
       ) : (
-        <Link href={pagePattern.href({ username, siteId, pageId })} className="text-sm font-medium">
+        <Link
+          to={href("/:username/site/:siteId/page/:pageId", { username, siteId, pageId })}
+          className="text-sm font-medium"
+        >
           Garlott
         </Link>
       )}
       {/* <nav className="flex items-center gap-6">
-        <Link href="/work" className="text-xs transition-opacity hover:opacity-70">
+        <Link to="/work" className="text-xs transition-opacity hover:opacity-70">
           Work
         </Link>
-        <Link href="/about" className="text-xs transition-opacity hover:opacity-70">
+        <Link to="/about" className="text-xs transition-opacity hover:opacity-70">
           About
         </Link>
-        <Link href="/follow" className="text-xs transition-opacity hover:opacity-70">
+        <Link to="/follow" className="text-xs transition-opacity hover:opacity-70">
           Follow
         </Link>
       </nav> */}

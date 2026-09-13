@@ -13,17 +13,16 @@
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {
-    "dev": "react-router dev --config vite.workbench.config.ts --host 127.0.0.1 --port 4100",
+    "dev": "vite --config vite.workbench.config.ts --host 127.0.0.1 --port 4100",
     "scraper:dev": "pnpm --filter scraper dev --port 8790",
     "build": "vite build && tailwindcss -i src/styles.css -o dist/styles.css --minify && tsc -p tsconfig.build.json --emitDeclarationOnly",
-    "generate-routes": "react-router typegen",
-    "tsc": "pnpm generate-routes && tsc --noEmit",
+    "tsc": "tsc --noEmit",
     "lint": "oxlint src",
-    "format": "oxfmt src package.json tsconfig.json tsconfig.build.json react-router.config.ts vite.config.ts vite.workbench.config.ts vitest.config.ts",
-    "format:check": "oxfmt --check src package.json tsconfig.json tsconfig.build.json react-router.config.ts vite.config.ts vite.workbench.config.ts vitest.config.ts",
+    "format": "oxfmt src package.json tsconfig.json tsconfig.build.json vite.config.ts vite.workbench.config.ts vitest.config.ts",
+    "format:check": "oxfmt --check src package.json tsconfig.json tsconfig.build.json vite.config.ts vite.workbench.config.ts vitest.config.ts",
     "test": "vitest run --config vitest.config.ts",
     "test:e2e": "playwright test --config src/app/playwright.config.ts",
-    "build:app": "react-router build --config vite.workbench.config.ts"
+    "build:app": "vite build --config vite.workbench.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -37,7 +36,6 @@
     "cn": "^0.3.0",
     "effect": "rc",
     "es-toolkit": "^1.45.1",
-    "isbot": "^5",
     "json-edit-react": "^1.30.2",
     "lucide-react": "^1.7.0",
     "mapbox-gl": "^3.18.1",
@@ -49,8 +47,6 @@
   },
   "devDependencies": {
     "@playwright/test": "1.61.1",
-    "@react-router/dev": "8.3.1",
-    "@react-router/node": "8.3.1",
     "@tailwindcss/cli": "4.3.3",
     "@tailwindcss/vite": "4.3.3",
     "@types/mapbox-gl": "^3.5.0",

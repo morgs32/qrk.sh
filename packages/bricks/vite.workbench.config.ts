@@ -1,7 +1,7 @@
 import { fileURLToPath, URL } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
-import { reactRouter } from "@react-router/dev/vite";
+import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 
 const packageRoot = fileURLToPath(new URL(".", import.meta.url));
@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: packageRoot,
+    build: { outDir: "build/client" },
     envDir: packageRoot,
     define: {
       "import.meta.env.PUBLIC_MAPBOX_TOKEN": JSON.stringify(mapboxToken),
@@ -45,6 +46,6 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    plugins: [tailwindcss(), reactRouter()],
+    plugins: [tailwindcss(), react()],
   };
 });

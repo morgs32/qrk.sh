@@ -1,8 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("keeps the grid mounted across framework routes and restores a placed brick", async ({
-  page,
-}) => {
+test("keeps the grid mounted across data routes and restores a placed brick", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   const grid = page.getByLabel("Brick grid");
   await expect(grid.getByTestId(/grid-fixture-/)).toHaveCount(4);
@@ -24,7 +22,7 @@ test("keeps the grid mounted across framework routes and restores a placed brick
   await expect(brick).toBeVisible();
 });
 
-test("renders framework not-found boundaries on direct URLs", async ({ page }) => {
+test("renders data-router not-found boundaries on direct URLs", async ({ page }) => {
   for (const [path, testId] of [
     ["/collections/not-a-collection", "collection-not-found"],
     ["/collections/swatch/not-a-variant", "variant-not-found"],

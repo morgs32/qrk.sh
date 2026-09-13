@@ -1,11 +1,12 @@
-import type { Route } from "./+types/BrickDetail";
 import { collectionsHash } from "@qrk.sh/bricks";
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 import { ArrowLeft } from "lucide-react";
 
 import { useGridStore } from "../useGridStore";
 
-export default function BrickDetail({ params }: Route.ComponentProps) {
+export default function BrickDetail() {
+  const params = useParams();
+  if (!params.collectionName || !params.brickId) throw new Response("Not found", { status: 404 });
   const { collectionName, brickId } = params;
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const brickDef = useGridStore((state) => state.bricksById[brickId]);

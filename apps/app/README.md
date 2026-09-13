@@ -1,6 +1,6 @@
 # Dashboard and editor
 
-React Router 8.3.1 Framework SPA (`ssr: false`). The marketing and authentication app in `apps/web` remains on Next.js.
+React Router 8.3.1 Data Mode SPA with Vite. The marketing and authentication app in `apps/web` remains on Next.js.
 
 ## Local commands
 
@@ -32,7 +32,7 @@ Required-value checks remain at app initialization and Vite configuration. Clerk
 
 ## Routes and state
 
-`app/routes.ts` declares explicit routes. Site/page draft initialization, `MainColumns`, and grid state stay in persistent layouts. Pathless drawer layouts own the left, right, and bottom shells. `Drawers` captures `useOutlet()` under a drawer-group key, including the base-page outlet. Leaf handles supply the toolbar element to its separate persistent Motion boundary. This preserves same-group shell identity and outgoing parameter context without private router APIs. Drawer transitions last 300 ms and respect reduced motion.
+`app/main.tsx` mounts `RouterProvider`; `app/routes.ts` declares explicit data routes with lazy component imports and route handles. Site/page draft initialization, `MainColumns`, and grid state stay in persistent layouts. Pathless drawer layouts own the left, right, and bottom shells. `Drawers` captures `useOutlet()` under a drawer-group key, including the base-page outlet. Leaf handles supply the toolbar element to its separate persistent Motion boundary. This preserves same-group shell identity and outgoing parameter context without private router APIs. Drawer transitions last 300 ms and respect reduced motion.
 
 ## Browser tests
 

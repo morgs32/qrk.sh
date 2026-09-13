@@ -1,5 +1,13 @@
 "use client";
 
+import { useRef } from "react";
+import { href, useNavigate } from "react-router";
+import { collectionsHash } from "@qrk.sh/bricks";
+import {
+  getActiveBrickDragGridShape,
+  parseBrickDefFromDataTransfer,
+  useBrickDrawerStore,
+} from "@/components/home/useBrickDrawerStore";
 import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 import GridLayout, { useContainerWidth, verticalCompactor } from "react-grid-layout";
@@ -11,6 +19,7 @@ import { useSiteStore } from "../../siteStore";
 const GRID_COLS = 8;
 
 const ParamsSchema = Schema.Struct({
+  username: Schema.String,
   siteId: Schema.String,
   pageId: Schema.String,
 });
@@ -19,12 +28,16 @@ export function Grid() {
   const { containerRef, width, mounted } = useContainerWidth();
   const params = useValidatedParams(ParamsSchema);
   const { user } = useUser();
-  const layout = useSiteStore((state) =>
+  const navigate = useNavigate();
+  const suppressBrickClickRef = useRef(false);
+  const pageKey = JSON.stringify([user?.id, params.siteId, params.pageId]);
+  const pageGrid = useBrickDrawerStore((state) => state.pageGrids[pageKey]);
+  const draftLayout = useSiteStore((state) =>
     user === null || user === undefined
       ? undefined
       : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId]?.layout,
   );
-  const setGridLayout = useSiteStore((state) => state.setGridLayout);
+  const layout = pageGrid?.layout ?? draftLayout;
 
   const gridWidth = Math.max(width, 1);
   const rowHeight = gridWidth / GRID_COLS;
@@ -58,17 +71,98 @@ export function Grid() {
             enabled: false,
             handles: [],
           }}
+          dropConfig={{
+            enabled: true,
+            defaultItem: { w: 2, h: 2 },
+            onDragOver: () => getActiveBrickDragGridShape() ?? false,
+          }}
+          onDrop={(nextLayout, item, event) => {
+            const brickDef = parseBrickDefFromDataTransfer(
+              event instanceof DragEvent ? event.dataTransfer : null,
+            );
+            useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
+            if (!item || !brickDef) return;
+            const brick =
+              collectionsHash[brickDef.collectionName]?.variants[brickDef.variant]?.sizes[
+                brickDef.size
+              ];
+            if (!brick) return;
+            const brickId = crypto.randomUUID();
+            const droppedLayout = nextLayout.map((layoutItem) =>
+              layoutItem.i === item.i
+                ? { ...layoutItem, i: brickId, w: brick.def.w, h: brick.def.h }
+                : layoutItem,
+            );
+            useBrickDrawerStore.setState((state) => ({
+              pageGrids: {
+                ...state.pageGrids,
+                [pageKey]: {
+                  layout: droppedLayout,
+                  bricksById: { ...state.pageGrids[pageKey]?.bricksById, [brickId]: brick.def },
+                },
+              },
+            }));
+          }}
+          onDragStart={() => {
+            suppressBrickClickRef.current = true;
+          }}
           onDragStop={(nextLayout) => {
-            setGridLayout(user.id, params.siteId, params.pageId, nextLayout);
+            useBrickDrawerStore.setState((state) => ({
+              pageGrids: {
+                ...state.pageGrids,
+                [pageKey]: {
+                  layout: nextLayout,
+                  bricksById: state.pageGrids[pageKey]?.bricksById ?? {},
+                },
+              },
+            }));
+            window.setTimeout(() => {
+              suppressBrickClickRef.current = false;
+            }, 0);
           }}
         >
-          {layout.map((layoutItem) => (
-            <div
-              key={layoutItem.i}
-              className="size-full cursor-grab bg-zinc-300 active:cursor-grabbing"
-              data-testid={`grid-${layoutItem.i}`}
-            />
-          ))}
+          {layout.map((layoutItem) => {
+            const brickDef = pageGrid?.bricksById[layoutItem.i];
+            const variant = brickDef
+              ? collectionsHash[brickDef.collectionName]?.variants[brickDef.variant]
+              : undefined;
+            const brick = brickDef ? variant?.sizes[brickDef.size] : undefined;
+            if (!brick) {
+              return (
+                <div
+                  key={layoutItem.i}
+                  className="size-full cursor-grab bg-zinc-300 active:cursor-grabbing"
+                  data-testid={`grid-${layoutItem.i}`}
+                />
+              );
+            }
+            const BrickComponent = brick.component;
+            return (
+              <div
+                key={layoutItem.i}
+                className="qrk-bricks size-full cursor-grab overflow-hidden active:cursor-grabbing"
+                data-brick-collection-name={brick.def.collectionName}
+                data-brick-variant={brick.def.variant}
+                data-brick-size={brick.def.size}
+                data-brick-id={layoutItem.i}
+                onClick={() => {
+                  if (suppressBrickClickRef.current) return;
+                  void navigate(
+                    href("/:username/site/:siteId/page/:pageId/brick/:brickId", {
+                      ...params,
+                      brickId: layoutItem.i,
+                    }),
+                  );
+                }}
+              >
+                {variant?.defaultData === undefined ? (
+                  <BrickComponent />
+                ) : (
+                  <BrickComponent data={variant.defaultData} />
+                )}
+              </div>
+            );
+          })}
         </GridLayout>
       ) : null}
     </div>

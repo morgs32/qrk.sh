@@ -10,8 +10,8 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    "types": ["vite/client", "node"],
-    "rootDirs": [".", "./.react-router/types"]
+    "types": ["vite/client", "node"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", ".react-router/types/**/*"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [".react-router"]
 }

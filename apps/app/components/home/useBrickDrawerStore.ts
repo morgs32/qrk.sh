@@ -1,16 +1,19 @@
 import { Result, Schema } from "effect";
+import type { Layout } from "react-grid-layout";
 import { create } from "zustand";
 import type { ICollectionBrickDef } from "@qrk.sh/bricks";
 
 export const BRICK_DRAG_MIME = "application/x-qrk-brick-def";
 
 type BrickDrawerDragState = {
+  pageGrids: Record<string, { layout: Layout; bricksById: Record<string, ICollectionBrickDef> }>;
   activeBrickDragGridShape: { w: number; h: number } | null;
   registerActiveBrickDragGridShape: (w: number, h: number) => void;
   unregisterActiveBrickDragGridShape: () => void;
 };
 
 export const useBrickDrawerStore = create<BrickDrawerDragState>((set) => ({
+  pageGrids: {},
   activeBrickDragGridShape: null,
   registerActiveBrickDragGridShape: (w, h) => set({ activeBrickDragGridShape: { w, h } }),
   unregisterActiveBrickDragGridShape: () => set({ activeBrickDragGridShape: null }),

@@ -16,14 +16,8 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "rootDirs": [".", "./.react-router/types"],
     "types": ["vite/client", "node"]
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".react-router/types/**/*",
-    "../zerospin/cloudflare-test.d.ts"
-  ],
-  "exclude": ["node_modules", ".next", "build"]
+  "include": ["**/*.ts", "**/*.tsx", "../zerospin/cloudflare-test.d.ts"],
+  "exclude": ["node_modules", ".next", "build", ".react-router"]
 }

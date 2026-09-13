@@ -1,11 +1,8 @@
-/* oxlint-disable eslint-plugin-next(no-head-element) -- This is a React Router Framework document shell, not a Next.js page. */
-
-import type { ReactNode } from "react";
-import { Links, Meta, Link, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { Link, Outlet, ScrollRestoration } from "react-router";
 import { RotateCcw } from "lucide-react";
 
 import { Button } from "../ui/button";
-import sandboxCss from "./sandbox.css?url";
+import "./sandbox.css";
 import { useGridStore } from "./useGridStore";
 
 export default function RootLayout() {
@@ -38,26 +35,7 @@ export default function RootLayout() {
         </Button>
       </header>
       <Outlet />
+      <ScrollRestoration />
     </div>
-  );
-}
-
-export function Layout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>QRK brick sandbox</title>
-        <Meta />
-        <Links />
-        <link rel="stylesheet" href={sandboxCss} />
-      </head>
-      <body>
-        {children}
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
   );
 }

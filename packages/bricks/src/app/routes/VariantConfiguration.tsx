@@ -1,6 +1,11 @@
-import type { Route } from "./+types/VariantConfiguration";
 import { collectionsHash } from "@qrk.sh/bricks";
-import { isRouteErrorResponse, Link } from "react-router";
+import {
+  isRouteErrorResponse,
+  Link,
+  useParams,
+  type LoaderFunctionArgs,
+  useRouteError,
+} from "react-router";
 import { PrimitiveKind } from "@zerospin/schema";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { JsonEditor } from "json-edit-react";
@@ -15,7 +20,9 @@ import { CodeText } from "../CodeText";
 import { MetadataField } from "../MetadataField";
 import { useGridStore } from "../useGridStore";
 
-export function clientLoader({ params }: Route.ClientLoaderArgs) {
+export function loader({ params }: LoaderFunctionArgs) {
+  if (!params.collectionName || !params.variantName)
+    throw new Response("Not found", { status: 404 });
   const variant = collectionsHash[params.collectionName]?.variants[params.variantName];
   if (!variant || Object.keys(variant.sizes).length === 0) {
     throw new Response("Not found", { status: 404 });
@@ -23,7 +30,10 @@ export function clientLoader({ params }: Route.ClientLoaderArgs) {
   return null;
 }
 
-export default function VariantConfiguration({ params }: Route.ComponentProps) {
+export default function VariantConfiguration() {
+  const params = useParams();
+  if (!params.collectionName || !params.variantName)
+    throw new Response("Not found", { status: 404 });
   const { collectionName, variantName } = params;
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const collection = collectionsHash[collectionName];
@@ -310,7 +320,9 @@ export default function VariantConfiguration({ params }: Route.ComponentProps) {
   );
 }
 
-export function ErrorBoundary({ error, params }: Route.ErrorBoundaryProps) {
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const params = useParams();
   if (!isRouteErrorResponse(error) || error.status !== 404) throw error;
   const collectionName = params.collectionName ?? "";
 

@@ -28,7 +28,7 @@ Prefer **one primary React component per file** (matching the PascalCase file na
 ### Exceptions (this rule does not apply)
 
 - **shadcn/ui components**: anything under either app’s `components/ui/**` directory keeps shadcn’s conventions.
-- **React Router Framework files**: `apps/app/app/root.tsx`, `apps/app/app/routes.ts`, `packages/bricks/src/app/root.tsx`, `packages/bricks/src/app/routes.ts`, and generated `.react-router/types/**` use framework names. App route modules use PascalCase filenames; single-use route logic stays in its route module.
+- **React Router entry files**: `apps/app/app/main.tsx`, `apps/app/app/routes.ts`, `packages/bricks/src/app/main.tsx`, and `packages/bricks/src/app/routes.ts` use entry/configuration names. Root components are `App.tsx` and `RootLayout.tsx`. Route components use PascalCase filenames; single-use route logic stays in its route module. Data Mode does not generate `.react-router/types/**`.
 - **Next.js special files**: framework-reserved files under either app’s `app/**` directory keep their required names (for example `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, `route.ts`).
 
 ### Good vs bad: BrickCatalog carousel slides (one panel per brick)

@@ -1,8 +1,14 @@
-import type { Route } from "./+types/CollectionPage";
 import { collectionsHash } from "@qrk.sh/bricks";
-import { isRouteErrorResponse, Link, Outlet } from "react-router";
+import {
+  isRouteErrorResponse,
+  Link,
+  Outlet,
+  type LoaderFunctionArgs,
+  useRouteError,
+} from "react-router";
 
-export function clientLoader({ params }: Route.ClientLoaderArgs) {
+export function loader({ params }: LoaderFunctionArgs) {
+  if (!params.collectionName) throw new Response("Not found", { status: 404 });
   if (!collectionsHash[params.collectionName]) throw new Response("Not found", { status: 404 });
   return null;
 }
@@ -11,7 +17,8 @@ export default function CollectionPage() {
   return <Outlet />;
 }
 
-export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+export function ErrorBoundary() {
+  const error = useRouteError();
   if (!isRouteErrorResponse(error) || error.status !== 404) throw error;
   return (
     <main className="mx-auto max-w-3xl p-6" data-testid="collection-not-found">

@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         external: [
           "@radix-ui/react-slot",
+          "@tiptap/react",
           "@unpic/react",
           "@zerospin/schema",
           "class-variance-authority",
@@ -39,7 +40,7 @@ export default defineConfig(({ mode }) => {
           "react-activity-calendar",
           "react-dom",
           "react/jsx-runtime",
-          "swr",
+          /^swr(?:\/|$)/,
         ],
       },
     },

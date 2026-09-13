@@ -1,15 +1,25 @@
-import type { Route } from "./+types/BrickPage";
 import { useState } from "react";
 import { collectionsHash } from "@qrk.sh/bricks";
-import { isRouteErrorResponse, Link } from "react-router";
+import {
+  isRouteErrorResponse,
+  Link,
+  useParams,
+  type LoaderFunctionArgs,
+  useRouteError,
+} from "react-router";
 
-export function clientLoader({ params }: Route.ClientLoaderArgs) {
+export function loader({ params }: LoaderFunctionArgs) {
+  if (!params.collectionName || !params.variant || !params.size)
+    throw new Response("Not found", { status: 404 });
   if (!collectionsHash[params.collectionName]?.variants[params.variant]?.sizes[params.size])
     throw new Response("Not found", { status: 404 });
   return null;
 }
 
-export default function BrickPage({ params }: Route.ComponentProps) {
+export default function BrickPage() {
+  const params = useParams();
+  if (!params.collectionName || !params.variant || !params.size)
+    throw new Response("Not found", { status: 404 });
   const variant = collectionsHash[params.collectionName]?.variants[params.variant];
   const brick = variant?.sizes[params.size];
 
@@ -103,7 +113,8 @@ export default function BrickPage({ params }: Route.ComponentProps) {
   );
 }
 
-export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+export function ErrorBoundary() {
+  const error = useRouteError();
   if (!isRouteErrorResponse(error) || error.status !== 404) throw error;
   return (
     <main className="min-h-screen" data-testid="brick-not-found">

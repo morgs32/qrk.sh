@@ -143,3 +143,15 @@ The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefi
 - **Bad**: `basis-auto` with many small bricks in one viewport row when the product goal is “one brick, one panel” at a time; or shrinking bricks with `scale-75` when previews should read at full drawer size.
 
 - **Good**: `CarouselItem` with `basis-full shrink-0 grow-0` (plus `pl-*` / `-ml-*` spacing on content), inner panel wrapper for border/padding, and the brick slot matching full width/height in px—no transform scaling.
+
+### Table of contents layout
+
+`OrderedTableOfContents.List` provides hierarchy depth and numbering without
+horizontal padding or margins. `Item` stays full width. Put every item heading
+or choice control inside `OrderedTableOfContents.Label`; the label owns its
+marker and depth-based indentation, including when sticky. Consecutive items
+containing only a label use compact spacing through CSS selectors.
+
+Previews and other item content remain full width at every depth. Do not cancel
+list indentation in route CSS or add compensating margins to content. Scroll
+containers determine sticky boundaries independently of hierarchy depth.

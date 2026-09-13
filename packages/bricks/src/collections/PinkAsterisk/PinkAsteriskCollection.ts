@@ -11,7 +11,7 @@ import { StreamlineIconLookup } from "./StreamlineIconLookup";
 export const iconCollection = makeCollection({
   collectionName: "icon",
   collectionLabel: "Icon",
-  collectionDescription: "Graphic icons for your grid.",
+  collectionDescription: 'Graphic icons for your grid. You can never have enough "flair".',
   variants: {
     default: makeVariant({
       variant: "default",

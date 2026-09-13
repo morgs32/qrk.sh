@@ -171,5 +171,6 @@ complete navigation block: collection heading, variant choices, and size choices
 uses unpadded lists, explicit 0.5rem spacing before nested choices, and spaced
 variant/size groups. The preview is a sibling after the section, so no gray
 padding trails the preview. Each section starts its own list; use `List start`
-to continue collection numbering. The collection-detail page uses `Section` for each size/configure heading above
-its preview, with a sticky wrapper keeping that navigation visible while scrolling.
+to continue collection numbering. The collection page keeps the complete collection/variant/size `Section`, followed
+by one active preview and its configuration contents. The `variant` and `size`
+query parameters select the active item. Overview Configure links carry both values.

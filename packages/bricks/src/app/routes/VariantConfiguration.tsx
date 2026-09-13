@@ -3,6 +3,7 @@ import {
   isRouteErrorResponse,
   Link,
   useParams,
+  useSearchParams,
   type LoaderFunctionArgs,
   useRouteError,
 } from "react-router";
@@ -14,10 +15,10 @@ import { useState, type FormEvent } from "react";
 import type { ScraperApi } from "scraper/ScraperApi";
 import type { IScrapeError } from "scraper/types";
 
+import { OrderedTableOfContents } from "../../OrderedTableOfContents";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
-import { CodeText } from "../CodeText";
-import { MetadataField } from "../MetadataField";
+import { TableData } from "../../TableData";
 import { useGridStore } from "../useGridStore";
 
 export function loader({ params }: LoaderFunctionArgs) {
@@ -32,12 +33,16 @@ export function loader({ params }: LoaderFunctionArgs) {
 
 export default function VariantConfiguration() {
   const params = useParams();
-  if (!params.collectionName || !params.variantName)
-    throw new Response("Not found", { status: 404 });
-  const { collectionName, variantName } = params;
+  const [searchParams] = useSearchParams();
+  if (!params.collectionName) throw new Response("Not found", { status: 404 });
+  const { collectionName } = params;
+  const variantName =
+    params.variantName ??
+    searchParams.get("variant") ??
+    Object.keys(collectionsHash[collectionName]?.variants ?? {})[0];
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const collection = collectionsHash[collectionName];
-  const variant = collection?.variants[variantName];
+  const variant = variantName ? collection?.variants[variantName] : undefined;
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [loadedData, setLoadedData] = useState<unknown>();
   const [dataError, setDataError] = useState<IScrapeError>();
@@ -60,7 +65,7 @@ export default function VariantConfiguration() {
     return initialPayloadValues;
   });
 
-  if (!collection || !variant) {
+  if (!collection || !variant || !variantName) {
     throw new Response("Not found", { status: 404 });
   }
 
@@ -86,89 +91,100 @@ export default function VariantConfiguration() {
     throw new Response("Not found", { status: 404 });
   }
 
-  return (
-    <section
-      className="grid min-h-screen md:grid-cols-2"
-      data-full-width-pane
-      data-testid="variant-configuration-pane"
-    >
-      <div>
-        <div className="px-6 pt-6">
-          <Link
-            to={`/collections/${encodeURIComponent(collectionName)}`}
-            className="inline-flex items-center gap-2 text-sm"
-          >
-            <ArrowLeft aria-hidden className="size-4" />
-            <span>Back to {collection.collectionLabel}</span>
-          </Link>
-          <div className="mt-5">
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <MetadataField label="Collection name">{collection.collectionLabel}</MetadataField>
-              <MetadataField label="Collection ID" className="text-right">
-                <CodeText>{collection.collectionName}</CodeText>
-              </MetadataField>
-              <MetadataField label="Collection description" className="col-span-2">
-                {collection.collectionDescription}
-              </MetadataField>
-            </dl>
-            <hr className="my-4 border-zinc-200" />
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <MetadataField label="Variant name">
-                {variant.variantLabel}
-              </MetadataField>
-              <MetadataField label="Variant ID" className="text-right">
-                <CodeText>{variantName}</CodeText>
-              </MetadataField>
-              <MetadataField label="Variant description" className="col-span-2">
-                {variant.variantDescription}
-              </MetadataField>
-            </dl>
-          </div>
-        </div>
-        <div className="mt-8 flex flex-col gap-10">
-          {sizes.map(([sizeName, brick]) => {
-            const BrickComponent = brick.component;
+  const sizeName = searchParams.get("size") ?? firstSize[0];
+  const brick = variant.sizes[sizeName];
+  if (!brick) throw new Response("Not found", { status: 404 });
+  const BrickComponent = brick.component;
 
-            return (
-              <section key={sizeName}>
-                <dl className="px-6 text-sm">
-                  <MetadataField label="Size">{brick.def.size}</MetadataField>
-                </dl>
-                <div className="mt-6 overflow-auto">
-                  <div
-                    className={
-                      brick.def.w === 8
-                        ? "qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                        : "qrk-bricks ml-6 cursor-grab overflow-hidden active:cursor-grabbing"
-                    }
-                    data-variant-size-brick={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.size}`}
-                    draggable
-                    onDragStart={(event) => {
-                      setActiveBrickDrag(brick.def);
-                      event.dataTransfer.effectAllowed = "copy";
-                      event.dataTransfer.setData("text/plain", brick.def.size);
-                    }}
-                    onDragEnd={() => {
-                      setActiveBrickDrag(null);
-                    }}
-                    style={{
-                      width: `${(brick.def.w / 8) * 100}%`,
-                      aspectRatio: `${brick.def.w} / ${brick.def.h}`,
-                    }}
-                  >
-                    {variant.defaultData === undefined ? (
-                      <BrickComponent />
-                    ) : (
-                      <BrickComponent data={loadedData ?? variant.defaultData} />
-                    )}
-                  </div>
-                </div>
-              </section>
-            );
-          })}
-        </div>
+  return (
+    <section data-testid="variant-configuration-pane">
+      <OrderedTableOfContents.Section>
+        <OrderedTableOfContents.List padded={false}>
+          <OrderedTableOfContents.Item>
+            <OrderedTableOfContents.Label>
+              <Link to={`/collections/${encodeURIComponent(collectionName)}`}>
+                {collection.collectionLabel}
+              </Link>
+            </OrderedTableOfContents.Label>
+            <div className="pt-2">
+              <OrderedTableOfContents.List padded={false} spaced>
+                {Object.entries(collection.variants).map(([name, option]) => (
+                  <OrderedTableOfContents.Item key={name}>
+                    <OrderedTableOfContents.Label>
+                      <Link
+                        to={`/collections/${encodeURIComponent(collectionName)}?variant=${encodeURIComponent(name)}`}
+                        aria-current={name === variantName ? "true" : undefined}
+                        className="underline aria-[current=true]:no-underline"
+                      >
+                        {option.variantLabel}
+                      </Link>
+                    </OrderedTableOfContents.Label>
+                    <div className="pt-2">
+                      <OrderedTableOfContents.List padded={false}>
+                        {Object.entries(option.sizes).map(([size, optionBrick]) => (
+                          <OrderedTableOfContents.Item key={size}>
+                            <OrderedTableOfContents.Label>
+                              <Link
+                                to={`/collections/${encodeURIComponent(collectionName)}?variant=${encodeURIComponent(name)}&size=${encodeURIComponent(size)}`}
+                                aria-current={
+                                  name === variantName && size === sizeName ? "true" : undefined
+                                }
+                                className="underline aria-[current=true]:no-underline"
+                              >
+                                {optionBrick.def.size}
+                              </Link>
+                            </OrderedTableOfContents.Label>
+                          </OrderedTableOfContents.Item>
+                        ))}
+                      </OrderedTableOfContents.List>
+                    </div>
+                  </OrderedTableOfContents.Item>
+                ))}
+              </OrderedTableOfContents.List>
+            </div>
+          </OrderedTableOfContents.Item>
+        </OrderedTableOfContents.List>
+      </OrderedTableOfContents.Section>
+      <div className="pt-6">
+        <TableData
+          entries={[
+            { label: "Collection name", value: collection.collectionLabel },
+            { label: "Collection ID", value: collection.collectionName },
+            { label: "Collection description", value: collection.collectionDescription },
+            { label: "Variant name", value: variant.variantLabel },
+            { label: "Variant ID", value: variantName },
+            { label: "Variant description", value: variant.variantDescription },
+          ]}
+        />
       </div>
-      <div className="border-l border-zinc-200 px-6 pt-6">
+      <OrderedTableOfContents.Preview>
+        <div
+          className={
+            brick.def.w === 8
+              ? "qrk-bricks cursor-grab overflow-hidden"
+              : "qrk-bricks ml-6 cursor-grab overflow-hidden"
+          }
+          data-variant-size-brick={`${collectionName}/${variantName}/${sizeName}`}
+          draggable
+          onDragStart={(event) => {
+            setActiveBrickDrag(brick.def);
+            event.dataTransfer.effectAllowed = "copy";
+            event.dataTransfer.setData("text/plain", brick.def.size);
+          }}
+          onDragEnd={() => setActiveBrickDrag(null)}
+          style={{
+            width: `${(brick.def.w / 8) * 100}%`,
+            aspectRatio: `${brick.def.w} / ${brick.def.h}`,
+          }}
+        >
+          {variant.defaultData === undefined ? (
+            <BrickComponent />
+          ) : (
+            <BrickComponent data={loadedData ?? variant.defaultData} />
+          )}
+        </div>
+      </OrderedTableOfContents.Preview>
+      <div className="px-6 py-6">
         {payloadShape !== undefined ? (
           <div>
             <h2 className="m-0 text-lg font-semibold">

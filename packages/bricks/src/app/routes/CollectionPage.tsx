@@ -5,6 +5,7 @@ import {
   Outlet,
   type LoaderFunctionArgs,
   useRouteError,
+  useLocation,
 } from "react-router";
 
 export function loader({ params }: LoaderFunctionArgs) {
@@ -14,7 +15,8 @@ export function loader({ params }: LoaderFunctionArgs) {
 }
 
 export default function CollectionPage() {
-  return <Outlet />;
+  const location = useLocation();
+  return <Outlet key={location.pathname + location.search} />;
 }
 
 export function ErrorBoundary() {

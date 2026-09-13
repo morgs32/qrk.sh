@@ -34,8 +34,9 @@ export default [
               {
                 index: true,
                 lazy: async () => {
-                  const { default: CollectionCatalog } = await import("./routes/CollectionCatalog");
-                  return { Component: CollectionCatalog };
+                  const { default: VariantConfiguration, ErrorBoundary } =
+                    await import("./routes/VariantConfiguration");
+                  return { Component: VariantConfiguration, ErrorBoundary };
                 },
               },
               {

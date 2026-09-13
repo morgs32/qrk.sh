@@ -53,62 +53,65 @@ export default function CatalogPage() {
                     </OrderedTableOfContents.Label>
                     <div className="pt-2">
                       <OrderedTableOfContents.List padded={false} spaced>
-                        <OrderedTableOfContents.Item>
-                          <OrderedTableOfContents.Label>Variant</OrderedTableOfContents.Label>
-                          <div className="pt-2">
-                            <OrderedTableOfContents.List padded={false}>
-                              {variants.map(([variantName, variant]) => (
-                                <OrderedTableOfContents.Item key={variantName}>
-                                  <OrderedTableOfContents.Label>
-                                    <Button
-                                      variant="link"
-                                      aria-pressed={selectedVariantName === variantName}
-                                      onClick={() => {
-                                        setSelectedVariants((current) => ({
-                                          ...current,
-                                          [collection.collectionName]: variantName,
-                                        }));
-                                        setSelectedSizes((current) => ({
-                                          ...current,
-                                          [collection.collectionName]: "",
-                                        }));
-                                      }}
-                                      className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
-                                    >
-                                      {variant.variantLabel}
-                                    </Button>
-                                  </OrderedTableOfContents.Label>
-                                </OrderedTableOfContents.Item>
-                              ))}
-                            </OrderedTableOfContents.List>
-                          </div>
-                        </OrderedTableOfContents.Item>
-                        <OrderedTableOfContents.Item>
-                          <OrderedTableOfContents.Label>Size</OrderedTableOfContents.Label>
-                          <div className="pt-2">
-                            <OrderedTableOfContents.List padded={false}>
-                              {sizes.map(([sizeName, brick]) => (
-                                <OrderedTableOfContents.Item key={sizeName}>
-                                  <OrderedTableOfContents.Label>
-                                    <Button
-                                      variant="link"
-                                      aria-pressed={selectedSizeName === sizeName}
-                                      onClick={() => {
-                                        setSelectedSizes((current) => ({
-                                          ...current,
-                                          [collection.collectionName]: sizeName,
-                                        }));
-                                      }}
-                                      className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
-                                    >
-                                      {brick.def.size}
-                                    </Button>
-                                  </OrderedTableOfContents.Label>
-                                </OrderedTableOfContents.Item>
-                              ))}
-                            </OrderedTableOfContents.List>
-                          </div>
-                        </OrderedTableOfContents.Item>
+                        {variants.map(([variantName, variant]) => (
+                          <OrderedTableOfContents.Item key={variantName}>
+                            <OrderedTableOfContents.Label>
+                              <Button
+                                variant="link"
+                                aria-pressed={selectedVariantName === variantName}
+                                onClick={() => {
+                                  setSelectedVariants((current) => ({
+                                    ...current,
+                                    [collection.collectionName]: variantName,
+                                  }));
+                                  setSelectedSizes((current) => ({
+                                    ...current,
+                                    [collection.collectionName]: "",
+                                  }));
+                                }}
+                                className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
+                              >
+                                {variant.variantLabel}
+                              </Button>
+                            </OrderedTableOfContents.Label>
+                            <div className="pt-2">
+                              <OrderedTableOfContents.List padded={false}>
+                                {Object.entries(variant.sizes).map(([sizeName, brick]) => (
+                                  <OrderedTableOfContents.Item key={sizeName}>
+                                    <OrderedTableOfContents.Label>
+                                      <Button
+                                        variant="link"
+                                        aria-pressed={
+                                          selectedVariantName === variantName &&
+                                          selectedSizeName === sizeName
+                                        }
+                                        onClick={() => {
+                                          setSelectedVariants((current) => ({
+                                            ...current,
+                                            [collection.collectionName]: variantName,
+                                          }));
+                                          setSelectedSizes((current) => ({
+                                            ...current,
+                                            [collection.collectionName]: sizeName,
+                                          }));
+                                        }}
+                                        className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
+                                      >
+                                        {brick.def.size}
+                                      </Button>{" "}
+                                      <Link
+                                        to={`/collections/${encodeURIComponent(collection.collectionName)}?variant=${encodeURIComponent(variantName)}&size=${encodeURIComponent(sizeName)}`}
+                                        className="underline"
+                                      >
+                                        Configure
+                                      </Link>
+                                    </OrderedTableOfContents.Label>
+                                  </OrderedTableOfContents.Item>
+                                ))}
+                              </OrderedTableOfContents.List>
+                            </div>
+                          </OrderedTableOfContents.Item>
+                        ))}
                       </OrderedTableOfContents.List>
                     </div>
                   </OrderedTableOfContents.Item>
@@ -118,9 +121,7 @@ export default function CatalogPage() {
                 <DraggableBrick
                   brickDef={def}
                   className={
-                    def.w === 8
-                      ? "qrk-bricks overflow-hidden"
-                      : "qrk-bricks ml-6 overflow-hidden"
+                    def.w === 8 ? "qrk-bricks overflow-hidden" : "qrk-bricks ml-6 overflow-hidden"
                   }
                   data-collection-representative={`${def.collectionName}/${def.variant}/${def.size}`}
                   style={{

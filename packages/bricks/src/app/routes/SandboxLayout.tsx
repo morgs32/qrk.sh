@@ -1,12 +1,9 @@
-import { Link, Outlet, useParams } from "react-router";
-import { collectionsHash } from "@qrk.sh/bricks";
+import { Link, Outlet } from "react-router";
 import { OrderedTableOfContents } from "../../OrderedTableOfContents";
 
 import { SandboxGrid } from "../SandboxGrid";
 
 export default function SandboxLayout() {
-  const { collectionName } = useParams();
-  const collection = collectionName ? collectionsHash[collectionName] : undefined;
   return (
     <main className="min-h-screen">
       <div className="grid min-h-screen md:grid-cols-2">
@@ -15,16 +12,6 @@ export default function SandboxLayout() {
             <OrderedTableOfContents.Title>
               <Link to="/">Brick collections</Link>
             </OrderedTableOfContents.Title>
-            {collection && (
-              <OrderedTableOfContents.Title>
-                <Link
-                  to={`/collections/${encodeURIComponent(collection.collectionName)}`}
-                  aria-current="page"
-                >
-                  {collection.collectionLabel}
-                </Link>
-              </OrderedTableOfContents.Title>
-            )}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <Outlet />
             </div>

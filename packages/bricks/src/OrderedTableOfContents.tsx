@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { OrderedTableOfContentsRows } from "./OrderedTableOfContentsRows";
 import { OrderedTableOfContentsPreview } from "./OrderedTableOfContentsPreview";
 import { OrderedTableOfContentsTitle } from "./OrderedTableOfContentsTitle";
 import { OrderedTableOfContentsList } from "./OrderedTableOfContentsList";
@@ -23,3 +24,5 @@ OrderedTableOfContents.Label = OrderedTableOfContentsLabel;
 OrderedTableOfContents.Item = OrderedTableOfContentsItem;
 
 OrderedTableOfContents.Preview = OrderedTableOfContentsPreview;
+
+OrderedTableOfContents.Rows = OrderedTableOfContentsRows;

@@ -1,0 +1,16 @@
+import type { ReactNode } from "react";
+
+/** A navigation group owns its surface and spacing before full-width content. */
+export function OrderedTableOfContentsRows({
+  children,
+  sticky = false,
+}: {
+  children: ReactNode;
+  sticky?: boolean;
+}) {
+  return (
+    <div className={`bg-zinc-100 pb-4 ${sticky ? "sticky top-0 z-10" : ""}`}>
+      {children}
+    </div>
+  );
+}

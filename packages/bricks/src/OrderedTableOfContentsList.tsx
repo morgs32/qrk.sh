@@ -21,7 +21,7 @@ export function OrderedTableOfContentsList({
     <OrderedTableOfContentsDepth value={depth + 1}>
       <ol
         type={depth === 0 ? "1" : depth === 1 ? "A" : "i"}
-        className={`list-none p-0 [counter-reset:toc-item] ${marker} m-0 ${depth === 1 ? "bg-zinc-100" : ""} ${scrollable ? "min-h-0 flex-1 overflow-y-auto overscroll-contain" : ""}`}
+        className={`list-none p-0 [counter-reset:toc-item] ${marker} m-0 ${scrollable ? "min-h-0 flex-1 overflow-y-auto overscroll-contain" : ""}`}
       >
         {children}
       </ol>

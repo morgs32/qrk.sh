@@ -13,7 +13,7 @@ export default function CatalogPage() {
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
 
   return (
-    <div aria-label="Brick collections" className="h-full overflow-hidden">
+    <div aria-label="Brick collections" className="flex h-full min-h-0 flex-col overflow-hidden">
       <OrderedTableOfContents.List scrollable>
         {collections.map((collection) => {
           const variants = Object.entries(collection.variants);
@@ -50,60 +50,62 @@ export default function CatalogPage() {
                 </Link>
               </OrderedTableOfContents.Label>
               <section data-collection-entry={collection.collectionName} className="shrink-0">
-                <OrderedTableOfContents.List>
-                  <OrderedTableOfContents.Item>
-                    <OrderedTableOfContents.Label>Variant</OrderedTableOfContents.Label>
-                    <OrderedTableOfContents.List>
-                      {variants.map(([variantName]) => (
-                        <OrderedTableOfContents.Item key={variantName}>
-                          <OrderedTableOfContents.Label>
-                            <Button
-                              variant="link"
-                              aria-pressed={selectedVariantName === variantName}
-                              onClick={() => {
-                                setSelectedVariants((current) => ({
-                                  ...current,
-                                  [collection.collectionName]: variantName,
-                                }));
-                                setSelectedSizes((current) => ({
-                                  ...current,
-                                  [collection.collectionName]: "",
-                                }));
-                              }}
-                              className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
-                            >
-                              {variantName[0].toUpperCase() + variantName.slice(1)}
-                            </Button>
-                          </OrderedTableOfContents.Label>
-                        </OrderedTableOfContents.Item>
-                      ))}
-                    </OrderedTableOfContents.List>
-                  </OrderedTableOfContents.Item>
-                  <OrderedTableOfContents.Item>
-                    <OrderedTableOfContents.Label>Size</OrderedTableOfContents.Label>
-                    <OrderedTableOfContents.List>
-                      {sizes.map(([sizeName, brick]) => (
-                        <OrderedTableOfContents.Item key={sizeName}>
-                          <OrderedTableOfContents.Label>
-                            <Button
-                              variant="link"
-                              aria-pressed={selectedSizeName === sizeName}
-                              onClick={() => {
-                                setSelectedSizes((current) => ({
-                                  ...current,
-                                  [collection.collectionName]: sizeName,
-                                }));
-                              }}
-                              className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
-                            >
-                              {brick.def.size}
-                            </Button>
-                          </OrderedTableOfContents.Label>
-                        </OrderedTableOfContents.Item>
-                      ))}
-                    </OrderedTableOfContents.List>
-                  </OrderedTableOfContents.Item>
-                </OrderedTableOfContents.List>
+                <OrderedTableOfContents.Rows>
+                  <OrderedTableOfContents.List>
+                    <OrderedTableOfContents.Item>
+                      <OrderedTableOfContents.Label>Variant</OrderedTableOfContents.Label>
+                      <OrderedTableOfContents.List>
+                        {variants.map(([variantName]) => (
+                          <OrderedTableOfContents.Item key={variantName}>
+                            <OrderedTableOfContents.Label>
+                              <Button
+                                variant="link"
+                                aria-pressed={selectedVariantName === variantName}
+                                onClick={() => {
+                                  setSelectedVariants((current) => ({
+                                    ...current,
+                                    [collection.collectionName]: variantName,
+                                  }));
+                                  setSelectedSizes((current) => ({
+                                    ...current,
+                                    [collection.collectionName]: "",
+                                  }));
+                                }}
+                                className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
+                              >
+                                {variantName[0].toUpperCase() + variantName.slice(1)}
+                              </Button>
+                            </OrderedTableOfContents.Label>
+                          </OrderedTableOfContents.Item>
+                        ))}
+                      </OrderedTableOfContents.List>
+                    </OrderedTableOfContents.Item>
+                    <OrderedTableOfContents.Item>
+                      <OrderedTableOfContents.Label>Size</OrderedTableOfContents.Label>
+                      <OrderedTableOfContents.List>
+                        {sizes.map(([sizeName, brick]) => (
+                          <OrderedTableOfContents.Item key={sizeName}>
+                            <OrderedTableOfContents.Label>
+                              <Button
+                                variant="link"
+                                aria-pressed={selectedSizeName === sizeName}
+                                onClick={() => {
+                                  setSelectedSizes((current) => ({
+                                    ...current,
+                                    [collection.collectionName]: sizeName,
+                                  }));
+                                }}
+                                className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
+                              >
+                                {brick.def.size}
+                              </Button>
+                            </OrderedTableOfContents.Label>
+                          </OrderedTableOfContents.Item>
+                        ))}
+                      </OrderedTableOfContents.List>
+                    </OrderedTableOfContents.Item>
+                  </OrderedTableOfContents.List>
+                </OrderedTableOfContents.Rows>
                 <OrderedTableOfContents.Preview>
                   <div
                     className={

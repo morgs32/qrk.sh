@@ -1,4 +1,4 @@
-import { Link, Outlet, useParams } from "react-router";
+import { Link, Outlet, useMatch, useParams } from "react-router";
 import { collectionsHash } from "@qrk.sh/bricks";
 import { OrderedTableOfContents } from "../../OrderedTableOfContents";
 
@@ -6,6 +6,7 @@ import { SandboxGrid } from "../SandboxGrid";
 
 export default function SandboxLayout() {
   const { collectionName } = useParams();
+  const collectionPage = useMatch("/collections/:collectionName");
   const collection = collectionName ? collectionsHash[collectionName] : undefined;
   return (
     <main className="min-h-screen">
@@ -13,7 +14,7 @@ export default function SandboxLayout() {
         <section className="fixed inset-y-0 left-0 z-60 h-dvh w-full overflow-hidden border-r border-zinc-300 bg-white pb-6 shadow-[6px_0_12px_-4px_rgba(0,0,0,0.3)] has-[[data-full-width-pane]]:md:w-full md:w-1/2 md:pb-0">
           <OrderedTableOfContents>
             <OrderedTableOfContents.Title>
-              <Link to="/">Bricks</Link>
+              <Link to="/">Brick collections</Link>
             </OrderedTableOfContents.Title>
             {collection ? (
               <OrderedTableOfContents.List scrollable>
@@ -23,7 +24,7 @@ export default function SandboxLayout() {
                       to={`/collections/${encodeURIComponent(collection.collectionName)}`}
                       aria-current="page"
                     >
-                      {collection.collectionLabel}
+                      {collectionPage ? "Collection: " : ""}{collection.collectionLabel}
                     </Link>
                   </OrderedTableOfContents.Label>
                   <Outlet />

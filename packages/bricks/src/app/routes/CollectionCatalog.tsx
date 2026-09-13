@@ -2,7 +2,7 @@ import { collectionsHash } from "@qrk.sh/bricks";
 import { Link, useParams } from "react-router";
 
 import { OrderedTableOfContents } from "../../OrderedTableOfContents";
-import { InlineData } from "../../InlineData";
+import { TableData } from "../../TableData";
 import { useGridStore } from "../useGridStore";
 
 export default function CollectionCatalog() {
@@ -20,15 +20,13 @@ export default function CollectionCatalog() {
 
   return (
     <>
-      <div className="px-6 pt-6">
-        <InlineData
-          entries={[
-            { label: "Collection name", value: collection.collectionLabel },
-            { label: "Collection ID", value: collection.collectionName },
-            { label: "Collection description", value: collection.collectionDescription },
-          ]}
-        />
-      </div>
+      <TableData
+        entries={[
+          { label: "Name", value: collection.collectionLabel },
+          { label: "ID", value: collection.collectionName },
+          { label: "Description", value: collection.collectionDescription },
+        ]}
+      />
       <div className="max-h-[calc(100dvh-16rem)] overflow-y-auto overscroll-contain">
         <OrderedTableOfContents.List>
           {Object.entries(collection.variants).map(([variantName, variant]) => (
@@ -47,14 +45,16 @@ export default function CollectionCatalog() {
 
                     return (
                       <OrderedTableOfContents.Item key={brick.def.size}>
-                        <OrderedTableOfContents.Label sticky>
-                          <span>{brick.def.size}</span>{" "}
-                          <Link
-                            to={`/collections/${encodeURIComponent(collectionName)}/${encodeURIComponent(variantName)}`}
-                          >
-                            Configure
-                          </Link>
-                        </OrderedTableOfContents.Label>
+                        <OrderedTableOfContents.Rows sticky>
+                          <OrderedTableOfContents.Label>
+                            <span>{brick.def.size}</span>{" "}
+                            <Link
+                              to={`/collections/${encodeURIComponent(collectionName)}/${encodeURIComponent(variantName)}`}
+                            >
+                              Configure
+                            </Link>
+                          </OrderedTableOfContents.Label>
+                        </OrderedTableOfContents.Rows>
                         <OrderedTableOfContents.Preview>
                           <div
                             className={

@@ -155,3 +155,9 @@ containing only a label use compact spacing through CSS selectors.
 Previews and other item content remain full width at every depth. Do not cancel
 list indentation in route CSS or add compensating margins to content. Scroll
 containers determine sticky boundaries independently of hierarchy depth.
+
+Wrap a navigation group in `OrderedTableOfContents.Rows` before its content.
+`Rows` owns the gray background and 1rem bottom padding, independent of depth.
+Nested lists remain compact; previews and other content sit outside the group.
+Use `Rows sticky` when the whole group should stick within its scroll container.
+Spacing is explicit in the composition rather than inferred from descendant DOM.

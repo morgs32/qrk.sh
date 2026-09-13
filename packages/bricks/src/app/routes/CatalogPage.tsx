@@ -15,9 +15,6 @@ export default function CatalogPage() {
   return (
     <div aria-label="Brick collections" className="h-full overflow-hidden">
       <OrderedTableOfContents>
-        <OrderedTableOfContents.Title>
-          <Link to="/">Bricks</Link>
-        </OrderedTableOfContents.Title>
         <OrderedTableOfContents.List scrollable>
           {collections.map((collection) => {
             const variants = Object.entries(collection.variants);
@@ -53,10 +50,7 @@ export default function CatalogPage() {
                     {collection.collectionLabel}
                   </Link>
                 </OrderedTableOfContents.Label>
-                <section
-                  data-collection-entry={collection.collectionName}
-                  className="shrink-0"
-                >
+                <section data-collection-entry={collection.collectionName} className="shrink-0">
                   <div className="bg-zinc-100 px-4 pb-2 font-mono text-sm">
                     <OrderedTableOfContents.List>
                       <OrderedTableOfContents.Item>

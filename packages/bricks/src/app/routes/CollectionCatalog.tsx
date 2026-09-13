@@ -1,7 +1,6 @@
 import { collectionsHash } from "@qrk.sh/bricks";
 import { Tabs } from "@base-ui/react/tabs";
 import { Link, useParams } from "react-router";
-import { ArrowLeft } from "lucide-react";
 
 import { CodeText } from "../CodeText";
 import { MetadataField } from "../MetadataField";
@@ -27,11 +26,7 @@ export default function CollectionCatalog() {
   return (
     <>
       <div className="px-6 pt-6">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm">
-          <ArrowLeft aria-hidden className="size-4" />
-          <span>All collections</span>
-        </Link>
-        <dl className="mt-5 grid max-w-[500px] grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <dl className="grid max-w-[500px] grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <MetadataField label="Collection name">{collection.collectionLabel}</MetadataField>
           <MetadataField label="Collection ID" className="text-right">
             <CodeText>{collection.collectionName}</CodeText>

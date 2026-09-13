@@ -46,13 +46,18 @@ export default function CatalogPage() {
             return (
               <OrderedTableOfContents.Item key={collection.collectionName}>
                 <OrderedTableOfContents.Label sticky>
-                  {collection.collectionLabel}
+                  <Link
+                    to={`/collections/${encodeURIComponent(collection.collectionName)}`}
+                    data-collection-link={collection.collectionName}
+                  >
+                    {collection.collectionLabel}
+                  </Link>
                 </OrderedTableOfContents.Label>
                 <section
                   data-collection-entry={collection.collectionName}
                   className="mb-10 shrink-0"
                 >
-                  <div className="bg-zinc-100 px-4 py-px font-mono text-sm">
+                  <div className="bg-zinc-100 px-4 font-mono text-sm">
                     <OrderedTableOfContents.List>
                       <OrderedTableOfContents.Item>
                         <OrderedTableOfContents.Label>Variant</OrderedTableOfContents.Label>
@@ -103,13 +108,6 @@ export default function CatalogPage() {
                         </OrderedTableOfContents.List>
                       </OrderedTableOfContents.Item>
                     </OrderedTableOfContents.List>
-                    <Link
-                      className="mx-4 mb-4 inline-block"
-                      to={`/collections/${encodeURIComponent(collection.collectionName)}`}
-                      data-collection-link={collection.collectionName}
-                    >
-                      View all
-                    </Link>
                   </div>
                   <div className="mt-6 overflow-auto">
                     <div

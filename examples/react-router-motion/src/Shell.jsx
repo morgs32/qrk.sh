@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 
 export function Shell({ side, children }) {
   React.useEffect(() => {
+    window.events ??= [];
     window.events.push(`mount:${side}`);
     return () => window.events.push(`unmount:${side}`);
   }, []);

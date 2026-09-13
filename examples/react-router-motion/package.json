@@ -1,0 +1,31 @@
+{
+  "name": "@qrk.sh/react-router-motion",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "react-router dev --host 127.0.0.1 --port 4319 --strictPort",
+    "build": "react-router build",
+    "preview": "vite preview --outDir build/client --host 127.0.0.1 --port 4319 --strictPort",
+    "format": "oxfmt src"
+  },
+  "dependencies": {
+    "framer-motion": "13.2.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "8.3.1",
+    "@react-router/node": "8.3.1",
+    "isbot": "^5"
+  },
+  "devDependencies": {
+    "vite": "8.3.0",
+    "oxfmt": "^0.44.0",
+    "@react-router/dev": "8.3.1"
+  },
+  "nx": {
+    "targets": {
+      "dev": {
+        "continuous": true
+      }
+    }
+  }
+}

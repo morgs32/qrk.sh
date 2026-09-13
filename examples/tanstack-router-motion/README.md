@@ -1,6 +1,6 @@
-# TanStack Router + Motion baseline
+# TanStack Router + Motion
 
-This is the initial experiment, before the persistent-owner fix. It follows the keyed `Outlet` approach from [TanStack's Framer Motion example](https://github.com/TanStack/router/blob/main/examples/react/with-framer-motion/src/main.tsx), adapted to catalog/detail drawers. It is not a verbatim copy.
+The committed baseline used the keyed `Outlet` approach from [TanStack's Framer Motion example](https://github.com/TanStack/router/blob/main/examples/react/with-framer-motion/src/main.tsx), adapted to catalog/detail drawers. It is not a verbatim copy.
 
 Run from the repository root:
 
@@ -13,13 +13,17 @@ Open http://127.0.0.1:4317. Build with `pnpm nx run @qrk.sh/tanstack-router-moti
 ## What to inspect
 
 1. Open catalog, then brick detail. The left shell stays mounted.
-2. Navigate home. The intended 300 ms exit does not run: the live outlet follows the new route and removes its old content immediately.
+2. Navigate home. The outgoing drawer retains its content during the 300 ms exit.
 3. Use Back/Forward and switch to compose.
 4. Edit the draft input and scroll the grid; both remain mounted across navigation.
 5. Inspect `window.events` for shell mount/unmount events.
 
-`AnimatedOutlet` uses `AnimatePresence mode="wait"` around an outlet keyed by the next match. `Shell` contains another live outlet. Changing the presence mode to `sync` reproduced duplicate incoming drawers in the initial experiment.
+## Persistent-owner fix
 
-The known animation defect is intentional in this baseline. Commit this version before applying the persistent Motion owner change, so that change is reviewable as a separate diff. No router-context cloning or private API usage is included.
+`Drawers` reads public route matches and passes concrete children to `Shell`. `AnimatePresence` directly owns shells keyed by side, retaining their last children during exit. Catalog and detail share the left shell; switching sides allows the outgoing and incoming shells to coexist.
 
-Dependencies match the versions used in the isolated experiment. This example uses JSX to keep the baseline focused on rendering behavior.
+Routes now define matching structure; the persistent owner renders drawer content. `Shell` accepts children instead of reading a live `Outlet`. No router-context cloning or private APIs are used.
+
+Real application content that reads route params directly would still need those values passed into the exiting view rather than reading the new route during exit.
+
+Dependencies match the isolated experiment. This example uses JSX to focus the diff on rendering behavior.

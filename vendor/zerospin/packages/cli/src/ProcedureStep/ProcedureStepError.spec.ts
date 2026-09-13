@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -15,7 +15,7 @@ import { assertAcceptedSpec } from '../../../system-worker/src/SystemRepo/assert
 import { ProcedureStepContext } from './ProcedureStepContext.js';
 import { ProcedureStepError } from './ProcedureStepError.js';
 
-it('renders RPC mismatch changes and saves them in the error report', async () => {
+it('renders RPC mismatch details inline without creating an error report', async () => {
   const changes = [
     { op: 'replace', path: '/services/directory', value: '2.0.0' },
   ];
@@ -55,19 +55,19 @@ it('renders RPC mismatch changes and saves them in the error report', async () =
   );
   try {
     await app.waitUntilRenderFlush();
-    await vi.waitFor(() =>
-      expect(readdirSync(join(directory, 'tmp'))).toHaveLength(1),
-    );
+    await vi.waitFor(() => expect(process.exitCode).toBe(1));
     await app.waitUntilRenderFlush();
     const output = stdout.mock.calls.map(call => String(call[0])).join('');
     expect(output).toContain('/services/directory');
     expect(output).toContain('2.0.0');
-    const report = readFileSync(
-      join(directory, 'tmp', readdirSync(join(directory, 'tmp'))[0]!),
-      'utf8',
-    );
-    expect(report).toContain(JSON.stringify(changes, null, 2));
-    expect(report).toContain('"changes": [');
+    expect(output).toContain('Spec rejected.');
+    expect(output.replace(/\s/g, '')).toContain(JSON.stringify(changes));
+    expect(output).toContain('"changes": [');
+    expect(output).toContain('"cause":');
+    expect(output).toContain(`"code": "${result.failure.code}"`);
+    expect(output).toContain('"extra": {');
+    expect(output).toContain('"status":');
+    expect(readdirSync(directory)).toEqual([]);
   } finally {
     app.unmount();
     await app.waitUntilExit();

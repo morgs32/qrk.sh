@@ -8,7 +8,7 @@ import {
 import { Effect, Result } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { AuthenticatedVersionedAggregateRepo } from '../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
+import { SelectionVersionedAggregateRepo } from '../SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
 import { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
 
 import { authenticate } from './authenticate.ts';
@@ -201,7 +201,7 @@ it.each(['missing-leading-slash', '/usr%2fnoncanonical', '//usr', '/%ZZ', '/'])(
   'rejects cold replica path %s before selection execution',
   async selectionPath => {
     const replica = await Effect.runPromise(
-      AuthenticatedVersionedAggregateRepo.getRepo({
+      SelectionVersionedAggregateRepo.getRepo({
         key: {
           systemId: env.ZEROSPIN_SYSTEM_ID,
           aggregateName: 'notes',

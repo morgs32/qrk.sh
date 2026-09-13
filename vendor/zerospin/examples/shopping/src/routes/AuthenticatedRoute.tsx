@@ -4,7 +4,7 @@ import { Navigate, Outlet } from 'react-router';
 
 import { RequiredUserProvider } from '@/components/RequiredUser';
 import { ClerkUserIdSchema } from '@/zerospin/aggregates/shopper/models/user/UserV1';
-import { ZerospinApp } from '@/zerospin/ZerospinApp';
+import { Catalog, Shopper, ZerospinApp } from '@/zerospin/ZerospinApp';
 
 export function AuthenticatedRoute() {
   const { user, isLoaded } = useUser();
@@ -21,13 +21,15 @@ export function AuthenticatedRoute() {
 
   return (
     <RequiredUserProvider user={user}>
-      <ZerospinApp.Provider
-        generateSignature={{
-          shopperFrontend: () => Effect.succeed({ clerkUserId }),
-          appFrontend: () => Effect.succeed({ clerkUserId }),
-        }}
-      >
-        <Outlet />
+      <ZerospinApp.Provider>
+        <Shopper
+          key={user.id}
+          generateSignature={() => Effect.succeed({ clerkUserId })}
+        >
+          <Catalog generateSignature={() => Effect.succeed({ clerkUserId })}>
+            <Outlet />
+          </Catalog>
+        </Shopper>
       </ZerospinApp.Provider>
     </RequiredUserProvider>
   );

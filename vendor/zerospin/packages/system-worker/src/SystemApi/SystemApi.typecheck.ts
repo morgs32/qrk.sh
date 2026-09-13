@@ -92,20 +92,16 @@ void systemApi.getSystemRepos(emptyRequest);
 void systemApi.getSystemRepoTableRows(repoTableRequest);
 void systemApi.getVersionedAggregateRepos(emptyRequest);
 void systemApi.getVersionedAggregateRepoTableRows(repoTableRequest);
-void systemApi.getAuthenticatedVersionedAggregateRepos(emptyRequest);
-void systemApi.getAuthenticatedVersionedAggregateRepoTableRows(
-  repoTableRequest,
-);
+void systemApi.getSelectionVersionedAggregateRepos(emptyRequest);
+void systemApi.getSelectionVersionedAggregateRepoTableRows(repoTableRequest);
 void systemApi.getFrontendVersionedServiceRepos(emptyRequest);
 void systemApi.getFrontendVersionedServiceRepoTableRows(repoTableRequest);
 void systemApi.getVersionedServiceRepos(emptyRequest);
 void systemApi.getVersionedServiceRepoTableRows(repoTableRequest);
 void systemApi.getAggregateChains(emptyRequest);
 void systemApi.getAggregateChainTableRows(repoTableRequest);
-void systemApi.getAuthenticatedVersionedAggregateChains(emptyRequest);
-void systemApi.getAuthenticatedVersionedAggregateChainTableRows(
-  repoTableRequest,
-);
+void systemApi.getSelectionVersionedAggregateChains(emptyRequest);
+void systemApi.getSelectionVersionedAggregateChainTableRows(repoTableRequest);
 void systemApi.getVersionedAggregateChains(emptyRequest);
 void systemApi.getVersionedAggregateChainTableRows(repoTableRequest);
 void systemApi.getFrontendServiceChains(emptyRequest);
@@ -129,8 +125,8 @@ void systemApiFailure.getSystemRepos(emptyRequest);
 void systemApiFailure.getSystemRepoTableRows(repoTableRequest);
 void systemApiFailure.getVersionedAggregateRepos(emptyRequest);
 void systemApiFailure.getVersionedAggregateRepoTableRows(repoTableRequest);
-void systemApiFailure.getAuthenticatedVersionedAggregateRepos(emptyRequest);
-void systemApiFailure.getAuthenticatedVersionedAggregateRepoTableRows(
+void systemApiFailure.getSelectionVersionedAggregateRepos(emptyRequest);
+void systemApiFailure.getSelectionVersionedAggregateRepoTableRows(
   repoTableRequest,
 );
 void systemApiFailure.getFrontendVersionedServiceRepos(emptyRequest);
@@ -141,8 +137,8 @@ void systemApiFailure.getVersionedServiceRepos(emptyRequest);
 void systemApiFailure.getVersionedServiceRepoTableRows(repoTableRequest);
 void systemApiFailure.getAggregateChains(emptyRequest);
 void systemApiFailure.getAggregateChainTableRows(repoTableRequest);
-void systemApiFailure.getAuthenticatedVersionedAggregateChains(emptyRequest);
-void systemApiFailure.getAuthenticatedVersionedAggregateChainTableRows(
+void systemApiFailure.getSelectionVersionedAggregateChains(emptyRequest);
+void systemApiFailure.getSelectionVersionedAggregateChainTableRows(
   repoTableRequest,
 );
 void systemApiFailure.getVersionedAggregateChains(emptyRequest);

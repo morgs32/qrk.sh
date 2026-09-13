@@ -77,26 +77,26 @@ SystemWorker route. It serves state and WebSocket tickets.
 
 ## command chain
 
-A durable ordered history owner. AC retains immutable admitted aggregate inputs. VAC retains terminal execution entries per aggregate version. UVAC retains independent frontend output positions. ServiceAdmittedChain and the versioned service finalized chains retain service admission, execution outcomes, and service frontend output.
+A durable ordered history owner. AC retains immutable admitted aggregate inputs. VAC retains terminal execution entries per aggregate version. SelectionVAC retains independent frontend output positions. ServiceAdmittedChain and the versioned service finalized chains retain service admission, execution outcomes, and service frontend output.
 
 - [`aggregateChainDbConfig.ts`](../packages/system-worker/src/AggregateChain/aggregateChainDbConfig.ts) — Stores immutable aggregate inputs with their admitted position and canonical bytes.
-- [`authenticatedVersionedAggregateChainDbConfig.ts`](../packages/system-worker/src/AuthenticatedVersionedAggregateChain/authenticatedVersionedAggregateChainDbConfig.ts) — Stores each frontend output by its independent primary-key position and retains its aggregate watermark.
+- [`selectionVersionedAggregateChainDbConfig.ts`](../packages/system-worker/src/SelectionVersionedAggregateChain/selectionVersionedAggregateChainDbConfig.ts) — Stores each frontend output by its independent primary-key position and retains its aggregate watermark.
 
 ## aggregate and service Repos
 
-Durable resource-state owners. VAR prepares and executes admitted commands per aggregate version. UVAR replays those terminal entries into aggregate replica state and emits one selected/projected frontend delta per input position. Service Repos retain their separate role.
+Durable resource-state owners. VAR prepares and executes admitted commands per aggregate version. SelectionVAR replays those terminal entries into aggregate replica state and emits one selected/projected frontend delta per input position. Service Repos retain their separate role.
 
-- [`execute.ts`](../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/execute.ts) — Defines the current ownership and execution contract.
+- [`execute.ts`](../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/execute.ts) — Defines the current ownership and execution contract.
 
 ## suffix
 
-A bounded contiguous page after a consumer cursor. Transport page boundaries do not merge command semantics or allocate batch identities. AC and VAC supply SQL-limited suffixes; UVAR commits one output per command.
+A bounded contiguous page after a consumer cursor. Transport page boundaries do not merge command semantics or allocate batch identities. AC and VAC supply SQL-limited suffixes; SelectionVAR commits one output per command.
 
 - [`makeFanoutQueue.ts`](../packages/system-worker/src/makeFanoutQueue/makeFanoutQueue.ts) — Reads complete rows after the exclusive cursor with a 64-row limit and an optional inclusive upper bound.
 
 ## userIndex
 
-The contiguous position of one aggregate frontend output in UVAR's UVAC log.
+The contiguous position of one aggregate frontend output in SelectionVAR's SelectionVAC log.
 It advances for aggregate outcomes and independent pinned-service occurrences,
 including outputs with an empty delta. Snapshots and WebSocket resume use this
 position; an output with `resolution: null` does not acknowledge an aggregate
@@ -162,13 +162,14 @@ replica changes and enrollment.
 
 ## mounted frontend
 
-The nominal React application value produced by `makeMountedFrontend`. It
-retains the authored controller and a complete version map; aggregate mounts
-require current model versions, while service mounts may select historical
-models. `makeZerospinApp` rejects any frontend that is not this identity.
+A mounted instance of the React component returned by `App.makeFrontend(controller)`.
+It owns one session and its bootstrap/recovery scope. The component itself retains
+the authored controller and models and acts as the selector passed to session and
+query hooks. Its matching app Provider supplies shared resources. A second active
+mount with the same controller name in that app is rejected.
 
-- [`makeMountedFrontend.ts`](../packages/react/src/makeMountedFrontend.ts) — brands the class so only `makeMountedFrontend` can construct instances.
-- [`resolveMountedFrontend.ts`](../packages/react/src/resolveMountedFrontend.ts) — rejects a configured frontend that is not a `MountedFrontend`.
+- [`makeZerospinApp.tsx`](../packages/react/src/makeZerospinApp.tsx) — constructs bound frontend components and manages their independent mounted lifetimes.
+- [`useSession.ts`](../packages/react/src/useSession.ts) — resolves the exact component selector from ancestor session context.
 
 ## WebSocket ticket
 

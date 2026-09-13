@@ -279,7 +279,6 @@ export function makeMockProvider<
             });
             const session = makeBrowserSession({ session: coreSession });
             return {
-              mountedFrontends: { [selector.frontend.name]: selector },
               sessions: new Map([
                 [
                   selector,

@@ -52,7 +52,7 @@ the measurements below predate that extraction.
 | Complexity | File                                                                                                                                    |
 | ---------: | --------------------------------------------------------------------------------------------------------------------------------------- |
 |        160 | [`bootstrapAggregateFrontendSession.ts`](./packages/frontend/src/bootstrapAggregateFrontendSession.ts)                                  |
-|        135 | [`AuthenticatedVersionedAggregateRepo/catchup.ts`](./packages/system-worker/src/AuthenticatedVersionedAggregateRepo/catchup/catchup.ts) |
+|        135 | [`SelectionVersionedAggregateRepo/catchup.ts`](./packages/system-worker/src/SelectionVersionedAggregateRepo/catchup/catchup.ts) |
 |        125 | [`primitiveMaps.ts`](./packages/schema/src/primitiveMaps.ts)                                                                            |
 |        112 | [`makeModel.ts`](./packages/core/src/models/makeModel.ts)                                                                               |
 |        110 | [`VersionedAggregateRepo/execute.ts`](./packages/system-worker/src/VersionedAggregateRepo/execute/execute.ts)                           |

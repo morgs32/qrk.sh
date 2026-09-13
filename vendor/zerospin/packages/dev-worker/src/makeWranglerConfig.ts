@@ -31,12 +31,12 @@ export function makeWranglerConfig(props: {
     },
     { name: 'VERSIONED_SERVICE_CHAIN', class_name: 'VersionedServiceChain' },
     {
-      name: 'AUTHENTICATED_VERSIONED_AGGREGATE_REPO',
-      class_name: 'AuthenticatedVersionedAggregateRepo',
+      name: 'SELECTION_VERSIONED_AGGREGATE_REPO',
+      class_name: 'SelectionVersionedAggregateRepo',
     },
     {
-      name: 'AUTHENTICATED_VERSIONED_AGGREGATE_CHAIN',
-      class_name: 'AuthenticatedVersionedAggregateChain',
+      name: 'SELECTION_VERSIONED_AGGREGATE_CHAIN',
+      class_name: 'SelectionVersionedAggregateChain',
     },
     { name: 'SERVICE_ADMITTED_CHAIN', class_name: 'ServiceAdmittedChain' },
     {

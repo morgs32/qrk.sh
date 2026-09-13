@@ -9,7 +9,7 @@ import { makeAbbreviationIdSchema } from '@zerospin/schema';
 import { env } from 'cloudflare:workers';
 import { Effect, Schema, type Context } from 'effect';
 
-import { AuthenticatedVersionedAggregateRepo } from '../../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
+import { SelectionVersionedAggregateRepo } from '../../SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
 import { adaptFrontendResource } from '../../StaticSystem/adaptFrontendResource/adaptFrontendResource.js';
 import { SelectedAggregateFrontendLockSchema } from '../../StaticSystem/frontendSpecSchemas.js';
 import { validateAggregateFrontendLock } from '../../StaticSystem/validateAggregateFrontendLock/validateAggregateFrontendLock.js';
@@ -90,9 +90,9 @@ export const getAggregateFrontendState = Effect.fn(
         // 4 — decode AggregateChain.getBaseAggregateVersion
         const aggregateVersion = args.aggregateVersion;
 
-        // 5 — open AuthenticatedVersionedAggregateRepo with the supplied view fields
+        // 5 — open SelectionVersionedAggregateRepo with the supplied view fields
         const aggregateFrontendRepo =
-          yield* AuthenticatedVersionedAggregateRepo.getRepo({
+          yield* SelectionVersionedAggregateRepo.getRepo({
             key: {
               systemId: env.ZEROSPIN_SYSTEM_ID,
               aggregateVersion,
@@ -127,7 +127,7 @@ export const getAggregateFrontendState = Effect.fn(
           mapParseError({
             code: 'aggregate-frontend-state-rpc-invalid',
             prefix:
-              'Failed to decode AuthenticatedVersionedAggregateRepo state RPC',
+              'Failed to decode SelectionVersionedAggregateRepo state RPC',
           }),
         );
         const canonicalState = yield* decodeRpc(canonicalStateEncoded);

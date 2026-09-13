@@ -15,8 +15,8 @@ import { Effect, Schema } from 'effect';
 import { expect, it } from 'vitest';
 
 import { AggregateChain } from './AggregateChain/AggregateChain.js';
-import { AuthenticatedVersionedAggregateChain } from './AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
-import { AuthenticatedVersionedAggregateRepo } from './AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
+import { SelectionVersionedAggregateChain } from './SelectionVersionedAggregateChain/SelectionVersionedAggregateChain.js';
+import { SelectionVersionedAggregateRepo } from './SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
 import { ServiceAdmittedChain } from './ServiceAdmittedChain/ServiceAdmittedChain.js';
 import { VersionedAggregateChain } from './VersionedAggregateChain/VersionedAggregateChain.js';
 import { VersionedAggregateRepo } from './VersionedAggregateRepo/VersionedAggregateRepo.js';
@@ -103,7 +103,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
         (await final.replicaFanoutQueue).getPage({ afterIndex: 0 }),
       ).pipe(Effect.flatMap(decodeRpc));
       expect(JSON.parse(first.rows[0]!.entry).command.failure).toBeNull();
-      const replica = yield* AuthenticatedVersionedAggregateRepo.getRepo({
+      const replica = yield* SelectionVersionedAggregateRepo.getRepo({
         key: view,
       });
       const initial = yield* makeAsync(() =>
@@ -154,7 +154,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
           )
           .toBe('Updated product'),
       );
-      // VAR and AVAR subscribe independently; one receiver does not fence the other.
+      // VAR and SelectionVAR subscribe independently; one receiver does not fence the other.
       yield* makeAsync(() =>
         expect
           .poll(
@@ -186,7 +186,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
           (await final.replicaFanoutQueue).getPage({ afterIndex: 0 }),
         ).pipe(Effect.flatMap(decodeRpc))).rows,
       ).toHaveLength(1);
-      const frontend = yield* AuthenticatedVersionedAggregateChain.getRepo({
+      const frontend = yield* SelectionVersionedAggregateChain.getRepo({
         key: view,
       });
       const outputs = yield* makeAsync(() =>
@@ -251,7 +251,7 @@ it('initializes before guards and delivers pinned updates and tombstones indepen
       yield* makeAsync(() => service.flush(deleted.serviceIndex)).pipe(
         Effect.flatMap(decodeRpc),
       );
-      const replica = yield* AuthenticatedVersionedAggregateRepo.getRepo({
+      const replica = yield* SelectionVersionedAggregateRepo.getRepo({
         key: view,
       });
       yield* makeAsync(() =>

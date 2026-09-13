@@ -15,12 +15,12 @@ import type { IRpcRequest } from '@zerospin/logger';
 import config from 'config';
 import { Effect, Result, Schema } from 'effect';
 
-import { AuthenticatedVersionedAggregateChain } from '../../AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
+import { SelectionVersionedAggregateChain } from '../../SelectionVersionedAggregateChain/SelectionVersionedAggregateChain.js';
 
 const { system } = config;
 
 /*
- * AggregateFrontendApi serves reconnect history from AuthenticatedVersionedAggregateChain.
+ * AggregateFrontendApi serves reconnect history from SelectionVersionedAggregateChain.
  * The capability binds the frontend identity; the request supplies the replay
  * cursor and aggregateVersion.
  *
@@ -103,7 +103,7 @@ export const getFinalizedCommands = Effect.fn(
   }
 
   // 3 — use the capability-bound frontend fields and caller-selected version
-  const chain = yield* AuthenticatedVersionedAggregateChain.getRepo({
+  const chain = yield* SelectionVersionedAggregateChain.getRepo({
     key: {
       systemId: authResults.systemId,
       aggregateVersion: validated.success[0].aggregateVersion,

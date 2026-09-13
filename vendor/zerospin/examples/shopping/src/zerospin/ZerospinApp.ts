@@ -20,6 +20,7 @@ import {
 import type { shopperV2 } from './aggregates/shopper/ShopperV2';
 import type { appV1 } from './services/app/AppV1';
 import { productV1 } from './services/app/models/product/ProductV1';
+import type { system } from './system';
 
 const ShopperFrontendV2 = sdk.makeFrontendController({
   authentication: {
@@ -107,11 +108,9 @@ const applicationLayer = Layer.mergeAll(
   Layer.succeed(sdk.PublishableKey, Redacted.make(zerospinPublishableKey)),
 );
 
-export const ZerospinApp = makeZerospinApp({
+export const ZerospinApp = makeZerospinApp<typeof system>({
   systemName: 'shopping',
-  frontends: {
-    shopperFrontend: ShopperFrontendV2,
-    appFrontend: AppFrontendV1,
-  },
   layer: applicationLayer,
 });
+export const Shopper = ZerospinApp.makeFrontend(ShopperFrontendV2);
+export const Catalog = ZerospinApp.makeFrontend(AppFrontendV1);

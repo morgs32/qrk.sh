@@ -33,10 +33,10 @@ import { ClerkUserIdSchema } from '@/zerospin/aggregates/shopper/models/user/Use
 import { createProductV1 } from '@/zerospin/services/app/contracts/createProduct/CreateProductV1';
 import { deleteProductV1 } from '@/zerospin/services/app/contracts/deleteProduct/DeleteProductV1';
 import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
-import { ZerospinApp } from '@/zerospin/ZerospinApp';
+import { Catalog, Shopper } from '@/zerospin/ZerospinApp';
 
-const WebV2 = ZerospinApp.frontends.shopperFrontend.frontend;
-const CatalogV1 = ZerospinApp.frontends.appFrontend.frontend;
+const WebV2 = Shopper.frontend;
+const CatalogV1 = Catalog.frontend;
 
 Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', {
   configurable: true,
@@ -59,37 +59,28 @@ const testRuntimeLayer = Layer.mergeAll(
   ),
   testRuntime = ManagedRuntime.make(testRuntimeLayer);
 
-const FlowZerospinApp = makeZerospinApp({
-  systemName: 'shopping',
-
-  frontends: {
-    shopperFrontend: WebV2,
-    appFrontend: CatalogV1,
-  },
-  layer: testRuntimeLayer,
-});
+const FlowZerospinApp = makeZerospinApp<
+  typeof import('@/zerospin/system').system
+>({ systemName: 'shopping', layer: testRuntimeLayer });
+const FlowZerospinAppShopperFrontend = FlowZerospinApp.makeFrontend(WebV2);
+const FlowZerospinAppAppFrontend = FlowZerospinApp.makeFrontend(CatalogV1);
 
 function FlowSessionsProbe(props: {
   onSessions(
     aggregateSession: IBrowserSession<
-      typeof FlowZerospinApp.frontends.shopperFrontend.frontend
+      typeof FlowZerospinAppShopperFrontend.frontend
     >,
     serviceSession: IBrowserServiceSession<typeof CatalogV1>,
   ): void;
 }) {
-  const aggregateSession = useSession(
-    FlowZerospinApp.frontends.shopperFrontend,
-  );
-  const serviceSession = useSession(FlowZerospinApp.frontends.appFrontend);
-  const { data: cartItem } = useLiveQuery(
-    FlowZerospinApp.frontends.shopperFrontend,
-    {
-      query: db =>
-        db.query.cartItem.findFirst({
-          with: { product: true },
-        }),
-    },
-  );
+  const aggregateSession = useSession(FlowZerospinAppShopperFrontend);
+  const serviceSession = useSession(FlowZerospinAppAppFrontend);
+  const { data: cartItem } = useLiveQuery(FlowZerospinAppShopperFrontend, {
+    query: db =>
+      db.query.cartItem.findFirst({
+        with: { product: true },
+      }),
+  });
   const { onSessions } = props;
 
   useEffect(() => {
@@ -187,7 +178,7 @@ describe('main-thread frontend flow', () => {
     const root = createRoot(container);
     const sessions: {
       aggregate: IBrowserSession<
-        typeof FlowZerospinApp.frontends.shopperFrontend.frontend
+        typeof FlowZerospinAppShopperFrontend.frontend
       > | null;
       service: IBrowserServiceSession<typeof CatalogV1> | null;
     } = { aggregate: null, service: null };
@@ -197,21 +188,23 @@ describe('main-thread frontend flow', () => {
       await act(async () => {
         root.render(
           createElement(FlowZerospinApp.Provider, {
-            generateSignature: {
-              shopperFrontend: () => {
+            children: createElement(FlowZerospinAppShopperFrontend, {
+              generateSignature: () => {
                 signatureCallCount += 1;
                 return Effect.succeed({ clerkUserId });
               },
-              appFrontend: () => {
-                signatureCallCount += 1;
-                return Effect.succeed({ clerkUserId });
-              },
-            },
-            children: createElement(FlowSessionsProbe, {
-              onSessions: (aggregateSession, serviceSession) => {
-                sessions.aggregate = aggregateSession;
-                sessions.service = serviceSession;
-              },
+              children: createElement(FlowZerospinAppAppFrontend, {
+                generateSignature: () => {
+                  signatureCallCount += 1;
+                  return Effect.succeed({ clerkUserId });
+                },
+                children: createElement(FlowSessionsProbe, {
+                  onSessions: (aggregateSession, serviceSession) => {
+                    sessions.aggregate = aggregateSession;
+                    sessions.service = serviceSession;
+                  },
+                }),
+              }),
             }),
           }),
         );

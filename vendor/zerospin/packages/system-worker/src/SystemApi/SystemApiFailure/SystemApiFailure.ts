@@ -12,14 +12,14 @@ import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.j
 import { getAggregateChains } from './getAggregateChains/getAggregateChains.js';
 import { getAggregateChainTableRows } from './getAggregateChainTableRows/getAggregateChainTableRows.js';
 import { getAggregateFrontendState } from './getAggregateFrontendState/getAggregateFrontendState.js';
-import { getAuthenticatedVersionedAggregateChains } from './getAuthenticatedVersionedAggregateChains/getAuthenticatedVersionedAggregateChains.js';
-import { getAuthenticatedVersionedAggregateChainTableRows } from './getAuthenticatedVersionedAggregateChainTableRows/getAuthenticatedVersionedAggregateChainTableRows.js';
-import { getAuthenticatedVersionedAggregateRepos } from './getAuthenticatedVersionedAggregateRepos/getAuthenticatedVersionedAggregateRepos.js';
-import { getAuthenticatedVersionedAggregateRepoTableRows } from './getAuthenticatedVersionedAggregateRepoTableRows/getAuthenticatedVersionedAggregateRepoTableRows.js';
 import { getFrontendServiceChains } from './getFrontendServiceChains/getFrontendServiceChains.js';
 import { getFrontendServiceChainTableRows } from './getFrontendServiceChainTableRows/getFrontendServiceChainTableRows.js';
 import { getFrontendVersionedServiceRepos } from './getFrontendVersionedServiceRepos/getFrontendVersionedServiceRepos.js';
 import { getFrontendVersionedServiceRepoTableRows } from './getFrontendVersionedServiceRepoTableRows/getFrontendVersionedServiceRepoTableRows.js';
+import { getSelectionVersionedAggregateChains } from './getSelectionVersionedAggregateChains/getSelectionVersionedAggregateChains.js';
+import { getSelectionVersionedAggregateChainTableRows } from './getSelectionVersionedAggregateChainTableRows/getSelectionVersionedAggregateChainTableRows.js';
+import { getSelectionVersionedAggregateRepos } from './getSelectionVersionedAggregateRepos/getSelectionVersionedAggregateRepos.js';
+import { getSelectionVersionedAggregateRepoTableRows } from './getSelectionVersionedAggregateRepoTableRows/getSelectionVersionedAggregateRepoTableRows.js';
 import { getServiceAdmittedChains } from './getServiceAdmittedChains/getServiceAdmittedChains.js';
 import { getServiceAdmittedChainTableRows } from './getServiceAdmittedChainTableRows/getServiceAdmittedChainTableRows.js';
 import { getSystemLogRepos } from './getSystemLogRepos/getSystemLogRepos.js';
@@ -201,18 +201,16 @@ export class SystemApiFailure extends RpcTarget {
   }
 
   /*
-   * SystemApiFailure.getAuthenticatedVersionedAggregateRepos answers a rejected capability with its retained admission error.
+   * SystemApiFailure.getSelectionVersionedAggregateRepos answers a rejected capability with its retained admission error.
    *
    * 1. Run the bound domain operation.
    */
-  async getAuthenticatedVersionedAggregateRepos(
-    request: Parameters<
-      SystemApi['getAuthenticatedVersionedAggregateRepos']
-    >[0],
-  ): ReturnType<SystemApi['getAuthenticatedVersionedAggregateRepos']> {
-    // 1 — run getAuthenticatedVersionedAggregateRepos with the retained admission error
+  async getSelectionVersionedAggregateRepos(
+    request: Parameters<SystemApi['getSelectionVersionedAggregateRepos']>[0],
+  ): ReturnType<SystemApi['getSelectionVersionedAggregateRepos']> {
+    // 1 — run getSelectionVersionedAggregateRepos with the retained admission error
     return Effect.runPromise(
-      getAuthenticatedVersionedAggregateRepos({
+      getSelectionVersionedAggregateRepos({
         request,
         error: this.error,
       }),
@@ -220,18 +218,18 @@ export class SystemApiFailure extends RpcTarget {
   }
 
   /*
-   * SystemApiFailure.getAuthenticatedVersionedAggregateRepoTableRows answers a rejected capability with its retained admission error.
+   * SystemApiFailure.getSelectionVersionedAggregateRepoTableRows answers a rejected capability with its retained admission error.
    *
    * 1. Run the bound domain operation.
    */
-  async getAuthenticatedVersionedAggregateRepoTableRows(
+  async getSelectionVersionedAggregateRepoTableRows(
     request: Parameters<
-      SystemApi['getAuthenticatedVersionedAggregateRepoTableRows']
+      SystemApi['getSelectionVersionedAggregateRepoTableRows']
     >[0],
-  ): ReturnType<SystemApi['getAuthenticatedVersionedAggregateRepoTableRows']> {
-    // 1 — run getAuthenticatedVersionedAggregateRepoTableRows with the retained admission error
+  ): ReturnType<SystemApi['getSelectionVersionedAggregateRepoTableRows']> {
+    // 1 — run getSelectionVersionedAggregateRepoTableRows with the retained admission error
     return Effect.runPromise(
-      getAuthenticatedVersionedAggregateRepoTableRows({
+      getSelectionVersionedAggregateRepoTableRows({
         request,
         error: this.error,
       }),
@@ -334,34 +332,32 @@ export class SystemApiFailure extends RpcTarget {
   }
 
   /*
-   * SystemApiFailure.getAuthenticatedVersionedAggregateChains answers a rejected capability with its retained admission error.
+   * SystemApiFailure.getSelectionVersionedAggregateChains answers a rejected capability with its retained admission error.
    *
    * 1. Run the bound domain operation.
    */
-  async getAuthenticatedVersionedAggregateChains(
-    request: Parameters<
-      SystemApi['getAuthenticatedVersionedAggregateChains']
-    >[0],
-  ): ReturnType<SystemApi['getAuthenticatedVersionedAggregateChains']> {
-    // 1 — run getAuthenticatedVersionedAggregateChains with the retained admission error
+  async getSelectionVersionedAggregateChains(
+    request: Parameters<SystemApi['getSelectionVersionedAggregateChains']>[0],
+  ): ReturnType<SystemApi['getSelectionVersionedAggregateChains']> {
+    // 1 — run getSelectionVersionedAggregateChains with the retained admission error
     return Effect.runPromise(
-      getAuthenticatedVersionedAggregateChains({ request, error: this.error }),
+      getSelectionVersionedAggregateChains({ request, error: this.error }),
     );
   }
 
   /*
-   * SystemApiFailure.getAuthenticatedVersionedAggregateChainTableRows answers a rejected capability with its retained admission error.
+   * SystemApiFailure.getSelectionVersionedAggregateChainTableRows answers a rejected capability with its retained admission error.
    *
    * 1. Run the bound domain operation.
    */
-  async getAuthenticatedVersionedAggregateChainTableRows(
+  async getSelectionVersionedAggregateChainTableRows(
     request: Parameters<
-      SystemApi['getAuthenticatedVersionedAggregateChainTableRows']
+      SystemApi['getSelectionVersionedAggregateChainTableRows']
     >[0],
-  ): ReturnType<SystemApi['getAuthenticatedVersionedAggregateChainTableRows']> {
-    // 1 — run getAuthenticatedVersionedAggregateChainTableRows with the retained admission error
+  ): ReturnType<SystemApi['getSelectionVersionedAggregateChainTableRows']> {
+    // 1 — run getSelectionVersionedAggregateChainTableRows with the retained admission error
     return Effect.runPromise(
-      getAuthenticatedVersionedAggregateChainTableRows({
+      getSelectionVersionedAggregateChainTableRows({
         request,
         error: this.error,
       }),

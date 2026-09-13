@@ -50,7 +50,7 @@ export function makePlaywrightVitestConfig(props: {
       browser: {
         enabled: true,
         provider: playwright(),
-        instances: [{ browser: 'chromium' }],
+        instances: [{ browser: 'chromium', headless: true }],
       },
       testTimeout: 120_000,
     },

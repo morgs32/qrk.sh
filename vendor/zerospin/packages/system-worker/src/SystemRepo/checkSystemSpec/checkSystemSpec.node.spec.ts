@@ -320,12 +320,12 @@ describe('registration requires accepted definitions', () => {
       spec,
       repoTable: systemRepoDbConfig.schema.repos,
       frontendRepo: {
-        repoType: 'AuthenticatedVersionedAggregateRepo',
+        repoType: 'SelectionVersionedAggregateRepo',
         repoName: 'frontend',
         tableNames: ['projection'],
       },
       finalizedCommandChain: {
-        repoType: 'AuthenticatedVersionedAggregateChain',
+        repoType: 'SelectionVersionedAggregateChain',
         repoName: 'chain',
         tableNames: ['commands'],
       },

@@ -2,17 +2,15 @@ import { useInitializedStateOrThrow, useLiveQuery } from '@zerospin/react';
 
 import { ProductCard } from './ProductCard';
 
-import { ZerospinApp } from '@/zerospin/ZerospinApp';
+import { Catalog, Shopper } from '@/zerospin/ZerospinApp';
 
 export function ProductList() {
-  const { authentication } = useInitializedStateOrThrow(
-    ZerospinApp.frontends.shopperFrontend,
-  );
-  const { data: products } = useLiveQuery(ZerospinApp.frontends.appFrontend, {
+  const { authentication } = useInitializedStateOrThrow(Shopper);
+  const { data: products } = useLiveQuery(Catalog, {
     query: db => db.query.product.findMany(),
   });
 
-  const { data: user } = useLiveQuery(ZerospinApp.frontends.shopperFrontend, {
+  const { data: user } = useLiveQuery(Shopper, {
     query: db =>
       db.query.user.findFirst({
         where: { clerkUserId: { eq: authentication.clerkUserId } },

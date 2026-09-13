@@ -22,9 +22,9 @@ import {
 
 import { ClerkUserIdSchema } from '../../src/zerospin/aggregates/shopper/models/user/UserV1';
 
-import { ZerospinApp } from '@/zerospin/ZerospinApp';
-const WebV2 = ZerospinApp.frontends.shopperFrontend.frontend;
-const CatalogV1 = ZerospinApp.frontends.appFrontend.frontend;
+import { Catalog, Shopper } from '@/zerospin/ZerospinApp';
+const WebV2 = Shopper.frontend;
+const CatalogV1 = Catalog.frontend;
 
 const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),

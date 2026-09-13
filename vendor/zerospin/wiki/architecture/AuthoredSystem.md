@@ -105,7 +105,7 @@ patch array in `extra.changes`.
 - [`checkSystemSpec.ts`](../../packages/system-worker/src/SystemRepo/checkSystemSpec/checkSystemSpec.ts) — validates the candidate and atomically compares or inserts its definitions.
 - [`systemRepoDbConfig.ts`](../../packages/system-worker/src/SystemRepo/systemRepoDbConfig.ts) — stores aggregate and service versions independently of registration.
 - [`assertAcceptedSpec.ts`](../../packages/system-worker/src/SystemRepo/assertAcceptedSpec/assertAcceptedSpec.ts) — produces descriptive patch failures shared by acceptance and registration.
-- [`ProcedureStepError.tsx`](../../packages/cli/src/ProcedureStep/ProcedureStepError.tsx) — renders the mismatch message and saves the message and structured error details.
+- [`ProcedureStepError.tsx`](../../packages/cli/src/ProcedureStep/ProcedureStepError.tsx) — renders the mismatch message and structured error details inline in the terminal.
 - [`makeSystemSpec.ts`](../../packages/core/src/system/makeSystemSpec.ts) — defines the serialized aggregate/service fields.
 
 Every common Repo activation serializes its executing bundle and requests
@@ -378,32 +378,36 @@ arguments to every guard call.
 - [`initializeGuards.ts`](../../packages/core/src/guards/initializeGuards.ts) — builds a fresh local layer in the caller's scope and retains typed provision around synchronous guards.
 - [`ownerLayers.node.spec.ts`](../../packages/core/src/guards/ownerLayers.node.spec.ts) — verifies sibling isolation and application dependencies captured before a local override.
 
-`makeZerospinApp` returns typed system-name and frontend metadata alongside
-its frontend selectors and Provider. A standalone
-`checkZerospinApp<typeof system>(app)` checks structural compatibility with the
-system's concrete owner/version registries, allowing frontend model and contract
-subsets and additional system owners. Each frontend authentication descriptor
-matches its selected owner version. The checker returns `void` and performs no runtime
-validation; applications can import `system` with `import type`.
+`makeZerospinApp<typeof system, AppServices>({ systemName, layer })` binds
+application infrastructure to a type-only system reference. `App.makeFrontend(controller)`
+checks the selected owner/version, authentication descriptor, model and contract
+subsets, and remaining service requirements. It returns a React component that
+also carries the exact controller and models for `useSession(Frontend)` and
+`useLiveQuery(Frontend, ...)`.
 
-- [`checkZerospinApp.ts`](../../packages/react/src/checkZerospinApp.ts) — excludes broad registry keys and reuses aggregate/service frontend compatibility types.
-- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — preserves frontend-specific signature and authentication types in Provider inference.
-- [`checkZerospinApp.typecheck.ts`](../../packages/react/src/checkZerospinApp.typecheck.ts) — checks supported and rejected app configurations.
+- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — checks compatibility at frontend binding and keeps framework and application service requirements distinct.
+- [`makeFrontendCompatibility.typecheck.ts`](../../packages/react/src/makeFrontendCompatibility.typecheck.ts) — verifies concrete owner/version compatibility and rejects unknown or incompatible selections.
+- [`makeZerospinApp.typecheck.tsx`](../../packages/react/src/makeZerospinApp.typecheck.tsx) — verifies exact selector inference, signatures, and application service requirements.
 
-`makeZerospinApp` accepts an application layer. Each mounted Provider owns one
-managed runtime, with application services overriding framework ID/time defaults.
-Sessions share those application instances. Session replacement reacquires local
-services while retaining the Provider runtime; a separate mount creates a fresh
-runtime. The Provider awaits frontend initialization and passes its initialized
-guards and borrowed runtime into synchronous `makeAggregateSession`. That
-constructor builds no layers and owns no disposal. Cleanup marks sessions
-released before closing local scopes, then disposes the Provider runtime. Failed
-initialization releases acquired resources without publishing the failed session.
-Mock Providers follow the same ownership rules.
+Each mounted app Provider owns one managed runtime, with application services
+overriding framework ID/time defaults. Its first frontend lazily acquires the
+shared backup-worker connection; concurrent requests share acquisition, and the
+connection remains until app unmount. Frontend components independently own
+session scopes, local layers, bootstrap, and DevTools session registration.
+Each gates its children until ready, so siblings initialize independently and
+nested frontends initialize sequentially. Nested consumers can access ancestor
+frontend sessions. Duplicate active frontend names and mismatched app Providers
+are rejected.
 
+Updating a frontend signer retains its session. Changing identity requires an
+explicit keyed remount, which waits for predecessor cleanup. App teardown closes
+frontend scopes before the backup connection and application runtime. Synchronous
+`makeAggregateSession` borrows initialized guards and runtime and owns no layer
+acquisition. Mock Providers retain their existing independent resource ownership.
+
+- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — owns app resources, per-frontend initialization, readiness, identity checks, and ordered teardown.
 - [`makeAggregateSession.ts`](../../packages/core/src/session/makeAggregateSession.ts) — executes commands through the borrowed runtime and initialized frontend context.
-- [`makeZerospinApp.tsx`](../../packages/react/src/makeZerospinApp.tsx) — owns application runtime, session initialization, publication, and ordered teardown.
-- [`mock.ts`](../../packages/react/src/mock.ts) — owns application, local layer, and database resources through initialization failure, late completion, and unmount.
+- [`mock.ts`](../../packages/react/src/mock.ts) — accepts frontend component selectors and owns its mock runtime, layers, and database without live transports.
 
 Server command batches acquire `makeSystem` application services and then the
 selected aggregate or service layer before entering a synchronous transaction.
@@ -456,10 +460,10 @@ absent from own keys, object spread, and JSON serialization.
 - [`makeModel.ts`](../../packages/core/src/models/makeModel.ts) — registers one-shot provenance and discriminates replicas from the WeakMap, not own fields.
 - [`makeReplica.node.spec.ts`](../../packages/core/src/models/makeReplica.node.spec.ts) — verifies direct getters, non-enumerability, assignment resistance, one-shot registration, canonical discrimination, and spread/JSON omission.
 
-AVAR replays against the exact version's canonical aggregate models and uses
+SelectionVAR replays against the exact version's canonical aggregate models and uses
 `Model.isReplica` to recognize resources delivered independently from pinned VSC histories.
 
-- [`execute.ts`](../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/execute.ts) — Uses canonical model provenance when replaying service resources.
+- [`execute.ts`](../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/execute.ts) — Uses canonical model provenance when replaying service resources.
 
 Downstream lookup-and-trust starts from the completed `ISystem`. Development
 and deployment bind the root configuration module as the `config` module alias. The
@@ -806,11 +810,11 @@ Every aggregate and service version declares `{ signatureSchema, authenticationS
 Authorization and guards receive full decoded claims. Selections receive only `selectionSchema` fields reconstructed from the replica path. Aggregate authenticators may await exact-owner trusted provisioning commands with `authentication: null`. `guardLayer({ db, authentication })` binds lazy application services to each command transaction while preserving static layers.
 
 - [`authenticate.ts`](../../packages/system-worker/src/authenticate/authenticate.ts) — validates full claims, derives selected fields, awaits provisioning, and durably audits attempts.
-- [`executeTx.ts`](../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/executeTx.ts) — reconstructs recipient selection inputs independently of command authentication.
+- [`executeTx.ts`](../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — reconstructs recipient selection inputs independently of command authentication.
 - [`initializeGuards.ts`](../../packages/core/src/guards/initializeGuards.ts) — acquires static layers once and dynamic layers inside each synchronous guard execution.
 - [`CurrentUser.ts`](../../examples/shopping/src/zerospin/aggregates/shopper/CurrentUser.ts) — declares Shopping's lazy authenticated User lookup.
 
-Frontend controllers declare the signature, full authentication, and selection schemas plus the route pattern. Compatibility locks include their serialized descriptions. `Provider.generateSignature` is keyed by frontend name; authentication determines aggregate IDs. Browser sessions retain typed full claims, and backup keys include their canonical encoded hash.
+Frontend controllers declare the signature, full authentication, and selection schemas plus the route pattern. Compatibility locks include their serialized descriptions. `Frontend.generateSignature` supplies that mounted frontend's current signer; authentication determines aggregate IDs. Browser sessions retain typed full claims, and backup keys include their canonical encoded hash.
 
 - [`makeFrontendController.ts`](../../packages/core/src/frontendController/makeFrontendController.ts) — retains frontend authentication declarations.
 - [`makeAggregateFrontendLock.ts`](../../packages/core/src/frontendController/makeAggregateFrontendLock.ts) — includes authentication in the frontend lock.

@@ -1,4 +1,4 @@
-import { List, main, User } from '@zerospin/core/fixtures/system';
+import { List, main, User, type system } from '@zerospin/core/fixtures/system';
 import type { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import type { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import type { IAnyError } from '@zerospin/error';
@@ -12,16 +12,13 @@ declare const sessionRuntimeLayer: Layer.Layer<
   IAnyError
 >;
 
-const ZerospinApp = makeZerospinApp({
+const ZerospinApp = makeZerospinApp<typeof system>({
   systemName: 'system-worker',
-
-  frontends: {
-    main,
-  },
   layer: sessionRuntimeLayer,
 });
+const Main = ZerospinApp.makeFrontend(main);
 const MockMainProvider = makeMockProvider({
-  frontend: ZerospinApp.frontends.main,
+  frontend: Main,
   layer: sessionRuntimeLayer,
 });
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');

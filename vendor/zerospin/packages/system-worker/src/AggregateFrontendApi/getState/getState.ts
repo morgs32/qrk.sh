@@ -20,11 +20,11 @@ import {
 import { Effect, Result, Schema } from 'effect';
 import { isEqual } from 'es-toolkit';
 
-import { AuthenticatedVersionedAggregateRepo } from '../../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
+import { SelectionVersionedAggregateRepo } from '../../SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
 import { SystemLogRepo } from '../../SystemLogRepo/SystemLogRepo.js';
 
 /*
- * The aggregate frontend capability requests its admitted version from AVAR,
+ * The aggregate frontend capability requests its admitted version from SelectionVAR,
  * reconciles outstanding outcomes, and filters the shared user graph by its lock.
  *
  * 1. Validate the request arguments.
@@ -84,7 +84,7 @@ export const getState = Effect.fn('AggregateFrontendApi.getState')(
     // 3 — bind systemId, aggregateId, and aggregateName from the capability
     const aggregateVersion = authResults.aggregateVersion;
     const aggregateFrontendRepo =
-      yield* AuthenticatedVersionedAggregateRepo.getRepo({
+      yield* SelectionVersionedAggregateRepo.getRepo({
         key: {
           systemId: authResults.systemId,
           aggregateVersion,

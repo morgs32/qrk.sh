@@ -5,7 +5,7 @@ updated: 2026-09-11
 
 # Aggregate Frontend Submission
 
-Server execution starts in VAR after AC admission. The browser owns optimism; AVAR computes authoritative per-command view changes.
+Server execution starts in VAR after AC admission. The browser owns optimism; SelectionVAR computes authoritative per-command view changes.
 
 ## Trigger
 
@@ -18,7 +18,7 @@ sequenceDiagram
   participant AggregateSession
   participant AggregateFrontendApi
   participant AggregateChain
-  participant AuthenticatedVersionedAggregateChain
+  participant SelectionVersionedAggregateChain
   autonumber 1
   Browser->>AggregateSession: session.executeCommand(...)
   autonumber 2
@@ -28,7 +28,7 @@ sequenceDiagram
   autonumber 4
   AggregateChain-->>Browser: admission receipt
   autonumber 5
-  AuthenticatedVersionedAggregateChain-->>Browser: aggregateFrontendCommand
+  SelectionVersionedAggregateChain-->>Browser: aggregateFrontendCommand
   autonumber 6
   Browser->>Browser: apply authoritative output and reconcile optimism
 ```
@@ -44,7 +44,7 @@ sequenceDiagram
 4. An admission receipt stops resubmission; it does not resolve optimism.
    - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — Stores receipt progress in the journal while retaining optimistic mutation rows.
 5. A durable output supplies the per-command delta and complete originating resolution for this view.
-   - [`receiveDeltas.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateChain/receiveDeltas/receiveDeltas.ts) — Validates the resolution target and persists output before broadcasting.
+   - [`receiveDeltas.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/receiveDeltas/receiveDeltas.ts) — Validates the resolution target and persists output before broadcasting.
 6. The session rewinds optimism, applies the authoritative delta, resolves that command ID, and replays the remaining optimism in one transaction.
    - [`applyAggregateFrontendCommandTx.ts`](../../../packages/core/src/session/applyAggregateFrontendCommandTx.ts) — Rejects gaps, ignores committed duplicates, and advances the aggregate cursor after application.
 
@@ -75,8 +75,8 @@ commands from older periods.
 
 ## Reconnect
 
-A published AVAR snapshot carries `aggregateVersion`, cursor `n`, and complete resolutions for the requested outstanding command IDs. The browser installs that state, retains unresolved local optimism, and consumes AVAC output strictly after `n`.
+A published SelectionVAR snapshot carries `aggregateVersion`, cursor `n`, and complete resolutions for the requested outstanding command IDs. The browser installs that state, retains unresolved local optimism, and consumes SelectionVAC output strictly after `n`.
 
-- [`getState.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/getState/getState.ts) — Captures state and cursor together and awaits publication outside the execution semaphore.
+- [`getState.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/getState/getState.ts) — Captures state and cursor together and awaits publication outside the execution semaphore.
 - [`applyAggregateFrontendStateTx.ts`](../../../packages/core/src/session/applyAggregateFrontendStateTx.ts) — Records full outcomes and their admission indices, then replays surviving local optimism.
 - [`frontendReplica.node.spec.ts`](../../../packages/system-worker/src/frontendReplica.node.spec.ts) — Verifies rejection resolution, surviving optimism, duplicate delivery, empty progress, and gap rejection.

@@ -97,7 +97,7 @@ export class AggregateFrontendApi extends RpcTarget {
   }
 
   /*
-   * AggregateFrontendApi serves reconnect history from AuthenticatedVersionedAggregateChain.
+   * AggregateFrontendApi serves reconnect history from SelectionVersionedAggregateChain.
    * The capability binds the frontend identity; the request supplies the replay
    * cursor and aggregateVersion.
    *

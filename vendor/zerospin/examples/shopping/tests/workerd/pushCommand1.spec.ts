@@ -232,12 +232,12 @@ describe('pushCommand1: static frontend command push', () => {
           expect(
             yield* makeAsync(() =>
               systemRepo.getRepoRegistrations({
-                repoType: 'AuthenticatedVersionedAggregateRepo',
+                repoType: 'SelectionVersionedAggregateRepo',
               }),
             ).pipe(Effect.flatMap(decodeRpc)),
           ).toEqual([
             expect.objectContaining({
-              repoType: 'AuthenticatedVersionedAggregateRepo',
+              repoType: 'SelectionVersionedAggregateRepo',
             }),
           ]);
         }).pipe(Effect.provide(AsyncLive), Effect.scoped),

@@ -24,8 +24,6 @@ import { Effect, type ManagedRuntime } from 'effect';
 import invariant from 'tiny-invariant';
 
 import type { AggregateChain } from '../AggregateChain/AggregateChain.js';
-import type { AuthenticatedVersionedAggregateChain } from '../AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
-import type { AuthenticatedVersionedAggregateRepo } from '../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
 import type { FrontendServiceChain } from '../FrontendServiceChain/FrontendServiceChain.js';
 import type { FrontendVersionedServiceRepo } from '../FrontendVersionedServiceRepo/FrontendVersionedServiceRepo.js';
 import { getRepoTableRows } from '../getRepoTableRows/getRepoTableRows.js';
@@ -35,6 +33,8 @@ import {
   type IAlarmRegistry,
 } from '../makeAlarmRegistry/makeAlarmRegistry.js';
 import { makeDurableDb } from '../makeDurableDb.js';
+import type { SelectionVersionedAggregateChain } from '../SelectionVersionedAggregateChain/SelectionVersionedAggregateChain.js';
+import type { SelectionVersionedAggregateRepo } from '../SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
 import type { ServiceAdmittedChain } from '../ServiceAdmittedChain/ServiceAdmittedChain.js';
 import type { SystemLogAgent } from '../SystemLogAgent/SystemLogAgent.js';
 import type { SystemLogRepo } from '../SystemLogRepo/SystemLogRepo.js';
@@ -85,11 +85,11 @@ declare global {
       VERSIONED_SERVICE_CHAIN: DurableObjectNamespace<
         Rpc.DurableObjectBranded & VersionedServiceChain
       >;
-      AUTHENTICATED_VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & AuthenticatedVersionedAggregateRepo
+      SELECTION_VERSIONED_AGGREGATE_REPO: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & SelectionVersionedAggregateRepo
       >;
-      AUTHENTICATED_VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
-        Rpc.DurableObjectBranded & AuthenticatedVersionedAggregateChain
+      SELECTION_VERSIONED_AGGREGATE_CHAIN: DurableObjectNamespace<
+        Rpc.DurableObjectBranded & SelectionVersionedAggregateChain
       >;
       SERVICE_ADMITTED_CHAIN: DurableObjectNamespace<
         Rpc.DurableObjectBranded & ServiceAdmittedChain

@@ -10,7 +10,7 @@ Each aggregate or service version owns its signature schema, full authentication
 ## Trigger
 
 1. A state fetch, WebSocket-ticket request, or aggregate push invokes its frontend's current `generateSignature` callback.
-   - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — maps signer callbacks by frontend name.
+   - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — retains the latest signer callback on each mounted frontend component; identity changes require remounting.
    - [`fetchAggregateFrontendState.ts`](../../../packages/frontend/src/fetchAggregateFrontendState.ts) — acquires an aggregate capability for one state fetch.
    - [`pushAggregateFrontendCommand.ts`](../../../packages/frontend/src/pushAggregateFrontendCommand.ts) — independently authenticates each push.
 
@@ -83,7 +83,7 @@ sequenceDiagram
     - [`pushCommand.ts`](../../../packages/system-worker/src/AggregateFrontendApi/pushCommand/pushCommand.ts) — compares full authentication before admission.
 11. Snapshots contain connection-specific authentication. Shared replica identity contains only the selection path, and command resolutions are filtered by frontend and full authentication.
     - [`getState.ts`](../../../packages/system-worker/src/AggregateFrontendApi/getState/getState.ts) — attaches full claims and filters resolutions at the API boundary.
-    - [`getCommands.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateChain/getCommands/getCommands.ts) — filters individual connection delivery while preserving shared cursors.
+    - [`getCommands.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/getCommands/getCommands.ts) — filters individual connection delivery while preserving shared cursors.
 12. Successful online bootstrap writes a frontend-specific locator containing only `systemId`, full-authentication hash, and aggregate ID where applicable. Locator keys include API URL, publishable key, system/frontend name, owner name/version, and frontend lock key. Offline locators locate backups; they grant no server authority.
     - [`bootstrapAggregateFrontendSession.ts`](../../../packages/frontend/src/bootstrapAggregateFrontendSession.ts) — validates full backup claims against the hash and frontend schema.
     - [`bootstrapServiceFrontendSession.ts`](../../../packages/frontend/src/bootstrapServiceFrontendSession.ts) — uses the equivalent independent service locator.
@@ -92,7 +92,7 @@ sequenceDiagram
 
 Aggregate replicas and chains share `{ systemId, aggregateId, aggregateName, aggregateVersion, selectionPath }`. Service replica keys retain their system/service/version/frontend fields plus `selectionPath`. Cold activation reconstructs only selected claims using the selected owner's pattern and schema, rejects malformed or noncanonical paths before subscription, and requires no authentication callback or audit lookup.
 
-- [`authenticatedVersionedAggregateRepoFixedDORepoConfig.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/authenticatedVersionedAggregateRepoFixedDORepoConfig.ts) — validates the path before replica activation.
+- [`selectionVersionedAggregateRepoFixedDORepoConfig.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/selectionVersionedAggregateRepoFixedDORepoConfig.ts) — validates the path before replica activation.
 - [`frontendVersionedServiceRepoFixedDORepoConfig.ts`](../../../packages/system-worker/src/FrontendVersionedServiceRepo/frontendVersionedServiceRepoFixedDORepoConfig.ts) — applies the same service invariant.
 
 Different full claims can share one server selection partition. Browser backups instead include the canonical hash of the entire encoded authentication object alongside owner/version/frontend fields. A changed guard claim selects a different backup; restored SQLite claims must match that hash. Recovery rejects changed authentication rather than attaching an old journal to new claims.

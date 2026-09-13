@@ -149,8 +149,9 @@ The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefi
 `OrderedTableOfContents.List` provides hierarchy depth and numbering without
 horizontal padding or margins. `Item` stays full width. Put every item heading
 or choice control inside `OrderedTableOfContents.Label`; the label owns its
-marker and depth-based indentation, including when sticky. Consecutive items
-containing only a label use compact spacing through CSS selectors.
+marker and depth-based indentation, including when sticky. Use `Label padding="none"` for compact option rows and `padding="heading"`
+for headings. `List spaced` and `Item spaced` own 0.5rem gaps between children;
+item position does not add padding.
 
 Previews and other item content remain full width at every depth. Do not cancel
 list indentation in route CSS or add compensating margins to content. Scroll
@@ -164,7 +165,10 @@ Spacing is explicit in the composition rather than inferred from descendant DOM.
 
 The Bricks overview uses `Container` for the outer layout and `Section` for each
 complete navigation block: collection heading, variant choices, and size choices.
-`Section` owns the gray surface and 0.5rem top/bottom padding. Its preview is
-ordinary markup outside the section. Each section starts its own list; use
-`List start` to continue collection numbering. The collection-detail page still
-uses the existing `Rows` composition until it is revised separately.
+`Section` owns the gray surface without padding. The overview heading uses
+0.75rem vertical padding. The overview groups its
+variant and size lists with 0.75rem bottom padding before the preview. Its preview is
+ordinary white-background markup inside the collection item so the collection
+heading can remain sticky over both its options and preview. Each section starts its own list; use
+`List start` to continue collection numbering. The collection-detail page uses `Section` for each size/configure heading above
+its preview, with a sticky wrapper keeping that navigation visible while scrolling.

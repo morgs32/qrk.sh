@@ -45,16 +45,24 @@ export default function CollectionCatalog() {
 
                     return (
                       <OrderedTableOfContents.Item key={brick.def.size}>
-                        <OrderedTableOfContents.Rows sticky>
-                          <OrderedTableOfContents.Label>
-                            <span>{brick.def.size}</span>{" "}
-                            <Link
-                              to={`/collections/${encodeURIComponent(collectionName)}/${encodeURIComponent(variantName)}`}
-                            >
-                              Configure
-                            </Link>
-                          </OrderedTableOfContents.Label>
-                        </OrderedTableOfContents.Rows>
+                        <div className="sticky top-0 z-10">
+                          <OrderedTableOfContents.Section>
+                            <OrderedTableOfContents.Label>
+                              <span>{brick.def.size}</span>
+                            </OrderedTableOfContents.Label>
+                            <OrderedTableOfContents.List>
+                              <OrderedTableOfContents.Item>
+                                <OrderedTableOfContents.Label>
+                                  <Link
+                                    to={`/collections/${encodeURIComponent(collectionName)}/${encodeURIComponent(variantName)}`}
+                                  >
+                                    Configure
+                                  </Link>
+                                </OrderedTableOfContents.Label>
+                              </OrderedTableOfContents.Item>
+                            </OrderedTableOfContents.List>
+                          </OrderedTableOfContents.Section>
+                        </div>
                         <OrderedTableOfContents.Preview>
                           <div
                             className={

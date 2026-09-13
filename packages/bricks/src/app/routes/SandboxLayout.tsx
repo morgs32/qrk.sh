@@ -1,4 +1,4 @@
-import { Link, Outlet, useMatch, useParams } from "react-router";
+import { Link, Outlet, useParams } from "react-router";
 import { collectionsHash } from "@qrk.sh/bricks";
 import { OrderedTableOfContents } from "../../OrderedTableOfContents";
 
@@ -6,7 +6,6 @@ import { SandboxGrid } from "../SandboxGrid";
 
 export default function SandboxLayout() {
   const { collectionName } = useParams();
-  const collectionPage = useMatch("/collections/:collectionName");
   const collection = collectionName ? collectionsHash[collectionName] : undefined;
   return (
     <main className="min-h-screen">
@@ -16,27 +15,19 @@ export default function SandboxLayout() {
             <OrderedTableOfContents.Title>
               <Link to="/">Brick collections</Link>
             </OrderedTableOfContents.Title>
-            {collection ? (
-              <OrderedTableOfContents.List scrollable>
-                <OrderedTableOfContents.Item>
-                  <OrderedTableOfContents.Rows sticky>
-                    <OrderedTableOfContents.Label>
-                      <Link
-                        to={`/collections/${encodeURIComponent(collection.collectionName)}`}
-                        aria-current="page"
-                      >
-                        {collectionPage ? "Collection: " : ""}{collection.collectionLabel}
-                      </Link>
-                    </OrderedTableOfContents.Label>
-                  </OrderedTableOfContents.Rows>
-                  <Outlet />
-                </OrderedTableOfContents.Item>
-              </OrderedTableOfContents.List>
-            ) : (
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                <Outlet />
-              </div>
+            {collection && (
+              <OrderedTableOfContents.Title>
+                <Link
+                  to={`/collections/${encodeURIComponent(collection.collectionName)}`}
+                  aria-current="page"
+                >
+                  {collection.collectionLabel}
+                </Link>
+              </OrderedTableOfContents.Title>
             )}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <Outlet />
+            </div>
           </OrderedTableOfContents.Container>
         </section>
         <div aria-hidden="true" className="hidden md:block" />

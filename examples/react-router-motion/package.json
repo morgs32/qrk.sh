@@ -3,6 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "typegen": "react-router typegen",
+    "typecheck": "react-router typegen && tsc --noEmit",
     "dev": "react-router dev --host 127.0.0.1 --port 4319 --strictPort",
     "build": "react-router build",
     "preview": "vite preview --outDir build/client --host 127.0.0.1 --port 4319 --strictPort",
@@ -22,6 +24,8 @@
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@react-router/dev": "8.3.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "oxfmt": "^0.44.0",
     "vite": "8.3.0"
   },

@@ -1,11 +1,10 @@
 import { fileURLToPath, URL } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import react from "@vitejs/plugin-react";
+import { reactRouter } from "@react-router/dev/vite";
 import { defineConfig, loadEnv } from "vite";
 
-const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
+const packageRoot = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const packageEnv = loadEnv(mode, packageRoot, "");
@@ -21,7 +20,7 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    root: fileURLToPath(new URL(".", import.meta.url)),
+    root: packageRoot,
     envDir: packageRoot,
     define: {
       "import.meta.env.PUBLIC_MAPBOX_TOKEN": JSON.stringify(mapboxToken),
@@ -30,11 +29,11 @@ export default defineConfig(({ mode }) => {
       alias: [
         {
           find: "@qrk.sh/bricks/styles.css",
-          replacement: fileURLToPath(new URL("../styles.css", import.meta.url)),
+          replacement: fileURLToPath(new URL("./src/styles.css", import.meta.url)),
         },
         {
           find: "@qrk.sh/bricks",
-          replacement: fileURLToPath(new URL("../index.ts", import.meta.url)),
+          replacement: fileURLToPath(new URL("./src/index.ts", import.meta.url)),
         },
       ],
     },
@@ -46,6 +45,6 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    plugins: [tailwindcss(), tanstackStart({ srcDirectory: "." }), react()],
+    plugins: [tailwindcss(), reactRouter()],
   };
 });

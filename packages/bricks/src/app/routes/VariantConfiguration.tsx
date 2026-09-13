@@ -1,5 +1,6 @@
+import type { Route } from "./+types/VariantConfiguration";
 import { collectionsHash } from "@qrk.sh/bricks";
-import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { isRouteErrorResponse, Link } from "react-router";
 import { PrimitiveKind } from "@zerospin/schema";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { JsonEditor } from "json-edit-react";
@@ -14,13 +15,16 @@ import { CodeText } from "../CodeText";
 import { MetadataField } from "../MetadataField";
 import { useGridStore } from "../useGridStore";
 
-export const Route = createFileRoute("/_sandbox/collections/$collectionName/$variantName")({
-  component: VariantConfiguration,
-  notFoundComponent: VariantNotFound,
-});
+export function clientLoader({ params }: Route.ClientLoaderArgs) {
+  const variant = collectionsHash[params.collectionName]?.variants[params.variantName];
+  if (!variant || Object.keys(variant.sizes).length === 0) {
+    throw new Response("Not found", { status: 404 });
+  }
+  return null;
+}
 
-function VariantConfiguration() {
-  const { collectionName, variantName } = Route.useParams();
+export default function VariantConfiguration({ params }: Route.ComponentProps) {
+  const { collectionName, variantName } = params;
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const collection = collectionsHash[collectionName];
   const variant = collection?.variants[variantName];
@@ -47,7 +51,7 @@ function VariantConfiguration() {
   });
 
   if (!collection || !variant) {
-    throw notFound();
+    throw new Response("Not found", { status: 404 });
   }
 
   const sizes = Object.entries(variant.sizes);
@@ -69,7 +73,7 @@ function VariantConfiguration() {
   });
 
   if (!firstSize) {
-    throw notFound();
+    throw new Response("Not found", { status: 404 });
   }
 
   return (
@@ -81,8 +85,7 @@ function VariantConfiguration() {
       <div>
         <div className="px-6 pt-6">
           <Link
-            to="/collections/$collectionName"
-            params={{ collectionName }}
+            to={`/collections/${encodeURIComponent(collectionName)}`}
             className="inline-flex items-center gap-2 text-sm"
           >
             <ArrowLeft aria-hidden className="size-4" />
@@ -307,14 +310,14 @@ function VariantConfiguration() {
   );
 }
 
-function VariantNotFound() {
-  const { collectionName } = Route.useParams();
+export function ErrorBoundary({ error, params }: Route.ErrorBoundaryProps) {
+  if (!isRouteErrorResponse(error) || error.status !== 404) throw error;
+  const collectionName = params.collectionName ?? "";
 
   return (
     <div className="px-6 pt-6" data-testid="variant-not-found">
       <Link
-        to="/collections/$collectionName"
-        params={{ collectionName }}
+        to={`/collections/${encodeURIComponent(collectionName)}`}
         className="inline-flex items-center gap-2 text-sm"
       >
         <ArrowLeft aria-hidden className="size-4" />

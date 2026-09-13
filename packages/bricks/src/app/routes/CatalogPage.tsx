@@ -1,13 +1,11 @@
 import { collectionsHash } from "@qrk.sh/bricks";
 import { Tabs } from "@base-ui/react/tabs";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link } from "react-router";
 import { useState } from "react";
 
 import { useGridStore } from "../useGridStore";
 
-export const Route = createFileRoute("/_sandbox/")({ component: CatalogPage });
-
-function CatalogPage() {
+export default function CatalogPage() {
   const collections = Object.values(collectionsHash);
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
@@ -15,8 +13,16 @@ function CatalogPage() {
 
   return (
     <div aria-label="Brick collections">
-      <div className="px-6 pt-6">
-        <h1 className="m-0 text-4xl font-semibold tracking-tight">Brick collections</h1>
+      <div className="sticky top-0 z-10 flex shrink-0 flex-col gap-4 border-b border-zinc-300/60 bg-white/95 px-6 pb-5 pt-6 backdrop-blur-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="m-0 text-sm font-semibold">Bricks</h1>
+            <div className="text-xs text-zinc-500">
+              Browse bricks by collection. Drag-and-drop from the drawer will return with native
+              HTML5 DnD.
+            </div>
+          </div>
+        </div>
       </div>
       <div className="mt-8 flex flex-col gap-10">
         {collections.map((collection) => {
@@ -113,8 +119,7 @@ function CatalogPage() {
                         ))}
                       </Tabs.List>
                       <Link
-                        to="/collections/$collectionName"
-                        params={{ collectionName: collection.collectionName }}
+                        to={`/collections/${encodeURIComponent(collection.collectionName)}`}
                         data-collection-link={collection.collectionName}
                       >
                         View all

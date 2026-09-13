@@ -1,7 +1,8 @@
+// @ts-check
 import React from "react";
-import { useParams } from "react-router";
 
-export default function BrickDetail() {
-  const { brickId } = useParams();
+/** @param {import("./+types/BrickDetail").Route.ComponentProps} props */
+export default function BrickDetail(props) {
+  const { brickId } = props.params;
   return <h1>Brick {brickId}</h1>;
 }

@@ -25,9 +25,22 @@ The build generates `build/client/index.html` for static SPA hosting. Deep links
 2. `LeftDrawerLayout` wraps catalog and brick detail in a shared `Shell` with an `Outlet`. `RightDrawerLayout` wraps compose. Their exported handles identify the animation group.
 3. The root renders a persistent `Workspace` containing navigation, a draft input, and a scrollable grid.
 4. `Workspace` reads the framework matches and captures `useOutlet()` as an element. `AnimatePresence` retains that element under its layout-group key through exit; it does not mount a fresh live Outlet at the presence boundary.
-5. Catalog and detail share the left group key, preserving the shell. Different groups animate simultaneously. `BrickDetail` reads the retained route's params with `useParams()`.
+5. Catalog and detail share the left group key, preserving the shell. Different groups animate simultaneously. `BrickDetail` reads the retained route's params from its generated `Route.ComponentProps`.
 
 No manual route table in Workspace, central content switch, router-context cloning, or private router APIs are used. `root.jsx` provides the HTML document and hydration fallback; Framework mode owns client bootstrapping and route code splitting.
+
+## Route IntelliSense
+
+The source `tsconfig.json` includes JSX and React Router's generated types. The dev server refreshes these types as routes change. To generate them without starting the server, or check the TypeScript and explicitly checked JSX:
+
+```sh
+pnpm nx run @qrk.sh/react-router-motion:typegen
+pnpm nx run @qrk.sh/react-router-motion:typecheck
+```
+
+`BrickDetail.jsx` uses JSDoc `import("./+types/BrickDetail").Route.ComponentProps` so `props.params.brickId` is a known string. JSX route modules can use the same annotation with their own generated filename. TypeScript route modules can use `import type { Route } from "./+types/ModuleName"` and annotate props with `Route.ComponentProps`.
+
+For loaders, annotate arguments with `Route.LoaderArgs` or `Route.ClientLoaderArgs` and leave the return type inferred. React Router then derives `Route.ComponentProps.loaderData` from the loader's return value. This SPA example currently has no loaders; use `clientLoader` for browser-side loading. Generated files stay ignored by Git.
 
 ## Verification
 

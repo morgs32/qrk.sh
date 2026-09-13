@@ -1,29 +1,20 @@
+import type { Route } from "./+types/BrickPage";
 import { useState } from "react";
 import { collectionsHash } from "@qrk.sh/bricks";
-import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { isRouteErrorResponse, Link } from "react-router";
 
-export const Route = createFileRoute("/bricks/$collectionName/$variant/$size")({
-  loader: ({ params }) => {
-    const collection = collectionsHash[params.collectionName];
-    const brick = collection?.variants[params.variant]?.sizes[params.size];
+export function clientLoader({ params }: Route.ClientLoaderArgs) {
+  if (!collectionsHash[params.collectionName]?.variants[params.variant]?.sizes[params.size])
+    throw new Response("Not found", { status: 404 });
+  return null;
+}
 
-    if (!brick) {
-      throw notFound();
-    }
-
-    return brick.def;
-  },
-  component: BrickPage,
-  notFoundComponent: BrickNotFound,
-});
-
-function BrickPage() {
-  const brickDef = Route.useLoaderData();
-  const variant = collectionsHash[brickDef.collectionName]?.variants[brickDef.variant];
-  const brick = variant?.sizes[brickDef.size];
+export default function BrickPage({ params }: Route.ComponentProps) {
+  const variant = collectionsHash[params.collectionName]?.variants[params.variant];
+  const brick = variant?.sizes[params.size];
 
   if (!brick) {
-    throw notFound();
+    throw new Response("Not found", { status: 404 });
   }
   const [gridUnitPx, setGridUnitPx] = useState(80);
   const [isDark, setIsDark] = useState(false);
@@ -33,8 +24,7 @@ function BrickPage() {
     <main className="min-h-screen">
       <div className="mx-auto max-w-7xl p-6">
         <Link
-          to="/collections/$collectionName"
-          params={{ collectionName: brick.def.collectionName }}
+          to={`/collections/${encodeURIComponent(brick.def.collectionName)}`}
           className="text-sm"
         >
           Back to {brick.def.collectionLabel}
@@ -113,7 +103,8 @@ function BrickPage() {
   );
 }
 
-function BrickNotFound() {
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  if (!isRouteErrorResponse(error) || error.status !== 404) throw error;
   return (
     <main className="min-h-screen" data-testid="brick-not-found">
       <div className="mx-auto max-w-3xl p-6">

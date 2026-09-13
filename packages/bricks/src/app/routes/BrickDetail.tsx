@@ -1,15 +1,12 @@
+import type { Route } from "./+types/BrickDetail";
 import { collectionsHash } from "@qrk.sh/bricks";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link } from "react-router";
 import { ArrowLeft } from "lucide-react";
 
 import { useGridStore } from "../useGridStore";
 
-export const Route = createFileRoute("/_sandbox/collections/$collectionName/brick/$brickId")({
-  component: BrickDetail,
-});
-
-function BrickDetail() {
-  const { collectionName, brickId } = Route.useParams();
+export default function BrickDetail({ params }: Route.ComponentProps) {
+  const { collectionName, brickId } = params;
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const brickDef = useGridStore((state) => state.bricksById[brickId]);
   const collection =
@@ -27,8 +24,7 @@ function BrickDetail() {
     return (
       <div className="px-6 pt-6" data-testid="brick-not-found">
         <Link
-          to="/collections/$collectionName"
-          params={{ collectionName }}
+          to={`/collections/${encodeURIComponent(collectionName)}`}
           className="inline-flex items-center gap-2 text-sm"
         >
           <ArrowLeft aria-hidden className="size-4" />
@@ -48,8 +44,7 @@ function BrickDetail() {
     <section data-testid="brick-detail-pane">
       <div className="px-6 pt-6">
         <Link
-          to="/collections/$collectionName"
-          params={{ collectionName }}
+          to={`/collections/${encodeURIComponent(collectionName)}`}
           className="inline-flex items-center gap-2 text-sm"
         >
           <ArrowLeft aria-hidden className="size-4" />

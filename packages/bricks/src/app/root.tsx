@@ -1,27 +1,14 @@
-/* oxlint-disable eslint-plugin-next(no-head-element) -- This is a TanStack Start document shell, not a Next.js page. */
+/* oxlint-disable eslint-plugin-next(no-head-element) -- This is a React Router Framework document shell, not a Next.js page. */
 
 import type { ReactNode } from "react";
-import { HeadContent, Link, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import { Links, Meta, Link, Outlet, Scripts, ScrollRestoration } from "react-router";
 import { RotateCcw } from "lucide-react";
 
-import { Button } from "../../ui/button";
-import sandboxCss from "../sandbox.css?url";
-import { useGridStore } from "../useGridStore";
+import { Button } from "../ui/button";
+import sandboxCss from "./sandbox.css?url";
+import { useGridStore } from "./useGridStore";
 
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "QRK brick sandbox" },
-    ],
-    links: [{ rel: "stylesheet", href: sandboxCss }],
-  }),
-  shellComponent: RootDocument,
-  component: RootLayout,
-});
-
-function RootLayout() {
+export default function RootLayout() {
   return (
     <div className="qrk-bricks min-h-screen">
       <header className="relative z-50 flex items-center justify-between bg-white px-6 py-3 shadow-sm">
@@ -55,14 +42,20 @@ function RootLayout() {
   );
 }
 
-function RootDocument({ children }: { children: ReactNode }) {
+export function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <HeadContent />
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>QRK brick sandbox</title>
+        <Meta />
+        <Links />
+        <link rel="stylesheet" href={sandboxCss} />
       </head>
       <body>
         {children}
+        <ScrollRestoration />
         <Scripts />
       </body>
     </html>

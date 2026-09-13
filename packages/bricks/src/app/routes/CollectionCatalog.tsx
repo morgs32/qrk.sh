@@ -1,25 +1,22 @@
+import type { Route } from "./+types/CollectionCatalog";
 import { collectionsHash } from "@qrk.sh/bricks";
 import { Tabs } from "@base-ui/react/tabs";
-import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { Link } from "react-router";
 import { ArrowLeft } from "lucide-react";
 
 import { CodeText } from "../CodeText";
 import { MetadataField } from "../MetadataField";
 import { useGridStore } from "../useGridStore";
 
-export const Route = createFileRoute("/_sandbox/collections/$collectionName/")({
-  component: CollectionCatalog,
-});
-
-function CollectionCatalog() {
-  const { collectionName } = Route.useParams();
+export default function CollectionCatalog({ params }: Route.ComponentProps) {
+  const { collectionName } = params;
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const collection = Object.values(collectionsHash).find(
     (candidate) => candidate.collectionName === collectionName,
   );
 
   if (!collection) {
-    throw notFound();
+    throw new Response("Not found", { status: 404 });
   }
 
   const bricks = Object.values(collection.variants).flatMap((variant) =>
@@ -75,11 +72,7 @@ function CollectionCatalog() {
                       </Tabs.Tab>
                     </Tabs.List>
                     <Link
-                      to="/collections/$collectionName/$variantName"
-                      params={{
-                        collectionName: brick.def.collectionName,
-                        variantName: brick.def.variant,
-                      }}
+                      to={`/collections/${encodeURIComponent(brick.def.collectionName)}/${encodeURIComponent(brick.def.variant)}`}
                       className="text-sm text-zinc-500 underline underline-offset-2"
                     >
                       Configure

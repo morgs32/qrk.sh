@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { collectionsHash } from "@qrk.sh/bricks";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "react-router";
 import GridLayout, { useContainerWidth, verticalCompactor } from "react-grid-layout";
 
 import { useGridStore } from "./useGridStore";
@@ -112,13 +112,9 @@ export function SandboxGrid() {
                       return;
                     }
 
-                    void navigate({
-                      to: "/collections/$collectionName/brick/$brickId",
-                      params: {
-                        collectionName: brick.def.collectionName,
-                        brickId: layoutItem.i,
-                      },
-                    });
+                    void navigate(
+                      `/collections/${encodeURIComponent(brick.def.collectionName)}/brick/${encodeURIComponent(layoutItem.i)}`,
+                    );
                   }}
                 >
                   {variant.defaultData === undefined ? (

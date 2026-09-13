@@ -6,12 +6,10 @@ export function OrderedTableOfContentsList({
   children,
   scrollable = false,
   start = 1,
-  spaced = false,
 }: {
   children: ReactNode;
   scrollable?: boolean;
   start?: number;
-  spaced?: boolean;
 }) {
   const depth = useContext(OrderedTableOfContentsDepth);
   const marker =
@@ -27,7 +25,7 @@ export function OrderedTableOfContentsList({
         start={start}
         style={{ counterReset: `toc-item ${start - 1}` }}
         type={depth === 0 ? "1" : depth === 1 ? "A" : "i"}
-        className={`list-none p-0 ${spaced ? "flex flex-col gap-2" : ""} ${marker} m-0 ${scrollable ? "min-h-0 flex-1 overflow-y-auto overscroll-contain" : ""}`}
+        className={`list-none px-0 py-2 ${marker} m-0 ${scrollable ? "min-h-0 flex-1 overflow-y-auto overscroll-contain" : ""}`}
       >
         {children}
       </ol>

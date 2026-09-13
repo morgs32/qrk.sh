@@ -12,6 +12,7 @@ describe("makeVariant data contracts", () => {
   it("omits every data-contract field for a static variant", () => {
     const variant = makeVariant({
       variant: "static",
+      variantLabel: "Static",
       variantDescription: "A static variant.",
       sizes: {
         "1x1": {
@@ -62,6 +63,7 @@ describe("makeVariant data contracts", () => {
   it("preserves a local payload form without adding a data loader", () => {
     const variant = makeVariant({
       variant: "local-content",
+      variantLabel: "Local-content",
       variantDescription: "Locally authored content.",
       payloadShape: {
         content: primitives.json({
@@ -103,6 +105,7 @@ describe("makeVariant data contracts", () => {
   it("infers custom renderer values from their decoded primitive fields", () => {
     const variant = makeVariant({
       variant: "typed-controls",
+      variantLabel: "Typed-controls",
       variantDescription: "Typed custom controls.",
       payloadShape: {
         query: primitives.text({ defaultValue: "Chicago" }),
@@ -150,6 +153,7 @@ describe("makeVariant data contracts", () => {
   it("rejects unknown custom fields and custom fields without defaults", () => {
     makeVariant({
       variant: "invalid-controls",
+      variantLabel: "Invalid-controls",
       variantDescription: "Invalid custom controls.",
       payloadShape: {
         query: primitives.text({ defaultValue: "Chicago" }),
@@ -188,6 +192,7 @@ describe("makeVariant data contracts", () => {
 
     makeVariant({
       variant: "missing-default",
+      variantLabel: "Missing-default",
       variantDescription: "A custom control without a default.",
       payloadShape: {
         query: primitives.text(),
@@ -256,6 +261,7 @@ describe("makeVariant data contracts", () => {
     const callbackPayloads: Array<{ url: string }> = [];
     const variant = makeVariant({
       variant: "profile",
+      variantLabel: "Profile",
       variantDescription: "A data-backed profile.",
       payloadShape: {
         url: primitives.text(),
@@ -314,6 +320,7 @@ describe("makeVariant data contracts", () => {
     expect(() =>
       makeVariant({
         variant: "profile",
+        variantLabel: "Profile",
         variantDescription: "A data-backed profile.",
         payloadShape: {
           url: primitives.text(),
@@ -349,6 +356,7 @@ describe("makeVariant data contracts", () => {
     const callbackPayloads: Array<{ url: string }> = [];
     const variant = makeVariant({
       variant: "profile",
+      variantLabel: "Profile",
       variantDescription: "A data-backed profile.",
       payloadShape: {
         url: primitives.text(),
@@ -403,6 +411,7 @@ describe("makeVariant data contracts", () => {
   it("rejects successful provider data that does not match dataShape", async () => {
     const variant = makeVariant({
       variant: "profile",
+      variantLabel: "Profile",
       variantDescription: "A data-backed profile.",
       payloadShape: {
         url: primitives.text(),
@@ -451,6 +460,7 @@ describe("makeVariant data contracts", () => {
     };
     const variant = makeVariant({
       variant: "profile",
+      variantLabel: "Profile",
       variantDescription: "A data-backed profile.",
       payloadShape: {
         url: primitives.text(),
@@ -496,6 +506,7 @@ describe("makeVariant data contracts", () => {
     // cannot opt into payload loading without the response shape and default.
     makeVariant({
       variant: "profile",
+      variantLabel: "Profile",
       variantDescription: "An incomplete data-backed profile.",
       payloadShape: {
         url: primitives.text(),
@@ -522,6 +533,7 @@ describe("makeVariant data contracts", () => {
     // @ts-expect-error data-backed size components must declare the data prop
     makeVariant({
       variant: "profile",
+      variantLabel: "Profile",
       variantDescription: "A data-backed profile.",
       payloadShape: {
         url: primitives.text(),

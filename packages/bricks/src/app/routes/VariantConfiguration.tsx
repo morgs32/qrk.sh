@@ -114,7 +114,7 @@ export default function VariantConfiguration() {
             <hr className="my-4 border-zinc-200" />
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <MetadataField label="Variant name">
-                {variantName[0].toUpperCase() + variantName.slice(1)}
+                {variant.variantLabel}
               </MetadataField>
               <MetadataField label="Variant ID" className="text-right">
                 <CodeText>{variantName}</CodeText>

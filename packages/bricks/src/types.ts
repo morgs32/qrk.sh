@@ -26,6 +26,7 @@ export type ICollection = {
   variants: Record<
     string,
     | {
+        variantLabel: string;
         variantDescription: string;
         payloadShape: IShape;
         payloadForm?: {
@@ -44,6 +45,7 @@ export type ICollection = {
         sizes: Record<string, ICollectionBrick>;
       }
     | {
+        variantLabel: string;
         variantDescription: string;
         payloadShape?: never;
         payloadForm?: never;
@@ -53,6 +55,7 @@ export type ICollection = {
         sizes: Record<string, ICollectionBrick>;
       }
     | {
+        variantLabel: string;
         variantDescription: string;
         payloadShape: IShape;
         payloadForm?: {

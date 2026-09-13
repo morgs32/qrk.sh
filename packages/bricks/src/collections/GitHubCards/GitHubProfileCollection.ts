@@ -15,6 +15,7 @@ export const githubCollection = makeCollection({
   variants: {
     profile: makeVariant({
       variant: "profile",
+      variantLabel: "Profile",
       variantDescription: "A GitHub profile card.",
       payloadShape: {
         url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
@@ -109,6 +110,7 @@ export const githubCollection = makeCollection({
     }),
     repo: makeVariant({
       variant: "repo",
+      variantLabel: "Repo",
       variantDescription: "A GitHub repository card.",
       sizes: {
         "4x2": makeBrick({

@@ -35,7 +35,7 @@ export default function CollectionCatalog() {
                 <Link
                   to={`/collections/${encodeURIComponent(collectionName)}/${encodeURIComponent(variantName)}`}
                 >
-                  {variantName}
+                  {variant.variantLabel}
                 </Link>
               </OrderedTableOfContents.Label>
               <div className="max-h-[calc(100dvh-22rem)] overflow-y-auto overscroll-contain">

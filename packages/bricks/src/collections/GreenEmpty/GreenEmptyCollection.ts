@@ -12,6 +12,7 @@ export const swatchCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
+      variantLabel: "Default",
       variantDescription: "A solid color field.",
       sizes: {
         "2x2": makeBrick({

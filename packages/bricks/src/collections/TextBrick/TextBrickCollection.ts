@@ -16,6 +16,7 @@ export const textBrickCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
+      variantLabel: "Default",
       variantDescription: "A text content block.",
       payloadShape: {
         content: primitives.json({

@@ -13,6 +13,7 @@ export const mapCollection = makeCollection({
   variants: {
     place: makeVariant({
       variant: "place",
+      variantLabel: "Place",
       variantDescription: "A map centered on one selected place.",
       payloadShape: {
         googlePlaceId: primitives.text({ defaultValue: "ChIJ7cv00DwsDogRAMDACa2m4K8" }),

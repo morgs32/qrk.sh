@@ -14,6 +14,7 @@ export function makeCollection(props: {
   variants: Record<
     string,
     | {
+        variantLabel: string;
         variantDescription: string;
         payloadShape: IShape;
         payloadForm?: {
@@ -32,6 +33,7 @@ export function makeCollection(props: {
         sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
       }
     | {
+        variantLabel: string;
         variantDescription: string;
         payloadShape?: never;
         payloadForm?: never;
@@ -41,6 +43,7 @@ export function makeCollection(props: {
         sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
       }
     | {
+        variantLabel: string;
         variantDescription: string;
         payloadShape: IShape;
         payloadForm?: {
@@ -85,6 +88,7 @@ export function makeCollection(props: {
     if (rawVariant.payloadShape !== undefined && rawVariant.dataShape === undefined) {
       if (rawVariant.payloadForm !== undefined) {
         return {
+          variantLabel: rawVariant.variantLabel,
           variantDescription: rawVariant.variantDescription,
           payloadShape: rawVariant.payloadShape,
           payloadForm: rawVariant.payloadForm,
@@ -93,6 +97,7 @@ export function makeCollection(props: {
       }
 
       return {
+        variantLabel: rawVariant.variantLabel,
         variantDescription: rawVariant.variantDescription,
         payloadShape: rawVariant.payloadShape,
         sizes,
@@ -107,6 +112,7 @@ export function makeCollection(props: {
     ) {
       if (rawVariant.payloadForm !== undefined) {
         return {
+          variantLabel: rawVariant.variantLabel,
           variantDescription: rawVariant.variantDescription,
           payloadShape: rawVariant.payloadShape,
           payloadForm: rawVariant.payloadForm,
@@ -118,6 +124,7 @@ export function makeCollection(props: {
       }
 
       return {
+        variantLabel: rawVariant.variantLabel,
         variantDescription: rawVariant.variantDescription,
         payloadShape: rawVariant.payloadShape,
         dataShape: rawVariant.dataShape,
@@ -128,6 +135,7 @@ export function makeCollection(props: {
     }
 
     return {
+      variantLabel: rawVariant.variantLabel,
       variantDescription: rawVariant.variantDescription,
       sizes,
     };

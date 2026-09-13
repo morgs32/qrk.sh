@@ -12,6 +12,7 @@ export const linkCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
+      variantLabel: "Default",
       variantDescription: "A rich preview for any web link.",
       payloadShape: {
         url: primitives.text({

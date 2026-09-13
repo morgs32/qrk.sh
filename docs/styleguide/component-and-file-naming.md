@@ -146,12 +146,14 @@ The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefi
 
 ### Table of contents layout
 
-`OrderedTableOfContents.List` provides hierarchy depth and numbering without
-horizontal padding or margins. `Item` stays full width. Put every item heading
-or choice control inside `OrderedTableOfContents.Label`; the label owns its
-marker and depth-based indentation, including when sticky. Use `Label padding="none"` for compact option rows and `padding="heading"`
-for headings. `List spaced` and `Item spaced` own 0.5rem gaps between children;
-item position does not add padding.
+`OrderedTableOfContents.Section` owns vertical padding (`py-3`).
+`OrderedTableOfContents.List` owns vertical padding (`py-2`), hierarchy depth,
+and numbering without horizontal padding or margins. Items stay full width
+and tightly spaced, with no added gaps or vertical padding. Put every item
+heading or choice control inside `OrderedTableOfContents.Label`; the label
+owns its marker and depth-based indentation, including when sticky, but adds
+no vertical padding. These are component defaults; callers do not provide
+spacing props.
 
 Previews and other item content remain full width at every depth. Do not cancel
 list indentation in route CSS or add compensating margins to content. Scroll

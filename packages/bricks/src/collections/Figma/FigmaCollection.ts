@@ -15,6 +15,7 @@ export const figmaCollection = makeCollection({
   variants: {
     design: makeVariant({
       variant: "design",
+      variantLabel: "Design",
       variantDescription: "A canvas-focused preview of a Figma Design file.",
       payloadShape: {
         url: primitives.text({
@@ -50,6 +51,7 @@ export const figmaCollection = makeCollection({
     }),
     board: makeVariant({
       variant: "board",
+      variantLabel: "Board",
       variantDescription: "A sticky-note canvas preview of a FigJam board.",
       payloadShape: {
         url: primitives.text({
@@ -85,6 +87,7 @@ export const figmaCollection = makeCollection({
     }),
     slides: makeVariant({
       variant: "slides",
+      variantLabel: "Slides",
       variantDescription: "A presentation-stage preview of a Figma Slides deck.",
       payloadShape: {
         url: primitives.text({
@@ -120,6 +123,7 @@ export const figmaCollection = makeCollection({
     }),
     prototype: makeVariant({
       variant: "prototype",
+      variantLabel: "Prototype",
       variantDescription: "A device-framed preview of a Figma prototype.",
       payloadShape: {
         url: primitives.text({

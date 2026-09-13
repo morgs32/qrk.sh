@@ -12,6 +12,7 @@ export const tikTokCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
+      variantLabel: "Default",
       variantDescription: "TikTok's tokenless creator profile embed.",
       payloadShape: {
         url: primitives.text({ defaultValue: "https://www.tiktok.com/@theonion" }),

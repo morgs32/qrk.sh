@@ -43,7 +43,7 @@ export default function CatalogPage() {
               <OrderedTableOfContents.Section>
                 <OrderedTableOfContents.List start={collectionIndex + 1}>
                   <OrderedTableOfContents.Item>
-                    <OrderedTableOfContents.Label sticky padding="heading">
+                    <OrderedTableOfContents.Label sticky>
                       <Link
                         to={`/collections/${encodeURIComponent(collection.collectionName)}`}
                         data-collection-link={collection.collectionName}
@@ -51,62 +51,60 @@ export default function CatalogPage() {
                         {collection.collectionLabel}
                       </Link>
                     </OrderedTableOfContents.Label>
-                    <div className="pb-3">
-                      <OrderedTableOfContents.List spaced>
-                        <OrderedTableOfContents.Item spaced>
-                          <OrderedTableOfContents.Label padding="none">Variant</OrderedTableOfContents.Label>
-                          <OrderedTableOfContents.List spaced>
-                            {variants.map(([variantName]) => (
-                              <OrderedTableOfContents.Item key={variantName}>
-                                <OrderedTableOfContents.Label padding="none">
-                                  <Button
-                                    variant="link"
-                                    aria-pressed={selectedVariantName === variantName}
-                                    onClick={() => {
-                                      setSelectedVariants((current) => ({
-                                        ...current,
-                                        [collection.collectionName]: variantName,
-                                      }));
-                                      setSelectedSizes((current) => ({
-                                        ...current,
-                                        [collection.collectionName]: "",
-                                      }));
-                                    }}
-                                    className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
-                                  >
-                                    {variantName[0].toUpperCase() + variantName.slice(1)}
-                                  </Button>
-                                </OrderedTableOfContents.Label>
-                              </OrderedTableOfContents.Item>
-                            ))}
-                          </OrderedTableOfContents.List>
-                        </OrderedTableOfContents.Item>
-                        <OrderedTableOfContents.Item spaced>
-                          <OrderedTableOfContents.Label padding="none">Size</OrderedTableOfContents.Label>
-                          <OrderedTableOfContents.List spaced>
-                            {sizes.map(([sizeName, brick]) => (
-                              <OrderedTableOfContents.Item key={sizeName}>
-                                <OrderedTableOfContents.Label padding="none">
-                                  <Button
-                                    variant="link"
-                                    aria-pressed={selectedSizeName === sizeName}
-                                    onClick={() => {
-                                      setSelectedSizes((current) => ({
-                                        ...current,
-                                        [collection.collectionName]: sizeName,
-                                      }));
-                                    }}
-                                    className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
-                                  >
-                                    {brick.def.size}
-                                  </Button>
-                                </OrderedTableOfContents.Label>
-                              </OrderedTableOfContents.Item>
-                            ))}
-                          </OrderedTableOfContents.List>
-                        </OrderedTableOfContents.Item>
-                      </OrderedTableOfContents.List>
-                    </div>
+                    <OrderedTableOfContents.List>
+                      <OrderedTableOfContents.Item>
+                        <OrderedTableOfContents.Label>Variant</OrderedTableOfContents.Label>
+                        <OrderedTableOfContents.List>
+                          {variants.map(([variantName, variant]) => (
+                            <OrderedTableOfContents.Item key={variantName}>
+                              <OrderedTableOfContents.Label>
+                                <Button
+                                  variant="link"
+                                  aria-pressed={selectedVariantName === variantName}
+                                  onClick={() => {
+                                    setSelectedVariants((current) => ({
+                                      ...current,
+                                      [collection.collectionName]: variantName,
+                                    }));
+                                    setSelectedSizes((current) => ({
+                                      ...current,
+                                      [collection.collectionName]: "",
+                                    }));
+                                  }}
+                                  className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
+                                >
+                                  {variant.variantLabel}
+                                </Button>
+                              </OrderedTableOfContents.Label>
+                            </OrderedTableOfContents.Item>
+                          ))}
+                        </OrderedTableOfContents.List>
+                      </OrderedTableOfContents.Item>
+                      <OrderedTableOfContents.Item>
+                        <OrderedTableOfContents.Label>Size</OrderedTableOfContents.Label>
+                        <OrderedTableOfContents.List>
+                          {sizes.map(([sizeName, brick]) => (
+                            <OrderedTableOfContents.Item key={sizeName}>
+                              <OrderedTableOfContents.Label>
+                                <Button
+                                  variant="link"
+                                  aria-pressed={selectedSizeName === sizeName}
+                                  onClick={() => {
+                                    setSelectedSizes((current) => ({
+                                      ...current,
+                                      [collection.collectionName]: sizeName,
+                                    }));
+                                  }}
+                                  className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
+                                >
+                                  {brick.def.size}
+                                </Button>
+                              </OrderedTableOfContents.Label>
+                            </OrderedTableOfContents.Item>
+                          ))}
+                        </OrderedTableOfContents.List>
+                      </OrderedTableOfContents.Item>
+                    </OrderedTableOfContents.List>
                     <div className="overflow-auto bg-white py-6">
                       <DraggableBrick
                         brickDef={def}

@@ -1,15 +1,5 @@
 import type { ReactNode } from "react";
 
-export function OrderedTableOfContentsItem({
-  children,
-  spaced = false,
-}: {
-  children: ReactNode;
-  spaced?: boolean;
-}) {
-  return (
-    <li className={`break-words [counter-increment:toc-item] ${spaced ? "flex flex-col gap-2" : ""}`}>
-      {children}
-    </li>
-  );
+export function OrderedTableOfContentsItem({ children }: { children: ReactNode }) {
+  return <li className="break-words [counter-increment:toc-item]">{children}</li>;
 }

@@ -12,6 +12,7 @@ export const instagramCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
+      variantLabel: "Default",
       variantDescription: "An Instagram profile card with four recent posts.",
       payloadShape: {
         url: primitives.text({ defaultValue: "https://www.instagram.com/theonion/" }),

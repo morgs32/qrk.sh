@@ -15,6 +15,7 @@ export const iconCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
+      variantLabel: "Default",
       variantDescription: "A selected icon from Streamline.",
       payloadShape: {
         hash: primitives.text({ defaultValue: "" }),

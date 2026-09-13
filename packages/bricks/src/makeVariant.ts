@@ -13,6 +13,7 @@ export function makeVariant<
   const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
 >(props: {
   variant: VARIANT;
+  variantLabel: string;
   variantDescription: string;
   payloadShape: PAYLOAD_SHAPE;
   payloadForm?: {
@@ -39,6 +40,7 @@ export function makeVariant<
     };
   };
 }): {
+  variantLabel: string;
   variantDescription: string;
   payloadShape: PAYLOAD_SHAPE;
   payloadForm?: {
@@ -58,6 +60,7 @@ export function makeVariant<
   const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
 >(props: {
   variant: VARIANT;
+  variantLabel: string;
   variantDescription: string;
   payloadShape?: never;
   payloadForm?: never;
@@ -73,6 +76,7 @@ export function makeVariant<
     };
   };
 }): {
+  variantLabel: string;
   variantDescription: string;
   sizes: SIZES;
 };
@@ -83,6 +87,7 @@ export function makeVariant<
   const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
 >(props: {
   variant: VARIANT;
+  variantLabel: string;
   variantDescription: string;
   payloadShape: PAYLOAD_SHAPE;
   payloadForm?: {
@@ -118,6 +123,7 @@ export function makeVariant<
     };
   };
 }): {
+  variantLabel: string;
   variantDescription: string;
   payloadShape: PAYLOAD_SHAPE;
   payloadForm?: {
@@ -142,6 +148,7 @@ export function makeVariant<
 };
 export function makeVariant(props: {
   variant: string;
+  variantLabel: string;
   variantDescription: string;
   payloadShape?: IShape;
   payloadForm?: Record<
@@ -167,6 +174,7 @@ export function makeVariant(props: {
   if (props.payloadShape !== undefined && props.dataShape === undefined) {
     if (props.payloadForm !== undefined) {
       return {
+        variantLabel: props.variantLabel,
         variantDescription: props.variantDescription,
         payloadShape: props.payloadShape,
         payloadForm: props.payloadForm,
@@ -175,6 +183,7 @@ export function makeVariant(props: {
     }
 
     return {
+      variantLabel: props.variantLabel,
       variantDescription: props.variantDescription,
       payloadShape: props.payloadShape,
       sizes: props.sizes,
@@ -188,6 +197,7 @@ export function makeVariant(props: {
     props.getData === undefined
   ) {
     return {
+      variantLabel: props.variantLabel,
       variantDescription: props.variantDescription,
       sizes: props.sizes,
     };
@@ -202,6 +212,7 @@ export function makeVariant(props: {
   const getData = props.getData;
 
   return {
+    variantLabel: props.variantLabel,
     variantDescription: props.variantDescription,
     payloadShape: props.payloadShape,
     payloadForm: props.payloadForm,

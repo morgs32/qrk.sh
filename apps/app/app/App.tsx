@@ -4,7 +4,6 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 import { MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui/sonner";
-import "@fontsource-variable/geist";
 import "@fontsource/space-mono/400.css";
 import "@fontsource/space-mono/700.css";
 import "@fontsource/silkscreen/400.css";

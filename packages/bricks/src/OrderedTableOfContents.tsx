@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { OrderedTableOfContentsTitle } from "./OrderedTableOfContentsTitle";
-import { OrderedTableOfContentsSection } from "./OrderedTableOfContentsSection";
+import { OrderedTableOfContentsList } from "./OrderedTableOfContentsList";
+import { OrderedTableOfContentsLabel } from "./OrderedTableOfContentsLabel";
 import { OrderedTableOfContentsItem } from "./OrderedTableOfContentsItem";
 
 /** Composable contents; callers own links and selection controls. */
@@ -8,7 +9,7 @@ export function OrderedTableOfContents({ children }: { children: ReactNode }) {
   return (
     <section
       aria-label="Table of contents"
-      className="qrk-bricks w-full min-w-0 bg-zinc-100 p-4 font-mono text-sm leading-5 text-zinc-900 [counter-reset:toc-section]"
+      className="qrk-bricks flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden font-mono text-sm leading-5 text-zinc-900"
     >
       {children}
     </section>
@@ -16,5 +17,6 @@ export function OrderedTableOfContents({ children }: { children: ReactNode }) {
 }
 
 OrderedTableOfContents.Title = OrderedTableOfContentsTitle;
-OrderedTableOfContents.Section = OrderedTableOfContentsSection;
+OrderedTableOfContents.List = OrderedTableOfContentsList;
+OrderedTableOfContents.Label = OrderedTableOfContentsLabel;
 OrderedTableOfContents.Item = OrderedTableOfContentsItem;

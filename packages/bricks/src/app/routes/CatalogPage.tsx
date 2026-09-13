@@ -44,7 +44,7 @@ export default function CatalogPage() {
               <OrderedTableOfContents.Section>
                 <OrderedTableOfContents.List start={collectionIndex + 1}>
                   <OrderedTableOfContents.Item>
-                    <OrderedTableOfContents.Label>
+                    <OrderedTableOfContents.Label sticky>
                       <Link
                         to={`/collections/${encodeURIComponent(collection.collectionName)}`}
                         data-collection-link={collection.collectionName}

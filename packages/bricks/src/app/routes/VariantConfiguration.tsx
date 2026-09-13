@@ -9,7 +9,8 @@ import {
 } from "react-router";
 import { PrimitiveKind } from "@zerospin/schema";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
-import { JsonEditor } from "json-edit-react";
+import { JsonView } from "react-json-view-lite";
+import "react-json-view-lite/dist/index.css";
 import { ArrowLeft } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { ScraperApi } from "scraper/ScraperApi";
@@ -177,11 +178,13 @@ export default function VariantConfiguration() {
             aspectRatio: `${brick.def.w} / ${brick.def.h}`,
           }}
         >
-          {variant.defaultData === undefined ? (
-            <BrickComponent />
-          ) : (
-            <BrickComponent data={loadedData ?? variant.defaultData} />
-          )}
+          <div inert className="pointer-events-none contents select-none">
+            {variant.defaultData === undefined ? (
+              <BrickComponent />
+            ) : (
+              <BrickComponent data={loadedData ?? variant.defaultData} />
+            )}
+          </div>
         </div>
       </OrderedTableOfContents.Preview>
       <div className="px-6 py-6">
@@ -314,22 +317,18 @@ export default function VariantConfiguration() {
 
             {getData === undefined ? (
               <div className="mt-5 overflow-auto" data-testid="variant-payload-result">
-                <JsonEditor data={payloadValues} rootName="payload" restrictAdd restrictDelete />
+                <JsonView data={payloadValues} />
               </div>
             ) : (
               <div className="mt-5 overflow-auto" data-testid="variant-data-result">
-                <JsonEditor
-                  data={loadedData ?? variant.defaultData}
-                  setData={setLoadedData}
-                  restrictDelete
-                />
+                <JsonView data={{ data: loadedData ?? variant.defaultData }} />
               </div>
             )}
           </div>
         ) : (
-          <pre className="m-0 overflow-auto bg-zinc-100 p-4 text-xs">
-            {JSON.stringify(variant, null, 2)}
-          </pre>
+          <div className="overflow-auto text-xs">
+            <JsonView data={variant} />
+          </div>
         )}
       </div>
     </section>

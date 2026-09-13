@@ -14,7 +14,6 @@
   },
   "scripts": {
     "dev": "vite --config vite.workbench.config.ts --host 127.0.0.1 --port 4100",
-    "scraper:dev": "pnpm --filter scraper dev --port 8790",
     "build": "vite build && tailwindcss -i src/styles.css -o dist/styles.css --minify && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "tsc": "tsc --noEmit",
     "lint": "oxlint src",
@@ -41,6 +40,7 @@
     "mapbox-gl": "^3.18.1",
     "react-activity-calendar": "^3.2.1",
     "react-grid-layout": "^2.2.3",
+    "react-json-view-lite": "^2.5.0",
     "scraper": "workspace:*",
     "swr": "^2.3.3",
     "zustand": "^5.0.14"

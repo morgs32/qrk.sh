@@ -27,7 +27,9 @@ export function DraggableBrick({
         setActiveBrickDrag(null);
       }}
     >
-      {children}
+      <div inert className="pointer-events-none contents select-none">
+        {children}
+      </div>
     </div>
   );
 }

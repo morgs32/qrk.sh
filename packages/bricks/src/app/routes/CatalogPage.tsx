@@ -98,13 +98,7 @@ export default function CatalogPage() {
                                         className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
                                       >
                                         {brick.def.size}
-                                      </Button>{" "}
-                                      <Link
-                                        to={`/collections/${encodeURIComponent(collection.collectionName)}?variant=${encodeURIComponent(variantName)}&size=${encodeURIComponent(sizeName)}`}
-                                        className="underline"
-                                      >
-                                        Configure
-                                      </Link>
+                                      </Button>
                                     </OrderedTableOfContents.Label>
                                   </OrderedTableOfContents.Item>
                                 ))}

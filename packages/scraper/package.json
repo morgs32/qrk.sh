@@ -13,12 +13,19 @@
     }
   },
   "scripts": {
-    "dev": "wrangler dev --env-file .env.local",
+    "dev": "wrangler dev --env-file .env.local --port 8790",
     "lint": "oxlint . --ignore-pattern .wrangler --format stylish",
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:live": "SCRAPER_LIVE_TESTS=1 vitest run --config vitest.live.config.ts",
     "tsc": "tsc --noEmit",
     "types": "wrangler types ./worker-configuration.d.ts"
+  },
+  "nx": {
+    "targets": {
+      "dev": {
+        "continuous": true
+      }
+    }
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.1.0",

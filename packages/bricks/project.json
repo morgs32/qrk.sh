@@ -4,10 +4,7 @@
   "targets": {
     "dev": {
       "continuous": true,
-      "dependsOn": ["scraper:dev"]
-    },
-    "scraper:dev": {
-      "continuous": true
+      "dependsOn": [{ "projects": ["scraper"], "target": "dev" }]
     }
   }
 }

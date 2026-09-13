@@ -14,11 +14,11 @@ import { Effect, Schema } from 'effect';
 import { expect, it } from 'vitest';
 
 import { AggregateChain } from './AggregateChain/AggregateChain.js';
-import { AuthenticatedVersionedAggregateChain } from './AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
-import { AuthenticatedVersionedAggregateRepo } from './AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
 import { main } from './fixtures/system.js';
 import { GatewayApi } from './GatewayApi/GatewayApi.js';
 import { makeSystemRuntime } from './makeSystemRuntime.js';
+import { SelectionVersionedAggregateChain } from './SelectionVersionedAggregateChain/SelectionVersionedAggregateChain.js';
+import { SelectionVersionedAggregateRepo } from './SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
 import { VersionedAggregateChain } from './VersionedAggregateChain/VersionedAggregateChain.js';
 import { VersionedAggregateRepo } from './VersionedAggregateRepo/VersionedAggregateRepo.js';
 
@@ -201,7 +201,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         [null, null, 'list-name-rejected', 'aggregate-list-name-rejected'],
       );
       expect(results[1].mutations).toHaveLength(1);
-      const replica = yield* AuthenticatedVersionedAggregateRepo.getRepo({
+      const replica = yield* SelectionVersionedAggregateRepo.getRepo({
         key: view,
       });
       const state = yield* makeAsync(() =>
@@ -246,7 +246,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
         'cmd_prepared_list_1',
         'cmd_prepared_list_2',
       ]);
-      const throughTwo = yield* AuthenticatedVersionedAggregateChain.getRepo({
+      const throughTwo = yield* SelectionVersionedAggregateChain.getRepo({
         key: view,
       });
       const earlier = yield* makeAsync(() =>
@@ -276,7 +276,7 @@ it('prepares in VAR, publishes per-command output, and recovers terminal results
       expect(
         state.resources.filter(row => row.modelName === 'list'),
       ).toHaveLength(1);
-      const frontend = yield* AuthenticatedVersionedAggregateChain.getRepo({
+      const frontend = yield* SelectionVersionedAggregateChain.getRepo({
         key: view,
       });
       const outputs = yield* makeAsync(() =>

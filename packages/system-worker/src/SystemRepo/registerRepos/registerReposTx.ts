@@ -19,13 +19,13 @@ export const registerReposTx = makeTx(
   };
   frontendRepo: {
     repoType:
-      | 'AuthenticatedVersionedAggregateRepo'
+      | 'SelectionVersionedAggregateRepo'
       | 'FrontendVersionedServiceRepo';
     repoName: string;
     tableNames: readonly string[];
   };
   finalizedCommandChain: {
-    repoType: 'AuthenticatedVersionedAggregateChain' | 'FrontendServiceChain';
+    repoType: 'SelectionVersionedAggregateChain' | 'FrontendServiceChain';
     repoName: string;
     tableNames: readonly string[];
   };

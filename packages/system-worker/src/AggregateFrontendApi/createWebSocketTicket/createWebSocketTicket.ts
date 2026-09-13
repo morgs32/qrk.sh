@@ -18,8 +18,8 @@ import config from 'config';
 import { Effect, Result, Schema } from 'effect';
 
 import { appendTelemetryBatch } from '../../appendTelemetryBatch/appendTelemetryBatch.js';
-import { AuthenticatedVersionedAggregateChain } from '../../AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
-import { AuthenticatedVersionedAggregateRepo } from '../../AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
+import { SelectionVersionedAggregateChain } from '../../SelectionVersionedAggregateChain/SelectionVersionedAggregateChain.js';
+import { SelectionVersionedAggregateRepo } from '../../SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
 import { SelectedAggregateFrontendLockSchema } from '../../StaticSystem/frontendSpecSchemas.js';
 import { validateAggregateFrontendLock } from '../../StaticSystem/validateAggregateFrontendLock/validateAggregateFrontendLock.js';
 import { SystemRepo } from '../../SystemRepo/SystemRepo.js';
@@ -160,11 +160,11 @@ export const createWebSocketTicket = Effect.fn(
       selectionPath,
     };
     const repoName =
-      yield* AuthenticatedVersionedAggregateChain.fixedDORepoConfig.nameUtils.makeName(
+      yield* SelectionVersionedAggregateChain.fixedDORepoConfig.nameUtils.makeName(
         key,
       );
-    const authenticatedVersionedAggregateRepoName =
-      yield* AuthenticatedVersionedAggregateRepo.fixedDORepoConfig.nameUtils.makeName(
+    const selectionVersionedAggregateRepoName =
+      yield* SelectionVersionedAggregateRepo.fixedDORepoConfig.nameUtils.makeName(
         key,
       );
 
@@ -176,7 +176,7 @@ export const createWebSocketTicket = Effect.fn(
     });
     const aggregateFrontendRegistrations = yield* makeAsync(() =>
       systemRepo.getRepoRegistrations({
-        repoType: 'AuthenticatedVersionedAggregateRepo',
+        repoType: 'SelectionVersionedAggregateRepo',
       }),
     ).pipe(Effect.flatMap(decodeRpc));
 
@@ -184,7 +184,7 @@ export const createWebSocketTicket = Effect.fn(
     if (
       !aggregateFrontendRegistrations.some(
         registration =>
-          registration.repoName === authenticatedVersionedAggregateRepoName,
+          registration.repoName === selectionVersionedAggregateRepoName,
       )
     ) {
       return yield* new ZerospinError({

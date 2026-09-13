@@ -7,8 +7,8 @@ import { env } from 'cloudflare:workers';
 import type { AnyColumn } from 'drizzle-orm';
 import { Effect, Result } from 'effect';
 
-import { AuthenticatedVersionedAggregateChain } from '../../AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
 import { FrontendServiceChain } from '../../FrontendServiceChain/FrontendServiceChain.js';
+import { SelectionVersionedAggregateChain } from '../../SelectionVersionedAggregateChain/SelectionVersionedAggregateChain.js';
 import { consumeAggregateFrontendWebSocketTicket } from '../consumeAggregateFrontendWebSocketTicket/consumeAggregateFrontendWebSocketTicket.js';
 import { consumeServiceFrontendWebSocketTicket } from '../consumeServiceFrontendWebSocketTicket/consumeServiceFrontendWebSocketTicket.js';
 
@@ -203,10 +203,10 @@ export const fetch = Effect.fn('SystemRepo.fetch', { root: true })(
 
     // 7 — parse repoName from the spent ticket, preserving the snapshot-selected version
     const key =
-      yield* AuthenticatedVersionedAggregateChain.fixedDORepoConfig.nameUtils.parseName(
+      yield* SelectionVersionedAggregateChain.fixedDORepoConfig.nameUtils.parseName(
         settled.success.repoName,
       );
-    const repo = yield* AuthenticatedVersionedAggregateChain.getRepo({ key });
+    const repo = yield* SelectionVersionedAggregateChain.getRepo({ key });
 
     // 8 — replace aggregate/user/frontend headers and map forwarding failure to HTTP 500
     return yield* makeAsync(async () => {

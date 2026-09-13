@@ -35,7 +35,7 @@ import { commands } from 'vitest/browser';
 import type { runFrontendLifecycleAcceptance } from '../../vitest.playwright.config';
 
 import { ClerkUserIdSchema } from '@/zerospin/aggregates/shopper/models/user/UserV1';
-import { ZerospinApp } from '@/zerospin/ZerospinApp';
+import { Shopper } from '@/zerospin/ZerospinApp';
 
 declare module 'vitest/browser' {
   interface BrowserCommands {
@@ -48,7 +48,7 @@ declare module 'vitest/browser' {
   }
 }
 
-const WebV2 = ZerospinApp.frontends.shopperFrontend.frontend;
+const WebV2 = Shopper.frontend;
 
 Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', {
   configurable: true,
@@ -68,23 +68,18 @@ const adverseRuntimeLayer = Layer.mergeAll(
   ),
   adverseRuntime = ManagedRuntime.make(adverseRuntimeLayer);
 
-const AdverseZerospinApp = makeZerospinApp({
-  systemName: 'shopping',
-
-  frontends: {
-    shopperFrontend: WebV2,
-  },
-  layer: adverseRuntimeLayer,
-});
+const AdverseZerospinApp = makeZerospinApp<
+  typeof import('@/zerospin/system').system
+>({ systemName: 'shopping', layer: adverseRuntimeLayer });
+const AdverseZerospinAppShopperFrontend =
+  AdverseZerospinApp.makeFrontend(WebV2);
 
 function AdverseSessionProbe(props: {
   onSession(
-    session: IBrowserSession<
-      typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
-    >,
+    session: IBrowserSession<typeof AdverseZerospinAppShopperFrontend.frontend>,
   ): void;
 }) {
-  const session = useSession(AdverseZerospinApp.frontends.shopperFrontend);
+  const session = useSession(AdverseZerospinAppShopperFrontend);
   const { onSession } = props;
 
   useEffect(() => {
@@ -441,7 +436,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       },
     });
     let publicSession: IBrowserSession<
-      typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
+      typeof AdverseZerospinAppShopperFrontend.frontend
     > | null = null;
     let signatureCallCount = 0;
 
@@ -449,8 +444,8 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       await act(async () => {
         root.render(
           createElement(AdverseZerospinApp.Provider, {
-            generateSignature: {
-              shopperFrontend: () => {
+            children: createElement(AdverseZerospinAppShopperFrontend, {
+              generateSignature: () => {
                 signatureCallCount += 1;
                 return Effect.fail(
                   new ZerospinError({
@@ -460,11 +455,11 @@ describe('main-thread IndexedDB adverse acceptance', () => {
                   }),
                 );
               },
-            },
-            children: createElement(AdverseSessionProbe, {
-              onSession: session => {
-                publicSession = session;
-              },
+              children: createElement(AdverseSessionProbe, {
+                onSession: session => {
+                  publicSession = session;
+                },
+              }),
             }),
           }),
         );
@@ -522,20 +517,20 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const firstRoot = createRoot(firstContainer);
     const firstSessionCapture: {
       current: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
+        typeof AdverseZerospinAppShopperFrontend.frontend
       > | null;
     } = { current: null };
 
     await act(async () => {
       firstRoot.render(
         createElement(AdverseZerospinApp.Provider, {
-          generateSignature: {
-            shopperFrontend: () => Effect.succeed({ clerkUserId }),
-          },
-          children: createElement(AdverseSessionProbe, {
-            onSession: session => {
-              firstSessionCapture.current = session;
-            },
+          children: createElement(AdverseZerospinAppShopperFrontend, {
+            generateSignature: () => Effect.succeed({ clerkUserId }),
+            children: createElement(AdverseSessionProbe, {
+              onSession: session => {
+                firstSessionCapture.current = session;
+              },
+            }),
           }),
         }),
       );
@@ -680,7 +675,7 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const secondRoot = createRoot(secondContainer);
     const secondSessionCapture: {
       current: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
+        typeof AdverseZerospinAppShopperFrontend.frontend
       > | null;
     } = { current: null };
 
@@ -688,13 +683,13 @@ describe('main-thread IndexedDB adverse acceptance', () => {
       await act(async () => {
         secondRoot.render(
           createElement(AdverseZerospinApp.Provider, {
-            generateSignature: {
-              shopperFrontend: () => Effect.succeed({ clerkUserId }),
-            },
-            children: createElement(AdverseSessionProbe, {
-              onSession: session => {
-                secondSessionCapture.current = session;
-              },
+            children: createElement(AdverseZerospinAppShopperFrontend, {
+              generateSignature: () => Effect.succeed({ clerkUserId }),
+              children: createElement(AdverseSessionProbe, {
+                onSession: session => {
+                  secondSessionCapture.current = session;
+                },
+              }),
             }),
           }),
         );
@@ -814,20 +809,20 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const firstRoot = createRoot(firstContainer);
     const firstSessionCapture: {
       current: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
+        typeof AdverseZerospinAppShopperFrontend.frontend
       > | null;
     } = { current: null };
 
     await act(async () => {
       firstRoot.render(
         createElement(AdverseZerospinApp.Provider, {
-          generateSignature: {
-            shopperFrontend: () => Effect.succeed({ clerkUserId }),
-          },
-          children: createElement(AdverseSessionProbe, {
-            onSession: session => {
-              firstSessionCapture.current = session;
-            },
+          children: createElement(AdverseZerospinAppShopperFrontend, {
+            generateSignature: () => Effect.succeed({ clerkUserId }),
+            children: createElement(AdverseSessionProbe, {
+              onSession: session => {
+                firstSessionCapture.current = session;
+              },
+            }),
           }),
         }),
       );
@@ -950,20 +945,20 @@ describe('main-thread IndexedDB adverse acceptance', () => {
     const secondRoot = createRoot(secondContainer);
     const secondSessionCapture: {
       current: IBrowserSession<
-        typeof AdverseZerospinApp.frontends.shopperFrontend.frontend
+        typeof AdverseZerospinAppShopperFrontend.frontend
       > | null;
     } = { current: null };
     try {
       await act(async () => {
         secondRoot.render(
           createElement(AdverseZerospinApp.Provider, {
-            generateSignature: {
-              shopperFrontend: () => Effect.succeed({ clerkUserId }),
-            },
-            children: createElement(AdverseSessionProbe, {
-              onSession: session => {
-                secondSessionCapture.current = session;
-              },
+            children: createElement(AdverseZerospinAppShopperFrontend, {
+              generateSignature: () => Effect.succeed({ clerkUserId }),
+              children: createElement(AdverseSessionProbe, {
+                onSession: session => {
+                  secondSessionCapture.current = session;
+                },
+              }),
             }),
           }),
         );
@@ -986,7 +981,13 @@ describe('main-thread IndexedDB adverse acceptance', () => {
         throw new Error('The restarted main-thread store must initialize');
       }
       expect(secondState.sessionStatus).toBe('current');
-      expect(secondState.backupState.status).toBe('ready');
+      // Session publication and subsequent backup repair have separate readiness.
+      await expect
+        .poll(() => secondSession.store.getState().backupState.status, {
+          interval: 100,
+          timeout: 120_000,
+        })
+        .toBe('ready');
       expect(secondState.userIndex).toBeGreaterThanOrEqual(persistedUserIndex);
       expect(
         secondState.db.query.user

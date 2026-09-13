@@ -31,8 +31,8 @@ import {
   userV1,
 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { productV1 } from '@/zerospin/services/app/models/product/ProductV1';
-import { ZerospinApp } from '@/zerospin/ZerospinApp';
-const WebV2 = ZerospinApp.frontends.shopperFrontend.frontend;
+import { Catalog, Shopper } from '@/zerospin/ZerospinApp';
+const WebV2 = Shopper.frontend;
 
 const guardTestRuntime = ManagedRuntime.make(
   Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory),
@@ -146,7 +146,7 @@ describe('ProductList', () => {
     });
     useSession.mockReturnValue(session);
     useLiveQuery.mockImplementation((selector, props) => {
-      if (selector === ZerospinApp.frontends.appFrontend) {
+      if (selector === Catalog) {
         return {
           data: [
             {

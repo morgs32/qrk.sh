@@ -45,9 +45,9 @@ export type IRepoType =
   | 'VersionedServiceRepo'
   | 'VersionedAggregateChain'
   | 'VersionedServiceChain'
-  | 'AuthenticatedVersionedAggregateChain'
+  | 'SelectionVersionedAggregateChain'
   | 'FrontendServiceChain'
-  | 'AuthenticatedVersionedAggregateRepo'
+  | 'SelectionVersionedAggregateRepo'
   | 'FrontendVersionedServiceRepo'
   | 'SystemLogRepo';
 

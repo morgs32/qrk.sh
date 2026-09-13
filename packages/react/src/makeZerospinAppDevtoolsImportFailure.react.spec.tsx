@@ -19,12 +19,9 @@ const sessionRuntimeLayer = Layer.mergeAll(
   Layer.succeed(ZerospinApiUrl, 'https://api.example.test'),
 );
 
-const ZerospinApp = makeZerospinApp({
-  systemName: 'system-worker',
-
-  frontends: {},
-  layer: sessionRuntimeLayer,
-});
+const ZerospinApp = makeZerospinApp<
+  typeof import('@zerospin/core/fixtures/system').system
+>({ systemName: 'system-worker', layer: sessionRuntimeLayer });
 
 const fakeImport = vi.hoisted(() => ({ attempts: 0 }));
 
@@ -70,7 +67,7 @@ describe('makeZerospinApp Provider DevTools dynamic import failure', () => {
   it('rejects a failed component import and retries it on the next open', async () => {
     await act(async () => {
       root.render(
-        <ZerospinApp.Provider generateSignature={{}}>
+        <ZerospinApp.Provider>
           <div>Application</div>
         </ZerospinApp.Provider>,
       );

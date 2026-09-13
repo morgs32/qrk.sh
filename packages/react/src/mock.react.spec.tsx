@@ -1,15 +1,24 @@
 import { act, useEffect, useState } from 'react';
 
+import { makeAggregate } from '@zerospin/core/aggregate/makeAggregate';
+import { makeAggregateVersion } from '@zerospin/core/aggregate/makeVersion';
 import { AsyncLive } from '@zerospin/core/async/AsyncLive';
-import { List, main, User } from '@zerospin/core/fixtures/system';
+import {
+  List,
+  main,
+  User,
+  userAggregate,
+} from '@zerospin/core/fixtures/system';
 import { makeFrontendController } from '@zerospin/core/frontendController/makeFrontendController';
 import { makeModel, makeModelVersion } from '@zerospin/core/models/makeModel';
+import { makeSelection } from '@zerospin/core/models/makeSelection';
 import { PublishableKey } from '@zerospin/core/services/PublishableKey';
 import { ZerospinApiUrl } from '@zerospin/core/services/ZerospinApiUrl';
 import {
   sessionCommandJournalDrizzleSchema,
   sessionOptimisticAppliedMutationDrizzleSchema,
 } from '@zerospin/core/session/sessionCommandShape';
+import { makeSystem } from '@zerospin/core/system/makeSystem';
 import { NanoIdFactory } from '@zerospin/core/utils/NanoIdFactory';
 import { UlidMonotonicFactory } from '@zerospin/core/utils/UlidMonotonicFactory';
 import { CuidFactory, primitives } from '@zerospin/schema';
@@ -72,16 +81,12 @@ const sessionRuntimeLayer = Layer.mergeAll(
   Layer.succeed(ZerospinApiUrl, 'https://api.example.test'),
 );
 
-const ZerospinMain = makeZerospinApp({
-  systemName: 'system-worker',
-
-  frontends: {
-    main,
-  },
-  layer: sessionRuntimeLayer,
-});
+const ZerospinMain = makeZerospinApp<
+  typeof import('@zerospin/core/fixtures/system').system
+>({ systemName: 'system-worker', layer: sessionRuntimeLayer });
+const ZerospinMainMain = ZerospinMain.makeFrontend(main);
 const MockMainProvider = makeMockProvider({
-  frontend: ZerospinMain.frontends.main,
+  frontend: ZerospinMainMain,
   layer: sessionRuntimeLayer,
 });
 const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
@@ -110,16 +115,30 @@ const jsonFrontend = makeFrontendController({
   name: 'main',
   systemName: 'mock-json-fixture-test',
 });
-const ZerospinJsonFixture = makeZerospinApp({
-  systemName: 'mock-json-fixture-test',
-
-  frontends: {
-    main: jsonFrontend,
+const jsonSystem = makeSystem({
+  name: 'mock-json-fixture-test',
+  services: {},
+  aggregates: {
+    user: [
+      makeAggregateVersion(makeAggregate({ name: 'user' }), {
+        authentication: userAggregate.authentication,
+        version: '1.0.0',
+        models: jsonFrontend.models,
+        contracts: {},
+        selections: {
+          document: makeSelection({ model: JsonDocument, where: () => ({}) }),
+        },
+      }),
+    ],
   },
+});
+const ZerospinJsonFixture = makeZerospinApp<typeof jsonSystem>({
+  systemName: 'mock-json-fixture-test',
   layer: sessionRuntimeLayer,
 });
+const ZerospinJsonFixtureMain = ZerospinJsonFixture.makeFrontend(jsonFrontend);
 const MockJsonFixtureProvider = makeMockProvider({
-  frontend: ZerospinJsonFixture.frontends.main,
+  frontend: ZerospinJsonFixtureMain,
   layer: sessionRuntimeLayer,
 });
 
@@ -211,7 +230,7 @@ describe('makeMockProvider', () => {
 
   it('gates children until real SQLite initialization and publishes typed seeded and empty models', async () => {
     const Probe = () => {
-      const session = useSession(ZerospinMain.frontends.main);
+      const session = useSession(ZerospinMainMain);
       const userId = session.makeId(User);
       const listId = session.makeId(List);
       assert<Equals<typeof userId, `usr_${string}`>>();
@@ -222,8 +241,8 @@ describe('makeMockProvider', () => {
       expect(session.coreSession.frontend.aggregateVersion).toBe(
         main.aggregateVersion,
       );
-      const state = useInitializedStateOrThrow(ZerospinMain.frontends.main);
-      const users = useLiveQuery(ZerospinMain.frontends.main, {
+      const state = useInitializedStateOrThrow(ZerospinMainMain);
+      const users = useLiveQuery(ZerospinMainMain, {
         query: db =>
           db.query.user.findMany({
             with: {
@@ -231,10 +250,10 @@ describe('makeMockProvider', () => {
             },
           }),
       });
-      const items = useLiveQuery(ZerospinMain.frontends.main, {
+      const items = useLiveQuery(ZerospinMainMain, {
         query: db => db.query.item.findMany(),
       });
-      const accounts = useLiveQuery(ZerospinMain.frontends.main, {
+      const accounts = useLiveQuery(ZerospinMainMain, {
         query: db => db.query.account.findMany(),
       });
 
@@ -321,16 +340,16 @@ describe('makeMockProvider', () => {
 
   it('provisions every model table as empty when resources are omitted', async () => {
     const EmptyModelsProbe = () => {
-      const accounts = useLiveQuery(ZerospinMain.frontends.main, {
+      const accounts = useLiveQuery(ZerospinMainMain, {
         query: db => db.query.account.findMany(),
       });
-      const items = useLiveQuery(ZerospinMain.frontends.main, {
+      const items = useLiveQuery(ZerospinMainMain, {
         query: db => db.query.item.findMany(),
       });
-      const lists = useLiveQuery(ZerospinMain.frontends.main, {
+      const lists = useLiveQuery(ZerospinMainMain, {
         query: db => db.query.list.findMany(),
       });
-      const users = useLiveQuery(ZerospinMain.frontends.main, {
+      const users = useLiveQuery(ZerospinMainMain, {
         query: db => db.query.user.findMany(),
       });
 
@@ -370,7 +389,7 @@ describe('makeMockProvider', () => {
 
   it('encodes a decoded JSON fixture for the real Drizzle row', async () => {
     const JsonFixtureProbe = () => {
-      const documents = useLiveQuery(ZerospinJsonFixture.frontends.main, {
+      const documents = useLiveQuery(ZerospinJsonFixtureMain, {
         query: db => db.query.document.findMany(),
       });
 
@@ -421,8 +440,8 @@ describe('makeMockProvider', () => {
     const listSnapshots: string[] = [];
 
     const StagingProbe = () => {
-      const session = useSession(ZerospinMain.frontends.main);
-      const lists = useLiveQuery(ZerospinMain.frontends.main, {
+      const session = useSession(ZerospinMainMain);
+      const lists = useLiveQuery(ZerospinMainMain, {
         query: db => db.query.list.findMany(),
       });
       const [optimisticRowCount, setOptimisticRowCount] = useState(0);
@@ -513,8 +532,8 @@ describe('makeMockProvider', () => {
 
   it('captures fixture and identity props once and uses a new key as the reset boundary', async () => {
     const IdentityProbe = () => {
-      const state = useInitializedStateOrThrow(ZerospinMain.frontends.main);
-      const users = useLiveQuery(ZerospinMain.frontends.main, {
+      const state = useInitializedStateOrThrow(ZerospinMainMain);
+      const users = useLiveQuery(ZerospinMainMain, {
         query: db => db.query.user.findMany(),
       });
 

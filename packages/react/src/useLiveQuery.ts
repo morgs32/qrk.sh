@@ -76,7 +76,7 @@ export function useLiveQuery(
   const entry = provider.sessions.get(selector);
   if (entry === undefined) {
     throw new Error(
-      `ZerospinApp.Provider has no mounted session for frontend "${selector.frontend.name}". Use the matching ZerospinApp.frontends entry.`,
+      `No ancestor frontend component provides a session for "${selector.frontend.name}". Mount the matching frontend component above this consumer.`,
     );
   }
   const { deps = [], query, tableNames = [] } = props;

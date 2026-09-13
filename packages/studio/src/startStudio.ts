@@ -98,13 +98,13 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                           ),
                       );
                       break;
-                    case 'AuthenticatedVersionedAggregateRepo':
+                    case 'SelectionVersionedAggregateRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getAuthenticatedVersionedAggregateRepos()
+                          .getSelectionVersionedAggregateRepos()
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getAuthenticatedVersionedAggregateRepos',
+                              'Studio.getSelectionVersionedAggregateRepos',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),
@@ -170,19 +170,17 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                           ),
                       );
                       break;
-                    case 'AuthenticatedVersionedAggregateChain':
+                    case 'SelectionVersionedAggregateChain':
                       data = await Effect.runPromise(
-                        systemApi
-                          .getAuthenticatedVersionedAggregateChains()
-                          .pipe(
-                            Effect.withSpan(
-                              'Studio.getAuthenticatedVersionedAggregateChains',
-                              {
-                                root: true,
-                              },
-                            ),
-                            Effect.provide(makeTelemetryLayer(collector)),
+                        systemApi.getSelectionVersionedAggregateChains().pipe(
+                          Effect.withSpan(
+                            'Studio.getSelectionVersionedAggregateChains',
+                            {
+                              root: true,
+                            },
                           ),
+                          Effect.provide(makeTelemetryLayer(collector)),
+                        ),
                       );
                       break;
                     case 'FrontendServiceChain':
@@ -259,16 +257,16 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                           ),
                       );
                       break;
-                    case 'AuthenticatedVersionedAggregateRepo':
+                    case 'SelectionVersionedAggregateRepo':
                       data = await Effect.runPromise(
                         systemApi
-                          .getAuthenticatedVersionedAggregateRepoTableRows({
+                          .getSelectionVersionedAggregateRepoTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getAuthenticatedVersionedAggregateRepoTableRows',
+                              'Studio.getSelectionVersionedAggregateRepoTableRows',
                               {
                                 root: true,
                               },
@@ -357,16 +355,16 @@ export const startStudio = Effect.fn('startStudio')(function* (props: {
                           ),
                       );
                       break;
-                    case 'AuthenticatedVersionedAggregateChain':
+                    case 'SelectionVersionedAggregateChain':
                       data = await Effect.runPromise(
                         systemApi
-                          .getAuthenticatedVersionedAggregateChainTableRows({
+                          .getSelectionVersionedAggregateChainTableRows({
                             repoName,
                             tableName,
                           })
                           .pipe(
                             Effect.withSpan(
-                              'Studio.getAuthenticatedVersionedAggregateChainTableRows',
+                              'Studio.getSelectionVersionedAggregateChainTableRows',
                               { root: true },
                             ),
                             Effect.provide(makeTelemetryLayer(collector)),

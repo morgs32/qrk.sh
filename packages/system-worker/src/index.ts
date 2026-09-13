@@ -1,8 +1,8 @@
 export { AggregateChain } from './AggregateChain/AggregateChain.js';
-export { AuthenticatedVersionedAggregateChain } from './AuthenticatedVersionedAggregateChain/AuthenticatedVersionedAggregateChain.js';
+export { SelectionVersionedAggregateChain } from './SelectionVersionedAggregateChain/SelectionVersionedAggregateChain.js';
 export { VersionedAggregateChain } from './VersionedAggregateChain/VersionedAggregateChain.js';
 export { VersionedServiceChain } from './VersionedServiceChain/VersionedServiceChain.js';
-export { AuthenticatedVersionedAggregateRepo } from './AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.js';
+export { SelectionVersionedAggregateRepo } from './SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.js';
 export { VersionedAggregateRepo } from './VersionedAggregateRepo/VersionedAggregateRepo.js';
 export { ServiceAdmittedChain } from './ServiceAdmittedChain/ServiceAdmittedChain.js';
 export { FrontendServiceChain } from './FrontendServiceChain/FrontendServiceChain.js';

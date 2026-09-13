@@ -21,29 +21,26 @@ import { cartV1 } from '@/zerospin/aggregates/shopper/models/cart/CartV1';
 import { cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/CartItemV2';
 import { type userV1 } from '@/zerospin/aggregates/shopper/models/user/UserV1';
 import { type productV1 } from '@/zerospin/services/app/models/product/ProductV1';
-import { ZerospinApp } from '@/zerospin/ZerospinApp';
+import { Shopper } from '@/zerospin/ZerospinApp';
 
 export function ProductCard(props: {
   product: InferResource<typeof productV1>;
   userId: InferResource<typeof userV1>['id'];
 }) {
   const { product, userId } = props;
-  const session = useSession(ZerospinApp.frontends.shopperFrontend);
-  const { data: cart } = useLiveQuery(ZerospinApp.frontends.shopperFrontend, {
+  const session = useSession(Shopper);
+  const { data: cart } = useLiveQuery(Shopper, {
     query: db => db.query.cart.findFirst(),
   });
-  const { data: cartItem } = useLiveQuery(
-    ZerospinApp.frontends.shopperFrontend,
-    {
-      query: db =>
-        db.query.cartItem.findFirst({
-          where: {
-            cartId: { eq: cart?.id },
-            productId: { eq: product.id },
-          },
-        }),
-    },
-  );
+  const { data: cartItem } = useLiveQuery(Shopper, {
+    query: db =>
+      db.query.cartItem.findFirst({
+        where: {
+          cartId: { eq: cart?.id },
+          productId: { eq: product.id },
+        },
+      }),
+  });
 
   return (
     <Card className="flex flex-col gap-0 overflow-hidden border-border/80 bg-card py-0 shadow-sm transition-shadow hover:shadow-md">

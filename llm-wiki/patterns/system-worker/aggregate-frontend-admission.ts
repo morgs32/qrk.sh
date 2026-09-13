@@ -1,8 +1,8 @@
 /**
  * AggregateFrontendApi sends the complete local occurrence to AAC and returns
  * its { aggregateIndex, commandId } admission receipt. Browser optimism stays
- * pending until a terminal per-command AVAC output resolves that command ID.
- * VAR owns preparation and contract and aggregate binding guards; AVAR never executes optimism.
+ * pending until a terminal per-command SelectionVAC output resolves that command ID.
+ * VAR owns preparation and contract and aggregate binding guards; SelectionVAR never executes optimism.
  *
  * @bad Add a server pushed-command chain or optimistic frontend materializer.
  * @bad Strip the local occurrence to payload/session fields at admission.

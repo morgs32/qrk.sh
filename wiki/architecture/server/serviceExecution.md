@@ -19,8 +19,8 @@ sequenceDiagram
   participant VSR as VersionedServiceRepo
   participant VSC as VersionedServiceChain
   participant VAR as VersionedAggregateRepo
-  participant AVAR as AuthenticatedVersionedAggregateRepo
-  participant AVAC as AuthenticatedVersionedAggregateChain
+  participant SelectionVAR as SelectionVersionedAggregateRepo
+  participant SelectionVAC as SelectionVersionedAggregateChain
   participant FVSR as FrontendVersionedServiceRepo
   participant FSC as FrontendServiceChain
   participant Browser
@@ -36,11 +36,11 @@ sequenceDiagram
     autonumber 5
     VSC->>VAR: receiver.receive(...)
     autonumber 6
-    VSC->>AVAR: receiver.receive(...)
+    VSC->>SelectionVAR: receiver.receive(...)
     autonumber 7
-    AVAR->>AVAC: deltasSubscriber.receive(...)
+    SelectionVAR->>SelectionVAC: deltasSubscriber.receive(...)
     autonumber 8
-    AVAC-->>Browser: aggregateFrontendCommand / replay-complete
+    SelectionVAC-->>Browser: aggregateFrontendCommand / replay-complete
   and Standalone service frontends
     autonumber 9
     VSC->>FVSR: receiver.receive(...)
@@ -68,13 +68,13 @@ sequenceDiagram
 5. The pinned VSC delivers complete service execution entries directly to VAR.
    - [`VersionedServiceChain.ts`](../../../packages/system-worker/src/VersionedServiceChain/VersionedServiceChain.ts) — Binds a separate typed queue to VAR subscribers and forwards retained suffix rows.
    - [`receiveServiceCommandsTx.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/receiveServiceCommandsTx.ts) — Applies service changes only to enrolled resources and advances the service source cursor without producing an aggregate result.
-6. The same pinned VSC independently delivers complete entries to AVAR.
-   - [`VersionedServiceChain.ts`](../../../packages/system-worker/src/VersionedServiceChain/VersionedServiceChain.ts) — Binds a separate typed queue to AVAR subscribers.
-   - [`executeTx.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/executeTx.ts) — Validates source order and applies newer service mutations to enrolled copies while retaining aggregate progress.
-7. AVAR projects its combined resource state and publishes one output into AVAC for every consumed source occurrence.
-   - [`executeTx.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/executeTx.ts) — Increments `userIndex` independently, derives the projected delta, and uses `resolution: null` for service-only output.
+6. The same pinned VSC independently delivers complete entries to SelectionVAR.
+   - [`VersionedServiceChain.ts`](../../../packages/system-worker/src/VersionedServiceChain/VersionedServiceChain.ts) — Binds a separate typed queue to SelectionVAR subscribers.
+   - [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — Validates source order and applies newer service mutations to enrolled copies while retaining aggregate progress.
+7. SelectionVAR projects its combined resource state and publishes one output into SelectionVAC for every consumed source occurrence.
+   - [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — Increments `userIndex` independently, derives the projected delta, and uses `resolution: null` for service-only output.
 8. The aggregate browser resumes one combined frontend stream by `userIndex`.
-   - [`onMessage.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateChain/onMessage/onMessage.ts) — Replays the contiguous frontend suffix and reports its frontend completion position.
+   - [`onMessage.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateChain/onMessage/onMessage.ts) — Replays the contiguous frontend suffix and reports its frontend completion position.
 9. The existing VSC replica fanout separately feeds pinned FVSR instances for standalone service frontends.
    - [`VersionedServiceChain.ts`](../../../packages/system-worker/src/VersionedServiceChain/VersionedServiceChain.ts) — Retains the FVSR queue and subscriber identity.
    - [`executeTx.ts`](../../../packages/system-worker/src/FrontendVersionedServiceRepo/execute/executeTx.ts) — Replays successful mutations without service programs and commits projected progress for failed and empty positions too.
@@ -108,15 +108,15 @@ SystemApi.cutoverServiceVersion requires a registered candidate whose numeric ma
 - [`cutover.ts`](../../../packages/system-worker/src/ServiceAdmittedChain/cutover/cutover.ts) — Rechecks the base, records divergent candidates, and updates only the selected base on promotion.
 - [`flush.ts`](../../../packages/system-worker/src/VersionedServiceRepo/flush/flush.ts) — Returns commandId and dispositionHash only after retained result publication.
 
-Each aggregate snapshot declares one service version per service name. Its replicas select explicit source model versions that must exactly match the models exposed by those pinned service snapshots. A later service-base promotion does not change these authored pins. AC admits aggregate commands only; VAR and AVAR own independent subscriptions to the pinned VSC histories.
+Each aggregate snapshot declares one service version per service name. Its replicas select explicit source model versions that must exactly match the models exposed by those pinned service snapshots. A later service-base promotion does not change these authored pins. AC admits aggregate commands only; VAR and SelectionVAR own independent subscriptions to the pinned VSC histories.
 
 - [`makeReplica.ts`](../../../packages/core/src/models/makeReplica.ts) — Requires an explicit modelVersion while retaining canonical source-model provenance.
 - [`resolveSystemAggregate.ts`](../../../packages/core/src/system/resolveSystemAggregate.ts) — Validates aggregate service pins, service snapshot availability, and exact replica model-version agreement.
 - [`aggregateChainDbConfig.ts`](../../../packages/system-worker/src/AggregateChain/aggregateChainDbConfig.ts) — Stores only encoded aggregate command inputs in admitted history.
 - [`onDOActivation.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Initializes every selected aggregate service pin before catching up and subscribing during activation.
-- [`onDOActivation.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Initializes AVAR's declared sources, then subscribes its aggregate and service feeds without an execution permit.
+- [`onDOActivation.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Initializes SelectionVAR's declared sources, then subscribes its aggregate and service feeds without an execution permit.
 
-VAR fetches the authoritative initial copy from the pinned VSR and retains serviceName, serviceVersion, serviceIndex, and resource on the prepared replication mutation. Within the command savepoint it installs effective copies and their source positions before guards. A newer enrolled copy wins over an older fetch, and rejection rolls provisional changes back. Successful VAC entries carry the effective initial copies to AVAR.
+VAR fetches the authoritative initial copy from the pinned VSR and retains serviceName, serviceVersion, serviceIndex, and resource on the prepared replication mutation. Within the command savepoint it installs effective copies and their source positions before guards. A newer enrolled copy wins over an older fetch, and rejection rolls provisional changes back. Successful VAC entries carry the effective initial copies to SelectionVAR.
 
 - [`getReplicatedResources.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/getReplicatedResources/getReplicatedResources.ts) — Selects the authored service pin, captures the source materializer's resource position, and prepares any missing retained suffix before initial enrollment.
 - [`executeCommandsTx.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/executeCommands/executeCommandsTx.ts) — Installs initial replicas before guards, retains newer enrolled copies, and publishes successful prepared mutations with their effective source positions.
@@ -124,20 +124,20 @@ VAR fetches the authoritative initial copy from the pinned VSR and retains servi
 Each service target binds `{ systemId, serviceName, serviceVersion }`: the aggregate Repo supplies `systemId`, and the selected authored aggregate snapshot supplies the pinned name and version. Activation creates a `services` row keyed by `serviceName` with only `lastIndex`; the version is read from the selected definition. The accessor rejects an owner mismatch, a version outside the selected definition, or an absent service cursor before returning the capability. `subscriber.subscribe(index?)` uses the same receive operation for pull catch-up and live delivery, captures one destination when none is supplied, and enrolls its committed cursor afterward. Activation establishes all declared subscriptions; explicit reads use catchup without re-enrollment.
 
 - [`VersionedAggregateRepo.ts`](../../../packages/system-worker/src/VersionedAggregateRepo/VersionedAggregateRepo.ts) — Validates the requested owner, selected service version, and committed service cursor before exposing its source-bound subscriber.
-- [`AuthenticatedVersionedAggregateRepo.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.ts) — Applies the same source capability check for aggregate frontend replicas.
+- [`SelectionVersionedAggregateRepo.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.ts) — Applies the same source capability check for aggregate frontend replicas.
 
 - [`makeFanoutSubscriber.ts`](../../../packages/system-worker/src/makeFanoutSubscriber/makeFanoutSubscriber.ts) — Uses the first page's tip as a fixed destination and rereads durable progress after receipt.
 - [`makeFanoutSubscriber.ts`](../../../packages/system-worker/src/makeFanoutSubscriber/makeFanoutSubscriber.ts) — Performs source enrollment after catch-up without a receiver permit.
-- [`onDOActivation.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Declares sources before resource enrollment and awaits their subscriptions during activation.
+- [`onDOActivation.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Declares sources before resource enrollment and awaits their subscriptions during activation.
 
 Both aggregate materializers track service progress in `services.lastIndex`, independently from aggregate progress. Each replica-model row retains its own `serviceIndex` beside `deletedAt`; row existence, including a tombstone, establishes resource membership. Browser-only provisional copies have a null `serviceIndex` until authoritative source progress is known. Server replay requires a numeric position for committed copies. Service replay skips already consumed indices and rejects gaps; the service cursor does not retain duplicate bytes. Service delivery changes only enrolled resources; failed or unrelated occurrences still advance the source cursor. When a new resource's initial copy predates an already consumed service cursor, its missing VSC suffix is read before enrollment commits. This bounded preparation preserves the existing source cursor and closes the late-enrollment gap. Resource enrollment never creates service subscriptions or rewinds source progress. Failed activation propagates; a subsequent activation resumes committed catch-up. Queue alarms recover output delivery.
 
-- [`authenticatedVersionedAggregateRepoDbConfig.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/authenticatedVersionedAggregateRepoDbConfig.ts) — Persists only the last consumed index for each declared service.
+- [`selectionVersionedAggregateRepoDbConfig.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/selectionVersionedAggregateRepoDbConfig.ts) — Persists only the last consumed index for each declared service.
 - [`makeReplica.ts`](../../../packages/core/src/models/makeReplica.ts) — Adds per-copy source position and deletion state to the exact source model schema.
-- [`sourceReplay.node.spec.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/sourceReplay.node.spec.ts) — Verifies newer-copy retention, late tombstones, and source-position rollback with failed projection.
-- [`execute.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/execute.ts) — Reads retained history through committed service progress before preparing a late resource's initial copy.
-- [`executeTx.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/executeTx.ts) — Ignores unenrolled service changes and prevents older copies from overwriting an enrolled resource.
-- [`onDOActivation.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Preserves declared source cursors across activation; output queues register their delivery independently.
+- [`sourceReplay.node.spec.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/sourceReplay.node.spec.ts) — Verifies newer-copy retention, late tombstones, and source-position rollback with failed projection.
+- [`execute.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/execute.ts) — Reads retained history through committed service progress before preparing a late resource's initial copy.
+- [`executeTx.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/executeTx.ts) — Ignores unenrolled service changes and prevents older copies from overwriting an enrolled resource.
+- [`onDOActivation.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/onDOActivation/onDOActivation.ts) — Preserves declared source cursors across activation; output queues register their delivery independently.
 
 ## Snapshot and failure boundaries
 
@@ -162,8 +162,8 @@ See [fanout scheduling and terminal failures](./admitCommands.md#fanout-scheduli
 - [`executeCommands.node.spec.ts`](../../../packages/system-worker/src/VersionedServiceRepo/executeCommands/executeCommands.node.spec.ts) — Exercises supplied rows without history lookup, duplicate and overlapping pages, input failures, domain rejection, and atomic rollback followed by retry.
 - [`serviceExecution.workerd.spec.ts`](../../../packages/system-worker/src/serviceExecution.workerd.spec.ts) — Receives concurrent overlapping pages while SAC has no retained inputs, observes publication, and retries after cold activation.
 - [`serviceReplication.node.spec.ts`](../../../packages/system-worker/src/serviceReplication.node.spec.ts) — Exercises pinned initial copies, source positions, missing resources and pins, and strict candidate invalidation when replicas change a guard outcome.
-- [`sourceReplay.node.spec.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/execute/sourceReplay.node.spec.ts) — Exercises independent output order, late enrollment, newer copies, and tombstones in AVAR.
-- [`AuthenticatedVersionedAggregateRepo.workerd.spec.ts`](../../../packages/system-worker/src/AuthenticatedVersionedAggregateRepo/AuthenticatedVersionedAggregateRepo.workerd.spec.ts) — Verifies activation-declared sources before resource enrollment and source validation across cold activation.
+- [`sourceReplay.node.spec.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/execute/sourceReplay.node.spec.ts) — Exercises independent output order, late enrollment, newer copies, and tombstones in SelectionVAR.
+- [`SelectionVersionedAggregateRepo.workerd.spec.ts`](../../../packages/system-worker/src/SelectionVersionedAggregateRepo/SelectionVersionedAggregateRepo.workerd.spec.ts) — Verifies activation-declared sources before resource enrollment and source validation across cold activation.
 - [`cutover.node.spec.ts`](../../../packages/system-worker/src/ServiceAdmittedChain/cutover/cutover.node.spec.ts) — Exercises numeric version precedence independently of discovery order, suffix-only rejection, invalidation, concurrent base changes, and retry after a failed promotion commit.
 - [`pinnedServiceReplicas.workerd.spec.ts`](../../../packages/system-worker/src/pinnedServiceReplicas.workerd.spec.ts) — Enrolls a never-current historical service version, rejects backward cutover, and observes its later pushed publication without requesting another catch-up.
 - [`execute.node.spec.ts`](../../../packages/system-worker/src/FrontendVersionedServiceRepo/execute/execute.node.spec.ts) — Exercises gap rejection and projection rollback with whole-page retry.

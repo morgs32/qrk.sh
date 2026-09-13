@@ -5,7 +5,7 @@
  * source-bound subscribers execute supplied rows and share the same receive
  * Effect with pull catch-up. VAFC and VSFC send complete terminal envelopes
  * to replicas, which replay retained mutations without authored programs.
- * VAR and AVAR independently consume their pinned VSFC service histories;
+ * VAR and SelectionVAR independently consume their pinned VSFC service histories;
  * SAC does not route finalized service occurrences through AAC.
  *
  * Each `${queueName}Subscriber(sourceKey)` target binds one source queue,

@@ -32,14 +32,14 @@ import { executeServiceQuery } from './executeServiceQuery/executeServiceQuery.j
 import { getAggregateChains } from './getAggregateChains/getAggregateChains.js';
 import { getAggregateChainTableRows } from './getAggregateChainTableRows/getAggregateChainTableRows.js';
 import { getAggregateFrontendState } from './getAggregateFrontendState/getAggregateFrontendState.js';
-import { getAuthenticatedVersionedAggregateChains } from './getAuthenticatedVersionedAggregateChains/getAuthenticatedVersionedAggregateChains.js';
-import { getAuthenticatedVersionedAggregateChainTableRows } from './getAuthenticatedVersionedAggregateChainTableRows/getAuthenticatedVersionedAggregateChainTableRows.js';
-import { getAuthenticatedVersionedAggregateRepos } from './getAuthenticatedVersionedAggregateRepos/getAuthenticatedVersionedAggregateRepos.js';
-import { getAuthenticatedVersionedAggregateRepoTableRows } from './getAuthenticatedVersionedAggregateRepoTableRows/getAuthenticatedVersionedAggregateRepoTableRows.js';
 import { getFrontendServiceChains } from './getFrontendServiceChains/getFrontendServiceChains.js';
 import { getFrontendServiceChainTableRows } from './getFrontendServiceChainTableRows/getFrontendServiceChainTableRows.js';
 import { getFrontendVersionedServiceRepos } from './getFrontendVersionedServiceRepos/getFrontendVersionedServiceRepos.js';
 import { getFrontendVersionedServiceRepoTableRows } from './getFrontendVersionedServiceRepoTableRows/getFrontendVersionedServiceRepoTableRows.js';
+import { getSelectionVersionedAggregateChains } from './getSelectionVersionedAggregateChains/getSelectionVersionedAggregateChains.js';
+import { getSelectionVersionedAggregateChainTableRows } from './getSelectionVersionedAggregateChainTableRows/getSelectionVersionedAggregateChainTableRows.js';
+import { getSelectionVersionedAggregateRepos } from './getSelectionVersionedAggregateRepos/getSelectionVersionedAggregateRepos.js';
+import { getSelectionVersionedAggregateRepoTableRows } from './getSelectionVersionedAggregateRepoTableRows/getSelectionVersionedAggregateRepoTableRows.js';
 import { getServiceAdmittedChains } from './getServiceAdmittedChains/getServiceAdmittedChains.js';
 import { getServiceAdmittedChainTableRows } from './getServiceAdmittedChainTableRows/getServiceAdmittedChainTableRows.js';
 import { getSystemLogRepos } from './getSystemLogRepos/getSystemLogRepos.js';
@@ -110,7 +110,7 @@ export class SystemApi extends RpcTarget {
   }
 
   /**
-   * Admin/tooling optimistic frontend state load: SystemApi handler → `AuthenticatedVersionedAggregateRepo`.
+   * Admin/tooling optimistic frontend state load: SystemApi handler → `SelectionVersionedAggregateRepo`.
    */
   /*
    * Secret-key callers request an aggregate frontend snapshot through SystemApi.
@@ -316,18 +316,18 @@ export class SystemApi extends RpcTarget {
   }
 
   /*
-   * SystemApi lists AuthenticatedVersionedAggregateRepo instances recorded in its deployment
+   * SystemApi lists SelectionVersionedAggregateRepo instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
    * enumerating the Durable Object namespace.
    *
    * 1. Run the bound domain operation.
    */
-  async getAuthenticatedVersionedAggregateRepos(
+  async getSelectionVersionedAggregateRepos(
     request: IRpcRequest<[]>,
   ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
-    // 1 — run getAuthenticatedVersionedAggregateRepos with the instance-bound dependencies
+    // 1 — run getSelectionVersionedAggregateRepos with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getAuthenticatedVersionedAggregateRepos({
+      getSelectionVersionedAggregateRepos({
         request,
         authResults: this.#authResults,
       }),
@@ -335,18 +335,18 @@ export class SystemApi extends RpcTarget {
   }
 
   /*
-   * SystemApi exposes registered AuthenticatedVersionedAggregateRepo tables to secret-key
+   * SystemApi exposes registered SelectionVersionedAggregateRepo tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
    * comes from the granted capability, while repoName and tableName come from the request.
    *
    * 1. Run the bound domain operation.
    */
-  async getAuthenticatedVersionedAggregateRepoTableRows(
+  async getSelectionVersionedAggregateRepoTableRows(
     request: IRpcRequest<[{ repoName: string; tableName: string }]>,
   ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
-    // 1 — run getAuthenticatedVersionedAggregateRepoTableRows with the instance-bound dependencies
+    // 1 — run getSelectionVersionedAggregateRepoTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getAuthenticatedVersionedAggregateRepoTableRows({
+      getSelectionVersionedAggregateRepoTableRows({
         request,
         authResults: this.#authResults,
       }),
@@ -465,18 +465,18 @@ export class SystemApi extends RpcTarget {
   }
 
   /*
-   * SystemApi lists AuthenticatedVersionedAggregateChain instances recorded in its deployment
+   * SystemApi lists SelectionVersionedAggregateChain instances recorded in its deployment
    * catalog. Inspection reads registrations from SystemRepo instead of
    * enumerating the Durable Object namespace.
    *
    * 1. Run the bound domain operation.
    */
-  async getAuthenticatedVersionedAggregateChains(
+  async getSelectionVersionedAggregateChains(
     request: IRpcRequest<[]>,
   ): Promise<ILinkedRpcEnvelope<readonly IRepoRegistration[], IAnyErrorJson>> {
-    // 1 — run getAuthenticatedVersionedAggregateChains with the instance-bound dependencies
+    // 1 — run getSelectionVersionedAggregateChains with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getAuthenticatedVersionedAggregateChains({
+      getSelectionVersionedAggregateChains({
         request,
         authResults: this.#authResults,
       }),
@@ -484,18 +484,18 @@ export class SystemApi extends RpcTarget {
   }
 
   /*
-   * SystemApi exposes registered AuthenticatedVersionedAggregateChain tables to secret-key
+   * SystemApi exposes registered SelectionVersionedAggregateChain tables to secret-key
    * inspection callers. The catalog check precedes the Repo lookup; systemId
    * comes from the granted capability, while repoName and tableName come from the request.
    *
    * 1. Run the bound domain operation.
    */
-  async getAuthenticatedVersionedAggregateChainTableRows(
+  async getSelectionVersionedAggregateChainTableRows(
     request: IRpcRequest<[{ repoName: string; tableName: string }]>,
   ): Promise<ILinkedRpcEnvelope<IRepoTableData, IAnyErrorJson>> {
-    // 1 — run getAuthenticatedVersionedAggregateChainTableRows with the instance-bound dependencies
+    // 1 — run getSelectionVersionedAggregateChainTableRows with the instance-bound dependencies
     return this.#runtime.runPromise(
-      getAuthenticatedVersionedAggregateChainTableRows({
+      getSelectionVersionedAggregateChainTableRows({
         request,
         authResults: this.#authResults,
       }),

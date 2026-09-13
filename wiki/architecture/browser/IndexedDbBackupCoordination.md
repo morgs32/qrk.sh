@@ -15,8 +15,9 @@ without waiting for either the previous page or a server response.
 
 ## Trigger
 
-1. `ZerospinApp.Provider` acquires one page connection before initializing its
-   selected frontend sessions in parallel.
+1. The first mounted frontend lazily requests the app Provider's shared page
+   connection. Concurrent requests share acquisition. Unmounting a frontend
+   does not close the connection; app teardown closes frontend scopes first.
    - [`makeZerospinApp.tsx`](../../../packages/react/src/makeZerospinApp.tsx) — passes the same `backupWorker` into aggregate and service bootstraps.
 2. The connection opens `/__zerospin/backup-worker.js` with the name
    `zerospin-backups`; readiness waits for storage initialization under the

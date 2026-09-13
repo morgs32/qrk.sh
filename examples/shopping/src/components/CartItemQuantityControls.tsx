@@ -4,7 +4,7 @@ import { Minus, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { type cartItemV2 } from '@/zerospin/aggregates/shopper/models/cartItem/CartItemV2';
-import { ZerospinApp } from '@/zerospin/ZerospinApp';
+import { Shopper } from '@/zerospin/ZerospinApp';
 
 interface IProps {
   cartItemId: InferResource<typeof cartItemV2>['id'];
@@ -12,7 +12,7 @@ interface IProps {
 }
 
 export function CartItemQuantityControls({ amount, cartItemId }: IProps) {
-  const session = useSession(ZerospinApp.frontends.shopperFrontend);
+  const session = useSession(Shopper);
 
   const onDecrement = () => {
     if (amount <= 1) {

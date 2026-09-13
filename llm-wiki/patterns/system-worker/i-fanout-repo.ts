@@ -95,7 +95,7 @@ import { versionedAggregateChainDbConfig } from '../../../packages/system-worker
  * VAR and VSR retain terminal result recovery around subscriber catch-up.
  * Receive commits supplied admitted rows under the owner's execution permit and
  * schedules result publication.
- * VAR and AVAR initialize services.lastIndex from their selected snapshot
+ * VAR and SelectionVAR initialize services.lastIndex from their selected snapshot
  * aggregate.services at activation, preserving existing source progress. Resource
  * membership is the replica row or tombstone; its serviceIndex is independent.
  * Creating a copy never creates subscriptions or rewinds the source
@@ -166,12 +166,11 @@ export type IFanoutSubscriberRepo<QUEUE extends { readonly name: string }> = {
 
 export class VersionedAggregateChain
   extends RpcTarget
-  implements
-    IFanoutRepo<'replicaFanoutQueue', AuthenticatedVersionedAggregateRepo>
+  implements IFanoutRepo<'replicaFanoutQueue', SelectionVersionedAggregateRepo>
 {
   declare static readonly getRepo: (props: {
     key: Parameters<
-      AuthenticatedVersionedAggregateRepo['replicaFanoutQueueSubscriber']
+      SelectionVersionedAggregateRepo['replicaFanoutQueueSubscriber']
     >[0];
   }) => Effect.Effect<{
     readonly replicaFanoutQueue: PromiseLike<
@@ -199,7 +198,7 @@ export class VersionedAggregateChain
     subscribersTableName: 'replicaSubscribers',
     entriesTableName: 'commands',
     indexColumnName: 'outboxIndex',
-    getRepo: AuthenticatedVersionedAggregateRepo.getRepo,
+    getRepo: SelectionVersionedAggregateRepo.getRepo,
   });
 
   get replicaFanoutQueue() {
@@ -207,17 +206,17 @@ export class VersionedAggregateChain
   }
 }
 
-export class AuthenticatedVersionedAggregateRepo extends RpcTarget {
+export class SelectionVersionedAggregateRepo extends RpcTarget {
   declare static readonly getRepo: (props: {
     key: Record<string, string>;
   }) => Effect.Effect<{
     replicaFanoutQueueSubscriber(
       sourceKey: Parameters<
-        AuthenticatedVersionedAggregateRepo['replicaFanoutQueueSubscriber']
+        SelectionVersionedAggregateRepo['replicaFanoutQueueSubscriber']
       >[0],
     ): PromiseLike<
       ReturnType<
-        AuthenticatedVersionedAggregateRepo['replicaFanoutQueueSubscriber']
+        SelectionVersionedAggregateRepo['replicaFanoutQueueSubscriber']
       >
     >;
   }>;
@@ -268,7 +267,7 @@ declare function makeFanoutQueue(props: {
   subscribersTableName: 'replicaSubscribers';
   entriesTableName: 'commands';
   indexColumnName: 'outboxIndex';
-  getRepo: typeof AuthenticatedVersionedAggregateRepo.getRepo;
+  getRepo: typeof SelectionVersionedAggregateRepo.getRepo;
   subscribersWhere?: readonly [SQL | undefined, ...(SQL | undefined)[]];
 }): RpcTarget & {
   readonly drain: () => Promise<void>;
@@ -285,9 +284,9 @@ declare function makeFanoutQueue(props: {
 declare function makeFanoutSubscriber(props: {
   name: 'replicaFanoutQueue';
   sourceKey: Parameters<
-    AuthenticatedVersionedAggregateRepo['replicaFanoutQueueSubscriber']
+    SelectionVersionedAggregateRepo['replicaFanoutQueueSubscriber']
   >[0];
-  key: AuthenticatedVersionedAggregateRepo['key'];
+  key: SelectionVersionedAggregateRepo['key'];
   getRepo: typeof VersionedAggregateChain.getRepo;
   getCurrentIndex: () => number;
   receive: (

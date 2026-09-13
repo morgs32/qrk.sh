@@ -9,34 +9,29 @@ import {
   SidebarHeader,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import { ZerospinApp } from '@/zerospin/ZerospinApp';
+import { Shopper } from '@/zerospin/ZerospinApp';
 
 export function ShoppingCartSidebar() {
-  const { authentication } = useInitializedStateOrThrow(
-    ZerospinApp.frontends.shopperFrontend,
-  );
+  const { authentication } = useInitializedStateOrThrow(Shopper);
 
-  const { data: userRow } = useLiveQuery(
-    ZerospinApp.frontends.shopperFrontend,
-    {
-      query: db =>
-        db.query.user.findFirst({
-          where: { clerkUserId: { eq: authentication.clerkUserId } },
-          with: {
-            cart: {
-              with: {
-                items: {
-                  with: {
-                    product: true,
-                  },
+  const { data: userRow } = useLiveQuery(Shopper, {
+    query: db =>
+      db.query.user.findFirst({
+        where: { clerkUserId: { eq: authentication.clerkUserId } },
+        with: {
+          cart: {
+            with: {
+              items: {
+                with: {
+                  product: true,
                 },
               },
             },
           },
-        }),
-      deps: [authentication.clerkUserId],
-    },
-  );
+        },
+      }),
+    deps: [authentication.clerkUserId],
+  });
 
   const cartItems = userRow?.cart?.items ?? [];
 

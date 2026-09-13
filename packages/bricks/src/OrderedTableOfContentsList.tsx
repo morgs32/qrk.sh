@@ -5,9 +5,11 @@ import { OrderedTableOfContentsDepth } from "./OrderedTableOfContentsDepth";
 export function OrderedTableOfContentsList({
   children,
   scrollable = false,
+  start = 1,
 }: {
   children: ReactNode;
   scrollable?: boolean;
+  start?: number;
 }) {
   const depth = useContext(OrderedTableOfContentsDepth);
   const marker =
@@ -20,8 +22,10 @@ export function OrderedTableOfContentsList({
   return (
     <OrderedTableOfContentsDepth value={depth + 1}>
       <ol
+        start={start}
+        style={{ counterReset: `toc-item ${start - 1}` }}
         type={depth === 0 ? "1" : depth === 1 ? "A" : "i"}
-        className={`list-none p-0 [counter-reset:toc-item] ${marker} m-0 ${scrollable ? "min-h-0 flex-1 overflow-y-auto overscroll-contain" : ""}`}
+        className={`list-none p-0 ${marker} m-0 ${scrollable ? "min-h-0 flex-1 overflow-y-auto overscroll-contain" : ""}`}
       >
         {children}
       </ol>

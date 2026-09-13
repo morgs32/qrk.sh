@@ -9,7 +9,7 @@ export function OrderedTableOfContentsRows({
   sticky?: boolean;
 }) {
   return (
-    <div className={`bg-zinc-100 pb-4 ${sticky ? "sticky top-0 z-10" : ""}`}>
+    <div className={`bg-zinc-100 pb-2 ${sticky ? "sticky top-0 z-10" : ""}`}>
       {children}
     </div>
   );

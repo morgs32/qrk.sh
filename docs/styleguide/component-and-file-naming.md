@@ -157,7 +157,14 @@ list indentation in route CSS or add compensating margins to content. Scroll
 containers determine sticky boundaries independently of hierarchy depth.
 
 Wrap a navigation group in `OrderedTableOfContents.Rows` before its content.
-`Rows` owns the gray background and 1rem bottom padding, independent of depth.
+`Rows` owns the gray background and 0.5rem bottom padding, independent of depth.
 Nested lists remain compact; previews and other content sit outside the group.
 Use `Rows sticky` when the whole group should stick within its scroll container.
 Spacing is explicit in the composition rather than inferred from descendant DOM.
+
+The Bricks overview uses `Container` for the outer layout and `Section` for each
+complete navigation block: collection heading, variant choices, and size choices.
+`Section` owns the gray surface and 0.5rem top/bottom padding. Its preview is
+ordinary markup outside the section. Each section starts its own list; use
+`List start` to continue collection numbering. The collection-detail page still
+uses the existing `Rows` composition until it is revised separately.

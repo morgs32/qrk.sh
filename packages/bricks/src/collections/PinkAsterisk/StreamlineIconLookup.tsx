@@ -9,7 +9,7 @@ import useSWRInfinite from "swr/infinite";
 
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
-import { cn } from "../../utils/cn";
+import { cn } from "cn";
 
 const SEARCH_PAGE_SIZE = 24;
 

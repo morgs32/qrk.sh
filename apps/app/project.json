@@ -7,7 +7,15 @@
       "dependsOn": [
         "^lib",
         {
-          "projects": ["@qrk.sh/zerospin"],
+          "projects": [
+            "@qrk.sh/web"
+          ],
+          "target": "dev"
+        },
+        {
+          "projects": [
+            "@qrk.sh/zerospin"
+          ],
           "target": "dev"
         }
       ]

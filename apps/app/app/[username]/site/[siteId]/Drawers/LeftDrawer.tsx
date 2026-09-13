@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useMemo } from "react";
 import { BrickCatalog } from "../page/[pageId]/BrickCatalog/BrickCatalog";
 import { BrickDetail } from "../page/[pageId]/BrickDetail/BrickDetail";

@@ -6,7 +6,7 @@ import { PublishableKey } from "@zerospin/core/services/PublishableKey";
 import { ZerospinApiUrl } from "@zerospin/core/services/ZerospinApiUrl";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
 import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory";
-import { checkZerospinApp, makeZerospinApp } from "@zerospin/react";
+import { makeZerospinApp } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Effect, Layer, Redacted } from "effect";
 import type { ReactNode } from "react";
@@ -33,15 +33,12 @@ const sessionLayer = Layer.mergeAll(
   Layer.succeed(PublishableKey, Redacted.make(zerospinPublishableKey)),
 );
 
-export const ZerospinApp = makeZerospinApp({
+export const ZerospinApp = makeZerospinApp<typeof system>({
   systemName: "qrk-sh",
-  frontends: {
-    web: userFrontend,
-  },
   layer: sessionLayer,
 });
 
-checkZerospinApp<typeof system>(ZerospinApp);
+export const ZerospinUser = ZerospinApp.makeFrontend(userFrontend);
 
 export function ZerospinUserProvider({ children }: { children: ReactNode }) {
   const { getToken } = useAuth();
@@ -56,10 +53,10 @@ export function ZerospinUserProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ZerospinApp.Provider
-      key={user.id}
-      generateSignature={{
-        web: () =>
+    <ZerospinApp.Provider>
+      <ZerospinUser
+        key={user.id}
+        generateSignature={() =>
           Effect.tryPromise({
             try: async () => {
               const sessionToken = await getToken();
@@ -74,10 +71,11 @@ export function ZerospinUserProvider({ children }: { children: ReactNode }) {
                 message: "The Clerk session token could not be loaded",
                 cause: ZerospinError.prettyUnknownFailure(cause),
               }),
-          }),
-      }}
-    >
-      {children}
+          })
+        }
+      >
+        {children}
+      </ZerospinUser>
     </ZerospinApp.Provider>
   );
 }

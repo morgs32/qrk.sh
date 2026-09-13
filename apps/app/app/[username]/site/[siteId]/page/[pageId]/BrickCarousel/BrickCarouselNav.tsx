@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { type CarouselApi } from "@/components/ui/carousel";
 import { type ICollectionBrick } from "@qrk.sh/bricks";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 const maxVisibleDots = 5;
 /** Dot row slide width matches `size-6` hit target per Embla slide. */

@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 /** Frosted circular control: inset highlight + soft outer shadow (works on busy backgrounds). */
 export function SoftButton({

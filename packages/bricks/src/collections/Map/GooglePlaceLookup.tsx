@@ -7,7 +7,7 @@ import type { ScraperApi } from "scraper/ScraperApi";
 import type { IGooglePlaceSuggestion } from "scraper/types";
 
 import { Input } from "../../ui/input";
-import { cn } from "../../utils/cn";
+import { cn } from "cn";
 
 export function GooglePlaceLookup(props: { value: string; onChange: (value: string) => void }) {
   const [query, setQuery] = useState("");

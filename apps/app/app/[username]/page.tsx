@@ -10,7 +10,7 @@ import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 
 import { Button } from "@/components/ui/button";
-import { ZerospinApp } from "@/components/ZerospinUser";
+import { ZerospinUser } from "@/components/ZerospinUser";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { Header } from "./Header";
@@ -22,8 +22,8 @@ const ParamsSchema = Schema.Struct({
 export default function UsernameDashboardPage() {
   const { username } = useValidatedParams(ParamsSchema);
   const router = useRouter();
-  const session = useSession(ZerospinApp.frontends.web);
-  const { data: user, error } = useLiveQuery(ZerospinApp.frontends.web, {
+  const session = useSession(ZerospinUser);
+  const { data: user, error } = useLiveQuery(ZerospinUser, {
     query: (db) => {
       const state = session.store.getState();
       if (!state.isInitialized) {

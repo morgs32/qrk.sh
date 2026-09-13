@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useMemo } from "react";
 import { Breakpoints } from "../page/[pageId]/Breakpoints/Breakpoints";
 import { PageSettings } from "../page/[pageId]/PageSettings/PageSettings";

@@ -39,6 +39,8 @@ The existing Workerd integration suites remain in `src/`.
 
 Authentication returns `{ aggregateId, clerkUserId }`, deriving the aggregate ID
 from the verified Clerk subject. Selections use only `{ clerkUserId }` and partition
-replicas by `/:clerkUserId`. The web frontend declares the same schemas; its Provider
-signs through `generateSignature.web` and receives its aggregate ID from authentication.
+replicas by `/:clerkUserId`. The web frontend declares the same schemas; `ZerospinApp.makeFrontend(userFrontend)` binds its component to the app.
+`ZerospinUser` mounts beneath `ZerospinApp.Provider`, signs through its
+`generateSignature` prop, and receives its aggregate ID from authentication.
+The frontend is keyed by Clerk user ID so identity changes remount the session.
 The changed fixed schemas require empty affected storage; this update does not reset it.

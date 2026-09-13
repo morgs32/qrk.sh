@@ -1,8 +1,9 @@
 import { collectionsHash } from "@qrk.sh/bricks";
-import { Tabs } from "@base-ui/react/tabs";
 import { Link } from "react-router";
 import { useState } from "react";
 
+import { OrderedTableOfContents } from "../../OrderedTableOfContents";
+import { Button } from "../../ui/button";
 import { useGridStore } from "../useGridStore";
 
 export default function CatalogPage() {
@@ -12,20 +13,17 @@ export default function CatalogPage() {
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
 
   return (
-    <div aria-label="Brick collections">
-      <div className="sticky top-0 z-10 flex shrink-0 flex-col gap-4 border-b border-zinc-300/60 bg-white/95 px-6 pb-5 pt-6 backdrop-blur-sm">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="m-0 text-sm font-semibold">Bricks</h1>
-            <div className="text-xs text-zinc-500">
-              Browse bricks by collection. Drag-and-drop from the drawer will return with native
-              HTML5 DnD.
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="mt-8 flex flex-col gap-10">
-        {collections.map((collection) => {
+    <div
+      aria-label="Brick collections"
+      className="grid h-full grid-rows-[auto_minmax(0,1fr)] overflow-hidden"
+    >
+      <OrderedTableOfContents>
+        <OrderedTableOfContents.Title>
+          <Link to="/">Bricks</Link>
+        </OrderedTableOfContents.Title>
+      </OrderedTableOfContents>
+      <div className="flex min-h-0 flex-col gap-10 overflow-y-auto overscroll-contain pt-8">
+        {collections.map((collection, collectionIndex) => {
           const variants = Object.entries(collection.variants);
           const firstVariantEntry = variants[0];
 
@@ -54,23 +52,20 @@ export default function CatalogPage() {
               key={collection.collectionName}
               data-collection-entry={collection.collectionName}
             >
-              <div className="flex items-start justify-between gap-4 px-6">
-                <div>
-                  <h2 className="m-0 text-2xl font-semibold">{collection.collectionLabel}</h2>
-                  <p className="mt-1 mb-0 text-sm text-zinc-500">
-                    {collection.collectionDescription}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1 text-sm">
-                  <Tabs.Root value={selectedVariantName}>
-                    <Tabs.List
-                      aria-label={`${collection.collectionLabel} variants`}
-                      className="flex gap-2"
-                    >
-                      {variants.map(([variantName]) => (
-                        <Tabs.Tab
-                          key={variantName}
-                          value={variantName}
+              <div className="bg-zinc-100 font-mono text-sm">
+                <OrderedTableOfContents>
+                  <OrderedTableOfContents.Section
+                    label={collection.collectionLabel}
+                    number={collectionIndex + 1}
+                  >
+                    <li className="list-none">
+                      <OrderedTableOfContents>
+                  <OrderedTableOfContents.Section label="Variant">
+                    {variants.map(([variantName]) => (
+                      <OrderedTableOfContents.Item key={variantName}>
+                        <Button
+                          variant="link"
+                          aria-pressed={selectedVariantName === variantName}
                           onClick={() => {
                             setSelectedVariants((current) => ({
                               ...current,
@@ -81,52 +76,43 @@ export default function CatalogPage() {
                               [collection.collectionName]: "",
                             }));
                           }}
-                          className={(state) =>
-                            state.active
-                              ? "cursor-pointer border-0 bg-transparent p-0 font-medium text-zinc-950 no-underline"
-                              : "cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2"
-                          }
+                          className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
                         >
                           {variantName[0].toUpperCase() + variantName.slice(1)}
-                        </Tabs.Tab>
-                      ))}
-                    </Tabs.List>
-                  </Tabs.Root>
-                  <Tabs.Root value={selectedSizeName}>
-                    <div className="flex items-baseline gap-2">
-                      <Tabs.List
-                        aria-label={`${collection.collectionLabel} sizes`}
-                        className="flex gap-2"
-                      >
-                        {sizes.map(([sizeName, brick]) => (
-                          <Tabs.Tab
-                            key={sizeName}
-                            value={sizeName}
-                            onClick={() => {
-                              setSelectedSizes((current) => ({
-                                ...current,
-                                [collection.collectionName]: sizeName,
-                              }));
-                            }}
-                            className={(state) =>
-                              state.active
-                                ? "cursor-pointer border-0 bg-transparent p-0 font-medium text-zinc-950 no-underline"
-                                : "cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2"
-                            }
-                          >
-                            {brick.def.size}
-                          </Tabs.Tab>
-                        ))}
-                      </Tabs.List>
-                      <Link
-                        to={`/collections/${encodeURIComponent(collection.collectionName)}`}
-                        data-collection-link={collection.collectionName}
-                      >
-                        View all
-                      </Link>
-                    </div>
-                  </Tabs.Root>
-                </div>
+                        </Button>
+                      </OrderedTableOfContents.Item>
+                    ))}
+                  </OrderedTableOfContents.Section>
+                  <OrderedTableOfContents.Section label="Size">
+                    {sizes.map(([sizeName, brick]) => (
+                      <OrderedTableOfContents.Item key={sizeName}>
+                        <Button
+                          variant="link"
+                          aria-pressed={selectedSizeName === sizeName}
+                          onClick={() => {
+                            setSelectedSizes((current) => ({
+                              ...current,
+                              [collection.collectionName]: sizeName,
+                            }));
+                          }}
+                          className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
+                        >
+                          {brick.def.size}
+                        </Button>
+                      </OrderedTableOfContents.Item>
+                    ))}
+                  </OrderedTableOfContents.Section>
+                      </OrderedTableOfContents>
+                    </li>
+                  </OrderedTableOfContents.Section>
+                </OrderedTableOfContents>
+                <Link
+                  className="mx-4 mb-4 inline-block"
+                  to={`/collections/${encodeURIComponent(collection.collectionName)}`}
+                  data-collection-link={collection.collectionName}
+                >
+                  View all
+                </Link>
               </div>
               <div className="mt-6 overflow-auto">
                 <div

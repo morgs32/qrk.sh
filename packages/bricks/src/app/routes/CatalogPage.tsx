@@ -41,7 +41,7 @@ export default function CatalogPage() {
           return (
             <div key={collection.collectionName} data-collection-entry={collection.collectionName}>
               <OrderedTableOfContents.Section>
-                <OrderedTableOfContents.List start={collectionIndex + 1}>
+                <OrderedTableOfContents.List start={collectionIndex + 1} padded={false}>
                   <OrderedTableOfContents.Item>
                     <OrderedTableOfContents.Label sticky>
                       <Link
@@ -51,84 +51,90 @@ export default function CatalogPage() {
                         {collection.collectionLabel}
                       </Link>
                     </OrderedTableOfContents.Label>
-                    <OrderedTableOfContents.List>
-                      <OrderedTableOfContents.Item>
-                        <OrderedTableOfContents.Label>Variant</OrderedTableOfContents.Label>
-                        <OrderedTableOfContents.List>
-                          {variants.map(([variantName, variant]) => (
-                            <OrderedTableOfContents.Item key={variantName}>
-                              <OrderedTableOfContents.Label>
-                                <Button
-                                  variant="link"
-                                  aria-pressed={selectedVariantName === variantName}
-                                  onClick={() => {
-                                    setSelectedVariants((current) => ({
-                                      ...current,
-                                      [collection.collectionName]: variantName,
-                                    }));
-                                    setSelectedSizes((current) => ({
-                                      ...current,
-                                      [collection.collectionName]: "",
-                                    }));
-                                  }}
-                                  className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
-                                >
-                                  {variant.variantLabel}
-                                </Button>
-                              </OrderedTableOfContents.Label>
-                            </OrderedTableOfContents.Item>
-                          ))}
-                        </OrderedTableOfContents.List>
-                      </OrderedTableOfContents.Item>
-                      <OrderedTableOfContents.Item>
-                        <OrderedTableOfContents.Label>Size</OrderedTableOfContents.Label>
-                        <OrderedTableOfContents.List>
-                          {sizes.map(([sizeName, brick]) => (
-                            <OrderedTableOfContents.Item key={sizeName}>
-                              <OrderedTableOfContents.Label>
-                                <Button
-                                  variant="link"
-                                  aria-pressed={selectedSizeName === sizeName}
-                                  onClick={() => {
-                                    setSelectedSizes((current) => ({
-                                      ...current,
-                                      [collection.collectionName]: sizeName,
-                                    }));
-                                  }}
-                                  className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
-                                >
-                                  {brick.def.size}
-                                </Button>
-                              </OrderedTableOfContents.Label>
-                            </OrderedTableOfContents.Item>
-                          ))}
-                        </OrderedTableOfContents.List>
-                      </OrderedTableOfContents.Item>
-                    </OrderedTableOfContents.List>
-                    <div className="overflow-auto bg-white py-6">
-                      <DraggableBrick
-                        brickDef={def}
-                        className={
-                          def.w === 8
-                            ? "qrk-bricks overflow-hidden"
-                            : "qrk-bricks ml-6 overflow-hidden"
-                        }
-                        data-collection-representative={`${def.collectionName}/${def.variant}/${def.size}`}
-                        style={{
-                          width: `${(def.w / 8) * 100}%`,
-                          aspectRatio: `${def.w} / ${def.h}`,
-                        }}
-                      >
-                        {selectedVariant.defaultData === undefined ? (
-                          <BrickComponent />
-                        ) : (
-                          <BrickComponent data={selectedVariant.defaultData} />
-                        )}
-                      </DraggableBrick>
+                    <div className="pt-2">
+                      <OrderedTableOfContents.List padded={false} spaced>
+                        <OrderedTableOfContents.Item>
+                          <OrderedTableOfContents.Label>Variant</OrderedTableOfContents.Label>
+                          <div className="pt-2">
+                            <OrderedTableOfContents.List padded={false}>
+                              {variants.map(([variantName, variant]) => (
+                                <OrderedTableOfContents.Item key={variantName}>
+                                  <OrderedTableOfContents.Label>
+                                    <Button
+                                      variant="link"
+                                      aria-pressed={selectedVariantName === variantName}
+                                      onClick={() => {
+                                        setSelectedVariants((current) => ({
+                                          ...current,
+                                          [collection.collectionName]: variantName,
+                                        }));
+                                        setSelectedSizes((current) => ({
+                                          ...current,
+                                          [collection.collectionName]: "",
+                                        }));
+                                      }}
+                                      className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
+                                    >
+                                      {variant.variantLabel}
+                                    </Button>
+                                  </OrderedTableOfContents.Label>
+                                </OrderedTableOfContents.Item>
+                              ))}
+                            </OrderedTableOfContents.List>
+                          </div>
+                        </OrderedTableOfContents.Item>
+                        <OrderedTableOfContents.Item>
+                          <OrderedTableOfContents.Label>Size</OrderedTableOfContents.Label>
+                          <div className="pt-2">
+                            <OrderedTableOfContents.List padded={false}>
+                              {sizes.map(([sizeName, brick]) => (
+                                <OrderedTableOfContents.Item key={sizeName}>
+                                  <OrderedTableOfContents.Label>
+                                    <Button
+                                      variant="link"
+                                      aria-pressed={selectedSizeName === sizeName}
+                                      onClick={() => {
+                                        setSelectedSizes((current) => ({
+                                          ...current,
+                                          [collection.collectionName]: sizeName,
+                                        }));
+                                      }}
+                                      className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
+                                    >
+                                      {brick.def.size}
+                                    </Button>
+                                  </OrderedTableOfContents.Label>
+                                </OrderedTableOfContents.Item>
+                              ))}
+                            </OrderedTableOfContents.List>
+                          </div>
+                        </OrderedTableOfContents.Item>
+                      </OrderedTableOfContents.List>
                     </div>
                   </OrderedTableOfContents.Item>
                 </OrderedTableOfContents.List>
               </OrderedTableOfContents.Section>
+              <div className="overflow-auto bg-white py-6">
+                <DraggableBrick
+                  brickDef={def}
+                  className={
+                    def.w === 8
+                      ? "qrk-bricks overflow-hidden"
+                      : "qrk-bricks ml-6 overflow-hidden"
+                  }
+                  data-collection-representative={`${def.collectionName}/${def.variant}/${def.size}`}
+                  style={{
+                    width: `${(def.w / 8) * 100}%`,
+                    aspectRatio: `${def.w} / ${def.h}`,
+                  }}
+                >
+                  {selectedVariant.defaultData === undefined ? (
+                    <BrickComponent />
+                  ) : (
+                    <BrickComponent data={selectedVariant.defaultData} />
+                  )}
+                </DraggableBrick>
+              </div>
             </div>
           );
         })}

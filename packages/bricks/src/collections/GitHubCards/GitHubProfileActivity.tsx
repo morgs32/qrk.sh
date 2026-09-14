@@ -17,7 +17,7 @@ export function GitHubProfileActivity(props: {
       data-github-profile-activity
       className={
         compact
-          ? "mt-auto w-full overflow-x-auto [&>article>div]:pt-0! [&_rect]:stroke-none!"
+          ? "mt-auto h-1/2 w-full shrink-0 [&>article]:h-full [&>article]:w-full! [&>article>div]:h-full [&>article>div]:pt-0! [&_svg]:h-full [&_svg]:w-auto [&_svg]:max-w-none [&_rect]:stroke-none!"
           : "w-full overflow-x-auto [&_[class$=legend-colors]]:ml-0!"
       }
       style={

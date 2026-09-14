@@ -9,6 +9,7 @@ export const useGridStore = create<{
   bricksById: Record<string, ICollectionBrickDef>;
   activeBrickDrag: ICollectionBrickDef | null;
   hasHydrated: boolean;
+  selectedWidth: number | null;
   setLayout: (layout: Layout) => void;
   addBrick: (brickId: string, brickDef: ICollectionBrickDef, layout: Layout) => void;
   setActiveBrickDrag: (brickDef: ICollectionBrickDef | null) => void;
@@ -25,6 +26,7 @@ export const useGridStore = create<{
       bricksById: {},
       activeBrickDrag: null,
       hasHydrated: false,
+      selectedWidth: null,
       setLayout: (layout) => {
         set({ layout });
       },
@@ -49,6 +51,7 @@ export const useGridStore = create<{
       partialize: (state) => ({
         layout: state.layout,
         bricksById: state.bricksById,
+        selectedWidth: state.selectedWidth,
       }),
       skipHydration: true,
       onRehydrateStorage: (stateBeforeHydration) => (stateAfterHydration) => {

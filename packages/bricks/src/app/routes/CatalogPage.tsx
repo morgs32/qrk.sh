@@ -1,3 +1,4 @@
+import { BrickPreviewFrame } from "../../BrickPreviewFrame";
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { collectionsHash } from "../../collectionsHash";
 import { Link } from "react-router";
@@ -114,19 +115,17 @@ export default function CatalogPage() {
                 </OrderedTableOfContents.List>
               </OrderedTableOfContents.Section>
               <div className="overflow-auto bg-white py-6">
-                <DraggableBrick
-                  brickDef={def}
-                  className={
-                    def.w === 8 ? "qrk-bricks overflow-hidden" : "qrk-bricks ml-6 overflow-hidden"
-                  }
-                  data-collection-representative={`${def.collectionName}/${def.variant}/${def.layout}`}
-                  style={{
-                    width: `${(def.w / 8) * 100}%`,
-                    aspectRatio: `${def.w} / ${def.h}`,
-                  }}
-                >
-                  <BrickComponent breakpoint={breakpoint} data={def.data} />
-                </DraggableBrick>
+                <div className={def.w === 8 ? undefined : "ml-6"}>
+                  <BrickPreviewFrame w={def.w} h={def.h}>
+                    <DraggableBrick
+                      brickDef={def}
+                      className="size-full qrk-bricks overflow-hidden"
+                      data-collection-representative={`${def.collectionName}/${def.variant}/${def.layout}`}
+                    >
+                      <BrickComponent breakpoint={breakpoint} data={def.data} />
+                    </DraggableBrick>
+                  </BrickPreviewFrame>
+                </div>
               </div>
             </div>
           );

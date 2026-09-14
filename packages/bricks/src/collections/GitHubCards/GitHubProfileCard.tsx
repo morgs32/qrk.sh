@@ -2,7 +2,7 @@
 
 import { Image } from "@unpic/react";
 import { useState } from "react";
-import { BookOpen, Link as LinkIcon, MapPin, Quote, Users } from "lucide-react";
+import { BookOpen, Link as LinkIcon, MapPin, Quote, UserPlus, Users } from "lucide-react";
 
 import { Card, CardContent, CardHeader } from "../../ui/card";
 import { GitHubProfileActivity } from "./GitHubProfileActivity";
@@ -11,7 +11,6 @@ import { GitHubProfileActivity } from "./GitHubProfileActivity";
 const profileCardShellClass =
   "h-full min-h-0 w-full gap-1 overflow-hidden rounded-none border border-zinc-200 bg-white py-3 text-zinc-900 shadow-none";
 const profileMutedClass = "text-zinc-500";
-const profileHeadingClass = "text-zinc-950";
 
 function ProfileAvatar(props: { src: string; alt: string; fallback: string }) {
   const { src, alt, fallback } = props;
@@ -19,7 +18,7 @@ function ProfileAvatar(props: { src: string; alt: string; fallback: string }) {
 
   if (failed || !src) {
     return (
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-sm font-medium text-zinc-900">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-sm font-medium text-zinc-900">
         {fallback}
       </div>
     );
@@ -29,15 +28,16 @@ function ProfileAvatar(props: { src: string; alt: string; fallback: string }) {
     <Image
       src={src}
       alt={alt}
-      width={64}
-      height={64}
-      className="h-16 w-16 shrink-0 rounded-full object-cover"
+      width={32}
+      height={32}
+      className="h-8 w-8 shrink-0 rounded-full object-cover"
       onError={() => setFailed(true)}
     />
   );
 }
 
 export function GitHubProfileCard(props: {
+  breakpoint: "xs" | "sm" | "md" | "lg";
   data: {
     login: string;
     avatar_url: string;
@@ -56,20 +56,19 @@ export function GitHubProfileCard(props: {
   };
 }) {
   const user = props.data;
+  const compact = props.breakpoint === "xs";
 
-  const displayName = user.name || user.login;
   const avatarFallback = user.login.slice(0, 2).toUpperCase();
   const avatarSrc = typeof user.avatar_url === "string" ? user.avatar_url : "";
 
   return (
     <Card className={profileCardShellClass}>
       <CardHeader className="shrink-0 px-4 pb-0 pt-0">
-        <div className="flex items-center gap-4">
-          <ProfileAvatar src={avatarSrc} alt={displayName} fallback={avatarFallback} />
+        <div className="flex flex-col items-start gap-1">
+          <ProfileAvatar src={avatarSrc} alt={user.login} fallback={avatarFallback} />
 
-          <div className="min-w-0 flex-1">
-            <h2 className={`text-xl font-semibold ${profileHeadingClass}`}>{displayName}</h2>
-            <p className={profileMutedClass}>@{user.login}</p>
+          <div className="min-w-0 w-full">
+            <p className={`${profileMutedClass} ${compact ? "truncate" : ""}`}>@{user.login}</p>
           </div>
         </div>
       </CardHeader>
@@ -79,13 +78,13 @@ export function GitHubProfileCard(props: {
           {user.bio && (
             <div className="flex items-center gap-1">
               <Quote className="h-4 w-4 shrink-0" />
-              <span>{user.bio}</span>
+              <span className={compact ? "truncate" : undefined}>{user.bio}</span>
             </div>
           )}
           {user.location && (
             <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4 shrink-0" />
-              <span>{user.location}</span>
+              <span className={compact ? "truncate" : undefined}>{user.location}</span>
             </div>
           )}
           {user.blog && (
@@ -96,30 +95,42 @@ export function GitHubProfileCard(props: {
               className={`flex items-center gap-1 transition-colors hover:text-blue-600 ${profileMutedClass}`}
             >
               <LinkIcon className="h-4 w-4 shrink-0" />
-              <span>{user.blog.replace(/^https?:\/\//, "")}</span>
+              <span className={compact ? "truncate" : undefined}>{user.blog.replace(/^https?:\/\//, "")}</span>
             </a>
           )}
           <div className="flex gap-4 text-sm">
-            <div className="flex items-center gap-1">
-              <Users className={`h-4 w-4 shrink-0 ${profileMutedClass}`} />
-              <span className={`font-medium ${profileHeadingClass}`}>{user.followers}</span>
-              <span className={profileMutedClass}>followers</span>
+            <div
+              className="flex min-w-0 items-center gap-1"
+              title="Followers"
+              aria-label={`${user.followers} followers`}
+            >
+              <Users className={`h-4 w-4 shrink-0 ${profileMutedClass}`} aria-hidden="true" />
+              <span className={`font-medium ${profileMutedClass} ${compact ? "truncate" : ""}`}>{user.followers}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <span className={`font-medium ${profileHeadingClass}`}>{user.following}</span>
-              <span className={profileMutedClass}>following</span>
+            <div
+              className="flex min-w-0 items-center gap-1"
+              title="Following"
+              aria-label={`${user.following} following`}
+            >
+              <UserPlus className={`h-4 w-4 shrink-0 ${profileMutedClass}`} aria-hidden="true" />
+              <span className={`font-medium ${profileMutedClass} ${compact ? "truncate" : ""}`}>{user.following}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <BookOpen className={`h-4 w-4 shrink-0 ${profileMutedClass}`} />
-              <span className={`font-medium ${profileHeadingClass}`}>{user.public_repos}</span>
-              <span className={profileMutedClass}>repos</span>
+            <div
+              className="flex min-w-0 items-center gap-1"
+              title="Repositories"
+              aria-label={`${user.public_repos} repositories`}
+            >
+              <BookOpen className={`h-4 w-4 shrink-0 ${profileMutedClass}`} aria-hidden="true" />
+              <span className={`font-medium ${profileMutedClass} ${compact ? "truncate" : ""}`}>{user.public_repos}</span>
             </div>
           </div>
         </div>
 
-        <div className="mt-auto">
-          <GitHubProfileActivity contributions={user.contributions} />
-        </div>
+        {!compact && (
+          <div className="mt-auto">
+            <GitHubProfileActivity contributions={user.contributions} />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

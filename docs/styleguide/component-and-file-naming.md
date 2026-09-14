@@ -234,11 +234,10 @@ eight-column grid width: `xs` below 640px, `sm` from 640px, `md` from 768px,
 and `lg` from 1024px (including larger screens).
 
 `BrickBreakpointProvider` owns one container measurement and shares the breakpoint
-through context. In the editor, `SitePage` provides context to the grid, drawers,
-and toolbars; its ref measures the grid column inside `MainColumns`. Catalog,
+through context. In the editor, `EditorLayout` provides context to the grid, drawers,
+and toolbars; its ref measures `Grid` itself. Catalog,
 carousel, and detail previews use that shared page-grid breakpoint regardless of
-their own widths. In the sandbox, the ref measures the width-controlled container
-around `SandboxGrid`, so width presets update both the grid and catalog previews.
+their own widths. In the sandbox, the ref measures `SandboxGrid` itself, so width presets and scrollbar changes update the grid and previews together.
 The standalone preview has its own provider measuring the simulated full grid
 width (grid-unit slider multiplied by eight).
 
@@ -248,7 +247,21 @@ Browser width and a brick's own width do not directly determine its breakpoint.
 Grid geometry and available-width measurements remain independent. Breakpoints
 are render inputs only, never persisted data, brick identity, or drag payload fields.
 
-The GitHub profile 4×2 layout keeps its username in the top half at `xs`.
-The activity aligns to the bottom with square 2px cells and 1px gaps, without
+The GitHub profile 4×2 layout keeps its avatar and username in the bottom half at `xs`.
+The activity fills the top half, scaling square cells and gaps proportionally, without
 rounded corners, strokes, labels, legend, or fade mask. Larger modes retain the
-existing presentation; the 4×4 layout is unchanged.
+existing presentation. At `xs`, the 4×4 layout hides contribution activity and
+truncates overflowing profile values with ellipses.
+### Preview dimensions
+
+`BrickPreviewFrame` takes inline `w`, `h`, and `children` props and reads the
+provider's measured `gridWidth`. It sets non-shrinking pixel dimensions of
+`Math.round(gridWidth / 8 * w)` by `Math.round(gridWidth / 8 * h)`, initially zero
+until measured. Whole-pixel rounding matches react-grid-layout: a 4×2 brick
+at 375px is 188 × 94px at the grid origin. Placed items can differ by one pixel
+because the grid rounds their start and end edges independently to prevent seams.
+All catalog, configuration, detail, carousel, and standalone previews use this
+frame. Drag surfaces stay inside with `size-full`; surrounding spacing stays
+outside. Panels scroll horizontally when needed rather than shrinking previews.
+Placed bricks remain positioned and sized by the grid, using the same measurement.
+Import the frame directly or through `@qrk.sh/bricks/BrickPreviewFrame`.

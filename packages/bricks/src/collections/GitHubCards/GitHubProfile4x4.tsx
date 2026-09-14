@@ -2,6 +2,7 @@ import { BrickFrame } from "../../BrickFrame";
 import { GitHubProfileCard } from "./GitHubProfileCard";
 
 export function GitHubProfile4x4(props: {
+  breakpoint: "xs" | "sm" | "md" | "lg";
   data: {
     login: string;
     avatar_url: string;
@@ -22,7 +23,7 @@ export function GitHubProfile4x4(props: {
   return (
     <BrickFrame backgroundClassName="bg-white" textClassName="text-zinc-950">
       <div className="flex h-full w-full min-h-0 items-stretch justify-stretch">
-        <GitHubProfileCard data={props.data} />
+        <GitHubProfileCard breakpoint={props.breakpoint} data={props.data} />
       </div>
     </BrickFrame>
   );

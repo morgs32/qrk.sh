@@ -1,3 +1,4 @@
+import { BrickPreviewFrame } from "../../BrickPreviewFrame";
 import { BrickBreakpointProvider } from "../../BrickBreakpointProvider";
 import { useState } from "react";
 import { collectionsHash } from "@qrk.sh/bricks";
@@ -56,16 +57,11 @@ export default function BrickPage() {
               >
                 <div className="overflow-auto">
                   <div ref={containerRef} style={{ width: gridWidth }}>
-                    <div
-                      className="overflow-hidden"
-                      data-testid="brick-preview"
-                      style={{
-                        width: brick.def.w * gridUnitPx,
-                        height: brick.def.h * gridUnitPx,
-                      }}
-                    >
-                      <BrickComponent breakpoint={breakpoint} data={variant.defaultData} />
-                    </div>
+                    <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
+                      <div className="size-full overflow-hidden" data-testid="brick-preview">
+                        <BrickComponent breakpoint={breakpoint} data={variant.defaultData} />
+                      </div>
+                    </BrickPreviewFrame>
                   </div>
                 </div>
               </section>

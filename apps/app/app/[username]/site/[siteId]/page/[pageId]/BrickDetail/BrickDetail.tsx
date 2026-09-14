@@ -1,4 +1,5 @@
 "use client";
+import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
 
 import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 
@@ -88,16 +89,14 @@ export function BrickDetail() {
               </p>
             </div>
             <div className="mt-8 overflow-auto">
-              <div
-                className="qrk-bricks overflow-hidden"
-                data-testid="selected-brick-preview"
-                style={{
-                  width: `${(brick.def.w / 8) * 100}%`,
-                  aspectRatio: `${brick.def.w} / ${brick.def.h}`,
-                }}
-              >
-                <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
-              </div>
+              <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
+                <div
+                  className="size-full qrk-bricks overflow-hidden"
+                  data-testid="selected-brick-preview"
+                >
+                  <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
+                </div>
+              </BrickPreviewFrame>
             </div>
           </section>
         )}

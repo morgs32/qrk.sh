@@ -1,3 +1,4 @@
+import { BrickPreviewFrame } from "../../BrickPreviewFrame";
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { GripHorizontal } from "lucide-react";
 import { Button } from "../../ui/button";
@@ -121,51 +122,47 @@ export default function VariantConfiguration() {
         />
       </div>
       <div className="sticky top-0 z-10 overflow-auto bg-white py-6">
-        <div
-          className={
-            brick.def.w === 8
-              ? "qrk-bricks brick-drag-surface overflow-hidden"
-              : "qrk-bricks ml-6 brick-drag-surface overflow-hidden"
-          }
-          data-variant-layout-brick={`${collectionName}/${variantName}/${layoutName}`}
-          style={{
-            width: `${(brick.def.w / 8) * 100}%`,
-            aspectRatio: `${brick.def.w} / ${brick.def.h}`,
-            clipPath: "inset(0)",
-          }}
-        >
-          <div className="brick-drag-content size-full select-none">
-            <BrickComponent breakpoint={breakpoint} data={variantData} />
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="brick-drag-handle"
-            aria-label="Drag brick"
-            draggable
-            onDragStart={(event) => {
-              setActiveBrickDrag({ ...brick.def, data: structuredClone(variantData) });
-              const surface = event.currentTarget.parentElement;
-              if (surface) {
-                const bounds = surface.getBoundingClientRect();
-                event.dataTransfer.setDragImage(
-                  surface,
-                  event.clientX - bounds.left,
-                  event.clientY - bounds.top,
-                );
-              }
-              event.dataTransfer.effectAllowed = "copy";
-              event.dataTransfer.setData("text/plain", brick.def.layout);
-            }}
-            onDragEnd={() => setActiveBrickDrag(null)}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-          >
-            <GripHorizontal aria-hidden className="size-4" />
-          </Button>
+        <div className={brick.def.w === 8 ? undefined : "ml-6"}>
+          <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
+            <div
+              className="size-full qrk-bricks brick-drag-surface overflow-hidden"
+              data-variant-layout-brick={`${collectionName}/${variantName}/${layoutName}`}
+              style={{ clipPath: "inset(0)" }}
+            >
+              <div className="brick-drag-content size-full select-none">
+                <BrickComponent breakpoint={breakpoint} data={variantData} />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="brick-drag-handle"
+                aria-label="Drag brick"
+                draggable
+                onDragStart={(event) => {
+                  setActiveBrickDrag({ ...brick.def, data: structuredClone(variantData) });
+                  const surface = event.currentTarget.parentElement;
+                  if (surface) {
+                    const bounds = surface.getBoundingClientRect();
+                    event.dataTransfer.setDragImage(
+                      surface,
+                      event.clientX - bounds.left,
+                      event.clientY - bounds.top,
+                    );
+                  }
+                  event.dataTransfer.effectAllowed = "copy";
+                  event.dataTransfer.setData("text/plain", brick.def.layout);
+                }}
+                onDragEnd={() => setActiveBrickDrag(null)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+              >
+                <GripHorizontal aria-hidden className="size-4" />
+              </Button>
+            </div>
+          </BrickPreviewFrame>
         </div>
       </div>
       <div className="pb-6">

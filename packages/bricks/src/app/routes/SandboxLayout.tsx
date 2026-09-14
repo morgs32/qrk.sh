@@ -12,7 +12,11 @@ import { useGridStore } from "../useGridStore";
 export default function SandboxLayout() {
   const gridRegionRef = useRef<HTMLDivElement>(null);
   const [availableWidth, setAvailableWidth] = useState(0);
-  const [selectedWidth, setSelectedWidth] = useState<number | null>(null);
+  const savedWidth = useGridStore((state) => state.selectedWidth);
+  const selectedWidth =
+    savedWidth !== null && savedWidth <= availableWidth
+      ? savedWidth
+      : ([1440, 1024, 768, 375].find((preset) => preset <= availableWidth) ?? null);
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -24,10 +28,6 @@ export default function SandboxLayout() {
     const observer = new ResizeObserver(() => {
       const width = region.getBoundingClientRect().width;
       setAvailableWidth(width);
-      setSelectedWidth((current) => {
-        if (current !== null && current <= width) return current;
-        return [1440, 1024, 768, 375].find((preset) => preset <= width) ?? null;
-      });
     });
     observer.observe(region);
 
@@ -56,7 +56,7 @@ export default function SandboxLayout() {
 
   return (
     <BrickBreakpointProvider>
-      {({ containerRef }) => (
+      {() => (
         <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} modal={false}>
           <main className="min-h-screen">
             {isDesktop ? (
@@ -112,7 +112,6 @@ export default function SandboxLayout() {
                 </p>
               )}
               <div
-                ref={containerRef}
                 hidden={selectedWidth === null}
                 className="mx-auto"
                 style={{ width: selectedWidth ?? 375 }}
@@ -172,7 +171,7 @@ export default function SandboxLayout() {
                     aria-label={`${width}px grid width`}
                     aria-pressed={selectedWidth === width}
                     disabled={width > availableWidth}
-                    onClick={() => setSelectedWidth(width)}
+                    onClick={() => useGridStore.setState({ selectedWidth: width })}
                   >
                     {width}
                   </Button>

@@ -4,12 +4,13 @@ import { Button } from "../ui/button";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { collectionsHash } from "@qrk.sh/bricks";
 import { Link } from "react-router";
-import GridLayout, { useContainerWidth, verticalCompactor } from "react-grid-layout";
+import GridLayout, { verticalCompactor } from "react-grid-layout";
 
 import { useGridStore } from "./useGridStore";
 
 export function SandboxGrid() {
-  const { containerRef, mounted, width } = useContainerWidth();
+  const containerRef = useRef<HTMLElement>(null);
+  const { gridWidth, breakpoint, containerRef: observeGrid } = useBrickBreakpoint();
   const suppressBrickClickRef = useRef(false);
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
@@ -34,13 +35,14 @@ export function SandboxGrid() {
     }
   }, [dragging, containerRef]);
 
-  const gridWidth = Math.max(width, 1);
-  const { breakpoint } = useBrickBreakpoint();
   const rowHeight = gridWidth / 8;
 
   return (
     <section
-      ref={containerRef}
+      ref={(element) => {
+        containerRef.current = element;
+        return observeGrid(element);
+      }}
       aria-label="Brick grid"
       style={dragging ? { overflow: "visible", zIndex: 70 } : undefined}
       className="min-h-screen bg-white lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-y-auto"
@@ -53,7 +55,7 @@ export function SandboxGrid() {
           Release to remove
         </div>
       )}
-      {mounted && hasHydrated && (
+      {gridWidth > 0 && hasHydrated && (
         <GridLayout
           width={gridWidth}
           style={dragging ? { transform: `translateY(-${dragScrollTopRef.current}px)` } : undefined}

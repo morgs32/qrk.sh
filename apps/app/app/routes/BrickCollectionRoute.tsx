@@ -1,3 +1,4 @@
+import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
 import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 import { collectionsHash } from "@qrk.sh/bricks";
 import { Tabs } from "radix-ui";
@@ -95,35 +96,31 @@ export default function BrickCollectionRoute() {
                 </div>
                 <Tabs.Content value={`${brick.def.variant}--${brick.def.layout}-preview`}>
                   <div className="mt-6 overflow-auto">
-                    <div
-                      className={
-                        brick.def.w === 8
-                          ? "qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                          : "qrk-bricks ml-6 cursor-grab overflow-hidden active:cursor-grabbing"
-                      }
-                      data-brick-full-layout={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.layout}`}
-                      data-brick-drawer-brick-slot
-                      data-brick-drawer-collection-name={brick.def.collectionName}
-                      data-brick-drawer-variant={brick.def.variant}
-                      data-brick-drawer-layout={brick.def.layout}
-                      draggable
-                      onDragStart={(event) => {
-                        useBrickDrawerStore
-                          .getState()
-                          .registerActiveBrickDragGridShape(brick.def.w, brick.def.h);
-                        event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brick.def));
-                        event.dataTransfer.effectAllowed = "copy";
-                        event.dataTransfer.setData("text/plain", brick.def.layout);
-                      }}
-                      onDragEnd={() => {
-                        useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
-                      }}
-                      style={{
-                        width: `${(brick.def.w / 8) * 100}%`,
-                        aspectRatio: `${brick.def.w} / ${brick.def.h}`,
-                      }}
-                    >
-                      <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
+                    <div className={brick.def.w === 8 ? undefined : "ml-6"}>
+                      <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
+                        <div
+                          className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
+                          data-brick-full-layout={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.layout}`}
+                          data-brick-drawer-brick-slot
+                          data-brick-drawer-collection-name={brick.def.collectionName}
+                          data-brick-drawer-variant={brick.def.variant}
+                          data-brick-drawer-layout={brick.def.layout}
+                          draggable
+                          onDragStart={(event) => {
+                            useBrickDrawerStore
+                              .getState()
+                              .registerActiveBrickDragGridShape(brick.def.w, brick.def.h);
+                            event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brick.def));
+                            event.dataTransfer.effectAllowed = "copy";
+                            event.dataTransfer.setData("text/plain", brick.def.layout);
+                          }}
+                          onDragEnd={() => {
+                            useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
+                          }}
+                        >
+                          <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
+                        </div>
+                      </BrickPreviewFrame>
                     </div>
                   </div>
                 </Tabs.Content>

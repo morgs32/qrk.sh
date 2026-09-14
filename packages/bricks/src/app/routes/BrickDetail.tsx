@@ -1,3 +1,4 @@
+import { BrickPreviewFrame } from "../../BrickPreviewFrame";
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { collectionsHash } from "../../collectionsHash";
 import { Link, useParams } from "react-router";
@@ -103,16 +104,14 @@ export default function BrickDetail() {
         </OrderedTableOfContents.List>
       </OrderedTableOfContents.Section>
       <OrderedTableOfContents.Preview>
-        <div
-          className="qrk-bricks overflow-hidden"
-          data-testid="selected-brick-preview"
-          style={{
-            width: `${(brick.def.w / 8) * 100}%`,
-            aspectRatio: `${brick.def.w} / ${brick.def.h}`,
-          }}
-        >
-          <BrickComponent breakpoint={breakpoint} data={brickData} />
-        </div>
+        <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
+          <div
+            className="size-full qrk-bricks overflow-hidden"
+            data-testid="selected-brick-preview"
+          >
+            <BrickComponent breakpoint={breakpoint} data={brickData} />
+          </div>
+        </BrickPreviewFrame>
       </OrderedTableOfContents.Preview>
       <div className="pb-6">
         <Configuration

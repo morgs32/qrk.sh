@@ -1,5 +1,4 @@
 "use client";
-import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 
@@ -15,7 +14,6 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function MainColumns() {
-  const { containerRef } = useBrickBreakpoint();
   const params = useValidatedParams(ParamsSchema);
   const { user } = useUser();
   const pageType = useSiteStore((state) =>
@@ -34,7 +32,7 @@ export function MainColumns() {
         <div className="min-h-0 overflow-y-auto">
           <HeroCopy />
         </div>
-        <div ref={containerRef} data-site-right-scroll className="min-h-0 overflow-y-auto">
+        <div data-site-right-scroll className="min-h-0 overflow-y-auto">
           <Grid />
         </div>
       </div>
@@ -47,7 +45,7 @@ export function MainColumns() {
         <div className="min-h-0">
           <HeroCopy />
         </div>
-        <div ref={containerRef} className="min-h-0">
+        <div className="min-h-0">
           <Grid />
         </div>
       </div>

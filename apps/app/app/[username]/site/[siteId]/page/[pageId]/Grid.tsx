@@ -12,7 +12,7 @@ import {
 } from "@/components/home/useBrickDrawerStore";
 import { useUser } from "@clerk/react";
 import { Schema } from "effect";
-import GridLayout, { useContainerWidth, verticalCompactor } from "react-grid-layout";
+import GridLayout, { verticalCompactor } from "react-grid-layout";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
@@ -27,7 +27,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function Grid() {
-  const { containerRef, width, mounted } = useContainerWidth();
+  const { containerRef, gridWidth, breakpoint } = useBrickBreakpoint();
   const params = useValidatedParams(ParamsSchema);
   const { user } = useUser();
   const navigate = useNavigate();
@@ -41,8 +41,6 @@ export function Grid() {
   );
   const layout = pageGrid?.layout ?? draftLayout;
 
-  const gridWidth = Math.max(width, 1);
-  const { breakpoint } = useBrickBreakpoint();
   const rowHeight = gridWidth / GRID_COLS;
 
   if (user === null || user === undefined || layout === undefined) {
@@ -51,7 +49,7 @@ export function Grid() {
 
   return (
     <div ref={containerRef} className="min-h-full w-full" data-testid="grid-layout">
-      {mounted ? (
+      {gridWidth > 0 ? (
         <GridLayout
           width={gridWidth}
           layout={layout}

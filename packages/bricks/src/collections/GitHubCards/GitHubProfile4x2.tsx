@@ -1,4 +1,5 @@
 import { BookOpen, UserPlus, Users } from "lucide-react";
+import { Image } from "@unpic/react";
 
 import { BrickFrame } from "../../BrickFrame";
 import { GitHubProfileActivity } from "./GitHubProfileActivity";
@@ -30,12 +31,19 @@ export function GitHubProfile4x2(props: {
         data-brick-breakpoint={props.breakpoint}
         className={
           compact
-            ? "flex h-full w-full flex-col"
+            ? "flex h-full w-full flex-col-reverse"
             : "flex h-full w-full flex-col justify-center gap-3 px-4 py-3"
         }
       >
         {compact && (
-          <div className="flex h-1/2 shrink-0 items-center px-2 text-xs font-medium">
+          <div className="flex h-1/2 shrink-0 items-center gap-1.5 px-2 text-xs font-medium">
+            <Image
+              src={props.data.avatar_url}
+              alt=""
+              width={20}
+              height={20}
+              className="size-5 shrink-0 rounded-full object-cover"
+            />
             <span className="truncate">@{props.data.login}</span>
           </div>
         )}

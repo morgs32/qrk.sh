@@ -9,19 +9,19 @@ import {
 } from "react-router";
 
 export function loader({ params }: LoaderFunctionArgs) {
-  if (!params.collectionName || !params.variant || !params.size)
+  if (!params.collectionName || !params.variant || !params.layout)
     throw new Response("Not found", { status: 404 });
-  if (!collectionsHash[params.collectionName]?.variants[params.variant]?.sizes[params.size])
+  if (!collectionsHash[params.collectionName]?.variants[params.variant]?.layouts[params.layout])
     throw new Response("Not found", { status: 404 });
   return null;
 }
 
 export default function BrickPage() {
   const params = useParams();
-  if (!params.collectionName || !params.variant || !params.size)
+  if (!params.collectionName || !params.variant || !params.layout)
     throw new Response("Not found", { status: 404 });
   const variant = collectionsHash[params.collectionName]?.variants[params.variant];
-  const brick = variant?.sizes[params.size];
+  const brick = variant?.layouts[params.layout];
 
   if (!brick) {
     throw new Response("Not found", { status: 404 });
@@ -74,8 +74,8 @@ export default function BrickPage() {
               <dd className="m-0 font-mono">{brick.def.collectionName}</dd>
               <dt className="text-zinc-500">Variant</dt>
               <dd className="m-0 font-mono">{brick.def.variant}</dd>
-              <dt className="text-zinc-500">Size</dt>
-              <dd className="m-0 font-mono">{brick.def.size}</dd>
+              <dt className="text-zinc-500">Layout</dt>
+              <dd className="m-0 font-mono">{brick.def.layout}</dd>
               <dt className="text-zinc-500">Width</dt>
               <dd className="m-0">{brick.def.w}</dd>
               <dt className="text-zinc-500">Height</dt>
@@ -116,7 +116,7 @@ export function ErrorBoundary() {
     <main className="min-h-screen" data-testid="brick-not-found">
       <div className="mx-auto max-w-3xl p-6">
         <h1>Brick not found</h1>
-        <p>The requested collection, variant, and size are not registered in the catalog.</p>
+        <p>The requested collection, variant, and layout are not registered in the catalog.</p>
         <Link to="/">Return to all collections</Link>
       </div>
     </main>

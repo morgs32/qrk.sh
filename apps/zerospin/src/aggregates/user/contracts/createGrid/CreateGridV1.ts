@@ -27,7 +27,7 @@ const createGridPayload = {
         h: Schema.Int,
         collectionName: Schema.String,
         variant: Schema.String,
-        size: Schema.String,
+        layout: Schema.String,
       }),
     ),
   }),
@@ -219,7 +219,7 @@ export const createGridV1 = makeContractVersion(createGrid, {
               h: brick.h,
               collectionName: brick.collectionName,
               variant: brick.variant,
-              size: brick.size,
+              layout: brick.layout,
             },
           }),
         );

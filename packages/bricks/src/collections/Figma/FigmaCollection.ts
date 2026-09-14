@@ -16,7 +16,7 @@ export const figmaCollection = makeCollection({
   variants: {
     design: makeVariant({
       variant: "design",
-      variantLabel: "Design",
+      variantName: "Design",
       variantDescription: "A canvas-focused preview of a Figma Design file.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -45,10 +45,10 @@ export const figmaCollection = makeCollection({
         thumbnail_width: null,
         thumbnail_height: null,
       },
-      sizes: {
+      layouts: {
         "4x4": makeBrick({
           variant: "design",
-          size: "4x4",
+          layout: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
@@ -59,7 +59,7 @@ export const figmaCollection = makeCollection({
     }),
     board: makeVariant({
       variant: "board",
-      variantLabel: "Board",
+      variantName: "Board",
       variantDescription: "A sticky-note canvas preview of a FigJam board.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -88,10 +88,10 @@ export const figmaCollection = makeCollection({
         thumbnail_width: null,
         thumbnail_height: null,
       },
-      sizes: {
+      layouts: {
         "4x4": makeBrick({
           variant: "board",
-          size: "4x4",
+          layout: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
@@ -102,7 +102,7 @@ export const figmaCollection = makeCollection({
     }),
     slides: makeVariant({
       variant: "slides",
-      variantLabel: "Slides",
+      variantName: "Slides",
       variantDescription: "A presentation-stage preview of a Figma Slides deck.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -131,10 +131,10 @@ export const figmaCollection = makeCollection({
         thumbnail_width: null,
         thumbnail_height: null,
       },
-      sizes: {
+      layouts: {
         "4x4": makeBrick({
           variant: "slides",
-          size: "4x4",
+          layout: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
@@ -145,7 +145,7 @@ export const figmaCollection = makeCollection({
     }),
     prototype: makeVariant({
       variant: "prototype",
-      variantLabel: "Prototype",
+      variantName: "Prototype",
       variantDescription: "A device-framed preview of a Figma prototype.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -174,10 +174,10 @@ export const figmaCollection = makeCollection({
         thumbnail_width: null,
         thumbnail_height: null,
       },
-      sizes: {
+      layouts: {
         "4x4": makeBrick({
           variant: "prototype",
-          size: "4x4",
+          layout: "4x4",
           w: 4,
           h: 4,
           label: "4×4",

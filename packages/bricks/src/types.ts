@@ -3,15 +3,15 @@ import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IShape } from "@zerospin/schema";
 import type { ReactNode } from "react";
 
-/** A size within one content variant (no collection scope). */
-export type IBrickDef<VARIANT extends string = string, SIZE extends string = string> = {
+/** A layout within one content variant (no collection scope). */
+export type IBrickDef<VARIANT extends string = string, LAYOUT extends string = string> = {
   w: number;
   h: number;
   /** Kebab-case content variant slug (for example `default`, `profile`, or `repo`). */
   variant: VARIANT;
-  /** Kebab-case size slug (for example `2x2`, `4x4`, or `8x2`). */
-  size: SIZE;
-  /** Display label for this size. */
+  /** Kebab-case layout slug (for example `2x2`, `4x4`, or `8x2`). */
+  layout: LAYOUT;
+  /** Display label for this layout. */
   label: string;
   /** Lower sorts earlier in the drawer carousel within a collection. */
   order: number;
@@ -25,15 +25,15 @@ export type ICollection = {
   variants: Record<
     string,
     | {
-        variantLabel: string;
+        variantName: string;
         variantDescription: string;
         configuration?: IFetcherConfiguration & { fetcher?: never };
         dataShape: null;
         defaultData: null;
-        sizes: Record<string, ICollectionBrick>;
+        layouts: Record<string, ICollectionBrick>;
       }
     | {
-        variantLabel: string;
+        variantName: string;
         variantDescription: string;
         configuration?:
           | IFormConfiguration
@@ -42,12 +42,12 @@ export type ICollection = {
             });
         dataShape: IShape;
         defaultData: unknown;
-        sizes: Record<string, ICollectionBrick>;
+        layouts: Record<string, ICollectionBrick>;
       }
   >;
 };
 
-/** Serializable catalog row: collection + content variant + size, no React component. */
+/** Serializable catalog row: collection + content variant + layout, no React component. */
 export type ICollectionBrickDef = IBrickDef & {
   collectionName: string;
   collectionLabel: string;
@@ -57,10 +57,10 @@ export type ICollectionBrickDef = IBrickDef & {
 
 export type IBrick<
   VARIANT extends string = string,
-  SIZE extends string = string,
+  LAYOUT extends string = string,
   COMPONENT extends (props: never) => ReactNode = (props: never) => ReactNode,
 > = {
-  def: IBrickDef<VARIANT, SIZE>;
+  def: IBrickDef<VARIANT, LAYOUT>;
   component: COMPONENT;
 };
 

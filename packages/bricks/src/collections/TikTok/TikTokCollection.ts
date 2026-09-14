@@ -13,7 +13,7 @@ export const tikTokCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
-      variantLabel: "Default",
+      variantName: "Default",
       variantDescription: "TikTok's tokenless creator profile embed.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -32,10 +32,10 @@ export const tikTokCollection = makeCollection({
       defaultData: {
         username: "theonion",
       },
-      sizes: {
+      layouts: {
         "4x4": makeBrick({
           variant: "default",
-          size: "4x4",
+          layout: "4x4",
           w: 4,
           h: 4,
           label: "4×4",

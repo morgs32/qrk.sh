@@ -83,8 +83,8 @@ export function Grid() {
             useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
             if (!item || !brickDef) return;
             const brick =
-              collectionsHash[brickDef.collectionName]?.variants[brickDef.variant]?.sizes[
-                brickDef.size
+              collectionsHash[brickDef.collectionName]?.variants[brickDef.variant]?.layouts[
+                brickDef.layout
               ];
             if (!brick) return;
             const brickId = crypto.randomUUID();
@@ -126,7 +126,7 @@ export function Grid() {
             const variant = brickDef
               ? collectionsHash[brickDef.collectionName]?.variants[brickDef.variant]
               : undefined;
-            const brick = brickDef ? variant?.sizes[brickDef.size] : undefined;
+            const brick = brickDef ? variant?.layouts[brickDef.layout] : undefined;
             if (!brick) {
               return (
                 <div
@@ -143,7 +143,7 @@ export function Grid() {
                 className="qrk-bricks size-full cursor-grab overflow-hidden active:cursor-grabbing"
                 data-brick-collection-name={brick.def.collectionName}
                 data-brick-variant={brick.def.variant}
-                data-brick-size={brick.def.size}
+                data-brick-layout={brick.def.layout}
                 data-brick-id={layoutItem.i}
                 onClick={() => {
                   if (suppressBrickClickRef.current) return;

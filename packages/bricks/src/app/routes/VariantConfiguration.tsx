@@ -1,3 +1,5 @@
+import { GripHorizontal } from "lucide-react";
+import { Button } from "../../ui/button";
 import { collectionsHash } from "../../collectionsHash";
 import {
   isRouteErrorResponse,
@@ -19,7 +21,7 @@ export function loader({ params }: LoaderFunctionArgs) {
   if (!params.collectionName || !params.variantName)
     throw new Response("Not found", { status: 404 });
   const variant = collectionsHash[params.collectionName]?.variants[params.variantName];
-  if (!variant || Object.keys(variant.sizes).length === 0) {
+  if (!variant || Object.keys(variant.layouts).length === 0) {
     throw new Response("Not found", { status: 404 });
   }
   return null;
@@ -43,15 +45,15 @@ export default function VariantConfiguration() {
   }
 
   const [variantData, setVariantData] = useVariantData(collectionName, variantName);
-  const sizes = Object.entries(variant.sizes);
-  const firstSize = sizes[0];
+  const layouts = Object.entries(variant.layouts);
+  const firstLayout = layouts[0];
 
-  if (!firstSize) {
+  if (!firstLayout) {
     throw new Response("Not found", { status: 404 });
   }
 
-  const sizeName = searchParams.get("size") ?? firstSize[0];
-  const brick = variant.sizes[sizeName];
+  const layoutName = searchParams.get("layout") ?? firstLayout[0];
+  const brick = variant.layouts[layoutName];
   if (!brick) throw new Response("Not found", { status: 404 });
   const BrickComponent = brick.component;
 
@@ -75,22 +77,22 @@ export default function VariantConfiguration() {
                         aria-current={name === variantName ? "true" : undefined}
                         className="underline aria-[current=true]:no-underline"
                       >
-                        {option.variantLabel}
+                        {option.variantName}
                       </Link>
                     </OrderedTableOfContents.Label>
                     <div className="pt-2">
                       <OrderedTableOfContents.List padded={false}>
-                        {Object.entries(option.sizes).map(([size, optionBrick]) => (
-                          <OrderedTableOfContents.Item key={size}>
+                        {Object.entries(option.layouts).map(([layout, optionBrick]) => (
+                          <OrderedTableOfContents.Item key={layout}>
                             <OrderedTableOfContents.Label>
                               <Link
-                                to={`/collections/${encodeURIComponent(collectionName)}?variant=${encodeURIComponent(name)}&size=${encodeURIComponent(size)}`}
+                                to={`/collections/${encodeURIComponent(collectionName)}?variant=${encodeURIComponent(name)}&layout=${encodeURIComponent(layout)}`}
                                 aria-current={
-                                  name === variantName && size === sizeName ? "true" : undefined
+                                  name === variantName && layout === layoutName ? "true" : undefined
                                 }
-                                className="underline aria-[current=true]:no-underline"
+                                className="underline aria-[current=true]:font-bold aria-[current=true]:text-zinc-950! aria-[current=true]:no-underline!"
                               >
-                                {optionBrick.def.size}
+                                {optionBrick.def.label}
                               </Link>
                             </OrderedTableOfContents.Label>
                           </OrderedTableOfContents.Item>
@@ -110,7 +112,7 @@ export default function VariantConfiguration() {
             { label: "Collection name", value: collection.collectionLabel },
             { label: "Collection ID", value: collection.collectionName },
             { label: "Collection description", value: collection.collectionDescription },
-            { label: "Variant name", value: variant.variantLabel },
+            { label: "Variant name", value: variant.variantName },
             { label: "Variant ID", value: variantName },
             { label: "Variant description", value: variant.variantDescription },
           ]}
@@ -120,26 +122,48 @@ export default function VariantConfiguration() {
         <div
           className={
             brick.def.w === 8
-              ? "qrk-bricks cursor-grab overflow-hidden"
-              : "qrk-bricks ml-6 cursor-grab overflow-hidden"
+              ? "qrk-bricks brick-drag-surface overflow-hidden"
+              : "qrk-bricks ml-6 brick-drag-surface overflow-hidden"
           }
-          data-variant-size-brick={`${collectionName}/${variantName}/${sizeName}`}
-          draggable
-          onDragStart={(event) => {
-            setActiveBrickDrag({ ...brick.def, data: structuredClone(variantData) });
-            event.dataTransfer.effectAllowed = "copy";
-            event.dataTransfer.setData("text/plain", brick.def.size);
-          }}
-          onDragEnd={() => setActiveBrickDrag(null)}
+          data-variant-layout-brick={`${collectionName}/${variantName}/${layoutName}`}
           style={{
             width: `${(brick.def.w / 8) * 100}%`,
             aspectRatio: `${brick.def.w} / ${brick.def.h}`,
             clipPath: "inset(0)",
           }}
         >
-          <div inert className="pointer-events-none contents select-none">
+          <div className="brick-drag-content size-full select-none">
             <BrickComponent data={variantData} />
           </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="brick-drag-handle"
+            aria-label="Drag brick"
+            draggable
+            onDragStart={(event) => {
+              setActiveBrickDrag({ ...brick.def, data: structuredClone(variantData) });
+              const surface = event.currentTarget.parentElement;
+              if (surface) {
+                const bounds = surface.getBoundingClientRect();
+                event.dataTransfer.setDragImage(
+                  surface,
+                  event.clientX - bounds.left,
+                  event.clientY - bounds.top,
+                );
+              }
+              event.dataTransfer.effectAllowed = "copy";
+              event.dataTransfer.setData("text/plain", brick.def.layout);
+            }}
+            onDragEnd={() => setActiveBrickDrag(null)}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
+            <GripHorizontal aria-hidden className="size-4" />
+          </Button>
         </div>
       </div>
       <div className="pb-6">

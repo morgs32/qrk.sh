@@ -20,7 +20,7 @@ export default function BrickDetail() {
       ? collectionsHash[brickDef.collectionName]
       : undefined;
   const variant = collection?.variants[brickDef?.variant ?? ""];
-  const brick = variant?.sizes[brickDef?.size ?? ""];
+  const brick = variant?.layouts[brickDef?.layout ?? ""];
 
   if (!hasHydrated) {
     return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
@@ -67,24 +67,24 @@ export default function BrickDetail() {
                         aria-current={name === brick.def.variant ? "true" : undefined}
                         className="underline aria-[current=true]:no-underline"
                       >
-                        {option.variantLabel}
+                        {option.variantName}
                       </Link>
                     </OrderedTableOfContents.Label>
                     <div className="pt-2">
                       <OrderedTableOfContents.List padded={false}>
-                        {Object.entries(option.sizes).map(([size, optionBrick]) => (
-                          <OrderedTableOfContents.Item key={size}>
+                        {Object.entries(option.layouts).map(([layout, optionBrick]) => (
+                          <OrderedTableOfContents.Item key={layout}>
                             <OrderedTableOfContents.Label>
                               <span
                                 aria-current={
-                                  name === brick.def.variant && size === brick.def.size ? "true" : undefined
+                                  name === brick.def.variant && layout === brick.def.layout ? "true" : undefined
                                 }
                                 aria-disabled={
-                                  name !== brick.def.variant || size !== brick.def.size
+                                  name !== brick.def.variant || layout !== brick.def.layout
                                 }
                                 className="text-zinc-400 aria-[current=true]:font-semibold aria-[current=true]:text-zinc-900"
                               >
-                                {optionBrick.def.size}
+                                {optionBrick.def.label}
                               </span>
                             </OrderedTableOfContents.Label>
                           </OrderedTableOfContents.Item>

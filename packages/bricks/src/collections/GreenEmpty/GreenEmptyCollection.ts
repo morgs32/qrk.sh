@@ -39,12 +39,12 @@ export const swatchCollection = makeCollection({
           ),
       }),
       variant: "default",
-      variantLabel: "Default",
+      variantName: "Default",
       variantDescription: "A solid color field.",
-      sizes: {
+      layouts: {
         "2x2": makeBrick({
           variant: "default",
-          size: "2x2",
+          layout: "2x2",
           w: 2,
           h: 2,
           label: "2×2",
@@ -53,7 +53,7 @@ export const swatchCollection = makeCollection({
         }),
         "4x4": makeBrick({
           variant: "default",
-          size: "4x4",
+          layout: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
@@ -62,7 +62,7 @@ export const swatchCollection = makeCollection({
         }),
         "8x2": makeBrick({
           variant: "default",
-          size: "8x2",
+          layout: "8x2",
           w: 8,
           h: 2,
           label: "8×2",

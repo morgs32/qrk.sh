@@ -41,7 +41,7 @@ Keep [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId
 
 - **Bad**: `export type BrickPreviewProps` in `BrickCatalog.tsx` and `import { BrickPreviewProps } from './BrickCatalog'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: ICollectionBrick }`**. Catalog rows are built with **`makeBrick`** (a content `variant`, a `size`, and a `component`) and **`makeCollection`** (nested **`variants[variant].sizes[size]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/app/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/app/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
+- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: ICollectionBrick }`**. Catalog rows are built with **`makeBrick`** (a content `variant`, a `layout`, and a `component`) and **`makeCollection`** (nested **`variants[variant].layouts[layout]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/app/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/app/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
 
 **Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeBrickCollectionProps`-style types unless a second module genuinely needs to reference that exact type.
 
@@ -49,33 +49,33 @@ Keep [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId
 
 - **Bad**: ad hoc **`typeId`** strings on every catalog row, or passing full brick objects (including **`component`**) into Zustand for external drag.
 
-- **Good**: **`ICollectionBrickDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`variant`**, **`size`**, **`w`**, **`h`**, and **`label`**). **`IBrick`** = size-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionBrick`**.
+- **Good**: **`ICollectionBrickDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`variant`**, **`layout`**, **`w`**, **`h`**, and **`label`**). **`IBrick`** = layout-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionBrick`**.
 
 ### Terminology: collection variants and bricks
 
-A **collection variant** is a content form within a collection, such as GitHub `profile` or `repo`. A **size** is a form of that variant, such as `4x4` or `4x2`. A **brick** is an implementation of one `(collectionName, variant, size)` catalog entry. When that implementation is placed in a Grid, its resource and identity are still **`brick`** and **`brickId`**; do not call it a “grid brick” or “grid item.”
+A **collection variant** is a content form within a collection, such as GitHub `profile` or `repo`. A **layout** is a named presentation of that variant, such as `4x4` or `4x2`. Its identifier and display label are independent of its `w`/`h` dimensions; multiple layouts may share dimensions. A **brick** is an implementation of one `(collectionName, variant, layout)` catalog entry. When that implementation is placed in a Grid, its resource and identity are still **`brick`** and **`brickId`**; do not call it a “grid brick” or “grid item.”
 
-### Brick catalog identity: `collectionName` + `variant` + `size`
+### Brick catalog identity: `collectionName` + `variant` + `layout`
 
 **Invariant (homepage catalog):**
 
 1. **`collectionName`** is **unique per collection** across the catalog.
-2. Within one collection, each **`def.variant`** is kebab-case; its **`def.size`** is kebab-case and unique within that variant.
-3. Therefore **`(collectionName, def.variant, def.size)`** is unique for every catalog entry—use those fields for tests and DOM hooks instead of a composite string.
+2. Within one collection, each **`def.variant`** is kebab-case; its **`def.layout`** is kebab-case and unique within that variant.
+3. Therefore **`(collectionName, def.variant, def.layout)`** is unique for every catalog entry—use those fields for tests and DOM hooks instead of a composite string.
 
 ### Terminology: brick catalog identity
 
-In code and tests, use **`collectionName`**, **`variant`**, and **`size`** together. They uniquely identify a homepage catalog entry. They are **not** a grid **instance** id (`item.i`) or a single concatenated key.
+In code and tests, use **`collectionName`**, **`variant`**, and **`layout`** together. They uniquely identify a homepage catalog entry. They are **not** a grid **instance** id (`item.i`) or a single concatenated key.
 
-- **Bad**: calling a composite like `` `${collectionName}--${w}x${h}` `` or using a bare size as a brick identity.
+- **Bad**: calling a composite like `` `${collectionName}--${w}x${h}` `` or using a bare layout as a brick identity.
 
-- **Good**: pass or thread **`collectionName`**, **`def.variant`**, and **`def.size`**; locate bricks with **`gridLocateByBrickIdentity(grid, collectionName, variant, size)`** in [Grid.playwright.spec.ts](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.playwright.spec.ts).
+- **Good**: pass or thread **`collectionName`**, **`def.variant`**, and **`def.layout`**; locate bricks with **`gridLocateByBrickIdentity(grid, collectionName, variant, layout)`** in [Grid.playwright.spec.ts](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.playwright.spec.ts).
 
 [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx) exposes it on the draggable slot:
 
 - **`data-brick-drawer-collection-name`** = **`brick.def.collectionName`**
 - **`data-brick-drawer-variant`** = **`brick.def.variant`**
-- **`data-brick-drawer-size`** = **`brick.def.size`**
+- **`data-brick-drawer-layout`** = **`brick.def.layout`**
 
 (Together with **`data-brick-drawer-brick-slot`**, used by carousel drag guards.)
 
@@ -83,12 +83,12 @@ In code and tests, use **`collectionName`**, **`variant`**, and **`size`** toget
 
 - **`data-brick-collection-name`** = **`item.def.collectionName`**
 - **`data-brick-variant`** = **`item.def.variant`**
-- **`data-brick-size`** = **`item.def.size`**
+- **`data-brick-layout`** = **`item.def.layout`**
 - **`data-brick-id`** = the placed brick id (`item.i` at the `react-grid-layout` boundary)
 
 - **Bad**: a single attribute holding `makeBrickKey` / concatenated ids when you need to target “this variant in this collection” in the drawer **or on the grid**.
 
-- **Good**: expose the collection, variant, size, and brick id separately. In Playwright: drawer — `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="…"][data-brick-drawer-variant="…"][data-brick-drawer-size="…"]`; Grid — `[data-brick-collection-name="…"][data-brick-variant="…"][data-brick-size="…"]` scoped under `.grid-layout`.
+- **Good**: expose the collection, variant, layout, and brick id separately. In Playwright: drawer — `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="…"][data-brick-drawer-variant="…"][data-brick-drawer-layout="…"]`; Grid — `[data-brick-collection-name="…"][data-brick-variant="…"][data-brick-layout="…"]` scoped under `.grid-layout`.
 
 ### Good vs bad: brick factory argument naming (`props`, not `options`; inline type)
 
@@ -96,7 +96,7 @@ Brick factories take **one object** describing what to build. Name that paramete
 
 - **Bad**: `export function makeBrick(options: { w; h; component })`; `export type MakeCollectionProps = { … }` with `makeCollection(props: MakeCollectionProps)` when nothing else imports that type.
 
-- **Good**: `makeBrick(props: { variant; size; w; h; label; component })`, `makeVariant(props: { variant; sizes })`, and `makeCollection(props: { collectionName; collectionLabel; collectionDescription; variants })` in [packages/bricks/src/makeBrick.ts](../../packages/bricks/src/makeBrick.ts), [makeVariant.ts](../../packages/bricks/src/makeVariant.ts), and [makeCollection.ts](../../packages/bricks/src/makeCollection.ts).
+- **Good**: `makeBrick(props: { variant; layout; w; h; label; component })`, `makeVariant(props: { variant; layouts })`, and `makeCollection(props: { collectionName; collectionLabel; collectionDescription; variants })` in [packages/bricks/src/makeBrick.ts](../../packages/bricks/src/makeBrick.ts), [makeVariant.ts](../../packages/bricks/src/makeVariant.ts), and [makeCollection.ts](../../packages/bricks/src/makeCollection.ts).
 
 Data-backed variants configure requests with `makeFetcherConfiguration({ payloadShape, payloadForm, fetcher })`
 from [makeFetcherConfiguration.ts](../../packages/bricks/src/makeFetcherConfiguration.ts), passed as the variant's `configuration`.
@@ -115,7 +115,7 @@ independent of payload changes, including Streamline's SWR search.
 
 [useVariantData.ts](../../packages/bricks/src/app/useVariantData.ts) provides
 `[variantData, setVariantData]` backed by in-memory Zustand state per collection/variant, shared across
-sizes. Its setter validates against the decoded `dataShape`, preserving provider fields, before replacing
+layouts. Its setter validates against the decoded `dataShape`, preserving provider fields, before replacing
 stored data. Invalid writes leave state unchanged. The configuration page preview and JSON display use
 stored data or `defaultData`; loading and errors retain the last valid data. Navigation retains values,
 while reload clears them. Other catalog previews and persisted Grid bricks continue using their existing
@@ -131,7 +131,7 @@ Do **not** add `apps/app/components/home/bricks/index.ts` (or similar) that only
 
 - **Bad**: `import { homepageBricks, collectionsHash } from "./bricks"` or `@/components/home/bricks` when `./bricks` is a re-export barrel.
 
-- **Good**: import `collectionsHash` from its defining module and resolve a component directly through `collection.variants[variant].sizes[size]`; import specific collections from their modules under `collections/`.
+- **Good**: import `collectionsHash` from its defining module and resolve a component directly through `collection.variants[variant].layouts[layout]`; import specific collections from their modules under `collections/`.
 
 ### Good vs bad: `ICollection` + `BrickCarousel` — don’t add `FromCatalog` on shared UI
 
@@ -193,11 +193,19 @@ Use `Rows sticky` when the whole group should stick within its scroll container.
 Spacing is explicit in the composition rather than inferred from descendant DOM.
 
 The Bricks overview uses `Container` for the outer layout and `Section` for each
-complete navigation block: collection heading, variant choices, and size choices.
+complete navigation block: collection heading, variant choices, and layout choices.
 `Section` owns the gray surface and equal 0.75rem edge padding. The overview
 uses unpadded lists, explicit 0.5rem spacing before nested choices, and spaced
-variant/size groups. The preview is a sibling after the section, so no gray
+variant/layout groups. The preview is a sibling after the section, so no gray
 padding trails the preview. Each section starts its own list; use `List start`
-to continue collection numbering. The collection page keeps the complete collection/variant/size `Section`, followed
-by one active preview and its configuration contents. The `variant` and `size`
+to continue collection numbering. The collection page keeps the complete collection/variant/layout `Section`, followed
+by one active preview and its configuration contents. The `variant` and `layout`
 query parameters select the active item. Overview Configure links carry both values.
+
+### Layout identity hard cutover
+
+Catalog definitions use `variants[variant].layouts[layout]`; serialized brick definitions and backend brick attributes use `layout`. Existing IDs and labels remain unchanged. Layout choices display `def.label`, while selection, lookup, drag payloads, and brick keys use `def.layout`.
+
+Sandbox collection URLs select `?layout=...`; old `size` query parameters are ignored, so the default layout is selected when `layout` is absent. Standalone `/bricks/:collectionName/:variant/:layout` URLs retain their existing positional values.
+
+This is a breaking change with no aliases or automatic data migration. Existing sandbox storage (`qrk-bricks-sandbox-single-grid`), persisted site drafts, and backend data containing brick `size` fields require an explicit reset before reuse. Resetting or deleting that state is a separate authorized operation; this change does not clear it automatically. Grid positioning still uses its existing `layout` array, independently of each brick definition’s layout identifier.

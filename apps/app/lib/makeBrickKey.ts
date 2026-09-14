@@ -1,3 +1,3 @@
-export function makeBrickKey(props: { collectionName: string; variant: string; size: string }) {
-  return `${props.collectionName}-${props.variant}-${props.size}`;
+export function makeBrickKey(props: { collectionName: string; variant: string; layout: string }) {
+  return `${props.collectionName}-${props.variant}-${props.layout}`;
 }

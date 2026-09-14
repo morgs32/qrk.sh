@@ -13,15 +13,15 @@ export function makeCollection(props: {
   variants: Record<
     string,
     | {
-        variantLabel: string;
+        variantName: string;
         variantDescription: string;
         configuration?: IFetcherConfiguration & { fetcher?: never };
         dataShape: null;
         defaultData: null;
-        sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
+        layouts: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
       }
     | {
-        variantLabel: string;
+        variantName: string;
         variantDescription: string;
         configuration?:
           | IFormConfiguration
@@ -30,20 +30,20 @@ export function makeCollection(props: {
             });
         dataShape: IShape;
         defaultData: unknown;
-        sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
+        layouts: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
       }
   >;
 }): ICollection {
   const { collectionName, collectionLabel, collectionDescription, variants: rawVariants } = props;
 
   const variants = mapValues(rawVariants, (rawVariant) => {
-    const sizes = mapValues(rawVariant.sizes, (brick) => {
+    const layouts = mapValues(rawVariant.layouts, (brick) => {
       return {
         def: {
           collectionName,
           collectionLabel,
           variant: brick.def.variant,
-          size: brick.def.size,
+          layout: brick.def.layout,
           w: brick.def.w,
           h: brick.def.h,
           label: brick.def.label,
@@ -56,30 +56,30 @@ export function makeCollection(props: {
 
     if (rawVariant.dataShape !== null) {
       return {
-        variantLabel: rawVariant.variantLabel,
+        variantName: rawVariant.variantName,
         variantDescription: rawVariant.variantDescription,
         configuration: rawVariant.configuration,
         dataShape: rawVariant.dataShape,
         defaultData: rawVariant.defaultData,
-        sizes,
+        layouts,
       };
     }
     if (rawVariant.configuration !== undefined) {
       return {
-        variantLabel: rawVariant.variantLabel,
+        variantName: rawVariant.variantName,
         variantDescription: rawVariant.variantDescription,
         configuration: rawVariant.configuration,
         dataShape: rawVariant.dataShape,
         defaultData: rawVariant.defaultData,
-        sizes,
+        layouts,
       };
     }
     return {
-      variantLabel: rawVariant.variantLabel,
+      variantName: rawVariant.variantName,
       variantDescription: rawVariant.variantDescription,
       dataShape: rawVariant.dataShape,
       defaultData: rawVariant.defaultData,
-      sizes,
+      layouts,
     };
   });
 

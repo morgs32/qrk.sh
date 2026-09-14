@@ -44,7 +44,7 @@ export function Configuration(props: {
       return (
         <FetcherConfiguration
           configuration={configuration}
-          collectionName={Object.values(props.variant.sizes)[0]?.def.collectionName}
+          collectionName={Object.values(props.variant.layouts)[0]?.def.collectionName}
           data={props.data}
           setData={props.setData}
         />

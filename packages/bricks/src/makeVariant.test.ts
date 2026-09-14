@@ -10,18 +10,51 @@ import { mapCollection } from "./collections/Map/MapCollection";
 import { makeVariant } from "./makeVariant";
 
 describe("makeVariant data contracts", () => {
+  it("requires layout keys and variants to match their definitions", () => {
+    expectTypeOf(() => {
+      makeVariant({
+        variant: "default",
+        variantName: "Default",
+        variantDescription: "Test variant",
+        dataShape: null,
+        defaultData: null,
+        layouts: {
+          summary: {
+            // @ts-expect-error the layout identifier must match its map key
+            def: { variant: "default", layout: "activity", w: 4, h: 2, label: "Activity", order: 0 },
+            component: () => null,
+          },
+        },
+      });
+      makeVariant({
+        variant: "default",
+        variantName: "Default",
+        variantDescription: "Test variant",
+        dataShape: null,
+        defaultData: null,
+        layouts: {
+          summary: {
+            // @ts-expect-error the brick must belong to its containing variant
+            def: { variant: "other", layout: "summary", w: 4, h: 2, label: "Summary", order: 0 },
+            component: () => null,
+          },
+        },
+      });
+    }).toBeFunction();
+  });
+
   it("uses explicit nulls for a static variant", () => {
     const variant = makeVariant({
       dataShape: null,
       defaultData: null,
       variant: "static",
-      variantLabel: "Static",
+      variantName: "Static",
       variantDescription: "A static variant.",
-      sizes: {
+      layouts: {
         "1x1": {
           def: {
             variant: "static",
-            size: "1x1",
+            layout: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -74,7 +107,7 @@ describe("makeVariant data contracts", () => {
       dataShape: null,
       defaultData: null,
       variant: "local-content",
-      variantLabel: "Local-content",
+      variantName: "Local-content",
       variantDescription: "Locally authored content.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -93,11 +126,11 @@ describe("makeVariant data contracts", () => {
           },
         },
       }),
-      sizes: {
+      layouts: {
         "1x1": {
           def: {
             variant: "local-content",
-            size: "1x1",
+            layout: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -124,7 +157,7 @@ describe("makeVariant data contracts", () => {
   it("infers custom renderer values from their decoded primitive fields", () => {
     const variant = makeVariant({
       variant: "typed-controls",
-      variantLabel: "Typed-controls",
+      variantName: "Typed-controls",
       variantDescription: "Typed custom controls.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -152,11 +185,11 @@ describe("makeVariant data contracts", () => {
       defaultData: {
         result: "Chicago",
       },
-      sizes: {
+      layouts: {
         "1x1": {
           def: {
             variant: "typed-controls",
-            size: "1x1",
+            layout: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -208,7 +241,7 @@ describe("makeVariant data contracts", () => {
     const callbackPayloads: Array<{ url: string }> = [];
     const variant = makeVariant({
       variant: "profile",
-      variantLabel: "Profile",
+      variantName: "Profile",
       variantDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -227,11 +260,11 @@ describe("makeVariant data contracts", () => {
         login: "default-profile",
         providerField: "default-provider-value",
       },
-      sizes: {
+      layouts: {
         "1x1": {
           def: {
             variant: "profile",
-            size: "1x1",
+            layout: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -275,7 +308,7 @@ describe("makeVariant data contracts", () => {
     expect(() =>
       makeVariant({
         variant: "profile",
-        variantLabel: "Profile",
+        variantName: "Profile",
         variantDescription: "A data-backed profile.",
         configuration: makeFetcherConfiguration({
           payloadShape: {
@@ -291,11 +324,11 @@ describe("makeVariant data contracts", () => {
           login: primitives.text(),
         },
         defaultData: JSON.parse('{"login":42}'),
-        sizes: {
+        layouts: {
           "1x1": {
             def: {
               variant: "profile",
-              size: "1x1",
+              layout: "1x1",
               w: 1,
               h: 1,
               label: "1×1",
@@ -314,7 +347,7 @@ describe("makeVariant data contracts", () => {
     const callbackPayloads: Array<{ url: string }> = [];
     const variant = makeVariant({
       variant: "profile",
-      variantLabel: "Profile",
+      variantName: "Profile",
       variantDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -332,11 +365,11 @@ describe("makeVariant data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      sizes: {
+      layouts: {
         "1x1": {
           def: {
             variant: "profile",
-            size: "1x1",
+            layout: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -385,7 +418,7 @@ describe("makeVariant data contracts", () => {
   it("propagates validation failures from the supplied setter", async () => {
     const variant = makeVariant({
       variant: "profile",
-      variantLabel: "Profile",
+      variantName: "Profile",
       variantDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -403,11 +436,11 @@ describe("makeVariant data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      sizes: {
+      layouts: {
         "1x1": {
           def: {
             variant: "profile",
-            size: "1x1",
+            layout: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -449,7 +482,7 @@ describe("makeVariant data contracts", () => {
     };
     const variant = makeVariant({
       variant: "profile",
-      variantLabel: "Profile",
+      variantName: "Profile",
       variantDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -466,11 +499,11 @@ describe("makeVariant data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      sizes: {
+      layouts: {
         "1x1": {
           def: {
             variant: "profile",
-            size: "1x1",
+            layout: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -505,13 +538,13 @@ describe("makeVariant data contracts", () => {
   it("allows data components to ignore the data argument", () => {
     const variant = makeVariant({
       variant: "default",
-      variantLabel: "Default",
+      variantName: "Default",
       variantDescription: "Data is available but unused.",
       dataShape: { name: primitives.text() },
       defaultData: { name: "Default" },
-      sizes: {
+      layouts: {
         "1x1": {
-          def: { variant: "default", size: "1x1", w: 1, h: 1, label: "1×1", order: 0 },
+          def: { variant: "default", layout: "1x1", w: 1, h: 1, label: "1×1", order: 0 },
           component: () => null,
         },
       },
@@ -525,46 +558,46 @@ describe("makeVariant data contracts", () => {
       // @ts-expect-error both data fields are required
       makeVariant({
         variant: "static",
-        variantLabel: "Static",
+        variantName: "Static",
         variantDescription: "Static",
-        sizes: {},
+        layouts: {},
       });
       // @ts-expect-error a null schema requires a null default
       makeVariant({
         variant: "static",
-        variantLabel: "Static",
+        variantName: "Static",
         variantDescription: "Static",
         dataShape: null,
         defaultData: {},
-        sizes: {},
+        layouts: {},
       });
       // @ts-expect-error a schema requires a non-null default
       makeVariant({
         variant: "data",
-        variantLabel: "Data",
+        variantName: "Data",
         variantDescription: "Data",
         dataShape: { name: primitives.text() },
         defaultData: null,
-        sizes: {},
+        layouts: {},
       });
       makeVariant({
         variant: "data",
-        variantLabel: "Data",
+        variantName: "Data",
         variantDescription: "Data",
         dataShape: { name: primitives.text() },
         // @ts-expect-error defaults must match the schema
         defaultData: { name: 42 },
-        sizes: {},
+        layouts: {},
       });
       makeVariant({
         variant: "data",
-        variantLabel: "Data",
+        variantName: "Data",
         variantDescription: "Data",
         dataShape: { name: primitives.text() },
         defaultData: { name: "Default" },
-        sizes: {
+        layouts: {
           "1x1": {
-            def: { variant: "data", size: "1x1", w: 1, h: 1, label: "1×1", order: 0 },
+            def: { variant: "data", layout: "1x1", w: 1, h: 1, label: "1×1", order: 0 },
             // @ts-expect-error component data must match the schema
             component: (props: { data: { name: number } }) => props.data.name,
           },

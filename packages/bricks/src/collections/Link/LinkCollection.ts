@@ -13,7 +13,7 @@ export const linkCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
-      variantLabel: "Default",
+      variantName: "Default",
       variantDescription: "A rich preview for any web link.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -45,10 +45,10 @@ export const linkCollection = makeCollection({
           "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
         iconUrl: "https://www.apple.com/favicon.ico",
       },
-      sizes: {
+      layouts: {
         "4x2": makeBrick({
           variant: "default",
-          size: "4x2",
+          layout: "4x2",
           w: 4,
           h: 2,
           label: "4×2",

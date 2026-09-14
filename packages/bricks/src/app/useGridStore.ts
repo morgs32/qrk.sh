@@ -5,7 +5,6 @@ import { collectionsHash } from "../collectionsHash";
 import { persist } from "zustand/middleware";
 
 export const useGridStore = create<{
-  mode: "inspect" | "arrange";
   layout: Layout;
   bricksById: Record<string, ICollectionBrickDef>;
   activeBrickDrag: ICollectionBrickDef | null;
@@ -17,7 +16,6 @@ export const useGridStore = create<{
 }>()(
   persist(
     (set) => ({
-      mode: "inspect",
       layout: [
         { i: "fixture-1", x: 0, y: 0, w: 2, h: 2 },
         { i: "fixture-2", x: 2, y: 0, w: 2, h: 2 },

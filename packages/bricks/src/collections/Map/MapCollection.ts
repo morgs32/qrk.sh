@@ -14,7 +14,7 @@ export const mapCollection = makeCollection({
   variants: {
     place: makeVariant({
       variant: "place",
-      variantLabel: "Place",
+      variantName: "Place",
       variantDescription: "A map centered on one selected place.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -44,10 +44,10 @@ export const mapCollection = makeCollection({
         latitude: 41.8781136,
         longitude: -87.6297982,
       },
-      sizes: {
+      layouts: {
         "4x4": makeBrick({
           variant: "place",
-          size: "4x4",
+          layout: "4x4",
           w: 4,
           h: 4,
           label: "4×4",

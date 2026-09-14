@@ -6,7 +6,6 @@ import "./sandbox.css";
 import { useGridStore } from "./useGridStore";
 
 export default function RootLayout() {
-  const mode = useGridStore((state) => state.mode);
   return (
     <div className="qrk-bricks min-h-screen">
       <header className="relative z-50 flex items-center justify-between bg-white px-6 py-3 shadow-sm">
@@ -14,28 +13,6 @@ export default function RootLayout() {
           QRK.SH SANDBOX
         </Link>
         <div className="flex items-center gap-2">
-          <div
-            role="group"
-            aria-label="Grid mode"
-            className="flex gap-2"
-          >
-            <Button
-              type="button"
-              aria-pressed={mode === "inspect"}
-              variant={mode === "inspect" ? "default" : "outline"}
-              onClick={() => useGridStore.setState({ mode: "inspect" })}
-            >
-              Inspect
-            </Button>
-            <Button
-              type="button"
-              aria-pressed={mode === "arrange"}
-              variant={mode === "arrange" ? "default" : "outline"}
-              onClick={() => useGridStore.setState({ mode: "arrange" })}
-            >
-              Arrange
-            </Button>
-          </div>
           <Button
             type="button"
             variant="outline"

@@ -35,7 +35,7 @@ export default function BrickCollectionRoute() {
   }
 
   const bricks = Object.values(collection.variants).flatMap((variant) =>
-    Object.values(variant.sizes),
+    Object.values(variant.layouts),
   );
 
   return (
@@ -68,8 +68,8 @@ export default function BrickCollectionRoute() {
           const variant = collection.variants[brick.def.variant];
 
           return (
-            <section key={`${brick.def.variant}/${brick.def.size}`}>
-              <Tabs.Root value={`${brick.def.variant}--${brick.def.size}-preview`}>
+            <section key={`${brick.def.variant}/${brick.def.layout}`}>
+              <Tabs.Root value={`${brick.def.variant}--${brick.def.layout}-preview`}>
                 <div className="flex items-baseline justify-between gap-4 px-6">
                   <div>
                     <h2 className="m-0 text-2xl font-semibold">{brick.def.variant}</h2>
@@ -80,18 +80,18 @@ export default function BrickCollectionRoute() {
                   <div className="flex shrink-0 items-baseline gap-2">
                     <Tabs.List
                       className="flex gap-2 text-sm"
-                      aria-label={`${brick.def.label} preview`}
+                      aria-label={`${brick.def.layout} preview`}
                     >
                       <Tabs.Trigger
-                        value={`${brick.def.variant}--${brick.def.size}-preview`}
+                        value={`${brick.def.variant}--${brick.def.layout}-preview`}
                         className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-zinc-950"
                       >
-                        {brick.def.size}
+                        {brick.def.label}
                       </Tabs.Trigger>
                     </Tabs.List>
                   </div>
                 </div>
-                <Tabs.Content value={`${brick.def.variant}--${brick.def.size}-preview`}>
+                <Tabs.Content value={`${brick.def.variant}--${brick.def.layout}-preview`}>
                   <div className="mt-6 overflow-auto">
                     <div
                       className={
@@ -99,11 +99,11 @@ export default function BrickCollectionRoute() {
                           ? "qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
                           : "qrk-bricks ml-6 cursor-grab overflow-hidden active:cursor-grabbing"
                       }
-                      data-brick-full-size={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.size}`}
+                      data-brick-full-layout={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.layout}`}
                       data-brick-drawer-brick-slot
                       data-brick-drawer-collection-name={brick.def.collectionName}
                       data-brick-drawer-variant={brick.def.variant}
-                      data-brick-drawer-size={brick.def.size}
+                      data-brick-drawer-layout={brick.def.layout}
                       draggable
                       onDragStart={(event) => {
                         useBrickDrawerStore
@@ -111,7 +111,7 @@ export default function BrickCollectionRoute() {
                           .registerActiveBrickDragGridShape(brick.def.w, brick.def.h);
                         event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brick.def));
                         event.dataTransfer.effectAllowed = "copy";
-                        event.dataTransfer.setData("text/plain", brick.def.size);
+                        event.dataTransfer.setData("text/plain", brick.def.layout);
                       }}
                       onDragEnd={() => {
                         useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();

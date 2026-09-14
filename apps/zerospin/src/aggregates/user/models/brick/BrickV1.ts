@@ -18,7 +18,7 @@ export const brickV1 = makeModelVersion(brick, {
     h: primitives.integer(),
     collectionName: primitives.text(),
     variant: primitives.text(),
-    size: primitives.text(),
+    layout: primitives.text(),
   },
   indexes: [],
   version: "1.0.0",

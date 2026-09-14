@@ -19,7 +19,7 @@ export const textBrickCollection = makeCollection({
       dataShape: null,
       defaultData: null,
       variant: "default",
-      variantLabel: "Default",
+      variantName: "Default",
       variantDescription: "A text content block.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -39,10 +39,10 @@ export const textBrickCollection = makeCollection({
           content: TextEditorControl,
         },
       }),
-      sizes: {
+      layouts: {
         "4x4": makeBrick({
           variant: "default",
-          size: "4x4",
+          layout: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
@@ -51,7 +51,7 @@ export const textBrickCollection = makeCollection({
         }),
         "8x2": makeBrick({
           variant: "default",
-          size: "8x2",
+          layout: "8x2",
           w: 8,
           h: 2,
           label: "8×2",

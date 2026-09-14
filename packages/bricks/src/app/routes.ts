@@ -62,7 +62,7 @@ export default [
         ],
       },
       {
-        path: "bricks/:collectionName/:variant/:size",
+        path: "bricks/:collectionName/:variant/:layout",
         lazy: async () => {
           const { default: BrickPage, loader, ErrorBoundary } = await import("./routes/BrickPage");
           return { Component: BrickPage, loader, ErrorBoundary };

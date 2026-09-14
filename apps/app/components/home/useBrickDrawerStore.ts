@@ -33,7 +33,7 @@ const BrickDragDefFromJsonStringSchema = Schema.fromJsonString(
     collectionLabel: Schema.String,
     label: Schema.String,
     variant: Schema.String,
-    size: Schema.String,
+    layout: Schema.String,
     order: Schema.Number,
     w: Schema.Number,
     h: Schema.Number,

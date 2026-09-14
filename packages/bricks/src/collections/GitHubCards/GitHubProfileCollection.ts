@@ -16,7 +16,7 @@ export const githubCollection = makeCollection({
   variants: {
     profile: makeVariant({
       variant: "profile",
-      variantLabel: "Profile",
+      variantName: "Profile",
       variantDescription: "A GitHub profile card.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -97,10 +97,10 @@ export const githubCollection = makeCollection({
           return { date: date.toISOString().slice(0, 10), count, level };
         }),
       },
-      sizes: {
+      layouts: {
         "4x4": makeBrick({
           variant: "profile",
-          size: "4x4",
+          layout: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
@@ -109,7 +109,7 @@ export const githubCollection = makeCollection({
         }),
         "4x2": makeBrick({
           variant: "profile",
-          size: "4x2",
+          layout: "4x2",
           w: 4,
           h: 2,
           label: "4×2",
@@ -122,12 +122,12 @@ export const githubCollection = makeCollection({
       dataShape: null,
       defaultData: null,
       variant: "repo",
-      variantLabel: "Repo",
+      variantName: "Repo",
       variantDescription: "A GitHub repository card.",
-      sizes: {
+      layouts: {
         "4x2": makeBrick({
           variant: "repo",
-          size: "4x2",
+          layout: "4x2",
           w: 4,
           h: 2,
           label: "4×2",

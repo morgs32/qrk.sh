@@ -25,7 +25,7 @@ export function BrickCatalog() {
   const navigate = useNavigate();
   const collections = Object.values(collectionsHash);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
-  const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
+  const [selectedLayouts, setSelectedLayouts] = useState<Record<string, string>>({});
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -67,16 +67,16 @@ export function BrickCatalog() {
           const selectedVariantName =
             selectedVariants[collection.collectionName] ?? firstVariantName;
           const selectedVariant = collection.variants[selectedVariantName] ?? firstVariant;
-          const sizes = Object.entries(selectedVariant.sizes);
-          const firstSize = sizes[0];
+          const layouts = Object.entries(selectedVariant.layouts);
+          const firstLayout = layouts[0];
 
-          if (!firstSize) {
+          if (!firstLayout) {
             return null;
           }
 
-          const [firstSizeName, firstBrick] = firstSize;
-          const selectedSizeName = selectedSizes[collection.collectionName] || firstSizeName;
-          const selectedBrick = selectedVariant.sizes[selectedSizeName] ?? firstBrick;
+          const [firstLayoutName, firstBrick] = firstLayout;
+          const selectedLayoutName = selectedLayouts[collection.collectionName] || firstLayoutName;
+          const selectedBrick = selectedVariant.layouts[selectedLayoutName] ?? firstBrick;
           const BrickComponent = selectedBrick.component;
 
           return (
@@ -106,7 +106,7 @@ export function BrickCatalog() {
                               ...current,
                               [collection.collectionName]: variantName,
                             }));
-                            setSelectedSizes((current) => ({
+                            setSelectedLayouts((current) => ({
                               ...current,
                               [collection.collectionName]: "",
                             }));
@@ -118,25 +118,25 @@ export function BrickCatalog() {
                       ))}
                     </Tabs.List>
                   </Tabs.Root>
-                  <Tabs.Root value={selectedSizeName}>
+                  <Tabs.Root value={selectedLayoutName}>
                     <div className="flex items-baseline gap-2">
                       <Tabs.List
-                        aria-label={`${collection.collectionLabel} sizes`}
+                        aria-label={`${collection.collectionLabel} layouts`}
                         className="flex gap-2"
                       >
-                        {sizes.map(([sizeName, brick]) => (
+                        {layouts.map(([layoutName, brick]) => (
                           <Tabs.Trigger
-                            key={sizeName}
-                            value={sizeName}
+                            key={layoutName}
+                            value={layoutName}
                             onClick={() => {
-                              setSelectedSizes((current) => ({
+                              setSelectedLayouts((current) => ({
                                 ...current,
-                                [collection.collectionName]: sizeName,
+                                [collection.collectionName]: layoutName,
                               }));
                             }}
                             className="cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2 data-[state=active]:font-medium data-[state=active]:text-zinc-950 data-[state=active]:no-underline"
                           >
-                            {brick.def.size}
+                            {brick.def.label}
                           </Tabs.Trigger>
                         ))}
                       </Tabs.List>
@@ -160,11 +160,11 @@ export function BrickCatalog() {
                       ? "qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
                       : "qrk-bricks ml-6 cursor-grab overflow-hidden active:cursor-grabbing"
                   }
-                  data-collection-representative={`${selectedBrick.def.collectionName}/${selectedBrick.def.variant}/${selectedBrick.def.size}`}
+                  data-collection-representative={`${selectedBrick.def.collectionName}/${selectedBrick.def.variant}/${selectedBrick.def.layout}`}
                   data-brick-drawer-brick-slot
                   data-brick-drawer-collection-name={selectedBrick.def.collectionName}
                   data-brick-drawer-variant={selectedBrick.def.variant}
-                  data-brick-drawer-size={selectedBrick.def.size}
+                  data-brick-drawer-layout={selectedBrick.def.layout}
                   draggable
                   onDragStart={(event) => {
                     useBrickDrawerStore
@@ -172,7 +172,7 @@ export function BrickCatalog() {
                       .registerActiveBrickDragGridShape(selectedBrick.def.w, selectedBrick.def.h);
                     event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(selectedBrick.def));
                     event.dataTransfer.effectAllowed = "copy";
-                    event.dataTransfer.setData("text/plain", selectedBrick.def.size);
+                    event.dataTransfer.setData("text/plain", selectedBrick.def.layout);
                   }}
                   onDragEnd={() => {
                     useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();

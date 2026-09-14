@@ -16,7 +16,7 @@ export const iconCollection = makeCollection({
   variants: {
     default: makeVariant({
       variant: "default",
-      variantLabel: "Default",
+      variantName: "Default",
       variantDescription: "A selected icon from Streamline.",
       configuration: makeFetcherConfiguration({
         payloadShape: {
@@ -40,10 +40,10 @@ export const iconCollection = makeCollection({
         name: "Asterisk",
         svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 20v60M20 35l60 30M20 65l60-30" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="8"/></svg>',
       },
-      sizes: {
+      layouts: {
         "2x2": makeBrick({
           variant: "default",
-          size: "2x2",
+          layout: "2x2",
           w: 2,
           h: 2,
           label: "2×2",
@@ -52,7 +52,7 @@ export const iconCollection = makeCollection({
         }),
         "4x4": makeBrick({
           variant: "default",
-          size: "4x4",
+          layout: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
@@ -61,7 +61,7 @@ export const iconCollection = makeCollection({
         }),
         "8x2": makeBrick({
           variant: "default",
-          size: "8x2",
+          layout: "8x2",
           w: 8,
           h: 2,
           label: "8×2",

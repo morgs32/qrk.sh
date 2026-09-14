@@ -4,22 +4,21 @@ test("items follow the pointer outside, can return, and persist removal on relea
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Arrange", exact: true }).click();
   const grid = page.getByLabel("Brick grid");
   const item = grid.getByTestId("grid-fixture-1");
   await expect(item).toBeVisible();
   const bounds = await grid.boundingBox();
   const start = await item.boundingBox();
   if (!bounds || !start) throw new Error("Missing grid bounds");
-  const startX = start.x + start.width / 2;
-  const startY = start.y + start.height / 2;
+  const startX = start.x + start.width - 20;
+  const startY = start.y + start.height - 20;
   const outsideX = bounds.x - 100;
   await page.mouse.move(startX, startY);
   await page.mouse.down();
   await page.mouse.move(outsideX, startY, { steps: 10 });
   await expect(page.getByRole("status")).toHaveText("Release to remove");
   const dragged = await item.boundingBox();
-  expect(dragged?.x).toBeCloseTo(outsideX - start.width / 2, 0);
+  expect(dragged?.x).toBeCloseTo(outsideX - start.width + 20, 0);
   expect(
     await item.evaluate((element) => {
       const box = element.getBoundingClientRect();

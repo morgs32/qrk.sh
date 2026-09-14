@@ -12,15 +12,15 @@ export function makeVariant<
   const VARIANT extends string,
   const PAYLOAD_SHAPE extends IShape,
   const DATA_SHAPE extends IShape,
-  const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
+  const LAYOUTS extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
 >(
   props: {
     variant: VARIANT;
-    variantLabel: string;
+    variantName: string;
     variantDescription: string;
-    sizes: SIZES & {
-      [SIZE in keyof SIZES]: SIZES[SIZE] & {
-        def: { variant: VARIANT; size: SIZE & string };
+    layouts: LAYOUTS & {
+      [LAYOUT in keyof LAYOUTS]: LAYOUTS[LAYOUT] & {
+        def: { variant: VARIANT; layout: LAYOUT & string };
       };
     };
   } & (
@@ -33,7 +33,7 @@ export function makeVariant<
         > & {
           fetcher?: never;
         };
-        sizes: { [SIZE in keyof SIZES]: { component: () => ReactNode } };
+        layouts: { [LAYOUT in keyof LAYOUTS]: { component: () => ReactNode } };
       }
     | {
         dataShape: DATA_SHAPE;
@@ -41,8 +41,8 @@ export function makeVariant<
         configuration?:
           | ReturnType<typeof makeFetcherConfiguration<PAYLOAD_SHAPE>>
           | IFormConfiguration<InferDecodedRow<DATA_SHAPE>>;
-        sizes: {
-          [SIZE in keyof SIZES]: {
+        layouts: {
+          [LAYOUT in keyof LAYOUTS]: {
             component: (props: { data: InferDecodedRow<DATA_SHAPE> }) => ReactNode;
           };
         };
@@ -51,7 +51,7 @@ export function makeVariant<
 ) {
   if (props.dataShape === null) {
     return {
-      variantLabel: props.variantLabel,
+      variantName: props.variantName,
       variantDescription: props.variantDescription,
       dataShape: props.dataShape,
       defaultData: null,
@@ -63,7 +63,7 @@ export function makeVariant<
               payloadShape: props.configuration.payloadShape,
               payloadForm: props.configuration.payloadForm,
             },
-      sizes: props.sizes,
+      layouts: props.layouts,
     };
   }
 
@@ -74,32 +74,32 @@ export function makeVariant<
   });
   if (props.configuration?.configurationType === "form") {
     return {
-      variantLabel: props.variantLabel,
+      variantName: props.variantName,
       variantDescription: props.variantDescription,
       dataShape: props.dataShape,
       defaultData,
       configuration: props.configuration,
-      sizes: props.sizes,
+      layouts: props.layouts,
     };
   }
   const fetcher = props.configuration?.fetcher;
   if (props.configuration === undefined || fetcher === undefined) {
     return {
-      variantLabel: props.variantLabel,
+      variantName: props.variantName,
       variantDescription: props.variantDescription,
       dataShape: props.dataShape,
       defaultData,
       configuration: undefined,
-      sizes: props.sizes,
+      layouts: props.layouts,
     };
   }
 
   return {
-    variantLabel: props.variantLabel,
+    variantName: props.variantName,
     variantDescription: props.variantDescription,
     dataShape: props.dataShape,
     defaultData,
     configuration: props.configuration,
-    sizes: props.sizes,
+    layouts: props.layouts,
   };
 }

@@ -53,14 +53,14 @@ test.describe("variant configuration requests", () => {
       });
     });
     // Remount through the real router so the form reads the fixture contract.
-    await page.locator('a[href="/collections/github?variant=profile&size=4x4"]').click();
+    await page.locator('a[href="/collections/github?variant=profile&layout=4x4"]').click();
     await expect(page.getByLabel("suffix")).toBeVisible();
   });
 
-  test("fetches on change, retains data across sizes and variants, and resets on reload", async ({
+  test("fetches on change, retains data across layouts and variants, and resets on reload", async ({
     page,
   }) => {
-    const preview = page.locator("[data-variant-size-brick]");
+    const preview = page.locator("[data-variant-layout-brick]");
     await expect(preview.getByText("@morgs32")).toBeVisible();
     await expect(page.locator("html")).not.toHaveAttribute("data-last-payload");
     await expect(page.getByRole("button", { name: "Get data" })).toHaveCount(0);
@@ -83,12 +83,12 @@ test.describe("variant configuration requests", () => {
     );
     await page.evaluate(() => document.dispatchEvent(new Event("finish:first")));
     await expect(preview.getByText("@first-updated")).toBeVisible();
-    await page.locator('a[href="/collections/github?variant=profile&size=4x2"]').click();
-    await expect(page.locator('[data-variant-size-brick="github/profile/4x2"]')).toBeVisible();
+    await page.locator('a[href="/collections/github?variant=profile&layout=4x2"]').click();
+    await expect(page.locator('[data-variant-layout-brick="github/profile/4x2"]')).toBeVisible();
     await expect(page.getByTestId("variant-data-result")).toContainText("first-updated");
     await page.locator('a[href="/collections/github?variant=repo"]').click();
     await expect(page.getByTestId("variant-data-result")).toHaveCount(0);
-    await page.locator('a[href="/collections/github?variant=profile&size=4x4"]').click();
+    await page.locator('a[href="/collections/github?variant=profile&layout=4x4"]').click();
     await expect(preview.getByText("@first-updated")).toBeVisible();
     await page.reload();
     await expect(preview.getByText("@morgs32")).toBeVisible();
@@ -96,7 +96,7 @@ test.describe("variant configuration requests", () => {
 
   test("only the latest request can publish data or errors", async ({ page }) => {
     const input = page.getByLabel("url", { exact: true });
-    const preview = page.locator("[data-variant-size-brick]");
+    const preview = page.locator("[data-variant-layout-brick]");
     await input.fill("first");
     await expect(page.locator("html")).toHaveAttribute("data-request-first", "pending");
     await input.fill("second");
@@ -122,7 +122,7 @@ test.describe("variant configuration requests", () => {
 
   test("retains the last valid data after provider and validation failures", async ({ page }) => {
     const input = page.getByLabel("url", { exact: true });
-    const preview = page.locator("[data-variant-size-brick]");
+    const preview = page.locator("[data-variant-layout-brick]");
     await input.fill("valid");
     await expect(page.locator("html")).toHaveAttribute("data-request-valid", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:valid")));
@@ -145,8 +145,8 @@ test.describe("variant configuration requests", () => {
   }) => {
     await page.getByLabel("url", { exact: true }).fill("old");
     await expect(page.locator("html")).toHaveAttribute("data-request-old", "pending");
-    await page.locator('a[href="/collections/github?variant=profile&size=4x2"]').click();
-    await expect(page.locator('[data-variant-size-brick="github/profile/4x2"]')).toBeVisible();
+    await page.locator('a[href="/collections/github?variant=profile&layout=4x2"]').click();
+    await expect(page.locator('[data-variant-layout-brick="github/profile/4x2"]')).toBeVisible();
     await page.getByLabel("url", { exact: true }).fill("new");
     await expect(page.locator("html")).toHaveAttribute("data-request-new", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:new")));
@@ -154,7 +154,7 @@ test.describe("variant configuration requests", () => {
     await page.evaluate(() => document.dispatchEvent(new Event("finish:old")));
     await expect(page.locator("html")).toHaveAttribute("data-request-old", "settled");
     await expect(page.getByTestId("variant-data-result")).toContainText("new");
-    await page.locator('a[href="/collections/github?variant=profile&size=4x4"]').click();
-    await expect(page.locator("[data-variant-size-brick]").getByText("@new")).toBeVisible();
+    await page.locator('a[href="/collections/github?variant=profile&layout=4x4"]').click();
+    await expect(page.locator("[data-variant-layout-brick]").getByText("@new")).toBeVisible();
   });
 });

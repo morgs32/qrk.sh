@@ -5,33 +5,33 @@ const KEBAB_BRICK_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function makeBrick<
   const VARIANT extends string,
-  const SIZE extends string,
+  const LAYOUT extends string,
   const COMPONENT extends (props: never) => ReactNode,
 >(props: {
   variant: VARIANT;
-  size: SIZE;
+  layout: LAYOUT;
   w: number;
   h: number;
   order: number;
   label: string;
   component: COMPONENT;
-}): IBrick<VARIANT, SIZE, COMPONENT> {
-  const { variant, size, w, h, order, label, component } = props;
+}): IBrick<VARIANT, LAYOUT, COMPONENT> {
+  const { variant, layout, w, h, order, label, component } = props;
 
   if (!KEBAB_BRICK_NAME.test(props.variant)) {
     throw new Error(
       `makeBrick: variant must be kebab-case (lowercase segments separated by hyphens); got ${JSON.stringify(props.variant)}`,
     );
   }
-  if (!KEBAB_BRICK_NAME.test(props.size)) {
+  if (!KEBAB_BRICK_NAME.test(props.layout)) {
     throw new Error(
-      `makeBrick: size must be kebab-case (lowercase segments separated by hyphens); got ${JSON.stringify(props.size)}`,
+      `makeBrick: layout must be kebab-case (lowercase segments separated by hyphens); got ${JSON.stringify(props.layout)}`,
     );
   }
   return {
     def: {
       variant,
-      size,
+      layout,
       w,
       h,
       order,

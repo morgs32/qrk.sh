@@ -12,12 +12,12 @@ export const imageCollection = makeCollection({
       dataShape: null,
       defaultData: null,
       variant: "default",
-      variantLabel: "Default",
+      variantName: "Default",
       variantDescription: "An editorial image preview.",
-      sizes: {
+      layouts: {
         "4x4": makeBrick({
           variant: "default",
-          size: "4x4",
+          layout: "4x4",
           w: 4,
           h: 4,
           label: "4×4",

@@ -31,7 +31,7 @@ const updateGridPayload = {
         h: Schema.Int,
         collectionName: Schema.String,
         variant: Schema.String,
-        size: Schema.String,
+        layout: Schema.String,
       }),
     ),
   }),
@@ -248,7 +248,7 @@ export const updateGridV1 = makeContractVersion(updateGrid, {
         persistedBrick.h !== brick.h ||
         persistedBrick.collectionName !== brick.collectionName ||
         persistedBrick.variant !== brick.variant ||
-        persistedBrick.size !== brick.size;
+        persistedBrick.layout !== brick.layout;
 
       if (brick.intent === "update") {
         hasMutationIntent = true;
@@ -394,7 +394,7 @@ export const updateGridV1 = makeContractVersion(updateGrid, {
                 h: brick.h,
                 collectionName: brick.collectionName,
                 variant: brick.variant,
-                size: brick.size,
+                layout: brick.layout,
               },
             }),
           );
@@ -411,7 +411,7 @@ export const updateGridV1 = makeContractVersion(updateGrid, {
               h: brick.h,
               collectionName: brick.collectionName,
               variant: brick.variant,
-              size: brick.size,
+              layout: brick.layout,
             },
           }),
         );

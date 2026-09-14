@@ -12,7 +12,7 @@ describe("form configuration", () => {
     const dataShape = { text: primitives.text() };
     const variant = makeVariant({
       variant: "default",
-      variantLabel: "Default",
+      variantName: "Default",
       variantDescription: "Editable text",
       dataShape,
       defaultData: { text: "Before" },
@@ -23,7 +23,7 @@ describe("form configuration", () => {
           return null;
         },
       }),
-      sizes: {},
+      layouts: {},
     });
     const collection = makeCollection({
       collectionName: "test",

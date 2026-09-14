@@ -9,7 +9,7 @@ import { DraggableBrick } from "../DraggableBrick";
 export default function CatalogPage() {
   const collections = Object.values(collectionsHash);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
-  const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
+  const [selectedLayouts, setSelectedLayouts] = useState<Record<string, string>>({});
 
   return (
     <div aria-label="Brick collections" className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -26,17 +26,17 @@ export default function CatalogPage() {
           const selectedVariantName =
             selectedVariants[collection.collectionName] ?? firstVariantName;
           const selectedVariant = collection.variants[selectedVariantName] ?? firstVariant;
-          const sizes = Object.entries(selectedVariant.sizes);
-          const firstSize = sizes[0];
+          const layouts = Object.entries(selectedVariant.layouts);
+          const firstLayout = layouts[0];
 
-          if (!firstSize) {
+          if (!firstLayout) {
             return null;
           }
 
-          const [firstSizeName, firstBrick] = firstSize;
-          const selectedSizeName = selectedSizes[collection.collectionName] || firstSizeName;
+          const [firstLayoutName, firstBrick] = firstLayout;
+          const selectedLayoutName = selectedLayouts[collection.collectionName] || firstLayoutName;
           const { def, component: BrickComponent } =
-            selectedVariant.sizes[selectedSizeName] ?? firstBrick;
+            selectedVariant.layouts[selectedLayoutName] ?? firstBrick;
 
           return (
             <div key={collection.collectionName} data-collection-entry={collection.collectionName}>
@@ -64,40 +64,40 @@ export default function CatalogPage() {
                                     ...current,
                                     [collection.collectionName]: variantName,
                                   }));
-                                  setSelectedSizes((current) => ({
+                                  setSelectedLayouts((current) => ({
                                     ...current,
                                     [collection.collectionName]: "",
                                   }));
                                 }}
                                 className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
                               >
-                                {variant.variantLabel}
+                                {variant.variantName}
                               </Button>
                             </OrderedTableOfContents.Label>
                             <div className="pt-2">
                               <OrderedTableOfContents.List padded={false}>
-                                {Object.entries(variant.sizes).map(([sizeName, brick]) => (
-                                  <OrderedTableOfContents.Item key={sizeName}>
+                                {Object.entries(variant.layouts).map(([layoutName, brick]) => (
+                                  <OrderedTableOfContents.Item key={layoutName}>
                                     <OrderedTableOfContents.Label>
                                       <Button
                                         variant="link"
                                         aria-pressed={
                                           selectedVariantName === variantName &&
-                                          selectedSizeName === sizeName
+                                          selectedLayoutName === layoutName
                                         }
                                         onClick={() => {
                                           setSelectedVariants((current) => ({
                                             ...current,
                                             [collection.collectionName]: variantName,
                                           }));
-                                          setSelectedSizes((current) => ({
+                                          setSelectedLayouts((current) => ({
                                             ...current,
-                                            [collection.collectionName]: sizeName,
+                                            [collection.collectionName]: layoutName,
                                           }));
                                         }}
                                         className="h-auto rounded-none p-0 font-normal leading-inherit text-zinc-500 underline aria-pressed:text-zinc-950 aria-pressed:no-underline"
                                       >
-                                        {brick.def.size}
+                                        {brick.def.label}
                                       </Button>
                                     </OrderedTableOfContents.Label>
                                   </OrderedTableOfContents.Item>
@@ -117,7 +117,7 @@ export default function CatalogPage() {
                   className={
                     def.w === 8 ? "qrk-bricks overflow-hidden" : "qrk-bricks ml-6 overflow-hidden"
                   }
-                  data-collection-representative={`${def.collectionName}/${def.variant}/${def.size}`}
+                  data-collection-representative={`${def.collectionName}/${def.variant}/${def.layout}`}
                   style={{
                     width: `${(def.w / 8) * 100}%`,
                     aspectRatio: `${def.w} / ${def.h}`,

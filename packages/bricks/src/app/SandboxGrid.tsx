@@ -1,3 +1,5 @@
+import { GripHorizontal } from "lucide-react";
+import { Button } from "../ui/button";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { collectionsHash } from "@qrk.sh/bricks";
 import { Link } from "react-router";
@@ -7,7 +9,6 @@ import { useGridStore } from "./useGridStore";
 
 export function SandboxGrid() {
   const { containerRef, mounted, width } = useContainerWidth();
-  const mode = useGridStore((state) => state.mode);
   const suppressBrickClickRef = useRef(false);
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
@@ -55,7 +56,7 @@ export function SandboxGrid() {
           width={gridWidth}
           style={dragging ? { transform: `translateY(-${dragScrollTopRef.current}px)` } : undefined}
           // Dropped items carry isDraggable, which overrides dragConfig.enabled.
-          layout={layout.map((item) => ({ ...item, isDraggable: mode === "arrange" }))}
+          layout={layout.map((item) => ({ ...item, isDraggable: true }))}
           autoSize
           className="grid-layout"
           compactor={verticalCompactor}
@@ -66,7 +67,7 @@ export function SandboxGrid() {
             containerPadding: [0, 0],
             maxRows: Number.POSITIVE_INFINITY,
           }}
-          dragConfig={{ enabled: mode === "arrange", bounded: false, threshold: 3 }}
+          dragConfig={{ enabled: true, handle: ".brick-drag-handle", bounded: false, threshold: 3 }}
           resizeConfig={{ enabled: false, handles: [] }}
           dropConfig={{
             enabled: true,
@@ -161,7 +162,7 @@ export function SandboxGrid() {
             const brickDef = bricksById[layoutItem.i];
             const collection = brickDef ? collectionsHash[brickDef.collectionName] : undefined;
             const variant = collection?.variants[brickDef.variant];
-            const brick = variant?.sizes[brickDef.size];
+            const brick = variant?.layouts[brickDef.layout];
 
             if (brick) {
               const BrickComponent = brick.component;
@@ -170,28 +171,40 @@ export function SandboxGrid() {
                 <div
                   key={layoutItem.i}
                   style={{ opacity: outsideBrickId === layoutItem.i ? 0.4 : 1 }}
-                  className={mode === "arrange" ? "size-full cursor-grab active:cursor-grabbing" : "size-full"}
-                  data-brick={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.size}`}
+                  className="brick-drag-surface size-full"
+                  data-brick={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.layout}`}
                   data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
                 >
-                  <div inert className="pointer-events-none size-full">
+                  <div inert className="brick-drag-content pointer-events-none size-full">
                     <BrickComponent data={brickDef.data} />
                   </div>
-                  {mode === "inspect" && (
-                    <Link
-                      to={`/collections/${encodeURIComponent(brick.def.collectionName)}/brick/${encodeURIComponent(layoutItem.i)}`}
-                      aria-label={`Inspect ${brick.def.collectionName} ${brick.def.variant} ${brick.def.size}`}
-                      draggable={false}
-                      className="absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600"
-                      onClick={(event) => {
-                        if (suppressBrickClickRef.current) {
-                          event.preventDefault();
-                        }
-                      }}
-                    />
-                  )}
+
+                  <Link
+                    to={`/collections/${encodeURIComponent(brick.def.collectionName)}/brick/${encodeURIComponent(layoutItem.i)}`}
+                    aria-label={`Inspect ${brick.def.collectionName} ${brick.def.variant} ${brick.def.layout}`}
+                    draggable={false}
+                    className="absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600"
+                    onClick={(event) => {
+                      if (suppressBrickClickRef.current) {
+                        event.preventDefault();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="brick-drag-handle"
+                    aria-label="Drag brick"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }}
+                  >
+                    <GripHorizontal aria-hidden className="size-4" />
+                  </Button>
                 </div>
               );
             }
@@ -201,8 +214,22 @@ export function SandboxGrid() {
                 key={layoutItem.i}
                 style={{ opacity: outsideBrickId === layoutItem.i ? 0.4 : 1 }}
                 data-testid={`grid-${layoutItem.i}`}
-                className="size-full bg-zinc-300"
-              />
+                className="brick-drag-surface size-full bg-zinc-300"
+              >
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="brick-drag-handle"
+                  aria-label="Drag brick"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                >
+                  <GripHorizontal aria-hidden className="size-4" />
+                </Button>
+              </div>
             );
           })}
         </GridLayout>

@@ -2,9 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 
 const pageBase = "/e2e/site/e2e/page/home";
 
-function drawerBrickPreviewSlot(page: Page, collectionName: string, variant: string, size: string) {
+function drawerBrickPreviewSlot(page: Page, collectionName: string, variant: string, layout: string) {
   return page.locator(
-    `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="${collectionName}"][data-brick-drawer-variant="${variant}"][data-brick-drawer-size="${size}"]`,
+    `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="${collectionName}"][data-brick-drawer-variant="${variant}"][data-brick-drawer-layout="${layout}"]`,
   );
 }
 

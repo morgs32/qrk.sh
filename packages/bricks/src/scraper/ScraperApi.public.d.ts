@@ -33,10 +33,7 @@ export declare class ScraperApi extends RpcTarget {
   };
 
   figmaRepo(): RpcTarget & {
-    getDesign(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
-    getBoard(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
-    getSlides(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
-    getPrototype(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
+    getThumbnail(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>>;
   };
 
   googlePlacesRepo(): RpcTarget & {

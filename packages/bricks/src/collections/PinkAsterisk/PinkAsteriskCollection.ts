@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
@@ -22,9 +23,11 @@ export const iconCollection = makeCollection({
         payloadShape: {
           hash: primitives.text({ defaultValue: "" }),
         },
-        payloadForm: {
-          hash: StreamlineIconLookup,
-        },
+        payloadForm: ({ value, onChange }) =>
+          createElement(StreamlineIconLookup, {
+            value: value.hash,
+            onChange: (hash) => onChange({ hash }),
+          }),
         fetcher: async ({ api, payload, setData }) => {
           const result = await api.streamlineRepo().getSvg(payload.hash);
           if (result._tag === "Left") return result;

@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import { Schema } from "effect";
 import { GitFork, Monitor, Star } from "lucide-react";
 
 import { Card, CardContent } from "../../ui/card";
@@ -17,7 +18,20 @@ interface RepoData {
   html_url: string;
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const RepoDataSchema = Schema.Struct({
+  name: Schema.String,
+  description: Schema.NullOr(Schema.String),
+  stargazers_count: Schema.Number,
+  forks_count: Schema.Number,
+  language: Schema.NullOr(Schema.String),
+  html_url: Schema.String,
+}) satisfies Schema.Schema<RepoData>;
+
+const fetcher = async (url: string) => {
+  const response = await fetch(url);
+  const data = await response.json();
+  return Schema.decodeUnknownSync(RepoDataSchema)(data, { onExcessProperty: "ignore" });
+};
 
 export function GitHubRepoCard() {
   const { data, isLoading } = useSWR<RepoData>(

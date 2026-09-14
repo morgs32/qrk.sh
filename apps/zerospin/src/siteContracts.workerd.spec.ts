@@ -15,7 +15,7 @@ import { describe, expect } from "vitest";
 import { createPageV1 as createPage } from "./aggregates/user/contracts/createPage/CreatePageV1";
 import { createSiteV2 as createSite } from "./aggregates/user/contracts/createSite/CreateSiteV2";
 import { gridV1 as Grid } from "./aggregates/user/models/grid/GridV1";
-import { brickV1 as Brick } from "./aggregates/user/models/brick/BrickV1";
+import { brickV2 as Brick } from "./aggregates/user/models/brick/BrickV2";
 import { siteV1 as Site } from "./aggregates/user/models/site/SiteV1";
 import { userV1 as User } from "./aggregates/user/models/user/UserV1";
 import { userFrontend } from "./aggregates/user/userFrontend";

@@ -1,11 +1,13 @@
 import { createElement } from "react";
 import type { RouteObject } from "react-router";
+import { ZerospinRouteErrorBoundary } from "@zerospin/error-boundary/ZerospinRouteErrorBoundary";
 import RootLayout from "./RootLayout";
 
 export default [
   {
     hydrateFallbackElement: createElement("p", { role: "status" }, "Loading sandbox…"),
     Component: RootLayout,
+    ErrorBoundary: ZerospinRouteErrorBoundary,
     children: [
       {
         lazy: async () => {

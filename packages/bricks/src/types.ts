@@ -27,7 +27,7 @@ export type ICollection = {
     | {
         variantName: string;
         variantDescription: string;
-        configuration?: IFetcherConfiguration & { fetcher?: never };
+        configuration?: never;
         dataShape: null;
         defaultData: null;
         layouts: Record<string, ICollectionBrick>;
@@ -35,11 +35,7 @@ export type ICollection = {
     | {
         variantName: string;
         variantDescription: string;
-        configuration?:
-          | IFormConfiguration
-          | (IFetcherConfiguration & {
-              fetcher: NonNullable<IFetcherConfiguration["fetcher"]>;
-            });
+        configuration?: IFormConfiguration | IFetcherConfiguration;
         dataShape: IShape;
         defaultData: unknown;
         layouts: Record<string, ICollectionBrick>;

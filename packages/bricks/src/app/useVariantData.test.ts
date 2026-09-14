@@ -26,12 +26,12 @@ describe("variant preview data", () => {
 
   it("isolates collections and variants and replaces rather than merges data", () => {
     const { setVariantData } = useVariantDataStore.getState();
-    setVariantData("text", "default", null);
+    setVariantData("text", "default", { content: null });
     setVariantData("github", "repo", null);
     setVariantData("icon", "default", { name: "First", svg: "<svg />", extra: true });
     setVariantData("icon", "default", { name: "Second", svg: "<svg />" });
     expect(useVariantDataStore.getState().dataByCollection).toEqual({
-      text: { default: null },
+      text: { default: { content: null } },
       github: { repo: null },
       icon: { default: { name: "Second", svg: "<svg />" } },
     });
@@ -52,6 +52,17 @@ describe("variant preview data", () => {
     } finally {
       unsubscribe();
     }
+  });
+
+  it("stores Text editor documents and rejects invalid content", () => {
+    const { setVariantData } = useVariantDataStore.getState();
+    const content = { type: "doc", content: [{ type: "paragraph" }] };
+    setVariantData("text", "default", { content });
+    const state = useVariantDataStore.getState();
+    expect(state.dataByCollection.text.default).toEqual({ content });
+    expect(() => setVariantData("text", "default", { content: { type: "invalid" } })).toThrow();
+    expect(() => setVariantData("text", "default", null)).toThrow();
+    expect(useVariantDataStore.getState()).toBe(state);
   });
 
   it("rejects unregistered variants without inserting data", () => {

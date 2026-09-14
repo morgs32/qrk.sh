@@ -8,15 +8,15 @@ describe("Text collection", () => {
 
     expect(textBrickCollection.collectionName).toBe("text");
     expect(textBrickCollection.collectionLabel).toBe("Text");
-    if (defaultVariant?.configuration?.configurationType !== "fetcher") {
-      throw new Error("Expected fetcher configuration");
+    if (defaultVariant?.configuration?.configurationType !== "form") {
+      throw new Error("Expected form configuration");
     }
-    expect(defaultVariant?.configuration?.payloadShape?.content).toMatchObject({
+    expect(defaultVariant?.dataShape?.content).toMatchObject({
       kind: "json",
       nullable: true,
       defaultValue: null,
     });
-    expect(defaultVariant?.configuration?.payloadForm?.content).toBeTypeOf("function");
-    expect(defaultVariant?.configuration?.fetcher).toBeUndefined();
+    expect(defaultVariant?.configuration?.form).toBeTypeOf("function");
+    expect(defaultVariant?.defaultData).toEqual({ content: null });
   });
 });

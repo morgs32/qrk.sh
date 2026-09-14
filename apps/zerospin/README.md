@@ -26,13 +26,13 @@ QRK's scraper lives in `packages/bricks/src/scraper`; its Worker configuration i
 `src/system.ts` registers the user aggregate.
 `authentication.clerkUserId` is the verified Clerk identity; `userId` refers to an independently
 generated User resource ID (`usr_…`), including site ownership references.
-`UserV4.authentication.authenticate` verifies Clerk and awaits `executeCommand` for `createUser`.
+`UserV5.authentication.authenticate` verifies Clerk and awaits `executeCommand` for `createUser`.
 Each attempt generates independent command and user resource IDs. The transactional
 guard rejects an existing `clerkUserId` with `user-already-exists`; authentication accepts
 only that rejection as successful provisioning and preserves the first user ID.
 Other failures prevent authentication from completing. Site creation passes that
 stored resource ID, and its guard verifies ownership against the Clerk identity.
-`src/aggregates/user/user.ts` declares its identity; `UserV4.ts` defines version 4.
+`src/aggregates/user/user.ts` declares its identity; `UserV5.ts` defines version 5.
 Models live under `aggregates/user/models/<model>/`, and contracts under
 `aggregates/user/contracts/<command>/`, with separate identity and version files.
 `aggregates/user/userFrontend.ts` exposes the web frontend.

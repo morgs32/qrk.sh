@@ -267,64 +267,13 @@ test("renders the Map brick through preview, collection, Grid, and detail bounda
   ).toBeVisible();
 });
 
-test("renders four distinct default Figma file variants", async ({ page }) => {
+test("renders one Figma thumbnail variant", async ({ page }) => {
   await page.goto("/collections/figma");
-  await page.waitForLoadState("networkidle");
-
-  await expect(
-    page.getByText("Live previews for Figma files, boards, slides, and prototypes."),
-  ).toBeVisible();
-  await expect(page.getByText("design", { exact: true })).toBeVisible();
-  await expect(page.getByText("board", { exact: true })).toBeVisible();
-  await expect(page.getByText("slides", { exact: true })).toBeVisible();
-  await expect(page.getByText("prototype", { exact: true })).toBeVisible();
-
-  const design = page.locator('[data-figma-card="design"]');
-  await expect(design).toBeVisible();
-  await expect(design).not.toHaveAttribute("href");
-  await expect(design.locator('[data-figma-fallback="design"]')).toBeVisible();
-
-  const board = page.locator('[data-figma-card="board"]');
-  await expect(board).toBeVisible();
-  await expect(board).not.toHaveAttribute("href");
-  await expect(board.locator('[data-figma-fallback="board"]')).toBeVisible();
-
-  const slides = page.locator('[data-figma-card="slides"]');
-  await expect(slides).toBeVisible();
-  await expect(slides).not.toHaveAttribute("href");
-  await expect(slides.locator('[data-figma-fallback="slides"]')).toBeVisible();
-
-  const prototype = page.locator('[data-figma-card="prototype"]');
-  await expect(prototype).toBeVisible();
-  await expect(prototype).not.toHaveAttribute("href");
-  await expect(prototype.locator('[data-figma-fallback="prototype"]')).toBeVisible();
-  await expect(prototype.getByLabel("Open prototype")).toBeVisible();
-});
-
-test("loads a Figma Design preview and retains it after a type mismatch", async ({ page }) => {
-  await page.goto("/collections/figma/design");
-  await page.waitForLoadState("networkidle");
-
-  const designCard = page.locator('[data-figma-card="design"]');
-  await expect(designCard).not.toHaveAttribute("href");
-
-  const urlInput = page.getByLabel("url");
-  await urlInput.fill("https://www.figma.com/design/x1KYuaPaEo89CE715oUD4I/qrk.sh?node-id=46-459");
-
-  const canonicalUrl = "https://www.figma.com/design/x1KYuaPaEo89CE715oUD4I";
-  const result = page.getByTestId("variant-data-result");
-  await expect(result).toContainText(`url:"${canonicalUrl}"`);
-  await expect(designCard).toHaveAttribute("href", canonicalUrl);
-  await expect(designCard).toHaveAttribute("target", "_blank");
-  await expect(designCard).toHaveAttribute("rel", "noopener noreferrer");
-  await expect(designCard.locator('[data-figma-thumbnail="design"]')).toBeVisible();
-
-  await urlInput.fill("https://www.figma.com/board/BcDeFgHiJkLmNoPqRsTuVw/Example-board");
-
-  await expect(page.getByTestId("variant-data-error")).toContainText("file-type-mismatch");
-  await expect(designCard).toHaveAttribute("href", canonicalUrl);
-  await expect(designCard.locator('[data-figma-thumbnail="design"]')).toBeVisible();
-  await expect(result).toContainText(`url:"${canonicalUrl}"`);
+  await expect(page.getByRole("link", { name: "Thumbnail", exact: true })).toBeVisible();
+  const card = page.locator('[data-figma-card="thumbnail"]');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute("href");
+  await expect(card.locator('[data-figma-fallback="thumbnail"]')).toBeVisible();
 });
 
 test("renders the GitHub profile activity layout", async ({ page }) => {
@@ -347,7 +296,7 @@ test("authors Text collection content as Tiptap JSON", async ({ page }) => {
   await editor.selectText();
   await page.getByRole("button", { name: "Bold" }).click();
 
-  const payload = page.getByTestId("variant-payload-result");
+  const payload = page.getByTestId("variant-data-result");
   await expect(payload).toContainText("Hello from Tiptap");
   await expect(payload).toContainText("bold");
 });

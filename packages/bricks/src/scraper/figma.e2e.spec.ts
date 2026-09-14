@@ -85,129 +85,34 @@ describe("Figma file repository", () => {
       }),
   );
 
-  it("keeps four explicit URL-family capabilities and rejects cross-family calls", async () => {
-    const upstreamFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = input instanceof Request ? input.url : String(input);
-      if (url.startsWith("https://api.figma.com/v1/oembed")) {
-        return new Response(JSON.stringify(figmaFixture), { status: 200 });
-      }
-      return SELF.fetch(input, init);
-    });
-    vi.stubGlobal("fetch", upstreamFetch);
-
-    using designApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const designMismatch = await designApi
-      .figmaRepo()
-      .getDesign(`https://www.figma.com/board/${BOARD_KEY}/Planning`);
-    expect(designMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-    using designSlidesApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const designSlidesMismatch = await designSlidesApi
-      .figmaRepo()
-      .getDesign(`https://www.figma.com/slides/${SLIDES_KEY}/Quarterly-review`);
-    expect(designSlidesMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-    using designPrototypeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const designPrototypeMismatch = await designPrototypeApi
-      .figmaRepo()
-      .getDesign(`https://www.figma.com/proto/${PROTOTYPE_KEY}/Mobile-flow`);
-    expect(designPrototypeMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-
-    using boardApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const boardMismatch = await boardApi
-      .figmaRepo()
-      .getBoard(`https://www.figma.com/slides/${SLIDES_KEY}/Quarterly-review`);
-    expect(boardMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-    using boardDesignApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const boardDesignMismatch = await boardDesignApi
-      .figmaRepo()
-      .getBoard(`https://www.figma.com/design/${DESIGN_KEY}/Design-system`);
-    expect(boardDesignMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-    using boardPrototypeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const boardPrototypeMismatch = await boardPrototypeApi
-      .figmaRepo()
-      .getBoard(`https://www.figma.com/proto/${PROTOTYPE_KEY}/Mobile-flow`);
-    expect(boardPrototypeMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-
-    using slidesApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const slidesMismatch = await slidesApi
-      .figmaRepo()
-      .getSlides(`https://www.figma.com/proto/${PROTOTYPE_KEY}/Mobile-flow`);
-    expect(slidesMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-    using slidesDesignApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const slidesDesignMismatch = await slidesDesignApi
-      .figmaRepo()
-      .getSlides(`https://www.figma.com/design/${DESIGN_KEY}/Design-system`);
-    expect(slidesDesignMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-    using slidesBoardApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const slidesBoardMismatch = await slidesBoardApi
-      .figmaRepo()
-      .getSlides(`https://www.figma.com/board/${BOARD_KEY}/Planning`);
-    expect(slidesBoardMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-
-    using prototypeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const prototypeMismatch = await prototypeApi
-      .figmaRepo()
-      .getPrototype(`https://www.figma.com/design/${DESIGN_KEY}/Design-system`);
-    expect(prototypeMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-    using prototypeBoardApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const prototypeBoardMismatch = await prototypeBoardApi
-      .figmaRepo()
-      .getPrototype(`https://www.figma.com/board/${BOARD_KEY}/Planning`);
-    expect(prototypeBoardMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-    using prototypeSlidesApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const prototypeSlidesMismatch = await prototypeSlidesApi
-      .figmaRepo()
-      .getPrototype(`https://www.figma.com/slides/${SLIDES_KEY}/Quarterly-review`);
-    expect(prototypeSlidesMismatch).toMatchObject({
-      _tag: "Left",
-      left: { code: "file-type-mismatch" },
-    });
-
+  it("accepts every Figma file family through getThumbnail and rejects other hosts", async () => {
+    const requestedUrls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (url.startsWith("https://api.figma.com/v1/oembed")) {
+          requestedUrls.push(new URL(url).searchParams.get("url") ?? "");
+          return new Response(JSON.stringify(figmaFixture), { status: 200 });
+        }
+        return SELF.fetch(input, init);
+      }),
+    );
+    for (const family of ["design", "board", "slides", "deck", "proto", "file"]) {
+      using api = newSyncRpcSession<ScraperApi>(RPC_URL);
+      const url = `https://www.figma.com/${family}/MnOpQrStUvWxYzAbCdEfGh/Example?node-id=0-1`;
+      expect(await api.figmaRepo().getThumbnail(url)).toMatchObject({ _tag: "Right" });
+    }
+    expect(requestedUrls).toContain(
+      `https://www.figma.com/board/MnOpQrStUvWxYzAbCdEfGh/Example?node-id=0-1`,
+    );
     using invalidApi = newSyncRpcSession<ScraperApi>(RPC_URL);
-    const invalid = await invalidApi
-      .figmaRepo()
-      .getDesign(`https://example.com/design/${DESIGN_KEY}`);
-    expect(invalid).toMatchObject({
+    expect(
+      await invalidApi.figmaRepo().getThumbnail(`https://example.com/design/${DESIGN_KEY}`),
+    ).toMatchObject({
       _tag: "Left",
       left: { code: "invalid-scrape-request" },
     });
-
-    expect(upstreamFetch).not.toHaveBeenCalledWith(
-      expect.stringContaining("api.figma.com"),
-      expect.anything(),
-    );
   });
 
   it("coalesces concurrent first loads for one canonical file URL", async () => {
@@ -231,10 +136,10 @@ describe("Figma file repository", () => {
     );
 
     const repo = env.FIGMA_REPO.getByName("global");
-    const first = repo.getDesign(
+    const first = repo.getThumbnail(
       `https://www.figma.com/design/${CONCURRENT_DESIGN_KEY}/First-name`,
     );
-    const second = repo.getDesign(
+    const second = repo.getThumbnail(
       `https://www.figma.com/design/${CONCURRENT_DESIGN_KEY}/Second-name?node-id=4-5`,
     );
 
@@ -246,7 +151,7 @@ describe("Figma file repository", () => {
     expect(upstreamCalls).toBe(1);
   });
 
-  it("normalizes file URLs, authenticates server-side, and caches every named method", async () => {
+  it("preserves supplied URLs, authenticates server-side, and caches by file", async () => {
     const requestedUrls: string[] = [];
     const requestTokens: Array<string | null> = [];
     vi.stubGlobal(
@@ -275,55 +180,57 @@ describe("Figma file repository", () => {
     using designApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     const design = await designApi
       .figmaRepo()
-      .getDesign(`https://figma.com/design/${DESIGN_KEY}/First-name?node-id=1-2#fragment`);
+      .getThumbnail(`https://figma.com/design/${DESIGN_KEY}/First-name?node-id=1-2#fragment`);
     expect(design).toMatchObject({
       _tag: "Right",
-      right: { url: `https://www.figma.com/design/${DESIGN_KEY}` },
+      right: { url: `https://figma.com/design/${DESIGN_KEY}/First-name?node-id=1-2#fragment` },
     });
 
     using cachedDesignApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     const cachedDesign = await cachedDesignApi
       .figmaRepo()
-      .getDesign(`https://www.figma.com/design/${DESIGN_KEY}/Different-name?m=dev`);
+      .getThumbnail(`https://www.figma.com/design/${DESIGN_KEY}/Different-name?m=dev`);
     expect(cachedDesign).toMatchObject({
       _tag: "Right",
-      right: { url: `https://www.figma.com/design/${DESIGN_KEY}` },
+      right: { url: `https://figma.com/design/${DESIGN_KEY}/First-name?node-id=1-2#fragment` },
     });
 
     using boardApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     const board = await boardApi
       .figmaRepo()
-      .getBoard(`https://www.figma.com/board/${BOARD_KEY}/Workshop`);
+      .getThumbnail(`https://www.figma.com/board/${BOARD_KEY}/Workshop`);
     expect(board).toMatchObject({
       _tag: "Right",
-      right: { url: `https://www.figma.com/board/${BOARD_KEY}` },
+      right: { url: `https://www.figma.com/board/${BOARD_KEY}/Workshop` },
     });
 
     using slidesApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     const slides = await slidesApi
       .figmaRepo()
-      .getSlides(`https://www.figma.com/deck/${SLIDES_KEY}/Quarterly-review`);
+      .getThumbnail(`https://www.figma.com/deck/${SLIDES_KEY}/Quarterly-review`);
     expect(slides).toMatchObject({
       _tag: "Right",
-      right: { url: `https://www.figma.com/slides/${SLIDES_KEY}` },
+      right: { url: `https://www.figma.com/deck/${SLIDES_KEY}/Quarterly-review` },
     });
 
     using prototypeApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     const prototype = await prototypeApi
       .figmaRepo()
-      .getPrototype(
+      .getThumbnail(
         `https://www.figma.com/proto/${PROTOTYPE_KEY}/Mobile-flow?starting-point-node-id=4-8`,
       );
     expect(prototype).toMatchObject({
       _tag: "Right",
-      right: { url: `https://www.figma.com/proto/${PROTOTYPE_KEY}` },
+      right: {
+        url: `https://www.figma.com/proto/${PROTOTYPE_KEY}/Mobile-flow?starting-point-node-id=4-8`,
+      },
     });
 
     expect(requestedUrls).toEqual([
-      `https://www.figma.com/design/${DESIGN_KEY}`,
-      `https://www.figma.com/board/${BOARD_KEY}`,
-      `https://www.figma.com/slides/${SLIDES_KEY}`,
-      `https://www.figma.com/proto/${PROTOTYPE_KEY}`,
+      `https://figma.com/design/${DESIGN_KEY}/First-name?node-id=1-2#fragment`,
+      `https://www.figma.com/board/${BOARD_KEY}/Workshop`,
+      `https://www.figma.com/deck/${SLIDES_KEY}/Quarterly-review`,
+      `https://www.figma.com/proto/${PROTOTYPE_KEY}/Mobile-flow?starting-point-node-id=4-8`,
     ]);
     expect(requestTokens).toEqual([
       "deterministic-figma-token",
@@ -365,16 +272,16 @@ describe("Figma file repository", () => {
     );
 
     const repo = env.FIGMA_REPO.getByName("global");
-    const initial = await repo.getDesign(
+    const initial = await repo.getThumbnail(
       `https://www.figma.com/design/${STALE_DESIGN_KEY}/Initial`,
     );
     expect(initial).toMatchObject({ _tag: "Right", right: { title: "Old Figma title" } });
 
     vi.setSystemTime(new Date("2026-07-18T01:00:00.001Z"));
-    const firstStale = await repo.getDesign(
+    const firstStale = await repo.getThumbnail(
       `https://www.figma.com/design/${STALE_DESIGN_KEY}/Stale`,
     );
-    const secondStale = await repo.getDesign(
+    const secondStale = await repo.getThumbnail(
       `https://www.figma.com/design/${STALE_DESIGN_KEY}/Also-stale`,
     );
     expect(firstStale).toMatchObject({ _tag: "Right", right: { title: "Old Figma title" } });
@@ -387,7 +294,7 @@ describe("Figma file repository", () => {
     using refreshedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     const refreshed = await refreshedApi
       .figmaRepo()
-      .getDesign(`https://www.figma.com/design/${STALE_DESIGN_KEY}/Refreshed`);
+      .getThumbnail(`https://www.figma.com/design/${STALE_DESIGN_KEY}/Refreshed`);
     expect(refreshed).toMatchObject({ _tag: "Right", right: { title: "New Figma title" } });
   });
 
@@ -415,7 +322,7 @@ describe("Figma file repository", () => {
     );
 
     const repo = env.FIGMA_REPO.getByName("global");
-    const initial = await repo.getBoard(
+    const initial = await repo.getThumbnail(
       `https://www.figma.com/board/${FAILED_REFRESH_BOARD_KEY}/Initial`,
     );
     expect(initial).toMatchObject({
@@ -424,7 +331,7 @@ describe("Figma file repository", () => {
     });
 
     vi.setSystemTime(new Date("2026-07-18T01:00:00.001Z"));
-    const stale = await repo.getBoard(
+    const stale = await repo.getThumbnail(
       `https://www.figma.com/board/${FAILED_REFRESH_BOARD_KEY}/Expired`,
     );
     expect(stale).toMatchObject({
@@ -433,7 +340,7 @@ describe("Figma file repository", () => {
     });
     await vi.waitFor(() => expect(upstreamCalls).toBe(2));
 
-    const retained = await repo.getBoard(
+    const retained = await repo.getThumbnail(
       `https://www.figma.com/board/${FAILED_REFRESH_BOARD_KEY}/Still-available`,
     );
     expect(retained).toMatchObject({
@@ -452,7 +359,7 @@ describe("Figma file repository", () => {
           const requestedUrl = new URL(url).searchParams.get("url");
           if (requestedUrl?.includes(UNAVAILABLE_DESIGN_KEY)) {
             unavailableCalls += 1;
-            return new Response(null, { status: 403 });
+            return new Response(null, { status: 404 });
           }
           if (requestedUrl?.includes(TRANSIENT_BOARD_KEY)) {
             return new Response(null, { status: 429 });
@@ -474,13 +381,13 @@ describe("Figma file repository", () => {
     using unavailableApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     const unavailable = await unavailableApi
       .figmaRepo()
-      .getDesign(`https://www.figma.com/design/${UNAVAILABLE_DESIGN_KEY}/Private`);
+      .getThumbnail(`https://www.figma.com/design/${UNAVAILABLE_DESIGN_KEY}/Private`);
     expect(unavailable).toMatchObject({ _tag: "Left", left: { code: "file-unavailable" } });
 
     using unavailableAgainApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     const unavailableAgain = await unavailableAgainApi
       .figmaRepo()
-      .getDesign(`https://www.figma.com/design/${UNAVAILABLE_DESIGN_KEY}/Private`);
+      .getThumbnail(`https://www.figma.com/design/${UNAVAILABLE_DESIGN_KEY}/Private`);
     expect(unavailableAgain).toMatchObject({
       _tag: "Left",
       left: { code: "file-unavailable" },
@@ -490,7 +397,7 @@ describe("Figma file repository", () => {
     using transientApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     const transient = await transientApi
       .figmaRepo()
-      .getBoard(`https://www.figma.com/board/${TRANSIENT_BOARD_KEY}/Rate-limited`);
+      .getThumbnail(`https://www.figma.com/board/${TRANSIENT_BOARD_KEY}/Rate-limited`);
     expect(transient).toMatchObject({
       _tag: "Left",
       left: { code: "scrape-transient-failure" },
@@ -499,7 +406,7 @@ describe("Figma file repository", () => {
     using malformedApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     const malformed = await malformedApi
       .figmaRepo()
-      .getSlides(`https://www.figma.com/slides/${MALFORMED_SLIDES_KEY}/Malformed`);
+      .getThumbnail(`https://www.figma.com/slides/${MALFORMED_SLIDES_KEY}/Malformed`);
     expect(malformed).toMatchObject({
       _tag: "Left",
       left: { code: "unsupported-page-shape" },
@@ -508,7 +415,7 @@ describe("Figma file repository", () => {
     using missingTitleApi = newSyncRpcSession<ScraperApi>(RPC_URL);
     const missingTitle = await missingTitleApi
       .figmaRepo()
-      .getPrototype(`https://www.figma.com/proto/${MISSING_TITLE_PROTOTYPE_KEY}/Missing-title`);
+      .getThumbnail(`https://www.figma.com/proto/${MISSING_TITLE_PROTOTYPE_KEY}/Missing-title`);
     expect(missingTitle).toMatchObject({
       _tag: "Left",
       left: { code: "unsupported-page-shape" },

@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
@@ -20,9 +21,11 @@ export const mapCollection = makeCollection({
         payloadShape: {
           googlePlaceId: primitives.text({ defaultValue: "ChIJ7cv00DwsDogRAMDACa2m4K8" }),
         },
-        payloadForm: {
-          googlePlaceId: GooglePlaceLookup,
-        },
+        payloadForm: ({ value, onChange }) =>
+          createElement(GooglePlaceLookup, {
+            value: value.googlePlaceId,
+            onChange: (googlePlaceId) => onChange({ googlePlaceId }),
+          }),
         fetcher: async ({ api, payload, setData }) => {
           const result = await api.googlePlacesRepo().getPlace(payload.googlePlaceId);
           if (result._tag === "Left") return result;

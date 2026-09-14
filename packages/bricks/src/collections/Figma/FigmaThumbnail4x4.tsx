@@ -2,7 +2,7 @@ import { Image } from "@unpic/react";
 
 import { BrickFrame } from "../../BrickFrame";
 
-export function FigmaDesign4x4(props: {
+export function FigmaThumbnail4x4(props: {
   data: {
     title: string;
     url: string;
@@ -15,7 +15,7 @@ export function FigmaDesign4x4(props: {
     <BrickFrame backgroundClassName="bg-zinc-100" textClassName="text-zinc-950">
       <a
         className="block h-full w-full p-3 text-inherit no-underline"
-        data-figma-card="design"
+        data-figma-card="thumbnail"
         href={props.data.url.length > 0 ? props.data.url : undefined}
         rel="noopener noreferrer"
         target="_blank"
@@ -23,7 +23,7 @@ export function FigmaDesign4x4(props: {
         <div className="relative h-full w-full overflow-hidden rounded-xl border border-zinc-300 bg-white shadow-lg">
           <div
             className="absolute inset-0 bottom-[27%] bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-[size:20px_20px]"
-            data-figma-fallback="design"
+            data-figma-fallback="thumbnail"
           >
             <div className="absolute left-[18%] top-[18%] h-[48%] w-[64%] rounded-md border-2 border-dashed border-violet-400 bg-violet-100 shadow-sm" />
             <div className="absolute left-[28%] top-[29%] h-[26%] w-[44%] rounded-sm bg-white shadow" />
@@ -31,9 +31,9 @@ export function FigmaDesign4x4(props: {
           {props.data.thumbnail_url !== null ? (
             <Image
               key={props.data.thumbnail_url}
-              alt={`${props.data.title} Figma Design thumbnail`}
+              alt={`${props.data.title} Figma thumbnail`}
               className="absolute inset-0 bottom-[27%] h-[73%] w-full object-cover"
-              data-figma-thumbnail="design"
+              data-figma-thumbnail="thumbnail"
               height={props.data.thumbnail_height ?? 450}
               layout="fullWidth"
               onError={(event) => {
@@ -46,7 +46,7 @@ export function FigmaDesign4x4(props: {
           <div className="absolute inset-x-0 bottom-0 flex h-[27%] items-center justify-between gap-3 border-t border-zinc-200 bg-white px-4">
             <div className="min-w-0">
               <p className="m-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                Figma Design
+                Figma
               </p>
               <h2 className="m-0 truncate text-lg font-semibold leading-tight">
                 {props.data.title}

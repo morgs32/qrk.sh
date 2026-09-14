@@ -30,7 +30,7 @@ export function Configuration(props: {
       return (
         <div>
           <OrderedTableOfContents.Title>Configure</OrderedTableOfContents.Title>
-          <div className="overflow-auto bg-zinc-100 px-2 py-4">
+          <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="variant-data-result">
             <JsonView
               shouldExpandNode={collapseAllNested}
               data={{ data: props.data }}

@@ -1,5 +1,5 @@
 import { primitives } from "@zerospin/schema";
-import { describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, expectTypeOf, it, vi } from "vite-plus/test";
 import { ScraperApi } from "./scraper/ScraperApi";
 
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
@@ -30,20 +30,33 @@ describe("makeFetcherConfiguration", () => {
     expect(setData).toHaveBeenCalledExactlyOnceWith({ svg: "asterisk", providerField: true });
     expect(payloads).toEqual([{ hash: "asterisk" }]);
   });
-  it("rejects unknown custom fields and controls without defaults", () => {
-    makeFetcherConfiguration({
-      payloadShape: { query: primitives.text({ defaultValue: "Chicago" }) },
-      payloadForm: {
-        // @ts-expect-error payloadForm keys must be declared by payloadShape
-        unknownField: () => null,
-      },
-    });
-    makeFetcherConfiguration({
-      payloadShape: { query: primitives.text() },
-      payloadForm: {
-        // @ts-expect-error custom payload controls require a descriptor defaultValue
-        query: () => null,
-      },
-    });
+  it("requires a fetcher and accepts one typed whole-payload form", () => {
+    expectTypeOf(() => {
+      // @ts-expect-error a fetcher is required
+      makeFetcherConfiguration({ payloadShape: {} });
+      makeFetcherConfiguration({
+        payloadShape: { query: primitives.text({ defaultValue: "Chicago" }) },
+        payloadForm: {
+          // @ts-expect-error a field map is not a component
+          query: () => null,
+        },
+        fetcher: async () => ({ _tag: "Right", right: undefined }),
+      });
+      makeFetcherConfiguration({
+        payloadShape: {
+          query: primitives.text({ defaultValue: "Chicago" }),
+          zoom: primitives.integer({ defaultValue: 14 }),
+        },
+        payloadForm: ({ value, onChange }) => {
+          expectTypeOf(value.query).toEqualTypeOf<string>();
+          expectTypeOf(value.zoom).toEqualTypeOf<number>();
+          onChange({ query: value.query, zoom: value.zoom });
+          // @ts-expect-error changes replace the complete payload
+          onChange({ query: value.query });
+          return null;
+        },
+        fetcher: async () => ({ _tag: "Right", right: undefined }),
+      });
+    }).toBeFunction();
   });
 });

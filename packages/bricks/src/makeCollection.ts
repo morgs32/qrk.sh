@@ -15,7 +15,7 @@ export function makeCollection(props: {
     | {
         variantName: string;
         variantDescription: string;
-        configuration?: IFetcherConfiguration & { fetcher?: never };
+        configuration?: never;
         dataShape: null;
         defaultData: null;
         layouts: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
@@ -23,11 +23,7 @@ export function makeCollection(props: {
     | {
         variantName: string;
         variantDescription: string;
-        configuration?:
-          | IFormConfiguration
-          | (IFetcherConfiguration & {
-              fetcher: NonNullable<IFetcherConfiguration["fetcher"]>;
-            });
+        configuration?: IFormConfiguration | IFetcherConfiguration;
         dataShape: IShape;
         defaultData: unknown;
         layouts: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
@@ -55,16 +51,6 @@ export function makeCollection(props: {
     });
 
     if (rawVariant.dataShape !== null) {
-      return {
-        variantName: rawVariant.variantName,
-        variantDescription: rawVariant.variantDescription,
-        configuration: rawVariant.configuration,
-        dataShape: rawVariant.dataShape,
-        defaultData: rawVariant.defaultData,
-        layouts,
-      };
-    }
-    if (rawVariant.configuration !== undefined) {
       return {
         variantName: rawVariant.variantName,
         variantDescription: rawVariant.variantDescription,

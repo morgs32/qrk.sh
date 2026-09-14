@@ -34,6 +34,7 @@
     "@zerospin/core": "workspace:*",
     "@zerospin/devtools": "workspace:*",
     "@zerospin/error": "workspace:*",
+    "@zerospin/error-boundary": "workspace:*",
     "@zerospin/frontend": "workspace:*",
     "@zerospin/react": "workspace:*",
     "@zerospin/schema": "workspace:*",

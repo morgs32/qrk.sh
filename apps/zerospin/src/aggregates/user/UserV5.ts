@@ -10,20 +10,20 @@ import {
 } from "@zerospin/sdk";
 import { Effect, Schema } from "effect";
 
-import { createGridV1 as createGrid } from "./contracts/createGrid/CreateGridV1";
+import { createGridV2 as createGrid } from "./contracts/createGrid/CreateGridV2";
 import { createPageV1 as createPage } from "./contracts/createPage/CreatePageV1";
 import { createSiteV2 as createSite } from "./contracts/createSite/CreateSiteV2";
 import { createUserV1 as createUser } from "./contracts/createUser/CreateUserV1";
-import { updateGridV1 as updateGrid } from "./contracts/updateGrid/UpdateGridV1";
-import { brickV1 as Brick } from "./models/brick/BrickV1";
+import { updateGridV2 as updateGrid } from "./contracts/updateGrid/UpdateGridV2";
+import { brickV2 as Brick } from "./models/brick/BrickV2";
 import { gridV1 as Grid } from "./models/grid/GridV1";
 import { pageV1 as Page } from "./models/page/PageV1";
 import { siteV1 as Site } from "./models/site/SiteV1";
 import { userV1 as User } from "./models/user/UserV1";
 import { user } from "./user";
 
-export const userV4 = makeAggregateVersion(user, {
-  version: "4.0.0",
+export const userV5 = makeAggregateVersion(user, {
+  version: "5.0.0",
   authentication: {
     signatureSchema: signature,
     authenticationSchema: Schema.Struct({ aggregateId: Schema.String, clerkUserId: Schema.String }),

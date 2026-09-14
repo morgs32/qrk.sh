@@ -46,55 +46,15 @@ describe("brick catalog identity", () => {
     }
   });
 
-  it("registers four explicit data-backed Figma file variants", () => {
-    const figmaCollection = collectionsHash.figma;
-
-    expect(Object.keys(figmaCollection.variants)).toEqual([
-      "design",
-      "board",
-      "slides",
-      "prototype",
-    ]);
-
-    const design = figmaCollection.variants.design;
-    expect(Object.keys(design.layouts)).toEqual(["4x4"]);
-    if (design.configuration?.configurationType !== "fetcher") {
-      throw new Error("Expected fetcher configuration");
-    }
-    expect(design.configuration?.payloadShape).toHaveProperty("url");
-    expect(design.dataShape).toHaveProperty("thumbnail_url");
-    expect(design.defaultData).toMatchObject({ title: "Figma Design", url: "" });
-    expect(design.configuration?.fetcher).toBeTypeOf("function");
-
-    const board = figmaCollection.variants.board;
-    expect(Object.keys(board.layouts)).toEqual(["4x4"]);
-    if (board.configuration?.configurationType !== "fetcher") {
-      throw new Error("Expected fetcher configuration");
-    }
-    expect(board.configuration?.payloadShape).toHaveProperty("url");
-    expect(board.dataShape).toHaveProperty("thumbnail_url");
-    expect(board.defaultData).toMatchObject({ title: "FigJam Board", url: "" });
-    expect(board.configuration?.fetcher).toBeTypeOf("function");
-
-    const slides = figmaCollection.variants.slides;
-    expect(Object.keys(slides.layouts)).toEqual(["4x4"]);
-    if (slides.configuration?.configurationType !== "fetcher") {
-      throw new Error("Expected fetcher configuration");
-    }
-    expect(slides.configuration?.payloadShape).toHaveProperty("url");
-    expect(slides.dataShape).toHaveProperty("thumbnail_url");
-    expect(slides.defaultData).toMatchObject({ title: "Figma Slides", url: "" });
-    expect(slides.configuration?.fetcher).toBeTypeOf("function");
-
-    const prototype = figmaCollection.variants.prototype;
-    expect(Object.keys(prototype.layouts)).toEqual(["4x4"]);
-    if (prototype.configuration?.configurationType !== "fetcher") {
-      throw new Error("Expected fetcher configuration");
-    }
-    expect(prototype.configuration?.payloadShape).toHaveProperty("url");
-    expect(prototype.dataShape).toHaveProperty("thumbnail_url");
-    expect(prototype.defaultData).toMatchObject({ title: "Figma Prototype", url: "" });
-    expect(prototype.configuration?.fetcher).toBeTypeOf("function");
+  it("registers one data-backed Figma thumbnail variant", () => {
+    const collection = collectionsHash.figma;
+    expect(Object.keys(collection.variants)).toEqual(["thumbnail"]);
+    const thumbnail = collection.variants.thumbnail;
+    expect(Object.keys(thumbnail.layouts)).toEqual(["4x4"]);
+    expect(thumbnail.layouts["4x4"].def).toMatchObject({ w: 4, h: 4 });
+    expect(thumbnail.configuration?.configurationType).toBe("fetcher");
+    expect(thumbnail.dataShape).toHaveProperty("thumbnail_url");
+    expect(thumbnail.defaultData).toMatchObject({ title: "Figma Thumbnail", url: "" });
   });
 
   it("registers the data-backed Link default 4x2 variant", () => {
@@ -143,16 +103,16 @@ describe("brick catalog identity", () => {
 
     expect(textCollection.collectionLabel).toBe("Text");
     expect(Object.keys(defaultVariant.layouts)).toEqual(["4x4", "8x2"]);
-    if (defaultVariant.configuration?.configurationType !== "fetcher") {
-      throw new Error("Expected fetcher configuration");
+    if (defaultVariant.configuration?.configurationType !== "form") {
+      throw new Error("Expected form configuration");
     }
-    expect(defaultVariant.configuration?.payloadShape?.content).toMatchObject({
+    expect(defaultVariant.dataShape?.content).toMatchObject({
       kind: "json",
       nullable: true,
       defaultValue: null,
     });
-    expect(defaultVariant.configuration?.payloadForm?.content).toBeTypeOf("function");
-    expect(defaultVariant.configuration?.fetcher).toBeUndefined();
+    expect(defaultVariant.configuration?.form).toBeTypeOf("function");
+    expect(defaultVariant.defaultData).toEqual({ content: null });
   });
 });
 

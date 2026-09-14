@@ -10,16 +10,12 @@ export interface IFetcherConfiguration {
   configurationType: "fetcher";
   payloadShape: IShape;
   payloadForm?: {
-    [fieldName: string]:
-      | {
-          bivarianceHack(props: {
-            value: unknown;
-            onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
-          }): ReactNode;
-        }["bivarianceHack"]
-      | undefined;
-  };
-  fetcher?: (props: {
+    bivarianceHack(props: {
+      value: Record<string, unknown>;
+      onChange: { bivarianceHack(value: Record<string, unknown>): void }["bivarianceHack"];
+    }): ReactNode;
+  }["bivarianceHack"];
+  fetcher: (props: {
     api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
     payload: unknown;
     setData: (data: unknown) => void;
@@ -29,49 +25,10 @@ export interface IFetcherConfiguration {
 /** Owns request configuration and decodes payloads before calling the provider. */
 export function makeFetcherConfiguration<const PAYLOAD_SHAPE extends IShape>(props: {
   payloadShape: PAYLOAD_SHAPE;
-  payloadForm?: {
-    [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
-      defaultValue?: infer DEFAULT_VALUE;
-    }
-      ? undefined extends DEFAULT_VALUE
-        ? never
-        : (props: {
-            value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
-            onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
-          }) => ReactNode
-      : never;
-  };
-  fetcher?: never;
-}): {
-  configurationType: "fetcher";
-  payloadShape: PAYLOAD_SHAPE;
-  payloadForm?: {
-    [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
-      defaultValue?: infer DEFAULT_VALUE;
-    }
-      ? undefined extends DEFAULT_VALUE
-        ? never
-        : (props: {
-            value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
-            onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
-          }) => ReactNode
-      : never;
-  };
-};
-export function makeFetcherConfiguration<const PAYLOAD_SHAPE extends IShape>(props: {
-  payloadShape: PAYLOAD_SHAPE;
-  payloadForm?: {
-    [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
-      defaultValue?: infer DEFAULT_VALUE;
-    }
-      ? undefined extends DEFAULT_VALUE
-        ? never
-        : (props: {
-            value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
-            onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
-          }) => ReactNode
-      : never;
-  };
+  payloadForm?: (props: {
+    value: InferDecodedRow<PAYLOAD_SHAPE>;
+    onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>) => void;
+  }) => ReactNode;
   fetcher: (props: {
     api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
     payload: InferDecodedRow<PAYLOAD_SHAPE>;
@@ -80,52 +37,16 @@ export function makeFetcherConfiguration<const PAYLOAD_SHAPE extends IShape>(pro
 }): {
   configurationType: "fetcher";
   payloadShape: PAYLOAD_SHAPE;
-  payloadForm?: {
-    [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
-      defaultValue?: infer DEFAULT_VALUE;
-    }
-      ? undefined extends DEFAULT_VALUE
-        ? never
-        : (props: {
-            value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
-            onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
-          }) => ReactNode
-      : never;
-  };
+  payloadForm?: (props: {
+    value: InferDecodedRow<PAYLOAD_SHAPE>;
+    onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>) => void;
+  }) => ReactNode;
   fetcher: (props: {
     api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
     payload: unknown;
     setData: (data: unknown) => void;
   }) => Promise<IRpcEither<void>>;
-};
-
-export function makeFetcherConfiguration<const PAYLOAD_SHAPE extends IShape>(props: {
-  payloadShape: PAYLOAD_SHAPE;
-  payloadForm?: {
-    [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
-      defaultValue?: infer DEFAULT_VALUE;
-    }
-      ? undefined extends DEFAULT_VALUE
-        ? never
-        : (props: {
-            value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
-            onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
-          }) => ReactNode
-      : never;
-  };
-  fetcher?: (props: {
-    api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-    payload: InferDecodedRow<PAYLOAD_SHAPE>;
-    setData: (data: unknown) => void;
-  }) => Promise<IRpcEither<void>>;
-}): object {
-  if (props.fetcher === undefined) {
-    return {
-      configurationType: "fetcher",
-      payloadShape: props.payloadShape,
-      payloadForm: props.payloadForm,
-    };
-  }
+} {
   const fetcher = props.fetcher;
   const payloadSchema = makeEffectSchema(props.payloadShape);
 

@@ -6,12 +6,14 @@ test.describe("variant configuration requests", () => {
     await page.goto("/collections/github/profile");
     await expect(page.getByLabel("url")).toBeVisible();
     await page.evaluate(async () => {
-      // Replace only the authored fetcher. The real form, payload decoder,
+      // Supply a whole-payload form and authored fetcher. The payload decoder,
       // request lifecycle, validated store and preview remain under test.
       const catalogPath = "/src/collectionsHash.ts";
       const factoryPath = "/src/makeFetcherConfiguration.ts";
       const { collectionsHash } = await import(catalogPath);
       const { makeFetcherConfiguration } = await import(factoryPath);
+      const reactPath = "/node_modules/.vite/deps/react.js";
+      const { createElement } = await import(reactPath);
       const variant = collectionsHash.github.variants.profile;
       const defaults = variant.defaultData;
       variant.configuration = makeFetcherConfiguration({
@@ -19,6 +21,29 @@ test.describe("variant configuration requests", () => {
           ...variant.configuration.payloadShape,
           suffix: { ...variant.configuration.payloadShape.url, defaultValue: "" },
         },
+        payloadForm: ({
+          value,
+          onChange,
+        }: {
+          value: { url: string; suffix: string };
+          onChange: (value: { url: string; suffix: string }) => void;
+        }) =>
+          createElement(
+            "div",
+            { "data-testid": "whole-payload-form" },
+            createElement("input", {
+              "aria-label": "url",
+              value: value.url,
+              onChange: (event: { target: { value: string } }) =>
+                onChange({ ...value, url: event.target.value }),
+            }),
+            createElement("input", {
+              "aria-label": "suffix",
+              value: value.suffix,
+              onChange: (event: { target: { value: string } }) =>
+                onChange({ ...value, suffix: event.target.value }),
+            }),
+          ),
         fetcher: async ({
           payload,
           setData,
@@ -55,6 +80,7 @@ test.describe("variant configuration requests", () => {
     // Remount through the real router so the form reads the fixture contract.
     await page.locator('a[href="/collections/github?variant=profile&layout=4x4"]').click();
     await expect(page.getByLabel("suffix")).toBeVisible();
+    await expect(page.getByTestId("whole-payload-form")).toHaveCount(1);
   });
 
   test("fetches on change, retains data across layouts and variants, and resets on reload", async ({
@@ -157,4 +183,37 @@ test.describe("variant configuration requests", () => {
     await page.locator('a[href="/collections/github?variant=profile&layout=4x4"]').click();
     await expect(page.locator("[data-variant-layout-brick]").getByText("@new")).toBeVisible();
   });
+});
+
+test("generated payload controls fetch only after Submit", async ({ page }) => {
+  await page.goto("/collections/github/profile");
+  await expect(page.getByLabel("URL", { exact: true })).toBeVisible();
+  await page.evaluate(async () => {
+    const catalogPath = "/src/collectionsHash.ts";
+    const factoryPath = "/src/makeFetcherConfiguration.ts";
+    const { collectionsHash } = await import(catalogPath);
+    const { makeFetcherConfiguration } = await import(factoryPath);
+    const variant = collectionsHash.github.variants.profile;
+    variant.configuration = makeFetcherConfiguration({
+      payloadShape: variant.configuration.payloadShape,
+      fetcher: async ({
+        payload,
+        setData,
+      }: {
+        payload: { url: string };
+        setData: (data: unknown) => void;
+      }): Promise<IRpcEither<void>> => {
+        document.documentElement.setAttribute("data-submitted-url", payload.url);
+        setData({ ...variant.defaultData, login: payload.url });
+        return { _tag: "Right", right: undefined };
+      },
+    });
+  });
+  await page.locator('a[href="/collections/github?variant=profile&layout=4x4"]').click();
+  await page.getByLabel("URL", { exact: true }).fill("submitted-profile");
+  await expect(page.locator("html")).not.toHaveAttribute("data-submitted-url");
+  await expect(page.getByRole("status")).toHaveCount(0);
+  await page.getByRole("button", { name: "Submit", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-submitted-url", "submitted-profile");
+  await expect(page.getByTestId("variant-data-result")).toContainText("submitted-profile");
 });

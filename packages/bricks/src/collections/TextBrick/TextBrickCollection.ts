@@ -1,4 +1,5 @@
-import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
+import { createElement } from "react";
+import { makeFormConfiguration } from "../../makeFormConfiguration";
 import { primitives } from "@zerospin/schema";
 import type { JSONContent } from "@tiptap/react";
 import { Schema } from "effect";
@@ -10,34 +11,34 @@ import { TextBrick2x2 } from "./TextBrick2x2";
 import { TextBrick4x1 } from "./TextBrick4x1";
 import { TextEditorControl } from "./TextEditorControl";
 
+const dataShape = {
+  content: primitives.json({
+    nullable: true,
+    defaultValue: null,
+    schema: Schema.declare(
+      (input): input is JSONContent =>
+        typeof input === "object" && input !== null && "type" in input && input.type === "doc",
+    ),
+  }),
+};
+
 export const textBrickCollection = makeCollection({
   collectionName: "text",
   collectionLabel: "Text",
   collectionDescription: "Rich text content authored with Tiptap.",
   variants: {
     default: makeVariant({
-      dataShape: null,
-      defaultData: null,
+      dataShape,
+      defaultData: { content: null },
       variant: "default",
       variantName: "Default",
       variantDescription: "A text content block.",
-      configuration: makeFetcherConfiguration({
-        payloadShape: {
-          content: primitives.json({
-            nullable: true,
-            defaultValue: null,
-            schema: Schema.declare(
-              (input): input is JSONContent =>
-                typeof input === "object" &&
-                input !== null &&
-                "type" in input &&
-                input.type === "doc",
-            ),
+      configuration: makeFormConfiguration<typeof dataShape>({
+        form: ({ data, onChange }) =>
+          createElement(TextEditorControl, {
+            value: data.content,
+            onChange: (content) => onChange({ content }),
           }),
-        },
-        payloadForm: {
-          content: TextEditorControl,
-        },
       }),
       layouts: {
         "4x4": makeBrick({

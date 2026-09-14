@@ -42,26 +42,7 @@ export class FigmaRepo extends DurableObject<IScraperEnv> {
     });
   }
 
-  getDesign(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>> {
-    return this.#getFile(url, "design");
-  }
-
-  getBoard(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>> {
-    return this.#getFile(url, "board");
-  }
-
-  getSlides(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>> {
-    return this.#getFile(url, "slides");
-  }
-
-  getPrototype(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>> {
-    return this.#getFile(url, "prototype");
-  }
-
-  async #getFile(
-    url: string,
-    expectedType: "design" | "board" | "slides" | "prototype",
-  ): Promise<IRpcEither<IFigmaFilePreviewPayload>> {
+  async getThumbnail(url: string): Promise<IRpcEither<IFigmaFilePreviewPayload>> {
     const normalized = await Effect.runPromise(
       Effect.gen(function* () {
         const parsed = yield* Effect.try({
@@ -80,6 +61,7 @@ export class FigmaRepo extends DurableObject<IScraperEnv> {
           parsed.hostname === "figma.com" || parsed.hostname === "www.figma.com";
         const hasSupportedType =
           inputType === "design" ||
+          inputType === "file" ||
           inputType === "board" ||
           inputType === "slides" ||
           inputType === "deck" ||
@@ -99,20 +81,8 @@ export class FigmaRepo extends DurableObject<IScraperEnv> {
           });
         }
 
-        const matchesExpectedType =
-          (expectedType === "design" && inputType === "design") ||
-          (expectedType === "board" && inputType === "board") ||
-          (expectedType === "slides" && (inputType === "slides" || inputType === "deck")) ||
-          (expectedType === "prototype" && inputType === "proto");
-
-        if (!matchesExpectedType) {
-          return yield* new ScrapeError({
-            code: "file-type-mismatch",
-            message: `The Figma URL does not identify the ${expectedType} variant`,
-          });
-        }
-
-        const canonicalType = expectedType === "prototype" ? "proto" : expectedType;
+        const canonicalType =
+          inputType === "deck" ? "slides" : inputType === "file" ? "design" : inputType;
         return `https://www.figma.com/${canonicalType}/${fileKey}`;
       }).pipe(encodeRpc),
     );
@@ -130,7 +100,7 @@ export class FigmaRepo extends DurableObject<IScraperEnv> {
     if (cached !== undefined) {
       if (existingScrape === undefined) {
         const refreshPromise = Effect.runPromise(
-          scrapeFigma({ url: canonicalUrl, token: this.env.FIGMA_TOKEN }).pipe(encodeRpc),
+          scrapeFigma({ url, token: this.env.FIGMA_TOKEN }).pipe(encodeRpc),
         )
           .then((result) => {
             if (result._tag === "Right") {
@@ -192,7 +162,7 @@ export class FigmaRepo extends DurableObject<IScraperEnv> {
     if (existingScrape !== undefined) return existingScrape;
 
     const scrapePromise = Effect.runPromise(
-      scrapeFigma({ url: canonicalUrl, token: this.env.FIGMA_TOKEN }).pipe(encodeRpc),
+      scrapeFigma({ url, token: this.env.FIGMA_TOKEN }).pipe(encodeRpc),
     )
       .then((result) => {
         if (result._tag === "Right") {

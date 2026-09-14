@@ -27,12 +27,7 @@ export function makeVariant<
     | {
         dataShape: null;
         defaultData: null;
-        configuration?: Pick<
-          ReturnType<typeof makeFetcherConfiguration<PAYLOAD_SHAPE>>,
-          "configurationType" | "payloadShape" | "payloadForm"
-        > & {
-          fetcher?: never;
-        };
+        configuration?: never;
         layouts: {
           [LAYOUT in keyof LAYOUTS]: {
             component: (props: { breakpoint: "xs" | "sm" | "md" | "lg" }) => ReactNode;
@@ -62,14 +57,7 @@ export function makeVariant<
       variantDescription: props.variantDescription,
       dataShape: props.dataShape,
       defaultData: null,
-      configuration:
-        props.configuration === undefined || props.configuration.configurationType !== "fetcher"
-          ? undefined
-          : {
-              configurationType: props.configuration.configurationType,
-              payloadShape: props.configuration.payloadShape,
-              payloadForm: props.configuration.payloadForm,
-            },
+      configuration: undefined,
       layouts: props.layouts,
     };
   }
@@ -89,8 +77,7 @@ export function makeVariant<
       layouts: props.layouts,
     };
   }
-  const fetcher = props.configuration?.fetcher;
-  if (props.configuration === undefined || fetcher === undefined) {
+  if (props.configuration === undefined) {
     return {
       variantName: props.variantName,
       variantDescription: props.variantDescription,

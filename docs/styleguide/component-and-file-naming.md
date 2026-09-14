@@ -101,15 +101,17 @@ Brick factories take **one object** describing what to build. Name that paramete
 Data-backed variants configure requests with `makeFetcherConfiguration({ payloadShape, payloadForm, fetcher })`
 from [makeFetcherConfiguration.ts](../../packages/bricks/src/makeFetcherConfiguration.ts), passed as the variant's `configuration`.
 The factory supplies `configurationType: "fetcher"` and validates payloads before invoking its
-callback. `IFetcherConfiguration` is defined in that factory module. The callback receives
+required `fetcher` callback. `payloadForm` is one optional component receiving the complete decoded
+payload as `{ value, onChange }`; `onChange` replaces the whole payload. `IFetcherConfiguration` is defined in that factory module. The callback receives
 `{ api, payload, setData }`, publishes data through `setData`, and returns `IRpcEither<void>`
 for success or typed failure. The variant retains `dataShape` and validates `defaultData`.
 Configuration forms read `configuration.payloadShape` and `configuration.payloadForm`;
 variants do not expose top-level payload fields or `getData`.
 
 The workbench's [Configuration.tsx](../../packages/bricks/src/app/Configuration.tsx) switches on
-`configurationType`. Its fetcher form runs on each payload control's `onChange`, using the complete
-updated payload, with no initial request or submit button. Each request owns a scraper RPC session;
+`configurationType`. A custom payload form runs the fetcher on `onChange`, using the complete
+updated payload. Without a custom form, generated text controls use explicit Submit buttons.
+Neither form fetches initially. Each request owns a scraper RPC session;
 superseded and unmounted requests cannot publish data or errors. Control-internal searches remain
 independent of payload changes, including Streamline's SWR search.
 
@@ -120,6 +122,8 @@ stored data. Invalid writes leave state unchanged. The configuration page previe
 stored data or `defaultData`; loading and errors retain the last valid data. Navigation retains values,
 while reload clears them. Other catalog previews and persisted Grid bricks continue using their existing
 data sources.
+TextBrick uses `makeFormConfiguration` to edit its nullable JSON `content` data directly; its sample
+layouts remain static. Payload-only fetcher configurations are not supported.
 Every variant requires `dataShape` and `defaultData`: use `null` for both when there is no
 data contract. Render boundaries can pass `variant?.defaultData` directly; components without
 a data contract ignore the prop.

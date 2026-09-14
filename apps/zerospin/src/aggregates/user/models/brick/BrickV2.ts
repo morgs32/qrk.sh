@@ -4,7 +4,7 @@ import { gridV1 as Grid } from "../grid/GridV1";
 
 import { brick } from "./brick";
 
-export const brickV1 = makeModelVersion(brick, {
+export const brickV2 = makeModelVersion(brick, {
   attributes: {
     gridId: primitives.ref({
       table: Grid.table,
@@ -21,5 +21,5 @@ export const brickV1 = makeModelVersion(brick, {
     layout: primitives.text(),
   },
   indexes: [],
-  version: "1.0.0",
+  version: "2.0.0",
 });

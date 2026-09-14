@@ -4,7 +4,7 @@ import { makeModelIdSchema } from "@zerospin/core/models/makeIdSchema";
 import { prefixId, makeContractVersion, primitives, ZerospinError } from "@zerospin/sdk/browser";
 import { Effect, Schema } from "effect";
 import { gridV1 as Grid } from "../../models/grid/GridV1";
-import { brickV1 as Brick } from "../../models/brick/BrickV1";
+import { brickV2 as Brick } from "../../models/brick/BrickV2";
 import { pageV1 as Page } from "../../models/page/PageV1";
 import { siteV1 as Site } from "../../models/site/SiteV1";
 import { userV1 as User } from "../../models/user/UserV1";
@@ -33,7 +33,7 @@ const createGridPayload = {
   }),
 };
 
-export const createGridV1 = makeContractVersion(createGrid, {
+export const createGridV2 = makeContractVersion(createGrid, {
   payload: createGridPayload,
   models: { brick: Brick, grid: Grid, page: Page, site: Site, user: User },
   guard: Effect.fn("createGrid.guard")(function* ({
@@ -227,5 +227,5 @@ export const createGridV1 = makeContractVersion(createGrid, {
 
       return mutations;
     }),
-  version: "1.0.0",
+  version: "2.0.0",
 });

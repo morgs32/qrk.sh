@@ -1,6 +1,6 @@
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
-import { Schema } from "effect";
+import { textBrickCollection } from "./collections/TextBrick/TextBrickCollection";
 import { describe, expect, expectTypeOf, it, vi } from "vite-plus/test";
 import { ScraperApi } from "./scraper/ScraperApi";
 import type { IScrapeError } from "./scraper/types.public";
@@ -21,6 +21,7 @@ describe("makeVariant data contracts", () => {
         layouts: {
           summary: {
             // @ts-expect-error the layout identifier must match its map key
+            // prettier-ignore
             def: { variant: "default", layout: "activity", w: 4, h: 2, label: "Activity", order: 0 },
             component: () => null,
           },
@@ -90,7 +91,7 @@ describe("makeVariant data contracts", () => {
       nullable: false,
       defaultValue: "ChIJ7cv00DwsDogRAMDACa2m4K8",
     });
-    expect(placeVariant?.configuration?.payloadForm?.googlePlaceId).toBeTypeOf("function");
+    expect(placeVariant?.configuration?.payloadForm).toBeTypeOf("function");
     expect(placeVariant).not.toHaveProperty("payloadShape");
     expect(placeVariant).not.toHaveProperty("payloadForm");
     expect(placeVariant).not.toHaveProperty("getData");
@@ -102,56 +103,11 @@ describe("makeVariant data contracts", () => {
     });
   });
 
-  it("preserves a local payload form without adding a data loader", () => {
-    const variant = makeVariant({
-      dataShape: null,
-      defaultData: null,
-      variant: "local-content",
-      variantName: "Local-content",
-      variantDescription: "Locally authored content.",
-      configuration: makeFetcherConfiguration({
-        payloadShape: {
-          content: primitives.json({
-            nullable: true,
-            defaultValue: null,
-            schema: Schema.Struct({ type: Schema.String }),
-          }),
-        },
-        payloadForm: {
-          content: (props) => {
-            if (props.value !== null) {
-              props.onChange(props.value);
-            }
-            return null;
-          },
-        },
-      }),
-      layouts: {
-        "1x1": {
-          def: {
-            variant: "local-content",
-            layout: "1x1",
-            w: 1,
-            h: 1,
-            label: "1×1",
-            order: 0,
-          },
-          component: () => null,
-        },
-      },
-    });
-
-    if (variant.configuration?.configurationType !== "fetcher") {
-      throw new Error("Expected fetcher configuration");
-    }
-    expect(variant.configuration?.payloadShape.content.defaultValue).toBeNull();
-    expect(variant.configuration?.payloadForm?.content).toBeTypeOf("function");
-    expect(variant.dataShape).toBeNull();
-    expect(variant.defaultData).toBeNull();
-    expect("fetcher" in (variant.configuration ?? {})).toBe(false);
-    expect(variant.configuration?.configurationType).toBe("fetcher");
-    expect("payloadShape" in variant).toBe(false);
-    expect("payloadForm" in variant).toBe(false);
+  it("uses a data form for locally authored text", () => {
+    const variant = textBrickCollection.variants.default;
+    expect(variant.configuration?.configurationType).toBe("form");
+    expect(variant.defaultData).toEqual({ content: null });
+    expect(variant.dataShape?.content.kind).toBe("json");
   });
 
   it("infers custom renderer values from their decoded primitive fields", () => {
@@ -164,15 +120,11 @@ describe("makeVariant data contracts", () => {
           query: primitives.text({ defaultValue: "Chicago" }),
           zoom: primitives.integer({ defaultValue: 14 }),
         },
-        payloadForm: {
-          query: (props: { value: string; onChange: (value: string) => void }) => {
-            props.onChange(props.value);
-            return null;
-          },
-          zoom: (props: { value: number; onChange: (value: number) => void }) => {
-            props.onChange(props.value);
-            return null;
-          },
+        payloadForm: ({ value, onChange }) => {
+          expectTypeOf(value.query).toEqualTypeOf<string>();
+          expectTypeOf(value.zoom).toEqualTypeOf<number>();
+          onChange(value);
+          return null;
         },
         fetcher: async ({ payload, setData }) => {
           setData({ result: `${payload.query}:${payload.zoom}` });
@@ -203,8 +155,7 @@ describe("makeVariant data contracts", () => {
     if (variant.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
     }
-    expect(variant.configuration?.payloadForm?.query).toBeTypeOf("function");
-    expect(variant.configuration?.payloadForm?.zoom).toBeTypeOf("function");
+    expect(variant.configuration?.payloadForm).toBeTypeOf("function");
   });
 
   it("preserves the GitHub profile request, response, default, and callback contract", () => {

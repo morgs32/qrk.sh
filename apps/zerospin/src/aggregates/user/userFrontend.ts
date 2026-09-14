@@ -3,13 +3,13 @@ import { Schema } from "effect";
 import { signature } from "../../signature";
 import { makeFrontendController } from "@zerospin/sdk/browser";
 
-import { createGridV1 as createGrid } from "./contracts/createGrid/CreateGridV1";
+import { createGridV2 as createGrid } from "./contracts/createGrid/CreateGridV2";
 import { createPageV1 as createPage } from "./contracts/createPage/CreatePageV1";
 import { createSiteV2 as createSite } from "./contracts/createSite/CreateSiteV2";
 import { createUserV1 as createUser } from "./contracts/createUser/CreateUserV1";
-import { updateGridV1 as updateGrid } from "./contracts/updateGrid/UpdateGridV1";
+import { updateGridV2 as updateGrid } from "./contracts/updateGrid/UpdateGridV2";
 import { gridV1 as Grid } from "./models/grid/GridV1";
-import { brickV1 as Brick } from "./models/brick/BrickV1";
+import { brickV2 as Brick } from "./models/brick/BrickV2";
 import { pageV1 as Page } from "./models/page/PageV1";
 import { siteV1 as Site } from "./models/site/SiteV1";
 import { userV1 as User } from "./models/user/UserV1";
@@ -30,7 +30,7 @@ export const userFrontend = makeFrontendController({
   },
   aggregateName: "user",
   name: "web",
-  aggregateVersion: "4.0.0",
+  aggregateVersion: "5.0.0",
   systemName: "qrk-sh",
   models: {
     grid: Grid,

@@ -99,7 +99,7 @@ it.skipIf(
 )("loads a live Figma Design file", async () => {
   using api = newSyncRpcSession<ScraperApi>(RPC_URL);
   expect(
-    getRight(await api.figmaRepo().getDesign(env.SCRAPER_LIVE_FIGMA_DESIGN_URL)),
+    getRight(await api.figmaRepo().getThumbnail(env.SCRAPER_LIVE_FIGMA_DESIGN_URL)),
   ).toMatchObject({
     title: expect.any(String),
     url: expect.stringContaining("https://www.figma.com/design/"),
@@ -111,7 +111,7 @@ it.skipIf(
     env.SCRAPER_LIVE_FIGMA_BOARD_URL === "missing-live-figma-board-url",
 )("loads a live FigJam board", async () => {
   using api = newSyncRpcSession<ScraperApi>(RPC_URL);
-  expect(getRight(await api.figmaRepo().getBoard(env.SCRAPER_LIVE_FIGMA_BOARD_URL))).toMatchObject({
+  expect(getRight(await api.figmaRepo().getThumbnail(env.SCRAPER_LIVE_FIGMA_BOARD_URL))).toMatchObject({
     title: expect.any(String),
     url: expect.stringContaining("https://www.figma.com/board/"),
   });
@@ -123,7 +123,7 @@ it.skipIf(
 )("loads a live Figma Slides deck", async () => {
   using api = newSyncRpcSession<ScraperApi>(RPC_URL);
   expect(
-    getRight(await api.figmaRepo().getSlides(env.SCRAPER_LIVE_FIGMA_SLIDES_URL)),
+    getRight(await api.figmaRepo().getThumbnail(env.SCRAPER_LIVE_FIGMA_SLIDES_URL)),
   ).toMatchObject({
     title: expect.any(String),
     url: expect.stringContaining("https://www.figma.com/slides/"),
@@ -136,7 +136,7 @@ it.skipIf(
 )("loads a live Figma prototype", async () => {
   using api = newSyncRpcSession<ScraperApi>(RPC_URL);
   expect(
-    getRight(await api.figmaRepo().getPrototype(env.SCRAPER_LIVE_FIGMA_PROTOTYPE_URL)),
+    getRight(await api.figmaRepo().getThumbnail(env.SCRAPER_LIVE_FIGMA_PROTOTYPE_URL)),
   ).toMatchObject({
     title: expect.any(String),
     url: expect.stringContaining("https://www.figma.com/proto/"),

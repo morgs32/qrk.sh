@@ -6,10 +6,10 @@ import { makeProvisionedInMemoryWasmSqliteDb } from "@zerospin/core/drizzle/make
 import { DateTime, Effect } from "effect";
 import { describe, expect } from "vitest";
 
-import { createGridV1 as createGrid } from "./aggregates/user/contracts/createGrid/CreateGridV1";
-import { updateGridV1 as updateGrid } from "./aggregates/user/contracts/updateGrid/UpdateGridV1";
+import { createGridV2 as createGrid } from "./aggregates/user/contracts/createGrid/CreateGridV2";
+import { updateGridV2 as updateGrid } from "./aggregates/user/contracts/updateGrid/UpdateGridV2";
 import { gridV1 as Grid } from "./aggregates/user/models/grid/GridV1";
-import { brickV1 as Brick } from "./aggregates/user/models/brick/BrickV1";
+import { brickV2 as Brick } from "./aggregates/user/models/brick/BrickV2";
 import { pageV1 as Page } from "./aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "./aggregates/user/models/site/SiteV1";
 import { userV1 as User } from "./aggregates/user/models/user/UserV1";
@@ -74,7 +74,7 @@ describe("aggregate Grid contracts", () => {
       });
       expect(mutations[1]).toEqual({
         model: Brick,
-        modelVersion: "1.0.0",
+        modelVersion: "2.0.0",
         operationName: "create",
         resourceId: firstBrickId,
         operation: {
@@ -93,7 +93,7 @@ describe("aggregate Grid contracts", () => {
       });
       expect(mutations[2]).toEqual({
         model: Brick,
-        modelVersion: "1.0.0",
+        modelVersion: "2.0.0",
         operationName: "create",
         resourceId: secondBrickId,
         operation: {
@@ -208,7 +208,7 @@ describe("aggregate Grid contracts", () => {
       });
       expect(mutations[1]).toEqual({
         model: Brick,
-        modelVersion: "1.0.0",
+        modelVersion: "2.0.0",
         operationName: "create",
         resourceId: createdBrickId,
         operation: {
@@ -227,7 +227,7 @@ describe("aggregate Grid contracts", () => {
       });
       expect(mutations[2]).toEqual({
         model: Brick,
-        modelVersion: "1.0.0",
+        modelVersion: "2.0.0",
         operationName: "update",
         resourceId: updatedBrickId,
         operation: {
@@ -244,7 +244,7 @@ describe("aggregate Grid contracts", () => {
       });
       expect(mutations[3]).toEqual({
         model: Brick,
-        modelVersion: "1.0.0",
+        modelVersion: "2.0.0",
         operationName: "delete",
         resourceId: deletedBrickId,
         operation: {},

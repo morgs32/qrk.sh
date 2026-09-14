@@ -67,7 +67,7 @@ export default function SandboxLayout() {
             {isDesktop ? (
               <section
                 aria-label="Bricks panel"
-                className="fixed inset-y-0 left-0 z-60 h-dvh w-1/2 overflow-hidden border-r border-zinc-300 bg-white shadow-[6px_0_12px_-4px_rgba(0,0,0,0.3)]"
+                className="fixed inset-y-0 left-0 z-60 h-dvh w-1/2 overflow-hidden border-r border-zinc-300 bg-white"
               >
                 {collections}
               </section>

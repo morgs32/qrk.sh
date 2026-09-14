@@ -309,6 +309,15 @@ Show restores a smaller visible placement or uses catalog dimensions at the next
 its presentations. The shape infers form values and supplies validated defaults.
 The form receives `value` and `onChange`; updates validate before publication and
 never invoke a content fetcher. View controls appear below content controls.
+The custom `form` may be omitted for shapes containing only non-nullable booleans
+with boolean defaults. Those shapes generate labeled switches in a `px-4 py-5`
+container; camelCase and separator-delimited names become readable labels.
+Other shapes require an explicit form. Existing option objects merge over shape
+defaults before validation, preserving explicit false values and rejecting unknown
+fields. The GitHub profile square's `cardView` defaults to false; enabling it adds
+the Card's default styling, including padding, gap, colors, rounded corners, and
+shadow, at each breakpoint without changing grid dimensions. Plain mode retains
+its existing compact styling.
 Presentations receive shared `data`, the active `breakpoint`, and resolved
 `viewOptions`; their presentation fallback remains independent of entry
 inheritance. Catalog drops copy the preview options into `xs`, and also into

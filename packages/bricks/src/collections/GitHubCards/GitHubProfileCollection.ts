@@ -1,3 +1,4 @@
+import { makeViewForm } from "../../makeViewForm";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
@@ -109,6 +110,9 @@ export const githubCollection = makeCollection({
           h: 4,
           label: "4×4",
           order: 0,
+          form: makeViewForm({
+            shape: { cardView: primitives.boolean({ defaultValue: false }) },
+          }),
           xs: GitHubProfileSquareXs,
           md: GitHubProfileSquareMd,
         }),

@@ -10,11 +10,12 @@ import { GitHubProfileActivity } from "./GitHubProfileActivity";
 
 /** Fixed light palette so every GitHub brick reads consistently for now. */
 const profileCardShellClass =
-  "h-full min-h-0 w-full gap-1 overflow-hidden rounded-none border border-zinc-200 bg-white py-3 text-zinc-900 shadow-none";
+  "h-full min-h-0 w-full gap-1 overflow-hidden border-0 bg-white py-3 text-zinc-900";
 const profileMutedClass = "text-zinc-500";
 
 export function GitHubProfileSquareMd(props: {
   breakpoint: "xs" | "sm" | "md" | "lg";
+  viewOptions?: { cardView?: boolean };
   data: {
     login: string;
     avatar_url: string;
@@ -40,8 +41,10 @@ export function GitHubProfileSquareMd(props: {
 
   return (
     <BrickFrame backgroundClassName="bg-white" textClassName="text-zinc-950">
-      <Card className={profileCardShellClass}>
-        <CardHeader className="shrink-0 px-4 pb-0 pt-0">
+      <Card className={props.viewOptions?.cardView
+          ? "h-full min-h-0 w-full overflow-hidden"
+          : `${profileCardShellClass} rounded-none shadow-none`}>
+        <CardHeader className={props.viewOptions?.cardView ? "shrink-0" : "shrink-0 px-4 pb-0 pt-0"}>
           <div className="flex flex-col items-start gap-1">
             {avatarFailed || !avatarSrc ? (
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-sm font-medium text-zinc-900">
@@ -64,7 +67,7 @@ export function GitHubProfileSquareMd(props: {
           </div>
         </CardHeader>
 
-        <CardContent className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto px-4 pb-2">
+        <CardContent className={`flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto ${props.viewOptions?.cardView ? "" : "px-4 pb-2"}`}>
           <div className={`flex flex-col gap-2 text-sm ${profileMutedClass}`}>
             {user.bio && (
               <div className="flex items-center gap-1">

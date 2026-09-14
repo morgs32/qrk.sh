@@ -1,9 +1,7 @@
 import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
-import type { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import type { ReactNode } from "react";
-import type { ScraperApi } from "scraper/ScraperApi";
-import type { IJsonValue, IRpcEither } from "scraper/types";
+import type { IJsonValue } from "scraper/types";
 
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 
@@ -30,7 +28,7 @@ export function makeVariant<
         defaultData: null;
         configuration?: Pick<
           ReturnType<typeof makeFetcherConfiguration<PAYLOAD_SHAPE>>,
-          "payloadShape" | "payloadForm"
+          "configurationType" | "payloadShape" | "payloadForm"
         > & {
           fetcher?: never;
         };
@@ -58,6 +56,7 @@ export function makeVariant<
         props.configuration === undefined
           ? undefined
           : {
+              configurationType: props.configuration.configurationType,
               payloadShape: props.configuration.payloadShape,
               payloadForm: props.configuration.payloadForm,
             },
@@ -87,25 +86,7 @@ export function makeVariant<
     variantDescription: props.variantDescription,
     dataShape: props.dataShape,
     defaultData,
-    configuration: {
-      payloadShape: props.configuration.payloadShape,
-      payloadForm: props.configuration.payloadForm,
-      fetcher: async (request: {
-        api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-        payload: unknown;
-      }): Promise<IRpcEither<InferDecodedRow<DATA_SHAPE>>> => {
-        const result = await fetcher(request);
-        if (result._tag === "Left") {
-          return result;
-        }
-        const data = await Effect.runPromise(
-          Schema.decodeUnknownEffect(decodedDataSchema)(result.right, {
-            onExcessProperty: "preserve",
-          }),
-        );
-        return { _tag: "Right", right: data };
-      },
-    },
+    configuration: props.configuration,
     sizes: props.sizes,
   };
 }

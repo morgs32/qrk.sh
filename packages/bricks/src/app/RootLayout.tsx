@@ -27,6 +27,7 @@ export default function RootLayout() {
                 { i: "fixture-4", x: 6, y: 0, w: 2, h: 2 },
               ],
               bricksById: {},
+              dataByBrickId: {},
               activeBrickDrag: null,
             });
           }}

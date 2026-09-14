@@ -24,7 +24,12 @@ export const figmaCollection = makeCollection({
             defaultValue: "https://www.figma.com/design/AbCdEfGhIjKlMnOpQrStUv/Example-design",
           }),
         },
-        fetcher: ({ api, payload }) => api.figmaRepo().getDesign(payload.url),
+        fetcher: async ({ api, payload, setData }) => {
+          const result = await api.figmaRepo().getDesign(payload.url);
+          if (result._tag === "Left") return result;
+          setData(result.right);
+          return { _tag: "Right", right: undefined };
+        },
       }),
       dataShape: {
         title: primitives.text(),
@@ -62,7 +67,12 @@ export const figmaCollection = makeCollection({
             defaultValue: "https://www.figma.com/board/BcDeFgHiJkLmNoPqRsTuVw/Example-board",
           }),
         },
-        fetcher: ({ api, payload }) => api.figmaRepo().getBoard(payload.url),
+        fetcher: async ({ api, payload, setData }) => {
+          const result = await api.figmaRepo().getBoard(payload.url);
+          if (result._tag === "Left") return result;
+          setData(result.right);
+          return { _tag: "Right", right: undefined };
+        },
       }),
       dataShape: {
         title: primitives.text(),
@@ -100,7 +110,12 @@ export const figmaCollection = makeCollection({
             defaultValue: "https://www.figma.com/slides/CdEfGhIjKlMnOpQrStUvWx/Example-slides",
           }),
         },
-        fetcher: ({ api, payload }) => api.figmaRepo().getSlides(payload.url),
+        fetcher: async ({ api, payload, setData }) => {
+          const result = await api.figmaRepo().getSlides(payload.url);
+          if (result._tag === "Left") return result;
+          setData(result.right);
+          return { _tag: "Right", right: undefined };
+        },
       }),
       dataShape: {
         title: primitives.text(),
@@ -138,7 +153,12 @@ export const figmaCollection = makeCollection({
             defaultValue: "https://www.figma.com/proto/DeFgHiJkLmNoPqRsTuVwXy/Example-prototype",
           }),
         },
-        fetcher: ({ api, payload }) => api.figmaRepo().getPrototype(payload.url),
+        fetcher: async ({ api, payload, setData }) => {
+          const result = await api.figmaRepo().getPrototype(payload.url);
+          if (result._tag === "Left") return result;
+          setData(result.right);
+          return { _tag: "Right", right: undefined };
+        },
       }),
       dataShape: {
         title: primitives.text(),

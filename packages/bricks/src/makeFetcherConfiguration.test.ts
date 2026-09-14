@@ -1,29 +1,33 @@
 import { primitives } from "@zerospin/schema";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ScraperApi } from "scraper/ScraperApi";
 
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 
 describe("makeFetcherConfiguration", () => {
-  it("decodes payloads independently of a variant and preserves provider results", async () => {
+  it("decodes payloads independently of a variant and forwards the publishing callback", async () => {
     const payloads: Array<{ hash: string }> = [];
     const fetcher = makeFetcherConfiguration({
       payloadShape: { hash: primitives.text({ defaultValue: "asterisk" }) },
-      fetcher: async ({ payload }) => {
+      fetcher: async ({ payload, setData }) => {
         payloads.push(payload);
-        return { _tag: "Right", right: { svg: payload.hash, providerField: true } };
+        setData({ svg: payload.hash, providerField: true });
+        return { _tag: "Right", right: undefined };
       },
     });
     const api = Object.create(ScraperApi.prototype);
+    const setData = vi.fn();
+    expect(fetcher.configurationType).toBe("fetcher");
 
-    await expect(fetcher.fetcher({ api, payload: {} })).resolves.toEqual({
+    await expect(fetcher.fetcher({ api, setData, payload: {} })).resolves.toEqual({
       _tag: "Right",
-      right: { svg: "asterisk", providerField: true },
+      right: undefined,
     });
-    await expect(fetcher.fetcher({ api, payload: { hash: 42 } })).rejects.toBeDefined();
+    await expect(fetcher.fetcher({ api, setData, payload: { hash: 42 } })).rejects.toBeDefined();
     await expect(
-      fetcher.fetcher({ api, payload: { hash: "icon", unexpected: true } }),
+      fetcher.fetcher({ api, setData, payload: { hash: "icon", unexpected: true } }),
     ).rejects.toBeDefined();
+    expect(setData).toHaveBeenCalledExactlyOnceWith({ svg: "asterisk", providerField: true });
     expect(payloads).toEqual([{ hash: "asterisk" }]);
   });
   it("rejects unknown custom fields and controls without defaults", () => {

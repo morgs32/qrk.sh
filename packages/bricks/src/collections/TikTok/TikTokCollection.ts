@@ -19,7 +19,12 @@ export const tikTokCollection = makeCollection({
         payloadShape: {
           url: primitives.text({ defaultValue: "https://www.tiktok.com/@theonion" }),
         },
-        fetcher: ({ api, payload }) => api.tiktokRepo().scrape(payload.url),
+        fetcher: async ({ api, payload, setData }) => {
+          const result = await api.tiktokRepo().scrape(payload.url);
+          if (result._tag === "Left") return result;
+          setData(result.right);
+          return { _tag: "Right", right: undefined };
+        },
       }),
       dataShape: {
         username: primitives.text(),

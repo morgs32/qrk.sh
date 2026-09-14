@@ -1,7 +1,7 @@
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
-import { describe, expect, expectTypeOf, it } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { ScraperApi } from "scraper/ScraperApi";
 import type { IScrapeError } from "scraper/types";
 
@@ -110,6 +110,7 @@ describe("makeVariant data contracts", () => {
     expect(variant.dataShape).toBeNull();
     expect(variant.defaultData).toBeNull();
     expect("fetcher" in (variant.configuration ?? {})).toBe(false);
+    expect(variant.configuration?.configurationType).toBe("fetcher");
     expect("payloadShape" in variant).toBe(false);
     expect("payloadForm" in variant).toBe(false);
   });
@@ -134,10 +135,10 @@ describe("makeVariant data contracts", () => {
             return null;
           },
         },
-        fetcher: async ({ payload }) => ({
-          _tag: "Right",
-          right: { result: `${payload.query}:${payload.zoom}` },
-        }),
+        fetcher: async ({ payload, setData }) => {
+          setData({ result: `${payload.query}:${payload.zoom}` });
+          return { _tag: "Right", right: undefined };
+        },
       }),
       dataShape: {
         result: primitives.text(),
@@ -191,7 +192,7 @@ describe("makeVariant data contracts", () => {
     expect(profileVariant?.configuration?.fetcher).toBeTypeOf("function");
   });
 
-  it("decodes request and successful response data while preserving provider fields", async () => {
+  it("decodes requests and publishes provider data through the supplied setter", async () => {
     const callbackPayloads: Array<{ url: string }> = [];
     const variant = makeVariant({
       variant: "profile",
@@ -201,15 +202,10 @@ describe("makeVariant data contracts", () => {
         payloadShape: {
           url: primitives.text(),
         },
-        fetcher: async ({ payload }) => {
+        fetcher: async ({ payload, setData }) => {
           callbackPayloads.push(payload);
-          return {
-            _tag: "Right",
-            right: {
-              login: payload.url,
-              providerField: "loaded-provider-value",
-            },
-          };
+          setData({ login: payload.url, providerField: "loaded-provider-value" });
+          return { _tag: "Right", right: undefined };
         },
       }),
       dataShape: {
@@ -243,19 +239,23 @@ describe("makeVariant data contracts", () => {
       throw new Error("Expected a fetched variant");
     }
     const api = Object.create(ScraperApi.prototype);
+    const setData = vi.fn();
 
     await expect(
       variant.configuration.fetcher({
         api,
+        setData,
         payload: { url: "https://github.com/morgs32" },
       }),
     ).resolves.toEqual({
       _tag: "Right",
-      right: {
-        login: "https://github.com/morgs32",
-        providerField: "loaded-provider-value",
-      },
+      right: undefined,
     });
+    expect(setData).toHaveBeenCalledExactlyOnceWith({
+      login: "https://github.com/morgs32",
+      providerField: "loaded-provider-value",
+    });
+    expect(variant.configuration.configurationType).toBe("fetcher");
     expect(callbackPayloads).toEqual([{ url: "https://github.com/morgs32" }]);
   });
 
@@ -269,9 +269,10 @@ describe("makeVariant data contracts", () => {
           payloadShape: {
             url: primitives.text(),
           },
-          fetcher: async ({ payload }) => {
+          fetcher: async ({ payload, setData }) => {
             void payload;
-            return { _tag: "Right", right: { login: "morgs32" } };
+            setData({ login: "morgs32" });
+            return { _tag: "Right", right: undefined };
           },
         }),
         dataShape: {
@@ -307,9 +308,10 @@ describe("makeVariant data contracts", () => {
         payloadShape: {
           url: primitives.text(),
         },
-        fetcher: async ({ payload }) => {
+        fetcher: async ({ payload, setData }) => {
           callbackPayloads.push(payload);
-          return { _tag: "Right", right: { login: payload.url } };
+          setData({ login: payload.url });
+          return { _tag: "Right", right: undefined };
         },
       }),
       dataShape: {
@@ -342,17 +344,22 @@ describe("makeVariant data contracts", () => {
       throw new Error("Expected a fetched variant");
     }
     const api = Object.create(ScraperApi.prototype);
+    const setData = vi.fn();
 
-    await expect(variant.configuration.fetcher({ api, payload: {} })).rejects.toBeDefined();
+    await expect(
+      variant.configuration.fetcher({ api, setData, payload: {} }),
+    ).rejects.toBeDefined();
     await expect(
       variant.configuration.fetcher({
         api,
+        setData,
         payload: { url: 42 },
       }),
     ).rejects.toBeDefined();
     await expect(
       variant.configuration.fetcher({
         api,
+        setData,
         payload: {
           url: "https://github.com/morgs32",
           unexpected: true,
@@ -360,9 +367,10 @@ describe("makeVariant data contracts", () => {
       }),
     ).rejects.toBeDefined();
     expect(callbackPayloads).toEqual([]);
+    expect(setData).not.toHaveBeenCalled();
   });
 
-  it("rejects successful provider data that does not match dataShape", async () => {
+  it("propagates validation failures from the supplied setter", async () => {
     const variant = makeVariant({
       variant: "profile",
       variantLabel: "Profile",
@@ -371,9 +379,10 @@ describe("makeVariant data contracts", () => {
         payloadShape: {
           url: primitives.text(),
         },
-        fetcher: async ({ payload }) => {
+        fetcher: async ({ payload, setData }) => {
           void payload;
-          return { _tag: "Right", right: { login: 42 } };
+          setData({ login: 42 });
+          return { _tag: "Right", right: undefined };
         },
       }),
       dataShape: {
@@ -406,13 +415,18 @@ describe("makeVariant data contracts", () => {
       throw new Error("Expected a fetched variant");
     }
     const api = Object.create(ScraperApi.prototype);
+    const setData = vi.fn(() => {
+      throw new Error("Invalid variant data");
+    });
 
     await expect(
       variant.configuration.fetcher({
         api,
+        setData,
         payload: { url: "https://github.com/morgs32" },
       }),
-    ).rejects.toBeDefined();
+    ).rejects.toThrow("Invalid variant data");
+    expect(setData).toHaveBeenCalledExactlyOnceWith({ login: 42 });
   });
 
   it("passes provider Left results through unchanged", async () => {
@@ -464,13 +478,16 @@ describe("makeVariant data contracts", () => {
       throw new Error("Expected a fetched variant");
     }
     const api = Object.create(ScraperApi.prototype);
+    const setData = vi.fn();
 
     await expect(
       variant.configuration.fetcher({
         api,
+        setData,
         payload: { url: "https://github.com/morgs32" },
       }),
     ).resolves.toEqual({ _tag: "Left", left: providerError });
+    expect(setData).not.toHaveBeenCalled();
   });
 
   it("allows data components to ignore the data argument", () => {

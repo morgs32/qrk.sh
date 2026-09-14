@@ -21,7 +21,12 @@ export const linkCollection = makeCollection({
             defaultValue: "https://apps.apple.com/us/app/apple-store/id375380948",
           }),
         },
-        fetcher: ({ api, payload }) => api.linkRepo().getPreview(payload.url),
+        fetcher: async ({ api, payload, setData }) => {
+          const result = await api.linkRepo().getPreview(payload.url);
+          if (result._tag === "Left") return result;
+          setData(result.right);
+          return { _tag: "Right", right: undefined };
+        },
       }),
       dataShape: {
         url: primitives.text(),

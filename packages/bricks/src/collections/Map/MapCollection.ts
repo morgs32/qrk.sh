@@ -23,7 +23,12 @@ export const mapCollection = makeCollection({
         payloadForm: {
           googlePlaceId: GooglePlaceLookup,
         },
-        fetcher: ({ api, payload }) => api.googlePlacesRepo().getPlace(payload.googlePlaceId),
+        fetcher: async ({ api, payload, setData }) => {
+          const result = await api.googlePlacesRepo().getPlace(payload.googlePlaceId);
+          if (result._tag === "Left") return result;
+          setData(result.right);
+          return { _tag: "Right", right: undefined };
+        },
       }),
       dataShape: {
         googlePlaceId: primitives.text(),

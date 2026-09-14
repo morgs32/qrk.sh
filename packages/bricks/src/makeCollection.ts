@@ -1,9 +1,7 @@
+import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
 import { mapValues } from "es-toolkit/object";
-import type { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import type { IShape } from "@zerospin/schema";
 import type { ReactNode } from "react";
-import type { ScraperApi } from "scraper/ScraperApi";
-import type { IRpcEither } from "scraper/types";
 
 import type { ICollection, IBrick } from "./types";
 
@@ -16,20 +14,7 @@ export function makeCollection(props: {
     | {
         variantLabel: string;
         variantDescription: string;
-        configuration?: {
-          payloadShape: IShape;
-          payloadForm?: {
-            [fieldName: string]:
-              | {
-                  bivarianceHack(props: {
-                    value: unknown;
-                    onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
-                  }): ReactNode;
-                }["bivarianceHack"]
-              | undefined;
-          };
-          fetcher?: never;
-        };
+        configuration?: IFetcherConfiguration & { fetcher?: never };
         dataShape: null;
         defaultData: null;
         sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
@@ -37,22 +22,8 @@ export function makeCollection(props: {
     | {
         variantLabel: string;
         variantDescription: string;
-        configuration?: {
-          payloadShape: IShape;
-          payloadForm?: {
-            [fieldName: string]:
-              | {
-                  bivarianceHack(props: {
-                    value: unknown;
-                    onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
-                  }): ReactNode;
-                }["bivarianceHack"]
-              | undefined;
-          };
-          fetcher: (props: {
-            api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-            payload: unknown;
-          }) => Promise<IRpcEither<unknown>>;
+        configuration?: IFetcherConfiguration & {
+          fetcher: NonNullable<IFetcherConfiguration["fetcher"]>;
         };
         dataShape: IShape;
         defaultData: unknown;

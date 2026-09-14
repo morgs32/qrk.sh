@@ -1,4 +1,4 @@
-import { collectionsHash } from "@qrk.sh/bricks";
+import { collectionsHash } from "../../collectionsHash";
 import {
   isRouteErrorResponse,
   Link,
@@ -7,18 +7,12 @@ import {
   type LoaderFunctionArgs,
   useRouteError,
 } from "react-router";
-import { PrimitiveKind } from "@zerospin/schema";
-import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
-import { defaultStyles, JsonView } from "react-json-view-lite";
-import "react-json-view-lite/dist/index.css";
 import { ArrowLeft } from "lucide-react";
-import { useState, type FormEvent } from "react";
-import type { ScraperApi } from "scraper/ScraperApi";
-import type { IScrapeError } from "scraper/types";
 
 import { OrderedTableOfContents } from "../../OrderedTableOfContents";
-import { Input } from "../../ui/input";
 import { TableData } from "../../TableData";
+import { Configuration } from "../Configuration";
+import { useVariantData } from "../useVariantData";
 import { useGridStore } from "../useGridStore";
 
 export function loader({ params }: LoaderFunctionArgs) {
@@ -43,36 +37,14 @@ export default function VariantConfiguration() {
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const collection = collectionsHash[collectionName];
   const variant = variantName ? collection?.variants[variantName] : undefined;
-  const [loadedData, setLoadedData] = useState<unknown>();
-  const [dataError, setDataError] = useState<IScrapeError>();
-  const [requestError, setRequestError] = useState<string>();
-  const [payloadValues, setPayloadValues] = useState<Record<string, unknown>>(() => {
-    const initialPayloadValues: Record<string, unknown> = {};
-
-    if (variant?.configuration?.payloadShape === undefined) {
-      return initialPayloadValues;
-    }
-
-    // Build one controlled value for every declared payload field. Custom
-    // renderers are type-rejected when their descriptor has no default, so the
-    // workbench never invents an undefined value for those controls.
-    for (const [fieldName, descriptor] of Object.entries(variant.configuration?.payloadShape)) {
-      initialPayloadValues[fieldName] =
-        "defaultValue" in descriptor ? descriptor.defaultValue : undefined;
-    }
-
-    return initialPayloadValues;
-  });
 
   if (!collection || !variant || !variantName) {
     throw new Response("Not found", { status: 404 });
   }
 
+  const [variantData, setVariantData] = useVariantData(collectionName, variantName);
   const sizes = Object.entries(variant.sizes);
   const firstSize = sizes[0];
-  const payloadShape = variant.configuration?.payloadShape;
-  const payloadForm = variant.configuration?.payloadForm;
-  const fetchData = variant.configuration?.fetcher;
 
   if (!firstSize) {
     throw new Response("Not found", { status: 404 });
@@ -165,153 +137,12 @@ export default function VariantConfiguration() {
           }}
         >
           <div inert className="pointer-events-none contents select-none">
-            <BrickComponent data={loadedData ?? variant.defaultData} />
+            <BrickComponent data={variantData} />
           </div>
         </div>
       </div>
-      <div className="py-6">
-        {payloadShape !== undefined ? (
-          <div>
-            <OrderedTableOfContents.Title>Configure</OrderedTableOfContents.Title>
-            {fetchData === undefined ? (
-              <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="variant-payload-result">
-                <JsonView data={payloadValues} style={{ ...defaultStyles, container: "bg-zinc-100" }} />
-              </div>
-            ) : (
-              <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="variant-data-result">
-                <JsonView
-                  data={{ data: loadedData ?? variant.defaultData }}
-                  style={{ ...defaultStyles, container: "bg-zinc-100" }}
-                />
-              </div>
-            )}
-            <div className="px-6">
-              <form
-                className="mt-5 space-y-5"
-                onSubmit={async (event: FormEvent<HTMLFormElement>) => {
-                  event.preventDefault();
-
-                  if (fetchData === undefined) {
-                    return;
-                  }
-
-                  setDataError(undefined);
-                  setRequestError(undefined);
-
-                  try {
-                    using api = newSyncRpcSession<ScraperApi>("/scraper-rpc");
-                    const result = await fetchData({
-                      api,
-                      payload: payloadValues,
-                    });
-
-                    if (result._tag === "Left") {
-                      setDataError(result.left);
-                    } else {
-                      setLoadedData(result.right);
-                    }
-                  } catch (cause) {
-                    setRequestError(cause instanceof Error ? cause.message : String(cause));
-
-                  }
-                }}
-              >
-                {Object.entries(payloadShape).map(([fieldName, descriptor]) => {
-                  const PayloadField = payloadForm?.[fieldName];
-
-                  if (PayloadField !== undefined) {
-                    return (
-                      <div className="space-y-2" key={fieldName}>
-                        {collectionName === "icon" && fieldName === "hash" ? null : (
-                          <label className="block text-sm font-medium">{fieldName}</label>
-                        )}
-                        <PayloadField
-                          value={payloadValues[fieldName]}
-                          onChange={(value: unknown) => {
-                            setPayloadValues((currentPayloadValues) => ({
-                              ...currentPayloadValues,
-                              [fieldName]: value,
-                            }));
-                          }}
-                        />
-                      </div>
-                    );
-                  }
-
-                  if (
-                    descriptor.kind !== PrimitiveKind.Text ||
-                    descriptor.nullable !== false ||
-                    typeof descriptor.defaultValue !== "string"
-                  ) {
-                    return (
-                      <p
-                        className="m-0 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
-                        data-testid={`unsupported-payload-${fieldName}`}
-                        key={fieldName}
-                        role="alert"
-                      >
-                        Unsupported payload field &quot;{fieldName}&quot;: only non-null text
-                        primitives with string defaults are supported.
-                      </p>
-                    );
-                  }
-
-                  return (
-                    <div className="space-y-2" key={fieldName}>
-                      <label className="block text-sm font-medium" htmlFor={`payload-${fieldName}`}>
-                        {fieldName}
-                      </label>
-                      <Input
-                        id={`payload-${fieldName}`}
-                        name={fieldName}
-                        onChange={(event) => {
-                          setPayloadValues((currentPayloadValues) => ({
-                            ...currentPayloadValues,
-                            [fieldName]: event.target.value,
-                          }));
-                        }}
-                        type="text"
-                        value={
-                          typeof payloadValues[fieldName] === "string"
-                            ? payloadValues[fieldName]
-                            : descriptor.defaultValue
-                        }
-                      />
-                    </div>
-                  );
-                })}
-
-              </form>
-
-              {fetchData !== undefined && dataError !== undefined ? (
-                <div
-                  className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-                  data-testid="variant-data-error"
-                  role="alert"
-                >
-                  <p className="m-0 font-mono font-semibold">{dataError.code}</p>
-                  <p className="mb-0 mt-2">{dataError.message}</p>
-                </div>
-              ) : null}
-
-              {fetchData !== undefined && requestError !== undefined ? (
-                <div
-                  className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-                  data-testid="variant-request-error"
-                  role="alert"
-                >
-                  {requestError}
-                </div>
-              ) : null}
-
-
-            </div>
-          </div>
-        ) : (
-          <div className="overflow-auto px-6 text-xs">
-            <JsonView data={variant} />
-          </div>
-        )}
+      <div className="pb-6">
+        <Configuration variant={variant} data={variantData} setData={setVariantData} />
       </div>
     </section>
   );

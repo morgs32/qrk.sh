@@ -187,8 +187,6 @@ test("loads a selected Google place into the Map preview", async ({ page }) => {
   await placeLookup.press("Enter");
   await expect(page.getByRole("listbox")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Get data" }).click();
-
   const result = page.getByTestId("variant-data-result");
   await expect(result).toContainText('name:"Millennium Park"');
   await expect(result).toContainText("latitude:");
@@ -202,44 +200,45 @@ test("loads a selected Google place into the Map preview", async ({ page }) => {
 });
 
 test("searches Streamline and loads the selected SVG into every Icon preview", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto("/collections/icon/default");
-  await page.waitForLoadState("networkidle");
+  const previewImage = page.locator("[data-variant-size-brick] img");
+  await expect(previewImage).toBeVisible();
+  const initialSource = await previewImage.getAttribute("src");
+  if (initialSource === null) throw new Error("Expected an initial icon image");
 
-  const searchInput = page.getByLabel("Search icons");
-  await searchInput.fill("home");
-
-  const searchResults = page.getByRole("listbox", { name: "Streamline icon results" });
-  await expect(searchResults).toBeVisible();
-  const firstIcon = searchResults.getByRole("option").first();
+  await page.getByLabel("Search icons").fill("home");
+  const firstIcon = page
+    .getByRole("listbox", { name: "Streamline icon results" })
+    .getByRole("option")
+    .first();
   await expect(firstIcon).toBeVisible();
+  const svgResponse = page.waitForResponse((response) => response.url().endsWith("/scraper-rpc"));
   await firstIcon.click();
+  await (await svgResponse).finished();
+  await expect(page.getByRole("status")).toHaveCount(0);
+  const errors = await page
+    .locator('[data-testid="variant-data-error"], [data-testid="variant-request-error"]')
+    .allTextContents();
+  expect(errors).toEqual([]);
   await expect(firstIcon).toHaveAttribute("aria-selected", "true");
-
-  const getDataButton = page.getByRole("button", { name: "Get data" });
-  await getDataButton.click();
-  await expect(getDataButton).toBeEnabled();
-
-  const dataError = page.getByTestId("variant-data-error");
-  if ((await dataError.count()) > 0) {
-    throw new Error((await dataError.textContent()) ?? "Streamline SVG request failed");
-  }
+  await expect(page.getByRole("button", { name: "Get data" })).toHaveCount(0);
 
   const result = page.getByTestId("variant-data-result");
-  await expect(result).toContainText('hash:"ico_');
-  await expect(result).toContainText('svg:"<svg');
+  await expect(result).toContainText("ico_");
+  await expect(result).toContainText("<svg");
+  await expect(previewImage).not.toHaveAttribute("src", initialSource);
+  const selectedSource = await previewImage.getAttribute("src");
+  if (selectedSource === null) throw new Error("Expected the selected icon image");
+  await expect(page.getByTestId("variant-data-error")).toHaveCount(0);
 
-  await expect(page.locator('[data-variant-size-brick="icon/default/2x2"] img')).toHaveAttribute(
-    "src",
-    /^data:image\/svg\+xml/,
-  );
-  await expect(page.locator('[data-variant-size-brick="icon/default/4x4"] img')).toHaveAttribute(
-    "src",
-    /^data:image\/svg\+xml/,
-  );
-  await expect(page.locator('[data-variant-size-brick="icon/default/8x2"] img')).toHaveAttribute(
-    "src",
-    /^data:image\/svg\+xml/,
-  );
+  for (const size of ["4x4", "8x2", "2x2"]) {
+    await page.locator(`a[href="/collections/icon?variant=default&size=${size}"]`).click();
+    await expect(
+      page.locator(`[data-variant-size-brick="icon/default/${size}"] img`),
+    ).toHaveAttribute("src", selectedSource);
+    await expect(result).toContainText("ico_");
+  }
 });
 
 test("renders the Map brick through preview, collection, Grid, and detail boundaries", async ({
@@ -307,7 +306,6 @@ test("loads a Figma Design preview and retains it after a type mismatch", async 
 
   const urlInput = page.getByLabel("url");
   await urlInput.fill("https://www.figma.com/design/x1KYuaPaEo89CE715oUD4I/qrk.sh?node-id=46-459");
-  await page.getByRole("button", { name: "Get data" }).click();
 
   const canonicalUrl = "https://www.figma.com/design/x1KYuaPaEo89CE715oUD4I";
   const result = page.getByTestId("variant-data-result");
@@ -318,7 +316,6 @@ test("loads a Figma Design preview and retains it after a type mismatch", async 
   await expect(designCard.locator('[data-figma-thumbnail="design"]')).toBeVisible();
 
   await urlInput.fill("https://www.figma.com/board/BcDeFgHiJkLmNoPqRsTuVw/Example-board");
-  await page.getByRole("button", { name: "Get data" }).click();
 
   await expect(page.getByTestId("variant-data-error")).toContainText("file-type-mismatch");
   await expect(designCard).toHaveAttribute("href", canonicalUrl);
@@ -387,7 +384,7 @@ test("shows brick config in a collection tab", async ({ page }) => {
       .locator("[data-github-profile-activity]"),
   ).toBeVisible();
   await expect(page.getByLabel("url")).toHaveValue("https://github.com/morgs32");
-  await expect(page.getByRole("button", { name: "Get data" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Get data" })).toHaveCount(0);
   const initialResult = page.getByTestId("variant-data-result");
   await expect(initialResult).toContainText("id:1364795");
   await expect(initialResult).toContainText('node_id:"MDQ6VXNlcjEzNjQ3OTU="');
@@ -412,8 +409,6 @@ test("updates the GitHub profile preview and retains the last success after an e
   await expect(urlInput).toHaveValue("https://github.com/morgs32");
   await urlInput.fill("https://github.com/octocat");
 
-  await page.getByRole("button", { name: "Get data" }).click();
-
   const result = page.getByTestId("variant-data-result");
   await expect(result).toBeVisible();
   await expect(result).toContainText('login:"octocat"');
@@ -430,7 +425,6 @@ test("updates the GitHub profile preview and retains the last success after an e
   ).toBeVisible();
 
   await page.getByLabel("url").fill("https://github.com/topics/effect");
-  await page.getByRole("button", { name: "Get data" }).click();
 
   const error = page.getByTestId("variant-data-error");
   await expect(error).toBeVisible();

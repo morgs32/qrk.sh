@@ -22,7 +22,12 @@ export const githubCollection = makeCollection({
         payloadShape: {
           url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
         },
-        fetcher: ({ api, payload }) => api.githubRepo().getProfile(payload.url),
+        fetcher: async ({ api, payload, setData }) => {
+          const result = await api.githubRepo().getProfile(payload.url);
+          if (result._tag === "Left") return result;
+          setData(result.right);
+          return { _tag: "Right", right: undefined };
+        },
       }),
       dataShape: {
         login: primitives.text(),

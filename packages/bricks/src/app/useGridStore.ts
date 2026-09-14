@@ -6,6 +6,7 @@ import { persist } from "zustand/middleware";
 export const useGridStore = create<{
   layout: Layout;
   bricksById: Record<string, ICollectionBrickDef>;
+  dataByBrickId: Record<string, unknown>;
   activeBrickDrag: ICollectionBrickDef | null;
   hasHydrated: boolean;
   setLayout: (layout: Layout) => void;
@@ -22,6 +23,7 @@ export const useGridStore = create<{
         { i: "fixture-4", x: 6, y: 0, w: 2, h: 2 },
       ],
       bricksById: {},
+      dataByBrickId: {},
       activeBrickDrag: null,
       hasHydrated: false,
       setLayout: (layout) => {
@@ -48,6 +50,7 @@ export const useGridStore = create<{
       partialize: (state) => ({
         layout: state.layout,
         bricksById: state.bricksById,
+        dataByBrickId: state.dataByBrickId,
       }),
       skipHydration: true,
       onRehydrateStorage: (stateBeforeHydration) => (stateAfterHydration) => {

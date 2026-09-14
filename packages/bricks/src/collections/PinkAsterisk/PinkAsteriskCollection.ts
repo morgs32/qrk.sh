@@ -25,7 +25,12 @@ export const iconCollection = makeCollection({
         payloadForm: {
           hash: StreamlineIconLookup,
         },
-        fetcher: ({ api, payload }) => api.streamlineRepo().getSvg(payload.hash),
+        fetcher: async ({ api, payload, setData }) => {
+          const result = await api.streamlineRepo().getSvg(payload.hash);
+          if (result._tag === "Left") return result;
+          setData(result.right);
+          return { _tag: "Right", right: undefined };
+        },
       }),
       dataShape: {
         name: primitives.text(),

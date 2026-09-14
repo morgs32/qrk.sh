@@ -1,8 +1,6 @@
+import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IShape } from "@zerospin/schema";
-import type { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import type { ReactNode } from "react";
-import type { ScraperApi } from "scraper/ScraperApi";
-import type { IRpcEither } from "scraper/types";
 
 /** A size within one content variant (no collection scope). */
 export type IBrickDef<VARIANT extends string = string, SIZE extends string = string> = {
@@ -28,20 +26,7 @@ export type ICollection = {
     | {
         variantLabel: string;
         variantDescription: string;
-        configuration?: {
-          payloadShape: IShape;
-          payloadForm?: {
-            [fieldName: string]:
-              | {
-                  bivarianceHack(props: {
-                    value: unknown;
-                    onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
-                  }): ReactNode;
-                }["bivarianceHack"]
-              | undefined;
-          };
-          fetcher?: never;
-        };
+        configuration?: IFetcherConfiguration & { fetcher?: never };
         dataShape: null;
         defaultData: null;
         sizes: Record<string, ICollectionBrick>;
@@ -49,22 +34,8 @@ export type ICollection = {
     | {
         variantLabel: string;
         variantDescription: string;
-        configuration?: {
-          payloadShape: IShape;
-          payloadForm?: {
-            [fieldName: string]:
-              | {
-                  bivarianceHack(props: {
-                    value: unknown;
-                    onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
-                  }): ReactNode;
-                }["bivarianceHack"]
-              | undefined;
-          };
-          fetcher: (props: {
-            api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-            payload: unknown;
-          }) => Promise<IRpcEither<unknown>>;
+        configuration?: IFetcherConfiguration & {
+          fetcher: NonNullable<IFetcherConfiguration["fetcher"]>;
         };
         dataShape: IShape;
         defaultData: unknown;

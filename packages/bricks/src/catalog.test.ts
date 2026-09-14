@@ -54,31 +54,31 @@ describe("brick catalog identity", () => {
 
     const design = figmaCollection.variants.design;
     expect(Object.keys(design.sizes)).toEqual(["4x4"]);
-    expect(design.payloadShape).toHaveProperty("url");
+    expect(design.configuration?.payloadShape).toHaveProperty("url");
     expect(design.dataShape).toHaveProperty("thumbnail_url");
     expect(design.defaultData).toMatchObject({ title: "Figma Design", url: "" });
-    expect(design.getData).toBeTypeOf("function");
+    expect(design.configuration?.fetcher).toBeTypeOf("function");
 
     const board = figmaCollection.variants.board;
     expect(Object.keys(board.sizes)).toEqual(["4x4"]);
-    expect(board.payloadShape).toHaveProperty("url");
+    expect(board.configuration?.payloadShape).toHaveProperty("url");
     expect(board.dataShape).toHaveProperty("thumbnail_url");
     expect(board.defaultData).toMatchObject({ title: "FigJam Board", url: "" });
-    expect(board.getData).toBeTypeOf("function");
+    expect(board.configuration?.fetcher).toBeTypeOf("function");
 
     const slides = figmaCollection.variants.slides;
     expect(Object.keys(slides.sizes)).toEqual(["4x4"]);
-    expect(slides.payloadShape).toHaveProperty("url");
+    expect(slides.configuration?.payloadShape).toHaveProperty("url");
     expect(slides.dataShape).toHaveProperty("thumbnail_url");
     expect(slides.defaultData).toMatchObject({ title: "Figma Slides", url: "" });
-    expect(slides.getData).toBeTypeOf("function");
+    expect(slides.configuration?.fetcher).toBeTypeOf("function");
 
     const prototype = figmaCollection.variants.prototype;
     expect(Object.keys(prototype.sizes)).toEqual(["4x4"]);
-    expect(prototype.payloadShape).toHaveProperty("url");
+    expect(prototype.configuration?.payloadShape).toHaveProperty("url");
     expect(prototype.dataShape).toHaveProperty("thumbnail_url");
     expect(prototype.defaultData).toMatchObject({ title: "Figma Prototype", url: "" });
-    expect(prototype.getData).toBeTypeOf("function");
+    expect(prototype.configuration?.fetcher).toBeTypeOf("function");
   });
 
   it("registers the data-backed Link default 4x2 variant", () => {
@@ -87,7 +87,7 @@ describe("brick catalog identity", () => {
 
     expect(Object.keys(linkCollection.variants)).toEqual(["default"]);
     expect(Object.keys(defaultVariant.sizes)).toEqual(["4x2"]);
-    expect(defaultVariant.payloadShape).toHaveProperty("url");
+    expect(defaultVariant.configuration?.payloadShape).toHaveProperty("url");
     expect(defaultVariant.dataShape).toMatchObject({
       url: { kind: "text" },
       title: { kind: "text" },
@@ -100,7 +100,7 @@ describe("brick catalog identity", () => {
       title: "Celebrate our birthday & get Pro free for one year",
       siteName: "apps.apple.com",
     });
-    expect(defaultVariant.getData).toBeTypeOf("function");
+    expect(defaultVariant.configuration?.fetcher).toBeTypeOf("function");
   });
 
   it("registers the tokenless TikTok creator embed", () => {
@@ -109,10 +109,10 @@ describe("brick catalog identity", () => {
 
     expect(Object.keys(tikTokCollection.variants)).toEqual(["default"]);
     expect(Object.keys(defaultVariant.sizes)).toEqual(["4x4"]);
-    expect(defaultVariant.payloadShape).toHaveProperty("url");
+    expect(defaultVariant.configuration?.payloadShape).toHaveProperty("url");
     expect(defaultVariant.dataShape).toMatchObject({ username: { kind: "text" } });
     expect(defaultVariant.defaultData).toEqual({ username: "theonion" });
-    expect(defaultVariant.getData).toBeTypeOf("function");
+    expect(defaultVariant.configuration?.fetcher).toBeTypeOf("function");
   });
 
   it("registers locally authored Tiptap JSON for the Text collection", () => {
@@ -121,12 +121,12 @@ describe("brick catalog identity", () => {
 
     expect(textCollection.collectionLabel).toBe("Text");
     expect(Object.keys(defaultVariant.sizes)).toEqual(["4x4", "8x2"]);
-    expect(defaultVariant.payloadShape?.content).toMatchObject({
+    expect(defaultVariant.configuration?.payloadShape?.content).toMatchObject({
       kind: "json",
       nullable: true,
       defaultValue: null,
     });
-    expect(defaultVariant.payloadForm?.content).toBeTypeOf("function");
-    expect(defaultVariant.getData).toBeUndefined();
+    expect(defaultVariant.configuration?.payloadForm?.content).toBeTypeOf("function");
+    expect(defaultVariant.configuration?.fetcher).toBeUndefined();
   });
 });

@@ -1,3 +1,4 @@
+import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
 import { makeCollection } from "../../makeCollection";
@@ -14,9 +15,12 @@ export const instagramCollection = makeCollection({
       variant: "default",
       variantLabel: "Default",
       variantDescription: "An Instagram profile card with four recent posts.",
-      payloadShape: {
-        url: primitives.text({ defaultValue: "https://www.instagram.com/theonion/" }),
-      },
+      configuration: makeFetcherConfiguration({
+        payloadShape: {
+          url: primitives.text({ defaultValue: "https://www.instagram.com/theonion/" }),
+        },
+        fetcher: ({ api, payload }) => api.instagramRepo().scrape(payload.url),
+      }),
       dataShape: {
         username: primitives.text(),
         profileImageUrl: primitives.text(),
@@ -40,7 +44,6 @@ export const instagramCollection = makeCollection({
         postImageUrl4:
           "https://instagram.faus1-1.fna.fbcdn.net/v/t51.82787-15/749714051_18613274569010586_2155729153985215318_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=103&ig_cache_key=Mzk0NDEwNTM1NjYzNzM1MTM4MzE4NjEzMjc0NTYzMDEwNTg2.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkNMSVBTLnhwaWRzLjEwODAuc2RyLnZpZGVvX2RlZmF1bHRfY292ZXJfZnJhbWUuQzMifQ%3D%3D&_nc_ohc=M2MacKdfvFoQ7kNvwGG1cxF&_nc_oc=Adp8XB00lCApv90RttYRYu2QZ5ccCOO2qDVezJjN8vYmbuYYKyThSChjCWQ2TntpddI&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=instagram.faus1-1.fna&_nc_gid=FIs8QckpOVOcFW0GoQuidg&_nc_ss=7a22e&oh=00_AQCjahbwZLuvKuFDCIEYZXwSv1R-u8zPqVde0ZLQvuxG_g&oe=6A61AADC",
       },
-      getData: ({ api, payload }) => api.instagramRepo().scrape(payload.url),
       sizes: {
         "4x4": makeBrick({
           variant: "default",

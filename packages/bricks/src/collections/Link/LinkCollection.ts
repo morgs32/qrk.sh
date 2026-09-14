@@ -1,3 +1,4 @@
+import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
 import { makeBrick } from "../../makeBrick";
@@ -14,11 +15,14 @@ export const linkCollection = makeCollection({
       variant: "default",
       variantLabel: "Default",
       variantDescription: "A rich preview for any web link.",
-      payloadShape: {
-        url: primitives.text({
-          defaultValue: "https://apps.apple.com/us/app/apple-store/id375380948",
-        }),
-      },
+      configuration: makeFetcherConfiguration({
+        payloadShape: {
+          url: primitives.text({
+            defaultValue: "https://apps.apple.com/us/app/apple-store/id375380948",
+          }),
+        },
+        fetcher: ({ api, payload }) => api.linkRepo().getPreview(payload.url),
+      }),
       dataShape: {
         url: primitives.text(),
         title: primitives.text(),
@@ -36,7 +40,6 @@ export const linkCollection = makeCollection({
           "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
         iconUrl: "https://www.apple.com/favicon.ico",
       },
-      getData: ({ api, payload }) => api.linkRepo().getPreview(payload.url),
       sizes: {
         "4x2": makeBrick({
           variant: "default",

@@ -81,7 +81,7 @@ export class StreamlineRepo extends DurableObject<IScraperEnv> {
       };
     }
 
-    if (this.env.STREAMLINE_API_KEY.trim().length === 0) {
+    if (!this.env.STREAMLINE_API_KEY?.trim()) {
       return {
         _tag: "Left",
         left: {
@@ -92,16 +92,17 @@ export class StreamlineRepo extends DurableObject<IScraperEnv> {
       };
     }
 
-    const searchUrl = new URL("https://public-api.streamlinehq.com/v1/search/global");
+    const searchUrl = new URL(
+      "https://public-api.streamlinehq.com/v1/search/family/material-pro-sharp-line",
+    );
     searchUrl.searchParams.set("productType", "icons");
-    searchUrl.searchParams.set("productTier", "free");
     searchUrl.searchParams.set("query", normalizedQuery);
     searchUrl.searchParams.set("offset", String(offset));
     searchUrl.searchParams.set("limit", String(limit));
 
     try {
       const response = await fetch(searchUrl, {
-        headers: { "x-api-key": this.env.STREAMLINE_API_KEY },
+        headers: { accept: "application/json", "x-api-key": this.env.STREAMLINE_API_KEY },
       });
 
       if (!response.ok) {
@@ -158,7 +159,7 @@ export class StreamlineRepo extends DurableObject<IScraperEnv> {
       };
     }
 
-    if (this.env.STREAMLINE_API_KEY.trim().length === 0) {
+    if (!this.env.STREAMLINE_API_KEY?.trim()) {
       return {
         _tag: "Left",
         left: {

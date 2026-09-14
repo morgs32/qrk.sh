@@ -155,11 +155,7 @@ export function Grid() {
                   );
                 }}
               >
-                {variant?.defaultData === undefined ? (
-                  <BrickComponent />
-                ) : (
-                  <BrickComponent data={variant.defaultData} />
-                )}
+                <BrickComponent data={variant?.defaultData} />
               </div>
             );
           })}

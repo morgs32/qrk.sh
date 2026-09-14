@@ -1,3 +1,4 @@
+import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
 import { makeCollection } from "../../makeCollection";
@@ -14,16 +15,18 @@ export const tikTokCollection = makeCollection({
       variant: "default",
       variantLabel: "Default",
       variantDescription: "TikTok's tokenless creator profile embed.",
-      payloadShape: {
-        url: primitives.text({ defaultValue: "https://www.tiktok.com/@theonion" }),
-      },
+      configuration: makeFetcherConfiguration({
+        payloadShape: {
+          url: primitives.text({ defaultValue: "https://www.tiktok.com/@theonion" }),
+        },
+        fetcher: ({ api, payload }) => api.tiktokRepo().scrape(payload.url),
+      }),
       dataShape: {
         username: primitives.text(),
       },
       defaultData: {
         username: "theonion",
       },
-      getData: ({ api, payload }) => api.tiktokRepo().scrape(payload.url),
       sizes: {
         "4x4": makeBrick({
           variant: "default",

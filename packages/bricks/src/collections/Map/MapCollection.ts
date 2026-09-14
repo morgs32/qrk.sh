@@ -1,3 +1,4 @@
+import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
 import { makeBrick } from "../../makeBrick";
@@ -15,12 +16,15 @@ export const mapCollection = makeCollection({
       variant: "place",
       variantLabel: "Place",
       variantDescription: "A map centered on one selected place.",
-      payloadShape: {
-        googlePlaceId: primitives.text({ defaultValue: "ChIJ7cv00DwsDogRAMDACa2m4K8" }),
-      },
-      payloadForm: {
-        googlePlaceId: GooglePlaceLookup,
-      },
+      configuration: makeFetcherConfiguration({
+        payloadShape: {
+          googlePlaceId: primitives.text({ defaultValue: "ChIJ7cv00DwsDogRAMDACa2m4K8" }),
+        },
+        payloadForm: {
+          googlePlaceId: GooglePlaceLookup,
+        },
+        fetcher: ({ api, payload }) => api.googlePlacesRepo().getPlace(payload.googlePlaceId),
+      }),
       dataShape: {
         googlePlaceId: primitives.text(),
         name: primitives.text(),
@@ -35,7 +39,6 @@ export const mapCollection = makeCollection({
         latitude: 41.8781136,
         longitude: -87.6297982,
       },
-      getData: ({ api, payload }) => api.googlePlacesRepo().getPlace(payload.googlePlaceId),
       sizes: {
         "4x4": makeBrick({
           variant: "place",

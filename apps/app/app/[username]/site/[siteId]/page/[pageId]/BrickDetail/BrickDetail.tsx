@@ -93,11 +93,7 @@ export function BrickDetail() {
                   aspectRatio: `${brick.def.w} / ${brick.def.h}`,
                 }}
               >
-                {variant?.defaultData === undefined ? (
-                  <BrickComponent />
-                ) : (
-                  <BrickComponent data={variant.defaultData} />
-                )}
+                <BrickComponent data={variant?.defaultData} />
               </div>
             </div>
           </section>

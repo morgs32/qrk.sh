@@ -98,6 +98,17 @@ Brick factories take **one object** describing what to build. Name that paramete
 
 - **Good**: `makeBrick(props: { variant; size; w; h; label; component })`, `makeVariant(props: { variant; sizes })`, and `makeCollection(props: { collectionName; collectionLabel; collectionDescription; variants })` in [packages/bricks/src/makeBrick.ts](../../packages/bricks/src/makeBrick.ts), [makeVariant.ts](../../packages/bricks/src/makeVariant.ts), and [makeCollection.ts](../../packages/bricks/src/makeCollection.ts).
 
+Data-backed variants configure requests with `makeFetcherConfiguration({ payloadShape, payloadForm, fetcher })`
+from [makeFetcherConfiguration.ts](../../packages/bricks/src/makeFetcherConfiguration.ts), passed as the variant's `configuration`.
+The fetcher validates payloads before invoking its callback. The variant retains `dataShape`,
+`defaultData`, and result validation. Its returned `configuration.fetcher` method executes the request and
+validates successful results. Configuration forms read `configuration.payloadShape` and
+`configuration.payloadForm`; variants do not expose top-level payload fields or `getData`.
+Every variant requires `dataShape` and `defaultData`: use `null` for both when there is no
+data contract. Render boundaries can pass `variant?.defaultData` directly; components without
+a data contract ignore the prop.
+Local-only forms also use `makeFetcherConfiguration`, omitting the fetch callback.
+
 ### Good vs bad: no barrel `index.ts` under homepage bricks
 
 Do **not** add `apps/app/components/home/bricks/index.ts` (or similar) that only re-exports symbols from sibling modules. Name each file after its **primary export** and import that path directly.

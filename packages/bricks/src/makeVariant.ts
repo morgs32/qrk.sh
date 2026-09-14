@@ -5,245 +5,106 @@ import type { ReactNode } from "react";
 import type { ScraperApi } from "scraper/ScraperApi";
 import type { IJsonValue, IRpcEither } from "scraper/types";
 
+import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
+
 import type { IBrick } from "./types";
 
 export function makeVariant<
   const VARIANT extends string,
   const PAYLOAD_SHAPE extends IShape,
-  const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
->(props: {
-  variant: VARIANT;
-  variantLabel: string;
-  variantDescription: string;
-  payloadShape: PAYLOAD_SHAPE;
-  payloadForm?: {
-    [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
-      defaultValue?: infer DEFAULT_VALUE;
-    }
-      ? undefined extends DEFAULT_VALUE
-        ? never
-        : (props: {
-            value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
-            onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
-          }) => ReactNode
-      : never;
-  };
-  dataShape?: never;
-  defaultData?: never;
-  getData?: never;
-  sizes: SIZES & {
-    [SIZE in keyof SIZES]: SIZES[SIZE] & {
-      def: {
-        variant: VARIANT;
-        size: SIZE & string;
-      };
-    };
-  };
-}): {
-  variantLabel: string;
-  variantDescription: string;
-  payloadShape: PAYLOAD_SHAPE;
-  payloadForm?: {
-    [fieldName: string]:
-      | {
-          bivarianceHack(props: {
-            value: unknown;
-            onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
-          }): ReactNode;
-        }["bivarianceHack"]
-      | undefined;
-  };
-  sizes: SIZES;
-};
-export function makeVariant<
-  const VARIANT extends string,
-  const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
->(props: {
-  variant: VARIANT;
-  variantLabel: string;
-  variantDescription: string;
-  payloadShape?: never;
-  payloadForm?: never;
-  dataShape?: never;
-  defaultData?: never;
-  getData?: never;
-  sizes: SIZES & {
-    [SIZE in keyof SIZES]: SIZES[SIZE] & {
-      def: {
-        variant: VARIANT;
-        size: SIZE & string;
-      };
-    };
-  };
-}): {
-  variantLabel: string;
-  variantDescription: string;
-  sizes: SIZES;
-};
-export function makeVariant<
-  const VARIANT extends string,
-  const PAYLOAD_SHAPE extends IShape,
   const DATA_SHAPE extends IShape,
   const SIZES extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
->(props: {
-  variant: VARIANT;
-  variantLabel: string;
-  variantDescription: string;
-  payloadShape: PAYLOAD_SHAPE;
-  payloadForm?: {
-    [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
-      defaultValue?: infer DEFAULT_VALUE;
-    }
-      ? undefined extends DEFAULT_VALUE
-        ? never
-        : (props: {
-            value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
-            onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
-          }) => ReactNode
-      : never;
-  };
-  dataShape: DATA_SHAPE;
-  defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
-  getData: (props: {
-    api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-    payload: InferDecodedRow<PAYLOAD_SHAPE>;
-  }) => Promise<IRpcEither<IJsonValue>>;
-  sizes: SIZES & {
-    [SIZE in keyof SIZES]: SIZES[SIZE] & {
-      def: {
-        variant: VARIANT;
-        size: SIZE & string;
+>(
+  props: {
+    variant: VARIANT;
+    variantLabel: string;
+    variantDescription: string;
+    sizes: SIZES & {
+      [SIZE in keyof SIZES]: SIZES[SIZE] & {
+        def: { variant: VARIANT; size: SIZE & string };
       };
-      component: Parameters<SIZES[SIZE]["component"]> extends [
-        { data: InferDecodedRow<DATA_SHAPE> },
-        ...unknown[],
-      ]
-        ? (props: { data: InferDecodedRow<DATA_SHAPE> }) => ReactNode
-        : never;
     };
-  };
-}): {
-  variantLabel: string;
-  variantDescription: string;
-  payloadShape: PAYLOAD_SHAPE;
-  payloadForm?: {
-    [FIELD in keyof PAYLOAD_SHAPE]?: PAYLOAD_SHAPE[FIELD] extends {
-      defaultValue?: infer DEFAULT_VALUE;
-    }
-      ? undefined extends DEFAULT_VALUE
-        ? never
-        : (props: {
-            value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD];
-            onChange: (value: InferDecodedRow<PAYLOAD_SHAPE>[FIELD]) => void;
-          }) => ReactNode
-      : never;
-  };
-  dataShape: DATA_SHAPE;
-  defaultData: InferDecodedRow<DATA_SHAPE>;
-  getData: (props: {
-    api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-    payload: unknown;
-  }) => Promise<IRpcEither<InferDecodedRow<DATA_SHAPE>>>;
-  sizes: SIZES;
-};
-export function makeVariant(props: {
-  variant: string;
-  variantLabel: string;
-  variantDescription: string;
-  payloadShape?: IShape;
-  payloadForm?: Record<
-    string,
+  } & (
     | {
-        bivarianceHack(props: {
-          value: unknown;
-          onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
-        }): ReactNode;
-      }["bivarianceHack"]
-    | undefined
-  >;
-  dataShape?: IShape;
-  defaultData?: unknown;
-  getData?: {
-    bivarianceHack(props: {
-      api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-      payload: unknown;
-    }): Promise<IRpcEither<IJsonValue>>;
-  }["bivarianceHack"];
-  sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
-}): object {
-  if (props.payloadShape !== undefined && props.dataShape === undefined) {
-    if (props.payloadForm !== undefined) {
-      return {
-        variantLabel: props.variantLabel,
-        variantDescription: props.variantDescription,
-        payloadShape: props.payloadShape,
-        payloadForm: props.payloadForm,
-        sizes: props.sizes,
-      };
-    }
-
+        dataShape: null;
+        defaultData: null;
+        configuration?: Pick<
+          ReturnType<typeof makeFetcherConfiguration<PAYLOAD_SHAPE>>,
+          "payloadShape" | "payloadForm"
+        > & {
+          fetcher?: never;
+        };
+        sizes: { [SIZE in keyof SIZES]: { component: () => ReactNode } };
+      }
+    | {
+        dataShape: DATA_SHAPE;
+        defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
+        configuration?: ReturnType<typeof makeFetcherConfiguration<PAYLOAD_SHAPE>>;
+        sizes: {
+          [SIZE in keyof SIZES]: {
+            component: (props: { data: InferDecodedRow<DATA_SHAPE> }) => ReactNode;
+          };
+        };
+      }
+  ),
+) {
+  if (props.dataShape === null) {
     return {
       variantLabel: props.variantLabel,
       variantDescription: props.variantDescription,
-      payloadShape: props.payloadShape,
+      dataShape: props.dataShape,
+      defaultData: null,
+      configuration:
+        props.configuration === undefined
+          ? undefined
+          : {
+              payloadShape: props.configuration.payloadShape,
+              payloadForm: props.configuration.payloadForm,
+            },
       sizes: props.sizes,
     };
   }
 
-  if (
-    props.payloadShape === undefined ||
-    props.dataShape === undefined ||
-    props.defaultData === undefined ||
-    props.getData === undefined
-  ) {
-    return {
-      variantLabel: props.variantLabel,
-      variantDescription: props.variantDescription,
-      sizes: props.sizes,
-    };
-  }
-
-  const payloadSchema = makeEffectSchema(props.payloadShape);
   const dataSchema = makeEffectSchema(props.dataShape);
   const decodedDataSchema = Schema.toType(dataSchema);
   const defaultData = Schema.decodeUnknownSync(decodedDataSchema)(props.defaultData, {
     onExcessProperty: "preserve",
   });
-  const getData = props.getData;
+  const fetcher = props.configuration?.fetcher;
+  if (props.configuration === undefined || fetcher === undefined) {
+    return {
+      variantLabel: props.variantLabel,
+      variantDescription: props.variantDescription,
+      dataShape: props.dataShape,
+      defaultData,
+      configuration: undefined,
+      sizes: props.sizes,
+    };
+  }
 
   return {
     variantLabel: props.variantLabel,
     variantDescription: props.variantDescription,
-    payloadShape: props.payloadShape,
-    payloadForm: props.payloadForm,
     dataShape: props.dataShape,
     defaultData,
-    getData: async (request: {
-      api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-      payload: unknown;
-    }) => {
-      const decodedPayload = await Effect.runPromise(
-        Schema.decodeUnknownEffect(payloadSchema)(request.payload, {
-          onExcessProperty: "error",
-        }),
-      );
-
-      const result = await getData({
-        api: request.api,
-        payload: decodedPayload,
-      });
-
-      if (result._tag === "Left") {
-        return result;
-      }
-
-      const data = await Effect.runPromise(
-        Schema.decodeUnknownEffect(decodedDataSchema)(result.right, {
-          onExcessProperty: "preserve",
-        }),
-      );
-
-      return { _tag: "Right", right: data };
+    configuration: {
+      payloadShape: props.configuration.payloadShape,
+      payloadForm: props.configuration.payloadForm,
+      fetcher: async (request: {
+        api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
+        payload: unknown;
+      }): Promise<IRpcEither<InferDecodedRow<DATA_SHAPE>>> => {
+        const result = await fetcher(request);
+        if (result._tag === "Left") {
+          return result;
+        }
+        const data = await Effect.runPromise(
+          Schema.decodeUnknownEffect(decodedDataSchema)(result.right, {
+            onExcessProperty: "preserve",
+          }),
+        );
+        return { _tag: "Right", right: data };
+      },
     },
     sizes: props.sizes,
   };

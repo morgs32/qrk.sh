@@ -11,6 +11,8 @@ export const swatchCollection = makeCollection({
   collectionDescription: "Solid color fields for visual rhythm.",
   variants: {
     default: makeVariant({
+      dataShape: null,
+      defaultData: null,
       variant: "default",
       variantLabel: "Default",
       variantDescription: "A solid color field.",

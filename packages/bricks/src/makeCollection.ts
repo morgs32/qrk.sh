@@ -16,52 +16,46 @@ export function makeCollection(props: {
     | {
         variantLabel: string;
         variantDescription: string;
-        payloadShape: IShape;
-        payloadForm?: {
-          [fieldName: string]:
-            | {
-                bivarianceHack(props: {
-                  value: unknown;
-                  onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
-                }): ReactNode;
-              }["bivarianceHack"]
-            | undefined;
+        configuration?: {
+          payloadShape: IShape;
+          payloadForm?: {
+            [fieldName: string]:
+              | {
+                  bivarianceHack(props: {
+                    value: unknown;
+                    onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
+                  }): ReactNode;
+                }["bivarianceHack"]
+              | undefined;
+          };
+          fetcher?: never;
         };
-        dataShape?: never;
-        defaultData?: never;
-        getData?: never;
+        dataShape: null;
+        defaultData: null;
         sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
       }
     | {
         variantLabel: string;
         variantDescription: string;
-        payloadShape?: never;
-        payloadForm?: never;
-        dataShape?: never;
-        defaultData?: never;
-        getData?: never;
-        sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
-      }
-    | {
-        variantLabel: string;
-        variantDescription: string;
-        payloadShape: IShape;
-        payloadForm?: {
-          [fieldName: string]:
-            | {
-                bivarianceHack(props: {
-                  value: unknown;
-                  onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
-                }): ReactNode;
-              }["bivarianceHack"]
-            | undefined;
+        configuration?: {
+          payloadShape: IShape;
+          payloadForm?: {
+            [fieldName: string]:
+              | {
+                  bivarianceHack(props: {
+                    value: unknown;
+                    onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
+                  }): ReactNode;
+                }["bivarianceHack"]
+              | undefined;
+          };
+          fetcher: (props: {
+            api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
+            payload: unknown;
+          }) => Promise<IRpcEither<unknown>>;
         };
         dataShape: IShape;
         defaultData: unknown;
-        getData: (props: {
-          api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-          payload: unknown;
-        }) => Promise<IRpcEither<unknown>>;
         sizes: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
       }
   >;
@@ -85,58 +79,31 @@ export function makeCollection(props: {
       };
     });
 
-    if (rawVariant.payloadShape !== undefined && rawVariant.dataShape === undefined) {
-      if (rawVariant.payloadForm !== undefined) {
-        return {
-          variantLabel: rawVariant.variantLabel,
-          variantDescription: rawVariant.variantDescription,
-          payloadShape: rawVariant.payloadShape,
-          payloadForm: rawVariant.payloadForm,
-          sizes,
-        };
-      }
-
+    if (rawVariant.dataShape !== null) {
       return {
         variantLabel: rawVariant.variantLabel,
         variantDescription: rawVariant.variantDescription,
-        payloadShape: rawVariant.payloadShape,
-        sizes,
-      };
-    }
-
-    if (
-      rawVariant.payloadShape !== undefined &&
-      rawVariant.dataShape !== undefined &&
-      rawVariant.defaultData !== undefined &&
-      rawVariant.getData !== undefined
-    ) {
-      if (rawVariant.payloadForm !== undefined) {
-        return {
-          variantLabel: rawVariant.variantLabel,
-          variantDescription: rawVariant.variantDescription,
-          payloadShape: rawVariant.payloadShape,
-          payloadForm: rawVariant.payloadForm,
-          dataShape: rawVariant.dataShape,
-          defaultData: rawVariant.defaultData,
-          getData: rawVariant.getData,
-          sizes,
-        };
-      }
-
-      return {
-        variantLabel: rawVariant.variantLabel,
-        variantDescription: rawVariant.variantDescription,
-        payloadShape: rawVariant.payloadShape,
+        configuration: rawVariant.configuration,
         dataShape: rawVariant.dataShape,
         defaultData: rawVariant.defaultData,
-        getData: rawVariant.getData,
         sizes,
       };
     }
-
+    if (rawVariant.configuration !== undefined) {
+      return {
+        variantLabel: rawVariant.variantLabel,
+        variantDescription: rawVariant.variantDescription,
+        configuration: rawVariant.configuration,
+        dataShape: rawVariant.dataShape,
+        defaultData: rawVariant.defaultData,
+        sizes,
+      };
+    }
     return {
       variantLabel: rawVariant.variantLabel,
       variantDescription: rawVariant.variantDescription,
+      dataShape: rawVariant.dataShape,
+      defaultData: rawVariant.defaultData,
       sizes,
     };
   });

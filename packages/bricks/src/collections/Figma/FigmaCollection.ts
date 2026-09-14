@@ -1,3 +1,4 @@
+import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
 import { makeCollection } from "../../makeCollection";
@@ -17,11 +18,14 @@ export const figmaCollection = makeCollection({
       variant: "design",
       variantLabel: "Design",
       variantDescription: "A canvas-focused preview of a Figma Design file.",
-      payloadShape: {
-        url: primitives.text({
-          defaultValue: "https://www.figma.com/design/AbCdEfGhIjKlMnOpQrStUv/Example-design",
-        }),
-      },
+      configuration: makeFetcherConfiguration({
+        payloadShape: {
+          url: primitives.text({
+            defaultValue: "https://www.figma.com/design/AbCdEfGhIjKlMnOpQrStUv/Example-design",
+          }),
+        },
+        fetcher: ({ api, payload }) => api.figmaRepo().getDesign(payload.url),
+      }),
       dataShape: {
         title: primitives.text(),
         url: primitives.text(),
@@ -36,7 +40,6 @@ export const figmaCollection = makeCollection({
         thumbnail_width: null,
         thumbnail_height: null,
       },
-      getData: ({ api, payload }) => api.figmaRepo().getDesign(payload.url),
       sizes: {
         "4x4": makeBrick({
           variant: "design",
@@ -53,11 +56,14 @@ export const figmaCollection = makeCollection({
       variant: "board",
       variantLabel: "Board",
       variantDescription: "A sticky-note canvas preview of a FigJam board.",
-      payloadShape: {
-        url: primitives.text({
-          defaultValue: "https://www.figma.com/board/BcDeFgHiJkLmNoPqRsTuVw/Example-board",
-        }),
-      },
+      configuration: makeFetcherConfiguration({
+        payloadShape: {
+          url: primitives.text({
+            defaultValue: "https://www.figma.com/board/BcDeFgHiJkLmNoPqRsTuVw/Example-board",
+          }),
+        },
+        fetcher: ({ api, payload }) => api.figmaRepo().getBoard(payload.url),
+      }),
       dataShape: {
         title: primitives.text(),
         url: primitives.text(),
@@ -72,7 +78,6 @@ export const figmaCollection = makeCollection({
         thumbnail_width: null,
         thumbnail_height: null,
       },
-      getData: ({ api, payload }) => api.figmaRepo().getBoard(payload.url),
       sizes: {
         "4x4": makeBrick({
           variant: "board",
@@ -89,11 +94,14 @@ export const figmaCollection = makeCollection({
       variant: "slides",
       variantLabel: "Slides",
       variantDescription: "A presentation-stage preview of a Figma Slides deck.",
-      payloadShape: {
-        url: primitives.text({
-          defaultValue: "https://www.figma.com/slides/CdEfGhIjKlMnOpQrStUvWx/Example-slides",
-        }),
-      },
+      configuration: makeFetcherConfiguration({
+        payloadShape: {
+          url: primitives.text({
+            defaultValue: "https://www.figma.com/slides/CdEfGhIjKlMnOpQrStUvWx/Example-slides",
+          }),
+        },
+        fetcher: ({ api, payload }) => api.figmaRepo().getSlides(payload.url),
+      }),
       dataShape: {
         title: primitives.text(),
         url: primitives.text(),
@@ -108,7 +116,6 @@ export const figmaCollection = makeCollection({
         thumbnail_width: null,
         thumbnail_height: null,
       },
-      getData: ({ api, payload }) => api.figmaRepo().getSlides(payload.url),
       sizes: {
         "4x4": makeBrick({
           variant: "slides",
@@ -125,11 +132,14 @@ export const figmaCollection = makeCollection({
       variant: "prototype",
       variantLabel: "Prototype",
       variantDescription: "A device-framed preview of a Figma prototype.",
-      payloadShape: {
-        url: primitives.text({
-          defaultValue: "https://www.figma.com/proto/DeFgHiJkLmNoPqRsTuVwXy/Example-prototype",
-        }),
-      },
+      configuration: makeFetcherConfiguration({
+        payloadShape: {
+          url: primitives.text({
+            defaultValue: "https://www.figma.com/proto/DeFgHiJkLmNoPqRsTuVwXy/Example-prototype",
+          }),
+        },
+        fetcher: ({ api, payload }) => api.figmaRepo().getPrototype(payload.url),
+      }),
       dataShape: {
         title: primitives.text(),
         url: primitives.text(),
@@ -144,7 +154,6 @@ export const figmaCollection = makeCollection({
         thumbnail_width: null,
         thumbnail_height: null,
       },
-      getData: ({ api, payload }) => api.figmaRepo().getPrototype(payload.url),
       sizes: {
         "4x4": makeBrick({
           variant: "prototype",

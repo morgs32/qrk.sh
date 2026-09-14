@@ -63,11 +63,7 @@ export function BrickPreview({ brick }: { brick: ICollectionBrick }) {
         aria-label={`${brick.def.collectionLabel} ${brick.def.w}×${brick.def.h}`}
       >
         <div className="h-full w-full">
-          {variant?.defaultData === undefined ? (
-            <BrickComponent />
-          ) : (
-            <BrickComponent data={variant.defaultData} />
-          )}
+          <BrickComponent data={variant?.defaultData} />
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 import type { JSONContent } from "@tiptap/react";
 import { Schema } from "effect";
@@ -15,25 +16,29 @@ export const textBrickCollection = makeCollection({
   collectionDescription: "Rich text content authored with Tiptap.",
   variants: {
     default: makeVariant({
+      dataShape: null,
+      defaultData: null,
       variant: "default",
       variantLabel: "Default",
       variantDescription: "A text content block.",
-      payloadShape: {
-        content: primitives.json({
-          nullable: true,
-          defaultValue: null,
-          schema: Schema.declare(
-            (input): input is JSONContent =>
-              typeof input === "object" &&
-              input !== null &&
-              "type" in input &&
-              input.type === "doc",
-          ),
-        }),
-      },
-      payloadForm: {
-        content: TextEditorControl,
-      },
+      configuration: makeFetcherConfiguration({
+        payloadShape: {
+          content: primitives.json({
+            nullable: true,
+            defaultValue: null,
+            schema: Schema.declare(
+              (input): input is JSONContent =>
+                typeof input === "object" &&
+                input !== null &&
+                "type" in input &&
+                input.type === "doc",
+            ),
+          }),
+        },
+        payloadForm: {
+          content: TextEditorControl,
+        },
+      }),
       sizes: {
         "4x4": makeBrick({
           variant: "default",

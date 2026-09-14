@@ -182,11 +182,7 @@ export function BrickCatalog() {
                     aspectRatio: `${selectedBrick.def.w} / ${selectedBrick.def.h}`,
                   }}
                 >
-                  {selectedVariant.defaultData === undefined ? (
-                    <BrickComponent />
-                  ) : (
-                    <BrickComponent data={selectedVariant.defaultData} />
-                  )}
+                  <BrickComponent data={selectedVariant.defaultData} />
                 </div>
               </div>
             </section>

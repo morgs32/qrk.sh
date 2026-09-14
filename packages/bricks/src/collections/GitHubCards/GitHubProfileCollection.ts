@@ -1,3 +1,4 @@
+import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
@@ -17,9 +18,12 @@ export const githubCollection = makeCollection({
       variant: "profile",
       variantLabel: "Profile",
       variantDescription: "A GitHub profile card.",
-      payloadShape: {
-        url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
-      },
+      configuration: makeFetcherConfiguration({
+        payloadShape: {
+          url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
+        },
+        fetcher: ({ api, payload }) => api.githubRepo().getProfile(payload.url),
+      }),
       dataShape: {
         login: primitives.text(),
         avatar_url: primitives.text(),
@@ -86,7 +90,6 @@ export const githubCollection = makeCollection({
           { date: "2026-07-18", count: 1, level: 1 },
         ],
       },
-      getData: ({ api, payload }) => api.githubRepo().getProfile(payload.url),
       sizes: {
         "4x4": makeBrick({
           variant: "profile",
@@ -109,6 +112,8 @@ export const githubCollection = makeCollection({
       },
     }),
     repo: makeVariant({
+      dataShape: null,
+      defaultData: null,
       variant: "repo",
       variantLabel: "Repo",
       variantDescription: "A GitHub repository card.",

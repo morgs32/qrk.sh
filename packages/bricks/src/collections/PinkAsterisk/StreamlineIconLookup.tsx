@@ -11,7 +11,7 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { cn } from "cn";
 
-const SEARCH_PAGE_SIZE = 24;
+const SEARCH_PAGE_SIZE = 48;
 
 export function StreamlineIconLookup(props: { value: string; onChange: (value: string) => void }) {
   const [query, setQuery] = useState("");
@@ -83,7 +83,7 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
   const hasResults = data?.some((page) => page.results.length > 0) ?? false;
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div className="relative">
         <Search
           aria-hidden
@@ -129,7 +129,7 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
       ) : hasResults ? (
         <>
           <div
-            className="grid grid-cols-4 gap-2"
+            className="grid grid-cols-8 gap-2"
             role="listbox"
             aria-label="Streamline icon results"
           >
@@ -191,11 +191,11 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
             </Button>
           ) : null}
         </>
-      ) : (
+      ) : error === undefined ? (
         <p className="m-0 py-4 text-center text-sm text-muted-foreground">
           No icons found for &ldquo;{debouncedQuery}&rdquo;.
         </p>
-      )}
+      ) : null}
 
       <p className="m-0 text-right text-xs text-muted-foreground/60">Powered by Streamline</p>
     </div>

@@ -8,12 +8,12 @@ describe("Text collection", () => {
 
     expect(textBrickCollection.collectionName).toBe("text");
     expect(textBrickCollection.collectionLabel).toBe("Text");
-    expect(defaultVariant?.payloadShape?.content).toMatchObject({
+    expect(defaultVariant?.configuration?.payloadShape?.content).toMatchObject({
       kind: "json",
       nullable: true,
       defaultValue: null,
     });
-    expect(defaultVariant?.payloadForm?.content).toBeTypeOf("function");
-    expect(defaultVariant?.getData).toBeUndefined();
+    expect(defaultVariant?.configuration?.payloadForm?.content).toBeTypeOf("function");
+    expect(defaultVariant?.configuration?.fetcher).toBeUndefined();
   });
 });

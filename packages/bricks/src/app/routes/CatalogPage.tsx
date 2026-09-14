@@ -123,11 +123,7 @@ export default function CatalogPage() {
                     aspectRatio: `${def.w} / ${def.h}`,
                   }}
                 >
-                  {selectedVariant.defaultData === undefined ? (
-                    <BrickComponent />
-                  ) : (
-                    <BrickComponent data={selectedVariant.defaultData} />
-                  )}
+                  <BrickComponent data={selectedVariant.defaultData} />
                 </DraggableBrick>
               </div>
             </div>

@@ -59,11 +59,7 @@ export default function BrickPage() {
                   height: brick.def.h * gridUnitPx,
                 }}
               >
-                {variant.defaultData === undefined ? (
-                  <BrickComponent />
-                ) : (
-                  <BrickComponent data={variant.defaultData} />
-                )}
+                <BrickComponent data={variant.defaultData} />
               </div>
             </div>
           </section>

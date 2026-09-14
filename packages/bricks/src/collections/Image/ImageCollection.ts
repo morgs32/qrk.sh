@@ -9,6 +9,8 @@ export const imageCollection = makeCollection({
   collectionDescription: "An editorial image preview.",
   variants: {
     default: makeVariant({
+      dataShape: null,
+      defaultData: null,
       variant: "default",
       variantLabel: "Default",
       variantDescription: "An editorial image preview.",

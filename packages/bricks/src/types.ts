@@ -28,52 +28,46 @@ export type ICollection = {
     | {
         variantLabel: string;
         variantDescription: string;
-        payloadShape: IShape;
-        payloadForm?: {
-          [fieldName: string]:
-            | {
-                bivarianceHack(props: {
-                  value: unknown;
-                  onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
-                }): ReactNode;
-              }["bivarianceHack"]
-            | undefined;
+        configuration?: {
+          payloadShape: IShape;
+          payloadForm?: {
+            [fieldName: string]:
+              | {
+                  bivarianceHack(props: {
+                    value: unknown;
+                    onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
+                  }): ReactNode;
+                }["bivarianceHack"]
+              | undefined;
+          };
+          fetcher?: never;
         };
-        dataShape?: never;
-        defaultData?: never;
-        getData?: never;
+        dataShape: null;
+        defaultData: null;
         sizes: Record<string, ICollectionBrick>;
       }
     | {
         variantLabel: string;
         variantDescription: string;
-        payloadShape?: never;
-        payloadForm?: never;
-        dataShape?: never;
-        defaultData?: never;
-        getData?: never;
-        sizes: Record<string, ICollectionBrick>;
-      }
-    | {
-        variantLabel: string;
-        variantDescription: string;
-        payloadShape: IShape;
-        payloadForm?: {
-          [fieldName: string]:
-            | {
-                bivarianceHack(props: {
-                  value: unknown;
-                  onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
-                }): ReactNode;
-              }["bivarianceHack"]
-            | undefined;
+        configuration?: {
+          payloadShape: IShape;
+          payloadForm?: {
+            [fieldName: string]:
+              | {
+                  bivarianceHack(props: {
+                    value: unknown;
+                    onChange: { bivarianceHack(value: unknown): void }["bivarianceHack"];
+                  }): ReactNode;
+                }["bivarianceHack"]
+              | undefined;
+          };
+          fetcher: (props: {
+            api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
+            payload: unknown;
+          }) => Promise<IRpcEither<unknown>>;
         };
         dataShape: IShape;
         defaultData: unknown;
-        getData: (props: {
-          api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-          payload: unknown;
-        }) => Promise<IRpcEither<unknown>>;
         sizes: Record<string, ICollectionBrick>;
       }
   >;
@@ -98,8 +92,8 @@ export type ICollectionBrick = {
   def: ICollectionBrickDef;
   /**
    * The collection erases each variant's concrete data type after makeVariant has
-   * checked it. Render boundaries still branch explicitly and supply data only for
-   * variants that declare defaultData.
+   * checked it. Render boundaries can supply defaultData directly; components
+   * without a data contract ignore the prop.
    */
   component: { bivarianceHack(props: { data?: unknown }): ReactNode }["bivarianceHack"];
 };

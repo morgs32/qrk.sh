@@ -5,8 +5,11 @@ import { Schema } from "effect";
 import { makeCollection } from "../../makeCollection";
 import { makeBrick } from "../../makeBrick";
 import { makeVariant } from "../../makeVariant";
-import { GitHubProfile4x2 } from "./GitHubProfile4x2";
-import { GitHubProfile4x4 } from "./GitHubProfile4x4";
+import { GitHubProfileWideXs } from "./GitHubProfileWideXs";
+import { GitHubProfileWideSm } from "./GitHubProfileWideSm";
+import { makeLayout } from "../../makeLayout";
+import { GitHubProfileSquareXs } from "./GitHubProfileSquareXs";
+import { GitHubProfileSquareMd } from "./GitHubProfileSquareMd";
 import { GitHubRepo4x2 } from "./GitHubRepo4x2";
 
 export const githubCollection = makeCollection({
@@ -108,7 +111,7 @@ export const githubCollection = makeCollection({
           h: 4,
           label: "4×4",
           order: 0,
-          component: GitHubProfile4x4,
+          component: makeLayout({ xs: GitHubProfileSquareXs, md: GitHubProfileSquareMd }),
         }),
         "4x2": makeBrick({
           variant: "profile",
@@ -117,7 +120,7 @@ export const githubCollection = makeCollection({
           h: 2,
           label: "4×2",
           order: 1,
-          component: GitHubProfile4x2,
+          component: makeLayout({ xs: GitHubProfileWideXs, sm: GitHubProfileWideSm }),
         }),
       },
     }),

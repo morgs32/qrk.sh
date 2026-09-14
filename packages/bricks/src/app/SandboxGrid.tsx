@@ -3,7 +3,6 @@ import { GripHorizontal } from "lucide-react";
 import { Button } from "../ui/button";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { collectionsHash } from "@qrk.sh/bricks";
-import { Link } from "react-router";
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 
 import { useGridStore } from "./useGridStore";
@@ -11,7 +10,6 @@ import { useGridStore } from "./useGridStore";
 export function SandboxGrid() {
   const containerRef = useRef<HTMLElement>(null);
   const { gridWidth, breakpoint, containerRef: observeGrid } = useBrickBreakpoint();
-  const suppressBrickClickRef = useRef(false);
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
   const dragScrollTopRef = useRef(0);
@@ -106,7 +104,6 @@ export function SandboxGrid() {
             setActiveBrickDrag(null);
           }}
           onDragStart={() => {
-            suppressBrickClickRef.current = true;
             dragScrollTopRef.current = containerRef.current?.scrollTop ?? 0;
             setDragging(true);
           }}
@@ -157,9 +154,6 @@ export function SandboxGrid() {
             }
             setOutsideBrickId(null);
             setDragging(false);
-            window.setTimeout(() => {
-              suppressBrickClickRef.current = false;
-            }, 0);
           }}
         >
           {layout.map((layoutItem) => {
@@ -181,21 +175,10 @@ export function SandboxGrid() {
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
                 >
-                  <div inert className="brick-drag-content pointer-events-none size-full">
+                  <div className="brick-drag-content size-full">
                     <BrickComponent breakpoint={breakpoint} data={brickDef.data} />
                   </div>
 
-                  <Link
-                    to={`/collections/${encodeURIComponent(brick.def.collectionName)}/brick/${encodeURIComponent(layoutItem.i)}`}
-                    aria-label={`Inspect ${brick.def.collectionName} ${brick.def.variant} ${brick.def.layout}`}
-                    draggable={false}
-                    className="absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600"
-                    onClick={(event) => {
-                      if (suppressBrickClickRef.current) {
-                        event.preventDefault();
-                      }
-                    }}
-                  />
                   <Button
                     type="button"
                     variant="ghost"

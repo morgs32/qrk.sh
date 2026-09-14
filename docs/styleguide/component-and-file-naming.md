@@ -265,3 +265,13 @@ frame. Drag surfaces stay inside with `size-full`; surrounding spacing stays
 outside. Panels scroll horizontally when needed rather than shrinking previews.
 Placed bricks remain positioned and sized by the grid, using the same measurement.
 Import the frame directly or through `@qrk.sh/bricks/BrickPreviewFrame`.
+
+### Breakpoint presentation names
+
+Follow [brick layout conventions](../../wiki/brick-layout-conventions.md):
+`<Collection><Variant><Shape><Breakpoint>`, for example `GitHubProfileSquareXs`
+and `GitHubProfileSquareMd`, with matching filenames. Select presentations with
+`makeLayout` at the brick definition.
+
+For the wide profile, use `GitHubProfileWideXs` and `GitHubProfileWideSm` in
+matching files; `md` and `lg` inherit `Sm` through `makeLayout`.

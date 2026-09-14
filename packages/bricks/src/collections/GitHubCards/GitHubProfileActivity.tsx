@@ -3,42 +3,29 @@
 import { ActivityCalendar } from "react-activity-calendar";
 
 export function GitHubProfileActivity(props: {
-  breakpoint?: "xs" | "sm" | "md" | "lg";
   contributions: Array<{
     date: string;
     count: number;
     level: 0 | 1 | 2 | 3 | 4;
   }>;
 }) {
-  const compact = props.breakpoint === "xs";
-
   return (
     <div
       data-github-profile-activity
-      className={
-        compact
-          ? "mt-auto h-1/2 w-full shrink-0 [&>article]:h-full [&>article]:w-full! [&>article>div]:h-full [&>article>div]:pt-0! [&_svg]:h-full [&_svg]:w-auto [&_svg]:max-w-none [&_rect]:stroke-none!"
-          : "w-full overflow-x-auto [&_[class$=legend-colors]]:ml-0!"
-      }
-      style={
-        compact
-          ? undefined
-          : {
-              maskImage: "linear-gradient(to right, black calc(100% - 20px), transparent)",
-            }
-      }
+      className="w-full overflow-x-auto [&_[class$=legend-colors]]:ml-0!"
+      style={{ maskImage: "linear-gradient(to right, black calc(100% - 20px), transparent)" }}
     >
       <ActivityCalendar
         data={props.contributions}
-        blockMargin={compact ? 1 : 2}
-        blockRadius={compact ? 0 : 2}
-        blockSize={compact ? 2 : 9}
+        blockMargin={2}
+        blockRadius={2}
+        blockSize={9}
         colorScheme="light"
         fontSize={10}
         showTotalCount={false}
-        showMonthLabels={!compact}
-        showColorLegend={!compact}
-        showWeekdayLabels={compact ? false : ["mon", "wed", "fri"]}
+        showMonthLabels={true}
+        showColorLegend={true}
+        showWeekdayLabels={["mon", "wed", "fri"]}
       />
     </div>
   );

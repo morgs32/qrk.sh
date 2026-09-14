@@ -30,7 +30,7 @@ a {
   text-decoration: none;
 }
 
-/* Keep every brick's content below its inspect link and corner controls. */
+/* Keep every brick's content below its corner controls. */
 .brick-drag-surface {
   position: relative;
   isolation: isolate;

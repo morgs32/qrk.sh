@@ -1,6 +1,6 @@
 import { PrimitiveKind } from "@zerospin/schema";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
-import { defaultStyles, JsonView } from "react-json-view-lite";
+import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
 import { useEffect, useRef, useState } from "react";
 import type { ScraperApi } from "../scraper/ScraperApi.public";
@@ -87,11 +87,16 @@ export function FetcherConfiguration(props: {
       <OrderedTableOfContents.Title>Configure</OrderedTableOfContents.Title>
       {fetchData === undefined ? (
         <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="variant-payload-result">
-          <JsonView data={payloadValues} style={{ ...defaultStyles, container: "bg-zinc-100" }} />
+          <JsonView
+            shouldExpandNode={collapseAllNested}
+            data={payloadValues}
+            style={{ ...defaultStyles, container: "bg-zinc-100" }}
+          />
         </div>
       ) : (
         <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="variant-data-result">
           <JsonView
+            shouldExpandNode={collapseAllNested}
             data={{ data: props.data }}
             style={{ ...defaultStyles, container: "bg-zinc-100" }}
           />
@@ -137,7 +142,7 @@ export function FetcherConfiguration(props: {
             }
 
             return (
-              <div className="space-y-2" key={fieldName}>
+              <div className="flex flex-col items-start gap-2" key={fieldName}>
                 <label className="block text-sm font-medium" htmlFor={`payload-${fieldName}`}>
                   {fieldName === "url" ? "URL" : fieldName}
                 </label>

@@ -1,4 +1,4 @@
-import { defaultStyles, JsonView } from "react-json-view-lite";
+import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
 import type { ICollection } from "../types";
 import { OrderedTableOfContents } from "../OrderedTableOfContents";
@@ -16,6 +16,7 @@ export function Configuration(props: {
         <OrderedTableOfContents.Title>Configure</OrderedTableOfContents.Title>
         <div className="overflow-auto bg-zinc-100 px-2 py-4">
           <JsonView
+            shouldExpandNode={collapseAllNested}
             data={{ data: props.data }}
             style={{ ...defaultStyles, container: "bg-zinc-100" }}
           />
@@ -31,6 +32,7 @@ export function Configuration(props: {
           <OrderedTableOfContents.Title>Configure</OrderedTableOfContents.Title>
           <div className="overflow-auto bg-zinc-100 px-2 py-4">
             <JsonView
+              shouldExpandNode={collapseAllNested}
               data={{ data: props.data }}
               style={{ ...defaultStyles, container: "bg-zinc-100" }}
             />

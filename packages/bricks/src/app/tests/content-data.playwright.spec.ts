@@ -1,27 +1,28 @@
 import { expect, test } from "@playwright/test";
 import type { IRpcEither } from "../../scraper/types.public";
 
-test.describe("variant configuration requests", () => {
+test.describe("content configuration requests", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/collections/github/profile");
     await expect(page.getByLabel("url")).toBeVisible();
     await page.evaluate(async () => {
-      // Supply a whole-payload form and authored fetcher. The payload decoder,
+      // Supply a whole-content-options form and authored fetcher. The contentOptions decoder,
       // request lifecycle, validated store and preview remain under test.
       const catalogPath = "/src/collectionsHash.ts";
       const factoryPath = "/src/makeFetcherConfiguration.ts";
       const { collectionsHash } = await import(catalogPath);
       const { makeFetcherConfiguration } = await import(factoryPath);
       const reactPath = "/node_modules/.vite/deps/react.js";
-      const { createElement } = await import(reactPath);
-      const variant = collectionsHash.github.variants.profile;
-      const defaults = variant.defaultData;
-      variant.configuration = makeFetcherConfiguration({
-        payloadShape: {
-          ...variant.configuration.payloadShape,
-          suffix: { ...variant.configuration.payloadShape.url, defaultValue: "" },
+      const { default: React } = await import(reactPath);
+      const { createElement } = React;
+      const content = collectionsHash.github.contents.profile;
+      const defaults = content.defaultData;
+      content.configuration = makeFetcherConfiguration({
+        contentOptionsShape: {
+          ...content.configuration.contentOptionsShape,
+          suffix: { ...content.configuration.contentOptionsShape.url, defaultValue: "" },
         },
-        payloadForm: ({
+        contentOptionsForm: ({
           value,
           onChange,
         }: {
@@ -30,7 +31,7 @@ test.describe("variant configuration requests", () => {
         }) =>
           createElement(
             "div",
-            { "data-testid": "whole-payload-form" },
+            { "data-testid": "whole-content-options-form" },
             createElement("input", {
               "aria-label": "url",
               value: value.url,
@@ -45,19 +46,24 @@ test.describe("variant configuration requests", () => {
             }),
           ),
         fetcher: async ({
-          payload,
+          contentOptions,
           setData,
         }: {
-          payload: { url: string; suffix: string };
+          contentOptions: { url: string; suffix: string };
           setData: (data: unknown) => void;
         }): Promise<IRpcEither<void>> => {
-          document.documentElement.setAttribute("data-last-payload", JSON.stringify(payload));
-          document.documentElement.setAttribute(`data-request-${payload.url}`, "pending");
+          document.documentElement.setAttribute(
+            "data-last-content-options",
+            JSON.stringify(contentOptions),
+          );
+          document.documentElement.setAttribute(`data-request-${contentOptions.url}`, "pending");
           await new Promise<void>((resolve) => {
-            document.addEventListener(`finish:${payload.url}`, () => resolve(), { once: true });
+            document.addEventListener(`finish:${contentOptions.url}`, () => resolve(), {
+              once: true,
+            });
           });
           try {
-            if (payload.url === "failure") {
+            if (contentOptions.url === "failure") {
               return {
                 _tag: "Left",
                 left: {
@@ -68,53 +74,64 @@ test.describe("variant configuration requests", () => {
             }
             setData({
               ...defaults,
-              login: payload.url === "invalid" ? 42 : payload.url + payload.suffix,
+              login:
+                contentOptions.url === "invalid" ? 42 : contentOptions.url + contentOptions.suffix,
             });
             return { _tag: "Right", right: undefined };
           } finally {
-            document.documentElement.setAttribute(`data-request-${payload.url}`, "settled");
+            document.documentElement.setAttribute(`data-request-${contentOptions.url}`, "settled");
           }
         },
       });
     });
     // Remount through the real router so the form reads the fixture contract.
-    await page.locator('a[href="/collections/github?variant=profile&layout=4x4"]').click();
+    await page.locator('a[href="/collections/github?content=profile&view=4x4"]').click();
     await expect(page.getByLabel("suffix")).toBeVisible();
-    await expect(page.getByTestId("whole-payload-form")).toHaveCount(1);
+    await expect(page.getByTestId("whole-content-options-form")).toHaveCount(1);
   });
 
-  test("fetches on change, retains data across layouts and variants, and resets on reload", async ({
+  test("fetches on change, retains data across views and contents, and resets on reload", async ({
     page,
   }) => {
-    const preview = page.locator("[data-variant-layout-brick]");
+    const preview = page.locator("[data-content-view-brick]");
     await expect(preview.getByText("@morgs32")).toBeVisible();
-    await expect(page.locator("html")).not.toHaveAttribute("data-last-payload");
+    await expect(page.locator("html")).not.toHaveAttribute("data-last-content-options");
     await expect(page.getByRole("button", { name: "Get data" })).toHaveCount(0);
 
     await page.getByLabel("url", { exact: true }).fill("first");
     await expect(page.locator("html")).toHaveAttribute(
-      "data-last-payload",
+      "data-last-content-options",
       JSON.stringify({ url: "first", suffix: "" }),
     );
     await expect(page.getByRole("status")).toHaveText("Getting data...");
     await expect(preview.getByText("@morgs32")).toBeVisible();
     await page.evaluate(() => document.dispatchEvent(new Event("finish:first")));
     await expect(preview.getByText("@first")).toBeVisible();
-    await expect(page.getByTestId("variant-data-result")).toContainText("first");
+    await page
+      .getByTestId("content-data-result")
+      .getByRole("button", { name: "expand JSON", exact: true })
+      .first()
+      .click();
+    await expect(page.getByTestId("content-data-result")).toContainText("first");
 
     await page.getByLabel("suffix").fill("-updated");
     await expect(page.locator("html")).toHaveAttribute(
-      "data-last-payload",
+      "data-last-content-options",
       JSON.stringify({ url: "first", suffix: "-updated" }),
     );
     await page.evaluate(() => document.dispatchEvent(new Event("finish:first")));
     await expect(preview.getByText("@first-updated")).toBeVisible();
-    await page.locator('a[href="/collections/github?variant=profile&layout=4x2"]').click();
-    await expect(page.locator('[data-variant-layout-brick="github/profile/4x2"]')).toBeVisible();
-    await expect(page.getByTestId("variant-data-result")).toContainText("first-updated");
-    await page.locator('a[href="/collections/github?variant=repo"]').click();
-    await expect(page.getByTestId("variant-data-result")).toHaveCount(0);
-    await page.locator('a[href="/collections/github?variant=profile&layout=4x4"]').click();
+    await page.locator('a[href="/collections/github?content=profile&view=4x2"]').click();
+    await expect(page.locator('[data-content-view-brick="github/profile/4x2"]')).toBeVisible();
+    await page
+      .getByTestId("content-data-result")
+      .getByRole("button", { name: "expand JSON", exact: true })
+      .first()
+      .click();
+    await expect(page.getByTestId("content-data-result")).toContainText("first-updated");
+    await page.locator('a[href="/collections/github?content=repo"]').click();
+    await expect(page.getByTestId("content-data-result")).toHaveCount(0);
+    await page.locator('a[href="/collections/github?content=profile&view=4x4"]').click();
     await expect(preview.getByText("@first-updated")).toBeVisible();
     await page.reload();
     await expect(preview.getByText("@morgs32")).toBeVisible();
@@ -122,7 +139,7 @@ test.describe("variant configuration requests", () => {
 
   test("only the latest request can publish data or errors", async ({ page }) => {
     const input = page.getByLabel("url", { exact: true });
-    const preview = page.locator("[data-variant-layout-brick]");
+    const preview = page.locator("[data-content-view-brick]");
     await input.fill("first");
     await expect(page.locator("html")).toHaveAttribute("data-request-first", "pending");
     await input.fill("second");
@@ -139,7 +156,7 @@ test.describe("variant configuration requests", () => {
     await expect(page.locator("html")).toHaveAttribute("data-request-third", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:failure")));
     await expect(page.locator("html")).toHaveAttribute("data-request-failure", "settled");
-    await expect(page.getByTestId("variant-data-error")).toHaveCount(0);
+    await expect(page.getByTestId("content-data-error")).toHaveCount(0);
     await expect(page.getByRole("status")).toHaveText("Getting data...");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:third")));
     await expect(preview.getByText("@third")).toBeVisible();
@@ -148,7 +165,7 @@ test.describe("variant configuration requests", () => {
 
   test("retains the last valid data after provider and validation failures", async ({ page }) => {
     const input = page.getByLabel("url", { exact: true });
-    const preview = page.locator("[data-variant-layout-brick]");
+    const preview = page.locator("[data-content-view-brick]");
     await input.fill("valid");
     await expect(page.locator("html")).toHaveAttribute("data-request-valid", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:valid")));
@@ -156,13 +173,13 @@ test.describe("variant configuration requests", () => {
     await input.fill("failure");
     await expect(page.locator("html")).toHaveAttribute("data-request-failure", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:failure")));
-    await expect(page.getByTestId("variant-data-error")).toContainText("profile-unavailable");
+    await expect(page.getByTestId("content-data-error")).toContainText("profile-unavailable");
     await expect(preview.getByText("@valid")).toBeVisible();
     await input.fill("invalid");
     await expect(page.locator("html")).toHaveAttribute("data-request-invalid", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:invalid")));
-    await expect(page.getByTestId("variant-request-error")).toBeVisible();
-    await expect(page.getByTestId("variant-data-error")).toHaveCount(0);
+    await expect(page.getByTestId("content-request-error")).toBeVisible();
+    await expect(page.getByTestId("content-data-error")).toHaveCount(0);
     await expect(preview.getByText("@valid")).toBeVisible();
   });
 
@@ -171,21 +188,26 @@ test.describe("variant configuration requests", () => {
   }) => {
     await page.getByLabel("url", { exact: true }).fill("old");
     await expect(page.locator("html")).toHaveAttribute("data-request-old", "pending");
-    await page.locator('a[href="/collections/github?variant=profile&layout=4x2"]').click();
-    await expect(page.locator('[data-variant-layout-brick="github/profile/4x2"]')).toBeVisible();
+    await page.locator('a[href="/collections/github?content=profile&view=4x2"]').click();
+    await expect(page.locator('[data-content-view-brick="github/profile/4x2"]')).toBeVisible();
     await page.getByLabel("url", { exact: true }).fill("new");
     await expect(page.locator("html")).toHaveAttribute("data-request-new", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:new")));
-    await expect(page.getByTestId("variant-data-result")).toContainText("new");
+    await page
+      .getByTestId("content-data-result")
+      .getByRole("button", { name: "expand JSON", exact: true })
+      .first()
+      .click();
+    await expect(page.getByTestId("content-data-result")).toContainText("new");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:old")));
     await expect(page.locator("html")).toHaveAttribute("data-request-old", "settled");
-    await expect(page.getByTestId("variant-data-result")).toContainText("new");
-    await page.locator('a[href="/collections/github?variant=profile&layout=4x4"]').click();
-    await expect(page.locator("[data-variant-layout-brick]").getByText("@new")).toBeVisible();
+    await expect(page.getByTestId("content-data-result")).toContainText("new");
+    await page.locator('a[href="/collections/github?content=profile&view=4x4"]').click();
+    await expect(page.locator("[data-content-view-brick]").getByText("@new")).toBeVisible();
   });
 });
 
-test("generated payload controls fetch only after Submit", async ({ page }) => {
+test("generated content options controls fetch only after Submit", async ({ page }) => {
   await page.goto("/collections/github/profile");
   await expect(page.getByLabel("URL", { exact: true })).toBeVisible();
   await page.evaluate(async () => {
@@ -193,27 +215,36 @@ test("generated payload controls fetch only after Submit", async ({ page }) => {
     const factoryPath = "/src/makeFetcherConfiguration.ts";
     const { collectionsHash } = await import(catalogPath);
     const { makeFetcherConfiguration } = await import(factoryPath);
-    const variant = collectionsHash.github.variants.profile;
-    variant.configuration = makeFetcherConfiguration({
-      payloadShape: variant.configuration.payloadShape,
+    const content = collectionsHash.github.contents.profile;
+    content.configuration = makeFetcherConfiguration({
+      contentOptionsShape: {
+        ...content.configuration.contentOptionsShape,
+        url: { ...content.configuration.contentOptionsShape.url, defaultValue: "fixture-default" },
+      },
       fetcher: async ({
-        payload,
+        contentOptions,
         setData,
       }: {
-        payload: { url: string };
+        contentOptions: { url: string };
         setData: (data: unknown) => void;
       }): Promise<IRpcEither<void>> => {
-        document.documentElement.setAttribute("data-submitted-url", payload.url);
-        setData({ ...variant.defaultData, login: payload.url });
+        document.documentElement.setAttribute("data-submitted-url", contentOptions.url);
+        setData({ ...content.defaultData, login: contentOptions.url });
         return { _tag: "Right", right: undefined };
       },
     });
   });
-  await page.locator('a[href="/collections/github?variant=profile&layout=4x4"]').click();
+  await page.locator('a[href="/collections/github?content=profile&view=4x4"]').click();
+  await expect(page.getByLabel("URL", { exact: true })).toHaveValue("fixture-default");
   await page.getByLabel("URL", { exact: true }).fill("submitted-profile");
   await expect(page.locator("html")).not.toHaveAttribute("data-submitted-url");
   await expect(page.getByRole("status")).toHaveCount(0);
   await page.getByRole("button", { name: "Submit", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-submitted-url", "submitted-profile");
-  await expect(page.getByTestId("variant-data-result")).toContainText("submitted-profile");
+  await page
+    .getByTestId("content-data-result")
+    .getByRole("button", { name: "expand JSON", exact: true })
+    .first()
+    .click();
+  await expect(page.getByTestId("content-data-result")).toContainText("submitted-profile");
 });

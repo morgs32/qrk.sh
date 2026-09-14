@@ -6,7 +6,7 @@ test("shares one persisted grid across the root, collection, and detail routes",
   await page.goto("/");
   await page.evaluate(() => {
     window.localStorage.removeItem("qrk-bricks-sandbox-grid");
-    window.localStorage.removeItem("qrk-bricks-sandbox-single-grid");
+    window.localStorage.removeItem("qrk-bricks-sandbox-responsive-bricks-v2");
   });
   await page.reload();
   await page.waitForLoadState("networkidle");
@@ -34,7 +34,7 @@ test("shares one persisted grid across the root, collection, and detail routes",
 
   const rootGrid = page.getByLabel("Brick grid");
   await expect(rootGrid).toBeVisible();
-  await expect(rootGrid.getByTestId(/grid-fixture-/)).toHaveCount(4);
+  await expect(rootGrid.getByTestId(/grid-fixture-/)).toHaveCount(0);
   const persistentGridElement = await rootGrid.elementHandle();
   expect(persistentGridElement).not.toBeNull();
   const rootGridLayout = rootGrid.locator(".react-grid-layout");
@@ -75,9 +75,9 @@ test("shares one persisted grid across the root, collection, and detail routes",
   await page.locator('[data-collection-link="swatch"]').click();
   await page.waitForLoadState("networkidle");
   expect(await persistentGridElement?.evaluate((element) => element.isConnected)).toBe(true);
-  await expect(page.locator("[data-brick-full-layout]")).toHaveCount(3);
+  await expect(page.locator("[data-brick-full-view]")).toHaveCount(3);
   const brickSizes = await page
-    .locator('[data-brick-full-layout="swatch/default/8x2"]')
+    .locator('[data-brick-full-view="swatch/default/8x2"]')
     .evaluate((brickElement) => {
       const brick = brickElement.getBoundingClientRect();
       const pane = brickElement.parentElement?.getBoundingClientRect();
@@ -87,12 +87,12 @@ test("shares one persisted grid across the root, collection, and detail routes",
   expect(brickSizes.brickHeight).toBe(brickSizes.brickWidth / 4);
 
   const twoByTwoSize = await page
-    .locator('[data-brick-full-layout="swatch/default/2x2"]')
+    .locator('[data-brick-full-view="swatch/default/2x2"]')
     .evaluate((brickElement) => brickElement.getBoundingClientRect().width);
   expect(twoByTwoSize).toBe(brickSizes.brickWidth / 4);
 
   const collectionGrid = page.getByLabel("Brick grid");
-  await expect(collectionGrid.getByTestId(/grid-fixture-/)).toHaveCount(4);
+  await expect(collectionGrid.getByTestId(/grid-fixture-/)).toHaveCount(0);
   await expect(swatchBrick).toBeVisible();
   await expect(iconBrick).toBeVisible();
   await expect(swatchBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
@@ -107,7 +107,7 @@ test("shares one persisted grid across the root, collection, and detail routes",
 
   const swatchBrickId = await swatchBrick.getAttribute("data-brick-id");
   expect(swatchBrickId).not.toBeNull();
-  await swatchBrick.click();
+  await swatchBrick.getByRole("link", { name: "Edit", exact: true }).click();
   await expect(page).toHaveURL(/\/collections\/swatch\/brick\/[^/]+$/);
   await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
   await expect(page.getByTestId("selected-brick-preview").locator("svg")).toBeVisible();
@@ -120,7 +120,7 @@ test("shares one persisted grid across the root, collection, and detail routes",
   const restoredSwatchBrick = page.locator('[data-brick="swatch/default/2x2"]');
   await expect(restoredSwatchBrick).toBeVisible();
   await expect(page.locator('[data-brick="icon/default/2x2"]')).toBeVisible();
-  await expect(page.getByLabel("Brick grid").getByTestId(/grid-fixture-/)).toHaveCount(4);
+  await expect(page.getByLabel("Brick grid").getByTestId(/grid-fixture-/)).toHaveCount(0);
   await expect(restoredSwatchBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
   await expect(restoredSwatchBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
 
@@ -171,7 +171,7 @@ test("renders default GitHub profile data in the direct preview", async ({ page 
 test("loads a selected Google place into the Map preview", async ({ page }) => {
   await page.goto("/collections/map/place");
 
-  const mapPreview = page.locator('[data-variant-layout-brick="map/place/4x4"]');
+  const mapPreview = page.locator('[data-content-view-brick="map/place/4x4"]');
   await expect(
     mapPreview.locator('[data-map-place-id="ChIJ7cv00DwsDogRAMDACa2m4K8"]'),
   ).toBeVisible();
@@ -189,7 +189,7 @@ test("loads a selected Google place into the Map preview", async ({ page }) => {
   await placeLookup.press("Enter");
   await expect(page.getByRole("listbox")).toHaveCount(0);
 
-  const result = page.getByTestId("variant-data-result");
+  const result = page.getByTestId("content-data-result");
   await expect(result).toContainText('name:"Millennium Park"');
   await expect(result).toContainText("latitude:");
   await expect(result).toContainText("longitude:");
@@ -204,7 +204,7 @@ test("loads a selected Google place into the Map preview", async ({ page }) => {
 test("searches Streamline and loads the selected SVG into every Icon preview", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/collections/icon/default");
-  const previewImage = page.locator("[data-variant-layout-brick] img");
+  const previewImage = page.locator("[data-content-view-brick] img");
   await expect(previewImage).toBeVisible();
   const initialSource = await previewImage.getAttribute("src");
   if (initialSource === null) throw new Error("Expected an initial icon image");
@@ -220,24 +220,24 @@ test("searches Streamline and loads the selected SVG into every Icon preview", a
   await (await svgResponse).finished();
   await expect(page.getByRole("status")).toHaveCount(0);
   const errors = await page
-    .locator('[data-testid="variant-data-error"], [data-testid="variant-request-error"]')
+    .locator('[data-testid="content-data-error"], [data-testid="content-request-error"]')
     .allTextContents();
   expect(errors).toEqual([]);
   await expect(firstIcon).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("button", { name: "Get data" })).toHaveCount(0);
 
-  const result = page.getByTestId("variant-data-result");
+  const result = page.getByTestId("content-data-result");
   await expect(result).toContainText("ico_");
   await expect(result).toContainText("<svg");
   await expect(previewImage).not.toHaveAttribute("src", initialSource);
   const selectedSource = await previewImage.getAttribute("src");
   if (selectedSource === null) throw new Error("Expected the selected icon image");
-  await expect(page.getByTestId("variant-data-error")).toHaveCount(0);
+  await expect(page.getByTestId("content-data-error")).toHaveCount(0);
 
-  for (const layout of ["4x4", "8x2", "2x2"]) {
-    await page.locator(`a[href="/collections/icon?variant=default&layout=${layout}"]`).click();
+  for (const view of ["4x4", "8x2", "2x2"]) {
+    await page.locator(`a[href="/collections/icon?content=default&view=${view}"]`).click();
     await expect(
-      page.locator(`[data-variant-layout-brick="icon/default/${layout}"] img`),
+      page.locator(`[data-content-view-brick="icon/default/${view}"] img`),
     ).toHaveAttribute("src", selectedSource);
     await expect(result).toContainText("ico_");
   }
@@ -250,7 +250,7 @@ test("renders the Map brick through preview, collection, Grid, and detail bounda
   await expect(page.getByTestId("brick-preview").locator(".mapboxgl-canvas")).toBeVisible();
 
   await page.goto("/collections/map");
-  const collectionMap = page.locator('[data-brick-full-layout="map/place/4x4"]');
+  const collectionMap = page.locator('[data-brick-full-view="map/place/4x4"]');
   await expect(collectionMap.locator(".mapboxgl-canvas")).toBeVisible();
 
   const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
@@ -260,14 +260,14 @@ test("renders the Map brick through preview, collection, Grid, and detail bounda
 
   const placedMap = page.locator('[data-brick="map/place/4x4"]');
   await expect(placedMap.locator(".mapboxgl-canvas")).toBeVisible();
-  await placedMap.click({ position: { x: 2, y: 2 } });
+  await placedMap.getByRole("link", { name: "Edit", exact: true }).click();
   await expect(page).toHaveURL(/\/collections\/map\/brick\/[^/]+$/);
   await expect(
     page.getByTestId("selected-brick-preview").locator(".mapboxgl-canvas"),
   ).toBeVisible();
 });
 
-test("renders one Figma thumbnail variant", async ({ page }) => {
+test("renders one Figma thumbnail content", async ({ page }) => {
   await page.goto("/collections/figma");
   await expect(page.getByRole("link", { name: "Thumbnail", exact: true })).toBeVisible();
   const card = page.locator('[data-figma-card="thumbnail"]');
@@ -276,7 +276,7 @@ test("renders one Figma thumbnail variant", async ({ page }) => {
   await expect(card.locator('[data-figma-fallback="thumbnail"]')).toBeVisible();
 });
 
-test("renders the GitHub profile activity layout", async ({ page }) => {
+test("renders the GitHub profile activity view", async ({ page }) => {
   await page.goto("/bricks/github/profile/4x2");
 
   await expect(
@@ -296,9 +296,9 @@ test("authors Text collection content as Tiptap JSON", async ({ page }) => {
   await editor.selectText();
   await page.getByRole("button", { name: "Bold" }).click();
 
-  const payload = page.getByTestId("variant-data-result");
-  await expect(payload).toContainText("Hello from Tiptap");
-  await expect(payload).toContainText("bold");
+  const contentOptions = page.getByTestId("content-data-result");
+  await expect(contentOptions).toContainText("Hello from Tiptap");
+  await expect(contentOptions).toContainText("bold");
 });
 
 test("shows brick config in a collection tab", async ({ page }) => {
@@ -311,34 +311,34 @@ test("shows brick config in a collection tab", async ({ page }) => {
     "true",
   );
   await expect(
-    page.locator('[data-brick-full-layout="github/profile/4x4"]').getByText("@morgs32"),
+    page.locator('[data-brick-full-view="github/profile/4x4"]').getByText("@morgs32"),
   ).toBeVisible();
   await page.getByRole("link", { name: "Configure" }).first().click();
   await expect(page).toHaveURL(/\/collections\/github\/profile$/);
-  const variantConfigurationPane = page.getByTestId("variant-configuration-pane");
-  await expect(variantConfigurationPane).toBeVisible();
+  const contentConfigurationPane = page.getByTestId("content-configuration-pane");
+  await expect(contentConfigurationPane).toBeVisible();
   await expect(page.getByLabel("Brick grid")).toHaveCount(1);
-  const variantConfigurationWidths = await variantConfigurationPane.evaluate((element) => ({
+  const contentConfigurationWidths = await contentConfigurationPane.evaluate((element) => ({
     pane: element.getBoundingClientRect().width,
     document: document.documentElement.clientWidth,
   }));
-  expect(variantConfigurationWidths.pane).toBe(variantConfigurationWidths.document);
-  await expect(page.getByText("Variant name", { exact: true })).toBeVisible();
+  expect(contentConfigurationWidths.pane).toBe(contentConfigurationWidths.document);
+  await expect(page.getByText("Content name", { exact: true })).toBeVisible();
   await expect(page.getByText("Profile", { exact: true })).toBeVisible();
-  await expect(page.getByText("Layout", { exact: true })).toHaveCount(2);
-  await expect(page.locator('[data-variant-layout-brick="github/profile/4x4"]')).toBeVisible();
-  await expect(page.locator('[data-variant-layout-brick="github/profile/4x2"]')).toBeVisible();
+  await expect(page.getByText("View", { exact: true })).toHaveCount(2);
+  await expect(page.locator('[data-content-view-brick="github/profile/4x4"]')).toBeVisible();
+  await expect(page.locator('[data-content-view-brick="github/profile/4x2"]')).toBeVisible();
   await expect(
-    page.locator('[data-variant-layout-brick="github/profile/4x4"]').getByText("@morgs32"),
+    page.locator('[data-content-view-brick="github/profile/4x4"]').getByText("@morgs32"),
   ).toBeVisible();
   await expect(
     page
-      .locator('[data-variant-layout-brick="github/profile/4x2"]')
+      .locator('[data-content-view-brick="github/profile/4x2"]')
       .locator("[data-github-profile-activity]"),
   ).toBeVisible();
   await expect(page.getByLabel("url")).toHaveValue("https://github.com/morgs32");
   await expect(page.getByRole("button", { name: "Get data" })).toHaveCount(0);
-  const initialResult = page.getByTestId("variant-data-result");
+  const initialResult = page.getByTestId("content-data-result");
   await expect(initialResult).toContainText("id:1364795");
   await expect(initialResult).toContainText('node_id:"MDQ6VXNlcjEzNjQ3OTU="');
   await expect(initialResult).toContainText('login:"morgs32"');
@@ -348,7 +348,7 @@ test("shows brick config in a collection tab", async ({ page }) => {
   await initialResult.getByRole("textbox").press("Enter");
   await expect(initialResult).toContainText('login:"edited-default"');
   await expect(
-    page.locator('[data-variant-layout-brick="github/profile/4x4"]').getByText("@edited-default"),
+    page.locator('[data-content-view-brick="github/profile/4x4"]').getByText("@edited-default"),
   ).toBeVisible();
 });
 
@@ -362,11 +362,11 @@ test("updates the GitHub profile preview and retains the last success after an e
   await expect(urlInput).toHaveValue("https://github.com/morgs32");
   await urlInput.fill("https://github.com/octocat");
 
-  const result = page.getByTestId("variant-data-result");
+  const result = page.getByTestId("content-data-result");
   await expect(result).toBeVisible();
   await expect(result).toContainText('login:"octocat"');
   await expect(
-    page.locator('[data-variant-layout-brick="github/profile/4x4"]').getByText("@octocat"),
+    page.locator('[data-content-view-brick="github/profile/4x4"]').getByText("@octocat"),
   ).toBeVisible();
 
   await result.getByText('"octocat"', { exact: true }).dblclick();
@@ -374,29 +374,29 @@ test("updates the GitHub profile preview and retains the last success after an e
   await result.getByRole("textbox").press("Enter");
   await expect(result).toContainText('login:"edited-fetched"');
   await expect(
-    page.locator('[data-variant-layout-brick="github/profile/4x4"]').getByText("@edited-fetched"),
+    page.locator('[data-content-view-brick="github/profile/4x4"]').getByText("@edited-fetched"),
   ).toBeVisible();
 
   await page.getByLabel("url").fill("https://github.com/topics/effect");
 
-  const error = page.getByTestId("variant-data-error");
+  const error = page.getByTestId("content-data-error");
   await expect(error).toBeVisible();
   await expect(error).toContainText("invalid-scrape-request");
   await expect(error).toContainText("GitHub scrapes require https://github.com/<login>");
   await expect(result).toContainText('login:"edited-fetched"');
   await expect(
-    page.locator('[data-variant-layout-brick="github/profile/4x4"]').getByText("@edited-fetched"),
+    page.locator('[data-content-view-brick="github/profile/4x4"]').getByText("@edited-fetched"),
   ).toBeVisible();
 });
 
-test("renders every layout on a variant page", async ({ page }) => {
+test("renders every view on a content page", async ({ page }) => {
   await page.goto("/collections/swatch/default");
   await page.waitForLoadState("networkidle");
 
-  await expect(page.getByText("Layout", { exact: true })).toHaveCount(3);
-  await expect(page.locator('[data-variant-layout-brick="swatch/default/2x2"]')).toBeVisible();
-  await expect(page.locator('[data-variant-layout-brick="swatch/default/4x4"]')).toBeVisible();
-  await expect(page.locator('[data-variant-layout-brick="swatch/default/8x2"]')).toBeVisible();
+  await expect(page.getByText("View", { exact: true })).toHaveCount(3);
+  await expect(page.locator('[data-content-view-brick="swatch/default/2x2"]')).toBeVisible();
+  await expect(page.locator('[data-content-view-brick="swatch/default/4x4"]')).toBeVisible();
+  await expect(page.locator('[data-content-view-brick="swatch/default/8x2"]')).toBeVisible();
 });
 
 test("resizes the preview proportionally and switches canvas theme", async ({ page }) => {

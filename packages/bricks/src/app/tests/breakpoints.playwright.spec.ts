@@ -95,8 +95,8 @@ test("standalone slider updates the compact view without losing contributions", 
 
 test("placed bricks respond to presets and keep their data and positions", async ({ page }) => {
   await page.setViewportSize({ width: 3000, height: 1000 });
-  await page.goto("/collections/github?variant=profile&layout=4x2");
-  const source = page.locator('[data-variant-layout-brick="github/profile/4x2"]');
+  await page.goto("/collections/github?content=profile&view=4x2");
+  const source = page.locator('[data-content-view-brick="github/profile/4x2"]');
   await expect(source.locator("[data-brick-breakpoint]")).toHaveAttribute(
     "data-brick-breakpoint",
     "lg",

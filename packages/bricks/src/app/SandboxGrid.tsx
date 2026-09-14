@@ -1,8 +1,10 @@
+import { Link } from "react-router";
+import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 import { useBrickBreakpoint } from "../BrickBreakpointProvider";
-import { GripHorizontal } from "lucide-react";
+import { GripHorizontal, Pencil } from "lucide-react";
 import { Button } from "../ui/button";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { collectionsHash } from "@qrk.sh/bricks";
+import { collectionsHash } from "../collectionsHash";
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 
 import { useGridStore } from "./useGridStore";
@@ -13,7 +15,6 @@ export function SandboxGrid() {
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
   const dragScrollTopRef = useRef(0);
-  const layout = useGridStore((state) => state.layout);
   const bricksById = useGridStore((state) => state.bricksById);
   const activeBrickDrag = useGridStore((state) => state.activeBrickDrag);
   const hasHydrated = useGridStore((state) => state.hasHydrated);
@@ -33,6 +34,10 @@ export function SandboxGrid() {
     }
   }, [dragging, containerRef]);
 
+  const layout = Object.values(bricksById).flatMap((brick) => {
+    const entry = resolveBrickBreakpoint(brick, breakpoint);
+    return entry.gridItem === null ? [] : [{ ...entry.gridItem }];
+  });
   const rowHeight = gridWidth / 8;
 
   return (
@@ -60,7 +65,7 @@ export function SandboxGrid() {
           // Dropped items carry isDraggable, which overrides dragConfig.enabled.
           layout={layout.map((item) => ({ ...item, isDraggable: true }))}
           autoSize
-          className="grid-layout"
+          className="grid-layout min-h-screen"
           compactor={verticalCompactor}
           gridConfig={{
             cols: 8,
@@ -100,7 +105,7 @@ export function SandboxGrid() {
                 h: activeBrickDrag.h,
               };
             });
-            addBrick(brickId, activeBrickDrag, gridLayoutWithDroppedBrick);
+            addBrick(brickId, activeBrickDrag, gridLayoutWithDroppedBrick, breakpoint);
             setActiveBrickDrag(null);
           }}
           onDragStart={() => {
@@ -145,12 +150,18 @@ export function SandboxGrid() {
                 const remainingBricks = { ...state.bricksById };
                 delete remainingBricks[item.i];
                 return {
-                  layout: nextLayout.filter((layoutItem) => layoutItem.i !== item.i),
                   bricksById: remainingBricks,
                 };
               });
+              setLayout(
+                verticalCompactor.compact(
+                  nextLayout.filter((layoutItem) => layoutItem.i !== item.i),
+                  8,
+                ),
+                breakpoint,
+              );
             } else {
-              setLayout(nextLayout);
+              setLayout(nextLayout, breakpoint);
             }
             setOutsideBrickId(null);
             setDragging(false);
@@ -158,9 +169,9 @@ export function SandboxGrid() {
         >
           {layout.map((layoutItem) => {
             const brickDef = bricksById[layoutItem.i];
-            const collection = brickDef ? collectionsHash[brickDef.collectionName] : undefined;
-            const variant = collection?.variants[brickDef.variant];
-            const brick = variant?.layouts[brickDef.layout];
+            const collection = brickDef ? collectionsHash[brickDef.collectionId] : undefined;
+            const content = collection?.contents[brickDef.contentId];
+            const brick = content?.views[brickDef.viewId];
 
             if (brick) {
               const BrickComponent = brick.component;
@@ -170,15 +181,34 @@ export function SandboxGrid() {
                   key={layoutItem.i}
                   style={{ opacity: outsideBrickId === layoutItem.i ? 0.4 : 1 }}
                   className="brick-drag-surface size-full"
-                  data-brick={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.layout}`}
+                  data-brick={`${brick.def.collectionName}/${brick.def.content}/${brick.def.view}`}
                   data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
+                  data-grid-w={layoutItem.w}
+                  data-grid-h={layoutItem.h}
                 >
                   <div className="brick-drag-content size-full">
-                    <BrickComponent breakpoint={breakpoint} data={brickDef.data} />
+                    <BrickComponent
+                      breakpoint={breakpoint}
+                      data={brickDef.data}
+                      viewOptions={resolveBrickBreakpoint(brickDef, breakpoint).viewOptions}
+                    />
                   </div>
 
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="icon"
+                    className="brick-edit-handle"
+                  >
+                    <Link
+                      aria-label="Edit brick"
+                      to={`/collections/${encodeURIComponent(brickDef.collectionId)}/brick/${encodeURIComponent(layoutItem.i)}`}
+                    >
+                      <Pencil aria-hidden className="size-4" />
+                    </Link>
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
@@ -196,28 +226,7 @@ export function SandboxGrid() {
               );
             }
 
-            return (
-              <div
-                key={layoutItem.i}
-                style={{ opacity: outsideBrickId === layoutItem.i ? 0.4 : 1 }}
-                data-testid={`grid-${layoutItem.i}`}
-                className="brick-drag-surface size-full bg-zinc-300"
-              >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="brick-drag-handle"
-                  aria-label="Drag brick"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                  }}
-                >
-                  <GripHorizontal aria-hidden className="size-4" />
-                </Button>
-              </div>
-            );
+            return null;
           })}
         </GridLayout>
       )}

@@ -26,15 +26,15 @@ test("limits presets to the desktop half and preserves width through navigation 
   await expect(page).toHaveURL(/collections\/swatch$/);
   await expect(grid).toHaveCSS("width", "375px");
   await toolbar.getByRole("button", { name: "Reset grid layout" }).click();
-  await expect(grid.getByTestId(/grid-fixture-/)).toHaveCount(4);
+  await expect(grid.locator("[data-brick-id]")).toHaveCount(0);
   await expect(grid).toHaveCSS("width", "375px");
   await toolbar.getByRole("button", { name: "768px grid width", exact: true }).click();
   await expect(grid).toHaveCSS("width", "768px");
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(
-    toolbar.getByRole("button", { name: "375px grid width", exact: true }),
+    toolbar.getByRole("button", { name: "640px grid width", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  await expect(grid).toHaveCSS("width", "375px");
+  await expect(grid).toHaveCSS("width", "640px");
   await expect(
     toolbar.getByRole("button", { name: "768px grid width", exact: true }),
   ).toBeDisabled();
@@ -46,7 +46,7 @@ test("limits presets to the desktop half and preserves width through navigation 
 test("all fixed presets measure exactly when the desktop region fits them", async ({ page }) => {
   await page.setViewportSize({ width: 3000, height: 900 });
   await page.goto("/");
-  for (const width of [375, 768, 1024, 1440]) {
+  for (const width of [375, 640, 768, 1024, 1440]) {
     await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
     await expect(page.getByLabel("Brick grid")).toHaveCSS("width", `${width}px`);
     await expect(page.getByLabel("Bricks panel")).toHaveCSS("width", "1500px");
@@ -85,7 +85,7 @@ for (const width of [375, 768]) {
     await drawer.locator('[data-collection-link="swatch"]').click();
     await expect(page).toHaveURL(/collections\/swatch$/);
     await toolbar.getByRole("button", { name: "Reset grid layout" }).click();
-    await expect(page.getByLabel("Brick grid").getByTestId(/grid-fixture-/)).toHaveCount(4);
+    await expect(page.getByLabel("Brick grid").locator("[data-brick-id]")).toHaveCount(0);
     await drawer.getByRole("button", { name: "Close bricks" }).click();
     await expect(drawer).not.toBeVisible();
     await toolbar.getByRole("button", { name: "Bricks", exact: true }).click();

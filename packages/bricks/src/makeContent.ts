@@ -8,19 +8,19 @@ import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 
 import type { IBrick } from "./types";
 
-export function makeVariant<
-  const VARIANT extends string,
-  const PAYLOAD_SHAPE extends IShape,
+export function makeContent<
+  const CONTENT extends string,
+  const CONTENT_OPTIONS_SHAPE extends IShape,
   const DATA_SHAPE extends IShape,
-  const LAYOUTS extends Record<string, IBrick<VARIANT, string, (props: never) => ReactNode>>,
+  const VIEWS extends Record<string, IBrick<CONTENT, string, (props: never) => ReactNode>>,
 >(
   props: {
-    variant: VARIANT;
-    variantName: string;
-    variantDescription: string;
-    layouts: LAYOUTS & {
-      [LAYOUT in keyof LAYOUTS]: LAYOUTS[LAYOUT] & {
-        def: { variant: VARIANT; layout: LAYOUT & string };
+    content: CONTENT;
+    contentName: string;
+    contentDescription: string;
+    views: VIEWS & {
+      [VIEW in keyof VIEWS]: VIEWS[VIEW] & {
+        def: { content: CONTENT; view: VIEW & string };
       };
     };
   } & (
@@ -28,8 +28,8 @@ export function makeVariant<
         dataShape: null;
         defaultData: null;
         configuration?: never;
-        layouts: {
-          [LAYOUT in keyof LAYOUTS]: {
+        views: {
+          [VIEW in keyof VIEWS]: {
             component: (props: { breakpoint: "xs" | "sm" | "md" | "lg" }) => ReactNode;
           };
         };
@@ -38,10 +38,10 @@ export function makeVariant<
         dataShape: DATA_SHAPE;
         defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
         configuration?:
-          | ReturnType<typeof makeFetcherConfiguration<PAYLOAD_SHAPE>>
+          | ReturnType<typeof makeFetcherConfiguration<CONTENT_OPTIONS_SHAPE>>
           | IFormConfiguration<InferDecodedRow<DATA_SHAPE>>;
-        layouts: {
-          [LAYOUT in keyof LAYOUTS]: {
+        views: {
+          [VIEW in keyof VIEWS]: {
             component: (props: {
               data: InferDecodedRow<DATA_SHAPE>;
               breakpoint: "xs" | "sm" | "md" | "lg";
@@ -53,12 +53,12 @@ export function makeVariant<
 ) {
   if (props.dataShape === null) {
     return {
-      variantName: props.variantName,
-      variantDescription: props.variantDescription,
+      contentName: props.contentName,
+      contentDescription: props.contentDescription,
       dataShape: props.dataShape,
       defaultData: null,
       configuration: undefined,
-      layouts: props.layouts,
+      views: props.views,
     };
   }
 
@@ -69,31 +69,31 @@ export function makeVariant<
   });
   if (props.configuration?.configurationType === "form") {
     return {
-      variantName: props.variantName,
-      variantDescription: props.variantDescription,
+      contentName: props.contentName,
+      contentDescription: props.contentDescription,
       dataShape: props.dataShape,
       defaultData,
       configuration: props.configuration,
-      layouts: props.layouts,
+      views: props.views,
     };
   }
   if (props.configuration === undefined) {
     return {
-      variantName: props.variantName,
-      variantDescription: props.variantDescription,
+      contentName: props.contentName,
+      contentDescription: props.contentDescription,
       dataShape: props.dataShape,
       defaultData,
       configuration: undefined,
-      layouts: props.layouts,
+      views: props.views,
     };
   }
 
   return {
-    variantName: props.variantName,
-    variantDescription: props.variantDescription,
+    contentName: props.contentName,
+    contentDescription: props.contentDescription,
     dataShape: props.dataShape,
     defaultData,
     configuration: props.configuration,
-    layouts: props.layouts,
+    views: props.views,
   };
 }

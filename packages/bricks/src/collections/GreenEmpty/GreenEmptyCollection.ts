@@ -4,7 +4,7 @@ import { HexColorInput, HexColorPicker } from "react-colorful";
 import { makeFormConfiguration } from "../../makeFormConfiguration";
 import { makeBrick } from "../../makeBrick";
 import { makeCollection } from "../../makeCollection";
-import { makeVariant } from "../../makeVariant";
+import { makeContent } from "../../makeContent";
 import { GreenEmpty1x1 } from "./GreenEmpty1x1";
 import { GreenEmpty2x2 } from "./GreenEmpty2x2";
 import { GreenEmpty4x1 } from "./GreenEmpty4x1";
@@ -15,8 +15,8 @@ export const swatchCollection = makeCollection({
   collectionName: "swatch",
   collectionLabel: "Swatch",
   collectionDescription: "Solid color fields for visual rhythm.",
-  variants: {
-    default: makeVariant({
+  contents: {
+    default: makeContent({
       dataShape,
       defaultData: { color: "#4A7C59" },
       configuration: makeFormConfiguration<typeof dataShape>({
@@ -34,17 +34,18 @@ export const swatchCollection = makeCollection({
               onChange: (color) => onChange({ color }),
               prefixed: true,
               "aria-label": "Hex color",
-              className: "h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm",
+              className:
+                "h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm",
             }),
           ),
       }),
-      variant: "default",
-      variantName: "Default",
-      variantDescription: "A solid color field.",
-      layouts: {
+      content: "default",
+      contentName: "Default",
+      contentDescription: "A solid color field.",
+      views: {
         "2x2": makeBrick({
-          variant: "default",
-          layout: "2x2",
+          content: "default",
+          view: "2x2",
           w: 2,
           h: 2,
           label: "2×2",
@@ -52,8 +53,8 @@ export const swatchCollection = makeCollection({
           component: GreenEmpty1x1,
         }),
         "4x4": makeBrick({
-          variant: "default",
-          layout: "4x4",
+          content: "default",
+          view: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
@@ -61,8 +62,8 @@ export const swatchCollection = makeCollection({
           component: GreenEmpty2x2,
         }),
         "8x2": makeBrick({
-          variant: "default",
-          layout: "8x2",
+          content: "default",
+          view: "8x2",
           w: 8,
           h: 2,
           label: "8×2",

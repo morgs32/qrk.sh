@@ -3,24 +3,24 @@ import { primitives } from "@zerospin/schema";
 
 import { makeCollection } from "../../makeCollection";
 import { makeBrick } from "../../makeBrick";
-import { makeVariant } from "../../makeVariant";
+import { makeContent } from "../../makeContent";
 import { TikTokDefault4x4 } from "./TikTokDefault4x4";
 
 export const tikTokCollection = makeCollection({
   collectionName: "tiktok",
   collectionLabel: "TikTok",
   collectionDescription: "TikTok's official creator profile embed with recent videos.",
-  variants: {
-    default: makeVariant({
-      variant: "default",
-      variantName: "Default",
-      variantDescription: "TikTok's tokenless creator profile embed.",
+  contents: {
+    default: makeContent({
+      content: "default",
+      contentName: "Default",
+      contentDescription: "TikTok's tokenless creator profile embed.",
       configuration: makeFetcherConfiguration({
-        payloadShape: {
+        contentOptionsShape: {
           url: primitives.text({ defaultValue: "https://www.tiktok.com/@theonion" }),
         },
-        fetcher: async ({ api, payload, setData }) => {
-          const result = await api.tiktokRepo().scrape(payload.url);
+        fetcher: async ({ api, contentOptions, setData }) => {
+          const result = await api.tiktokRepo().scrape(contentOptions.url);
           if (result._tag === "Left") return result;
           setData(result.right);
           return { _tag: "Right", right: undefined };
@@ -32,10 +32,10 @@ export const tikTokCollection = makeCollection({
       defaultData: {
         username: "theonion",
       },
-      layouts: {
+      views: {
         "4x4": makeBrick({
-          variant: "default",
-          layout: "4x4",
+          content: "default",
+          view: "4x4",
           w: 4,
           h: 4,
           label: "4×4",

@@ -1,3 +1,6 @@
+import { CollectionOptions } from "../CollectionOptions";
+import { Button } from "../../ui/button";
+import { resolveBrickBreakpoint } from "../resolveBrickBreakpoint";
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { collectionsHash } from "../../collectionsHash";
@@ -19,17 +22,15 @@ export default function BrickDetail() {
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const brickDef = useGridStore((state) => state.bricksById[brickId]);
   const collection =
-    brickDef?.collectionName === collectionName
-      ? collectionsHash[brickDef.collectionName]
-      : undefined;
-  const variant = collection?.variants[brickDef?.variant ?? ""];
-  const brick = variant?.layouts[brickDef?.layout ?? ""];
+    brickDef?.collectionId === collectionName ? collectionsHash[brickDef.collectionId] : undefined;
+  const content = collection?.contents[brickDef?.contentId ?? ""];
+  const brick = content?.views[brickDef?.viewId ?? ""];
 
   if (!hasHydrated) {
     return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
   }
 
-  if (!brick || !collection || !variant || !brickDef) {
+  if (!brick || !collection || !content || !brickDef) {
     return (
       <div className="px-6 pt-6" data-testid="brick-not-found">
         <Link
@@ -49,80 +50,85 @@ export default function BrickDetail() {
 
   const BrickComponent = brick.component;
   const brickData = brickDef.data;
+  const entry = resolveBrickBreakpoint(brickDef, breakpoint);
+  const ViewForm = BrickComponent.form?.form;
 
   return (
     <section data-testid="brick-detail-pane">
-      <OrderedTableOfContents.Section>
-        <OrderedTableOfContents.List padded={false}>
-          <OrderedTableOfContents.Item>
-            <OrderedTableOfContents.Label>
-              <Link to={`/collections/${encodeURIComponent(collectionName)}`}>
-                {collection.collectionLabel}
-              </Link>
-            </OrderedTableOfContents.Label>
-            <div className="pt-2">
-              <OrderedTableOfContents.List padded={false} spaced>
-                {Object.entries(collection.variants).map(([name, option]) => (
-                  <OrderedTableOfContents.Item key={name}>
-                    <OrderedTableOfContents.Label>
-                      <Link
-                        to={`/collections/${encodeURIComponent(collectionName)}?variant=${encodeURIComponent(name)}`}
-                        aria-current={name === brick.def.variant ? "true" : undefined}
-                        className="underline aria-[current=true]:no-underline"
-                      >
-                        {option.variantName}
-                      </Link>
-                    </OrderedTableOfContents.Label>
-                    <div className="pt-2">
-                      <OrderedTableOfContents.List padded={false}>
-                        {Object.entries(option.layouts).map(([layout, optionBrick]) => (
-                          <OrderedTableOfContents.Item key={layout}>
-                            <OrderedTableOfContents.Label>
-                              <span
-                                aria-current={
-                                  name === brick.def.variant && layout === brick.def.layout
-                                    ? "true"
-                                    : undefined
-                                }
-                                aria-disabled={
-                                  name !== brick.def.variant || layout !== brick.def.layout
-                                }
-                                className="text-zinc-400 aria-[current=true]:font-semibold aria-[current=true]:text-zinc-900"
-                              >
-                                {optionBrick.def.label}
-                              </span>
-                            </OrderedTableOfContents.Label>
-                          </OrderedTableOfContents.Item>
-                        ))}
-                      </OrderedTableOfContents.List>
-                    </div>
-                  </OrderedTableOfContents.Item>
-                ))}
-              </OrderedTableOfContents.List>
-            </div>
-          </OrderedTableOfContents.Item>
-        </OrderedTableOfContents.List>
-      </OrderedTableOfContents.Section>
+      <OrderedTableOfContents.Title>
+        <Link to={`/collections/${encodeURIComponent(collectionName)}`}>
+          {collection.collectionLabel}
+        </Link>
+      </OrderedTableOfContents.Title>
+      <CollectionOptions
+        collection={collection}
+        renderContent={(name, label) => (
+          <Link
+            to={`/collections/${encodeURIComponent(collectionName)}?content=${encodeURIComponent(name)}`}
+            aria-current={name === brick.def.content ? "true" : undefined}
+            className="underline aria-[current=true]:no-underline"
+          >
+            {label}
+          </Link>
+        )}
+        renderView={(name, view, label) => (
+          <span
+            aria-current={
+              name === brick.def.content && view === brick.def.view
+                ? "true"
+                : undefined
+            }
+            aria-disabled={
+              name !== brick.def.content || view !== brick.def.view
+            }
+            className="text-zinc-400 aria-[current=true]:font-semibold aria-[current=true]:text-zinc-900"
+          >
+            {label}
+          </span>
+        )}
+      />
       <OrderedTableOfContents.Preview>
-        <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
+        <BrickPreviewFrame
+          w={entry.gridItem?.w ?? brick.def.w}
+          h={entry.gridItem?.h ?? brick.def.h}
+        >
           <div
             className="size-full qrk-bricks overflow-hidden"
             data-testid="selected-brick-preview"
           >
-            <BrickComponent breakpoint={breakpoint} data={brickData} />
+            <BrickComponent
+              breakpoint={breakpoint}
+              data={brickData}
+              viewOptions={entry.viewOptions}
+            />
           </div>
         </BrickPreviewFrame>
       </OrderedTableOfContents.Preview>
       <div className="pb-6">
+        <div className="px-6 py-4">
+          <p>
+            Editing {breakpoint}
+            {brickDef[breakpoint] ? "" : " (inherited)"}
+          </p>
+          <Button
+            type="button"
+            aria-pressed={entry.gridItem !== null}
+            onClick={() =>
+              useGridStore.getState().setVisible(brickId, breakpoint, entry.gridItem === null)
+            }
+          >
+            {entry.gridItem === null ? "Show brick" : "Hide brick"}
+          </Button>
+        </div>
         <Configuration
           key={brickId}
-          variant={variant}
+          content={content}
           data={brickData}
           setData={(data) => {
             const DataSchema =
-              variant.dataShape === null
+              content.dataShape === null
                 ? Schema.Null
-                : Schema.toType(makeEffectSchema(variant.dataShape));
+                : Schema.toType(makeEffectSchema(content.dataShape));
             const decodedData = Schema.decodeUnknownSync(DataSchema)(data, {
               onExcessProperty: "preserve",
             });
@@ -134,6 +140,14 @@ export default function BrickDetail() {
             }));
           }}
         />
+        {ViewForm && (
+          <ViewForm
+            value={entry.viewOptions}
+            onChange={(value) => {
+              useGridStore.getState().setViewOptions(brickId, breakpoint, value);
+            }}
+          />
+        )}
       </div>
     </section>
   );

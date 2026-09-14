@@ -50,8 +50,8 @@ export function BrickCarousel(props: {
   const { collection, brickSortFn = defaultBrickSort } = props;
   const bricks = useMemo(
     () =>
-      Object.values(collection.variants)
-        .flatMap((variant) => Object.values(variant.layouts))
+      Object.values(collection.contents)
+        .flatMap((content) => Object.values(content.views))
         .sort(brickSortFn),
     [collection, brickSortFn],
   );
@@ -131,7 +131,7 @@ export function BrickCarousel(props: {
         >
           {bricks.map((brick) => (
             <CarouselItem
-              key={`${brick.def.variant}/${brick.def.layout}`}
+              key={`${brick.def.content}/${brick.def.view}`}
               data-brick-drawer-slide-grid-h={brick.def.h}
               className="relative flex h-full min-h-0 flex-col items-center justify-center"
               style={{

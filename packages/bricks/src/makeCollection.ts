@@ -10,62 +10,62 @@ export function makeCollection(props: {
   collectionName: string;
   collectionLabel: string;
   collectionDescription: string;
-  variants: Record<
+  contents: Record<
     string,
     | {
-        variantName: string;
-        variantDescription: string;
+        contentName: string;
+        contentDescription: string;
         configuration?: never;
         dataShape: null;
         defaultData: null;
-        layouts: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
+        views: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
       }
     | {
-        variantName: string;
-        variantDescription: string;
+        contentName: string;
+        contentDescription: string;
         configuration?: IFormConfiguration | IFetcherConfiguration;
         dataShape: IShape;
         defaultData: unknown;
-        layouts: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
+        views: Record<string, IBrick<string, string, (props: never) => ReactNode>>;
       }
   >;
 }): ICollection {
-  const { collectionName, collectionLabel, collectionDescription, variants: rawVariants } = props;
+  const { collectionName, collectionLabel, collectionDescription, contents: rawContents } = props;
 
-  const variants = mapValues(rawVariants, (rawVariant) => {
-    const layouts = mapValues(rawVariant.layouts, (brick) => {
+  const contents = mapValues(rawContents, (rawContent) => {
+    const views = mapValues(rawContent.views, (brick) => {
       return {
         def: {
           collectionName,
           collectionLabel,
-          variant: brick.def.variant,
-          layout: brick.def.layout,
+          content: brick.def.content,
+          view: brick.def.view,
           w: brick.def.w,
           h: brick.def.h,
           label: brick.def.label,
           order: brick.def.order,
-          data: rawVariant.defaultData,
+          data: rawContent.defaultData,
         },
         component: brick.component,
       };
     });
 
-    if (rawVariant.dataShape !== null) {
+    if (rawContent.dataShape !== null) {
       return {
-        variantName: rawVariant.variantName,
-        variantDescription: rawVariant.variantDescription,
-        configuration: rawVariant.configuration,
-        dataShape: rawVariant.dataShape,
-        defaultData: rawVariant.defaultData,
-        layouts,
+        contentName: rawContent.contentName,
+        contentDescription: rawContent.contentDescription,
+        configuration: rawContent.configuration,
+        dataShape: rawContent.dataShape,
+        defaultData: rawContent.defaultData,
+        views,
       };
     }
     return {
-      variantName: rawVariant.variantName,
-      variantDescription: rawVariant.variantDescription,
-      dataShape: rawVariant.dataShape,
-      defaultData: rawVariant.defaultData,
-      layouts,
+      contentName: rawContent.contentName,
+      contentDescription: rawContent.contentDescription,
+      dataShape: rawContent.dataShape,
+      defaultData: rawContent.defaultData,
+      views,
     };
   });
 
@@ -73,6 +73,6 @@ export function makeCollection(props: {
     collectionName,
     collectionLabel,
     collectionDescription,
-    variants,
+    contents,
   };
 }

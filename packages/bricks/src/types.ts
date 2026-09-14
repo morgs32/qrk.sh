@@ -1,17 +1,18 @@
+import type { makeViewForm } from "./makeViewForm";
 import type { IFormConfiguration } from "./makeFormConfiguration";
 import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IShape } from "@zerospin/schema";
 import type { ReactNode } from "react";
 
-/** A layout within one content variant (no collection scope). */
-export type IBrickDef<VARIANT extends string = string, LAYOUT extends string = string> = {
+/** A view within one content definition (no collection scope). */
+export type IBrickDef<CONTENT extends string = string, VIEW extends string = string> = {
   w: number;
   h: number;
-  /** Kebab-case content variant slug (for example `default`, `profile`, or `repo`). */
-  variant: VARIANT;
-  /** Kebab-case layout slug (for example `2x2`, `4x4`, or `8x2`). */
-  layout: LAYOUT;
-  /** Display label for this layout. */
+  /** Kebab-case content definition slug (for example `default`, `profile`, or `repo`). */
+  content: CONTENT;
+  /** Kebab-case view slug (for example `2x2`, `4x4`, or `8x2`). */
+  view: VIEW;
+  /** Display label for this view. */
   label: string;
   /** Lower sorts earlier in the drawer carousel within a collection. */
   order: number;
@@ -22,28 +23,28 @@ export type ICollection = {
   collectionName: string;
   collectionLabel: string;
   collectionDescription: string;
-  variants: Record<
+  contents: Record<
     string,
     | {
-        variantName: string;
-        variantDescription: string;
+        contentName: string;
+        contentDescription: string;
         configuration?: never;
         dataShape: null;
         defaultData: null;
-        layouts: Record<string, ICollectionBrick>;
+        views: Record<string, ICollectionBrick>;
       }
     | {
-        variantName: string;
-        variantDescription: string;
+        contentName: string;
+        contentDescription: string;
         configuration?: IFormConfiguration | IFetcherConfiguration;
         dataShape: IShape;
         defaultData: unknown;
-        layouts: Record<string, ICollectionBrick>;
+        views: Record<string, ICollectionBrick>;
       }
   >;
 };
 
-/** Serializable catalog row: collection + content variant + layout, no React component. */
+/** Serializable catalog row: collection + content definition + view, no React component. */
 export type ICollectionBrickDef = IBrickDef & {
   collectionName: string;
   collectionLabel: string;
@@ -52,22 +53,26 @@ export type ICollectionBrickDef = IBrickDef & {
 };
 
 export type IBrick<
-  VARIANT extends string = string,
-  LAYOUT extends string = string,
+  CONTENT extends string = string,
+  VIEW extends string = string,
   COMPONENT extends (props: never) => ReactNode = (props: never) => ReactNode,
 > = {
-  def: IBrickDef<VARIANT, LAYOUT>;
+  def: IBrickDef<CONTENT, VIEW>;
   component: COMPONENT;
 };
 
 export type ICollectionBrick = {
   def: ICollectionBrickDef;
   /**
-   * The collection erases each variant's concrete data type after makeVariant has
+   * The collection erases each content's concrete data type after makeContent has
    * checked it. Render boundaries can supply defaultData directly; components
    * without a data contract ignore the prop.
    */
   component: {
-    bivarianceHack(props: { data?: unknown; breakpoint: "xs" | "sm" | "md" | "lg" }): ReactNode;
-  }["bivarianceHack"];
+    bivarianceHack(props: {
+      data?: unknown;
+      viewOptions?: unknown;
+      breakpoint: "xs" | "sm" | "md" | "lg";
+    }): ReactNode;
+  }["bivarianceHack"] & { form?: ReturnType<typeof makeViewForm> };
 };

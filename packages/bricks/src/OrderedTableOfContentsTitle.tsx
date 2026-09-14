@@ -1,5 +1,17 @@
 import type { ReactNode } from "react";
 
-export function OrderedTableOfContentsTitle({ children }: { children: ReactNode }) {
-  return <h2 className="m-0 shrink-0 bg-zinc-100 px-4 py-4 text-sm font-normal">{children}</h2>;
+export function OrderedTableOfContentsTitle({
+  children,
+  sticky = false,
+}: {
+  children: ReactNode;
+  sticky?: boolean;
+}) {
+  return (
+    <h2
+      className={`m-0 shrink-0 bg-zinc-100 px-4 py-4 text-sm font-normal ${sticky ? "sticky top-0 z-10" : ""}`}
+    >
+      {children}
+    </h2>
+  );
 }

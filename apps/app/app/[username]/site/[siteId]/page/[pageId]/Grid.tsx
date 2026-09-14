@@ -84,8 +84,8 @@ export function Grid() {
             useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
             if (!item || !brickDef) return;
             const brick =
-              collectionsHash[brickDef.collectionName]?.variants[brickDef.variant]?.layouts[
-                brickDef.layout
+              collectionsHash[brickDef.collectionName]?.contents[brickDef.content]?.views[
+                brickDef.view
               ];
             if (!brick) return;
             const brickId = crypto.randomUUID();
@@ -124,10 +124,10 @@ export function Grid() {
         >
           {layout.map((layoutItem) => {
             const brickDef = pageGrid?.bricksById[layoutItem.i];
-            const variant = brickDef
-              ? collectionsHash[brickDef.collectionName]?.variants[brickDef.variant]
+            const content = brickDef
+              ? collectionsHash[brickDef.collectionName]?.contents[brickDef.content]
               : undefined;
-            const brick = brickDef ? variant?.layouts[brickDef.layout] : undefined;
+            const brick = brickDef ? content?.views[brickDef.view] : undefined;
             if (!brick) {
               return (
                 <div
@@ -143,8 +143,8 @@ export function Grid() {
                 key={layoutItem.i}
                 className="qrk-bricks size-full cursor-grab overflow-hidden active:cursor-grabbing"
                 data-brick-collection-name={brick.def.collectionName}
-                data-brick-variant={brick.def.variant}
-                data-brick-layout={brick.def.layout}
+                data-brick-content={brick.def.content}
+                data-brick-view={brick.def.view}
                 data-brick-id={layoutItem.i}
                 onClick={() => {
                   if (suppressBrickClickRef.current) return;
@@ -156,7 +156,7 @@ export function Grid() {
                   );
                 }}
               >
-                <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
+                <BrickComponent breakpoint={breakpoint} data={content?.defaultData} />
               </div>
             );
           })}

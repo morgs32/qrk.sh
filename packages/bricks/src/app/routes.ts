@@ -36,20 +36,20 @@ export default [
               {
                 index: true,
                 lazy: async () => {
-                  const { default: VariantConfiguration, ErrorBoundary } =
-                    await import("./routes/VariantConfiguration");
-                  return { Component: VariantConfiguration, ErrorBoundary };
+                  const { default: ContentConfiguration, ErrorBoundary } =
+                    await import("./routes/ContentConfiguration");
+                  return { Component: ContentConfiguration, ErrorBoundary };
                 },
               },
               {
-                path: ":variantName",
+                path: ":contentName",
                 lazy: async () => {
                   const {
-                    default: VariantConfiguration,
+                    default: ContentConfiguration,
                     loader,
                     ErrorBoundary,
-                  } = await import("./routes/VariantConfiguration");
-                  return { Component: VariantConfiguration, loader, ErrorBoundary };
+                  } = await import("./routes/ContentConfiguration");
+                  return { Component: ContentConfiguration, loader, ErrorBoundary };
                 },
               },
               {
@@ -64,7 +64,7 @@ export default [
         ],
       },
       {
-        path: "bricks/:collectionName/:variant/:layout",
+        path: "bricks/:collectionName/:content/:view",
         lazy: async () => {
           const { default: BrickPage, loader, ErrorBoundary } = await import("./routes/BrickPage");
           return { Component: BrickPage, loader, ErrorBoundary };

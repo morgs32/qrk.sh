@@ -44,7 +44,7 @@ export function BrickPreview({ brick }: { brick: ICollectionBrick }) {
   }, []);
 
   const BrickComponent = brick.component;
-  const variant = collectionsHash[brick.def.collectionName]?.variants[brick.def.variant];
+  const content = collectionsHash[brick.def.collectionName]?.contents[brick.def.content];
 
   return (
     <div className="drawer-brick-preview flex h-full min-h-0 w-full flex-1 flex-col items-start justify-center overflow-x-auto touch-manipulation">
@@ -53,15 +53,15 @@ export function BrickPreview({ brick }: { brick: ICollectionBrick }) {
           ref={slotRef}
           data-brick-drawer-brick-slot
           data-brick-drawer-collection-name={brick.def.collectionName}
-          data-brick-drawer-variant={brick.def.variant}
-          data-brick-drawer-layout={brick.def.layout}
+          data-brick-drawer-content={brick.def.content}
+          data-brick-drawer-view={brick.def.view}
           draggable
           tabIndex={0}
           className="size-full shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"
           aria-label={`${brick.def.collectionLabel} ${brick.def.w}×${brick.def.h}`}
         >
           <div className="h-full w-full">
-            <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
+            <BrickComponent breakpoint={breakpoint} data={content?.defaultData} />
           </div>
         </div>
       </BrickPreviewFrame>

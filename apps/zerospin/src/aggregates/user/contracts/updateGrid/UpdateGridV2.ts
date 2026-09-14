@@ -29,9 +29,9 @@ const updateGridPayload = {
         y: Schema.Int,
         w: Schema.Int,
         h: Schema.Int,
-        collectionName: Schema.String,
-        variant: Schema.String,
-        layout: Schema.String,
+        collectionId: Schema.String,
+        contentId: Schema.String,
+        viewId: Schema.String,
       }),
     ),
   }),
@@ -246,9 +246,9 @@ export const updateGridV2 = makeContractVersion(updateGrid, {
         persistedBrick.y !== brick.y ||
         persistedBrick.w !== brick.w ||
         persistedBrick.h !== brick.h ||
-        persistedBrick.collectionName !== brick.collectionName ||
-        persistedBrick.variant !== brick.variant ||
-        persistedBrick.layout !== brick.layout;
+        persistedBrick.collectionId !== brick.collectionId ||
+        persistedBrick.contentId !== brick.contentId ||
+        persistedBrick.viewId !== brick.viewId;
 
       if (brick.intent === "update") {
         hasMutationIntent = true;
@@ -392,9 +392,9 @@ export const updateGridV2 = makeContractVersion(updateGrid, {
                 y: brick.y,
                 w: brick.w,
                 h: brick.h,
-                collectionName: brick.collectionName,
-                variant: brick.variant,
-                layout: brick.layout,
+                collectionId: brick.collectionId,
+                contentId: brick.contentId,
+                viewId: brick.viewId,
               },
             }),
           );
@@ -409,9 +409,9 @@ export const updateGridV2 = makeContractVersion(updateGrid, {
               y: brick.y,
               w: brick.w,
               h: brick.h,
-              collectionName: brick.collectionName,
-              variant: brick.variant,
-              layout: brick.layout,
+              collectionId: brick.collectionId,
+              contentId: brick.contentId,
+              viewId: brick.viewId,
             },
           }),
         );

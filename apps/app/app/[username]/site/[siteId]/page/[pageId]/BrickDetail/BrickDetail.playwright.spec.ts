@@ -29,7 +29,7 @@ test.describe("BrickDetail route", () => {
     const grid = page.locator(".grid-layout");
     const brick = grid
       .locator(
-        '[data-brick-collection-name="swatch"][data-brick-variant="default"][data-brick-layout="4x4"]',
+        '[data-brick-collection-name="swatch"][data-brick-content="default"][data-brick-view="4x4"]',
       )
       .first();
     await expect(brick).toBeVisible({ timeout: 90_000 });

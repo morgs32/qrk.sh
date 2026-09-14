@@ -5,13 +5,13 @@ import { ScraperApi } from "./scraper/ScraperApi";
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 
 describe("makeFetcherConfiguration", () => {
-  it("decodes payloads independently of a variant and forwards the publishing callback", async () => {
-    const payloads: Array<{ hash: string }> = [];
+  it("decodes content options independently of a content definition and forwards the publishing callback", async () => {
+    const receivedContentOptions: Array<{ hash: string }> = [];
     const fetcher = makeFetcherConfiguration({
-      payloadShape: { hash: primitives.text({ defaultValue: "asterisk" }) },
-      fetcher: async ({ payload, setData }) => {
-        payloads.push(payload);
-        setData({ svg: payload.hash, providerField: true });
+      contentOptionsShape: { hash: primitives.text({ defaultValue: "asterisk" }) },
+      fetcher: async ({ contentOptions, setData }) => {
+        receivedContentOptions.push(contentOptions);
+        setData({ svg: contentOptions.hash, providerField: true });
         return { _tag: "Right", right: undefined };
       },
     });
@@ -19,39 +19,41 @@ describe("makeFetcherConfiguration", () => {
     const setData = vi.fn();
     expect(fetcher.configurationType).toBe("fetcher");
 
-    await expect(fetcher.fetcher({ api, setData, payload: {} })).resolves.toEqual({
+    await expect(fetcher.fetcher({ api, setData, contentOptions: {} })).resolves.toEqual({
       _tag: "Right",
       right: undefined,
     });
-    await expect(fetcher.fetcher({ api, setData, payload: { hash: 42 } })).rejects.toBeDefined();
     await expect(
-      fetcher.fetcher({ api, setData, payload: { hash: "icon", unexpected: true } }),
+      fetcher.fetcher({ api, setData, contentOptions: { hash: 42 } }),
+    ).rejects.toBeDefined();
+    await expect(
+      fetcher.fetcher({ api, setData, contentOptions: { hash: "icon", unexpected: true } }),
     ).rejects.toBeDefined();
     expect(setData).toHaveBeenCalledExactlyOnceWith({ svg: "asterisk", providerField: true });
-    expect(payloads).toEqual([{ hash: "asterisk" }]);
+    expect(receivedContentOptions).toEqual([{ hash: "asterisk" }]);
   });
-  it("requires a fetcher and accepts one typed whole-payload form", () => {
+  it("requires a fetcher and accepts one typed whole-content-options form", () => {
     expectTypeOf(() => {
       // @ts-expect-error a fetcher is required
-      makeFetcherConfiguration({ payloadShape: {} });
+      makeFetcherConfiguration({ contentOptionsShape: {} });
       makeFetcherConfiguration({
-        payloadShape: { query: primitives.text({ defaultValue: "Chicago" }) },
-        payloadForm: {
+        contentOptionsShape: { query: primitives.text({ defaultValue: "Chicago" }) },
+        contentOptionsForm: {
           // @ts-expect-error a field map is not a component
           query: () => null,
         },
         fetcher: async () => ({ _tag: "Right", right: undefined }),
       });
       makeFetcherConfiguration({
-        payloadShape: {
+        contentOptionsShape: {
           query: primitives.text({ defaultValue: "Chicago" }),
           zoom: primitives.integer({ defaultValue: 14 }),
         },
-        payloadForm: ({ value, onChange }) => {
+        contentOptionsForm: ({ value, onChange }) => {
           expectTypeOf(value.query).toEqualTypeOf<string>();
           expectTypeOf(value.zoom).toEqualTypeOf<number>();
           onChange({ query: value.query, zoom: value.zoom });
-          // @ts-expect-error changes replace the complete payload
+          // @ts-expect-error changes replace the complete content options
           onChange({ query: value.query });
           return null;
         },

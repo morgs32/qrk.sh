@@ -11,19 +11,19 @@ import {
 } from "react-router";
 
 export function loader({ params }: LoaderFunctionArgs) {
-  if (!params.collectionName || !params.variant || !params.layout)
+  if (!params.collectionName || !params.content || !params.view)
     throw new Response("Not found", { status: 404 });
-  if (!collectionsHash[params.collectionName]?.variants[params.variant]?.layouts[params.layout])
+  if (!collectionsHash[params.collectionName]?.contents[params.content]?.views[params.view])
     throw new Response("Not found", { status: 404 });
   return null;
 }
 
 export default function BrickPage() {
   const params = useParams();
-  if (!params.collectionName || !params.variant || !params.layout)
+  if (!params.collectionName || !params.content || !params.view)
     throw new Response("Not found", { status: 404 });
-  const variant = collectionsHash[params.collectionName]?.variants[params.variant];
-  const brick = variant?.layouts[params.layout];
+  const content = collectionsHash[params.collectionName]?.contents[params.content];
+  const brick = content?.views[params.view];
 
   if (!brick) {
     throw new Response("Not found", { status: 404 });
@@ -59,7 +59,7 @@ export default function BrickPage() {
                   <div ref={containerRef} style={{ width: gridWidth }}>
                     <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
                       <div className="size-full overflow-hidden" data-testid="brick-preview">
-                        <BrickComponent breakpoint={breakpoint} data={variant.defaultData} />
+                        <BrickComponent breakpoint={breakpoint} data={content.defaultData} />
                       </div>
                     </BrickPreviewFrame>
                   </div>
@@ -68,16 +68,16 @@ export default function BrickPage() {
 
               <aside className="rounded-xl border border-zinc-300 bg-white p-5">
                 <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
-                  Brick variant
+                  Brick content
                 </p>
                 <h1 className="m-0 text-2xl font-semibold">{brick.def.label}</h1>
                 <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2 text-sm">
                   <dt className="text-zinc-500">Collection</dt>
                   <dd className="m-0 font-mono">{brick.def.collectionName}</dd>
-                  <dt className="text-zinc-500">Variant</dt>
-                  <dd className="m-0 font-mono">{brick.def.variant}</dd>
-                  <dt className="text-zinc-500">Layout</dt>
-                  <dd className="m-0 font-mono">{brick.def.layout}</dd>
+                  <dt className="text-zinc-500">Content</dt>
+                  <dd className="m-0 font-mono">{brick.def.content}</dd>
+                  <dt className="text-zinc-500">View</dt>
+                  <dd className="m-0 font-mono">{brick.def.view}</dd>
                   <dt className="text-zinc-500">Width</dt>
                   <dd className="m-0">{brick.def.w}</dd>
                   <dt className="text-zinc-500">Height</dt>
@@ -120,7 +120,7 @@ export function ErrorBoundary() {
     <main className="min-h-screen" data-testid="brick-not-found">
       <div className="mx-auto max-w-3xl p-6">
         <h1>Brick not found</h1>
-        <p>The requested collection, variant, and layout are not registered in the catalog.</p>
+        <p>The requested collection, content, and view are not registered in the catalog.</p>
         <Link to="/">Return to all collections</Link>
       </div>
     </main>

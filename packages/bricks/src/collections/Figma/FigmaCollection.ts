@@ -1,31 +1,33 @@
+import { FigmaViewForm } from "./FigmaViewForm";
+import { makeViewForm } from "../../makeViewForm";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
 import { makeCollection } from "../../makeCollection";
-import { makeVariant } from "../../makeVariant";
+import { makeContent } from "../../makeContent";
 import { makeBrick } from "../../makeBrick";
 import { FigmaThumbnail4x4 } from "./FigmaThumbnail4x4";
 import { FigmaThumbnailSquareXs } from "./FigmaThumbnailSquareXs";
-import { makeLayout } from "../../makeLayout";
+import { makeView } from "../../makeView";
 import defaultThumbnailUrl from "./dot-pattern-789x450.png";
 
 export const figmaCollection = makeCollection({
   collectionName: "figma",
   collectionLabel: "Figma",
   collectionDescription: "Live previews for Figma files, boards, slides, and prototypes.",
-  variants: {
-    thumbnail: makeVariant({
-      variant: "thumbnail",
-      variantName: "Thumbnail",
-      variantDescription: "The thumbnail of a Figma file, board, slides deck, or prototype.",
+  contents: {
+    thumbnail: makeContent({
+      content: "thumbnail",
+      contentName: "Thumbnail",
+      contentDescription: "The thumbnail of a Figma file, board, slides deck, or prototype.",
       configuration: makeFetcherConfiguration({
-        payloadShape: {
+        contentOptionsShape: {
           url: primitives.text({
             defaultValue: "",
           }),
         },
-        fetcher: async ({ api, payload, setData }) => {
-          const result = await api.figmaRepo().getThumbnail(payload.url);
+        fetcher: async ({ api, contentOptions, setData }) => {
+          const result = await api.figmaRepo().getThumbnail(contentOptions.url);
           if (result._tag === "Left") return result;
           setData(result.right);
           return { _tag: "Right", right: undefined };
@@ -45,15 +47,27 @@ export const figmaCollection = makeCollection({
         thumbnail_width: 789,
         thumbnail_height: 450,
       },
-      layouts: {
+      views: {
         "4x4": makeBrick({
-          variant: "thumbnail",
-          layout: "4x4",
+          content: "thumbnail",
+          view: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
           order: 0,
-          component: makeLayout({ xs: FigmaThumbnailSquareXs, sm: FigmaThumbnail4x4 }),
+          component: makeView({
+            form: makeViewForm({
+              shape: {
+                imagePosition: primitives.enum({
+                  values: ["center", "left", "right", "top", "bottom"],
+                  defaultValue: "center",
+                }),
+              },
+              form: FigmaViewForm,
+            }),
+            xs: FigmaThumbnailSquareXs,
+            sm: FigmaThumbnail4x4,
+          }),
         }),
       },
     }),

@@ -37,8 +37,8 @@ export default function BrickCollectionRoute() {
     );
   }
 
-  const bricks = Object.values(collection.variants).flatMap((variant) =>
-    Object.values(variant.layouts),
+  const bricks = Object.values(collection.contents).flatMap((content) =>
+    Object.values(content.views),
   );
 
   return (
@@ -68,25 +68,25 @@ export default function BrickCollectionRoute() {
       <div className="mt-8 flex flex-col gap-10">
         {bricks.map((brick) => {
           const BrickComponent = brick.component;
-          const variant = collection.variants[brick.def.variant];
+          const content = collection.contents[brick.def.content];
 
           return (
-            <section key={`${brick.def.variant}/${brick.def.layout}`}>
-              <Tabs.Root value={`${brick.def.variant}--${brick.def.layout}-preview`}>
+            <section key={`${brick.def.content}/${brick.def.view}`}>
+              <Tabs.Root value={`${brick.def.content}--${brick.def.view}-preview`}>
                 <div className="flex items-baseline justify-between gap-4 px-6">
                   <div>
-                    <h2 className="m-0 text-2xl font-semibold">{brick.def.variant}</h2>
+                    <h2 className="m-0 text-2xl font-semibold">{brick.def.content}</h2>
                     <p className="mb-0 mt-1 text-sm text-zinc-500">
-                      {collection.variants[brick.def.variant]?.variantDescription}
+                      {collection.contents[brick.def.content]?.contentDescription}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-baseline gap-2">
                     <Tabs.List
                       className="flex gap-2 text-sm"
-                      aria-label={`${brick.def.layout} preview`}
+                      aria-label={`${brick.def.view} preview`}
                     >
                       <Tabs.Trigger
-                        value={`${brick.def.variant}--${brick.def.layout}-preview`}
+                        value={`${brick.def.content}--${brick.def.view}-preview`}
                         className="cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-zinc-950"
                       >
                         {brick.def.label}
@@ -94,17 +94,17 @@ export default function BrickCollectionRoute() {
                     </Tabs.List>
                   </div>
                 </div>
-                <Tabs.Content value={`${brick.def.variant}--${brick.def.layout}-preview`}>
+                <Tabs.Content value={`${brick.def.content}--${brick.def.view}-preview`}>
                   <div className="mt-6 overflow-auto">
                     <div className={brick.def.w === 8 ? undefined : "ml-6"}>
                       <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
                         <div
                           className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                          data-brick-full-layout={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.layout}`}
+                          data-brick-full-view={`${brick.def.collectionName}/${brick.def.content}/${brick.def.view}`}
                           data-brick-drawer-brick-slot
                           data-brick-drawer-collection-name={brick.def.collectionName}
-                          data-brick-drawer-variant={brick.def.variant}
-                          data-brick-drawer-layout={brick.def.layout}
+                          data-brick-drawer-content={brick.def.content}
+                          data-brick-drawer-view={brick.def.view}
                           draggable
                           onDragStart={(event) => {
                             useBrickDrawerStore
@@ -112,13 +112,13 @@ export default function BrickCollectionRoute() {
                               .registerActiveBrickDragGridShape(brick.def.w, brick.def.h);
                             event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brick.def));
                             event.dataTransfer.effectAllowed = "copy";
-                            event.dataTransfer.setData("text/plain", brick.def.layout);
+                            event.dataTransfer.setData("text/plain", brick.def.view);
                           }}
                           onDragEnd={() => {
                             useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
                           }}
                         >
-                          <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
+                          <BrickComponent breakpoint={breakpoint} data={content?.defaultData} />
                         </div>
                       </BrickPreviewFrame>
                     </div>

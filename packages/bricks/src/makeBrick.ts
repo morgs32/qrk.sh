@@ -4,34 +4,34 @@ import type { IBrick } from "./types";
 const KEBAB_BRICK_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function makeBrick<
-  const VARIANT extends string,
-  const LAYOUT extends string,
+  const CONTENT extends string,
+  const VIEW extends string,
   const COMPONENT extends (props: never) => ReactNode,
 >(props: {
-  variant: VARIANT;
-  layout: LAYOUT;
+  content: CONTENT;
+  view: VIEW;
   w: number;
   h: number;
   order: number;
   label: string;
   component: COMPONENT;
-}): IBrick<VARIANT, LAYOUT, COMPONENT> {
-  const { variant, layout, w, h, order, label, component } = props;
+}): IBrick<CONTENT, VIEW, COMPONENT> {
+  const { content, view, w, h, order, label, component } = props;
 
-  if (!KEBAB_BRICK_NAME.test(props.variant)) {
+  if (!KEBAB_BRICK_NAME.test(props.content)) {
     throw new Error(
-      `makeBrick: variant must be kebab-case (lowercase segments separated by hyphens); got ${JSON.stringify(props.variant)}`,
+      `makeBrick: content must be kebab-case (lowercase segments separated by hyphens); got ${JSON.stringify(props.content)}`,
     );
   }
-  if (!KEBAB_BRICK_NAME.test(props.layout)) {
+  if (!KEBAB_BRICK_NAME.test(props.view)) {
     throw new Error(
-      `makeBrick: layout must be kebab-case (lowercase segments separated by hyphens); got ${JSON.stringify(props.layout)}`,
+      `makeBrick: view must be kebab-case (lowercase segments separated by hyphens); got ${JSON.stringify(props.view)}`,
     );
   }
   return {
     def: {
-      variant,
-      layout,
+      content,
+      view,
       w,
       h,
       order,

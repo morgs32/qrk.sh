@@ -3,6 +3,7 @@ import { Image } from "@unpic/react";
 import { BrickFrame } from "../../BrickFrame";
 
 export function FigmaThumbnail4x4(props: {
+  viewOptions?: { imagePosition: string };
   data: {
     title: string;
     url: string;
@@ -20,7 +21,10 @@ export function FigmaThumbnail4x4(props: {
         rel="noopener noreferrer"
         target="_blank"
       >
-        <div className="relative h-full w-full overflow-hidden bg-white">
+        <div
+          className="relative h-full w-full overflow-hidden bg-white"
+          style={{ objectPosition: props.viewOptions?.imagePosition ?? "center" }}
+        >
           <div
             className="absolute inset-0 bottom-[27%] bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-[size:20px_20px]"
             data-figma-fallback="thumbnail"
@@ -32,7 +36,7 @@ export function FigmaThumbnail4x4(props: {
             <Image
               key={props.data.thumbnail_url}
               alt={`${props.data.title} Figma thumbnail`}
-              className="absolute inset-0 bottom-[27%] h-[73%] w-full object-cover"
+              className="absolute inset-0 bottom-[27%] h-[73%] w-full object-cover [object-position:inherit]"
               data-figma-thumbnail="thumbnail"
               height={props.data.thumbnail_height ?? 450}
               layout="fullWidth"

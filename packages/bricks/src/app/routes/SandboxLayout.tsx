@@ -2,7 +2,6 @@ import { BrickBreakpointProvider } from "../../BrickBreakpointProvider";
 import { useLayoutEffect, useRef, useState } from "react";
 import { Link, Outlet } from "react-router";
 import { RotateCcw, X } from "lucide-react";
-import { OrderedTableOfContents } from "../../OrderedTableOfContents";
 import { Button } from "../../ui/button";
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle, DrawerTrigger } from "../../ui/drawer";
 
@@ -16,7 +15,7 @@ export default function SandboxLayout() {
   const selectedWidth =
     savedWidth !== null && savedWidth <= availableWidth
       ? savedWidth
-      : ([1440, 1024, 768, 375].find((preset) => preset <= availableWidth) ?? null);
+      : ([1440, 1024, 768, 640, 375].find((preset) => preset <= availableWidth) ?? null);
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -44,14 +43,20 @@ export default function SandboxLayout() {
   }, []);
 
   const collections = (
-    <OrderedTableOfContents.Container>
-      <OrderedTableOfContents.Title>
-        <Link to="/">Brick collections</Link>
-      </OrderedTableOfContents.Title>
-      <div data-vaul-no-drag className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <Outlet />
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background pl-4 pr-6">
+        <Link to="/" className="text-sm font-medium">
+          Brick collections
+        </Link>
+      </header>
+      <div className="min-h-0 flex-1">
+        <div className="qrk-bricks flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden font-mono text-sm leading-5 text-zinc-900">
+          <div data-vaul-no-drag className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <Outlet />
+          </div>
+        </div>
       </div>
-    </OrderedTableOfContents.Container>
+    </div>
   );
 
   return (
@@ -147,12 +152,6 @@ export default function SandboxLayout() {
                   title="Reset grid layout"
                   onClick={() => {
                     useGridStore.setState({
-                      layout: [
-                        { i: "fixture-1", x: 0, y: 0, w: 2, h: 2 },
-                        { i: "fixture-2", x: 2, y: 0, w: 2, h: 2 },
-                        { i: "fixture-3", x: 4, y: 0, w: 2, h: 2 },
-                        { i: "fixture-4", x: 6, y: 0, w: 2, h: 2 },
-                      ],
                       bricksById: {},
                       activeBrickDrag: null,
                     });
@@ -161,7 +160,7 @@ export default function SandboxLayout() {
                   <RotateCcw aria-hidden />
                 </Button>
                 <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
-                {[375, 768, 1024, 1440].map((width) => (
+                {[375, 640, 768, 1024, 1440].map((width) => (
                   <Button
                     key={width}
                     type="button"

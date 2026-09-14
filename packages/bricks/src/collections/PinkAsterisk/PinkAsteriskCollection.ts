@@ -4,7 +4,7 @@ import { primitives } from "@zerospin/schema";
 
 import { makeBrick } from "../../makeBrick";
 import { makeCollection } from "../../makeCollection";
-import { makeVariant } from "../../makeVariant";
+import { makeContent } from "../../makeContent";
 import { PinkAsterisk1x1 } from "./PinkAsterisk1x1";
 import { PinkAsterisk2x2 } from "./PinkAsterisk2x2";
 import { PinkAsterisk4x1 } from "./PinkAsterisk4x1";
@@ -14,22 +14,22 @@ export const iconCollection = makeCollection({
   collectionName: "icon",
   collectionLabel: "Icon",
   collectionDescription: 'Graphic icons for your grid. You can never have enough "flair".',
-  variants: {
-    default: makeVariant({
-      variant: "default",
-      variantName: "Default",
-      variantDescription: "A selected icon from Streamline.",
+  contents: {
+    default: makeContent({
+      content: "default",
+      contentName: "Default",
+      contentDescription: "A selected icon from Streamline.",
       configuration: makeFetcherConfiguration({
-        payloadShape: {
+        contentOptionsShape: {
           hash: primitives.text({ defaultValue: "" }),
         },
-        payloadForm: ({ value, onChange }) =>
+        contentOptionsForm: ({ value, onChange }) =>
           createElement(StreamlineIconLookup, {
             value: value.hash,
             onChange: (hash) => onChange({ hash }),
           }),
-        fetcher: async ({ api, payload, setData }) => {
-          const result = await api.streamlineRepo().getSvg(payload.hash);
+        fetcher: async ({ api, contentOptions, setData }) => {
+          const result = await api.streamlineRepo().getSvg(contentOptions.hash);
           if (result._tag === "Left") return result;
           setData(result.right);
           return { _tag: "Right", right: undefined };
@@ -43,10 +43,10 @@ export const iconCollection = makeCollection({
         name: "Asterisk",
         svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 20v60M20 35l60 30M20 65l60-30" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="8"/></svg>',
       },
-      layouts: {
+      views: {
         "2x2": makeBrick({
-          variant: "default",
-          layout: "2x2",
+          content: "default",
+          view: "2x2",
           w: 2,
           h: 2,
           label: "2×2",
@@ -54,8 +54,8 @@ export const iconCollection = makeCollection({
           component: PinkAsterisk1x1,
         }),
         "4x4": makeBrick({
-          variant: "default",
-          layout: "4x4",
+          content: "default",
+          view: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
@@ -63,8 +63,8 @@ export const iconCollection = makeCollection({
           component: PinkAsterisk2x2,
         }),
         "8x2": makeBrick({
-          variant: "default",
-          layout: "8x2",
+          content: "default",
+          view: "8x2",
           w: 8,
           h: 2,
           label: "8×2",

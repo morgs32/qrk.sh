@@ -82,7 +82,7 @@ export function BrickCarouselNav(props: {
       data-brick-carousel-nav
       className="z-[8] flex min-w-0 shrink-0 items-center justify-center"
       role="toolbar"
-      aria-label="Brick layout and slides"
+      aria-label="Brick view and slides"
     >
       <div className="flex min-w-0 items-center justify-center">
         <div
@@ -95,7 +95,7 @@ export function BrickCarouselNav(props: {
               const active = i === selected;
               return (
                 <div
-                  key={`${brick.def.variant}/${brick.def.layout}`}
+                  key={`${brick.def.content}/${brick.def.view}`}
                   className="flex min-w-0 shrink-0 items-center justify-center"
                 >
                   <button

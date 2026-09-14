@@ -7,36 +7,36 @@ import type { IScrapeError } from "./scraper/types.public";
 
 import { githubCollection } from "./collections/GitHubCards/GitHubProfileCollection";
 import { mapCollection } from "./collections/Map/MapCollection";
-import { makeVariant } from "./makeVariant";
+import { makeContent } from "./makeContent";
 
-describe("makeVariant data contracts", () => {
-  it("requires layout keys and variants to match their definitions", () => {
+describe("makeContent data contracts", () => {
+  it("requires view keys and contents to match their definitions", () => {
     expectTypeOf(() => {
-      makeVariant({
-        variant: "default",
-        variantName: "Default",
-        variantDescription: "Test variant",
+      makeContent({
+        content: "default",
+        contentName: "Default",
+        contentDescription: "Test content",
         dataShape: null,
         defaultData: null,
-        layouts: {
+        views: {
           summary: {
-            // @ts-expect-error the layout identifier must match its map key
+            // @ts-expect-error the view identifier must match its map key
             // prettier-ignore
-            def: { variant: "default", layout: "activity", w: 4, h: 2, label: "Activity", order: 0 },
+            def: { content: "default", view: "activity", w: 4, h: 2, label: "Activity", order: 0 },
             component: () => null,
           },
         },
       });
-      makeVariant({
-        variant: "default",
-        variantName: "Default",
-        variantDescription: "Test variant",
+      makeContent({
+        content: "default",
+        contentName: "Default",
+        contentDescription: "Test content",
         dataShape: null,
         defaultData: null,
-        layouts: {
+        views: {
           summary: {
-            // @ts-expect-error the brick must belong to its containing variant
-            def: { variant: "other", layout: "summary", w: 4, h: 2, label: "Summary", order: 0 },
+            // @ts-expect-error the brick must belong to its containing content
+            def: { content: "other", view: "summary", w: 4, h: 2, label: "Summary", order: 0 },
             component: () => null,
           },
         },
@@ -44,18 +44,18 @@ describe("makeVariant data contracts", () => {
     }).toBeFunction();
   });
 
-  it("uses explicit nulls for a static variant", () => {
-    const variant = makeVariant({
+  it("uses explicit nulls for a static content", () => {
+    const content = makeContent({
       dataShape: null,
       defaultData: null,
-      variant: "static",
-      variantName: "Static",
-      variantDescription: "A static variant.",
-      layouts: {
+      content: "static",
+      contentName: "Static",
+      contentDescription: "A static content.",
+      views: {
         "1x1": {
           def: {
-            variant: "static",
-            layout: "1x1",
+            content: "static",
+            view: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -66,36 +66,36 @@ describe("makeVariant data contracts", () => {
       },
     });
 
-    expect("payloadShape" in variant).toBe(false);
-    expect("payloadForm" in variant).toBe(false);
-    expect(variant.dataShape).toBeNull();
-    expect(variant.defaultData).toBeNull();
-    expect("getData" in variant).toBe(false);
-    expect("payload" in variant).toBe(false);
+    expect("contentOptionsShape" in content).toBe(false);
+    expect("contentOptionsForm" in content).toBe(false);
+    expect(content.dataShape).toBeNull();
+    expect(content.defaultData).toBeNull();
+    expect("getData" in content).toBe(false);
+    expect("contentOptions" in content).toBe(false);
 
-    expect("payloadShape" in githubCollection.variants.repo).toBe(false);
-    expect("payloadForm" in githubCollection.variants.repo).toBe(false);
-    expect(githubCollection.variants.repo.dataShape).toBeNull();
-    expect(githubCollection.variants.repo.defaultData).toBeNull();
-    expect("getData" in githubCollection.variants.repo).toBe(false);
+    expect("contentOptionsShape" in githubCollection.contents.repo).toBe(false);
+    expect("contentOptionsForm" in githubCollection.contents.repo).toBe(false);
+    expect(githubCollection.contents.repo.dataShape).toBeNull();
+    expect(githubCollection.contents.repo.defaultData).toBeNull();
+    expect("getData" in githubCollection.contents.repo).toBe(false);
   });
 
-  it("preserves typed custom payload controls through the collection", () => {
-    const placeVariant = mapCollection.variants.place;
+  it("preserves typed custom contentOptions controls through the collection", () => {
+    const placeContent = mapCollection.contents.place;
 
-    if (placeVariant?.configuration?.configurationType !== "fetcher") {
+    if (placeContent?.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
     }
-    expect(placeVariant?.configuration?.payloadShape?.googlePlaceId).toMatchObject({
+    expect(placeContent?.configuration?.contentOptionsShape?.googlePlaceId).toMatchObject({
       kind: "text",
       nullable: false,
       defaultValue: "ChIJ7cv00DwsDogRAMDACa2m4K8",
     });
-    expect(placeVariant?.configuration?.payloadForm).toBeTypeOf("function");
-    expect(placeVariant).not.toHaveProperty("payloadShape");
-    expect(placeVariant).not.toHaveProperty("payloadForm");
-    expect(placeVariant).not.toHaveProperty("getData");
-    expect(placeVariant?.defaultData).toMatchObject({
+    expect(placeContent?.configuration?.contentOptionsForm).toBeTypeOf("function");
+    expect(placeContent).not.toHaveProperty("contentOptionsShape");
+    expect(placeContent).not.toHaveProperty("contentOptionsForm");
+    expect(placeContent).not.toHaveProperty("getData");
+    expect(placeContent?.defaultData).toMatchObject({
       googlePlaceId: "ChIJ7cv00DwsDogRAMDACa2m4K8",
       name: "Downtown Chicago",
       latitude: 41.8781136,
@@ -104,30 +104,30 @@ describe("makeVariant data contracts", () => {
   });
 
   it("uses a data form for locally authored text", () => {
-    const variant = textBrickCollection.variants.default;
-    expect(variant.configuration?.configurationType).toBe("form");
-    expect(variant.defaultData).toEqual({ content: null });
-    expect(variant.dataShape?.content.kind).toBe("json");
+    const content = textBrickCollection.contents.default;
+    expect(content.configuration?.configurationType).toBe("form");
+    expect(content.defaultData).toEqual({ content: null });
+    expect(content.dataShape?.content.kind).toBe("json");
   });
 
   it("infers custom renderer values from their decoded primitive fields", () => {
-    const variant = makeVariant({
-      variant: "typed-controls",
-      variantName: "Typed-controls",
-      variantDescription: "Typed custom controls.",
+    const content = makeContent({
+      content: "typed-controls",
+      contentName: "Typed-controls",
+      contentDescription: "Typed custom controls.",
       configuration: makeFetcherConfiguration({
-        payloadShape: {
+        contentOptionsShape: {
           query: primitives.text({ defaultValue: "Chicago" }),
           zoom: primitives.integer({ defaultValue: 14 }),
         },
-        payloadForm: ({ value, onChange }) => {
+        contentOptionsForm: ({ value, onChange }) => {
           expectTypeOf(value.query).toEqualTypeOf<string>();
           expectTypeOf(value.zoom).toEqualTypeOf<number>();
           onChange(value);
           return null;
         },
-        fetcher: async ({ payload, setData }) => {
-          setData({ result: `${payload.query}:${payload.zoom}` });
+        fetcher: async ({ contentOptions, setData }) => {
+          setData({ result: `${contentOptions.query}:${contentOptions.zoom}` });
           return { _tag: "Right", right: undefined };
         },
       }),
@@ -137,11 +137,11 @@ describe("makeVariant data contracts", () => {
       defaultData: {
         result: "Chicago",
       },
-      layouts: {
+      views: {
         "1x1": {
           def: {
-            variant: "typed-controls",
-            layout: "1x1",
+            content: "typed-controls",
+            view: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -152,24 +152,24 @@ describe("makeVariant data contracts", () => {
       },
     });
 
-    if (variant.configuration?.configurationType !== "fetcher") {
+    if (content.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
     }
-    expect(variant.configuration?.payloadForm).toBeTypeOf("function");
+    expect(content.configuration?.contentOptionsForm).toBeTypeOf("function");
   });
 
   it("preserves the GitHub profile request, response, default, and callback contract", () => {
-    const profileVariant = githubCollection.variants.profile;
+    const profileContent = githubCollection.contents.profile;
 
-    if (profileVariant?.configuration?.configurationType !== "fetcher") {
+    if (profileContent?.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
     }
-    expect(profileVariant?.configuration?.payloadShape?.url).toMatchObject({
+    expect(profileContent?.configuration?.contentOptionsShape?.url).toMatchObject({
       kind: "text",
       nullable: false,
       defaultValue: "https://github.com/morgs32",
     });
-    expect(profileVariant?.dataShape).toMatchObject({
+    expect(profileContent?.dataShape).toMatchObject({
       login: { kind: "text" },
       avatar_url: { kind: "text" },
       name: { kind: "text", nullable: true },
@@ -180,27 +180,27 @@ describe("makeVariant data contracts", () => {
       followers: { kind: "integer" },
       following: { kind: "integer" },
     });
-    expect(profileVariant?.defaultData).toMatchObject({
+    expect(profileContent?.defaultData).toMatchObject({
       id: 1364795,
       login: "morgs32",
       name: "Morgan Intrator",
     });
-    expect(profileVariant?.configuration?.fetcher).toBeTypeOf("function");
+    expect(profileContent?.configuration?.fetcher).toBeTypeOf("function");
   });
 
   it("decodes requests and publishes provider data through the supplied setter", async () => {
-    const callbackPayloads: Array<{ url: string }> = [];
-    const variant = makeVariant({
-      variant: "profile",
-      variantName: "Profile",
-      variantDescription: "A data-backed profile.",
+    const receivedContentOptions: Array<{ url: string }> = [];
+    const content = makeContent({
+      content: "profile",
+      contentName: "Profile",
+      contentDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
-        payloadShape: {
+        contentOptionsShape: {
           url: primitives.text(),
         },
-        fetcher: async ({ payload, setData }) => {
-          callbackPayloads.push(payload);
-          setData({ login: payload.url, providerField: "loaded-provider-value" });
+        fetcher: async ({ contentOptions, setData }) => {
+          receivedContentOptions.push(contentOptions);
+          setData({ login: contentOptions.url, providerField: "loaded-provider-value" });
           return { _tag: "Right", right: undefined };
         },
       }),
@@ -211,11 +211,11 @@ describe("makeVariant data contracts", () => {
         login: "default-profile",
         providerField: "default-provider-value",
       },
-      layouts: {
+      views: {
         "1x1": {
           def: {
-            variant: "profile",
-            layout: "1x1",
+            content: "profile",
+            view: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -228,20 +228,20 @@ describe("makeVariant data contracts", () => {
       },
     });
     if (
-      variant.configuration === undefined ||
-      !("fetcher" in variant.configuration) ||
-      variant.configuration.fetcher === undefined
+      content.configuration === undefined ||
+      !("fetcher" in content.configuration) ||
+      content.configuration.fetcher === undefined
     ) {
-      throw new Error("Expected a fetched variant");
+      throw new Error("Expected a fetched content");
     }
     const api = Object.create(ScraperApi.prototype);
     const setData = vi.fn();
 
     await expect(
-      variant.configuration.fetcher({
+      content.configuration.fetcher({
         api,
         setData,
-        payload: { url: "https://github.com/morgs32" },
+        contentOptions: { url: "https://github.com/morgs32" },
       }),
     ).resolves.toEqual({
       _tag: "Right",
@@ -251,22 +251,22 @@ describe("makeVariant data contracts", () => {
       login: "https://github.com/morgs32",
       providerField: "loaded-provider-value",
     });
-    expect(variant.configuration.configurationType).toBe("fetcher");
-    expect(callbackPayloads).toEqual([{ url: "https://github.com/morgs32" }]);
+    expect(content.configuration.configurationType).toBe("fetcher");
+    expect(receivedContentOptions).toEqual([{ url: "https://github.com/morgs32" }]);
   });
 
-  it("throws while constructing a variant with invalid default data", () => {
+  it("throws while constructing a content with invalid default data", () => {
     expect(() =>
-      makeVariant({
-        variant: "profile",
-        variantName: "Profile",
-        variantDescription: "A data-backed profile.",
+      makeContent({
+        content: "profile",
+        contentName: "Profile",
+        contentDescription: "A data-backed profile.",
         configuration: makeFetcherConfiguration({
-          payloadShape: {
+          contentOptionsShape: {
             url: primitives.text(),
           },
-          fetcher: async ({ payload, setData }) => {
-            void payload;
+          fetcher: async ({ contentOptions, setData }) => {
+            void contentOptions;
             setData({ login: "morgs32" });
             return { _tag: "Right", right: undefined };
           },
@@ -275,11 +275,11 @@ describe("makeVariant data contracts", () => {
           login: primitives.text(),
         },
         defaultData: JSON.parse('{"login":42}'),
-        layouts: {
+        views: {
           "1x1": {
             def: {
-              variant: "profile",
-              layout: "1x1",
+              content: "profile",
+              view: "1x1",
               w: 1,
               h: 1,
               label: "1×1",
@@ -294,19 +294,19 @@ describe("makeVariant data contracts", () => {
     ).toThrow();
   });
 
-  it("rejects missing, invalid, and excess payloads before invoking the callback", async () => {
-    const callbackPayloads: Array<{ url: string }> = [];
-    const variant = makeVariant({
-      variant: "profile",
-      variantName: "Profile",
-      variantDescription: "A data-backed profile.",
+  it("rejects missing, invalid, and excess content options before invoking the callback", async () => {
+    const receivedContentOptions: Array<{ url: string }> = [];
+    const content = makeContent({
+      content: "profile",
+      contentName: "Profile",
+      contentDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
-        payloadShape: {
+        contentOptionsShape: {
           url: primitives.text(),
         },
-        fetcher: async ({ payload, setData }) => {
-          callbackPayloads.push(payload);
-          setData({ login: payload.url });
+        fetcher: async ({ contentOptions, setData }) => {
+          receivedContentOptions.push(contentOptions);
+          setData({ login: contentOptions.url });
           return { _tag: "Right", right: undefined };
         },
       }),
@@ -316,11 +316,11 @@ describe("makeVariant data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      layouts: {
+      views: {
         "1x1": {
           def: {
-            variant: "profile",
-            layout: "1x1",
+            content: "profile",
+            view: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -333,50 +333,50 @@ describe("makeVariant data contracts", () => {
       },
     });
     if (
-      variant.configuration === undefined ||
-      !("fetcher" in variant.configuration) ||
-      variant.configuration.fetcher === undefined
+      content.configuration === undefined ||
+      !("fetcher" in content.configuration) ||
+      content.configuration.fetcher === undefined
     ) {
-      throw new Error("Expected a fetched variant");
+      throw new Error("Expected a fetched content");
     }
     const api = Object.create(ScraperApi.prototype);
     const setData = vi.fn();
 
     await expect(
-      variant.configuration.fetcher({ api, setData, payload: {} }),
+      content.configuration.fetcher({ api, setData, contentOptions: {} }),
     ).rejects.toBeDefined();
     await expect(
-      variant.configuration.fetcher({
+      content.configuration.fetcher({
         api,
         setData,
-        payload: { url: 42 },
+        contentOptions: { url: 42 },
       }),
     ).rejects.toBeDefined();
     await expect(
-      variant.configuration.fetcher({
+      content.configuration.fetcher({
         api,
         setData,
-        payload: {
+        contentOptions: {
           url: "https://github.com/morgs32",
           unexpected: true,
         },
       }),
     ).rejects.toBeDefined();
-    expect(callbackPayloads).toEqual([]);
+    expect(receivedContentOptions).toEqual([]);
     expect(setData).not.toHaveBeenCalled();
   });
 
   it("propagates validation failures from the supplied setter", async () => {
-    const variant = makeVariant({
-      variant: "profile",
-      variantName: "Profile",
-      variantDescription: "A data-backed profile.",
+    const content = makeContent({
+      content: "profile",
+      contentName: "Profile",
+      contentDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
-        payloadShape: {
+        contentOptionsShape: {
           url: primitives.text(),
         },
-        fetcher: async ({ payload, setData }) => {
-          void payload;
+        fetcher: async ({ contentOptions, setData }) => {
+          void contentOptions;
           setData({ login: 42 });
           return { _tag: "Right", right: undefined };
         },
@@ -387,11 +387,11 @@ describe("makeVariant data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      layouts: {
+      views: {
         "1x1": {
           def: {
-            variant: "profile",
-            layout: "1x1",
+            content: "profile",
+            view: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -404,24 +404,24 @@ describe("makeVariant data contracts", () => {
       },
     });
     if (
-      variant.configuration === undefined ||
-      !("fetcher" in variant.configuration) ||
-      variant.configuration.fetcher === undefined
+      content.configuration === undefined ||
+      !("fetcher" in content.configuration) ||
+      content.configuration.fetcher === undefined
     ) {
-      throw new Error("Expected a fetched variant");
+      throw new Error("Expected a fetched content");
     }
     const api = Object.create(ScraperApi.prototype);
     const setData = vi.fn(() => {
-      throw new Error("Invalid variant data");
+      throw new Error("Invalid content data");
     });
 
     await expect(
-      variant.configuration.fetcher({
+      content.configuration.fetcher({
         api,
         setData,
-        payload: { url: "https://github.com/morgs32" },
+        contentOptions: { url: "https://github.com/morgs32" },
       }),
-    ).rejects.toThrow("Invalid variant data");
+    ).rejects.toThrow("Invalid content data");
     expect(setData).toHaveBeenCalledExactlyOnceWith({ login: 42 });
   });
 
@@ -431,16 +431,16 @@ describe("makeVariant data contracts", () => {
       message: "GitHub authentication or access failed with HTTP 401",
       retryable: false,
     };
-    const variant = makeVariant({
-      variant: "profile",
-      variantName: "Profile",
-      variantDescription: "A data-backed profile.",
+    const content = makeContent({
+      content: "profile",
+      contentName: "Profile",
+      contentDescription: "A data-backed profile.",
       configuration: makeFetcherConfiguration({
-        payloadShape: {
+        contentOptionsShape: {
           url: primitives.text(),
         },
-        fetcher: async ({ payload }) => {
-          void payload;
+        fetcher: async ({ contentOptions }) => {
+          void contentOptions;
           return { _tag: "Left", left: providerError };
         },
       }),
@@ -450,11 +450,11 @@ describe("makeVariant data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      layouts: {
+      views: {
         "1x1": {
           def: {
-            variant: "profile",
-            layout: "1x1",
+            content: "profile",
+            view: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
@@ -467,88 +467,88 @@ describe("makeVariant data contracts", () => {
       },
     });
     if (
-      variant.configuration === undefined ||
-      !("fetcher" in variant.configuration) ||
-      variant.configuration.fetcher === undefined
+      content.configuration === undefined ||
+      !("fetcher" in content.configuration) ||
+      content.configuration.fetcher === undefined
     ) {
-      throw new Error("Expected a fetched variant");
+      throw new Error("Expected a fetched content");
     }
     const api = Object.create(ScraperApi.prototype);
     const setData = vi.fn();
 
     await expect(
-      variant.configuration.fetcher({
+      content.configuration.fetcher({
         api,
         setData,
-        payload: { url: "https://github.com/morgs32" },
+        contentOptions: { url: "https://github.com/morgs32" },
       }),
     ).resolves.toEqual({ _tag: "Left", left: providerError });
     expect(setData).not.toHaveBeenCalled();
   });
 
   it("allows data components to ignore the data argument", () => {
-    const variant = makeVariant({
-      variant: "default",
-      variantName: "Default",
-      variantDescription: "Data is available but unused.",
+    const content = makeContent({
+      content: "default",
+      contentName: "Default",
+      contentDescription: "Data is available but unused.",
       dataShape: { name: primitives.text() },
       defaultData: { name: "Default" },
-      layouts: {
+      views: {
         "1x1": {
-          def: { variant: "default", layout: "1x1", w: 1, h: 1, label: "1×1", order: 0 },
+          def: { content: "default", view: "1x1", w: 1, h: 1, label: "1×1", order: 0 },
           component: () => null,
         },
       },
     });
-    expect(variant.defaultData).toEqual({ name: "Default" });
+    expect(content.defaultData).toEqual({ name: "Default" });
   });
 
   it("requires a matching schema/default pair", () => {
     // Invalid declarations are compile-time assertions, not runtime inputs.
     expectTypeOf(() => {
       // @ts-expect-error both data fields are required
-      makeVariant({
-        variant: "static",
-        variantName: "Static",
-        variantDescription: "Static",
-        layouts: {},
+      makeContent({
+        content: "static",
+        contentName: "Static",
+        contentDescription: "Static",
+        views: {},
       });
       // @ts-expect-error a null schema requires a null default
-      makeVariant({
-        variant: "static",
-        variantName: "Static",
-        variantDescription: "Static",
+      makeContent({
+        content: "static",
+        contentName: "Static",
+        contentDescription: "Static",
         dataShape: null,
         defaultData: {},
-        layouts: {},
+        views: {},
       });
       // @ts-expect-error a schema requires a non-null default
-      makeVariant({
-        variant: "data",
-        variantName: "Data",
-        variantDescription: "Data",
+      makeContent({
+        content: "data",
+        contentName: "Data",
+        contentDescription: "Data",
         dataShape: { name: primitives.text() },
         defaultData: null,
-        layouts: {},
+        views: {},
       });
-      makeVariant({
-        variant: "data",
-        variantName: "Data",
-        variantDescription: "Data",
+      makeContent({
+        content: "data",
+        contentName: "Data",
+        contentDescription: "Data",
         dataShape: { name: primitives.text() },
         // @ts-expect-error defaults must match the schema
         defaultData: { name: 42 },
-        layouts: {},
+        views: {},
       });
-      makeVariant({
-        variant: "data",
-        variantName: "Data",
-        variantDescription: "Data",
+      makeContent({
+        content: "data",
+        contentName: "Data",
+        contentDescription: "Data",
         dataShape: { name: primitives.text() },
         defaultData: { name: "Default" },
-        layouts: {
+        views: {
           "1x1": {
-            def: { variant: "data", layout: "1x1", w: 1, h: 1, label: "1×1", order: 0 },
+            def: { content: "data", view: "1x1", w: 1, h: 1, label: "1×1", order: 0 },
             // @ts-expect-error component data must match the schema
             component: (props: { data: { name: number } }) => props.data.name,
           },

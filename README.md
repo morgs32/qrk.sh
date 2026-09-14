@@ -11,13 +11,15 @@ Two Next.js apps with App Router:
 
 ## Brick catalog identity
 
-The grid / brick drawer catalog is defined under `packages/bricks/src/collections/`. These rules are **invariants** for every collection and variant:
+The grid / brick drawer catalog is defined under `packages/bricks/src/collections/`.
 
-1. **`collectionName`** — kebab-case id for the collection; **each collection has a distinct `collectionName`** in the catalog.
-2. **`def.name`** (on each brick variant) — kebab-case slug **unique within that collection** (e.g. `2x2`, `4x4`, `8x2` among siblings).
-3. **Globally**, **`(collectionName, def.name)`** uniquely identifies a catalog brick variant. Do not rely on a single concatenated string for that pair in the drawer UI: [BrickPreview](apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx) sets **`data-brick-drawer-collection-name`** and **`data-brick-drawer-brick-name`** separately.
+1. **`collectionName`** identifies a collection; **`content`** identifies a content definition within it; **`view`** identifies a presentation within that content definition.
+2. **`(collectionName, content, view)`** uniquely identifies a catalog brick. Drawer and grid selectors expose these fields separately.
+3. Placed bricks retain their own **`brickId`**. Backend records and command inputs use **`collectionId`**, **`contentId`**, and **`viewId`**.
 
-More detail and test patterns: [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md) (section **Brick variant identity**).
+This is a hard terminology cutover: old backend state requires an explicitly authorized reset before reuse. Model and contract versions remain unchanged. Old browser storage is ignored and left untouched; the sandbox uses `qrk-bricks-sandbox-responsive-bricks-v2`, and editor drafts use `qrk-site-editor-drafts-v2`.
+
+More detail and test patterns: [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md).
 
 ## Tech Stack
 

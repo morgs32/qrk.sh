@@ -4,6 +4,10 @@ import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 import { FileText, Globe, X } from "lucide-react";
 import { useNavigate } from "react-router";
+import { useState } from "react";
+import { createStore, useStore } from "zustand";
+import { useLiveQuery } from "@zerospin/react";
+import { ZerospinUser } from "@/components/ZerospinUser";
 
 import { href } from "react-router";
 import { useSiteStore } from "../../../siteStore";
@@ -18,8 +22,8 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
-  siteId: Schema.String,
-  pageId: Schema.String,
+  siteId: Schema.TemplateLiteral(["sit_", Schema.String]),
+  pageId: Schema.TemplateLiteral(["pag_", Schema.String]),
 });
 
 export function PageSettings() {
@@ -31,10 +35,34 @@ export function PageSettings() {
       ? undefined
       : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId],
   );
-  const setPageTitle = useSiteStore((state) => state.setPageTitle);
   const setPageDescription = useSiteStore((state) => state.setPageDescription);
+  const { data: page, error } = useLiveQuery(ZerospinUser, {
+    deps: [params.pageId, params.siteId],
+    query: (db) =>
+      db.query.page.findFirst({
+        where: { id: { eq: params.pageId }, siteId: { eq: params.siteId } },
+      }),
+  });
+  const resourceTitle = page?.title ?? "";
+  const [draft, setDraft] = useState(() => ({
+    pageId: page?.id,
+    store: createStore(() => ({ title: resourceTitle })),
+  }));
+  // Initialize when the resource arrives or the page changes, not when its title updates.
+  if (draft.pageId !== page?.id) {
+    setDraft({
+      pageId: page?.id,
+      store: createStore(() => ({ title: resourceTitle })),
+    });
+  }
+  const titleStore = draft.store;
+  const title = useStore(titleStore, (state) => state.title);
 
-  if (user === null || user === undefined || pageDraft === undefined) {
+  if (error !== undefined) {
+    throw error;
+  }
+
+  if (user === null || user === undefined || pageDraft === undefined || page === undefined) {
     return null;
   }
 
@@ -44,15 +72,21 @@ export function PageSettings() {
         <FileText className="size-5 shrink-0 text-foreground" strokeWidth={2} aria-hidden />
         <h1 className="min-w-0 flex-1 text-base font-semibold tracking-tight">Page Settings</h1>
         <div className="flex shrink-0 items-center gap-1">
+          {title !== resourceTitle ? (
+            <Button type="button" size="sm">
+              Save
+            </Button>
+          ) : null}
           <Button
             type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8 cursor-pointer"
-            aria-label="Close drawer"
+            variant={title !== resourceTitle ? "destructive" : "ghost"}
+            size={title !== resourceTitle ? "sm" : "icon"}
+            className={title !== resourceTitle ? "h-8 cursor-pointer" : "size-8 cursor-pointer"}
+            aria-label={title !== resourceTitle ? "Cancel" : "Close drawer"}
             onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
           >
             <X className="size-3.5" />
+            {title !== resourceTitle ? "Cancel" : null}
           </Button>
         </div>
       </header>
@@ -63,10 +97,8 @@ export function PageSettings() {
             <Label htmlFor="page-title">Title</Label>
             <Input
               id="page-title"
-              value={pageDraft.title}
-              onChange={(event) =>
-                setPageTitle(user.id, params.siteId, params.pageId, event.target.value)
-              }
+              value={title}
+              onChange={(event) => titleStore.setState({ title: event.target.value })}
             />
           </div>
 
@@ -97,7 +129,7 @@ export function PageSettings() {
                     className="block truncate text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
                     onClick={(e) => e.preventDefault()}
                   >
-                    {pageDraft.title}
+                    {title}
                   </a>
                   <p className="line-clamp-2 text-sm text-muted-foreground">
                     {pageDraft.description}

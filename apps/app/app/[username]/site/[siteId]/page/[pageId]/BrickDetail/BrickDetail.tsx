@@ -32,8 +32,8 @@ export function BrickDetail() {
     (state) => state.pageGrids[pageKey]?.bricksById[params.brickId],
   );
   const collection = brickDef ? collectionsHash[brickDef.collectionName] : undefined;
-  const variant = brickDef ? collection?.variants[brickDef.variant] : undefined;
-  const brick = brickDef ? variant?.layouts[brickDef.layout] : undefined;
+  const content = brickDef ? collection?.contents[brickDef.content] : undefined;
+  const brick = brickDef ? content?.views[brickDef.view] : undefined;
   const BrickComponent = brick?.component;
 
   return (
@@ -85,7 +85,7 @@ export function BrickDetail() {
                 {brick.def.label}
               </h1>
               <p className="mt-0 font-mono text-sm text-muted-foreground">
-                {brick.def.collectionName}/{brick.def.variant}/{brick.def.layout}
+                {brick.def.collectionName}/{brick.def.content}/{brick.def.view}
               </p>
             </div>
             <div className="mt-8 overflow-auto">
@@ -94,7 +94,7 @@ export function BrickDetail() {
                   className="size-full qrk-bricks overflow-hidden"
                   data-testid="selected-brick-preview"
                 >
-                  <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
+                  <BrickComponent breakpoint={breakpoint} data={content?.defaultData} />
                 </div>
               </BrickPreviewFrame>
             </div>

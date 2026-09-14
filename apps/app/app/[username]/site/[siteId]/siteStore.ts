@@ -81,7 +81,7 @@ interface ISiteStoreState {
   ) => void;
 }
 
-const SITE_STORE_STORAGE_KEY = "qrk-site-editor-drafts";
+const SITE_STORE_STORAGE_KEY = "qrk-site-editor-drafts-v2";
 
 const PersistedSiteEditorStateSchema = Schema.Struct({
   owners: Schema.Record(

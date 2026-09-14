@@ -28,8 +28,8 @@ export function BrickCatalog() {
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const collections = Object.values(collectionsHash);
-  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
-  const [selectedLayouts, setSelectedLayouts] = useState<Record<string, string>>({});
+  const [selectedContents, setSelectedContents] = useState<Record<string, string>>({});
+  const [selectedViews, setSelectedViews] = useState<Record<string, string>>({});
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -60,27 +60,27 @@ export function BrickCatalog() {
         className="min-h-0 flex-1 overflow-y-auto pt-8 pb-6 flex flex-col gap-10"
       >
         {collections.map((collection) => {
-          const variants = Object.entries(collection.variants);
-          const firstVariantEntry = variants[0];
+          const contents = Object.entries(collection.contents);
+          const firstContentEntry = contents[0];
 
-          if (!firstVariantEntry) {
+          if (!firstContentEntry) {
             return null;
           }
 
-          const [firstVariantName, firstVariant] = firstVariantEntry;
-          const selectedVariantName =
-            selectedVariants[collection.collectionName] ?? firstVariantName;
-          const selectedVariant = collection.variants[selectedVariantName] ?? firstVariant;
-          const layouts = Object.entries(selectedVariant.layouts);
-          const firstLayout = layouts[0];
+          const [firstContentName, firstContent] = firstContentEntry;
+          const selectedContentName =
+            selectedContents[collection.collectionName] ?? firstContentName;
+          const selectedContent = collection.contents[selectedContentName] ?? firstContent;
+          const views = Object.entries(selectedContent.views);
+          const firstView = views[0];
 
-          if (!firstLayout) {
+          if (!firstView) {
             return null;
           }
 
-          const [firstLayoutName, firstBrick] = firstLayout;
-          const selectedLayoutName = selectedLayouts[collection.collectionName] || firstLayoutName;
-          const selectedBrick = selectedVariant.layouts[selectedLayoutName] ?? firstBrick;
+          const [firstViewName, firstBrick] = firstView;
+          const selectedViewName = selectedViews[collection.collectionName] || firstViewName;
+          const selectedBrick = selectedContent.views[selectedViewName] ?? firstBrick;
           const BrickComponent = selectedBrick.component;
 
           return (
@@ -96,46 +96,46 @@ export function BrickCatalog() {
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1 text-sm">
-                  <Tabs.Root value={selectedVariantName}>
+                  <Tabs.Root value={selectedContentName}>
                     <Tabs.List
-                      aria-label={`${collection.collectionLabel} variants`}
+                      aria-label={`${collection.collectionLabel} contents`}
                       className="flex gap-2"
                     >
-                      {variants.map(([variantName]) => (
+                      {contents.map(([contentName]) => (
                         <Tabs.Trigger
-                          key={variantName}
-                          value={variantName}
+                          key={contentName}
+                          value={contentName}
                           onClick={() => {
-                            setSelectedVariants((current) => ({
+                            setSelectedContents((current) => ({
                               ...current,
-                              [collection.collectionName]: variantName,
+                              [collection.collectionName]: contentName,
                             }));
-                            setSelectedLayouts((current) => ({
+                            setSelectedViews((current) => ({
                               ...current,
                               [collection.collectionName]: "",
                             }));
                           }}
                           className="cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2 data-[state=active]:font-medium data-[state=active]:text-zinc-950 data-[state=active]:no-underline"
                         >
-                          {variantName[0].toUpperCase() + variantName.slice(1)}
+                          {contentName[0].toUpperCase() + contentName.slice(1)}
                         </Tabs.Trigger>
                       ))}
                     </Tabs.List>
                   </Tabs.Root>
-                  <Tabs.Root value={selectedLayoutName}>
+                  <Tabs.Root value={selectedViewName}>
                     <div className="flex items-baseline gap-2">
                       <Tabs.List
-                        aria-label={`${collection.collectionLabel} layouts`}
+                        aria-label={`${collection.collectionLabel} views`}
                         className="flex gap-2"
                       >
-                        {layouts.map(([layoutName, brick]) => (
+                        {views.map(([viewName, brick]) => (
                           <Tabs.Trigger
-                            key={layoutName}
-                            value={layoutName}
+                            key={viewName}
+                            value={viewName}
                             onClick={() => {
-                              setSelectedLayouts((current) => ({
+                              setSelectedViews((current) => ({
                                 ...current,
-                                [collection.collectionName]: layoutName,
+                                [collection.collectionName]: viewName,
                               }));
                             }}
                             className="cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2 data-[state=active]:font-medium data-[state=active]:text-zinc-950 data-[state=active]:no-underline"
@@ -162,11 +162,11 @@ export function BrickCatalog() {
                   <BrickPreviewFrame w={selectedBrick.def.w} h={selectedBrick.def.h}>
                     <div
                       className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                      data-collection-representative={`${selectedBrick.def.collectionName}/${selectedBrick.def.variant}/${selectedBrick.def.layout}`}
+                      data-collection-representative={`${selectedBrick.def.collectionName}/${selectedBrick.def.content}/${selectedBrick.def.view}`}
                       data-brick-drawer-brick-slot
                       data-brick-drawer-collection-name={selectedBrick.def.collectionName}
-                      data-brick-drawer-variant={selectedBrick.def.variant}
-                      data-brick-drawer-layout={selectedBrick.def.layout}
+                      data-brick-drawer-content={selectedBrick.def.content}
+                      data-brick-drawer-view={selectedBrick.def.view}
                       draggable
                       onDragStart={(event) => {
                         useBrickDrawerStore
@@ -180,13 +180,13 @@ export function BrickCatalog() {
                           JSON.stringify(selectedBrick.def),
                         );
                         event.dataTransfer.effectAllowed = "copy";
-                        event.dataTransfer.setData("text/plain", selectedBrick.def.layout);
+                        event.dataTransfer.setData("text/plain", selectedBrick.def.view);
                       }}
                       onDragEnd={() => {
                         useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
                       }}
                     >
-                      <BrickComponent breakpoint={breakpoint} data={selectedVariant.defaultData} />
+                      <BrickComponent breakpoint={breakpoint} data={selectedContent.defaultData} />
                     </div>
                   </BrickPreviewFrame>
                 </div>

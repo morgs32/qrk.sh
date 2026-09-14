@@ -4,10 +4,10 @@ import { Schema } from "effect";
 
 import { makeCollection } from "../../makeCollection";
 import { makeBrick } from "../../makeBrick";
-import { makeVariant } from "../../makeVariant";
+import { makeContent } from "../../makeContent";
 import { GitHubProfileWideXs } from "./GitHubProfileWideXs";
 import { GitHubProfileWideSm } from "./GitHubProfileWideSm";
-import { makeLayout } from "../../makeLayout";
+import { makeView } from "../../makeView";
 import { GitHubProfileSquareXs } from "./GitHubProfileSquareXs";
 import { GitHubProfileSquareMd } from "./GitHubProfileSquareMd";
 import { GitHubRepo4x2 } from "./GitHubRepo4x2";
@@ -16,17 +16,17 @@ export const githubCollection = makeCollection({
   collectionName: "github",
   collectionLabel: "GitHub",
   collectionDescription: "Profile and repository cards from GitHub.",
-  variants: {
-    profile: makeVariant({
-      variant: "profile",
-      variantName: "Profile",
-      variantDescription: "A GitHub profile card.",
+  contents: {
+    profile: makeContent({
+      content: "profile",
+      contentName: "Profile",
+      contentDescription: "A GitHub profile card.",
       configuration: makeFetcherConfiguration({
-        payloadShape: {
+        contentOptionsShape: {
           url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
         },
-        fetcher: async ({ api, payload, setData }) => {
-          const result = await api.githubRepo().getProfile(payload.url);
+        fetcher: async ({ api, contentOptions, setData }) => {
+          const result = await api.githubRepo().getProfile(contentOptions.url);
           if (result._tag === "Left") return result;
           setData(result.right);
           return { _tag: "Right", right: undefined };
@@ -103,37 +103,37 @@ export const githubCollection = makeCollection({
           return { date: date.toISOString().slice(0, 10), count, level };
         }),
       },
-      layouts: {
+      views: {
         "4x4": makeBrick({
-          variant: "profile",
-          layout: "4x4",
+          content: "profile",
+          view: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
           order: 0,
-          component: makeLayout({ xs: GitHubProfileSquareXs, md: GitHubProfileSquareMd }),
+          component: makeView({ xs: GitHubProfileSquareXs, md: GitHubProfileSquareMd }),
         }),
         "4x2": makeBrick({
-          variant: "profile",
-          layout: "4x2",
+          content: "profile",
+          view: "4x2",
           w: 4,
           h: 2,
           label: "4×2",
           order: 1,
-          component: makeLayout({ xs: GitHubProfileWideXs, sm: GitHubProfileWideSm }),
+          component: makeView({ xs: GitHubProfileWideXs, sm: GitHubProfileWideSm }),
         }),
       },
     }),
-    repo: makeVariant({
+    repo: makeContent({
       dataShape: null,
       defaultData: null,
-      variant: "repo",
-      variantName: "Repo",
-      variantDescription: "A GitHub repository card.",
-      layouts: {
+      content: "repo",
+      contentName: "Repo",
+      contentDescription: "A GitHub repository card.",
+      views: {
         "4x2": makeBrick({
-          variant: "repo",
-          layout: "4x2",
+          content: "repo",
+          view: "4x2",
           w: 4,
           h: 2,
           label: "4×2",

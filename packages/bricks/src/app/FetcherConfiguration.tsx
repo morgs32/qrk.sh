@@ -16,25 +16,29 @@ export function FetcherConfiguration(props: {
   data: unknown;
   setData: (data: unknown) => void;
 }) {
-  const { payloadShape, payloadForm: PayloadForm, fetcher: fetchData } = props.configuration;
-  const [payloadValues, setPayloadValues] = useState<Record<string, unknown>>(() => {
-    const initialPayloadValues: Record<string, unknown> = {};
+  const {
+    contentOptionsShape,
+    contentOptionsForm: ContentOptionsForm,
+    fetcher: fetchData,
+  } = props.configuration;
+  const [contentOptionsValues, setContentOptionsValues] = useState<Record<string, unknown>>(() => {
+    const initialContentOptionsValues: Record<string, unknown> = {};
 
-    // Initialize the complete payload from the declared field defaults.
-    for (const [fieldName, descriptor] of Object.entries(payloadShape)) {
-      initialPayloadValues[fieldName] =
+    // Initialize the complete content options from the declared field defaults.
+    for (const [fieldName, descriptor] of Object.entries(contentOptionsShape)) {
+      initialContentOptionsValues[fieldName] =
         "defaultValue" in descriptor ? descriptor.defaultValue : undefined;
     }
-    return initialPayloadValues;
+    return initialContentOptionsValues;
   });
-  const currentPayload = useRef(payloadValues);
+  const currentContentOptions = useRef(contentOptionsValues);
   const generation = useRef(0);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataError, setDataError] = useState<IScrapeError>();
   const [requestError, setRequestError] = useState<string>();
-  const hasUnsupportedPayload =
-    PayloadForm === undefined &&
-    Object.entries(payloadShape).some(
+  const hasUnsupportedContentOptions =
+    ContentOptionsForm === undefined &&
+    Object.entries(contentOptionsShape).some(
       ([, descriptor]) =>
         descriptor.kind !== PrimitiveKind.Text ||
         descriptor.nullable !== false ||
@@ -49,21 +53,21 @@ export function FetcherConfiguration(props: {
     [],
   );
 
-  async function onPayloadChange(payload: Record<string, unknown>) {
-    // Snapshot the next complete payload synchronously, including batched changes.
-    currentPayload.current = payload;
-    setPayloadValues(payload);
+  async function onContentOptionsChange(contentOptions: Record<string, unknown>) {
+    // Snapshot the next complete content options synchronously, including batched changes.
+    currentContentOptions.current = contentOptions;
+    setContentOptionsValues(contentOptions);
     const requestGeneration = ++generation.current;
     setDataError(undefined);
     setRequestError(undefined);
 
-    if (hasUnsupportedPayload) return;
+    if (hasUnsupportedContentOptions) return;
     setIsLoadingData(true);
     try {
       using api = newSyncRpcSession<ScraperApi>("/scraper-rpc");
       const result = await fetchData({
         api,
-        payload,
+        contentOptions,
         setData: (data) => {
           if (generation.current === requestGeneration) props.setData(data);
         },
@@ -83,7 +87,7 @@ export function FetcherConfiguration(props: {
   return (
     <div>
       <OrderedTableOfContents.Title>Configure</OrderedTableOfContents.Title>
-      <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="variant-data-result">
+      <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="content-data-result">
         <JsonView
           shouldExpandNode={collapseAllNested}
           data={{ data: props.data }}
@@ -93,15 +97,15 @@ export function FetcherConfiguration(props: {
 
       <div className="px-6">
         <form className="mt-5 space-y-5" onSubmit={(event) => event.preventDefault()}>
-          {PayloadForm !== undefined ? (
-            <PayloadForm
-              value={payloadValues}
+          {ContentOptionsForm !== undefined ? (
+            <ContentOptionsForm
+              value={contentOptionsValues}
               onChange={(value) => {
-                void onPayloadChange(value);
+                void onContentOptionsChange(value);
               }}
             />
           ) : (
-            Object.entries(payloadShape).map(([fieldName, descriptor]) => {
+            Object.entries(contentOptionsShape).map(([fieldName, descriptor]) => {
               if (
                 descriptor.kind !== PrimitiveKind.Text ||
                 descriptor.nullable !== false ||
@@ -110,44 +114,48 @@ export function FetcherConfiguration(props: {
                 return (
                   <p
                     className="m-0 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
-                    data-testid={`unsupported-payload-${fieldName}`}
+                    data-testid={`unsupported-content-options-${fieldName}`}
                     key={fieldName}
                     role="alert"
                   >
-                    Unsupported payload field &quot;{fieldName}&quot;: only non-null text primitives
-                    with string defaults are supported.
+                    Unsupported content options field &quot;{fieldName}&quot;: only non-null text
+                    primitives with string defaults are supported.
                   </p>
                 );
               }
 
               return (
                 <div className="flex flex-col items-start gap-2" key={fieldName}>
-                  <label className="block text-sm font-medium" htmlFor={`payload-${fieldName}`}>
+                  <label
+                    className="block text-sm font-medium"
+                    htmlFor={`content-options-${fieldName}`}
+                  >
                     {fieldName === "url" ? "URL" : fieldName}
                   </label>
                   <Input
-                    id={`payload-${fieldName}`}
+                    className="mb-1"
+                    id={`content-options-${fieldName}`}
                     name={fieldName}
                     onChange={(event) => {
-                      const payload = {
-                        ...currentPayload.current,
+                      const contentOptions = {
+                        ...currentContentOptions.current,
                         [fieldName]: event.target.value,
                       };
-                      currentPayload.current = payload;
-                      setPayloadValues(payload);
+                      currentContentOptions.current = contentOptions;
+                      setContentOptionsValues(contentOptions);
                     }}
                     type="text"
                     value={
-                      typeof payloadValues[fieldName] === "string"
-                        ? payloadValues[fieldName]
+                      typeof contentOptionsValues[fieldName] === "string"
+                        ? contentOptionsValues[fieldName]
                         : descriptor.defaultValue
                     }
                   />
                   <Button
                     type="button"
-                    disabled={isLoadingData || hasUnsupportedPayload}
+                    disabled={isLoadingData || hasUnsupportedContentOptions}
                     onClick={() => {
-                      void onPayloadChange(currentPayload.current);
+                      void onContentOptionsChange(currentContentOptions.current);
                     }}
                   >
                     Submit
@@ -163,7 +171,7 @@ export function FetcherConfiguration(props: {
         {dataError !== undefined ? (
           <div
             className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-            data-testid="variant-data-error"
+            data-testid="content-data-error"
             role="alert"
           >
             <p className="m-0 font-mono font-semibold">{dataError.code}</p>
@@ -174,7 +182,7 @@ export function FetcherConfiguration(props: {
         {requestError !== undefined ? (
           <div
             className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-            data-testid="variant-request-error"
+            data-testid="content-request-error"
             role="alert"
           >
             {requestError}

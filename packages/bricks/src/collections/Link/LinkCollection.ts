@@ -3,26 +3,26 @@ import { primitives } from "@zerospin/schema";
 
 import { makeBrick } from "../../makeBrick";
 import { makeCollection } from "../../makeCollection";
-import { makeVariant } from "../../makeVariant";
+import { makeContent } from "../../makeContent";
 import { Link4x2 } from "./Link4x2";
 
 export const linkCollection = makeCollection({
   collectionName: "link",
   collectionLabel: "Link",
   collectionDescription: "Rich link previews from JSON-LD and Open Graph metadata.",
-  variants: {
-    default: makeVariant({
-      variant: "default",
-      variantName: "Default",
-      variantDescription: "A rich preview for any web link.",
+  contents: {
+    default: makeContent({
+      content: "default",
+      contentName: "Default",
+      contentDescription: "A rich preview for any web link.",
       configuration: makeFetcherConfiguration({
-        payloadShape: {
+        contentOptionsShape: {
           url: primitives.text({
             defaultValue: "https://apps.apple.com/us/app/apple-store/id375380948",
           }),
         },
-        fetcher: async ({ api, payload, setData }) => {
-          const result = await api.linkRepo().getPreview(payload.url);
+        fetcher: async ({ api, contentOptions, setData }) => {
+          const result = await api.linkRepo().getPreview(contentOptions.url);
           if (result._tag === "Left") return result;
           setData(result.right);
           return { _tag: "Right", right: undefined };
@@ -45,10 +45,10 @@ export const linkCollection = makeCollection({
           "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
         iconUrl: "https://www.apple.com/favicon.ico",
       },
-      layouts: {
+      views: {
         "4x2": makeBrick({
-          variant: "default",
-          layout: "4x2",
+          content: "default",
+          view: "4x2",
           w: 4,
           h: 2,
           label: "4×2",

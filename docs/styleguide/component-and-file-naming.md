@@ -41,7 +41,7 @@ Keep [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId
 
 - **Bad**: `export type BrickPreviewProps` in `BrickCatalog.tsx` and `import { BrickPreviewProps } from './BrickCatalog'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: ICollectionBrick }`**. Catalog rows are built with **`makeBrick`** (a content `variant`, a `layout`, and a `component`) and **`makeCollection`** (nested **`variants[variant].layouts[layout]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/app/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/app/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
+- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: ICollectionBrick }`**. Catalog rows are built with **`makeBrick`** (a content identifier `content`, a `view`, and a `component`) and **`makeCollection`** (nested **`contents[content].views[view]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/app/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/app/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
 
 **Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeBrickCollectionProps`-style types unless a second module genuinely needs to reference that exact type.
 
@@ -49,46 +49,46 @@ Keep [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId
 
 - **Bad**: ad hoc **`typeId`** strings on every catalog row, or passing full brick objects (including **`component`**) into Zustand for external drag.
 
-- **Good**: **`ICollectionBrickDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`variant`**, **`layout`**, **`w`**, **`h`**, and **`label`**). **`IBrick`** = layout-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionBrick`**.
+- **Good**: **`ICollectionBrickDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`content`**, **`view`**, **`w`**, **`h`**, and **`label`**). **`IBrick`** = view-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionBrick`**.
 
-### Terminology: collection variants and bricks
+### Terminology: collection contents and bricks
 
-A **collection variant** is a content form within a collection, such as GitHub `profile` or `repo`. A **layout** is a named presentation of that variant, such as `4x4` or `4x2`. Its identifier and display label are independent of its `w`/`h` dimensions; multiple layouts may share dimensions. A **brick** is an implementation of one `(collectionName, variant, layout)` catalog entry. When that implementation is placed in a Grid, its resource and identity are still **`brick`** and **`brickId`**; do not call it a “grid brick” or “grid item.”
+A **collection content** is a content form within a collection, such as GitHub `profile` or `repo`. A **view** is a named presentation of that content, such as `4x4` or `4x2`. Its identifier and display label are independent of its `w`/`h` dimensions; multiple views may share dimensions. A **brick** is an implementation of one `(collectionName, content, view)` catalog entry. When that implementation is placed in a Grid, its resource and identity are still **`brick`** and **`brickId`**; do not call it a “grid brick” or “grid item.”
 
-### Brick catalog identity: `collectionName` + `variant` + `layout`
+### Brick catalog identity: `collectionName` + `content` + `view`
 
-**Invariant (homepage catalog):**
+**Incontent (homepage catalog):**
 
 1. **`collectionName`** is **unique per collection** across the catalog.
-2. Within one collection, each **`def.variant`** is kebab-case; its **`def.layout`** is kebab-case and unique within that variant.
-3. Therefore **`(collectionName, def.variant, def.layout)`** is unique for every catalog entry—use those fields for tests and DOM hooks instead of a composite string.
+2. Within one collection, each **`def.content`** is kebab-case; its **`def.view`** is kebab-case and unique within that content.
+3. Therefore **`(collectionName, def.content, def.view)`** is unique for every catalog entry—use those fields for tests and DOM hooks instead of a composite string.
 
 ### Terminology: brick catalog identity
 
-In code and tests, use **`collectionName`**, **`variant`**, and **`layout`** together. They uniquely identify a homepage catalog entry. They are **not** a grid **instance** id (`item.i`) or a single concatenated key.
+In code and tests, use **`collectionName`**, **`content`**, and **`view`** together. They uniquely identify a homepage catalog entry. They are **not** a grid **instance** id (`item.i`) or a single concatenated key.
 
-- **Bad**: calling a composite like `` `${collectionName}--${w}x${h}` `` or using a bare layout as a brick identity.
+- **Bad**: calling a composite like `` `${collectionName}--${w}x${h}` `` or using a bare view as a brick identity.
 
-- **Good**: pass or thread **`collectionName`**, **`def.variant`**, and **`def.layout`**; locate bricks with **`gridLocateByBrickIdentity(grid, collectionName, variant, layout)`** in [Grid.playwright.spec.ts](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.playwright.spec.ts).
+- **Good**: pass or thread **`collectionName`**, **`def.content`**, and **`def.view`**; locate bricks with **`gridLocateByBrickIdentity(grid, collectionName, content, view)`** in [Grid.playwright.spec.ts](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.playwright.spec.ts).
 
 [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx) exposes it on the draggable slot:
 
 - **`data-brick-drawer-collection-name`** = **`brick.def.collectionName`**
-- **`data-brick-drawer-variant`** = **`brick.def.variant`**
-- **`data-brick-drawer-layout`** = **`brick.def.layout`**
+- **`data-brick-drawer-content`** = **`brick.def.content`**
+- **`data-brick-drawer-view`** = **`brick.def.view`**
 
 (Together with **`data-brick-drawer-brick-slot`**, used by carousel drag guards.)
 
 [Grid.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) sets on each placed brick wrapper:
 
 - **`data-brick-collection-name`** = **`item.def.collectionName`**
-- **`data-brick-variant`** = **`item.def.variant`**
-- **`data-brick-layout`** = **`item.def.layout`**
+- **`data-brick-content`** = **`item.def.content`**
+- **`data-brick-view`** = **`item.def.view`**
 - **`data-brick-id`** = the placed brick id (`item.i` at the `react-grid-layout` boundary)
 
-- **Bad**: a single attribute holding `makeBrickKey` / concatenated ids when you need to target “this variant in this collection” in the drawer **or on the grid**.
+- **Bad**: a single attribute holding `makeBrickKey` / concatenated ids when you need to target “this content in this collection” in the drawer **or on the grid**.
 
-- **Good**: expose the collection, variant, layout, and brick id separately. In Playwright: drawer — `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="…"][data-brick-drawer-variant="…"][data-brick-drawer-layout="…"]`; Grid — `[data-brick-collection-name="…"][data-brick-variant="…"][data-brick-layout="…"]` scoped under `.grid-layout`.
+- **Good**: expose the collection, content, view, and brick id separately. In Playwright: drawer — `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="…"][data-brick-drawer-content="…"][data-brick-drawer-view="…"]`; Grid — `[data-brick-collection-name="…"][data-brick-content="…"][data-brick-view="…"]` scoped under `.grid-layout`.
 
 ### Good vs bad: brick factory argument naming (`props`, not `options`; inline type)
 
@@ -96,36 +96,36 @@ Brick factories take **one object** describing what to build. Name that paramete
 
 - **Bad**: `export function makeBrick(options: { w; h; component })`; `export type MakeCollectionProps = { … }` with `makeCollection(props: MakeCollectionProps)` when nothing else imports that type.
 
-- **Good**: `makeBrick(props: { variant; layout; w; h; label; component })`, `makeVariant(props: { variant; layouts })`, and `makeCollection(props: { collectionName; collectionLabel; collectionDescription; variants })` in [packages/bricks/src/makeBrick.ts](../../packages/bricks/src/makeBrick.ts), [makeVariant.ts](../../packages/bricks/src/makeVariant.ts), and [makeCollection.ts](../../packages/bricks/src/makeCollection.ts).
+- **Good**: `makeBrick(props: { content; view; w; h; label; component })`, `makeContent(props: { content; views })`, and `makeCollection(props: { collectionName; collectionLabel; collectionDescription; contents })` in [packages/bricks/src/makeBrick.ts](../../packages/bricks/src/makeBrick.ts), [makeContent.ts](../../packages/bricks/src/makeContent.ts), and [makeCollection.ts](../../packages/bricks/src/makeCollection.ts).
 
-Data-backed variants configure requests with `makeFetcherConfiguration({ payloadShape, payloadForm, fetcher })`
-from [makeFetcherConfiguration.ts](../../packages/bricks/src/makeFetcherConfiguration.ts), passed as the variant's `configuration`.
-The factory supplies `configurationType: "fetcher"` and validates payloads before invoking its
-required `fetcher` callback. `payloadForm` is one optional component receiving the complete decoded
-payload as `{ value, onChange }`; `onChange` replaces the whole payload. `IFetcherConfiguration` is defined in that factory module. The callback receives
-`{ api, payload, setData }`, publishes data through `setData`, and returns `IRpcEither<void>`
-for success or typed failure. The variant retains `dataShape` and validates `defaultData`.
-Configuration forms read `configuration.payloadShape` and `configuration.payloadForm`;
-variants do not expose top-level payload fields or `getData`.
+Data-backed contents configure requests with `makeFetcherConfiguration({ contentOptionsShape, contentOptionsForm, fetcher })`
+from [makeFetcherConfiguration.ts](../../packages/bricks/src/makeFetcherConfiguration.ts), passed as the content's `configuration`.
+The factory supplies `configurationType: "fetcher"` and validates content options before invoking its
+required `fetcher` callback. `contentOptionsForm` is one optional component receiving the complete decoded
+content options as `{ value, onChange }`; `onChange` replaces the whole content options. `IFetcherConfiguration` is defined in that factory module. The callback receives
+`{ api, contentOptions, setData }`, publishes data through `setData`, and returns `IRpcEither<void>`
+for success or typed failure. The content retains `dataShape` and validates `defaultData`.
+Configuration forms read `configuration.contentOptionsShape` and `configuration.contentOptionsForm`;
+contents do not expose top-level content options fields or `getData`.
 
 The workbench's [Configuration.tsx](../../packages/bricks/src/app/Configuration.tsx) switches on
-`configurationType`. A custom payload form runs the fetcher on `onChange`, using the complete
-updated payload. Without a custom form, generated text controls use explicit Submit buttons.
+`configurationType`. A custom content options form runs the fetcher on `onChange`, using the complete
+updated content options. Without a custom form, generated text controls use explicit Submit buttons.
 Neither form fetches initially. Each request owns a scraper RPC session;
 superseded and unmounted requests cannot publish data or errors. Control-internal searches remain
-independent of payload changes, including Streamline's SWR search.
+independent of content options changes, including Streamline's SWR search.
 
-[useVariantData.ts](../../packages/bricks/src/app/useVariantData.ts) provides
-`[variantData, setVariantData]` backed by in-memory Zustand state per collection/variant, shared across
-layouts. Its setter validates against the decoded `dataShape`, preserving provider fields, before replacing
+[useContentData.ts](../../packages/bricks/src/app/useContentData.ts) provides
+`[contentData, setContentData]` backed by in-memory Zustand state per collection/content, shared across
+views. Its setter validates against the decoded `dataShape`, preserving provider fields, before replacing
 stored data. Invalid writes leave state unchanged. The configuration page preview and JSON display use
 stored data or `defaultData`; loading and errors retain the last valid data. Navigation retains values,
 while reload clears them. Other catalog previews and persisted Grid bricks continue using their existing
 data sources.
 TextBrick uses `makeFormConfiguration` to edit its nullable JSON `content` data directly; its sample
-layouts remain static. Payload-only fetcher configurations are not supported.
-Every variant requires `dataShape` and `defaultData`: use `null` for both when there is no
-data contract. Render boundaries can pass `variant?.defaultData` directly; components without
+views remain static. Content-options-only fetcher configurations are not supported.
+Every content requires `dataShape` and `defaultData`: use `null` for both when there is no
+data contract. Render boundaries can pass `content?.defaultData` directly; components without
 a data contract ignore the prop.
 Local-only forms also use `makeFetcherConfiguration`, omitting the fetch callback.
 
@@ -135,7 +135,7 @@ Do **not** add `apps/app/components/home/bricks/index.ts` (or similar) that only
 
 - **Bad**: `import { homepageBricks, collectionsHash } from "./bricks"` or `@/components/home/bricks` when `./bricks` is a re-export barrel.
 
-- **Good**: import `collectionsHash` from its defining module and resolve a component directly through `collection.variants[variant].layouts[layout]`; import specific collections from their modules under `collections/`.
+- **Good**: import `collectionsHash` from its defining module and resolve a component directly through `collection.contents[content].views[view]`; import specific collections from their modules under `collections/`.
 
 ### Good vs bad: `ICollection` + `BrickCarousel` — don’t add `FromCatalog` on shared UI
 
@@ -177,7 +177,10 @@ The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefi
 
 ### Table of contents layout
 
-`OrderedTableOfContents.Section` owns vertical padding (`py-3`).
+`OrderedTableOfContents` owns the navigation block and equal top and bottom padding (`py-3`).
+In the catalog, collection labels use `OrderedTableOfContents.Title sticky`, pinning
+each heading to the scroll pane's top through its collection options and preview; contents
+and views occupy the first and second list levels.
 `OrderedTableOfContents.List` owns vertical padding (`py-2`), hierarchy depth,
 and numbering without horizontal padding or margins. Items stay full width
 and tightly spaced, with no added gaps or vertical padding. Put every item
@@ -197,22 +200,28 @@ Use `Rows sticky` when the whole group should stick within its scroll container.
 Spacing is explicit in the composition rather than inferred from descendant DOM.
 
 The Bricks overview uses `Container` for the outer layout and `Section` for each
-complete navigation block: collection heading, variant choices, and layout choices.
-`Section` owns the gray surface and equal 0.75rem edge padding. The overview
+complete navigation block: collection heading, content choices, and view choices.
+`OrderedTableOfContents` owns the white surface and 0.75rem top and bottom padding. The overview
 uses unpadded lists, explicit 0.5rem spacing before nested choices, and spaced
-variant/layout groups. The preview is a sibling after the section, so no gray
+content/view groups. The preview is a sibling after the section, so no gray
 padding trails the preview. Each section starts its own list; use `List start`
-to continue collection numbering. The collection page keeps the complete collection/variant/layout `Section`, followed
-by one active preview and its configuration contents. The `variant` and `layout`
+to continue collection numbering. The collection page keeps the complete collection/content/view `Section`, followed
+by one active preview and its configuration contents. The `content` and `view`
 query parameters select the active item. Overview Configure links carry both values.
 
-### Layout identity hard cutover
+### View identity hard cutover
 
-Catalog definitions use `variants[variant].layouts[layout]`; serialized brick definitions and backend brick attributes use `layout`. Existing IDs and labels remain unchanged. Layout choices display `def.label`, while selection, lookup, drag payloads, and brick keys use `def.layout`.
+Catalog definitions use `contents[content].views[view]`; catalog brick definitions use `view`, while backend brick attributes and command inputs use `collectionId`, `contentId`, and `viewId`. Existing IDs and labels remain unchanged. View choices display `def.label`, while selection, lookup, drag payloads, and brick keys use `def.view`.
 
-Sandbox collection URLs select `?layout=...`; old `size` query parameters are ignored, so the default layout is selected when `layout` is absent. Standalone `/bricks/:collectionName/:variant/:layout` URLs retain their existing positional values.
+Sandbox collection URLs select `?view=...`; old `size` query parameters are ignored, so the default view is selected when `view` is absent. Standalone `/bricks/:collectionName/:content/:view` URLs retain their existing positional values.
 
-This is a breaking change with no aliases or automatic data migration. Existing sandbox storage (`qrk-bricks-sandbox-single-grid`), persisted site drafts, and backend data containing brick `size` fields require an explicit reset before reuse. Resetting or deleting that state is a separate authorized operation; this change does not clear it automatically. Grid positioning still uses its existing `layout` array, independently of each brick definition’s layout identifier.
+This is a hard terminology cutover without aliases or automatic migration. The sandbox uses
+`qrk-bricks-sandbox-responsive-bricks-v2`; editor drafts use `qrk-site-editor-drafts-v2`.
+Old browser keys remain untouched and are ignored. Backend brick attributes and create/update
+contracts use `collectionId`, `contentId`, and `viewId`; existing model and contract version identifiers are unchanged.
+Existing backend state requires an explicitly authorized reset before reuse. This rename does not
+reset state or deploy. Production grid positioning keeps its existing `layout` arrays.
+Old `variant` and `layout` catalog query keys are ignored; use `content` and `view`.
 
 ### Bricks sandbox grid width and toolbar
 
@@ -223,12 +232,12 @@ in a half-height, nonmodal shadcn bottom drawer. The drawer leaves the grid
 interactive for drag/drop and supports its close button and Escape.
 
 The app-style toolbar sits at the bottom of the desktop grid region and at the
-top on mobile/tablet. The 375, 768, 1024, and 1440px choices resize only the grid
+top on mobile/tablet. The 375, 640, 768, 1024, and 1440px choices resize only the grid
 preview, centered within that region. Measure the available region independently
 of the preview; disable choices that exceed it. Start with the largest fitting
 preset and fall back to the largest fitting preset if a resize makes the selection
 too large. Below 375px, hide the preview and show its minimum-width requirement. Width selection lasts across sandbox route
-navigation, resets on reload, and is independent of Reset's grid state changes.
+navigation and reload, and is independent of Reset's grid state changes.
 
 ### Responsive brick breakpoints
 
@@ -249,13 +258,14 @@ Consumers use `useBrickBreakpoint` and pass the value through the existing brick
 `breakpoint` prop. A provider is required; its initial value is `xs` until measured.
 Browser width and a brick's own width do not directly determine its breakpoint.
 Grid geometry and available-width measurements remain independent. Breakpoints
-are render inputs only, never persisted data, brick identity, or drag payload fields.
+are render inputs only, never persisted data, brick identity, or drag payloads fields.
 
-The GitHub profile 4×2 layout keeps its avatar and username in the bottom half at `xs`.
+The GitHub profile 4×2 view keeps its avatar and username in the bottom half at `xs`.
 The activity fills the top half, scaling square cells and gaps proportionally, without
 rounded corners, strokes, labels, legend, or fade mask. Larger modes retain the
-existing presentation. At `xs`, the 4×4 layout hides contribution activity and
+existing presentation. At `xs`, the 4×4 view hides contribution activity and
 truncates overflowing profile values with ellipses.
+
 ### Preview dimensions
 
 `BrickPreviewFrame` takes inline `w`, `h`, and `children` props and reads the
@@ -272,10 +282,37 @@ Import the frame directly or through `@qrk.sh/bricks/BrickPreviewFrame`.
 
 ### Breakpoint presentation names
 
-Follow [brick layout conventions](../../wiki/brick-layout-conventions.md):
-`<Collection><Variant><Shape><Breakpoint>`, for example `GitHubProfileSquareXs`
+Follow [brick presentation conventions](../../wiki/brick-layout-conventions.md):
+`<Collection><Content><Shape><Breakpoint>`, for example `GitHubProfileSquareXs`
 and `GitHubProfileSquareMd`, with matching filenames. Select presentations with
-`makeLayout` at the brick definition.
+`makeView` at the brick definition.
 
 For the wide profile, use `GitHubProfileWideXs` and `GitHubProfileWideSm` in
-matching files; `md` and `lg` inherit `Sm` through `makeLayout`.
+matching files; `md` and `lg` inherit `Sm` through `makeView`.
+
+### Responsive sandbox placed bricks
+
+The sandbox persists `bricksById` under `qrk-bricks-sandbox-responsive-bricks-v2`.
+It starts empty and neither reads nor migrates older grid keys. Each placed brick
+stores `collectionId`, `contentId`, `viewId`, shared `data`, required `xs`, and
+optional `sm`, `md`, and `lg` entries. Each entry contains `gridItem` (the grid
+library's `LayoutItem`, or `null` to hide) and `viewOptions`. Omitted entries
+inherit the entire nearest smaller entry, including hidden status. Editing an
+inherited entry first copies its placement and options. Labels and default
+sizes stay in catalog metadata. The active grid is derived; no second placement
+array is persisted. Drag and rearrangements update the active entry. Grid resize
+handles are disabled; layout sizing belongs to the form.
+The catalog panel does not include a placed-brick list. In brick configuration,
+Show restores a smaller visible placement or uses catalog dimensions at the next available position.
+
+`makeView` accepts optional `form: makeViewForm({ shape, form })` alongside
+its presentations. The shape infers form values and supplies validated defaults.
+The form receives `value` and `onChange`; updates validate before publication and
+never invoke a content fetcher. View controls appear below content controls.
+Presentations receive shared `data`, the active `breakpoint`, and resolved
+`viewOptions`; their presentation fallback remains independent of entry
+inheritance. Catalog drops copy the preview options into `xs`, and also into
+an explicit active entry when dropped above `xs`. Figma's thumbnail presentations
+support Center, Left, Right, Top, and Bottom image positions (default Center).
+Production backend brick records and command inputs use `collectionId`, `contentId`, and `viewId`. Catalog descriptors use `collectionName`, `content`, and `view`; their grid placement structure is unchanged.
+Content configuration inputs are named `contentOptions` and remain form-local. They are not persisted, copied on drop, or restored from a brick. `data` remains the resulting shared content.

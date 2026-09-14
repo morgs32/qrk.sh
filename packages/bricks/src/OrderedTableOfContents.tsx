@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { OrderedTableOfContentsSection } from "./OrderedTableOfContentsSection";
 import { OrderedTableOfContentsRows } from "./OrderedTableOfContentsRows";
 import { OrderedTableOfContentsPreview } from "./OrderedTableOfContentsPreview";
 import { OrderedTableOfContentsTitle } from "./OrderedTableOfContentsTitle";
@@ -7,13 +6,13 @@ import { OrderedTableOfContentsList } from "./OrderedTableOfContentsList";
 import { OrderedTableOfContentsLabel } from "./OrderedTableOfContentsLabel";
 import { OrderedTableOfContentsItem } from "./OrderedTableOfContentsItem";
 
-/** Composable contents; callers own links and selection controls. */
+/**
+ * One complete navigation block, separated from surrounding content.
+ * Composable contents; callers own links and selection controls.
+ */
 export function OrderedTableOfContents({ children }: { children: ReactNode }) {
   return (
-    <section
-      aria-label="Table of contents"
-      className="qrk-bricks flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden font-mono text-sm leading-5 text-zinc-900"
-    >
+    <section aria-label="Table of contents" className="bg-white py-3">
       {children}
     </section>
   );
@@ -27,6 +26,3 @@ OrderedTableOfContents.Item = OrderedTableOfContentsItem;
 OrderedTableOfContents.Preview = OrderedTableOfContentsPreview;
 
 OrderedTableOfContents.Rows = OrderedTableOfContentsRows;
-
-OrderedTableOfContents.Container = OrderedTableOfContents;
-OrderedTableOfContents.Section = OrderedTableOfContentsSection;

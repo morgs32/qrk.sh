@@ -1,20 +1,20 @@
 import { expect, test } from "@playwright/test";
 
-for (const [collection, variant, layout, w, h] of [
+for (const [collection, content, view, w, h] of [
   ["swatch", "default", "2x2", 2, 2],
   ["github", "profile", "4x2", 4, 2],
   ["swatch", "default", "4x4", 4, 4],
   ["swatch", "default", "8x2", 8, 2],
 ] satisfies Array<[string, string, string, number, number]>) {
-  test(`${collection} ${layout} preview matches placed dimensions`, async ({ page }) => {
+  test(`${collection} ${view} preview matches placed dimensions`, async ({ page }) => {
     await page.setViewportSize({ width: 3000, height: 1100 });
-    await page.goto(`/collections/${collection}?variant=${variant}&layout=${layout}`);
-    const source = page.locator(`[data-variant-layout-brick="${collection}/${variant}/${layout}"]`);
+    await page.goto(`/collections/${collection}?content=${content}&view=${view}`);
+    const source = page.locator(`[data-content-view-brick="${collection}/${content}/${view}"]`);
     const grid = page.getByLabel("Brick grid", { exact: true });
     await source.locator(".brick-drag-handle").dragTo(grid.locator(".react-grid-layout"), {
       targetPosition: { x: 20, y: 200 },
     });
-    const placed = grid.locator(`[data-brick="${collection}/${variant}/${layout}"]`);
+    const placed = grid.locator(`[data-brick="${collection}/${content}/${view}"]`);
     await expect(placed).toHaveCount(1);
     for (const width of [375, 768, 1024, 1440]) {
       await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();

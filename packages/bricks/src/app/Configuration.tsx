@@ -5,11 +5,11 @@ import { OrderedTableOfContents } from "../OrderedTableOfContents";
 import { FetcherConfiguration } from "./FetcherConfiguration";
 
 export function Configuration(props: {
-  variant: ICollection["variants"][string];
+  content: ICollection["contents"][string];
   data: unknown;
   setData: (data: unknown) => void;
 }) {
-  const configuration = props.variant.configuration;
+  const configuration = props.content.configuration;
   if (configuration === undefined) {
     return (
       <div>
@@ -30,7 +30,7 @@ export function Configuration(props: {
       return (
         <div>
           <OrderedTableOfContents.Title>Configure</OrderedTableOfContents.Title>
-          <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="variant-data-result">
+          <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="content-data-result">
             <JsonView
               shouldExpandNode={collapseAllNested}
               data={{ data: props.data }}
@@ -46,7 +46,7 @@ export function Configuration(props: {
       return (
         <FetcherConfiguration
           configuration={configuration}
-          collectionName={Object.values(props.variant.layouts)[0]?.def.collectionName}
+          collectionName={Object.values(props.content.views)[0]?.def.collectionName}
           data={props.data}
           setData={props.setData}
         />

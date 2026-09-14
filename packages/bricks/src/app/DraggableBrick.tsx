@@ -17,9 +17,7 @@ export function DraggableBrick({
 
   return (
     <div {...props} className={`brick-drag-surface ${className ?? ""}`}>
-      <div className="brick-drag-content size-full select-none">
-        {children}
-      </div>
+      <div className="brick-drag-content size-full select-none">{children}</div>
       <Button
         type="button"
         variant="ghost"
@@ -39,7 +37,7 @@ export function DraggableBrick({
             );
           }
           event.dataTransfer.effectAllowed = "copy";
-          event.dataTransfer.setData("text/plain", brickDef.layout);
+          event.dataTransfer.setData("text/plain", brickDef.view);
         }}
         onDragEnd={() => {
           setActiveBrickDrag(null);

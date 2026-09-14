@@ -2,14 +2,14 @@ import { expect, test, type Page } from "@playwright/test";
 
 const pageBase = "/e2e/site/e2e/page/home";
 
-function drawerBrickPreviewSlot(page: Page, collectionName: string, variant: string, layout: string) {
+function drawerBrickPreviewSlot(page: Page, collectionName: string, content: string, view: string) {
   return page.locator(
-    `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="${collectionName}"][data-brick-drawer-variant="${variant}"][data-brick-drawer-layout="${layout}"]`,
+    `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="${collectionName}"][data-brick-drawer-content="${content}"][data-brick-drawer-view="${view}"]`,
   );
 }
 
 test.describe("BrickCatalog", () => {
-  test("Text brick drawer shows only 2x2 and 4x1 variants", async ({ page }) => {
+  test("Text brick drawer shows only 2x2 and 4x1 views", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${pageBase}/brick-catalog`, { waitUntil: "load" });
 

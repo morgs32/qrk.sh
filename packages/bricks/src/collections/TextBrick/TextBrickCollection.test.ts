@@ -3,20 +3,20 @@ import { describe, expect, it } from "vite-plus/test";
 import { textBrickCollection } from "./TextBrickCollection";
 
 describe("Text collection", () => {
-  it("uses a local Tiptap JSON payload control", () => {
-    const defaultVariant = textBrickCollection.variants.default;
+  it("uses a local Tiptap JSON contentOptions control", () => {
+    const defaultContent = textBrickCollection.contents.default;
 
     expect(textBrickCollection.collectionName).toBe("text");
     expect(textBrickCollection.collectionLabel).toBe("Text");
-    if (defaultVariant?.configuration?.configurationType !== "form") {
+    if (defaultContent?.configuration?.configurationType !== "form") {
       throw new Error("Expected form configuration");
     }
-    expect(defaultVariant?.dataShape?.content).toMatchObject({
+    expect(defaultContent?.dataShape?.content).toMatchObject({
       kind: "json",
       nullable: true,
       defaultValue: null,
     });
-    expect(defaultVariant?.configuration?.form).toBeTypeOf("function");
-    expect(defaultVariant?.defaultData).toEqual({ content: null });
+    expect(defaultContent?.configuration?.form).toBeTypeOf("function");
+    expect(defaultContent?.defaultData).toEqual({ content: null });
   });
 });

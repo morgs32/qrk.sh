@@ -37,6 +37,7 @@ const BrickDragDefFromJsonStringSchema = Schema.fromJsonString(
     order: Schema.Number,
     w: Schema.Number,
     h: Schema.Number,
+    data: Schema.Unknown,
   }) satisfies Schema.Schema<ICollectionBrickDef>,
 );
 

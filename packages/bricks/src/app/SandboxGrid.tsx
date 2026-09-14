@@ -14,7 +14,6 @@ export function SandboxGrid() {
   const dragScrollTopRef = useRef(0);
   const layout = useGridStore((state) => state.layout);
   const bricksById = useGridStore((state) => state.bricksById);
-  const dataByBrickId = useGridStore((state) => state.dataByBrickId);
   const activeBrickDrag = useGridStore((state) => state.activeBrickDrag);
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const setLayout = useGridStore((state) => state.setLayout);
@@ -142,12 +141,9 @@ export function SandboxGrid() {
               useGridStore.setState((state) => {
                 const remainingBricks = { ...state.bricksById };
                 delete remainingBricks[item.i];
-                const remainingData = { ...state.dataByBrickId };
-                delete remainingData[item.i];
                 return {
                   layout: nextLayout.filter((layoutItem) => layoutItem.i !== item.i),
                   bricksById: remainingBricks,
-                  dataByBrickId: remainingData,
                 };
               });
             } else {
@@ -189,9 +185,7 @@ export function SandboxGrid() {
                   }}
                 >
                   <BrickComponent
-                    data={Object.hasOwn(dataByBrickId, layoutItem.i)
-                      ? dataByBrickId[layoutItem.i]
-                      : variant.defaultData}
+                    data={brickDef.data}
                   />
                 </div>
               );

@@ -1,12 +1,12 @@
-import type { ICollectionBrickDef } from "@qrk.sh/bricks";
+import type { ICollectionBrickDef } from "../types";
 import type { Layout } from "react-grid-layout";
 import { create } from "zustand";
+import { collectionsHash } from "../collectionsHash";
 import { persist } from "zustand/middleware";
 
 export const useGridStore = create<{
   layout: Layout;
   bricksById: Record<string, ICollectionBrickDef>;
-  dataByBrickId: Record<string, unknown>;
   activeBrickDrag: ICollectionBrickDef | null;
   hasHydrated: boolean;
   setLayout: (layout: Layout) => void;
@@ -23,7 +23,6 @@ export const useGridStore = create<{
         { i: "fixture-4", x: 6, y: 0, w: 2, h: 2 },
       ],
       bricksById: {},
-      dataByBrickId: {},
       activeBrickDrag: null,
       hasHydrated: false,
       setLayout: (layout) => {
@@ -50,11 +49,28 @@ export const useGridStore = create<{
       partialize: (state) => ({
         layout: state.layout,
         bricksById: state.bricksById,
-        dataByBrickId: state.dataByBrickId,
       }),
       skipHydration: true,
       onRehydrateStorage: (stateBeforeHydration) => (stateAfterHydration) => {
-        (stateAfterHydration ?? stateBeforeHydration).setHasHydrated(true);
+        const state = stateAfterHydration ?? stateBeforeHydration;
+        // Preserve configured data from grids saved before data lived on each def.
+        const legacyData = new Map(
+          "dataByBrickId" in state && typeof state.dataByBrickId === "object" && state.dataByBrickId !== null
+            ? Object.entries(state.dataByBrickId)
+            : [],
+        );
+        for (const [brickId, brickDef] of Object.entries(state.bricksById)) {
+          if (!Object.hasOwn(brickDef, "data")) {
+            state.bricksById[brickId] = {
+              ...brickDef,
+              data: legacyData.has(brickId)
+                ? legacyData.get(brickId)
+                : collectionsHash[brickDef.collectionName]?.variants[brickDef.variant]?.defaultData,
+            };
+          }
+        }
+        if ("dataByBrickId" in state) delete state.dataByBrickId;
+        state.setHasHydrated(true);
       },
     },
   ),

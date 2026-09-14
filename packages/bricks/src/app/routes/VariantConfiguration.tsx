@@ -126,7 +126,7 @@ export default function VariantConfiguration() {
           data-variant-size-brick={`${collectionName}/${variantName}/${sizeName}`}
           draggable
           onDragStart={(event) => {
-            setActiveBrickDrag(brick.def);
+            setActiveBrickDrag({ ...brick.def, data: structuredClone(variantData) });
             event.dataTransfer.effectAllowed = "copy";
             event.dataTransfer.setData("text/plain", brick.def.size);
           }}

@@ -15,7 +15,6 @@ export default function BrickDetail() {
   const { collectionName, brickId } = params;
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const brickDef = useGridStore((state) => state.bricksById[brickId]);
-  const dataByBrickId = useGridStore((state) => state.dataByBrickId);
   const collection =
     brickDef?.collectionName === collectionName
       ? collectionsHash[brickDef.collectionName]
@@ -27,7 +26,7 @@ export default function BrickDetail() {
     return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
   }
 
-  if (!brick || !collection || !variant) {
+  if (!brick || !collection || !variant || !brickDef) {
     return (
       <div className="px-6 pt-6" data-testid="brick-not-found">
         <Link
@@ -46,9 +45,7 @@ export default function BrickDetail() {
   }
 
   const BrickComponent = brick.component;
-  const brickData = Object.hasOwn(dataByBrickId, brickId)
-    ? dataByBrickId[brickId]
-    : variant.defaultData;
+  const brickData = brickDef.data;
 
   return (
     <section data-testid="brick-detail-pane">
@@ -126,7 +123,10 @@ export default function BrickDetail() {
               onExcessProperty: "preserve",
             });
             useGridStore.setState((state) => ({
-              dataByBrickId: { ...state.dataByBrickId, [brickId]: decodedData },
+              bricksById: {
+                ...state.bricksById,
+                [brickId]: { ...state.bricksById[brickId], data: decodedData },
+              },
             }));
           }}
         />

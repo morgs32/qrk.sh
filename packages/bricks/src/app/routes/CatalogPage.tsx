@@ -1,4 +1,4 @@
-import { collectionsHash } from "@qrk.sh/bricks";
+import { collectionsHash } from "../../collectionsHash";
 import { Link } from "react-router";
 import { useState } from "react";
 
@@ -123,7 +123,7 @@ export default function CatalogPage() {
                     aspectRatio: `${def.w} / ${def.h}`,
                   }}
                 >
-                  <BrickComponent data={selectedVariant.defaultData} />
+                  <BrickComponent data={def.data} />
                 </DraggableBrick>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import type { ICollectionBrickDef } from "@qrk.sh/bricks";
+import type { ICollectionBrickDef } from "../types";
 import type { ComponentProps } from "react";
 
 import { useGridStore } from "./useGridStore";
@@ -19,7 +19,7 @@ export function DraggableBrick({
       className={`cursor-grab active:cursor-grabbing ${className ?? ""}`}
       draggable
       onDragStart={(event) => {
-        setActiveBrickDrag(brickDef);
+        setActiveBrickDrag(structuredClone(brickDef));
         event.dataTransfer.effectAllowed = "copy";
         event.dataTransfer.setData("text/plain", brickDef.size);
       }}

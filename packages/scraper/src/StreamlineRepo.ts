@@ -93,7 +93,7 @@ export class StreamlineRepo extends DurableObject<IScraperEnv> {
     }
 
     const searchUrl = new URL(
-      "https://public-api.streamlinehq.com/v1/search/family/material-pro-sharp-line",
+      "https://public-api.streamlinehq.com/v1/search/family/material-symbols-sharp-line",
     );
     searchUrl.searchParams.set("productType", "icons");
     searchUrl.searchParams.set("query", normalizedQuery);

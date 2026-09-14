@@ -45,6 +45,7 @@ export function makeCollection(props: {
           h: brick.def.h,
           label: brick.def.label,
           order: brick.def.order,
+          data: rawVariant.defaultData,
         },
         component: brick.component,
       };

@@ -48,6 +48,8 @@ export type ICollection = {
 export type ICollectionBrickDef = IBrickDef & {
   collectionName: string;
   collectionLabel: string;
+  /** Default catalog data or the configured data of a placed brick. */
+  data: unknown;
 };
 
 export type IBrick<

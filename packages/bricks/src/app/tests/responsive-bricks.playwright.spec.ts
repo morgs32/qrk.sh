@@ -205,3 +205,31 @@ test("removing an override restores whole-entry inheritance", async ({ page }) =
   await page.getByRole("button", { name: "1024px grid width" }).click();
   await expect(page.getByRole("button", { name: "Inherit from sm" })).toBeDisabled();
 });
+
+test("catalog configuration ends with the current brick definition", async ({ page }) => {
+  await page.goto("/collections/swatch?content=default&view=2x2");
+  const pane = page.getByTestId("content-configuration-pane");
+  await expect(pane.getByRole("heading")).toHaveText(["Swatch", "Configuration", "Brick Definition"]);
+  await expect(pane.getByRole("table")).toBeVisible();
+  await expect(pane.getByRole("button", { name: /Inherit from|Hide brick/ })).toHaveCount(0);
+  const formContainer = pane.getByRole("textbox", { name: "Hex color" }).locator("../..");
+  await expect(formContainer).toHaveCSS("padding-left", "16px");
+  await page.getByRole("textbox", { name: "Hex color" }).fill("#ff0000");
+  const definition = pane.getByTestId("content-data-result");
+  await expect(definition).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(definition).toContainText("swatch");
+  await definition.getByRole("button", { name: "expand JSON", exact: true }).first().click();
+  await expect(definition).toContainText("#ff0000");
+  await page.goto("/collections/figma");
+  await expect(pane.getByRole("heading")).toHaveText(["Figma", "Figma Thumbnail", "Configuration", "View options", "Brick Definition"]);
+  const viewFormContainer = pane.getByRole("group", { name: "Image position" }).locator("..");
+  await expect(viewFormContainer).toHaveCSS("padding-left", "16px");
+  await expect(viewFormContainer).toHaveCSS("padding-top", "20px");
+  await expect(viewFormContainer).toHaveCSS("padding-bottom", "20px");
+  const viewHeading = await pane.getByRole("heading", { name: "View options", exact: true }).boundingBox();
+  const legend = await pane.locator("legend").boundingBox();
+  expect(legend!.y - (viewHeading!.y + viewHeading!.height)).toBe(20);
+  await page.getByRole("button", { name: "Right", exact: true }).click();
+  await definition.getByRole("button", { name: "expand JSON", exact: true }).last().click();
+  await expect(definition).toContainText("right");
+});

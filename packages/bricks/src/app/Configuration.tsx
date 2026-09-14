@@ -42,7 +42,7 @@ export function Configuration(props: {
               />
             </div>
           )}
-          <div className="px-6 py-5">
+          <div className="px-4 py-5">
             {configuration.form({ data: props.data, onChange: props.setData })}
           </div>
         </div>

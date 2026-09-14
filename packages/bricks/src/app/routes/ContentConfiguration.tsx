@@ -1,3 +1,4 @@
+import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import { CollectionOutline } from "../CollectionOutline";
 import { useState } from "react";
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
@@ -158,15 +159,26 @@ export default function ContentConfiguration() {
         </div>
       </div>
       <div className="pb-6">
-        <Configuration content={content} data={contentData} setData={setContentData} />
+        <Configuration content={content} data={contentData} setData={setContentData} showData={false} />
         {ViewForm && (
-          <ViewForm
-            value={viewOptions}
-            onChange={(value) => {
-              setOptionsByView((current) => ({ ...current, [viewName]: value }));
-            }}
-          />
+          <>
+            <Outline.Title>View options</Outline.Title>
+            <ViewForm
+              value={viewOptions}
+              onChange={(value) => {
+                setOptionsByView((current) => ({ ...current, [viewName]: value }));
+              }}
+            />
+          </>
         )}
+        <Outline.Title>Brick Definition</Outline.Title>
+        <div className="overflow-auto bg-white px-2 py-4" data-testid="content-data-result">
+          <JsonView
+            shouldExpandNode={collapseAllNested}
+            data={{ ...brick.def, data: contentData, viewOptions }}
+            style={{ ...defaultStyles, container: "bg-white" }}
+          />
+        </div>
       </div>
     </section>
   );

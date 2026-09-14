@@ -47,7 +47,7 @@ test("editor retains drawer identity, params, history, toolbar, and grid", async
   await page.getByRole("link", { name: "Page settings", exact: true }).press("Enter");
   const bottom = page.locator('[data-drawer="bottom"]');
   await expect(bottom).toBeVisible();
-  await bottom.getByRole("button", { name: "Done", exact: true }).click();
+  await bottom.getByRole("button", { name: "Close drawer", exact: true }).click();
   await expect(bottom).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Compose", exact: true })).toBeVisible();
   expect(errors).toEqual([]);
@@ -90,7 +90,7 @@ test("interrupted history navigation settles with one drawer and preserves botto
   await page.getByRole("link", { name: "Page settings", exact: true }).click();
   await page
     .locator('[data-drawer="bottom"]')
-    .getByRole("button", { name: "Done", exact: true })
+    .getByRole("button", { name: "Close drawer", exact: true })
     .click();
   await page.getByRole("link", { name: "Site settings", exact: true }).click();
   await expect(page).toHaveURL(base + "/site-settings");

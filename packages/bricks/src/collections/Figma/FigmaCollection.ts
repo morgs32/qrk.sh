@@ -5,6 +5,9 @@ import { makeCollection } from "../../makeCollection";
 import { makeVariant } from "../../makeVariant";
 import { makeBrick } from "../../makeBrick";
 import { FigmaThumbnail4x4 } from "./FigmaThumbnail4x4";
+import { FigmaThumbnailSquareXs } from "./FigmaThumbnailSquareXs";
+import { makeLayout } from "../../makeLayout";
+import defaultThumbnailUrl from "./dot-pattern-789x450.png";
 
 export const figmaCollection = makeCollection({
   collectionName: "figma",
@@ -38,9 +41,9 @@ export const figmaCollection = makeCollection({
       defaultData: {
         title: "Figma Thumbnail",
         url: "",
-        thumbnail_url: null,
-        thumbnail_width: null,
-        thumbnail_height: null,
+        thumbnail_url: defaultThumbnailUrl,
+        thumbnail_width: 789,
+        thumbnail_height: 450,
       },
       layouts: {
         "4x4": makeBrick({
@@ -50,7 +53,7 @@ export const figmaCollection = makeCollection({
           h: 4,
           label: "4×4",
           order: 0,
-          component: FigmaThumbnail4x4,
+          component: makeLayout({ xs: FigmaThumbnailSquareXs, sm: FigmaThumbnail4x4 }),
         }),
       },
     }),

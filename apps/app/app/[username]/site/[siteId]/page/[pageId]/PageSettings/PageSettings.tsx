@@ -46,15 +46,6 @@ export function PageSettings() {
         <div className="flex shrink-0 items-center gap-1">
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 px-3"
-            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
-          >
-            Done
-          </Button>
-          <Button
-            type="button"
             variant="ghost"
             size="icon"
             className="size-8 cursor-pointer"

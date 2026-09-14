@@ -2,7 +2,7 @@
 
 import { Schema } from "effect";
 import { toast } from "sonner";
-import { href, useNavigate } from "react-router";
+import { href, Link, useNavigate } from "react-router";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
@@ -31,6 +31,7 @@ export default function UsernameDashboardPage() {
       }
       return db.query.user.findFirst({
         where: { clerkUserId: { eq: state.authentication.clerkUserId } },
+        with: { sites: { with: { pages: true } } },
       });
     },
   });
@@ -99,18 +100,47 @@ export default function UsernameDashboardPage() {
               </Button>
             </div>
           </div>
-          <section className="flex flex-col gap-6 py-16">
-            <h2 className="max-w-xl text-xl leading-tight">
-              Make a site. Throw it out. Start over.
-            </h2>
-            <div className="space-y-3 text-sm text-muted-foreground">
-              <p>Want some ideas?</p>
-              <ul className="list-disc space-y-2 pl-5">
-                <li>A site for your philosophical questions</li>
-                <li>A travel log from your last trip</li>
-              </ul>
-            </div>
-          </section>
+          {user.sites.length > 0 ? (
+            <ul className="flex flex-col gap-3">
+              {user.sites.map((site) => {
+                const page = site.pages.find((page) => page.slug === "home") ?? site.pages[0];
+                return (
+                  <li key={site.id} className="rounded-lg border p-4">
+                    {page === undefined ? (
+                      <span>{site.name ?? site.slug ?? "Untitled site"}</span>
+                    ) : (
+                      <Link
+                        className="font-medium underline-offset-4 hover:underline"
+                        to={href("/:username/site/:siteId/page/:pageId", {
+                          username,
+                          siteId: site.id,
+                          pageId: page.id,
+                        })}
+                      >
+                        {site.name ?? site.slug ?? "Untitled site"}
+                      </Link>
+                    )}
+                    {site.description ? (
+                      <p className="mt-2 text-sm text-muted-foreground">{site.description}</p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <section className="flex flex-col gap-6 py-16">
+              <h2 className="max-w-xl text-xl leading-tight">
+                Make a site. Throw it out. Start over.
+              </h2>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>Want some ideas?</p>
+                <ul className="list-disc space-y-2 pl-5">
+                  <li>A site for your philosophical questions</li>
+                  <li>A travel log from your last trip</li>
+                </ul>
+              </div>
+            </section>
+          )}
         </div>
       </main>
     </div>

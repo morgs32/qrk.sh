@@ -2,7 +2,8 @@ import { Image } from "@unpic/react";
 
 import { BrickFrame } from "../../BrickFrame";
 
-export function FigmaThumbnail4x4(props: {
+export function FigmaThumbnailSquareXs(props: {
+  breakpoint: "xs" | "sm" | "md" | "lg";
   data: {
     title: string;
     url: string;
@@ -22,7 +23,7 @@ export function FigmaThumbnail4x4(props: {
       >
         <div className="relative h-full w-full overflow-hidden bg-white">
           <div
-            className="absolute inset-0 bottom-[27%] bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-[size:20px_20px]"
+            className="absolute inset-x-0 bottom-0 top-[20.25%] bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-[size:20px_20px]"
             data-figma-fallback="thumbnail"
           >
             <div className="absolute left-[18%] top-[18%] h-[48%] w-[64%] rounded-md border-2 border-dashed border-violet-400 bg-violet-100 shadow-sm" />
@@ -32,7 +33,7 @@ export function FigmaThumbnail4x4(props: {
             <Image
               key={props.data.thumbnail_url}
               alt={`${props.data.title} Figma thumbnail`}
-              className="absolute inset-0 bottom-[27%] h-[73%] w-full object-cover"
+              className="absolute inset-x-0 bottom-0 top-[20.25%] h-[79.75%] w-full object-cover"
               data-figma-thumbnail="thumbnail"
               height={props.data.thumbnail_height ?? 450}
               layout="fullWidth"
@@ -43,8 +44,8 @@ export function FigmaThumbnail4x4(props: {
               src={props.data.thumbnail_url}
             />
           ) : null}
-          <div className="absolute inset-x-0 bottom-0 flex h-[27%] items-center gap-3 border-t border-zinc-200 bg-white px-4">
-            <svg aria-label="Figma" className="h-8 w-6 shrink-0" viewBox="0 0 24 36">
+          <div className="absolute inset-x-0 top-0 flex h-[20.25%] items-center gap-2 bg-white px-3">
+            <svg aria-label="Figma" className="h-[18px] w-3 shrink-0" viewBox="0 0 24 36">
               <path d="M6 0h6v12H6a6 6 0 0 1 0-12Z" fill="#F24E1E" />
               <path d="M12 0h6a6 6 0 0 1 0 12h-6V0Z" fill="#FF7262" />
               <path d="M6 12h6v12H6a6 6 0 0 1 0-12Z" fill="#A259FF" />
@@ -52,10 +53,7 @@ export function FigmaThumbnail4x4(props: {
               <path d="M6 24h6v6a6 6 0 1 1-6-6Z" fill="#0ACF83" />
             </svg>
             <div className="min-w-0">
-              <p className="m-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                Figma
-              </p>
-              <h2 className="m-0 truncate text-lg font-semibold leading-tight">
+              <h2 className="m-0 truncate text-xs font-semibold leading-tight">
                 {props.data.title}
               </h2>
             </div>

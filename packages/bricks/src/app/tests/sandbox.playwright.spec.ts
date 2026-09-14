@@ -205,7 +205,7 @@ test("searches Streamline and loads the selected SVG into every Icon preview", a
   await page.goto("/collections/icon/default");
   await page.waitForLoadState("networkidle");
 
-  const searchInput = page.getByLabel("Search Streamline icons");
+  const searchInput = page.getByLabel("Search icons");
   await searchInput.fill("home");
 
   const searchResults = page.getByRole("listbox", { name: "Streamline icon results" });

@@ -9,7 +9,7 @@ import {
 } from "react-router";
 import { PrimitiveKind } from "@zerospin/schema";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
-import { JsonView } from "react-json-view-lite";
+import { defaultStyles, JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
 import { ArrowLeft } from "lucide-react";
 import { useState, type FormEvent } from "react";
@@ -17,7 +17,6 @@ import type { ScraperApi } from "scraper/ScraperApi";
 import type { IScrapeError } from "scraper/types";
 
 import { OrderedTableOfContents } from "../../OrderedTableOfContents";
-import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { TableData } from "../../TableData";
 import { useGridStore } from "../useGridStore";
@@ -44,7 +43,6 @@ export default function VariantConfiguration() {
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
   const collection = collectionsHash[collectionName];
   const variant = variantName ? collection?.variants[variantName] : undefined;
-  const [isLoadingData, setIsLoadingData] = useState(false);
   const [loadedData, setLoadedData] = useState<unknown>();
   const [dataError, setDataError] = useState<IScrapeError>();
   const [requestError, setRequestError] = useState<string>();
@@ -75,18 +73,6 @@ export default function VariantConfiguration() {
   const payloadShape = variant.configuration?.payloadShape;
   const payloadForm = variant.configuration?.payloadForm;
   const fetchData = variant.configuration?.fetcher;
-  const payloadEntries = payloadShape === undefined ? [] : Object.entries(payloadShape);
-  const hasUnsupportedPayload = payloadEntries.some(([fieldName, descriptor]) => {
-    if (payloadForm?.[fieldName] !== undefined) {
-      return false;
-    }
-
-    return (
-      descriptor.kind !== PrimitiveKind.Text ||
-      descriptor.nullable !== false ||
-      typeof descriptor.defaultValue !== "string"
-    );
-  });
 
   if (!firstSize) {
     throw new Response("Not found", { status: 404 });
@@ -187,6 +173,18 @@ export default function VariantConfiguration() {
         {payloadShape !== undefined ? (
           <div>
             <OrderedTableOfContents.Title>Configure</OrderedTableOfContents.Title>
+            {fetchData === undefined ? (
+              <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="variant-payload-result">
+                <JsonView data={payloadValues} style={{ ...defaultStyles, container: "bg-zinc-100" }} />
+              </div>
+            ) : (
+              <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="variant-data-result">
+                <JsonView
+                  data={{ data: loadedData ?? variant.defaultData }}
+                  style={{ ...defaultStyles, container: "bg-zinc-100" }}
+                />
+              </div>
+            )}
             <div className="px-6">
               <form
                 className="mt-5 space-y-5"
@@ -197,7 +195,6 @@ export default function VariantConfiguration() {
                     return;
                   }
 
-                  setIsLoadingData(true);
                   setDataError(undefined);
                   setRequestError(undefined);
 
@@ -215,8 +212,7 @@ export default function VariantConfiguration() {
                     }
                   } catch (cause) {
                     setRequestError(cause instanceof Error ? cause.message : String(cause));
-                  } finally {
-                    setIsLoadingData(false);
+
                   }
                 }}
               >
@@ -226,7 +222,9 @@ export default function VariantConfiguration() {
                   if (PayloadField !== undefined) {
                     return (
                       <div className="space-y-2" key={fieldName}>
-                        <label className="block text-sm font-medium">{fieldName}</label>
+                        {collectionName === "icon" && fieldName === "hash" ? null : (
+                          <label className="block text-sm font-medium">{fieldName}</label>
+                        )}
                         <PayloadField
                           value={payloadValues[fieldName]}
                           onChange={(value: unknown) => {
@@ -282,11 +280,7 @@ export default function VariantConfiguration() {
                     </div>
                   );
                 })}
-                {fetchData === undefined ? null : (
-                  <Button disabled={hasUnsupportedPayload || isLoadingData} type="submit">
-                    {isLoadingData ? "Getting data..." : "Get data"}
-                  </Button>
-                )}
+
               </form>
 
               {fetchData !== undefined && dataError !== undefined ? (
@@ -310,15 +304,7 @@ export default function VariantConfiguration() {
                 </div>
               ) : null}
 
-              {fetchData === undefined ? (
-                <div className="mt-5 overflow-auto" data-testid="variant-payload-result">
-                  <JsonView data={payloadValues} />
-                </div>
-              ) : (
-                <div className="mt-5 overflow-auto" data-testid="variant-data-result">
-                  <JsonView data={{ data: loadedData ?? variant.defaultData }} />
-                </div>
-              )}
+
             </div>
           </div>
         ) : (

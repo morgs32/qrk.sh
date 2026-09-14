@@ -90,7 +90,7 @@ export function StreamlineIconLookup(props: { value: string; onChange: (value: s
           className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
         />
         <Input
-          aria-label="Search Streamline icons"
+          aria-label="Search icons"
           autoComplete="off"
           className="h-9 pl-8"
           onChange={(event) => {

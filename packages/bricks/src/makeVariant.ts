@@ -3,6 +3,7 @@ import { Schema } from "effect";
 import type { ReactNode } from "react";
 import type { IJsonValue } from "scraper/types";
 
+import type { IFormConfiguration } from "./makeFormConfiguration";
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 
 import type { IBrick } from "./types";
@@ -37,7 +38,9 @@ export function makeVariant<
     | {
         dataShape: DATA_SHAPE;
         defaultData: InferDecodedRow<DATA_SHAPE> & Readonly<Record<string, IJsonValue>>;
-        configuration?: ReturnType<typeof makeFetcherConfiguration<PAYLOAD_SHAPE>>;
+        configuration?:
+          | ReturnType<typeof makeFetcherConfiguration<PAYLOAD_SHAPE>>
+          | IFormConfiguration<InferDecodedRow<DATA_SHAPE>>;
         sizes: {
           [SIZE in keyof SIZES]: {
             component: (props: { data: InferDecodedRow<DATA_SHAPE> }) => ReactNode;
@@ -53,7 +56,7 @@ export function makeVariant<
       dataShape: props.dataShape,
       defaultData: null,
       configuration:
-        props.configuration === undefined
+        props.configuration === undefined || props.configuration.configurationType !== "fetcher"
           ? undefined
           : {
               configurationType: props.configuration.configurationType,
@@ -69,6 +72,16 @@ export function makeVariant<
   const defaultData = Schema.decodeUnknownSync(decodedDataSchema)(props.defaultData, {
     onExcessProperty: "preserve",
   });
+  if (props.configuration?.configurationType === "form") {
+    return {
+      variantLabel: props.variantLabel,
+      variantDescription: props.variantDescription,
+      dataShape: props.dataShape,
+      defaultData,
+      configuration: props.configuration,
+      sizes: props.sizes,
+    };
+  }
   const fetcher = props.configuration?.fetcher;
   if (props.configuration === undefined || fetcher === undefined) {
     return {

@@ -4,6 +4,7 @@ test("items follow the pointer outside, can return, and persist removal on relea
   page,
 }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "Arrange", exact: true }).click();
   const grid = page.getByLabel("Brick grid");
   const item = grid.getByTestId("grid-fixture-1");
   await expect(item).toBeVisible();

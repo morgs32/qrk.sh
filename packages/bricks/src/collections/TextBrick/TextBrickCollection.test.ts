@@ -8,6 +8,9 @@ describe("Text collection", () => {
 
     expect(textBrickCollection.collectionName).toBe("text");
     expect(textBrickCollection.collectionLabel).toBe("Text");
+    if (defaultVariant?.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(defaultVariant?.configuration?.payloadShape?.content).toMatchObject({
       kind: "json",
       nullable: true,

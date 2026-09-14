@@ -1,13 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { collectionsHash } from "@qrk.sh/bricks";
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
 import GridLayout, { useContainerWidth, verticalCompactor } from "react-grid-layout";
 
 import { useGridStore } from "./useGridStore";
 
 export function SandboxGrid() {
   const { containerRef, mounted, width } = useContainerWidth();
-  const navigate = useNavigate();
+  const mode = useGridStore((state) => state.mode);
   const suppressBrickClickRef = useRef(false);
   const [dragging, setDragging] = useState(false);
   const [outsideBrickId, setOutsideBrickId] = useState<string | null>(null);
@@ -54,7 +54,8 @@ export function SandboxGrid() {
         <GridLayout
           width={gridWidth}
           style={dragging ? { transform: `translateY(-${dragScrollTopRef.current}px)` } : undefined}
-          layout={layout}
+          // Dropped items carry isDraggable, which overrides dragConfig.enabled.
+          layout={layout.map((item) => ({ ...item, isDraggable: mode === "arrange" }))}
           autoSize
           className="grid-layout"
           compactor={verticalCompactor}
@@ -65,7 +66,7 @@ export function SandboxGrid() {
             containerPadding: [0, 0],
             maxRows: Number.POSITIVE_INFINITY,
           }}
-          dragConfig={{ enabled: true, bounded: false, threshold: 3 }}
+          dragConfig={{ enabled: mode === "arrange", bounded: false, threshold: 3 }}
           resizeConfig={{ enabled: false, handles: [] }}
           dropConfig={{
             enabled: true,
@@ -169,24 +170,28 @@ export function SandboxGrid() {
                 <div
                   key={layoutItem.i}
                   style={{ opacity: outsideBrickId === layoutItem.i ? 0.4 : 1 }}
-                  className="size-full cursor-grab active:cursor-grabbing"
+                  className={mode === "arrange" ? "size-full cursor-grab active:cursor-grabbing" : "size-full"}
                   data-brick={`${brick.def.collectionName}/${brick.def.variant}/${brick.def.size}`}
                   data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
-                  onClick={() => {
-                    if (suppressBrickClickRef.current) {
-                      return;
-                    }
-
-                    void navigate(
-                      `/collections/${encodeURIComponent(brick.def.collectionName)}/brick/${encodeURIComponent(layoutItem.i)}`,
-                    );
-                  }}
                 >
-                  <BrickComponent
-                    data={brickDef.data}
-                  />
+                  <div inert className="pointer-events-none size-full">
+                    <BrickComponent data={brickDef.data} />
+                  </div>
+                  {mode === "inspect" && (
+                    <Link
+                      to={`/collections/${encodeURIComponent(brick.def.collectionName)}/brick/${encodeURIComponent(layoutItem.i)}`}
+                      aria-label={`Inspect ${brick.def.collectionName} ${brick.def.variant} ${brick.def.size}`}
+                      draggable={false}
+                      className="absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600"
+                      onClick={(event) => {
+                        if (suppressBrickClickRef.current) {
+                          event.preventDefault();
+                        }
+                      }}
+                    />
+                  )}
                 </div>
               );
             }

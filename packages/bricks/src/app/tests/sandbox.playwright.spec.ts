@@ -59,12 +59,14 @@ test("shares one persisted grid across the root, collection, and detail routes",
     throw new Error("Expected the root grid and swatch brick to have browser layout boxes");
   }
 
+  await page.getByRole("button", { name: "Arrange", exact: true }).click();
   await swatchBrick.dragTo(rootGridLayout, {
     targetPosition: { x: rootGridLayoutBox.width - 20, y: rootGridLayoutBox.height - 20 },
   });
   await expect
     .poll(async () => (await swatchBrick.boundingBox())?.x)
     .not.toBe(originalSwatchBrickBox.x);
+  await page.getByRole("button", { name: "Inspect", exact: true }).click();
   const movedGridX = await swatchBrick.getAttribute("data-grid-x");
   const movedGridY = await swatchBrick.getAttribute("data-grid-y");
   expect(movedGridX).not.toBeNull();

@@ -1,3 +1,4 @@
+import type { IFormConfiguration } from "./makeFormConfiguration";
 import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IShape } from "@zerospin/schema";
 import type { ReactNode } from "react";
@@ -34,9 +35,11 @@ export type ICollection = {
     | {
         variantLabel: string;
         variantDescription: string;
-        configuration?: IFetcherConfiguration & {
-          fetcher: NonNullable<IFetcherConfiguration["fetcher"]>;
-        };
+        configuration?:
+          | IFormConfiguration
+          | (IFetcherConfiguration & {
+              fetcher: NonNullable<IFetcherConfiguration["fetcher"]>;
+            });
         dataShape: IShape;
         defaultData: unknown;
         sizes: Record<string, ICollectionBrick>;

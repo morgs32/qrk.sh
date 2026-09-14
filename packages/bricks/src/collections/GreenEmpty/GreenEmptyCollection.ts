@@ -1,3 +1,7 @@
+import { primitives } from "@zerospin/schema";
+import { createElement } from "react";
+import { HexColorInput, HexColorPicker } from "react-colorful";
+import { makeFormConfiguration } from "../../makeFormConfiguration";
 import { makeBrick } from "../../makeBrick";
 import { makeCollection } from "../../makeCollection";
 import { makeVariant } from "../../makeVariant";
@@ -5,14 +9,35 @@ import { GreenEmpty1x1 } from "./GreenEmpty1x1";
 import { GreenEmpty2x2 } from "./GreenEmpty2x2";
 import { GreenEmpty4x1 } from "./GreenEmpty4x1";
 
+const dataShape = { color: primitives.text() };
+
 export const swatchCollection = makeCollection({
   collectionName: "swatch",
   collectionLabel: "Swatch",
   collectionDescription: "Solid color fields for visual rhythm.",
   variants: {
     default: makeVariant({
-      dataShape: null,
-      defaultData: null,
+      dataShape,
+      defaultData: { color: "#4A7C59" },
+      configuration: makeFormConfiguration<typeof dataShape>({
+        form: ({ data, onChange }) =>
+          createElement(
+            "div",
+            { className: "space-y-4" },
+            createElement(HexColorPicker, {
+              color: data?.color ?? "#4A7C59",
+              onChange: (color) => onChange({ color }),
+              style: { width: "100%" },
+            }),
+            createElement(HexColorInput, {
+              color: data?.color ?? "#4A7C59",
+              onChange: (color) => onChange({ color }),
+              prefixed: true,
+              "aria-label": "Hex color",
+              className: "h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm",
+            }),
+          ),
+      }),
       variant: "default",
       variantLabel: "Default",
       variantDescription: "A solid color field.",

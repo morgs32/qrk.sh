@@ -54,6 +54,9 @@ describe("brick catalog identity", () => {
 
     const design = figmaCollection.variants.design;
     expect(Object.keys(design.sizes)).toEqual(["4x4"]);
+    if (design.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(design.configuration?.payloadShape).toHaveProperty("url");
     expect(design.dataShape).toHaveProperty("thumbnail_url");
     expect(design.defaultData).toMatchObject({ title: "Figma Design", url: "" });
@@ -61,6 +64,9 @@ describe("brick catalog identity", () => {
 
     const board = figmaCollection.variants.board;
     expect(Object.keys(board.sizes)).toEqual(["4x4"]);
+    if (board.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(board.configuration?.payloadShape).toHaveProperty("url");
     expect(board.dataShape).toHaveProperty("thumbnail_url");
     expect(board.defaultData).toMatchObject({ title: "FigJam Board", url: "" });
@@ -68,6 +74,9 @@ describe("brick catalog identity", () => {
 
     const slides = figmaCollection.variants.slides;
     expect(Object.keys(slides.sizes)).toEqual(["4x4"]);
+    if (slides.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(slides.configuration?.payloadShape).toHaveProperty("url");
     expect(slides.dataShape).toHaveProperty("thumbnail_url");
     expect(slides.defaultData).toMatchObject({ title: "Figma Slides", url: "" });
@@ -75,6 +84,9 @@ describe("brick catalog identity", () => {
 
     const prototype = figmaCollection.variants.prototype;
     expect(Object.keys(prototype.sizes)).toEqual(["4x4"]);
+    if (prototype.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(prototype.configuration?.payloadShape).toHaveProperty("url");
     expect(prototype.dataShape).toHaveProperty("thumbnail_url");
     expect(prototype.defaultData).toMatchObject({ title: "Figma Prototype", url: "" });
@@ -87,6 +99,9 @@ describe("brick catalog identity", () => {
 
     expect(Object.keys(linkCollection.variants)).toEqual(["default"]);
     expect(Object.keys(defaultVariant.sizes)).toEqual(["4x2"]);
+    if (defaultVariant.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(defaultVariant.configuration?.payloadShape).toHaveProperty("url");
     expect(defaultVariant.dataShape).toMatchObject({
       url: { kind: "text" },
@@ -109,6 +124,9 @@ describe("brick catalog identity", () => {
 
     expect(Object.keys(tikTokCollection.variants)).toEqual(["default"]);
     expect(Object.keys(defaultVariant.sizes)).toEqual(["4x4"]);
+    if (defaultVariant.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(defaultVariant.configuration?.payloadShape).toHaveProperty("url");
     expect(defaultVariant.dataShape).toMatchObject({ username: { kind: "text" } });
     expect(defaultVariant.defaultData).toEqual({ username: "theonion" });
@@ -121,6 +139,9 @@ describe("brick catalog identity", () => {
 
     expect(textCollection.collectionLabel).toBe("Text");
     expect(Object.keys(defaultVariant.sizes)).toEqual(["4x4", "8x2"]);
+    if (defaultVariant.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(defaultVariant.configuration?.payloadShape?.content).toMatchObject({
       kind: "json",
       nullable: true,

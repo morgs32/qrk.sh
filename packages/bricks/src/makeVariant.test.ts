@@ -49,6 +49,9 @@ describe("makeVariant data contracts", () => {
   it("preserves typed custom payload controls through the collection", () => {
     const placeVariant = mapCollection.variants.place;
 
+    if (placeVariant?.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(placeVariant?.configuration?.payloadShape?.googlePlaceId).toMatchObject({
       kind: "text",
       nullable: false,
@@ -105,6 +108,9 @@ describe("makeVariant data contracts", () => {
       },
     });
 
+    if (variant.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(variant.configuration?.payloadShape.content.defaultValue).toBeNull();
     expect(variant.configuration?.payloadForm?.content).toBeTypeOf("function");
     expect(variant.dataShape).toBeNull();
@@ -161,6 +167,9 @@ describe("makeVariant data contracts", () => {
       },
     });
 
+    if (variant.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(variant.configuration?.payloadForm?.query).toBeTypeOf("function");
     expect(variant.configuration?.payloadForm?.zoom).toBeTypeOf("function");
   });
@@ -168,6 +177,9 @@ describe("makeVariant data contracts", () => {
   it("preserves the GitHub profile request, response, default, and callback contract", () => {
     const profileVariant = githubCollection.variants.profile;
 
+    if (profileVariant?.configuration?.configurationType !== "fetcher") {
+      throw new Error("Expected fetcher configuration");
+    }
     expect(profileVariant?.configuration?.payloadShape?.url).toMatchObject({
       kind: "text",
       nullable: false,

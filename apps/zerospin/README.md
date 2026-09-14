@@ -18,7 +18,8 @@ pnpm nx run @qrk.sh/zerospin:test:workerd
 
 The existing `dev` target includes `--clean` and resets this system's local
 backend state. Use the CLI without `--clean` when retaining that state.
-QRK's scraper keeps its separate Worker configuration in `packages/scraper`.
+QRK's scraper lives in `packages/bricks/src/scraper`; its Worker configuration is
+`packages/bricks/wrangler.jsonc`, used by the combined Vite+ workbench.
 
 ## Source layout
 

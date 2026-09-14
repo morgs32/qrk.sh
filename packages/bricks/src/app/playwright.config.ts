@@ -4,9 +4,8 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "@playwright/test";
 
 const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
-const scraperRoot = fileURLToPath(new URL("../../../scraper", import.meta.url));
 const bricksEnvPath = fileURLToPath(new URL("../../.env.local", import.meta.url));
-const scraperEnvPath = fileURLToPath(new URL("../../../scraper/.env.local", import.meta.url));
+const scraperEnvPath = fileURLToPath(new URL("../../.env.local", import.meta.url));
 
 if (!existsSync(bricksEnvPath)) {
   throw new Error(
@@ -80,14 +79,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "pnpm dev",
-      cwd: scraperRoot,
-      url: "http://127.0.0.1:8787",
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-    },
-    {
-      command: "pnpm dev",
+      command: "pnpm nx run @qrk.sh/bricks:dev",
       cwd: packageRoot,
       url: "http://127.0.0.1:4100",
       reuseExistingServer: !process.env.CI,

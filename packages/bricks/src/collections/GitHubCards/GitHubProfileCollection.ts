@@ -85,15 +85,17 @@ export const githubCollection = makeCollection({
         created_at: "2012-01-21T20:20:09Z",
         updated_at: "2026-07-15T15:27:35Z",
         login: "morgs32",
-        contributions: [
-          { date: "2026-07-12", count: 0, level: 0 },
-          { date: "2026-07-13", count: 2, level: 1 },
-          { date: "2026-07-14", count: 5, level: 2 },
-          { date: "2026-07-15", count: 8, level: 3 },
-          { date: "2026-07-16", count: 12, level: 4 },
-          { date: "2026-07-17", count: 4, level: 2 },
-          { date: "2026-07-18", count: 1, level: 1 },
-        ],
+        contributions: Array.from({ length: 365 }, (_, index) => {
+          const date = new Date();
+          date.setUTCDate(date.getUTCDate() - (364 - index));
+
+          // Keep sample activity varied and stable across reloads.
+          const count = (index * 7 + Math.floor(index / 7) * 3) % 16;
+          const level: 0 | 1 | 2 | 3 | 4 =
+            count === 0 ? 0 : count <= 3 ? 1 : count <= 7 ? 2 : count <= 11 ? 3 : 4;
+
+          return { date: date.toISOString().slice(0, 10), count, level };
+        }),
       },
       sizes: {
         "4x4": makeBrick({

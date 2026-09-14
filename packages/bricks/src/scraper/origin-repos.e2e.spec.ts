@@ -2,9 +2,9 @@ import { it } from "@effect/vitest";
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { env, SELF } from "cloudflare:test";
 import { Effect } from "effect";
-import { beforeEach, describe, expect, vi } from "vitest";
+import { beforeEach, describe, expect, vi } from "vite-plus/test";
 
-import type { ScraperApi } from "scraper/ScraperApi";
+import type { ScraperApi } from "./ScraperApi.public";
 import {
   beaconsFixture,
   gitHubFixture,

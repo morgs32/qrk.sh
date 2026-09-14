@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Configuration } from "./app/Configuration";
 import { primitives } from "@zerospin/schema";
-import { describe, expect, expectTypeOf, it, vi } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vite-plus/test";
 import { makeFormConfiguration } from "./makeFormConfiguration";
 import { makeVariant } from "./makeVariant";
 import { makeCollection } from "./makeCollection";

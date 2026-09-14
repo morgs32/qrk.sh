@@ -1,19 +1,15 @@
 import { fileURLToPath, URL } from "node:url";
 
+import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv } from "vite-plus";
 
 const packageRoot = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const packageEnv = loadEnv(mode, packageRoot, "");
-  const scraperUrl = packageEnv.SCRAPER_URL;
   const mapboxToken = packageEnv.PUBLIC_MAPBOX_TOKEN;
-
-  if (scraperUrl === undefined || scraperUrl.length === 0) {
-    throw new Error(`SCRAPER_URL is required in ${packageRoot}/.env.local`);
-  }
 
   if (mapboxToken === undefined || mapboxToken.length === 0) {
     throw new Error(`PUBLIC_MAPBOX_TOKEN is required in ${packageRoot}/.env.local`);
@@ -21,7 +17,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: packageRoot,
-    build: { outDir: "build/client" },
+    build: { outDir: "build" },
     envDir: packageRoot,
     define: {
       "import.meta.env.PUBLIC_MAPBOX_TOKEN": JSON.stringify(mapboxToken),
@@ -38,14 +34,6 @@ export default defineConfig(({ mode }) => {
         },
       ],
     },
-    server: {
-      proxy: {
-        "/scraper-rpc": {
-          target: scraperUrl,
-          changeOrigin: true,
-        },
-      },
-    },
-    plugins: [tailwindcss(), react()],
+    plugins: [tailwindcss(), react(), cloudflare()],
   };
 });

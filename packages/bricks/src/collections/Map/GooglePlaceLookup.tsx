@@ -3,8 +3,8 @@
 import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { Loader2, MapPin, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ScraperApi } from "scraper/ScraperApi";
-import type { IGooglePlaceSuggestion } from "scraper/types";
+import type { ScraperApi } from "../../scraper/ScraperApi.public";
+import type { IGooglePlaceSuggestion } from "../../scraper/types.public";
 
 import { Input } from "../../ui/input";
 import { cn } from "cn";

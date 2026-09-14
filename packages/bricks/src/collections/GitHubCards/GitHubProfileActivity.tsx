@@ -10,7 +10,13 @@ export function GitHubProfileActivity(props: {
   }>;
 }) {
   return (
-    <div data-github-profile-activity className="w-full overflow-x-auto">
+    <div
+      data-github-profile-activity
+      className="w-full overflow-x-auto"
+      style={{
+        maskImage: "linear-gradient(to right, black calc(100% - 20px), transparent)",
+      }}
+    >
       <ActivityCalendar
         data={props.contributions}
         blockMargin={2}

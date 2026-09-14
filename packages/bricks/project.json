@@ -4,7 +4,25 @@
   "targets": {
     "dev": {
       "continuous": true,
-      "dependsOn": [{ "projects": ["scraper"], "target": "dev" }]
+      "dependsOn": ["^lib"]
+    },
+    "tsc": {
+      "dependsOn": ["^lib", "tsc:worker"]
+    },
+    "test:workerd": {
+      "dependsOn": ["^lib"]
+    },
+    "build": {
+      "dependsOn": ["^lib"]
+    },
+    "build:app": {
+      "dependsOn": ["^lib"]
+    },
+    "tsc:worker": {
+      "dependsOn": ["^lib"]
+    },
+    "test:live": {
+      "dependsOn": ["^lib"]
     }
   }
 }

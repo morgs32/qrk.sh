@@ -1,6 +1,6 @@
 import { primitives } from "@zerospin/schema";
-import { describe, expect, it, vi } from "vitest";
-import { ScraperApi } from "scraper/ScraperApi";
+import { describe, expect, it, vi } from "vite-plus/test";
+import { ScraperApi } from "./scraper/ScraperApi";
 
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 

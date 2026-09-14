@@ -21,8 +21,8 @@ This specification supersedes specification 010's `scrape(url)` naming only for 
 4. `makeVariant` wraps each data-backed callback with `makeEffectSchema` decoding and `onExcessProperty: "error"`.
 5. Invalid, missing, or excess payload properties reject before the data callback or scraper capability is invoked.
 6. `makeCollection` and `ICollection` preserve `payload` and the wrapped `getData` callback without introducing a separately named variant type.
-7. The scraper package exposes direct `scraper/ScraperApi` and `scraper/types` entry points. It does not add a barrel.
-8. The bricks package directly depends on `scraper`, `@zerospin/core`, and `effect`.
+7. The scraper lives in `packages/bricks/src/scraper`. Client code imports its public declarations directly; Worker code stays out of browser bundles.
+8. The bricks package owns the scraper and directly depends on `@zerospin/core` and `effect`.
 9. `GitHubRepo.scrape(url)` becomes `GitHubRepo.getProfile(url)`, and every GitHub repository or RPC caller uses the new name.
 10. Other origin repositories retain `scrape(url)`.
 11. The GitHub profile variant declares `url` with `primitives.text({ defaultValue: "https://github.com/morgs32" })`.
@@ -47,9 +47,9 @@ This specification supersedes specification 010's `scrape(url)` naming only for 
 
 1. The bricks package commits `.env` with `SCRAPER_URL=http://127.0.0.1:8787/`.
 2. The bricks Vite application loads environment values from the bricks package root.
-3. Vite proxies `/scraper-rpc` to `SCRAPER_URL` without exposing the target through client environment values.
-4. `packages/scraper/.dev.vars` is ignored and contains the real `GITHUB_TOKEN` used by local Wrangler.
-5. Playwright fails clearly before startup when `GITHUB_TOKEN` is absent from the scraper `.dev.vars` file.
+3. Vite+ and the Cloudflare Vite plugin serve the workbench and `/scraper-rpc` from one local server.
+4. `packages/bricks/.env.local` is ignored and contains the real `GITHUB_TOKEN` used by local Wrangler.
+5. Playwright fails clearly before startup when `GITHUB_TOKEN` is absent from the bricks `.env.local` file.
 
 ## Testing Decisions
 

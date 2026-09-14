@@ -4,7 +4,7 @@ import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { Image } from "@unpic/react";
 import { Check, Loader2, Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { ScraperApi } from "scraper/ScraperApi";
+import type { ScraperApi } from "../../scraper/ScraperApi.public";
 import useSWRInfinite from "swr/infinite";
 
 import { Button } from "../../ui/button";

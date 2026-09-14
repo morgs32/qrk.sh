@@ -1,7 +1,7 @@
 import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
 import { Schema } from "effect";
 import type { ReactNode } from "react";
-import type { IJsonValue } from "scraper/types";
+import type { IJsonValue } from "./scraper/types.public";
 
 import type { IFormConfiguration } from "./makeFormConfiguration";
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";

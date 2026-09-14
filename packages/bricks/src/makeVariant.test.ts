@@ -1,9 +1,9 @@
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
-import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import { ScraperApi } from "scraper/ScraperApi";
-import type { IScrapeError } from "scraper/types";
+import { describe, expect, expectTypeOf, it, vi } from "vite-plus/test";
+import { ScraperApi } from "./scraper/ScraperApi";
+import type { IScrapeError } from "./scraper/types.public";
 
 import { githubCollection } from "./collections/GitHubCards/GitHubProfileCollection";
 import { mapCollection } from "./collections/Map/MapCollection";

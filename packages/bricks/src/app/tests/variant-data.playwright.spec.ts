@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import type { IRpcEither } from "scraper/types";
+import type { IRpcEither } from "../../scraper/types.public";
 
 test.describe("variant configuration requests", () => {
   test.beforeEach(async ({ page }) => {

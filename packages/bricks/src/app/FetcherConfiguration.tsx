@@ -3,11 +3,12 @@ import { newSyncRpcSession } from "@zerospin/core/utils/newSyncRpcSession";
 import { defaultStyles, JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
 import { useEffect, useRef, useState } from "react";
-import type { ScraperApi } from "scraper/ScraperApi";
-import type { IScrapeError } from "scraper/types";
+import type { ScraperApi } from "../scraper/ScraperApi.public";
+import type { IScrapeError } from "../scraper/types.public";
 import type { IFetcherConfiguration } from "../makeFetcherConfiguration";
 import { OrderedTableOfContents } from "../OrderedTableOfContents";
 import { Input } from "../ui/input";
+import { Button } from "../ui/button";
 
 export function FetcherConfiguration(props: {
   configuration: IFetcherConfiguration;
@@ -138,13 +139,18 @@ export function FetcherConfiguration(props: {
             return (
               <div className="space-y-2" key={fieldName}>
                 <label className="block text-sm font-medium" htmlFor={`payload-${fieldName}`}>
-                  {fieldName}
+                  {fieldName === "url" ? "URL" : fieldName}
                 </label>
                 <Input
                   id={`payload-${fieldName}`}
                   name={fieldName}
                   onChange={(event) => {
-                    void onPayloadChange(fieldName, event.target.value);
+                    const payload = {
+                      ...currentPayload.current,
+                      [fieldName]: event.target.value,
+                    };
+                    currentPayload.current = payload;
+                    setPayloadValues(payload);
                   }}
                   type="text"
                   value={
@@ -153,6 +159,15 @@ export function FetcherConfiguration(props: {
                       : descriptor.defaultValue
                   }
                 />
+                <Button
+                  type="button"
+                  disabled={isLoadingData || hasUnsupportedPayload}
+                  onClick={() => {
+                    void onPayloadChange(fieldName, currentPayload.current[fieldName]);
+                  }}
+                >
+                  Submit
+                </Button>
               </div>
             );
           })}

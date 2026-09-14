@@ -1,7 +1,7 @@
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
-import { makeBrick } from "../../makeBrick";
+import { makeView } from "../../makeView";
 import { makeCollection } from "../../makeCollection";
 import { makeContent } from "../../makeContent";
 import { Link4x2 } from "./Link4x2";
@@ -46,14 +46,13 @@ export const linkCollection = makeCollection({
         iconUrl: "https://www.apple.com/favicon.ico",
       },
       views: {
-        "4x2": makeBrick({
-          content: "default",
-          view: "4x2",
+        "4x2": makeView({
+          id: "4x2",
           w: 4,
           h: 2,
           label: "4×2",
           order: 0,
-          component: Link4x2,
+          xs: Link4x2,
         }),
       },
     }),

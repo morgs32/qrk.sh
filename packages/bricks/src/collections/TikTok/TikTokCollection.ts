@@ -2,7 +2,7 @@ import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
 import { makeCollection } from "../../makeCollection";
-import { makeBrick } from "../../makeBrick";
+import { makeView } from "../../makeView";
 import { makeContent } from "../../makeContent";
 import { TikTokDefault4x4 } from "./TikTokDefault4x4";
 
@@ -33,14 +33,13 @@ export const tikTokCollection = makeCollection({
         username: "theonion",
       },
       views: {
-        "4x4": makeBrick({
-          content: "default",
-          view: "4x4",
+        "4x4": makeView({
+          id: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
           order: 0,
-          component: TikTokDefault4x4,
+          xs: TikTokDefault4x4,
         }),
       },
     }),

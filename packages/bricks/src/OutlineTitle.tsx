@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export function OrderedTableOfContentsTitle({
+export function OutlineTitle({
   children,
   sticky = false,
 }: {

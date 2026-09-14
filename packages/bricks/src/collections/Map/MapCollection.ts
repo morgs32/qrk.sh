@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
-import { makeBrick } from "../../makeBrick";
+import { makeView } from "../../makeView";
 import { makeCollection } from "../../makeCollection";
 import { makeContent } from "../../makeContent";
 import { GooglePlaceLookup } from "./GooglePlaceLookup";
@@ -48,14 +48,13 @@ export const mapCollection = makeCollection({
         longitude: -87.6297982,
       },
       views: {
-        "4x4": makeBrick({
-          content: "place",
-          view: "4x4",
+        "4x4": makeView({
+          id: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
           order: 0,
-          component: MapPlace4x4,
+          xs: MapPlace4x4,
         }),
       },
     }),

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ScraperApi } from "../scraper/ScraperApi.public";
 import type { IScrapeError } from "../scraper/types.public";
 import type { IFetcherConfiguration } from "../makeFetcherConfiguration";
-import { OrderedTableOfContents } from "../OrderedTableOfContents";
+import { Outline } from "../Outline";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 
@@ -86,7 +86,7 @@ export function FetcherConfiguration(props: {
 
   return (
     <div>
-      <OrderedTableOfContents.Title>Configure</OrderedTableOfContents.Title>
+      <Outline.Title>Configure</Outline.Title>
       <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="content-data-result">
         <JsonView
           shouldExpandNode={collapseAllNested}

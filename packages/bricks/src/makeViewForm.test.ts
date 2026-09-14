@@ -22,7 +22,7 @@ it("infers defaults and form values and rejects invalid updates before publicati
     renderToStaticMarkup(createElement(form.form, { value: form.defaultValue, onChange })),
   ).toBe("<span>left</span>");
   expect(onChange).toHaveBeenCalledExactlyOnceWith({ alignment: "right" });
-  const View = makeView({
+  const { component: View } = makeView({ id: "test", label: "Test", w: 4, h: 4, order: 0,
     form,
     xs: (props: { breakpoint: "xs" | "sm" | "md" | "lg"; viewOptions?: { alignment: string } }) =>
       createElement("span", null, props.viewOptions?.alignment),

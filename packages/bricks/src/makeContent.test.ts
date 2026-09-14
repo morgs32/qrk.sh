@@ -10,7 +10,7 @@ import { mapCollection } from "./collections/Map/MapCollection";
 import { makeContent } from "./makeContent";
 
 describe("makeContent data contracts", () => {
-  it("requires view keys and contents to match their definitions", () => {
+  it("requires view keys to match their definitions", () => {
     expectTypeOf(() => {
       makeContent({
         content: "default",
@@ -22,21 +22,7 @@ describe("makeContent data contracts", () => {
           summary: {
             // @ts-expect-error the view identifier must match its map key
             // prettier-ignore
-            def: { content: "default", view: "activity", w: 4, h: 2, label: "Activity", order: 0 },
-            component: () => null,
-          },
-        },
-      });
-      makeContent({
-        content: "default",
-        contentName: "Default",
-        contentDescription: "Test content",
-        dataShape: null,
-        defaultData: null,
-        views: {
-          summary: {
-            // @ts-expect-error the brick must belong to its containing content
-            def: { content: "other", view: "summary", w: 4, h: 2, label: "Summary", order: 0 },
+            id: "activity", w: 4, h: 2, label: "Activity", order: 0 ,
             component: () => null,
           },
         },
@@ -53,14 +39,12 @@ describe("makeContent data contracts", () => {
       contentDescription: "A static content.",
       views: {
         "1x1": {
-          def: {
-            content: "static",
-            view: "1x1",
+          id: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
             order: 0,
-          },
+          ,
           component: () => null,
         },
       },
@@ -139,14 +123,12 @@ describe("makeContent data contracts", () => {
       },
       views: {
         "1x1": {
-          def: {
-            content: "typed-controls",
-            view: "1x1",
+          id: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
             order: 0,
-          },
+          ,
           component: (props: { data: { result: string } }) => props.data.result,
         },
       },
@@ -213,14 +195,12 @@ describe("makeContent data contracts", () => {
       },
       views: {
         "1x1": {
-          def: {
-            content: "profile",
-            view: "1x1",
+          id: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
             order: 0,
-          },
+          ,
           component: (props: { data: { login: string } }) => {
             return props.data.login;
           },
@@ -277,14 +257,12 @@ describe("makeContent data contracts", () => {
         defaultData: JSON.parse('{"login":42}'),
         views: {
           "1x1": {
-            def: {
-              content: "profile",
-              view: "1x1",
+            id: "1x1",
               w: 1,
               h: 1,
               label: "1×1",
               order: 0,
-            },
+            ,
             component: (props: { data: { login: string } }) => {
               return props.data.login;
             },
@@ -318,14 +296,12 @@ describe("makeContent data contracts", () => {
       },
       views: {
         "1x1": {
-          def: {
-            content: "profile",
-            view: "1x1",
+          id: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
             order: 0,
-          },
+          ,
           component: (props: { data: { login: string } }) => {
             return props.data.login;
           },
@@ -389,14 +365,12 @@ describe("makeContent data contracts", () => {
       },
       views: {
         "1x1": {
-          def: {
-            content: "profile",
-            view: "1x1",
+          id: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
             order: 0,
-          },
+          ,
           component: (props: { data: { login: string } }) => {
             return props.data.login;
           },
@@ -452,14 +426,12 @@ describe("makeContent data contracts", () => {
       },
       views: {
         "1x1": {
-          def: {
-            content: "profile",
-            view: "1x1",
+          id: "1x1",
             w: 1,
             h: 1,
             label: "1×1",
             order: 0,
-          },
+          ,
           component: (props: { data: { login: string } }) => {
             return props.data.login;
           },
@@ -495,7 +467,7 @@ describe("makeContent data contracts", () => {
       defaultData: { name: "Default" },
       views: {
         "1x1": {
-          def: { content: "default", view: "1x1", w: 1, h: 1, label: "1×1", order: 0 },
+          id: "1x1", w: 1, h: 1, label: "1×1", order: 0 ,
           component: () => null,
         },
       },
@@ -548,7 +520,7 @@ describe("makeContent data contracts", () => {
         defaultData: { name: "Default" },
         views: {
           "1x1": {
-            def: { content: "data", view: "1x1", w: 1, h: 1, label: "1×1", order: 0 },
+            id: "1x1", w: 1, h: 1, label: "1×1", order: 0 ,
             // @ts-expect-error component data must match the schema
             component: (props: { data: { name: number } }) => props.data.name,
           },

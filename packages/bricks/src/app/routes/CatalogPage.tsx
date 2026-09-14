@@ -1,11 +1,11 @@
-import { CollectionOptions } from "../CollectionOptions";
+import { CollectionOutline } from "../CollectionOutline";
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { collectionsHash } from "../../collectionsHash";
 import { Link } from "react-router";
 import { useState } from "react";
 
-import { OrderedTableOfContents } from "../../OrderedTableOfContents";
+import { Outline } from "../../Outline";
 import { Button } from "../../ui/button";
 import { DraggableBrick } from "../DraggableBrick";
 
@@ -44,15 +44,15 @@ export default function CatalogPage() {
 
           return (
             <div key={collection.collectionName} data-collection-entry={collection.collectionName}>
-              <OrderedTableOfContents.Title sticky>
+              <Outline.Title sticky>
                 <Link
                   to={`/collections/${encodeURIComponent(collection.collectionName)}`}
                   data-collection-link={collection.collectionName}
                 >
                   {collection.collectionLabel}
                 </Link>
-              </OrderedTableOfContents.Title>
-              <CollectionOptions
+              </Outline.Title>
+              <CollectionOutline
                 collection={collection}
                 renderContent={(contentName, label) => (
                   <Button
@@ -77,8 +77,7 @@ export default function CatalogPage() {
                   <Button
                     variant="link"
                     aria-pressed={
-                      selectedContentName === contentName &&
-                      selectedViewName === viewName
+                      selectedContentName === contentName && selectedViewName === viewName
                     }
                     onClick={() => {
                       setSelectedContents((current) => ({

@@ -12,6 +12,34 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   await page.goto("/collections/figma");
   await page.getByRole("button", { name: "375px grid width" }).click();
   const preview = page.locator("[data-content-view-brick]");
+  const image = preview.locator("[data-figma-thumbnail]");
+  for (const width of [375, 640, 768, 1024]) {
+    await page.getByRole("button", { name: `${width}px grid width` }).click();
+    await expect(image).toBeVisible();
+    await expect(image).toHaveCSS("object-fit", "cover");
+    await expect
+      .poll(() =>
+        image.evaluate((element: HTMLImageElement) => {
+          const bounds = element.getBoundingClientRect();
+          return (
+            element.naturalWidth > 0 &&
+            Math.abs(element.naturalWidth / element.naturalHeight - bounds.width / bounds.height) > 0.1
+          );
+        }),
+      )
+      .toBe(true);
+    for (const [label, position] of [
+      ["Center", "50% 50%"],
+      ["Left", "0% 50%"],
+      ["Right", "100% 50%"],
+      ["Top", "50% 0%"],
+      ["Bottom", "50% 100%"],
+    ]) {
+      await page.getByRole("button", { name: label, exact: true }).click();
+      await expect(image).toHaveCSS("object-position", position);
+    }
+  }
+  await page.getByRole("button", { name: "375px grid width" }).click();
   await page.getByRole("button", { name: "Left", exact: true }).click();
   await expect(preview.locator("img")).toHaveCSS("object-position", "0% 50%");
   const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
@@ -47,7 +75,7 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   }, firstId);
   await expect(first).toContainText("First content");
   await expect(second).toContainText("Figma Thumbnail");
-  await first.getByRole("link", { name: "Edit", exact: true }).click();
+  await first.getByRole("link", { name: "Edit brick", exact: true }).click();
   await page.getByRole("button", { name: "640px grid width" }).click();
   await expect(first.locator("img")).toHaveCSS("object-position", "0% 50%");
   await page.getByRole("button", { name: "Bottom", exact: true }).click();
@@ -63,7 +91,6 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   await expect(first).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole("button", { name: "Show brick", exact: true })).toBeVisible();
-  await page.getByRole("navigation", { name: "Placed bricks" }).getByRole("link").first().click();
   await page.getByRole("button", { name: "Show brick", exact: true }).click();
   await expect(first.locator("img")).toHaveCSS("object-position", "50% 0%");
   await expect(first).toContainText("First content");

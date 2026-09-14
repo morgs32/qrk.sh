@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
-import { makeBrick } from "../../makeBrick";
+import { makeView } from "../../makeView";
 import { makeCollection } from "../../makeCollection";
 import { makeContent } from "../../makeContent";
 import { PinkAsterisk1x1 } from "./PinkAsterisk1x1";
@@ -44,32 +44,29 @@ export const iconCollection = makeCollection({
         svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 20v60M20 35l60 30M20 65l60-30" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="8"/></svg>',
       },
       views: {
-        "2x2": makeBrick({
-          content: "default",
-          view: "2x2",
+        "2x2": makeView({
+          id: "2x2",
           w: 2,
           h: 2,
           label: "2×2",
           order: 1,
-          component: PinkAsterisk1x1,
+          xs: PinkAsterisk1x1,
         }),
-        "4x4": makeBrick({
-          content: "default",
-          view: "4x4",
+        "4x4": makeView({
+          id: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
           order: 2,
-          component: PinkAsterisk2x2,
+          xs: PinkAsterisk2x2,
         }),
-        "8x2": makeBrick({
-          content: "default",
-          view: "8x2",
+        "8x2": makeView({
+          id: "8x2",
           w: 8,
           h: 2,
           label: "8×2",
           order: 0,
-          component: PinkAsterisk4x1,
+          xs: PinkAsterisk4x1,
         }),
       },
     }),

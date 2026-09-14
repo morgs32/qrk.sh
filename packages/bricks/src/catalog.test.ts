@@ -1,6 +1,8 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vite-plus/test";
 
-import { makeBrick } from "./makeBrick";
+import { makeView } from "./makeView";
 import { makeContent } from "./makeContent";
 import { makeCollection } from "./makeCollection";
 
@@ -117,23 +119,21 @@ describe("brick catalog identity", () => {
 });
 
 it("keeps views with identical dimensions independently addressable", () => {
-  const first = makeBrick({
-    content: "default",
-    view: "summary",
+  const first = makeView({
+    id: "summary",
     label: "Summary",
     w: 4,
     h: 2,
     order: 0,
-    component: () => "Summary content",
+    xs: () => "Summary content",
   });
-  const second = makeBrick({
-    content: "default",
-    view: "activity",
+  const second = makeView({
+    id: "activity",
     label: "Activity",
     w: 4,
     h: 2,
     order: 1,
-    component: () => "Activity content",
+    xs: () => "Activity content",
   });
   const collection = makeCollection({
     collectionName: "view-test",
@@ -156,6 +156,6 @@ it("keeps views with identical dimensions independently addressable", () => {
   expect(views.activity.def).toMatchObject({ view: "activity", label: "Activity", w: 4, h: 2 });
   expect(views.summary.component).toBe(first.component);
   expect(views.activity.component).toBe(second.component);
-  expect(first.component()).toBe("Summary content");
-  expect(second.component()).toBe("Activity content");
+  expect(renderToStaticMarkup(createElement(first.component, { breakpoint: "xs" }))).toBe("Summary content");
+  expect(renderToStaticMarkup(createElement(second.component, { breakpoint: "xs" }))).toBe("Activity content");
 });

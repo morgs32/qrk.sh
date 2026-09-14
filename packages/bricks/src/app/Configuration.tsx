@@ -1,7 +1,7 @@
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
 import type { ICollection } from "../types";
-import { OrderedTableOfContents } from "../OrderedTableOfContents";
+import { Outline } from "../Outline";
 import { FetcherConfiguration } from "./FetcherConfiguration";
 
 export function Configuration(props: {
@@ -13,7 +13,7 @@ export function Configuration(props: {
   if (configuration === undefined) {
     return (
       <div>
-        <OrderedTableOfContents.Title>Configure</OrderedTableOfContents.Title>
+        <Outline.Title>Configure</Outline.Title>
         <div className="overflow-auto bg-zinc-100 px-2 py-4">
           <JsonView
             shouldExpandNode={collapseAllNested}
@@ -29,7 +29,7 @@ export function Configuration(props: {
     case "form":
       return (
         <div>
-          <OrderedTableOfContents.Title>Configure</OrderedTableOfContents.Title>
+          <Outline.Title>Configure</Outline.Title>
           <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="content-data-result">
             <JsonView
               shouldExpandNode={collapseAllNested}

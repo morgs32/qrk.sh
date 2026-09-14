@@ -38,3 +38,8 @@ and icon/count statistics. `Xs` truncates overflowing values and omits activity;
 retains statistics and labeled activity; `md` and `lg` inherit it. Compact
 activity markup belongs directly to `WideXs`; the shared `GitHubProfileActivity`
 only renders the larger chart used by `WideSm` and `SquareMd`.
+
+The Figma thumbnail square uses `FigmaThumbnailSquareXs` and
+`FigmaThumbnailSquareSm`; `md` and `lg` inherit `Sm`. Its view form edits
+per-breakpoint `viewOptions.imagePosition`, which each presentation applies
+directly to its image's `object-position`. These options do not change grid dimensions.

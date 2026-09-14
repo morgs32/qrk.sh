@@ -175,16 +175,16 @@ The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefi
 
 - **Good**: `CarouselItem` with `basis-full shrink-0 grow-0` (plus `pl-*` / `-ml-*` spacing on content), inner panel wrapper for border/padding, and the brick slot matching full width/height in px—no transform scaling.
 
-### Table of contents layout
+### Outline layout
 
-`OrderedTableOfContents` owns the navigation block and equal top and bottom padding (`py-3`).
-In the catalog, collection labels use `OrderedTableOfContents.Title sticky`, pinning
+`Outline` owns the navigation block and equal top and bottom padding (`py-3`).
+In the catalog, collection labels use `Outline.Title sticky`, pinning
 each heading to the scroll pane's top through its collection options and preview; contents
 and views occupy the first and second list levels.
-`OrderedTableOfContents.List` owns vertical padding (`py-2`), hierarchy depth,
+`Outline.List` owns vertical padding (`py-2`), hierarchy depth,
 and numbering without horizontal padding or margins. Items stay full width
 and tightly spaced, with no added gaps or vertical padding. Put every item
-heading or choice control inside `OrderedTableOfContents.Label`; the label
+heading or choice control inside `Outline.Label`; the label
 owns its marker and depth-based indentation, including when sticky, but adds
 no vertical padding. Lists default to vertical padding. Use `padded={false}` inside a section whose
 edge padding must stand alone, and `spaced` for 0.5rem gaps between list items.
@@ -193,21 +193,20 @@ Previews and other item content remain full width at every depth. Do not cancel
 list indentation in route CSS or add compensating margins to content. Scroll
 containers determine sticky boundaries independently of hierarchy depth.
 
-Wrap a navigation group in `OrderedTableOfContents.Rows` before its content.
+Wrap a navigation group in `Outline.Rows` before its content.
 `Rows` owns the gray background and 0.5rem bottom padding, independent of depth.
 Nested lists remain compact; previews and other content sit outside the group.
 Use `Rows sticky` when the whole group should stick within its scroll container.
 Spacing is explicit in the composition rather than inferred from descendant DOM.
 
-The Bricks overview uses `Container` for the outer layout and `Section` for each
-complete navigation block: collection heading, content choices, and view choices.
-`OrderedTableOfContents` owns the white surface and 0.75rem top and bottom padding. The overview
-uses unpadded lists, explicit 0.5rem spacing before nested choices, and spaced
-content/view groups. The preview is a sibling after the section, so no gray
-padding trails the preview. Each section starts its own list; use `List start`
-to continue collection numbering. The collection page keeps the complete collection/content/view `Section`, followed
-by one active preview and its configuration contents. The `content` and `view`
-query parameters select the active item. Overview Configure links carry both values.
+The catalog, Collection, and BrickDetail pages share
+[`CollectionOutline`](../../packages/bricks/src/app/CollectionOutline.tsx) for content and
+view choices. It owns the white `Outline` surface, equal 0.75rem
+vertical padding, unpadded lists, spaced content groups, and the 0.5rem gap before views.
+Collection headings and previews stay outside this component.
+Each page supplies `renderContent` and `renderView` controls: catalog buttons update
+the local preview, Collection links select the `content` and `view` query parameters,
+and BrickDetail retains content links and disabled alternative view labels.
 
 ### View identity hard cutover
 

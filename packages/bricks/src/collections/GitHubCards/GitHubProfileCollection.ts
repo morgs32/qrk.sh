@@ -3,7 +3,6 @@ import { primitives } from "@zerospin/schema";
 import { Schema } from "effect";
 
 import { makeCollection } from "../../makeCollection";
-import { makeBrick } from "../../makeBrick";
 import { makeContent } from "../../makeContent";
 import { GitHubProfileWideXs } from "./GitHubProfileWideXs";
 import { GitHubProfileWideSm } from "./GitHubProfileWideSm";
@@ -104,23 +103,21 @@ export const githubCollection = makeCollection({
         }),
       },
       views: {
-        "4x4": makeBrick({
-          content: "profile",
-          view: "4x4",
+        "4x4": makeView({
+          id: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
           order: 0,
-          component: makeView({ xs: GitHubProfileSquareXs, md: GitHubProfileSquareMd }),
+          xs: GitHubProfileSquareXs, md: GitHubProfileSquareMd,
         }),
-        "4x2": makeBrick({
-          content: "profile",
-          view: "4x2",
+        "4x2": makeView({
+          id: "4x2",
           w: 4,
           h: 2,
           label: "4×2",
           order: 1,
-          component: makeView({ xs: GitHubProfileWideXs, sm: GitHubProfileWideSm }),
+          xs: GitHubProfileWideXs, sm: GitHubProfileWideSm,
         }),
       },
     }),
@@ -131,14 +128,13 @@ export const githubCollection = makeCollection({
       contentName: "Repo",
       contentDescription: "A GitHub repository card.",
       views: {
-        "4x2": makeBrick({
-          content: "repo",
-          view: "4x2",
+        "4x2": makeView({
+          id: "4x2",
           w: 4,
           h: 2,
           label: "4×2",
           order: 1,
-          component: GitHubRepo4x2,
+          xs: GitHubRepo4x2,
         }),
       },
     }),

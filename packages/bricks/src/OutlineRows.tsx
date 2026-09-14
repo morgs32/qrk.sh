@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /** A navigation group owns its surface and spacing before full-width content. */
-export function OrderedTableOfContentsRows({
+export function OutlineRows({
   children,
   sticky = false,
 }: {

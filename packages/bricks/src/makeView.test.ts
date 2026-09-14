@@ -13,7 +13,7 @@ function Md(props: Parameters<typeof Xs>[0]) {
 
 describe("makeView", () => {
   it("inherits omitted breakpoints and forwards props to hook-using components", () => {
-    const View = makeView({ xs: Xs, md: Md });
+    const { component: View } = makeView({ id: "test", label: "Test", w: 4, h: 4, order: 0, xs: Xs, md: Md });
     for (const breakpoint of ["xs", "sm", "md", "lg"] satisfies Array<"xs" | "sm" | "md" | "lg">) {
       const expected = breakpoint === "xs" || breakpoint === "sm" ? "xs" : "md";
       expect(
@@ -24,7 +24,7 @@ describe("makeView", () => {
   });
 
   it("selects explicit sm and lg overrides", () => {
-    const View = makeView({ xs: Xs, sm: Md, lg: Xs });
+    const { component: View } = makeView({ id: "test", label: "Test", w: 4, h: 4, order: 0, xs: Xs, sm: Md, lg: Xs });
     expect(
       renderToStaticMarkup(createElement(View, { breakpoint: "md", data: { label: "a" } })),
     ).toBe("<span>md:a:md</span>");
@@ -35,8 +35,8 @@ describe("makeView", () => {
 
   it("requires xs and rejects incompatible data props", () => {
     // @ts-expect-error xs is the required base presentation.
-    makeView({ md: Md });
-    makeView({
+    makeView({ id: "test", label: "Test", w: 4, h: 4, order: 0, md: Md });
+    makeView({ id: "test", label: "Test", w: 4, h: 4, order: 0,
       xs: Xs,
       // @ts-expect-error Every presentation must accept the base presentation's data.
       md: (_props: { breakpoint: "xs" | "sm" | "md" | "lg"; data: { label: number } }) => null,

@@ -1,6 +1,6 @@
 import { makeCollection } from "../../makeCollection";
 import { makeContent } from "../../makeContent";
-import { makeBrick } from "../../makeBrick";
+import { makeView } from "../../makeView";
 import { ImagePromo4x4 } from "./ImagePromo4x4";
 
 export const imageCollection = makeCollection({
@@ -15,14 +15,13 @@ export const imageCollection = makeCollection({
       contentName: "Default",
       contentDescription: "An editorial image preview.",
       views: {
-        "4x4": makeBrick({
-          content: "default",
-          view: "4x4",
+        "4x4": makeView({
+          id: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
           order: 0,
-          component: ImagePromo4x4,
+          xs: ImagePromo4x4,
         }),
       },
     }),

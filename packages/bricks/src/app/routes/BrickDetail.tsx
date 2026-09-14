@@ -1,4 +1,4 @@
-import { CollectionOptions } from "../CollectionOptions";
+import { CollectionOutline } from "../CollectionOutline";
 import { Button } from "../../ui/button";
 import { resolveBrickBreakpoint } from "../resolveBrickBreakpoint";
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
@@ -10,7 +10,7 @@ import { makeEffectSchema } from "@zerospin/schema";
 import { Schema } from "effect";
 import { Configuration } from "../Configuration";
 
-import { OrderedTableOfContents } from "../../OrderedTableOfContents";
+import { Outline } from "../../Outline";
 
 import { useGridStore } from "../useGridStore";
 
@@ -55,12 +55,12 @@ export default function BrickDetail() {
 
   return (
     <section data-testid="brick-detail-pane">
-      <OrderedTableOfContents.Title>
+      <Outline.Title>
         <Link to={`/collections/${encodeURIComponent(collectionName)}`}>
           {collection.collectionLabel}
         </Link>
-      </OrderedTableOfContents.Title>
-      <CollectionOptions
+      </Outline.Title>
+      <CollectionOutline
         collection={collection}
         renderContent={(name, label) => (
           <Link
@@ -74,20 +74,16 @@ export default function BrickDetail() {
         renderView={(name, view, label) => (
           <span
             aria-current={
-              name === brick.def.content && view === brick.def.view
-                ? "true"
-                : undefined
+              name === brick.def.content && view === brick.def.view ? "true" : undefined
             }
-            aria-disabled={
-              name !== brick.def.content || view !== brick.def.view
-            }
+            aria-disabled={name !== brick.def.content || view !== brick.def.view}
             className="text-zinc-400 aria-[current=true]:font-semibold aria-[current=true]:text-zinc-900"
           >
             {label}
           </span>
         )}
       />
-      <OrderedTableOfContents.Preview>
+      <Outline.Preview>
         <BrickPreviewFrame
           w={entry.gridItem?.w ?? brick.def.w}
           h={entry.gridItem?.h ?? brick.def.h}
@@ -103,7 +99,7 @@ export default function BrickDetail() {
             />
           </div>
         </BrickPreviewFrame>
-      </OrderedTableOfContents.Preview>
+      </Outline.Preview>
       <div className="pb-6">
         <div className="px-6 py-4">
           <p>

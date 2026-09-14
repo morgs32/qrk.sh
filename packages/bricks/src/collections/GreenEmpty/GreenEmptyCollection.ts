@@ -2,7 +2,7 @@ import { primitives } from "@zerospin/schema";
 import { createElement } from "react";
 import { HexColorInput, HexColorPicker } from "react-colorful";
 import { makeFormConfiguration } from "../../makeFormConfiguration";
-import { makeBrick } from "../../makeBrick";
+import { makeView } from "../../makeView";
 import { makeCollection } from "../../makeCollection";
 import { makeContent } from "../../makeContent";
 import { GreenEmpty1x1 } from "./GreenEmpty1x1";
@@ -43,32 +43,29 @@ export const swatchCollection = makeCollection({
       contentName: "Default",
       contentDescription: "A solid color field.",
       views: {
-        "2x2": makeBrick({
-          content: "default",
-          view: "2x2",
+        "2x2": makeView({
+          id: "2x2",
           w: 2,
           h: 2,
           label: "2×2",
           order: 1,
-          component: GreenEmpty1x1,
+          xs: GreenEmpty1x1,
         }),
-        "4x4": makeBrick({
-          content: "default",
-          view: "4x4",
+        "4x4": makeView({
+          id: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
           order: 0,
-          component: GreenEmpty2x2,
+          xs: GreenEmpty2x2,
         }),
-        "8x2": makeBrick({
-          content: "default",
-          view: "8x2",
+        "8x2": makeView({
+          id: "8x2",
           w: 8,
           h: 2,
           label: "8×2",
           order: 2,
-          component: GreenEmpty4x1,
+          xs: GreenEmpty4x1,
         }),
       },
     }),

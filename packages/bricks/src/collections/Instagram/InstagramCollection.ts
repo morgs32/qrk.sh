@@ -2,7 +2,7 @@ import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
 
 import { makeCollection } from "../../makeCollection";
-import { makeBrick } from "../../makeBrick";
+import { makeView } from "../../makeView";
 import { makeContent } from "../../makeContent";
 import { InstagramDefault4x4 } from "./InstagramDefault4x4";
 
@@ -50,14 +50,13 @@ export const instagramCollection = makeCollection({
           "https://instagram.faus1-1.fna.fbcdn.net/v/t51.82787-15/749714051_18613274569010586_2155729153985215318_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=103&ig_cache_key=Mzk0NDEwNTM1NjYzNzM1MTM4MzE4NjEzMjc0NTYzMDEwNTg2.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkNMSVBTLnhwaWRzLjEwODAuc2RyLnZpZGVvX2RlZmF1bHRfY292ZXJfZnJhbWUuQzMifQ%3D%3D&_nc_ohc=M2MacKdfvFoQ7kNvwGG1cxF&_nc_oc=Adp8XB00lCApv90RttYRYu2QZ5ccCOO2qDVezJjN8vYmbuYYKyThSChjCWQ2TntpddI&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=instagram.faus1-1.fna&_nc_gid=FIs8QckpOVOcFW0GoQuidg&_nc_ss=7a22e&oh=00_AQCjahbwZLuvKuFDCIEYZXwSv1R-u8zPqVde0ZLQvuxG_g&oe=6A61AADC",
       },
       views: {
-        "4x4": makeBrick({
-          content: "default",
-          view: "4x4",
+        "4x4": makeView({
+          id: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
           order: 0,
-          component: InstagramDefault4x4,
+          xs: InstagramDefault4x4,
         }),
       },
     }),

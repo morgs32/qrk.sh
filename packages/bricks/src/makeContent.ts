@@ -6,13 +6,16 @@ import type { IJsonValue } from "./scraper/types.public";
 import type { IFormConfiguration } from "./makeFormConfiguration";
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 
-import type { IBrick } from "./types";
+import { mapValues } from "es-toolkit/object";
+import type { makeView } from "./makeView";
 
 export function makeContent<
   const CONTENT extends string,
   const CONTENT_OPTIONS_SHAPE extends IShape,
   const DATA_SHAPE extends IShape,
-  const VIEWS extends Record<string, IBrick<CONTENT, string, (props: never) => ReactNode>>,
+  const VIEWS extends Record<string, Omit<ReturnType<typeof makeView>, "component"> & {
+    component: (props: never) => ReactNode;
+  }>,
 >(
   props: {
     content: CONTENT;
@@ -20,7 +23,7 @@ export function makeContent<
     contentDescription: string;
     views: VIEWS & {
       [VIEW in keyof VIEWS]: VIEWS[VIEW] & {
-        def: { content: CONTENT; view: VIEW & string };
+        id: VIEW & string;
       };
     };
   } & (
@@ -51,6 +54,26 @@ export function makeContent<
       }
   ),
 ) {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(props.content)) {
+    throw new Error(`makeContent: content must be kebab-case; got ${JSON.stringify(props.content)}`);
+  }
+  const views = mapValues(props.views, (view, key) => {
+    if (key !== view.id) {
+      throw new Error(`makeContent: view key ${JSON.stringify(key)} must match id ${JSON.stringify(view.id)}`);
+    }
+    return {
+      def: {
+        content: props.content,
+        view: view.id,
+        w: view.w,
+        h: view.h,
+        label: view.label,
+        order: view.order,
+      },
+      component: view.component,
+    };
+  });
+
   if (props.dataShape === null) {
     return {
       contentName: props.contentName,
@@ -58,7 +81,7 @@ export function makeContent<
       dataShape: props.dataShape,
       defaultData: null,
       configuration: undefined,
-      views: props.views,
+      views,
     };
   }
 
@@ -74,7 +97,7 @@ export function makeContent<
       dataShape: props.dataShape,
       defaultData,
       configuration: props.configuration,
-      views: props.views,
+      views,
     };
   }
   if (props.configuration === undefined) {
@@ -84,7 +107,7 @@ export function makeContent<
       dataShape: props.dataShape,
       defaultData,
       configuration: undefined,
-      views: props.views,
+      views,
     };
   }
 
@@ -94,6 +117,6 @@ export function makeContent<
     dataShape: props.dataShape,
     defaultData,
     configuration: props.configuration,
-    views: props.views,
+    views,
   };
 }

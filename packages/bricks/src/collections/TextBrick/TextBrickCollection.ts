@@ -4,7 +4,7 @@ import { primitives } from "@zerospin/schema";
 import type { JSONContent } from "@tiptap/react";
 import { Schema } from "effect";
 
-import { makeBrick } from "../../makeBrick";
+import { makeView } from "../../makeView";
 import { makeCollection } from "../../makeCollection";
 import { makeContent } from "../../makeContent";
 import { TextBrick2x2 } from "./TextBrick2x2";
@@ -41,23 +41,21 @@ export const textBrickCollection = makeCollection({
           }),
       }),
       views: {
-        "4x4": makeBrick({
-          content: "default",
-          view: "4x4",
+        "4x4": makeView({
+          id: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
           order: 1,
-          component: TextBrick2x2,
+          xs: TextBrick2x2,
         }),
-        "8x2": makeBrick({
-          content: "default",
-          view: "8x2",
+        "8x2": makeView({
+          id: "8x2",
           w: 8,
           h: 2,
           label: "8×2",
           order: 0,
-          component: TextBrick4x1,
+          xs: TextBrick4x1,
         }),
       },
     }),

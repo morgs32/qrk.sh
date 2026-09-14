@@ -1,4 +1,4 @@
-import { CollectionOptions } from "../CollectionOptions";
+import { CollectionOutline } from "../CollectionOutline";
 import { useState } from "react";
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
@@ -15,7 +15,7 @@ import {
 } from "react-router";
 import { ArrowLeft } from "lucide-react";
 
-import { OrderedTableOfContents } from "../../OrderedTableOfContents";
+import { Outline } from "../../Outline";
 import { TableData } from "../../TableData";
 import { Configuration } from "../Configuration";
 import { useContentData } from "../useContentData";
@@ -67,12 +67,12 @@ export default function ContentConfiguration() {
 
   return (
     <section data-testid="content-configuration-pane">
-      <OrderedTableOfContents.Title>
+      <Outline.Title>
         <Link to={`/collections/${encodeURIComponent(collectionName)}`}>
           {collection.collectionLabel}
         </Link>
-      </OrderedTableOfContents.Title>
-      <CollectionOptions
+      </Outline.Title>
+      <CollectionOutline
         collection={collection}
         renderContent={(name, label) => (
           <Link
@@ -86,9 +86,7 @@ export default function ContentConfiguration() {
         renderView={(name, view, label) => (
           <Link
             to={`/collections/${encodeURIComponent(collectionName)}?content=${encodeURIComponent(name)}&view=${encodeURIComponent(view)}`}
-            aria-current={
-              name === contentName && view === viewName ? "true" : undefined
-            }
+            aria-current={name === contentName && view === viewName ? "true" : undefined}
             className="underline aria-[current=true]:font-bold aria-[current=true]:text-zinc-950! aria-[current=true]:no-underline!"
           >
             {label}

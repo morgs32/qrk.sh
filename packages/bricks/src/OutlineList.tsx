@@ -1,8 +1,8 @@
 import { useContext } from "react";
 import type { ReactNode } from "react";
-import { OrderedTableOfContentsDepth } from "./OrderedTableOfContentsDepth";
+import { OutlineDepth } from "./OutlineDepth";
 
-export function OrderedTableOfContentsList({
+export function OutlineList({
   children,
   scrollable = false,
   start = 1,
@@ -15,24 +15,24 @@ export function OrderedTableOfContentsList({
   padded?: boolean;
   spaced?: boolean;
 }) {
-  const depth = useContext(OrderedTableOfContentsDepth);
+  const depth = useContext(OutlineDepth);
   const marker =
     depth === 0
-      ? "[--toc-style:decimal] [--toc-marker-width:24px]"
+      ? "[--outline-style:decimal] [--outline-marker-width:24px]"
       : depth === 1
-        ? "[--toc-style:upper-alpha] [--toc-marker-width:24px]"
-        : "[--toc-style:lower-roman] [--toc-marker-width:36px]";
+        ? "[--outline-style:upper-alpha] [--outline-marker-width:24px]"
+        : "[--outline-style:lower-roman] [--outline-marker-width:36px]";
 
   return (
-    <OrderedTableOfContentsDepth value={depth + 1}>
+    <OutlineDepth value={depth + 1}>
       <ol
         start={start}
-        style={{ counterReset: `toc-item ${start - 1}` }}
+        style={{ counterReset: `outline-item ${start - 1}` }}
         type={depth === 0 ? "1" : depth === 1 ? "A" : "i"}
         className={`list-none px-0 ${padded ? "py-2" : "py-0"} ${spaced ? "flex flex-col gap-2" : ""} ${marker} m-0 ${scrollable ? "min-h-0 flex-1 overflow-y-auto overscroll-contain" : ""}`}
       >
         {children}
       </ol>
-    </OrderedTableOfContentsDepth>
+    </OutlineDepth>
   );
 }

@@ -22,10 +22,7 @@ export function FigmaThumbnailSquareXs(props: {
         rel="noopener noreferrer"
         target="_blank"
       >
-        <div
-          className="relative h-full w-full overflow-hidden bg-white"
-          style={{ objectPosition: props.viewOptions?.imagePosition ?? "center" }}
-        >
+        <div className="relative h-full w-full overflow-hidden bg-white">
           <div
             className="absolute inset-x-0 bottom-0 top-[20.25%] bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-[size:20px_20px]"
             data-figma-fallback="thumbnail"
@@ -37,7 +34,8 @@ export function FigmaThumbnailSquareXs(props: {
             <Image
               key={props.data.thumbnail_url}
               alt={`${props.data.title} Figma thumbnail`}
-              className="absolute inset-x-0 bottom-0 top-[20.25%] h-[79.75%] w-full object-cover [object-position:inherit]"
+              className="absolute inset-x-0 bottom-0 top-[20.25%] h-[79.75%] w-full object-cover object-center data-[image-position=left]:object-left data-[image-position=right]:object-right data-[image-position=top]:object-top data-[image-position=bottom]:object-bottom"
+              data-image-position={props.viewOptions?.imagePosition ?? "center"}
               data-figma-thumbnail="thumbnail"
               height={props.data.thumbnail_height ?? 450}
               layout="fullWidth"

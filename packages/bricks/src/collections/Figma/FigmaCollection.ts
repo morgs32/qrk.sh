@@ -5,8 +5,7 @@ import { primitives } from "@zerospin/schema";
 
 import { makeCollection } from "../../makeCollection";
 import { makeContent } from "../../makeContent";
-import { makeBrick } from "../../makeBrick";
-import { FigmaThumbnail4x4 } from "./FigmaThumbnail4x4";
+import { FigmaThumbnailSquareSm } from "./FigmaThumbnailSquareSm";
 import { FigmaThumbnailSquareXs } from "./FigmaThumbnailSquareXs";
 import { makeView } from "../../makeView";
 import defaultThumbnailUrl from "./dot-pattern-789x450.png";
@@ -48,26 +47,23 @@ export const figmaCollection = makeCollection({
         thumbnail_height: 450,
       },
       views: {
-        "4x4": makeBrick({
-          content: "thumbnail",
-          view: "4x4",
+        "4x4": makeView({
+          id: "4x4",
           w: 4,
           h: 4,
           label: "4×4",
           order: 0,
-          component: makeView({
-            form: makeViewForm({
-              shape: {
-                imagePosition: primitives.enum({
-                  values: ["center", "left", "right", "top", "bottom"],
-                  defaultValue: "center",
-                }),
-              },
-              form: FigmaViewForm,
-            }),
-            xs: FigmaThumbnailSquareXs,
-            sm: FigmaThumbnail4x4,
+          form: makeViewForm({
+            shape: {
+              imagePosition: primitives.enum({
+                values: ["center", "left", "right", "top", "bottom"],
+                defaultValue: "center",
+              }),
+            },
+            form: FigmaViewForm,
           }),
+          xs: FigmaThumbnailSquareXs,
+          sm: FigmaThumbnailSquareSm,
         }),
       },
     }),

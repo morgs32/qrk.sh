@@ -92,7 +92,7 @@ export default function BrickPage() {
                   className="mt-2 w-full"
                   type="range"
                   min="40"
-                  max="160"
+                  max="192"
                   value={gridUnitPx}
                   onChange={(event) => setGridUnitPx(event.currentTarget.valueAsNumber)}
                 />

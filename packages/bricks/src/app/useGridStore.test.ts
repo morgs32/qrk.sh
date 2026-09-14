@@ -64,4 +64,77 @@ describe("responsive placed bricks", () => {
     store.setVisible("first", "xs", true);
     expect(useGridStore.getState().bricksById.first.xs.gridItem).toEqual(first);
   });
+  it("defaults frames and overrides complete inherited entries independently", () => {
+    const store = useGridStore.getState();
+    store.addBrick("first", def, [first], "xs");
+    store.addBrick("second", def, [first, second], "md");
+    expect(useGridStore.getState().bricksById.first.xs.frame).toBe("default");
+    expect(useGridStore.getState().bricksById.second.md?.frame).toBe("default");
+    store.setFrame("first", "sm", "card");
+    let brick = useGridStore.getState().bricksById.first;
+    expect(brick.xs.frame).toBe("default");
+    expect(brick.sm?.gridItem).toEqual(first);
+    expect(brick.sm?.gridItem).not.toBe(brick.xs.gridItem);
+    expect(brick.sm?.viewOptions).toEqual(brick.xs.viewOptions);
+    expect(resolveBrickBreakpoint(brick, "md").frame).toBe("card");
+    expect(resolveBrickBreakpoint(brick, "lg").frame).toBe("card");
+    store.setFrame("first", "md", "default");
+    brick = useGridStore.getState().bricksById.first;
+    expect(resolveBrickBreakpoint(brick, "lg").frame).toBe("default");
+    const inherited = { ...brick };
+    delete inherited.md;
+    useGridStore.setState({
+      bricksById: { ...useGridStore.getState().bricksById, first: inherited },
+    });
+    expect(resolveBrickBreakpoint(useGridStore.getState().bricksById.first, "md").frame).toBe(
+      "card",
+    );
+    expect(useGridStore.getState().bricksById.second.xs.frame).toBe("default");
+  });
+  it("preserves frames through options, layout, and hidden edits", () => {
+    const store = useGridStore.getState();
+    store.addBrick("first", def, [first], "xs");
+    store.setFrame("first", "xs", "card");
+    store.setViewOptions("first", "sm", { imagePosition: "right" });
+    store.setLayout([{ ...first, x: 1 }], "md");
+    store.setVisible("first", "lg", false);
+    let brick = useGridStore.getState().bricksById.first;
+    expect(brick.sm?.frame).toBe("card");
+    expect(brick.md?.frame).toBe("card");
+    expect(brick.lg?.frame).toBe("card");
+    store.setFrame("first", "lg", "default");
+    expect(useGridStore.getState().bricksById.first.lg?.gridItem).toBeNull();
+    store.setVisible("first", "lg", true);
+    brick = useGridStore.getState().bricksById.first;
+    expect(brick.lg?.frame).toBe("default");
+    expect(brick.lg?.gridItem).toEqual({ ...first, x: 1 });
+    expect(brick.lg?.viewOptions).toEqual({ imagePosition: "right" });
+  });
+});
+
+it("keeps xl and 2xl overrides independent and restores inheritance after removal", () => {
+  const store = useGridStore.getState();
+  const def = collectionsHash.figma.contents.thumbnail.views["4x4"].def;
+  const placement = { i: "large", x: 0, y: 0, w: 4, h: 4 };
+  store.addBrick("large", def, [placement], "lg");
+  store.setViewOptions("large", "xl", { imagePosition: "left" });
+  store.setFrame("large", "xl", "card");
+  store.setLayout([{ ...placement, x: 4 }], "xl");
+  store.setVisible("large", "xl", false);
+  expect(resolveBrickBreakpoint(useGridStore.getState().bricksById.large, "2xl").gridItem).toBeNull();
+  store.setVisible("large", "2xl", true);
+  store.setViewOptions("large", "2xl", { imagePosition: "right" });
+  let brick = useGridStore.getState().bricksById.large;
+  expect(brick["2xl"]?.gridItem).toEqual(placement);
+  expect(brick["2xl"]?.frame).toBe("card");
+  expect(brick.xl?.gridItem).toBeNull();
+  expect(brick.xl?.viewOptions).toEqual({ imagePosition: "left" });
+  expect(brick["2xl"]?.viewOptions).toEqual({ imagePosition: "right" });
+  const inherited = { ...brick };
+  delete inherited["2xl"];
+  useGridStore.setState({ bricksById: { large: inherited } });
+  brick = useGridStore.getState().bricksById.large;
+  expect(resolveBrickBreakpoint(brick, "2xl")).toBe(brick.xl);
+  store.setVisible("large", "xl", true);
+  expect(useGridStore.getState().bricksById.large.xl?.gridItem).toEqual(placement);
 });

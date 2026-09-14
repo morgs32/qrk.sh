@@ -14,22 +14,32 @@ export const useGridStore = create<{
       contentId: string;
       viewId: string;
       data: unknown;
-      xs: { gridItem: LayoutItem | null; viewOptions: unknown };
-    } & Partial<Record<"sm" | "md" | "lg", { gridItem: LayoutItem | null; viewOptions: unknown }>>
+      xs: { gridItem: LayoutItem | null; viewOptions: unknown; frame: "default" | "card" };
+    } & Partial<
+      Record<
+        "sm" | "md" | "lg" | "xl" | "2xl",
+        { gridItem: LayoutItem | null; viewOptions: unknown; frame: "default" | "card" }
+      >
+    >
   >;
   activeBrickDrag: (ICollectionBrickDef & { viewOptions?: unknown }) | null;
   hasHydrated: boolean;
   selectedWidth: number | null;
-  setLayout: (layout: Layout, breakpoint: "xs" | "sm" | "md" | "lg") => void;
+  setLayout: (layout: Layout, breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl") => void;
   addBrick: (
     brickId: string,
     brickDef: ICollectionBrickDef & { viewOptions?: unknown },
     layout: Layout,
-    breakpoint: "xs" | "sm" | "md" | "lg",
+    breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl",
   ) => void;
   setActiveBrickDrag: (brickDef: (ICollectionBrickDef & { viewOptions?: unknown }) | null) => void;
-  setViewOptions: (brickId: string, breakpoint: "xs" | "sm" | "md" | "lg", value: unknown) => void;
-  setVisible: (brickId: string, breakpoint: "xs" | "sm" | "md" | "lg", visible: boolean) => void;
+  setViewOptions: (brickId: string, breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl", value: unknown) => void;
+  setFrame: (
+    brickId: string,
+    breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl",
+    frame: "default" | "card",
+  ) => void;
+  setVisible: (brickId: string, breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl", visible: boolean) => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 }>()(
   persist(
@@ -83,13 +93,18 @@ export const useGridStore = create<{
               contentId: brickDef.content,
               viewId: brickDef.view,
               data: structuredClone(brickDef.data),
-              xs: { gridItem: { ...gridItem }, viewOptions: structuredClone(viewOptions) },
+              xs: {
+                gridItem: { ...gridItem },
+                viewOptions: structuredClone(viewOptions),
+                frame: "default",
+              },
               ...(breakpoint === "xs"
                 ? {}
                 : {
                     [breakpoint]: {
                       gridItem: { ...gridItem },
                       viewOptions: structuredClone(viewOptions),
+                      frame: "default",
                     },
                   }),
             },
@@ -118,6 +133,23 @@ export const useGridStore = create<{
           };
         });
       },
+      setFrame: (brickId, breakpoint, frame) => {
+        set((state) => {
+          const brick = state.bricksById[brickId];
+          if (!brick) return state;
+          const entry = resolveBrickBreakpoint(brick, breakpoint);
+          if (entry.frame === frame) return state;
+          return {
+            bricksById: {
+              ...state.bricksById,
+              [brickId]: {
+                ...brick,
+                [breakpoint]: { ...structuredClone(entry), frame },
+              },
+            },
+          };
+        });
+      },
       setVisible: (brickId, breakpoint, visible) => {
         set((state) => {
           const brick = state.bricksById[brickId];
@@ -129,7 +161,11 @@ export const useGridStore = create<{
           } else {
             // Search explicit smaller entries, skipping hidden entries.
             const smaller =
-              breakpoint === "lg"
+              breakpoint === "2xl"
+                ? [brick.xl, brick.lg, brick.md, brick.sm, brick.xs]
+                : breakpoint === "xl"
+                ? [brick.lg, brick.md, brick.sm, brick.xs]
+                : breakpoint === "lg"
                 ? [brick.md, brick.sm, brick.xs]
                 : breakpoint === "md"
                   ? [brick.sm, brick.xs]
@@ -184,6 +220,24 @@ export const useGridStore = create<{
       skipHydration: true,
       onRehydrateStorage: (stateBeforeHydration) => (stateAfterHydration) => {
         const state = stateAfterHydration ?? stateBeforeHydration;
+        // Upgrade existing entries without resetting placements or materializing inheritance.
+        for (const brick of Object.values(state.bricksById)) {
+          for (const entry of [brick.xs, brick.sm, brick.md, brick.lg, brick.xl, brick["2xl"]]) {
+            if (!entry) continue;
+            entry.frame ??= "default";
+            if (
+              brick.collectionId === "github" &&
+              brick.contentId === "profile" &&
+              brick.viewId === "4x4" &&
+              typeof entry.viewOptions === "object" &&
+              entry.viewOptions !== null &&
+              "cardView" in entry.viewOptions
+            ) {
+              delete entry.viewOptions.cardView;
+            }
+          }
+        }
+        // This update also persists the upgraded entries under the existing storage key.
         state.setHasHydrated(true);
       },
     },

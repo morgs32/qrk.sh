@@ -3,7 +3,7 @@ import { ActivityCalendar } from "react-activity-calendar";
 import { BrickFrame } from "../../BrickFrame";
 
 export function GitHubProfileWideXs(props: {
-  breakpoint: "xs" | "sm" | "md" | "lg";
+  breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
   data: {
     login: string;
     avatar_url: string;

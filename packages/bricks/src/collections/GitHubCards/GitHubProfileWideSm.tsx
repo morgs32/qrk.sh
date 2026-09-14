@@ -3,7 +3,7 @@ import { GitHubProfileActivity } from "./GitHubProfileActivity";
 import { BrickFrame } from "../../BrickFrame";
 
 export function GitHubProfileWideSm(props: {
-  breakpoint: "xs" | "sm" | "md" | "lg";
+  breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
   data: {
     login: string;
     avatar_url: string;

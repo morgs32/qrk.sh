@@ -1,3 +1,5 @@
+import { BrickViewFrame } from "../BrickViewFrame";
+import { Switch } from "../../ui/switch";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import { CollectionOutline } from "../CollectionOutline";
 import { Button } from "../../ui/button";
@@ -54,8 +56,10 @@ export default function BrickDetail() {
   const entry = resolveBrickBreakpoint(brickDef, breakpoint);
   const ViewForm = BrickComponent.form?.form;
   let inheritedBreakpoint = "xs";
-  if (breakpoint === "lg" && brickDef.md) inheritedBreakpoint = "md";
-  else if ((breakpoint === "lg" || breakpoint === "md") && brickDef.sm) inheritedBreakpoint = "sm";
+  if (breakpoint === "2xl" && brickDef.xl) inheritedBreakpoint = "xl";
+  else if ((breakpoint === "2xl" || breakpoint === "xl") && brickDef.lg) inheritedBreakpoint = "lg";
+  else if ((breakpoint === "2xl" || breakpoint === "xl" || breakpoint === "lg") && brickDef.md) inheritedBreakpoint = "md";
+  else if ((breakpoint === "2xl" || breakpoint === "xl" || breakpoint === "lg" || breakpoint === "md") && brickDef.sm) inheritedBreakpoint = "sm";
 
   return (
     <section data-testid="brick-detail-pane">
@@ -94,15 +98,14 @@ export default function BrickDetail() {
           w={entry.gridItem?.w ?? brick.def.w}
           h={entry.gridItem?.h ?? brick.def.h}
         >
-          <div
-            className="size-full qrk-bricks overflow-hidden"
-            data-testid="selected-brick-preview"
-          >
-            <BrickComponent
-              breakpoint={breakpoint}
-              data={brickData}
-              viewOptions={entry.viewOptions}
-            />
+          <div className="size-full qrk-bricks" data-testid="selected-brick-preview">
+            <BrickViewFrame frame={entry.frame}>
+              <BrickComponent
+                breakpoint={breakpoint}
+                data={brickData}
+                viewOptions={entry.viewOptions}
+              />
+            </BrickViewFrame>
           </div>
         </BrickPreviewFrame>
       </div>
@@ -157,6 +160,16 @@ export default function BrickDetail() {
           >
             {entry.gridItem === null ? "Show brick" : "Hide brick"}
           </Button>
+          <label className="inline-flex cursor-pointer items-center gap-2">
+            <Switch
+              aria-label="Card frame"
+              checked={entry.frame === "card"}
+              onCheckedChange={(checked) => {
+                useGridStore.getState().setFrame(brickId, breakpoint, checked ? "card" : "default");
+              }}
+            />
+            Card frame
+          </label>
         </div>
         {ViewForm && (
           <ViewForm

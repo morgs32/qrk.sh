@@ -20,6 +20,10 @@ test("catalog breakpoints follow the shared grid container at every boundary", a
     [768, "md"],
     [1023, "md"],
     [1024, "lg"],
+    [1279, "lg"],
+    [1280, "xl"],
+    [1535, "xl"],
+    [1536, "2xl"],
   ] satisfies Array<[number, string]>) {
     // Resize only the measured grid container; the catalog stays at its own width.
     await page
@@ -84,6 +88,10 @@ test("standalone slider updates the compact view without losing contributions", 
     "data-brick-breakpoint",
     "lg",
   );
+  await slider.fill("160");
+  await expect(preview.locator("[data-brick-breakpoint]")).toHaveAttribute("data-brick-breakpoint", "xl");
+  await slider.fill("192");
+  await expect(preview.locator("[data-brick-breakpoint]")).toHaveAttribute("data-brick-breakpoint", "2xl");
   await expect(preview.getByText("@morgs32")).toBeVisible();
   await page.goto("/bricks/github/profile/4x4");
   await page.getByLabel("Grid unit:", { exact: false }).fill("40");
@@ -94,12 +102,12 @@ test("standalone slider updates the compact view without losing contributions", 
 });
 
 test("placed bricks respond to presets and keep their data and positions", async ({ page }) => {
-  await page.setViewportSize({ width: 3000, height: 1000 });
+  await page.setViewportSize({ width: 3400, height: 1000 });
   await page.goto("/collections/github?content=profile&view=4x2");
   const source = page.locator('[data-content-view-brick="github/profile/4x2"]');
   await expect(source.locator("[data-brick-breakpoint]")).toHaveAttribute(
     "data-brick-breakpoint",
-    "lg",
+    "2xl",
   );
   const grid = page.getByLabel("Brick grid", { exact: true });
   await source.locator(".brick-drag-handle").dragTo(grid.locator(".react-grid-layout"), {
@@ -118,7 +126,8 @@ test("placed bricks respond to presets and keep their data and positions", async
     [375, "xs"],
     [768, "md"],
     [1024, "lg"],
-    [1440, "lg"],
+    [1440, "xl"],
+    [1536, "2xl"],
   ] satisfies Array<[number, string]>) {
     await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
     await expect(placed.locator("[data-brick-breakpoint]")).toHaveAttribute(
@@ -144,4 +153,35 @@ test("placed bricks respond to presets and keep their data and positions", async
   await expect(
     page.getByTestId("selected-brick-preview").locator("[data-brick-breakpoint]"),
   ).toHaveAttribute("data-brick-breakpoint", "xs");
+});
+
+test("xl and 2xl overrides persist and restore nearest smaller inheritance", async ({ page }) => {
+  await page.setViewportSize({ width: 3400, height: 1100 });
+  await page.goto("/collections/figma");
+  await page.getByRole("button", { name: "375px grid width", exact: true }).click();
+  const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
+  await page.locator("[data-content-view-brick] .brick-drag-handle").dragTo(grid, {
+    targetPosition: { x: 20, y: 20 },
+  });
+  const placed = grid.locator("[data-brick-id]");
+  await placed.getByRole("link", { name: "Edit brick", exact: true }).click();
+  await page.getByRole("button", { name: "1440px grid width", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Inherit from xs", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Left", exact: true }).click();
+  await page.getByRole("button", { name: "1536px grid width", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Inherit from xl", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Right", exact: true }).click();
+  await page.reload();
+  await expect(placed.locator("img")).toHaveCSS("object-position", "100% 50%");
+  await page.getByRole("button", { name: "Inherit from xl", exact: true }).click();
+  await expect(placed.locator("img")).toHaveCSS("object-position", "0% 50%");
+  await page.getByRole("button", { name: "1440px grid width", exact: true }).click();
+  await page.getByRole("button", { name: "Hide brick", exact: true }).click();
+  await page.getByRole("button", { name: "1536px grid width", exact: true }).click();
+  await expect(placed).toHaveCount(0);
+  await page.reload();
+  await page.getByRole("button", { name: "Show brick", exact: true }).click();
+  await expect(placed.locator("img")).toHaveCSS("object-position", "0% 50%");
+  await page.getByRole("button", { name: "1440px grid width", exact: true }).click();
+  await expect(placed).toHaveCount(0);
 });

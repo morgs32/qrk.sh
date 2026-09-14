@@ -5,7 +5,7 @@ import type { ContextType, ReactNode, RefCallback } from "react";
 
 const BrickBreakpointContext = createContext<{
   gridWidth: number;
-  breakpoint: "xs" | "sm" | "md" | "lg";
+  breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
   containerRef: RefCallback<HTMLElement>;
 } | null>(null);
 
@@ -17,8 +17,18 @@ export function BrickBreakpointProvider({
     | ((value: NonNullable<ContextType<typeof BrickBreakpointContext>>) => ReactNode);
 }) {
   const [gridWidth, setGridWidth] = useState(0);
-  const breakpoint: "xs" | "sm" | "md" | "lg" =
-    gridWidth < 640 ? "xs" : gridWidth < 768 ? "sm" : gridWidth < 1024 ? "md" : "lg";
+  const breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" =
+    gridWidth < 640
+      ? "xs"
+      : gridWidth < 768
+        ? "sm"
+        : gridWidth < 1024
+          ? "md"
+          : gridWidth < 1280
+            ? "lg"
+            : gridWidth < 1536
+              ? "xl"
+              : "2xl";
   const containerRef = useCallback<RefCallback<HTMLElement>>((element) => {
     if (!element) return;
 

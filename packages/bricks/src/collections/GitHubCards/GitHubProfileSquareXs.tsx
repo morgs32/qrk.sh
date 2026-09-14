@@ -13,8 +13,7 @@ const profileCardShellClass =
 const profileMutedClass = "text-zinc-500";
 
 export function GitHubProfileSquareXs(props: {
-  breakpoint: "xs" | "sm" | "md" | "lg";
-  viewOptions?: { cardView?: boolean };
+  breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
   data: {
     login: string;
     avatar_url: string;
@@ -40,10 +39,8 @@ export function GitHubProfileSquareXs(props: {
 
   return (
     <BrickFrame backgroundClassName="bg-white" textClassName="text-zinc-950">
-      <Card className={props.viewOptions?.cardView
-          ? "h-full min-h-0 w-full overflow-hidden"
-          : `${profileCardShellClass} rounded-none shadow-none`}>
-        <CardHeader className={props.viewOptions?.cardView ? "shrink-0" : "shrink-0 p-0"}>
+      <Card className={`${profileCardShellClass} rounded-none shadow-none`}>
+        <CardHeader className="shrink-0 p-0">
           <div className="flex flex-col items-start gap-1">
             {avatarFailed || !avatarSrc ? (
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-900">
@@ -66,7 +63,7 @@ export function GitHubProfileSquareXs(props: {
           </div>
         </CardHeader>
 
-        <CardContent className={`flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto ${props.viewOptions?.cardView ? "" : "p-0"}`}>
+        <CardContent className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto p-0">
           <div className={`flex flex-1 flex-col gap-2 text-xs ${profileMutedClass}`}>
             {user.bio && (
               <div className="flex items-center gap-1">

@@ -23,7 +23,8 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
           const bounds = element.getBoundingClientRect();
           return (
             element.naturalWidth > 0 &&
-            Math.abs(element.naturalWidth / element.naturalHeight - bounds.width / bounds.height) > 0.1
+            Math.abs(element.naturalWidth / element.naturalHeight - bounds.width / bounds.height) >
+              0.1
           );
         }),
       )
@@ -197,7 +198,9 @@ test("removing an override restores whole-entry inheritance", async ({ page }) =
     JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v2") ?? "{}"),
   );
   expect(saved.state.bricksById[brickId!]).not.toHaveProperty("md");
-  expect(saved.state.bricksById[brickId!].sm.gridItem).toEqual(saved.state.bricksById[brickId!].xs.gridItem);
+  expect(saved.state.bricksById[brickId!].sm.gridItem).toEqual(
+    saved.state.bricksById[brickId!].xs.gridItem,
+  );
   await page.getByRole("button", { name: "640px grid width" }).click();
   await page.getByRole("button", { name: "Top", exact: true }).click();
   await page.getByRole("button", { name: "768px grid width" }).click();
@@ -209,7 +212,11 @@ test("removing an override restores whole-entry inheritance", async ({ page }) =
 test("catalog configuration ends with the current brick definition", async ({ page }) => {
   await page.goto("/collections/swatch?content=default&view=2x2");
   const pane = page.getByTestId("content-configuration-pane");
-  await expect(pane.getByRole("heading")).toHaveText(["Swatch", "Configuration", "Brick Definition"]);
+  await expect(pane.getByRole("heading")).toHaveText([
+    "Swatch",
+    "Configuration",
+    "Brick Definition",
+  ]);
   await expect(pane.getByRole("table")).toBeVisible();
   await expect(pane.getByRole("button", { name: /Inherit from|Hide brick/ })).toHaveCount(0);
   const formContainer = pane.getByRole("textbox", { name: "Hex color" }).locator("../..");
@@ -221,73 +228,23 @@ test("catalog configuration ends with the current brick definition", async ({ pa
   await definition.getByRole("button", { name: "expand JSON", exact: true }).first().click();
   await expect(definition).toContainText("#ff0000");
   await page.goto("/collections/figma");
-  await expect(pane.getByRole("heading")).toHaveText(["Figma", "Figma Thumbnail", "Configuration", "View options", "Brick Definition"]);
+  await expect(pane.getByRole("heading")).toHaveText([
+    "Figma",
+    "Figma Thumbnail",
+    "Configuration",
+    "View options",
+    "Brick Definition",
+  ]);
   const viewFormContainer = pane.getByRole("group", { name: "Image position" }).locator("..");
   await expect(viewFormContainer).toHaveCSS("padding-left", "16px");
   await expect(viewFormContainer).toHaveCSS("padding-top", "20px");
   await expect(viewFormContainer).toHaveCSS("padding-bottom", "20px");
-  const viewHeading = await pane.getByRole("heading", { name: "View options", exact: true }).boundingBox();
+  const viewHeading = await pane
+    .getByRole("heading", { name: "View options", exact: true })
+    .boundingBox();
   const legend = await pane.locator("legend").boundingBox();
   expect(legend!.y - (viewHeading!.y + viewHeading!.height)).toBe(20);
   await page.getByRole("button", { name: "Right", exact: true }).click();
   await definition.getByRole("button", { name: "expand JSON", exact: true }).last().click();
   await expect(definition).toContainText("right");
-});
-
-test("GitHub card switches copy, inherit, and persist without fetching", async ({ page }) => {
-  let requests = 0;
-  page.on("request", (request) => {
-    if (request.url().includes("/scraper-rpc")) requests += 1;
-  });
-  await page.goto("/collections/github?content=profile&view=4x4");
-  const preview = page.locator("[data-content-view-brick]");
-  const toggle = page.getByRole("switch", { name: "Card view" });
-  for (const width of [375, 640, 768, 1024]) {
-    await page.getByRole("button", { name: `${width}px grid width` }).click();
-    await expect(toggle).not.toBeChecked();
-    await expect(preview.locator('[data-slot="card"]')).toHaveCSS("border-radius", "0px");
-    await toggle.click();
-    await expect(toggle).toBeChecked();
-    await expect(preview.locator('[data-slot="card"]')).not.toHaveCSS("border-radius", "0px");
-    await expect(preview.locator('[data-slot="card"]')).not.toHaveCSS("box-shadow", "none");
-    await expect(preview.locator('[data-slot="card"]')).toHaveCSS("padding-top", "24px");
-    await expect(preview.locator('[data-slot="card"]')).toHaveCSS("row-gap", "24px");
-    await expect(preview.locator('[data-slot="card-header"]')).toHaveCSS("padding-left", "24px");
-    await expect(preview.locator('[data-slot="card-content"]')).toHaveCSS("padding-left", "24px");
-    await toggle.click();
-  }
-  await page.getByRole("button", { name: "375px grid width" }).click();
-  const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
-  await toggle.click();
-  await preview.locator(".brick-drag-handle").dragTo(grid, { targetPosition: { x: 20, y: 20 } });
-  await toggle.click();
-  await preview.locator(".brick-drag-handle").dragTo(grid, { targetPosition: { x: 210, y: 20 } });
-  const first = grid.locator("[data-brick-id]").first();
-  const second = grid.locator("[data-brick-id]").nth(1);
-  await expect(first.locator('[data-slot="card"]')).not.toHaveCSS("border-radius", "0px");
-  await expect(second.locator('[data-slot="card"]')).toHaveCSS("border-radius", "0px");
-  await first.getByRole("link", { name: "Edit brick" }).click();
-  await page.getByRole("button", { name: "768px grid width" }).click();
-  await expect(toggle).toBeChecked();
-  await toggle.click();
-  await expect(first.locator('[data-slot="card"]')).toHaveCSS("border-radius", "0px");
-  await page.getByRole("button", { name: "Inherit from xs" }).click();
-  await expect(toggle).toBeChecked();
-  await page.reload();
-  await expect(toggle).toBeChecked();
-  await page.getByRole("button", { name: "375px grid width" }).click();
-  const id = await first.getAttribute("data-brick-id");
-  await page.evaluate(async (brickId) => {
-    const path = performance.getEntriesByType("resource").find((entry) => new URL(entry.name).pathname === "/src/app/useGridStore.ts")?.name;
-    if (!path || !brickId) throw new Error("Missing grid store or brick");
-    const { useGridStore } = await import(path);
-    const state = useGridStore.getState();
-    const brick = state.bricksById[brickId];
-    useGridStore.setState({ bricksById: { ...state.bricksById, [brickId]: { ...brick, xs: { ...brick.xs, viewOptions: {} } } } });
-  }, id);
-  await expect(toggle).not.toBeChecked();
-  await toggle.click();
-  await expect(first.locator('[data-slot="card"]')).not.toHaveCSS("border-radius", "0px");
-  await expect(second.locator('[data-slot="card"]')).toHaveCSS("border-radius", "0px");
-  expect(requests).toBe(0);
 });

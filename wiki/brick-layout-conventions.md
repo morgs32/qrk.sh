@@ -23,9 +23,11 @@ Import `makeView` directly from `packages/bricks/src/makeView.tsx` using the
 appropriate relative path. The view owns `id`, `label`, `w`, `h`, `order`, and optional `form`.
 Its map key in `makeContent.views` must match `id`; `makeContent` supplies content
 identity, and collection assembly preserves catalog `def` and `component` fields.
-`xs` is required; `sm`, `md`, and `lg` are optional.
+`xs` is required; `sm`, `md`, `lg`, `xl`, and `"2xl"` are optional.
 An omitted breakpoint inherits the nearest smaller defined presentation. In this
-example, `sm` uses `Xs` and `lg` uses `Md`. There is no `xl` breakpoint.
+example, `sm` uses `Xs` and `lg`, `xl`, and `2xl` use `Md`.
+Grid container thresholds are 640px (`sm`), 768px (`md`), 1024px (`lg`),
+1280px (`xl`), and 1536px (`2xl`); `xs` covers smaller widths.
 
 The helper uses the existing incoming `breakpoint` prop and forwards the same
 props to the selected React component. It performs no measurement and owns no
@@ -43,11 +45,11 @@ and icon/count statistics. `Xs` truncates overflowing values and omits activity;
 `Md` retains contribution activity. The wide `4x2` brick uses `GitHubProfileWideXs` and
 `GitHubProfileWideSm`, supplied as `xs` and `sm` in its `makeView` definition.
 `Xs` puts activity in the top half and the 20px avatar/username below. `Sm`
-retains statistics and labeled activity; `md` and `lg` inherit it. Compact
+retains statistics and labeled activity; `md`, `lg`, `xl`, and `2xl` inherit it. Compact
 activity markup belongs directly to `WideXs`; the shared `GitHubProfileActivity`
 only renders the larger chart used by `WideSm` and `SquareMd`.
 
 The Figma thumbnail square uses `FigmaThumbnailSquareXs` and
-`FigmaThumbnailSquareSm`; `md` and `lg` inherit `Sm`. Its view form edits
+`FigmaThumbnailSquareSm`; `md`, `lg`, `xl`, and `2xl` inherit `Sm`. Its view form edits
 per-breakpoint `viewOptions.imagePosition`, which each presentation applies
 directly to its image's `object-position`. These options do not change grid dimensions.

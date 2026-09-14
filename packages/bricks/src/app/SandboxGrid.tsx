@@ -1,3 +1,4 @@
+import { BrickViewFrame } from "./BrickViewFrame";
 import { Link } from "react-router";
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 import { useBrickBreakpoint } from "../BrickBreakpointProvider";
@@ -188,40 +189,40 @@ export function SandboxGrid() {
                   data-grid-w={layoutItem.w}
                   data-grid-h={layoutItem.h}
                 >
-                  <div className="brick-drag-content size-full">
+                  <BrickViewFrame
+                    frame={resolveBrickBreakpoint(brickDef, breakpoint).frame}
+                    controls={
+                      <>
+                        <Button asChild variant="ghost" size="icon" className="brick-edit-handle">
+                          <Link
+                            aria-label="Edit brick"
+                            to={`/collections/${encodeURIComponent(brickDef.collectionId)}/brick/${encodeURIComponent(layoutItem.i)}`}
+                          >
+                            <Pencil aria-hidden className="size-4" />
+                          </Link>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="brick-drag-handle"
+                          aria-label="Drag brick"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                        >
+                          <GripHorizontal aria-hidden className="size-4" />
+                        </Button>
+                      </>
+                    }
+                  >
                     <BrickComponent
                       breakpoint={breakpoint}
                       data={brickDef.data}
                       viewOptions={resolveBrickBreakpoint(brickDef, breakpoint).viewOptions}
                     />
-                  </div>
-
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="icon"
-                    className="brick-edit-handle"
-                  >
-                    <Link
-                      aria-label="Edit brick"
-                      to={`/collections/${encodeURIComponent(brickDef.collectionId)}/brick/${encodeURIComponent(layoutItem.i)}`}
-                    >
-                      <Pencil aria-hidden className="size-4" />
-                    </Link>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="brick-drag-handle"
-                    aria-label="Drag brick"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                    }}
-                  >
-                    <GripHorizontal aria-hidden className="size-4" />
-                  </Button>
+                  </BrickViewFrame>
                 </div>
               );
             }

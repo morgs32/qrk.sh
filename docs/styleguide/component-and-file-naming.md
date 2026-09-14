@@ -240,10 +240,10 @@ navigation and reload, and is independent of Reset's grid state changes.
 
 ### Responsive brick breakpoints
 
-Every brick render supplies `breakpoint: "xs" | "sm" | "md" | "lg"` alongside
+Every brick render supplies `breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl"` alongside
 its existing data. Components may ignore the prop. Breakpoints describe the full
 eight-column grid width: `xs` below 640px, `sm` from 640px, `md` from 768px,
-and `lg` from 1024px (including larger screens).
+`lg` from 1024px, `xl` from 1280px, and `2xl` from 1536px.
 
 `BrickBreakpointProvider` owns one container measurement and shares the breakpoint
 through context. In the editor, `EditorLayout` provides context to the grid, drawers,
@@ -285,14 +285,14 @@ and `GitHubProfileSquareMd`, with matching filenames. Select presentations with
 `makeView` at the brick definition.
 
 For the wide profile, use `GitHubProfileWideXs` and `GitHubProfileWideSm` in
-matching files; `md` and `lg` inherit `Sm` through `makeView`.
+matching files; `md`, `lg`, `xl`, and `2xl` inherit `Sm` through `makeView`.
 
 ### Responsive sandbox placed bricks
 
 The sandbox persists `bricksById` under `qrk-bricks-sandbox-responsive-bricks-v2`.
 It starts empty and neither reads nor migrates older grid keys. Each placed brick
 stores `collectionId`, `contentId`, `viewId`, shared `data`, required `xs`, and
-optional `sm`, `md`, and `lg` entries. Each entry contains `gridItem` (the grid
+optional `sm`, `md`, `lg`, `xl`, and `2xl` entries. Each entry contains `gridItem` (the grid
 library's `LayoutItem`, or `null` to hide) and `viewOptions`. Omitted entries
 inherit the entire nearest smaller entry, including hidden status. Editing an
 inherited entry first copies its placement and options. The placed-brick editor's
@@ -314,10 +314,19 @@ with boolean defaults. Those shapes generate labeled switches in a `px-4 py-5`
 container; camelCase and separator-delimited names become readable labels.
 Other shapes require an explicit form. Existing option objects merge over shape
 defaults before validation, preserving explicit false values and rejecting unknown
-fields. The GitHub profile square's `cardView` defaults to false; enabling it adds
-the Card's default styling, including padding, gap, colors, rounded corners, and
-shadow, at each breakpoint without changing grid dimensions. Plain mode retains
-its existing compact styling.
+fields.
+
+Every placed sandbox breakpoint entry also stores `frame: "default" | "card"`,
+separate from collection-specific `viewOptions`. The Card frame switch sits beside
+Hide/Show brick and edits the active breakpoint, copying the complete inherited
+entry first. Inherit removes that complete override, including frame selection.
+`BrickViewFrame` in the sandbox grid and placed-brick detail preview owns the
+shared Card surface and 16px content inset, retaining the existing grid footprint.
+The grid passes its edit and drag controls inside the frame; the preview omits
+controls. Default frames and catalog previews retain their existing appearance.
+Hydration initializes missing frame values to `"default"` and removes the old
+GitHub profile square `cardView` option without carrying its selection forward or
+resetting stored bricks. Individual presentations do not implement frame styles.
 Presentations receive shared `data`, the active `breakpoint`, and resolved
 `viewOptions`; their presentation fallback remains independent of entry
 inheritance. Catalog drops copy the preview options into `xs`, and also into

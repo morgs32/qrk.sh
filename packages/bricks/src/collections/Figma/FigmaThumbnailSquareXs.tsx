@@ -3,7 +3,7 @@ import { Image } from "@unpic/react";
 import { BrickFrame } from "../../BrickFrame";
 
 export function FigmaThumbnailSquareXs(props: {
-  breakpoint: "xs" | "sm" | "md" | "lg";
+  breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
   viewOptions?: { imagePosition: string };
   data: {
     title: string;

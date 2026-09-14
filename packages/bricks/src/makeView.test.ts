@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { makeView } from "./makeView";
 
-function Xs(props: { breakpoint: "xs" | "sm" | "md" | "lg"; data: { label: string } }) {
+function Xs(props: { breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl"; data: { label: string } }) {
   const [label] = useState(props.data.label);
   return createElement("span", null, `xs:${label}:${props.breakpoint}`);
 }
@@ -33,7 +33,7 @@ describe("makeView", () => {
       xs: Xs,
       md: Md,
     });
-    for (const breakpoint of ["xs", "sm", "md", "lg"] satisfies Array<"xs" | "sm" | "md" | "lg">) {
+    for (const breakpoint of ["xs", "sm", "md", "lg", "xl", "2xl"] satisfies Array<"xs" | "sm" | "md" | "lg" | "xl" | "2xl">) {
       const expected = breakpoint === "xs" || breakpoint === "sm" ? "xs" : "md";
       expect(
         renderToStaticMarkup(createElement(View, { breakpoint, data: { label: "profile" } })),
@@ -72,7 +72,19 @@ describe("makeView", () => {
       order: 0,
       xs: Xs,
       // @ts-expect-error Every presentation must accept the base presentation's data.
-      md: (_props: { breakpoint: "xs" | "sm" | "md" | "lg"; data: { label: number } }) => null,
+      md: (_props: { breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl"; data: { label: number } }) => null,
     });
   });
+});
+
+it("selects xl and 2xl presentations and inherits lg and xl when omitted", () => {
+  const base = { id: "large", label: "Large", w: 4, h: 4, order: 0, xs: Xs, lg: Md };
+  const inherited = makeView(base).component;
+  const xl = makeView({ ...base, xl: Xs }).component;
+  const largest = makeView({ ...base, xl: Xs, "2xl": Md }).component;
+  expect(renderToStaticMarkup(createElement(inherited, { breakpoint: "xl", data: { label: "a" } }))).toBe("<span>md:a:xl</span>");
+  expect(renderToStaticMarkup(createElement(inherited, { breakpoint: "2xl", data: { label: "a" } }))).toBe("<span>md:a:2xl</span>");
+  expect(renderToStaticMarkup(createElement(xl, { breakpoint: "2xl", data: { label: "a" } }))).toBe("<span>xs:a:2xl</span>");
+  expect(renderToStaticMarkup(createElement(largest, { breakpoint: "xl", data: { label: "a" } }))).toBe("<span>xs:a:xl</span>");
+  expect(renderToStaticMarkup(createElement(largest, { breakpoint: "2xl", data: { label: "a" } }))).toBe("<span>md:a:2xl</span>");
 });

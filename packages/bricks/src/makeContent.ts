@@ -13,9 +13,12 @@ export function makeContent<
   const CONTENT extends string,
   const CONTENT_OPTIONS_SHAPE extends IShape,
   const DATA_SHAPE extends IShape,
-  const VIEWS extends Record<string, Omit<ReturnType<typeof makeView>, "component"> & {
-    component: (props: never) => ReactNode;
-  }>,
+  const VIEWS extends Record<
+    string,
+    Omit<ReturnType<typeof makeView>, "component"> & {
+      component: (props: never) => ReactNode;
+    }
+  >,
 >(
   props: {
     content: CONTENT;
@@ -55,11 +58,15 @@ export function makeContent<
   ),
 ) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(props.content)) {
-    throw new Error(`makeContent: content must be kebab-case; got ${JSON.stringify(props.content)}`);
+    throw new Error(
+      `makeContent: content must be kebab-case; got ${JSON.stringify(props.content)}`,
+    );
   }
   const views = mapValues(props.views, (view, key) => {
     if (key !== view.id) {
-      throw new Error(`makeContent: view key ${JSON.stringify(key)} must match id ${JSON.stringify(view.id)}`);
+      throw new Error(
+        `makeContent: view key ${JSON.stringify(key)} must match id ${JSON.stringify(view.id)}`,
+      );
     }
     return {
       def: {

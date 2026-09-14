@@ -14,6 +14,7 @@ export function FetcherConfiguration(props: {
   configuration: IFetcherConfiguration;
   collectionName: string | undefined;
   data: unknown;
+  showData?: boolean;
   setData: (data: unknown) => void;
 }) {
   const {
@@ -86,17 +87,19 @@ export function FetcherConfiguration(props: {
 
   return (
     <div>
-      <Outline.Title>Configure</Outline.Title>
-      <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="content-data-result">
-        <JsonView
-          shouldExpandNode={collapseAllNested}
-          data={{ data: props.data }}
-          style={{ ...defaultStyles, container: "bg-zinc-100" }}
-        />
-      </div>
+      <Outline.Title>Configuration</Outline.Title>
+      {props.showData !== false && (
+        <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="content-data-result">
+          <JsonView
+            shouldExpandNode={collapseAllNested}
+            data={{ data: props.data }}
+            style={{ ...defaultStyles, container: "bg-zinc-100" }}
+          />
+        </div>
+      )}
 
-      <div className="px-6">
-        <form className="mt-5 space-y-5" onSubmit={(event) => event.preventDefault()}>
+      <div className="px-4 py-5">
+        <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
           {ContentOptionsForm !== undefined ? (
             <ContentOptionsForm
               value={contentOptionsValues}

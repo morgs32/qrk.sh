@@ -7,20 +7,23 @@ import { FetcherConfiguration } from "./FetcherConfiguration";
 export function Configuration(props: {
   content: ICollection["contents"][string];
   data: unknown;
+  showData?: boolean;
   setData: (data: unknown) => void;
 }) {
   const configuration = props.content.configuration;
   if (configuration === undefined) {
     return (
       <div>
-        <Outline.Title>Configure</Outline.Title>
-        <div className="overflow-auto bg-zinc-100 px-2 py-4">
-          <JsonView
-            shouldExpandNode={collapseAllNested}
-            data={{ data: props.data }}
-            style={{ ...defaultStyles, container: "bg-zinc-100" }}
-          />
-        </div>
+        <Outline.Title>Configuration</Outline.Title>
+        {props.showData !== false && (
+          <div className="overflow-auto bg-zinc-100 px-2 py-4">
+            <JsonView
+              shouldExpandNode={collapseAllNested}
+              data={{ data: props.data }}
+              style={{ ...defaultStyles, container: "bg-zinc-100" }}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -29,14 +32,16 @@ export function Configuration(props: {
     case "form":
       return (
         <div>
-          <Outline.Title>Configure</Outline.Title>
-          <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="content-data-result">
-            <JsonView
-              shouldExpandNode={collapseAllNested}
-              data={{ data: props.data }}
-              style={{ ...defaultStyles, container: "bg-zinc-100" }}
-            />
-          </div>
+          <Outline.Title>Configuration</Outline.Title>
+          {props.showData !== false && (
+            <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="content-data-result">
+              <JsonView
+                shouldExpandNode={collapseAllNested}
+                data={{ data: props.data }}
+                style={{ ...defaultStyles, container: "bg-zinc-100" }}
+              />
+            </div>
+          )}
           <div className="px-6 py-5">
             {configuration.form({ data: props.data, onChange: props.setData })}
           </div>
@@ -47,6 +52,7 @@ export function Configuration(props: {
         <FetcherConfiguration
           configuration={configuration}
           collectionName={Object.values(props.content.views)[0]?.def.collectionName}
+          showData={props.showData}
           data={props.data}
           setData={props.setData}
         />

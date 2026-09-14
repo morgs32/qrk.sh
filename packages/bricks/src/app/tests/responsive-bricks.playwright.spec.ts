@@ -169,3 +169,39 @@ test("ignores the old responsive persistence key without modifying it", async ({
     ),
   ).toBe("thumbnail");
 });
+
+test("removing an override restores whole-entry inheritance", async ({ page }) => {
+  await page.goto("/collections/figma");
+  await page.getByRole("button", { name: "375px grid width" }).click();
+  const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
+  await page.locator("[data-content-view-brick] .brick-drag-handle").dragTo(grid, {
+    targetPosition: { x: 20, y: 20 },
+  });
+  const placed = grid.locator("[data-brick-id]");
+  const brickId = await placed.getAttribute("data-brick-id");
+  await placed.getByRole("link", { name: "Edit brick", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Inherit from/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "640px grid width" }).click();
+  await expect(page.getByRole("button", { name: "Inherit from xs" })).toBeDisabled();
+  await page.getByRole("button", { name: "Left", exact: true }).click();
+  await page.getByRole("button", { name: "768px grid width" }).click();
+  await page.getByRole("button", { name: "Bottom", exact: true }).click();
+  await page.getByRole("button", { name: "Hide brick", exact: true }).click();
+  await expect(placed).toHaveCount(0);
+  await page.getByRole("button", { name: "Inherit from sm" }).click();
+  await expect(placed.locator("img")).toHaveCSS("object-position", "0% 50%");
+  await expect(page.getByRole("button", { name: "Inherit from sm" })).toBeDisabled();
+  await page.reload();
+  await expect(placed.locator("img")).toHaveCSS("object-position", "0% 50%");
+  const saved = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v2") ?? "{}"),
+  );
+  expect(saved.state.bricksById[brickId!]).not.toHaveProperty("md");
+  expect(saved.state.bricksById[brickId!].sm.gridItem).toEqual(saved.state.bricksById[brickId!].xs.gridItem);
+  await page.getByRole("button", { name: "640px grid width" }).click();
+  await page.getByRole("button", { name: "Top", exact: true }).click();
+  await page.getByRole("button", { name: "768px grid width" }).click();
+  await expect(placed.locator("img")).toHaveCSS("object-position", "50% 0%");
+  await page.getByRole("button", { name: "1024px grid width" }).click();
+  await expect(page.getByRole("button", { name: "Inherit from sm" })).toBeDisabled();
+});

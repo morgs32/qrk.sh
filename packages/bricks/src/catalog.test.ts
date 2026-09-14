@@ -152,10 +152,24 @@ it("keeps views with identical dimensions independently addressable", () => {
   });
   const views = collection.contents.default.views;
   expect(Object.keys(views)).toEqual(["summary", "activity"]);
-  expect(views.summary.def).toMatchObject({ view: "summary", label: "Summary", w: 4, h: 2 });
+  expect(views.summary.def).toEqual({
+    collectionName: "view-test",
+    collectionLabel: "View test",
+    content: "default",
+    view: "summary",
+    label: "Summary",
+    w: 4,
+    h: 2,
+    order: 0,
+    data: null,
+  });
   expect(views.activity.def).toMatchObject({ view: "activity", label: "Activity", w: 4, h: 2 });
   expect(views.summary.component).toBe(first.component);
   expect(views.activity.component).toBe(second.component);
-  expect(renderToStaticMarkup(createElement(first.component, { breakpoint: "xs" }))).toBe("Summary content");
-  expect(renderToStaticMarkup(createElement(second.component, { breakpoint: "xs" }))).toBe("Activity content");
+  expect(renderToStaticMarkup(createElement(first.component, { breakpoint: "xs" }))).toBe(
+    "Summary content",
+  );
+  expect(renderToStaticMarkup(createElement(second.component, { breakpoint: "xs" }))).toBe(
+    "Activity content",
+  );
 });

@@ -41,7 +41,7 @@ Keep [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId
 
 - **Bad**: `export type BrickPreviewProps` in `BrickCatalog.tsx` and `import { BrickPreviewProps } from './BrickCatalog'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: ICollectionBrick }`**. Catalog rows are built with **`makeBrick`** (a content identifier `content`, a `view`, and a `component`) and **`makeCollection`** (nested **`contents[content].views[view]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/app/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/app/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
+- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: ICollectionBrick }`**. Catalog rows are built with **`makeView`** (`id`, label, dimensions, order, form, and responsive presentations), **`makeContent`** (which adds content identity) and **`makeCollection`** (nested **`contents[content].views[view]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/app/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/app/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
 
 **Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeBrickCollectionProps`-style types unless a second module genuinely needs to reference that exact type.
 
@@ -49,7 +49,7 @@ Keep [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId
 
 - **Bad**: ad hoc **`typeId`** strings on every catalog row, or passing full brick objects (including **`component`**) into Zustand for external drag.
 
-- **Good**: **`ICollectionBrickDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`content`**, **`view`**, **`w`**, **`h`**, and **`label`**). **`IBrick`** = view-only **`def` + `component`**; **`makeCollection`** merges collection scope into each **`ICollectionBrick`**.
+- **Good**: **`ICollectionBrickDef`** for serializable identity (**`collectionName`**, **`collectionLabel`**, **`content`**, **`view`**, **`w`**, **`h`**, and **`label`**). **`makeView`** returns view metadata and a responsive **`component`**. **`makeContent`** validates each view key against its **`id`** and adds the enclosing content identity to produce **`IBrick`** (**`def` + `component`**); **`makeCollection`** merges collection scope into each **`ICollectionBrick`**.
 
 ### Terminology: collection contents and bricks
 
@@ -94,9 +94,9 @@ In code and tests, use **`collectionName`**, **`content`**, and **`view`** toget
 
 Brick factories take **one object** describing what to build. Name that parameter **`props`** so it reads like React’s declarative inputs, not a vague “options” bag. Put the object type **on the function signature**; don’t export a separate props type unless another file must import it.
 
-- **Bad**: `export function makeBrick(options: { w; h; component })`; `export type MakeCollectionProps = { … }` with `makeCollection(props: MakeCollectionProps)` when nothing else imports that type.
+- **Bad**: `export function makeView(options: { id; w; h; xs })`; `export type MakeCollectionProps = { … }` with `makeCollection(props: MakeCollectionProps)` when nothing else imports that type.
 
-- **Good**: `makeBrick(props: { content; view; w; h; label; component })`, `makeContent(props: { content; views })`, and `makeCollection(props: { collectionName; collectionLabel; collectionDescription; contents })` in [packages/bricks/src/makeBrick.ts](../../packages/bricks/src/makeBrick.ts), [makeContent.ts](../../packages/bricks/src/makeContent.ts), and [makeCollection.ts](../../packages/bricks/src/makeCollection.ts).
+- **Good**: `makeView(props: { id; label; w; h; order; form?; xs; sm?; md?; lg? })`, `makeContent(props: { content; views })`, and `makeCollection(props: { collectionName; collectionLabel; collectionDescription; contents })` in [packages/bricks/src/makeView.tsx](../../packages/bricks/src/makeView.tsx), [makeContent.ts](../../packages/bricks/src/makeContent.ts), and [makeCollection.ts](../../packages/bricks/src/makeCollection.ts).
 
 Data-backed contents configure requests with `makeFetcherConfiguration({ contentOptionsShape, contentOptionsForm, fetcher })`
 from [makeFetcherConfiguration.ts](../../packages/bricks/src/makeFetcherConfiguration.ts), passed as the content's `configuration`.
@@ -267,16 +267,14 @@ truncates overflowing profile values with ellipses.
 
 ### Preview dimensions
 
-`BrickPreviewFrame` takes inline `w`, `h`, and `children` props and reads the
-provider's measured `gridWidth`. It sets non-shrinking pixel dimensions of
-`Math.round(gridWidth / 8 * w)` by `Math.round(gridWidth / 8 * h)`, initially zero
-until measured. Whole-pixel rounding matches react-grid-layout: a 4×2 brick
-at 375px is 188 × 94px at the grid origin. Placed items can differ by one pixel
-because the grid rounds their start and end edges independently to prevent seams.
+`BrickPreviewFrame` takes inline `w`, `h`, and `children` props. Its width is
+`w / 8 * 100%` of its containing block, with aspect ratio `w / h`. Preview
+geometry does not read the selected grid width or breakpoint. Eight-column
+previews fill the pane without horizontal padding; smaller sandbox previews
+use 16px horizontal padding. Presentation components still receive the active
+breakpoint. Placed bricks retain the grid's own dimensions.
 All catalog, configuration, detail, carousel, and standalone previews use this
-frame. Drag surfaces stay inside with `size-full`; surrounding spacing stays
-outside. Panels scroll horizontally when needed rather than shrinking previews.
-Placed bricks remain positioned and sized by the grid, using the same measurement.
+frame. The standalone preview's slider sets its containing block width.
 Import the frame directly or through `@qrk.sh/bricks/BrickPreviewFrame`.
 
 ### Breakpoint presentation names
@@ -297,7 +295,10 @@ stores `collectionId`, `contentId`, `viewId`, shared `data`, required `xs`, and
 optional `sm`, `md`, and `lg` entries. Each entry contains `gridItem` (the grid
 library's `LayoutItem`, or `null` to hide) and `viewOptions`. Omitted entries
 inherit the entire nearest smaller entry, including hidden status. Editing an
-inherited entry first copies its placement and options. Labels and default
+inherited entry first copies its placement and options. The placed-brick editor's
+“Inherit from” button removes the active breakpoint override and names the nearest
+smaller explicit entry, including hidden entries. It is disabled when already
+inheriting and absent at `xs`. Labels and default
 sizes stay in catalog metadata. The active grid is derived; no second placement
 array is persisted. Drag and rearrangements update the active entry. Grid resize
 handles are disabled; layout sizing belongs to the form.

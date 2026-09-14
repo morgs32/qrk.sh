@@ -8,26 +8,44 @@ import type { IScrapeError } from "./scraper/types.public";
 import { githubCollection } from "./collections/GitHubCards/GitHubProfileCollection";
 import { mapCollection } from "./collections/Map/MapCollection";
 import { makeContent } from "./makeContent";
+import { makeView } from "./makeView";
 
 describe("makeContent data contracts", () => {
-  it("requires view keys to match their definitions", () => {
-    expectTypeOf(() => {
+  it("rejects mismatched view keys at runtime", () => {
+    const view = makeView({
+      id: "activity",
+      label: "Activity",
+      w: 4,
+      h: 2,
+      order: 0,
+      xs: () => null,
+    });
+    expect(() =>
       makeContent({
         content: "default",
         contentName: "Default",
-        contentDescription: "Test content",
+        contentDescription: "Test",
         dataShape: null,
         defaultData: null,
         views: {
-          summary: {
-            // @ts-expect-error the view identifier must match its map key
-            // prettier-ignore
-            id: "activity", w: 4, h: 2, label: "Activity", order: 0 ,
-            component: () => null,
-          },
+          // @ts-expect-error Exercise the runtime guard for untyped callers.
+          summary: view,
         },
-      });
-    }).toBeFunction();
+      }),
+    ).toThrow('makeContent: view key "summary" must match id "activity"');
+  });
+
+  it("validates the enclosing content identity", () => {
+    expect(() =>
+      makeContent({
+        content: "Invalid Content",
+        contentName: "Invalid",
+        contentDescription: "Test",
+        dataShape: null,
+        defaultData: null,
+        views: {},
+      }),
+    ).toThrow("makeContent: content must be kebab-case");
   });
 
   it("uses explicit nulls for a static content", () => {
@@ -40,11 +58,11 @@ describe("makeContent data contracts", () => {
       views: {
         "1x1": {
           id: "1x1",
-            w: 1,
-            h: 1,
-            label: "1×1",
-            order: 0,
-          ,
+          w: 1,
+          h: 1,
+          label: "1×1",
+          order: 0,
+
           component: () => null,
         },
       },
@@ -124,11 +142,11 @@ describe("makeContent data contracts", () => {
       views: {
         "1x1": {
           id: "1x1",
-            w: 1,
-            h: 1,
-            label: "1×1",
-            order: 0,
-          ,
+          w: 1,
+          h: 1,
+          label: "1×1",
+          order: 0,
+
           component: (props: { data: { result: string } }) => props.data.result,
         },
       },
@@ -196,11 +214,11 @@ describe("makeContent data contracts", () => {
       views: {
         "1x1": {
           id: "1x1",
-            w: 1,
-            h: 1,
-            label: "1×1",
-            order: 0,
-          ,
+          w: 1,
+          h: 1,
+          label: "1×1",
+          order: 0,
+
           component: (props: { data: { login: string } }) => {
             return props.data.login;
           },
@@ -258,11 +276,11 @@ describe("makeContent data contracts", () => {
         views: {
           "1x1": {
             id: "1x1",
-              w: 1,
-              h: 1,
-              label: "1×1",
-              order: 0,
-            ,
+            w: 1,
+            h: 1,
+            label: "1×1",
+            order: 0,
+
             component: (props: { data: { login: string } }) => {
               return props.data.login;
             },
@@ -297,11 +315,11 @@ describe("makeContent data contracts", () => {
       views: {
         "1x1": {
           id: "1x1",
-            w: 1,
-            h: 1,
-            label: "1×1",
-            order: 0,
-          ,
+          w: 1,
+          h: 1,
+          label: "1×1",
+          order: 0,
+
           component: (props: { data: { login: string } }) => {
             return props.data.login;
           },
@@ -366,11 +384,11 @@ describe("makeContent data contracts", () => {
       views: {
         "1x1": {
           id: "1x1",
-            w: 1,
-            h: 1,
-            label: "1×1",
-            order: 0,
-          ,
+          w: 1,
+          h: 1,
+          label: "1×1",
+          order: 0,
+
           component: (props: { data: { login: string } }) => {
             return props.data.login;
           },
@@ -427,11 +445,11 @@ describe("makeContent data contracts", () => {
       views: {
         "1x1": {
           id: "1x1",
-            w: 1,
-            h: 1,
-            label: "1×1",
-            order: 0,
-          ,
+          w: 1,
+          h: 1,
+          label: "1×1",
+          order: 0,
+
           component: (props: { data: { login: string } }) => {
             return props.data.login;
           },
@@ -467,7 +485,11 @@ describe("makeContent data contracts", () => {
       defaultData: { name: "Default" },
       views: {
         "1x1": {
-          id: "1x1", w: 1, h: 1, label: "1×1", order: 0 ,
+          id: "1x1",
+          w: 1,
+          h: 1,
+          label: "1×1",
+          order: 0,
           component: () => null,
         },
       },
@@ -520,7 +542,11 @@ describe("makeContent data contracts", () => {
         defaultData: { name: "Default" },
         views: {
           "1x1": {
-            id: "1x1", w: 1, h: 1, label: "1×1", order: 0 ,
+            id: "1x1",
+            w: 1,
+            h: 1,
+            label: "1×1",
+            order: 0,
             // @ts-expect-error component data must match the schema
             component: (props: { data: { name: number } }) => props.data.name,
           },

@@ -93,7 +93,7 @@ export default function ContentConfiguration() {
           </Link>
         )}
       />
-      <div className="pt-6">
+      <div className="px-4">
         <TableData
           entries={[
             { label: "Collection name", value: collection.collectionLabel },
@@ -106,7 +106,7 @@ export default function ContentConfiguration() {
         />
       </div>
       <div className="sticky top-0 z-10 overflow-auto bg-white py-6">
-        <div className={brick.def.w === 8 ? undefined : "ml-6"}>
+        <div className={brick.def.w === 8 ? undefined : "px-4"}>
           <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
             <div
               className="size-full qrk-bricks brick-drag-surface overflow-hidden"

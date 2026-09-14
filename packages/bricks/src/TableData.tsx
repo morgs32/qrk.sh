@@ -8,7 +8,7 @@ export function TableData({ entries }: { entries: { label: string; value: ReactN
           <tr key={entry.label} className="border-b border-zinc-200 last:border-b-0">
             <th
               scope="row"
-              className="border-r border-zinc-200 px-3 py-2 text-left align-top font-normal text-zinc-400"
+              className="border-r border-zinc-200 pr-3 py-2 text-left align-top font-normal text-zinc-400"
             >
               {entry.label}
             </th>

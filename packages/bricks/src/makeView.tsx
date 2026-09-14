@@ -2,10 +2,7 @@ import type { ReactNode } from "react";
 import type { makeViewForm } from "./makeViewForm";
 
 /** Define a view, inheriting omitted breakpoints from the nearest smaller presentation. */
-export function makeView<
-  const ID extends string,
-  PROPS extends { breakpoint: "xs" | "sm" | "md" | "lg"; viewOptions?: unknown },
->(props: {
+export function makeView<const ID extends string, PROPS extends object>(props: {
   id: ID;
   label: string;
   w: number;
@@ -22,7 +19,9 @@ export function makeView<
     throw new Error(`makeView: id must be kebab-case; got ${JSON.stringify(id)}`);
   }
 
-  function View(props: PROPS) {
+  function View(
+    props: NoInfer<PROPS> & { breakpoint: "xs" | "sm" | "md" | "lg"; viewOptions?: unknown },
+  ) {
     let Presentation = presentations.xs;
     if (props.breakpoint !== "xs" && presentations.sm) Presentation = presentations.sm;
     if ((props.breakpoint === "md" || props.breakpoint === "lg") && presentations.md) {

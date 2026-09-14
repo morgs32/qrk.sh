@@ -8,14 +8,22 @@ suffixes rather than `Compact` or `Expanded`: `GitHubProfileSquareXs.tsx` and
 Select complete presentations once in the brick definition:
 
 ```tsx
-component: makeView({
+makeView({
+  id: "4x4",
+  label: "4×4",
+  w: 4,
+  h: 4,
+  order: 0,
   xs: GitHubProfileSquareXs,
   md: GitHubProfileSquareMd,
 });
 ```
 
 Import `makeView` directly from `packages/bricks/src/makeView.tsx` using the
-appropriate relative path. `xs` is required; `sm`, `md`, and `lg` are optional.
+appropriate relative path. The view owns `id`, `label`, `w`, `h`, `order`, and optional `form`.
+Its map key in `makeContent.views` must match `id`; `makeContent` supplies content
+identity, and collection assembly preserves catalog `def` and `component` fields.
+`xs` is required; `sm`, `md`, and `lg` are optional.
 An omitted breakpoint inherits the nearest smaller defined presentation. In this
 example, `sm` uses `Xs` and `lg` uses `Md`. There is no `xl` breakpoint.
 
@@ -33,7 +41,7 @@ dimensions, schemas, and persisted configuration do not change.
 The square GitHub profile uses a 32px avatar, username, bio, location, website,
 and icon/count statistics. `Xs` truncates overflowing values and omits activity;
 `Md` retains contribution activity. The wide `4x2` brick uses `GitHubProfileWideXs` and
-`GitHubProfileWideSm`, selected with `makeView({ xs: GitHubProfileWideXs, sm: GitHubProfileWideSm })`.
+`GitHubProfileWideSm`, supplied as `xs` and `sm` in its `makeView` definition.
 `Xs` puts activity in the top half and the 20px avatar/username below. `Sm`
 retains statistics and labeled activity; `md` and `lg` inherit it. Compact
 activity markup belongs directly to `WideXs`; the shared `GitHubProfileActivity`

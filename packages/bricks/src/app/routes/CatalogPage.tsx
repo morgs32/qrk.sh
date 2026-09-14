@@ -4,6 +4,7 @@ import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { collectionsHash } from "../../collectionsHash";
 import { Link } from "react-router";
 import { useState } from "react";
+import { Pencil } from "lucide-react";
 
 import { Outline } from "../../Outline";
 import { Button } from "../../ui/button";
@@ -96,7 +97,7 @@ export default function CatalogPage() {
                 )}
               />
               <div className="overflow-auto bg-white py-6">
-                <div className={def.w === 8 ? undefined : "ml-6"}>
+                <div className={def.w === 8 ? undefined : "px-4"}>
                   <BrickPreviewFrame w={def.w} h={def.h}>
                     <DraggableBrick
                       brickDef={def}
@@ -104,6 +105,14 @@ export default function CatalogPage() {
                       data-collection-representative={`${def.collectionName}/${def.content}/${def.view}`}
                     >
                       <BrickComponent breakpoint={breakpoint} data={def.data} />
+                      <Button asChild variant="ghost" size="icon" className="brick-edit-handle">
+                        <Link
+                          aria-label="Configure view"
+                          to={`/collections/${encodeURIComponent(def.collectionName)}?content=${encodeURIComponent(def.content)}&view=${encodeURIComponent(def.view)}`}
+                        >
+                          <Pencil aria-hidden className="size-4" />
+                        </Link>
+                      </Button>
                     </DraggableBrick>
                   </BrickPreviewFrame>
                 </div>

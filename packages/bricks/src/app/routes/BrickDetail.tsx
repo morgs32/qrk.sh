@@ -1,3 +1,4 @@
+import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import { CollectionOutline } from "../CollectionOutline";
 import { Button } from "../../ui/button";
 import { resolveBrickBreakpoint } from "../resolveBrickBreakpoint";
@@ -52,6 +53,9 @@ export default function BrickDetail() {
   const brickData = brickDef.data;
   const entry = resolveBrickBreakpoint(brickDef, breakpoint);
   const ViewForm = BrickComponent.form?.form;
+  let inheritedBreakpoint = "xs";
+  if (breakpoint === "lg" && brickDef.md) inheritedBreakpoint = "md";
+  else if ((breakpoint === "lg" || breakpoint === "md") && brickDef.sm) inheritedBreakpoint = "sm";
 
   return (
     <section data-testid="brick-detail-pane">
@@ -83,7 +87,9 @@ export default function BrickDetail() {
           </span>
         )}
       />
-      <Outline.Preview>
+      <div
+        className={`overflow-auto bg-white py-6 ${(entry.gridItem?.w ?? brick.def.w) === 8 ? "" : "px-4"}`}
+      >
         <BrickPreviewFrame
           w={entry.gridItem?.w ?? brick.def.w}
           h={entry.gridItem?.h ?? brick.def.h}
@@ -99,25 +105,11 @@ export default function BrickDetail() {
             />
           </div>
         </BrickPreviewFrame>
-      </Outline.Preview>
+      </div>
       <div className="pb-6">
-        <div className="px-6 py-4">
-          <p>
-            Editing {breakpoint}
-            {brickDef[breakpoint] ? "" : " (inherited)"}
-          </p>
-          <Button
-            type="button"
-            aria-pressed={entry.gridItem !== null}
-            onClick={() =>
-              useGridStore.getState().setVisible(brickId, breakpoint, entry.gridItem === null)
-            }
-          >
-            {entry.gridItem === null ? "Show brick" : "Hide brick"}
-          </Button>
-        </div>
         <Configuration
           key={brickId}
+          showData={false}
           content={content}
           data={brickData}
           setData={(data) => {
@@ -136,6 +128,36 @@ export default function BrickDetail() {
             }));
           }}
         />
+        <Outline.Title>View options</Outline.Title>
+        <div className="flex flex-wrap gap-2 px-4 py-4">
+          {breakpoint !== "xs" && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={brickDef[breakpoint] === undefined}
+              onClick={() => {
+                useGridStore.setState((state) => {
+                  const currentBrick = state.bricksById[brickId];
+                  if (!currentBrick) return state;
+                  const inheritedBrick = { ...currentBrick };
+                  delete inheritedBrick[breakpoint];
+                  return { bricksById: { ...state.bricksById, [brickId]: inheritedBrick } };
+                });
+              }}
+            >
+              Inherit from {inheritedBreakpoint}
+            </Button>
+          )}
+          <Button
+            type="button"
+            aria-pressed={entry.gridItem !== null}
+            onClick={() =>
+              useGridStore.getState().setVisible(brickId, breakpoint, entry.gridItem === null)
+            }
+          >
+            {entry.gridItem === null ? "Show brick" : "Hide brick"}
+          </Button>
+        </div>
         {ViewForm && (
           <ViewForm
             value={entry.viewOptions}
@@ -144,6 +166,14 @@ export default function BrickDetail() {
             }}
           />
         )}
+        <Outline.Title>Brick Definition</Outline.Title>
+        <div className="overflow-auto bg-white px-2 py-4" data-testid="content-data-result">
+          <JsonView
+            shouldExpandNode={collapseAllNested}
+            data={brickDef}
+            style={{ ...defaultStyles, container: "bg-white" }}
+          />
+        </div>
       </div>
     </section>
   );

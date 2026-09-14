@@ -209,3 +209,18 @@ Catalog definitions use `variants[variant].layouts[layout]`; serialized brick de
 Sandbox collection URLs select `?layout=...`; old `size` query parameters are ignored, so the default layout is selected when `layout` is absent. Standalone `/bricks/:collectionName/:variant/:layout` URLs retain their existing positional values.
 
 This is a breaking change with no aliases or automatic data migration. Existing sandbox storage (`qrk-bricks-sandbox-single-grid`), persisted site drafts, and backend data containing brick `size` fields require an explicit reset before reuse. Resetting or deleting that state is a separate authorized operation; this change does not clear it automatically. Grid positioning still uses its existing `layout` array, independently of each brick definition’s layout identifier.
+
+### Bricks sandbox grid width and toolbar
+
+The sandbox uses the actual browser width for its surrounding layout. At 1024px
+and above, the Bricks panel stays fixed in the left half and the grid region uses
+the right half. Below 1024px, the grid region uses the full width and Bricks opens
+in a half-height, nonmodal shadcn bottom drawer. The drawer leaves the grid
+interactive for drag/drop and supports its close button and Escape.
+
+The app-style toolbar sits at the bottom of the desktop grid region and at the
+top on mobile/tablet. Full, 375, 768, 1024, and 1440px choices resize only the grid
+preview, centered within that region. Measure the available region independently
+of the preview; disable choices that exceed it and return to Full if a resize
+makes the selected choice too large. Width selection lasts across sandbox route
+navigation, resets on reload, and is independent of Reset's grid state changes.

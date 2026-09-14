@@ -41,7 +41,7 @@ export function SandboxGrid() {
       ref={containerRef}
       aria-label="Brick grid"
       style={dragging ? { overflow: "visible", zIndex: 70 } : undefined}
-      className="min-h-screen bg-white md:sticky md:top-0 md:h-screen md:self-start md:overflow-y-auto"
+      className="min-h-screen bg-white lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-y-auto"
     >
       {outsideBrickId && (
         <div

@@ -48,16 +48,31 @@ a {
   padding: 0;
   z-index: 3;
   color: white;
-  mix-blend-mode: difference;
   cursor: grab;
   touch-action: none;
 }
 .brick-drag-handle > svg {
   transform: translate(2px, 2px);
+  visibility: hidden;
+}
+/* Filter only the six dots, leaving the hit area and brick untouched. */
+.brick-drag-handle::after {
+  content: "";
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  backdrop-filter: grayscale(1) contrast(1000%) invert(1);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='black'%3E%3Ccircle cx='5' cy='9' r='2'/%3E%3Ccircle cx='12' cy='9' r='2'/%3E%3Ccircle cx='19' cy='9' r='2'/%3E%3Ccircle cx='5' cy='15' r='2'/%3E%3Ccircle cx='12' cy='15' r='2'/%3E%3Ccircle cx='19' cy='15' r='2'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
 }
 .brick-drag-handle:hover {
   background-color: transparent;
   color: #d4d4d8;
+}
+.brick-drag-handle:hover::after {
+  opacity: 0.8;
 }
 .brick-drag-handle:active {
   cursor: grabbing;

@@ -1,5 +1,7 @@
 "use client";
 
+import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
+
 import { Schema } from "effect";
 import { useUser } from "@clerk/react";
 import { collectionsHash } from "@qrk.sh/bricks";
@@ -20,6 +22,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function BrickDetail() {
+  const { breakpoint } = useBrickBreakpoint();
   const navigate = useNavigate();
   const params = useValidatedParams(ParamsSchema);
   const { user } = useUser();
@@ -93,7 +96,7 @@ export function BrickDetail() {
                   aspectRatio: `${brick.def.w} / ${brick.def.h}`,
                 }}
               >
-                <BrickComponent data={variant?.defaultData} />
+                <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
               </div>
             </div>
           </section>

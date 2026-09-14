@@ -33,7 +33,11 @@ export function makeVariant<
         > & {
           fetcher?: never;
         };
-        layouts: { [LAYOUT in keyof LAYOUTS]: { component: () => ReactNode } };
+        layouts: {
+          [LAYOUT in keyof LAYOUTS]: {
+            component: (props: { breakpoint: "xs" | "sm" | "md" | "lg" }) => ReactNode;
+          };
+        };
       }
     | {
         dataShape: DATA_SHAPE;
@@ -43,7 +47,10 @@ export function makeVariant<
           | IFormConfiguration<InferDecodedRow<DATA_SHAPE>>;
         layouts: {
           [LAYOUT in keyof LAYOUTS]: {
-            component: (props: { data: InferDecodedRow<DATA_SHAPE> }) => ReactNode;
+            component: (props: {
+              data: InferDecodedRow<DATA_SHAPE>;
+              breakpoint: "xs" | "sm" | "md" | "lg";
+            }) => ReactNode;
           };
         };
       }

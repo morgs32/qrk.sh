@@ -1,3 +1,4 @@
+import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 import { collectionsHash } from "@qrk.sh/bricks";
 import { Tabs } from "radix-ui";
 import { href, Link, useParams } from "react-router";
@@ -8,6 +9,7 @@ import { MetadataField } from "../[username]/site/[siteId]/page/[pageId]/BrickCa
 import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
 
 export default function BrickCollectionRoute() {
+  const { breakpoint } = useBrickBreakpoint();
   const params = useParams();
   const { username, siteId, pageId } = params;
   if (!username || !siteId || !pageId) throw new Error("Missing editor route params");
@@ -121,7 +123,7 @@ export default function BrickCollectionRoute() {
                         aspectRatio: `${brick.def.w} / ${brick.def.h}`,
                       }}
                     >
-                      <BrickComponent data={variant?.defaultData} />
+                      <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
                     </div>
                   </div>
                 </Tabs.Content>

@@ -71,5 +71,7 @@ export type ICollectionBrick = {
    * checked it. Render boundaries can supply defaultData directly; components
    * without a data contract ignore the prop.
    */
-  component: { bivarianceHack(props: { data?: unknown }): ReactNode }["bivarianceHack"];
+  component: {
+    bivarianceHack(props: { data?: unknown; breakpoint: "xs" | "sm" | "md" | "lg" }): ReactNode;
+  }["bivarianceHack"];
 };

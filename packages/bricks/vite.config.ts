@@ -20,9 +20,12 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     build: {
       lib: {
-        entry: "src/index.ts",
+        entry: {
+          index: "src/index.ts",
+          BrickBreakpointProvider: "src/BrickBreakpointProvider.tsx",
+        },
         formats: ["es"],
-        fileName: "index",
+        fileName: (_format, entryName) => `${entryName}.js`,
       },
       rollupOptions: {
         external: [

@@ -1,5 +1,7 @@
 "use client";
 
+import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
+
 import { Schema } from "effect";
 import { useState } from "react";
 import { Tabs } from "radix-ui";
@@ -21,6 +23,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function BrickCatalog() {
+  const { breakpoint } = useBrickBreakpoint();
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const collections = Object.values(collectionsHash);
@@ -182,7 +185,7 @@ export function BrickCatalog() {
                     aspectRatio: `${selectedBrick.def.w} / ${selectedBrick.def.h}`,
                   }}
                 >
-                  <BrickComponent data={selectedVariant.defaultData} />
+                  <BrickComponent breakpoint={breakpoint} data={selectedVariant.defaultData} />
                 </div>
               </div>
             </section>

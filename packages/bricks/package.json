@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./BrickBreakpointProvider": {
+      "types": "./dist/BrickBreakpointProvider.d.ts",
+      "import": "./dist/BrickBreakpointProvider.js"
+    },
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {

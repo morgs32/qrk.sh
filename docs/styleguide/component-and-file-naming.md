@@ -219,8 +219,36 @@ in a half-height, nonmodal shadcn bottom drawer. The drawer leaves the grid
 interactive for drag/drop and supports its close button and Escape.
 
 The app-style toolbar sits at the bottom of the desktop grid region and at the
-top on mobile/tablet. Full, 375, 768, 1024, and 1440px choices resize only the grid
+top on mobile/tablet. The 375, 768, 1024, and 1440px choices resize only the grid
 preview, centered within that region. Measure the available region independently
-of the preview; disable choices that exceed it and return to Full if a resize
-makes the selected choice too large. Width selection lasts across sandbox route
+of the preview; disable choices that exceed it. Start with the largest fitting
+preset and fall back to the largest fitting preset if a resize makes the selection
+too large. Below 375px, hide the preview and show its minimum-width requirement. Width selection lasts across sandbox route
 navigation, resets on reload, and is independent of Reset's grid state changes.
+
+### Responsive brick breakpoints
+
+Every brick render supplies `breakpoint: "xs" | "sm" | "md" | "lg"` alongside
+its existing data. Components may ignore the prop. Breakpoints describe the full
+eight-column grid width: `xs` below 640px, `sm` from 640px, `md` from 768px,
+and `lg` from 1024px (including larger screens).
+
+`BrickBreakpointProvider` owns one container measurement and shares the breakpoint
+through context. In the editor, `SitePage` provides context to the grid, drawers,
+and toolbars; its ref measures the grid column inside `MainColumns`. Catalog,
+carousel, and detail previews use that shared page-grid breakpoint regardless of
+their own widths. In the sandbox, the ref measures the width-controlled container
+around `SandboxGrid`, so width presets update both the grid and catalog previews.
+The standalone preview has its own provider measuring the simulated full grid
+width (grid-unit slider multiplied by eight).
+
+Consumers use `useBrickBreakpoint` and pass the value through the existing brick
+`breakpoint` prop. A provider is required; its initial value is `xs` until measured.
+Browser width and a brick's own width do not directly determine its breakpoint.
+Grid geometry and available-width measurements remain independent. Breakpoints
+are render inputs only, never persisted data, brick identity, or drag payload fields.
+
+The GitHub profile 4×2 layout keeps its username in the top half at `xs`.
+The activity aligns to the bottom with square 2px cells and 1px gaps, without
+rounded corners, strokes, labels, legend, or fade mask. Larger modes retain the
+existing presentation; the 4×4 layout is unchanged.

@@ -1,7 +1,10 @@
+import { BookOpen, UserPlus, Users } from "lucide-react";
+
 import { BrickFrame } from "../../BrickFrame";
 import { GitHubProfileActivity } from "./GitHubProfileActivity";
 
 export function GitHubProfile4x2(props: {
+  breakpoint: "xs" | "sm" | "md" | "lg";
   data: {
     login: string;
     avatar_url: string;
@@ -19,10 +22,58 @@ export function GitHubProfile4x2(props: {
     }>;
   };
 }) {
+  const compact = props.breakpoint === "xs";
+
   return (
     <BrickFrame backgroundClassName="bg-white" textClassName="text-zinc-950">
-      <div className="flex h-full w-full items-center justify-center px-4 py-3">
-        <GitHubProfileActivity contributions={props.data.contributions} />
+      <div
+        data-brick-breakpoint={props.breakpoint}
+        className={
+          compact
+            ? "flex h-full w-full flex-col"
+            : "flex h-full w-full flex-col justify-center gap-3 px-4 py-3"
+        }
+      >
+        {compact && (
+          <div className="flex h-1/2 shrink-0 items-center px-2 text-xs font-medium">
+            <span className="truncate">@{props.data.login}</span>
+          </div>
+        )}
+        {!compact && (
+          <div className="flex w-full items-center justify-between gap-2 text-xs">
+            <span className="min-w-0 truncate font-medium">@{props.data.login}</span>
+            <div className="flex shrink-0 items-center gap-3">
+              <span
+                className="flex items-center gap-1"
+                title="Followers"
+                aria-label={`${props.data.followers} followers`}
+              >
+                <Users className="size-3.5 text-zinc-500" aria-hidden="true" />
+                {props.data.followers}
+              </span>
+              <span
+                className="flex items-center gap-1"
+                title="Following"
+                aria-label={`${props.data.following} following`}
+              >
+                <UserPlus className="size-3.5 text-zinc-500" aria-hidden="true" />
+                {props.data.following}
+              </span>
+              <span
+                className="flex items-center gap-1"
+                title="Repositories"
+                aria-label={`${props.data.public_repos} repositories`}
+              >
+                <BookOpen className="size-3.5 text-zinc-500" aria-hidden="true" />
+                {props.data.public_repos}
+              </span>
+            </div>
+          </div>
+        )}
+        <GitHubProfileActivity
+          breakpoint={props.breakpoint}
+          contributions={props.data.contributions}
+        />
       </div>
     </BrickFrame>
   );

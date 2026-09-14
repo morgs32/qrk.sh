@@ -89,8 +89,11 @@ export const githubCollection = makeCollection({
           const date = new Date();
           date.setUTCDate(date.getUTCDate() - (364 - index));
 
-          // Keep sample activity varied and stable across reloads.
-          const count = (index * 7 + Math.floor(index / 7) * 3) % 16;
+          // Mix each day's index to avoid repeating stripes while keeping samples stable.
+          let sample = Math.imul(index + 1, 0x45d9f3b);
+          sample = Math.imul(sample ^ (sample >>> 16), 0x45d9f3b);
+          sample = (sample ^ (sample >>> 16)) >>> 0;
+          const count = sample % 100 < 30 ? 0 : 1 + (sample % 15);
           const level: 0 | 1 | 2 | 3 | 4 =
             count === 0 ? 0 : count <= 3 ? 1 : count <= 7 ? 2 : count <= 11 ? 3 : 4;
 

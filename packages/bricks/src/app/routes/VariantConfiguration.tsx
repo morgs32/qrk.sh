@@ -1,3 +1,4 @@
+import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { GripHorizontal } from "lucide-react";
 import { Button } from "../../ui/button";
 import { collectionsHash } from "../../collectionsHash";
@@ -28,6 +29,7 @@ export function loader({ params }: LoaderFunctionArgs) {
 }
 
 export default function VariantConfiguration() {
+  const { breakpoint } = useBrickBreakpoint();
   const params = useParams();
   const [searchParams] = useSearchParams();
   if (!params.collectionName) throw new Response("Not found", { status: 404 });
@@ -133,7 +135,7 @@ export default function VariantConfiguration() {
           }}
         >
           <div className="brick-drag-content size-full select-none">
-            <BrickComponent data={variantData} />
+            <BrickComponent breakpoint={breakpoint} data={variantData} />
           </div>
           <Button
             type="button"

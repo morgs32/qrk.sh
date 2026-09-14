@@ -7,7 +7,8 @@ test("limits presets to the desktop half and preserves width through navigation 
   await page.goto("/");
   const grid = page.getByLabel("Brick grid");
   const toolbar = page.getByRole("toolbar", { name: "Grid controls" });
-  await expect(grid).toHaveCSS("width", "800px");
+  await expect(grid).toHaveCSS("width", "768px");
+  await expect(toolbar.getByRole("button", { name: "Full", exact: true })).toHaveCount(0);
   await expect(page.getByLabel("Bricks panel")).toHaveCSS("width", "800px");
   const toolbarBounds = await toolbar.boundingBox();
   expect(toolbarBounds?.y).toBeGreaterThan(800);
@@ -30,17 +31,16 @@ test("limits presets to the desktop half and preserves width through navigation 
   await toolbar.getByRole("button", { name: "768px grid width", exact: true }).click();
   await expect(grid).toHaveCSS("width", "768px");
   await page.setViewportSize({ width: 1440, height: 900 });
-  await expect(toolbar.getByRole("button", { name: "Full", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(grid).toHaveCSS("width", "720px");
+  await expect(
+    toolbar.getByRole("button", { name: "375px grid width", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(grid).toHaveCSS("width", "375px");
   await expect(
     toolbar.getByRole("button", { name: "768px grid width", exact: true }),
   ).toBeDisabled();
   await toolbar.getByRole("button", { name: "375px grid width", exact: true }).click();
   await page.reload();
-  await expect(grid).toHaveCSS("width", "720px");
+  await expect(grid).toHaveCSS("width", "375px");
 });
 
 test("all fixed presets measure exactly when the desktop region fits them", async ({ page }) => {
@@ -51,8 +51,8 @@ test("all fixed presets measure exactly when the desktop region fits them", asyn
     await expect(page.getByLabel("Brick grid")).toHaveCSS("width", `${width}px`);
     await expect(page.getByLabel("Bricks panel")).toHaveCSS("width", "1500px");
   }
-  await page.getByRole("button", { name: "Full", exact: true }).click();
-  await expect(page.getByLabel("Brick grid")).toHaveCSS("width", "1500px");
+  await page.reload();
+  await expect(page.getByLabel("Brick grid")).toHaveCSS("width", "1440px");
 });
 
 for (const width of [375, 768]) {
@@ -94,7 +94,7 @@ for (const width of [375, 768]) {
     await expect(drawer).not.toBeVisible();
     await page.setViewportSize({ width: 1024, height: 900 });
     await expect(page.getByLabel("Bricks panel")).toHaveCSS("width", "512px");
-    await expect(page.getByLabel("Brick grid")).toHaveCSS("width", "512px");
+    await expect(page.getByLabel("Brick grid")).toHaveCSS("width", "375px");
     await expect(toolbar.getByRole("button", { name: "Bricks", exact: true })).toHaveCount(0);
   });
 }

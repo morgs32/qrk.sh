@@ -1,3 +1,4 @@
+import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { collectionsHash } from "../../collectionsHash";
 import { Link, useParams } from "react-router";
 import { ArrowLeft } from "lucide-react";
@@ -10,6 +11,7 @@ import { OrderedTableOfContents } from "../../OrderedTableOfContents";
 import { useGridStore } from "../useGridStore";
 
 export default function BrickDetail() {
+  const { breakpoint } = useBrickBreakpoint();
   const params = useParams();
   if (!params.collectionName || !params.brickId) throw new Response("Not found", { status: 404 });
   const { collectionName, brickId } = params;
@@ -77,7 +79,9 @@ export default function BrickDetail() {
                             <OrderedTableOfContents.Label>
                               <span
                                 aria-current={
-                                  name === brick.def.variant && layout === brick.def.layout ? "true" : undefined
+                                  name === brick.def.variant && layout === brick.def.layout
+                                    ? "true"
+                                    : undefined
                                 }
                                 aria-disabled={
                                   name !== brick.def.variant || layout !== brick.def.layout
@@ -107,7 +111,7 @@ export default function BrickDetail() {
             aspectRatio: `${brick.def.w} / ${brick.def.h}`,
           }}
         >
-          <BrickComponent data={brickData} />
+          <BrickComponent breakpoint={breakpoint} data={brickData} />
         </div>
       </OrderedTableOfContents.Preview>
       <div className="pb-6">
@@ -116,9 +120,10 @@ export default function BrickDetail() {
           variant={variant}
           data={brickData}
           setData={(data) => {
-            const DataSchema = variant.dataShape === null
-              ? Schema.Null
-              : Schema.toType(makeEffectSchema(variant.dataShape));
+            const DataSchema =
+              variant.dataShape === null
+                ? Schema.Null
+                : Schema.toType(makeEffectSchema(variant.dataShape));
             const decodedData = Schema.decodeUnknownSync(DataSchema)(data, {
               onExcessProperty: "preserve",
             });

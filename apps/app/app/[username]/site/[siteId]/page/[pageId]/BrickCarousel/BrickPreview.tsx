@@ -1,5 +1,7 @@
 "use client";
 
+import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
+
 import { useLayoutEffect, useRef } from "react";
 import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
 import { collectionsHash, type ICollectionBrick } from "@qrk.sh/bricks";
@@ -9,6 +11,7 @@ import { makeId } from "@/lib/makeId";
 const PREVIEW_GRID_COLS = 8;
 
 export function BrickPreview({ brick }: { brick: ICollectionBrick }) {
+  const { breakpoint } = useBrickBreakpoint();
   const slotRef = useRef<HTMLDivElement>(null);
   const brickRef = useRef(brick);
   brickRef.current = brick;
@@ -63,7 +66,7 @@ export function BrickPreview({ brick }: { brick: ICollectionBrick }) {
         aria-label={`${brick.def.collectionLabel} ${brick.def.w}×${brick.def.h}`}
       >
         <div className="h-full w-full">
-          <BrickComponent data={variant?.defaultData} />
+          <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
         </div>
       </div>
     </div>

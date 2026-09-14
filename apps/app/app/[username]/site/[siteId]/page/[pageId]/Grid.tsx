@@ -1,5 +1,7 @@
 "use client";
 
+import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
+
 import { useRef } from "react";
 import { href, useNavigate } from "react-router";
 import { collectionsHash } from "@qrk.sh/bricks";
@@ -40,6 +42,7 @@ export function Grid() {
   const layout = pageGrid?.layout ?? draftLayout;
 
   const gridWidth = Math.max(width, 1);
+  const { breakpoint } = useBrickBreakpoint();
   const rowHeight = gridWidth / GRID_COLS;
 
   if (user === null || user === undefined || layout === undefined) {
@@ -155,7 +158,7 @@ export function Grid() {
                   );
                 }}
               >
-                <BrickComponent data={variant?.defaultData} />
+                <BrickComponent breakpoint={breakpoint} data={variant?.defaultData} />
               </div>
             );
           })}

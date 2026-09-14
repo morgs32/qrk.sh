@@ -1,3 +1,4 @@
+import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { collectionsHash } from "../../collectionsHash";
 import { Link } from "react-router";
 import { useState } from "react";
@@ -7,6 +8,7 @@ import { Button } from "../../ui/button";
 import { DraggableBrick } from "../DraggableBrick";
 
 export default function CatalogPage() {
+  const { breakpoint } = useBrickBreakpoint();
   const collections = Object.values(collectionsHash);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [selectedLayouts, setSelectedLayouts] = useState<Record<string, string>>({});
@@ -123,7 +125,7 @@ export default function CatalogPage() {
                     aspectRatio: `${def.w} / ${def.h}`,
                   }}
                 >
-                  <BrickComponent data={def.data} />
+                  <BrickComponent breakpoint={breakpoint} data={def.data} />
                 </DraggableBrick>
               </div>
             </div>

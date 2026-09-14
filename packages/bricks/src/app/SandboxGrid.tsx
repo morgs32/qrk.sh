@@ -1,3 +1,4 @@
+import { useBrickBreakpoint } from "../BrickBreakpointProvider";
 import { GripHorizontal } from "lucide-react";
 import { Button } from "../ui/button";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -34,6 +35,7 @@ export function SandboxGrid() {
   }, [dragging, containerRef]);
 
   const gridWidth = Math.max(width, 1);
+  const { breakpoint } = useBrickBreakpoint();
   const rowHeight = gridWidth / 8;
 
   return (
@@ -178,7 +180,7 @@ export function SandboxGrid() {
                   data-grid-y={layoutItem.y}
                 >
                   <div inert className="brick-drag-content pointer-events-none size-full">
-                    <BrickComponent data={brickDef.data} />
+                    <BrickComponent breakpoint={breakpoint} data={brickDef.data} />
                   </div>
 
                   <Link

@@ -134,6 +134,7 @@ export default function VariantConfiguration() {
           style={{
             width: `${(brick.def.w / 8) * 100}%`,
             aspectRatio: `${brick.def.w} / ${brick.def.h}`,
+            clipPath: "inset(0)",
           }}
         >
           <div inert className="pointer-events-none contents select-none">

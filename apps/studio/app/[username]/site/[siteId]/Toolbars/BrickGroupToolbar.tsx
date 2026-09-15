@@ -9,7 +9,8 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { href } from "react-router";
 
-import { BottomToolbar, ToolbarButton } from "./BottomToolbar";
+import { BottomToolbar } from "./BottomToolbar";
+import { ToolbarButton } from "./ToolbarButton";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,

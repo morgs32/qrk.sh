@@ -28,7 +28,7 @@ Prefer **one primary React component per file** (matching the PascalCase file na
 ### Exceptions (this rule does not apply)
 
 - **shadcn/ui components**: anything under either app’s `components/ui/**` directory keeps shadcn’s conventions.
-- **React Router entry files**: `apps/studio/app/main.tsx`, `apps/studio/app/routes.ts`, `apps/bricks/app/main.tsx`, and `apps/bricks/app/routes.ts` use entry/configuration names. Root components are `App.tsx` and `RootLayout.tsx`. Route components use PascalCase filenames; single-use route logic stays in its route module. Data Mode does not generate `.react-router/types/**`.
+- **React Router entry files**: `apps/studio/app/main.tsx`, `apps/studio/app/routes.ts`, `apps/library/app/main.tsx`, and `apps/library/app/routes.ts` use entry/configuration names. Root components are `App.tsx` and `RootLayout.tsx`. Route components use PascalCase filenames; single-use route logic stays in its route module. Data Mode does not generate `.react-router/types/**`.
 - **Next.js special files**: framework-reserved files under either app’s `app/**` directory keep their required names (for example `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, `route.ts`).
 
 ### Good vs bad: BrickGroup carousel slides (one panel per brick)
@@ -61,7 +61,7 @@ Use kebab-case catalog identifiers. Site drawer selectors expose `data-brick-dra
 
 Presentations, catalog forms, catalog-only helpers, catalog-owned `*Repo`
 Durable Objects, and catalog assets live under
-`apps/bricks/groups/<group-id>/catalogs/<catalog-id>/`, where `<group-id>` and
+`apps/library/groups/<group-id>/catalogs/<catalog-id>/`, where `<group-id>` and
 `<catalog-id>` match the kebab-case `makeGroup` / `makeCatalog` `id` values
 (for example `github`/`profile`, `figma`/`thumbnail`, `icon`/`default`).
 The group assembler (camelCase filename matching its export, e.g. `githubGroup.ts`)
@@ -70,7 +70,7 @@ folders. Do not add `index.ts` barrels under `catalogs/` or a catalog folder.
 
 `scraper/Worker.ts` remains the Wrangler entry and re-exports each catalog
 `*Repo` class. Shared scrape helpers (`BrowserHost`, URL normalizers, encodeRpc,
-schemas, and provider scrape modules) stay under `apps/bricks/scraper/`.
+schemas, and provider scrape modules) stay under `apps/library/scraper/`.
 
 - **Bad**: flat `groups/github/GitHubProfileStats.tsx` next to
   `githubGroup.ts` and `GitHubRepoStack.tsx`.
@@ -82,12 +82,12 @@ schemas, and provider scrape modules) stay under `apps/bricks/scraper/`.
 
 ### Factory arguments
 
-Factories take one `props` object with an inline shape. `makeCatalog` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeCatalog.tsx](../../apps/bricks/makeCatalog.tsx) and [makeGroup.ts](../../apps/bricks/makeGroup.ts).
+Factories take one `props` object with an inline shape. `makeCatalog` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeCatalog.tsx](../../apps/library/makeCatalog.tsx) and [makeGroup.ts](../../apps/library/makeGroup.ts).
 
 `makeGroup` owns `id`, `label`, `description`, and `catalogs`. It writes `groupId` and `groupLabel` onto each catalog `def`, and each catalog `def` stores its slug as `catalogId`.
 
 Data-backed catalogs configure requests with `makeFetcherConfiguration({ catalogOptionsShape, catalogOptionsForm, fetcher })`
-from [makeFetcherConfiguration.ts](../../apps/bricks/makeFetcherConfiguration.ts), passed as the catalog's `configuration`.
+from [makeFetcherConfiguration.ts](../../apps/library/makeFetcherConfiguration.ts), passed as the catalog's `configuration`.
 The factory supplies `configurationType: "fetcher"` and validates catalog options before invoking its
 required `fetcher` callback. `catalogOptionsForm` is one optional component receiving the complete decoded
 catalog options as `{ value, onChange }`; `onChange` replaces the whole catalog options. `IFetcherConfiguration` is defined in that factory module. The callback receives
@@ -96,14 +96,14 @@ for success or typed failure. The catalog retains `dataShape` and validates `def
 Configuration forms read `configuration.catalogOptionsShape` and `configuration.catalogOptionsForm`;
 catalogs do not expose top-level catalog options fields or `getData`.
 
-The workbench's [Configuration.tsx](../../apps/bricks/app/Configuration.tsx) switches on
+The workbench's [Configuration.tsx](../../apps/library/app/Configuration.tsx) switches on
 `configurationType`. A custom catalog options form runs the fetcher on `onChange`, using the complete
 updated catalog options. Without a custom form, generated text controls use explicit Submit buttons.
 Neither form fetches initially. Each request owns a scraper RPC session;
 superseded and unmounted requests cannot publish data or errors. Control-internal searches remain
 independent of catalog options changes, including Streamline's SWR search.
 
-[useCatalogData.ts](../../apps/bricks/app/useCatalogData.ts) provides
+[useCatalogData.ts](../../apps/library/app/useCatalogData.ts) provides
 `[catalogData, setCatalogData]` backed by in-memory Zustand state per group/catalog. Its setter validates against the decoded `dataShape`, preserving provider fields, before replacing
 stored data. Invalid writes leave state unchanged. The configuration page preview and JSON display use
 stored data or `defaultData`; loading and errors retain the last valid data. Navigation retains values,
@@ -186,7 +186,7 @@ Use `Rows sticky` when the whole group should stick within its scroll container.
 Spacing is explicit in the composition rather than inferred from descendant DOM.
 
 The group, CatalogConfiguration, and BrickDetail pages share
-[`GroupOutline`](../../apps/bricks/components/outline/GroupOutline.tsx) for catalog choices.
+[`GroupOutline`](../../apps/library/components/outline/GroupOutline.tsx) for catalog choices.
 It owns the white `Outline` surface, equal 0.75rem vertical padding, and spaced catalog entries.
 Each page supplies `renderCatalog`: root buttons select the local preview; links select
 `?catalog=...`. Standalone previews use `/bricks/:groupName/:catalog`.
@@ -201,7 +201,7 @@ width. Site editor persistence version 2 also resets older drafts under
 and `catalogId`; their existing versions and `viewId` field remain unchanged.
 Reset the affected backend database before using these renamed fields.
 
-### Bricks sandbox grid width and toolbar
+### Library sandbox grid width and toolbar
 
 The sandbox uses the actual browser width for its surrounding layout. The grid
 region is full-bleed. Bricks open in a half-height, nonmodal shadcn bottom drawer
@@ -260,7 +260,7 @@ the grid's own dimensions, including its one-pixel edge rounding.
 All group, configuration, detail, carousel, and standalone previews use this
 frame. Placed-detail previews use resolved breakpoint dimensions; the standalone
 slider sets the simulated full grid width measured by its provider.
-Import the frame directly or through `@qrk.sh/bricks/BrickPreviewFrame`.
+Import the frame directly or through `@qrk.sh/library/BrickPreviewFrame`.
 
 ### Presentation template names
 

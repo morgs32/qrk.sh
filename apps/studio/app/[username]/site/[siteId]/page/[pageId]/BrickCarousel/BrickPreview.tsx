@@ -1,9 +1,9 @@
 "use client";
 import { useLayoutEffect, useRef } from "react";
 
-import { groupsHash, type IGroupBrick } from "@qrk.sh/bricks";
-import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
+import { groupsHash, type IGroupBrick } from "@qrk.sh/library";
+import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "@qrk.sh/library/BrickPreviewFrame";
 
 import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
 import { makeId } from "@/lib/makeId";

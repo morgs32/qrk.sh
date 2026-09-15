@@ -3,12 +3,13 @@
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { useMemo } from "react";
-import { File, Globe, LayoutDashboard, Plus, RectangleHorizontal, Type } from "lucide-react";
+import { ArrowLeft, File, Globe, Plus, RectangleHorizontal, Type } from "lucide-react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { href } from "react-router";
-import { BottomToolbar, ToolbarButton, ToolbarSeparator } from "./BottomToolbar";
+import { BottomToolbar, ToolbarSeparator } from "./BottomToolbar";
+import { ToolbarButton } from "./ToolbarButton";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -43,9 +44,9 @@ export function SiteToolbar() {
         >
           <BottomToolbar>
             <ToolbarButton
-              label="Dashboard"
-              icon={<LayoutDashboard className="h-3.5 w-3.5" />}
-              tooltip="Dashboard"
+              label="Leave"
+              icon={<ArrowLeft className="h-3.5 w-3.5" />}
+              tooltip="Leave"
               href={href("/:username", { username })}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />

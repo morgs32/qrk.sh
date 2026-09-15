@@ -50,7 +50,7 @@ Allow data-backed variants to provide a typed React control for selected payload
 24. Committed default data represents Downtown Chicago and agrees with the committed default place ID.
 25. The Map brick uses Mapbox GL, centers on the supplied coordinates, renders one standard marker, permits pan and zoom, and shows compact navigation and attribution controls. It has no popup or place card.
 26. Mapbox GL is a Bricks runtime dependency and its stylesheet is included through the package stylesheet.
-27. `PUBLIC_MAPBOX_TOKEN` is required in both `apps/bricks/.env.local` and `apps/web/.env.local`. The Bricks build, workbench startup, and Next configuration fail at configuration load when it is absent.
+27. `PUBLIC_MAPBOX_TOKEN` is required in both `apps/library/.env.local` and `apps/web/.env.local`. The Bricks build, workbench startup, and Next configuration fail at configuration load when it is absent.
 28. `GOOGLE_PLACES_API_KEY` is required in `packages/scraper/.env.local`. Wrangler development receives it with `--env-file .env.local`.
 29. Credentialed Playwright and live-test configuration load the relevant package-local `.env.local` files and fail at configuration load when required values are absent.
 30. No `.dev.vars` path, package configuration API, compatibility alias, barrel, or re-export is added.

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Outline } from "./Outline";
-import type { IGroup } from "@qrk.sh/bricks";
+import type { IGroup } from "@qrk.sh/library";
 
 export function GroupOutline({
   group,

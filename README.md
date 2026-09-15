@@ -11,7 +11,7 @@ Two Next.js apps with App Router:
 
 ## Brick group identity
 
-Brick groups are defined under `apps/bricks/groups/`.
+Brick groups are defined under `apps/library/groups/`.
 
 1. **`groupName`** identifies a group; **`catalog`** identifies a data/configuration and responsive presentation definition within it.
 2. **`(groupName, catalog)`** uniquely identifies a group brick, independently of dimensions. Views are no longer a separate selection.

@@ -1,7 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "react-grid-layout/css/styles.css";
-@import "@qrk.sh/bricks/styles.css";
+@import "@qrk.sh/library/styles.css";
+@import "./tiptap/styles/_variables.scss";
+@import "./tiptap/styles/_keyframe-animations.scss";
 
 @custom-variant dark (&:is(.dark *));
 

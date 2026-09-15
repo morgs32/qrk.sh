@@ -1,4 +1,4 @@
-import { BrickBreakpointProvider } from "@qrk.sh/bricks/BrickBreakpointProvider";
+import { BrickBreakpointProvider } from "@qrk.sh/library/BrickBreakpointProvider";
 import { MainColumns } from "./MainColumns";
 import { Drawers } from "../../Drawers/Drawers";
 import { Toolbars } from "../../Toolbars/Toolbars";

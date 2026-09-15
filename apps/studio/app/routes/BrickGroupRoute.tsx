@@ -1,6 +1,6 @@
-import { groupsHash } from "@qrk.sh/bricks";
-import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
+import { groupsHash } from "@qrk.sh/library";
+import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "@qrk.sh/library/BrickPreviewFrame";
 import { ArrowLeft } from "lucide-react";
 import { Tabs } from "radix-ui";
 import { href, Link, useParams } from "react-router";

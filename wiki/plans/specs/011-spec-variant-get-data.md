@@ -21,7 +21,7 @@ This specification supersedes specification 010's `scrape(url)` naming only for 
 4. `makeVariant` wraps each data-backed callback with `makeEffectSchema` decoding and `onExcessProperty: "error"`.
 5. Invalid, missing, or excess payload properties reject before the data callback or scraper capability is invoked.
 6. `makeGroup` and `IGroup` preserve `payload` and the wrapped `getData` callback without introducing a separately named variant type.
-7. The scraper lives in `apps/bricks/src/scraper`. Client code imports its public declarations directly; Worker code stays out of browser bundles.
+7. The scraper lives in `apps/library/src/scraper`. Client code imports its public declarations directly; Worker code stays out of browser bundles.
 8. The bricks package owns the scraper and directly depends on `@zerospin/core` and `effect`.
 9. `GitHubRepo.scrape(url)` becomes `GitHubRepo.getProfile(url)`, and every GitHub repository or RPC caller uses the new name.
 10. Other origin repositories retain `scrape(url)`.
@@ -48,7 +48,7 @@ This specification supersedes specification 010's `scrape(url)` naming only for 
 1. The bricks package commits `.env` with `SCRAPER_URL=http://127.0.0.1:8787/`.
 2. The bricks Vite application loads environment values from the bricks package root.
 3. Vite+ and the Cloudflare Vite plugin serve the workbench and `/scraper-rpc` from one local server.
-4. `apps/bricks/.env.local` is ignored and contains the real `GITHUB_TOKEN` used by local Wrangler.
+4. `apps/library/.env.local` is ignored and contains the real `GITHUB_TOKEN` used by local Wrangler.
 5. Playwright fails clearly before startup when `GITHUB_TOKEN` is absent from the bricks `.env.local` file.
 
 ## Testing Decisions

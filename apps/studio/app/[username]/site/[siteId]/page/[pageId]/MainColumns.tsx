@@ -2,7 +2,7 @@
 import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 
-import { HeroCopy } from "@/components/home/HeroCopy";
+import { Article } from "@/components/home/Article";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { useSiteStore } from "../../siteStore";
@@ -30,7 +30,7 @@ export function MainColumns() {
     return (
       <div className="grid h-full grid-cols-2 overflow-hidden">
         <div className="min-h-0 overflow-y-auto">
-          <HeroCopy />
+          <Article />
         </div>
         <div data-site-right-scroll className="min-h-0 overflow-y-auto">
           <Grid />
@@ -43,7 +43,7 @@ export function MainColumns() {
     <div data-site-right-scroll className="h-full overflow-y-auto">
       <div className="grid min-h-full grid-cols-2">
         <div className="min-h-0">
-          <HeroCopy />
+          <Article />
         </div>
         <div className="min-h-0">
           <Grid />

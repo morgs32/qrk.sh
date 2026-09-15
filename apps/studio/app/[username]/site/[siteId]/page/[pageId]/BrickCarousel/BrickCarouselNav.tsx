@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { type IGroupBrick } from "@qrk.sh/bricks";
-import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
+import { type IGroupBrick } from "@qrk.sh/library";
+import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import { cn } from "cn";
 import useEmblaCarousel from "embla-carousel-react";
 

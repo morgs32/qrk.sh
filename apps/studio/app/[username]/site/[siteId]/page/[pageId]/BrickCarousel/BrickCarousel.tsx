@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import type { IGroup, IGroupBrick } from "@qrk.sh/bricks";
-import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
+import type { IGroup, IGroupBrick } from "@qrk.sh/library";
+import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import type { EmblaCarouselType } from "embla-carousel";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 

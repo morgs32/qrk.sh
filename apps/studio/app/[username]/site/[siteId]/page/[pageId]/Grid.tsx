@@ -3,8 +3,8 @@
 import { useRef } from "react";
 
 import { useUser } from "@clerk/react";
-import { groupsHash } from "@qrk.sh/bricks";
-import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
+import { groupsHash } from "@qrk.sh/library";
+import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
 import { Schema } from "effect";
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 import { href, useNavigate } from "react-router";

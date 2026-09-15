@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 
-import { groupsHash } from "@qrk.sh/bricks";
-import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
+import { groupsHash } from "@qrk.sh/library";
+import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
+import { BrickPreviewFrame } from "@qrk.sh/library/BrickPreviewFrame";
 import { Schema } from "effect";
 import { X } from "lucide-react";
 import { Link } from "react-router";

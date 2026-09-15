@@ -6,7 +6,7 @@
 
 **Architecture:** Keep Vaul drawer chrome in `SandboxLayout`; drop the desktop left half-panel and half-width grid split. Convert `GroupsPage` to a CSS horizontal filmstrip of group columns. Update Playwright + styleguide docs that encode the old split layout.
 
-**Tech Stack:** React Router workbench (`apps/bricks/app`), Vaul/shadcn drawer, Tailwind, Playwright (`pnpm nx run @qrk.sh/bricks:test:e2e` / package script `test:e2e`).
+**Tech Stack:** React Router workbench (`apps/library/app`), Vaul/shadcn drawer, Tailwind, Playwright (`pnpm nx run @qrk.sh/library:test:e2e` / package script `test:e2e`).
 
 **Design spec:** `wiki/plans/specs/016-spec-bricks-bottom-horizontal-drawer.md`
 
@@ -17,18 +17,18 @@
 - Drawer remains non-modal (`modal={false}`) so grid DnD works while open.
 - Filmstrip is `/` (`GroupsPage`) only; nested `/groups/...` routes stay full-width in the same `Outlet`.
 - No Embla for groups; no changes to drag MIME, `DraggableBrick`, or catalog models.
-- Edit live sources under `apps/bricks/app/**` and `docs/**` only. Do not author parallel fixes under `apps/bricks/src/**` (stale tree).
+- Edit live sources under `apps/library/app/**` and `docs/**` only. Do not author parallel fixes under `apps/library/src/**` (stale tree).
 - Do not add new named types without asking; do not add `ALLOWED_CAST`.
-- Prefer `pnpm nx run @qrk.sh/bricks:…` for verification.
+- Prefer `pnpm nx run @qrk.sh/library:…` for verification.
 
 ## File structure
 
 | File | Responsibility |
 | --- | --- |
-| `apps/bricks/app/routes/SandboxLayout.tsx` | Always-bottom drawer shell, header chrome, full-bleed grid, toolbar Bricks trigger |
-| `apps/bricks/app/routes/GroupsPage.tsx` | Horizontal filmstrip of group columns |
-| `apps/bricks/app/tests/grid-width.playwright.spec.ts` | Width presets + drawer open/close against full-bleed layout |
-| `apps/bricks/app/tests/preview-dimensions.playwright.spec.ts` | Preview sizing without “Bricks panel” width hacks; filmstrip overflow |
+| `apps/library/app/routes/SandboxLayout.tsx` | Always-bottom drawer shell, header chrome, full-bleed grid, toolbar Bricks trigger |
+| `apps/library/app/routes/GroupsPage.tsx` | Horizontal filmstrip of group columns |
+| `apps/library/app/tests/grid-width.playwright.spec.ts` | Width presets + drawer open/close against full-bleed layout |
+| `apps/library/app/tests/preview-dimensions.playwright.spec.ts` | Preview sizing without “Bricks panel” width hacks; filmstrip overflow |
 | `docs/styleguide/component-and-file-naming.md` | Document always-bottom drawer + horizontal groups list |
 
 No new components or files unless a task below explicitly creates one (none planned).
@@ -38,8 +38,8 @@ No new components or files unless a task below explicitly creates one (none plan
 ### Task 1: Rewrite Playwright expectations for always-bottom drawer + full-bleed grid
 
 **Files:**
-- Modify: `apps/bricks/app/tests/grid-width.playwright.spec.ts`
-- Modify: `apps/bricks/app/tests/preview-dimensions.playwright.spec.ts` (only the `group previews scroll rather than shrinking` test)
+- Modify: `apps/library/app/tests/grid-width.playwright.spec.ts`
+- Modify: `apps/library/app/tests/preview-dimensions.playwright.spec.ts` (only the `group previews scroll rather than shrinking` test)
 
 **Interfaces:**
 - Consumes: existing roles/labels (`dialog` name `Bricks`, toolbar `Grid controls`, `Brick grid`)
@@ -163,7 +163,7 @@ Notes for implementers:
 
 - [ ] **Step 2: Update the preview-dimensions scroll test**
 
-In `apps/bricks/app/tests/preview-dimensions.playwright.spec.ts`, replace `group previews scroll rather than shrinking` with:
+In `apps/library/app/tests/preview-dimensions.playwright.spec.ts`, replace `group previews scroll rather than shrinking` with:
 
 ```ts
 test("group filmstrip scrolls horizontally rather than shrinking previews", async ({ page }) => {
@@ -196,10 +196,10 @@ If local group catalog sizes differ and `720` is wrong, recompute from `BrickPre
 Run:
 
 ```bash
-pnpm nx run @qrk.sh/bricks:test:e2e -- app/tests/grid-width.playwright.spec.ts app/tests/preview-dimensions.playwright.spec.ts
+pnpm nx run @qrk.sh/library:test:e2e -- app/tests/grid-width.playwright.spec.ts app/tests/preview-dimensions.playwright.spec.ts
 ```
 
-If the Nx target does not forward file args, run from `apps/bricks`:
+If the Nx target does not forward file args, run from `apps/library`:
 
 ```bash
 pnpm exec playwright test --config app/playwright.config.ts app/tests/grid-width.playwright.spec.ts app/tests/preview-dimensions.playwright.spec.ts
@@ -210,7 +210,7 @@ Expected: FAIL — still finds `Bricks panel`, close button still `Close bricks`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add apps/bricks/app/tests/grid-width.playwright.spec.ts apps/bricks/app/tests/preview-dimensions.playwright.spec.ts
+git add apps/library/app/tests/grid-width.playwright.spec.ts apps/library/app/tests/preview-dimensions.playwright.spec.ts
 git commit -m "$(cat <<'EOF'
 test(bricks): expect always-bottom drawer and horizontal filmstrip
 
@@ -223,10 +223,10 @@ EOF
 ### Task 2: Always-bottom drawer shell in `SandboxLayout`
 
 **Files:**
-- Modify: `apps/bricks/app/routes/SandboxLayout.tsx`
+- Modify: `apps/library/app/routes/SandboxLayout.tsx`
 
 **Interfaces:**
-- Consumes: existing `Drawer*` from `apps/bricks/components/ui/drawer.tsx`, `drawerOpen` state
+- Consumes: existing `Drawer*` from `apps/library/components/ui/drawer.tsx`, `drawerOpen` state
 - Produces: full-bleed grid; toolbar always has Bricks; drawer header with `Close drawer`
 
 - [ ] **Step 1: Remove desktop split state and always render `DrawerContent`**
@@ -315,14 +315,14 @@ className="pointer-events-none fixed inset-x-0 top-3 z-80 flex justify-center px
 pnpm exec playwright test --config app/playwright.config.ts app/tests/grid-width.playwright.spec.ts
 ```
 
-Working directory: `apps/bricks`.
+Working directory: `apps/library`.
 
 Expected: PASS for shell/open/close/DnD/preset tests. Filmstrip-specific assertion in preview-dimensions may still fail until Task 3.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add apps/bricks/app/routes/SandboxLayout.tsx
+git add apps/library/app/routes/SandboxLayout.tsx
 git commit -m "$(cat <<'EOF'
 feat(bricks): use always-bottom bricks drawer on all viewports
 
@@ -335,7 +335,7 @@ EOF
 ### Task 3: Horizontal filmstrip on `GroupsPage`
 
 **Files:**
-- Modify: `apps/bricks/app/routes/GroupsPage.tsx`
+- Modify: `apps/library/app/routes/GroupsPage.tsx`
 
 **Interfaces:**
 - Consumes: unchanged `groupsHash`, `GroupOutline`, `DraggableBrick`, `BrickPreviewFrame`
@@ -426,14 +426,14 @@ If the preview-dimensions assertion `column width < 720` fails because `w-max` e
 pnpm exec playwright test --config app/playwright.config.ts app/tests/grid-width.playwright.spec.ts app/tests/preview-dimensions.playwright.spec.ts
 ```
 
-Working directory: `apps/bricks`.
+Working directory: `apps/library`.
 
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add apps/bricks/app/routes/GroupsPage.tsx
+git add apps/library/app/routes/GroupsPage.tsx
 git commit -m "$(cat <<'EOF'
 feat(bricks): make groups list a horizontal filmstrip in the drawer
 
@@ -447,7 +447,7 @@ EOF
 
 **Files:**
 - Modify: `docs/styleguide/component-and-file-naming.md` (section **Bricks sandbox grid width and toolbar**, ~lines 204–218)
-- Verify: other Playwright under `apps/bricks/app/tests/` that open the drawer or assume a left panel
+- Verify: other Playwright under `apps/library/app/tests/` that open the drawer or assume a left panel
 
 **Interfaces:**
 - Consumes: shipped shell + filmstrip behavior
@@ -481,15 +481,15 @@ and is independent of Reset's grid state changes.
 - [ ] **Step 2: Grep for stale assumptions and fix only what this change breaks**
 
 ```bash
-rg -n "Bricks panel|Close bricks|lg:ml-\\[50%\\]|half-height drawer|left half" apps/bricks/app docs/styleguide
+rg -n "Bricks panel|Close bricks|lg:ml-\\[50%\\]|half-height drawer|left half" apps/library/app docs/styleguide
 ```
 
-Update any remaining `apps/bricks/app/tests/**` hits that still require the left panel or `Close bricks`. Do not edit `apps/bricks/src/**`.
+Update any remaining `apps/library/app/tests/**` hits that still require the left panel or `Close bricks`. Do not edit `apps/library/src/**`.
 
 - [ ] **Step 3: Run the bricks e2e suite**
 
 ```bash
-pnpm nx run @qrk.sh/bricks:test:e2e
+pnpm nx run @qrk.sh/library:test:e2e
 ```
 
 Expected: PASS (or only pre-existing failures unrelated to drawer/filmstrip — report those; do not fix out of scope).
@@ -497,7 +497,7 @@ Expected: PASS (or only pre-existing failures unrelated to drawer/filmstrip — 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add docs/styleguide/component-and-file-naming.md apps/bricks/app/tests
+git add docs/styleguide/component-and-file-naming.md apps/library/app/tests
 git commit -m "$(cat <<'EOF'
 docs(bricks): document always-bottom drawer and horizontal filmstrip
 
@@ -527,4 +527,4 @@ EOF
 - No TBD placeholders.
 - Close label is consistently `Close drawer` in tests and UI.
 - Preset expectations use full viewport width, not half.
-- `apps/bricks/src/**` explicitly out of scope.
+- `apps/library/src/**` explicitly out of scope.

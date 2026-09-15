@@ -6,12 +6,12 @@
 
 ## Goal
 
-Extract all eighteen group groups into a publishable `@qrk.sh/bricks` package, colocate a non-published TanStack Start development sandbox inside that package, and make the private Next.js application consume only the package's group API and CSS. Preserve existing brick identities, zero-prop component behavior, Brick persistence, and private editor interactions.
+Extract all eighteen group groups into a publishable `@qrk.sh/library` package, colocate a non-published TanStack Start development sandbox inside that package, and make the private Next.js application consume only the package's group API and CSS. Preserve existing brick identities, zero-prop component behavior, Brick persistence, and private editor interactions.
 
 ## Requirements Trace
 
 1. Spec user stories 1 through 4 are implemented by the sandbox group, group, and brick routes plus proportional size and canvas controls.
-2. Spec user stories 5 and 7 are implemented by moving the complete group into `@qrk.sh/bricks` and migrating every private web import without changing persisted identity or behavior.
+2. Spec user stories 5 and 7 are implemented by moving the complete group into `@qrk.sh/library` and migrating every private web import without changing persisted identity or behavior.
 3. Spec user story 6 is implemented by Unpic, package-owned shadcn modules, a compiled package stylesheet, and a framework-neutral package build.
 
 ## Implementation Steps
@@ -21,17 +21,17 @@ Extract all eighteen group groups into a publishable `@qrk.sh/bricks` package, c
    2. Verify `pnpm nx show projects --json` resolves the existing projects before relying on inferred package-script targets.
    3. Record the resolved target shape for `@qrk.sh/web`, `@qrk.sh/zerospin`, and `scraper`; preserve existing continuous development configuration.
 2. Create the publishable `packages/bricks` library explicitly because the workspace has no suitable local or installed Nx library generator.
-   1. Add a package manifest named `@qrk.sh/bricks`, mark it ESM, and expose only `.` and `./styles.css` through `exports`.
+   1. Add a package manifest named `@qrk.sh/library`, mark it ESM, and expose only `.` and `./styles.css` through `exports`.
    2. Build the JavaScript and CSS with Vite library mode and emit declarations with TypeScript. Externalize React, React DOM, SWR, Unpic, Lucide, Radix Slot, class-variance-authority, clsx, and tailwind-merge and declare them in the appropriate dependency or peer-dependency section.
    3. Use React and React DOM as peer dependencies aligned with the repository's React 19 development versions. Keep runtime libraries used internally by bricks as package dependencies.
    4. Add `dev`, `build`, `build:workbench`, `typecheck`, `lint`, and `test:e2e` scripts so Nx infers the library and sandbox targets from this one package. Configure library output as `dist/index.js`, `dist/index.d.ts`, and `dist/styles.css`.
    5. Add a positive `files` allowlist containing `dist` and expose only `.` and `./styles.css`; do not publish `workbench`, tests, source, or development configuration.
-   6. Add `@qrk.sh/bricks` as a `workspace:*` dependency of the private Next.js application through pnpm, then verify the workspace link resolves to `packages/bricks`.
+   6. Add `@qrk.sh/library` as a `workspace:*` dependency of the private Next.js application through pnpm, then verify the workspace link resolves to `packages/bricks`.
 3. Scaffold the TanStack Start development sandbox inside the package without creating a nested package.
-   1. Run the official non-interactive TanStack scaffold with installation and Git initialization disabled in a disposable directory, inspect its generated versions and framework files, and copy only the Start entrypoints, route setup, and Vite configuration needed under `apps/bricks/workbench`.
-   2. Do not retain the scaffold's `package.json`, lockfile, Git files, demo routes, or toolchain configuration; declare all sandbox dependencies once in `apps/bricks/package.json` using the exact scaffolded versions.
+   1. Run the official non-interactive TanStack scaffold with installation and Git initialization disabled in a disposable directory, inspect its generated versions and framework files, and copy only the Start entrypoints, route setup, and Vite configuration needed under `apps/library/workbench`.
+   2. Do not retain the scaffold's `package.json`, lockfile, Git files, demo routes, or toolchain configuration; declare all sandbox dependencies once in `apps/library/package.json` using the exact scaffolded versions.
    3. Configure the package-root `dev` and `build:workbench` scripts to run TanStack Start against the sandbox Vite configuration and `workbench/src/routes` tree.
-   4. Keep `apps/bricks/workbench` free of a nested package manifest so Nx and pnpm see one project and one dependency boundary.
+   4. Keep `apps/library/workbench` free of a nested package manifest so Nx and pnpm see one project and one dependency boundary.
 4. Move the complete brick group without redesigning its domain model.
    1. Move `BrickFrame`, `types`, `makeBrick`, `makeGroup`, `groupsHash`, `findGroupBrick`, and every existing group into package source while preserving component names, comments, group names, brick names, dimensions, labels, order, and zero-prop `ComponentType` signatures.
    2. Convert internal aliases to package-relative imports. Keep one primary React component per PascalCase file and do not create group or component subpath barrels.
@@ -40,7 +40,7 @@ Extract all eighteen group groups into a publishable `@qrk.sh/bricks` package, c
    5. Preserve `findGroupBrick` behavior: resolve the exact `(groupName, def.name)` pair and return `undefined` for an unknown identity without substituting a fallback.
 5. Remove Next.js and private UI coupling from package-owned bricks.
    1. Replace the four `next/image` imports with `Image` from `@unpic/react`, preserving source URLs, alt text, fill behavior, object-fit behavior, responsive sizing, and the existing visible layout.
-   2. Copy the current shadcn `Card`, `Button`, and `cn` implementations into package-internal modules, update GitHub card imports to those modules, and keep their supporting dependencies inside `@qrk.sh/bricks`.
+   2. Copy the current shadcn `Card`, `Button`, and `cn` implementations into package-internal modules, update GitHub card imports to those modules, and keep their supporting dependencies inside `@qrk.sh/library`.
    3. Preserve current GitHub SWR requests, hardcoded user behavior, loading states, error states, retry behavior, and zero-prop wrappers; do not introduce fixtures, providers, or data props.
    4. Confirm no package source imports `next/*`, `@/components/*`, `@/lib/*`, Clerk, Zerospin, React Grid Layout, or private application stores.
 6. Make brick styling self-contained.
@@ -49,12 +49,12 @@ Extract all eighteen group groups into a publishable `@qrk.sh/bricks` package, c
    3. Ensure `BrickFrame` and sandbox preview roots carry the package root marker so semantic shadcn tokens resolve in both light and dark modes.
    4. Keep the private web application's non-brick global CSS, React Grid Layout CSS, editor utilities, and unrelated theme ownership in `apps/web`.
 7. Migrate the private Next.js application to the package boundary.
-   1. Import `@qrk.sh/bricks/styles.css` once from the existing global application style entrypoint.
+   1. Import `@qrk.sh/library/styles.css` once from the existing global application style entrypoint.
    2. Replace every import of moved group types, lookup functions, catalog values, and group definitions with the approved package root API; where the web app currently imports a specific group only to obtain a default `def`, resolve that exact entry from `groupsHash` without changing fallback selection.
-   3. Remove the old app-owned bricks directory only after searches prove every consumer uses `@qrk.sh/bricks` and no private module still imports a moved file.
+   3. Remove the old app-owned bricks directory only after searches prove every consumer uses `@qrk.sh/library` and no private module still imports a moved file.
    4. Preserve Grid and Brick layout behavior, Zustand stores, drawer drag payloads, BrickCarousel, BrickPreview, BrickDetail, site routes, and component props unchanged except for their package imports and the separately approved Brick terminology migration.
 8. Build the TanStack Start sandbox against the public package surface only.
-   1. Import `@qrk.sh/bricks/styles.css` once in the root route and render all package content under the package theme root marker.
+   1. Import `@qrk.sh/library/styles.css` once in the root route and render all package content under the package theme root marker.
    2. Implement `/` by reading `groupsHash` and rendering one explicit group link for every group group with its label and variant count.
    3. Implement `/groups/$groupName` by exact catalog lookup, rendering every brick variant at proportional dimensions, and linking each variant to `/bricks/$groupName/$brickName`.
    4. Implement `/bricks/$groupName/$brickName` by exact two-part lookup and render the component in a canvas sized as `def.w * gridUnitPx` by `def.h * gridUnitPx`.
@@ -72,7 +72,7 @@ Extract all eighteen group groups into a publishable `@qrk.sh/bricks` package, c
    7. Run `pnpm pack --dry-run` from `packages/bricks` and assert that the tarball contains built JavaScript, declarations, CSS, package metadata, and allowed documentation only; assert that it excludes `workbench`, tests, source, Playwright output, and Vite configuration.
    8. Verify the built package manifest and output expose only the root JavaScript API and stylesheet and contain no unresolved private aliases or Next.js imports.
 10. Run private application regression verification through Nx.
-    1. Run `pnpm nx run @qrk.sh/bricks:typecheck`, `pnpm nx run @qrk.sh/bricks:lint`, and `pnpm nx run @qrk.sh/bricks:build`.
+    1. Run `pnpm nx run @qrk.sh/library:typecheck`, `pnpm nx run @qrk.sh/library:lint`, and `pnpm nx run @qrk.sh/library:build`.
     2. Run the package's sandbox build and Playwright targets through their resolved Nx names.
     3. Run `pnpm nx run @qrk.sh/web:typecheck` and `pnpm nx run @qrk.sh/web:build`.
     4. Run the existing focused BrickGroup, BrickCarousel, BrickDetail, and Grid Playwright files against the private web app.

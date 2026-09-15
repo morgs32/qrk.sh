@@ -1,4 +1,4 @@
-import type { IGroupBrickDef } from "@qrk.sh/bricks";
+import type { IGroupBrickDef } from "@qrk.sh/library";
 import { Result, Schema } from "effect";
 import type { Layout } from "react-grid-layout";
 import { create } from "zustand";

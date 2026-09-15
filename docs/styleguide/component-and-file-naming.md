@@ -65,15 +65,15 @@ Presentations, forms, helpers, module-owned `*Repo` Durable Objects, and assets 
 (e.g. `figmaThumbnail.ts`) calls `makeModule` and imports colocated presentations. Do not add
 `index.ts` barrels under a module folder.
 
-`scraper/Worker.ts` remains the Wrangler entry and re-exports each module
+`worker/Worker.ts` remains the Wrangler entry and re-exports each module
 `*Repo` class. Shared scrape helpers (`BrowserHost`, URL normalizers, encodeRpc,
-schemas, and provider scrape modules) stay under `apps/library/scraper/`.
+schemas, and provider scrape modules) stay under `apps/library/worker/`.
 
 - **Bad**: nesting former catalogs under a group folder again.
 - **Good**: `modules/githubProfile/GitHubProfileStats.tsx` and
   `modules/githubRepo/GitHubRepoStack.tsx`, each with its own assembler.
 - **Good**: `modules/instagram/InstagramRepo.ts` next to that
-  module's presentations; `scraper/Worker.ts` imports and re-exports it.
+  module's presentations; `worker/Worker.ts` imports and re-exports it.
 
 ### Factory arguments
 

@@ -17,8 +17,8 @@ export function CopyButton({ text }: { text: string }) {
           type="button"
           size="icon"
           variant="secondary"
-          className="pointer-events-auto size-8 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
-          aria-label="Copy published URL"
+          className="size-8 shadow-sm"
+          aria-label="Copy share URL"
           disabled={isCopying}
           onClick={async () => {
             try {

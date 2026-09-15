@@ -16,7 +16,7 @@ export function makePublicObjectUrl(props: {
   return `${base}/${props.key}`;
 }
 
-export async function tryHandleR2Asset(props: {
+export async function handleR2Asset(props: {
   request: Request;
   bucket: R2Bucket;
   allowedOrigins: readonly string[];

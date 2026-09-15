@@ -5,10 +5,10 @@ import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Effect } from "effect";
 
-import { encodeRpc } from "../../scraper/encodeRpc";
-import { ScrapeError } from "../../scraper/ScrapeError";
-import { scrapeFigma } from "../../scraper/scrapeFigma";
-import type { IFigmaFilePreviewPayload, IRpcEither, IScraperEnv } from "../../scraper/types";
+import { encodeRpc } from "../../worker/encodeRpc";
+import { ScrapeError } from "../../worker/ScrapeError";
+import { scrapeFigma } from "../../worker/scrapeFigma";
+import type { IFigmaFilePreviewPayload, IRpcEither, IScraperEnv } from "../../worker/types";
 
 const CACHE_TTL_MS = 60 * 60 * 1_000;
 

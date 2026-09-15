@@ -17,6 +17,9 @@
     },
     "tsc:worker": {
       "dependsOn": ["^lib"]
+    },
+    "test:workerd": {
+      "dependsOn": ["^lib"]
     }
   }
 }

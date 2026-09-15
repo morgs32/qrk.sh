@@ -5,8 +5,8 @@ import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Result, Schema } from "effect";
 
-import { LinkPreviewSchema } from "../../scraper/schemas";
-import type { ILinkPreview, IRpcEither, IScraperEnv } from "../../scraper/types";
+import { LinkPreviewSchema } from "../../worker/schemas";
+import type { ILinkPreview, IRpcEither, IScraperEnv } from "../../worker/types";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 

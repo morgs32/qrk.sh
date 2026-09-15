@@ -15,7 +15,7 @@
   "include": ["**/*.ts", "**/*.tsx", "worker-configuration.d.ts"],
   "exclude": [
     ".react-router",
-    "scraper/**",
+    "worker/**",
     "dist",
     "build",
     "node_modules",

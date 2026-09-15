@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { Result, Schema } from "effect";
 
-import type { IJsonValue, IRpcEither, IScraperEnv } from "../../scraper/types";
+import type { IJsonValue, IRpcEither, IScraperEnv } from "../../worker/types";
 
 const StreamlineSearchResponse = Schema.Struct({
   query: Schema.String,

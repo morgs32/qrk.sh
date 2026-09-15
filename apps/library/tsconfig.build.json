@@ -12,7 +12,7 @@
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": [
     "app/**",
-    "scraper/**",
+    "worker/**",
     "vite*.ts",
     "dist",
     "build",

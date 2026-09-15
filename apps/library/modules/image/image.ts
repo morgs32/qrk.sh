@@ -1,5 +1,9 @@
-import { makeModule } from "../../makeModule";
+import { primitives } from "@zerospin/schema";
 
+import { makeModule } from "../../makeModule";
+import { makeOptions } from "../../makeOptions";
+
+import { DEFAULT_IMAGE_SRC, ImageOptionsForm } from "./ImageOptionsForm";
 import { ImageDefaultPromo } from "./ImageDefaultPromo";
 
 export const image = makeModule({
@@ -8,4 +12,13 @@ export const image = makeModule({
   id: "image",
   label: "Image",
   description: "An editorial image preview.",
-  xs: { component: ImageDefaultPromo, w: 4, h: 4 }});
+  options: makeOptions({
+    shape: {
+      src: primitives.text({
+        defaultValue: DEFAULT_IMAGE_SRC,
+      }),
+    },
+    form: ImageOptionsForm,
+  }),
+  xs: { component: ImageDefaultPromo, w: 4, h: 4 },
+});

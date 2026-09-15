@@ -1,4 +1,4 @@
-import { tryHandleR2Asset } from "@qrk.sh/r2-assets";
+import { handleR2Asset } from "@qrk.sh/r2-assets";
 
 import {
   ALLOWED_ORIGINS,
@@ -17,7 +17,7 @@ async function handleRequest(request: Request, env: IApiEnv): Promise<Response> 
     return emptyCorsResponse(request, 204);
   }
 
-  const assetResponse = await tryHandleR2Asset({
+  const assetResponse = await handleR2Asset({
     request,
     bucket: env.QRKSH,
     allowedOrigins: ALLOWED_ORIGINS,

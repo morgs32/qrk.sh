@@ -104,6 +104,8 @@ export interface IScraperEnv {
   STREAMLINE_REPO: DurableObjectNamespace<
     import("../modules/icon/StreamlineRepo").StreamlineRepo
   >;
+  ASSETS: R2Bucket;
+  R2_PUBLIC_BASE_URL: string;
   GITHUB_TOKEN: string;
   FIGMA_TOKEN: string;
   GOOGLE_PLACES_API_KEY: string;

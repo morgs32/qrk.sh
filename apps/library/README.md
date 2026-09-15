@@ -10,7 +10,7 @@ From the repository root:
 pnpm nx run @qrk.sh/library:dev
 ```
 
-Open `http://127.0.0.1:4100`. The form calls `/scraper-rpc` on that same
+Open `http://127.0.0.1:4100`. The form calls `/rpc` on that same
 server. A separate scraper process and `SCRAPER_URL` are no longer needed.
 This command runs locally and does not deploy anything.
 
@@ -25,9 +25,9 @@ Put local settings in `apps/library/.env.local`:
 The Cloudflare plugin loads the private settings as Worker bindings. Only the
 Mapbox token is explicitly included in the browser build.
 
-`wrangler.jsonc` retains the `bricks` Worker identity, browser binding, Durable
+`wrangler.jsonc` retains the `library` Worker identity, browser binding, Durable
 Object bindings, and migrations. Local cache data lives under `.wrangler/state`.
-The scraper implementation and its tests live in `scraper`, with module-owned
+The Worker implementation and its tests live in `worker`, with module-owned
 `*Repo` Durable Objects under `modules/<moduleFolder>/`. Client imports
 use the existing `*.public.d.ts` contracts so Worker implementation types do not
 become part of the brick library's public declarations. Linktree scraping lives
@@ -45,9 +45,9 @@ pnpm nx run @qrk.sh/library:build
 `tsc` checks both browser and Worker code. Library tests are intentionally not
 maintained for now (see root `AGENTS.md`).
 
-`build:app` produces the combined app in `build/client` and `build/scraper`.
+`build:app` produces the combined app in `build/client` and `build/worker`.
 `build` produces the reusable brick library in `dist`, including its public
-scraper declarations. Neither build deploys the app.
+Worker/RPC declarations. Neither build deploys the app.
 
 ## Modules and interaction
 

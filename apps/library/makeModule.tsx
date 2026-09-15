@@ -6,7 +6,7 @@ import { Schema } from "effect";
 import type { makeOptions } from "./makeOptions";
 import type { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IFormConfiguration } from "./makeFormConfiguration";
-import type { IJsonValue } from "./scraper/types.public";
+import type { IJsonValue } from "./worker/types.public";
 
 /** Bind data and configuration to one responsive brick presentation. */
 export function makeModule<
@@ -30,7 +30,10 @@ export function makeModule<
         defaultData: null;
         configuration?: never;
         xs: {
-          component: (props: { breakpoint: "xs" | "sm" | "lg" | "xl" }) => ReactNode;
+          component: (props: {
+            breakpoint: "xs" | "sm" | "lg" | "xl";
+            options?: unknown;
+          }) => ReactNode;
           w: number;
           h: number;
         };

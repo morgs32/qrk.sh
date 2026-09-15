@@ -1,11 +1,16 @@
 "use client";
 
 import { useUser } from "@clerk/react";
+import { makeModelIdSchema } from "@zerospin/core/models/makeIdSchema";
+import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router";
 
-import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
+
+import { useZerospinUserInitializedState, ZerospinUser } from "@/components/ZerospinUser";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { SiteHeader } from "./SiteHeader";
@@ -14,8 +19,8 @@ import { useSitePageDraftStore } from "./sitePageDraftStore";
 import { useSiteStore } from "./siteStore";
 
 const ParamsSchema = Schema.Struct({
-  siteId: Schema.TemplateLiteral(["sit_", Schema.String]),
-  pageId: Schema.optional(Schema.String),
+  siteId: makeModelIdSchema(Site),
+  pageId: Schema.optional(makeModelIdSchema(Page)),
 });
 
 export default function PageLayout() {
@@ -24,6 +29,7 @@ export default function PageLayout() {
   const { db } = useZerospinUserInitializedState();
   const initializeSite = useSiteStore((state) => state.initializeSite);
   const siteDraftId = useSiteStore((state) => state.site?.id);
+  const siteName = useSiteStore((state) => state.site?.name ?? "");
   const initializeSitePageDraft = useSitePageDraftStore((state) => state.initializePageDraft);
   const initializeArticlePageDraft = usePageStore((state) => state.initializePageDraft);
   const [readyRoute, setReadyRoute] = useState<{
@@ -33,6 +39,18 @@ export default function PageLayout() {
   } | null>(null);
 
   const identityKey = user?.id;
+
+  const { data: page } = useLiveQuery(ZerospinUser, {
+    deps: [pageId, siteId],
+    query: (queryDb) =>
+      queryDb.query.page.findFirst({
+        where: {
+          id: { eq: pageId === undefined ? "pag_" : pageId },
+          siteId: { eq: siteId },
+        },
+      }),
+  });
+  const pageTitle = page?.title ?? "";
 
   // Re-seed when the route site changes; do not refresh when draft fields update.
   if (siteDraftId !== siteId) {
@@ -85,6 +103,11 @@ export default function PageLayout() {
 
   return isCurrentRouteReady ? (
     <div className="flex h-screen flex-col overflow-hidden">
+      <title>
+        {pageTitle === ""
+          ? `[Editing] ${siteName}`
+          : `[Editing] ${siteName} - ${pageTitle}`}
+      </title>
       <SiteHeader />
 
       <div className="min-h-0 flex-1">

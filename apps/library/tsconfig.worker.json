@@ -9,8 +9,9 @@
     "types": ["node"]
   },
   "include": [
-    "scraper/**/*.ts",
+    "worker/**/*.ts",
     "modules/**/[A-Z]*Repo.ts",
     "worker-configuration.d.ts"
-  ]
+  ],
+  "exclude": ["worker/**/*.e2e.spec.ts", "node_modules"]
 }

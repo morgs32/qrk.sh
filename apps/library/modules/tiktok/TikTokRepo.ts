@@ -5,11 +5,11 @@ import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Effect, Schema } from "effect";
 
-import { encodeRpc } from "../../scraper/encodeRpc";
-import { normalizeTikTokUrl } from "../../scraper/normalizeTikTokUrl";
-import { ScrapeError } from "../../scraper/ScrapeError";
-import { TikTokPayloadSchema } from "../../scraper/schemas";
-import type { IRpcEither, IScraperEnv, ITikTokScrapePayload } from "../../scraper/types";
+import { encodeRpc } from "../../worker/encodeRpc";
+import { normalizeTikTokUrl } from "../../worker/normalizeTikTokUrl";
+import { ScrapeError } from "../../worker/ScrapeError";
+import { TikTokPayloadSchema } from "../../worker/schemas";
+import type { IRpcEither, IScraperEnv, ITikTokScrapePayload } from "../../worker/types";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 const GLOBAL_BROWSER_HOST_NAME = "global";

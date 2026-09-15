@@ -418,41 +418,60 @@ export function SiteSettings() {
           </div>
         </div>
 
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Published URL</h2>
-          <TooltipProvider delayDuration={0}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-              <div className="group relative h-40 w-40 shrink-0 overflow-hidden rounded-md border bg-background">
-                {qrDataUrl ? (
-                  <img
-                    loading="lazy"
-                    src={qrDataUrl}
-                    alt="Published URL QR code"
-                    className="h-full w-full object-contain"
-                    width={256}
-                    height={256}
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-                    Generating…
-                  </div>
-                )}
-
-                <div className="pointer-events-none absolute inset-0 flex items-start justify-end p-2">
-                  <CopyButton text={publishedUrl} />
-                </div>
-              </div>
-
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="text-sm text-muted-foreground">
-                  Scan to open your published site.
-                </div>
-                <div className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground">
-                  <div className="truncate">{publishedUrl}</div>
-                </div>
+        <div className="flex min-w-0 flex-col gap-4">
+          <FieldLabel description="1200 × 630 pixels">Social Preview</FieldLabel>
+          <div className="flex flex-col items-start gap-4">
+            <Button type="button" variant="outline">
+              Upload
+            </Button>
+            <div className="relative w-full max-w-[375px] overflow-hidden rounded-md border bg-muted">
+              <div className="relative aspect-[375/197] w-full">
+                <img
+                  src="/assets/site-settings-social-preview.png"
+                  alt="Social preview"
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+                  className="object-cover"
+                  sizes="(max-width: 767px) 100vw, 375px"
+                  loading="eager"
+                  fetchPriority="high"
+                />
               </div>
             </div>
-          </TooltipProvider>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 items-start gap-6 md:gap-8">
+          <div className="flex min-w-0 flex-col gap-2">
+            <FieldLabel>QR Code</FieldLabel>
+            <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-md border bg-background">
+              {qrDataUrl ? (
+                <img
+                  loading="lazy"
+                  src={qrDataUrl}
+                  alt="Published URL QR code"
+                  className="h-full w-full object-contain"
+                  width={256}
+                  height={256}
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                  Generating…
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-2">
+            <FieldLabel>Share URL</FieldLabel>
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="min-w-0 flex-1 truncate rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground">
+                {publishedUrl}
+              </div>
+              <TooltipProvider delayDuration={0}>
+                <CopyButton text={publishedUrl} />
+              </TooltipProvider>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -463,32 +482,6 @@ export function SiteSettings() {
             publishedAt="Mar 30"
             logoSrc={draft.logoUrl.length > 0 ? draft.logoUrl : undefined}
           />
-        </div>
-
-        <div className="space-y-6">
-          <h2 className="text-lg font-semibold">Site Images</h2>
-
-          <div className="flex min-w-0 flex-col gap-4">
-            <FieldLabel description="1200 × 630 pixels">Social Preview</FieldLabel>
-            <div className="flex flex-col items-start gap-4">
-              <Button type="button" variant="outline">
-                Upload
-              </Button>
-              <div className="relative w-full max-w-[375px] overflow-hidden rounded-md border bg-muted">
-                <div className="relative aspect-[375/197] w-full">
-                  <img
-                    src="/assets/site-settings-social-preview.png"
-                    alt="Social preview"
-                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-                    className="object-cover"
-                    sizes="(max-width: 767px) 100vw, 375px"
-                    loading="eager"
-                    fetchPriority="high"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

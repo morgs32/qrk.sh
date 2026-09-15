@@ -38,7 +38,7 @@ This specification supersedes specification 010's `scrape(url)` naming only for 
 6. Form submission explicitly iterates the payload keys and copies matching `FormData` values into the unknown payload passed to the wrapped callback.
 7. Unsupported primitive kinds or configurations are identified visibly and disable submission.
 8. Submission uses the standard shadcn `Button` labeled `Get data`, which is disabled while a request is loading.
-9. Each request creates and disposes its own `newSyncRpcSession<ScraperApi>("/scraper-rpc")` session.
+9. Each request creates and disposes its own `newSyncRpcSession<ScraperApi>("/rpc")` session.
 10. A successful `Right` value is pretty-printed in the data pane.
 11. A `Left` value displays its unwrapped `code` and `message` as the error state.
 12. Loaded scraper data is not passed to brick component props.
@@ -47,7 +47,7 @@ This specification supersedes specification 010's `scrape(url)` naming only for 
 
 1. The bricks package commits `.env` with `SCRAPER_URL=http://127.0.0.1:8787/`.
 2. The bricks Vite application loads environment values from the bricks package root.
-3. Vite+ and the Cloudflare Vite plugin serve the workbench and `/scraper-rpc` from one local server.
+3. Vite+ and the Cloudflare Vite plugin serve the workbench and `/rpc` from one local server.
 4. `apps/library/.env.local` is ignored and contains the real `GITHUB_TOKEN` used by local Wrangler.
 5. Playwright fails clearly before startup when `GITHUB_TOKEN` is absent from the bricks `.env.local` file.
 

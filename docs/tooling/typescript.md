@@ -58,7 +58,7 @@ For a dynamic route page, validate `params` with **Effect `Schema`**: define **o
 
 ```ts
 const BrickCatalogRouteParamsSchema = Schema.Struct({
-  collectionName: Schema.String,
+  catalogName: Schema.String,
   brickId: Schema.String,
 });
 
@@ -66,16 +66,16 @@ const decoded = Schema.decodeUnknownEither(BrickCatalogRouteParamsSchema)(rawPar
 if (Either.isLeft(decoded)) {
   notFound();
 }
-const { collectionName, brickId } = decoded.right;
+const { catalogName, brickId } = decoded.right;
 ```
 
-Keep domain checks that the schema cannot express (e.g. `collectionName in collectionsHash`) **after** a successful decode.
+Keep domain checks that the schema cannot express (e.g. `catalogName in catalogsHash`) **after** a successful decode.
 
 ### Good vs bad: Effect `Schema` constant names and `satisfies`
 
 Name Effect schema values **PascalCase** (e.g. `BrickDragDefSchema`, `BrickCatalogRouteParamsSchema`), not camelCase. When a **domain type already exists** that the decoded value should match, constrain the struct with **`satisfies Schema.Schema<ThatType>`** so drift between schema fields and the type is a compile error.
 
-- **Bad**: `const brickDragDefSchema = Schema.Struct({ … })` with no link to `ICollectionBrickDef`; or adding a throwaway `type Foo = { … }` next to the schema **only** to satisfy the compiler when the product model does not yet define `Foo`.
+- **Bad**: `const brickDragDefSchema = Schema.Struct({ … })` with no link to `ICatalogBrickDef`; or adding a throwaway `type Foo = { … }` next to the schema **only** to satisfy the compiler when the product model does not yet define `Foo`.
 
 - **Good**: put `satisfies Schema.Schema<…>` on the **`Schema.Struct`** that describes the **parsed object** (see `BrickDragDefFromJsonStringSchema` in [`apps/app/components/home/useBrickDrawerStore.ts`](../../apps/app/components/home/useBrickDrawerStore.ts) and the `parseJson` subsection below).
 
@@ -92,14 +92,14 @@ Use **`Schema.parseJson`** when the value you decode is a **string** containing 
 ```ts
 const BrickDragDefFromJsonStringSchema = Schema.parseJson(
   Schema.Struct({
-    collectionName: Schema.String,
-    collectionLabel: Schema.String,
+    catalogName: Schema.String,
+    catalogLabel: Schema.String,
     label: Schema.String,
     name: Schema.String,
     order: Schema.Number,
     w: Schema.Number,
     h: Schema.Number,
-  }) satisfies Schema.Schema<ICollectionBrickDef>,
+  }) satisfies Schema.Schema<ICatalogBrickDef>,
 );
 ```
 

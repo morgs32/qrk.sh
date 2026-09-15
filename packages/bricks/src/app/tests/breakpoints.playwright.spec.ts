@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 test("catalog breakpoints follow the shared grid container at every boundary", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto("/");
-  const collection = page.locator('[data-collection-entry="github"]');
-  await collection.getByRole("button", { name: "4×2", exact: true }).first().click();
-  const preview = collection.locator('[data-collection-representative="github/profile/4x2"]');
+  const catalog = page.locator('[data-catalog-entry="github"]');
+  await catalog.getByRole("button", { name: "4×2", exact: true }).first().click();
+  const preview = catalog.locator('[data-catalog-representative="github/profile/4x2"]');
   const responsive = preview.locator("[data-brick-breakpoint]");
   const activity = preview.locator("[data-github-profile-activity]");
   const cells = activity.locator("rect[data-date]");
@@ -103,7 +103,7 @@ test("standalone slider updates the compact view without losing contributions", 
 
 test("placed bricks respond to presets and keep their data and positions", async ({ page }) => {
   await page.setViewportSize({ width: 3400, height: 1000 });
-  await page.goto("/collections/github?content=profile&view=4x2");
+  await page.goto("/catalogs/github?content=profile&view=4x2");
   const source = page.locator('[data-content-view-brick="github/profile/4x2"]');
   await expect(source.locator("[data-brick-breakpoint]")).toHaveAttribute(
     "data-brick-breakpoint",
@@ -156,7 +156,7 @@ test("placed bricks respond to presets and keep their data and positions", async
 
 test("lg and xl overrides persist and restore nearest smaller inheritance", async ({ page }) => {
   await page.setViewportSize({ width: 3400, height: 1100 });
-  await page.goto("/collections/figma");
+  await page.goto("/catalogs/figma");
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
   const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
   await page.locator("[data-content-view-brick] .brick-drag-handle").dragTo(grid, {

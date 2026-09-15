@@ -4,7 +4,7 @@ import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 
 import { useRef } from "react";
 import { href, useNavigate } from "react-router";
-import { collectionsHash } from "@qrk.sh/bricks";
+import { catalogsHash } from "@qrk.sh/bricks";
 import {
   getActiveBrickDragGridShape,
   parseBrickDefFromDataTransfer,
@@ -84,9 +84,7 @@ export function Grid() {
             useBrickDrawerStore.getState().unregisterActiveBrickDragGridShape();
             if (!item || !brickDef) return;
             const brick =
-              collectionsHash[brickDef.collectionName]?.contents[brickDef.content]?.views[
-                brickDef.view
-              ];
+              catalogsHash[brickDef.catalogName]?.contents[brickDef.content]?.views[brickDef.view];
             if (!brick) return;
             const brickId = crypto.randomUUID();
             const droppedLayout = nextLayout.map((layoutItem) =>
@@ -125,7 +123,7 @@ export function Grid() {
           {layout.map((layoutItem) => {
             const brickDef = pageGrid?.bricksById[layoutItem.i];
             const content = brickDef
-              ? collectionsHash[brickDef.collectionName]?.contents[brickDef.content]
+              ? catalogsHash[brickDef.catalogName]?.contents[brickDef.content]
               : undefined;
             const brick = brickDef ? content?.views[brickDef.view] : undefined;
             if (!brick) {
@@ -142,7 +140,7 @@ export function Grid() {
               <div
                 key={layoutItem.i}
                 className="qrk-bricks size-full cursor-grab overflow-hidden active:cursor-grabbing"
-                data-brick-collection-name={brick.def.collectionName}
+                data-brick-catalog-name={brick.def.catalogName}
                 data-brick-content={brick.def.content}
                 data-brick-view={brick.def.view}
                 data-brick-id={layoutItem.i}

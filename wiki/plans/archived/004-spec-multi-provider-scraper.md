@@ -28,7 +28,7 @@ Browser-backed provider Queues launch one Browser Run session per Queue batch an
 
 1. The public Cap'n Web contract remains `submitScrape({ pageType, url })` and `getScrape(id)`. `submitScrape` routes by the validated `pageType`; no provider-specific RPC methods are added.
 2. `pageType` contains exactly `linktree`, `beacons`, `instagram`, `tiktok`, `youtube`, and `truth-social` in this version.
-3. A scrape job represents one public creator profile or channel page. It does not represent an individual post, video, comment collection, transcript, feed traversal, or recursively discovered link.
+3. A scrape job represents one public creator profile or channel page. It does not represent an individual post, video, comment catalog, transcript, feed traversal, or recursively discovered link.
 4. Each submission creates a new job even when its canonical URL matches an earlier job.
 5. Each page type has a separately named producer binding and Queue consumer configuration. The Worker Queue entrypoint dispatches from the Queue name to the corresponding provider workflow. Unknown Queue names and a message whose `pageType` does not match its Queue are deterministic failures.
 6. Provider routing remains explicit in the Worker and API boundaries. The implementation may share already-approved job persistence and Effect boundary utilities, but it does not introduce a provider registry, generic scraper class hierarchy, barrel, or additional package export.

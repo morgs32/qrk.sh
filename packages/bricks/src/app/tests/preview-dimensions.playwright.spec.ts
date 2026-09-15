@@ -1,20 +1,20 @@
 import { expect, test } from "@playwright/test";
 
-for (const [collection, content, view, w, h] of [
+for (const [catalog, content, view, w, h] of [
   ["swatch", "default", "2x2", 2, 2],
   ["github", "profile", "4x2", 4, 2],
   ["swatch", "default", "4x4", 4, 4],
   ["swatch", "default", "8x2", 8, 2],
 ] satisfies Array<[string, string, string, number, number]>) {
-  test(`${collection} ${view} preview matches placed dimensions`, async ({ page }) => {
+  test(`${catalog} ${view} preview matches placed dimensions`, async ({ page }) => {
     await page.setViewportSize({ width: 3000, height: 1100 });
-    await page.goto(`/collections/${collection}?content=${content}&view=${view}`);
-    const source = page.locator(`[data-content-view-brick="${collection}/${content}/${view}"]`);
+    await page.goto(`/catalogs/${catalog}?content=${content}&view=${view}`);
+    const source = page.locator(`[data-content-view-brick="${catalog}/${content}/${view}"]`);
     const grid = page.getByLabel("Brick grid", { exact: true });
     await source.locator(".brick-drag-handle").dragTo(grid.locator(".react-grid-layout"), {
       targetPosition: { x: 20, y: 200 },
     });
-    const placed = grid.locator(`[data-brick="${collection}/${content}/${view}"]`);
+    const placed = grid.locator(`[data-brick="${catalog}/${content}/${view}"]`);
     await expect(placed).toHaveCount(1);
     for (const width of [375, 640, 1024, 1440]) {
       await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
@@ -50,9 +50,9 @@ for (const [collection, content, view, w, h] of [
 test("wide catalog previews scroll rather than shrinking", async ({ page }) => {
   await page.setViewportSize({ width: 3000, height: 1000 });
   await page.goto("/");
-  const swatch = page.locator('[data-collection-entry="swatch"]');
+  const swatch = page.locator('[data-catalog-entry="swatch"]');
   await swatch.getByRole("button", { name: "8×2", exact: true }).click();
-  const preview = swatch.locator('[data-collection-representative="swatch/default/8x2"]');
+  const preview = swatch.locator('[data-catalog-representative="swatch/default/8x2"]');
   await expect(preview).toHaveCSS("width", "1440px");
   await page.getByLabel("Bricks panel").evaluate((element) => {
     element.style.width = "400px";

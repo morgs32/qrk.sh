@@ -1,6 +1,6 @@
 import { GripHorizontal } from "lucide-react";
 import { Button } from "../ui/button";
-import type { ICollectionBrickDef } from "../types";
+import type { ICatalogBrickDef } from "../types";
 import type { ComponentProps } from "react";
 
 import { useGridStore } from "./useGridStore";
@@ -11,7 +11,7 @@ export function DraggableBrick({
   className,
   ...props
 }: {
-  brickDef: ICollectionBrickDef;
+  brickDef: ICatalogBrickDef;
 } & Omit<ComponentProps<"div">, "draggable" | "onDragStart" | "onDragEnd">) {
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
 

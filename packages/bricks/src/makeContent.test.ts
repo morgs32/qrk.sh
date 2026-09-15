@@ -1,12 +1,12 @@
 import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import { primitives } from "@zerospin/schema";
-import { textBrickCollection } from "./collections/TextBrick/TextBrickCollection";
+import { textBrickCatalog } from "./catalogs/TextBrick/TextBrickCatalog";
 import { describe, expect, expectTypeOf, it, vi } from "vite-plus/test";
 import { ScraperApi } from "./scraper/ScraperApi";
 import type { IScrapeError } from "./scraper/types.public";
 
-import { githubCollection } from "./collections/GitHubCards/GitHubProfileCollection";
-import { mapCollection } from "./collections/Map/MapCollection";
+import { githubCatalog } from "./catalogs/GitHubCards/GitHubProfileCatalog";
+import { mapCatalog } from "./catalogs/Map/MapCatalog";
 import { makeContent } from "./makeContent";
 import { makeView } from "./makeView";
 
@@ -75,15 +75,15 @@ describe("makeContent data contracts", () => {
     expect("getData" in content).toBe(false);
     expect("contentOptions" in content).toBe(false);
 
-    expect("contentOptionsShape" in githubCollection.contents.repo).toBe(false);
-    expect("contentOptionsForm" in githubCollection.contents.repo).toBe(false);
-    expect(githubCollection.contents.repo.dataShape).toBeNull();
-    expect(githubCollection.contents.repo.defaultData).toBeNull();
-    expect("getData" in githubCollection.contents.repo).toBe(false);
+    expect("contentOptionsShape" in githubCatalog.contents.repo).toBe(false);
+    expect("contentOptionsForm" in githubCatalog.contents.repo).toBe(false);
+    expect(githubCatalog.contents.repo.dataShape).toBeNull();
+    expect(githubCatalog.contents.repo.defaultData).toBeNull();
+    expect("getData" in githubCatalog.contents.repo).toBe(false);
   });
 
-  it("preserves typed custom contentOptions controls through the collection", () => {
-    const placeContent = mapCollection.contents.place;
+  it("preserves typed custom contentOptions controls through the catalog", () => {
+    const placeContent = mapCatalog.contents.place;
 
     if (placeContent?.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
@@ -106,7 +106,7 @@ describe("makeContent data contracts", () => {
   });
 
   it("uses a data form for locally authored text", () => {
-    const content = textBrickCollection.contents.default;
+    const content = textBrickCatalog.contents.default;
     expect(content.configuration?.configurationType).toBe("form");
     expect(content.defaultData).toEqual({ content: null });
     expect(content.dataShape?.content.kind).toBe("json");
@@ -159,7 +159,7 @@ describe("makeContent data contracts", () => {
   });
 
   it("preserves the GitHub profile request, response, default, and callback contract", () => {
-    const profileContent = githubCollection.contents.profile;
+    const profileContent = githubCatalog.contents.profile;
 
     if (profileContent?.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");

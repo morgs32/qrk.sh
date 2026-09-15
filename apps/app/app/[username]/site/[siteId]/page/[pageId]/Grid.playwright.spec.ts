@@ -2,20 +2,20 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const pageBase = "/e2e/site/e2e/page/home";
 
-function drawerBrickPreviewSlot(page: Page, collectionName: string, content: string, view: string) {
+function drawerBrickPreviewSlot(page: Page, catalogName: string, content: string, view: string) {
   return page.locator(
-    `[data-brick-drawer-brick-slot][data-brick-drawer-collection-name="${collectionName}"][data-brick-drawer-content="${content}"][data-brick-drawer-view="${view}"]`,
+    `[data-brick-drawer-brick-slot][data-brick-drawer-catalog-name="${catalogName}"][data-brick-drawer-content="${content}"][data-brick-drawer-view="${view}"]`,
   );
 }
 
 function gridLocateByBrickIdentity(
   grid: Locator,
-  collectionName: string,
+  catalogName: string,
   content: string,
   view: string,
 ) {
   return grid.locator(
-    `[data-brick-collection-name="${collectionName}"][data-brick-content="${content}"][data-brick-view="${view}"]`,
+    `[data-brick-catalog-name="${catalogName}"][data-brick-content="${content}"][data-brick-view="${view}"]`,
   );
 }
 

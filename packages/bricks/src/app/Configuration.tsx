@@ -1,11 +1,11 @@
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
-import type { ICollection } from "../types";
+import type { ICatalog } from "../types";
 import { Outline } from "../Outline";
 import { FetcherConfiguration } from "./FetcherConfiguration";
 
 export function Configuration(props: {
-  content: ICollection["contents"][string];
+  content: ICatalog["contents"][string];
   data: unknown;
   showData?: boolean;
   setData: (data: unknown) => void;
@@ -51,7 +51,7 @@ export function Configuration(props: {
       return (
         <FetcherConfiguration
           configuration={configuration}
-          collectionName={Object.values(props.content.views)[0]?.def.collectionName}
+          catalogName={Object.values(props.content.views)[0]?.def.catalogName}
           showData={props.showData}
           data={props.data}
           setData={props.setData}

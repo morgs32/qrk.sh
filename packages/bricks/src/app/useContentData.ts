@@ -2,15 +2,15 @@ import { makeEffectSchema } from "@zerospin/schema";
 import { Schema } from "effect";
 import { useCallback } from "react";
 import { create } from "zustand";
-import { collectionsHash } from "../collectionsHash";
+import { catalogsHash } from "../catalogsHash";
 
 export const useContentDataStore = create<{
-  dataByCollection: Record<string, Record<string, unknown>>;
-  setContentData: (collectionName: string, contentName: string, data: unknown) => void;
+  dataByCatalog: Record<string, Record<string, unknown>>;
+  setContentData: (catalogName: string, contentName: string, data: unknown) => void;
 }>((set) => ({
-  dataByCollection: {},
-  setContentData: (collectionName, contentName, data) => {
-    const content = collectionsHash[collectionName]?.contents[contentName];
+  dataByCatalog: {},
+  setContentData: (catalogName, contentName, data) => {
+    const content = catalogsHash[catalogName]?.contents[contentName];
     if (content === undefined) throw new Error("Content not found");
 
     // Decode before changing state: failed writes leave the last preview intact.
@@ -20,10 +20,10 @@ export const useContentDataStore = create<{
       onExcessProperty: "preserve",
     });
     set((state) => ({
-      dataByCollection: {
-        ...state.dataByCollection,
-        [collectionName]: {
-          ...state.dataByCollection[collectionName],
+      dataByCatalog: {
+        ...state.dataByCatalog,
+        [catalogName]: {
+          ...state.dataByCatalog[catalogName],
           [contentName]: decodedData,
         },
       },
@@ -32,21 +32,21 @@ export const useContentDataStore = create<{
 }));
 
 export function useContentData(
-  collectionName: string,
+  catalogName: string,
   contentName: string,
 ): [unknown, (data: unknown) => void] {
   const contentData = useContentDataStore((state) => {
-    const collectionData = state.dataByCollection[collectionName];
-    if (collectionData !== undefined && Object.hasOwn(collectionData, contentName)) {
-      return collectionData[contentName];
+    const catalogData = state.dataByCatalog[catalogName];
+    if (catalogData !== undefined && Object.hasOwn(catalogData, contentName)) {
+      return catalogData[contentName];
     }
-    return collectionsHash[collectionName]?.contents[contentName]?.defaultData;
+    return catalogsHash[catalogName]?.contents[contentName]?.defaultData;
   });
   const setContentData = useCallback(
     (data: unknown) => {
-      useContentDataStore.getState().setContentData(collectionName, contentName, data);
+      useContentDataStore.getState().setContentData(catalogName, contentName, data);
     },
-    [collectionName, contentName],
+    [catalogName, contentName],
   );
 
   return [contentData, setContentData];

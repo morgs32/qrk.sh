@@ -90,12 +90,12 @@ Automatic command pushing and SharedWorker use remain disabled. The explicit Sav
 6. Change owner frontend signature shape to `{ sessionToken: string }` and verify it with Clerk's Worker-compatible `verifyToken` API.
 7. Add `clerkUserId` to User, derive `actorId` with the current Zerospin actor prefix utility, and create a missing User during authentication before returning account and actor IDs.
 8. Use one account named `user`, one actor named `owner`, and one frontend named `web`, following current Zerospin controller APIs.
-9. Keep Site, Page, Grid, and GridItem as separate resources. A Page has one canonical primary Grid for this editor; a GridItem has a canonical ID derived from its Grid and stable `itemKey`, plus geometry, `collectionName`, and `brickName`.
+9. Keep Site, Page, Grid, and GridItem as separate resources. A Page has one canonical primary Grid for this editor; a GridItem has a canonical ID derived from its Grid and stable `itemKey`, plus geometry, `catalogName`, and `brickName`.
 10. Make `createGrid.gridItems` a JSON array and return one Grid create mutation followed by one GridItem create mutation per array element.
 11. Make `updateGrid.gridItems` the complete desired item snapshot with explicit `create`, `update`, or `none` intent, plus deleted GridItem IDs and `expectedRevision`. Return GridItem mutations only for changed entries and advance Grid revision once for every real aggregate change; return no mutations for a fully unchanged aggregate.
 12. Add direct frontend guards for create ownership and update ownership, canonical aggregate IDs, full-snapshot coverage, changed-versus-unchanged intent, and stale Grid revision.
 13. Extend the existing Zustand grid store with Clerk-user-and-route-keyed hydration, aggregate revision, dirty, saving, and inline error state. Do not add a parallel draft store.
-14. Hydrate persisted rows by resolving their `collectionName` and `brickName` against the existing catalog. Invalid persisted catalog identities are an explicit load error rather than silently substituted bricks.
+14. Hydrate persisted rows by resolving their `catalogName` and `brickName` against the existing catalog. Invalid persisted catalog identities are an explicit load error rather than silently substituted bricks.
 15. Add Save to SiteToolbar. The handler stages missing Site/Page bootstrap commands only when necessary, then exactly one aggregate grid command, and manually pushes once.
 16. Preserve the draft on stage, guard, transport, admission, or stale-revision failure. Rehydrate and mark clean only after successful admission and live-query convergence.
 17. Mount Zerospin DevTools in the site layout, configure `makeReactFrontend({ isPushPaused: true })`, and leave `isSharedWorkerEnabled` false.

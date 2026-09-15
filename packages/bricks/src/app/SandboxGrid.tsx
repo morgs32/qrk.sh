@@ -1,11 +1,10 @@
-import { BrickViewFrame } from "./BrickViewFrame";
 import { Link } from "react-router";
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 import { useBrickBreakpoint } from "../BrickBreakpointProvider";
 import { GripHorizontal, Pencil } from "lucide-react";
 import { Button } from "../ui/button";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { collectionsHash } from "../collectionsHash";
+import { catalogsHash } from "../catalogsHash";
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 
 import { useGridStore } from "./useGridStore";
@@ -66,7 +65,7 @@ export function SandboxGrid() {
           // Dropped items carry isDraggable, which overrides dragConfig.enabled.
           layout={layout.map((item) => ({ ...item, isDraggable: true }))}
           autoSize
-          className="grid-layout min-h-screen [--card-gap:16px]"
+          className="grid-layout min-h-screen"
           compactor={verticalCompactor}
           gridConfig={{
             cols: 8,
@@ -170,8 +169,8 @@ export function SandboxGrid() {
         >
           {layout.map((layoutItem) => {
             const brickDef = bricksById[layoutItem.i];
-            const collection = brickDef ? collectionsHash[brickDef.collectionId] : undefined;
-            const content = collection?.contents[brickDef.contentId];
+            const catalog = brickDef ? catalogsHash[brickDef.catalogId] : undefined;
+            const content = catalog?.contents[brickDef.contentId];
             const brick = content?.views[brickDef.viewId];
 
             if (brick) {
@@ -182,47 +181,43 @@ export function SandboxGrid() {
                   key={layoutItem.i}
                   style={{ opacity: outsideBrickId === layoutItem.i ? 0.4 : 1 }}
                   className="brick-drag-surface size-full"
-                  data-brick={`${brick.def.collectionName}/${brick.def.content}/${brick.def.view}`}
+                  data-brick={`${brick.def.catalogName}/${brick.def.content}/${brick.def.view}`}
                   data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
                   data-grid-w={layoutItem.w}
                   data-grid-h={layoutItem.h}
                 >
-                  <BrickViewFrame
-                    frame={resolveBrickBreakpoint(brickDef, breakpoint).frame}
-                    controls={
-                      <>
-                        <Button asChild variant="ghost" size="icon" className="brick-edit-handle">
-                          <Link
-                            aria-label="Edit brick"
-                            to={`/collections/${encodeURIComponent(brickDef.collectionId)}/brick/${encodeURIComponent(layoutItem.i)}`}
-                          >
-                            <Pencil aria-hidden className="size-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="brick-drag-handle"
-                          aria-label="Drag brick"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }}
-                        >
-                          <GripHorizontal aria-hidden className="size-4" />
-                        </Button>
-                      </>
-                    }
-                  >
-                    <BrickComponent
-                      breakpoint={breakpoint}
-                      data={brickDef.data}
-                      viewOptions={resolveBrickBreakpoint(brickDef, breakpoint).viewOptions}
-                    />
-                  </BrickViewFrame>
+                  <div className="relative size-full">
+                    <div className="brick-drag-content size-full">
+                      <BrickComponent
+                        breakpoint={breakpoint}
+                        data={brickDef.data}
+                        viewOptions={resolveBrickBreakpoint(brickDef, breakpoint).viewOptions}
+                      />
+                    </div>
+                    <Button asChild variant="ghost" size="icon" className="brick-edit-handle">
+                      <Link
+                        aria-label="Edit brick"
+                        to={`/catalogs/${encodeURIComponent(brickDef.catalogId)}/brick/${encodeURIComponent(layoutItem.i)}`}
+                      >
+                        <Pencil aria-hidden className="size-4" />
+                      </Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="brick-drag-handle"
+                      aria-label="Drag brick"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }}
+                    >
+                      <GripHorizontal aria-hidden className="size-4" />
+                    </Button>
+                  </div>
                 </div>
               );
             }

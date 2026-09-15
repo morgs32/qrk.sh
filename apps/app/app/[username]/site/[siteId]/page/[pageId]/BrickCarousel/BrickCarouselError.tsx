@@ -3,12 +3,12 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 export class BrickCarouselNoBricksError extends Error {
-  readonly collectionName: string;
+  readonly catalogName: string;
 
-  constructor(collectionName: string) {
-    super(`BrickCarousel: no bricks in collection "${collectionName}"`);
+  constructor(catalogName: string) {
+    super(`BrickCarousel: no bricks in catalog "${catalogName}"`);
     this.name = "BrickCarouselNoBricksError";
-    this.collectionName = collectionName;
+    this.catalogName = catalogName;
   }
 }
 
@@ -39,7 +39,7 @@ export class BrickCarouselError extends Component<
     if (error) {
       const message =
         error instanceof BrickCarouselNoBricksError
-          ? `This collection has no bricks (${error.collectionName}).`
+          ? `This catalog has no bricks (${error.catalogName}).`
           : error.message;
       return (
         <div

@@ -18,19 +18,19 @@ export default [
           {
             index: true,
             lazy: async () => {
-              const { default: CatalogPage } = await import("./routes/CatalogPage");
-              return { Component: CatalogPage };
+              const { default: CatalogsPage } = await import("./routes/CatalogsPage");
+              return { Component: CatalogsPage };
             },
           },
           {
-            path: "collections/:collectionName",
+            path: "catalogs/:catalogName",
             lazy: async () => {
               const {
-                default: CollectionPage,
+                default: CatalogPage,
                 loader,
                 ErrorBoundary,
-              } = await import("./routes/CollectionPage");
-              return { Component: CollectionPage, loader, ErrorBoundary };
+              } = await import("./routes/CatalogPage");
+              return { Component: CatalogPage, loader, ErrorBoundary };
             },
             children: [
               {
@@ -64,7 +64,7 @@ export default [
         ],
       },
       {
-        path: "bricks/:collectionName/:content/:view",
+        path: "bricks/:catalogName/:content/:view",
         lazy: async () => {
           const { default: BrickPage, loader, ErrorBoundary } = await import("./routes/BrickPage");
           return { Component: BrickPage, loader, ErrorBoundary };

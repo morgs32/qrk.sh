@@ -54,17 +54,17 @@ export default [
                       {
                         path: "brick-catalog",
                         lazy: async () => {
-                          const { default: BrickCatalogRoute, handle } =
-                            await import("./routes/BrickCatalogRoute");
-                          return { Component: BrickCatalogRoute, handle };
+                          const { default: BrickCatalogsRoute, handle } =
+                            await import("./routes/BrickCatalogsRoute");
+                          return { Component: BrickCatalogsRoute, handle };
                         },
                       },
                       {
-                        path: "brick-catalog/:collectionName",
+                        path: "brick-catalog/:catalogName",
                         lazy: async () => {
-                          const { default: BrickCollectionRoute } =
-                            await import("./routes/BrickCollectionRoute");
-                          return { Component: BrickCollectionRoute };
+                          const { default: BrickCatalogRoute } =
+                            await import("./routes/BrickCatalogRoute");
+                          return { Component: BrickCatalogRoute };
                         },
                       },
                       {

@@ -23,8 +23,8 @@ test("limits presets to the desktop half and preserves width through navigation 
   await expect(
     toolbar.getByRole("button", { name: "1024px grid width", exact: true }),
   ).toBeDisabled();
-  await page.locator('[data-collection-link="swatch"]').click();
-  await expect(page).toHaveURL(/collections\/swatch$/);
+  await page.locator('[data-catalog-link="swatch"]').click();
+  await expect(page).toHaveURL(/catalogs\/swatch$/);
   await expect(grid).toHaveCSS("width", "375px");
   await toolbar.getByRole("button", { name: "Reset grid layout" }).click();
   await expect(grid.locator("[data-brick-id]")).toHaveCount(0);
@@ -75,7 +75,7 @@ for (const width of [375, 768]) {
     await expect(drawer).toHaveCSS("width", `${width}px`);
     // Use a real catalog drag into the uncovered grid; no modal overlay can intercept it.
     await drawer
-      .locator('[data-collection-representative="icon/default/2x2"] .brick-drag-handle')
+      .locator('[data-catalog-representative="icon/default/2x2"] .brick-drag-handle')
       .dragTo(page.getByLabel("Brick grid").locator(".react-grid-layout"), {
         targetPosition: { x: 20, y: 20 },
       });
@@ -83,8 +83,8 @@ for (const width of [375, 768]) {
       page.getByLabel("Brick grid").locator('[data-brick="icon/default/2x2"]'),
     ).toBeVisible();
     await expect(drawer).toBeVisible();
-    await drawer.locator('[data-collection-link="swatch"]').click();
-    await expect(page).toHaveURL(/collections\/swatch$/);
+    await drawer.locator('[data-catalog-link="swatch"]').click();
+    await expect(page).toHaveURL(/catalogs\/swatch$/);
     await toolbar.getByRole("button", { name: "Reset grid layout" }).click();
     await expect(page.getByLabel("Brick grid").locator("[data-brick-id]")).toHaveCount(0);
     await drawer.getByRole("button", { name: "Close bricks" }).click();

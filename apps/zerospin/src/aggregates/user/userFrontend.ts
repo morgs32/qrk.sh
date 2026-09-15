@@ -30,7 +30,7 @@ export const userFrontend = makeFrontendController({
   },
   aggregateName: "user",
   name: "web",
-  aggregateVersion: "5.0.0",
+  aggregateVersion: "6.0.0",
   systemName: "qrk-sh",
   models: {
     grid: Grid,

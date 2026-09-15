@@ -1,12 +1,10 @@
-import { BrickViewFrame } from "../BrickViewFrame";
-import { Switch } from "../../ui/switch";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
-import { CollectionOutline } from "../CollectionOutline";
+import { CatalogOutline } from "../CatalogOutline";
 import { Button } from "../../ui/button";
 import { resolveBrickBreakpoint } from "../resolveBrickBreakpoint";
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
-import { collectionsHash } from "../../collectionsHash";
+import { catalogsHash } from "../../catalogsHash";
 import { Link, useParams } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { makeEffectSchema } from "@zerospin/schema";
@@ -20,33 +18,31 @@ import { useGridStore } from "../useGridStore";
 export default function BrickDetail() {
   const { breakpoint } = useBrickBreakpoint();
   const params = useParams();
-  if (!params.collectionName || !params.brickId) throw new Response("Not found", { status: 404 });
-  const { collectionName, brickId } = params;
+  if (!params.catalogName || !params.brickId) throw new Response("Not found", { status: 404 });
+  const { catalogName, brickId } = params;
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const brickDef = useGridStore((state) => state.bricksById[brickId]);
-  const collection =
-    brickDef?.collectionId === collectionName ? collectionsHash[brickDef.collectionId] : undefined;
-  const content = collection?.contents[brickDef?.contentId ?? ""];
+  const catalog =
+    brickDef?.catalogId === catalogName ? catalogsHash[brickDef.catalogId] : undefined;
+  const content = catalog?.contents[brickDef?.contentId ?? ""];
   const brick = content?.views[brickDef?.viewId ?? ""];
 
   if (!hasHydrated) {
     return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
   }
 
-  if (!brick || !collection || !content || !brickDef) {
+  if (!brick || !catalog || !content || !brickDef) {
     return (
       <div className="px-6 pt-6" data-testid="brick-not-found">
         <Link
-          to={`/collections/${encodeURIComponent(collectionName)}`}
+          to={`/catalogs/${encodeURIComponent(catalogName)}`}
           className="inline-flex items-center gap-2 text-sm"
         >
           <ArrowLeft aria-hidden className="size-4" />
-          <span>Back to collection</span>
+          <span>Back to catalog</span>
         </Link>
         <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Brick not found</h1>
-        <p className="mt-0 text-zinc-600">
-          This brick ID is not stored for the requested collection.
-        </p>
+        <p className="mt-0 text-zinc-600">This brick ID is not stored for the requested catalog.</p>
       </div>
     );
   }
@@ -62,15 +58,13 @@ export default function BrickDetail() {
   return (
     <section data-testid="brick-detail-pane">
       <Outline.Title>
-        <Link to={`/collections/${encodeURIComponent(collectionName)}`}>
-          {collection.collectionLabel}
-        </Link>
+        <Link to={`/catalogs/${encodeURIComponent(catalogName)}`}>{catalog.catalogLabel}</Link>
       </Outline.Title>
-      <CollectionOutline
-        collection={collection}
+      <CatalogOutline
+        catalog={catalog}
         renderContent={(name, label) => (
           <Link
-            to={`/collections/${encodeURIComponent(collectionName)}?content=${encodeURIComponent(name)}`}
+            to={`/catalogs/${encodeURIComponent(catalogName)}?content=${encodeURIComponent(name)}`}
             aria-current={name === brick.def.content ? "true" : undefined}
             className="underline aria-[current=true]:no-underline"
           >
@@ -97,13 +91,11 @@ export default function BrickDetail() {
           h={entry.gridItem?.h ?? brick.def.h}
         >
           <div className="size-full qrk-bricks" data-testid="selected-brick-preview">
-            <BrickViewFrame frame={entry.frame}>
-              <BrickComponent
-                breakpoint={breakpoint}
-                data={brickData}
-                viewOptions={entry.viewOptions}
-              />
-            </BrickViewFrame>
+            <BrickComponent
+              breakpoint={breakpoint}
+              data={brickData}
+              viewOptions={entry.viewOptions}
+            />
           </div>
         </BrickPreviewFrame>
       </div>
@@ -158,16 +150,6 @@ export default function BrickDetail() {
           >
             {entry.gridItem === null ? "Show brick" : "Hide brick"}
           </Button>
-          <label className="inline-flex cursor-pointer items-center gap-2">
-            <Switch
-              aria-label="Card frame"
-              checked={entry.frame === "card"}
-              onCheckedChange={(checked) => {
-                useGridStore.getState().setFrame(brickId, breakpoint, checked ? "card" : "default");
-              }}
-            />
-            Card frame
-          </label>
         </div>
         {ViewForm && (
           <ViewForm

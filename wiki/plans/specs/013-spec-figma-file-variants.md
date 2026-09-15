@@ -5,11 +5,11 @@
 
 ## Problem Statement
 
-The Figma collection exposes one static `default` variant whose hard-coded White Bay image duplicates the Image brick. It does not accept a Figma URL, load Figma metadata, distinguish Figma file types, or open the represented file. The scraper likewise has no explicit Figma capability or server-side Figma credential boundary.
+The Figma catalog exposes one static `default` variant whose hard-coded White Bay image duplicates the Image brick. It does not accept a Figma URL, load Figma metadata, distinguish Figma file types, or open the represented file. The scraper likewise has no explicit Figma capability or server-side Figma credential boundary.
 
 ## Solution
 
-Replace the static Figma variant with four data-backed collection variants: `design`, `board`, `slides`, and `prototype`. Each variant accepts its matching Figma file URL and calls a matching named method on a new `FigmaRepo`. The repository uses a server-side Figma token to request authenticated oEmbed metadata, canonicalizes the file-level URL, caches successful metadata, and returns the decoded preview data.
+Replace the static Figma variant with four data-backed catalog variants: `design`, `board`, `slides`, and `prototype`. Each variant accepts its matching Figma file URL and calls a matching named method on a new `FigmaRepo`. The repository uses a server-side Figma token to request authenticated oEmbed metadata, canonicalizes the file-level URL, caches successful metadata, and returns the decoded preview data.
 
 Each variant has one 4x4 brick with a distinct presentation. Loaded cards show the current thumbnail and title and open the canonical Figma file in a new tab. Before data is loaded, or when a loaded file has no usable thumbnail, the card uses its own local branded presentation.
 
@@ -26,12 +26,12 @@ Each variant has one 4x4 brick with a distinct presentation. Loaded cards show t
 
 ## Implementation Decisions
 
-1. Replace `default` in the Figma collection with exactly four variants:
+1. Replace `default` in the Figma catalog with exactly four variants:
    1. `design` for `figma.com/design/<file-key>/...`.
    2. `board` for `figma.com/board/<file-key>/...`.
    3. `slides` for both `figma.com/slides/<file-key>/...` editor URLs and `figma.com/deck/<file-key>/...` presentation URLs, canonicalizing both to `https://www.figma.com/slides/<file-key>`.
    4. `prototype` for `figma.com/proto/<file-key>/...`.
-2. Do not add a Figma Make variant. Published Make and `figma.site` resources are outside this Figma file collection design.
+2. Do not add a Figma Make variant. Published Make and `figma.site` resources are outside this Figma file catalog design.
 3. Each variant has exactly one `4x4` brick. Do not add other sizes in this change.
 4. Each variant declares the same single payload field, `url`, using the existing text primitive and a generic example URL for its own file family.
 5. Each variant declares the oEmbed fields consumed by its card through `dataShape`:
@@ -77,7 +77,7 @@ Each variant has one 4x4 brick with a distinct presentation. Loaded cards show t
 32. Use `file-unavailable` for missing files and access failures that should not expose credential details.
 33. Continue using `invalid-scrape-request` for malformed or unsupported URLs, `unsupported-page-shape` for malformed successful responses, and `scrape-transient-failure` for rate limits, network failures, and upstream server failures.
 34. Register `FigmaRepo` through the Worker exports, Wrangler Durable Object binding and migration, scraper environment type, generated public declarations, and local test bindings. Do not alter the existing origin repositories.
-35. Point each collection variant's `getData` directly at its matching named RPC method. Keep the four mappings explicit; do not loop over variant definitions or generate the collection from a configuration array.
+35. Point each catalog variant's `getData` directly at its matching named RPC method. Keep the four mappings explicit; do not loop over variant definitions or generate the catalog from a configuration array.
 36. Generic placeholders remain the catalog, Grid, direct-preview, and site default. Successfully loaded Figma data remains local to the variant configuration page under the existing variant-data behavior; it is not persisted with a Grid brick.
 
 ## Testing Decisions
@@ -91,9 +91,9 @@ Each variant has one 4x4 brick with a distinct presentation. Loaded cards show t
    5. Missing, inaccessible, rate-limited, malformed, and transient upstream responses map to the settled error codes.
    6. Concurrent first requests coalesce, fresh results use the cache, one-hour expiry serves stale data while one refresh runs, successful refresh replaces data, and failed refresh retains stale data.
    7. All four capabilities work through a real `ScraperApi` RPC session and the `FIGMA_REPO` binding.
-3. Extend the catalog invariant seam to prove the Figma collection contains exactly `design`, `board`, `slides`, and `prototype`, each with one `4x4` data-backed brick and the matching named RPC callback.
+3. Extend the catalog invariant seam to prove the Figma catalog contains exactly `design`, `board`, `slides`, and `prototype`, each with one `4x4` data-backed brick and the matching named RPC callback.
 4. Use the existing Bricks Playwright workbench as the primary user-visible seam and prove:
-   1. The Figma collection exposes all four variant tabs/routes and unique default cards.
+   1. The Figma catalog exposes all four variant tabs/routes and unique default cards.
    2. Each default card is non-interactive and displays its branded fallback.
    3. A successful request replaces the fallback with the returned title and thumbnail and makes the card link to the canonical URL in a new tab.
    4. A null or failed thumbnail retains the loaded title and uses the variant's branded fallback.

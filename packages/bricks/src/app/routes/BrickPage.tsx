@@ -1,7 +1,7 @@
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
 import { BrickBreakpointProvider } from "../../BrickBreakpointProvider";
 import { useState } from "react";
-import { collectionsHash } from "@qrk.sh/bricks";
+import { catalogsHash } from "@qrk.sh/bricks";
 import {
   isRouteErrorResponse,
   Link,
@@ -11,18 +11,18 @@ import {
 } from "react-router";
 
 export function loader({ params }: LoaderFunctionArgs) {
-  if (!params.collectionName || !params.content || !params.view)
+  if (!params.catalogName || !params.content || !params.view)
     throw new Response("Not found", { status: 404 });
-  if (!collectionsHash[params.collectionName]?.contents[params.content]?.views[params.view])
+  if (!catalogsHash[params.catalogName]?.contents[params.content]?.views[params.view])
     throw new Response("Not found", { status: 404 });
   return null;
 }
 
 export default function BrickPage() {
   const params = useParams();
-  if (!params.collectionName || !params.content || !params.view)
+  if (!params.catalogName || !params.content || !params.view)
     throw new Response("Not found", { status: 404 });
-  const content = collectionsHash[params.collectionName]?.contents[params.content];
+  const content = catalogsHash[params.catalogName]?.contents[params.content];
   const brick = content?.views[params.view];
 
   if (!brick) {
@@ -38,11 +38,8 @@ export default function BrickPage() {
       {({ containerRef, breakpoint }) => (
         <main className="min-h-screen">
           <div className="mx-auto max-w-7xl p-6">
-            <Link
-              to={`/collections/${encodeURIComponent(brick.def.collectionName)}`}
-              className="text-sm"
-            >
-              Back to {brick.def.collectionLabel}
+            <Link to={`/catalogs/${encodeURIComponent(brick.def.catalogName)}`} className="text-sm">
+              Back to {brick.def.catalogLabel}
             </Link>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -72,8 +69,8 @@ export default function BrickPage() {
                 </p>
                 <h1 className="m-0 text-2xl font-semibold">{brick.def.label}</h1>
                 <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2 text-sm">
-                  <dt className="text-zinc-500">Collection</dt>
-                  <dd className="m-0 font-mono">{brick.def.collectionName}</dd>
+                  <dt className="text-zinc-500">Catalog</dt>
+                  <dd className="m-0 font-mono">{brick.def.catalogName}</dd>
                   <dt className="text-zinc-500">Content</dt>
                   <dd className="m-0 font-mono">{brick.def.content}</dd>
                   <dt className="text-zinc-500">View</dt>
@@ -120,8 +117,8 @@ export function ErrorBoundary() {
     <main className="min-h-screen" data-testid="brick-not-found">
       <div className="mx-auto max-w-3xl p-6">
         <h1>Brick not found</h1>
-        <p>The requested collection, content, and view are not registered in the catalog.</p>
-        <Link to="/">Return to all collections</Link>
+        <p>The requested catalog, content, and view are not registered in the catalog.</p>
+        <Link to="/">Return to all catalogs</Link>
       </div>
     </main>
   );

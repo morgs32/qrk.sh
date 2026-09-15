@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("items follow the pointer outside, can return, and persist removal on release", async ({
   page,
 }) => {
-  await page.goto("/collections/swatch");
+  await page.goto("/catalogs/swatch");
   const preview = page.locator("[data-content-view-brick]");
   await preview
     .locator(".brick-drag-handle")

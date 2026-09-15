@@ -12,7 +12,7 @@ import { Button } from "../ui/button";
 
 export function FetcherConfiguration(props: {
   configuration: IFetcherConfiguration;
-  collectionName: string | undefined;
+  catalogName: string | undefined;
   data: unknown;
   showData?: boolean;
   setData: (data: unknown) => void;

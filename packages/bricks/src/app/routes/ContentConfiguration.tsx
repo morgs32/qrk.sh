@@ -1,11 +1,11 @@
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
-import { CollectionOutline } from "../CollectionOutline";
+import { CatalogOutline } from "../CatalogOutline";
 import { useState } from "react";
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { GripHorizontal } from "lucide-react";
 import { Button } from "../../ui/button";
-import { collectionsHash } from "../../collectionsHash";
+import { catalogsHash } from "../../catalogsHash";
 import {
   isRouteErrorResponse,
   Link,
@@ -23,9 +23,9 @@ import { useContentData } from "../useContentData";
 import { useGridStore } from "../useGridStore";
 
 export function loader({ params }: LoaderFunctionArgs) {
-  if (!params.collectionName || !params.contentName)
+  if (!params.catalogName || !params.contentName)
     throw new Response("Not found", { status: 404 });
-  const content = collectionsHash[params.collectionName]?.contents[params.contentName];
+  const content = catalogsHash[params.catalogName]?.contents[params.contentName];
   if (!content || Object.keys(content.views).length === 0) {
     throw new Response("Not found", { status: 404 });
   }
@@ -37,21 +37,21 @@ export default function ContentConfiguration() {
   const { breakpoint } = useBrickBreakpoint();
   const params = useParams();
   const [searchParams] = useSearchParams();
-  if (!params.collectionName) throw new Response("Not found", { status: 404 });
-  const { collectionName } = params;
+  if (!params.catalogName) throw new Response("Not found", { status: 404 });
+  const { catalogName } = params;
   const contentName =
     params.contentName ??
     searchParams.get("content") ??
-    Object.keys(collectionsHash[collectionName]?.contents ?? {})[0];
+    Object.keys(catalogsHash[catalogName]?.contents ?? {})[0];
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
-  const collection = collectionsHash[collectionName];
-  const content = contentName ? collection?.contents[contentName] : undefined;
+  const catalog = catalogsHash[catalogName];
+  const content = contentName ? catalog?.contents[contentName] : undefined;
 
-  if (!collection || !content || !contentName) {
+  if (!catalog || !content || !contentName) {
     throw new Response("Not found", { status: 404 });
   }
 
-  const [contentData, setContentData] = useContentData(collectionName, contentName);
+  const [contentData, setContentData] = useContentData(catalogName, contentName);
   const views = Object.entries(content.views);
   const firstView = views[0];
 
@@ -69,15 +69,15 @@ export default function ContentConfiguration() {
   return (
     <section data-testid="content-configuration-pane">
       <Outline.Title>
-        <Link to={`/collections/${encodeURIComponent(collectionName)}`}>
-          {collection.collectionLabel}
+        <Link to={`/catalogs/${encodeURIComponent(catalogName)}`}>
+          {catalog.catalogLabel}
         </Link>
       </Outline.Title>
-      <CollectionOutline
-        collection={collection}
+      <CatalogOutline
+        catalog={catalog}
         renderContent={(name, label) => (
           <Link
-            to={`/collections/${encodeURIComponent(collectionName)}?content=${encodeURIComponent(name)}`}
+            to={`/catalogs/${encodeURIComponent(catalogName)}?content=${encodeURIComponent(name)}`}
             aria-current={name === contentName ? "true" : undefined}
             className="underline aria-[current=true]:no-underline"
           >
@@ -86,7 +86,7 @@ export default function ContentConfiguration() {
         )}
         renderView={(name, view, label) => (
           <Link
-            to={`/collections/${encodeURIComponent(collectionName)}?content=${encodeURIComponent(name)}&view=${encodeURIComponent(view)}`}
+            to={`/catalogs/${encodeURIComponent(catalogName)}?content=${encodeURIComponent(name)}&view=${encodeURIComponent(view)}`}
             aria-current={name === contentName && view === viewName ? "true" : undefined}
             className="underline aria-[current=true]:font-bold aria-[current=true]:text-zinc-950! aria-[current=true]:no-underline!"
           >
@@ -97,9 +97,9 @@ export default function ContentConfiguration() {
       <div className="px-4">
         <TableData
           entries={[
-            { label: "Collection name", value: collection.collectionLabel },
-            { label: "Collection ID", value: collection.collectionName },
-            { label: "Collection description", value: collection.collectionDescription },
+            { label: "Catalog name", value: catalog.catalogLabel },
+            { label: "Catalog ID", value: catalog.catalogName },
+            { label: "Catalog description", value: catalog.catalogDescription },
             { label: "Content name", value: content.contentName },
             { label: "Content ID", value: contentName },
             { label: "Content description", value: content.contentDescription },
@@ -111,7 +111,7 @@ export default function ContentConfiguration() {
           <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
             <div
               className="size-full qrk-bricks brick-drag-surface overflow-hidden"
-              data-content-view-brick={`${collectionName}/${contentName}/${viewName}`}
+              data-content-view-brick={`${catalogName}/${contentName}/${viewName}`}
               style={{ clipPath: "inset(0)" }}
             >
               <div className="brick-drag-content size-full select-none">
@@ -188,19 +188,19 @@ export function ErrorBoundary() {
   const error = useRouteError();
   const params = useParams();
   if (!isRouteErrorResponse(error) || error.status !== 404) throw error;
-  const collectionName = params.collectionName ?? "";
+  const catalogName = params.catalogName ?? "";
 
   return (
     <div className="px-6 pt-6" data-testid="content-not-found">
       <Link
-        to={`/collections/${encodeURIComponent(collectionName)}`}
+        to={`/catalogs/${encodeURIComponent(catalogName)}`}
         className="inline-flex items-center gap-2 text-sm"
       >
         <ArrowLeft aria-hidden className="size-4" />
-        <span>Back to collection</span>
+        <span>Back to catalog</span>
       </Link>
       <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Content not found</h1>
-      <p className="mt-0 text-zinc-600">This content is not registered in the collection.</p>
+      <p className="mt-0 text-zinc-600">This content is not registered in the catalog.</p>
     </div>
   );
 }

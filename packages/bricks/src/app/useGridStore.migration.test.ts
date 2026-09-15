@@ -16,16 +16,15 @@ for (const [oldWidth, newWidth] of [[768, 640], [1536, 1440]]) {
     const entry = {
       gridItem: { i: "kept", x: 0, y: 0, w: 4, h: 4 },
       viewOptions: { imagePosition: "left" },
-      frame: "card",
     };
     const brick = {
-      collectionId: "figma", contentId: "thumbnail", viewId: "4x4",
+      catalogId: "figma", contentId: "thumbnail", viewId: "4x4",
       data: { title: "Keep content" }, xs: entry,
       sm: { ...entry, gridItem: null }, lg: entry, xl: entry,
     };
     savedItems.set(key, JSON.stringify({ version: 0, state: {
       selectedWidth: oldWidth,
-      bricksById: { kept: { ...brick, md: entry, "2xl": entry } },
+      bricksById: { kept: { ...brick, xs: { ...brick.xs, frame: "card" }, sm: { ...brick.sm, frame: "default" }, lg: { ...brick.lg, frame: "card" }, xl: { ...brick.xl, frame: "card" }, md: entry, "2xl": entry } },
     } }));
     await useGridStore.persist.rehydrate();
     expect(useGridStore.getState().bricksById.kept).toEqual(brick);

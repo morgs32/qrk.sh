@@ -5,11 +5,11 @@
 
 ## Problem Statement
 
-The brick development sandbox can display collection variants beside an eight-column `react-grid-layout` canvas, but an author cannot place a catalog brick onto that canvas. Brick placement is intentionally sandbox-only: introducing GridItem persistence, Zerospin state, or private application behavior would undermine the workbench's isolated development role.
+The brick development sandbox can display catalog variants beside an eight-column `react-grid-layout` canvas, but an author cannot place a catalog brick onto that canvas. Brick placement is intentionally sandbox-only: introducing GridItem persistence, Zerospin state, or private application behavior would undermine the workbench's isolated development role.
 
 ## Solution
 
-Make each collection-page brick preview a native drag source and make the adjacent grid an external-drop target. A successful drop creates an in-memory placed brick using the dragged variant's catalog dimensions. The resulting placement can be moved within the grid for the active browser session. Reloading the page recreates the original four gray fixture items and discards every added brick and moved position.
+Make each catalog-page brick preview a native drag source and make the adjacent grid an external-drop target. A successful drop creates an in-memory placed brick using the dragged variant's catalog dimensions. The resulting placement can be moved within the grid for the active browser session. Reloading the page recreates the original four gray fixture items and discards every added brick and moved position.
 
 ## User Stories
 
@@ -20,13 +20,13 @@ Make each collection-page brick preview a native drag source and make the adjace
 
 ## Implementation Decisions
 
-1. The collection page is the sole owner of its transient grid layout state; it does not read or write Zustand, Zerospin, browser storage, a server route, or a database.
-2. The left-side full-size previews are native draggable sources. Their drag payload identifies the current collection's brick variant and carries its catalog grid dimensions.
+1. The catalog page is the sole owner of its transient grid layout state; it does not read or write Zustand, Zerospin, browser storage, a server route, or a database.
+2. The left-side full-size previews are native draggable sources. Their drag payload identifies the current catalog's brick variant and carries its catalog grid dimensions.
 3. The right-side `react-grid-layout` canvas accepts external drops and creates one placed brick for each successful drop.
 4. A placed brick renders the catalog component corresponding to its drag payload and occupies the same `w` by `h` grid dimensions as that variant.
 5. The right canvas remains eight columns wide with zero grid margins and zero container padding.
 6. The four gray two-by-two fixtures remain initial, session-local grid items. They stay visible alongside added bricks until refresh.
-7. Added bricks and fixtures may be moved through `react-grid-layout`; resizing, removal controls, cross-collection selection, and persistence are not introduced.
+7. Added bricks and fixtures may be moved through `react-grid-layout`; resizing, removal controls, cross-catalog selection, and persistence are not introduced.
 
 ## Testing Decisions
 

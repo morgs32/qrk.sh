@@ -1,2 +1,2 @@
-export { collectionsHash } from "./collectionsHash";
-export type { IBrick, ICollection, ICollectionBrick, ICollectionBrickDef } from "./types";
+export { catalogsHash } from "./catalogsHash";
+export type { IBrick, ICatalog, ICatalogBrick, ICatalogBrickDef } from "./types";

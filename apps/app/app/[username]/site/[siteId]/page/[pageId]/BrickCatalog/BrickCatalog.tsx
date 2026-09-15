@@ -6,7 +6,7 @@ import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 import { Schema } from "effect";
 import { useState } from "react";
 import { Tabs } from "radix-ui";
-import { collectionsHash } from "@qrk.sh/bricks";
+import { catalogsHash } from "@qrk.sh/bricks";
 import { Link } from "react-router";
 import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
 import { X } from "lucide-react";
@@ -27,7 +27,7 @@ export function BrickCatalog() {
   const { breakpoint } = useBrickBreakpoint();
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
-  const collections = Object.values(collectionsHash);
+  const catalogs = Object.values(catalogsHash);
   const [selectedContents, setSelectedContents] = useState<Record<string, string>>({});
   const [selectedViews, setSelectedViews] = useState<Record<string, string>>({});
 
@@ -38,7 +38,7 @@ export function BrickCatalog() {
           <div className="space-y-1">
             <div className="text-sm font-semibold">Bricks</div>
             <div className="text-xs text-muted-foreground">
-              Browse bricks by collection. Drag a brick onto your page.
+              Browse bricks by catalog. Drag a brick onto your page.
             </div>
           </div>
 
@@ -56,11 +56,11 @@ export function BrickCatalog() {
       </div>
 
       <div
-        aria-label="Brick collections"
+        aria-label="Brick catalogs"
         className="min-h-0 flex-1 overflow-y-auto pt-8 pb-6 flex flex-col gap-10"
       >
-        {collections.map((collection) => {
-          const contents = Object.entries(collection.contents);
+        {catalogs.map((catalog) => {
+          const contents = Object.entries(catalog.contents);
           const firstContentEntry = contents[0];
 
           if (!firstContentEntry) {
@@ -68,9 +68,8 @@ export function BrickCatalog() {
           }
 
           const [firstContentName, firstContent] = firstContentEntry;
-          const selectedContentName =
-            selectedContents[collection.collectionName] ?? firstContentName;
-          const selectedContent = collection.contents[selectedContentName] ?? firstContent;
+          const selectedContentName = selectedContents[catalog.catalogName] ?? firstContentName;
+          const selectedContent = catalog.contents[selectedContentName] ?? firstContent;
           const views = Object.entries(selectedContent.views);
           const firstView = views[0];
 
@@ -79,26 +78,21 @@ export function BrickCatalog() {
           }
 
           const [firstViewName, firstBrick] = firstView;
-          const selectedViewName = selectedViews[collection.collectionName] || firstViewName;
+          const selectedViewName = selectedViews[catalog.catalogName] || firstViewName;
           const selectedBrick = selectedContent.views[selectedViewName] ?? firstBrick;
           const BrickComponent = selectedBrick.component;
 
           return (
-            <section
-              key={collection.collectionName}
-              data-collection-entry={collection.collectionName}
-            >
+            <section key={catalog.catalogName} data-catalog-entry={catalog.catalogName}>
               <div className="flex items-start justify-between gap-4 px-6">
                 <div>
-                  <h2 className="m-0 text-2xl font-semibold">{collection.collectionLabel}</h2>
-                  <p className="mt-1 mb-0 text-sm text-zinc-500">
-                    {collection.collectionDescription}
-                  </p>
+                  <h2 className="m-0 text-2xl font-semibold">{catalog.catalogLabel}</h2>
+                  <p className="mt-1 mb-0 text-sm text-zinc-500">{catalog.catalogDescription}</p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1 text-sm">
                   <Tabs.Root value={selectedContentName}>
                     <Tabs.List
-                      aria-label={`${collection.collectionLabel} contents`}
+                      aria-label={`${catalog.catalogLabel} contents`}
                       className="flex gap-2"
                     >
                       {contents.map(([contentName]) => (
@@ -108,11 +102,11 @@ export function BrickCatalog() {
                           onClick={() => {
                             setSelectedContents((current) => ({
                               ...current,
-                              [collection.collectionName]: contentName,
+                              [catalog.catalogName]: contentName,
                             }));
                             setSelectedViews((current) => ({
                               ...current,
-                              [collection.collectionName]: "",
+                              [catalog.catalogName]: "",
                             }));
                           }}
                           className="cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2 data-[state=active]:font-medium data-[state=active]:text-zinc-950 data-[state=active]:no-underline"
@@ -125,7 +119,7 @@ export function BrickCatalog() {
                   <Tabs.Root value={selectedViewName}>
                     <div className="flex items-baseline gap-2">
                       <Tabs.List
-                        aria-label={`${collection.collectionLabel} views`}
+                        aria-label={`${catalog.catalogLabel} views`}
                         className="flex gap-2"
                       >
                         {views.map(([viewName, brick]) => (
@@ -135,7 +129,7 @@ export function BrickCatalog() {
                             onClick={() => {
                               setSelectedViews((current) => ({
                                 ...current,
-                                [collection.collectionName]: viewName,
+                                [catalog.catalogName]: viewName,
                               }));
                             }}
                             className="cursor-pointer border-0 bg-transparent p-0 text-zinc-500 underline underline-offset-2 data-[state=active]:font-medium data-[state=active]:text-zinc-950 data-[state=active]:no-underline"
@@ -146,10 +140,10 @@ export function BrickCatalog() {
                       </Tabs.List>
                       <Link
                         to={href(
-                          "/:username/site/:siteId/page/:pageId/brick-catalog/:collectionName",
-                          { ...params, collectionName: collection.collectionName },
+                          "/:username/site/:siteId/page/:pageId/brick-catalog/:catalogName",
+                          { ...params, catalogName: catalog.catalogName },
                         )}
-                        data-collection-link={collection.collectionName}
+                        data-catalog-link={catalog.catalogName}
                       >
                         View all
                       </Link>
@@ -162,9 +156,9 @@ export function BrickCatalog() {
                   <BrickPreviewFrame w={selectedBrick.def.w} h={selectedBrick.def.h}>
                     <div
                       className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
-                      data-collection-representative={`${selectedBrick.def.collectionName}/${selectedBrick.def.content}/${selectedBrick.def.view}`}
+                      data-catalog-representative={`${selectedBrick.def.catalogName}/${selectedBrick.def.content}/${selectedBrick.def.view}`}
                       data-brick-drawer-brick-slot
-                      data-brick-drawer-collection-name={selectedBrick.def.collectionName}
+                      data-brick-drawer-catalog-name={selectedBrick.def.catalogName}
                       data-brick-drawer-content={selectedBrick.def.content}
                       data-brick-drawer-view={selectedBrick.def.view}
                       draggable

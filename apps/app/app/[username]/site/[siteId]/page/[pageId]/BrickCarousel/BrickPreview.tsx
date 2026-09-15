@@ -5,10 +5,10 @@ import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 
 import { useLayoutEffect, useRef } from "react";
 import { BRICK_DRAG_MIME, useBrickDrawerStore } from "@/components/home/useBrickDrawerStore";
-import { collectionsHash, type ICollectionBrick } from "@qrk.sh/bricks";
+import { catalogsHash, type ICatalogBrick } from "@qrk.sh/bricks";
 import { makeId } from "@/lib/makeId";
 
-export function BrickPreview({ brick }: { brick: ICollectionBrick }) {
+export function BrickPreview({ brick }: { brick: ICatalogBrick }) {
   const { breakpoint } = useBrickBreakpoint();
   const slotRef = useRef<HTMLDivElement>(null);
   const brickRef = useRef(brick);
@@ -44,7 +44,7 @@ export function BrickPreview({ brick }: { brick: ICollectionBrick }) {
   }, []);
 
   const BrickComponent = brick.component;
-  const content = collectionsHash[brick.def.collectionName]?.contents[brick.def.content];
+  const content = catalogsHash[brick.def.catalogName]?.contents[brick.def.content];
 
   return (
     <div className="drawer-brick-preview flex h-full min-h-0 w-full flex-1 flex-col items-start justify-center overflow-x-auto touch-manipulation">
@@ -52,13 +52,13 @@ export function BrickPreview({ brick }: { brick: ICollectionBrick }) {
         <div
           ref={slotRef}
           data-brick-drawer-brick-slot
-          data-brick-drawer-collection-name={brick.def.collectionName}
+          data-brick-drawer-catalog-name={brick.def.catalogName}
           data-brick-drawer-content={brick.def.content}
           data-brick-drawer-view={brick.def.view}
           draggable
           tabIndex={0}
           className="size-full shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={`${brick.def.collectionLabel} ${brick.def.w}×${brick.def.h}`}
+          aria-label={`${brick.def.catalogLabel} ${brick.def.w}×${brick.def.h}`}
         >
           <div className="h-full w-full">
             <BrickComponent breakpoint={breakpoint} data={content?.defaultData} />

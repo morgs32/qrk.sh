@@ -9,7 +9,7 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   page.on("request", (request) => {
     if (request.url().includes("/scraper-rpc")) scraperRequests += 1;
   });
-  await page.goto("/collections/figma");
+  await page.goto("/catalogs/figma");
   await page.getByRole("button", { name: "375px grid width" }).click();
   const preview = page.locator("[data-content-view-brick]");
   const image = preview.locator("[data-figma-thumbnail]");
@@ -61,15 +61,15 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
       .filter((entry) => new URL(entry.name).pathname === "/src/app/useGridStore.ts")
       .at(-1)?.name;
     if (!storePath) throw new Error("Grid store module was not loaded");
-    const catalogPath = "/src/collectionsHash.ts";
+    const catalogPath = "/src/catalogsHash.ts";
     const { useGridStore } = await import(storePath);
-    const { collectionsHash } = await import(catalogPath);
+    const { catalogsHash } = await import(catalogPath);
     useGridStore.setState((state: ReturnType<typeof useGridStore.getState>) => ({
       bricksById: {
         ...state.bricksById,
         [id!]: {
           ...state.bricksById[id!],
-          data: { ...collectionsHash.figma.contents.thumbnail.defaultData, title: "First content" },
+          data: { ...catalogsHash.figma.contents.thumbnail.defaultData, title: "First content" },
         },
       },
     }));
@@ -121,7 +121,7 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
 });
 
 test("moves without resize handles and reloads each breakpoint", async ({ page }) => {
-  await page.goto("/collections/figma");
+  await page.goto("/catalogs/figma");
   await page.getByRole("button", { name: "375px grid width" }).click();
   const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
   const preview = page.locator("[data-content-view-brick]");
@@ -150,7 +150,7 @@ test("ignores the old responsive persistence key without modifying it", async ({
         state: {
           bricksById: {
             old: {
-              collectionId: "figma",
+              catalogId: "figma",
               variantId: "thumbnail",
               layoutId: "4x4",
               xs: { gridItem: { i: "old", x: 0, y: 0, w: 4, h: 4 }, layoutOptions: {} },
@@ -160,7 +160,7 @@ test("ignores the old responsive persistence key without modifying it", async ({
       }),
     );
   });
-  await page.goto("/collections/figma");
+  await page.goto("/catalogs/figma");
   await expect(page.getByLabel("Brick grid").locator("[data-brick-id]")).toHaveCount(0);
   expect(
     await page.evaluate(
@@ -172,7 +172,7 @@ test("ignores the old responsive persistence key without modifying it", async ({
 });
 
 test("removing an override restores whole-entry inheritance", async ({ page }) => {
-  await page.goto("/collections/figma");
+  await page.goto("/catalogs/figma");
   await page.getByRole("button", { name: "375px grid width" }).click();
   const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
   await page.locator("[data-content-view-brick] .brick-drag-handle").dragTo(grid, {
@@ -210,7 +210,7 @@ test("removing an override restores whole-entry inheritance", async ({ page }) =
 });
 
 test("catalog configuration ends with the current brick definition", async ({ page }) => {
-  await page.goto("/collections/swatch?content=default&view=2x2");
+  await page.goto("/catalogs/swatch?content=default&view=2x2");
   const pane = page.getByTestId("content-configuration-pane");
   await expect(pane.getByRole("heading")).toHaveText([
     "Swatch",
@@ -227,7 +227,7 @@ test("catalog configuration ends with the current brick definition", async ({ pa
   await expect(definition).toContainText("swatch");
   await definition.getByRole("button", { name: "expand JSON", exact: true }).first().click();
   await expect(definition).toContainText("#ff0000");
-  await page.goto("/collections/figma");
+  await page.goto("/catalogs/figma");
   await expect(pane.getByRole("heading")).toHaveText([
     "Figma",
     "Figma Thumbnail",

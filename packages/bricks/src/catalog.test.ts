@@ -4,21 +4,21 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { makeView } from "./makeView";
 import { makeContent } from "./makeContent";
-import { makeCollection } from "./makeCollection";
+import { makeCatalog } from "./makeCatalog";
 
-import { collectionsHash } from "./collectionsHash";
+import { catalogsHash } from "./catalogsHash";
 
 describe("brick catalog identity", () => {
-  it("registers unique kebab-case collection, content, and view identities", () => {
-    const collectionNames = new Set<string>();
+  it("registers unique kebab-case catalog, content, and view identities", () => {
+    const catalogNames = new Set<string>();
     const kebabCase = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-    for (const collection of Object.values(collectionsHash)) {
-      expect(kebabCase.test(collection.collectionName)).toBe(true);
-      expect(collectionNames.has(collection.collectionName)).toBe(false);
-      collectionNames.add(collection.collectionName);
+    for (const catalog of Object.values(catalogsHash)) {
+      expect(kebabCase.test(catalog.catalogName)).toBe(true);
+      expect(catalogNames.has(catalog.catalogName)).toBe(false);
+      catalogNames.add(catalog.catalogName);
 
-      for (const [contentName, content] of Object.entries(collection.contents)) {
+      for (const [contentName, content] of Object.entries(catalog.contents)) {
         expect(kebabCase.test(contentName)).toBe(true);
         expect(content.contentDescription.trim()).not.toBe("");
 
@@ -26,32 +26,32 @@ describe("brick catalog identity", () => {
           expect(kebabCase.test(viewName)).toBe(true);
           expect(brick.def.content).toBe(contentName);
           expect(brick.def.view).toBe(viewName);
-          expect(collection.contents[brick.def.content]?.views[brick.def.view]).toBe(brick);
+          expect(catalog.contents[brick.def.content]?.views[brick.def.view]).toBe(brick);
         }
       }
     }
 
-    expect(collectionNames.size).toBe(10);
+    expect(catalogNames.size).toBe(10);
   });
 
-  it("uses default for collections with one content content", () => {
-    for (const collection of Object.values(collectionsHash)) {
+  it("uses default for catalogs with one content content", () => {
+    for (const catalog of Object.values(catalogsHash)) {
       if (
-        collection.collectionName === "github" ||
-        collection.collectionName === "figma" ||
-        collection.collectionName === "map"
+        catalog.catalogName === "github" ||
+        catalog.catalogName === "figma" ||
+        catalog.catalogName === "map"
       ) {
         continue;
       }
 
-      expect(Object.keys(collection.contents)).toEqual(["default"]);
+      expect(Object.keys(catalog.contents)).toEqual(["default"]);
     }
   });
 
   it("registers one data-backed Figma thumbnail content", () => {
-    const collection = collectionsHash.figma;
-    expect(Object.keys(collection.contents)).toEqual(["thumbnail"]);
-    const thumbnail = collection.contents.thumbnail;
+    const catalog = catalogsHash.figma;
+    expect(Object.keys(catalog.contents)).toEqual(["thumbnail"]);
+    const thumbnail = catalog.contents.thumbnail;
     expect(Object.keys(thumbnail.views)).toEqual(["4x4"]);
     expect(thumbnail.views["4x4"].def).toMatchObject({ w: 4, h: 4 });
     expect(thumbnail.configuration?.configurationType).toBe("fetcher");
@@ -60,10 +60,10 @@ describe("brick catalog identity", () => {
   });
 
   it("registers the data-backed Link default 4x2 content", () => {
-    const linkCollection = collectionsHash.link;
-    const defaultContent = linkCollection.contents.default;
+    const linkCatalog = catalogsHash.link;
+    const defaultContent = linkCatalog.contents.default;
 
-    expect(Object.keys(linkCollection.contents)).toEqual(["default"]);
+    expect(Object.keys(linkCatalog.contents)).toEqual(["default"]);
     expect(Object.keys(defaultContent.views)).toEqual(["4x2"]);
     if (defaultContent.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
@@ -85,10 +85,10 @@ describe("brick catalog identity", () => {
   });
 
   it("registers the tokenless TikTok creator embed", () => {
-    const tikTokCollection = collectionsHash.tiktok;
-    const defaultContent = tikTokCollection.contents.default;
+    const tikTokCatalog = catalogsHash.tiktok;
+    const defaultContent = tikTokCatalog.contents.default;
 
-    expect(Object.keys(tikTokCollection.contents)).toEqual(["default"]);
+    expect(Object.keys(tikTokCatalog.contents)).toEqual(["default"]);
     expect(Object.keys(defaultContent.views)).toEqual(["4x4"]);
     if (defaultContent.configuration?.configurationType !== "fetcher") {
       throw new Error("Expected fetcher configuration");
@@ -99,11 +99,11 @@ describe("brick catalog identity", () => {
     expect(defaultContent.configuration?.fetcher).toBeTypeOf("function");
   });
 
-  it("registers locally authored Tiptap JSON for the Text collection", () => {
-    const textCollection = collectionsHash.text;
-    const defaultContent = textCollection.contents.default;
+  it("registers locally authored Tiptap JSON for the Text catalog", () => {
+    const textCatalog = catalogsHash.text;
+    const defaultContent = textCatalog.contents.default;
 
-    expect(textCollection.collectionLabel).toBe("Text");
+    expect(textCatalog.catalogLabel).toBe("Text");
     expect(Object.keys(defaultContent.views)).toEqual(["4x4", "8x2"]);
     if (defaultContent.configuration?.configurationType !== "form") {
       throw new Error("Expected form configuration");
@@ -135,10 +135,10 @@ it("keeps views with identical dimensions independently addressable", () => {
     order: 1,
     xs: () => "Activity content",
   });
-  const collection = makeCollection({
-    collectionName: "view-test",
-    collectionLabel: "View test",
-    collectionDescription: "Test views",
+  const catalog = makeCatalog({
+    catalogName: "view-test",
+    catalogLabel: "View test",
+    catalogDescription: "Test views",
     contents: {
       default: makeContent({
         content: "default",
@@ -150,11 +150,11 @@ it("keeps views with identical dimensions independently addressable", () => {
       }),
     },
   });
-  const views = collection.contents.default.views;
+  const views = catalog.contents.default.views;
   expect(Object.keys(views)).toEqual(["summary", "activity"]);
   expect(views.summary.def).toEqual({
-    collectionName: "view-test",
-    collectionLabel: "View test",
+    catalogName: "view-test",
+    catalogLabel: "View test",
     content: "default",
     view: "summary",
     label: "Summary",

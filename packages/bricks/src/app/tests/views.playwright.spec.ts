@@ -2,12 +2,12 @@ import { expect, test } from "@playwright/test";
 
 test("selects, drags, and restores distinct views with identical dimensions", async ({ page }) => {
   // Add fixtures only to this browser's catalog response, never the production catalog.
-  await page.route("**/src/collectionsHash.ts*", async (route) => {
+  await page.route("**/src/catalogsHash.ts*", async (route) => {
     const response = await route.fetch();
     await route.fulfill({
       response,
       body: `${await response.text()}
-        const fixtureContent = collectionsHash.swatch.contents.default;
+        const fixtureContent = catalogsHash.swatch.contents.default;
         const fixtureBrick = fixtureContent.views["2x2"];
         fixtureContent.views.summary = {
           def: { ...fixtureBrick.def, view: "summary", label: "Summary" },
@@ -20,7 +20,7 @@ test("selects, drags, and restores distinct views with identical dimensions", as
       `,
     });
   });
-  await page.goto("/collections/swatch?content=default&view=summary");
+  await page.goto("/catalogs/swatch?content=default&view=summary");
   const preview = page.locator("[data-content-view-brick]");
   const summary = page.getByRole("link", { name: "Summary", exact: true });
   const activity = page.getByRole("link", { name: "Activity", exact: true });
@@ -63,12 +63,12 @@ test("selects, drags, and restores distinct views with identical dimensions", as
 });
 
 test("uses view queries and ignores the old size query", async ({ page }) => {
-  await page.goto("/collections/swatch?content=default&size=8x2");
+  await page.goto("/catalogs/swatch?content=default&size=8x2");
   await expect(page.locator("[data-content-view-brick]")).toHaveAttribute(
     "data-content-view-brick",
     "swatch/default/2x2",
   );
-  await page.goto("/collections/swatch?content=default&view=8x2");
+  await page.goto("/catalogs/swatch?content=default&view=8x2");
   await expect(page.locator("[data-content-view-brick]")).toHaveAttribute(
     "data-content-view-brick",
     "swatch/default/8x2",
@@ -78,12 +78,12 @@ test("uses view queries and ignores the old size query", async ({ page }) => {
 });
 
 test("uses content and view queries and ignores old catalog query names", async ({ page }) => {
-  await page.goto("/collections/github?variant=repo&layout=4x2");
+  await page.goto("/catalogs/github?variant=repo&layout=4x2");
   await expect(page.locator("[data-content-view-brick]")).toHaveAttribute(
     "data-content-view-brick",
     "github/profile/4x4",
   );
-  await page.goto("/collections/github?content=repo&view=4x2");
+  await page.goto("/catalogs/github?content=repo&view=4x2");
   await expect(page.locator("[data-content-view-brick]")).toHaveAttribute(
     "data-content-view-brick",
     "github/repo/4x2",

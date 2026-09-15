@@ -48,7 +48,7 @@ test.describe("BrickCarousel preview slide min-height", () => {
 
     expect(
       result.minHeights.length,
-      "at least one collection with bricks should render slides",
+      "at least one catalog with bricks should render slides",
     ).toBeGreaterThan(0);
 
     for (let i = 0; i < result.minHeights.length; i++) {

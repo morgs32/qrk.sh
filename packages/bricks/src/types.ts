@@ -4,7 +4,7 @@ import type { IFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IShape } from "@zerospin/schema";
 import type { ReactNode } from "react";
 
-/** A view within one content definition (no collection scope). */
+/** A view within one content definition (no catalog scope). */
 export type IBrickDef<CONTENT extends string = string, VIEW extends string = string> = {
   w: number;
   h: number;
@@ -14,15 +14,15 @@ export type IBrickDef<CONTENT extends string = string, VIEW extends string = str
   view: VIEW;
   /** Display label for this view. */
   label: string;
-  /** Lower sorts earlier in the drawer carousel within a collection. */
+  /** Lower sorts earlier in the drawer carousel within a catalog. */
   order: number;
 };
 
-export type ICollection = {
-  /** Kebab-case collection id, unique across the homepage catalog. */
-  collectionName: string;
-  collectionLabel: string;
-  collectionDescription: string;
+export type ICatalog = {
+  /** Kebab-case catalog id, unique across the homepage catalog. */
+  catalogName: string;
+  catalogLabel: string;
+  catalogDescription: string;
   contents: Record<
     string,
     | {
@@ -31,7 +31,7 @@ export type ICollection = {
         configuration?: never;
         dataShape: null;
         defaultData: null;
-        views: Record<string, ICollectionBrick>;
+        views: Record<string, ICatalogBrick>;
       }
     | {
         contentName: string;
@@ -39,15 +39,15 @@ export type ICollection = {
         configuration?: IFormConfiguration | IFetcherConfiguration;
         dataShape: IShape;
         defaultData: unknown;
-        views: Record<string, ICollectionBrick>;
+        views: Record<string, ICatalogBrick>;
       }
   >;
 };
 
-/** Serializable catalog row: collection + content definition + view, no React component. */
-export type ICollectionBrickDef = IBrickDef & {
-  collectionName: string;
-  collectionLabel: string;
+/** Serializable catalog row: catalog + content definition + view, no React component. */
+export type ICatalogBrickDef = IBrickDef & {
+  catalogName: string;
+  catalogLabel: string;
   /** Default catalog data or the configured data of a placed brick. */
   data: unknown;
 };
@@ -61,10 +61,10 @@ export type IBrick<
   component: COMPONENT;
 };
 
-export type ICollectionBrick = {
-  def: ICollectionBrickDef;
+export type ICatalogBrick = {
+  def: ICatalogBrickDef;
   /**
-   * The collection erases each content's concrete data type after makeContent has
+   * The catalog erases each content's concrete data type after makeContent has
    * checked it. Render boundaries can supply defaultData directly; components
    * without a data contract ignore the prop.
    */

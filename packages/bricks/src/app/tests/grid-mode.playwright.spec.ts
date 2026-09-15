@@ -5,7 +5,7 @@ test("corner handles move bricks while their bodies open inspection", async ({ p
   await expect(page.getByRole("group", { name: "Grid mode" })).toHaveCount(0);
   const grid = page.getByLabel("Brick grid");
   const canvas = grid.locator(".react-grid-layout");
-  const source = page.locator('[data-collection-representative="swatch/default/2x2"]');
+  const source = page.locator('[data-catalog-representative="swatch/default/2x2"]');
   await source.dragTo(canvas, { targetPosition: { x: 20, y: 20 } });
   await expect(grid.locator("[data-brick-id]")).toHaveCount(0);
   await source.locator(".brick-drag-handle").dragTo(canvas, { targetPosition: { x: 20, y: 20 } });
@@ -27,7 +27,7 @@ test("corner handles move bricks while their bodies open inspection", async ({ p
   const moved = await brick.getAttribute("data-grid-x");
   await brick.getByRole("link").focus();
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(new RegExp(`/collections/swatch/brick/${id}$`));
+  await expect(page).toHaveURL(new RegExp(`/catalogs/swatch/brick/${id}$`));
   await page.reload();
   await expect(brick).toHaveAttribute("data-grid-x", moved ?? "");
   await expect(brick.getByRole("link")).toBeVisible();

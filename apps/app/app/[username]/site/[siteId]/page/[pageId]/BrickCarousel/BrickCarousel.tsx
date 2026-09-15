@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { EmblaCarouselType } from "embla-carousel";
-import type { ICollection, ICollectionBrick } from "@qrk.sh/bricks";
+import type { ICatalog, ICatalogBrick } from "@qrk.sh/bricks";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   type CarouselApi,
@@ -39,25 +39,25 @@ function watchFocusIgnoreDrawerChrome(_emblaApi: EmblaCarouselType, event: Focus
   return !drawerCarouselInteractionShouldSkipEmbla(event.target);
 }
 
-function defaultBrickSort(a: ICollectionBrick, b: ICollectionBrick): number {
+function defaultBrickSort(a: ICatalogBrick, b: ICatalogBrick): number {
   return a.def.order - b.def.order;
 }
 
 export function BrickCarousel(props: {
-  collection: ICollection;
-  brickSortFn?: (a: ICollectionBrick, b: ICollectionBrick) => number;
+  catalog: ICatalog;
+  brickSortFn?: (a: ICatalogBrick, b: ICatalogBrick) => number;
 }) {
-  const { collection, brickSortFn = defaultBrickSort } = props;
+  const { catalog, brickSortFn = defaultBrickSort } = props;
   const bricks = useMemo(
     () =>
-      Object.values(collection.contents)
+      Object.values(catalog.contents)
         .flatMap((content) => Object.values(content.views))
         .sort(brickSortFn),
-    [collection, brickSortFn],
+    [catalog, brickSortFn],
   );
 
   if (bricks.length <= 0) {
-    throw new BrickCarouselNoBricksError(collection.collectionName);
+    throw new BrickCarouselNoBricksError(catalog.catalogName);
   }
 
   const maxH = Math.max(...bricks.map((b) => b.def.h));
@@ -85,9 +85,7 @@ export function BrickCarousel(props: {
       <div className="sticky top-0 z-[11]">
         <div className="bg-muted/80 px-6 py-2.5 backdrop-blur-sm dark:bg-muted/50">
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-            <div className="min-w-0 truncate text-sm font-semibold">
-              {collection.collectionLabel}
-            </div>
+            <div className="min-w-0 truncate text-sm font-semibold">{catalog.catalogLabel}</div>
             <BrickCarouselNav api={carouselApi} bricks={bricks} />
             <div className="min-w-0 justify-self-end text-right text-sm font-medium tabular-nums text-muted-foreground">
               {bricks[selectedIndex]?.def.label}

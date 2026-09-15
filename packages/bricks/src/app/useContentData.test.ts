@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { collectionsHash } from "../collectionsHash";
+import { catalogsHash } from "../catalogsHash";
 import { useContentDataStore } from "./useContentData";
 
 beforeEach(() => {
-  useContentDataStore.setState({ dataByCollection: {} });
+  useContentDataStore.setState({ dataByCatalog: {} });
 });
 
 describe("content preview data", () => {
   it("starts empty and leaves catalog defaults untouched", () => {
-    expect(useContentDataStore.getState().dataByCollection).toEqual({});
-    const content = collectionsHash.icon.contents.default;
+    expect(useContentDataStore.getState().dataByCatalog).toEqual({});
+    const content = catalogsHash.icon.contents.default;
     const defaults = content.defaultData;
     useContentDataStore.getState().setContentData("icon", "default", {
       name: "Star",
@@ -17,20 +17,20 @@ describe("content preview data", () => {
       providerField: 42,
     });
     expect(content.defaultData).toBe(defaults);
-    expect(useContentDataStore.getState().dataByCollection.icon.default).toEqual({
+    expect(useContentDataStore.getState().dataByCatalog.icon.default).toEqual({
       name: "Star",
       svg: "<svg />",
       providerField: 42,
     });
   });
 
-  it("isolates collections and contents and replaces rather than merges data", () => {
+  it("isolates catalogs and contents and replaces rather than merges data", () => {
     const { setContentData } = useContentDataStore.getState();
     setContentData("text", "default", { content: null });
     setContentData("github", "repo", null);
     setContentData("icon", "default", { name: "First", svg: "<svg />", extra: true });
     setContentData("icon", "default", { name: "Second", svg: "<svg />" });
-    expect(useContentDataStore.getState().dataByCollection).toEqual({
+    expect(useContentDataStore.getState().dataByCatalog).toEqual({
       text: { default: { content: null } },
       github: { repo: null },
       icon: { default: { name: "Second", svg: "<svg />" } },
@@ -59,7 +59,7 @@ describe("content preview data", () => {
     const content = { type: "doc", content: [{ type: "paragraph" }] };
     setContentData("text", "default", { content });
     const state = useContentDataStore.getState();
-    expect(state.dataByCollection.text.default).toEqual({ content });
+    expect(state.dataByCatalog.text.default).toEqual({ content });
     expect(() => setContentData("text", "default", { content: { type: "invalid" } })).toThrow();
     expect(() => setContentData("text", "default", null)).toThrow();
     expect(useContentDataStore.getState()).toBe(state);
@@ -69,6 +69,6 @@ describe("content preview data", () => {
     expect(() => useContentDataStore.getState().setContentData("missing", "default", {})).toThrow(
       "Content not found",
     );
-    expect(useContentDataStore.getState().dataByCollection).toEqual({});
+    expect(useContentDataStore.getState().dataByCatalog).toEqual({});
   });
 });

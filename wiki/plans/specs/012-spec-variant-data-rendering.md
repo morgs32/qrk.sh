@@ -52,7 +52,7 @@ The variant configuration page renders `loadedData ?? defaultData`. Other catalo
    8. `followers`.
    9. `following`.
 8. The complete public `morgs32` response supplied during the design discussion becomes `defaultData`; fields outside `dataShape` remain preserved but are not available as typed component fields.
-9. Every catalog renderer passes a data-backed variant's `defaultData`, including the Bricks catalog, collection page, direct preview, Grid, brick detail, and the corresponding `apps/web` renderers.
+9. Every catalog renderer passes a data-backed variant's `defaultData`, including the Bricks catalog, catalog page, direct preview, Grid, brick detail, and the corresponding `apps/web` renderers.
 10. The variant configuration page uses `loadedData ?? defaultData` for every size preview and displays that same effective data as formatted JSON.
 11. Submission behavior:
     1. A successful request replaces `loadedData`.

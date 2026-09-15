@@ -1,12 +1,12 @@
 import { Result, Schema } from "effect";
 import type { Layout } from "react-grid-layout";
 import { create } from "zustand";
-import type { ICollectionBrickDef } from "@qrk.sh/bricks";
+import type { ICatalogBrickDef } from "@qrk.sh/bricks";
 
 export const BRICK_DRAG_MIME = "application/x-qrk-brick-def";
 
 type BrickDrawerDragState = {
-  pageGrids: Record<string, { layout: Layout; bricksById: Record<string, ICollectionBrickDef> }>;
+  pageGrids: Record<string, { layout: Layout; bricksById: Record<string, ICatalogBrickDef> }>;
   activeBrickDragGridShape: { w: number; h: number } | null;
   registerActiveBrickDragGridShape: (w: number, h: number) => void;
   unregisterActiveBrickDragGridShape: () => void;
@@ -29,8 +29,8 @@ export function getActiveBrickDragGridShape(): { w: number; h: number } | null {
 
 const BrickDragDefFromJsonStringSchema = Schema.fromJsonString(
   Schema.Struct({
-    collectionName: Schema.String,
-    collectionLabel: Schema.String,
+    catalogName: Schema.String,
+    catalogLabel: Schema.String,
     label: Schema.String,
     content: Schema.String,
     view: Schema.String,
@@ -38,12 +38,12 @@ const BrickDragDefFromJsonStringSchema = Schema.fromJsonString(
     w: Schema.Number,
     h: Schema.Number,
     data: Schema.Unknown,
-  }) satisfies Schema.Schema<ICollectionBrickDef>,
+  }) satisfies Schema.Schema<ICatalogBrickDef>,
 );
 
 export function parseBrickDefFromDataTransfer(
   dataTransfer: DataTransfer | null,
-): ICollectionBrickDef | null {
+): ICatalogBrickDef | null {
   if (!dataTransfer) {
     return null;
   }

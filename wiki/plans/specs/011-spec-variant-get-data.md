@@ -9,7 +9,7 @@ Brick variants currently describe only their rendered sizes, while the bricks wo
 
 ## Solution
 
-Allow a variant to remain static or declare a Zerospin primitive payload shape and a `getData` callback. `makeVariant` validates unknown submitted payloads strictly before invoking a data callback, collections preserve the resulting contract, and the workbench renders the supported text inputs and executes the callback through a per-request scraper RPC session. Rename the GitHub repository operation to `getProfile(url)` while retaining `scrape(url)` on the other origin repositories.
+Allow a variant to remain static or declare a Zerospin primitive payload shape and a `getData` callback. `makeVariant` validates unknown submitted payloads strictly before invoking a data callback, catalogs preserve the resulting contract, and the workbench renders the supported text inputs and executes the callback through a per-request scraper RPC session. Rename the GitHub repository operation to `getProfile(url)` while retaining `scrape(url)` on the other origin repositories.
 
 This specification supersedes specification 010's `scrape(url)` naming only for the GitHub repository capability.
 
@@ -20,7 +20,7 @@ This specification supersedes specification 010's `scrape(url)` naming only for 
 3. A data-backed callback receives `{ api: ScraperApi, payload }`, where `payload` is inferred from its primitive shape, and returns `Promise<IRpcEither<IJsonValue>>`.
 4. `makeVariant` wraps each data-backed callback with `makeEffectSchema` decoding and `onExcessProperty: "error"`.
 5. Invalid, missing, or excess payload properties reject before the data callback or scraper capability is invoked.
-6. `makeCollection` and `ICollection` preserve `payload` and the wrapped `getData` callback without introducing a separately named variant type.
+6. `makeCatalog` and `ICatalog` preserve `payload` and the wrapped `getData` callback without introducing a separately named variant type.
 7. The scraper lives in `packages/bricks/src/scraper`. Client code imports its public declarations directly; Worker code stays out of browser bundles.
 8. The bricks package owns the scraper and directly depends on `@zerospin/core` and `effect`.
 9. `GitHubRepo.scrape(url)` becomes `GitHubRepo.getProfile(url)`, and every GitHub repository or RPC caller uses the new name.

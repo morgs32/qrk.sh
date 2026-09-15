@@ -5,13 +5,13 @@ test("configures only the selected brick and persists its data", async ({ page }
   await page.evaluate(async () => {
     const catalogPath = performance
       .getEntriesByType("resource")
-      .filter((entry) => new URL(entry.name).pathname === "/src/collectionsHash.ts")
+      .filter((entry) => new URL(entry.name).pathname === "/src/catalogsHash.ts")
       .at(-1)?.name;
     if (!catalogPath) throw new Error("Catalog module was not loaded");
     const storePath = "/src/app/useGridStore.ts";
-    const { collectionsHash } = await import(catalogPath);
+    const { catalogsHash } = await import(catalogPath);
     const { useGridStore } = await import(storePath);
-    const brick = collectionsHash.github.contents.profile.views["4x4"];
+    const brick = catalogsHash.github.contents.profile.views["4x4"];
     const layout = [
       { i: "first", x: 0, y: 0, w: 4, h: 4 },
       { i: "second", x: 4, y: 0, w: 4, h: 4 },
@@ -26,16 +26,16 @@ test("configures only the selected brick and persists its data", async ({ page }
       );
     useGridStore.getState().addBrick("second", brick.def, layout, "xs");
   });
-  await page.goto("/collections/github/brick/first");
+  await page.goto("/catalogs/github/brick/first");
   await expect(page.getByTestId("selected-brick-preview")).toContainText("selected");
   await page.evaluate(async () => {
     const catalogPath = performance
       .getEntriesByType("resource")
-      .filter((entry) => new URL(entry.name).pathname === "/src/collectionsHash.ts")
+      .filter((entry) => new URL(entry.name).pathname === "/src/catalogsHash.ts")
       .at(-1)?.name;
     if (!catalogPath) throw new Error("Catalog module was not loaded");
-    const { collectionsHash } = await import(catalogPath);
-    const content = collectionsHash.github.contents.profile;
+    const { catalogsHash } = await import(catalogPath);
+    const content = catalogsHash.github.contents.profile;
     content.configuration.fetcher = async ({ setData }: { setData: (data: unknown) => void }) => {
       setData({ ...content.defaultData, login: "configured" });
       return { _tag: "Right", right: undefined };
@@ -61,7 +61,7 @@ test("configures only the selected brick and persists its data", async ({ page }
 });
 
 test("drops configured icon snapshots and restores them after reload", async ({ page }) => {
-  await page.goto("/collections/icon?content=default");
+  await page.goto("/catalogs/icon?content=default");
   await expect(page.locator("[data-content-view-brick]")).toBeVisible();
   await page.evaluate(async () => {
     const storePath = performance
@@ -118,11 +118,11 @@ test("starts fresh without migrating or deleting the old saved grid", async ({ p
   await page.evaluate(async () => {
     const catalogPath = performance
       .getEntriesByType("resource")
-      .filter((entry) => new URL(entry.name).pathname === "/src/collectionsHash.ts")
+      .filter((entry) => new URL(entry.name).pathname === "/src/catalogsHash.ts")
       .at(-1)?.name;
     if (!catalogPath) throw new Error("Catalog module was not loaded");
-    const { collectionsHash } = await import(catalogPath);
-    const { data, ...legacyDef } = collectionsHash.icon.contents.default.views["2x2"].def;
+    const { catalogsHash } = await import(catalogPath);
+    const { data, ...legacyDef } = catalogsHash.icon.contents.default.views["2x2"].def;
     localStorage.setItem(
       "qrk-bricks-sandbox-single-grid",
       JSON.stringify({

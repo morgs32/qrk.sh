@@ -1,8 +1,8 @@
 import { verticalCompactor } from "react-grid-layout";
-import type { ICollectionBrickDef } from "../types";
+import type { ICatalogBrickDef } from "../types";
 import type { Layout, LayoutItem } from "react-grid-layout";
 import { create } from "zustand";
-import { collectionsHash } from "../collectionsHash";
+import { catalogsHash } from "../catalogsHash";
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 import { persist } from "zustand/middleware";
 
@@ -10,35 +10,30 @@ export const useGridStore = create<{
   bricksById: Record<
     string,
     {
-      collectionId: string;
+      catalogId: string;
       contentId: string;
       viewId: string;
       data: unknown;
-      xs: { gridItem: LayoutItem | null; viewOptions: unknown; frame: "default" | "card" };
+      xs: { gridItem: LayoutItem | null; viewOptions: unknown };
     } & Partial<
       Record<
         "sm" | "lg" | "xl",
-        { gridItem: LayoutItem | null; viewOptions: unknown; frame: "default" | "card" }
+        { gridItem: LayoutItem | null; viewOptions: unknown }
       >
     >
   >;
-  activeBrickDrag: (ICollectionBrickDef & { viewOptions?: unknown }) | null;
+  activeBrickDrag: (ICatalogBrickDef & { viewOptions?: unknown }) | null;
   hasHydrated: boolean;
   selectedWidth: number | null;
   setLayout: (layout: Layout, breakpoint: "xs" | "sm" | "lg" | "xl") => void;
   addBrick: (
     brickId: string,
-    brickDef: ICollectionBrickDef & { viewOptions?: unknown },
+    brickDef: ICatalogBrickDef & { viewOptions?: unknown },
     layout: Layout,
     breakpoint: "xs" | "sm" | "lg" | "xl",
   ) => void;
-  setActiveBrickDrag: (brickDef: (ICollectionBrickDef & { viewOptions?: unknown }) | null) => void;
+  setActiveBrickDrag: (brickDef: (ICatalogBrickDef & { viewOptions?: unknown }) | null) => void;
   setViewOptions: (brickId: string, breakpoint: "xs" | "sm" | "lg" | "xl", value: unknown) => void;
-  setFrame: (
-    brickId: string,
-    breakpoint: "xs" | "sm" | "lg" | "xl",
-    frame: "default" | "card",
-  ) => void;
   setVisible: (brickId: string, breakpoint: "xs" | "sm" | "lg" | "xl", visible: boolean) => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 }>()(
@@ -77,7 +72,7 @@ export const useGridStore = create<{
         const gridItem = layout.find((item) => item.i === brickId);
         if (!gridItem) return;
         const catalog =
-          collectionsHash[brickDef.collectionName]?.contents[brickDef.content]?.views[
+          catalogsHash[brickDef.catalogName]?.contents[brickDef.content]?.views[
             brickDef.view
           ];
         const viewOptions = catalog?.component.form
@@ -89,14 +84,13 @@ export const useGridStore = create<{
           bricksById: {
             ...state.bricksById,
             [brickId]: {
-              collectionId: brickDef.collectionName,
+              catalogId: brickDef.catalogName,
               contentId: brickDef.content,
               viewId: brickDef.view,
               data: structuredClone(brickDef.data),
               xs: {
                 gridItem: { ...gridItem },
                 viewOptions: structuredClone(viewOptions),
-                frame: "default",
               },
               ...(breakpoint === "xs"
                 ? {}
@@ -104,7 +98,6 @@ export const useGridStore = create<{
                     [breakpoint]: {
                       gridItem: { ...gridItem },
                       viewOptions: structuredClone(viewOptions),
-                      frame: "default",
                     },
                   }),
             },
@@ -117,7 +110,7 @@ export const useGridStore = create<{
           const brick = state.bricksById[brickId];
           if (!brick) return state;
           const form =
-            collectionsHash[brick.collectionId]?.contents[brick.contentId]?.views[brick.viewId]
+            catalogsHash[brick.catalogId]?.contents[brick.contentId]?.views[brick.viewId]
               ?.component.form;
           if (!form) return state;
           const viewOptions = form.decode(value);
@@ -128,23 +121,6 @@ export const useGridStore = create<{
               [brickId]: {
                 ...brick,
                 [breakpoint]: { ...entry, viewOptions: structuredClone(viewOptions) },
-              },
-            },
-          };
-        });
-      },
-      setFrame: (brickId, breakpoint, frame) => {
-        set((state) => {
-          const brick = state.bricksById[brickId];
-          if (!brick) return state;
-          const entry = resolveBrickBreakpoint(brick, breakpoint);
-          if (entry.frame === frame) return state;
-          return {
-            bricksById: {
-              ...state.bricksById,
-              [brickId]: {
-                ...brick,
-                [breakpoint]: { ...structuredClone(entry), frame },
               },
             },
           };
@@ -173,7 +149,7 @@ export const useGridStore = create<{
               entry.gridItem = { ...placement, i: brickId };
             } else {
               const catalog =
-                collectionsHash[brick.collectionId]?.contents[brick.contentId]?.views[brick.viewId];
+                catalogsHash[brick.catalogId]?.contents[brick.contentId]?.views[brick.viewId];
               if (!catalog) return state;
               let y = 0;
               for (const other of Object.values(state.bricksById)) {
@@ -224,9 +200,9 @@ export const useGridStore = create<{
           if ("2xl" in brick) delete brick["2xl"];
           for (const entry of [brick.xs, brick.sm, brick.lg, brick.xl]) {
             if (!entry) continue;
-            entry.frame ??= "default";
+            if ("frame" in entry) delete entry.frame;
             if (
-              brick.collectionId === "github" &&
+              brick.catalogId === "github" &&
               brick.contentId === "profile" &&
               brick.viewId === "4x4" &&
               typeof entry.viewOptions === "object" &&

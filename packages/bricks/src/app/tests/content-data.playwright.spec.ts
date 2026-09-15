@@ -3,19 +3,19 @@ import type { IRpcEither } from "../../scraper/types.public";
 
 test.describe("content configuration requests", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/collections/github/profile");
+    await page.goto("/catalogs/github/profile");
     await expect(page.getByLabel("url")).toBeVisible();
     await page.evaluate(async () => {
       // Supply a whole-content-options form and authored fetcher. The contentOptions decoder,
       // request lifecycle, validated store and preview remain under test.
-      const catalogPath = "/src/collectionsHash.ts";
+      const catalogPath = "/src/catalogsHash.ts";
       const factoryPath = "/src/makeFetcherConfiguration.ts";
-      const { collectionsHash } = await import(catalogPath);
+      const { catalogsHash } = await import(catalogPath);
       const { makeFetcherConfiguration } = await import(factoryPath);
       const reactPath = "/node_modules/.vite/deps/react.js";
       const { default: React } = await import(reactPath);
       const { createElement } = React;
-      const content = collectionsHash.github.contents.profile;
+      const content = catalogsHash.github.contents.profile;
       const defaults = content.defaultData;
       content.configuration = makeFetcherConfiguration({
         contentOptionsShape: {
@@ -85,7 +85,7 @@ test.describe("content configuration requests", () => {
       });
     });
     // Remount through the real router so the form reads the fixture contract.
-    await page.locator('a[href="/collections/github?content=profile&view=4x4"]').click();
+    await page.locator('a[href="/catalogs/github?content=profile&view=4x4"]').click();
     await expect(page.getByLabel("suffix")).toBeVisible();
     await expect(page.getByTestId("whole-content-options-form")).toHaveCount(1);
   });
@@ -121,7 +121,7 @@ test.describe("content configuration requests", () => {
     );
     await page.evaluate(() => document.dispatchEvent(new Event("finish:first")));
     await expect(preview.getByText("@first-updated")).toBeVisible();
-    await page.locator('a[href="/collections/github?content=profile&view=4x2"]').click();
+    await page.locator('a[href="/catalogs/github?content=profile&view=4x2"]').click();
     await expect(page.locator('[data-content-view-brick="github/profile/4x2"]')).toBeVisible();
     await page
       .getByTestId("content-data-result")
@@ -129,9 +129,9 @@ test.describe("content configuration requests", () => {
       .first()
       .click();
     await expect(page.getByTestId("content-data-result")).toContainText("first-updated");
-    await page.locator('a[href="/collections/github?content=repo"]').click();
+    await page.locator('a[href="/catalogs/github?content=repo"]').click();
     await expect(page.getByTestId("content-data-result")).toHaveCount(0);
-    await page.locator('a[href="/collections/github?content=profile&view=4x4"]').click();
+    await page.locator('a[href="/catalogs/github?content=profile&view=4x4"]').click();
     await expect(preview.getByText("@first-updated")).toBeVisible();
     await page.reload();
     await expect(preview.getByText("@morgs32")).toBeVisible();
@@ -188,7 +188,7 @@ test.describe("content configuration requests", () => {
   }) => {
     await page.getByLabel("url", { exact: true }).fill("old");
     await expect(page.locator("html")).toHaveAttribute("data-request-old", "pending");
-    await page.locator('a[href="/collections/github?content=profile&view=4x2"]').click();
+    await page.locator('a[href="/catalogs/github?content=profile&view=4x2"]').click();
     await expect(page.locator('[data-content-view-brick="github/profile/4x2"]')).toBeVisible();
     await page.getByLabel("url", { exact: true }).fill("new");
     await expect(page.locator("html")).toHaveAttribute("data-request-new", "pending");
@@ -202,20 +202,20 @@ test.describe("content configuration requests", () => {
     await page.evaluate(() => document.dispatchEvent(new Event("finish:old")));
     await expect(page.locator("html")).toHaveAttribute("data-request-old", "settled");
     await expect(page.getByTestId("content-data-result")).toContainText("new");
-    await page.locator('a[href="/collections/github?content=profile&view=4x4"]').click();
+    await page.locator('a[href="/catalogs/github?content=profile&view=4x4"]').click();
     await expect(page.locator("[data-content-view-brick]").getByText("@new")).toBeVisible();
   });
 });
 
 test("generated content options controls fetch only after Submit", async ({ page }) => {
-  await page.goto("/collections/github/profile");
+  await page.goto("/catalogs/github/profile");
   await expect(page.getByLabel("URL", { exact: true })).toBeVisible();
   await page.evaluate(async () => {
-    const catalogPath = "/src/collectionsHash.ts";
+    const catalogPath = "/src/catalogsHash.ts";
     const factoryPath = "/src/makeFetcherConfiguration.ts";
-    const { collectionsHash } = await import(catalogPath);
+    const { catalogsHash } = await import(catalogPath);
     const { makeFetcherConfiguration } = await import(factoryPath);
-    const content = collectionsHash.github.contents.profile;
+    const content = catalogsHash.github.contents.profile;
     content.configuration = makeFetcherConfiguration({
       contentOptionsShape: {
         ...content.configuration.contentOptionsShape,
@@ -234,7 +234,7 @@ test("generated content options controls fetch only after Submit", async ({ page
       },
     });
   });
-  await page.locator('a[href="/collections/github?content=profile&view=4x4"]').click();
+  await page.locator('a[href="/catalogs/github?content=profile&view=4x4"]').click();
   await expect(page.getByLabel("URL", { exact: true })).toHaveValue("fixture-default");
   await page.getByLabel("URL", { exact: true }).fill("submitted-profile");
   await expect(page.locator("html")).not.toHaveAttribute("data-submitted-url");

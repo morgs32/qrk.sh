@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { type CarouselApi } from "@/components/ui/carousel";
-import { type ICollectionBrick } from "@qrk.sh/bricks";
+import { type ICatalogBrick } from "@qrk.sh/bricks";
 import { cn } from "cn";
 
 const maxVisibleDots = 5;
@@ -28,7 +28,7 @@ function getOpacity(index: number, selected: number) {
 }
 
 export function BrickCarouselNav(props: {
-  bricks: ICollectionBrick[];
+  bricks: ICatalogBrick[];
   /** Main Embla API from `<Carousel setApi={…}>`; nav can sit outside `<Carousel>` when this is passed. */
   api: CarouselApi | null;
 }) {

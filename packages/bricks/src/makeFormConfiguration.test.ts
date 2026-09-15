@@ -5,10 +5,10 @@ import { primitives } from "@zerospin/schema";
 import { describe, expect, expectTypeOf, it, vi } from "vite-plus/test";
 import { makeFormConfiguration } from "./makeFormConfiguration";
 import { makeContent } from "./makeContent";
-import { makeCollection } from "./makeCollection";
+import { makeCatalog } from "./makeCatalog";
 
 describe("form configuration", () => {
-  it("preserves a typed data form through content and collection creation", () => {
+  it("preserves a typed data form through content and catalog creation", () => {
     const dataShape = { text: primitives.text() };
     const content = makeContent({
       content: "default",
@@ -25,18 +25,18 @@ describe("form configuration", () => {
       }),
       views: {},
     });
-    const collection = makeCollection({
-      collectionName: "test",
-      collectionLabel: "Test",
-      collectionDescription: "Test",
+    const catalog = makeCatalog({
+      catalogName: "test",
+      catalogLabel: "Test",
+      catalogDescription: "Test",
       contents: { default: content },
     });
-    const configuration = collection.contents.default?.configuration;
+    const configuration = catalog.contents.default?.configuration;
     if (configuration?.configurationType !== "form") throw new Error("Expected form");
     const onChange = vi.fn();
     const html = renderToStaticMarkup(
       createElement(Configuration, {
-        content: collection.contents.default,
+        content: catalog.contents.default,
         data: { text: "Rendered" },
         setData: onChange,
       }),

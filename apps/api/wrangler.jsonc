@@ -11,7 +11,9 @@
     },
   ],
   "vars": {
-    "R2_PUBLIC_BASE_URL": "https://pub-035bc706d2f54303ac87db6c777f7273.r2.dev",
+    // Local/Miniflare: path is resolved against the Worker origin → GET /assets/*.
+    // Production deploy must set the real public R2 host (e.g. https://pub-….r2.dev).
+    "R2_PUBLIC_BASE_URL": "/assets",
     "CLERK_AUTHORIZED_PARTY": "http://127.0.0.1:3001",
   },
 }

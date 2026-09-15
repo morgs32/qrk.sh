@@ -69,10 +69,17 @@ export async function handleUpload(request: Request, env: IApiEnv, clerkUserId: 
     },
   });
 
-  const baseUrl = env.R2_PUBLIC_BASE_URL.replace(/\/$/, "");
   return {
     key,
-    url: `${baseUrl}/${key}`,
+    url: makePublicObjectUrl(request, env, key),
     contentType,
   };
+}
+
+function makePublicObjectUrl(request: Request, env: IApiEnv, key: string): string {
+  const base = env.R2_PUBLIC_BASE_URL.replace(/\/$/, "");
+  if (base.startsWith("/")) {
+    return `${new URL(request.url).origin}${base}/${key}`;
+  }
+  return `${base}/${key}`;
 }

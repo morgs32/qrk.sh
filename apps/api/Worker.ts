@@ -1,4 +1,5 @@
 import { emptyCorsResponse, jsonResponse, requireClerkUserId, UploadHttpError } from "./http";
+import { handleGetAsset, isAssetPath } from "./handleGetAsset";
 import { handleUpload } from "./handleUpload";
 import type { IApiEnv } from "./types";
 
@@ -7,6 +8,17 @@ async function handleRequest(request: Request, env: IApiEnv): Promise<Response> 
 
   if (request.method === "OPTIONS") {
     return emptyCorsResponse(request, 204);
+  }
+
+  if (isAssetPath(url.pathname)) {
+    if (request.method !== "GET") {
+      return jsonResponse(
+        request,
+        { code: "method-not-allowed", message: "Use GET /assets/*" },
+        405,
+      );
+    }
+    return handleGetAsset(request, env);
   }
 
   if (url.pathname !== "/upload") {

@@ -17,7 +17,7 @@ export default defineConfig({
         bindings: {
           CLERK_SECRET_KEY: "sk_test_qrk_api_workerd",
           CLERK_AUTHORIZED_PARTY: "http://127.0.0.1:3001",
-          R2_PUBLIC_BASE_URL: "https://pub.test.r2.dev",
+          R2_PUBLIC_BASE_URL: "/assets",
         },
       },
     }),

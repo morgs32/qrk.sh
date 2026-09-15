@@ -1,7 +1,7 @@
 "use client";
 
 import { makeEffectSchema } from "@zerospin/schema";
-import { Renderer, StateProvider, VisibilityProvider } from "@json-render/react";
+import { ActionProvider, Renderer, StateProvider, VisibilityProvider } from "@json-render/react";
 import { Schema } from "effect";
 
 import { buildGitHubProfileCalendarSpec } from "./buildGitHubProfileCalendarSpec";
@@ -35,7 +35,9 @@ export function GitHubProfileJsonRenderCompare(props: { data: unknown }) {
     <div className="size-full overflow-hidden bg-white" data-github-profile-json-render-compare>
       <StateProvider initialState={{}}>
         <VisibilityProvider>
-          <Renderer spec={spec} registry={registry} />
+          <ActionProvider handlers={{}}>
+            <Renderer spec={spec} registry={registry} />
+          </ActionProvider>
         </VisibilityProvider>
       </StateProvider>
     </div>

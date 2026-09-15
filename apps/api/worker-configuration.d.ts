@@ -3,7 +3,7 @@
 // Runtime types generated with workerd@1.20260911.1 2026-05-14 nodejs_compat
 interface __BaseEnv_Env {
 	QRKSH: R2Bucket;
-	R2_PUBLIC_BASE_URL: "https://pub.example.r2.dev";
+	R2_PUBLIC_BASE_URL: "/assets";
 	CLERK_AUTHORIZED_PARTY: "http://127.0.0.1:3001";
 }
 declare namespace Cloudflare {

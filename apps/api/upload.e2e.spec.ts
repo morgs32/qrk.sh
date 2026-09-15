@@ -85,13 +85,24 @@ describe("POST /upload", () => {
     };
     expect(body.contentType).toBe("image/png");
     expect(body.key).toMatch(/^user_upload_test\/sit_upload_test\/.+\.png$/);
-    expect(body.url).toBe(`https://pub.test.r2.dev/${body.key}`);
+    expect(body.url).toBe(`https://api.invalid/assets/${body.key}`);
 
     const stored = await env.QRKSH.get(body.key);
     expect(stored).not.toBeNull();
     expect(stored?.httpMetadata?.contentType).toBe("image/png");
     const storedBytes = new Uint8Array((await stored!.arrayBuffer()) ?? new ArrayBuffer(0));
     expect(Array.from(storedBytes)).toEqual(Array.from(bytes));
+
+    const assetResponse = await SELF.fetch(body.url, {
+      method: "GET",
+      headers: {
+        Origin: "http://127.0.0.1:3001",
+      },
+    });
+    expect(assetResponse.status).toBe(200);
+    expect(assetResponse.headers.get("Content-Type")).toBe("image/png");
+    const assetBytes = new Uint8Array(await assetResponse.arrayBuffer());
+    expect(Array.from(assetBytes)).toEqual(Array.from(bytes));
   });
 
   it("answers CORS preflight", async () => {
@@ -107,5 +118,24 @@ describe("POST /upload", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
       "http://127.0.0.1:3001",
     );
+  });
+});
+
+describe("GET /assets/*", () => {
+  it("returns 404 for a missing key", async () => {
+    const response = await SELF.fetch(
+      "https://api.invalid/assets/user_missing/sit_missing/missing.png",
+      {
+        method: "GET",
+        headers: {
+          Origin: "http://127.0.0.1:3001",
+        },
+      },
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({
+      code: "not-found",
+    });
   });
 });

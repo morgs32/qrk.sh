@@ -1,3 +1,4 @@
 CLERK_SECRET_KEY=sk_test_replace_me
-# Optional override; wrangler.jsonc sets a placeholder for local/typecheck.
+# Local default in wrangler.jsonc is "/assets" (served by GET /assets/*).
+# Production must set the real public R2 host, e.g.:
 # R2_PUBLIC_BASE_URL=https://pub-<accountid>.r2.dev

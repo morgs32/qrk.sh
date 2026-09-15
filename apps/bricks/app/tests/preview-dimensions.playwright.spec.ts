@@ -46,23 +46,26 @@ for (const [group, catalog, w, h] of [
   });
 }
 
-test("group previews scroll rather than shrinking", async ({ page }) => {
-  await page.setViewportSize({ width: 3000, height: 1000 });
+test("group filmstrip scrolls horizontally rather than shrinking previews", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
   await page.goto("/");
-  const swatch = page.locator('[data-group-entry="github"]');
-  const preview = swatch.locator('[data-group-representative="github/profile"]');
-  await expect(preview).toHaveCSS("width", "720px");
-  await page.getByLabel("Bricks panel").evaluate((element) => {
-    element.style.width = "400px";
-  });
+  const toolbar = page.getByRole("toolbar", { name: "Grid controls" });
+  const drawer = page.getByRole("dialog", { name: "Bricks", exact: true });
+  await toolbar.getByRole("button", { name: "Bricks", exact: true }).click();
+  await expect(drawer).toBeVisible();
+
+  const filmstrip = drawer.getByLabel("Brick groups");
+  const github = filmstrip.locator('[data-group-entry="github"]');
+  const preview = github.locator('[data-group-representative="github/profile"]');
+
+  // Selected grid width at 1600 is 1440 → profile w=4 → 720px preview.
   await expect(preview).toHaveCSS("width", "720px");
   expect(
-    await swatch
-      .locator(":scope > .overflow-auto")
-      .evaluate((element) => element.scrollWidth > element.clientWidth),
+    await filmstrip.evaluate((element) => element.scrollWidth > element.clientWidth),
   ).toBe(true);
-  await page.setViewportSize({ width: 1600, height: 1000 });
-  await expect(preview).toHaveCSS("width", "320px");
+  expect(
+    await github.evaluate((element) => element.getBoundingClientRect().width),
+  ).toBeLessThan(720);
 });
 
 test("standalone slider sizes the shared frame", async ({ page }) => {

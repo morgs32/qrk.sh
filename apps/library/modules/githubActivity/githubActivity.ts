@@ -60,4 +60,6 @@ export const githubActivity = makeModule({
     }),
   },
   sm: { component: GitHubActivityCalendar, w: 4, h: 3 },
+  md: { component: GitHubActivityCalendar, w: 4, h: 2 },
+  lg: { component: GitHubActivityCalendar, w: 4, h: 1 },
 });

@@ -95,6 +95,14 @@ export default [
                     ],
                   },
                   {
+                    path: "breakpoints",
+                    lazy: async () => {
+                      const { default: BreakpointsRoute, handle } =
+                        await import("./routes/BreakpointsRoute");
+                      return { Component: BreakpointsRoute, handle };
+                    },
+                  },
+                  {
                     lazy: async () => {
                       const { default: BottomDrawerLayout, handle } =
                         await import("./routes/BottomDrawerLayout");
@@ -115,14 +123,6 @@ export default [
                           const { default: SiteSettingsRoute } =
                             await import("./routes/SiteSettingsRoute");
                           return { Component: SiteSettingsRoute };
-                        },
-                      },
-                      {
-                        path: "breakpoints",
-                        lazy: async () => {
-                          const { default: BreakpointsRoute } =
-                            await import("./routes/BreakpointsRoute");
-                          return { Component: BreakpointsRoute };
                         },
                       },
                     ],

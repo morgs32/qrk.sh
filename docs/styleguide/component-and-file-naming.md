@@ -77,7 +77,7 @@ schemas, and provider scrape modules) stay under `apps/library/worker/`.
 
 ### Factory arguments
 
-Factories take one `props` object with an inline shape. `makeModule` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, optional `options`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeModule.tsx](../../apps/library/makeModule.tsx).
+Factories take one `props` object with an inline shape. `makeModule` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, optional `options`, required `sm`, and optional `md`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeModule.tsx](../../apps/library/makeModule.tsx).
 
 `makeModule` owns `id`, `label`, `description`, and writes `moduleId` / `moduleLabel` onto `def`.
 
@@ -218,10 +218,11 @@ and is independent of Reset's grid state changes.
 
 ### Responsive brick breakpoints
 
-Every brick render supplies `breakpoint: "xs" | "sm" | "lg" | "xl"` alongside
+Every brick render supplies `breakpoint: "sm" | "md" | "lg" | "xl"` alongside
 its existing data. Components may ignore the prop. Breakpoints describe the full
-eight-column grid width: `xs` below 640px, `sm` from 640px,
-`lg` from 1024px, and `xl` from 1280px.
+eight-column grid width: `sm` below 640px, `md` from 640px,
+`lg` from 1024px, and `xl` from 1280px. Shared defs and `resolveBreakpoint` live in
+[`apps/library/breakpoints.ts`](../../apps/library/breakpoints.ts).
 
 `BrickBreakpointProvider` owns one container measurement and shares the breakpoint
 through context. In the editor, `EditorLayout` provides context to the grid, drawers,
@@ -232,16 +233,16 @@ The standalone preview has its own provider measuring the simulated full grid
 width (grid-unit slider multiplied by eight).
 
 Consumers use `useBrickBreakpoint` and pass the value through the existing brick
-`breakpoint` prop. A provider is required; its initial value is `xs` until measured.
+`breakpoint` prop. A provider is required; its initial value is `sm` until measured.
 Browser width and a brick's own width do not directly determine its breakpoint.
 Grid geometry and available-width measurements remain independent. Breakpoints
 select presentations and initial dimensions, never brick identity. Catalog drag payloads
 include resolved dimensions for all breakpoints; placed layouts retain their saved geometry.
 
-The GitHub profile 4×2 view keeps its avatar and username in the bottom half at `xs`.
+The GitHub profile 4×2 view keeps its avatar and username in the bottom half at `sm`.
 The activity fills the top half, scaling square cells and gaps proportionally, without
 rounded corners, strokes, labels, legend, or fade mask. Larger modes retain the
-existing presentation. At `xs`, the 4×4 view hides contribution activity and
+existing presentation. At `sm`, the 4×4 view hides contribution activity and
 truncates overflowing profile values with ellipses.
 
 ### Preview dimensions
@@ -265,8 +266,8 @@ Import the frame directly or through `@qrk.sh/library/BrickPreviewFrame`.
 Follow [brick presentation conventions](../../wiki/brick-layout-conventions.md):
 `<Group><Catalog><Template>`, for example `GitHubProfileStats` and
 `GitHubProfileCalendar`, with matching filenames. **Template** is a layout-role
-id (not `Xs`/`Sm`/`Lg`, not a grid size). Select presentations with
-`makeModule` breakpoint slots (`xs` required; omitted slots inherit the
+id (not `Sm`/`Md`/`Lg`, not a grid size). Select presentations with
+`makeModule` breakpoint slots (`sm` required; omitted slots inherit the
 nearest smaller entry).
 
 For wide profile layouts, use `GitHubProfileActivityHero` and
@@ -275,22 +276,20 @@ that catalog needs those templates.
 
 ### Responsive sandbox placed bricks
 
-The sandbox persists `bricksById` under `qrk-bricks-sandbox-responsive-bricks-v4`.
-It starts empty and neither reads nor migrates older grid keys. Hydration removes
-obsolete `md` and `2xl` entries, preserving the four retained entries and shared
-content. Saved 768px and 1536px presets become 640px and 1440px respectively. Each placed brick
-stores `groupId`, `catalogId`, shared `data`, required `xs`, and
-optional `sm`, `lg`, and `xl` entries. Each entry contains `gridItem` (the grid
-library's `LayoutItem`, or `null` to hide) and `options`. Omitted entries
+The sandbox persists `bricksById` under `qrk-bricks-sandbox-responsive-bricks-v5`.
+It starts empty and neither reads nor migrates older grid keys. Saved 768px and 1536px
+presets become 640px and 1440px respectively. Each placed brick stores shared `data`,
+required `sm`, and optional `md`, `lg`, and `xl` entries. Each entry contains `gridItem`
+(the grid library's `LayoutItem`, or `null` to hide) and `options`. Omitted entries
 inherit the entire nearest smaller entry, including hidden status. Editing an
 inherited entry first copies its placement and options. The placed-brick editor's
 “Inherit from” button removes the active breakpoint override and names the nearest
 smaller explicit entry, including hidden entries. It is disabled when already
-inheriting and absent at `xs`. Labels and default
-sizes stay in group metadata. The active grid is derived; no second placement
+inheriting and absent at `sm`. Labels and default
+sizes stay in module metadata. The active grid is derived; no second placement
 array is persisted. Drag, resize, and rearrangements update the active entry. Resizing uses the grid library’s default bottom-right handle and stylesheet without custom positioning.
 The group panel does not include a placed-brick list. In brick configuration,
-Show restores a smaller visible placement or uses group dimensions at the next available position.
+Show restores a smaller visible placement or uses module dimensions at the next available position.
 
 `makeModule` accepts optional `options: makeOptions({ shape, form })` alongside
 its presentations. The shape infers form values and supplies validated defaults.
@@ -307,8 +306,8 @@ Bricks render without an optional card wrapper and fill their grid footprint.
 The grid retains its edit icon, excluded from drag initiation. Entire brick surfaces are draggable; rendered content disables pointer events and text selection. Group and configuration previews also drag from their whole surface. There are no grip buttons or interaction toggles. Detail previews omit grid controls.
 Presentations receive shared `data`, the active `breakpoint`, and resolved
 `options`; their presentation fallback remains independent of entry
-inheritance. Group drops copy the preview options into `xs`, and also into
-an explicit active entry when dropped above `xs`. Figma's thumbnail presentations
+inheritance. Group drops copy the preview options into `sm`, and also into
+an explicit active entry when dropped above `sm`. Figma's thumbnail presentations
 support Center, Left, Right, Top, and Bottom image positions (default Center).
 Group descriptors use `id` and `catalogId` (`def.groupId` / `def.catalogId`); site grid placement arrays are unchanged.
 Catalog configuration inputs are named `moduleOptions` and remain form-local. They are not persisted, copied on drop, or restored from a brick. `data` remains the resulting shared content.

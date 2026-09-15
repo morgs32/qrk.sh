@@ -191,8 +191,8 @@ export const useGridStore = create<{
       },
     }),
     {
-      name: "qrk-bricks-sandbox-responsive-bricks-v4",
-      version: 4,
+      name: "qrk-bricks-sandbox-responsive-bricks-v5",
+      version: 5,
       migrate: (persistedState) => {
         const selectedWidth =
           persistedState !== null &&

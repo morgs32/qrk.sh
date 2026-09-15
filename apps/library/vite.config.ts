@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
           index: "index.ts",
           BrickPreviewFrame: "BrickPreviewFrame.tsx",
           BrickBreakpointProvider: "BrickBreakpointProvider.tsx",
+          breakpoints: "breakpoints.ts",
         },
         formats: ["es"],
         fileName: (_format, entryName) => `${entryName}.js`,

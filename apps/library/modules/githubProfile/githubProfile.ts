@@ -68,4 +68,5 @@ export const githubProfile = makeModule({
   },
   sm: { component: GitHubProfileStats, w: 4, h: 4 },
   md: { component: GitHubProfileStats, w: 4, h: 3 },
+  lg: { component: GitHubProfileStats, w: 2, h: 2 },
 });

@@ -11,7 +11,7 @@ Helpers such as `*Card`, `*Activity`, `*Graphic`, forms, lookups, and `*Repo`
 are not presentations and keep their own names.
 
 Select complete presentations once in the module definition. `makeModule`
-still keys responsive slots by breakpoint (`xs` required; `sm`, `lg`, and `xl`
+still keys responsive slots by breakpoint (`sm` required; `md`, `lg`, and `xl`
 optional). Each slot is `{ component, w, h }`. An omitted breakpoint inherits
 the nearest smaller complete entry:
 
@@ -19,18 +19,19 @@ the nearest smaller complete entry:
 makeModule({
   id: "github-profile",
   // …
-  xs: { component: GitHubProfileStats, w: 4, h: 4 },
+  sm: { component: GitHubProfileStats, w: 4, h: 4 },
   lg: { component: GitHubProfileCalendar, w: 4, h: 4 },
 });
 ```
 
-In this example, `sm` inherits `GitHubProfileStats` and `xl` inherits
-`GitHubProfileCalendar`. Grid container thresholds are 640px (`sm`), 1024px
-(`lg`), and 1280px (`xl`); `xs` covers smaller widths.
+In this example, `md` inherits `GitHubProfileStats` and `xl` inherits
+`GitHubProfileCalendar`. Grid container thresholds are 640px (`md`), 1024px
+(`lg`), and 1280px (`xl`); `sm` covers smaller widths. Shared defs live in
+`apps/library/breakpoints.ts`.
 
 `makeModule` uses the incoming `breakpoint` prop and forwards the same props
 to the selected React component. It performs no measurement and owns no
-context. Data props are inferred from `xs`; other presentations must accept
+context. Data props are inferred from `sm`; other presentations must accept
 those props. Render each presentation as a React component so hooks remain
 valid. Switching component types remounts their local state.
 

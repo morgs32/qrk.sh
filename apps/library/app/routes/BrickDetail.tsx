@@ -47,9 +47,9 @@ export default function BrickDetail() {
   const brickData = brickDef.data;
   const entry = resolveBrickBreakpoint(brickDef, breakpoint);
   const OptionsForm = BrickComponent.options?.form;
-  let inheritedBreakpoint = "xs";
+  let inheritedBreakpoint = "sm";
   if (breakpoint === "xl" && brickDef.lg) inheritedBreakpoint = "lg";
-  else if ((breakpoint === "xl" || breakpoint === "lg") && brickDef.sm) inheritedBreakpoint = "sm";
+  else if ((breakpoint === "xl" || breakpoint === "lg") && brickDef.md) inheritedBreakpoint = "md";
 
   return (
     <section data-testid="brick-detail-pane">
@@ -93,7 +93,7 @@ export default function BrickDetail() {
         />
         <Outline.Title>Options</Outline.Title>
         <div className="flex flex-wrap gap-2 px-4 py-4">
-          {breakpoint !== "xs" && (
+          {breakpoint !== "sm" && (
             <Button
               type="button"
               variant="outline"

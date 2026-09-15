@@ -2,27 +2,19 @@ import { Image } from "@unpic/react";
 
 import { BrickFrame } from "../../BrickFrame";
 
-import { DEFAULT_IMAGE_SRC } from "./ImageOptionsForm";
-
-export function ImageDefaultPromo(props: {
+export function ImageAndTitle(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";
-  options?: unknown;
+  data: {
+    imageUrl: string;
+    title: string;
+  };
 }) {
-  const src =
-    props.options !== null &&
-    typeof props.options === "object" &&
-    "src" in props.options &&
-    typeof props.options.src === "string" &&
-    props.options.src.length > 0
-      ? props.options.src
-      : DEFAULT_IMAGE_SRC;
-
   return (
     <BrickFrame backgroundClassName="bg-neutral-100" textClassName="text-black">
       <div className="relative h-full w-full min-h-0 overflow-hidden rounded-lg shadow-lg">
         <Image
-          src={src}
-          alt="White Bay Power Station - Historic industrial brick building with Sydney skyline in background"
+          src={props.data.imageUrl}
+          alt={props.data.title}
           className="absolute inset-0 h-full w-full object-cover"
           layout="fullWidth"
           height={800}
@@ -30,7 +22,7 @@ export function ImageDefaultPromo(props: {
         />
         <div className="absolute inset-x-0 bottom-0 flex h-[20.25%] items-center bg-white px-3">
           <h2 className="m-0 truncate text-xs font-semibold leading-tight text-black">
-            White Bay Power Station
+            {props.data.title}
           </h2>
         </div>
       </div>

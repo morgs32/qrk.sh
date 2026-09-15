@@ -31,8 +31,8 @@ const BrickDragDefFromJsonStringSchema = Schema.fromJsonString(
   Schema.Struct({
     moduleId: Schema.String,
     moduleLabel: Schema.String,
-    xs: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     sm: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+    md: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     lg: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     xl: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     data: Schema.Unknown,

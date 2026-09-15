@@ -69,6 +69,10 @@ export function Article() {
         StarterKit.configure({
           document: false,
           horizontalRule: false,
+          trailingNode: {
+            node: "paragraph",
+            notAfter: ["paragraph"],
+          },
           link: {
             openOnClick: false,
             enableClickSelection: true,

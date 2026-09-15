@@ -4,8 +4,6 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { seedLayout, type ILayout } from "@/components/home/seedLayout";
 
-import type { BreakpointPrefix } from "./page/[pageId]/Breakpoints/breakpointRows";
-
 interface IComposeBlock {
   readonly id: string;
   readonly content: string;
@@ -17,11 +15,6 @@ interface IPageDraft {
   readonly pageType: "split-scroll" | "shared-scroll";
   readonly layout: ILayout;
   readonly composeBlocks: readonly IComposeBlock[];
-  readonly breakpointGridColumnCounts: {
-    readonly sm: 1 | 2;
-    readonly lg: 1 | 2;
-    readonly xl: 1 | 2;
-  };
 }
 
 interface ISiteDraft {
@@ -67,13 +60,6 @@ interface ISitePageDraftStoreState {
     pageId: string,
     blockId: string,
   ) => void;
-  readonly setBreakpointGridColumnCount: (
-    identityKey: string,
-    siteId: string,
-    pageId: string,
-    prefix: BreakpointPrefix,
-    count: 1 | 2,
-  ) => void;
 }
 
 const SITE_PAGE_DRAFT_STORE_STORAGE_KEY = "qrk-site-editor-drafts-v2";
@@ -115,12 +101,7 @@ const PersistedSitePageDraftStateSchema = Schema.Struct({
                   content: Schema.String,
                 }),
               ),
-              breakpointGridColumnCounts: Schema.Struct({
-                sm: Schema.Literals([1, 2]),
-                lg: Schema.Literals([1, 2]),
-                xl: Schema.Literals([1, 2]),
-              }).annotate({ parseOptions: { onExcessProperty: "ignore" } }),
-            }),
+            }).annotate({ parseOptions: { onExcessProperty: "ignore" } }),
           ),
         }).annotate({ parseOptions: { onExcessProperty: "ignore" } }),
       ),
@@ -138,11 +119,6 @@ function createSeedPageDraft(): IPageDraft {
     pageType: "split-scroll",
     layout: seedLayout,
     composeBlocks: [],
-    breakpointGridColumnCounts: {
-      sm: 1,
-      lg: 1,
-      xl: 1,
-    },
   };
 }
 
@@ -408,41 +384,6 @@ export const useSitePageDraftStore = create<ISitePageDraftStoreState>()(
                         composeBlocks: pageDraft.composeBlocks.filter(
                           (block) => block.id !== blockId,
                         ),
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          };
-        });
-      },
-      setBreakpointGridColumnCount: (identityKey, siteId, pageId, prefix, count) => {
-        set((state) => {
-          const ownerDraft = state.owners[identityKey];
-          const siteDraft = ownerDraft?.sites[siteId];
-          const pageDraft = siteDraft?.pages[pageId];
-
-          if (ownerDraft === undefined || siteDraft === undefined || pageDraft === undefined) {
-            return state;
-          }
-
-          return {
-            owners: {
-              ...state.owners,
-              [identityKey]: {
-                sites: {
-                  ...ownerDraft.sites,
-                  [siteId]: {
-                    ...siteDraft,
-                    pages: {
-                      ...siteDraft.pages,
-                      [pageId]: {
-                        ...pageDraft,
-                        breakpointGridColumnCounts: {
-                          ...pageDraft.breakpointGridColumnCounts,
-                          [prefix]: count,
-                        },
                       },
                     },
                   },

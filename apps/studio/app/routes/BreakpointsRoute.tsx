@@ -1,9 +1,7 @@
-import { Breakpoints } from "../[username]/site/[siteId]/page/[pageId]/Breakpoints/Breakpoints";
+import { BreakpointsToolbar } from "../[username]/site/[siteId]/Toolbars/BreakpointsToolbar";
+
+export const handle = { toolbar: <BreakpointsToolbar key="Breakpoints" /> };
 
 export default function BreakpointsRoute() {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <Breakpoints />
-    </div>
-  );
+  return null;
 }

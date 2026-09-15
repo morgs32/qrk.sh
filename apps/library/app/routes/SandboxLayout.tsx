@@ -5,6 +5,7 @@ import { RotateCcw, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle, DrawerTrigger } from "../../components/ui/drawer";
 
+import { BREAKPOINTS } from "../../breakpoints";
 import { SandboxGrid } from "../SandboxGrid";
 import { useGridStore } from "../useGridStore";
 
@@ -13,10 +14,11 @@ export default function SandboxLayout() {
   const gridRegionRef = useRef<HTMLDivElement>(null);
   const [availableWidth, setAvailableWidth] = useState(0);
   const savedWidth = useGridStore((state) => state.selectedWidth);
+  const previewWidths = BREAKPOINTS.map((row) => row.previewWidth);
   const selectedWidth =
     savedWidth !== null && savedWidth <= availableWidth
       ? savedWidth
-      : ([1440, 1024, 640, 375].find((preset) => preset <= availableWidth) ?? null);
+      : ([...previewWidths].reverse().find((preset) => preset <= availableWidth) ?? null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useLayoutEffect(() => {
@@ -85,15 +87,15 @@ export default function SandboxLayout() {
               data-testid="grid-region"
               className="relative min-w-0 pt-14"
             >
-              {availableWidth > 0 && availableWidth < 375 && (
+              {availableWidth > 0 && availableWidth < BREAKPOINTS[0].previewWidth && (
                 <p className="p-4 text-sm" role="status">
-                  At least 375px is needed to preview the grid.
+                  At least {BREAKPOINTS[0].previewWidth}px is needed to preview the grid.
                 </p>
               )}
               <div
                 hidden={selectedWidth === null}
                 className="mx-auto"
-                style={{ width: selectedWidth ?? 375 }}
+                style={{ width: selectedWidth ?? BREAKPOINTS[0].previewWidth }}
               >
                 <SandboxGrid />
               </div>
@@ -132,19 +134,19 @@ export default function SandboxLayout() {
                   <RotateCcw aria-hidden />
                 </Button>
                 <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
-                {[375, 640, 1024, 1440].map((width) => (
+                {BREAKPOINTS.map((row) => (
                   <Button
-                    key={width}
+                    key={row.id}
                     type="button"
-                    variant={selectedWidth === width ? "secondary" : "ghost"}
+                    variant={selectedWidth === row.previewWidth ? "secondary" : "ghost"}
                     size="sm"
                     className="h-8 px-2 text-xs"
-                    aria-label={`${width}px grid width`}
-                    aria-pressed={selectedWidth === width}
-                    disabled={width > availableWidth}
-                    onClick={() => useGridStore.setState({ selectedWidth: width })}
+                    aria-label={`${row.previewWidth}px grid width`}
+                    aria-pressed={selectedWidth === row.previewWidth}
+                    disabled={row.previewWidth > availableWidth}
+                    onClick={() => useGridStore.setState({ selectedWidth: row.previewWidth })}
                   >
-                    {width}
+                    {row.previewWidth}
                   </Button>
                 ))}
               </div>

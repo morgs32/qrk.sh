@@ -1,24 +1,21 @@
 import { primitives } from "@zerospin/schema";
 
 import { makeModule } from "../../makeModule";
-import { makeOptions } from "../../makeOptions";
 
-import { DEFAULT_IMAGE_SRC, ImageOptionsForm } from "./ImageOptionsForm";
-import { ImageDefaultPromo } from "./ImageDefaultPromo";
+import { ImageAndTitle } from "./ImageAndTitle";
 
 export const image = makeModule({
-  dataShape: null,
-  defaultData: null,
   id: "image",
   label: "Image",
   description: "An editorial image preview.",
-  options: makeOptions({
-    shape: {
-      src: primitives.text({
-        defaultValue: DEFAULT_IMAGE_SRC,
-      }),
-    },
-    form: ImageOptionsForm,
-  }),
-  sm: { component: ImageDefaultPromo, w: 4, h: 4 },
+  dataShape: {
+    imageUrl: primitives.text(),
+    title: primitives.text(),
+  },
+  defaultData: {
+    imageUrl:
+      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80",
+    title: "White Bay Power Station",
+  },
+  sm: { component: ImageAndTitle, w: 4, h: 4 },
 });

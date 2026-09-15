@@ -38,8 +38,8 @@ for (const [collection, content, view] of [
       const before = await placed.boundingBox();
       await toggle.setChecked(true);
       const card = placed.locator('[data-brick-frame="card"]');
-      await expect(card).toHaveCSS("padding-top", "16px");
-      await expect(card).toHaveCSS("padding-left", "16px");
+      await expect(card).toHaveCSS("padding-top", "8px");
+      await expect(card).toHaveCSS("padding-left", "8px");
       await expect(card).not.toHaveCSS("box-shadow", "none");
       await expect(preview.locator('[data-brick-frame="card"]')).toBeVisible();
       expect(await placed.boundingBox()).toEqual(before);
@@ -58,8 +58,8 @@ for (const [collection, content, view] of [
       expect(inner!.width).toBeGreaterThan(0);
       expect(inner!.height).toBeGreaterThan(0);
       // Padding is inside the Card's one-pixel border.
-      expect(inner!.x - bounds!.x).toBe(17);
-      expect(inner!.y - bounds!.y).toBe(17);
+      expect(inner!.x - bounds!.x).toBe(9);
+      expect(inner!.y - bounds!.y).toBe(9);
       await page.screenshot({ path: testInfo.outputPath(`card-${width}.png`) });
       await toggle.setChecked(false);
     }

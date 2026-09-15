@@ -66,7 +66,7 @@ export function SandboxGrid() {
           // Dropped items carry isDraggable, which overrides dragConfig.enabled.
           layout={layout.map((item) => ({ ...item, isDraggable: true }))}
           autoSize
-          className="grid-layout min-h-screen"
+          className="grid-layout min-h-screen [--card-gap:16px]"
           compactor={verticalCompactor}
           gridConfig={{
             cols: 8,

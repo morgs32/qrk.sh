@@ -321,7 +321,11 @@ separate from collection-specific `viewOptions`. The Card frame switch sits besi
 Hide/Show brick and edits the active breakpoint, copying the complete inherited
 entry first. Inherit removes that complete override, including frame selection.
 `BrickViewFrame` in the sandbox grid and placed-brick detail preview owns the
-shared Card surface and 16px content inset, retaining the existing grid footprint.
+shared Card surface and 8px content inset, retaining the existing grid footprint.
+The grid sets `--card-gap: 16px`; card frames inset each side by half that gap,
+so adjacent card borders are 16px apart while unframed bricks fill their cells.
+Outside the grid, the detail preview retains its 16px outer spacing through a
+32px gap fallback.
 The grid passes its edit and drag controls inside the frame; the preview omits
 controls. Default frames and catalog previews retain their existing appearance.
 Hydration initializes missing frame values to `"default"` and removes the old

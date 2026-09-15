@@ -6,7 +6,7 @@ import { makeGroup } from "../../makeGroup";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { PinkAsterisk1x1 } from "./catalogs/default/PinkAsterisk1x1";
+import { IconDefaultGlyph } from "./catalogs/default/IconDefaultGlyph";
 import { StreamlineIconLookup } from "./catalogs/default/StreamlineIconLookup";
 
 export const iconGroup = makeGroup({
@@ -43,7 +43,7 @@ export const iconGroup = makeGroup({
         svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 20v60M20 35l60 30M20 65l60-30" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="8"/></svg>',
       },
       order: 1,
-      xs: { component: PinkAsterisk1x1, w: 2, h: 2 },
+      xs: { component: IconDefaultGlyph, w: 2, h: 2 },
     }),
   },
 });

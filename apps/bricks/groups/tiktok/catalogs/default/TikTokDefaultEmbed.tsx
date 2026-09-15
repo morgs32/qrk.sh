@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 import { BrickFrame } from "../../../../BrickFrame";
 
-export function TikTokDefault4x4(props: { data: { username: string } }) {
+export function TikTokDefaultEmbed(props: { data: { username: string } }) {
   useEffect(() => {
     document.querySelector('script[data-qrk-tiktok-embed="true"]')?.remove();
 

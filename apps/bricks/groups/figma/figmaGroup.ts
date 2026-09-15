@@ -7,8 +7,8 @@ import { makeCatalog } from "../../makeCatalog";
 
 import defaultThumbnailUrl from "./catalogs/thumbnail/dot-pattern-789x450.png";
 import { FigmaAppearanceForm } from "./catalogs/thumbnail/FigmaAppearanceForm";
-import { FigmaThumbnailSm } from "./catalogs/thumbnail/FigmaThumbnailSm";
-import { FigmaThumbnailXs } from "./catalogs/thumbnail/FigmaThumbnailXs";
+import { FigmaThumbnailFooter } from "./catalogs/thumbnail/FigmaThumbnailFooter";
+import { FigmaThumbnailHeader } from "./catalogs/thumbnail/FigmaThumbnailHeader";
 
 export const figmaGroup = makeGroup({
   id: "figma",
@@ -56,8 +56,8 @@ export const figmaGroup = makeGroup({
         },
         form: FigmaAppearanceForm,
       }),
-      xs: { component: FigmaThumbnailXs, w: 4, h: 4 },
-      sm: { component: FigmaThumbnailSm, w: 4, h: 4 },
+      xs: { component: FigmaThumbnailHeader, w: 4, h: 4 },
+      sm: { component: FigmaThumbnailFooter, w: 4, h: 4 },
     }),
   },
 });

@@ -72,10 +72,10 @@ folders. Do not add `index.ts` barrels under `catalogs/` or a catalog folder.
 `*Repo` class. Shared scrape helpers (`BrowserHost`, URL normalizers, encodeRpc,
 schemas, and provider scrape modules) stay under `apps/bricks/scraper/`.
 
-- **Bad**: flat `groups/github/GitHubProfileSquareXs.tsx` next to
-  `githubGroup.ts` and `GitHubRepoXs.tsx`.
-- **Good**: `groups/github/catalogs/profile/GitHubProfileSquareXs.tsx` and
-  `groups/github/catalogs/repo/GitHubRepoXs.tsx`, with
+- **Bad**: flat `groups/github/GitHubProfileStats.tsx` next to
+  `githubGroup.ts` and `GitHubRepoStack.tsx`.
+- **Good**: `groups/github/catalogs/profile/GitHubProfileStats.tsx` and
+  `groups/github/catalogs/repo/GitHubRepoStack.tsx`, with
   `githubGroup.ts` at the group root importing each path.
 - **Good**: `groups/instagram/catalogs/default/InstagramRepo.ts` next to that
   catalog's presentations; `scraper/Worker.ts` imports and re-exports it.
@@ -259,15 +259,18 @@ frame. Placed-detail previews use resolved breakpoint dimensions; the standalone
 slider sets the simulated full grid width measured by its provider.
 Import the frame directly or through `@qrk.sh/bricks/BrickPreviewFrame`.
 
-### Breakpoint presentation names
+### Presentation template names
 
 Follow [brick presentation conventions](../../wiki/brick-layout-conventions.md):
-`<Group><Content><Shape><Breakpoint>`, for example `GitHubProfileSquareXs`
-and `GitHubProfileSquareLg`, with matching filenames. Select presentations with
-`makeCatalog` at the brick definition.
+`<Group><Catalog><Template>`, for example `GitHubProfileStats` and
+`GitHubProfileCalendar`, with matching filenames. **Template** is a layout-role
+id (not `Xs`/`Sm`/`Lg`, not a grid size). Select presentations with
+`makeCatalog` breakpoint slots (`xs` required; omitted slots inherit the
+nearest smaller entry).
 
-For the wide profile, use `GitHubProfileWideXs` and `GitHubProfileWideSm` in
-matching files; `lg` and `xl` inherit `Sm` through `makeCatalog`.
+For wide profile layouts, use `GitHubProfileActivityHero` and
+`GitHubProfileStatsRow` in matching files; wire them through `makeCatalog` when
+that catalog needs those templates.
 
 ### Responsive sandbox placed bricks
 

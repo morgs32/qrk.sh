@@ -13,7 +13,7 @@ const profileCardShellClass =
   "h-full min-h-0 w-full gap-1 overflow-hidden border-0 bg-white py-3 text-zinc-900";
 const profileMutedClass = "text-zinc-500";
 
-export function GitHubProfileSquareLg(props: {
+export function GitHubProfileCalendar(props: {
   breakpoint: "xs" | "sm" | "lg" | "xl";
   data: {
     login: string;

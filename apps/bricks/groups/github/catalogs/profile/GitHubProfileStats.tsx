@@ -12,7 +12,7 @@ const profileCardShellClass =
   "h-full min-h-0 w-full gap-1 overflow-hidden border-0 bg-white p-2 text-xs text-zinc-900";
 const profileMutedClass = "text-zinc-500";
 
-export function GitHubProfileSquareXs(props: {
+export function GitHubProfileStats(props: {
   breakpoint: "xs" | "sm" | "lg" | "xl";
   data: {
     login: string;

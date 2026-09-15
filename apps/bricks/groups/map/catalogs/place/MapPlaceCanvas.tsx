@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 
 const MAPBOX_TOKEN = import.meta.env.PUBLIC_MAPBOX_TOKEN;
 
-export function MapPlace4x4(props: {
+export function MapPlaceCanvas(props: {
   data: {
     googlePlaceId: string;
     name: string;

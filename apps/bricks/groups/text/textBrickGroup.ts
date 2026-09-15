@@ -8,7 +8,7 @@ import { makeGroup } from "../../makeGroup";
 import { makeFormConfiguration } from "../../makeFormConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { TextBrick2x2 } from "./catalogs/default/TextBrick2x2";
+import { TextDefaultBody } from "./catalogs/default/TextDefaultBody";
 import { TextEditorControl } from "./catalogs/default/TextEditorControl";
 
 const dataShape = {
@@ -41,7 +41,7 @@ export const textBrickGroup = makeGroup({
           }),
       }),
       order: 1,
-      xs: { component: TextBrick2x2, w: 4, h: 4 },
+      xs: { component: TextDefaultBody, w: 4, h: 4 },
     }),
   },
 });

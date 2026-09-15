@@ -7,7 +7,7 @@ import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
 import { GooglePlaceLookup } from "./catalogs/place/GooglePlaceLookup";
-import { MapPlace4x4 } from "./catalogs/place/MapPlace4x4";
+import { MapPlaceCanvas } from "./catalogs/place/MapPlaceCanvas";
 
 export const mapGroup = makeGroup({
   id: "map",
@@ -51,7 +51,7 @@ export const mapGroup = makeGroup({
         longitude: -87.6297982,
       },
       order: 0,
-      xs: { component: MapPlace4x4, w: 4, h: 4 },
+      xs: { component: MapPlaceCanvas, w: 4, h: 4 },
     }),
   },
 });

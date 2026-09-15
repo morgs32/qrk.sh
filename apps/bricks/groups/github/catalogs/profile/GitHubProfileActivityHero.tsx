@@ -2,7 +2,7 @@ import { Image } from "@unpic/react";
 import { ActivityCalendar } from "react-activity-calendar";
 import { BrickFrame } from "../../../../BrickFrame";
 
-export function GitHubProfileWideXs(props: {
+export function GitHubProfileActivityHero(props: {
   breakpoint: "xs" | "sm" | "lg" | "xl";
   data: {
     login: string;

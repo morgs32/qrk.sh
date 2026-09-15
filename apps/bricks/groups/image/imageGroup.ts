@@ -1,7 +1,7 @@
 import { makeGroup } from "../../makeGroup";
 import { makeCatalog } from "../../makeCatalog";
 
-import { ImagePromo4x4 } from "./catalogs/default/ImagePromo4x4";
+import { ImageDefaultPromo } from "./catalogs/default/ImageDefaultPromo";
 
 export const imageGroup = makeGroup({
   id: "image",
@@ -15,7 +15,7 @@ export const imageGroup = makeGroup({
       label: "Default",
       description: "An editorial image preview.",
       order: 0,
-      xs: { component: ImagePromo4x4, w: 4, h: 4 },
+      xs: { component: ImageDefaultPromo, w: 4, h: 4 },
     }),
   },
 });

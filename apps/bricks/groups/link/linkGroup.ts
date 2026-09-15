@@ -4,7 +4,7 @@ import { makeGroup } from "../../makeGroup";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { Link4x2 } from "./catalogs/default/Link4x2";
+import { LinkDefaultCard } from "./catalogs/default/LinkDefaultCard";
 
 export const linkGroup = makeGroup({
   id: "link",
@@ -46,7 +46,7 @@ export const linkGroup = makeGroup({
         iconUrl: "https://www.apple.com/favicon.ico",
       },
       order: 0,
-      xs: { component: Link4x2, w: 4, h: 2 },
+      xs: { component: LinkDefaultCard, w: 4, h: 2 },
     }),
   },
 });

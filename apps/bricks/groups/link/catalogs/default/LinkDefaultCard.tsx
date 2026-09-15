@@ -2,7 +2,7 @@ import { Image } from "@unpic/react";
 
 import { BrickFrame } from "../../../../BrickFrame";
 
-export function Link4x2(props: {
+export function LinkDefaultCard(props: {
   data: {
     url: string;
     title: string;

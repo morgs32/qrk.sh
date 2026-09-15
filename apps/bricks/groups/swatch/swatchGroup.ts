@@ -7,7 +7,7 @@ import { makeGroup } from "../../makeGroup";
 import { makeFormConfiguration } from "../../makeFormConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { GreenEmpty1x1 } from "./catalogs/default/GreenEmpty1x1";
+import { SwatchDefaultFill } from "./catalogs/default/SwatchDefaultFill";
 
 const dataShape = { color: primitives.text() };
 
@@ -43,7 +43,7 @@ export const swatchGroup = makeGroup({
       label: "Default",
       description: "A solid color field.",
       order: 1,
-      xs: { component: GreenEmpty1x1, w: 2, h: 2 },
+      xs: { component: SwatchDefaultFill, w: 2, h: 2 },
     }),
   },
 });

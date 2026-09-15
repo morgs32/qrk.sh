@@ -1,55 +1,54 @@
-# Brick breakpoint presentations
+# Brick presentation templates
 
-Name presentation components `<Group><Content><Shape><Breakpoint>` and use
-matching PascalCase filenames. Use semantic shapes and explicit breakpoint
-suffixes rather than `Compact` or `Expanded`: `GitHubProfileSquareXs.tsx` and
-`GitHubProfileSquareLg.tsx` are the GitHub profile square presentations.
+Name presentation components `<Group><Catalog><Template>` and use matching
+PascalCase filenames.
 
-Select complete presentations once in the brick definition:
+- **Group** — PascalCase of the `makeGroup` `id` (for example `GitHub`, `Figma`)
+- **Catalog** — PascalCase of the `makeCatalog` `id` (for example `Profile`, `Thumbnail`)
+- **Template** — a layout-role id that describes what differs in markup (not a
+  breakpoint suffix, not a grid size like `4x4`)
+
+Helpers such as `*Card`, `*Activity`, `*Graphic`, forms, lookups, and `*Repo`
+are not presentations and keep their own names.
+
+Select complete presentations once in the catalog definition. `makeCatalog`
+still keys responsive slots by breakpoint (`xs` required; `sm`, `lg`, and `xl`
+optional). Each slot is `{ component, w, h }`. An omitted breakpoint inherits
+the nearest smaller complete entry:
 
 ```tsx
-makeView({
-  id: "4x4",
-  label: "4×4",
-  w: 4,
-  h: 4,
-  order: 0,
-  xs: GitHubProfileSquareXs,
-  lg: GitHubProfileSquareLg,
+makeCatalog({
+  id: "profile",
+  // …
+  xs: { component: GitHubProfileStats, w: 4, h: 4 },
+  lg: { component: GitHubProfileCalendar, w: 4, h: 4 },
 });
 ```
 
-Import `makeView` directly from `apps/bricks/src/makeView.tsx` using the
-appropriate relative path. The view owns `id`, `label`, `w`, `h`, `order`, and optional `form`.
-Its map key in `makeContent.views` must match `id`; `makeContent` supplies content
-identity, and group assembly preserves group `def` and `component` fields.
-`xs` is required; `sm`, `lg`, and `xl` are optional.
-An omitted breakpoint inherits the nearest smaller defined presentation. In this
-example, `sm` uses `Xs` and `lg` and `xl` use `Lg`.
-Grid container thresholds are 640px (`sm`), 1024px (`lg`),
-and 1280px (`xl`); `xs` covers smaller widths.
+In this example, `sm` inherits `GitHubProfileStats` and `xl` inherits
+`GitHubProfileCalendar`. Grid container thresholds are 640px (`sm`), 1024px
+(`lg`), and 1280px (`xl`); `xs` covers smaller widths.
 
-The helper uses the existing incoming `breakpoint` prop and forwards the same
-props to the selected React component. It performs no measurement and owns no
+`makeCatalog` uses the incoming `breakpoint` prop and forwards the same props
+to the selected React component. It performs no measurement and owns no
 context. Data props are inferred from `xs`; other presentations must accept
-those props. Render each presentation as a React component so hooks remain valid.
-Switching component types remounts their local state.
+those props. Render each presentation as a React component so hooks remain
+valid. Switching component types remounts their local state.
 
 Keep each presentation's markup explicit rather than scattering breakpoint
-conditions throughout it. Ordinary data-dependent rendering is still appropriate.
-Shape names describe presentation; existing brick view IDs such as `4x4`,
-dimensions, schemas, and persisted configuration do not change.
+conditions throughout it. Ordinary data-dependent rendering is still
+appropriate. Template names describe layout role; catalog dimensions, schemas,
+and persisted configuration do not change when you rename a presentation.
 
-The square GitHub profile uses a 32px avatar, username, bio, location, website,
-and icon/count statistics. `Xs` truncates overflowing values and omits activity;
-`Lg` retains contribution activity. The wide `4x2` brick uses `GitHubProfileWideXs` and
-`GitHubProfileWideSm`, supplied as `xs` and `sm` in its `makeView` definition.
-`Xs` puts activity in the top half and the 20px avatar/username below. `Sm`
-retains statistics and labeled activity; `lg` and `xl` inherit it. Compact
-activity markup belongs directly to `WideXs`; the shared `GitHubProfileActivity`
-only renders the larger chart used by `WideSm` and `SquareLg`.
+The GitHub profile catalog uses `GitHubProfileStats` (avatar, bio, and
+icon/count statistics without a contribution calendar) and
+`GitHubProfileCalendar` (same card with contribution activity). Sibling wide
+templates `GitHubProfileActivityHero` and `GitHubProfileStatsRow` keep activity
+markup distinct from the square templates. Shared chart markup lives in the
+helper `GitHubProfileActivity`, not in a presentation filename.
 
-The Figma thumbnail uses `FigmaThumbnailXs` and
-`FigmaThumbnailSm`; `lg` and `xl` inherit `Sm`. Its view form edits
-per-breakpoint `viewOptions.imagePosition`, which each presentation applies
-directly to its image's `object-position`. These options do not change grid dimensions.
+The Figma thumbnail catalog uses `FigmaThumbnailHeader` (title bar above the
+preview) and `FigmaThumbnailFooter` (brand bar below the preview); `lg` and
+`xl` inherit `Footer`. Its appearance form edits per-breakpoint
+`imagePosition`, which each presentation applies directly to its image's
+`object-position`. These options do not change grid dimensions.

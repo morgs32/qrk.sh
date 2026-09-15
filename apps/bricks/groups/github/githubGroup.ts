@@ -5,10 +5,10 @@ import { makeGroup } from "../../makeGroup";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { GitHubProfileSquareLg } from "./catalogs/profile/GitHubProfileSquareLg";
-import { GitHubProfileSquareXs } from "./catalogs/profile/GitHubProfileSquareXs";
-import { GitHubRepoSm } from "./catalogs/repo/GitHubRepoSm";
-import { GitHubRepoXs } from "./catalogs/repo/GitHubRepoXs";
+import { GitHubProfileCalendar } from "./catalogs/profile/GitHubProfileCalendar";
+import { GitHubProfileStats } from "./catalogs/profile/GitHubProfileStats";
+import { GitHubRepoCompact } from "./catalogs/repo/GitHubRepoCompact";
+import { GitHubRepoStack } from "./catalogs/repo/GitHubRepoStack";
 
 export const githubGroup = makeGroup({
   id: "github",
@@ -102,8 +102,8 @@ export const githubGroup = makeGroup({
         }),
       },
       order: 0,
-      xs: { component: GitHubProfileSquareXs, w: 4, h: 4 },
-      lg: { component: GitHubProfileSquareLg, w: 4, h: 4 },
+      xs: { component: GitHubProfileStats, w: 4, h: 4 },
+      lg: { component: GitHubProfileCalendar, w: 4, h: 4 },
     }),
     repo: makeCatalog({
       dataShape: null,
@@ -112,8 +112,8 @@ export const githubGroup = makeGroup({
       label: "Repo",
       description: "A GitHub repository card.",
       order: 1,
-      xs: { component: GitHubRepoXs, w: 4, h: 6 },
-      sm: { component: GitHubRepoSm, w: 4, h: 2 },
+      xs: { component: GitHubRepoStack, w: 4, h: 6 },
+      sm: { component: GitHubRepoCompact, w: 4, h: 2 },
     }),
   },
 });

@@ -2,7 +2,7 @@ import { Image } from "@unpic/react";
 
 import { BrickFrame } from "../../../../BrickFrame";
 
-export function FigmaThumbnailXs(props: {
+export function FigmaThumbnailHeader(props: {
   breakpoint: "xs" | "sm" | "lg" | "xl";
   appearanceOptions?: { imagePosition: string };
   data: {

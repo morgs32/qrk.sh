@@ -2,7 +2,7 @@ import { BookOpen, UserPlus, Users } from "lucide-react";
 import { GitHubProfileActivity } from "./GitHubProfileActivity";
 import { BrickFrame } from "../../../../BrickFrame";
 
-export function GitHubProfileWideSm(props: {
+export function GitHubProfileStatsRow(props: {
   breakpoint: "xs" | "sm" | "lg" | "xl";
   data: {
     login: string;

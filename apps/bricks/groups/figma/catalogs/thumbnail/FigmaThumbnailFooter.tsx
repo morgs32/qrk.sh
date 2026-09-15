@@ -2,7 +2,7 @@ import { Image } from "@unpic/react";
 
 import { BrickFrame } from "../../../../BrickFrame";
 
-export function FigmaThumbnailSm(props: {
+export function FigmaThumbnailFooter(props: {
   appearanceOptions?: { imagePosition: string };
   data: {
     title: string;

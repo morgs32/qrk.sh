@@ -1,11 +1,11 @@
 import { BrickFrame } from "../../../../BrickFrame";
-import { GitHubAchievementsCard } from "./GitHubAchievementsCard";
+import { GitHubRepoCard } from "./GitHubRepoCard";
 
-export function GitHubAchievements4x2() {
+export function GitHubRepoCompact() {
   return (
     <BrickFrame backgroundClassName="bg-white" textClassName="text-zinc-950">
       <div className="flex h-full w-full min-h-0 items-stretch justify-stretch">
-        <GitHubAchievementsCard />
+        <GitHubRepoCard />
       </div>
     </BrickFrame>
   );

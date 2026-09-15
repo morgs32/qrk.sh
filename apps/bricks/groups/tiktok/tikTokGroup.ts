@@ -4,7 +4,7 @@ import { makeGroup } from "../../makeGroup";
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeCatalog } from "../../makeCatalog";
 
-import { TikTokDefault4x4 } from "./catalogs/default/TikTokDefault4x4";
+import { TikTokDefaultEmbed } from "./catalogs/default/TikTokDefaultEmbed";
 
 export const tikTokGroup = makeGroup({
   id: "tiktok",
@@ -35,7 +35,7 @@ export const tikTokGroup = makeGroup({
         username: "theonion",
       },
       order: 0,
-      xs: { component: TikTokDefault4x4, w: 4, h: 4 },
+      xs: { component: TikTokDefaultEmbed, w: 4, h: 4 },
     }),
   },
 });

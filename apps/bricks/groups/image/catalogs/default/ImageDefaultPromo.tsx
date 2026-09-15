@@ -2,7 +2,7 @@ import { Image } from "@unpic/react";
 
 import { BrickFrame } from "../../../../BrickFrame";
 
-export function ImagePromo4x4() {
+export function ImageDefaultPromo() {
   return (
     <BrickFrame backgroundClassName="bg-neutral-100" textClassName="text-black">
       <div className="relative h-full w-full min-h-0 overflow-hidden rounded-lg shadow-lg">

@@ -4,7 +4,7 @@ import { Camera } from "lucide-react";
 import { BrickFrame } from "../../../../BrickFrame";
 import { Button } from "../../../../components/ui/button";
 
-export function InstagramDefault4x4(props: {
+export function InstagramDefaultFeed(props: {
   data: {
     username: string;
     profileImageUrl: string;

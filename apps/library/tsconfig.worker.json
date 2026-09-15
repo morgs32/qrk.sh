@@ -6,12 +6,11 @@
     "noEmit": true,
     "skipLibCheck": true,
     "strict": true,
-    "types": ["node", "@cloudflare/vitest-pool-workers"]
+    "types": ["node"]
   },
   "include": [
     "scraper/**/*.ts",
     "modules/**/[A-Z]*Repo.ts",
-    "cloudflare-test.d.ts",
     "worker-configuration.d.ts"
   ]
 }

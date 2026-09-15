@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import { Schema } from "effect";
-import { GitFork, Monitor, Star } from "lucide-react";
+import { GitFork, Star } from "lucide-react";
 
 import { Card, CardContent } from "../../components/ui/card";
 
@@ -84,96 +84,83 @@ export function GitHubRepoCard({ size = "sm" }: { size?: "xs" | "sm" }) {
 
   return (
     <Card className="h-full min-h-0 w-full gap-0 overflow-hidden rounded-none border-0 bg-white py-0 shadow-none">
-      <a
-        href={data.html_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block h-full min-h-0"
+      <CardContent
+        className={
+          size === "xs"
+            ? "flex h-full min-h-0 min-w-0 flex-col gap-2 p-3"
+            : "flex h-full min-h-0 flex-col p-4"
+        }
       >
-        <CardContent
+        <h3
           className={
             size === "xs"
-              ? "flex h-full min-h-0 min-w-0 flex-col gap-2 p-3"
-              : "flex h-full min-h-0 flex-col p-4"
+              ? "min-w-0 shrink-0 break-words text-sm font-semibold text-zinc-950"
+              : "mb-2 min-w-0 break-words text-lg font-semibold text-zinc-950"
+          }
+        >
+          <a
+            href={data.html_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline"
+          >
+            {data.name}
+          </a>
+        </h3>
+
+        <p
+          className={
+            size === "xs"
+              ? "min-w-0 shrink-0 break-words text-xs text-zinc-500"
+              : "mb-4 min-h-0 min-w-0 flex-1 break-words text-sm text-zinc-500"
+          }
+        >
+          {data.description || "No description provided"}
+        </p>
+
+        <div
+          className={
+            size === "xs"
+              ? "mt-auto flex min-w-0 shrink-0 items-center gap-2 text-xs text-zinc-500"
+              : "mt-auto flex items-center gap-4 text-sm text-zinc-500"
           }
         >
           <div
             className={
-              size === "xs"
-                ? "flex min-w-0 shrink-0 items-center gap-1.5"
-                : "mb-2 flex items-center gap-2"
+              size === "xs" ? "flex shrink-0 items-center gap-1" : "flex items-center gap-1"
             }
           >
-            <Monitor
-              className={
-                size === "xs" ? "size-3.5 shrink-0 text-zinc-500" : "h-5 w-5 text-zinc-500"
-              }
-            />
-            <h3
-              className={
-                size === "xs"
-                  ? "min-w-0 truncate text-sm font-semibold text-zinc-950"
-                  : "text-lg font-semibold text-zinc-950"
-              }
-            >
-              {data.name}
-            </h3>
+            <Star className={size === "xs" ? "size-3 shrink-0" : "h-4 w-4"} />
+            <span>{data.stargazers_count}</span>
           </div>
-
-          <p
-            className={
-              size === "xs"
-                ? "min-w-0 shrink-0 truncate text-xs text-zinc-500"
-                : "text-zinc-500 mb-4 min-h-0 flex-1 text-sm"
-            }
-          >
-            {data.description || "No description provided"}
-          </p>
-
-          <div
-            className={
-              size === "xs"
-                ? "mt-auto flex min-w-0 shrink-0 items-center gap-2 text-xs text-zinc-500"
-                : "text-zinc-500 mt-auto flex items-center gap-4 text-sm"
-            }
-          >
+          {data.forks_count > 0 && (
             <div
               className={
                 size === "xs" ? "flex shrink-0 items-center gap-1" : "flex items-center gap-1"
               }
             >
-              <Star className={size === "xs" ? "size-3 shrink-0" : "h-4 w-4"} />
-              <span>{data.stargazers_count}</span>
+              <GitFork className={size === "xs" ? "size-3 shrink-0" : "h-4 w-4"} />
+              <span>{data.forks_count}</span>
             </div>
-            {data.forks_count > 0 && (
-              <div
+          )}
+          {data.language && (
+            <div
+              className={
+                size === "xs" ? "flex min-w-0 items-center gap-1" : "flex items-center gap-1.5"
+              }
+            >
+              <span
                 className={
-                  size === "xs" ? "flex shrink-0 items-center gap-1" : "flex items-center gap-1"
+                  size === "xs"
+                    ? "size-2 shrink-0 rounded-full bg-yellow-400"
+                    : "h-3 w-3 rounded-full bg-yellow-400"
                 }
-              >
-                <GitFork className={size === "xs" ? "size-3 shrink-0" : "h-4 w-4"} />
-                <span>{data.forks_count}</span>
-              </div>
-            )}
-            {data.language && (
-              <div
-                className={
-                  size === "xs" ? "flex min-w-0 items-center gap-1" : "flex items-center gap-1.5"
-                }
-              >
-                <span
-                  className={
-                    size === "xs"
-                      ? "size-2 shrink-0 rounded-full bg-yellow-400"
-                      : "h-3 w-3 rounded-full bg-yellow-400"
-                  }
-                />
-                <span className={size === "xs" ? "truncate" : undefined}>{data.language}</span>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </a>
+              />
+              <span className={size === "xs" ? "truncate" : undefined}>{data.language}</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
     </Card>
   );
 }

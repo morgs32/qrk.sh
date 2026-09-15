@@ -59,5 +59,5 @@ export const githubActivity = makeModule({
       return { date: date.toISOString().slice(0, 10), count, level };
     }),
   },
-  xs: { component: GitHubActivityCalendar, w: 4, h: 2 },
+  xs: { component: GitHubActivityCalendar, w: 4, h: 3 },
 });

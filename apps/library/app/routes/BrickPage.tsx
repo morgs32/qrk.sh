@@ -55,7 +55,6 @@ export default function BrickPage() {
                     <BrickPreviewFrame
                       w={brick.def[breakpoint].w}
                       h={brick.def[breakpoint].h}
-                      maxHeightQuarterViewport={false}
                     >
                       <div className="size-full overflow-hidden" data-testid="brick-preview">
                         <BrickComponent breakpoint={breakpoint} data={module.defaultData} />

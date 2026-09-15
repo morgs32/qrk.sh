@@ -53,7 +53,7 @@ export default function BrickDetail() {
 
   return (
     <section data-testid="brick-detail-pane">
-      <Outline.Title>
+      <Outline.Title sticky>
         <Link to={`/modules/${encodeURIComponent(moduleId)}`}>{module.label}</Link>
       </Outline.Title>
       <div

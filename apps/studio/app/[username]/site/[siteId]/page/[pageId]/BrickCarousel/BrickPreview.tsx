@@ -47,7 +47,7 @@ export function BrickPreview({ brick }: { brick: IModuleBrick }) {
   const BrickComponent = brick.component;
   const content = modulesHash[brick.def.moduleId];
 
-  // Parent (`BrickCarousel`) owns width/height, including the 25vh drawer cap.
+  // Parent (`BrickCarousel`) owns width/height from site-half grid units.
   return (
     <div className="drawer-brick-preview flex h-full min-h-0 w-full flex-1 flex-col items-start justify-center overflow-x-auto touch-manipulation">
       <div

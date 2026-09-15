@@ -13,10 +13,7 @@
   "exclude": [
     "app/**",
     "scraper/**",
-    "**/*.test.ts",
-    "**/*.test.tsx",
     "vite*.ts",
-    "vitest*.ts",
     "dist",
     "build",
     "node_modules",

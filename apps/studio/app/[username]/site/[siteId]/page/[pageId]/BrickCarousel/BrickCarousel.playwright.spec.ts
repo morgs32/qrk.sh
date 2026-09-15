@@ -2,13 +2,9 @@ import { expect, test } from "@playwright/test";
 
 const pageBase = "/e2e/site/e2e/page/home";
 
-/** Matches BrickCarousel slide minHeight: min(def.h * 50vw / 8, 25vh). */
-function expectedSlideMinHeightPx(
-  viewportWidth: number,
-  viewportHeight: number,
-  gridH: number,
-): number {
-  return Math.min((gridH * viewportWidth * 0.5) / 8, viewportHeight * 0.25);
+/** Matches BrickCarousel slide minHeight: def.h * 50vw / 8. */
+function expectedSlideMinHeightPx(viewportWidth: number, gridH: number): number {
+  return (gridH * viewportWidth * 0.5) / 8;
 }
 
 test.describe("BrickCarousel preview slide min-height", () => {
@@ -58,15 +54,16 @@ test.describe("BrickCarousel preview slide min-height", () => {
 
     for (let i = 0; i < result.minHeights.length; i++) {
       const gridH = result.slideGridHs[i]!;
-      const expected = expectedSlideMinHeightPx(viewportWidth, viewportHeight, gridH);
+      const expected = expectedSlideMinHeightPx(viewportWidth, gridH);
       const actual = result.minHeights[i]!;
       expect(
         actual,
         `slide ${i} min-height (def.h=${gridH}, expected ~${expected}px)`,
       ).toBeGreaterThanOrEqual(expected - 2);
-      expect(actual, `slide ${i} must stay within 25vh`).toBeLessThanOrEqual(
-        viewportHeight * 0.25 + 2,
-      );
+      expect(
+        actual,
+        `slide ${i} min-height (def.h=${gridH}, expected ~${expected}px)`,
+      ).toBeLessThanOrEqual(expected + 2);
     }
   });
 });

@@ -14,11 +14,9 @@ export function ImageDefaultPromo() {
           height={800}
           sizes="(max-width: 768px) 100vw, 50vw"
         />
-        <div className="absolute bottom-0 left-0 right-0 bg-white px-4 py-3">
-          <h2 className="text-2xl font-semibold leading-tight text-black">
-            White Bay
-            <br />
-            Power Station
+        <div className="absolute inset-x-0 bottom-0 flex h-[20.25%] items-center bg-white px-3">
+          <h2 className="m-0 truncate text-xs font-semibold leading-tight text-black">
+            White Bay Power Station
           </h2>
         </div>
       </div>

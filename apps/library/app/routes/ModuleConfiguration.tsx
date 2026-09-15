@@ -47,7 +47,7 @@ export default function ModuleConfiguration() {
 
   return (
     <section data-testid="module-configuration-pane">
-      <Outline.Title>
+      <Outline.Title sticky>
         <Link to={`/modules/${encodeURIComponent(moduleId)}`}>{module.label}</Link>
       </Outline.Title>
       <div className="px-4">

@@ -24,7 +24,7 @@ export function FigmaThumbnailHeader(props: {
       >
         <div className="relative h-full w-full overflow-hidden bg-white">
           <div
-            className="absolute inset-x-0 bottom-0 top-[20.25%] bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-[size:20px_20px]"
+            className="absolute inset-x-0 top-0 bottom-[20.25%] bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-[size:20px_20px]"
             data-figma-fallback="thumbnail"
           >
             <div className="absolute left-[18%] top-[18%] h-[48%] w-[64%] rounded-md border-2 border-dashed border-violet-400 bg-violet-100 shadow-sm" />
@@ -34,7 +34,7 @@ export function FigmaThumbnailHeader(props: {
             <Image
               key={props.data.thumbnail_url}
               alt={`${props.data.title} Figma thumbnail`}
-              className="absolute inset-x-0 bottom-0 top-[20.25%] h-[79.75%] w-full object-cover object-center data-[image-position=left]:object-left data-[image-position=right]:object-right data-[image-position=top]:object-top data-[image-position=bottom]:object-bottom"
+              className="absolute inset-x-0 top-0 bottom-[20.25%] h-[79.75%] w-full object-cover object-center data-[image-position=left]:object-left data-[image-position=right]:object-right data-[image-position=top]:object-top data-[image-position=bottom]:object-bottom"
               data-image-position={props.options?.imagePosition ?? "left"}
               data-figma-thumbnail="thumbnail"
               height={props.data.thumbnail_height ?? 450}
@@ -46,7 +46,7 @@ export function FigmaThumbnailHeader(props: {
               src={props.data.thumbnail_url}
             />
           ) : null}
-          <div className="absolute inset-x-0 top-0 flex h-[20.25%] items-center gap-2 bg-white px-3">
+          <div className="absolute inset-x-0 bottom-0 flex h-[20.25%] items-center gap-2 bg-white px-3">
             <svg aria-label="Figma" className="h-[18px] w-3 shrink-0" viewBox="0 0 24 36">
               <path d="M6 0h6v12H6a6 6 0 0 1 0-12Z" fill="#F24E1E" />
               <path d="M12 0h6a6 6 0 0 1 0 12h-6V0Z" fill="#FF7262" />

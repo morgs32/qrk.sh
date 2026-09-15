@@ -21,14 +21,12 @@ import { SoftButton } from "@/components/ui/soft-button";
 
 /** Same as site grid: half viewport ÷ 8 columns. */
 const PREVIEW_GRID_COLS = 8;
-/** Bottom drawer is ~half viewport; previews cap at half of that (quarter screen). */
-const PREVIEW_MAX_HEIGHT = "25vh";
 
-/** Square cell size: match site width when it fits, else shrink so height ≤ 25vh. */
+/** Square cell size from site-half width (50vw) and grid units — no screen-height cap. */
 function previewSlotSize(w: number, h: number): { width: string; height: string } {
   return {
-    width: `min(calc(${w} * 50vw / ${PREVIEW_GRID_COLS}), calc(${w} * ${PREVIEW_MAX_HEIGHT} / ${h}))`,
-    height: `min(calc(${h} * 50vw / ${PREVIEW_GRID_COLS}), ${PREVIEW_MAX_HEIGHT})`,
+    width: `calc(${w} * 50vw / ${PREVIEW_GRID_COLS})`,
+    height: `calc(${h} * 50vw / ${PREVIEW_GRID_COLS})`,
   };
 }
 
@@ -98,7 +96,7 @@ export function BrickCarousel(props: { module: IModule }) {
       </div>
 
       {/*
-          Slide min-height must match BrickPreview slot: min(50vw/8 per unit, 25vh for the brick).
+          Slide min-height must match BrickPreview slot: def.h * 50vw / 8.
           Carousel root is `relative` (see components/ui/carousel.tsx); height pins the slide strip.
         */}
       <Carousel
@@ -110,7 +108,7 @@ export function BrickCarousel(props: { module: IModule }) {
         }}
         className="z-10 flex h-full min-h-0 w-full flex-col"
         style={{
-          height: `min(calc(${maxH} * 50vw / ${PREVIEW_GRID_COLS}), ${PREVIEW_MAX_HEIGHT})`,
+          height: `calc(${maxH} * 50vw / ${PREVIEW_GRID_COLS})`,
         }}
       >
         <div className="absolute top-1/2 left-0 z-30 ml-8 -translate-y-1/2">

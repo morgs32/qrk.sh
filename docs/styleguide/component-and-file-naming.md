@@ -33,7 +33,7 @@ Prefer **one primary React component per file** (matching the PascalCase file na
 
 ### Good vs bad: BrickGroup carousel slides (one panel per brick)
 
-The brick group drawer uses shadcn `Carousel` (Embla) **per module**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`min(calc(def.w * 50vw / 8), calc(def.w * 25vh / def.h))`** by **`min(calc(def.h * 50vw / 8), 25vh)`**—half the viewport width (site workspace `w-1/2`) divided into eight columns, capped so preview height never exceeds a quarter of the screen (half of the bottom drawer’s ~half-viewport height). The same column count [Grid.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
+The brick group drawer uses shadcn `Carousel` (Embla) **per module**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def.w * 50vw / 8)`** by **`calc(def.h * 50vw / 8)`**—half the viewport width (site workspace `w-1/2`) divided into eight columns. The same column count [Grid.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
 
 ### Good vs bad: `BrickPreview` props (inline types, no cross-file props export)
 
@@ -248,20 +248,16 @@ truncates overflowing profile values with ellipses.
 
 `BrickPreviewFrame` takes inline `w`, `h`, and `children` props. It reads the
 measured grid width from `useBrickBreakpoint` and sizes as
-`Math.round(gridWidth / 8 * w)` by `Math.round(gridWidth / 8 * h)`, then caps
-height at **25vh** (quarter screen ≈ half of the half-height drawer) while
-preserving aspect ratio via `min(fullW, w × 25vh / h)` by `min(fullH, 25vh)`.
-Standalone slider pages pass `maxHeightQuarterViewport={false}` to keep exact
-grid-unit sizing. Previews therefore follow the selected grid width rather than
-their containing pane when they fit under the height cap. Wide uncapped
-standalone previews scroll within narrower panes instead of shrinking.
-Presentation components receive the same active breakpoint. Placed bricks retain
-the grid's own dimensions, including its one-pixel edge rounding.
+`Math.round(gridWidth / 8 * w)` by `Math.round(gridWidth / 8 * h)` with no
+screen-height cap. Previews therefore follow the selected grid width rather than
+their containing pane. Wide previews scroll within narrower panes instead of
+shrinking. Presentation components receive the same active breakpoint. Placed
+bricks retain the grid's own dimensions, including its one-pixel edge rounding.
 All group, configuration, detail, and drawer list previews use this frame.
-Carousel slides in the site editor use the same 25vh rule with a `50vw`-based
-site-half unit instead of measured `gridWidth`. Placed-detail previews use
-resolved breakpoint dimensions; the standalone slider sets the simulated full
-grid width measured by its provider.
+Carousel slides in the site editor use the same grid-unit sizing with a
+`50vw`-based site-half unit instead of measured `gridWidth`. Placed-detail
+previews use resolved breakpoint dimensions; the standalone slider sets the
+simulated full grid width measured by its provider.
 Import the frame directly or through `@qrk.sh/library/BrickPreviewFrame`.
 
 ### Presentation template names

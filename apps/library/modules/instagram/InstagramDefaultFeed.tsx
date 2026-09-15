@@ -1,8 +1,6 @@
 import { Image } from "@unpic/react";
-import { Camera } from "lucide-react";
 
 import { BrickFrame } from "../../BrickFrame";
-import { Button } from "../../components/ui/button";
 
 export function InstagramDefaultFeed(props: {
   data: {
@@ -16,42 +14,15 @@ export function InstagramDefaultFeed(props: {
   };
 }) {
   return (
-    <BrickFrame backgroundClassName="bg-[#f4effb]" textClassName="text-zinc-950">
-      <div className="flex h-full w-full min-h-0 flex-col gap-3 rounded-[1.35rem] p-6">
-        <div className="flex min-h-0 flex-1 flex-col gap-2.5">
-          <div className="flex items-center gap-3">
-            <div className="relative size-10 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-[#833ab4] via-[#fd1d1d] to-[#fcb045] p-[2px] shadow-sm">
-              <Image
-                alt={`@${props.data.username}`}
-                className="size-full rounded-[10px] object-cover"
-                height={36}
-                layout="constrained"
-                src={props.data.profileImageUrl}
-                width={36}
-              />
-              <Camera className="absolute inset-0 m-auto size-5 text-white drop-shadow" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">@{props.data.username}</p>
-              <p className="text-xs text-zinc-500">instagram.com</p>
-            </div>
-          </div>
-
-          <Button
-            asChild
-            className="h-7 w-fit rounded-md bg-[#4295ed] px-3 text-xs text-white hover:bg-[#3186df]"
-            size="sm"
-          >
-            <a
-              href={`https://www.instagram.com/${props.data.username}/`}
-              rel="noreferrer"
-              target="_blank"
-            >
-              Follow {props.data.followersText}
-            </a>
-          </Button>
-
-          <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-1.5 overflow-hidden rounded-lg">
+    <BrickFrame backgroundClassName="bg-zinc-100" textClassName="text-zinc-950">
+      <a
+        className="block h-full w-full text-inherit no-underline"
+        href={`https://www.instagram.com/${props.data.username}/`}
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        <div className="relative h-full w-full overflow-hidden bg-white">
+          <div className="absolute inset-x-0 top-0 bottom-[20.25%] grid grid-cols-2 grid-rows-2 gap-px overflow-hidden bg-zinc-200">
             <Image
               alt={`Latest post from @${props.data.username}`}
               className="size-full min-h-0 object-cover"
@@ -77,8 +48,34 @@ export function InstagramDefaultFeed(props: {
               src={props.data.postImageUrl4}
             />
           </div>
+
+          <div className="absolute inset-x-0 bottom-0 flex h-[20.25%] items-center gap-2 bg-white px-3">
+            <div className="relative size-[18px] shrink-0 overflow-hidden rounded-sm bg-gradient-to-br from-[#833ab4] via-[#fd1d1d] to-[#fcb045] p-px">
+              <Image
+                alt={`@${props.data.username}`}
+                className="size-full rounded-[2px] object-cover"
+                height={16}
+                layout="constrained"
+                src={props.data.profileImageUrl}
+                width={16}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="m-0 truncate text-xs font-semibold leading-tight">
+                @{props.data.username}
+              </h2>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-[10px] font-medium text-zinc-500">
+                {props.data.followersText}
+              </span>
+              <span className="rounded-md bg-[#4295ed] px-2 py-0.5 text-[10px] font-medium text-white">
+                Follow me
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
+      </a>
     </BrickFrame>
   );
 }

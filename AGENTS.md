@@ -15,10 +15,18 @@
 - Prefer editing over rewriting whole files unless I explicitly ask you to wipe or replace a file.
 - Do not re-read files you have already read unless the file may have changed.
 - Skip files over 100 KB unless explicitly required.
-- Test your code before declaring it done.
+- Test your code before declaring it done, except for `@qrk.sh/library` (see Library testing below).
 - Keep solutions simple, direct, and verbose enough to make control flow obvious.
 - User instructions always override this file.
 - Preserve existing work in progress and unrelated changes.
+
+### Library testing
+
+Do **not** write, run, restore, or maintain tests for `@qrk.sh/library` / `apps/library` for now.
+
+- Do not add unit, e2e, workerd, or live tests under `apps/library`.
+- Do not run `test`, `test:e2e`, `test:workerd`, or `test:live` for `@qrk.sh/library`.
+- When verifying library changes, use `tsc` and `lint` (and manual checks) instead.
 
 ### Communication
 

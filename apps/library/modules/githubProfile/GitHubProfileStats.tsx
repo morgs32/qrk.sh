@@ -83,7 +83,7 @@ export function GitHubProfileStats(props: {
                 <span className="truncate">{user.blog.replace(/^https?:\/\//, "")}</span>
               </a>
             )}
-            <div className="mt-auto flex gap-4 text-xs">
+            <div className="mt-auto flex justify-end gap-4 text-xs">
               <div
                 className="flex min-w-0 items-center gap-1"
                 title="Followers"

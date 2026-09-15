@@ -38,18 +38,12 @@ in the separate `@qrk.sh/scraper` Worker (`apps/scraper`).
 ```sh
 pnpm nx run @qrk.sh/library:tsc
 pnpm nx run @qrk.sh/library:lint
-pnpm nx run @qrk.sh/library:test
-pnpm nx run @qrk.sh/library:test:workerd
-pnpm nx run @qrk.sh/library:test:e2e
 pnpm nx run @qrk.sh/library:build:app
 pnpm nx run @qrk.sh/library:build
 ```
 
-`tsc` checks both browser and Worker code. `test` runs the brick unit tests;
-`test:workerd` runs the scraper integration tests with deterministic provider
-credentials. `test:e2e` retains the real-token Playwright checks and requires all
-four private provider credentials plus the Mapbox token. `test:live` runs the
-existing opt-in live scraper suite.
+`tsc` checks both browser and Worker code. Library tests are intentionally not
+maintained for now (see root `AGENTS.md`).
 
 `build:app` produces the combined app in `build/client` and `build/scraper`.
 `build` produces the reusable brick library in `dist`, including its public

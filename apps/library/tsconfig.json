@@ -19,8 +19,6 @@
     "dist",
     "build",
     "node_modules",
-    "test-results",
-    "vitest.worker.config.ts",
-    "vitest.live.config.ts"
+    "test-results"
   ]
 }

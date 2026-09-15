@@ -27,11 +27,7 @@
     "lint": "oxlint .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "test": "vp test run --config vitest.config.ts",
-    "test:e2e": "playwright test --config app/playwright.config.ts",
     "build:app": "vp build --config vite.workbench.config.ts",
-    "test:workerd": "vitest run --config vitest.worker.config.ts",
-    "test:live": "SCRAPER_LIVE_TESTS=1 vitest run --config vitest.live.config.ts",
     "types": "wrangler types ./worker-configuration.d.ts",
     "tsc:worker": "tsc -p tsconfig.worker.json"
   },
@@ -68,9 +64,6 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.54.9",
-    "@cloudflare/vitest-pool-workers": "^0.16.3",
-    "@effect/vitest": "4.0.0-rc.112",
-    "@playwright/test": "1.61.1",
     "@tailwindcss/cli": "4.3.3",
     "@tailwindcss/vite": "4.3.3",
     "@types/mapbox-gl": "^3.5.0",
@@ -88,7 +81,6 @@
     "typescript": "^6.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.3.1",
     "vite-plus": "0.3.1",
-    "vitest": "4.1.11",
     "wrangler": "4.131.2"
   },
   "peerDependencies": {

@@ -2,10 +2,13 @@ import { expect, test } from "@playwright/test";
 
 test("whole bricks move while the edit icon opens inspection", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("toolbar", { name: "Grid controls" }).getByRole("button", { name: "Bricks", exact: true }).click();
+  const drawer = page.getByRole("dialog", { name: "Bricks", exact: true });
+  await expect(drawer).toBeVisible();
   await expect(page.getByRole("group", { name: "Grid mode" })).toHaveCount(0);
   const grid = page.getByLabel("Brick grid");
   const canvas = grid.locator(".react-grid-layout");
-  const source = page.locator('[data-group-representative="swatch/default"]');
+  const source = drawer.locator('[data-group-representative="swatch/default"]');
   await source.dragTo(canvas, { targetPosition: { x: 20, y: 20 } });
   const brick = grid.locator("[data-brick-id]").first();
   await expect(brick).toBeVisible();

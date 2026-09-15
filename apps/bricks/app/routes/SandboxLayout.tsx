@@ -1,6 +1,6 @@
 import { BrickBreakpointProvider } from "../../BrickBreakpointProvider";
 import { useLayoutEffect, useRef, useState } from "react";
-import { Outlet } from "react-router";
+import { Outlet, Link, useLocation } from "react-router";
 import { RotateCcw, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle, DrawerTrigger } from "../../components/ui/drawer";
@@ -9,6 +9,7 @@ import { SandboxGrid } from "../SandboxGrid";
 import { useGridStore } from "../useGridStore";
 
 export default function SandboxLayout() {
+  const location = useLocation();
   const gridRegionRef = useRef<HTMLDivElement>(null);
   const [availableWidth, setAvailableWidth] = useState(0);
   const savedWidth = useGridStore((state) => state.selectedWidth);
@@ -34,9 +35,16 @@ export default function SandboxLayout() {
     };
   }, []);
 
+  // Nested group/catalog routes render inside the drawer Outlet; open it so deep links are visible.
+  useLayoutEffect(() => {
+    if (location.pathname !== "/" || location.search.length > 0) {
+      setDrawerOpen(true);
+    }
+  }, [location.pathname, location.search]);
+
   const groups = (
     <div className="qrk-bricks flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden font-mono text-sm leading-5 text-zinc-900">
-      <div data-vaul-no-drag className="min-h-0 flex-1 overflow-hidden">
+      <div data-vaul-no-drag className="min-h-0 flex-1 overflow-auto">
         <Outlet />
       </div>
     </div>
@@ -56,7 +64,9 @@ export default function SandboxLayout() {
               <DrawerTitle className="sr-only">Bricks</DrawerTitle>
               <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border/60 px-4 py-3">
                 <div className="space-y-1">
-                  <div className="text-sm font-semibold">Bricks</div>
+                  <Link to="/" className="text-sm font-semibold">
+                    Bricks
+                  </Link>
                   <div className="text-xs text-muted-foreground">
                     Browse bricks by group. Drag a brick onto the grid.
                   </div>

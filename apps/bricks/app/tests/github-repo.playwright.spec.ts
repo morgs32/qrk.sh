@@ -26,6 +26,8 @@ for (const [width, height] of [
 ]) {
   test(`repo previews, drag placeholder, and placement agree at ${width}px`, async ({ page }) => {
     await page.goto("/");
+    await page.getByRole("toolbar", { name: "Grid controls" }).getByRole("button", { name: "Bricks", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Bricks", exact: true })).toBeVisible();
     await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
     const group = page.locator('[data-group-entry="github"]');
     await group.getByRole("button", { name: "Repo", exact: true }).click();

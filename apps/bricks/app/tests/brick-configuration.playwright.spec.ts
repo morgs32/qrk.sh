@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 
 test("configures only the selected brick and persists its data", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("toolbar", { name: "Grid controls" }).getByRole("button", { name: "Bricks", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Bricks", exact: true })).toBeVisible();
   await page.evaluate(async () => {
     const groupPath = performance
       .getEntriesByType("resource")

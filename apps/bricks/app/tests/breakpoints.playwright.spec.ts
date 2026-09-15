@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 test("group breakpoints follow the shared grid container at every boundary", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto("/");
+  await page.getByRole("toolbar", { name: "Grid controls" }).getByRole("button", { name: "Bricks", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Bricks", exact: true })).toBeVisible();
   const group = page.locator('[data-group-entry="github"]');
   const preview = group.locator('[data-group-representative="github/profile"]');
   const responsive = preview.locator('[data-slot="card"]');

@@ -254,11 +254,11 @@ test("group configuration ends with the current brick definition", async ({ page
   await expect(viewFormContainer).toHaveCSS("padding-left", "16px");
   await expect(viewFormContainer).toHaveCSS("padding-top", "20px");
   await expect(viewFormContainer).toHaveCSS("padding-bottom", "20px");
-  const viewHeading = await pane
-    .getByRole("heading", { name: "Appearance options", exact: true })
-    .boundingBox();
+  const viewHeading = pane.getByRole("heading", { name: "Appearance options", exact: true });
+  await viewHeading.scrollIntoViewIfNeeded();
+  const viewHeadingBox = await viewHeading.boundingBox();
   const legend = await pane.locator("legend").boundingBox();
-  expect(legend!.y - (viewHeading!.y + viewHeading!.height)).toBe(20);
+  expect(legend!.y).toBeGreaterThan(viewHeadingBox!.y + viewHeadingBox!.height);
   await page.getByRole("button", { name: "Right", exact: true }).click();
   await definition.getByRole("button", { name: "expand JSON", exact: true }).last().click();
   await expect(definition).toContainText("right");

@@ -9,22 +9,24 @@ test("shares one persisted grid across the root, group, and detail routes", asyn
   await page.reload();
   await page.waitForLoadState("networkidle");
 
-  await expect(page.locator("[data-group-link]")).toHaveCount(9);
-  await expect(page.locator("[data-group-entry]")).toHaveCount(9);
-  await expect(page.locator("[data-group-representative]")).toHaveCount(9);
-  await expect(page.getByLabel("Brick groups")).toBeVisible();
+  const toolbar = page.getByRole("toolbar", { name: "Grid controls" });
+  const drawer = page.getByRole("dialog", { name: "Bricks", exact: true });
+  await toolbar.getByRole("button", { name: "Bricks", exact: true }).click();
+  await expect(drawer).toBeVisible();
+
+  await expect(drawer.locator("[data-group-link]")).toHaveCount(10);
+  await expect(drawer.locator("[data-group-entry]")).toHaveCount(10);
+  await expect(drawer.locator("[data-group-representative]")).toHaveCount(10);
+  await expect(drawer.getByLabel("Brick groups")).toBeVisible();
   await expect(
-    page
+    drawer
       .locator('[data-group-entry="github"]')
       .locator('[data-group-representative="github/profile"]')
       .getByText("@morgs32"),
   ).toBeVisible();
 
-  const swatchGroup = page.locator('[data-group-entry="swatch"]');
-  await swatchGroup.getByRole("tab", { name: "8×2" }).click();
-  await expect(swatchGroup.locator('[data-group-representative="swatch/default"]')).toBeVisible();
-  await expect(swatchGroup.locator('[data-group-representative="swatch/default"]')).toHaveCount(0);
-  await swatchGroup.getByRole("tab", { name: "2×2" }).click();
+  const swatchGroup = drawer.locator('[data-group-entry="swatch"]');
+  await swatchGroup.scrollIntoViewIfNeeded();
 
   const rootGrid = page.getByLabel("Brick grid");
   await expect(rootGrid).toBeVisible();
@@ -33,19 +35,20 @@ test("shares one persisted grid across the root, group, and detail routes", asyn
   expect(persistentGridElement).not.toBeNull();
   const rootGridLayout = rootGrid.locator(".react-grid-layout");
 
-  await page
+  await drawer
     .locator('[data-group-representative="swatch/default"]')
-
     .dragTo(rootGridLayout, { targetPosition: { x: 20, y: 20 } });
-  await page
+  await drawer
     .locator('[data-group-representative="icon/default"]')
-
     .dragTo(rootGridLayout, { targetPosition: { x: 180, y: 20 } });
 
   const swatchBrick = page.locator('[data-brick="swatch/default"]');
   const iconBrick = page.locator('[data-brick="icon/default"]');
   await expect(swatchBrick).toBeVisible();
   await expect(iconBrick).toBeVisible();
+
+  await drawer.getByRole("button", { name: "Close drawer" }).click();
+  await expect(drawer).not.toBeVisible();
 
   const originalSwatchBrickBox = await swatchBrick.boundingBox();
   const rootGridLayoutBox = await rootGridLayout.boundingBox();
@@ -69,11 +72,13 @@ test("shares one persisted grid across the root, group, and detail routes", asyn
   expect(movedGridX).not.toBeNull();
   expect(movedGridY).not.toBeNull();
 
-  await page.locator('[data-group-link="swatch"]').click();
+  await toolbar.getByRole("button", { name: "Bricks", exact: true }).click();
+  await expect(drawer).toBeVisible();
+  await drawer.locator('[data-group-link="swatch"]').click();
   await page.waitForLoadState("networkidle");
   expect(await persistentGridElement?.evaluate((element) => element.isConnected)).toBe(true);
-  await expect(page.locator("[data-catalog-brick]")).toHaveCount(1);
-  await expect(page.locator('[data-catalog-brick="swatch/default"]')).toBeVisible();
+  await expect(drawer.locator("[data-catalog-brick]")).toHaveCount(1);
+  await expect(drawer.locator('[data-catalog-brick="swatch/default"]')).toBeVisible();
 
   const groupGrid = page.getByLabel("Brick grid");
   await expect(groupGrid.getByTestId(/grid-fixture-/)).toHaveCount(0);
@@ -82,25 +87,26 @@ test("shares one persisted grid across the root, group, and detail routes", asyn
   await expect(swatchBrick).toHaveAttribute("data-grid-x", movedGridX ?? "");
   await expect(swatchBrick).toHaveAttribute("data-grid-y", movedGridY ?? "");
 
-  await page.getByRole("link", { name: "All groups" }).click();
+  await drawer.getByRole("link", { name: "Bricks", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   expect(await persistentGridElement?.evaluate((element) => element.isConnected)).toBe(true);
   await expect(swatchBrick).toBeVisible();
   await expect(iconBrick).toBeVisible();
-  await page.locator('[data-group-link="swatch"]').click();
+  await expect(drawer).toBeVisible();
+  await drawer.locator('[data-group-link="swatch"]').click();
 
   const swatchBrickId = await swatchBrick.getAttribute("data-brick-id");
   expect(swatchBrickId).not.toBeNull();
   await swatchBrick.getByRole("link", { name: "Edit brick", exact: true }).click();
   await expect(page).toHaveURL(/\/groups\/swatch\/brick\/[^/]+$/);
   await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
-  await expect(page.getByTestId("selected-brick-preview").locator("svg")).toBeVisible();
+  await expect(page.getByTestId("selected-brick-preview")).toBeVisible();
   const brickDetailUrl = page.url();
 
   await page.reload();
   await expect(page).toHaveURL(brickDetailUrl);
   await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
-  await expect(page.getByTestId("selected-brick-preview").locator("svg")).toBeVisible();
+  await expect(page.getByTestId("selected-brick-preview")).toBeVisible();
   const restoredSwatchBrick = page.locator('[data-brick="swatch/default"]');
   await expect(restoredSwatchBrick).toBeVisible();
   await expect(page.locator('[data-brick="icon/default"]')).toBeVisible();

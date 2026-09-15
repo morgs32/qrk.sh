@@ -88,7 +88,7 @@ export default function CatalogConfiguration() {
           ]}
         />
       </div>
-      <div className="sticky top-0 z-10 overflow-auto bg-white py-6">
+      <div className="overflow-auto bg-white py-6">
         <div className={brick.def[breakpoint].w === 8 ? undefined : "px-4"}>
           <BrickPreviewFrame w={brick.def[breakpoint].w} h={brick.def[breakpoint].h}>
             <div

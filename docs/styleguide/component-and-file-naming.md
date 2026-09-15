@@ -203,19 +203,22 @@ Reset the affected backend database before using these renamed fields.
 
 ### Bricks sandbox grid width and toolbar
 
-The sandbox uses the actual browser width for its surrounding layout. At 1024px
-and above, the Bricks panel stays fixed in the left half and the grid region uses
-the right half. Below 1024px, the grid region uses the full width and Bricks opens
-in a half-height, nonmodal shadcn bottom drawer. The drawer leaves the grid
-interactive for drag/drop and supports its close button and Escape.
+The sandbox uses the actual browser width for its surrounding layout. The grid
+region is full-bleed. Bricks open in a half-height, nonmodal shadcn bottom drawer
+on every viewport. The drawer leaves the grid interactive for drag/drop and
+supports its header close button (`Close drawer`) and Escape. On `/`, brick
+groups are laid out as a horizontally scrollable filmstrip of columns inside
+the drawer; nested `/groups/...` routes still fill the drawer body.
 
-The app-style toolbar sits at the bottom of the desktop grid region and at the
-top on mobile/tablet. The 375, 640, 1024, and 1440px choices resize only the grid
-preview, centered within that region. Measure the available region independently
+The app-style toolbar sits at the bottom on large viewports and at the top on
+smaller ones, centered over the full viewport, and always includes the Bricks
+control. The 375, 640, 1024, and 1440px choices resize only the grid preview,
+centered within the available width. Measure the available region independently
 of the preview; disable choices that exceed it. Start with the largest fitting
-preset and fall back to the largest fitting preset if a resize makes the selection
-too large. Below 375px, hide the preview and show its minimum-width requirement. Width selection lasts across sandbox route
-navigation and reload, and is independent of Reset's grid state changes.
+preset and fall back to the largest fitting preset if a resize makes the
+selection too large. Below 375px, hide the preview and show its minimum-width
+requirement. Width selection lasts across sandbox route navigation and reload,
+and is independent of Reset's grid state changes.
 
 ### Responsive brick breakpoints
 

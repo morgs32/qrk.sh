@@ -160,7 +160,7 @@ export const useSiteStore = create<ISiteStoreState>()(
                             "We are helping Austin home owners save $600 or more on their property taxes.",
                           pageType: "split-scroll",
                           layout: seedLayout,
-                          composeBlocks: [{ id: crypto.randomUUID(), content: "" }],
+                          composeBlocks: [],
                           breakpointGridColumnCounts: {
                             sm: 1,
                             lg: 1,
@@ -195,7 +195,7 @@ export const useSiteStore = create<ISiteStoreState>()(
                             "We are helping Austin home owners save $600 or more on their property taxes.",
                           pageType: "split-scroll",
                           layout: seedLayout,
-                          composeBlocks: [{ id: crypto.randomUUID(), content: "" }],
+                          composeBlocks: [],
                           breakpointGridColumnCounts: {
                             sm: 1,
                             lg: 1,
@@ -230,7 +230,7 @@ export const useSiteStore = create<ISiteStoreState>()(
                           "We are helping Austin home owners save $600 or more on their property taxes.",
                         pageType: "split-scroll",
                         layout: seedLayout,
-                        composeBlocks: [{ id: crypto.randomUUID(), content: "" }],
+                        composeBlocks: [],
                         breakpointGridColumnCounts: {
                           sm: 1,
                           lg: 1,

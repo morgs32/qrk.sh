@@ -29,9 +29,13 @@ export function ComposeDrawerTiptap() {
 
   return (
     <div className="flex flex-col gap-6">
-      {blocks.map((block) => (
-        <ComposeDrawerTiptapBlock key={block.id} id={block.id} initialContent={block.content} />
-      ))}
+      {blocks.length === 0 ? (
+        <div className="text-sm text-muted-foreground">No compose blocks yet.</div>
+      ) : (
+        blocks.map((block) => (
+          <ComposeDrawerTiptapBlock key={block.id} id={block.id} initialContent={block.content} />
+        ))
+      )}
       <Button
         type="button"
         variant="outline"

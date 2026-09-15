@@ -8,6 +8,7 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { Outlet } from "react-router";
 import { SiteHeader } from "./SiteHeader";
+import { usePageStore } from "./page/[pageId]/pageStore";
 import { useSiteStore } from "./siteStore";
 
 const ParamsSchema = Schema.Struct({
@@ -18,7 +19,8 @@ const ParamsSchema = Schema.Struct({
 export default function PageLayout() {
   const { siteId, pageId } = useValidatedParams(ParamsSchema);
   const { user } = useUser();
-  const initializePageDraft = useSiteStore((state) => state.initializePageDraft);
+  const initializeSitePageDraft = useSiteStore((state) => state.initializePageDraft);
+  const initializeArticlePageDraft = usePageStore((state) => state.initializePageDraft);
   const [readyRoute, setReadyRoute] = useState<{
     identityKey: string;
     siteId: string;
@@ -35,9 +37,14 @@ export default function PageLayout() {
       useSiteStore.persist.rehydrate();
     }
 
-    initializePageDraft(identityKey, siteId, pageId);
+    if (!usePageStore.persist.hasHydrated()) {
+      usePageStore.persist.rehydrate();
+    }
+
+    initializeSitePageDraft(identityKey, siteId, pageId);
+    initializeArticlePageDraft(identityKey, siteId, pageId);
     setReadyRoute({ identityKey, siteId, pageId });
-  }, [initializePageDraft, pageId, siteId, identityKey]);
+  }, [initializeArticlePageDraft, initializeSitePageDraft, pageId, siteId, identityKey]);
 
   const isCurrentRouteReady =
     readyRoute !== null &&

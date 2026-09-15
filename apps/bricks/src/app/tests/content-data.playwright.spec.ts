@@ -1,28 +1,28 @@
 import { expect, test } from "@playwright/test";
 import type { IRpcEither } from "../../scraper/types.public";
 
-test.describe("registry configuration requests", () => {
+test.describe("catalog configuration requests", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/catalogs/github/profile");
+    await page.goto("/groups/github/profile");
     await expect(page.getByLabel("url")).toBeVisible();
     await page.evaluate(async () => {
-      // Supply a whole-registry-options form and authored fetcher. The registryOptions decoder,
+      // Supply a whole-catalog-options form and authored fetcher. The catalogOptions decoder,
       // request lifecycle, validated store and preview remain under test.
-      const catalogPath = "/src/catalogsHash.ts";
+      const groupPath = "/src/groupsHash.ts";
       const factoryPath = "/src/makeFetcherConfiguration.ts";
-      const { catalogsHash } = await import(catalogPath);
+      const { groupsHash } = await import(groupPath);
       const { makeFetcherConfiguration } = await import(factoryPath);
       const reactPath = "/node_modules/.vite/deps/react.js";
       const { default: React } = await import(reactPath);
       const { createElement } = React;
-      const content = catalogsHash.github.registries.profile;
+      const content = groupsHash.github.catalogs.profile;
       const defaults = content.defaultData;
       content.configuration = makeFetcherConfiguration({
-        registryOptionsShape: {
-          ...content.configuration.registryOptionsShape,
-          suffix: { ...content.configuration.registryOptionsShape.url, defaultValue: "" },
+        catalogOptionsShape: {
+          ...content.configuration.catalogOptionsShape,
+          suffix: { ...content.configuration.catalogOptionsShape.url, defaultValue: "" },
         },
-        registryOptionsForm: ({
+        catalogOptionsForm: ({
           value,
           onChange,
         }: {
@@ -31,7 +31,7 @@ test.describe("registry configuration requests", () => {
         }) =>
           createElement(
             "div",
-            { "data-testid": "whole-registry-options-form" },
+            { "data-testid": "whole-catalog-options-form" },
             createElement("input", {
               "aria-label": "url",
               value: value.url,
@@ -46,24 +46,24 @@ test.describe("registry configuration requests", () => {
             }),
           ),
         fetcher: async ({
-          registryOptions,
+          catalogOptions,
           setData,
         }: {
-          registryOptions: { url: string; suffix: string };
+          catalogOptions: { url: string; suffix: string };
           setData: (data: unknown) => void;
         }): Promise<IRpcEither<void>> => {
           document.documentElement.setAttribute(
-            "data-last-registry-options",
-            JSON.stringify(registryOptions),
+            "data-last-catalog-options",
+            JSON.stringify(catalogOptions),
           );
-          document.documentElement.setAttribute(`data-request-${registryOptions.url}`, "pending");
+          document.documentElement.setAttribute(`data-request-${catalogOptions.url}`, "pending");
           await new Promise<void>((resolve) => {
-            document.addEventListener(`finish:${registryOptions.url}`, () => resolve(), {
+            document.addEventListener(`finish:${catalogOptions.url}`, () => resolve(), {
               once: true,
             });
           });
           try {
-            if (registryOptions.url === "failure") {
+            if (catalogOptions.url === "failure") {
               return {
                 _tag: "Left",
                 left: {
@@ -75,32 +75,32 @@ test.describe("registry configuration requests", () => {
             setData({
               ...defaults,
               login:
-                registryOptions.url === "invalid" ? 42 : registryOptions.url + registryOptions.suffix,
+                catalogOptions.url === "invalid" ? 42 : catalogOptions.url + catalogOptions.suffix,
             });
             return { _tag: "Right", right: undefined };
           } finally {
-            document.documentElement.setAttribute(`data-request-${registryOptions.url}`, "settled");
+            document.documentElement.setAttribute(`data-request-${catalogOptions.url}`, "settled");
           }
         },
       });
     });
     // Remount through the real router so the form reads the fixture contract.
-    await page.locator('a[href="/catalogs/github?registry=profile"]').click();
+    await page.locator('a[href="/groups/github?catalog=profile"]').click();
     await expect(page.getByLabel("suffix")).toBeVisible();
-    await expect(page.getByTestId("whole-registry-options-form")).toHaveCount(1);
+    await expect(page.getByTestId("whole-catalog-options-form")).toHaveCount(1);
   });
 
-  test("fetches on change, retains data across registries, and resets on reload", async ({
+  test("fetches on change, retains data across catalogs, and resets on reload", async ({
     page,
   }) => {
-    const preview = page.locator("[data-registry-brick]");
+    const preview = page.locator("[data-catalog-brick]");
     await expect(preview.getByText("@morgs32")).toBeVisible();
-    await expect(page.locator("html")).not.toHaveAttribute("data-last-registry-options");
+    await expect(page.locator("html")).not.toHaveAttribute("data-last-catalog-options");
     await expect(page.getByRole("button", { name: "Get data" })).toHaveCount(0);
 
     await page.getByLabel("url", { exact: true }).fill("first");
     await expect(page.locator("html")).toHaveAttribute(
-      "data-last-registry-options",
+      "data-last-catalog-options",
       JSON.stringify({ url: "first", suffix: "" }),
     );
     await expect(page.getByRole("status")).toHaveText("Getting data...");
@@ -108,22 +108,25 @@ test.describe("registry configuration requests", () => {
     await page.evaluate(() => document.dispatchEvent(new Event("finish:first")));
     await expect(preview.getByText("@first")).toBeVisible();
     await page
-      .getByTestId("registry-data-result")
+      .getByTestId("catalog-data-result")
       .getByRole("button", { name: "expand JSON", exact: true })
       .first()
       .click();
-    await expect(page.getByTestId("registry-data-result")).toContainText("first");
+    await expect(page.getByTestId("catalog-data-result")).toContainText("first");
 
     await page.getByLabel("suffix").fill("-updated");
     await expect(page.locator("html")).toHaveAttribute(
-      "data-last-registry-options",
+      "data-last-catalog-options",
       JSON.stringify({ url: "first", suffix: "-updated" }),
     );
     await page.evaluate(() => document.dispatchEvent(new Event("finish:first")));
     await expect(preview.getByText("@first-updated")).toBeVisible();
-    await page.locator('a[href="/catalogs/github?registry=repo"]').click();
-    await expect(page.locator("[data-registry-brick]")).toHaveAttribute("data-registry-brick", "github/repo");
-    await page.locator('a[href="/catalogs/github?registry=profile"]').click();
+    await page.locator('a[href="/groups/github?catalog=repo"]').click();
+    await expect(page.locator("[data-catalog-brick]")).toHaveAttribute(
+      "data-catalog-brick",
+      "github/repo",
+    );
+    await page.locator('a[href="/groups/github?catalog=profile"]').click();
     await expect(preview.getByText("@first-updated")).toBeVisible();
     await page.reload();
     await expect(preview.getByText("@morgs32")).toBeVisible();
@@ -131,7 +134,7 @@ test.describe("registry configuration requests", () => {
 
   test("only the latest request can publish data or errors", async ({ page }) => {
     const input = page.getByLabel("url", { exact: true });
-    const preview = page.locator("[data-registry-brick]");
+    const preview = page.locator("[data-catalog-brick]");
     await input.fill("first");
     await expect(page.locator("html")).toHaveAttribute("data-request-first", "pending");
     await input.fill("second");
@@ -148,7 +151,7 @@ test.describe("registry configuration requests", () => {
     await expect(page.locator("html")).toHaveAttribute("data-request-third", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:failure")));
     await expect(page.locator("html")).toHaveAttribute("data-request-failure", "settled");
-    await expect(page.getByTestId("registry-data-error")).toHaveCount(0);
+    await expect(page.getByTestId("catalog-data-error")).toHaveCount(0);
     await expect(page.getByRole("status")).toHaveText("Getting data...");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:third")));
     await expect(preview.getByText("@third")).toBeVisible();
@@ -157,7 +160,7 @@ test.describe("registry configuration requests", () => {
 
   test("retains the last valid data after provider and validation failures", async ({ page }) => {
     const input = page.getByLabel("url", { exact: true });
-    const preview = page.locator("[data-registry-brick]");
+    const preview = page.locator("[data-catalog-brick]");
     await input.fill("valid");
     await expect(page.locator("html")).toHaveAttribute("data-request-valid", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:valid")));
@@ -165,13 +168,13 @@ test.describe("registry configuration requests", () => {
     await input.fill("failure");
     await expect(page.locator("html")).toHaveAttribute("data-request-failure", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:failure")));
-    await expect(page.getByTestId("registry-data-error")).toContainText("profile-unavailable");
+    await expect(page.getByTestId("catalog-data-error")).toContainText("profile-unavailable");
     await expect(preview.getByText("@valid")).toBeVisible();
     await input.fill("invalid");
     await expect(page.locator("html")).toHaveAttribute("data-request-invalid", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:invalid")));
-    await expect(page.getByTestId("registry-request-error")).toBeVisible();
-    await expect(page.getByTestId("registry-data-error")).toHaveCount(0);
+    await expect(page.getByTestId("catalog-request-error")).toBeVisible();
+    await expect(page.getByTestId("catalog-data-error")).toHaveCount(0);
     await expect(preview.getByText("@valid")).toBeVisible();
   });
 
@@ -180,53 +183,53 @@ test.describe("registry configuration requests", () => {
   }) => {
     await page.getByLabel("url", { exact: true }).fill("old");
     await expect(page.locator("html")).toHaveAttribute("data-request-old", "pending");
-    await page.locator('a[href="/catalogs/github?registry=profile"]').click();
-    await expect(page.locator('[data-registry-brick="github/profile"]')).toBeVisible();
+    await page.locator('a[href="/groups/github?catalog=profile"]').click();
+    await expect(page.locator('[data-catalog-brick="github/profile"]')).toBeVisible();
     await page.getByLabel("url", { exact: true }).fill("new");
     await expect(page.locator("html")).toHaveAttribute("data-request-new", "pending");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:new")));
     await page
-      .getByTestId("registry-data-result")
+      .getByTestId("catalog-data-result")
       .getByRole("button", { name: "expand JSON", exact: true })
       .first()
       .click();
-    await expect(page.getByTestId("registry-data-result")).toContainText("new");
+    await expect(page.getByTestId("catalog-data-result")).toContainText("new");
     await page.evaluate(() => document.dispatchEvent(new Event("finish:old")));
     await expect(page.locator("html")).toHaveAttribute("data-request-old", "settled");
-    await expect(page.getByTestId("registry-data-result")).toContainText("new");
-    await page.locator('a[href="/catalogs/github?registry=profile"]').click();
-    await expect(page.locator("[data-registry-brick]").getByText("@new")).toBeVisible();
+    await expect(page.getByTestId("catalog-data-result")).toContainText("new");
+    await page.locator('a[href="/groups/github?catalog=profile"]').click();
+    await expect(page.locator("[data-catalog-brick]").getByText("@new")).toBeVisible();
   });
 });
 
 test("generated content options controls fetch only after Submit", async ({ page }) => {
-  await page.goto("/catalogs/github/profile");
+  await page.goto("/groups/github/profile");
   await expect(page.getByLabel("URL", { exact: true })).toBeVisible();
   await page.evaluate(async () => {
-    const catalogPath = "/src/catalogsHash.ts";
+    const groupPath = "/src/groupsHash.ts";
     const factoryPath = "/src/makeFetcherConfiguration.ts";
-    const { catalogsHash } = await import(catalogPath);
+    const { groupsHash } = await import(groupPath);
     const { makeFetcherConfiguration } = await import(factoryPath);
-    const content = catalogsHash.github.registries.profile;
+    const content = groupsHash.github.catalogs.profile;
     content.configuration = makeFetcherConfiguration({
-      registryOptionsShape: {
-        ...content.configuration.registryOptionsShape,
-        url: { ...content.configuration.registryOptionsShape.url, defaultValue: "fixture-default" },
+      catalogOptionsShape: {
+        ...content.configuration.catalogOptionsShape,
+        url: { ...content.configuration.catalogOptionsShape.url, defaultValue: "fixture-default" },
       },
       fetcher: async ({
-        registryOptions,
+        catalogOptions,
         setData,
       }: {
-        registryOptions: { url: string };
+        catalogOptions: { url: string };
         setData: (data: unknown) => void;
       }): Promise<IRpcEither<void>> => {
-        document.documentElement.setAttribute("data-submitted-url", registryOptions.url);
-        setData({ ...content.defaultData, login: registryOptions.url });
+        document.documentElement.setAttribute("data-submitted-url", catalogOptions.url);
+        setData({ ...content.defaultData, login: catalogOptions.url });
         return { _tag: "Right", right: undefined };
       },
     });
   });
-  await page.locator('a[href="/catalogs/github?registry=profile"]').click();
+  await page.locator('a[href="/groups/github?catalog=profile"]').click();
   await expect(page.getByLabel("URL", { exact: true })).toHaveValue("fixture-default");
   await page.getByLabel("URL", { exact: true }).fill("submitted-profile");
   await expect(page.locator("html")).not.toHaveAttribute("data-submitted-url");
@@ -234,9 +237,9 @@ test("generated content options controls fetch only after Submit", async ({ page
   await page.getByRole("button", { name: "Submit", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-submitted-url", "submitted-profile");
   await page
-    .getByTestId("registry-data-result")
+    .getByTestId("catalog-data-result")
     .getByRole("button", { name: "expand JSON", exact: true })
     .first()
     .click();
-  await expect(page.getByTestId("registry-data-result")).toContainText("submitted-profile");
+  await expect(page.getByTestId("catalog-data-result")).toContainText("submitted-profile");
 });

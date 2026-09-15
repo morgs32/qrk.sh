@@ -6,10 +6,10 @@ import { Link, useParams } from "react-router";
 
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
-import { catalogsHash } from "../../catalogsHash";
+import { groupsHash } from "../../groupsHash";
 import { Outline } from "../../Outline";
 import { Button } from "../../ui/button";
-import { CatalogOutline } from "../CatalogOutline";
+import { GroupOutline } from "../GroupOutline";
 import { Configuration } from "../Configuration";
 import { resolveBrickBreakpoint } from "../resolveBrickBreakpoint";
 import { useGridStore } from "../useGridStore";
@@ -17,31 +17,30 @@ import { useGridStore } from "../useGridStore";
 export default function BrickDetail() {
   const { breakpoint } = useBrickBreakpoint();
   const params = useParams();
-  if (!params.catalogName || !params.brickId) throw new Response("Not found", { status: 404 });
-  const { catalogName, brickId } = params;
+  if (!params.groupName || !params.brickId) throw new Response("Not found", { status: 404 });
+  const { groupName, brickId } = params;
   const hasHydrated = useGridStore((state) => state.hasHydrated);
   const brickDef = useGridStore((state) => state.bricksById[brickId]);
-  const catalog =
-    brickDef?.catalogId === catalogName ? catalogsHash[brickDef.catalogId] : undefined;
-  const registry = catalog?.registries[brickDef?.registryId ?? ""];
-  const brick = registry;
+  const group = brickDef?.groupId === groupName ? groupsHash[brickDef.groupId] : undefined;
+  const catalog = group?.catalogs[brickDef?.catalogId ?? ""];
+  const brick = catalog;
 
   if (!hasHydrated) {
     return <div className="px-6 pt-6 text-sm text-zinc-500">Loading brick…</div>;
   }
 
-  if (!brick || !catalog || !registry || !brickDef) {
+  if (!brick || !group || !catalog || !brickDef) {
     return (
       <div className="px-6 pt-6" data-testid="brick-not-found">
         <Link
-          to={`/catalogs/${encodeURIComponent(catalogName)}`}
+          to={`/groups/${encodeURIComponent(groupName)}`}
           className="inline-flex items-center gap-2 text-sm"
         >
           <ArrowLeft aria-hidden className="size-4" />
-          <span>Back to catalog</span>
+          <span>Back to group</span>
         </Link>
         <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Brick not found</h1>
-        <p className="mt-0 text-zinc-600">This brick ID is not stored for the requested catalog.</p>
+        <p className="mt-0 text-zinc-600">This brick ID is not stored for the requested group.</p>
       </div>
     );
   }
@@ -57,14 +56,14 @@ export default function BrickDetail() {
   return (
     <section data-testid="brick-detail-pane">
       <Outline.Title>
-        <Link to={`/catalogs/${encodeURIComponent(catalogName)}`}>{catalog.catalogLabel}</Link>
+        <Link to={`/groups/${encodeURIComponent(groupName)}`}>{group.groupLabel}</Link>
       </Outline.Title>
-      <CatalogOutline
-        catalog={catalog}
-        renderRegistry={(name, label) => (
+      <GroupOutline
+        group={group}
+        renderCatalog={(name, label) => (
           <Link
-            to={`/catalogs/${encodeURIComponent(catalogName)}?registry=${encodeURIComponent(name)}`}
-            aria-current={name === brick.def.registry ? "true" : undefined}
+            to={`/groups/${encodeURIComponent(groupName)}?catalog=${encodeURIComponent(name)}`}
+            aria-current={name === brick.def.catalog ? "true" : undefined}
             className="underline aria-[current=true]:no-underline"
           >
             {label}
@@ -91,13 +90,13 @@ export default function BrickDetail() {
         <Configuration
           key={brickId}
           showData={false}
-          registry={registry}
+          catalog={catalog}
           data={brickData}
           setData={(data) => {
             const DataSchema =
-              registry.dataShape === null
+              catalog.dataShape === null
                 ? Schema.Null
-                : Schema.toType(makeEffectSchema(registry.dataShape));
+                : Schema.toType(makeEffectSchema(catalog.dataShape));
             const decodedData = Schema.decodeUnknownSync(DataSchema)(data, {
               onExcessProperty: "preserve",
             });
@@ -153,7 +152,7 @@ export default function BrickDetail() {
           />
         )}
         <Outline.Title>Brick Definition</Outline.Title>
-        <div className="overflow-auto bg-white px-2 py-4" data-testid="registry-data-result">
+        <div className="overflow-auto bg-white px-2 py-4" data-testid="catalog-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}
             data={brickDef}

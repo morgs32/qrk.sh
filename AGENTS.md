@@ -95,7 +95,7 @@ Follow [`docs/styleguide/component-and-file-naming.md`](./docs/styleguide/compon
 - Use PascalCase component filenames matching the primary component, except for shadcn files and Next.js special files.
 - Prefer one primary React component per file, subject to the styleguide's route-local exceptions.
 - Keep single-use route logic in its owning `page.tsx` rather than creating a one-consumer sibling module.
-- Use the existing brick identity, drag, grid, and catalog conventions documented in the styleguide. Do not invent parallel identifiers or wrapper APIs.
+- Use the existing brick identity, drag, grid, and group conventions documented in the styleguide. Do not invent parallel identifiers or wrapper APIs.
 
 ### Effect and TypeScript
 
@@ -121,7 +121,7 @@ Plans and specs live under [`wiki/plans/`](./wiki/plans/):
 
 | Topic | Guidance |
 | --- | --- |
-| React components, files, site workspace, bricks, and catalog | [`docs/styleguide/component-and-file-naming.md`](./docs/styleguide/component-and-file-naming.md) |
+| React components, files, site workspace, bricks, and group | [`docs/styleguide/component-and-file-naming.md`](./docs/styleguide/component-and-file-naming.md) |
 | Effect core, Schema, and errors | [`docs/effect/README.md`](./docs/effect/README.md) |
 | TypeScript fixes and validation patterns | [`docs/tooling/typescript.md`](./docs/tooling/typescript.md) |
 | Next.js client route params, `useParams`, and `ParamsSchema` | Invoke `$engineering-patterns`; read `references/patterns/nextjs/validated-client-route-params.ts` |
@@ -152,15 +152,22 @@ pattern index as higher-precedence guidance.
 
 ## General Guidelines for working with Nx
 
-- For navigating or exploring the workspace, invoke the `nx-workspace` skill first.
-- Run build, test, lint, serve, typecheck, and other configured tasks through Nx so dependency targets and task pipelines run too.
-- Prefix Nx commands with this workspace's package manager, for example `pnpm nx run <project>:<target>`.
-- Use direct package-manager commands only when the user explicitly asks for them or no Nx target exists.
-- For Nx plugin details, check `node_modules/@nx/<plugin>/PLUGIN.md` when it exists.
-- Never guess unfamiliar Nx flags; check the relevant docs or `--help` first.
+- For navigating/exploring the workspace, invoke the `nx-workspace` skill first - it has patterns for querying projects, targets, and dependencies
+- When running tasks (for example build, lint, test, e2e, etc.), always prefer running the task through `nx` (i.e. `nx run`, `nx run-many`, `nx affected`) instead of using the underlying tooling directly
+- Prefix nx commands with the workspace's package manager (e.g., `pnpm nx build`, `npm exec nx test`) - avoids using globally installed CLI
+- You have access to the Nx MCP server and its tools, use them to help the user
+- For Nx plugin best practices, check `node_modules/@nx/<plugin>/PLUGIN.md`. Not all plugins have this file - proceed without it if unavailable.
+- NEVER guess CLI flags - always check nx_docs or `--help` first when unsure
 
-## Scaffolding and generators
+## Scaffolding & Generators
 
-- Invoke the `nx-generate` skill before scaffolding apps, libraries, or project structure.
+- For scaffolding tasks (creating apps, libs, project structure, setup), ALWAYS invoke the `nx-generate` skill FIRST before exploring or calling MCP tools
+
+## When to use nx_docs
+
+- USE for: advanced config options, unfamiliar flags, migration guides, plugin configuration, edge cases
+- DON'T USE for: basic generator syntax (`nx g @nx/react:app`), standard commands, things you already know
+- The `nx-generate` skill handles generator discovery internally - don't call nx_docs just to look up generator syntax
+
 
 <!-- nx configuration end-->

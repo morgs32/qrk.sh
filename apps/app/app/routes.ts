@@ -52,19 +52,19 @@ export default [
                     },
                     children: [
                       {
-                        path: "brick-catalog",
+                        path: "brick-group",
                         lazy: async () => {
-                          const { default: BrickCatalogsRoute, handle } =
-                            await import("./routes/BrickCatalogsRoute");
-                          return { Component: BrickCatalogsRoute, handle };
+                          const { default: BrickGroupsRoute, handle } =
+                            await import("./routes/BrickGroupsRoute");
+                          return { Component: BrickGroupsRoute, handle };
                         },
                       },
                       {
-                        path: "brick-catalog/:catalogName",
+                        path: "brick-group/:groupName",
                         lazy: async () => {
-                          const { default: BrickCatalogRoute } =
-                            await import("./routes/BrickCatalogRoute");
-                          return { Component: BrickCatalogRoute };
+                          const { default: BrickGroupRoute } =
+                            await import("./routes/BrickGroupRoute");
+                          return { Component: BrickGroupRoute };
                         },
                       },
                       {

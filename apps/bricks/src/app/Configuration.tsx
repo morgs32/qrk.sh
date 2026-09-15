@@ -1,17 +1,17 @@
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
 import { Outline } from "../Outline";
-import type { ICatalog } from "../types";
+import type { IGroup } from "../types";
 
 import { FetcherConfiguration } from "./FetcherConfiguration";
 
 export function Configuration(props: {
-  registry: ICatalog["registries"][string];
+  catalog: IGroup["catalogs"][string];
   data: unknown;
   showData?: boolean;
   setData: (data: unknown) => void;
 }) {
-  const configuration = props.registry.configuration;
+  const configuration = props.catalog.configuration;
   if (configuration === undefined) {
     return (
       <div>
@@ -35,7 +35,7 @@ export function Configuration(props: {
         <div>
           <Outline.Title>Configuration</Outline.Title>
           {props.showData !== false && (
-            <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="registry-data-result">
+            <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="catalog-data-result">
               <JsonView
                 shouldExpandNode={collapseAllNested}
                 data={{ data: props.data }}
@@ -52,7 +52,7 @@ export function Configuration(props: {
       return (
         <FetcherConfiguration
           configuration={configuration}
-          catalogName={props.registry.def.catalogName}
+          groupName={props.catalog.def.groupName}
           showData={props.showData}
           data={props.data}
           setData={props.setData}

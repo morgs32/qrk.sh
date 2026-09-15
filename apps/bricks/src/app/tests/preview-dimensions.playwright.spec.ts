@@ -1,19 +1,19 @@
 import { expect, test } from "@playwright/test";
 
-for (const [catalog, registry, w, h] of [
+for (const [group, catalog, w, h] of [
   ["swatch", "default", 2, 2],
   ["github", "profile", 4, 4],
   ["link", "default", 4, 2],
 ] satisfies Array<[string, string, number, number]>) {
-  test(`${catalog} registry preview matches placed dimensions`, async ({ page }) => {
+  test(`${group} catalog preview matches placed dimensions`, async ({ page }) => {
     await page.setViewportSize({ width: 3000, height: 1100 });
-    await page.goto(`/catalogs/${catalog}?registry=${registry}`);
-    const source = page.locator(`[data-registry-brick="${catalog}/${registry}"]`);
+    await page.goto(`/groups/${group}?catalog=${catalog}`);
+    const source = page.locator(`[data-catalog-brick="${group}/${catalog}"]`);
     const grid = page.getByLabel("Brick grid", { exact: true });
     await source.dragTo(grid.locator(".react-grid-layout"), {
       targetPosition: { x: 20, y: 200 },
     });
-    const placed = grid.locator(`[data-brick="${catalog}/${registry}"]`);
+    const placed = grid.locator(`[data-brick="${group}/${catalog}"]`);
     await expect(placed).toHaveCount(1);
     for (const width of [375, 640, 1024, 1440]) {
       await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
@@ -46,11 +46,11 @@ for (const [catalog, registry, w, h] of [
   });
 }
 
-test("catalog previews scroll rather than shrinking", async ({ page }) => {
+test("group previews scroll rather than shrinking", async ({ page }) => {
   await page.setViewportSize({ width: 3000, height: 1000 });
   await page.goto("/");
-  const swatch = page.locator('[data-catalog-entry="github"]');
-  const preview = swatch.locator('[data-catalog-representative="github/profile"]');
+  const swatch = page.locator('[data-group-entry="github"]');
+  const preview = swatch.locator('[data-group-representative="github/profile"]');
   await expect(preview).toHaveCSS("width", "720px");
   await page.getByLabel("Bricks panel").evaluate((element) => {
     element.style.width = "400px";

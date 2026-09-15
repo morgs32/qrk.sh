@@ -23,7 +23,7 @@ test.describe("MainColumns drawer background interaction", () => {
     });
     expect(maxScrollTop).toBeGreaterThan(afterFirstWheel + 50);
 
-    await page.goto(`${pageBase}/brick-catalog`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
     await expect(page.getByLabel("Workspace drawer")).toBeVisible();
 
     const beforeDrawerWheel = await rightColumn.evaluate((el) => (el as HTMLElement).scrollTop);

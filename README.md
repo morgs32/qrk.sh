@@ -7,17 +7,20 @@ Two Next.js apps with App Router:
 
 ## Features
 
-- Brick grid and catalog (see **Brick catalog identity** below)
+- Brick grid and groups (see **Brick group identity** below)
 
-## Brick catalog identity
+## Brick group identity
 
-The grid / brick drawer catalog is defined under `packages/bricks/src/catalogs/`.
+Brick groups are defined under `apps/bricks/src/groups/`.
 
-1. **`catalogName`** identifies a catalog; **`registry`** identifies a data/configuration and responsive presentation definition within it.
-2. **`(catalogName, registry)`** uniquely identifies a catalog brick, independently of dimensions. Views are no longer a separate selection.
-3. Placed bricks retain their own **`brickId`**. Workbench bricks store **`catalogId`** and **`registryId`**. Existing backend command/model versions retain their historical schema.
+1. **`groupName`** identifies a group; **`catalog`** identifies a data/configuration and responsive presentation definition within it.
+2. **`(groupName, catalog)`** uniquely identifies a group brick, independently of dimensions. Views are no longer a separate selection.
+3. Placed bricks retain their own **`brickId`**. Workbench bricks and backend brick records store **`groupId`** and **`catalogId`**.
 
-This is a hard terminology cutover: old backend state requires an explicitly authorized reset before reuse. Model and contract versions remain unchanged. Old browser storage is ignored and left untouched; the sandbox uses `qrk-bricks-sandbox-responsive-bricks-v2`, and editor drafts use `qrk-site-editor-drafts-v2`.
+This is a hard terminology cutover: old backend state must be reset before reuse.
+Model and contract versions remain unchanged. Browser persistence version 2 resets
+older sandbox bricks and site editor drafts on hydration. Storage keys remain
+`qrk-bricks-sandbox-responsive-bricks-v2` and `qrk-site-editor-drafts-v2`.
 
 More detail and test patterns: [docs/styleguide/component-and-file-naming.md](docs/styleguide/component-and-file-naming.md).
 

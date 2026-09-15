@@ -44,4 +44,6 @@ replicas by `/:clerkUserId`. The web frontend declares the same schemas; `Zerosp
 `ZerospinUser` mounts beneath `ZerospinApp.Provider`, signs through its
 `generateSignature` prop, and receives its aggregate ID from authentication.
 The frontend is keyed by Clerk user ID so identity changes remount the session.
-The changed fixed schemas require empty affected storage; this update does not reset it.
+Brick records and grid command payloads use `groupId` and `catalogId`. These fixed
+schemas require empty affected storage: reset this system's local state with
+`pnpm nx run @qrk.sh/zerospin:dev --clean` before reusing a pre-cutover database.

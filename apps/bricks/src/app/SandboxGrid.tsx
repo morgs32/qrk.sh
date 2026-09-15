@@ -5,7 +5,7 @@ import GridLayout, { verticalCompactor } from "react-grid-layout";
 import { Link } from "react-router";
 
 import { useBrickBreakpoint } from "../BrickBreakpointProvider";
-import { catalogsHash } from "../catalogsHash";
+import { groupsHash } from "../groupsHash";
 import { Button } from "../ui/button";
 
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
@@ -180,9 +180,9 @@ export function SandboxGrid() {
         >
           {layout.map((layoutItem) => {
             const brickDef = bricksById[layoutItem.i];
-            const catalog = brickDef ? catalogsHash[brickDef.catalogId] : undefined;
-            const registry = catalog?.registries[brickDef.registryId];
-            const brick = registry;
+            const group = brickDef ? groupsHash[brickDef.groupId] : undefined;
+            const catalog = group?.catalogs[brickDef.catalogId];
+            const brick = catalog;
 
             if (brick) {
               const BrickComponent = brick.component;
@@ -192,7 +192,7 @@ export function SandboxGrid() {
                   key={layoutItem.i}
                   style={{ opacity: outsideBrickId === layoutItem.i ? 0.4 : 1 }}
                   className="brick-drag-surface size-full"
-                  data-brick={`${brick.def.catalogName}/${brick.def.registry}`}
+                  data-brick={`${brick.def.groupName}/${brick.def.catalog}`}
                   data-brick-id={layoutItem.i}
                   data-grid-x={layoutItem.x}
                   data-grid-y={layoutItem.y}
@@ -212,7 +212,7 @@ export function SandboxGrid() {
                     <Button asChild variant="ghost" size="icon" className="brick-edit-handle">
                       <Link
                         aria-label="Edit brick"
-                        to={`/catalogs/${encodeURIComponent(brickDef.catalogId)}/brick/${encodeURIComponent(layoutItem.i)}`}
+                        to={`/groups/${encodeURIComponent(brickDef.groupId)}/brick/${encodeURIComponent(layoutItem.i)}`}
                       >
                         <Pencil aria-hidden className="size-4" />
                       </Link>

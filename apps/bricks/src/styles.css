@@ -63,7 +63,7 @@
   --ring: oklch(0.552 0.016 285.938);
 }
 
-/* Catalog previews and placed Grid bricks reserve pointer movement for their
+/* Group previews and placed Grid bricks reserve pointer movement for their
    existing drag interactions. Direct, configuration, and detail previews keep
    normal Mapbox pan and zoom behavior. */
 [draggable="true"] [data-map-place-id],

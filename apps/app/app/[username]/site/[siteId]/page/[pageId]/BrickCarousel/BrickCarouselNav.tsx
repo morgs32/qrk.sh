@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { type ICatalogBrick } from "@qrk.sh/bricks";
+import { type IGroupBrick } from "@qrk.sh/bricks";
 import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 import { cn } from "cn";
 import useEmblaCarousel from "embla-carousel-react";
@@ -31,7 +31,7 @@ function getOpacity(index: number, selected: number) {
 }
 
 export function BrickCarouselNav(props: {
-  bricks: ICatalogBrick[];
+  bricks: IGroupBrick[];
   /** Main Embla API from `<Carousel setApi={…}>`; nav can sit outside `<Carousel>` when this is passed. */
   api: CarouselApi | null;
 }) {
@@ -86,7 +86,7 @@ export function BrickCarouselNav(props: {
       data-brick-carousel-nav
       className="z-[8] flex min-w-0 shrink-0 items-center justify-center"
       role="toolbar"
-      aria-label="Brick registry and slides"
+      aria-label="Brick catalog and slides"
     >
       <div className="flex min-w-0 items-center justify-center">
         <div
@@ -99,7 +99,7 @@ export function BrickCarouselNav(props: {
               const active = i === selected;
               return (
                 <div
-                  key={`${brick.def.registry}`}
+                  key={`${brick.def.catalog}`}
                   className="flex min-w-0 shrink-0 items-center justify-center"
                 >
                   <button

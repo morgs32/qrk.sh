@@ -28,7 +28,7 @@ test.describe("BrickDetail route", () => {
 
     const grid = page.locator(".grid-layout");
     const brick = grid
-      .locator('[data-brick-catalog-name="swatch"][data-brick-registry="default"]')
+      .locator('[data-brick-group-name="swatch"][data-brick-catalog="default"]')
       .first();
     await expect(brick).toBeVisible({ timeout: 90_000 });
     await brick.scrollIntoViewIfNeeded();
@@ -57,15 +57,15 @@ test.describe("BrickDetail route", () => {
     });
   });
 
-  test("Back from brick detail opens catalog at brick-catalog", async ({ page }) => {
+  test("Back from brick detail opens group at brick-group", async ({ page }) => {
     await page.goto(`${pageBase}/brick/swatch--12`, { waitUntil: "load" });
 
     await expect(page.getByTestId("brick-detail-title")).toBeVisible({
       timeout: 90_000,
     });
-    await page.getByRole("button", { name: "Back to brick catalog" }).click();
+    await page.getByRole("button", { name: "Back to brick group" }).click();
 
-    await expect.poll(() => new URL(page.url()).pathname).toBe(`${pageBase}/brick-catalog`);
+    await expect.poll(() => new URL(page.url()).pathname).toBe(`${pageBase}/brick-group`);
     await expect(page.getByLabel("Search bricks")).toBeVisible();
   });
 

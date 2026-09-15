@@ -28,12 +28,13 @@ test("resets legacy brick drafts while retaining width and unrelated storage", a
     localStorage.setItem("qrk-site-editor-drafts-v2", "preserved-site-draft");
   });
   await page.reload();
+  await expect(page.getByLabel("Brick grid").locator(".react-grid-layout")).toBeVisible();
   await expect(page.getByLabel("Brick grid").locator("[data-brick-id]")).toHaveCount(0);
   const saved = await page.evaluate(() => ({
     workbench: JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v2")!),
     site: localStorage.getItem("qrk-site-editor-drafts-v2"),
   }));
-  expect(saved.workbench.version).toBe(1);
+  expect(saved.workbench.version).toBe(2);
   expect(saved.workbench.state.bricksById).toEqual({});
   expect(saved.workbench.state.selectedWidth).toBe(640);
   expect(saved.site).toBe("preserved-site-draft");

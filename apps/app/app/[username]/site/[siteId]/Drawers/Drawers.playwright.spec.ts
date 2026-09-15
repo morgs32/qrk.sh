@@ -5,7 +5,7 @@ const base = process.env.PLAYWRIGHT_EDITOR_PATH ?? "/e2e/site/e2e/page/home";
 test("editor retains drawer identity, params, history, toolbar, and grid", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(base + "/brick-catalog");
+  await page.goto(base + "/brick-group");
   const left = page.locator('[data-drawer="left"]');
   await expect(left).toBeVisible();
   const shell = await left.elementHandle();
@@ -28,7 +28,7 @@ test("editor retains drawer identity, params, history, toolbar, and grid", async
   const detailShell = await left.elementHandle();
   // Activate the toolbar beneath the left drawer with the keyboard.
   await page.getByRole("link", { name: "Add bricks" }).press("Enter");
-  await expect(page).toHaveURL(base + "/brick-catalog");
+  await expect(page).toHaveURL(base + "/brick-group");
   await expect(left).toBeVisible();
   expect(
     await detailShell!.evaluate(

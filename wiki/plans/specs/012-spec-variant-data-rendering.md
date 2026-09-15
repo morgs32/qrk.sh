@@ -11,13 +11,13 @@ The variant data pane can load validated scraper data, but that data stops at th
 
 Data-backed variants declare request and response contracts through `payloadShape` and `dataShape`, provide `defaultData`, and require every size component to accept the decoded data through a `data` prop.
 
-The variant configuration page renders `loadedData ?? defaultData`. Other catalog renderers use `defaultData`.
+The variant configuration page renders `loadedData ?? defaultData`. Other group renderers use `defaultData`.
 
 ## User Stories
 
 1. As a brick author, I want request and response shapes declared on the variant so that factories enforce the complete data contract.
 2. As a workbench user, I want a successful `Get data` request to update the brick preview immediately.
-3. As a catalog user, I want data-backed bricks to render meaningful default content before configuration.
+3. As a group user, I want data-backed bricks to render meaningful default content before configuration.
 4. As a developer, I want one GitHub data path rather than an independent client-side fetch inside the card.
 
 ## Implementation Decisions
@@ -31,7 +31,7 @@ The variant configuration page renders `loadedData ?? defaultData`. Other catalo
 3. Static variants omit all four properties.
 4. `makeVariant` behavior:
    1. Decode submitted request values through `payloadShape` with excess properties rejected.
-   2. Decode `defaultData` during catalog construction; invalid defaults throw immediately.
+   2. Decode `defaultData` during group construction; invalid defaults throw immediately.
    3. Pass scraper `Left` results through unchanged.
    4. Decode successful `Right` values through `dataShape`.
    5. Reject the wrapped request if successful data fails `dataShape`.
@@ -40,7 +40,7 @@ The variant configuration page renders `loadedData ?? defaultData`. Other catalo
    1. The decoded `defaultData`.
    2. The wrapped `getData` success value.
    3. A required `data` prop on every size component in that data-backed variant.
-6. Do not introduce compatibility aliases, new named data types, render helpers, wrappers, barrels, or re-exports. Extend the existing factory and catalog types directly and keep render-boundary branching explicit.
+6. Do not introduce compatibility aliases, new named data types, render helpers, wrappers, barrels, or re-exports. Extend the existing factory and group types directly and keep render-boundary branching explicit.
 7. The GitHub profile `dataShape` declares only fields consumed by the 4x4 card:
    1. `login`.
    2. `avatar_url`.
@@ -52,7 +52,7 @@ The variant configuration page renders `loadedData ?? defaultData`. Other catalo
    8. `followers`.
    9. `following`.
 8. The complete public `morgs32` response supplied during the design discussion becomes `defaultData`; fields outside `dataShape` remain preserved but are not available as typed component fields.
-9. Every catalog renderer passes a data-backed variant's `defaultData`, including the Bricks catalog, catalog page, direct preview, Grid, brick detail, and the corresponding `apps/web` renderers.
+9. Every group renderer passes a data-backed variant's `defaultData`, including the Bricks group, group page, direct preview, Grid, brick detail, and the corresponding `apps/web` renderers.
 10. The variant configuration page uses `loadedData ?? defaultData` for every size preview and displays that same effective data as formatted JSON.
 11. Submission behavior:
     1. A successful request replaces `loadedData`.
@@ -86,7 +86,7 @@ The variant configuration page renders `loadedData ?? defaultData`. Other catalo
    3. Loading a stable alternate profile such as `octocat` updates both the JSON and 4x4 card.
    4. The 4x2 activity preview remains present.
    5. A later invalid request displays its error while retaining the last successful profile.
-   6. Default data renders through catalog and direct-preview boundaries.
+   6. Default data renders through group and direct-preview boundaries.
 3. Run Nx lint, typecheck, unit, and relevant browser targets for Bricks and affected `apps/web` projects, followed by formatting checks and `git diff --check`.
 
 ## Out of Scope

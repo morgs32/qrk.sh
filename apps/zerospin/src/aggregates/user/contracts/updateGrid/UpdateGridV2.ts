@@ -29,8 +29,8 @@ const updateGridPayload = {
         y: Schema.Int,
         w: Schema.Int,
         h: Schema.Int,
+        groupId: Schema.String,
         catalogId: Schema.String,
-        contentId: Schema.String,
         viewId: Schema.String,
       }),
     ),
@@ -246,8 +246,8 @@ export const updateGridV2 = makeContractVersion(updateGrid, {
         persistedBrick.y !== brick.y ||
         persistedBrick.w !== brick.w ||
         persistedBrick.h !== brick.h ||
+        persistedBrick.groupId !== brick.groupId ||
         persistedBrick.catalogId !== brick.catalogId ||
-        persistedBrick.contentId !== brick.contentId ||
         persistedBrick.viewId !== brick.viewId;
 
       if (brick.intent === "update") {
@@ -392,8 +392,8 @@ export const updateGridV2 = makeContractVersion(updateGrid, {
                 y: brick.y,
                 w: brick.w,
                 h: brick.h,
+                groupId: brick.groupId,
                 catalogId: brick.catalogId,
-                contentId: brick.contentId,
                 viewId: brick.viewId,
               },
             }),
@@ -409,8 +409,8 @@ export const updateGridV2 = makeContractVersion(updateGrid, {
               y: brick.y,
               w: brick.w,
               h: brick.h,
+              groupId: brick.groupId,
               catalogId: brick.catalogId,
-              contentId: brick.contentId,
               viewId: brick.viewId,
             },
           }),

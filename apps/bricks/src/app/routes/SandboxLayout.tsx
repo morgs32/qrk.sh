@@ -24,7 +24,7 @@ export default function SandboxLayout() {
     const wrapper = gridWidthRef.current;
     if (!wrapper) return;
 
-    // Apply the CSS flag synchronously without rerendering the catalog during animation.
+    // Apply the CSS flag synchronously without rerendering the group during animation.
     const startWidthTransition = (event: TransitionEvent) => {
       if (event.target === wrapper && event.propertyName === "width") {
         wrapper.dataset.widthTransitionActive = "true";
@@ -69,11 +69,11 @@ export default function SandboxLayout() {
     };
   }, []);
 
-  const catalogs = (
+  const groups = (
     <div className="flex h-full min-h-0 flex-col">
       <header className="z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background pl-4 pr-6">
         <Link to="/" className="text-sm font-medium">
-          Brick catalogs
+          Brick groups
         </Link>
       </header>
       <div className="min-h-0 flex-1">
@@ -96,7 +96,7 @@ export default function SandboxLayout() {
                 aria-label="Bricks panel"
                 className="fixed inset-y-0 left-0 z-60 h-dvh w-1/2 overflow-hidden border-r border-zinc-300 bg-white"
               >
-                {catalogs}
+                {groups}
               </section>
             ) : (
               <DrawerContent
@@ -120,7 +120,7 @@ export default function SandboxLayout() {
                     </Button>
                   </DrawerClose>
                 </div>
-                {catalogs}
+                {groups}
               </DrawerContent>
             )}
             <div

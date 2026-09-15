@@ -64,7 +64,7 @@ export function SiteToolbar() {
             <ToolbarButton
               label="Add bricks"
               icon={<Plus className="h-3.5 w-3.5" />}
-              href={href("/:username/site/:siteId/page/:pageId/brick-catalog", hrefParams)}
+              href={href("/:username/site/:siteId/page/:pageId/brick-group", hrefParams)}
               className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             />
 

@@ -1,6 +1,6 @@
 # Brick breakpoint presentations
 
-Name presentation components `<Catalog><Content><Shape><Breakpoint>` and use
+Name presentation components `<Group><Content><Shape><Breakpoint>` and use
 matching PascalCase filenames. Use semantic shapes and explicit breakpoint
 suffixes rather than `Compact` or `Expanded`: `GitHubProfileSquareXs.tsx` and
 `GitHubProfileSquareLg.tsx` are the GitHub profile square presentations.
@@ -19,10 +19,10 @@ makeView({
 });
 ```
 
-Import `makeView` directly from `packages/bricks/src/makeView.tsx` using the
+Import `makeView` directly from `apps/bricks/src/makeView.tsx` using the
 appropriate relative path. The view owns `id`, `label`, `w`, `h`, `order`, and optional `form`.
 Its map key in `makeContent.views` must match `id`; `makeContent` supplies content
-identity, and catalog assembly preserves catalog `def` and `component` fields.
+identity, and group assembly preserves group `def` and `component` fields.
 `xs` is required; `sm`, `lg`, and `xl` are optional.
 An omitted breakpoint inherits the nearest smaller defined presentation. In this
 example, `sm` uses `Xs` and `lg` and `xl` use `Lg`.

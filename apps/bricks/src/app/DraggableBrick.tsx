@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 
-import type { ICatalogBrickDef } from "../types";
+import type { IGroupBrickDef } from "../types";
 
 import { useGridStore } from "./useGridStore";
 
@@ -10,7 +10,7 @@ export function DraggableBrick({
   className,
   ...props
 }: {
-  brickDef: ICatalogBrickDef;
+  brickDef: IGroupBrickDef;
 } & Omit<ComponentProps<"div">, "draggable" | "onDragStart" | "onDragEnd">) {
   const setActiveBrickDrag = useGridStore((state) => state.setActiveBrickDrag);
 
@@ -35,7 +35,7 @@ export function DraggableBrick({
           );
         }
         event.dataTransfer.effectAllowed = "copy";
-        event.dataTransfer.setData("text/plain", brickDef.registry);
+        event.dataTransfer.setData("text/plain", brickDef.catalog);
       }}
       onDragEnd={() => {
         setActiveBrickDrag(null);

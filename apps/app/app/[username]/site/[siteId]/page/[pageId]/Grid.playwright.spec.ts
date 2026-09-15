@@ -2,20 +2,14 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const pageBase = "/e2e/site/e2e/page/home";
 
-function drawerBrickPreviewSlot(page: Page, catalogName: string, registry: string) {
+function drawerBrickPreviewSlot(page: Page, groupName: string, catalog: string) {
   return page.locator(
-    `[data-brick-drawer-brick-slot][data-brick-drawer-catalog-name="${catalogName}"][data-brick-drawer-registry="${registry}"]`,
+    `[data-brick-drawer-brick-slot][data-brick-drawer-group-name="${groupName}"][data-brick-drawer-catalog="${catalog}"]`,
   );
 }
 
-function gridLocateByBrickIdentity(
-  grid: Locator,
-  catalogName: string,
-  registry: string,
-) {
-  return grid.locator(
-    `[data-brick-catalog-name="${catalogName}"][data-brick-registry="${registry}"]`,
-  );
+function gridLocateByBrickIdentity(grid: Locator, groupName: string, catalog: string) {
+  return grid.locator(`[data-brick-group-name="${groupName}"][data-brick-catalog="${catalog}"]`);
 }
 
 function boxCenter(box: { x: number; y: number; width: number; height: number }) {
@@ -86,7 +80,7 @@ test.describe("Site grid drag", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${pageBase}/brick-catalog`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
@@ -116,7 +110,7 @@ test.describe("Site grid drag", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${pageBase}/brick-catalog`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });
@@ -160,7 +154,7 @@ test.describe("Site grid drag", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${pageBase}/brick-catalog`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
     await expect(grid).toBeVisible({ timeout: 90_000 });

@@ -6,19 +6,19 @@ test("keeps the grid mounted across data routes and restores a placed brick", as
   await expect(grid.getByTestId(/grid-fixture-/)).toHaveCount(0);
   const gridElement = await grid.elementHandle();
   await page
-    .locator('[data-catalog-representative="swatch/default"]')
+    .locator('[data-group-representative="swatch/default"]')
 
     .dragTo(grid.locator(".react-grid-layout"), {
       targetPosition: { x: 20, y: 20 },
     });
   const brick = grid.locator('[data-brick="swatch/default"]');
   await expect(brick).toBeVisible();
-  await page.locator('[data-catalog-link="swatch"]').click();
-  await expect(page.locator("[data-registry-brick]")).toHaveCount(1);
+  await page.locator('[data-group-link="swatch"]').click();
+  await expect(page.locator("[data-catalog-brick]")).toHaveCount(1);
   expect(await gridElement?.evaluate((element) => element.isConnected)).toBe(true);
   await brick.getByRole("link", { name: "Edit brick", exact: true }).click();
   await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
-  await expect(page).toHaveURL(/\/catalogs\/swatch\/brick\/[^/]+$/);
+  await expect(page).toHaveURL(/\/groups\/swatch\/brick\/[^/]+$/);
   expect(await gridElement?.evaluate((element) => element.isConnected)).toBe(true);
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("brick-detail-pane")).toBeVisible();
@@ -27,10 +27,10 @@ test("keeps the grid mounted across data routes and restores a placed brick", as
 
 test("renders data-router not-found boundaries on direct URLs", async ({ page }) => {
   for (const [path, testId] of [
-    ["/catalogs/not-a-catalog", "catalog-not-found"],
-    ["/catalogs/swatch/not-a-registry", "registry-not-found"],
-    ["/catalogs/swatch/brick/missing", "brick-not-found"],
-    ["/bricks/swatch/not-a-registry", "brick-not-found"],
+    ["/groups/not-a-group", "group-not-found"],
+    ["/groups/swatch/not-a-catalog", "catalog-not-found"],
+    ["/groups/swatch/brick/missing", "brick-not-found"],
+    ["/bricks/swatch/not-a-catalog", "brick-not-found"],
   ]) {
     await page.goto(path, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId(testId)).toBeVisible();

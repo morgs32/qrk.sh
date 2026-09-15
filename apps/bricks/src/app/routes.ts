@@ -20,39 +20,39 @@ export default [
           {
             index: true,
             lazy: async () => {
-              const { default: CatalogsPage } = await import("./routes/CatalogsPage");
-              return { Component: CatalogsPage };
+              const { default: GroupsPage } = await import("./routes/GroupsPage");
+              return { Component: GroupsPage };
             },
           },
           {
-            path: "catalogs/:catalogName",
+            path: "groups/:groupName",
             lazy: async () => {
               const {
-                default: CatalogPage,
+                default: GroupPage,
                 loader,
                 ErrorBoundary,
-              } = await import("./routes/CatalogPage");
-              return { Component: CatalogPage, loader, ErrorBoundary };
+              } = await import("./routes/GroupPage");
+              return { Component: GroupPage, loader, ErrorBoundary };
             },
             children: [
               {
                 index: true,
                 lazy: async () => {
-                  const { default: RegistryConfiguration, ErrorBoundary } =
-                    await import("./routes/RegistryConfiguration");
-                  return { Component: RegistryConfiguration, ErrorBoundary };
+                  const { default: CatalogConfiguration, ErrorBoundary } =
+                    await import("./routes/CatalogConfiguration");
+                  return { Component: CatalogConfiguration, ErrorBoundary };
                 },
               },
               {
-                path: ":registryName",
+                path: ":catalogName",
                 lazy: async () => {
                   const {
-                    default: RegistryConfiguration,
+                    default: CatalogConfiguration,
                     loader,
                     ErrorBoundary,
-                  } = await import("./routes/RegistryConfiguration");
+                  } = await import("./routes/CatalogConfiguration");
                   return {
-                    Component: RegistryConfiguration,
+                    Component: CatalogConfiguration,
                     loader,
                     ErrorBoundary,
                   };
@@ -70,7 +70,7 @@ export default [
         ],
       },
       {
-        path: "bricks/:catalogName/:registry",
+        path: "bricks/:groupName/:catalog",
         lazy: async () => {
           const { default: BrickPage, loader, ErrorBoundary } = await import("./routes/BrickPage");
           return { Component: BrickPage, loader, ErrorBoundary };

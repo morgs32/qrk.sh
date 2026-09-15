@@ -52,7 +52,7 @@ Create one persisted authored-data store named `useSiteStore`, organized as `use
 ## Out of Scope
 
 1. Zerospin or server persistence, cross-device synchronization, and cross-tab synchronization.
-2. Activating Upload, Unpublish, Undo, or the currently empty catalog wiring.
+2. Activating Upload, Unpublish, Undo, or the currently empty group wiring.
 3. Making breakpoint column counts affect rendered layout.
 4. Persisting files, image data, derived URLs, QR codes, carousel position, copy feedback, drawer routes, or drag state.
 5. Migrating older payload versions; incompatible data resets wholesale.

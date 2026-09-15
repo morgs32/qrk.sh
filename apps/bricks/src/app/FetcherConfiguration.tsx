@@ -14,36 +14,34 @@ import { Input } from "../ui/input";
 
 export function FetcherConfiguration(props: {
   configuration: IFetcherConfiguration;
-  catalogName: string | undefined;
+  groupName: string | undefined;
   data: unknown;
   showData?: boolean;
   setData: (data: unknown) => void;
 }) {
   const {
-    registryOptionsShape,
-    registryOptionsForm: RegistryOptionsForm,
+    catalogOptionsShape,
+    catalogOptionsForm: CatalogOptionsForm,
     fetcher: fetchData,
   } = props.configuration;
-  const [registryOptionsValues, setRegistryOptionsValues] = useState<Record<string, unknown>>(
-    () => {
-      const initialRegistryOptionsValues: Record<string, unknown> = {};
+  const [catalogOptionsValues, setCatalogOptionsValues] = useState<Record<string, unknown>>(() => {
+    const initialCatalogOptionsValues: Record<string, unknown> = {};
 
-      // Initialize the complete registry options from the declared field defaults.
-      for (const [fieldName, descriptor] of Object.entries(registryOptionsShape)) {
-        initialRegistryOptionsValues[fieldName] =
-          "defaultValue" in descriptor ? descriptor.defaultValue : undefined;
-      }
-      return initialRegistryOptionsValues;
-    },
-  );
-  const currentRegistryOptions = useRef(registryOptionsValues);
+    // Initialize the complete catalog options from the declared field defaults.
+    for (const [fieldName, descriptor] of Object.entries(catalogOptionsShape)) {
+      initialCatalogOptionsValues[fieldName] =
+        "defaultValue" in descriptor ? descriptor.defaultValue : undefined;
+    }
+    return initialCatalogOptionsValues;
+  });
+  const currentCatalogOptions = useRef(catalogOptionsValues);
   const generation = useRef(0);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataError, setDataError] = useState<IScrapeError>();
   const [requestError, setRequestError] = useState<string>();
-  const hasUnsupportedRegistryOptions =
-    RegistryOptionsForm === undefined &&
-    Object.entries(registryOptionsShape).some(
+  const hasUnsupportedCatalogOptions =
+    CatalogOptionsForm === undefined &&
+    Object.entries(catalogOptionsShape).some(
       ([, descriptor]) =>
         descriptor.kind !== PrimitiveKind.Text ||
         descriptor.nullable !== false ||
@@ -58,21 +56,21 @@ export function FetcherConfiguration(props: {
     [],
   );
 
-  async function onRegistryOptionsChange(registryOptions: Record<string, unknown>) {
-    // Snapshot the next complete registry options synchronously, including batched changes.
-    currentRegistryOptions.current = registryOptions;
-    setRegistryOptionsValues(registryOptions);
+  async function onCatalogOptionsChange(catalogOptions: Record<string, unknown>) {
+    // Snapshot the next complete catalog options synchronously, including batched changes.
+    currentCatalogOptions.current = catalogOptions;
+    setCatalogOptionsValues(catalogOptions);
     const requestGeneration = ++generation.current;
     setDataError(undefined);
     setRequestError(undefined);
 
-    if (hasUnsupportedRegistryOptions) return;
+    if (hasUnsupportedCatalogOptions) return;
     setIsLoadingData(true);
     try {
       using api = newSyncRpcSession<ScraperApi>("/scraper-rpc");
       const result = await fetchData({
         api,
-        registryOptions,
+        catalogOptions,
         setData: (data) => {
           if (generation.current === requestGeneration) props.setData(data);
         },
@@ -93,7 +91,7 @@ export function FetcherConfiguration(props: {
     <div>
       <Outline.Title>Configuration</Outline.Title>
       {props.showData !== false && (
-        <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="registry-data-result">
+        <div className="overflow-auto bg-zinc-100 px-2 py-4" data-testid="catalog-data-result">
           <JsonView
             shouldExpandNode={collapseAllNested}
             data={{ data: props.data }}
@@ -104,15 +102,15 @@ export function FetcherConfiguration(props: {
 
       <div className="px-4 py-5">
         <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
-          {RegistryOptionsForm !== undefined ? (
-            <RegistryOptionsForm
-              value={registryOptionsValues}
+          {CatalogOptionsForm !== undefined ? (
+            <CatalogOptionsForm
+              value={catalogOptionsValues}
               onChange={(value) => {
-                void onRegistryOptionsChange(value);
+                void onCatalogOptionsChange(value);
               }}
             />
           ) : (
-            Object.entries(registryOptionsShape).map(([fieldName, descriptor]) => {
+            Object.entries(catalogOptionsShape).map(([fieldName, descriptor]) => {
               if (
                 descriptor.kind !== PrimitiveKind.Text ||
                 descriptor.nullable !== false ||
@@ -121,11 +119,11 @@ export function FetcherConfiguration(props: {
                 return (
                   <p
                     className="m-0 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
-                    data-testid={`unsupported-registry-options-${fieldName}`}
+                    data-testid={`unsupported-catalog-options-${fieldName}`}
                     key={fieldName}
                     role="alert"
                   >
-                    Unsupported registry options field &quot;{fieldName}
+                    Unsupported catalog options field &quot;{fieldName}
                     &quot;: only non-null text primitives with string defaults are supported.
                   </p>
                 );
@@ -135,34 +133,34 @@ export function FetcherConfiguration(props: {
                 <div className="flex flex-col items-start gap-2" key={fieldName}>
                   <label
                     className="block text-sm font-medium"
-                    htmlFor={`registry-options-${fieldName}`}
+                    htmlFor={`catalog-options-${fieldName}`}
                   >
                     {fieldName === "url" ? "URL" : fieldName}
                   </label>
                   <Input
                     className="mb-1"
-                    id={`registry-options-${fieldName}`}
+                    id={`catalog-options-${fieldName}`}
                     name={fieldName}
                     onChange={(event) => {
-                      const registryOptions = {
-                        ...currentRegistryOptions.current,
+                      const catalogOptions = {
+                        ...currentCatalogOptions.current,
                         [fieldName]: event.target.value,
                       };
-                      currentRegistryOptions.current = registryOptions;
-                      setRegistryOptionsValues(registryOptions);
+                      currentCatalogOptions.current = catalogOptions;
+                      setCatalogOptionsValues(catalogOptions);
                     }}
                     type="text"
                     value={
-                      typeof registryOptionsValues[fieldName] === "string"
-                        ? registryOptionsValues[fieldName]
+                      typeof catalogOptionsValues[fieldName] === "string"
+                        ? catalogOptionsValues[fieldName]
                         : descriptor.defaultValue
                     }
                   />
                   <Button
                     type="button"
-                    disabled={isLoadingData || hasUnsupportedRegistryOptions}
+                    disabled={isLoadingData || hasUnsupportedCatalogOptions}
                     onClick={() => {
-                      void onRegistryOptionsChange(currentRegistryOptions.current);
+                      void onCatalogOptionsChange(currentCatalogOptions.current);
                     }}
                   >
                     Submit
@@ -178,7 +176,7 @@ export function FetcherConfiguration(props: {
         {dataError !== undefined ? (
           <div
             className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-            data-testid="registry-data-error"
+            data-testid="catalog-data-error"
             role="alert"
           >
             <p className="m-0 font-mono font-semibold">{dataError.code}</p>
@@ -189,7 +187,7 @@ export function FetcherConfiguration(props: {
         {requestError !== undefined ? (
           <div
             className="mt-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-            data-testid="registry-request-error"
+            data-testid="catalog-request-error"
             role="alert"
           >
             {requestError}

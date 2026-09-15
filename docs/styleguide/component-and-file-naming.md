@@ -21,72 +21,72 @@ Use these rules for **repo-authored React components** that are **not** shadcn a
 
 Prefer **one primary React component per file** (matching the PascalCase file name). Nesting sizable presentational or interactive subcomponents in the parent file makes diffs noisier and obscures imports.
 
-- **Bad**: `BrickCatalog.tsx` defines both `BrickCatalog` and a multi-markup helper like `BrickCarouselNav` in the same module.
+- **Bad**: `BrickGroup.tsx` defines both `BrickGroup` and a multi-markup helper like `BrickCarouselNav` in the same module.
 
 - **Good**: Under [BrickCarousel/](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/), [BrickCarouselNav.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarouselNav.tsx) exports `BrickCarouselNav` and [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx) exports `BrickPreview`; [BrickCarousel.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) imports them. Keep **`data-brick-carousel-nav`** (and similar hooks into parent behavior like `watchDrag`) documented by colocation: the nav file owns the markup; the parent may still reference those attributes in drag guards.
 
 ### Exceptions (this rule does not apply)
 
 - **shadcn/ui components**: anything under either app’s `components/ui/**` directory keeps shadcn’s conventions.
-- **React Router entry files**: `apps/app/app/main.tsx`, `apps/app/app/routes.ts`, `packages/bricks/src/app/main.tsx`, and `packages/bricks/src/app/routes.ts` use entry/configuration names. Root components are `App.tsx` and `RootLayout.tsx`. Route components use PascalCase filenames; single-use route logic stays in its route module. Data Mode does not generate `.react-router/types/**`.
+- **React Router entry files**: `apps/app/app/main.tsx`, `apps/app/app/routes.ts`, `apps/bricks/src/app/main.tsx`, and `apps/bricks/src/app/routes.ts` use entry/configuration names. Root components are `App.tsx` and `RootLayout.tsx`. Route components use PascalCase filenames; single-use route logic stays in its route module. Data Mode does not generate `.react-router/types/**`.
 - **Next.js special files**: framework-reserved files under either app’s `app/**` directory keep their required names (for example `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, `route.ts`).
 
-### Good vs bad: BrickCatalog carousel slides (one panel per brick)
+### Good vs bad: BrickGroup carousel slides (one panel per brick)
 
-The brick catalog drawer uses shadcn `Carousel` (Embla) **per catalog**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def[breakpoint].w * 50vw / 8)`** by **`calc(def[breakpoint].h * 50vw / 8)`**, i.e. half the viewport (site workspace `w-1/2`) divided into eight columns—the same column count [Grid.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
+The brick group drawer uses shadcn `Carousel` (Embla) **per group**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def[breakpoint].w * 50vw / 8)`** by **`calc(def[breakpoint].h * 50vw / 8)`**, i.e. half the viewport (site workspace `w-1/2`) divided into eight columns—the same column count [Grid.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
 
 ### Good vs bad: `BrickPreview` props (inline types, no cross-file props export)
 
-Keep [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx) decoupled from [BrickCatalog.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCatalog/BrickCatalog.tsx): **do not** export a `BrickPreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a small props API.
+Keep [BrickPreview.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickPreview.tsx) decoupled from [BrickGroup.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickGroup/BrickGroup.tsx): **do not** export a `BrickPreviewProps` type from the parent only so the child can import it—that creates an awkward dependency and extra churn for a small props API.
 
-- **Bad**: `export type BrickPreviewProps` in `BrickCatalog.tsx` and `import { BrickPreviewProps } from './BrickCatalog'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
+- **Bad**: `export type BrickPreviewProps` in `BrickGroup.tsx` and `import { BrickPreviewProps } from './BrickGroup'` in `BrickPreview.tsx` (parent owns types for a child it does not implement).
 
-- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: ICatalogBrick }`**. Catalog rows are built with **`makeRegistry`** (data, configuration, dimensions, appearance form, and responsive presentations) and **`makeCatalog`** (**`registries[registry]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/app/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/app/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
+- **Good**: annotate the preview’s props inline on `BrickPreview` with **`{ brick: IGroupBrick }`**. Group rows are built with **`makeCatalog`** (data, configuration, dimensions, appearance form, and responsive presentations) and **`makeGroup`** (**`catalogs[catalog]`**). Drawer drag uses native **`DataTransfer`** ([`BRICK_DRAG_MIME` / `useBrickDrawerStore`](../../apps/app/components/home/useBrickDrawerStore.ts)); [siteStore.ts](../../apps/app/app/[username]/site/[siteId]/siteStore.ts) persists only serializable site and page draft data, including each page’s `layout`, without React components.
 
-**Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeBrickCatalogProps`-style types unless a second module genuinely needs to reference that exact type.
+**Same idea for small factories**: if only one function consumes the shape, **inline the object type on the function**—do **not** export `MakeBrickGroupProps`-style types unless a second module genuinely needs to reference that exact type.
 
-### Good vs bad: brick catalog types (`IBrick`, `ICatalogBrick`, `ICatalogBrickDef`)
+### Good vs bad: brick group types (`IBrick`, `IGroupBrick`, `IGroupBrickDef`)
 
-- **Bad**: ad hoc **`typeId`** strings on every catalog row, or passing full brick objects (including **`component`**) into Zustand for external drag.
+- **Bad**: ad hoc **`typeId`** strings on every group row, or passing full brick objects (including **`component`**) into Zustand for external drag.
 
-- **Good**: `ICatalogBrickDef` contains serializable catalog and registry identity, initial dimensions, label, order, and data. `makeRegistry` produces `def` and a responsive `component`; `makeCatalog` adds catalog scope and verifies each registry key matches `def.registry`.
+- **Good**: `IGroupBrickDef` contains serializable group and catalog identity, initial dimensions, label, order, and data. `makeCatalog` produces `def` and a responsive `component`; `makeGroup` adds group scope and verifies each catalog key matches `def.catalog`.
 
-### Registry and brick identity
+### Catalog and brick identity
 
-A **registry** connects data and configuration to one responsive presentation within a catalog, such as GitHub `profile` or `repo`. A **brick** is a placed instance with its own `brickId`. Catalog entries are identified by `(catalogName, registry)`, independently of dimensions. There is no view collection or view identity.
+A **catalog** connects data and configuration to one responsive presentation within a group, such as GitHub `profile` or `repo`. A **brick** is a placed instance with its own `brickId`. Group entries are identified by `(groupName, catalog)`, independently of dimensions. There is no view collection or view identity.
 
-Use kebab-case registry identifiers. Site drawer selectors expose `data-brick-drawer-catalog-name` and `data-brick-drawer-registry`; placed wrappers expose `data-brick-catalog-name`, `data-brick-registry`, and `data-brick-id`.
+Use kebab-case catalog identifiers. Site drawer selectors expose `data-brick-drawer-group-name` and `data-brick-drawer-catalog`; placed wrappers expose `data-brick-group-name`, `data-brick-catalog`, and `data-brick-id`.
 
 ### Factory arguments
 
-Factories take one `props` object with an inline shape. `makeRegistry` owns `registry`, `registryName`, `registryDescription`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Registry `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeRegistry.tsx](../../packages/bricks/src/makeRegistry.tsx) and [makeCatalog.ts](../../packages/bricks/src/makeCatalog.ts).
+Factories take one `props` object with an inline shape. `makeCatalog` owns `catalog`, `catalogName`, `catalogDescription`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeCatalog.tsx](../../apps/bricks/src/makeCatalog.tsx) and [makeGroup.ts](../../apps/bricks/src/makeGroup.ts).
 
-Data-backed registries configure requests with `makeFetcherConfiguration({ registryOptionsShape, registryOptionsForm, fetcher })`
-from [makeFetcherConfiguration.ts](../../packages/bricks/src/makeFetcherConfiguration.ts), passed as the registry's `configuration`.
-The factory supplies `configurationType: "fetcher"` and validates registry options before invoking its
-required `fetcher` callback. `registryOptionsForm` is one optional component receiving the complete decoded
-registry options as `{ value, onChange }`; `onChange` replaces the whole registry options. `IFetcherConfiguration` is defined in that factory module. The callback receives
-`{ api, registryOptions, setData }`, publishes data through `setData`, and returns `IRpcEither<void>`
-for success or typed failure. The registry retains `dataShape` and validates `defaultData`.
-Configuration forms read `configuration.registryOptionsShape` and `configuration.registryOptionsForm`;
-registries do not expose top-level registry options fields or `getData`.
+Data-backed catalogs configure requests with `makeFetcherConfiguration({ catalogOptionsShape, catalogOptionsForm, fetcher })`
+from [makeFetcherConfiguration.ts](../../apps/bricks/src/makeFetcherConfiguration.ts), passed as the catalog's `configuration`.
+The factory supplies `configurationType: "fetcher"` and validates catalog options before invoking its
+required `fetcher` callback. `catalogOptionsForm` is one optional component receiving the complete decoded
+catalog options as `{ value, onChange }`; `onChange` replaces the whole catalog options. `IFetcherConfiguration` is defined in that factory module. The callback receives
+`{ api, catalogOptions, setData }`, publishes data through `setData`, and returns `IRpcEither<void>`
+for success or typed failure. The catalog retains `dataShape` and validates `defaultData`.
+Configuration forms read `configuration.catalogOptionsShape` and `configuration.catalogOptionsForm`;
+catalogs do not expose top-level catalog options fields or `getData`.
 
-The workbench's [Configuration.tsx](../../packages/bricks/src/app/Configuration.tsx) switches on
-`configurationType`. A custom registry options form runs the fetcher on `onChange`, using the complete
-updated registry options. Without a custom form, generated text controls use explicit Submit buttons.
+The workbench's [Configuration.tsx](../../apps/bricks/src/app/Configuration.tsx) switches on
+`configurationType`. A custom catalog options form runs the fetcher on `onChange`, using the complete
+updated catalog options. Without a custom form, generated text controls use explicit Submit buttons.
 Neither form fetches initially. Each request owns a scraper RPC session;
 superseded and unmounted requests cannot publish data or errors. Control-internal searches remain
-independent of registry options changes, including Streamline's SWR search.
+independent of catalog options changes, including Streamline's SWR search.
 
-[useRegistryData.ts](../../packages/bricks/src/app/useRegistryData.ts) provides
-`[registryData, setRegistryData]` backed by in-memory Zustand state per catalog/registry. Its setter validates against the decoded `dataShape`, preserving provider fields, before replacing
+[useCatalogData.ts](../../apps/bricks/src/app/useCatalogData.ts) provides
+`[catalogData, setCatalogData]` backed by in-memory Zustand state per group/catalog. Its setter validates against the decoded `dataShape`, preserving provider fields, before replacing
 stored data. Invalid writes leave state unchanged. The configuration page preview and JSON display use
 stored data or `defaultData`; loading and errors retain the last valid data. Navigation retains values,
-while reload clears them. Other catalog previews and persisted Grid bricks continue using their existing
+while reload clears them. Other group previews and persisted Grid bricks continue using their existing
 data sources.
-TextBrick uses `makeFormConfiguration` to edit its nullable JSON `content` data directly; its responsive presentation remains available. Registry-options-only fetcher configurations are not supported.
-Every registry requires `dataShape` and `defaultData`: use `null` for both when there is no
-data contract. Render boundaries can pass `registry?.defaultData` directly; components without
+TextBrick uses `makeFormConfiguration` to edit its nullable JSON `content` data directly; its responsive presentation remains available. Catalog-options-only fetcher configurations are not supported.
+Every catalog requires `dataShape` and `defaultData`: use `null` for both when there is no
+data contract. Render boundaries can pass `catalog?.defaultData` directly; components without
 a data contract ignore the prop.
 Local-only forms use `makeFormConfiguration`.
 
@@ -94,23 +94,23 @@ Local-only forms use `makeFormConfiguration`.
 
 Do **not** add `apps/app/components/home/bricks/index.ts` (or similar) that only re-exports symbols from sibling modules. Name each file after its **primary export** and import that path directly.
 
-- **Bad**: `import { homepageBricks, catalogsHash } from "./bricks"` or `@/components/home/bricks` when `./bricks` is a re-export barrel.
+- **Bad**: `import { homepageBricks, groupsHash } from "./bricks"` or `@/components/home/bricks` when `./bricks` is a re-export barrel.
 
-- **Good**: import `catalogsHash` from its defining module and resolve a component directly through `catalog.registries[registry]`; import specific catalogs from their modules under `catalogs/`.
+- **Good**: import `groupsHash` from its defining module and resolve a component directly through `group.catalogs[catalog]`; import specific groups from their modules under `groups/`.
 
-### Good vs bad: `ICatalog` + `BrickCarousel` — don’t add `FromCatalog` on shared UI
+### Good vs bad: `IGroup` + `BrickCarousel` — don’t add `FromGroup` on shared UI
 
-Do **not** add a second exported wrapper on the shared carousel that imports **`catalogsHash`** and takes **`catalogName`**: that couples every import site to a parallel API and drags catalog knowledge into **`components/home`**.
+Do **not** add a second exported wrapper on the shared carousel that imports **`groupsHash`** and takes **`groupName`**: that couples every import site to a parallel API and drags group knowledge into **`components/home`**.
 
-- **Bad**: `BrickCarouselFromCatalog` (or similar) exported from [BrickCarousel.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) — thin pass-through: `catalogsHash[catalogName]` → **`BrickCarousel`**.
+- **Bad**: `BrickCarouselFromGroup` (or similar) exported from [BrickCarousel.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) — thin pass-through: `groupsHash[groupName]` → **`BrickCarousel`**.
 
-- **Good**: [BrickCarousel.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) accepts **`catalog: ICatalog`** (and optional **`brickSortFn`**) only. Resolve **`catalogsHash[catalogName]`** in the route’s client `page.tsx` next to the site workspace and pass **`catalog`** into **`BrickCarousel`**; keep **`catalogsHash`** out of the shared carousel module.
+- **Good**: [BrickCarousel.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/BrickCarousel/BrickCarousel.tsx) accepts **`group: IGroup`** (and optional **`brickSortFn`**) only. Resolve **`groupsHash[groupName]`** in the route’s client `page.tsx` next to the site workspace and pass **`group`** into **`BrickCarousel`**; keep **`groupsHash`** out of the shared carousel module.
 
-### Good vs bad: brick-catalog route — keep one-off logic in `page.tsx`
+### Good vs bad: brick-group route — keep one-off logic in `page.tsx`
 
-**Prefer consolidating** behavior for route-local catalog pages under `apps/app/app/[username]/site/[siteId]/page/[pageId]/` in those route files. Do **not** add a **separate module** whose **only** consumer is that single `page.tsx` (extra imports and folder noise for no reuse).
+**Prefer consolidating** behavior for route-local group pages under `apps/app/app/[username]/site/[siteId]/page/[pageId]/` in those route files. Do **not** add a **separate module** whose **only** consumer is that single `page.tsx` (extra imports and folder noise for no reuse).
 
-- **Bad**: `BrickCatalogFoo.tsx` (or `FooHelper.ts`) next to the page — a thin wrapper or helper used **only** once by that `page.tsx`.
+- **Bad**: `BrickGroupFoo.tsx` (or `FooHelper.ts`) next to the page — a thin wrapper or helper used **only** once by that `page.tsx`.
 
 - **Good**: Render shared UI (e.g. **`BrickCarousel`**) **directly** in the page’s JSX; put small helpers at **module scope** in the same file; if the page is a client component, use **`useMemo`** / local **function declarations** / inline **child components** in the **same file** instead of a sibling file only this route imports.
 
@@ -139,8 +139,8 @@ The homepage grid is the product **Grid**; avoid a redundant **Portfolio** prefi
 ### Outline layout
 
 `Outline` owns the navigation block and equal top and bottom padding (`py-3`).
-In the catalog, catalog labels use `Outline.Title sticky`, pinning
-each heading to the scroll pane's top through its catalog options and preview; contents
+In the group, group labels use `Outline.Title sticky`, pinning
+each heading to the scroll pane's top through its group options and preview; contents
 and views occupy the first and second list levels.
 `Outline.List` owns vertical padding (`py-2`), hierarchy depth,
 and numbering without horizontal padding or margins. Items stay full width
@@ -160,20 +160,21 @@ Nested lists remain compact; previews and other content sit outside the group.
 Use `Rows sticky` when the whole group should stick within its scroll container.
 Spacing is explicit in the composition rather than inferred from descendant DOM.
 
-The catalog, RegistryConfiguration, and BrickDetail pages share
-[`CatalogOutline`](../../packages/bricks/src/app/CatalogOutline.tsx) for registry choices.
-It owns the white `Outline` surface, equal 0.75rem vertical padding, and spaced registry entries.
-Each page supplies `renderRegistry`: root buttons select the local preview; links select
-`?registry=...`. Standalone previews use `/bricks/:catalogName/:registry`.
+The group, CatalogConfiguration, and BrickDetail pages share
+[`GroupOutline`](../../apps/bricks/src/app/GroupOutline.tsx) for catalog choices.
+It owns the white `Outline` surface, equal 0.75rem vertical padding, and spaced catalog entries.
+Each page supplies `renderCatalog`: root buttons select the local preview; links select
+`?catalog=...`. Standalone previews use `/bricks/:groupName/:catalog`.
 
-### Registry cutover and saved state
+### Group and catalog cutover and saved state
 
-Workbench definitions and drag payloads use `catalogName` and `registry`. Persisted workbench
-bricks use `catalogId` and `registryId`, without a view identifier. Storage version 1 resets
+Workbench definitions and drag payloads use `groupName` and `catalog`. Persisted workbench
+bricks use `groupId` and `catalogId`, without a view identifier. Storage version 2 resets
 old brick drafts under `qrk-bricks-sandbox-responsive-bricks-v2` while retaining the selected
-width. Site editor drafts under `qrk-site-editor-drafts-v2` remain untouched.
-The existing backend model and command versions retain their historical `contentId` and
-`viewId` schema; this workbench/catalog change does not migrate or deploy backend state.
+width. Site editor persistence version 2 also resets older drafts under
+`qrk-site-editor-drafts-v2`. Backend brick records and grid payloads use `groupId`
+and `catalogId`; their existing versions and `viewId` field remain unchanged.
+Reset the affected backend database before using these renamed fields.
 
 ### Bricks sandbox grid width and toolbar
 
@@ -206,7 +207,7 @@ eight-column grid width: `xs` below 640px, `sm` from 640px,
 
 `BrickBreakpointProvider` owns one container measurement and shares the breakpoint
 through context. In the editor, `EditorLayout` provides context to the grid, drawers,
-and toolbars; its ref measures `Grid` itself. Catalog,
+and toolbars; its ref measures `Grid` itself. Group,
 carousel, and detail previews use that shared page-grid breakpoint regardless of
 their own widths. In the sandbox, the ref measures `SandboxGrid` itself, so width presets and scrollbar changes update the grid and previews together.
 The standalone preview has its own provider measuring the simulated full grid
@@ -216,7 +217,7 @@ Consumers use `useBrickBreakpoint` and pass the value through the existing brick
 `breakpoint` prop. A provider is required; its initial value is `xs` until measured.
 Browser width and a brick's own width do not directly determine its breakpoint.
 Grid geometry and available-width measurements remain independent. Breakpoints
-select presentations and initial dimensions, never brick identity. Registry drag payloads
+select presentations and initial dimensions, never brick identity. Catalog drag payloads
 include resolved dimensions for all breakpoints; placed layouts retain their saved geometry.
 
 The GitHub profile 4×2 view keeps its avatar and username in the bottom half at `xs`.
@@ -234,7 +235,7 @@ Previews therefore follow the selected grid width rather than their containing
 pane. Wide previews scroll within narrower panes instead of shrinking.
 Presentation components receive the same active breakpoint. Placed bricks retain
 the grid's own dimensions, including its one-pixel edge rounding.
-All catalog, configuration, detail, carousel, and standalone previews use this
+All group, configuration, detail, carousel, and standalone previews use this
 frame. Placed-detail previews use resolved breakpoint dimensions; the standalone
 slider sets the simulated full grid width measured by its provider.
 Import the frame directly or through `@qrk.sh/bricks/BrickPreviewFrame`.
@@ -242,12 +243,12 @@ Import the frame directly or through `@qrk.sh/bricks/BrickPreviewFrame`.
 ### Breakpoint presentation names
 
 Follow [brick presentation conventions](../../wiki/brick-layout-conventions.md):
-`<Catalog><Content><Shape><Breakpoint>`, for example `GitHubProfileSquareXs`
+`<Group><Content><Shape><Breakpoint>`, for example `GitHubProfileSquareXs`
 and `GitHubProfileSquareLg`, with matching filenames. Select presentations with
-`makeRegistry` at the brick definition.
+`makeCatalog` at the brick definition.
 
 For the wide profile, use `GitHubProfileWideXs` and `GitHubProfileWideSm` in
-matching files; `lg` and `xl` inherit `Sm` through `makeRegistry`.
+matching files; `lg` and `xl` inherit `Sm` through `makeCatalog`.
 
 ### Responsive sandbox placed bricks
 
@@ -255,7 +256,7 @@ The sandbox persists `bricksById` under `qrk-bricks-sandbox-responsive-bricks-v2
 It starts empty and neither reads nor migrates older grid keys. Hydration removes
 obsolete `md` and `2xl` entries, preserving the four retained entries and shared
 content. Saved 768px and 1536px presets become 640px and 1440px respectively. Each placed brick
-stores `catalogId`, `registryId`, shared `data`, required `xs`, and
+stores `groupId`, `catalogId`, shared `data`, required `xs`, and
 optional `sm`, `lg`, and `xl` entries. Each entry contains `gridItem` (the grid
 library's `LayoutItem`, or `null` to hide) and `appearanceOptions`. Omitted entries
 inherit the entire nearest smaller entry, including hidden status. Editing an
@@ -263,15 +264,15 @@ inherited entry first copies its placement and options. The placed-brick editor'
 “Inherit from” button removes the active breakpoint override and names the nearest
 smaller explicit entry, including hidden entries. It is disabled when already
 inheriting and absent at `xs`. Labels and default
-sizes stay in catalog metadata. The active grid is derived; no second placement
+sizes stay in group metadata. The active grid is derived; no second placement
 array is persisted. Drag, resize, and rearrangements update the active entry. Resizing uses the grid library’s default bottom-right handle and stylesheet without custom positioning.
-The catalog panel does not include a placed-brick list. In brick configuration,
-Show restores a smaller visible placement or uses catalog dimensions at the next available position.
+The group panel does not include a placed-brick list. In brick configuration,
+Show restores a smaller visible placement or uses group dimensions at the next available position.
 
-`makeRegistry` accepts optional `form: makeAppearanceForm({ shape, form })` alongside
+`makeCatalog` accepts optional `form: makeAppearanceForm({ shape, form })` alongside
 its presentations. The shape infers form values and supplies validated defaults.
 The form receives `value` and `onChange`; updates validate before publication and
-never invoke a content fetcher. Appearance controls appear below registry configuration.
+never invoke a content fetcher. Appearance controls appear below catalog configuration.
 The custom `form` may be omitted for shapes containing only non-nullable booleans
 with boolean defaults. Those shapes generate labeled switches in a `px-4 py-5`
 container; camelCase and separator-delimited names become readable labels.
@@ -280,11 +281,11 @@ defaults before validation, preserving explicit false values and rejecting unkno
 fields.
 
 Bricks render without an optional card wrapper and fill their grid footprint.
-The grid retains its edit icon, excluded from drag initiation. Entire brick surfaces are draggable; rendered content disables pointer events and text selection. Catalog and configuration previews also drag from their whole surface. There are no grip buttons or interaction toggles. Detail previews omit grid controls.
+The grid retains its edit icon, excluded from drag initiation. Entire brick surfaces are draggable; rendered content disables pointer events and text selection. Group and configuration previews also drag from their whole surface. There are no grip buttons or interaction toggles. Detail previews omit grid controls.
 Presentations receive shared `data`, the active `breakpoint`, and resolved
 `appearanceOptions`; their presentation fallback remains independent of entry
-inheritance. Catalog drops copy the preview options into `xs`, and also into
+inheritance. Group drops copy the preview options into `xs`, and also into
 an explicit active entry when dropped above `xs`. Figma's thumbnail presentations
 support Center, Left, Right, Top, and Bottom image positions (default Center).
-Catalog descriptors use `catalogName` and `registry`; site grid placement arrays are unchanged.
-Registry configuration inputs are named `registryOptions` and remain form-local. They are not persisted, copied on drop, or restored from a brick. `data` remains the resulting shared content.
+Group descriptors use `groupName` and `catalog`; site grid placement arrays are unchanged.
+Catalog configuration inputs are named `catalogOptions` and remain form-local. They are not persisted, copied on drop, or restored from a brick. `data` remains the resulting shared content.

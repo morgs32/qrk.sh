@@ -3,8 +3,8 @@ import { expect, test } from "@playwright/test";
 test("items follow the pointer outside, can return, and persist removal on release", async ({
   page,
 }) => {
-  await page.goto("/catalogs/swatch");
-  const preview = page.locator("[data-registry-brick]");
+  await page.goto("/groups/swatch");
+  const preview = page.locator("[data-catalog-brick]");
   await preview
 
     .dragTo(page.getByLabel("Brick grid").locator(".react-grid-layout"), {

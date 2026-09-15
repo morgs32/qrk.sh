@@ -5,17 +5,17 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, expectTypeOf, it, vi } from "vite-plus/test";
 
 import { Configuration } from "./app/Configuration";
-import { makeCatalog } from "./makeCatalog";
+import { makeGroup } from "./makeGroup";
 import { makeFormConfiguration } from "./makeFormConfiguration";
-import { makeRegistry } from "./makeRegistry";
+import { makeCatalog } from "./makeCatalog";
 
 describe("form configuration", () => {
-  it("preserves a typed data form through content and catalog creation", () => {
+  it("preserves a typed data form through content and group creation", () => {
     const dataShape = { text: primitives.text() };
-    const content = makeRegistry({
-      registry: "default",
-      registryName: "Default",
-      registryDescription: "Editable text",
+    const content = makeCatalog({
+      catalog: "default",
+      catalogName: "Default",
+      catalogDescription: "Editable text",
       dataShape,
       defaultData: { text: "Before" },
       configuration: makeFormConfiguration<typeof dataShape>({
@@ -28,18 +28,18 @@ describe("form configuration", () => {
       order: 0,
       xs: { component: () => null, w: 1, h: 1 },
     });
-    const catalog = makeCatalog({
-      catalogName: "test",
-      catalogLabel: "Test",
-      catalogDescription: "Test",
-      registries: { default: content },
+    const group = makeGroup({
+      groupName: "test",
+      groupLabel: "Test",
+      groupDescription: "Test",
+      catalogs: { default: content },
     });
-    const configuration = catalog.registries.default?.configuration;
+    const configuration = group.catalogs.default?.configuration;
     if (configuration?.configurationType !== "form") throw new Error("Expected form");
     const onChange = vi.fn();
     const html = renderToStaticMarkup(
       createElement(Configuration, {
-        registry: catalog.registries.default,
+        catalog: group.catalogs.default,
         data: { text: "Rendered" },
         setData: onChange,
       }),

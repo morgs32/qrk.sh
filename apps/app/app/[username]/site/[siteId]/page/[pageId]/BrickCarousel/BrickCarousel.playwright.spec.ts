@@ -11,7 +11,7 @@ test.describe("BrickCarousel preview slide min-height", () => {
   test("carousel slides resolve min-height from def.h", async ({ page }) => {
     const viewportWidth = 1440;
     await page.setViewportSize({ width: viewportWidth, height: 900 });
-    await page.goto(`${pageBase}/brick-catalog`, { waitUntil: "load" });
+    await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
 
     const drawer = page.getByRole("dialog", { name: "Workspace drawer" });
     await expect(drawer).toBeVisible({ timeout: 90_000 });
@@ -48,7 +48,7 @@ test.describe("BrickCarousel preview slide min-height", () => {
 
     expect(
       result.minHeights.length,
-      "at least one catalog with bricks should render slides",
+      "at least one group with bricks should render slides",
     ).toBeGreaterThan(0);
 
     for (let i = 0; i < result.minHeights.length; i++) {

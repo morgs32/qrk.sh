@@ -511,7 +511,8 @@ export const useSiteStore = create<ISiteStoreState>()(
     }),
     {
       name: SITE_STORE_STORAGE_KEY,
-      version: 1,
+      version: 2,
+      migrate: () => ({ owners: {} }),
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ owners: state.owners }),
       skipHydration: true,

@@ -3,15 +3,15 @@ import { expect, test } from "@playwright/test";
 test("configures only the selected brick and persists its data", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(async () => {
-    const catalogPath = performance
+    const groupPath = performance
       .getEntriesByType("resource")
-      .filter((entry) => new URL(entry.name).pathname === "/src/catalogsHash.ts")
+      .filter((entry) => new URL(entry.name).pathname === "/src/groupsHash.ts")
       .at(-1)?.name;
-    if (!catalogPath) throw new Error("Catalog module was not loaded");
+    if (!groupPath) throw new Error("Group module was not loaded");
     const storePath = "/src/app/useGridStore.ts";
-    const { catalogsHash } = await import(catalogPath);
+    const { groupsHash } = await import(groupPath);
     const { useGridStore } = await import(storePath);
-    const brick = catalogsHash.github.registries.profile;
+    const brick = groupsHash.github.catalogs.profile;
     const layout = [
       { i: "first", x: 0, y: 0, w: 4, h: 4 },
       { i: "second", x: 4, y: 0, w: 4, h: 4 },
@@ -26,16 +26,16 @@ test("configures only the selected brick and persists its data", async ({ page }
       );
     useGridStore.getState().addBrick("second", brick.def, layout, "xs");
   });
-  await page.goto("/catalogs/github/brick/first");
+  await page.goto("/groups/github/brick/first");
   await expect(page.getByTestId("selected-brick-preview")).toContainText("selected");
   await page.evaluate(async () => {
-    const catalogPath = performance
+    const groupPath = performance
       .getEntriesByType("resource")
-      .filter((entry) => new URL(entry.name).pathname === "/src/catalogsHash.ts")
+      .filter((entry) => new URL(entry.name).pathname === "/src/groupsHash.ts")
       .at(-1)?.name;
-    if (!catalogPath) throw new Error("Catalog module was not loaded");
-    const { catalogsHash } = await import(catalogPath);
-    const content = catalogsHash.github.registries.profile;
+    if (!groupPath) throw new Error("Group module was not loaded");
+    const { groupsHash } = await import(groupPath);
+    const content = groupsHash.github.catalogs.profile;
     content.configuration.fetcher = async ({ setData }: { setData: (data: unknown) => void }) => {
       setData({ ...content.defaultData, login: "configured" });
       return { _tag: "Right", right: undefined };
@@ -61,20 +61,20 @@ test("configures only the selected brick and persists its data", async ({ page }
 });
 
 test("drops configured icon snapshots and restores them after reload", async ({ page }) => {
-  await page.goto("/catalogs/icon?registry=default");
-  await expect(page.locator("[data-registry-brick]")).toBeVisible();
+  await page.goto("/groups/icon?catalog=default");
+  await expect(page.locator("[data-catalog-brick]")).toBeVisible();
   await page.evaluate(async () => {
     const storePath = performance
       .getEntriesByType("resource")
-      .find((entry) => new URL(entry.name).pathname === "/src/app/useRegistryData.ts")?.name;
+      .find((entry) => new URL(entry.name).pathname === "/src/app/useCatalogData.ts")?.name;
     if (!storePath) throw new Error("Content data module was not loaded");
-    const { useRegistryDataStore } = await import(storePath);
-    useRegistryDataStore.getState().setRegistryData("icon", "default", {
+    const { useCatalogDataStore } = await import(storePath);
+    useCatalogDataStore.getState().setCatalogData("icon", "default", {
       name: "First icon",
       svg: '<svg xmlns="http://www.w3.org/2000/svg"><circle r="10"/></svg>',
     });
   });
-  const preview = page.locator("[data-registry-brick]");
+  const preview = page.locator("[data-catalog-brick]");
   const grid = page.getByLabel("Brick grid");
   await expect(preview.locator('img[alt="First icon"]')).toBeVisible();
   await preview
@@ -86,10 +86,10 @@ test("drops configured icon snapshots and restores them after reload", async ({ 
   await page.evaluate(async () => {
     const storePath = performance
       .getEntriesByType("resource")
-      .find((entry) => new URL(entry.name).pathname === "/src/app/useRegistryData.ts")?.name;
+      .find((entry) => new URL(entry.name).pathname === "/src/app/useCatalogData.ts")?.name;
     if (!storePath) throw new Error("Content data module was not loaded");
-    const { useRegistryDataStore } = await import(storePath);
-    useRegistryDataStore.getState().setRegistryData("icon", "default", {
+    const { useCatalogDataStore } = await import(storePath);
+    useCatalogDataStore.getState().setCatalogData("icon", "default", {
       name: "Second icon",
       svg: '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>',
     });
@@ -124,13 +124,13 @@ test("drops configured icon snapshots and restores them after reload", async ({ 
 test("starts fresh without migrating or deleting the old saved grid", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(async () => {
-    const catalogPath = performance
+    const groupPath = performance
       .getEntriesByType("resource")
-      .filter((entry) => new URL(entry.name).pathname === "/src/catalogsHash.ts")
+      .filter((entry) => new URL(entry.name).pathname === "/src/groupsHash.ts")
       .at(-1)?.name;
-    if (!catalogPath) throw new Error("Catalog module was not loaded");
-    const { catalogsHash } = await import(catalogPath);
-    const { data, ...legacyDef } = catalogsHash.icon.registries.default.def;
+    if (!groupPath) throw new Error("Group module was not loaded");
+    const { groupsHash } = await import(groupPath);
+    const { data, ...legacyDef } = groupsHash.icon.catalogs.default.def;
     localStorage.setItem(
       "qrk-bricks-sandbox-single-grid",
       JSON.stringify({

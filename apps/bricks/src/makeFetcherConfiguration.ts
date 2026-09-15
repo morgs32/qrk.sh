@@ -7,11 +7,11 @@ import { Effect, Schema } from "effect";
 import type { ScraperApi } from "./scraper/ScraperApi.public";
 import type { IRpcEither } from "./scraper/types.public";
 
-/** Runtime configuration contract after the factory has decoded its registryOptions. */
+/** Runtime configuration contract after the factory has decoded its catalogOptions. */
 export interface IFetcherConfiguration {
   configurationType: "fetcher";
-  registryOptionsShape: IShape;
-  registryOptionsForm?: {
+  catalogOptionsShape: IShape;
+  catalogOptionsForm?: {
     bivarianceHack(props: {
       value: Record<string, unknown>;
       onChange: {
@@ -21,56 +21,56 @@ export interface IFetcherConfiguration {
   }["bivarianceHack"];
   fetcher: (props: {
     api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-    registryOptions: unknown;
+    catalogOptions: unknown;
     setData: (data: unknown) => void;
   }) => Promise<IRpcEither<void>>;
 }
 
-/** Owns request configuration and decodes registry options before calling the provider. */
-export function makeFetcherConfiguration<const REGISTRY_OPTIONS_SHAPE extends IShape>(props: {
-  registryOptionsShape: REGISTRY_OPTIONS_SHAPE;
-  registryOptionsForm?: (props: {
-    value: InferDecodedRow<REGISTRY_OPTIONS_SHAPE>;
-    onChange: (value: InferDecodedRow<REGISTRY_OPTIONS_SHAPE>) => void;
+/** Owns request configuration and decodes catalog options before calling the provider. */
+export function makeFetcherConfiguration<const CATALOG_OPTIONS_SHAPE extends IShape>(props: {
+  catalogOptionsShape: CATALOG_OPTIONS_SHAPE;
+  catalogOptionsForm?: (props: {
+    value: InferDecodedRow<CATALOG_OPTIONS_SHAPE>;
+    onChange: (value: InferDecodedRow<CATALOG_OPTIONS_SHAPE>) => void;
   }) => ReactNode;
   fetcher: (props: {
     api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-    registryOptions: InferDecodedRow<REGISTRY_OPTIONS_SHAPE>;
+    catalogOptions: InferDecodedRow<CATALOG_OPTIONS_SHAPE>;
     setData: (data: unknown) => void;
   }) => Promise<IRpcEither<void>>;
 }): {
   configurationType: "fetcher";
-  registryOptionsShape: REGISTRY_OPTIONS_SHAPE;
-  registryOptionsForm?: (props: {
-    value: InferDecodedRow<REGISTRY_OPTIONS_SHAPE>;
-    onChange: (value: InferDecodedRow<REGISTRY_OPTIONS_SHAPE>) => void;
+  catalogOptionsShape: CATALOG_OPTIONS_SHAPE;
+  catalogOptionsForm?: (props: {
+    value: InferDecodedRow<CATALOG_OPTIONS_SHAPE>;
+    onChange: (value: InferDecodedRow<CATALOG_OPTIONS_SHAPE>) => void;
   }) => ReactNode;
   fetcher: (props: {
     api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-    registryOptions: unknown;
+    catalogOptions: unknown;
     setData: (data: unknown) => void;
   }) => Promise<IRpcEither<void>>;
 } {
   const fetcher = props.fetcher;
-  const registryOptionsSchema = makeEffectSchema(props.registryOptionsShape);
+  const catalogOptionsSchema = makeEffectSchema(props.catalogOptionsShape);
 
   return {
     configurationType: "fetcher",
-    registryOptionsShape: props.registryOptionsShape,
-    registryOptionsForm: props.registryOptionsForm,
+    catalogOptionsShape: props.catalogOptionsShape,
+    catalogOptionsForm: props.catalogOptionsForm,
     fetcher: async (request: {
       api: ReturnType<typeof newSyncRpcSession<ScraperApi>>;
-      registryOptions: unknown;
+      catalogOptions: unknown;
       setData: (data: unknown) => void;
     }) => {
-      const registryOptions = await Effect.runPromise(
-        Schema.decodeUnknownEffect(registryOptionsSchema)(request.registryOptions, {
+      const catalogOptions = await Effect.runPromise(
+        Schema.decodeUnknownEffect(catalogOptionsSchema)(request.catalogOptions, {
           onExcessProperty: "error",
         }),
       );
       return fetcher({
         api: request.api,
-        registryOptions,
+        catalogOptions,
         setData: request.setData,
       });
     },

@@ -16,7 +16,7 @@ This command runs locally and does not deploy anything.
 
 ## Configuration
 
-Put local settings in `packages/bricks/.env.local`:
+Put local settings in `apps/bricks/.env.local`:
 
 - `PUBLIC_MAPBOX_TOKEN` is required for the workbench and is exposed to the browser.
 - `GITHUB_TOKEN`, `FIGMA_TOKEN`, `GOOGLE_PLACES_API_KEY`, and `STREAMLINE_API_KEY`
@@ -53,19 +53,20 @@ existing opt-in live scraper suite.
 `build` produces the reusable brick library in `dist`, including its public
 scraper declarations. Neither build deploys the app.
 
-## Registries and interaction
+## Catalogs and interaction
 
-Catalogs expose `registries[registry]`. `makeRegistry` combines data and configuration
+Groups expose `catalogs[catalog]`. `makeCatalog` combines data and configuration
 with responsive presentations and an optional appearance form. Each breakpoint entry is
 `{ component, w, h }`; `xs` is required. Omitted `sm`, `lg`, and `xl` entries inherit
 the nearest smaller entry, including both its component and initial dimensions.
-Registry definitions expose resolved `xs`/`sm`/`lg`/`xl` dimensions for previews and
-new placements. Saved placement dimensions take precedence over registry defaults.
+Catalog definitions expose resolved `xs`/`sm`/`lg`/`xl` dimensions for previews and
+new placements. Saved placement dimensions take precedence over catalog defaults.
 Appearance settings, layout, and visibility retain their separate breakpoint inheritance.
 
 Placed bricks drag from their entire surface and resize using the grid library's default
 bottom-right handle. Rendered content ignores pointer events; the edit icon remains clickable.
-Catalog and configuration previews also drag from their entire surface.
+Group and configuration previews also drag from their entire surface.
 
-The registry cutover resets old workbench brick drafts on hydration while preserving the
-selected grid width. Site editor drafts are not reset.
+The Group → Catalog terminology cutover uses persistence version 2. Older workbench
+brick drafts reset on hydration while preserving the selected grid width. The site
+editor also resets older drafts when it hydrates.

@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-test("catalog breakpoints follow the shared grid container at every boundary", async ({ page }) => {
+test("group breakpoints follow the shared grid container at every boundary", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto("/");
-  const catalog = page.locator('[data-catalog-entry="github"]');
-  const preview = catalog.locator('[data-catalog-representative="github/profile"]');
+  const group = page.locator('[data-group-entry="github"]');
+  const preview = group.locator('[data-group-representative="github/profile"]');
   const responsive = preview.locator('[data-slot="card"]');
 
   for (const [width, breakpoint] of [
@@ -19,7 +19,7 @@ test("catalog breakpoints follow the shared grid container at every boundary", a
     [1535, "xl"],
     [1536, "xl"],
   ] satisfies Array<[number, string]>) {
-    // Resize only the measured grid container; the catalog stays at its own width.
+    // Resize only the measured grid container; the group stays at its own width.
     await page
       .getByLabel("Brick grid", { exact: true })
       .locator("..")
@@ -54,8 +54,8 @@ test("standalone slider retains the profile through responsive presentations", a
 
 test("placed bricks respond to presets and keep their data and positions", async ({ page }) => {
   await page.setViewportSize({ width: 3400, height: 1000 });
-  await page.goto("/catalogs/github?registry=profile");
-  const source = page.locator('[data-registry-brick="github/profile"]');
+  await page.goto("/groups/github?catalog=profile");
+  const source = page.locator('[data-catalog-brick="github/profile"]');
   await expect(source.locator('[data-slot="card"]')).toHaveCSS("padding-top", "12px");
   const grid = page.getByLabel("Brick grid", { exact: true });
   await source.dragTo(grid.locator(".react-grid-layout"), {
@@ -104,10 +104,10 @@ test("placed bricks respond to presets and keep their data and positions", async
 
 test("lg and xl overrides persist and restore nearest smaller inheritance", async ({ page }) => {
   await page.setViewportSize({ width: 3400, height: 1100 });
-  await page.goto("/catalogs/figma");
+  await page.goto("/groups/figma");
   await page.getByRole("button", { name: "375px grid width", exact: true }).click();
   const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
-  await page.locator("[data-registry-brick]").dragTo(grid, {
+  await page.locator("[data-catalog-brick]").dragTo(grid, {
     targetPosition: { x: 20, y: 20 },
   });
   const placed = grid.locator("[data-brick-id]");

@@ -52,30 +52,30 @@ Do not replace the whole type with `type Assertion = ...`.
 
 For a dynamic route page, validate `params` with **Effect `Schema`**: define **one `Schema.Struct`** in the **same module as the page** (above the default export), decode with **`Schema.decodeUnknownEither`**, and branch with **`Either.isLeft`** (e.g. call `notFound()` on the left). Do **not** add a sibling file that only exports a tiny struct for one page, and do **not** wrap **`decodeUnknownSync`** in **`try`/`catch`** when **`decodeUnknownEither`** already models failure.
 
-- **Bad**: `brickCatalogRouteParamsSchema.ts` that only holds `Schema.Struct({ … })` imported by one `page.tsx`; or `try { decodeUnknownSync(schema)(raw) } catch { notFound() }`.
+- **Bad**: `brickGroupRouteParamsSchema.ts` that only holds `Schema.Struct({ … })` imported by one `page.tsx`; or `try { decodeUnknownSync(schema)(raw) } catch { notFound() }`.
 
 - **Good**: colocate in the route’s `page.tsx` (for example parallel routes under `apps/app/app/[username]/site/[siteId]/page/[pageId]/@leftDrawer/…`):
 
 ```ts
-const BrickCatalogRouteParamsSchema = Schema.Struct({
-  catalogName: Schema.String,
+const BrickGroupRouteParamsSchema = Schema.Struct({
+  groupName: Schema.String,
   brickId: Schema.String,
 });
 
-const decoded = Schema.decodeUnknownEither(BrickCatalogRouteParamsSchema)(rawParams);
+const decoded = Schema.decodeUnknownEither(BrickGroupRouteParamsSchema)(rawParams);
 if (Either.isLeft(decoded)) {
   notFound();
 }
-const { catalogName, brickId } = decoded.right;
+const { groupName, brickId } = decoded.right;
 ```
 
-Keep domain checks that the schema cannot express (e.g. `catalogName in catalogsHash`) **after** a successful decode.
+Keep domain checks that the schema cannot express (e.g. `groupName in groupsHash`) **after** a successful decode.
 
 ### Good vs bad: Effect `Schema` constant names and `satisfies`
 
-Name Effect schema values **PascalCase** (e.g. `BrickDragDefSchema`, `BrickCatalogRouteParamsSchema`), not camelCase. When a **domain type already exists** that the decoded value should match, constrain the struct with **`satisfies Schema.Schema<ThatType>`** so drift between schema fields and the type is a compile error.
+Name Effect schema values **PascalCase** (e.g. `BrickDragDefSchema`, `BrickGroupRouteParamsSchema`), not camelCase. When a **domain type already exists** that the decoded value should match, constrain the struct with **`satisfies Schema.Schema<ThatType>`** so drift between schema fields and the type is a compile error.
 
-- **Bad**: `const brickDragDefSchema = Schema.Struct({ … })` with no link to `ICatalogBrickDef`; or adding a throwaway `type Foo = { … }` next to the schema **only** to satisfy the compiler when the product model does not yet define `Foo`.
+- **Bad**: `const brickDragDefSchema = Schema.Struct({ … })` with no link to `IGroupBrickDef`; or adding a throwaway `type Foo = { … }` next to the schema **only** to satisfy the compiler when the product model does not yet define `Foo`.
 
 - **Good**: put `satisfies Schema.Schema<…>` on the **`Schema.Struct`** that describes the **parsed object** (see `BrickDragDefFromJsonStringSchema` in [`apps/app/components/home/useBrickDrawerStore.ts`](../../apps/app/components/home/useBrickDrawerStore.ts) and the `parseJson` subsection below).
 
@@ -92,17 +92,17 @@ Use **`Schema.parseJson`** when the value you decode is a **string** containing 
 ```ts
 const BrickDragDefFromJsonStringSchema = Schema.parseJson(
   Schema.Struct({
-    catalogName: Schema.String,
-    catalogLabel: Schema.String,
+    groupName: Schema.String,
+    groupLabel: Schema.String,
     label: Schema.String,
-    registry: Schema.String,
+    catalog: Schema.String,
     order: Schema.Number,
     xs: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     sm: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     lg: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     xl: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     data: Schema.Unknown,
-  }) satisfies Schema.Schema<ICatalogBrickDef>,
+  }) satisfies Schema.Schema<IGroupBrickDef>,
 );
 ```
 

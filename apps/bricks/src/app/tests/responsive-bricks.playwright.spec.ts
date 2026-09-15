@@ -9,9 +9,9 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   page.on("request", (request) => {
     if (request.url().includes("/scraper-rpc")) scraperRequests += 1;
   });
-  await page.goto("/catalogs/figma");
+  await page.goto("/groups/figma");
   await page.getByRole("button", { name: "375px grid width" }).click();
-  const preview = page.locator("[data-registry-brick]");
+  const preview = page.locator("[data-catalog-brick]");
   const image = preview.locator("[data-figma-thumbnail]");
   for (const width of [375, 640, 1024, 1440]) {
     await page.getByRole("button", { name: `${width}px grid width` }).click();
@@ -61,16 +61,16 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
       .filter((entry) => new URL(entry.name).pathname === "/src/app/useGridStore.ts")
       .at(-1)?.name;
     if (!storePath) throw new Error("Grid store module was not loaded");
-    const catalogPath = "/src/catalogsHash.ts";
+    const groupPath = "/src/groupsHash.ts";
     const { useGridStore } = await import(storePath);
-    const { catalogsHash } = await import(catalogPath);
+    const { groupsHash } = await import(groupPath);
     useGridStore.setState((state: ReturnType<typeof useGridStore.getState>) => ({
       bricksById: {
         ...state.bricksById,
         [id!]: {
           ...state.bricksById[id!],
           data: {
-            ...catalogsHash.figma.registries.thumbnail.defaultData,
+            ...groupsHash.figma.catalogs.thumbnail.defaultData,
             title: "First content",
           },
         },
@@ -107,10 +107,10 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   );
   expect(saved.state).not.toHaveProperty("layout");
   for (const brick of Object.values(saved.state.bricksById)) {
-    expect(brick).not.toHaveProperty("registryOptions");
+    expect(brick).not.toHaveProperty("catalogOptions");
     expect(brick).not.toHaveProperty("variantId");
     expect(brick).not.toHaveProperty("layoutId");
-    expect(brick).toHaveProperty("registryId");
+    expect(brick).toHaveProperty("catalogId");
     expect(brick).not.toHaveProperty("viewId");
   }
   expect(saved.state.bricksById[firstId!].data.title).toBe("First content");
@@ -130,10 +130,10 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
 });
 
 test("moves with default resize handles and reloads each breakpoint", async ({ page }) => {
-  await page.goto("/catalogs/figma");
+  await page.goto("/groups/figma");
   await page.getByRole("button", { name: "375px grid width" }).click();
   const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
-  const preview = page.locator("[data-registry-brick]");
+  const preview = page.locator("[data-catalog-brick]");
   await preview.dragTo(grid, { targetPosition: { x: 20, y: 20 } });
   await preview.dragTo(grid, { targetPosition: { x: 210, y: 20 } });
   const first = grid.locator("[data-brick-id]").first();
@@ -159,7 +159,7 @@ test("ignores the old responsive persistence key without modifying it", async ({
         state: {
           bricksById: {
             old: {
-              catalogId: "figma",
+              groupId: "figma",
               variantId: "thumbnail",
               layoutId: "4x4",
               xs: {
@@ -172,7 +172,7 @@ test("ignores the old responsive persistence key without modifying it", async ({
       }),
     );
   });
-  await page.goto("/catalogs/figma");
+  await page.goto("/groups/figma");
   await expect(page.getByLabel("Brick grid").locator("[data-brick-id]")).toHaveCount(0);
   expect(
     await page.evaluate(
@@ -184,10 +184,10 @@ test("ignores the old responsive persistence key without modifying it", async ({
 });
 
 test("removing an override restores whole-entry inheritance", async ({ page }) => {
-  await page.goto("/catalogs/figma");
+  await page.goto("/groups/figma");
   await page.getByRole("button", { name: "375px grid width" }).click();
   const grid = page.getByLabel("Brick grid").locator(".react-grid-layout");
-  await page.locator("[data-registry-brick]").dragTo(grid, {
+  await page.locator("[data-catalog-brick]").dragTo(grid, {
     targetPosition: { x: 20, y: 20 },
   });
   const placed = grid.locator("[data-brick-id]");
@@ -221,9 +221,9 @@ test("removing an override restores whole-entry inheritance", async ({ page }) =
   await expect(page.getByRole("button", { name: "Inherit from sm" })).toBeDisabled();
 });
 
-test("catalog configuration ends with the current brick definition", async ({ page }) => {
-  await page.goto("/catalogs/swatch?registry=default");
-  const pane = page.getByTestId("registry-configuration-pane");
+test("group configuration ends with the current brick definition", async ({ page }) => {
+  await page.goto("/groups/swatch?catalog=default");
+  const pane = page.getByTestId("catalog-configuration-pane");
   await expect(pane.getByRole("heading")).toHaveText([
     "Swatch",
     "Configuration",
@@ -234,7 +234,7 @@ test("catalog configuration ends with the current brick definition", async ({ pa
   const formContainer = pane.getByRole("textbox", { name: "Hex color" }).locator("../..");
   await expect(formContainer).toHaveCSS("padding-left", "16px");
   await page.getByRole("textbox", { name: "Hex color" }).fill("#ff0000");
-  const definition = pane.getByTestId("registry-data-result");
+  const definition = pane.getByTestId("catalog-data-result");
   await expect(definition).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(definition).toContainText("swatch");
   await definition
@@ -242,7 +242,7 @@ test("catalog configuration ends with the current brick definition", async ({ pa
     .getByRole("button", { name: "expand JSON", exact: true })
     .click();
   await expect(definition).toContainText("#ff0000");
-  await page.goto("/catalogs/figma");
+  await page.goto("/groups/figma");
   await expect(pane.getByRole("heading")).toHaveText([
     "Figma",
     "Figma Thumbnail",

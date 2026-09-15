@@ -5,15 +5,15 @@ import { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import { ScraperApi } from "./scraper/ScraperApi";
 
 describe("makeFetcherConfiguration", () => {
-  it("decodes registry options independently of a content definition and forwards the publishing callback", async () => {
-    const receivedRegistryOptions: Array<{ hash: string }> = [];
+  it("decodes catalog options independently of a content definition and forwards the publishing callback", async () => {
+    const receivedCatalogOptions: Array<{ hash: string }> = [];
     const fetcher = makeFetcherConfiguration({
-      registryOptionsShape: {
+      catalogOptionsShape: {
         hash: primitives.text({ defaultValue: "asterisk" }),
       },
-      fetcher: async ({ registryOptions, setData }) => {
-        receivedRegistryOptions.push(registryOptions);
-        setData({ svg: registryOptions.hash, providerField: true });
+      fetcher: async ({ catalogOptions, setData }) => {
+        receivedCatalogOptions.push(catalogOptions);
+        setData({ svg: catalogOptions.hash, providerField: true });
         return { _tag: "Right", right: undefined };
       },
     });
@@ -21,50 +21,50 @@ describe("makeFetcherConfiguration", () => {
     const setData = vi.fn();
     expect(fetcher.configurationType).toBe("fetcher");
 
-    await expect(fetcher.fetcher({ api, setData, registryOptions: {} })).resolves.toEqual({
+    await expect(fetcher.fetcher({ api, setData, catalogOptions: {} })).resolves.toEqual({
       _tag: "Right",
       right: undefined,
     });
     await expect(
-      fetcher.fetcher({ api, setData, registryOptions: { hash: 42 } }),
+      fetcher.fetcher({ api, setData, catalogOptions: { hash: 42 } }),
     ).rejects.toBeDefined();
     await expect(
       fetcher.fetcher({
         api,
         setData,
-        registryOptions: { hash: "icon", unexpected: true },
+        catalogOptions: { hash: "icon", unexpected: true },
       }),
     ).rejects.toBeDefined();
     expect(setData).toHaveBeenCalledExactlyOnceWith({
       svg: "asterisk",
       providerField: true,
     });
-    expect(receivedRegistryOptions).toEqual([{ hash: "asterisk" }]);
+    expect(receivedCatalogOptions).toEqual([{ hash: "asterisk" }]);
   });
-  it("requires a fetcher and accepts one typed whole-registry-options form", () => {
+  it("requires a fetcher and accepts one typed whole-catalog-options form", () => {
     expectTypeOf(() => {
       // @ts-expect-error a fetcher is required
-      makeFetcherConfiguration({ registryOptionsShape: {} });
+      makeFetcherConfiguration({ catalogOptionsShape: {} });
       makeFetcherConfiguration({
-        registryOptionsShape: {
+        catalogOptionsShape: {
           query: primitives.text({ defaultValue: "Chicago" }),
         },
-        registryOptionsForm: {
+        catalogOptionsForm: {
           // @ts-expect-error a field map is not a component
           query: () => null,
         },
         fetcher: async () => ({ _tag: "Right", right: undefined }),
       });
       makeFetcherConfiguration({
-        registryOptionsShape: {
+        catalogOptionsShape: {
           query: primitives.text({ defaultValue: "Chicago" }),
           zoom: primitives.integer({ defaultValue: 14 }),
         },
-        registryOptionsForm: ({ value, onChange }) => {
+        catalogOptionsForm: ({ value, onChange }) => {
           expectTypeOf(value.query).toEqualTypeOf<string>();
           expectTypeOf(value.zoom).toEqualTypeOf<number>();
           onChange({ query: value.query, zoom: value.zoom });
-          // @ts-expect-error changes replace the complete registry options
+          // @ts-expect-error changes replace the complete catalog options
           onChange({ query: value.query });
           return null;
         },

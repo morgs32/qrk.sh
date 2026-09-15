@@ -1,3 +1,3 @@
-export function makeBrickKey(props: { catalogName: string; registry: string }) {
-  return `${props.catalogName}-${props.registry}`;
+export function makeBrickKey(props: { groupName: string; catalog: string }) {
+  return `${props.groupName}-${props.catalog}`;
 }

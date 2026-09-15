@@ -1,6 +1,6 @@
 "use client";
 import { useUser } from "@clerk/react";
-import { catalogsHash } from "@qrk.sh/bricks";
+import { groupsHash } from "@qrk.sh/bricks";
 import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 import { BrickPreviewFrame } from "@qrk.sh/bricks/BrickPreviewFrame";
 import { Schema } from "effect";
@@ -32,8 +32,8 @@ export function BrickDetail() {
   const placement = useBrickDrawerStore((state) =>
     state.pageGrids[pageKey]?.layout.find((item) => item.i === params.brickId),
   );
-  const catalog = brickDef ? catalogsHash[brickDef.catalogName] : undefined;
-  const content = brickDef ? catalog?.registries[brickDef.registry] : undefined;
+  const group = brickDef ? groupsHash[brickDef.groupName] : undefined;
+  const content = brickDef ? group?.catalogs[brickDef.catalog] : undefined;
   const brick = brickDef ? content : undefined;
   const BrickComponent = brick?.component;
 
@@ -57,8 +57,8 @@ export function BrickDetail() {
       <div className="min-h-0 flex-1 overflow-y-auto pb-6">
         {!brick || !BrickComponent ? (
           <div className="px-6 pt-6" data-testid="brick-not-found">
-            <Link to={href("/:username/site/:siteId/page/:pageId/brick-catalog", params)}>
-              All catalogs
+            <Link to={href("/:username/site/:siteId/page/:pageId/brick-group", params)}>
+              All groups
             </Link>
             <h1 className="mb-2 mt-8 text-4xl font-semibold tracking-tight">Brick not found</h1>
             <p className="text-muted-foreground">
@@ -69,14 +69,14 @@ export function BrickDetail() {
           <section data-testid="brick-detail-pane">
             <div className="px-6 pt-6">
               <Link
-                to={href("/:username/site/:siteId/page/:pageId/brick-catalog/:catalogName", {
+                to={href("/:username/site/:siteId/page/:pageId/brick-group/:groupName", {
                   ...params,
-                  catalogName: brick.def.catalogName,
+                  groupName: brick.def.groupName,
                 })}
                 className="inline-flex items-center gap-2 text-sm"
               >
                 <ArrowLeft aria-hidden className="size-4" />
-                <span>Back to {brick.def.catalogLabel}</span>
+                <span>Back to {brick.def.groupLabel}</span>
               </Link>
               <p className="mb-0 mt-8 text-sm text-muted-foreground">Brick detail</p>
               <h1
@@ -86,7 +86,7 @@ export function BrickDetail() {
                 {brick.def.label}
               </h1>
               <p className="mt-0 font-mono text-sm text-muted-foreground">
-                {brick.def.catalogName}/{brick.def.registry}
+                {brick.def.groupName}/{brick.def.catalog}
               </p>
             </div>
             <div className="mt-8 overflow-auto">

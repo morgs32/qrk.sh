@@ -32,7 +32,7 @@ Replace the job and Queue model with seven origin-specific Durable Object reposi
 6. The seven payload contracts are `ILinktreeScrapePayload`, `IBeaconsScrapePayload`, `IInstagramScrapePayload`, `IGitHubScrapePayload`, `ITikTokScrapePayload`, `IYouTubeScrapePayload`, and `ITruthSocialScrapePayload`.
 7. `IJsonValue` models the RPC-safe static view of structured-cloneable provider JSON. Nested containers remain opaque `object` values to avoid recursive expansion in Cloudflare's generated Durable Object stub types, while Effect Schema validates the complete value recursively at runtime. Payload types use it to describe the existing minimum provider identity and retain excess provider-native data across Durable Object RPC.
 8. Every repository has one global Durable Object instance and a cache table keyed by canonical URL.
-9. Each repository owns a separate table, migrations, Drizzle setup, cache control flow, and per-URL in-flight map. No shared cache schema, migration, base class, helper, registry, lookup method, or data loop is introduced.
+9. Each repository owns a separate table, migrations, Drizzle setup, cache control flow, and per-URL in-flight map. No shared cache schema, migration, base class, helper, catalog, lookup method, or data loop is introduced.
 10. Successful rows contain the typed JSON payload, refresh timestamp, and expiry timestamp. Freshness lasts 24 hours after a successful scrape.
 11. A fresh hit returns immediately. An expired hit returns stale data indefinitely and schedules a coalesced refresh with `ctx.waitUntil`.
 12. A failed background refresh logs the repository and canonical URL, retains stale data, and clears the in-flight marker.

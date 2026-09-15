@@ -33,7 +33,7 @@ for (const [oldWidth, newWidth] of [
     savedItems.set(
       key,
       JSON.stringify({
-        version: 0,
+        version: 1,
         state: {
           selectedWidth: oldWidth,
           bricksById: {
@@ -55,7 +55,7 @@ for (const [oldWidth, newWidth] of [
     expect(useGridStore.getState().selectedWidth).toBe(newWidth);
     const saved = JSON.parse(savedItems.get(key)!);
     expect(saved.state.bricksById).toEqual({});
-    expect(saved.version).toBe(1);
+    expect(saved.version).toBe(2);
     expect(saved.state.selectedWidth).toBe(newWidth);
   });
 }

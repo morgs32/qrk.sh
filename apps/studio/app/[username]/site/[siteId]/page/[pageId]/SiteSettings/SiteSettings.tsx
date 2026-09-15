@@ -13,8 +13,8 @@ import { useSiteStore } from "../../../siteStore";
 
 import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
 import { Button } from "@/components/ui/button";
+import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
@@ -127,6 +127,9 @@ export function SiteSettings() {
               Save
             </Button>
           ) : null}
+          <Button type="button" size="sm">
+            Publish
+          </Button>
           <Button
             type="button"
             variant={isDirty ? "destructive" : "ghost"}
@@ -148,13 +151,70 @@ export function SiteSettings() {
       </header>
 
       <div className="space-y-8 px-4 py-6">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="site-name-and-wordmark">Site name and wordmark</Label>
-          <Input
-            id="site-name-and-wordmark"
-            value={siteDraft.name}
-            onChange={(event) => setName(event.target.value)}
-          />
+        <div className="grid grid-cols-2 items-start gap-6 md:gap-8">
+          <div className="flex min-w-0 flex-col gap-4">
+            <FieldLabel description="PNG or SVG; height up to 48px recommended">Logo</FieldLabel>
+            <div className="flex flex-col items-start gap-4">
+              <Button type="button" variant="outline">
+                Upload
+              </Button>
+              <div className="relative flex w-full max-w-[375px] min-h-16 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                <span className="text-sm text-muted-foreground">Logo</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-4">
+            <FieldLabel description="64 × 64 pixels">Favicon</FieldLabel>
+            <div className="flex flex-wrap justify-start gap-4">
+              <div className="flex flex-col items-start gap-2">
+                <span className="text-xs text-muted-foreground">Light</span>
+                <Button type="button" size="sm" variant="outline">
+                  Upload
+                </Button>
+                <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
+                  <div className="flex items-center gap-1 border-b bg-background px-2 py-1.5">
+                    <div className="size-4 shrink-0 rounded-sm bg-muted" />
+                    <div className="h-2 min-w-0 flex-1 rounded bg-muted/80" />
+                  </div>
+                  <div className="h-16 bg-background" />
+                </div>
+              </div>
+              <div className="flex flex-col items-start gap-2">
+                <span className="text-xs text-muted-foreground">Dark</span>
+                <Button type="button" size="sm" variant="outline">
+                  Upload
+                </Button>
+                <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
+                  <div className="flex items-center gap-1 border-b bg-zinc-900 px-2 py-1.5">
+                    <div className="size-4 shrink-0 rounded-sm bg-zinc-700" />
+                    <div className="h-2 min-w-0 flex-1 rounded bg-zinc-600" />
+                  </div>
+                  <div className="h-16 bg-zinc-950" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 items-start gap-6 md:gap-8">
+          <div className="flex min-w-0 flex-col gap-2">
+            <FieldLabel htmlFor="site-name-and-wordmark">Site name and wordmark</FieldLabel>
+            <Input
+              id="site-name-and-wordmark"
+              value={siteDraft.name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-2">
+            <FieldLabel htmlFor="site-description">Description</FieldLabel>
+            <Textarea
+              id="site-description"
+              value={siteDraft.description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -194,101 +254,31 @@ export function SiteSettings() {
           </TooltipProvider>
         </div>
 
-        <div className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 md:items-stretch">
-            <div className="flex h-full min-h-0 flex-col gap-2">
-              <Label htmlFor="site-description">Description</Label>
-              <Textarea
-                id="site-description"
-                value={siteDraft.description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </div>
-
-            <div className="flex h-full min-h-0 flex-col gap-2">
-              <Label>Preview</Label>
-              <SiteCard title={siteDraft.name} url={publishedUrlDisplay} publishedAt="Mar 30" />
-            </div>
-          </div>
+        <div className="flex flex-col gap-2">
+          <FieldLabel>Preview</FieldLabel>
+          <SiteCard title={siteDraft.name} url={publishedUrlDisplay} publishedAt="Mar 30" />
         </div>
 
         <div className="space-y-6">
           <h2 className="text-lg font-semibold">Site Images</h2>
 
           <div className="flex min-w-0 flex-col gap-4">
-            <div className="space-y-1">
-              <div className="font-medium">Logo</div>
-              <p className="text-sm text-muted-foreground">
-                PNG or SVG; height up to 48px recommended
-              </p>
-            </div>
+            <FieldLabel description="1200 × 630 pixels">Social Preview</FieldLabel>
             <div className="flex flex-col items-start gap-4">
               <Button type="button" variant="outline">
                 Upload
               </Button>
-              <div className="relative flex w-full max-w-[375px] min-h-16 items-center justify-center overflow-hidden rounded-md border bg-muted">
-                <span className="text-sm text-muted-foreground">Logo</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-16 md:grid-cols-2 md:gap-6 md:items-start">
-            <div className="flex min-w-0 flex-col gap-4">
-              <div className="space-y-1">
-                <div className="font-medium">Favicon</div>
-                <p className="text-sm text-muted-foreground">64 × 64 pixels</p>
-              </div>
-              <div className="flex flex-wrap justify-start gap-4">
-                <div className="flex flex-col items-start gap-2">
-                  <span className="text-xs text-muted-foreground">Light</span>
-                  <Button type="button" size="sm" variant="outline">
-                    Upload
-                  </Button>
-                  <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
-                    <div className="flex items-center gap-1 border-b bg-background px-2 py-1.5">
-                      <div className="size-4 shrink-0 rounded-sm bg-muted" />
-                      <div className="h-2 min-w-0 flex-1 rounded bg-muted/80" />
-                    </div>
-                    <div className="h-16 bg-background" />
-                  </div>
-                </div>
-                <div className="flex flex-col items-start gap-2">
-                  <span className="text-xs text-muted-foreground">Dark</span>
-                  <Button type="button" size="sm" variant="outline">
-                    Upload
-                  </Button>
-                  <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
-                    <div className="flex items-center gap-1 border-b bg-zinc-900 px-2 py-1.5">
-                      <div className="size-4 shrink-0 rounded-sm bg-zinc-700" />
-                      <div className="h-2 min-w-0 flex-1 rounded bg-zinc-600" />
-                    </div>
-                    <div className="h-16 bg-zinc-950" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex min-w-0 flex-col gap-4">
-              <div className="space-y-1">
-                <div className="font-medium">Social Preview</div>
-                <p className="text-sm text-muted-foreground">1200 × 630 pixels</p>
-              </div>
-              <div className="flex flex-col items-start gap-4">
-                <Button type="button" variant="outline">
-                  Upload
-                </Button>
-                <div className="relative w-full max-w-[375px] overflow-hidden rounded-md border bg-muted">
-                  <div className="relative aspect-[375/197] w-full">
-                    <img
-                      src="/assets/site-settings-social-preview.png"
-                      alt="Social preview"
-                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-                      className="object-cover"
-                      sizes="(max-width: 767px) 100vw, 375px"
-                      loading="eager"
-                      fetchPriority="high"
-                    />
-                  </div>
+              <div className="relative w-full max-w-[375px] overflow-hidden rounded-md border bg-muted">
+                <div className="relative aspect-[375/197] w-full">
+                  <img
+                    src="/assets/site-settings-social-preview.png"
+                    alt="Social preview"
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+                    className="object-cover"
+                    sizes="(max-width: 767px) 100vw, 375px"
+                    loading="eager"
+                    fetchPriority="high"
+                  />
                 </div>
               </div>
             </div>

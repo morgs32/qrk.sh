@@ -2,15 +2,20 @@ import { expect, test } from "@playwright/test";
 
 const pageBase = "/e2e/site/e2e/page/home";
 
-/** Matches BrickCarousel slide minHeight: calc(def.h * 50vw / 8) (half viewport / 8 cols). */
-function expectedSlideMinHeightPx(viewportWidth: number, gridH: number): number {
-  return (gridH * viewportWidth * 0.5) / 8;
+/** Matches BrickCarousel slide minHeight: min(def.h * 50vw / 8, 25vh). */
+function expectedSlideMinHeightPx(
+  viewportWidth: number,
+  viewportHeight: number,
+  gridH: number,
+): number {
+  return Math.min((gridH * viewportWidth * 0.5) / 8, viewportHeight * 0.25);
 }
 
 test.describe("BrickCarousel preview slide min-height", () => {
   test("carousel slides resolve min-height from def.h", async ({ page }) => {
     const viewportWidth = 1440;
-    await page.setViewportSize({ width: viewportWidth, height: 900 });
+    const viewportHeight = 900;
+    await page.setViewportSize({ width: viewportWidth, height: viewportHeight });
     await page.goto(`${pageBase}/brick-group`, { waitUntil: "load" });
 
     const drawer = page.getByRole("dialog", { name: "Workspace drawer" });
@@ -53,12 +58,15 @@ test.describe("BrickCarousel preview slide min-height", () => {
 
     for (let i = 0; i < result.minHeights.length; i++) {
       const gridH = result.slideGridHs[i]!;
-      const expected = expectedSlideMinHeightPx(viewportWidth, gridH);
+      const expected = expectedSlideMinHeightPx(viewportWidth, viewportHeight, gridH);
       const actual = result.minHeights[i]!;
       expect(
         actual,
         `slide ${i} min-height (def.h=${gridH}, expected ~${expected}px)`,
       ).toBeGreaterThanOrEqual(expected - 2);
+      expect(actual, `slide ${i} must stay within 25vh`).toBeLessThanOrEqual(
+        viewportHeight * 0.25 + 2,
+      );
     }
   });
 });

@@ -30,7 +30,7 @@ a {
   text-decoration: none;
 }
 
-/* Keep every brick's content below its corner controls. */
+/* Keep every brick's content below drag/resize chrome. */
 .brick-drag-surface {
   position: relative;
   isolation: isolate;
@@ -44,43 +44,6 @@ a {
 }
 .brick-drag-content * {
   pointer-events: none;
-}
-.brick-edit-handle {
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  z-index: 3;
-  color: white;
-  cursor: pointer;
-  touch-action: auto;
-}
-.brick-edit-handle > svg {
-  transform: translate(2px, 2px);
-  visibility: hidden;
-}
-/* Filter only the icon, leaving the hit area and brick untouched. */
-.brick-edit-handle::after {
-  content: "";
-  position: absolute;
-  right: 6px;
-  pointer-events: none;
-  backdrop-filter: grayscale(1) contrast(1000%) invert(1);
-  top: 6px;
-  bottom: auto;
-  width: 14px;
-  height: 14px;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497zM15 5l4 4'/%3E%3C/svg%3E")
-    center / contain no-repeat;
-}
-.brick-edit-handle:hover {
-  background-color: transparent;
-  color: #d4d4d8;
-}
-.brick-edit-handle:hover::after {
-  opacity: 0.8;
 }
 .brick-drag-surface:active {
   cursor: grabbing;

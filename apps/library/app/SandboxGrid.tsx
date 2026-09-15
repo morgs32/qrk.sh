@@ -1,17 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { Pencil } from "lucide-react";
 import GridLayout, { verticalCompactor } from "react-grid-layout";
-import { Link } from "react-router";
+import { useNavigate } from "react-router";
 
 import { useBrickBreakpoint } from "../BrickBreakpointProvider";
 import { modulesHash } from "../modulesHash";
-import { Button } from "../components/ui/button";
 
 import { resolveBrickBreakpoint } from "./resolveBrickBreakpoint";
 import { useGridStore } from "./useGridStore";
 
 export function SandboxGrid() {
+  const navigate = useNavigate();
   const containerRef = useRef<HTMLElement>(null);
   const { gridWidth, breakpoint, containerRef: observeGrid } = useBrickBreakpoint();
   const [dragging, setDragging] = useState(false);
@@ -80,7 +79,6 @@ export function SandboxGrid() {
             maxRows: Number.POSITIVE_INFINITY}}
           dragConfig={{
             enabled: true,
-            cancel: ".brick-edit-handle",
             bounded: false,
             threshold: 3}}
           onResizeStop={(nextLayout) => setLayout(nextLayout, breakpoint)}
@@ -191,6 +189,11 @@ export function SandboxGrid() {
                   data-grid-y={layoutItem.y}
                   data-grid-w={layoutItem.w}
                   data-grid-h={layoutItem.h}
+                  onDoubleClick={() => {
+                    navigate(
+                      `/modules/${encodeURIComponent(brickDef.moduleId)}/brick/${encodeURIComponent(layoutItem.i)}`,
+                    );
+                  }}
                 >
                   <div className="relative size-full">
                     <div className="brick-drag-content size-full">
@@ -202,14 +205,6 @@ export function SandboxGrid() {
                         }
                       />
                     </div>
-                    <Button asChild variant="ghost" size="icon" className="brick-edit-handle">
-                      <Link
-                        aria-label="Edit brick"
-                        to={`/modules/${encodeURIComponent(brickDef.moduleId)}/brick/${encodeURIComponent(layoutItem.i)}`}
-                      >
-                        <Pencil aria-hidden className="size-4" />
-                      </Link>
-                    </Button>
                   </div>
                 </div>
               );

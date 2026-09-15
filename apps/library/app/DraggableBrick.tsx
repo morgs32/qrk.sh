@@ -20,10 +20,6 @@ export function DraggableBrick({
       className={`brick-drag-surface ${className ?? ""}`}
       draggable
       onDragStart={(event) => {
-        if (event.target instanceof Element && event.target.closest(".brick-edit-handle")) {
-          event.preventDefault();
-          return;
-        }
         setActiveBrickDrag(structuredClone(brickDef));
         const surface = event.currentTarget;
         if (surface) {

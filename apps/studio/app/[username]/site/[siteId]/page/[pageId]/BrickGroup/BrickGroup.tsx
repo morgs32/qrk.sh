@@ -2,7 +2,6 @@
 
 import { modulesHash } from "@qrk.sh/library";
 import { useBrickBreakpoint } from "@qrk.sh/library/BrickBreakpointProvider";
-import { BrickPreviewFrame } from "@qrk.sh/library/BrickPreviewFrame";
 import { Schema } from "effect";
 import { X } from "lucide-react";
 import { Link } from "react-router";
@@ -20,8 +19,12 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.String,
 });
 
+/** Bottom drawer is ~half viewport; list previews cap at half of that (quarter screen). */
+const PREVIEW_MAX_HEIGHT = "25vh";
+const PREVIEW_GRID_COLS = 8;
+
 export function BrickGroup() {
-  const { breakpoint } = useBrickBreakpoint();
+  const { breakpoint, gridWidth } = useBrickBreakpoint();
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const modules = Object.values(modulesHash);
@@ -57,6 +60,10 @@ export function BrickGroup() {
         {modules.map((module) => {
           const selectedBrick = module;
           const BrickComponent = selectedBrick.component;
+          const w = selectedBrick.def[breakpoint].w;
+          const h = selectedBrick.def[breakpoint].h;
+          const fullW = Math.round((gridWidth / PREVIEW_GRID_COLS) * w);
+          const fullH = Math.round((gridWidth / PREVIEW_GRID_COLS) * h);
 
           return (
             <section key={module.id} data-module-entry={module.id}>
@@ -81,10 +88,13 @@ export function BrickGroup() {
                 </Outline.List>
               </Outline>
               <div className="overflow-auto bg-white py-6">
-                <div className={selectedBrick.def[breakpoint].w === 8 ? undefined : "px-4"}>
-                  <BrickPreviewFrame
-                    w={selectedBrick.def[breakpoint].w}
-                    h={selectedBrick.def[breakpoint].h}
+                <div className={w === 8 ? undefined : "px-4"}>
+                  <div
+                    className="shrink-0"
+                    style={{
+                      width: `min(${fullW}px, calc(${w} * ${PREVIEW_MAX_HEIGHT} / ${h}))`,
+                      height: `min(${fullH}px, ${PREVIEW_MAX_HEIGHT})`,
+                    }}
                   >
                     <div
                       className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
@@ -93,12 +103,7 @@ export function BrickGroup() {
                       data-brick-drawer-module-id={selectedBrick.def.moduleId}
                       draggable
                       onDragStart={(event) => {
-                        useBrickDrawerStore
-                          .getState()
-                          .registerActiveBrickDragGridShape(
-                            selectedBrick.def[breakpoint].w,
-                            selectedBrick.def[breakpoint].h,
-                          );
+                        useBrickDrawerStore.getState().registerActiveBrickDragGridShape(w, h);
                         event.dataTransfer.setData(
                           BRICK_DRAG_MIME,
                           JSON.stringify(selectedBrick.def),
@@ -112,7 +117,7 @@ export function BrickGroup() {
                     >
                       <BrickComponent breakpoint={breakpoint} data={module.defaultData} />
                     </div>
-                  </BrickPreviewFrame>
+                  </div>
                 </div>
               </div>
             </section>

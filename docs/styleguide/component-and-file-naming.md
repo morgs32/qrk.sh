@@ -33,7 +33,7 @@ Prefer **one primary React component per file** (matching the PascalCase file na
 
 ### Good vs bad: BrickGroup carousel slides (one panel per brick)
 
-The brick group drawer uses shadcn `Carousel` (Embla) **per module**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def[breakpoint].w * 50vw / 8)`** by **`calc(def[breakpoint].h * 50vw / 8)`**, i.e. half the viewport (site workspace `w-1/2`) divided into eight columns—the same column count [Grid.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
+The brick group drawer uses shadcn `Carousel` (Embla) **per module**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`min(calc(def.w * 50vw / 8), calc(def.w * 25vh / def.h))`** by **`min(calc(def.h * 50vw / 8), 25vh)`**—half the viewport width (site workspace `w-1/2`) divided into eight columns, capped so preview height never exceeds a quarter of the screen (half of the bottom drawer’s ~half-viewport height). The same column count [Grid.tsx](../../apps/studio/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
 
 ### Good vs bad: `BrickPreview` props (inline types, no cross-file props export)
 

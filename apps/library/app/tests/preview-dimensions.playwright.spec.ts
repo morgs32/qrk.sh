@@ -67,6 +67,13 @@ test("module filmstrip scrolls horizontally rather than shrinking previews", asy
   expect(
     await github.evaluate((element) => element.getBoundingClientRect().width),
   ).toBeGreaterThanOrEqual(720);
+
+  // Trackpads send vertical deltas; the filmstrip must map those to scrollLeft.
+  await github.hover();
+  await page.mouse.wheel(0, 400);
+  await expect
+    .poll(async () => filmstrip.evaluate((element) => element.scrollLeft))
+    .toBeGreaterThan(0);
 });
 
 test("standalone slider sizes the shared frame", async ({ page }) => {

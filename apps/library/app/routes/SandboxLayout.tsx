@@ -44,7 +44,7 @@ export default function SandboxLayout() {
 
   const groups = (
     <div className="qrk-bricks flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden font-mono text-sm leading-5 text-zinc-900">
-      <div data-vaul-no-drag className="min-h-0 flex-1 overflow-auto">
+      <div data-vaul-no-drag className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <Outlet />
       </div>
     </div>
@@ -62,15 +62,10 @@ export default function SandboxLayout() {
               onOpenAutoFocus={(event) => event.preventDefault()}
             >
               <DrawerTitle className="sr-only">Bricks</DrawerTitle>
-              <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border/60 px-4 py-3">
-                <div className="space-y-1">
-                  <Link to="/" className="text-sm font-semibold">
-                    Bricks
-                  </Link>
-                  <div className="text-xs text-muted-foreground">
-                    Browse bricks by group. Drag a brick onto the grid.
-                  </div>
-                </div>
+              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4 py-3">
+                <Link to="/" className="text-sm font-semibold">
+                  Bricks
+                </Link>
                 <DrawerClose asChild>
                   <Button
                     type="button"

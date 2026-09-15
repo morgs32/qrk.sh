@@ -1,34 +1,11 @@
 "use client";
 
-import { Schema } from "effect";
-import { Link, href } from "react-router";
-
-import { useValidatedParams } from "@/hooks/useValidatedParams";
-
-import { useSiteStore } from "./siteStore";
-
-const ParamsSchema = Schema.Struct({
-  username: Schema.String,
-  siteId: Schema.String,
-  pageId: Schema.optional(Schema.String),
-});
+import { Wordmark } from "./Wordmark";
 
 export function SiteHeader() {
-  const { username, siteId, pageId } = useValidatedParams(ParamsSchema);
-  const siteName = useSiteStore((state) => state.site?.name);
-
   return (
     <header className="z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-6">
-      {pageId === undefined ? (
-        <span className="text-sm font-medium">{siteName}</span>
-      ) : (
-        <Link
-          to={href("/:username/site/:siteId/page/:pageId", { username, siteId, pageId })}
-          className="text-sm font-medium"
-        >
-          {siteName}
-        </Link>
-      )}
+      <Wordmark />
       {/* <nav className="flex items-center gap-6">
         <Link to="/work" className="text-xs transition-opacity hover:opacity-70">
           Work

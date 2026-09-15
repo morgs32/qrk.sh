@@ -1,21 +1,39 @@
-import { Pencil } from "lucide-react";
+import { useLayoutEffect, useRef } from "react";
 import { Link } from "react-router";
 
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
 import { BrickPreviewFrame } from "../../BrickPreviewFrame";
 import { modulesHash } from "../../modulesHash";
 import { Outline } from "../../components/outline/Outline";
-import { Button } from "../../components/ui/button";
 import { DraggableBrick } from "../DraggableBrick";
 
 export default function ModulesPage() {
   const { breakpoint } = useBrickBreakpoint();
   const modules = Object.values(modulesHash);
+  const filmstripRef = useRef<HTMLDivElement>(null);
+
+  // Vaul's drawer sets touch-action:none; keep pan enabled on this scrollport.
+  // Trackpads send vertical wheel deltas — map those to horizontal filmstrip scroll.
+  useLayoutEffect(() => {
+    const filmstrip = filmstripRef.current;
+    if (!filmstrip) return;
+
+    const onWheel = (event: WheelEvent) => {
+      if (filmstrip.scrollWidth <= filmstrip.clientWidth) return;
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      filmstrip.scrollLeft += event.deltaY;
+      event.preventDefault();
+    };
+
+    filmstrip.addEventListener("wheel", onWheel, { passive: false });
+    return () => filmstrip.removeEventListener("wheel", onWheel);
+  }, []);
 
   return (
     <div
+      ref={filmstripRef}
       aria-label="Brick modules"
-      className="flex h-full min-h-0 flex-row gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain"
+      className="flex h-full min-h-0 w-full min-w-0 flex-row gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x touch-pan-y"
     >
       {modules.map((module) => {
         const { def, component: BrickComponent } = module;
@@ -24,7 +42,7 @@ export default function ModulesPage() {
           <div
             key={module.id}
             data-module-entry={module.id}
-            className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-contain border-r border-zinc-200"
+            className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200"
           >
             <Outline.Title sticky>
               <Link to={`/modules/${encodeURIComponent(module.id)}`} data-module-link={module.id}>
@@ -51,14 +69,6 @@ export default function ModulesPage() {
                     <div className="brick-drag-content size-full">
                       <BrickComponent breakpoint={breakpoint} data={def.data} />
                     </div>
-                    <Button asChild variant="ghost" size="icon" className="brick-edit-handle">
-                      <Link
-                        aria-label="Configure module"
-                        to={`/modules/${encodeURIComponent(def.moduleId)}`}
-                      >
-                        <Pencil aria-hidden className="size-4" />
-                      </Link>
-                    </Button>
                   </DraggableBrick>
                 </BrickPreviewFrame>
               </div>

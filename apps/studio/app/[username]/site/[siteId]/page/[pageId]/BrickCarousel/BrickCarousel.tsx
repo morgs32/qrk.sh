@@ -19,8 +19,18 @@ import {
 } from "@/components/ui/carousel";
 import { SoftButton } from "@/components/ui/soft-button";
 
-/** Same as `BrickPreview` / site grid: half viewport ÷ 8 columns. */
+/** Same as site grid: half viewport ÷ 8 columns. */
 const PREVIEW_GRID_COLS = 8;
+/** Bottom drawer is ~half viewport; previews cap at half of that (quarter screen). */
+const PREVIEW_MAX_HEIGHT = "25vh";
+
+/** Square cell size: match site width when it fits, else shrink so height ≤ 25vh. */
+function previewSlotSize(w: number, h: number): { width: string; height: string } {
+  return {
+    width: `min(calc(${w} * 50vw / ${PREVIEW_GRID_COLS}), calc(${w} * ${PREVIEW_MAX_HEIGHT} / ${h}))`,
+    height: `min(calc(${h} * 50vw / ${PREVIEW_GRID_COLS}), ${PREVIEW_MAX_HEIGHT})`,
+  };
+}
 
 /** When true, Embla should not handle drag / focus for this interaction (drawer brick DnD, nav, etc.). */
 function drawerCarouselInteractionShouldSkipEmbla(target: EventTarget | null): boolean {
@@ -95,8 +105,7 @@ export function BrickCarousel(props: {
       </div>
 
       {/*
-          Slide min-height must match BrickPreview slot: half-viewport / 8 cols = 50vw/8 per grid unit.
-          (Using 12vw/2 here clipped slides vs preview and looked empty.)
+          Slide min-height must match BrickPreview slot: min(50vw/8 per unit, 25vh for the brick).
           Carousel root is `relative` (see components/ui/carousel.tsx); height pins the slide strip.
         */}
       <Carousel
@@ -107,7 +116,9 @@ export function BrickCarousel(props: {
           watchFocus: watchFocusIgnoreDrawerChrome,
         }}
         className="z-10 flex h-full min-h-0 w-full flex-col"
-        style={{ height: `calc(${maxH} * 50vw / 8)` }}
+        style={{
+          height: `min(calc(${maxH} * 50vw / ${PREVIEW_GRID_COLS}), ${PREVIEW_MAX_HEIGHT})`,
+        }}
       >
         <div className="absolute top-1/2 left-0 z-30 ml-8 -translate-y-1/2">
           <SoftButton
@@ -126,28 +137,27 @@ export function BrickCarousel(props: {
           viewportClassName="relative h-full min-h-0 w-full min-w-0 flex-1 basis-0 overflow-hidden"
           className="h-full min-h-0 items-stretch"
         >
-          {bricks.map((brick) => (
-            <CarouselItem
-              key={`${brick.def.moduleId}`}
-              data-brick-drawer-slide-grid-h={brick.def[breakpoint].h}
-              className="relative flex h-full min-h-0 flex-col items-center justify-center"
-              style={{
-                minHeight: `calc(${brick.def[breakpoint].h} * 50vw / 8)`,
-              }}
-            >
-              <div className="flex min-h-0 w-full flex-shrink-0 flex-col items-center justify-center">
-                <div
-                  className="relative shrink-0"
-                  style={{
-                    width: `calc(${brick.def[breakpoint].w} * 50vw / ${PREVIEW_GRID_COLS})`,
-                    height: `calc(${brick.def[breakpoint].h} * 50vw / ${PREVIEW_GRID_COLS})`,
-                  }}
-                >
-                  <BrickPreview brick={brick} />
+          {bricks.map((brick) => {
+            const w = brick.def[breakpoint].w;
+            const h = brick.def[breakpoint].h;
+            const slotSize = previewSlotSize(w, h);
+            return (
+              <CarouselItem
+                key={`${brick.def.moduleId}`}
+                data-brick-drawer-slide-grid-h={h}
+                className="relative flex h-full min-h-0 flex-col items-center justify-center"
+                style={{
+                  minHeight: slotSize.height,
+                }}
+              >
+                <div className="flex min-h-0 w-full flex-shrink-0 flex-col items-center justify-center">
+                  <div className="relative shrink-0" style={slotSize}>
+                    <BrickPreview brick={brick} />
+                  </div>
                 </div>
-              </div>
-            </CarouselItem>
-          ))}
+              </CarouselItem>
+            );
+          })}
         </CarouselContent>
         <div className="absolute top-1/2 right-0 z-30 mr-8 -translate-y-1/2">
           <SoftButton

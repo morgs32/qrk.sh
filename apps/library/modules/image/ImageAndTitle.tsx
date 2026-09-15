@@ -1,6 +1,6 @@
 import { Image } from "@unpic/react";
 
-import { BrickFrame } from "../../BrickFrame";
+import { MediaFooter } from "../../MediaFooter";
 
 export function ImageAndTitle(props: {
   breakpoint: "sm" | "md" | "lg" | "xl";
@@ -10,22 +10,18 @@ export function ImageAndTitle(props: {
   };
 }) {
   return (
-    <BrickFrame backgroundClassName="bg-neutral-100" textClassName="text-black">
-      <div className="relative h-full w-full min-h-0 overflow-hidden rounded-lg shadow-lg">
+    <div className="flex h-full w-full min-h-0 flex-col overflow-hidden">
+      <div className="relative min-h-0 flex-1 overflow-hidden">
         <Image
           src={props.data.imageUrl}
           alt={props.data.title}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 size-full object-cover"
           layout="fullWidth"
           height={800}
           sizes="(max-width: 768px) 100vw, 50vw"
         />
-        <div className="absolute inset-x-0 bottom-0 flex h-[20.25%] items-center bg-white px-3">
-          <h2 className="m-0 truncate text-xs font-semibold leading-tight text-black">
-            {props.data.title}
-          </h2>
-        </div>
       </div>
-    </BrickFrame>
+      <MediaFooter heading={props.data.title} />
+    </div>
   );
 }

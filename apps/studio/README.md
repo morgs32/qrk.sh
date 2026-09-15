@@ -12,6 +12,8 @@ pnpm nx run @qrk.sh/studio:build
 pnpm nx run @qrk.sh/studio:typecheck
 pnpm nx run @qrk.sh/studio:lint
 pnpm nx run @qrk.sh/studio:start
+pnpm nx run @qrk.sh/studio:storybook
+pnpm nx run @qrk.sh/studio:build-storybook
 pnpm nx run @qrk.sh/studio:test:e2e -- --project=chromium
 ```
 

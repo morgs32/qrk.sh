@@ -1,16 +1,8 @@
 import type { ReactNode } from "react";
 
-type BrickFrameProps = {
-  backgroundClassName: string;
-  textClassName: string;
-  children?: ReactNode;
-};
-
-export function BrickFrame({ backgroundClassName, textClassName, children }: BrickFrameProps) {
+export function BrickFrame({ children }: { children?: ReactNode }) {
   return (
-    <div
-      className={`qrk-bricks ${backgroundClassName} ${textClassName} flex h-full w-full select-none items-center justify-center overflow-hidden`}
-    >
+    <div className="qrk-bricks flex h-full w-full overflow-hidden [&_svg]:select-none">
       {children}
     </div>
   );

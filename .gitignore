@@ -33,6 +33,7 @@ out/
 # production
 build/
 dist/
+storybook-static/
 .output/
 .vinxi/
 .turbo/

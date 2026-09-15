@@ -1,4 +1,3 @@
-import { useLayoutEffect, useRef } from "react";
 import { Link } from "react-router";
 
 import { useBrickBreakpoint } from "../../BrickBreakpointProvider";
@@ -9,28 +8,9 @@ import { DraggableBrick } from "../DraggableBrick";
 export default function ModulesPage() {
   const { breakpoint } = useBrickBreakpoint();
   const modules = Object.values(modulesHash);
-  const filmstripRef = useRef<HTMLDivElement>(null);
-
-  // Vaul's drawer sets touch-action:none; keep pan enabled on this scrollport.
-  // Trackpads send vertical wheel deltas — map those to horizontal filmstrip scroll.
-  useLayoutEffect(() => {
-    const filmstrip = filmstripRef.current;
-    if (!filmstrip) return;
-
-    const onWheel = (event: WheelEvent) => {
-      if (filmstrip.scrollWidth <= filmstrip.clientWidth) return;
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-      filmstrip.scrollLeft += event.deltaY;
-      event.preventDefault();
-    };
-
-    filmstrip.addEventListener("wheel", onWheel, { passive: false });
-    return () => filmstrip.removeEventListener("wheel", onWheel);
-  }, []);
 
   return (
     <div
-      ref={filmstripRef}
       aria-label="Brick modules"
       className="flex h-full min-h-0 w-full min-w-0 flex-row gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x touch-pan-y"
     >
@@ -41,7 +21,7 @@ export default function ModulesPage() {
           <div
             key={module.id}
             data-module-entry={module.id}
-            className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200"
+            className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200 pb-16"
           >
             <h2 className="m-0 shrink-0 sticky top-0 z-10 bg-zinc-100 px-4 py-4 text-sm font-normal">
               <Link to={`/modules/${encodeURIComponent(module.id)}`} data-module-link={module.id}>

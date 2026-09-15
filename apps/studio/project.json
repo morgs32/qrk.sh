@@ -25,6 +25,13 @@
         "cwd": "apps/studio"
       },
       "dependsOn": ["^lib"]
+    },
+    "storybook": {
+      "continuous": true,
+      "dependsOn": ["^lib"]
+    },
+    "build-storybook": {
+      "dependsOn": ["^lib"]
     }
   }
 }

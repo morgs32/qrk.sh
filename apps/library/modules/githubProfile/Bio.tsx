@@ -1,5 +1,7 @@
 import { Quote } from "lucide-react";
 
+import { brickMetaIconClass, brickMutedClass } from "../../brickTokens";
+
 export function Bio(props: { bio: string | null }) {
   if (!props.bio) {
     return null;
@@ -8,9 +10,9 @@ export function Bio(props: { bio: string | null }) {
   return (
     <div
       data-github-profile-json-render="Bio"
-      className="flex items-center gap-1 text-xs text-zinc-500"
+      className={`flex items-center gap-1 ${brickMutedClass}`}
     >
-      <Quote className="size-3.5 shrink-0" />
+      <Quote className={brickMetaIconClass} />
       <span className="truncate">{props.bio}</span>
     </div>
   );

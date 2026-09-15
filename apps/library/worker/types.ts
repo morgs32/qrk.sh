@@ -102,7 +102,7 @@ export interface IScraperEnv {
     import("../modules/tiktok/TikTokRepo").TikTokRepo
   >;
   STREAMLINE_REPO: DurableObjectNamespace<
-    import("../modules/icon/StreamlineRepo").StreamlineRepo
+    import("../modules/swatchAndIcon/StreamlineRepo").StreamlineRepo
   >;
   ASSETS: R2Bucket;
   R2_PUBLIC_BASE_URL: string;

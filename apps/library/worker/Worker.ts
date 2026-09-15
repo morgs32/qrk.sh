@@ -9,7 +9,7 @@ import { InstagramRepo } from "../modules/instagram/InstagramRepo";
 import { LinkRepo } from "../modules/link/LinkRepo";
 import { handleLibraryUpload, LibraryUploadHttpError } from "./handleLibraryUpload";
 import { ScraperApi } from "./ScraperApi";
-import { StreamlineRepo } from "../modules/icon/StreamlineRepo";
+import { StreamlineRepo } from "../modules/swatchAndIcon/StreamlineRepo";
 import { TikTokRepo } from "../modules/tiktok/TikTokRepo";
 import type { IScraperEnv } from "./types";
 

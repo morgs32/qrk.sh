@@ -31,7 +31,7 @@ export function GitHubProfileJsonRenderCompare(props: { data: unknown }) {
   });
 
   return (
-    <div className="size-full overflow-hidden bg-white" data-github-profile-json-render-compare>
+    <div className="size-full overflow-hidden" data-github-profile-json-render-compare>
       <StateProvider initialState={{}}>
         <VisibilityProvider>
           <ActionProvider handlers={{}}>

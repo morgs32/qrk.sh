@@ -27,9 +27,7 @@ test.describe("BrickDetail route", () => {
     await page.goto(pageBase, { waitUntil: "load" });
 
     const grid = page.locator(".grid-layout");
-    const brick = grid
-      .locator('[data-brick-group-name="swatch"][data-brick-catalog="default"]')
-      .first();
+    const brick = grid.locator('[data-brick-module-id="swatch-and-icon"]').first();
     await expect(brick).toBeVisible({ timeout: 90_000 });
     await brick.scrollIntoViewIfNeeded();
 

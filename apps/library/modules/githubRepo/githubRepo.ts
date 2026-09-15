@@ -10,4 +10,5 @@ export const githubRepo = makeModule({
   label: "GitHub Repo",
   description: "A GitHub repository card.",
   sm: { component: GitHubRepoStack, w: 4, h: 4 },
-  md: { component: GitHubRepoCompact, w: 4, h: 2 }});
+  md: { component: GitHubRepoCompact, w: 4, h: 2 },
+  lg: { component: GitHubRepoCompact, w: 2, h: 2 }});

@@ -75,6 +75,20 @@ schemas, and provider scrape modules) stay under `apps/library/worker/`.
 - **Good**: `modules/instagram/InstagramRepo.ts` next to that
   module's presentations; `worker/Worker.ts` imports and re-exports it.
 
+### Brick chrome (inset and type)
+
+Shared brick padding and typography live in library root next to `BrickFrame`. Import each file directly (no barrel).
+
+- **`BrickFrame`** — owned by `makeModule`’s `Brick` renderer (not by presentations). Fill sizing, `qrk-bricks`, and nested SVG `user-select: none` (`[&_svg]:select-none`). No background or text-color props.
+- **`BrickShell` / `BrickBody` / `BrickFooter`** — inset flex column, scrollable middle, and `mt-auto` meta row. Shells compose **inside** the framed presentation.
+- **`MediaFooter`** — bottom strip for **Thumbnail** layouts (optional `icon` / `iconUrl`, `heading`, `overline`; content-sized with `p-4`). Distinct from `BrickFooter` (stats/meta row inside a Stats shell). No card border or fill.
+- **`brickTokens.ts`** — class-string constants (`brickInsetClass`, `brickMutedClass`, `brickTitleClass`, …). Prefer these over ad hoc `p-2` / `text-xs` / `text-zinc-500` in brick presentations and json-render registry pieces.
+
+Presentations must not add card chrome (fills, borders, radii, shadows on the brick surface). Content geometry (e.g. avatar circles) and intentional fills (e.g. SwatchAndIcon color) are allowed.
+
+- **Bad**: each module inventing its own card padding (`p-3` vs `p-4`) so footer meta does not line up across bricks; wrapping presentations in `BrickFrame`; white card shells with borders/radii.
+- **Good**: `GitHubProfileStats` and `GitHubRepoCard` both use `BrickShell` + `BrickFooter` and shared tokens; `makeModule` supplies `BrickFrame` once.
+
 ### Factory arguments
 
 Factories take one `props` object with an inline shape. `makeModule` owns `id`, `label`, `description`, `dataShape`, `defaultData`, optional `configuration`, optional `options`, required `sm`, and optional `md`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Catalog `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeModule.tsx](../../apps/library/makeModule.tsx).

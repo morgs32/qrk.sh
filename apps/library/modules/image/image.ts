@@ -18,4 +18,5 @@ export const image = makeModule({
     title: "White Bay Power Station",
   },
   sm: { component: ImageAndTitle, w: 4, h: 4 },
+  lg: { component: ImageAndTitle, w: 3, h: 3 },
 });

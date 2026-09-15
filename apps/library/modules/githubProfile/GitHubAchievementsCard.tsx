@@ -63,7 +63,7 @@ function AchievementBadge({ achievement }: { achievement: Achievement }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <div
-        className={`h-14 w-14 rounded-full bg-gradient-to-br p-0.5 shadow-lg sm:h-16 sm:w-16 md:h-20 md:w-20 ${achievement.gradient}`}
+        className={`h-14 w-14 rounded-full bg-gradient-to-br p-0.5 sm:h-16 sm:w-16 md:h-20 md:w-20 ${achievement.gradient}`}
       >
         <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white">
           <Image
@@ -82,7 +82,7 @@ function AchievementBadge({ achievement }: { achievement: Achievement }) {
 
 export function GitHubAchievementsCard() {
   return (
-    <Card className="h-full min-h-0 w-full gap-2 overflow-hidden rounded-none border border-zinc-200 bg-white py-3 shadow-none">
+    <Card className="h-full min-h-0 w-full gap-2 overflow-hidden rounded-none border-0 py-3 shadow-none">
       <CardHeader className="shrink-0 px-4 pb-2 pt-0">
         <CardTitle className="text-lg font-semibold text-zinc-950">Achievements</CardTitle>
       </CardHeader>

@@ -1,6 +1,6 @@
 import { Image } from "@unpic/react";
 
-export function PinkAsteriskGraphic(props: { data: { name: string; svg: string } }) {
+export function IconSvgGraphic(props: { data: { name: string; svg: string } }) {
   return (
     <Image
       alt={props.data.name}

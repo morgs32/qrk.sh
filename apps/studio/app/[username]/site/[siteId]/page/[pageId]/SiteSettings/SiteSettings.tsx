@@ -4,7 +4,7 @@ import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 import { Globe, X } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 
 import { CopyButton } from "./CopyButton";
@@ -12,6 +12,7 @@ import { SiteCard } from "./SiteCard";
 import { href } from "react-router";
 import { useSiteStore } from "../../../siteStore";
 
+import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,9 +23,16 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
-  siteId: Schema.String,
+  siteId: Schema.TemplateLiteral(["sit_", Schema.String]),
   pageId: Schema.String,
 });
+
+function pickSerializableSite(site: { name: string; description: string }) {
+  return {
+    name: site.name,
+    description: site.description,
+  };
+}
 
 export function SiteSettings() {
   const params = useValidatedParams(ParamsSchema);
@@ -32,15 +40,52 @@ export function SiteSettings() {
   const username = useUsername();
   const siteId = params.siteId;
   const { user } = useUser();
+  const { db } = useZerospinUserInitializedState();
   const siteDraft = useSiteStore((state) =>
     user === null || user === undefined ? undefined : state.owners[user.id]?.sites[params.siteId],
   );
   const setSiteName = useSiteStore((state) => state.setSiteName);
   const setSiteDescription = useSiteStore((state) => state.setSiteDescription);
+  const [baselineState, setBaselineState] = useState(() => {
+    const site = db.query.site
+      .findFirst({
+        where: { id: { eq: params.siteId } },
+      })
+      .sync();
+    if (site === undefined) {
+      throw new Error(`Site ${params.siteId} not found`);
+    }
+    return {
+      siteId: params.siteId,
+      baseline: {
+        name: site.name ?? "",
+        description: site.description ?? "",
+      },
+    };
+  });
 
   useEffect(() => {
     console.log("siteStore", useSiteStore.getState());
   }, []);
+
+  // Re-query when the site changes without remount; do not refresh when draft fields update.
+  if (baselineState.siteId !== params.siteId) {
+    const site = db.query.site
+      .findFirst({
+        where: { id: { eq: params.siteId } },
+      })
+      .sync();
+    if (site === undefined) {
+      throw new Error(`Site ${params.siteId} not found`);
+    }
+    setBaselineState({
+      siteId: params.siteId,
+      baseline: {
+        name: site.name ?? "",
+        description: site.description ?? "",
+      },
+    });
+  }
 
   const publishedUrl = useMemo(() => {
     const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
@@ -62,9 +107,18 @@ export function SiteSettings() {
     });
   });
 
-  if (user === null || user === undefined || siteDraft === undefined) {
+  if (
+    user === null ||
+    user === undefined ||
+    siteDraft === undefined ||
+    baselineState.siteId !== params.siteId
+  ) {
     return null;
   }
+
+  const baseline = baselineState.baseline;
+  const draft = pickSerializableSite(siteDraft);
+  const isDirty = draft.name !== baseline.name || draft.description !== baseline.description;
 
   return (
     <div className="w-full">
@@ -72,15 +126,36 @@ export function SiteSettings() {
         <Globe className="size-5 shrink-0 text-foreground" strokeWidth={2} aria-hidden />
         <h1 className="min-w-0 flex-1 text-base font-semibold tracking-tight">Site Settings</h1>
         <div className="flex shrink-0 items-center gap-1">
+          {isDirty ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                setBaselineState({
+                  siteId: params.siteId,
+                  baseline: structuredClone(draft),
+                });
+              }}
+            >
+              Save
+            </Button>
+          ) : null}
           <Button
             type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8 cursor-pointer"
-            aria-label="Close drawer"
-            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
+            variant={isDirty ? "destructive" : "ghost"}
+            size={isDirty ? "sm" : "icon"}
+            className={isDirty ? "h-8 cursor-pointer" : "size-8 cursor-pointer"}
+            aria-label={isDirty ? "Cancel" : "Close drawer"}
+            onClick={() => {
+              if (isDirty) {
+                setSiteName(user.id, params.siteId, baseline.name);
+                setSiteDescription(user.id, params.siteId, baseline.description);
+              }
+              navigate(href("/:username/site/:siteId/page/:pageId", { ...params }));
+            }}
           >
             <X className="size-3.5" />
+            {isDirty ? "Cancel" : null}
           </Button>
         </div>
       </header>

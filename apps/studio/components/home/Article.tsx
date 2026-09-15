@@ -2,13 +2,10 @@
 
 import { useUser } from "@clerk/react";
 import Document from "@tiptap/extension-document";
-import { FindAndReplace } from "@tiptap/extension-find-and-replace";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Image } from "@tiptap/extension-image";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import Placeholder from "@tiptap/extension-placeholder";
-import { Subscript } from "@tiptap/extension-subscript";
-import { Superscript } from "@tiptap/extension-superscript";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Typography } from "@tiptap/extension-typography";
 import { Underline } from "@tiptap/extension-underline";
@@ -22,8 +19,6 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { usePageStore } from "@/app/[username]/site/[siteId]/page/[pageId]/pageStore";
 import { ArticleToolbar } from "@/components/home/ArticleToolbar";
 import { HorizontalRule } from "@/app/tiptap/node/horizontal-rule-node/horizontal-rule-node-extension";
-import { ImageUploadNode } from "@/app/tiptap/node/image-upload-node/image-upload-node-extension";
-import { handleImageUpload, MAX_FILE_SIZE } from "@/app/tiptap/lib/tiptap-utils";
 
 import "@/app/tiptap/node/blockquote-node/blockquote-node.scss";
 import "@/app/tiptap/node/code-block-node/code-block-node.scss";
@@ -90,20 +85,7 @@ export function Article() {
         Image,
         Typography,
         Underline,
-        Superscript,
-        Subscript,
         Selection,
-        FindAndReplace.configure({
-          searchDebounceMs: 500,
-          injectCSS: false,
-        }),
-        ImageUploadNode.configure({
-          accept: "image/*",
-          maxSize: MAX_FILE_SIZE,
-          limit: 3,
-          upload: handleImageUpload,
-          onError: (error) => console.error("Upload failed:", error),
-        }),
       ],
       content: article,
       immediatelyRender: false,

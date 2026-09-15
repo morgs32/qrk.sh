@@ -6,10 +6,10 @@ import { PublishableKey } from "@zerospin/core/services/PublishableKey";
 import { ZerospinApiUrl } from "@zerospin/core/services/ZerospinApiUrl";
 import { NanoIdFactory } from "@zerospin/core/utils/NanoIdFactory";
 import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory";
-import { makeZerospinApp } from "@zerospin/react";
+import { makeZerospinApp, useInitializedStateOrThrow } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 import { Effect, Layer, Redacted } from "effect";
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
 import { userFrontend } from "@qrk.sh/zerospin/src/aggregates/user/userFrontend";
 import type { system } from "@qrk.sh/zerospin/src/system";
@@ -43,6 +43,34 @@ export const ZerospinApp = makeZerospinApp<typeof system>({
 });
 
 export const ZerospinUser = ZerospinApp.makeFrontend(userFrontend);
+
+const ZerospinUserInitializedStateContext = createContext<null | {
+  readonly db: ReturnType<typeof useZerospinUserInitializedStateFromFrontend>["db"];
+}>(null);
+
+function useZerospinUserInitializedStateFromFrontend(frontend: typeof ZerospinUser) {
+  return useInitializedStateOrThrow(frontend);
+}
+
+function ZerospinUserInitializedStateProvider(props: {
+  frontend: typeof ZerospinUser;
+  children: ReactNode;
+}) {
+  const state = useZerospinUserInitializedStateFromFrontend(props.frontend);
+  return (
+    <ZerospinUserInitializedStateContext.Provider value={state}>
+      {props.children}
+    </ZerospinUserInitializedStateContext.Provider>
+  );
+}
+
+export function useZerospinUserInitializedState() {
+  const state = useContext(ZerospinUserInitializedStateContext);
+  if (state === null) {
+    throw new Error("useZerospinUserInitializedState must be used within ZerospinUserProvider");
+  }
+  return state;
+}
 
 export function ZerospinUserProvider({ children }: { children: ReactNode }) {
   const { getToken } = useAuth();
@@ -78,7 +106,9 @@ export function ZerospinUserProvider({ children }: { children: ReactNode }) {
           })
         }
       >
-        {children}
+        <ZerospinUserInitializedStateProvider frontend={ZerospinUser}>
+          {children}
+        </ZerospinUserInitializedStateProvider>
       </ZerospinUser>
     </ZerospinApp.Provider>
   );

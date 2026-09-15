@@ -251,7 +251,7 @@ describe('makeZerospinApp main-thread frontend bootstrap', () => {
     expect(container.textContent).toContain('Application');
     await vi.waitFor(() => {
       expect(
-        container.querySelector('section[aria-label="Zerospin DevTools"]'),
+        document.querySelector('section[aria-label="Zerospin DevTools"]'),
       ).not.toBeNull();
     });
     expect(fakeDevtools.shellOpens).toBe(0);

@@ -29,7 +29,7 @@ for (const [collection, content, view] of [
     await expect(actions.getByRole("switch", { name: "Card frame" })).toBeVisible();
     const preview = page.getByTestId("selected-brick-preview");
     const requestsBefore = requests;
-    for (const width of [375, 768]) {
+    for (const width of [375, 1024]) {
       await page.getByRole("button", { name: `${width}px grid width` }).click();
       await expect(placed).toHaveCSS(
         "width",
@@ -65,7 +65,7 @@ for (const [collection, content, view] of [
     }
     await page.getByRole("button", { name: "375px grid width" }).click();
     await toggle.setChecked(true);
-    await page.getByRole("button", { name: "768px grid width" }).click();
+    await page.getByRole("button", { name: "1024px grid width" }).click();
     await expect(toggle).not.toBeChecked();
     await page.getByRole("button", { name: "Inherit from xs" }).click();
     await expect(toggle).toBeChecked();
@@ -82,7 +82,7 @@ for (const [collection, content, view] of [
     const handle = await placed.getByRole("button", { name: "Drag brick" }).boundingBox();
     await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
     await page.mouse.down();
-    await page.mouse.move(handle!.x + handle!.width / 2 + 96, handle!.y + handle!.height / 2, {
+    await page.mouse.move(handle!.x + handle!.width / 2 + 128, handle!.y + handle!.height / 2, {
       steps: 12,
     });
     await page.mouse.up();
@@ -116,6 +116,7 @@ test("upgrades legacy entries without carrying cardView forward or resetting oth
       gridItem: null,
       viewOptions: { cardView: false, untouched: "hidden" },
     };
+    brick["2xl"] = { ...brick.md };
     brick.lg = { ...brick.xs, frame: "card", viewOptions: {} };
     localStorage.setItem(key, JSON.stringify(saved));
     return {
@@ -134,11 +135,8 @@ test("upgrades legacy entries without carrying cardView forward or resetting oth
     viewOptions: { untouched: "keep" },
     frame: "default",
   });
-  expect(saved.bricksById[id].md).toEqual({
-    gridItem: null,
-    viewOptions: { untouched: "hidden" },
-    frame: "default",
-  });
+  expect(saved.bricksById[id]).not.toHaveProperty("md");
+  expect(saved.bricksById[id]).not.toHaveProperty("2xl");
   expect(saved.bricksById[id].lg.frame).toBe("card");
   expect(saved.bricksById[id]).not.toHaveProperty("sm");
   expect(saved.bricksById[id].data).toEqual(expected.data);

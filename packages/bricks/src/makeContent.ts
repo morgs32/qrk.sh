@@ -36,7 +36,7 @@ export function makeContent<
         configuration?: never;
         views: {
           [VIEW in keyof VIEWS]: {
-            component: (props: { breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" }) => ReactNode;
+            component: (props: { breakpoint: "xs" | "sm" | "lg" | "xl" }) => ReactNode;
           };
         };
       }
@@ -50,7 +50,7 @@ export function makeContent<
           [VIEW in keyof VIEWS]: {
             component: (props: {
               data: InferDecodedRow<DATA_SHAPE>;
-              breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+              breakpoint: "xs" | "sm" | "lg" | "xl";
             }) => ReactNode;
           };
         };

@@ -6,7 +6,7 @@ for (const [collection, content, view, w, h] of [
   ["swatch", "default", "4x4", 4, 4],
   ["swatch", "default", "8x2", 8, 2],
 ] satisfies Array<[string, string, string, number, number]>) {
-  test(`${collection} ${view} preview follows its pane while placed dimensions follow the grid`, async ({ page }) => {
+  test(`${collection} ${view} preview matches placed dimensions`, async ({ page }) => {
     await page.setViewportSize({ width: 3000, height: 1100 });
     await page.goto(`/collections/${collection}?content=${content}&view=${view}`);
     const source = page.locator(`[data-content-view-brick="${collection}/${content}/${view}"]`);
@@ -16,22 +16,10 @@ for (const [collection, content, view, w, h] of [
     });
     const placed = grid.locator(`[data-brick="${collection}/${content}/${view}"]`);
     await expect(placed).toHaveCount(1);
-    for (const width of [375, 768, 1024, 1440]) {
+    for (const width of [375, 640, 1024, 1440]) {
       await page.getByRole("button", { name: `${width}px grid width`, exact: true }).click();
-      const availableWidth = await source.evaluate((element) => {
-        const container = element.parentElement?.parentElement;
-        if (!container) throw new Error("Missing preview container");
-        const style = getComputedStyle(container);
-        return container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-      });
-      await expect.poll(async () => {
-        const bounds = await source.boundingBox();
-        return Math.abs((bounds?.width ?? 0) - availableWidth * w / 8);
-      }).toBeLessThan(1);
-      await expect.poll(async () => {
-        const bounds = await source.boundingBox();
-        return Math.abs((bounds?.height ?? 0) - availableWidth * h / 8);
-      }).toBeLessThan(1);
+      await expect(source).toHaveCSS("width", `${Math.round((width / 8) * w)}px`);
+      await expect(source).toHaveCSS("height", `${Math.round((width / 8) * h)}px`);
       // The grid can trim a pixel at positioned edges to prevent seams.
       await expect
         .poll(async () => {
@@ -48,34 +36,35 @@ for (const [collection, content, view, w, h] of [
     }
     await page.getByRole("button", { name: "375px grid width", exact: true }).click();
     await placed.getByRole("link").click();
-    const detail = page.getByTestId("selected-brick-preview");
-    await expect(detail).toBeVisible();
-    const availableWidth = await detail.evaluate((element) => {
-      const container = element.parentElement?.parentElement;
-      if (!container) throw new Error("Missing preview container");
-      const style = getComputedStyle(container);
-      return container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    });
-    const detailBounds = await detail.boundingBox();
-    expect(Math.abs((detailBounds?.width ?? 0) - availableWidth * w / 8)).toBeLessThan(1);
-    expect(Math.abs((detailBounds?.height ?? 0) - availableWidth * h / 8)).toBeLessThan(1);
+    await expect(page.getByTestId("selected-brick-preview")).toHaveCSS(
+      "width",
+      `${Math.round((375 / 8) * w)}px`,
+    );
+    await expect(page.getByTestId("selected-brick-preview")).toHaveCSS(
+      "height",
+      `${Math.round((375 / 8) * h)}px`,
+    );
   });
 }
 
-test("wide catalog previews fill the available pane", async ({ page }) => {
+test("wide catalog previews scroll rather than shrinking", async ({ page }) => {
   await page.setViewportSize({ width: 3000, height: 1000 });
   await page.goto("/");
   const swatch = page.locator('[data-collection-entry="swatch"]');
   await swatch.getByRole("button", { name: "8×2", exact: true }).click();
   const preview = swatch.locator('[data-collection-representative="swatch/default/8x2"]');
-  for (const viewportWidth of [3000, 1600]) {
-    await page.setViewportSize({ width: viewportWidth, height: 1000 });
-    await expect.poll(async () => {
-      const previewBounds = await preview.boundingBox();
-      const paneWidth = await page.getByLabel("Bricks panel").evaluate((element) => element.clientWidth);
-      return Math.abs((previewBounds?.width ?? 0) - paneWidth);
-    }).toBeLessThan(1);
-  }
+  await expect(preview).toHaveCSS("width", "1440px");
+  await page.getByLabel("Bricks panel").evaluate((element) => {
+    element.style.width = "400px";
+  });
+  await expect(preview).toHaveCSS("width", "1440px");
+  expect(
+    await swatch
+      .locator(".overflow-auto")
+      .evaluate((element) => element.scrollWidth > element.clientWidth),
+  ).toBe(true);
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await expect(preview).toHaveCSS("width", "640px");
 });
 
 test("standalone slider sizes the shared frame", async ({ page }) => {

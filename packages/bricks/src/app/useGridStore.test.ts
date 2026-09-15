@@ -12,18 +12,18 @@ describe("responsive placed bricks", () => {
   it("copies drops and options independently while sharing each brick's content", () => {
     const store = useGridStore.getState();
     const options = { imagePosition: "left" };
-    store.addBrick("first", { ...def, viewOptions: options }, [first], "md");
+    store.addBrick("first", { ...def, viewOptions: options }, [first], "lg");
     store.addBrick("second", { ...def, viewOptions: options }, [first, second], "xs");
     options.imagePosition = "right";
-    store.setViewOptions("first", "lg", { imagePosition: "top" });
+    store.setViewOptions("first", "xl", { imagePosition: "top" });
     const bricks = useGridStore.getState().bricksById;
     expect(bricks.first.xs.viewOptions).toEqual({ imagePosition: "left" });
-    expect(bricks.first.md).toEqual(bricks.first.xs);
-    expect(bricks.first.md).not.toBe(bricks.first.xs);
-    expect(bricks.first.md?.viewOptions).not.toBe(bricks.first.xs.viewOptions);
-    expect(bricks.first.lg?.gridItem).not.toBe(bricks.first.md?.gridItem);
+    expect(bricks.first.lg).toEqual(bricks.first.xs);
+    expect(bricks.first.lg).not.toBe(bricks.first.xs);
+    expect(bricks.first.lg?.viewOptions).not.toBe(bricks.first.xs.viewOptions);
+    expect(bricks.first.xl?.gridItem).not.toBe(bricks.first.lg?.gridItem);
     expect(bricks.second.xs.viewOptions).toEqual({ imagePosition: "left" });
-    expect(bricks.first.lg).not.toHaveProperty("data");
+    expect(bricks.first.xl).not.toHaveProperty("data");
     expect(bricks.first.data).toEqual(def.data);
     expect(bricks.first.data).not.toBe(bricks.second.data);
     expect(() => store.setViewOptions("first", "sm", { imagePosition: "invalid" })).toThrow();
@@ -38,27 +38,27 @@ describe("responsive placed bricks", () => {
         { ...first, w: 6 },
         { ...second, x: 0, y: 4 },
       ],
-      "md",
+      "lg",
     );
     const bricks = useGridStore.getState().bricksById;
     expect(bricks.first.xs.gridItem).toEqual(first);
     expect(bricks.second.xs.gridItem).toEqual(second);
-    expect(bricks.first.md?.gridItem?.w).toBe(6);
-    expect(bricks.second.md?.gridItem?.y).toBe(4);
-    expect(resolveBrickBreakpoint(bricks.first, "lg")).toBe(bricks.first.md);
+    expect(bricks.first.lg?.gridItem?.w).toBe(6);
+    expect(bricks.second.lg?.gridItem?.y).toBe(4);
+    expect(resolveBrickBreakpoint(bricks.first, "xl")).toBe(bricks.first.lg);
   });
   it("hides, edits hidden options and restores nearest smaller visible placement", () => {
     const store = useGridStore.getState();
     store.addBrick("first", def, [first], "xs");
     store.setVisible("first", "sm", false);
-    store.setViewOptions("first", "md", { imagePosition: "bottom" });
+    store.setViewOptions("first", "lg", { imagePosition: "bottom" });
     expect(
-      resolveBrickBreakpoint(useGridStore.getState().bricksById.first, "lg").gridItem,
+      resolveBrickBreakpoint(useGridStore.getState().bricksById.first, "xl").gridItem,
     ).toBeNull();
-    store.setVisible("first", "lg", true);
+    store.setVisible("first", "xl", true);
     const brick = useGridStore.getState().bricksById.first;
-    expect(brick.lg?.gridItem).toEqual(first);
-    expect(brick.lg?.viewOptions).toEqual({ imagePosition: "bottom" });
+    expect(brick.xl?.gridItem).toEqual(first);
+    expect(brick.xl?.viewOptions).toEqual({ imagePosition: "bottom" });
     expect(brick.sm?.gridItem).toBeNull();
     store.setVisible("first", "xs", false);
     store.setVisible("first", "xs", true);
@@ -67,26 +67,26 @@ describe("responsive placed bricks", () => {
   it("defaults frames and overrides complete inherited entries independently", () => {
     const store = useGridStore.getState();
     store.addBrick("first", def, [first], "xs");
-    store.addBrick("second", def, [first, second], "md");
+    store.addBrick("second", def, [first, second], "lg");
     expect(useGridStore.getState().bricksById.first.xs.frame).toBe("default");
-    expect(useGridStore.getState().bricksById.second.md?.frame).toBe("default");
+    expect(useGridStore.getState().bricksById.second.lg?.frame).toBe("default");
     store.setFrame("first", "sm", "card");
     let brick = useGridStore.getState().bricksById.first;
     expect(brick.xs.frame).toBe("default");
     expect(brick.sm?.gridItem).toEqual(first);
     expect(brick.sm?.gridItem).not.toBe(brick.xs.gridItem);
     expect(brick.sm?.viewOptions).toEqual(brick.xs.viewOptions);
-    expect(resolveBrickBreakpoint(brick, "md").frame).toBe("card");
     expect(resolveBrickBreakpoint(brick, "lg").frame).toBe("card");
-    store.setFrame("first", "md", "default");
+    expect(resolveBrickBreakpoint(brick, "xl").frame).toBe("card");
+    store.setFrame("first", "lg", "default");
     brick = useGridStore.getState().bricksById.first;
-    expect(resolveBrickBreakpoint(brick, "lg").frame).toBe("default");
+    expect(resolveBrickBreakpoint(brick, "xl").frame).toBe("default");
     const inherited = { ...brick };
-    delete inherited.md;
+    delete inherited.lg;
     useGridStore.setState({
       bricksById: { ...useGridStore.getState().bricksById, first: inherited },
     });
-    expect(resolveBrickBreakpoint(useGridStore.getState().bricksById.first, "md").frame).toBe(
+    expect(resolveBrickBreakpoint(useGridStore.getState().bricksById.first, "lg").frame).toBe(
       "card",
     );
     expect(useGridStore.getState().bricksById.second.xs.frame).toBe("default");
@@ -96,45 +96,45 @@ describe("responsive placed bricks", () => {
     store.addBrick("first", def, [first], "xs");
     store.setFrame("first", "xs", "card");
     store.setViewOptions("first", "sm", { imagePosition: "right" });
-    store.setLayout([{ ...first, x: 1 }], "md");
-    store.setVisible("first", "lg", false);
+    store.setLayout([{ ...first, x: 1 }], "lg");
+    store.setVisible("first", "xl", false);
     let brick = useGridStore.getState().bricksById.first;
     expect(brick.sm?.frame).toBe("card");
-    expect(brick.md?.frame).toBe("card");
     expect(brick.lg?.frame).toBe("card");
-    store.setFrame("first", "lg", "default");
-    expect(useGridStore.getState().bricksById.first.lg?.gridItem).toBeNull();
-    store.setVisible("first", "lg", true);
+    expect(brick.xl?.frame).toBe("card");
+    store.setFrame("first", "xl", "default");
+    expect(useGridStore.getState().bricksById.first.xl?.gridItem).toBeNull();
+    store.setVisible("first", "xl", true);
     brick = useGridStore.getState().bricksById.first;
-    expect(brick.lg?.frame).toBe("default");
-    expect(brick.lg?.gridItem).toEqual({ ...first, x: 1 });
-    expect(brick.lg?.viewOptions).toEqual({ imagePosition: "right" });
+    expect(brick.xl?.frame).toBe("default");
+    expect(brick.xl?.gridItem).toEqual({ ...first, x: 1 });
+    expect(brick.xl?.viewOptions).toEqual({ imagePosition: "right" });
   });
 });
 
-it("keeps xl and 2xl overrides independent and restores inheritance after removal", () => {
+it("keeps lg and xl overrides independent and restores inheritance after removal", () => {
   const store = useGridStore.getState();
   const def = collectionsHash.figma.contents.thumbnail.views["4x4"].def;
   const placement = { i: "large", x: 0, y: 0, w: 4, h: 4 };
-  store.addBrick("large", def, [placement], "lg");
-  store.setViewOptions("large", "xl", { imagePosition: "left" });
-  store.setFrame("large", "xl", "card");
-  store.setLayout([{ ...placement, x: 4 }], "xl");
-  store.setVisible("large", "xl", false);
-  expect(resolveBrickBreakpoint(useGridStore.getState().bricksById.large, "2xl").gridItem).toBeNull();
-  store.setVisible("large", "2xl", true);
-  store.setViewOptions("large", "2xl", { imagePosition: "right" });
+  store.addBrick("large", def, [placement], "sm");
+  store.setViewOptions("large", "lg", { imagePosition: "left" });
+  store.setFrame("large", "lg", "card");
+  store.setLayout([{ ...placement, x: 4 }], "lg");
+  store.setVisible("large", "lg", false);
+  expect(resolveBrickBreakpoint(useGridStore.getState().bricksById.large, "xl").gridItem).toBeNull();
+  store.setVisible("large", "xl", true);
+  store.setViewOptions("large", "xl", { imagePosition: "right" });
   let brick = useGridStore.getState().bricksById.large;
-  expect(brick["2xl"]?.gridItem).toEqual(placement);
-  expect(brick["2xl"]?.frame).toBe("card");
-  expect(brick.xl?.gridItem).toBeNull();
-  expect(brick.xl?.viewOptions).toEqual({ imagePosition: "left" });
-  expect(brick["2xl"]?.viewOptions).toEqual({ imagePosition: "right" });
+  expect(brick["xl"]?.gridItem).toEqual(placement);
+  expect(brick["xl"]?.frame).toBe("card");
+  expect(brick.lg?.gridItem).toBeNull();
+  expect(brick.lg?.viewOptions).toEqual({ imagePosition: "left" });
+  expect(brick["xl"]?.viewOptions).toEqual({ imagePosition: "right" });
   const inherited = { ...brick };
-  delete inherited["2xl"];
+  delete inherited["xl"];
   useGridStore.setState({ bricksById: { large: inherited } });
   brick = useGridStore.getState().bricksById.large;
-  expect(resolveBrickBreakpoint(brick, "2xl")).toBe(brick.xl);
-  store.setVisible("large", "xl", true);
-  expect(useGridStore.getState().bricksById.large.xl?.gridItem).toEqual(placement);
+  expect(resolveBrickBreakpoint(brick, "xl")).toBe(brick.lg);
+  store.setVisible("large", "lg", true);
+  expect(useGridStore.getState().bricksById.large.lg?.gridItem).toEqual(placement);
 });

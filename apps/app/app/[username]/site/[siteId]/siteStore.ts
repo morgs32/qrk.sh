@@ -19,10 +19,8 @@ interface IPageDraft {
   readonly composeBlocks: readonly IComposeBlock[];
   readonly breakpointGridColumnCounts: {
     readonly sm: 1 | 2;
-    readonly md: 1 | 2;
     readonly lg: 1 | 2;
     readonly xl: 1 | 2;
-    readonly "2xl": 1 | 2;
   };
 }
 
@@ -124,11 +122,9 @@ const PersistedSiteEditorStateSchema = Schema.Struct({
               ),
               breakpointGridColumnCounts: Schema.Struct({
                 sm: Schema.Literals([1, 2]),
-                md: Schema.Literals([1, 2]),
                 lg: Schema.Literals([1, 2]),
                 xl: Schema.Literals([1, 2]),
-                "2xl": Schema.Literals([1, 2]),
-              }),
+              }).annotate({ parseOptions: { onExcessProperty: "ignore" } }),
             }),
           ),
         }),
@@ -167,10 +163,8 @@ export const useSiteStore = create<ISiteStoreState>()(
                           composeBlocks: [{ id: crypto.randomUUID(), content: "" }],
                           breakpointGridColumnCounts: {
                             sm: 1,
-                            md: 1,
                             lg: 1,
                             xl: 1,
-                            "2xl": 1,
                           },
                         },
                       },
@@ -204,10 +198,8 @@ export const useSiteStore = create<ISiteStoreState>()(
                           composeBlocks: [{ id: crypto.randomUUID(), content: "" }],
                           breakpointGridColumnCounts: {
                             sm: 1,
-                            md: 1,
                             lg: 1,
                             xl: 1,
-                            "2xl": 1,
                           },
                         },
                       },
@@ -241,10 +233,8 @@ export const useSiteStore = create<ISiteStoreState>()(
                         composeBlocks: [{ id: crypto.randomUUID(), content: "" }],
                         breakpointGridColumnCounts: {
                           sm: 1,
-                          md: 1,
                           lg: 1,
                           xl: 1,
-                          "2xl": 1,
                         },
                       },
                     },

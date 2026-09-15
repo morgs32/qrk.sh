@@ -8,7 +8,7 @@ import { GitHubProfileWideXs } from "./GitHubProfileWideXs";
 import { GitHubProfileWideSm } from "./GitHubProfileWideSm";
 import { makeView } from "../../makeView";
 import { GitHubProfileSquareXs } from "./GitHubProfileSquareXs";
-import { GitHubProfileSquareMd } from "./GitHubProfileSquareMd";
+import { GitHubProfileSquareLg } from "./GitHubProfileSquareLg";
 import { GitHubRepo4x2 } from "./GitHubRepo4x2";
 
 export const githubCollection = makeCollection({
@@ -110,7 +110,7 @@ export const githubCollection = makeCollection({
           label: "4×4",
           order: 0,
           xs: GitHubProfileSquareXs,
-          md: GitHubProfileSquareMd,
+          lg: GitHubProfileSquareLg,
         }),
         "4x2": makeView({
           id: "4x2",

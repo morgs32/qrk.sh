@@ -1,0 +1,37 @@
+import { afterAll, expect, it, vi } from "vitest";
+
+const savedItems = new Map<string, string>();
+vi.stubGlobal("localStorage", {
+  getItem: (key: string) => savedItems.get(key) ?? null,
+  setItem: (key: string, value: string) => savedItems.set(key, value),
+  removeItem: (key: string) => savedItems.delete(key),
+});
+vi.stubGlobal("window", { localStorage });
+const { useGridStore } = await import("./useGridStore");
+afterAll(() => vi.unstubAllGlobals());
+
+for (const [oldWidth, newWidth] of [[768, 640], [1536, 1440]]) {
+  it(`removes obsolete overrides and maps the ${oldWidth}px preset without resetting bricks`, async () => {
+    const key = "qrk-bricks-sandbox-responsive-bricks-v2";
+    const entry = {
+      gridItem: { i: "kept", x: 0, y: 0, w: 4, h: 4 },
+      viewOptions: { imagePosition: "left" },
+      frame: "card",
+    };
+    const brick = {
+      collectionId: "figma", contentId: "thumbnail", viewId: "4x4",
+      data: { title: "Keep content" }, xs: entry,
+      sm: { ...entry, gridItem: null }, lg: entry, xl: entry,
+    };
+    savedItems.set(key, JSON.stringify({ version: 0, state: {
+      selectedWidth: oldWidth,
+      bricksById: { kept: { ...brick, md: entry, "2xl": entry } },
+    } }));
+    await useGridStore.persist.rehydrate();
+    expect(useGridStore.getState().bricksById.kept).toEqual(brick);
+    expect(useGridStore.getState().selectedWidth).toBe(newWidth);
+    const saved = JSON.parse(savedItems.get(key)!);
+    expect(saved.state.bricksById.kept).toEqual(brick);
+    expect(saved.state.selectedWidth).toBe(newWidth);
+  });
+}

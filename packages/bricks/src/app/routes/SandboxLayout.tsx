@@ -15,7 +15,7 @@ export default function SandboxLayout() {
   const selectedWidth =
     savedWidth !== null && savedWidth <= availableWidth
       ? savedWidth
-      : ([1536, 1440, 1024, 768, 640, 375].find((preset) => preset <= availableWidth) ?? null);
+      : ([1440, 1024, 640, 375].find((preset) => preset <= availableWidth) ?? null);
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -160,7 +160,7 @@ export default function SandboxLayout() {
                   <RotateCcw aria-hidden />
                 </Button>
                 <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
-                {[375, 640, 768, 1024, 1440, 1536].map((width) => (
+                {[375, 640, 1024, 1440].map((width) => (
                   <Button
                     key={width}
                     type="button"

@@ -17,7 +17,7 @@ export const useGridStore = create<{
       xs: { gridItem: LayoutItem | null; viewOptions: unknown; frame: "default" | "card" };
     } & Partial<
       Record<
-        "sm" | "md" | "lg" | "xl" | "2xl",
+        "sm" | "lg" | "xl",
         { gridItem: LayoutItem | null; viewOptions: unknown; frame: "default" | "card" }
       >
     >
@@ -25,21 +25,21 @@ export const useGridStore = create<{
   activeBrickDrag: (ICollectionBrickDef & { viewOptions?: unknown }) | null;
   hasHydrated: boolean;
   selectedWidth: number | null;
-  setLayout: (layout: Layout, breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl") => void;
+  setLayout: (layout: Layout, breakpoint: "xs" | "sm" | "lg" | "xl") => void;
   addBrick: (
     brickId: string,
     brickDef: ICollectionBrickDef & { viewOptions?: unknown },
     layout: Layout,
-    breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl",
+    breakpoint: "xs" | "sm" | "lg" | "xl",
   ) => void;
   setActiveBrickDrag: (brickDef: (ICollectionBrickDef & { viewOptions?: unknown }) | null) => void;
-  setViewOptions: (brickId: string, breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl", value: unknown) => void;
+  setViewOptions: (brickId: string, breakpoint: "xs" | "sm" | "lg" | "xl", value: unknown) => void;
   setFrame: (
     brickId: string,
-    breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl",
+    breakpoint: "xs" | "sm" | "lg" | "xl",
     frame: "default" | "card",
   ) => void;
-  setVisible: (brickId: string, breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl", visible: boolean) => void;
+  setVisible: (brickId: string, breakpoint: "xs" | "sm" | "lg" | "xl", visible: boolean) => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 }>()(
   persist(
@@ -161,13 +161,9 @@ export const useGridStore = create<{
           } else {
             // Search explicit smaller entries, skipping hidden entries.
             const smaller =
-              breakpoint === "2xl"
-                ? [brick.xl, brick.lg, brick.md, brick.sm, brick.xs]
-                : breakpoint === "xl"
-                ? [brick.lg, brick.md, brick.sm, brick.xs]
+              breakpoint === "xl"
+                ? [brick.lg, brick.sm, brick.xs]
                 : breakpoint === "lg"
-                ? [brick.md, brick.sm, brick.xs]
-                : breakpoint === "md"
                   ? [brick.sm, brick.xs]
                   : breakpoint === "sm"
                     ? [brick.xs]
@@ -220,9 +216,13 @@ export const useGridStore = create<{
       skipHydration: true,
       onRehydrateStorage: (stateBeforeHydration) => (stateAfterHydration) => {
         const state = stateAfterHydration ?? stateBeforeHydration;
+        if (state.selectedWidth === 768) state.selectedWidth = 640;
+        if (state.selectedWidth === 1536) state.selectedWidth = 1440;
         // Upgrade existing entries without resetting placements or materializing inheritance.
         for (const brick of Object.values(state.bricksById)) {
-          for (const entry of [brick.xs, brick.sm, brick.md, brick.lg, brick.xl, brick["2xl"]]) {
+          if ("md" in brick) delete brick.md;
+          if ("2xl" in brick) delete brick["2xl"];
+          for (const entry of [brick.xs, brick.sm, brick.lg, brick.xl]) {
             if (!entry) continue;
             entry.frame ??= "default";
             if (

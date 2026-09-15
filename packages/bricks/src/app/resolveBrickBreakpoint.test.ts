@@ -7,24 +7,22 @@ describe("whole breakpoint entries", () => {
     viewOptions: { imagePosition: "center" },
     frame: "default",
   } satisfies Parameters<typeof resolveBrickBreakpoint>[0]["xs"];
-  const md = {
+  const lg = {
     gridItem: null,
     viewOptions: { imagePosition: "left" },
     frame: "card",
   } satisfies Parameters<typeof resolveBrickBreakpoint>[0]["xs"];
   it("inherits the complete nearest entry, including hidden status", () => {
-    const brick = { xs, md };
+    const brick = { xs, lg };
     expect(resolveBrickBreakpoint(brick, "xs")).toBe(xs);
     expect(resolveBrickBreakpoint(brick, "sm")).toBe(xs);
-    expect(resolveBrickBreakpoint(brick, "md")).toBe(md);
-    expect(resolveBrickBreakpoint(brick, "lg")).toBe(md);
-    expect(resolveBrickBreakpoint(brick, "xl")).toBe(md);
-    expect(resolveBrickBreakpoint(brick, "2xl")).toBe(md);
+    expect(resolveBrickBreakpoint(brick, "lg")).toBe(lg);
+    expect(resolveBrickBreakpoint(brick, "xl")).toBe(lg);
   });
   it("honors explicit overrides without merging their fields", () => {
-    const lg = { gridItem: xs.gridItem, viewOptions: {}, frame: "default" } satisfies Parameters<
+    const xl = { gridItem: xs.gridItem, viewOptions: {}, frame: "default" } satisfies Parameters<
       typeof resolveBrickBreakpoint
     >[0]["xs"];
-    expect(resolveBrickBreakpoint({ xs, md, lg }, "lg")).toBe(lg);
+    expect(resolveBrickBreakpoint({ xs, lg, xl }, "xl")).toBe(xl);
   });
 });

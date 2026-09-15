@@ -56,10 +56,8 @@ export default function BrickDetail() {
   const entry = resolveBrickBreakpoint(brickDef, breakpoint);
   const ViewForm = BrickComponent.form?.form;
   let inheritedBreakpoint = "xs";
-  if (breakpoint === "2xl" && brickDef.xl) inheritedBreakpoint = "xl";
-  else if ((breakpoint === "2xl" || breakpoint === "xl") && brickDef.lg) inheritedBreakpoint = "lg";
-  else if ((breakpoint === "2xl" || breakpoint === "xl" || breakpoint === "lg") && brickDef.md) inheritedBreakpoint = "md";
-  else if ((breakpoint === "2xl" || breakpoint === "xl" || breakpoint === "lg" || breakpoint === "md") && brickDef.sm) inheritedBreakpoint = "sm";
+  if (breakpoint === "xl" && brickDef.lg) inheritedBreakpoint = "lg";
+  else if ((breakpoint === "xl" || breakpoint === "lg") && brickDef.sm) inheritedBreakpoint = "sm";
 
   return (
     <section data-testid="brick-detail-pane">

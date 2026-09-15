@@ -96,7 +96,7 @@ Brick factories take **one object** describing what to build. Name that paramete
 
 - **Bad**: `export function makeView(options: { id; w; h; xs })`; `export type MakeCollectionProps = { … }` with `makeCollection(props: MakeCollectionProps)` when nothing else imports that type.
 
-- **Good**: `makeView(props: { id; label; w; h; order; form?; xs; sm?; md?; lg? })`, `makeContent(props: { content; views })`, and `makeCollection(props: { collectionName; collectionLabel; collectionDescription; contents })` in [packages/bricks/src/makeView.tsx](../../packages/bricks/src/makeView.tsx), [makeContent.ts](../../packages/bricks/src/makeContent.ts), and [makeCollection.ts](../../packages/bricks/src/makeCollection.ts).
+- **Good**: `makeView(props: { id; label; w; h; order; form?; xs; sm?; lg?; xl? })`, `makeContent(props: { content; views })`, and `makeCollection(props: { collectionName; collectionLabel; collectionDescription; contents })` in [packages/bricks/src/makeView.tsx](../../packages/bricks/src/makeView.tsx), [makeContent.ts](../../packages/bricks/src/makeContent.ts), and [makeCollection.ts](../../packages/bricks/src/makeCollection.ts).
 
 Data-backed contents configure requests with `makeFetcherConfiguration({ contentOptionsShape, contentOptionsForm, fetcher })`
 from [makeFetcherConfiguration.ts](../../packages/bricks/src/makeFetcherConfiguration.ts), passed as the content's `configuration`.
@@ -231,7 +231,7 @@ in a half-height, nonmodal shadcn bottom drawer. The drawer leaves the grid
 interactive for drag/drop and supports its close button and Escape.
 
 The app-style toolbar sits at the bottom of the desktop grid region and at the
-top on mobile/tablet. The 375, 640, 768, 1024, and 1440px choices resize only the grid
+top on mobile/tablet. The 375, 640, 1024, and 1440px choices resize only the grid
 preview, centered within that region. Measure the available region independently
 of the preview; disable choices that exceed it. Start with the largest fitting
 preset and fall back to the largest fitting preset if a resize makes the selection
@@ -240,10 +240,10 @@ navigation and reload, and is independent of Reset's grid state changes.
 
 ### Responsive brick breakpoints
 
-Every brick render supplies `breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl"` alongside
+Every brick render supplies `breakpoint: "xs" | "sm" | "lg" | "xl"` alongside
 its existing data. Components may ignore the prop. Breakpoints describe the full
-eight-column grid width: `xs` below 640px, `sm` from 640px, `md` from 768px,
-`lg` from 1024px, `xl` from 1280px, and `2xl` from 1536px.
+eight-column grid width: `xs` below 640px, `sm` from 640px,
+`lg` from 1024px, and `xl` from 1280px.
 
 `BrickBreakpointProvider` owns one container measurement and shares the breakpoint
 through context. In the editor, `EditorLayout` provides context to the grid, drawers,
@@ -267,32 +267,36 @@ truncates overflowing profile values with ellipses.
 
 ### Preview dimensions
 
-`BrickPreviewFrame` takes inline `w`, `h`, and `children` props. Its width is
-`w / 8 * 100%` of its containing block, with aspect ratio `w / h`. Preview
-geometry does not read the selected grid width or breakpoint. Eight-column
-previews fill the pane without horizontal padding; smaller sandbox previews
-use 16px horizontal padding. Presentation components still receive the active
-breakpoint. Placed bricks retain the grid's own dimensions.
+`BrickPreviewFrame` takes inline `w`, `h`, and `children` props. It reads the
+measured grid width from `useBrickBreakpoint` and computes width and height as
+`Math.round(gridWidth / 8 * w)` and `Math.round(gridWidth / 8 * h)`.
+Previews therefore follow the selected grid width rather than their containing
+pane. Wide previews scroll within narrower panes instead of shrinking.
+Presentation components receive the same active breakpoint. Placed bricks retain
+the grid's own dimensions, including its one-pixel edge rounding.
 All catalog, configuration, detail, carousel, and standalone previews use this
-frame. The standalone preview's slider sets its containing block width.
+frame. Placed-detail previews use resolved breakpoint dimensions; the standalone
+slider sets the simulated full grid width measured by its provider.
 Import the frame directly or through `@qrk.sh/bricks/BrickPreviewFrame`.
 
 ### Breakpoint presentation names
 
 Follow [brick presentation conventions](../../wiki/brick-layout-conventions.md):
 `<Collection><Content><Shape><Breakpoint>`, for example `GitHubProfileSquareXs`
-and `GitHubProfileSquareMd`, with matching filenames. Select presentations with
+and `GitHubProfileSquareLg`, with matching filenames. Select presentations with
 `makeView` at the brick definition.
 
 For the wide profile, use `GitHubProfileWideXs` and `GitHubProfileWideSm` in
-matching files; `md`, `lg`, `xl`, and `2xl` inherit `Sm` through `makeView`.
+matching files; `lg` and `xl` inherit `Sm` through `makeView`.
 
 ### Responsive sandbox placed bricks
 
 The sandbox persists `bricksById` under `qrk-bricks-sandbox-responsive-bricks-v2`.
-It starts empty and neither reads nor migrates older grid keys. Each placed brick
+It starts empty and neither reads nor migrates older grid keys. Hydration removes
+obsolete `md` and `2xl` entries, preserving the four retained entries and shared
+content. Saved 768px and 1536px presets become 640px and 1440px respectively. Each placed brick
 stores `collectionId`, `contentId`, `viewId`, shared `data`, required `xs`, and
-optional `sm`, `md`, `lg`, `xl`, and `2xl` entries. Each entry contains `gridItem` (the grid
+optional `sm`, `lg`, and `xl` entries. Each entry contains `gridItem` (the grid
 library's `LayoutItem`, or `null` to hide) and `viewOptions`. Omitted entries
 inherit the entire nearest smaller entry, including hidden status. Editing an
 inherited entry first copies its placement and options. The placed-brick editor's

@@ -3,7 +3,7 @@
 Name presentation components `<Collection><Content><Shape><Breakpoint>` and use
 matching PascalCase filenames. Use semantic shapes and explicit breakpoint
 suffixes rather than `Compact` or `Expanded`: `GitHubProfileSquareXs.tsx` and
-`GitHubProfileSquareMd.tsx` are the GitHub profile square presentations.
+`GitHubProfileSquareLg.tsx` are the GitHub profile square presentations.
 
 Select complete presentations once in the brick definition:
 
@@ -15,7 +15,7 @@ makeView({
   h: 4,
   order: 0,
   xs: GitHubProfileSquareXs,
-  md: GitHubProfileSquareMd,
+  lg: GitHubProfileSquareLg,
 });
 ```
 
@@ -23,11 +23,11 @@ Import `makeView` directly from `packages/bricks/src/makeView.tsx` using the
 appropriate relative path. The view owns `id`, `label`, `w`, `h`, `order`, and optional `form`.
 Its map key in `makeContent.views` must match `id`; `makeContent` supplies content
 identity, and collection assembly preserves catalog `def` and `component` fields.
-`xs` is required; `sm`, `md`, `lg`, `xl`, and `"2xl"` are optional.
+`xs` is required; `sm`, `lg`, and `xl` are optional.
 An omitted breakpoint inherits the nearest smaller defined presentation. In this
-example, `sm` uses `Xs` and `lg`, `xl`, and `2xl` use `Md`.
-Grid container thresholds are 640px (`sm`), 768px (`md`), 1024px (`lg`),
-1280px (`xl`), and 1536px (`2xl`); `xs` covers smaller widths.
+example, `sm` uses `Xs` and `lg` and `xl` use `Lg`.
+Grid container thresholds are 640px (`sm`), 1024px (`lg`),
+and 1280px (`xl`); `xs` covers smaller widths.
 
 The helper uses the existing incoming `breakpoint` prop and forwards the same
 props to the selected React component. It performs no measurement and owns no
@@ -42,14 +42,14 @@ dimensions, schemas, and persisted configuration do not change.
 
 The square GitHub profile uses a 32px avatar, username, bio, location, website,
 and icon/count statistics. `Xs` truncates overflowing values and omits activity;
-`Md` retains contribution activity. The wide `4x2` brick uses `GitHubProfileWideXs` and
+`Lg` retains contribution activity. The wide `4x2` brick uses `GitHubProfileWideXs` and
 `GitHubProfileWideSm`, supplied as `xs` and `sm` in its `makeView` definition.
 `Xs` puts activity in the top half and the 20px avatar/username below. `Sm`
-retains statistics and labeled activity; `md`, `lg`, `xl`, and `2xl` inherit it. Compact
+retains statistics and labeled activity; `lg` and `xl` inherit it. Compact
 activity markup belongs directly to `WideXs`; the shared `GitHubProfileActivity`
-only renders the larger chart used by `WideSm` and `SquareMd`.
+only renders the larger chart used by `WideSm` and `SquareLg`.
 
 The Figma thumbnail square uses `FigmaThumbnailSquareXs` and
-`FigmaThumbnailSquareSm`; `md`, `lg`, `xl`, and `2xl` inherit `Sm`. Its view form edits
+`FigmaThumbnailSquareSm`; `lg` and `xl` inherit `Sm`. Its view form edits
 per-breakpoint `viewOptions.imagePosition`, which each presentation applies
 directly to its image's `object-position`. These options do not change grid dimensions.

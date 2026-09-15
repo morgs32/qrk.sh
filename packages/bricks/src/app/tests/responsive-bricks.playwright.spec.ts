@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test.use({ viewport: { width: 2200, height: 1100 } });
+test.use({ viewport: { width: 3000, height: 1100 } });
 
 test("independent Figma options, shared content, hidden inheritance and fresh persistence", async ({
   page,
@@ -13,7 +13,7 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   await page.getByRole("button", { name: "375px grid width" }).click();
   const preview = page.locator("[data-content-view-brick]");
   const image = preview.locator("[data-figma-thumbnail]");
-  for (const width of [375, 640, 768, 1024]) {
+  for (const width of [375, 640, 1024, 1440]) {
     await page.getByRole("button", { name: `${width}px grid width` }).click();
     await expect(image).toBeVisible();
     await expect(image).toHaveCSS("object-fit", "cover");
@@ -81,14 +81,14 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   await expect(first.locator("img")).toHaveCSS("object-position", "0% 50%");
   await page.getByRole("button", { name: "Bottom", exact: true }).click();
   await expect(first.locator("img")).toHaveCSS("object-position", "50% 100%");
-  await page.getByRole("button", { name: "768px grid width" }).click();
+  await page.getByRole("button", { name: "1024px grid width" }).click();
   await page.getByRole("button", { name: "Top", exact: true }).click();
   await expect(first.locator("img")).toHaveCSS("object-position", "50% 0%");
   await expect(first).toContainText("First content");
   await expect(second.locator("img")).toHaveCSS("object-position", "100% 50%");
   await page.getByRole("button", { name: "Hide brick", exact: true }).click();
   await expect(first).toHaveCount(0);
-  await page.getByRole("button", { name: "1024px grid width" }).click();
+  await page.getByRole("button", { name: "1440px grid width" }).click();
   await expect(first).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole("button", { name: "Show brick", exact: true })).toBeVisible();
@@ -97,7 +97,7 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   await expect(first).toContainText("First content");
   await page.getByRole("button", { name: "375px grid width" }).click();
   await expect(first.locator("img")).toHaveCSS("object-position", "0% 50%");
-  await page.getByRole("button", { name: "768px grid width" }).click();
+  await page.getByRole("button", { name: "1024px grid width" }).click();
   await expect(first).toHaveCount(0);
   const saved = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v2") ?? "{}"),
@@ -114,8 +114,8 @@ test("independent Figma options, shared content, hidden inheritance and fresh pe
   expect(saved.state.bricksById[secondId!].data.title).toBe("Figma Thumbnail");
   expect(saved.state.bricksById[firstId!].xs.viewOptions).toEqual({ imagePosition: "left" });
   expect(saved.state.bricksById[firstId!].sm.viewOptions).toEqual({ imagePosition: "bottom" });
-  expect(saved.state.bricksById[firstId!].md.gridItem).toBeNull();
-  expect(saved.state.bricksById[firstId!].lg.gridItem).not.toBeNull();
+  expect(saved.state.bricksById[firstId!].lg.gridItem).toBeNull();
+  expect(saved.state.bricksById[firstId!].xl.gridItem).not.toBeNull();
   expect(saved.state.bricksById[secondId!].xs.viewOptions).toEqual({ imagePosition: "right" });
   expect(scraperRequests).toBe(0);
 });
@@ -129,7 +129,7 @@ test("moves without resize handles and reloads each breakpoint", async ({ page }
   await preview.locator(".brick-drag-handle").dragTo(grid, { targetPosition: { x: 210, y: 20 } });
   const first = grid.locator("[data-brick-id]").first();
   const xsX = await first.getAttribute("data-grid-x");
-  await page.getByRole("button", { name: "768px grid width" }).click();
+  await page.getByRole("button", { name: "1024px grid width" }).click();
   await expect(grid.locator(".react-resizable-handle")).toHaveCount(0);
   const width = await first.getAttribute("data-grid-w");
   await first.locator(".brick-drag-handle").dragTo(grid, { targetPosition: { x: 650, y: 180 } });
@@ -185,7 +185,7 @@ test("removing an override restores whole-entry inheritance", async ({ page }) =
   await page.getByRole("button", { name: "640px grid width" }).click();
   await expect(page.getByRole("button", { name: "Inherit from xs" })).toBeDisabled();
   await page.getByRole("button", { name: "Left", exact: true }).click();
-  await page.getByRole("button", { name: "768px grid width" }).click();
+  await page.getByRole("button", { name: "1024px grid width" }).click();
   await page.getByRole("button", { name: "Bottom", exact: true }).click();
   await page.getByRole("button", { name: "Hide brick", exact: true }).click();
   await expect(placed).toHaveCount(0);
@@ -197,15 +197,15 @@ test("removing an override restores whole-entry inheritance", async ({ page }) =
   const saved = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("qrk-bricks-sandbox-responsive-bricks-v2") ?? "{}"),
   );
-  expect(saved.state.bricksById[brickId!]).not.toHaveProperty("md");
+  expect(saved.state.bricksById[brickId!]).not.toHaveProperty("lg");
   expect(saved.state.bricksById[brickId!].sm.gridItem).toEqual(
     saved.state.bricksById[brickId!].xs.gridItem,
   );
   await page.getByRole("button", { name: "640px grid width" }).click();
   await page.getByRole("button", { name: "Top", exact: true }).click();
-  await page.getByRole("button", { name: "768px grid width" }).click();
-  await expect(placed.locator("img")).toHaveCSS("object-position", "50% 0%");
   await page.getByRole("button", { name: "1024px grid width" }).click();
+  await expect(placed.locator("img")).toHaveCSS("object-position", "50% 0%");
+  await page.getByRole("button", { name: "1440px grid width" }).click();
   await expect(page.getByRole("button", { name: "Inherit from sm" })).toBeDisabled();
 });
 

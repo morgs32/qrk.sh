@@ -72,7 +72,7 @@ export type ICollectionBrick = {
     bivarianceHack(props: {
       data?: unknown;
       viewOptions?: unknown;
-      breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+      breakpoint: "xs" | "sm" | "lg" | "xl";
     }): ReactNode;
   }["bivarianceHack"] & { form?: ReturnType<typeof makeViewForm> };
 };

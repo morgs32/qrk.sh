@@ -29,7 +29,7 @@ it("infers defaults and form values and rejects invalid updates before publicati
     h: 4,
     order: 0,
     form,
-    xs: (props: { breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl"; viewOptions?: { alignment: string } }) =>
+    xs: (props: { breakpoint: "xs" | "sm" | "lg" | "xl"; viewOptions?: { alignment: string } }) =>
       createElement("span", null, props.viewOptions?.alignment),
   });
   expect(View.form).toBe(form);

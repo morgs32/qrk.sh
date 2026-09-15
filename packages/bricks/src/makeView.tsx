@@ -11,10 +11,8 @@ export function makeView<const ID extends string, PROPS extends object>(props: {
   form?: ReturnType<typeof makeViewForm>;
   xs: (props: PROPS) => ReactNode;
   sm?: (props: NoInfer<PROPS>) => ReactNode;
-  md?: (props: NoInfer<PROPS>) => ReactNode;
   lg?: (props: NoInfer<PROPS>) => ReactNode;
   xl?: (props: NoInfer<PROPS>) => ReactNode;
-  "2xl"?: (props: NoInfer<PROPS>) => ReactNode;
 }) {
   const { id, label, w, h, order, ...presentations } = props;
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) {
@@ -22,16 +20,12 @@ export function makeView<const ID extends string, PROPS extends object>(props: {
   }
 
   function View(
-    props: NoInfer<PROPS> & { breakpoint: "xs" | "sm" | "md" | "lg" | "xl" | "2xl"; viewOptions?: unknown },
+    props: NoInfer<PROPS> & { breakpoint: "xs" | "sm" | "lg" | "xl"; viewOptions?: unknown },
   ) {
     let Presentation = presentations.xs;
     if (props.breakpoint !== "xs" && presentations.sm) Presentation = presentations.sm;
-    if ((props.breakpoint === "md" || props.breakpoint === "lg" || props.breakpoint === "xl" || props.breakpoint === "2xl") && presentations.md) {
-      Presentation = presentations.md;
-    }
-    if ((props.breakpoint === "lg" || props.breakpoint === "xl" || props.breakpoint === "2xl") && presentations.lg) Presentation = presentations.lg;
-    if ((props.breakpoint === "xl" || props.breakpoint === "2xl") && presentations.xl) Presentation = presentations.xl;
-    if (props.breakpoint === "2xl" && presentations["2xl"]) Presentation = presentations["2xl"];
+    if ((props.breakpoint === "lg" || props.breakpoint === "xl") && presentations.lg) Presentation = presentations.lg;
+    if (props.breakpoint === "xl" && presentations.xl) Presentation = presentations.xl;
     return (
       <Presentation
         {...props}

@@ -12,12 +12,13 @@ import useSWR from "swr";
 
 import { useSiteStore } from "../../../siteStore";
 import { CopyButton } from "./CopyButton";
-import { SiteCard } from "./SiteCard";
+import { SearchPreviewCard } from "../SearchPreviewCard";
 
 import { useZerospinUserInitializedState, ZerospinUser } from "@/components/ZerospinUser";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
@@ -476,12 +477,29 @@ export function SiteSettings() {
 
         <div className="flex flex-col gap-2">
           <FieldLabel>Preview</FieldLabel>
-          <SiteCard
+          <SearchPreviewCard
             title={siteDraft.name}
             url={publishedUrlDisplay}
-            publishedAt="Mar 30"
-            logoSrc={draft.logoUrl.length > 0 ? draft.logoUrl : undefined}
+            description={siteDraft.description}
+            faviconSrc={
+              draft.faviconLightUrl.length > 0
+                ? draft.faviconLightUrl
+                : undefined
+            }
           />
+        </div>
+
+        <Separator />
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <FieldLabel description="Unpublish your website from all domains.">
+              Danger Zone
+            </FieldLabel>
+          </div>
+          <Button type="button" variant="destructive" className="shrink-0">
+            Unpublish
+          </Button>
         </div>
       </div>
     </div>

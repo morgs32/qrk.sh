@@ -1,35 +1,16 @@
-import { Result, Schema } from "effect";
+import { Schema } from "effect";
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import type { JSONContent } from "@tiptap/react";
 
-interface IPageArticleDraft {
-  readonly article: JSONContent;
-}
+const ArticleDocSchema = Schema.Struct({
+  type: Schema.Literal("doc"),
+  content: Schema.optional(Schema.Array(Schema.Unknown)),
+  attrs: Schema.optional(Schema.Unknown),
+  marks: Schema.optional(Schema.Array(Schema.Unknown)),
+  text: Schema.optional(Schema.String),
+});
 
-interface ISitePagesDraft {
-  readonly pages: Readonly<Record<string, IPageArticleDraft>>;
-}
-
-interface IOwnerPagesDraft {
-  readonly sites: Readonly<Record<string, ISitePagesDraft>>;
-}
-
-interface IPageStoreState {
-  readonly owners: Readonly<Record<string, IOwnerPagesDraft>>;
-  readonly initializePageDraft: (identityKey: string, siteId: string, pageId: string) => void;
-  readonly setArticle: (
-    identityKey: string,
-    siteId: string,
-    pageId: string,
-    article: JSONContent,
-  ) => void;
-}
-
-const PAGE_STORE_STORAGE_KEY = "qrk-page-editor-drafts-v1";
-
-const seedArticle: JSONContent = {
-  type: "doc",
+const seedArticle = {
+  type: "doc" as const,
   content: [
     {
       type: "heading",
@@ -48,168 +29,106 @@ const seedArticle: JSONContent = {
   ],
 };
 
-const ArticleSchema = Schema.Struct({
-  type: Schema.Literal("doc"),
-  content: Schema.optional(Schema.Array(Schema.Unknown)),
-  attrs: Schema.optional(Schema.Unknown),
-  marks: Schema.optional(Schema.Array(Schema.Unknown)),
-  text: Schema.optional(Schema.String),
-});
+function normalizeArticle(article: unknown) {
+  if (article === null || article === undefined) {
+    return seedArticle;
+  }
 
-const PersistedPageEditorStateSchema = Schema.Struct({
-  owners: Schema.Record(
-    Schema.String,
-    Schema.Struct({
-      sites: Schema.Record(
-        Schema.String,
-        Schema.Struct({
-          pages: Schema.Record(
-            Schema.String,
-            Schema.Struct({
-              article: ArticleSchema,
-            }),
-          ),
-        }),
-      ),
-    }),
-  ),
-}) satisfies Schema.Schema<{
-  readonly owners: Readonly<Record<string, IOwnerPagesDraft>>;
-}>;
+  const value =
+    typeof article === "string" ? (JSON.parse(article) as unknown) : article;
 
-function createSeedPageDraft(): IPageArticleDraft {
-  return {
-    article: seedArticle,
-  };
+  return Schema.decodeUnknownSync(ArticleDocSchema)(value);
 }
 
-export const usePageStore = create<IPageStoreState>()(
-  persist(
-    (set) => ({
-      owners: {},
-      initializePageDraft: (identityKey, siteId, pageId) => {
-        set((state) => {
-          const ownerDraft = state.owners[identityKey];
-
-          if (ownerDraft === undefined) {
-            return {
-              owners: {
-                ...state.owners,
-                [identityKey]: {
-                  sites: {
-                    [siteId]: {
-                      pages: {
-                        [pageId]: createSeedPageDraft(),
-                      },
-                    },
-                  },
-                },
-              },
-            };
-          }
-
-          const siteDraft = ownerDraft.sites[siteId];
-
-          if (siteDraft === undefined) {
-            return {
-              owners: {
-                ...state.owners,
-                [identityKey]: {
-                  sites: {
-                    ...ownerDraft.sites,
-                    [siteId]: {
-                      pages: {
-                        [pageId]: createSeedPageDraft(),
-                      },
-                    },
-                  },
-                },
-              },
-            };
-          }
-
-          if (siteDraft.pages[pageId] !== undefined) {
-            return state;
-          }
-
-          return {
-            owners: {
-              ...state.owners,
-              [identityKey]: {
-                sites: {
-                  ...ownerDraft.sites,
-                  [siteId]: {
-                    ...siteDraft,
-                    pages: {
-                      ...siteDraft.pages,
-                      [pageId]: createSeedPageDraft(),
-                    },
-                  },
-                },
-              },
-            },
-          };
-        });
+export const usePageStore = create<{
+  readonly page: {
+    readonly id: string;
+    readonly siteId: string;
+    readonly slug: string;
+    readonly title: string;
+    readonly description: string;
+    readonly pageType: "split-scroll" | "shared-scroll";
+    readonly article: {
+      readonly type: "doc";
+      readonly content?: ReadonlyArray<unknown>;
+      readonly attrs?: unknown;
+      readonly marks?: ReadonlyArray<unknown>;
+      readonly text?: string;
+    };
+  } | null;
+  readonly initializePage: (page: {
+    readonly id: string;
+    readonly siteId: string;
+    readonly slug: string;
+    readonly title: string | null;
+    readonly description: string | null;
+    readonly pageType: "split-scroll" | "shared-scroll";
+    readonly article: unknown;
+  }) => void;
+  readonly setTitle: (title: string) => void;
+  readonly setDescription: (description: string) => void;
+  readonly setArticle: (article: {
+    readonly type: "doc";
+    readonly content?: ReadonlyArray<unknown>;
+    readonly attrs?: unknown;
+    readonly marks?: ReadonlyArray<unknown>;
+    readonly text?: string;
+  }) => void;
+}>()((set) => ({
+  page: null,
+  initializePage: (page) => {
+    set({
+      page: {
+        id: page.id,
+        siteId: page.siteId,
+        slug: page.slug,
+        title: page.title ?? "",
+        description: page.description ?? "",
+        pageType: page.pageType,
+        article: normalizeArticle(page.article),
       },
-      setArticle: (identityKey, siteId, pageId, article) => {
-        set((state) => {
-          const ownerDraft = state.owners[identityKey];
-          const siteDraft = ownerDraft?.sites[siteId];
-          const pageDraft = siteDraft?.pages[pageId];
+    });
+  },
+  setTitle: (title) => {
+    set((state) => {
+      if (state.page === null) {
+        return state;
+      }
 
-          if (ownerDraft === undefined || siteDraft === undefined || pageDraft === undefined) {
-            return state;
-          }
+      return {
+        page: {
+          ...state.page,
+          title,
+        },
+      };
+    });
+  },
+  setDescription: (description) => {
+    set((state) => {
+      if (state.page === null) {
+        return state;
+      }
 
-          return {
-            owners: {
-              ...state.owners,
-              [identityKey]: {
-                sites: {
-                  ...ownerDraft.sites,
-                  [siteId]: {
-                    ...siteDraft,
-                    pages: {
-                      ...siteDraft.pages,
-                      [pageId]: {
-                        ...pageDraft,
-                        article,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          };
-        });
-      },
-    }),
-    {
-      name: PAGE_STORE_STORAGE_KEY,
-      version: 1,
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ owners: state.owners }),
-      skipHydration: true,
-      merge: (persistedState, currentState) => {
-        const decoded = Schema.decodeUnknownResult(PersistedPageEditorStateSchema, {
-          onExcessProperty: "error",
-        })(persistedState);
+      return {
+        page: {
+          ...state.page,
+          description,
+        },
+      };
+    });
+  },
+  setArticle: (article) => {
+    set((state) => {
+      if (state.page === null) {
+        return state;
+      }
 
-        if (Result.isFailure(decoded)) {
-          localStorage.removeItem(PAGE_STORE_STORAGE_KEY);
-          return currentState;
-        }
-
-        return {
-          ...currentState,
-          owners: decoded.success.owners,
-        };
-      },
-      onRehydrateStorage: () => (_state, error) => {
-        if (error !== undefined) {
-          localStorage.removeItem(PAGE_STORE_STORAGE_KEY);
-        }
-      },
-    },
-  ),
-);
+      return {
+        page: {
+          ...state.page,
+          article,
+        },
+      };
+    });
+  },
+}));

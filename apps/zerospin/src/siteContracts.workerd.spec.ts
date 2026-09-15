@@ -12,7 +12,7 @@ import { UlidMonotonicFactory } from "@zerospin/core/utils/UlidMonotonicFactory"
 import { DateTime, Effect, Layer, ManagedRuntime, Result } from "effect";
 import { describe, expect } from "vitest";
 
-import { createPageV1 as createPage } from "./aggregates/user/contracts/createPage/CreatePageV1";
+import { createPageV2 as createPage } from "./aggregates/user/contracts/createPage/CreatePageV2";
 import { createSiteV2 as createSite } from "./aggregates/user/contracts/createSite/CreateSiteV2";
 import { gridV1 as Grid } from "./aggregates/user/models/grid/GridV1";
 import { brickV2 as Brick } from "./aggregates/user/models/brick/BrickV2";
@@ -143,7 +143,7 @@ describe("site and page creation contracts", () => {
 
       const pageRows = db.select().from(dbConfig.schema.page).all();
 
-      expect(stagedPage.success.contractVersion).toBe("1.1.0");
+      expect(stagedPage.success.contractVersion).toBe("2.0.0");
       expect(stagedPage.success.payload.id).toBe("pag_site_contract");
       expect(stagedPage.success.payload).toMatchObject({
         siteId,
@@ -151,17 +151,19 @@ describe("site and page creation contracts", () => {
         title: null,
         description: null,
         pageType: "split-scroll",
+        article: null,
       });
       expect(pageRows).toHaveLength(1);
       expect(pageRows[0]).toEqual(
         expect.objectContaining({
           id: stagedPage.success.payload.id,
-          version: "1.0.0",
+          version: "2.0.0",
           siteId,
           slug: "home",
           title: null,
           description: null,
           pageType: "split-scroll",
+          article: null,
         }),
       );
 
@@ -289,7 +291,7 @@ describe("site and page creation contracts", () => {
   it.effect("rejects a Page payload that omits siteId", () =>
     Effect.gen(function* () {
       const validation = yield* validatePayload(createPage, {
-        version: "1.1.0",
+        version: "2.0.0",
         // @ts-expect-error Intentionally omit the required parent ID to exercise runtime validation.
         payload: {
           id: "pag_missing_site",
@@ -423,6 +425,7 @@ describe("user frontend creation guards", () => {
           title: null,
           description: null,
           pageType: "split-scroll",
+          article: null,
         },
       });
 
@@ -437,6 +440,7 @@ describe("user frontend creation guards", () => {
             title: null,
             description: null,
             pageType: "split-scroll",
+            article: null,
           },
         }).pipe(Effect.flip);
 
@@ -554,6 +558,246 @@ describe("user frontend creation guards", () => {
           logoUrl: "https://pub.test.r2.dev/logo.png",
           faviconLightUrl: "https://pub.test.r2.dev/favicon-light.png",
           faviconDarkUrl: "https://pub.test.r2.dev/favicon-dark.png",
+        }),
+      );
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("updates page settings for the owning authenticated user", () =>
+    Effect.gen(function* () {
+      const userId = "usr_update_page_settings";
+      const now = DateTime.toDateUtc(yield* DateTime.now);
+      const dbConfig = makeResourceDbConfig({
+        models: userFrontend.models,
+        otherTables: sessionRepoTables,
+      });
+      const { schema } = dbConfig;
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      );
+
+      db.insert(dbConfig.schema.user)
+        .values({
+          id: userId,
+          modelName: User.modelName,
+          version: User.version,
+          createdAt: now,
+          updatedAt: now,
+          clerkUserId: "update_page_settings_user",
+          username: null,
+          displayName: null,
+        })
+        .run();
+
+      const sessionId = "sesn_update_page_settings";
+      const runtime = yield* Effect.acquireRelease(
+        Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
+        (runtime) => runtime.disposeEffect,
+      );
+      const guards = yield* initializeGuards(userFrontend);
+      const session = makeAggregateSession({
+        runtime,
+        guards,
+        frontend: userFrontend,
+        sessionId,
+      });
+      session.store.setState({
+        ...session.store.getState(),
+        sessionId,
+        aggregateId: "acct_update_page_settings_user",
+        aggregateName: userFrontend.aggregateName,
+        authentication: {
+          aggregateId: "acct_update_page_settings_user",
+          clerkUserId: "update_page_settings_user",
+        },
+        systemId: "sys_update_page_settings",
+        frontendName: userFrontend.name,
+        aggregateFrontendLockKey: "update-page-settings-lock-key",
+        db,
+        schema,
+        models: userFrontend.models,
+        isInitialized: true,
+        aggregateIndex: 0,
+        userIndex: 0,
+        pushIndex: 0,
+        sessionStatus: "current",
+        backupState: { status: "ready", failure: null },
+      });
+
+      const stagedSite = session.executeCommand({
+        contractName: "createSite",
+        payload: { id: "sit_update_page_settings", userId },
+      });
+      expect(stagedSite._tag).toBe("Success");
+      if (stagedSite._tag === "Failure") {
+        throw new Error(stagedSite.failure.message);
+      }
+
+      const stagedPage = session.executeCommand({
+        contractName: "createPage",
+        payload: {
+          id: "pag_update_page_settings",
+          siteId: stagedSite.success.payload.id,
+          slug: "home",
+          pageType: "split-scroll",
+        },
+      });
+      expect(stagedPage._tag).toBe("Success");
+      if (stagedPage._tag === "Failure") {
+        throw new Error(stagedPage.failure.message);
+      }
+
+      const updated = session.executeCommand({
+        contractName: "updatePageSettings",
+        payload: {
+          id: stagedPage.success.payload.id,
+          title: "Hello page",
+          description: "A page description",
+        },
+      });
+      expect(updated._tag).toBe("Success");
+      if (updated._tag === "Failure") {
+        throw new Error(updated.failure.message);
+      }
+
+      expect(updated.success.contractVersion).toBe("1.0.0");
+      expect(updated.success.payload).toMatchObject({
+        id: stagedPage.success.payload.id,
+        title: "Hello page",
+        description: "A page description",
+      });
+
+      const pageRows = db.select().from(dbConfig.schema.page).all();
+      expect(pageRows).toHaveLength(1);
+      expect(pageRows[0]).toEqual(
+        expect.objectContaining({
+          id: stagedPage.success.payload.id,
+          title: "Hello page",
+          description: "A page description",
+        }),
+      );
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("updates page article for the owning authenticated user", () =>
+    Effect.gen(function* () {
+      const userId = "usr_update_page_article";
+      const now = DateTime.toDateUtc(yield* DateTime.now);
+      const dbConfig = makeResourceDbConfig({
+        models: userFrontend.models,
+        otherTables: sessionRepoTables,
+      });
+      const { schema } = dbConfig;
+      const db = yield* makeProvisionedInMemoryWasmSqliteDb({ dbConfig }).pipe(
+        Effect.provide(AsyncLive),
+      );
+
+      db.insert(dbConfig.schema.user)
+        .values({
+          id: userId,
+          modelName: User.modelName,
+          version: User.version,
+          createdAt: now,
+          updatedAt: now,
+          clerkUserId: "update_page_article_user",
+          username: null,
+          displayName: null,
+        })
+        .run();
+
+      const sessionId = "sesn_update_page_article";
+      const runtime = yield* Effect.acquireRelease(
+        Effect.sync(() => ManagedRuntime.make(Layer.mergeAll(NanoIdFactory, UlidMonotonicFactory))),
+        (runtime) => runtime.disposeEffect,
+      );
+      const guards = yield* initializeGuards(userFrontend);
+      const session = makeAggregateSession({
+        runtime,
+        guards,
+        frontend: userFrontend,
+        sessionId,
+      });
+      session.store.setState({
+        ...session.store.getState(),
+        sessionId,
+        aggregateId: "acct_update_page_article_user",
+        aggregateName: userFrontend.aggregateName,
+        authentication: {
+          aggregateId: "acct_update_page_article_user",
+          clerkUserId: "update_page_article_user",
+        },
+        systemId: "sys_update_page_article",
+        frontendName: userFrontend.name,
+        aggregateFrontendLockKey: "update-page-article-lock-key",
+        db,
+        schema,
+        models: userFrontend.models,
+        isInitialized: true,
+        aggregateIndex: 0,
+        userIndex: 0,
+        pushIndex: 0,
+        sessionStatus: "current",
+        backupState: { status: "ready", failure: null },
+      });
+
+      const stagedSite = session.executeCommand({
+        contractName: "createSite",
+        payload: { id: "sit_update_page_article", userId },
+      });
+      expect(stagedSite._tag).toBe("Success");
+      if (stagedSite._tag === "Failure") {
+        throw new Error(stagedSite.failure.message);
+      }
+
+      const stagedPage = session.executeCommand({
+        contractName: "createPage",
+        payload: {
+          id: "pag_update_page_article",
+          siteId: stagedSite.success.payload.id,
+          slug: "home",
+          pageType: "split-scroll",
+        },
+      });
+      expect(stagedPage._tag).toBe("Success");
+      if (stagedPage._tag === "Failure") {
+        throw new Error(stagedPage.failure.message);
+      }
+
+      const article = {
+        type: "doc" as const,
+        content: [
+          {
+            type: "heading",
+            attrs: { level: 1 },
+            content: [{ type: "text", text: "Hello" }],
+          },
+        ],
+      };
+
+      const updated = session.executeCommand({
+        contractName: "updatePageArticle",
+        payload: {
+          id: stagedPage.success.payload.id,
+          article,
+        },
+      });
+      expect(updated._tag).toBe("Success");
+      if (updated._tag === "Failure") {
+        throw new Error(updated.failure.message);
+      }
+
+      expect(updated.success.contractVersion).toBe("1.0.0");
+      expect(updated.success.payload).toMatchObject({
+        id: stagedPage.success.payload.id,
+        article,
+      });
+
+      const pageRows = db.select().from(dbConfig.schema.page).all();
+      expect(pageRows).toHaveLength(1);
+      expect(pageRows[0]).toEqual(
+        expect.objectContaining({
+          id: stagedPage.success.payload.id,
+          article,
         }),
       );
     }).pipe(Effect.scoped),

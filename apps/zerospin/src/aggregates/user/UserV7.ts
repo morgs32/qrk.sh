@@ -11,14 +11,14 @@ import {
 import { Effect, Schema } from "effect";
 
 import { createGridV2 as createGrid } from "./contracts/createGrid/CreateGridV2";
-import { createPageV1 as createPage } from "./contracts/createPage/CreatePageV1";
+import { createPageV2 as createPage } from "./contracts/createPage/CreatePageV2";
 import { createSiteV2 as createSite } from "./contracts/createSite/CreateSiteV2";
 import { createUserV1 as createUser } from "./contracts/createUser/CreateUserV1";
 import { updateGridV2 as updateGrid } from "./contracts/updateGrid/UpdateGridV2";
 import { updateSiteSettingsV1 as updateSiteSettings } from "./contracts/updateSiteSettings/UpdateSiteSettingsV1";
 import { brickV2 as Brick } from "./models/brick/BrickV2";
 import { gridV1 as Grid } from "./models/grid/GridV1";
-import { pageV1 as Page } from "./models/page/PageV1";
+import { pageV2 as Page } from "./models/page/PageV2";
 import { siteV2 as Site } from "./models/site/SiteV2";
 import { userV1 as User } from "./models/user/UserV1";
 import { user } from "./user";

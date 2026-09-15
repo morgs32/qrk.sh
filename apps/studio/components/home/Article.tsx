@@ -1,6 +1,5 @@
 "use client";
 
-import { useUser } from "@clerk/react";
 import Document from "@tiptap/extension-document";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Image } from "@tiptap/extension-image";
@@ -12,13 +11,17 @@ import { Underline } from "@tiptap/extension-underline";
 import { Selection } from "@tiptap/extensions";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { useSession } from "@zerospin/react";
+import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { usePageStore } from "@/app/[username]/site/[siteId]/page/[pageId]/pageStore";
 import { ArticleToolbar } from "@/components/home/ArticleToolbar";
 import { HorizontalRule } from "@/app/tiptap/node/horizontal-rule-node/horizontal-rule-node-extension";
+import { ZerospinUser } from "@/components/ZerospinUser";
 
 import "@/app/tiptap/node/blockquote-node/blockquote-node.scss";
 import "@/app/tiptap/node/code-block-node/code-block-node.scss";
@@ -31,7 +34,7 @@ import "@/app/tiptap/templates/simple/simple-editor.scss";
 
 const ParamsSchema = Schema.Struct({
   siteId: Schema.String,
-  pageId: Schema.String,
+  pageId: Schema.TemplateLiteral(["pag_", Schema.String]),
 });
 
 const ArticleDocument = Document.extend({
@@ -53,12 +56,9 @@ function isSelectionInRequiredHeading(editor: {
 
 export function Article() {
   const params = useValidatedParams(ParamsSchema);
-  const { user } = useUser();
-  const article = usePageStore((state) =>
-    user === null || user === undefined
-      ? undefined
-      : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId]?.article,
-  );
+  const session = useSession(ZerospinUser);
+  const page = usePageStore((state) => state.page);
+  const article = page?.id === params.pageId ? page.article : undefined;
   const setArticle = usePageStore((state) => state.setArticle);
   const [inRequiredHeading, setInRequiredHeading] = useState(true);
 
@@ -90,10 +90,35 @@ export function Article() {
       content: article,
       immediatelyRender: false,
       onUpdate: ({ editor: updatedEditor }) => {
-        if (user === null || user === undefined) {
+        const json = updatedEditor.getJSON();
+        const article = Schema.decodeUnknownSync(
+          Schema.Struct({
+            type: Schema.Literal("doc"),
+            content: Schema.optional(Schema.Array(Schema.Unknown)),
+            attrs: Schema.optional(Schema.Unknown),
+            marks: Schema.optional(Schema.Array(Schema.Unknown)),
+            text: Schema.optional(Schema.String),
+          }),
+        )(json);
+        setArticle(article);
+
+        const state = session.store.getState();
+        if (!state.isInitialized) {
+          toast.error("Your session is not ready");
           return;
         }
-        setArticle(user.id, params.siteId, params.pageId, updatedEditor.getJSON());
+
+        const result = session.executeCommand({
+          contractName: "updatePageArticle",
+          payload: {
+            id: params.pageId,
+            article,
+          },
+        });
+
+        if (result._tag === "Failure") {
+          toast.error(new ZerospinError(result.failure).message);
+        }
       },
       onSelectionUpdate: ({ editor: updatedEditor }) => {
         setInRequiredHeading(isSelectionInRequiredHeading(updatedEditor));
@@ -122,7 +147,7 @@ export function Article() {
     setInRequiredHeading(isSelectionInRequiredHeading(editor));
   }, [editor]);
 
-  if (user === null || user === undefined || article === undefined || editor === null) {
+  if (article === undefined || editor === null) {
     return null;
   }
 

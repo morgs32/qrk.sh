@@ -67,4 +67,5 @@ export const githubProfile = makeModule({
     login: "morgs32",
   },
   xs: { component: GitHubProfileStats, w: 4, h: 4 },
+  sm: { component: GitHubProfileStats, w: 4, h: 3 },
 });

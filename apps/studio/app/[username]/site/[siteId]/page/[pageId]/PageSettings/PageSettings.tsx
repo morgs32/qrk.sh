@@ -1,17 +1,16 @@
 "use client";
 
-import { useUser } from "@clerk/react";
+import { useSession } from "@zerospin/react";
+import { ZerospinError } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { FileText, Globe, X } from "lucide-react";
-import { useNavigate } from "react-router";
 import { useState } from "react";
-import { createStore, useStore } from "zustand";
-import { useLiveQuery } from "@zerospin/react";
-import { ZerospinUser } from "@/components/ZerospinUser";
+import { href, useNavigate } from "react-router";
+import { toast } from "sonner";
 
-import { href } from "react-router";
-import { useSitePageDraftStore } from "../../../sitePageDraftStore";
+import { usePageStore } from "../pageStore";
 
+import { useZerospinUserInitializedState, ZerospinUser } from "@/components/ZerospinUser";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,45 +25,73 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.TemplateLiteral(["pag_", Schema.String]),
 });
 
+function pickSerializablePage(page: { title: string; description: string }) {
+  return {
+    title: page.title,
+    description: page.description,
+  };
+}
+
+function emptyToNull(value: string): string | null {
+  return value.length > 0 ? value : null;
+}
+
 export function PageSettings() {
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
-  const { user } = useUser();
-  const pageDraft = useSitePageDraftStore((state) =>
-    user === null || user === undefined
-      ? undefined
-      : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId],
-  );
-  const setPageDescription = useSitePageDraftStore((state) => state.setPageDescription);
-  const { data: page, error } = useLiveQuery(ZerospinUser, {
-    deps: [params.pageId, params.siteId],
-    query: (db) =>
-      db.query.page.findFirst({
+  const session = useSession(ZerospinUser);
+  const { db } = useZerospinUserInitializedState();
+  const pageDraft = usePageStore((state) => state.page);
+  const setTitle = usePageStore((state) => state.setTitle);
+  const setDescription = usePageStore((state) => state.setDescription);
+  const [baselineState, setBaselineState] = useState(() => {
+    const page = db.query.page
+      .findFirst({
         where: { id: { eq: params.pageId }, siteId: { eq: params.siteId } },
-      }),
+      })
+      .sync();
+    if (page === undefined) {
+      throw new Error(`Page ${params.pageId} not found`);
+    }
+    return {
+      pageId: params.pageId,
+      baseline: {
+        title: page.title ?? "",
+        description: page.description ?? "",
+      },
+    };
   });
-  const resourceTitle = page?.title ?? "";
-  const [draft, setDraft] = useState(() => ({
-    pageId: page?.id,
-    store: createStore(() => ({ title: resourceTitle })),
-  }));
-  // Initialize when the resource arrives or the page changes, not when its title updates.
-  if (draft.pageId !== page?.id) {
-    setDraft({
-      pageId: page?.id,
-      store: createStore(() => ({ title: resourceTitle })),
+
+  // Re-query when the page changes without remount; do not refresh when draft fields update.
+  if (baselineState.pageId !== params.pageId) {
+    const page = db.query.page
+      .findFirst({
+        where: { id: { eq: params.pageId }, siteId: { eq: params.siteId } },
+      })
+      .sync();
+    if (page === undefined) {
+      throw new Error(`Page ${params.pageId} not found`);
+    }
+    setBaselineState({
+      pageId: params.pageId,
+      baseline: {
+        title: page.title ?? "",
+        description: page.description ?? "",
+      },
     });
   }
-  const titleStore = draft.store;
-  const title = useStore(titleStore, (state) => state.title);
 
-  if (error !== undefined) {
-    throw error;
-  }
-
-  if (user === null || user === undefined || pageDraft === undefined || page === undefined) {
+  if (
+    pageDraft === null ||
+    pageDraft.id !== params.pageId ||
+    baselineState.pageId !== params.pageId
+  ) {
     return null;
   }
+
+  const baseline = baselineState.baseline;
+  const draft = pickSerializablePage(pageDraft);
+  const isDirty = draft.title !== baseline.title || draft.description !== baseline.description;
 
   return (
     <div className="w-full">
@@ -72,21 +99,56 @@ export function PageSettings() {
         <FileText className="size-5 shrink-0 text-foreground" strokeWidth={2} aria-hidden />
         <h1 className="min-w-0 flex-1 text-base font-semibold tracking-tight">Page Settings</h1>
         <div className="flex shrink-0 items-center gap-1">
-          {title !== resourceTitle ? (
-            <Button type="button" size="sm">
+          {isDirty ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                const state = session.store.getState();
+                if (!state.isInitialized) {
+                  toast.error("Your session is not ready");
+                  return;
+                }
+
+                const result = session.executeCommand({
+                  contractName: "updatePageSettings",
+                  payload: {
+                    id: params.pageId,
+                    title: emptyToNull(draft.title),
+                    description: emptyToNull(draft.description),
+                  },
+                });
+
+                if (result._tag === "Failure") {
+                  toast.error(new ZerospinError(result.failure).message);
+                  return;
+                }
+
+                setBaselineState({
+                  pageId: params.pageId,
+                  baseline: structuredClone(draft),
+                });
+              }}
+            >
               Save
             </Button>
           ) : null}
           <Button
             type="button"
-            variant={title !== resourceTitle ? "destructive" : "ghost"}
-            size={title !== resourceTitle ? "sm" : "icon"}
-            className={title !== resourceTitle ? "h-8 cursor-pointer" : "size-8 cursor-pointer"}
-            aria-label={title !== resourceTitle ? "Cancel" : "Close drawer"}
-            onClick={() => navigate(href("/:username/site/:siteId/page/:pageId", { ...params }))}
+            variant={isDirty ? "destructive" : "ghost"}
+            size={isDirty ? "sm" : "icon"}
+            className={isDirty ? "h-8 cursor-pointer" : "size-8 cursor-pointer"}
+            aria-label={isDirty ? "Cancel" : "Close drawer"}
+            onClick={() => {
+              if (isDirty) {
+                setTitle(baseline.title);
+                setDescription(baseline.description);
+              }
+              navigate(href("/:username/site/:siteId/page/:pageId", { ...params }));
+            }}
           >
             <X className="size-3.5" />
-            {title !== resourceTitle ? "Cancel" : null}
+            {isDirty ? "Cancel" : null}
           </Button>
         </div>
       </header>
@@ -97,8 +159,8 @@ export function PageSettings() {
             <Label htmlFor="page-title">Title</Label>
             <Input
               id="page-title"
-              value={title}
-              onChange={(event) => titleStore.setState({ title: event.target.value })}
+              value={pageDraft.title}
+              onChange={(event) => setTitle(event.target.value)}
             />
           </div>
 
@@ -109,9 +171,7 @@ export function PageSettings() {
                 id="page-description"
                 className="min-h-[126px] flex-1 resize-y field-sizing-fixed"
                 value={pageDraft.description}
-                onChange={(event) =>
-                  setPageDescription(user.id, params.siteId, params.pageId, event.target.value)
-                }
+                onChange={(event) => setDescription(event.target.value)}
               />
             </div>
 
@@ -129,7 +189,7 @@ export function PageSettings() {
                     className="block truncate text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
                     onClick={(e) => e.preventDefault()}
                   >
-                    {title}
+                    {pageDraft.title}
                   </a>
                   <p className="line-clamp-2 text-sm text-muted-foreground">
                     {pageDraft.description}

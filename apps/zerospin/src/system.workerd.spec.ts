@@ -36,8 +36,8 @@ describe("QRK system", () => {
     "provisions one independent user across a lost response and concurrent authentications",
     () =>
       Effect.gen(function* () {
-        const { userV7 } = yield* Effect.promise(() => import("./aggregates/user/UserV7"));
-        const authenticate = userV7.authentication.authenticate;
+        const { userV8 } = yield* Effect.promise(() => import("./aggregates/user/UserV8"));
+        const authenticate = userV8.authentication.authenticate;
         const systemRepo = yield* SystemRepo.getRepo({ key: { systemId: "sys_qrk_sh_1" } });
         yield* makeAsync<Awaited<ReturnType<SystemRepo["checkSystemSpec"]>>>(() =>
           systemRepo.checkSystemSpec({ spec: makeSystemSpec({ system }) }),
@@ -50,7 +50,7 @@ describe("QRK system", () => {
             systemId: "sys_qrk_sh_1",
             aggregateId: makeAggregateId({ id: clerkUserId }),
             aggregateName: "user",
-            aggregateVersion: "7.0.0",
+            aggregateVersion: "8.0.0",
           };
           const chain = yield* AggregateChain.getRepo({ key });
           const attempts: { id: string; failureCode: string | null }[] = [];
@@ -62,7 +62,7 @@ describe("QRK system", () => {
               contract: createUser,
               aggregateId: key.aggregateId,
               aggregateName: "user",
-              aggregateVersion: "7.0.0",
+              aggregateVersion: "8.0.0",
               systemName: "qrk-sh",
               payload: yield* Schema.decodeUnknownEffect(makeEffectSchema(createUser.payload))(
                 props.payload,
@@ -149,8 +149,8 @@ describe("QRK system", () => {
 
   it.effect("fails provisioning for terminal command errors other than an existing user", () =>
     Effect.gen(function* () {
-      const { userV7 } = yield* Effect.promise(() => import("./aggregates/user/UserV7"));
-      const authenticate = userV7.authentication.authenticate;
+      const { userV8 } = yield* Effect.promise(() => import("./aggregates/user/UserV8"));
+      const authenticate = userV8.authentication.authenticate;
       const now = DateTime.toDateUtc(yield* DateTime.now);
       const failure = yield* authenticate({
         signature: { sessionToken: "user_rejected_provisioning" },
@@ -168,7 +168,7 @@ describe("QRK system", () => {
               ),
               aggregateId: "acct_user_rejected_provisioning",
               aggregateName: "user",
-              aggregateVersion: "7.0.0",
+              aggregateVersion: "8.0.0",
               systemName: "qrk-sh",
             });
             const encoded = yield* encodeCommand({ contract: createUser, command });
@@ -196,9 +196,9 @@ describe("QRK system", () => {
   it.effect("registers the user aggregate and enforces its authenticated ownership", () =>
     Effect.gen(function* () {
       expect(system.name).toBe("qrk-sh");
-      expect(system.aggregates.user["7.0.0"].authentication.pattern.source).toBe("/:clerkUserId");
-      expect(Object.keys(system.aggregates.user)).toEqual(["7.0.0"]);
-      const aggregate = system.aggregates.user["7.0.0"];
+      expect(system.aggregates.user["8.0.0"].authentication.pattern.source).toBe("/:clerkUserId");
+      expect(Object.keys(system.aggregates.user)).toEqual(["8.0.0"]);
+      const aggregate = system.aggregates.user["8.0.0"];
       expect(aggregate.models).toEqual(userFrontend.models);
       expect(aggregate.contracts.createUser.contract).toBe(createUser);
       expect(Object.keys(aggregate.selections).sort()).toEqual([
@@ -244,7 +244,7 @@ describe("QRK system", () => {
         Effect.result,
       );
       expect(malformed._tag).toBe("Failure");
-      const authentication = system.aggregates.user["7.0.0"].authentication;
+      const authentication = system.aggregates.user["8.0.0"].authentication;
       const failure = yield* authentication
         .authenticate({
           signature: { sessionToken: "invalid-token" },

@@ -7,7 +7,7 @@ import { useLiveQuery, useSession } from "@zerospin/react";
 import { ZerospinError } from "@zerospin/sdk/browser";
 
 import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
-import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
 
 import { Button } from "@/components/ui/button";
 import { ZerospinUser } from "@/components/ZerospinUser";

@@ -5,7 +5,7 @@ import { prefixId, makeContractVersion, primitives, ZerospinError } from "@zeros
 import { Effect, Schema } from "effect";
 import { gridV1 as Grid } from "../../models/grid/GridV1";
 import { brickV2 as Brick } from "../../models/brick/BrickV2";
-import { pageV1 as Page } from "../../models/page/PageV1";
+import { pageV2 as Page } from "../../models/page/PageV2";
 import { siteV2 as Site } from "../../models/site/SiteV2";
 import { userV1 as User } from "../../models/user/UserV1";
 

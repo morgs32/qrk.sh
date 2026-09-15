@@ -7,7 +7,7 @@ import { Schema } from "effect";
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router";
 
-import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { pageV2 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV2";
 import { siteV2 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV2";
 
 import { useZerospinUserInitializedState, ZerospinUser } from "@/components/ZerospinUser";
@@ -30,8 +30,10 @@ export default function PageLayout() {
   const initializeSite = useSiteStore((state) => state.initializeSite);
   const siteDraftId = useSiteStore((state) => state.site?.id);
   const siteName = useSiteStore((state) => state.site?.name ?? "");
+  const initializePage = usePageStore((state) => state.initializePage);
+  const pageDraftId = usePageStore((state) => state.page?.id);
+  const pageDraftTitle = usePageStore((state) => state.page?.title ?? "");
   const initializeSitePageDraft = useSitePageDraftStore((state) => state.initializePageDraft);
-  const initializeArticlePageDraft = usePageStore((state) => state.initializePageDraft);
   const [readyRoute, setReadyRoute] = useState<{
     identityKey: string;
     siteId: string;
@@ -50,7 +52,7 @@ export default function PageLayout() {
         },
       }),
   });
-  const pageTitle = page?.title ?? "";
+  const pageTitle = pageDraftTitle !== "" ? pageDraftTitle : (page?.title ?? "");
 
   // Re-seed when the route site changes; do not refresh when draft fields update.
   if (siteDraftId !== siteId) {
@@ -76,6 +78,36 @@ export default function PageLayout() {
     });
   }
 
+  // Re-seed when the route page changes; do not refresh when draft fields update.
+  if (pageId !== undefined && pageDraftId !== pageId) {
+    const pageRow = db.query.page
+      .findFirst({
+        where: {
+          id: { eq: pageId },
+          siteId: { eq: siteId },
+        },
+      })
+      .sync();
+
+    if (pageRow === undefined) {
+      throw new Error(`Page ${pageId} not found`);
+    }
+
+    if (pageRow.siteId === null) {
+      throw new Error(`Page ${pageId} has no site`);
+    }
+
+    initializePage({
+      id: pageRow.id,
+      siteId: pageRow.siteId,
+      slug: pageRow.slug,
+      title: pageRow.title,
+      description: pageRow.description,
+      pageType: pageRow.pageType,
+      article: pageRow.article,
+    });
+  }
+
   useEffect(() => {
     if (identityKey === undefined || pageId === undefined) {
       return;
@@ -85,21 +117,17 @@ export default function PageLayout() {
       useSitePageDraftStore.persist.rehydrate();
     }
 
-    if (!usePageStore.persist.hasHydrated()) {
-      usePageStore.persist.rehydrate();
-    }
-
     initializeSitePageDraft(identityKey, siteId, pageId);
-    initializeArticlePageDraft(identityKey, siteId, pageId);
     setReadyRoute({ identityKey, siteId, pageId });
-  }, [initializeArticlePageDraft, initializeSitePageDraft, pageId, siteId, identityKey]);
+  }, [initializeSitePageDraft, pageId, siteId, identityKey]);
 
   const isCurrentRouteReady =
     readyRoute !== null &&
     readyRoute.identityKey === identityKey &&
     readyRoute.siteId === siteId &&
     readyRoute.pageId === pageId &&
-    siteDraftId === siteId;
+    siteDraftId === siteId &&
+    pageDraftId === pageId;
 
   return isCurrentRouteReady ? (
     <div className="flex h-screen flex-col overflow-hidden">

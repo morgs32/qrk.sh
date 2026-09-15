@@ -2,19 +2,17 @@ import { figmaThumbnail } from "./modules/figmaThumbnail/figmaThumbnail";
 import { githubActivity } from "./modules/githubActivity/githubActivity";
 import { githubProfile } from "./modules/githubProfile/githubProfile";
 import { githubRepo } from "./modules/githubRepo/githubRepo";
-import { icon } from "./modules/icon/icon";
 import { image } from "./modules/image/image";
 import { instagram } from "./modules/instagram/instagram";
 import { link } from "./modules/link/link";
 import { mapPlace } from "./modules/mapPlace/mapPlace";
-import { swatch } from "./modules/swatch/swatch";
+import { swatchAndIcon } from "./modules/swatchAndIcon/swatchAndIcon";
 import { text } from "./modules/text/text";
 import { tiktok } from "./modules/tiktok/tiktok";
 import type { IModule } from "./types";
 
 export const modulesHash: Record<string, IModule> = {
-  icon,
-  swatch,
+  "swatch-and-icon": swatchAndIcon,
   "github-activity": githubActivity,
   "github-profile": githubProfile,
   "github-repo": githubRepo,

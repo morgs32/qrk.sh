@@ -82,7 +82,7 @@ Shared brick padding and typography live in library root next to `BrickFrame`. I
 - **`BrickFrame`** — owned by `makeModule`’s `Brick` renderer (not by presentations). Fill sizing, `qrk-bricks`, and nested SVG `user-select: none` (`[&_svg]:select-none`). No background or text-color props.
 - **`BrickShell` / `BrickBody` / `BrickFooter`** — inset flex column, scrollable middle, and `mt-auto` meta row. Shells compose **inside** the framed presentation.
 - **`MediaFooter`** — bottom strip for **Thumbnail** layouts (optional `icon` / `iconUrl`, `heading`, `overline`; content-sized with `p-4`). Distinct from `BrickFooter` (stats/meta row inside a Stats shell). No card border or fill.
-- **`brickTokens.ts`** — class-string constants (`brickInsetClass`, `brickMutedClass`, `brickTitleClass`, …). Prefer these over ad hoc `p-2` / `text-xs` / `text-zinc-500` in brick presentations and json-render registry pieces.
+- **`brickTokens.ts`** — class-string constants (`brickInsetClass`, `brickMutedClass`, `brickTitleClass`, …). Prefer these over ad hoc `p-2` / `text-xs` / `text-zinc-500` in brick presentations and json-render registry pieces. Oxlint errors on font size and font color `text-*` classnames under `modules/**`.
 
 Presentations must not add card chrome (fills, borders, radii, shadows on the brick surface). Content geometry (e.g. avatar circles) and intentional fills (e.g. SwatchAndIcon color) are allowed.
 

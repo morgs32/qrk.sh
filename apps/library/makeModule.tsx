@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { makeEffectSchema, type InferDecodedRow, type IShape } from "@zerospin/schema";
 import { Schema } from "effect";
 
+import { BrickFrame } from "./BrickFrame";
 import type { makeOptions } from "./makeOptions";
 import type { makeFetcherConfiguration } from "./makeFetcherConfiguration";
 import type { IFormConfiguration } from "./makeFormConfiguration";
@@ -75,10 +76,12 @@ export function makeModule<
   ) {
     const Presentation = presentations[propsForBrick.breakpoint].component;
     return (
-      <Presentation
-        {...propsForBrick}
-        options={propsForBrick.options ?? props.options?.defaultValue ?? {}}
-      />
+      <BrickFrame>
+        <Presentation
+          {...propsForBrick}
+          options={propsForBrick.options ?? props.options?.defaultValue ?? {}}
+        />
+      </BrickFrame>
     );
   }
   Brick.options = props.options;

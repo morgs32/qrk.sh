@@ -19,20 +19,22 @@ export function makeRegistry<
     registry: REGISTRY;
     registryName: string;
     registryDescription: string;
-    w: number;
-    h: number;
     order: number;
     form?: ReturnType<typeof makeAppearanceForm>;
-    xs: (props: PROPS) => ReactNode;
-    sm?: (props: NoInfer<PROPS>) => ReactNode;
-    lg?: (props: NoInfer<PROPS>) => ReactNode;
-    xl?: (props: NoInfer<PROPS>) => ReactNode;
+    xs: { component: (props: PROPS) => ReactNode; w: number; h: number };
+    sm?: { component: (props: NoInfer<PROPS>) => ReactNode; w: number; h: number };
+    lg?: { component: (props: NoInfer<PROPS>) => ReactNode; w: number; h: number };
+    xl?: { component: (props: NoInfer<PROPS>) => ReactNode; w: number; h: number };
   } & (
     | {
         dataShape: null;
         defaultData: null;
         configuration?: never;
-        xs: (props: { breakpoint: "xs" | "sm" | "lg" | "xl" }) => ReactNode;
+        xs: {
+          component: (props: { breakpoint: "xs" | "sm" | "lg" | "xl" }) => ReactNode;
+          w: number;
+          h: number;
+        };
       }
     | {
         dataShape: DATA_SHAPE;
@@ -40,10 +42,14 @@ export function makeRegistry<
         configuration?:
           | ReturnType<typeof makeFetcherConfiguration<REGISTRY_OPTIONS_SHAPE>>
           | IFormConfiguration<InferDecodedRow<DATA_SHAPE>>;
-        xs: (props: {
-          data: InferDecodedRow<DATA_SHAPE>;
-          breakpoint: "xs" | "sm" | "lg" | "xl";
-        }) => ReactNode;
+        xs: {
+          component: (props: {
+            data: InferDecodedRow<DATA_SHAPE>;
+            breakpoint: "xs" | "sm" | "lg" | "xl";
+          }) => ReactNode;
+          w: number;
+          h: number;
+        };
       }
   ),
 ) {
@@ -53,18 +59,21 @@ export function makeRegistry<
     );
   }
 
-  /** Omitted breakpoints inherit the nearest smaller presentation. */
+  // Resolve complete entries once so the renderer and serialized dimensions agree.
+  const xs = props.xs;
+  const sm = props.sm ?? xs;
+  const lg = props.lg ?? sm;
+  const xl = props.xl ?? lg;
+  const presentations = { xs, sm, lg, xl };
+
+  /** Omitted breakpoints inherit the nearest smaller component and dimensions. */
   function Brick(
     propsForBrick: NoInfer<PROPS> & {
       breakpoint: "xs" | "sm" | "lg" | "xl";
       appearanceOptions?: unknown;
     },
   ) {
-    let Presentation: (props: PROPS) => ReactNode = props.xs;
-    if (propsForBrick.breakpoint !== "xs" && props.sm) Presentation = props.sm;
-    if ((propsForBrick.breakpoint === "lg" || propsForBrick.breakpoint === "xl") && props.lg)
-      Presentation = props.lg;
-    if (propsForBrick.breakpoint === "xl" && props.xl) Presentation = props.xl;
+    const Presentation = presentations[propsForBrick.breakpoint].component;
     return (
       <Presentation
         {...propsForBrick}
@@ -75,8 +84,10 @@ export function makeRegistry<
   Brick.form = props.form;
   const def = {
     registry: props.registry,
-    w: props.w,
-    h: props.h,
+    xs: { w: xs.w, h: xs.h },
+    sm: { w: sm.w, h: sm.h },
+    lg: { w: lg.w, h: lg.h },
+    xl: { w: xl.w, h: xl.h },
     label: props.registryName,
     order: props.order,
   };

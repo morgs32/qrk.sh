@@ -30,6 +30,12 @@ a {
   text-decoration: none;
 }
 
+/* Follow each measured width directly instead of chasing it with another transition. */
+.sandbox-grid-width[data-width-transition-active="true"] .react-grid-layout,
+.sandbox-grid-width[data-width-transition-active="true"] .react-grid-item {
+  transition: none;
+}
+
 /* Keep every brick's content below its corner controls. */
 .brick-drag-surface {
   position: relative;

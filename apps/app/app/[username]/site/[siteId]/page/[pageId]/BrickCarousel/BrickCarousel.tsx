@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { ICatalog, ICatalogBrick } from "@qrk.sh/bricks";
+import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 import type { EmblaCarouselType } from "embla-carousel";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -50,6 +51,7 @@ export function BrickCarousel(props: {
   catalog: ICatalog;
   brickSortFn?: (a: ICatalogBrick, b: ICatalogBrick) => number;
 }) {
+  const { breakpoint } = useBrickBreakpoint();
   const { catalog, brickSortFn = defaultBrickSort } = props;
   const bricks = useMemo(
     () => Object.values(catalog.registries).sort(brickSortFn),
@@ -60,7 +62,7 @@ export function BrickCarousel(props: {
     throw new BrickCarouselNoBricksError(catalog.catalogName);
   }
 
-  const maxH = Math.max(...bricks.map((b) => b.def.h));
+  const maxH = Math.max(...bricks.map((b) => b.def[breakpoint].h));
   const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -130,18 +132,18 @@ export function BrickCarousel(props: {
           {bricks.map((brick) => (
             <CarouselItem
               key={`${brick.def.registry}`}
-              data-brick-drawer-slide-grid-h={brick.def.h}
+              data-brick-drawer-slide-grid-h={brick.def[breakpoint].h}
               className="relative flex h-full min-h-0 flex-col items-center justify-center"
               style={{
-                minHeight: `calc(${brick.def.h} * 50vw / 8)`,
+                minHeight: `calc(${brick.def[breakpoint].h} * 50vw / 8)`,
               }}
             >
               <div className="flex min-h-0 w-full flex-shrink-0 flex-col items-center justify-center">
                 <div
                   className="relative shrink-0"
                   style={{
-                    width: `calc(${brick.def.w} * 50vw / ${PREVIEW_GRID_COLS})`,
-                    height: `calc(${brick.def.h} * 50vw / ${PREVIEW_GRID_COLS})`,
+                    width: `calc(${brick.def[breakpoint].w} * 50vw / ${PREVIEW_GRID_COLS})`,
+                    height: `calc(${brick.def[breakpoint].h} * 50vw / ${PREVIEW_GRID_COLS})`,
                   }}
                 >
                   <BrickPreview brick={brick} />

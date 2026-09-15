@@ -237,7 +237,10 @@ test("catalog configuration ends with the current brick definition", async ({ pa
   const definition = pane.getByTestId("registry-data-result");
   await expect(definition).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(definition).toContainText("swatch");
-  await definition.getByRole("button", { name: "expand JSON", exact: true }).first().click();
+  await definition
+    .getByRole("treeitem", { name: /^expand JSONdata:/ })
+    .getByRole("button", { name: "expand JSON", exact: true })
+    .click();
   await expect(definition).toContainText("#ff0000");
   await page.goto("/catalogs/figma");
   await expect(pane.getByRole("heading")).toHaveText([

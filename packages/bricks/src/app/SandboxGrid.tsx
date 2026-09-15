@@ -95,7 +95,7 @@ export function SandboxGrid() {
                 return false;
               }
 
-              return { w: activeBrickDrag.w, h: activeBrickDrag.h };
+              return { w: activeBrickDrag[breakpoint].w, h: activeBrickDrag[breakpoint].h };
             },
           }}
           onDrop={(nextLayout, item) => {
@@ -112,8 +112,8 @@ export function SandboxGrid() {
               return {
                 ...layoutItem,
                 i: brickId,
-                w: activeBrickDrag.w,
-                h: activeBrickDrag.h,
+                w: activeBrickDrag[breakpoint].w,
+                h: activeBrickDrag[breakpoint].h,
               };
             });
             addBrick(brickId, activeBrickDrag, gridLayoutWithDroppedBrick, breakpoint);

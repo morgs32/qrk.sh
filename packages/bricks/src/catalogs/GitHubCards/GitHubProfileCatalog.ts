@@ -7,7 +7,8 @@ import { makeRegistry } from "../../makeRegistry";
 
 import { GitHubProfileSquareLg } from "./GitHubProfileSquareLg";
 import { GitHubProfileSquareXs } from "./GitHubProfileSquareXs";
-import { GitHubRepo4x2 } from "./GitHubRepo4x2";
+import { GitHubRepoSm } from "./GitHubRepoSm";
+import { GitHubRepoXs } from "./GitHubRepoXs";
 
 export const githubCatalog = makeCatalog({
   catalogName: "github",
@@ -100,11 +101,9 @@ export const githubCatalog = makeCatalog({
           return { date: date.toISOString().slice(0, 10), count, level };
         }),
       },
-      w: 4,
-      h: 4,
       order: 0,
-      xs: GitHubProfileSquareXs,
-      lg: GitHubProfileSquareLg,
+      xs: { component: GitHubProfileSquareXs, w: 4, h: 4 },
+      lg: { component: GitHubProfileSquareLg, w: 4, h: 4 },
     }),
     repo: makeRegistry({
       dataShape: null,
@@ -112,10 +111,9 @@ export const githubCatalog = makeCatalog({
       registry: "repo",
       registryName: "Repo",
       registryDescription: "A GitHub repository card.",
-      w: 4,
-      h: 2,
       order: 1,
-      xs: GitHubRepo4x2,
+      xs: { component: GitHubRepoXs, w: 4, h: 6 },
+      sm: { component: GitHubRepoSm, w: 4, h: 2 },
     }),
   },
 });

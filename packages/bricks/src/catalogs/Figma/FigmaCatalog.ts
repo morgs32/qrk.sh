@@ -46,8 +46,6 @@ export const figmaCatalog = makeCatalog({
         thumbnail_width: 789,
         thumbnail_height: 450,
       },
-      w: 4,
-      h: 4,
       order: 0,
       form: makeAppearanceForm({
         shape: {
@@ -58,8 +56,8 @@ export const figmaCatalog = makeCatalog({
         },
         form: FigmaAppearanceForm,
       }),
-      xs: FigmaThumbnailSquareXs,
-      sm: FigmaThumbnailSquareSm,
+      xs: { component: FigmaThumbnailSquareXs, w: 4, h: 4 },
+      sm: { component: FigmaThumbnailSquareSm, w: 4, h: 4 },
     }),
   },
 });

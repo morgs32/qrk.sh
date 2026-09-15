@@ -40,10 +40,8 @@ export const textBrickCatalog = makeCatalog({
             onChange: (content) => onChange({ content }),
           }),
       }),
-      w: 4,
-      h: 4,
       order: 1,
-      xs: TextBrick2x2,
+      xs: { component: TextBrick2x2, w: 4, h: 4 },
     }),
   },
 });

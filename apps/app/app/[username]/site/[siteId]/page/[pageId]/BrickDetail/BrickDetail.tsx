@@ -29,6 +29,9 @@ export function BrickDetail() {
   const brickDef = useBrickDrawerStore(
     (state) => state.pageGrids[pageKey]?.bricksById[params.brickId],
   );
+  const placement = useBrickDrawerStore((state) =>
+    state.pageGrids[pageKey]?.layout.find((item) => item.i === params.brickId),
+  );
   const catalog = brickDef ? catalogsHash[brickDef.catalogName] : undefined;
   const content = brickDef ? catalog?.registries[brickDef.registry] : undefined;
   const brick = brickDef ? content : undefined;
@@ -87,7 +90,10 @@ export function BrickDetail() {
               </p>
             </div>
             <div className="mt-8 overflow-auto">
-              <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
+              <BrickPreviewFrame
+                w={placement?.w ?? brick.def[breakpoint].w}
+                h={placement?.h ?? brick.def[breakpoint].h}
+              >
                 <div
                   className="size-full qrk-bricks overflow-hidden"
                   data-testid="selected-brick-preview"

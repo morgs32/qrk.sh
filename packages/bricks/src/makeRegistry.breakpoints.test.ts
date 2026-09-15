@@ -22,19 +22,26 @@ describe("makeRegistry", () => {
       defaultData: { label: "Default" },
       registry: "summary",
       registryName: "Summary",
-      w: 4,
-      h: 2,
       order: 3,
-      xs: Xs,
+      xs: { component: Xs, w: 4, h: 2 },
     });
     expectTypeOf(view.def.registry).toEqualTypeOf<"summary">();
     expect(view.def).toMatchObject({
       registry: "summary",
       label: "Summary",
-      w: 4,
-      h: 2,
+      xs: { w: 4, h: 2 },
       order: 3,
     });
+    for (const breakpoint of ["xs", "sm", "lg", "xl"] satisfies Array<"xs" | "sm" | "lg" | "xl">) {
+      expect(view.def[breakpoint]).toEqual({ w: 4, h: 2 });
+      expect(
+        renderToStaticMarkup(
+          createElement(view.component, { breakpoint, data: { label: "base" } }),
+        ),
+      ).toBe(`<span>xs:base:${breakpoint}</span>`);
+    }
+    expect(view.def).not.toHaveProperty("w");
+    expect(view.def).not.toHaveProperty("h");
     for (const id of ["", "Summary", "two words", "-summary", "summary-"]) {
       expect(() =>
         makeRegistry({
@@ -43,30 +50,27 @@ describe("makeRegistry", () => {
           defaultData: { label: "Default" },
           registry: id,
           registryName: "Summary",
-          w: 4,
-          h: 2,
           order: 0,
-          xs: Xs,
+          xs: { component: Xs, w: 4, h: 2 },
         }),
       ).toThrow("makeRegistry: registry must be kebab-case");
     }
   });
 
   it("inherits omitted breakpoints and forwards props to hook-using components", () => {
-    const { component: View } = makeRegistry({
+    const { component: View, def } = makeRegistry({
       registryDescription: "Test",
       dataShape: { label: primitives.text() },
       defaultData: { label: "Default" },
       registry: "test",
       registryName: "Test",
-      w: 4,
-      h: 4,
       order: 0,
-      xs: Xs,
-      lg: Lg,
+      xs: { component: Xs, w: 4, h: 4 },
+      lg: { component: Lg, w: 8, h: 2 },
     });
     for (const breakpoint of ["xs", "sm", "lg", "xl"] satisfies Array<"xs" | "sm" | "lg" | "xl">) {
       const expected = breakpoint === "xs" || breakpoint === "sm" ? "xs" : "lg";
+      expect(def[breakpoint]).toEqual(expected === "xs" ? { w: 4, h: 4 } : { w: 8, h: 2 });
       expect(
         renderToStaticMarkup(createElement(View, { breakpoint, data: { label: "profile" } })),
       ).toBe(`<span>${expected}:profile:${breakpoint}</span>`);
@@ -83,12 +87,10 @@ describe("makeRegistry", () => {
       defaultData: { label: "Default" },
       registry: "test",
       registryName: "Test",
-      w: 4,
-      h: 4,
       order: 0,
-      xs: Xs,
-      sm: Lg,
-      lg: Xs,
+      xs: { component: Xs, w: 4, h: 4 },
+      sm: { component: Lg, w: 4, h: 4 },
+      lg: { component: Xs, w: 4, h: 4 },
     });
     expect(
       renderToStaticMarkup(createElement(View, { breakpoint: "sm", data: { label: "a" } })),
@@ -99,31 +101,34 @@ describe("makeRegistry", () => {
   });
 
   it("requires xs and rejects incompatible data props", () => {
-    // @ts-expect-error xs is the required base presentation.
-    makeRegistry({
-      registryDescription: "Test",
-      dataShape: { label: primitives.text() },
-      defaultData: { label: "Default" },
-      registry: "test",
-      registryName: "Test",
-      w: 4,
-      h: 4,
-      order: 0,
-      lg: () => null,
-    });
-    makeRegistry({
-      registryDescription: "Test",
-      dataShape: { label: primitives.text() },
-      defaultData: { label: "Default" },
-      registry: "test",
-      registryName: "Test",
-      w: 4,
-      h: 4,
-      order: 0,
-      xs: Xs,
-      // @ts-expect-error Every presentation must accept the base presentation's data.
-      lg: (_props: { breakpoint: "xs" | "sm" | "lg" | "xl"; data: { label: number } }) => null,
-    });
+    expectTypeOf(() => {
+      // @ts-expect-error xs is the required base presentation.
+      makeRegistry({
+        registryDescription: "Test",
+        dataShape: { label: primitives.text() },
+        defaultData: { label: "Default" },
+        registry: "test",
+        registryName: "Test",
+        order: 0,
+        lg: { component: () => null, w: 4, h: 4 },
+      });
+      makeRegistry({
+        registryDescription: "Test",
+        dataShape: { label: primitives.text() },
+        defaultData: { label: "Default" },
+        registry: "test",
+        registryName: "Test",
+        order: 0,
+        xs: { component: Xs, w: 4, h: 4 },
+        lg: {
+          // @ts-expect-error Every presentation must accept the base presentation's data.
+          component: (_props: { breakpoint: "xs" | "sm" | "lg" | "xl"; data: { label: number } }) =>
+            null,
+          w: 4,
+          h: 4,
+        },
+      });
+    }).toBeFunction();
   });
 });
 
@@ -131,29 +136,31 @@ it("selects xl and otherwise inherits lg", () => {
   const base = {
     registry: "large",
     registryName: "Large",
-    w: 4,
-    h: 4,
     order: 0,
-    xs: Xs,
-    lg: Lg,
+    xs: { component: Xs, w: 4, h: 4 },
+    lg: { component: Lg, w: 4, h: 4 },
   };
   const inherited = makeRegistry({
     ...base,
     registryDescription: "Test",
     dataShape: { label: primitives.text() },
     defaultData: { label: "Default" },
-  }).component;
+  });
   const xl = makeRegistry({
     registryDescription: "Test",
     dataShape: { label: primitives.text() },
     defaultData: { label: "Default" },
     ...base,
-    xl: Xs,
-  }).component;
+    xl: { component: Xs, w: 8, h: 6 },
+  });
   expect(
-    renderToStaticMarkup(createElement(inherited, { breakpoint: "xl", data: { label: "a" } })),
+    renderToStaticMarkup(
+      createElement(inherited.component, { breakpoint: "xl", data: { label: "a" } }),
+    ),
   ).toBe("<span>lg:a:xl</span>");
-  expect(renderToStaticMarkup(createElement(xl, { breakpoint: "xl", data: { label: "a" } }))).toBe(
-    "<span>xs:a:xl</span>",
-  );
+  expect(
+    renderToStaticMarkup(createElement(xl.component, { breakpoint: "xl", data: { label: "a" } })),
+  ).toBe("<span>xs:a:xl</span>");
+  expect(inherited.def.xl).toEqual({ w: 4, h: 4 });
+  expect(xl.def.xl).toEqual({ w: 8, h: 6 });
 });

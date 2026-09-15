@@ -8,6 +8,39 @@ import { useGridStore } from "./useGridStore";
 beforeEach(() => useGridStore.setState({ bricksById: {} }));
 
 describe("responsive placed bricks", () => {
+  it("keeps saved repo sizes authoritative when defaults differ across breakpoints", () => {
+    const def = catalogsHash.github.registries.repo.def;
+    const store = useGridStore.getState();
+    const placement = { i: "repo", x: 0, y: 0, ...def.xs };
+    store.addBrick("repo", def, [placement], "xs");
+    expect(resolveBrickBreakpoint(useGridStore.getState().bricksById.repo, "sm").gridItem).toEqual(
+      placement,
+    );
+    store.setLayout([{ ...placement, w: 3, h: 5 }], "sm");
+    const brick = useGridStore.getState().bricksById.repo;
+    expect(brick.xs.gridItem).toEqual(placement);
+    expect(resolveBrickBreakpoint(brick, "xl").gridItem).toEqual({ ...placement, w: 3, h: 5 });
+  });
+
+  it("uses the current registry dimensions when showing a repo without a saved visible placement", () => {
+    for (const breakpoint of ["xs", "sm", "lg", "xl"] satisfies Array<"xs" | "sm" | "lg" | "xl">) {
+      const def = catalogsHash.github.registries.repo.def;
+      useGridStore.setState({
+        bricksById: {
+          repo: {
+            catalogId: "github",
+            registryId: "repo",
+            data: null,
+            xs: { gridItem: null, appearanceOptions: {} },
+          },
+        },
+      });
+      useGridStore.getState().setVisible("repo", breakpoint, true);
+      expect(
+        resolveBrickBreakpoint(useGridStore.getState().bricksById.repo, breakpoint).gridItem,
+      ).toEqual({ i: "repo", x: 0, y: 0, ...def[breakpoint] });
+    }
+  });
   const def = catalogsHash.figma.registries.thumbnail.def;
   const first = { i: "first", x: 0, y: 0, w: 4, h: 4 };
   const second = { i: "second", x: 4, y: 0, w: 4, h: 4 };

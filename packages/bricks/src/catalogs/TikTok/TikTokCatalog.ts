@@ -34,10 +34,8 @@ export const tikTokCatalog = makeCatalog({
       defaultData: {
         username: "theonion",
       },
-      w: 4,
-      h: 4,
       order: 0,
-      xs: TikTokDefault4x4,
+      xs: { component: TikTokDefault4x4, w: 4, h: 4 },
     }),
   },
 });

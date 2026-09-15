@@ -54,7 +54,7 @@ export default function BrickPage() {
               >
                 <div className="overflow-auto">
                   <div ref={containerRef} style={{ width: gridWidth }}>
-                    <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
+                    <BrickPreviewFrame w={brick.def[breakpoint].w} h={brick.def[breakpoint].h}>
                       <div className="size-full overflow-hidden" data-testid="brick-preview">
                         <BrickComponent breakpoint={breakpoint} data={registry.defaultData} />
                       </div>
@@ -74,9 +74,9 @@ export default function BrickPage() {
                   <dt className="text-zinc-500">Registry</dt>
                   <dd className="m-0 font-mono">{brick.def.registry}</dd>
                   <dt className="text-zinc-500">Width</dt>
-                  <dd className="m-0">{brick.def.w}</dd>
+                  <dd className="m-0">{brick.def[breakpoint].w}</dd>
                   <dt className="text-zinc-500">Height</dt>
-                  <dd className="m-0">{brick.def.h}</dd>
+                  <dd className="m-0">{brick.def[breakpoint].h}</dd>
                 </dl>
 
                 <label className="mt-6 block text-sm font-medium" htmlFor="grid-unit">

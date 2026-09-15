@@ -42,10 +42,8 @@ export const swatchCatalog = makeCatalog({
       registry: "default",
       registryName: "Default",
       registryDescription: "A solid color field.",
-      w: 2,
-      h: 2,
       order: 1,
-      xs: GreenEmpty1x1,
+      xs: { component: GreenEmpty1x1, w: 2, h: 2 },
     }),
   },
 });

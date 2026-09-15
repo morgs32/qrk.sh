@@ -45,10 +45,8 @@ export const linkCatalog = makeCatalog({
           "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
         iconUrl: "https://www.apple.com/favicon.ico",
       },
-      w: 4,
-      h: 2,
       order: 0,
-      xs: Link4x2,
+      xs: { component: Link4x2, w: 4, h: 2 },
     }),
   },
 });

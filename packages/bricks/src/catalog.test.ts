@@ -8,6 +8,13 @@ import { makeCatalog } from "./makeCatalog";
 import { makeRegistry } from "./makeRegistry";
 
 describe("brick catalog identity", () => {
+  it("resolves repo XS dimensions and inherits SM dimensions above XS", () => {
+    const def = catalogsHash.github.registries.repo.def;
+    expect(def.xs).toEqual({ w: 4, h: 6 });
+    expect(def.sm).toEqual({ w: 4, h: 2 });
+    expect(def.lg).toEqual(def.sm);
+    expect(def.xl).toEqual(def.sm);
+  });
   it("registers unique kebab-case catalog, content, and view identities", () => {
     const catalogNames = new Set<string>();
     const kebabCase = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -49,7 +56,7 @@ describe("brick catalog identity", () => {
     const catalog = catalogsHash.figma;
     expect(Object.keys(catalog.registries)).toEqual(["thumbnail"]);
     const thumbnail = catalog.registries.thumbnail;
-    expect(thumbnail.def).toMatchObject({ w: 4, h: 4 });
+    expect(thumbnail.def.xs).toEqual({ w: 4, h: 4 });
     expect(thumbnail.configuration?.configurationType).toBe("fetcher");
     expect(thumbnail.dataShape).toHaveProperty("thumbnail_url");
     expect(thumbnail.defaultData).toMatchObject({
@@ -123,10 +130,9 @@ it("validates registry keys and keeps identity independent of dimensions", () =>
     registryDescription: "Test registry",
     dataShape: null,
     defaultData: null,
-    w: 4,
-    h: 2,
+
     order: 0,
-    xs: () => "Summary content",
+    xs: { component: () => "Summary content", w: 4, h: 2 },
   });
   expect(() =>
     makeCatalog({
@@ -147,8 +153,10 @@ it("validates registry keys and keeps identity independent of dimensions", () =>
     catalogLabel: "Test",
     registry: "summary",
     label: "Summary",
-    w: 4,
-    h: 2,
+    xs: { w: 4, h: 2 },
+    sm: { w: 4, h: 2 },
+    lg: { w: 4, h: 2 },
+    xl: { w: 4, h: 2 },
     order: 0,
     data: null,
   });

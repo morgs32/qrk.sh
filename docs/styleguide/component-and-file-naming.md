@@ -33,7 +33,7 @@ Prefer **one primary React component per file** (matching the PascalCase file na
 
 ### Good vs bad: BrickCatalog carousel slides (one panel per brick)
 
-The brick catalog drawer uses shadcn `Carousel` (Embla) **per catalog**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def.w * 50vw / 4)`** by **`calc(def.h * 50vw / 4)`**, i.e. half the viewport (site workspace `w-1/2`) divided into four columns—the same column count [Grid.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
+The brick catalog drawer uses shadcn `Carousel` (Embla) **per catalog**. Each brick is **one slide**: a bordered panel (`basis-full` on `CarouselItem`) with the draggable preview slot sized in CSS as **`calc(def[breakpoint].w * 50vw / 8)`** by **`calc(def[breakpoint].h * 50vw / 8)`**, i.e. half the viewport (site workspace `w-1/2`) divided into eight columns—the same column count [Grid.tsx](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Grid.tsx) uses (`GRID_COLS`). The grid itself still sizes cells from **measured** container width divided by column count (`rowHeight`), so previews can differ slightly (scrollbar, sub-pixel).
 
 ### Good vs bad: `BrickPreview` props (inline types, no cross-file props export)
 
@@ -59,7 +59,7 @@ Use kebab-case registry identifiers. Site drawer selectors expose `data-brick-dr
 
 ### Factory arguments
 
-Factories take one `props` object with an inline shape. `makeRegistry` owns `registry`, `registryName`, `registryDescription`, `dataShape`, `defaultData`, optional `configuration`, `w`, `h`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Omitted presentations inherit the nearest smaller one. See [makeRegistry.tsx](../../packages/bricks/src/makeRegistry.tsx) and [makeCatalog.ts](../../packages/bricks/src/makeCatalog.ts).
+Factories take one `props` object with an inline shape. `makeRegistry` owns `registry`, `registryName`, `registryDescription`, `dataShape`, `defaultData`, optional `configuration`, `order`, optional `form`, required `xs`, and optional `sm`, `lg`, `xl`. Each breakpoint is `{ component, w, h }`; omitted breakpoints inherit the nearest smaller complete entry. Registry `def` stores the resolved dimensions at `def[breakpoint]`, without React components. Previews, drag placeholders, and new placements use those dimensions; saved placement sizes remain authoritative. See [makeRegistry.tsx](../../packages/bricks/src/makeRegistry.tsx) and [makeCatalog.ts](../../packages/bricks/src/makeCatalog.ts).
 
 Data-backed registries configure requests with `makeFetcherConfiguration({ registryOptionsShape, registryOptionsForm, fetcher })`
 from [makeFetcherConfiguration.ts](../../packages/bricks/src/makeFetcherConfiguration.ts), passed as the registry's `configuration`.
@@ -191,6 +191,12 @@ preset and fall back to the largest fitting preset if a resize makes the selecti
 too large. Below 375px, hide the preview and show its minimum-width requirement. Width selection lasts across sandbox route
 navigation and reload, and is independent of Reset's grid state changes.
 
+The centered grid preview and its white backdrop transition width over `200ms ease`.
+During the preview's width transition, grid items and grid height follow measured
+geometry without their own transitions; normal grid animations resume when it ends
+or is canceled. Reduced-motion preferences disable the wrapper and backdrop
+transitions. Brick presentations still switch at the measured breakpoint thresholds.
+
 ### Responsive brick breakpoints
 
 Every brick render supplies `breakpoint: "xs" | "sm" | "lg" | "xl"` alongside
@@ -210,7 +216,8 @@ Consumers use `useBrickBreakpoint` and pass the value through the existing brick
 `breakpoint` prop. A provider is required; its initial value is `xs` until measured.
 Browser width and a brick's own width do not directly determine its breakpoint.
 Grid geometry and available-width measurements remain independent. Breakpoints
-are render inputs only, never persisted data, brick identity, or drag payloads fields.
+select presentations and initial dimensions, never brick identity. Registry drag payloads
+include resolved dimensions for all breakpoints; placed layouts retain their saved geometry.
 
 The GitHub profile 4×2 view keeps its avatar and username in the bottom half at `xs`.
 The activity fills the top half, scaling square cells and gaps proportionally, without

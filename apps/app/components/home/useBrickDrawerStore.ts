@@ -21,7 +21,7 @@ export const useBrickDrawerStore = create<BrickDrawerDragState>((set) => ({
 
 /**
  * Browsers often omit custom `getData` payloads during `dragover`; only `dragstart`/`drop` see them.
- * Register `def.w` / `def.h` on drag start so the grid drop placeholder can size before drop.
+ * Register the resolved breakpoint dimensions on drag start so the grid drop placeholder can size before drop.
  */
 export function getActiveBrickDragGridShape(): { w: number; h: number } | null {
   return useBrickDrawerStore.getState().activeBrickDragGridShape;
@@ -35,8 +35,10 @@ const BrickDragDefFromJsonStringSchema = Schema.fromJsonString(
     registry: Schema.String,
 
     order: Schema.Number,
-    w: Schema.Number,
-    h: Schema.Number,
+    xs: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+    sm: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+    lg: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+    xl: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
     data: Schema.Unknown,
   }) satisfies Schema.Schema<ICatalogBrickDef>,
 );

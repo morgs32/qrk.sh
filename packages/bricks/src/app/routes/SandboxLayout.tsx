@@ -10,6 +10,7 @@ import { useGridStore } from "../useGridStore";
 
 export default function SandboxLayout() {
   const gridRegionRef = useRef<HTMLDivElement>(null);
+  const gridWidthRef = useRef<HTMLDivElement>(null);
   const [availableWidth, setAvailableWidth] = useState(0);
   const savedWidth = useGridStore((state) => state.selectedWidth);
   const selectedWidth =
@@ -18,6 +19,32 @@ export default function SandboxLayout() {
       : ([1440, 1024, 640, 375].find((preset) => preset <= availableWidth) ?? null);
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useLayoutEffect(() => {
+    const wrapper = gridWidthRef.current;
+    if (!wrapper) return;
+
+    // Apply the CSS flag synchronously without rerendering the catalog during animation.
+    const startWidthTransition = (event: TransitionEvent) => {
+      if (event.target === wrapper && event.propertyName === "width") {
+        wrapper.dataset.widthTransitionActive = "true";
+      }
+    };
+    const finishWidthTransition = (event: TransitionEvent) => {
+      if (event.target === wrapper && event.propertyName === "width") {
+        delete wrapper.dataset.widthTransitionActive;
+      }
+    };
+    wrapper.addEventListener("transitionrun", startWidthTransition);
+    wrapper.addEventListener("transitionend", finishWidthTransition);
+    wrapper.addEventListener("transitioncancel", finishWidthTransition);
+    return () => {
+      wrapper.removeEventListener("transitionrun", startWidthTransition);
+      wrapper.removeEventListener("transitionend", finishWidthTransition);
+      wrapper.removeEventListener("transitioncancel", finishWidthTransition);
+      delete wrapper.dataset.widthTransitionActive;
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const region = gridRegionRef.current;
@@ -102,7 +129,7 @@ export default function SandboxLayout() {
             >
               <div
                 hidden={selectedWidth === null}
-                className="h-full bg-white"
+                className="h-full bg-white transition-[width] duration-200 ease-[ease] motion-reduce:transition-none"
                 style={{ width: selectedWidth ?? 375 }}
               />
             </div>
@@ -117,8 +144,9 @@ export default function SandboxLayout() {
                 </p>
               )}
               <div
+                ref={gridWidthRef}
                 hidden={selectedWidth === null}
-                className="mx-auto"
+                className="sandbox-grid-width mx-auto transition-[width] duration-200 ease-[ease] motion-reduce:transition-none"
                 style={{ width: selectedWidth ?? 375 }}
               >
                 <SandboxGrid />

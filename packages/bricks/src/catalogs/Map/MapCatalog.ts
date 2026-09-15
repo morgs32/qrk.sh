@@ -50,10 +50,8 @@ export const mapCatalog = makeCatalog({
         latitude: 41.8781136,
         longitude: -87.6297982,
       },
-      w: 4,
-      h: 4,
       order: 0,
-      xs: MapPlace4x4,
+      xs: { component: MapPlace4x4, w: 4, h: 4 },
     }),
   },
 });

@@ -33,7 +33,9 @@ export function BrickPreview({ brick }: { brick: ICatalogBrick }) {
       dt.effectAllowed = "copy";
       dt.setData(BRICK_DRAG_MIME, JSON.stringify(payload));
       dt.setData("text/plain", makeId());
-      useBrickDrawerStore.getState().registerActiveBrickDragGridShape(payload.w, payload.h);
+      useBrickDrawerStore
+        .getState()
+        .registerActiveBrickDragGridShape(payload[breakpoint].w, payload[breakpoint].h);
       event.stopPropagation();
     };
 
@@ -41,14 +43,14 @@ export function BrickPreview({ brick }: { brick: ICatalogBrick }) {
     return () => {
       node.removeEventListener("dragstart", onDragStart);
     };
-  }, []);
+  }, [breakpoint]);
 
   const BrickComponent = brick.component;
   const content = catalogsHash[brick.def.catalogName]?.registries[brick.def.registry];
 
   return (
     <div className="drawer-brick-preview flex h-full min-h-0 w-full flex-1 flex-col items-start justify-center overflow-x-auto touch-manipulation">
-      <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
+      <BrickPreviewFrame w={brick.def[breakpoint].w} h={brick.def[breakpoint].h}>
         <div
           ref={slotRef}
           data-brick-drawer-brick-slot
@@ -57,7 +59,7 @@ export function BrickPreview({ brick }: { brick: ICatalogBrick }) {
           draggable
           tabIndex={0}
           className="size-full shrink-0 cursor-grab overflow-hidden bg-background/80 outline-none ring-1 ring-border/60 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={`${brick.def.catalogLabel} ${brick.def.w}×${brick.def.h}`}
+          aria-label={`${brick.def.catalogLabel} ${brick.def[breakpoint].w}×${brick.def[breakpoint].h}`}
         >
           <div className="h-full w-full">
             <BrickComponent breakpoint={breakpoint} data={content?.defaultData} />

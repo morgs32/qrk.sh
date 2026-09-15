@@ -14,10 +14,8 @@ export const imageCatalog = makeCatalog({
       registry: "default",
       registryName: "Default",
       registryDescription: "An editorial image preview.",
-      w: 4,
-      h: 4,
       order: 0,
-      xs: ImagePromo4x4,
+      xs: { component: ImagePromo4x4, w: 4, h: 4 },
     }),
   },
 });

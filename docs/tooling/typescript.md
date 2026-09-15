@@ -95,10 +95,13 @@ const BrickDragDefFromJsonStringSchema = Schema.parseJson(
     catalogName: Schema.String,
     catalogLabel: Schema.String,
     label: Schema.String,
-    name: Schema.String,
+    registry: Schema.String,
     order: Schema.Number,
-    w: Schema.Number,
-    h: Schema.Number,
+    xs: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+    sm: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+    lg: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+    xl: Schema.Struct({ w: Schema.Number, h: Schema.Number }),
+    data: Schema.Unknown,
   }) satisfies Schema.Schema<ICatalogBrickDef>,
 );
 ```

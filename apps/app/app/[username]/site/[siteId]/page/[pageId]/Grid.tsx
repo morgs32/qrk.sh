@@ -88,7 +88,12 @@ export function Grid() {
             const brickId = crypto.randomUUID();
             const droppedLayout = nextLayout.map((layoutItem) =>
               layoutItem.i === item.i
-                ? { ...layoutItem, i: brickId, w: brick.def.w, h: brick.def.h }
+                ? {
+                    ...layoutItem,
+                    i: brickId,
+                    w: brick.def[breakpoint].w,
+                    h: brick.def[breakpoint].h,
+                  }
                 : layoutItem,
             );
             useBrickDrawerStore.setState((state) => ({

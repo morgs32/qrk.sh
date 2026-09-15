@@ -89,8 +89,8 @@ export default function RegistryConfiguration() {
         />
       </div>
       <div className="sticky top-0 z-10 overflow-auto bg-white py-6">
-        <div className={brick.def.w === 8 ? undefined : "px-4"}>
-          <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
+        <div className={brick.def[breakpoint].w === 8 ? undefined : "px-4"}>
+          <BrickPreviewFrame w={brick.def[breakpoint].w} h={brick.def[breakpoint].h}>
             <div
               className="size-full qrk-bricks brick-drag-surface overflow-hidden"
               data-registry-brick={`${catalogName}/${registryName}`}

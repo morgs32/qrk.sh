@@ -95,8 +95,8 @@ export default function BrickCatalogRoute() {
                 </div>
                 <Tabs.Content value={`${brick.def.registry}-preview`}>
                   <div className="mt-6 overflow-auto">
-                    <div className={brick.def.w === 8 ? undefined : "ml-6"}>
-                      <BrickPreviewFrame w={brick.def.w} h={brick.def.h}>
+                    <div className={brick.def[breakpoint].w === 8 ? undefined : "ml-6"}>
+                      <BrickPreviewFrame w={brick.def[breakpoint].w} h={brick.def[breakpoint].h}>
                         <div
                           className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
                           data-brick-full-view={`${brick.def.catalogName}/${brick.def.registry}`}
@@ -107,7 +107,10 @@ export default function BrickCatalogRoute() {
                           onDragStart={(event) => {
                             useBrickDrawerStore
                               .getState()
-                              .registerActiveBrickDragGridShape(brick.def.w, brick.def.h);
+                              .registerActiveBrickDragGridShape(
+                                brick.def[breakpoint].w,
+                                brick.def[breakpoint].h,
+                              );
                             event.dataTransfer.setData(BRICK_DRAG_MIME, JSON.stringify(brick.def));
                             event.dataTransfer.effectAllowed = "copy";
                             event.dataTransfer.setData("text/plain", brick.def.registry);

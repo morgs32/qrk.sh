@@ -103,8 +103,11 @@ export function BrickCatalog() {
                 </div>
               </div>
               <div className="mt-6 overflow-auto">
-                <div className={selectedBrick.def.w === 8 ? undefined : "ml-6"}>
-                  <BrickPreviewFrame w={selectedBrick.def.w} h={selectedBrick.def.h}>
+                <div className={selectedBrick.def[breakpoint].w === 8 ? undefined : "ml-6"}>
+                  <BrickPreviewFrame
+                    w={selectedBrick.def[breakpoint].w}
+                    h={selectedBrick.def[breakpoint].h}
+                  >
                     <div
                       className="size-full qrk-bricks cursor-grab overflow-hidden active:cursor-grabbing"
                       data-catalog-representative={`${selectedBrick.def.catalogName}/${selectedBrick.def.registry}`}
@@ -116,8 +119,8 @@ export function BrickCatalog() {
                         useBrickDrawerStore
                           .getState()
                           .registerActiveBrickDragGridShape(
-                            selectedBrick.def.w,
-                            selectedBrick.def.h,
+                            selectedBrick.def[breakpoint].w,
+                            selectedBrick.def[breakpoint].h,
                           );
                         event.dataTransfer.setData(
                           BRICK_DRAG_MIME,

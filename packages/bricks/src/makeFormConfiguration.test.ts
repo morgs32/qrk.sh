@@ -25,10 +25,8 @@ describe("form configuration", () => {
           return null;
         },
       }),
-      w: 1,
-      h: 1,
       order: 0,
-      xs: () => null,
+      xs: { component: () => null, w: 1, h: 1 },
     });
     const catalog = makeCatalog({
       catalogName: "test",

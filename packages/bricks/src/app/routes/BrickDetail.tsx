@@ -72,11 +72,11 @@ export default function BrickDetail() {
         )}
       />
       <div
-        className={`overflow-auto bg-white py-6 ${(entry.gridItem?.w ?? brick.def.w) === 8 ? "" : "px-4"}`}
+        className={`overflow-auto bg-white py-6 ${(entry.gridItem?.w ?? brick.def[breakpoint].w) === 8 ? "" : "px-4"}`}
       >
         <BrickPreviewFrame
-          w={entry.gridItem?.w ?? brick.def.w}
-          h={entry.gridItem?.h ?? brick.def.h}
+          w={entry.gridItem?.w ?? brick.def[breakpoint].w}
+          h={entry.gridItem?.h ?? brick.def[breakpoint].h}
         >
           <div className="size-full qrk-bricks" data-testid="selected-brick-preview">
             <BrickComponent

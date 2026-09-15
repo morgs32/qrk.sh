@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { type ICatalogBrick } from "@qrk.sh/bricks";
+import { useBrickBreakpoint } from "@qrk.sh/bricks/BrickBreakpointProvider";
 import { cn } from "cn";
 import useEmblaCarousel from "embla-carousel-react";
 
@@ -34,6 +35,7 @@ export function BrickCarouselNav(props: {
   /** Main Embla API from `<Carousel setApi={…}>`; nav can sit outside `<Carousel>` when this is passed. */
   api: CarouselApi | null;
 }) {
+  const { breakpoint } = useBrickBreakpoint();
   const { bricks, api } = props;
   const [selected, setSelected] = useState(0);
   const totalSlides = bricks.length;
@@ -108,7 +110,7 @@ export function BrickCarouselNav(props: {
                       transform: `scale(${getScale(i, selected)})`,
                       opacity: getOpacity(i, selected),
                     }}
-                    aria-label={`${brick.def.w} by ${brick.def.h}, slide ${i + 1} of ${totalSlides}`}
+                    aria-label={`${brick.def[breakpoint].w} by ${brick.def[breakpoint].h}, slide ${i + 1} of ${totalSlides}`}
                     aria-current={active ? "true" : undefined}
                   >
                     <span

@@ -8,8 +8,11 @@ import type { IFormConfiguration } from "./makeFormConfiguration";
 
 /** A registry definition (no catalog scope). */
 export type IBrickDef<REGISTRY extends string = string> = {
-  w: number;
-  h: number;
+  /** Resolved initial dimensions, inheriting the nearest smaller presentation. */
+  xs: { w: number; h: number };
+  sm: { w: number; h: number };
+  lg: { w: number; h: number };
+  xl: { w: number; h: number };
   /** Kebab-case registry slug (for example `default`, `profile`, or `repo`). */
   registry: REGISTRY;
   /** Display label for this registry. */

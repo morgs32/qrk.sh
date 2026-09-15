@@ -165,8 +165,8 @@ export const useGridStore = create<{
                 i: brickId,
                 x: 0,
                 y,
-                w: catalog.def.w,
-                h: catalog.def.h,
+                w: catalog.def[breakpoint].w,
+                h: catalog.def[breakpoint].h,
               };
             }
           }

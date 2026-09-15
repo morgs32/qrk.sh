@@ -56,8 +56,11 @@ scraper declarations. Neither build deploys the app.
 ## Registries and interaction
 
 Catalogs expose `registries[registry]`. `makeRegistry` combines data and configuration
-with one responsive presentation, initial dimensions, and optional appearance form.
-`xs` is required; `sm`, `lg`, and `xl` inherit the nearest smaller presentation.
+with responsive presentations and an optional appearance form. Each breakpoint entry is
+`{ component, w, h }`; `xs` is required. Omitted `sm`, `lg`, and `xl` entries inherit
+the nearest smaller entry, including both its component and initial dimensions.
+Registry definitions expose resolved `xs`/`sm`/`lg`/`xl` dimensions for previews and
+new placements. Saved placement dimensions take precedence over registry defaults.
 Appearance settings, layout, and visibility retain their separate breakpoint inheritance.
 
 Placed bricks drag from their entire surface and resize using the grid library's default

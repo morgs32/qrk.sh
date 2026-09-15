@@ -35,14 +35,16 @@ it("infers defaults and form values and rejects invalid updates before publicati
     registryDescription: "Test",
     dataShape: null,
     defaultData: null,
-    w: 4,
-    h: 4,
     order: 0,
     form,
-    xs: (props: {
-      breakpoint: "xs" | "sm" | "lg" | "xl";
-      appearanceOptions?: { alignment: string };
-    }) => createElement("span", null, props.appearanceOptions?.alignment),
+    xs: {
+      component: (props: {
+        breakpoint: "xs" | "sm" | "lg" | "xl";
+        appearanceOptions?: { alignment: string };
+      }) => createElement("span", null, props.appearanceOptions?.alignment),
+      w: 4,
+      h: 4,
+    },
   });
   expect(View.form).toBe(form);
   expect(

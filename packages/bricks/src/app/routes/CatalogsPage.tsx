@@ -61,8 +61,8 @@ export default function CatalogsPage() {
                 )}
               />
               <div className="overflow-auto bg-white py-6">
-                <div className={def.w === 8 ? undefined : "px-4"}>
-                  <BrickPreviewFrame w={def.w} h={def.h}>
+                <div className={def[breakpoint].w === 8 ? undefined : "px-4"}>
+                  <BrickPreviewFrame w={def[breakpoint].w} h={def[breakpoint].h}>
                     <DraggableBrick
                       brickDef={def}
                       className="size-full qrk-bricks overflow-hidden"

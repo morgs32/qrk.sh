@@ -1,0 +1,19 @@
+[main 4990d3cf0] wip: content -
+ 77 files changed, 2163 insertions(+), 2490 deletions(-)
+ create mode 100644 packages/bricks/registry
+ delete mode 100644 packages/bricks/src/app/routes/ContentConfiguration.tsx
+ create mode 100644 packages/bricks/src/app/routes/RegistryConfiguration.tsx
+ create mode 100644 packages/bricks/src/app/tests/registries.playwright.spec.ts
+ delete mode 100644 packages/bricks/src/app/tests/views.playwright.spec.ts
+ delete mode 100644 packages/bricks/src/app/useContentData.test.ts
+ create mode 100644 packages/bricks/src/app/useRegistryData.test.ts
+ rename packages/bricks/src/app/{useContentData.ts => useRegistryData.ts} (50%)
+ rename packages/bricks/src/catalogs/Figma/{FigmaViewForm.tsx => FigmaAppearanceForm.tsx} (95%)
+ rename packages/bricks/src/{makeViewForm.test.ts => makeAppearanceForm.test.ts} (60%)
+ rename packages/bricks/src/{makeViewForm.tsx => makeAppearanceForm.tsx} (65%)
+ delete mode 100644 packages/bricks/src/makeContent.ts
+ create mode 100644 packages/bricks/src/makeRegistry.breakpoints.test.ts
+ rename packages/bricks/src/{makeContent.test.ts => makeRegistry.test.ts} (54%)
+ create mode 100644 packages/bricks/src/makeRegistry.tsx
+ delete mode 100644 packages/bricks/src/makeView.test.ts
+ delete mode 100644 packages/bricks/src/makeView.tsx

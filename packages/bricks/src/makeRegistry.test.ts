@@ -18,10 +18,8 @@ describe("makeRegistry data contracts", () => {
         registryDescription: "Test",
         dataShape: null,
         defaultData: null,
-        w: 1,
-        h: 1,
         order: 0,
-        xs: () => null,
+        xs: { component: () => null, w: 1, h: 1 },
       }),
     ).toThrow("makeRegistry: registry must be kebab-case");
   });
@@ -33,10 +31,8 @@ describe("makeRegistry data contracts", () => {
       registry: "static",
       registryName: "Static",
       registryDescription: "A static content.",
-      w: 1,
-      h: 1,
       order: 0,
-      xs: () => null,
+      xs: { component: () => null, w: 1, h: 1 },
     });
 
     expect("registryOptionsShape" in content).toBe(false);
@@ -112,10 +108,8 @@ describe("makeRegistry data contracts", () => {
       defaultData: {
         result: "Chicago",
       },
-      w: 1,
-      h: 1,
       order: 0,
-      xs: (props: { data: { result: string } }) => props.data.result,
+      xs: { component: (props: { data: { result: string } }) => props.data.result, w: 1, h: 1 },
     });
 
     if (content.configuration?.configurationType !== "fetcher") {
@@ -180,11 +174,13 @@ describe("makeRegistry data contracts", () => {
         login: "default-profile",
         providerField: "default-provider-value",
       },
-      w: 1,
-      h: 1,
       order: 0,
-      xs: (props: { data: { login: string } }) => {
-        return props.data.login;
+      xs: {
+        component: (props: { data: { login: string } }) => {
+          return props.data.login;
+        },
+        w: 1,
+        h: 1,
       },
     });
     if (
@@ -235,11 +231,13 @@ describe("makeRegistry data contracts", () => {
           login: primitives.text(),
         },
         defaultData: JSON.parse('{"login":42}'),
-        w: 1,
-        h: 1,
         order: 0,
-        xs: (props: { data: { login: string } }) => {
-          return props.data.login;
+        xs: {
+          component: (props: { data: { login: string } }) => {
+            return props.data.login;
+          },
+          w: 1,
+          h: 1,
         },
       }),
     ).toThrow();
@@ -267,11 +265,13 @@ describe("makeRegistry data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      w: 1,
-      h: 1,
       order: 0,
-      xs: (props: { data: { login: string } }) => {
-        return props.data.login;
+      xs: {
+        component: (props: { data: { login: string } }) => {
+          return props.data.login;
+        },
+        w: 1,
+        h: 1,
       },
     });
     if (
@@ -329,11 +329,13 @@ describe("makeRegistry data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      w: 1,
-      h: 1,
       order: 0,
-      xs: (props: { data: { login: string } }) => {
-        return props.data.login;
+      xs: {
+        component: (props: { data: { login: string } }) => {
+          return props.data.login;
+        },
+        w: 1,
+        h: 1,
       },
     });
     if (
@@ -383,11 +385,13 @@ describe("makeRegistry data contracts", () => {
       defaultData: {
         login: "default-profile",
       },
-      w: 1,
-      h: 1,
       order: 0,
-      xs: (props: { data: { login: string } }) => {
-        return props.data.login;
+      xs: {
+        component: (props: { data: { login: string } }) => {
+          return props.data.login;
+        },
+        w: 1,
+        h: 1,
       },
     });
     if (
@@ -417,10 +421,8 @@ describe("makeRegistry data contracts", () => {
       registryDescription: "Data is available but unused.",
       dataShape: { name: primitives.text() },
       defaultData: { name: "Default" },
-      w: 1,
-      h: 1,
       order: 0,
-      xs: () => null,
+      xs: { component: () => null, w: 1, h: 1 },
     });
     expect(content.defaultData).toEqual({ name: "Default" });
   });
@@ -433,10 +435,8 @@ describe("makeRegistry data contracts", () => {
         registry: "static",
         registryName: "Static",
         registryDescription: "Static",
-        w: 1,
-        h: 1,
         order: 0,
-        xs: () => null,
+        xs: { component: () => null, w: 1, h: 1 },
       });
       // @ts-expect-error a null schema requires a null default
       makeRegistry({
@@ -445,10 +445,8 @@ describe("makeRegistry data contracts", () => {
         registryDescription: "Static",
         dataShape: null,
         defaultData: {},
-        w: 1,
-        h: 1,
         order: 0,
-        xs: () => null,
+        xs: { component: () => null, w: 1, h: 1 },
       });
       // @ts-expect-error a schema requires a non-null default
       makeRegistry({
@@ -457,10 +455,8 @@ describe("makeRegistry data contracts", () => {
         registryDescription: "Data",
         dataShape: { name: primitives.text() },
         defaultData: null,
-        w: 1,
-        h: 1,
         order: 0,
-        xs: () => null,
+        xs: { component: () => null, w: 1, h: 1 },
       });
       makeRegistry({
         registry: "data",
@@ -469,10 +465,8 @@ describe("makeRegistry data contracts", () => {
         dataShape: { name: primitives.text() },
         // @ts-expect-error defaults must match the schema
         defaultData: { name: 42 },
-        w: 1,
-        h: 1,
         order: 0,
-        xs: () => null,
+        xs: { component: () => null, w: 1, h: 1 },
       });
       makeRegistry({
         registry: "data",
@@ -480,11 +474,9 @@ describe("makeRegistry data contracts", () => {
         registryDescription: "Data",
         dataShape: { name: primitives.text() },
         defaultData: { name: "Default" },
-        w: 1,
-        h: 1,
         order: 0,
         // @ts-expect-error component data must match the schema
-        xs: (props: { data: { name: number } }) => props.data.name,
+        xs: { component: (props: { data: { name: number } }) => props.data.name, w: 1, h: 1 },
       });
     }).toBeFunction();
   });

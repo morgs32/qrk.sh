@@ -5,7 +5,7 @@ import { Schema } from "effect";
 import { Article } from "@/components/home/Article";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
-import { useSiteStore } from "../../siteStore";
+import { useSitePageDraftStore } from "../../sitePageDraftStore";
 import { Grid } from "./Grid";
 
 const ParamsSchema = Schema.Struct({
@@ -16,7 +16,7 @@ const ParamsSchema = Schema.Struct({
 export function MainColumns() {
   const params = useValidatedParams(ParamsSchema);
   const { user } = useUser();
-  const pageType = useSiteStore((state) =>
+  const pageType = useSitePageDraftStore((state) =>
     user === null || user === undefined
       ? undefined
       : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId]?.pageType,

@@ -59,13 +59,14 @@ test("module filmstrip scrolls horizontally rather than shrinking previews", asy
   const preview = github.locator('[data-module-representative="github-profile"]');
 
   // Selected grid width at 1600 is 1440 → profile w=4 → 720px preview.
+  // Column is w-max so it does not clip the preview; the filmstrip scrolls instead.
   await expect(preview).toHaveCSS("width", "720px");
   expect(
     await filmstrip.evaluate((element) => element.scrollWidth > element.clientWidth),
   ).toBe(true);
   expect(
     await github.evaluate((element) => element.getBoundingClientRect().width),
-  ).toBeLessThan(720);
+  ).toBeGreaterThanOrEqual(720);
 });
 
 test("standalone slider sizes the shared frame", async ({ page }) => {

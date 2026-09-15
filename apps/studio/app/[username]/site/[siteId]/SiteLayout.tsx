@@ -3,23 +3,28 @@
 import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 import { useEffect, useState } from "react";
+import { Outlet } from "react-router";
 
+import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
-import { Outlet } from "react-router";
 import { SiteHeader } from "./SiteHeader";
 import { usePageStore } from "./page/[pageId]/pageStore";
+import { useSitePageDraftStore } from "./sitePageDraftStore";
 import { useSiteStore } from "./siteStore";
 
 const ParamsSchema = Schema.Struct({
-  siteId: Schema.String,
+  siteId: Schema.TemplateLiteral(["sit_", Schema.String]),
   pageId: Schema.optional(Schema.String),
 });
 
 export default function PageLayout() {
   const { siteId, pageId } = useValidatedParams(ParamsSchema);
   const { user } = useUser();
-  const initializeSitePageDraft = useSiteStore((state) => state.initializePageDraft);
+  const { db } = useZerospinUserInitializedState();
+  const initializeSite = useSiteStore((state) => state.initializeSite);
+  const siteDraftId = useSiteStore((state) => state.site?.id);
+  const initializeSitePageDraft = useSitePageDraftStore((state) => state.initializePageDraft);
   const initializeArticlePageDraft = usePageStore((state) => state.initializePageDraft);
   const [readyRoute, setReadyRoute] = useState<{
     identityKey: string;
@@ -28,13 +33,35 @@ export default function PageLayout() {
   } | null>(null);
 
   const identityKey = user?.id;
+
+  // Re-seed when the route site changes; do not refresh when draft fields update.
+  if (siteDraftId !== siteId) {
+    const site = db.query.site
+      .findFirst({
+        where: { id: { eq: siteId } },
+      })
+      .sync();
+
+    if (site === undefined) {
+      throw new Error(`Site ${siteId} not found`);
+    }
+
+    initializeSite({
+      id: site.id,
+      name: site.name,
+      description: site.description,
+      slug: site.slug,
+      userId: site.userId,
+    });
+  }
+
   useEffect(() => {
     if (identityKey === undefined || pageId === undefined) {
       return;
     }
 
-    if (!useSiteStore.persist.hasHydrated()) {
-      useSiteStore.persist.rehydrate();
+    if (!useSitePageDraftStore.persist.hasHydrated()) {
+      useSitePageDraftStore.persist.rehydrate();
     }
 
     if (!usePageStore.persist.hasHydrated()) {
@@ -50,7 +77,8 @@ export default function PageLayout() {
     readyRoute !== null &&
     readyRoute.identityKey === identityKey &&
     readyRoute.siteId === siteId &&
-    readyRoute.pageId === pageId;
+    readyRoute.pageId === pageId &&
+    siteDraftId === siteId;
 
   return isCurrentRouteReady ? (
     <div className="flex h-screen flex-col overflow-hidden">

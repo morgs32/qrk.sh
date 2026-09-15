@@ -57,7 +57,7 @@ export default function SandboxLayout() {
           <main className="min-h-screen">
             <DrawerContent
               aria-describedby={undefined}
-              className="qrk-bricks inset-x-0 bottom-0 z-60 h-[50dvh] rounded-t-lg border-t border-zinc-300 bg-white"
+              className="qrk-bricks inset-x-0 bottom-0 z-60 h-[50dvh] rounded-none border-t border-zinc-300 bg-white"
               onInteractOutside={(event) => event.preventDefault()}
               onOpenAutoFocus={(event) => event.preventDefault()}
             >

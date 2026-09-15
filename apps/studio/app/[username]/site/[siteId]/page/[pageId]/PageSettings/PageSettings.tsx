@@ -10,7 +10,7 @@ import { useLiveQuery } from "@zerospin/react";
 import { ZerospinUser } from "@/components/ZerospinUser";
 
 import { href } from "react-router";
-import { useSiteStore } from "../../../siteStore";
+import { useSitePageDraftStore } from "../../../sitePageDraftStore";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,12 +30,12 @@ export function PageSettings() {
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const { user } = useUser();
-  const pageDraft = useSiteStore((state) =>
+  const pageDraft = useSitePageDraftStore((state) =>
     user === null || user === undefined
       ? undefined
       : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId],
   );
-  const setPageDescription = useSiteStore((state) => state.setPageDescription);
+  const setPageDescription = useSitePageDraftStore((state) => state.setPageDescription);
   const { data: page, error } = useLiveQuery(ZerospinUser, {
     deps: [params.pageId, params.siteId],
     query: (db) =>

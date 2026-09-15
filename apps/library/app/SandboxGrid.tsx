@@ -49,7 +49,7 @@ export function SandboxGrid() {
         return observeGrid(element);
       }}
       aria-label="Brick grid"
-      style={dragging ? { overflow: "visible", zIndex: 70 } : undefined}
+      style={dragging ? { overflow: "visible" } : undefined}
       className="min-h-screen bg-white lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-y-auto"
     >
       {outsideBrickId && (

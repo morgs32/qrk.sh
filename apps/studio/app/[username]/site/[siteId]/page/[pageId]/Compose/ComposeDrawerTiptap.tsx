@@ -6,7 +6,7 @@ import { Schema } from "effect";
 import { ComposeDrawerTiptapBlock } from "./ComposeDrawerTiptapBlock";
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { useSiteStore } from "../../../siteStore";
+import { useSitePageDraftStore } from "../../../sitePageDraftStore";
 
 const ParamsSchema = Schema.Struct({
   siteId: Schema.String,
@@ -16,12 +16,12 @@ const ParamsSchema = Schema.Struct({
 export function ComposeDrawerTiptap() {
   const params = useValidatedParams(ParamsSchema);
   const { user } = useUser();
-  const blocks = useSiteStore((state) =>
+  const blocks = useSitePageDraftStore((state) =>
     user === null || user === undefined
       ? undefined
       : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId]?.composeBlocks,
   );
-  const addComposeBlock = useSiteStore((state) => state.addComposeBlock);
+  const addComposeBlock = useSitePageDraftStore((state) => state.addComposeBlock);
 
   if (user === null || user === undefined || blocks === undefined) {
     return null;

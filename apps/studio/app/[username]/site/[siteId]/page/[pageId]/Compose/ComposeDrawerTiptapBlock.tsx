@@ -10,7 +10,7 @@ import { Bold, Hash, Italic, List, ListOrdered, Pilcrow, Quote } from "lucide-re
 
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { useSiteStore } from "../../../siteStore";
+import { useSitePageDraftStore } from "../../../sitePageDraftStore";
 
 const ParamsSchema = Schema.Struct({
   siteId: Schema.String,
@@ -28,7 +28,7 @@ export function ComposeDrawerTiptapBlock({
   const { user } = useUser();
   const [headingExpanded, setHeadingExpanded] = useState(false);
   const [htmlContent, setHtmlContent] = useState(initialContent);
-  const updateComposeBlock = useSiteStore((state) => state.updateComposeBlock);
+  const updateComposeBlock = useSitePageDraftStore((state) => state.updateComposeBlock);
 
   const editor = useEditor({
     extensions: [

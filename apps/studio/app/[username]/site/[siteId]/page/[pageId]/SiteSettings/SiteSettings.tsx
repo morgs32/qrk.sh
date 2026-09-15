@@ -1,10 +1,9 @@
 "use client";
 
-import { useUser } from "@clerk/react";
 import { Schema } from "effect";
 import { Globe, X } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import useSWR from "swr";
 
 import { CopyButton } from "./CopyButton";
@@ -39,13 +38,10 @@ export function SiteSettings() {
   const navigate = useNavigate();
   const username = useUsername();
   const siteId = params.siteId;
-  const { user } = useUser();
   const { db } = useZerospinUserInitializedState();
-  const siteDraft = useSiteStore((state) =>
-    user === null || user === undefined ? undefined : state.owners[user.id]?.sites[params.siteId],
-  );
-  const setSiteName = useSiteStore((state) => state.setSiteName);
-  const setSiteDescription = useSiteStore((state) => state.setSiteDescription);
+  const siteDraft = useSiteStore((state) => state.site);
+  const setName = useSiteStore((state) => state.setName);
+  const setDescription = useSiteStore((state) => state.setDescription);
   const [baselineState, setBaselineState] = useState(() => {
     const site = db.query.site
       .findFirst({
@@ -63,10 +59,6 @@ export function SiteSettings() {
       },
     };
   });
-
-  useEffect(() => {
-    console.log("siteStore", useSiteStore.getState());
-  }, []);
 
   // Re-query when the site changes without remount; do not refresh when draft fields update.
   if (baselineState.siteId !== params.siteId) {
@@ -107,12 +99,7 @@ export function SiteSettings() {
     });
   });
 
-  if (
-    user === null ||
-    user === undefined ||
-    siteDraft === undefined ||
-    baselineState.siteId !== params.siteId
-  ) {
+  if (siteDraft === null || siteDraft.id !== params.siteId || baselineState.siteId !== params.siteId) {
     return null;
   }
 
@@ -148,8 +135,8 @@ export function SiteSettings() {
             aria-label={isDirty ? "Cancel" : "Close drawer"}
             onClick={() => {
               if (isDirty) {
-                setSiteName(user.id, params.siteId, baseline.name);
-                setSiteDescription(user.id, params.siteId, baseline.description);
+                setName(baseline.name);
+                setDescription(baseline.description);
               }
               navigate(href("/:username/site/:siteId/page/:pageId", { ...params }));
             }}
@@ -166,7 +153,7 @@ export function SiteSettings() {
           <Input
             id="site-name-and-wordmark"
             value={siteDraft.name}
-            onChange={(event) => setSiteName(user.id, params.siteId, event.target.value)}
+            onChange={(event) => setName(event.target.value)}
           />
         </div>
 
@@ -214,7 +201,7 @@ export function SiteSettings() {
               <Textarea
                 id="site-description"
                 value={siteDraft.description}
-                onChange={(event) => setSiteDescription(user.id, params.siteId, event.target.value)}
+                onChange={(event) => setDescription(event.target.value)}
               />
             </div>
 

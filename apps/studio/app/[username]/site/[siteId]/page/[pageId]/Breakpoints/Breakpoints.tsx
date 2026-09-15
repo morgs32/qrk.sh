@@ -7,7 +7,7 @@ import { useNavigate } from "react-router";
 import { useState } from "react";
 
 import { href } from "react-router";
-import { useSiteStore } from "../../../siteStore";
+import { useSitePageDraftStore } from "../../../sitePageDraftStore";
 
 import { BREAKPOINT_ROWS, type BreakpointPrefix } from "./breakpointRows";
 
@@ -37,13 +37,13 @@ export function Breakpoints() {
   const [selectedPrefix, setSelectedPrefix] = useState<BreakpointPrefix | null>(
     BREAKPOINT_ROWS[0].prefix,
   );
-  const breakpointGridColumnCounts = useSiteStore((state) =>
+  const breakpointGridColumnCounts = useSitePageDraftStore((state) =>
     user === null || user === undefined
       ? undefined
       : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId]
           ?.breakpointGridColumnCounts,
   );
-  const setBreakpointGridColumnCount = useSiteStore((state) => state.setBreakpointGridColumnCount);
+  const setBreakpointGridColumnCount = useSitePageDraftStore((state) => state.setBreakpointGridColumnCount);
 
   const gridColumnCount =
     selectedPrefix === null ? undefined : breakpointGridColumnCounts?.[selectedPrefix];

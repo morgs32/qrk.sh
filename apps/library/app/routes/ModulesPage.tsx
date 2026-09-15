@@ -24,7 +24,7 @@ export default function ModulesPage() {
           <div
             key={module.id}
             data-module-entry={module.id}
-            className="flex h-full min-h-0 w-[min(100%,20rem)] shrink-0 flex-col overflow-y-auto overscroll-contain border-r border-zinc-200"
+            className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-contain border-r border-zinc-200"
           >
             <Outline.Title sticky>
               <Link to={`/modules/${encodeURIComponent(module.id)}`} data-module-link={module.id}>

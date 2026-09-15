@@ -9,7 +9,7 @@ import { Schema } from "effect";
 import GridLayout, { verticalCompactor } from "react-grid-layout";
 import { href, useNavigate } from "react-router";
 
-import { useSiteStore } from "../../siteStore";
+import { useSitePageDraftStore } from "../../sitePageDraftStore";
 
 import {
   getActiveBrickDragGridShape,
@@ -34,7 +34,7 @@ export function Grid() {
   const suppressBrickClickRef = useRef(false);
   const pageKey = JSON.stringify([user?.id, params.siteId, params.pageId]);
   const pageGrid = useBrickDrawerStore((state) => state.pageGrids[pageKey]);
-  const draftLayout = useSiteStore((state) =>
+  const draftLayout = useSitePageDraftStore((state) =>
     user === null || user === undefined
       ? undefined
       : state.owners[user.id]?.sites[params.siteId]?.pages[params.pageId]?.layout,

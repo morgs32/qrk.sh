@@ -1,11 +1,11 @@
 "use client";
 
 import { Schema } from "effect";
-import { Link } from "react-router";
+import { Link, href } from "react-router";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
-import { href } from "react-router";
+import { useSiteStore } from "./siteStore";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -15,17 +15,18 @@ const ParamsSchema = Schema.Struct({
 
 export function SiteHeader() {
   const { username, siteId, pageId } = useValidatedParams(ParamsSchema);
+  const siteName = useSiteStore((state) => state.site?.name);
 
   return (
     <header className="z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-6">
       {pageId === undefined ? (
-        <span className="text-sm font-medium">Garlott</span>
+        <span className="text-sm font-medium">{siteName}</span>
       ) : (
         <Link
           to={href("/:username/site/:siteId/page/:pageId", { username, siteId, pageId })}
           className="text-sm font-medium"
         >
-          Garlott
+          {siteName}
         </Link>
       )}
       {/* <nav className="flex items-center gap-6">

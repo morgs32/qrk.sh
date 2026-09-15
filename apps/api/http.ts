@@ -1,16 +1,16 @@
 import type { IApiEnv } from "./types";
 
-const ALLOWED_ORIGINS = new Set([
+export const ALLOWED_ORIGINS: readonly string[] = [
   "http://127.0.0.1:3001",
   "http://localhost:3001",
   "https://www.qrk.sh",
   "https://qrk.sh",
-]);
+];
 
 export function corsHeaders(request: Request): Headers {
   const headers = new Headers();
   const origin = request.headers.get("Origin");
-  if (origin !== null && ALLOWED_ORIGINS.has(origin)) {
+  if (origin !== null && ALLOWED_ORIGINS.includes(origin)) {
     headers.set("Access-Control-Allow-Origin", origin);
     headers.set("Vary", "Origin");
   }

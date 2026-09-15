@@ -1,5 +1,12 @@
-import { emptyCorsResponse, jsonResponse, requireClerkUserId, UploadHttpError } from "./http";
-import { handleGetAsset, isAssetPath } from "./handleGetAsset";
+import { tryHandleR2Asset } from "@qrk.sh/r2-assets";
+
+import {
+  ALLOWED_ORIGINS,
+  emptyCorsResponse,
+  jsonResponse,
+  requireClerkUserId,
+  UploadHttpError,
+} from "./http";
 import { handleUpload } from "./handleUpload";
 import type { IApiEnv } from "./types";
 
@@ -10,15 +17,13 @@ async function handleRequest(request: Request, env: IApiEnv): Promise<Response> 
     return emptyCorsResponse(request, 204);
   }
 
-  if (isAssetPath(url.pathname)) {
-    if (request.method !== "GET") {
-      return jsonResponse(
-        request,
-        { code: "method-not-allowed", message: "Use GET /assets/*" },
-        405,
-      );
-    }
-    return handleGetAsset(request, env);
+  const assetResponse = await tryHandleR2Asset({
+    request,
+    bucket: env.QRKSH,
+    allowedOrigins: ALLOWED_ORIGINS,
+  });
+  if (assetResponse !== null) {
+    return assetResponse;
   }
 
   if (url.pathname !== "/upload") {

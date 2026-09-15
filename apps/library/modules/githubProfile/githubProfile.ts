@@ -1,5 +1,4 @@
 import { primitives } from "@zerospin/schema";
-import { Schema } from "effect";
 
 import { makeFetcherConfiguration } from "../../makeFetcherConfiguration";
 import { makeModule } from "../../makeModule";
@@ -12,13 +11,15 @@ export const githubProfile = makeModule({
   description: "A GitHub profile card.",
   configuration: makeFetcherConfiguration({
     moduleOptionsShape: {
-      url: primitives.text({ defaultValue: "https://github.com/morgs32" })},
+      url: primitives.text({ defaultValue: "https://github.com/morgs32" }),
+    },
     fetcher: async ({ api, moduleOptions, setData }) => {
       const result = await api.githubRepo().getProfile(moduleOptions.url);
       if (result._tag === "Left") return result;
       setData(result.right);
       return { _tag: "Right", right: undefined };
-    }}),
+    },
+  }),
   dataShape: {
     login: primitives.text(),
     avatar_url: primitives.text(),
@@ -29,15 +30,7 @@ export const githubProfile = makeModule({
     public_repos: primitives.integer(),
     followers: primitives.integer(),
     following: primitives.integer(),
-    contributions: primitives.json({
-      schema: Schema.mutable(
-        Schema.Array(
-          Schema.Struct({
-            date: Schema.String,
-            count: Schema.Int,
-            level: Schema.Literals([0, 1, 2, 3, 4])}),
-        ),
-      )})},
+  },
   defaultData: {
     id: 1364795,
     node_id: "MDQ6VXNlcjEzNjQ3OTU=",
@@ -72,18 +65,6 @@ export const githubProfile = makeModule({
     created_at: "2012-01-21T20:20:09Z",
     updated_at: "2026-07-15T15:27:35Z",
     login: "morgs32",
-    contributions: Array.from({ length: 365 }, (_, index) => {
-      const date = new Date();
-      date.setUTCDate(date.getUTCDate() - (364 - index));
-
-      // Mix each day's index to avoid repeating stripes while keeping samples stable.
-      let sample = Math.imul(index + 1, 0x45d9f3b);
-      sample = Math.imul(sample ^ (sample >>> 16), 0x45d9f3b);
-      sample = (sample ^ (sample >>> 16)) >>> 0;
-      const count = sample % 100 < 30 ? 0 : 1 + (sample % 15);
-      const level: 0 | 1 | 2 | 3 | 4 =
-        count === 0 ? 0 : count <= 3 ? 1 : count <= 7 ? 2 : count <= 11 ? 3 : 4;
-
-      return { date: date.toISOString().slice(0, 10), count, level };
-    })},
-  xs: { component: GitHubProfileStats, w: 4, h: 4 }});
+  },
+  xs: { component: GitHubProfileStats, w: 4, h: 4 },
+});

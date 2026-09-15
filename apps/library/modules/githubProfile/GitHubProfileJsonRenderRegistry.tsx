@@ -1,6 +1,5 @@
 import { defineRegistry } from "@json-render/react";
 
-import { ActivityHeatmap } from "./ActivityHeatmap";
 import { Avatar } from "./Avatar";
 import { Bio } from "./Bio";
 import { githubProfileJsonRenderCatalog } from "./GitHubProfileJsonRenderCatalog";
@@ -23,6 +22,5 @@ export const { registry } = defineRegistry(githubProfileJsonRenderCatalog, {
         following={props.following}
       />
     ),
-    ActivityHeatmap: ({ props }) => (
-      <ActivityHeatmap contributions={props.contributions} />
-    )}});
+  },
+});

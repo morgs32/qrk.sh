@@ -4,7 +4,7 @@ import { makeEffectSchema } from "@zerospin/schema";
 import { ActionProvider, Renderer, StateProvider, VisibilityProvider } from "@json-render/react";
 import { Schema } from "effect";
 
-import { buildGitHubProfileCalendarSpec } from "./buildGitHubProfileCalendarSpec";
+import { buildGitHubProfileSpec } from "./buildGitHubProfileSpec";
 import { githubProfile } from "./githubProfile";
 import { registry } from "./GitHubProfileJsonRenderRegistry";
 
@@ -18,7 +18,7 @@ export function GitHubProfileJsonRenderCompare(props: { data: unknown }) {
     onExcessProperty: "preserve",
   });
 
-  const spec = buildGitHubProfileCalendarSpec({
+  const spec = buildGitHubProfileSpec({
     login: data.login,
     avatar_url: data.avatar_url,
     name: data.name,
@@ -28,7 +28,6 @@ export function GitHubProfileJsonRenderCompare(props: { data: unknown }) {
     public_repos: data.public_repos,
     followers: data.followers,
     following: data.following,
-    contributions: data.contributions,
   });
 
   return (

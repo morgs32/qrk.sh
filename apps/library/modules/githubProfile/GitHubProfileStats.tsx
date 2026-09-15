@@ -24,11 +24,6 @@ export function GitHubProfileStats(props: {
     public_repos: number;
     followers: number;
     following: number;
-    contributions: Array<{
-      date: string;
-      count: number;
-      level: 0 | 1 | 2 | 3 | 4;
-    }>;
   };
 }) {
   const user = props.data;

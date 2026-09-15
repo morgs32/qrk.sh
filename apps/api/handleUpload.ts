@@ -1,3 +1,5 @@
+import { makePublicObjectUrl } from "@qrk.sh/r2-assets";
+
 import { UploadHttpError } from "./http";
 import type { IApiEnv } from "./types";
 
@@ -71,15 +73,11 @@ export async function handleUpload(request: Request, env: IApiEnv, clerkUserId: 
 
   return {
     key,
-    url: makePublicObjectUrl(request, env, key),
+    url: makePublicObjectUrl({
+      request,
+      publicBaseUrl: env.R2_PUBLIC_BASE_URL,
+      key,
+    }),
     contentType,
   };
-}
-
-function makePublicObjectUrl(request: Request, env: IApiEnv, key: string): string {
-  const base = env.R2_PUBLIC_BASE_URL.replace(/\/$/, "");
-  if (base.startsWith("/")) {
-    return `${new URL(request.url).origin}${base}/${key}`;
-  }
-  return `${base}/${key}`;
 }

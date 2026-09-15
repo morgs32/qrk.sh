@@ -1,6 +1,6 @@
 import type { Spec } from "@json-render/core";
 
-export function buildGitHubProfileCalendarSpec(data: {
+export function buildGitHubProfileSpec(data: {
   login: string;
   avatar_url: string;
   name: string | null;
@@ -10,11 +10,6 @@ export function buildGitHubProfileCalendarSpec(data: {
   public_repos: number;
   followers: number;
   following: number;
-  contributions: Array<{
-    date: string;
-    count: number;
-    level: 0 | 1 | 2 | 3 | 4;
-  }>;
 }): Spec {
   return {
     root: "card-1",
@@ -22,7 +17,7 @@ export function buildGitHubProfileCalendarSpec(data: {
       "card-1": {
         type: "ProfileCard",
         props: {},
-        children: ["avatar-1", "identity-1", "bio-1", "meta-1", "stats-1", "heatmap-1"],
+        children: ["avatar-1", "identity-1", "bio-1", "meta-1", "stats-1"],
       },
       "avatar-1": {
         type: "Avatar",
@@ -57,12 +52,6 @@ export function buildGitHubProfileCalendarSpec(data: {
           public_repos: data.public_repos,
           followers: data.followers,
           following: data.following,
-        },
-      },
-      "heatmap-1": {
-        type: "ActivityHeatmap",
-        props: {
-          contributions: data.contributions,
         },
       },
     },
